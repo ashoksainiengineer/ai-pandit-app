@@ -12,6 +12,12 @@ interface PhysicalTraitsFormProps {
 
 export default function PhysicalTraitsForm({ physicalDesc, setPhysicalDesc }: PhysicalTraitsFormProps) {
   const [showWhyPanel, setShowWhyPanel] = useState(false);
+  const [touched, setTouched] = useState({
+    bodyStructure: false,
+    height: false,
+    faceShape: false,
+    complexion: false
+  });
   
   // Visual face shapes with geometric representations
   const faceShapes = [
@@ -43,6 +49,21 @@ export default function PhysicalTraitsForm({ physicalDesc, setPhysicalDesc }: Ph
     { id: 'wheatish', name: 'Wheatish', color: 'bg-amber-200', description: 'Medium skin tone', emoji: '🤎' },
     { id: 'dark', name: 'Dark', color: 'bg-amber-800', description: 'Deep skin tone', emoji: '🖤' }
   ];
+  
+  // Get current height selection for display
+  const currentHeightIndex = heights.findIndex(h => h.id === physicalDesc.height);
+  const currentHeight = currentHeightIndex >= 0 ? heights[currentHeightIndex] : heights[1];
+  
+  // Validation state
+  const isValid = {
+    bodyStructure: !!physicalDesc.bodyStructure,
+    height: !!physicalDesc.height,
+    faceShape: !!physicalDesc.faceShape,
+    complexion: !!physicalDesc.complexion
+  };
+  
+  // Progress calculation
+  const progress = Object.values(isValid).filter(Boolean).length / Object.values(isValid).length * 100;
   
   return (
     <motion.div
@@ -158,7 +179,7 @@ export default function PhysicalTraitsForm({ physicalDesc, setPhysicalDesc }: Ph
             </div>
           </motion.div>
           
-          {/* Height - Visual Slider */}
+          {/* Height - Visual Slider with Value Display */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -170,7 +191,7 @@ export default function PhysicalTraitsForm({ physicalDesc, setPhysicalDesc }: Ph
             <div className="space-y-4">
               <div className="flex justify-between text-sm text-white/60 mb-2">
                 <span>Short</span>
-                <span>Average</span>
+                <span className="text-amber-400 font-medium">{currentHeight.name}</span>
                 <span>Tall</span>
               </div>
               <div className="relative">
@@ -178,23 +199,37 @@ export default function PhysicalTraitsForm({ physicalDesc, setPhysicalDesc }: Ph
                   type="range"
                   min="0"
                   max="2"
-                  value={heights.findIndex(h => h.id === physicalDesc.height) || 1}
+                  value={currentHeightIndex >= 0 ? currentHeightIndex : 1}
                   onChange={(e) => {
                     const index = parseInt(e.target.value);
                     setPhysicalDesc({ ...physicalDesc, height: heights[index].id as any });
+                    setTouched(prev => ({ ...prev, height: true }));
                   }}
-                  className="w-full h-2 bg-white/20 rounded-lg appearance-none cursor-pointer slider"
+                  className={`w-full h-2 rounded-lg appearance-none cursor-pointer slider ${
+                    touched.height && !isValid.height
+                      ? 'bg-red-500/20'
+                      : touched.height && isValid.height
+                      ? 'bg-green-500/20'
+                      : 'bg-white/20'
+                  }`}
+                  aria-label="Height selection"
+                  aria-valuetext={currentHeight.name}
                 />
                 <div className="flex justify-between mt-4">
                   {heights.map((height, index) => (
                     <div key={height.id} className="text-center">
                       <div className="text-2xl mb-1">{height.icon}</div>
-                      <div className="text-sm font-medium">{height.name}</div>
+                      <div className={`text-sm font-medium ${
+                        physicalDesc.height === height.id ? 'text-amber-400' : 'text-white'
+                      }`}>{height.name}</div>
                       <div className="text-xs text-white/60">{height.description}</div>
                     </div>
                   ))}
                 </div>
               </div>
+              {touched.height && !isValid.height && (
+                <p className="text-sm text-red-400 mt-1">Please select your height</p>
+              )}
             </div>
           </motion.div>
           
@@ -270,23 +305,55 @@ export default function PhysicalTraitsForm({ physicalDesc, setPhysicalDesc }: Ph
             </p>
           </motion.div>
           
+          {/* Progress Indicator */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.75 }}
+            className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-4 max-w-4xl mx-auto"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-white">Physical Traits Complete</span>
+              <span className="text-sm text-amber-400">{Math.round(progress)}%</span>
+            </div>
+            <div className="w-full bg-white/10 rounded-full h-2">
+              <motion.div
+                className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              />
+            </div>
+            <p className="text-xs text-white/60 mt-2">
+              {progress === 100 ? '✅ All traits selected' : `Select ${Object.values(isValid).filter(v => !v).length} more trait${Object.values(isValid).filter(v => !v).length !== 1 ? 's' : ''}`}
+            </p>
+          </motion.div>
+          
           {/* Distinctive Features */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.7 }}
+            transition={{ duration: 0.5, delay: 0.8 }}
           >
             <label className="block text-lg font-medium text-white mb-3">
               Any distinctive features? (Optional)
             </label>
             <textarea
               value={physicalDesc.distinctiveFeatures || ''}
-              onChange={(e) => setPhysicalDesc({ ...physicalDesc, distinctiveFeatures: e.target.value })}
+              onChange={(e) => {
+                // Sanitize input to prevent XSS
+                const sanitized = e.target.value.replace(/[<>"']/g, '');
+                setPhysicalDesc({ ...physicalDesc, distinctiveFeatures: sanitized });
+              }}
               placeholder="Notable features like birthmarks, scars, dimples, etc."
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300 resize-none"
               rows={3}
+              maxLength={200}
               aria-label="Distinctive physical features"
             />
+            <div className="text-xs text-white/60 mt-1 text-right">
+              {(physicalDesc.distinctiveFeatures || '').length}/200
+            </div>
           </motion.div>
         </div>
       </motion.div>

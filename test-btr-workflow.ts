@@ -5,7 +5,7 @@
  * User Input → Swiss Ephemeris → AI Analysis → Iterative Refinement → Final BTR
  */
 
-import { createBTRWorkflow, BTRWorkflowRequest } from './lib/btr-workflow.ts';
+import { createBTRWorkflow, BTRWorkflowRequest } from './lib/btr-workflow';
 
 async function testCompleteBTRWorkflow() {
   console.log('🧪 Starting BTR Workflow Test...\n');

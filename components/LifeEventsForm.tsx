@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Briefcase, Heart, Baby, Users, Stethoscope, Landmark, Plane, GraduationCap,
-  Plus, Trash2, Info, Calendar, Target, Star, Clock, MapPin, CheckCircle, XCircle, ChevronDown
+  Plus, Trash2, Info, Calendar, Target, Star, Clock, MapPin, CheckCircle, XCircle, ChevronDown, Edit2, Save, X
 } from 'lucide-react';
 import type { LifeEvent, EventCategory } from '@/types';
 import { EVENT_TYPES } from '@/types';
@@ -31,6 +31,8 @@ interface TimeParts {
 export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEventsFormProps) {
   const [selectedCategory, setSelectedCategory] = useState<EventCategory>('education');
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [touched, setTouched] = useState<Record<keyof ValidationState, boolean>>({
     eventType: false,
     eventDate: false,
@@ -161,7 +163,7 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
     
     setLifeEvents([...lifeEvents, event]);
     
-    // Reset form
+    // Reset form completely
     setNewEvent({
       category: selectedCategory,
       eventType: '',
@@ -175,13 +177,85 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
     setTouched({ eventType: false, eventDate: false, eventTime: false, description: false });
   }, [newEvent, selectedCategory, lifeEvents, setLifeEvents, validation]);
   
-  // Delete event handler
+  // Delete event handler with confirmation
   const deleteEvent = useCallback((eventId: string) => {
+    setShowDeleteConfirm(eventId);
+  }, []);
+  
+  // Confirm deletion
+  const confirmDelete = useCallback((eventId: string) => {
     setLifeEvents(lifeEvents.filter(e => e.id !== eventId));
+    setShowDeleteConfirm(null);
   }, [lifeEvents, setLifeEvents]);
   
-  // Calculate event quality score
-  const getEventQualityScore = useCallback(() => {
+  // Cancel deletion
+  const cancelDelete = useCallback(() => {
+    setShowDeleteConfirm(null);
+  }, []);
+  
+  // Edit event handlers
+  const startEditEvent = useCallback((eventId: string) => {
+    setEditingEventId(eventId);
+    const event = lifeEvents.find(e => e.id === eventId);
+    if (event) {
+      setNewEvent({ ...event });
+      if (event.eventTime) {
+        const [hour24, minute] = event.eventTime.split(':');
+        const hourNum = parseInt(hour24);
+        const period = hourNum >= 12 ? 'PM' : 'AM';
+        const displayHour = hourNum === 0 ? 12 : hourNum > 12 ? hourNum - 12 : hourNum;
+        setTimeParts({
+          hour: displayHour.toString().padStart(2, '0'),
+          minute,
+          period
+        });
+      }
+    }
+  }, [lifeEvents]);
+  
+  const saveEditEvent = useCallback(() => {
+    if (!editingEventId || !newEvent.eventType || !newEvent.eventDate) {
+      setTouched({ eventType: true, eventDate: true, eventTime: true, description: true });
+      return;
+    }
+    
+    setLifeEvents(lifeEvents.map(event =>
+      event.id === editingEventId
+        ? { ...event, ...newEvent as LifeEvent }
+        : event
+    ));
+    
+    setEditingEventId(null);
+    setNewEvent({
+      category: selectedCategory,
+      eventType: '',
+      eventDate: '',
+      dateAccuracy: 'exact',
+      description: '',
+      importance: 'medium',
+      eventTime: ''
+    });
+    setTimeParts({ hour: '', minute: '', period: 'AM' });
+    setTouched({ eventType: false, eventDate: false, eventTime: false, description: false });
+  }, [editingEventId, newEvent, lifeEvents, setLifeEvents, selectedCategory]);
+  
+  const cancelEditEvent = useCallback(() => {
+    setEditingEventId(null);
+    setNewEvent({
+      category: selectedCategory,
+      eventType: '',
+      eventDate: '',
+      dateAccuracy: 'exact',
+      description: '',
+      importance: 'medium',
+      eventTime: ''
+    });
+    setTimeParts({ hour: '', minute: '', period: 'AM' });
+    setTouched({ eventType: false, eventDate: false, eventTime: false, description: false });
+  }, [selectedCategory]);
+  
+  // Calculate event quality score - memoized for performance
+  const qualityScore = useMemo(() => {
     if (lifeEvents.length === 0) return { score: 0, level: 'poor', message: 'No events added yet' };
     
     const hasMarriage = lifeEvents.some(e => e.category === 'marriage');
@@ -203,8 +277,6 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
     if (score >= 40) return { score: Math.round(score), level: 'fair', message: 'Fair data quality' };
     return { score: Math.round(score), level: 'poor', message: 'Need more reliable events' };
   }, [lifeEvents]);
-  
-  const qualityScore = useMemo(() => getEventQualityScore(), [getEventQualityScore]);
   
   // Categories for selection
   const categories = useMemo(() => [
@@ -473,7 +545,6 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
                   setNewEvent(prev => ({ ...prev, eventDate: value }));
                   setTouched(prev => ({ ...prev, eventDate: true }));
                 }}
-                onBlur={() => setTouched(prev => ({ ...prev, eventDate: true }))}
                 dateType={newEvent.dateAccuracy as 'exact' | 'month' | 'year' | 'approximate'}
                 onDateTypeChange={(type) => setNewEvent(prev => ({ ...prev, dateAccuracy: type }))}
               />
@@ -628,73 +699,133 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
               </div>
             </div>
             
-            <div className="grid gap-4">
-              {lifeEvents.map((event, index) => {
-                const visual = categoryVisuals[event.category];
-                const importance = importanceLevels.find(l => l.value === event.importance);
-                return (
-                  <motion.div
-                    key={event.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    transition={{ duration: 0.4, delay: index * 0.1 }}
-                    className={`p-5 rounded-xl border backdrop-blur-sm ${importance?.color}`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4">
-                        <div className={`p-3 rounded-lg ${visual.bgColor} flex-shrink-0`}>
-                          <div className="text-2xl">{visual.emoji}</div>
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="text-lg font-semibold text-white">{event.eventType}</h4>
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${importance?.color}`}>
-                              {importance?.label.split(' ')[1]}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-4 text-sm text-white/70 mb-2">
-                            <div className="flex items-center gap-1">
-                              <Calendar className="w-4 h-4" />
-                              {new Date(event.eventDate).toLocaleDateString('en-IN', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric'
-                              })}
-                            </div>
-                            {event.eventTime && (
-                              <div className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" />
-                                <span>{event.eventTime}</span>
-                              </div>
-                            )}
-                            {event.dateAccuracy !== 'exact' && (
-                              <div className="flex items-center gap-1">
-                                <Clock className="w-4 h-4" />
-                                <span className="capitalize">{event.dateAccuracy}</span>
-                              </div>
-                            )}
-                          </div>
-                          {event.description && (
-                            <p className="text-sm text-white/80 italic bg-white/5 rounded-lg p-2">
-                              "{event.description}"
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      <motion.button
-                        onClick={() => deleteEvent(event.id)}
-                        className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors flex-shrink-0"
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        type="button"
+            {/* Timeline View */}
+            <div className="mb-8">
+              <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-amber-400" />
+                Event Timeline
+              </h4>
+              <div className="relative">
+                <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-amber-500/30"></div>
+                {lifeEvents
+                  .sort((a, b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime())
+                  .map((event, index) => {
+                    const visual = categoryVisuals[event.category];
+                    const importance = importanceLevels.find(l => l.value === event.importance);
+                    const isConfirming = showDeleteConfirm === event.id;
+                    
+                    return (
+                      <motion.div
+                        key={event.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.4, delay: index * 0.1 }}
+                        className="relative flex gap-4 mb-6"
                       >
-                        <Trash2 className="w-4 h-4" />
-                      </motion.button>
-                    </div>
-                  </motion.div>
-                );
-              })}
+                        {/* Timeline dot */}
+                        <div className="relative z-10">
+                          <div className={`w-16 h-16 rounded-full ${visual.bgColor} flex items-center justify-center border-2 border-white/20`}>
+                            <div className="text-2xl">{visual.emoji}</div>
+                          </div>
+                        </div>
+                        
+                        {/* Event content */}
+                        <div className="flex-1 bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-all">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="text-lg font-semibold text-white">{event.eventType}</h4>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${importance?.color}`}>
+                                  {importance?.label.split(' ')[1]}
+                                </span>
+                                {editingEventId === event.id && (
+                                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-500/20 text-amber-400">
+                                    Editing
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-4 text-sm text-white/70 mb-2">
+                                <div className="flex items-center gap-1">
+                                  <Calendar className="w-4 h-4" />
+                                  {new Date(event.eventDate).toLocaleDateString('en-IN', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric'
+                                  })}
+                                </div>
+                                {event.eventTime && (
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="w-4 h-4" />
+                                    <span>{event.eventTime}</span>
+                                  </div>
+                                )}
+                                {event.dateAccuracy !== 'exact' && (
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="w-4 h-4" />
+                                    <span className="capitalize">{event.dateAccuracy}</span>
+                                  </div>
+                                )}
+                              </div>
+                              {event.description && (
+                                <p className="text-sm text-white/80 italic bg-white/5 rounded-lg p-2">
+                                  "{event.description}"
+                                </p>
+                              )}
+                            </div>
+                            
+                            {/* Action buttons */}
+                            <div className="flex gap-2 ml-4">
+                              {!isConfirming ? (
+                                <>
+                                  <motion.button
+                                    onClick={() => startEditEvent(event.id)}
+                                    className="p-2 text-amber-400 hover:bg-amber-500/20 rounded-lg transition-colors flex-shrink-0"
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    type="button"
+                                    aria-label={`Edit ${event.eventType}`}
+                                  >
+                                    <Edit2 className="w-4 h-4" />
+                                  </motion.button>
+                                  <motion.button
+                                    onClick={() => deleteEvent(event.id)}
+                                    className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors flex-shrink-0"
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.9 }}
+                                    type="button"
+                                    aria-label={`Delete ${event.eventType}`}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </motion.button>
+                                </>
+                              ) : (
+                                <div className="flex flex-col gap-2 bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                                  <p className="text-sm text-white/80">Delete this event?</p>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => confirmDelete(event.id)}
+                                      className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600 transition-colors"
+                                      type="button"
+                                    >
+                                      Yes
+                                    </button>
+                                    <button
+                                      onClick={cancelDelete}
+                                      className="px-3 py-1 bg-white/10 text-white rounded text-sm hover:bg-white/20 transition-colors"
+                                      type="button"
+                                    >
+                                      No
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+              </div>
             </div>
           </motion.div>
         )}

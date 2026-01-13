@@ -52,30 +52,43 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
     gender: false
   });
   
+  // Simple state for raw inputs - what user is currently typing
+  const [dateInputs, setDateInputs] = useState({
+    day: '',
+    month: '',
+    year: ''
+  });
+  
+  const [timeInputs, setTimeInputs] = useState({
+    hour: '',
+    minute: '',
+    period: 'AM' as 'AM' | 'PM'
+  });
+  
   const citiesDropdownRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Derived date values with memoization
-  const dateValues = useMemo(() => {
-    if (!birthData.dateOfBirth) {
-      return { day: '', month: '', year: '' };
+  // Display values - show what user types, fall back to saved data
+  const displayDate = useMemo(() => {
+    if (dateInputs.day || dateInputs.month || dateInputs.year) {
+      return dateInputs;
     }
+    if (!birthData.dateOfBirth) return { day: '', month: '', year: '' };
+    
     const date = new Date(birthData.dateOfBirth);
-    if (isNaN(date.getTime())) {
-      return { day: '', month: '', year: '' };
-    }
     return {
       day: date.getDate().toString(),
       month: date.getMonth().toString(),
       year: date.getFullYear().toString()
     };
-  }, [birthData.dateOfBirth]);
+  }, [birthData.dateOfBirth, dateInputs]);
   
-  // Time values
-  const timeValues = useMemo(() => {
-    if (!birthData.tentativeTime) {
-      return { hour: '', minute: '', period: 'AM' as const };
+  const displayTime = useMemo(() => {
+    if (timeInputs.hour || timeInputs.minute) {
+      return timeInputs;
     }
+    if (!birthData.tentativeTime) return { hour: '', minute: '', period: 'AM' as const };
+    
     const [hours, minutes] = birthData.tentativeTime.split(':');
     const hourNum = parseInt(hours);
     const period = hourNum >= 12 ? 'PM' : 'AM';
@@ -86,7 +99,7 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
       minute: minutes || '00',
       period
     };
-  }, [birthData.tentativeTime]);
+  }, [birthData.tentativeTime, timeInputs]);
   
   // Validation logic
   const validateField = useCallback((field: keyof ValidationState, value: any): boolean => {
@@ -170,44 +183,87 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
     setShowCitySuggestions(false);
   }, [birthData, setBirthData]);
   
-  // Date handlers
+  // Simple date handler - just store and display what user types
   const handleDateChange = useCallback((field: 'day' | 'month' | 'year', value: string) => {
-    const currentDate = birthData.dateOfBirth ? new Date(birthData.dateOfBirth) : new Date();
-    const day = field === 'day' ? parseInt(value) : currentDate.getDate();
-    const month = field === 'month' ? parseInt(value) : currentDate.getMonth();
-    const year = field === 'year' ? parseInt(value) : currentDate.getFullYear();
+    // Update the input state immediately so user sees what they type
+    setDateInputs(prev => ({ ...prev, [field]: value }));
     
-    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
-      const newDate = new Date(year, month, day);
-      if (!isNaN(newDate.getTime())) {
-        setBirthData({ ...birthData, dateOfBirth: newDate.toISOString().split('T')[0] });
+    // Only numbers allowed
+    if (value !== '' && !/^\d+$/.test(value)) return;
+    
+    // Basic length limits
+    if (field === 'day' && value.length > 2) return;
+    if (field === 'month' && value.length > 2) return;
+    if (field === 'year' && value.length > 4) return;
+    
+    // Try to create date only when we have all 3 values
+    const day = field === 'day' ? value : dateInputs.day;
+    const month = field === 'month' ? value : dateInputs.month;
+    const year = field === 'year' ? value : dateInputs.year;
+    
+    if (day.length === 2 && month.length >= 1 && year.length === 4) {
+      const dayNum = parseInt(day);
+      const monthNum = parseInt(month);
+      const yearNum = parseInt(year);
+      
+      if (dayNum >= 1 && dayNum <= 31 && monthNum >= 0 && monthNum <= 11 && yearNum >= 1900 && yearNum <= 2100) {
+        const date = new Date(yearNum, monthNum, dayNum);
+        if (!isNaN(date.getTime())) {
+          setBirthData({ ...birthData, dateOfBirth: date.toISOString().split('T')[0] });
+          setValidation(prev => ({ ...prev, dateOfBirth: true }));
+          return;
+        }
       }
     }
-  }, [birthData.dateOfBirth, birthData, setBirthData]);
-  
-  // Time handlers
-  const handleTimeChange = useCallback((field: 'hour' | 'minute' | 'period', value: string) => {
-    const currentTime = birthData.tentativeTime || '12:00';
-    const [currentHour, currentMinute] = currentTime.split(':');
-    let hour24 = parseInt(currentHour) || 12;
-    const minute = parseInt(currentMinute) || 0;
     
-    if (field === 'period') {
-      const isPM = value === 'PM';
-      if (isPM && hour24 < 12) hour24 += 12;
-      if (!isPM && hour24 === 12) hour24 = 0;
-    } else if (field === 'hour') {
-      const displayHour = parseInt(value) || 12;
-      const isPM = hour24 >= 12;
-      hour24 = displayHour === 12 ? (isPM ? 12 : 0) : (isPM ? displayHour + 12 : displayHour);
-    } else if (field === 'minute') {
-      const newMinute = parseInt(value) || 0;
-      setBirthData({ ...birthData, tentativeTime: `${String(hour24).padStart(2, '0')}:${String(newMinute).padStart(2, '0')}` });
-      return;
+    // If we get here, validation failed
+    setValidation(prev => ({ ...prev, dateOfBirth: false }));
+  }, [dateInputs, birthData, setBirthData]);
+  
+  // Simple time handler - just store and display what user types
+  const handleTimeChange = useCallback((field: 'hour' | 'minute' | 'period', value: string) => {
+    if (field === 'hour' || field === 'minute') {
+      // Update the input state immediately so user sees what they type
+      setTimeInputs(prev => ({ ...prev, [field]: value }));
+      
+      // Only numbers allowed
+      if (value !== '' && !/^\d+$/.test(value)) return;
+      
+      // Basic length limits
+      if (field === 'hour' && value.length > 2) return;
+      if (field === 'minute' && value.length > 2) return;
+    } else {
+      // AM/PM change
+      setTimeInputs(prev => ({ ...prev, period: value as 'AM' | 'PM' }));
     }
     
-    setBirthData({ ...birthData, tentativeTime: `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}` });
-  }, [birthData.tentativeTime, birthData, setBirthData]);
+    // Try to create time only when we have hour and minute
+    const hour = field === 'hour' ? value : timeInputs.hour;
+    const minute = field === 'minute' ? value : timeInputs.minute;
+    const period = field === 'period' ? value : timeInputs.period;
+    
+    if (hour.length === 2 && minute.length === 2) {
+      const hourNum = parseInt(hour);
+      const minuteNum = parseInt(minute);
+      
+      if (hourNum >= 1 && hourNum <= 12 && minuteNum >= 0 && minuteNum <= 59) {
+        // Convert to 24-hour format
+        const hour24 = period === 'AM'
+          ? (hourNum === 12 ? 0 : hourNum)
+          : (hourNum === 12 ? 12 : hourNum + 12);
+        
+        setBirthData({
+          ...birthData,
+          tentativeTime: `${String(hour24).padStart(2, '0')}:${String(minuteNum).padStart(2, '0')}`
+        });
+        setValidation(prev => ({ ...prev, tentativeTime: true }));
+        return;
+      }
+    }
+    
+    // If we get here, validation failed
+    setValidation(prev => ({ ...prev, tentativeTime: false }));
+  }, [timeInputs, birthData, setBirthData]);
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -226,17 +282,31 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
     };
   }, []);
   
-  // Time uncertainty options
+  // Time uncertainty options with better UX
   const timeUncertaintyOptions = [
-    { value: 'exact', label: '🎯 Exact Time', description: 'Verified from birth certificate' },
-    { value: '5min', label: '⏰ ±5 minutes', description: 'Very accurate estimate' },
-    { value: '15min', label: '🕐 ±15 minutes', description: 'Accurate estimate' },
-    { value: '30min', label: '🕑 ±30 minutes', description: 'Fairly accurate' },
-    { value: '1hour', label: '🕒 ±1 hour', description: 'Approximate time' },
-    { value: '2hour', label: '🕓 ±2 hours', description: 'Rough estimate' },
-    { value: '4hour', label: '🕔 ±4 hours', description: 'Very uncertain' },
-    { value: 'unknown', label: '❓ Unknown', description: 'No information' }
+    { value: 'exact', label: '🎯 Exact Time', description: 'Verified from birth certificate', interval: '±0 min' },
+    { value: '5min', label: '⏰ Very Accurate', description: 'Within 5 minutes', interval: '±5 min' },
+    { value: '15min', label: '🕐 Accurate', description: 'Within 15 minutes', interval: '±15 min' },
+    { value: '30min', label: '🕑 Fairly Accurate', description: 'Within 30 minutes', interval: '±30 min' },
+    { value: '1hour', label: '🕒 Approximate', description: 'Within 1 hour', interval: '±1 hour' },
+    { value: '2hour', label: '🕓 Rough Estimate', description: 'Within 2 hours', interval: '±2 hours' },
+    { value: '4hour', label: '🕔 Very Uncertain', description: 'Within 4 hours', interval: '±4 hours' },
+    { value: 'unknown', label: '❓ Unknown', description: 'No information available', interval: 'Unknown' }
   ];
+  
+  // Manual time uncertainty input
+  const [manualUncertainty, setManualUncertainty] = useState('');
+  const [showManualInput, setShowManualInput] = useState(false);
+  
+  const handleManualUncertainty = (value: string) => {
+    setManualUncertainty(value);
+    if (value && /^\d+$/.test(value)) {
+      const minutes = parseInt(value);
+      if (minutes >= 0 && minutes <= 240) {
+        setBirthData({ ...birthData, timeUncertainty: `manual:${minutes}` as any });
+      }
+    }
+  };
   
   // Popular Indian cities
   const popularCities = [
@@ -250,39 +320,65 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
     { name: 'Ahmedabad', district: 'Ahmedabad', state: 'Gujarat', country: 'India', latitude: 23.0225, longitude: 72.5714 }
   ];
   
-  // Input component with validation
-  const ValidatedInput = ({ id, label, value, onChange, onBlur, isValid, touched: fieldTouched, type = 'text', ...props }: any) => {
+  // Input component with validation and accessibility
+  const ValidatedInput = ({
+    id,
+    label,
+    value,
+    onChange,
+    onBlur,
+    isValid,
+    touched: fieldTouched,
+    type = 'text',
+    placeholder = '',
+    ariaLabel,
+    errorMessage,
+    ...props
+  }: any) => {
+    const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+    const errorId = `${inputId}-error`;
+    const helpId = `${inputId}-help`;
+    
     return (
-      <div className="relative">
-        <label htmlFor={id} className="block text-sm font-medium text-white/80 mb-2">
+      <div className="relative mb-6">
+        <label htmlFor={inputId} className="block text-sm font-medium text-white/80 mb-2">
           {label}
         </label>
         <div className="relative">
           <input
-            id={id}
+            id={inputId}
             type={type}
             value={value}
             onChange={onChange}
             onBlur={onBlur}
             className={`w-full px-4 py-3 bg-white/10 border rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 transition-all duration-300 ${
-              fieldTouched && !isValid 
-                ? 'border-red-500 focus:ring-red-500' 
+              fieldTouched && !isValid
+                ? 'border-red-500 focus:ring-red-500'
                 : fieldTouched && isValid
                 ? 'border-green-500 focus:ring-green-500'
                 : 'border-white/20 focus:ring-amber-500'
             }`}
+            placeholder={placeholder}
+            aria-label={ariaLabel || label}
+            aria-describedby={`${helpId} ${errorId}`}
+            aria-invalid={fieldTouched && !isValid}
             {...props}
           />
           {fieldTouched && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
               {isValid ? (
-                <CheckCircle className="w-5 h-5 text-green-500" />
+                <CheckCircle className="w-5 h-5 text-green-500" aria-hidden="true" />
               ) : (
-                <AlertCircle className="w-5 h-5 text-red-500" />
+                <AlertCircle className="w-5 h-5 text-red-500" aria-hidden="true" />
               )}
             </div>
           )}
         </div>
+        {fieldTouched && !isValid && errorMessage && (
+          <p id={errorId} className="text-sm text-red-400 mt-1">
+            {errorMessage}
+          </p>
+        )}
       </div>
     );
   };
@@ -304,68 +400,87 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
         <div className="space-y-8">
           
           {/* Name */}
-          <div>
+          <div className="mb-8">
             <ValidatedInput
               id="fullName"
               label="What's your name?"
               value={birthData.fullName || ''}
-              onChange={(e: any) => setBirthData({ ...birthData, fullName: e.target.value })}
-              onBlur={() => setTouched(prev => ({ ...prev, fullName: true }))}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                // Sanitize input to prevent XSS
+                const sanitized = e.target.value.replace(/[<>"']/g, '');
+                const newData = { ...birthData, fullName: sanitized };
+                setBirthData(newData);
+              }}
+              onBlur={() => setTouched((prev: any) => ({ ...prev, fullName: true }))}
               isValid={validation.fullName}
               touched={touched.fullName}
-              placeholder="Enter your full name"
+              placeholder="Enter your full name (e.g., Rahul Sharma)"
               required
+              aria-label="Full name"
+              aria-describedby="name-help"
+              aria-invalid={touched.fullName && !validation.fullName}
             />
-            <p className="text-sm text-white/60 mt-2 flex items-center gap-2">
+            <p id="name-help" className="text-sm text-white/60 mt-2 flex items-center gap-2">
               <Info className="w-4 h-4" />
               This appears on your rectification report
             </p>
+            {touched.fullName && !validation.fullName && (
+              <p className="text-sm text-red-400 mt-1">
+                Please enter your full name (minimum 2 characters)
+              </p>
+            )}
           </div>
           
           {/* Date of Birth */}
-          <div>
+          <div className="mb-8">
             <label className="block text-lg font-medium text-white mb-3">
               When were you born?
             </label>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <ValidatedInput
                 id="day"
                 label="Day"
                 type="number"
                 min="1"
                 max="31"
-                value={dateValues.day}
-                onChange={(e: any) => handleDateChange('day', e.target.value)}
-                onBlur={() => setTouched(prev => ({ ...prev, dateOfBirth: true }))}
+                value={displayDate.day}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleDateChange('day', e.target.value)}
+                onBlur={() => setTouched((prev: any) => ({ ...prev, dateOfBirth: true }))}
                 isValid={validation.dateOfBirth}
                 touched={touched.dateOfBirth}
                 placeholder="DD"
                 required
+                errorMessage="Please enter a valid day (1-31)"
               />
               
-              <div>
+              <div className="mb-6">
                 <label htmlFor="month" className="block text-sm font-medium text-white/80 mb-2">Month</label>
                 <select
                   id="month"
-                  value={dateValues.month}
-                  onChange={(e) => handleDateChange('month', e.target.value)}
-                  onBlur={() => setTouched(prev => ({ ...prev, dateOfBirth: true }))}
+                  value={displayDate.month}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleDateChange('month', e.target.value)}
+                  onBlur={() => setTouched((prev: any) => ({ ...prev, dateOfBirth: true }))}
                   className={`w-full px-4 py-3 bg-white/10 border rounded-xl text-white focus:outline-none focus:ring-2 transition-all duration-300 ${
-                    touched.dateOfBirth && !validation.dateOfBirth 
-                      ? 'border-red-500 focus:ring-red-500' 
+                    touched.dateOfBirth && !validation.dateOfBirth
+                      ? 'border-red-500 focus:ring-red-500'
                       : touched.dateOfBirth && validation.dateOfBirth
                       ? 'border-green-500 focus:ring-green-500'
                       : 'border-white/20 focus:ring-amber-500'
                   }`}
                   required
+                  aria-label="Month of birth"
+                  aria-describedby="month-help"
                 >
-                  <option value="">Select</option>
+                  <option value="">Select Month</option>
                   {Array.from({ length: 12 }, (_, i) => (
                     <option key={i} value={i}>
                       {new Date(2000, i, 1).toLocaleString('default', { month: 'long' })}
                     </option>
                   ))}
                 </select>
+                <p id="month-help" className="text-sm text-white/60 mt-2">
+                  Select the month you were born
+                </p>
               </div>
               
               <ValidatedInput
@@ -374,37 +489,44 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                 type="number"
                 min="1900"
                 max="2100"
-                value={dateValues.year}
-                onChange={(e: any) => handleDateChange('year', e.target.value)}
-                onBlur={() => setTouched(prev => ({ ...prev, dateOfBirth: true }))}
+                value={displayDate.year}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleDateChange('year', e.target.value)}
+                onBlur={() => setTouched((prev: any) => ({ ...prev, dateOfBirth: true }))}
                 isValid={validation.dateOfBirth}
                 touched={touched.dateOfBirth}
                 placeholder="YYYY"
                 required
+                errorMessage="Please enter a valid year (1900-2100)"
               />
             </div>
+            {touched.dateOfBirth && !validation.dateOfBirth && (
+              <p className="text-sm text-red-400 mt-2">
+                Please enter a valid date of birth
+              </p>
+            )}
           </div>
           
           {/* Birth Time */}
-          <div>
+          <div className="mb-8">
             <label className="block text-lg font-medium text-white mb-3">
               What time were you born? (approximately)
             </label>
             
-            <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <ValidatedInput
                 id="hour"
                 label="Hour"
                 type="number"
                 min="1"
                 max="12"
-                value={timeValues.hour}
-                onChange={(e: any) => handleTimeChange('hour', e.target.value)}
-                onBlur={() => setTouched(prev => ({ ...prev, tentativeTime: true }))}
+                value={displayTime.hour}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleTimeChange('hour', e.target.value)}
+                onBlur={() => setTouched((prev: any) => ({ ...prev, tentativeTime: true }))}
                 isValid={validation.tentativeTime}
                 touched={touched.tentativeTime}
                 placeholder="HH"
                 required
+                errorMessage="Please enter a valid hour (1-12)"
               />
               
               <ValidatedInput
@@ -413,30 +535,32 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                 type="number"
                 min="0"
                 max="59"
-                value={timeValues.minute}
-                onChange={(e: any) => handleTimeChange('minute', e.target.value)}
-                onBlur={() => setTouched(prev => ({ ...prev, tentativeTime: true }))}
+                value={displayTime.minute}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleTimeChange('minute', e.target.value)}
+                onBlur={() => setTouched((prev: any) => ({ ...prev, tentativeTime: true }))}
                 isValid={validation.tentativeTime}
                 touched={touched.tentativeTime}
                 placeholder="MM"
                 required
+                errorMessage="Please enter a valid minute (0-59)"
               />
               
-              <div>
+              <div className="mb-6">
                 <label htmlFor="period" className="block text-sm font-medium text-white/80 mb-2">Period</label>
                 <select
                   id="period"
-                  value={timeValues.period}
-                  onChange={(e) => handleTimeChange('period', e.target.value)}
-                  onBlur={() => setTouched(prev => ({ ...prev, tentativeTime: true }))}
+                  value={displayTime.period}
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleTimeChange('period', e.target.value)}
+                  onBlur={() => setTouched((prev: any) => ({ ...prev, tentativeTime: true }))}
                   className={`w-full px-4 py-3 bg-white/10 border rounded-xl text-white focus:outline-none focus:ring-2 transition-all duration-300 ${
-                    touched.tentativeTime && !validation.tentativeTime 
-                      ? 'border-red-500 focus:ring-red-500' 
+                    touched.tentativeTime && !validation.tentativeTime
+                      ? 'border-red-500 focus:ring-red-500'
                       : touched.tentativeTime && validation.tentativeTime
                       ? 'border-green-500 focus:ring-green-500'
                       : 'border-white/20 focus:ring-amber-500'
                   }`}
                   required
+                  aria-label="AM or PM"
                 >
                   <option value="AM">🌅 AM</option>
                   <option value="PM">🌆 PM</option>
@@ -445,27 +569,89 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
             </div>
             
             {/* Time Uncertainty */}
-            <div className="mb-4">
+            <div className="mb-6">
               <label className="block text-sm font-medium text-white/70 mb-3">
                 How sure are you about this time?
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              
+              {/* Quick selection grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                 {timeUncertaintyOptions.map((option) => (
-                  <button
+                  <motion.button
                     key={option.value}
                     type="button"
-                    onClick={() => setBirthData({ ...birthData, timeUncertainty: option.value as any })}
-                    className={`p-3 rounded-xl text-center transition-all duration-300 border-2 ${
+                    onClick={() => {
+                      setBirthData({ ...birthData, timeUncertainty: option.value as any });
+                      setShowManualInput(false);
+                    }}
+                    className={`p-3 rounded-xl text-center transition-all duration-300 border-2 min-w-0 ${
                       birthData.timeUncertainty === option.value
-                        ? 'bg-amber-500/20 border-amber-500 text-white'
-                        : 'bg-white/5 border-white/20 text-white/70 hover:border-white/40'
+                        ? 'bg-amber-500/20 border-amber-500 text-white shadow-lg'
+                        : 'bg-white/5 border-white/20 text-white/70 hover:border-white/40 hover:bg-white/10'
                     }`}
+                    aria-pressed={birthData.timeUncertainty === option.value}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     <div className="text-lg mb-1">{option.label.split(' ')[0]}</div>
-                    <div className="text-xs">{option.label.split(' ')[1]}</div>
-                  </button>
+                    <div className="text-xs font-medium">{option.label.split(' ')[1] || ''}</div>
+                    <div className="text-xs text-white/60 mt-1">{option.interval}</div>
+                    <div className="text-xs text-white/50 mt-1">{option.description}</div>
+                  </motion.button>
                 ))}
               </div>
+              
+              {/* Manual input option */}
+              <div className="flex items-center gap-3 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setShowManualInput(!showManualInput)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    showManualInput
+                      ? 'bg-amber-500 text-black'
+                      : 'bg-white/10 text-white/70 hover:bg-white/20'
+                  }`}
+                >
+                  {showManualInput ? '✏️ Manual Entry' : '✏️ Enter Custom Minutes'}
+                </button>
+                
+                {birthData.timeUncertainty?.toString().startsWith('manual:') && (
+                  <span className="text-sm text-amber-400">
+                    Custom: ±{birthData.timeUncertainty.toString().split(':')[1]} minutes
+                  </span>
+                )}
+              </div>
+              
+              {/* Manual input field */}
+              <AnimatePresence>
+                {showManualInput && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="bg-white/5 border border-white/20 rounded-xl p-4"
+                  >
+                    <label className="block text-sm font-medium text-white/80 mb-2">
+                      Enter uncertainty in minutes (0-240)
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="0"
+                        max="240"
+                        value={manualUncertainty}
+                        onChange={(e) => handleManualUncertainty(e.target.value)}
+                        placeholder="e.g., 30"
+                        className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                      <span className="text-sm text-white/70">minutes</span>
+                    </div>
+                    <p className="text-xs text-white/60 mt-2">
+                      Enter how many minutes your birth time might be off by
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             
             {/* Time Help Panel */}
@@ -474,6 +660,8 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                 onClick={() => setShowTimeHelp(!showTimeHelp)}
                 className="flex items-center gap-2 text-amber-400 hover:text-amber-300 mb-2 w-full text-left"
                 type="button"
+                aria-expanded={showTimeHelp}
+                aria-controls="time-help-content"
               >
                 <Info className="w-4 h-4 flex-shrink-0" />
                 <span className="font-medium">Where to find your birth time</span>
@@ -483,6 +671,7 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
               <AnimatePresence>
                 {showTimeHelp && (
                   <motion.div
+                    id="time-help-content"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
@@ -498,16 +687,21 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                 )}
               </AnimatePresence>
             </div>
+            {touched.tentativeTime && !validation.tentativeTime && (
+              <p className="text-sm text-red-400 mt-2">
+                Please enter a valid time
+              </p>
+            )}
           </div>
           
           {/* Birth Place */}
-          <div>
+          <div className="mb-8">
             <label className="block text-lg font-medium text-white mb-3">
               Where were you born?
             </label>
             
             {/* Location Mode Tabs */}
-            <div className="flex gap-2 mb-4">
+            <div className="flex flex-wrap gap-2 mb-4">
               {(['search', 'manual', 'map'] as const).map((mode) => (
                 <button
                   key={mode}
@@ -518,6 +712,7 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                       ? 'bg-amber-500 text-white'
                       : 'bg-white/10 text-white/70 hover:bg-white/20'
                   }`}
+                  aria-pressed={locationMode === mode}
                 >
                   {mode === 'search' && '🔍 Search'}
                   {mode === 'manual' && '✏️ Manual'}
@@ -529,32 +724,40 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
             {/* Search Mode */}
             {locationMode === 'search' && (
               <div className="space-y-4">
-                <div className="relative" ref={citiesDropdownRef}>
+                <div className="relative mb-6" ref={citiesDropdownRef}>
                   <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50 pointer-events-none" />
                   <input
                     type="text"
                     value={birthData.birthPlace || ''}
-                    onChange={(e) => handleCitySearch(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      // Sanitize input to prevent XSS
+                      const sanitized = e.target.value.replace(/[<>"']/g, '');
+                      handleCitySearch(sanitized);
+                    }}
                     onFocus={() => birthData.birthPlace && citySuggestions.length > 0 && setShowCitySuggestions(true)}
-                    placeholder="Start typing city name..."
+                    placeholder="Start typing city name (e.g., Mumbai, Delhi, Bangalore)..."
                     className={`w-full pl-12 pr-4 py-4 bg-white/10 border rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 transition-all duration-300 ${
-                      touched.birthPlace && !validation.birthPlace 
-                        ? 'border-red-500 focus:ring-red-500' 
+                      touched.birthPlace && !validation.birthPlace
+                        ? 'border-red-500 focus:ring-red-500'
                         : touched.birthPlace && validation.birthPlace
                         ? 'border-green-500 focus:ring-green-500'
                         : 'border-white/20 focus:ring-amber-500'
                     }`}
                     aria-label="Birth place search"
+                    aria-describedby="birthplace-help"
                     required
                   />
                   {isSearchingCities && (
-                    <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-amber-500 animate-spin" />
+                    <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-amber-500 animate-spin" aria-hidden="true" />
                   )}
                 </div>
+                <p id="birthplace-help" className="text-sm text-white/60 mt-2">
+                  Start typing to search for your birth city
+                </p>
                 
                 {/* Popular Cities */}
                 <div>
-                  <p className="text-sm text-white/60 mb-2">Popular cities:</p>
+                  <p className="text-sm text-white/60 mb-2">Popular cities in India:</p>
                   <div className="flex flex-wrap gap-2">
                     {popularCities.map((city) => (
                       <button
@@ -577,6 +780,8 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
                       className="bg-slate-800 border border-white/20 rounded-xl overflow-hidden z-50 shadow-xl"
+                      role="listbox"
+                      aria-label="City suggestions"
                     >
                       {citySuggestions.map((city, idx) => (
                         <button
@@ -584,6 +789,7 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                           onClick={() => handleCitySelect(city)}
                           className="w-full px-4 py-3 text-left hover:bg-amber-500/20 transition-colors border-b border-white/10 last:border-b-0 flex flex-col"
                           type="button"
+                          role="option"
                         >
                           <div className="font-medium text-white">{city.name}</div>
                           <div className="text-sm text-white/60 mt-1">
@@ -607,40 +813,59 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                   id="birthPlace"
                   label="Birth Place Name"
                   value={birthData.birthPlace || ''}
-                  onChange={(e: any) => setBirthData({ ...birthData, birthPlace: e.target.value })}
-                  onBlur={() => setTouched(prev => ({ ...prev, birthPlace: true }))}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    // Sanitize input to prevent XSS
+                    const sanitized = e.target.value.replace(/[<>"']/g, '');
+                    setBirthData({ ...birthData, birthPlace: sanitized });
+                  }}
+                  onBlur={() => setTouched((prev: any) => ({ ...prev, birthPlace: true }))}
                   isValid={validation.birthPlace}
                   touched={touched.birthPlace}
-                  placeholder="Enter city/town name"
+                  placeholder="Enter city/town name (e.g., Jaipur, Rajasthan)"
                   required
+                  errorMessage="Please enter a valid birth place"
                 />
                 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <ValidatedInput
                     id="latitude"
                     label="Latitude"
                     type="number"
                     step="0.0001"
+                    min="-90"
+                    max="90"
                     value={birthData.latitude?.toString() || ''}
-                    onChange={(e: any) => setBirthData({ ...birthData, latitude: parseFloat(e.target.value) })}
-                    onBlur={() => setTouched(prev => ({ ...prev, latitude: true }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const value = parseFloat(e.target.value);
+                      setBirthData({ ...birthData, latitude: isNaN(value) ? 0 : value });
+                    }}
+                    onBlur={() => setTouched((prev: any) => ({ ...prev, latitude: true }))}
                     isValid={validation.latitude}
                     touched={touched.latitude}
-                    placeholder="e.g., 28.7041"
+                    placeholder="e.g., 28.7041 (Delhi)"
                     required
+                    errorMessage="Latitude must be between -90 and 90"
+                    aria-label="Latitude coordinate"
                   />
                   <ValidatedInput
                     id="longitude"
                     label="Longitude"
                     type="number"
                     step="0.0001"
+                    min="-180"
+                    max="180"
                     value={birthData.longitude?.toString() || ''}
-                    onChange={(e: any) => setBirthData({ ...birthData, longitude: parseFloat(e.target.value) })}
-                    onBlur={() => setTouched(prev => ({ ...prev, longitude: true }))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                      const value = parseFloat(e.target.value);
+                      setBirthData({ ...birthData, longitude: isNaN(value) ? 0 : value });
+                    }}
+                    onBlur={() => setTouched((prev: any) => ({ ...prev, longitude: true }))}
                     isValid={validation.longitude}
                     touched={touched.longitude}
-                    placeholder="e.g., 77.1025"
+                    placeholder="e.g., 77.1025 (Delhi)"
                     required
+                    errorMessage="Longitude must be between -180 and 180"
+                    aria-label="Longitude coordinate"
                   />
                 </div>
               </div>
@@ -649,58 +874,65 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
             {/* Map Mode */}
             {locationMode === 'map' && (
               <div className="space-y-4">
-                <MapPicker
-                  initialLat={birthData.latitude || 20}
-                  initialLon={birthData.longitude || 77}
-                  onCoordinateSelect={(lat, lon) => {
-                    setBirthData({ ...birthData, latitude: lat, longitude: lon });
-                    setTouched(prev => ({ ...prev, latitude: true, longitude: true }));
-                  }}
-                />
+                <div className="mb-6">
+                  <MapPicker
+                    initialLat={birthData.latitude || 20}
+                    initialLon={birthData.longitude || 77}
+                    onCoordinateSelect={(lat, lon) => {
+                      setBirthData({ ...birthData, latitude: lat, longitude: lon });
+                      setTouched((prev: any) => ({ ...prev, latitude: true, longitude: true }));
+                    }}
+                  />
+                  <p className="text-sm text-white/60 mt-2">
+                    Click on the map to select your exact birth location
+                  </p>
+                </div>
               </div>
             )}
           </div>
           
           {/* Gender */}
-          <div>
+          <div className="mb-8">
             <label className="block text-lg font-medium text-white mb-3">
               What's your gender?
             </label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button
                 type="button"
                 onClick={() => {
                   setBirthData({ ...birthData, gender: 'male' });
-                  setTouched(prev => ({ ...prev, gender: true }));
+                  setTouched((prev: any) => ({ ...prev, gender: true }));
                 }}
                 className={`p-6 rounded-xl text-center transition-all duration-300 border-2 ${
                   birthData.gender === 'male'
                     ? 'bg-blue-500/20 border-blue-500 text-white shadow-lg'
                     : 'bg-white/5 border-white/20 text-white/70 hover:border-white/40'
                 }`}
+                aria-pressed={birthData.gender === 'male'}
               >
                 <div className="text-4xl mb-2">👨</div>
                 <div className="text-lg font-semibold">Male</div>
                 {touched.gender && validation.gender && birthData.gender === 'male' && (
-                  <CheckCircle className="w-5 h-5 text-green-500 mx-auto mt-2" />
+                  <CheckCircle className="w-5 h-5 text-green-500 mx-auto mt-2" aria-hidden="true" />
                 )}
               </button>
               <button
                 type="button"
                 onClick={() => {
                   setBirthData({ ...birthData, gender: 'female' });
-                  setTouched(prev => ({ ...prev, gender: true }));
+                  setTouched((prev: any) => ({ ...prev, gender: true }));
                 }}
                 className={`p-6 rounded-xl text-center transition-all duration-300 border-2 ${
                   birthData.gender === 'female'
                     ? 'bg-pink-500/20 border-pink-500 text-white shadow-lg'
                     : 'bg-white/5 border-white/20 text-white/70 hover:border-white/40'
                 }`}
+                aria-pressed={birthData.gender === 'female'}
               >
                 <div className="text-4xl mb-2">👩</div>
                 <div className="text-lg font-semibold">Female</div>
                 {touched.gender && validation.gender && birthData.gender === 'female' && (
-                  <CheckCircle className="w-5 h-5 text-green-500 mx-auto mt-2" />
+                  <CheckCircle className="w-5 h-5 text-green-500 mx-auto mt-2" aria-hidden="true" />
                 )}
               </button>
             </div>

@@ -808,8 +808,18 @@ export default function LifeEventsStepUniversal({ lifeEvents, setLifeEvents, bir
                   <EnhancedDateTimeInput
                     value={newEvent.eventDate || ''}
                     onChange={(value) => setNewEvent({ ...newEvent, eventDate: value })}
-                    dateType={newEvent.dateAccuracy || 'exact'}
-                    onDateTypeChange={(type) => setNewEvent({ ...newEvent, dateAccuracy: type })}
+                    dateType={((newEvent.dateAccuracy === 'month-range' || newEvent.dateAccuracy === 'year-range') ? 'range' : (newEvent.dateAccuracy || 'exact')) as any}
+                    onDateTypeChange={(type) => {
+                      // Convert back to LifeEvent dateAccuracy type
+                      let accuracy: LifeEvent['dateAccuracy'] = type;
+                      if (type === 'range' && newEvent.dateAccuracy) {
+                        // Preserve the original range type if it exists
+                        if (newEvent.dateAccuracy === 'month-range') accuracy = 'month-range';
+                        else if (newEvent.dateAccuracy === 'year-range') accuracy = 'year-range';
+                        else accuracy = 'range';
+                      }
+                      setNewEvent({ ...newEvent, dateAccuracy: accuracy });
+                    }}
                     includeTime={includeTime}
                     onTimeChange={(time) => setNewEvent({ ...newEvent, eventTime: time })}
                     timeValue={newEvent.eventTime || ''}

@@ -6,7 +6,8 @@
  */
 
 import { BTREngine, BTREvent, BTRResult } from './btr-iteration-engine';
-import { SwissEphemerisCalculator, SwissEphemerisResult } from './swiss-ephemeris-calculator';
+import { SwissEphemerisEngine } from './swiss-ephemeris-engine';
+import { SwissEphemerisResult } from './swiss-ephemeris-calculator';
 
 // Moonshoot AI Configuration
 const MOONSHOT_API_KEY = 'sk-kimi-jJJcpROckqHiBeDl0b08wcVapOsikhBjaILNt6kbdLG1nMl814vfvqAJJL7TV9qN';
@@ -179,17 +180,11 @@ export interface AlternativeTime {
  * 🌟 Moonshot AI BTR Integration Class
  */
 export class MoonshotBTRIntegration {
-  private swissEphemeris: SwissEphemerisCalculator;
+  private swissEphemeris: SwissEphemerisEngine;
   private btrEngine: BTREngine;
 
   constructor() {
-    this.swissEphemeris = new SwissEphemerisCalculator({
-      ephemerisPath: './ephe',
-      ayanamshaMode: 'kp',
-      houseSystem: 'placidus',
-      useTrueNodes: true,
-      highPrecision: true
-    });
+    this.swissEphemeris = new SwissEphemerisEngine('./ephe', true);
 
     this.btrEngine = new BTREngine(this.swissEphemeris, {
       maxIterations: 50,
@@ -365,7 +360,7 @@ export class MoonshotBTRIntegration {
     // Other events
     lifeEvents.other.forEach(event => {
       btrEvents.push({
-        eventType: this.getOtherEventType(event.type),
+        eventType: this.getOtherEventType(event.type) as any,
         date: new Date(event.date),
         description: event.description,
         expectedPlanets: this.getOtherPlanets(event.type),
@@ -567,14 +562,320 @@ export class MoonshotBTRIntegration {
     return descriptions[event.type as keyof typeof descriptions] || 'Marriage/relationship event';
   }
 
-  private getOtherEventType(type: string): string {
-    const types = {
-      'spiritual_initiation': 'spiritual',
-      'legal_issues': 'legal',
-      'major_achievements': 'achievement',
-      'life_changing': 'life_changing'
+  private getOtherEventType(type: string): 'education' | 'career' | 'marriage' | 'health' | 'travel' | 'childbirth' | 'property' | 'loss' {
+    const typeMap: Record<string, 'education' | 'career' | 'marriage' | 'health' | 'travel' | 'childbirth' | 'property' | 'loss'> = {
+      'spiritual_initiation': 'education',
+      'legal_issues': 'loss',
+      'major_achievements': 'career',
+      'life_changing': 'loss'
     };
-    return types[type as keyof typeof types] || 'other';
+    return typeMap[type] || 'education';
+  }
+
+  // Helper methods for children events
+  private getChildrenDescription(event: any): string {
+    const descriptions = {
+      'first_child': 'Birth of first child',
+      'second_child': 'Birth of second child',
+      'further_children': 'Birth of subsequent children',
+      'miscarriage': 'Miscarriage event',
+      'stillbirth': 'Stillbirth event'
+    };
+    return descriptions[event.type as keyof typeof descriptions] || 'Children event';
+  }
+
+  private getChildrenPlanets(type: string): string[] {
+    const planets = {
+      'first_child': ['jupiter', 'moon', 'venus'],
+      'second_child': ['jupiter', 'moon', 'mars'],
+      'further_children': ['jupiter', 'moon', 'saturn'],
+      'miscarriage': ['mars', 'saturn', 'rahu'],
+      'stillbirth': ['saturn', 'mars', 'ketu']
+    };
+    return planets[type as keyof typeof planets] || ['jupiter', 'moon'];
+  }
+
+  private getChildrenHouses(type: string): number[] {
+    const houses = {
+      'first_child': [5, 9, 11],
+      'second_child': [5, 7, 9],
+      'further_children': [5, 9, 11],
+      'miscarriage': [5, 8, 12],
+      'stillbirth': [5, 8, 12]
+    };
+    return houses[type as keyof typeof houses] || [5, 9];
+  }
+
+  private getChildrenDasha(type: string): string[] {
+    const dasha = {
+      'first_child': ['Jupiter', 'Moon', 'Venus'],
+      'second_child': ['Jupiter', 'Mars', 'Moon'],
+      'further_children': ['Jupiter', 'Saturn', 'Moon'],
+      'miscarriage': ['Mars', 'Saturn', 'Rahu'],
+      'stillbirth': ['Saturn', 'Mars', 'Ketu']
+    };
+    return dasha[type as keyof typeof dasha] || ['Jupiter', 'Moon'];
+  }
+
+  private getChildrenWeight(type: string): number {
+    const weights = {
+      'first_child': 10,
+      'second_child': 9,
+      'further_children': 8,
+      'miscarriage': 7,
+      'stillbirth': 8
+    };
+    return weights[type as keyof typeof weights] || 8;
+  }
+
+  // Helper methods for family events
+  private getFamilyDescription(event: any): string {
+    const descriptions = {
+      'father_death': "Father's death",
+      'mother_death': "Mother's death",
+      'sibling_death': "Sibling's death",
+      'other_family_death': 'Other family member death'
+    };
+    return descriptions[event.type as keyof typeof descriptions] || 'Family event';
+  }
+
+  private getFamilyPlanets(type: string): string[] {
+    const planets = {
+      'father_death': ['sun', 'saturn', 'rahu'],
+      'mother_death': ['moon', 'saturn', 'rahu'],
+      'sibling_death': ['mars', 'saturn', 'rahu'],
+      'other_family_death': ['saturn', 'rahu', 'ketu']
+    };
+    return planets[type as keyof typeof planets] || ['saturn', 'rahu'];
+  }
+
+  private getFamilyHouses(type: string): number[] {
+    const houses = {
+      'father_death': [9, 10, 8],
+      'mother_death': [4, 8, 10],
+      'sibling_death': [3, 8, 11],
+      'other_family_death': [8, 12, 6]
+    };
+    return houses[type as keyof typeof houses] || [8, 12];
+  }
+
+  private getFamilyDasha(type: string): string[] {
+    const dasha = {
+      'father_death': ['Saturn', 'Rahu', 'Sun'],
+      'mother_death': ['Saturn', 'Rahu', 'Moon'],
+      'sibling_death': ['Saturn', 'Rahu', 'Mars'],
+      'other_family_death': ['Saturn', 'Rahu', 'Ketu']
+    };
+    return dasha[type as keyof typeof dasha] || ['Saturn', 'Rahu'];
+  }
+
+  private getFamilyWeight(type: string): number {
+    const weights = {
+      'father_death': 9,
+      'mother_death': 9,
+      'sibling_death': 8,
+      'other_family_death': 7
+    };
+    return weights[type as keyof typeof weights] || 8;
+  }
+
+  // Helper methods for health events
+  private getHealthDescription(event: any): string {
+    const descriptions = {
+      'major_illness': 'Major illness',
+      'surgery': 'Surgery procedure',
+      'accident': 'Accident/injury',
+      'chronic_condition': 'Chronic health condition'
+    };
+    return descriptions[event.type as keyof typeof descriptions] || 'Health event';
+  }
+
+  private getHealthPlanets(type: string): string[] {
+    const planets = {
+      'major_illness': ['saturn', 'mars', 'rahu'],
+      'surgery': ['mars', 'saturn', 'ketu'],
+      'accident': ['mars', 'saturn', 'rahu'],
+      'chronic_condition': ['saturn', 'rahu', 'ketu']
+    };
+    return planets[type as keyof typeof planets] || ['saturn', 'mars'];
+  }
+
+  private getHealthHouses(type: string): number[] {
+    const houses = {
+      'major_illness': [6, 8, 12],
+      'surgery': [6, 8, 12],
+      'accident': [8, 6, 12],
+      'chronic_condition': [6, 8, 12]
+    };
+    return houses[type as keyof typeof houses] || [6, 8];
+  }
+
+  private getHealthDasha(type: string): string[] {
+    const dasha = {
+      'major_illness': ['Saturn', 'Mars', 'Rahu'],
+      'surgery': ['Mars', 'Saturn', 'Ketu'],
+      'accident': ['Mars', 'Saturn', 'Rahu'],
+      'chronic_condition': ['Saturn', 'Rahu', 'Ketu']
+    };
+    return dasha[type as keyof typeof dasha] || ['Saturn', 'Mars'];
+  }
+
+  private getHealthWeight(type: string): number {
+    const weights = {
+      'major_illness': 8,
+      'surgery': 9,
+      'accident': 9,
+      'chronic_condition': 7
+    };
+    return weights[type as keyof typeof weights] || 8;
+  }
+
+  // Helper methods for financial events
+  private getFinancialDescription(event: any): string {
+    const descriptions = {
+      'property_purchase': 'Property purchase',
+      'major_investment': 'Major investment',
+      'business_success': 'Business success',
+      'business_failure': 'Business failure',
+      'inheritance': 'Inheritance received',
+      'financial_loss': 'Financial loss'
+    };
+    return descriptions[event.type as keyof typeof descriptions] || 'Financial event';
+  }
+
+  private getFinancialPlanets(type: string): string[] {
+    const planets = {
+      'property_purchase': ['mars', 'saturn', 'venus'],
+      'major_investment': ['jupiter', 'mercury', 'venus'],
+      'business_success': ['sun', 'jupiter', 'mercury'],
+      'business_failure': ['saturn', 'rahu', 'ketu'],
+      'inheritance': ['jupiter', 'saturn', 'sun'],
+      'financial_loss': ['saturn', 'rahu', 'ketu']
+    };
+    return planets[type as keyof typeof planets] || ['jupiter', 'saturn'];
+  }
+
+  private getFinancialHouses(type: string): number[] {
+    const houses = {
+      'property_purchase': [4, 11, 2],
+      'major_investment': [2, 11, 5],
+      'business_success': [10, 11, 2],
+      'business_failure': [8, 12, 6],
+      'inheritance': [8, 2, 9],
+      'financial_loss': [8, 12, 6]
+    };
+    return houses[type as keyof typeof houses] || [2, 11];
+  }
+
+  private getFinancialDasha(type: string): string[] {
+    const dasha = {
+      'property_purchase': ['Mars', 'Saturn', 'Venus'],
+      'major_investment': ['Jupiter', 'Mercury', 'Venus'],
+      'business_success': ['Sun', 'Jupiter', 'Mercury'],
+      'business_failure': ['Saturn', 'Rahu', 'Ketu'],
+      'inheritance': ['Jupiter', 'Saturn', 'Sun'],
+      'financial_loss': ['Saturn', 'Rahu', 'Ketu']
+    };
+    return dasha[type as keyof typeof dasha] || ['Jupiter', 'Saturn'];
+  }
+
+  private getFinancialWeight(type: string): number {
+    const weights = {
+      'property_purchase': 9,
+      'major_investment': 8,
+      'business_success': 9,
+      'business_failure': 8,
+      'inheritance': 7,
+      'financial_loss': 7
+    };
+    return weights[type as keyof typeof weights] || 8;
+  }
+
+  // Helper methods for travel events
+  private getTravelDescription(event: any): string {
+    const descriptions = {
+      'foreign_travel': 'Foreign travel',
+      'permanent_relocation': 'Permanent relocation',
+      'settlement_abroad': 'Settlement abroad'
+    };
+    return descriptions[event.type as keyof typeof descriptions] || 'Travel event';
+  }
+
+  private getTravelPlanets(type: string): string[] {
+    const planets = {
+      'foreign_travel': ['rahu', 'jupiter', 'moon'],
+      'permanent_relocation': ['rahu', 'saturn', 'moon'],
+      'settlement_abroad': ['rahu', 'ketu', 'jupiter']
+    };
+    return planets[type as keyof typeof planets] || ['rahu', 'jupiter'];
+  }
+
+  private getTravelHouses(type: string): number[] {
+    const houses = {
+      'foreign_travel': [9, 12, 7],
+      'permanent_relocation': [4, 12, 9],
+      'settlement_abroad': [12, 9, 7]
+    };
+    return houses[type as keyof typeof houses] || [9, 12];
+  }
+
+  private getTravelDasha(type: string): string[] {
+    const dasha = {
+      'foreign_travel': ['Rahu', 'Jupiter', 'Moon'],
+      'permanent_relocation': ['Rahu', 'Saturn', 'Moon'],
+      'settlement_abroad': ['Rahu', 'Ketu', 'Jupiter']
+    };
+    return dasha[type as keyof typeof dasha] || ['Rahu', 'Jupiter'];
+  }
+
+  private getTravelWeight(type: string): number {
+    const weights = {
+      'foreign_travel': 7,
+      'permanent_relocation': 8,
+      'settlement_abroad': 9
+    };
+    return weights[type as keyof typeof weights] || 7;
+  }
+
+  // Helper methods for other events
+  private getOtherPlanets(type: string): string[] {
+    const planets = {
+      'spiritual_initiation': ['jupiter', 'ketu', 'moon'],
+      'legal_issues': ['saturn', 'mars', 'rahu'],
+      'major_achievements': ['sun', 'jupiter', 'mercury'],
+      'life_changing': ['rahu', 'ketu', 'saturn']
+    };
+    return planets[type as keyof typeof planets] || ['jupiter', 'saturn'];
+  }
+
+  private getOtherHouses(type: string): number[] {
+    const houses = {
+      'spiritual_initiation': [9, 12, 5],
+      'legal_issues': [6, 8, 12],
+      'major_achievements': [10, 11, 1],
+      'life_changing': [8, 12, 1]
+    };
+    return houses[type as keyof typeof houses] || [9, 12];
+  }
+
+  private getOtherDasha(type: string): string[] {
+    const dasha = {
+      'spiritual_initiation': ['Jupiter', 'Ketu', 'Moon'],
+      'legal_issues': ['Saturn', 'Mars', 'Rahu'],
+      'major_achievements': ['Sun', 'Jupiter', 'Mercury'],
+      'life_changing': ['Rahu', 'Ketu', 'Saturn']
+    };
+    return dasha[type as keyof typeof dasha] || ['Jupiter', 'Saturn'];
+  }
+
+  private getOtherWeight(type: string): number {
+    const weights = {
+      'spiritual_initiation': 8,
+      'legal_issues': 8,
+      'major_achievements': 9,
+      'life_changing': 9
+    };
+    return weights[type as keyof typeof weights] || 7;
   }
 
   /**

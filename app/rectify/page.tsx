@@ -24,6 +24,7 @@ export default function RectifyPage() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   // Form state
   const [birthData, setBirthData] = useState<Partial<BirthData>>({
@@ -160,6 +161,31 @@ export default function RectifyPage() {
       default:
         return false;
     }
+  };
+
+  // Optimized navigation handler with debouncing
+  const handleNext = () => {
+    if (isNavigating || !canProceed()) return;
+    
+    setIsNavigating(true);
+    setStep(prev => Math.min(prev + 1, 3));
+    
+    // Reset navigation lock after animation completes
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 700);
+  };
+
+  const handlePrevious = () => {
+    if (isNavigating) return;
+    
+    setIsNavigating(true);
+    setStep(prev => Math.max(prev - 1, 1));
+    
+    // Reset navigation lock after animation completes
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 700);
   };
 
   const renderStep = () => {
