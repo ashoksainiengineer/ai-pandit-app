@@ -10,7 +10,7 @@
  * 6. Finalize when >90% events align
  */
 
-import { SwissEphemerisCalculator, SwissEphemerisResult } from './swiss-ephemeris-calculator';
+import { SwissEphemerisEngine, EphemerisCalculation } from './swiss-ephemeris-engine';
 import { LifeEvent } from '../types';
 
 export interface BTREvent {
@@ -62,7 +62,7 @@ export interface BTRResult {
   eventMatches: EventMatch[];
   convergenceReason: string;
   confidenceLevel: 'low' | 'medium' | 'high' | 'very_high';
-  chartData: SwissEphemerisResult;
+  chartData: EphemerisCalculation;
   alternativeTimes: AlternativeTime[];
 }
 
@@ -93,12 +93,12 @@ export interface BTRConfig {
  * Uses Swiss Ephemeris for high-precision astronomical calculations
  */
 export class BTREngine {
-  private swissEphemeris: SwissEphemerisCalculator;
+  private swissEphemeris: SwissEphemerisEngine;
   private config: BTRConfig;
   private iterations: BTRIteration[] = [];
   private currentIteration = 0;
 
-  constructor(swissEphemeris: SwissEphemerisCalculator, config?: Partial<BTRConfig>) {
+  constructor(swissEphemeris: SwissEphemerisEngine, config?: Partial<BTRConfig>) {
     this.swissEphemeris = swissEphemeris;
     this.config = {
       maxIterations: 50,
@@ -204,7 +204,7 @@ export class BTREngine {
   ): Promise<BTRIteration> {
     
     // Calculate chart using Swiss Ephemeris
-    const chartData = await this.swissEphemeris.calculateChartData(birthTime, latitude, longitude, timezone);
+    const chartData = await this.swissEphemeris.calculateEphemerisForBTR(birthTime, latitude, longitude, timezone);
     
     // Analyze each life event against the chart
     const eventMatches: EventMatch[] = [];
@@ -241,7 +241,7 @@ export class BTREngine {
   /**
    * 🎯 Analyze individual event against chart
    */
-  private analyzeEventMatch(event: BTREvent, chartData: SwissEphemerisResult): EventMatch {
+  private analyzeEventMatch(event: BTREvent, chartData: EphemerisCalculation): EventMatch {
     const factors = {
       planets: this.checkPlanetaryAlignment(event, chartData),
       houses: this.checkHouseAlignment(event, chartData),
@@ -263,7 +263,7 @@ export class BTREngine {
   /**
    * 🪐 Check planetary alignments
    */
-  private checkPlanetaryAlignment(event: BTREvent, chartData: SwissEphemerisResult): boolean {
+  private checkPlanetaryAlignment(event: BTREvent, chartData: EphemerisCalculation): boolean {
     const eventPlanets = event.expectedPlanets;
     const significantPlanets = this.getSignificantPlanetsForEvent(event, chartData);
     
@@ -277,7 +277,7 @@ export class BTREngine {
   /**
    * 🏠 Check house alignments
    */
-  private checkHouseAlignment(event: BTREvent, chartData: SwissEphemerisResult): boolean {
+  private checkHouseAlignment(event: BTREvent, chartData: EphemerisCalculation): boolean {
     const eventHouses = event.expectedHouses;
     const activeHouses = this.getActiveHousesForEvent(event, chartData);
     
@@ -291,7 +291,7 @@ export class BTREngine {
   /**
    * 📅 Check dasha alignment
    */
-  private checkDashaAlignment(event: BTREvent, chartData: SwissEphemerisResult): boolean {
+  private checkDashaAlignment(event: BTREvent, chartData: EphemerisCalculation): boolean {
     const eventDasha = event.expectedDasha;
     const currentDasha = chartData.dashaPeriods.vimshottari.currentMahadasha.planet;
     const currentAntardasha = chartData.dashaPeriods.vimshottari.currentAntardasha.planet;
@@ -304,13 +304,13 @@ export class BTREngine {
   /**
    * 📊 Check divisional chart alignment
    */
-  private checkDivisionalAlignment(event: BTREvent, chartData: SwissEphemerisResult): boolean {
+  private checkDivisionalAlignment(event: BTREvent, chartData: EphemerisCalculation): boolean {
     const priorityCharts = this.config.divisionalCharts;
     let totalScore = 0;
     let chartCount = 0;
 
     for (const chartName of priorityCharts) {
-      const chart = chartData.divisionalCharts[chartName];
+      const chart = (chartData.divisionalCharts as any)[chartName];
       if (!chart) continue;
 
       const score = this.analyzeDivisionalChartForEvent(event, chart, chartData);
@@ -324,7 +324,7 @@ export class BTREngine {
   /**
    * 🔍 Identify specific discrepancies
    */
-  private identifyDiscrepancy(event: BTREvent, match: EventMatch, chartData: SwissEphemerisResult): Discrepancy | null {
+  private identifyDiscrepancy(event: BTREvent, match: EventMatch, chartData: EphemerisCalculation): Discrepancy | null {
     const issues: string[] = [];
     
     if (!match.matchingFactors.planets) {
@@ -425,7 +425,7 @@ export class BTREngine {
   /**
    * 🪐 Get significant planets for event type
    */
-  private getSignificantPlanetsForEvent(event: BTREvent, chartData: SwissEphemerisResult): string[] {
+  private getSignificantPlanetsForEvent(event: BTREvent, chartData: EphemerisCalculation): string[] {
     const eventTypePlanets: Record<string, string[]> = {
       'marriage': ['venus', 'jupiter', 'mars', 'moon'],
       'childbirth': ['jupiter', 'mars', 'moon', 'venus'],
@@ -442,7 +442,7 @@ export class BTREngine {
     // Add planets based on current transits and positions
     const currentPlanets = Object.keys(chartData.planets);
     const prominentPlanets = currentPlanets.filter(planet => {
-      const planetData = chartData.planets[planet];
+      const planetData = (chartData.planets as any)[planet];
       return planetData.longitude >= 0 && planetData.longitude <= 30; // First house prominence
     });
 
@@ -452,7 +452,7 @@ export class BTREngine {
   /**
    * 🏠 Get active houses for event
    */
-  private getActiveHousesForEvent(event: BTREvent, chartData: SwissEphemerisResult): number[] {
+  private getActiveHousesForEvent(event: BTREvent, chartData: EphemerisCalculation): number[] {
     const eventTypeHouses: Record<string, number[]> = {
       'marriage': [7, 2, 11, 5],
       'childbirth': [5, 9, 11, 2],
@@ -470,7 +470,7 @@ export class BTREngine {
   /**
    * 📊 Analyze divisional chart for event
    */
-  private analyzeDivisionalChartForEvent(event: BTREvent, chart: any, mainChart: SwissEphemerisResult): number {
+  private analyzeDivisionalChartForEvent(event: BTREvent, chart: any, mainChart: EphemerisCalculation): number {
     let score = 0;
     const factors = 4;
 
@@ -555,7 +555,7 @@ export class BTREngine {
   /**
    * 📝 Generate event notes
    */
-  private generateEventNotes(event: BTREvent, factors: EventMatch['matchingFactors'], chartData: SwissEphemerisResult): string[] {
+  private generateEventNotes(event: BTREvent, factors: EventMatch['matchingFactors'], chartData: EphemerisCalculation): string[] {
     const notes: string[] = [];
 
     if (factors.planets) {
@@ -585,7 +585,7 @@ export class BTREngine {
   /**
    * 💡 Generate recommendations
    */
-  private generateRecommendations(discrepancies: Discrepancy[], chartData: SwissEphemerisResult): string[] {
+  private generateRecommendations(discrepancies: Discrepancy[], chartData: EphemerisCalculation): string[] {
     const recommendations: string[] = [];
 
     if (discrepancies.length === 0) {
@@ -636,7 +636,7 @@ export class BTREngine {
     const alternativeTimes = this.generateAlternativeTimes();
 
     // Final chart calculation
-    const finalChartData = await this.swissEphemeris.calculateChartData(
+    const finalChartData = await this.swissEphemeris.calculateEphemerisForBTR(
       bestIteration.birthTime,
       28.6139, // These should be passed as parameters
       77.2090,
@@ -726,7 +726,7 @@ export class BTREngine {
  * 🏭 Factory function to create BTR Engine
  */
 export function createBTREngine(
-  swissEphemeris: SwissEphemerisCalculator,
+  swissEphemeris: SwissEphemerisEngine,
   config?: Partial<BTRConfig>
 ): BTREngine {
   return new BTREngine(swissEphemeris, config);

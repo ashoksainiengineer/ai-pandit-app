@@ -13,30 +13,31 @@
  */
 
 import { SwissEphemerisData, TimeSlotAnalysis } from './moonshoot-ai-prompt';
+import * as swisseph from 'swisseph';
 
-// Planetary constants
+// Planetary constants (matching swisseph indices)
 const PLANETS = {
-  SUN: 0,
-  MOON: 1,
-  MERCURY: 2,
-  VENUS: 3,
-  MARS: 4,
-  JUPITER: 5,
-  SATURN: 6,
-  URANUS: 7,
-  NEPTUNE: 8,
-  PLUTO: 9,
-  NODE: 10, // Rahu (Mean Node)
-  TRUE_NODE: 11, // True Rahu
-  CHIRON: 15,
-  PHOLUS: 16,
-  CERES: 17,
-  PALLAS: 18,
-  JUNO: 19,
-  VESTA: 20
+  SUN: swisseph.SE_SUN,
+  MOON: swisseph.SE_MOON,
+  MERCURY: swisseph.SE_MERCURY,
+  VENUS: swisseph.SE_VENUS,
+  MARS: swisseph.SE_MARS,
+  JUPITER: swisseph.SE_JUPITER,
+  SATURN: swisseph.SE_SATURN,
+  URANUS: swisseph.SE_URANUS,
+  NEPTUNE: swisseph.SE_NEPTUNE,
+  PLUTO: swisseph.SE_PLUTO,
+  NODE: swisseph.SE_TRUE_NODE, // Rahu (True Node for KP)
+  TRUE_NODE: swisseph.SE_TRUE_NODE, // True Rahu
+  CHIRON: swisseph.SE_CHIRON,
+  PHOLUS: 16, // Not directly available in swisseph
+  CERES: swisseph.SE_CERES,
+  PALLAS: swisseph.SE_PALLAS,
+  JUNO: swisseph.SE_JUNO,
+  VESTA: swisseph.SE_VESTA
 } as const;
 
-// House systems
+// House systems (swisseph format)
 const HOUSE_SYSTEMS = {
   PLACIDUS: 'P',
   KOCH: 'K',
@@ -51,6 +52,14 @@ const HOUSE_SYSTEMS = {
   POLICH_PAGE: 'O',
   MORIN: 'N',
   KRUSINSKI_PADDHATI: 'U'
+} as const;
+
+// Ayanamsha modes for KP system
+const AYANAMSHA_MODES = {
+  LAHIRI: swisseph.SE_SIDM_LAHIRI,
+  RAMAN: swisseph.SE_SIDM_RAMAN,
+  KP: swisseph.SE_SIDM_KRISHNAMURTI, // KP Ayanamsha
+  FAGAN_BRADLEY: swisseph.SE_SIDM_FAGAN_BRADLEY
 } as const;
 
 // Zodiac signs
@@ -182,9 +191,11 @@ export interface DashaPeriod {
 export class SwissEphemerisEngine {
   private ephemerisPath: string;
   private isInitialized: boolean = false;
+  private useKPSystem: boolean = true;
   
-  constructor(ephemerisPath: string = './ephe') {
+  constructor(ephemerisPath: string = './ephe', useKPSystem: boolean = true) {
     this.ephemerisPath = ephemerisPath;
+    this.useKPSystem = useKPSystem;
   }
 
   /**
@@ -192,13 +203,17 @@ export class SwissEphemerisEngine {
    */
   async initialize(): Promise<void> {
     try {
-      // In a real implementation, this would initialize the Swiss Ephemeris library
-      // For now, we'll simulate the initialization
       console.log('🔮 Initializing Swiss Ephemeris Engine...');
       console.log(`📁 Ephemeris path: ${this.ephemerisPath}`);
       
-      // Check if ephemeris files exist
-      // This would typically load the Swiss Ephemeris DLL/SO and set up data files
+      // Set ephemeris file path for swisseph
+      swisseph.swe_set_ephe_path(this.ephemerisPath);
+      
+      // Set ayanamsha to KP (Krishnamurti) if using KP system
+      if (this.useKPSystem) {
+        swisseph.swe_set_sid_mode(AYANAMSHA_MODES.KP, 0, 0);
+        console.log('🎯 Using KP Ayanamsha (Krishnamurti Paddhati)');
+      }
       
       this.isInitialized = true;
       console.log('✅ Swiss Ephemeris Engine initialized successfully');
@@ -356,47 +371,66 @@ export class SwissEphemerisEngine {
   }
 
   /**
-   * Calculate planetary positions
+   * Calculate planetary positions using real swisseph library
    */
   private async calculatePlanetaryPositions(date: Date, latitude: number, longitude: number): Promise<any> {
-    // In a real implementation, this would use Swiss Ephemeris library
-    // For now, we'll create realistic mock data based on astronomical principles
-    
     const julianDay = this.calculateJulianDay(date);
-    const dayOfYear = this.getDayOfYear(date);
-    const year = date.getUTCFullYear();
-    
-    // Calculate positions based on astronomical cycles
     const planetaryPositions: any = {};
     
-    // Sun position (simplified)
-    const sunLongitude = (dayOfYear / 365.25) * 360;
-    planetaryPositions.sun = this.createPlanetaryPosition(sunLongitude, 0, 0.9856, false, 'Sun');
+    // Planets to calculate (including true node for Rahu/Ketu)
+    const planetsToCalculate = [
+      { name: 'sun', id: PLANETS.SUN },
+      { name: 'moon', id: PLANETS.MOON },
+      { name: 'mercury', id: PLANETS.MERCURY },
+      { name: 'venus', id: PLANETS.VENUS },
+      { name: 'mars', id: PLANETS.MARS },
+      { name: 'jupiter', id: PLANETS.JUPITER },
+      { name: 'saturn', id: PLANETS.SATURN },
+      { name: 'rahu', id: PLANETS.TRUE_NODE }, // True Rahu
+    ];
     
-    // Moon position (simplified lunar cycle)
-    const moonCycle = 27.32166; // days
-    const moonLongitude = (dayOfYear / moonCycle) * 360;
-    planetaryPositions.moon = this.createPlanetaryPosition(moonLongitude, 0, 13.1764, false, 'Moon');
-    
-    // Other planets (simplified but realistic)
-    const planetaryCycles = {
-      mercury: 87.97,
-      venus: 224.7,
-      mars: 686.98,
-      jupiter: 4332.59,
-      saturn: 10759.22
-    };
-    
-    for (const [planet, cycle] of Object.entries(planetaryCycles)) {
-      const longitude = (dayOfYear / cycle) * 360;
-      const retrograde = this.isPlanetRetrograde(planet, dayOfYear, cycle);
-      planetaryPositions[planet] = this.createPlanetaryPosition(longitude, 0, 360/cycle, retrograde, planet);
+    // Calculate each planet's position
+    for (const planet of planetsToCalculate) {
+      try {
+        // Get planetary position using swisseph
+        const result: any = swisseph.swe_calc_ut(julianDay, planet.id, swisseph.SEFLG_SPEED | swisseph.SEFLG_SIDEREAL);
+        
+        // Check if result has error (different versions return different structures)
+        if (result.error) {
+          console.warn(`⚠️ Error calculating ${planet.name}: ${result.error}`);
+          continue;
+        }
+        
+        // Extract values based on result structure
+        const longitude = result.longitude || 0;
+        const latitude = result.latitude || 0;
+        const speed = result.longitudeSpeed || 0; // Use longitudeSpeed for planetary speed
+        const retrograde = speed < 0; // Negative speed indicates retrograde
+        
+        planetaryPositions[planet.name] = this.createPlanetaryPosition(
+          longitude,
+          latitude,
+          speed,
+          retrograde,
+          planet.name
+        );
+        
+      } catch (error) {
+        console.warn(`⚠️ Exception calculating ${planet.name}:`, error);
+      }
     }
     
-    // Rahu/Ketu (lunar nodes) - always retrograde
-    const rahuLongitude = (dayOfYear / 6798.38) * 360;
-    planetaryPositions.rahu = this.createPlanetaryPosition(rahuLongitude, 0, -0.053, true, 'Rahu');
-    planetaryPositions.ketu = this.createPlanetaryPosition((rahuLongitude + 180) % 360, 0, -0.053, true, 'Ketu');
+    // Calculate Ketu (always 180 degrees opposite to Rahu)
+    if (planetaryPositions.rahu) {
+      const ketuLongitude = (planetaryPositions.rahu.longitude + 180) % 360;
+      planetaryPositions.ketu = this.createPlanetaryPosition(
+        ketuLongitude,
+        0,
+        -0.053, // Ketu speed (approximate)
+        true, // Always retrograde
+        'ketu'
+      );
+    }
     
     return planetaryPositions;
   }
@@ -423,30 +457,69 @@ export class SwissEphemerisEngine {
   }
 
   /**
-   * Calculate house cusps
+   * Calculate house cusps using real swisseph library
    */
   private async calculateHouseCusps(date: Date, latitude: number, longitude: number, houseSystem: string): Promise<HouseCusps> {
-    // In a real implementation, this would use Swiss Ephemeris house calculation
-    // For now, we'll create realistic house cusps based on ascendant
+    const julianDay = this.calculateJulianDay(date);
     
+    try {
+      // Calculate houses using swisseph - correct API: swe_houses(jd, lat, lon, hsys)
+      const housesResult: any = swisseph.swe_houses(julianDay, latitude, longitude, houseSystem as any);
+      
+      if (housesResult.error) {
+        console.warn(`⚠️ Error calculating houses: ${housesResult.error}`);
+        // Fallback to simplified calculation
+        return this.calculateHouseCuspsFallback(date, latitude, longitude, houseSystem);
+      }
+      
+      // Extract house cusps (housesResult.cusp is an array of 12 cusps)
+      const cusps = housesResult.cusp || [];
+      
+      // If we don't have enough cusps, use fallback
+      if (cusps.length < 12) {
+        console.warn('⚠️ Insufficient house cusps returned, using fallback');
+        return this.calculateHouseCuspsFallback(date, latitude, longitude, houseSystem);
+      }
+      
+      return {
+        ascendant: cusps[0] || 0,
+        secondHouse: cusps[1] || 0,
+        thirdHouse: cusps[2] || 0,
+        fourthHouse: cusps[3] || 0,
+        fifthHouse: cusps[4] || 0,
+        sixthHouse: cusps[5] || 0,
+        seventhHouse: cusps[6] || 0,
+        eighthHouse: cusps[7] || 0,
+        ninthHouse: cusps[8] || 0,
+        tenthHouse: cusps[9] || 0,
+        eleventhHouse: cusps[10] || 0,
+        twelfthHouse: cusps[11] || 0
+      };
+      
+    } catch (error) {
+      console.warn('⚠️ Exception calculating houses, using fallback:', error);
+      return this.calculateHouseCuspsFallback(date, latitude, longitude, houseSystem);
+    }
+  }
+  
+  /**
+   * Fallback house calculation (simplified)
+   */
+  private calculateHouseCuspsFallback(date: Date, latitude: number, longitude: number, houseSystem: string): HouseCusps {
     const ascendant = this.calculateAscendant(date, latitude, longitude);
     const cusps: number[] = [];
     
-    // Generate house cusps based on ascendant and house system
     for (let i = 0; i < 12; i++) {
       let cusp;
       
       switch (houseSystem) {
         case HOUSE_SYSTEMS.PLACIDUS:
-          // Placidus house system calculation
           cusp = (ascendant + (i * 30) + this.getPlacidusOffset(i, latitude)) % 360;
           break;
         case HOUSE_SYSTEMS.WHOLE_SIGN:
-          // Whole sign houses
           cusp = (Math.floor(ascendant / 30) * 30 + (i * 30)) % 360;
           break;
         default:
-          // Equal houses as fallback
           cusp = (ascendant + (i * 30)) % 360;
       }
       
