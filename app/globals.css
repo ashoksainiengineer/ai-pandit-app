@@ -1,0 +1,358 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 26, 26, 46;
+  --background-end-rgb: 22, 33, 62;
+}
+
+@layer base {
+  body {
+    @apply bg-vedic-navy text-white;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  ::selection {
+    @apply bg-vedic-saffron/30 text-white;
+  }
+}
+
+@layer components {
+  /* Mathematical Container System */
+  .math-container {
+    @apply max-w-7xl mx-auto px-fib-4;
+  }
+  
+  /* Mathematical Card System - Glassmorphism with Golden Ratio */
+  .math-card {
+    @apply backdrop-blur-phi border border-white/phi rounded-fib-5 shadow-phi;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  }
+  
+  .math-card-lg {
+    @apply backdrop-blur-phi border border-white/phi rounded-fib-6 shadow-phi-strong p-fib-6;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  }
+  
+  /* Mathematical Button System */
+  .math-button {
+    @apply px-fib-5 py-fib-3 bg-gradient-to-r from-vedic-saffron to-vedic-orange rounded-fib-4 font-semibold text-white text-h5 shadow-phi hover:shadow-phi-strong hover:scale-105 transition-all duration-phi ease-out active:scale-95 disabled:opacity-phi disabled:cursor-not-allowed disabled:hover:scale-100;
+  }
+  
+  .math-button-lg {
+    @apply px-fib-6 py-fib-4 rounded-fib-5 text-h4 shadow-phi-strong;
+  }
+  
+  /* Mathematical Input System */
+  .math-input {
+    @apply w-full px-fib-4 py-fib-3 h-fib-7 bg-white/phi-light border border-white/phi rounded-fib-4 text-white placeholder-white/phi-light text-h5 focus:outline-none focus:ring-fib-1 focus:ring-vedic-saffron focus:border-vedic-saffron transition-all duration-phi;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  
+  .math-input:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .math-input:focus {
+    background-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.236);
+  }
+  
+  .math-input-error {
+    @apply border-red-500/phi focus:ring-red-500/phi focus:border-red-500;
+  }
+
+  /* Mathematical Label System */
+  .math-label {
+    @apply block text-h6 font-semibold text-white/phi-dark mb-fib-3 uppercase tracking-wider;
+    letter-spacing: 0.2em;
+  }
+  
+  .math-label-required {
+    @apply text-vedic-saffron;
+  }
+  
+  /* Mathematical Select System */
+  .math-select {
+    @apply w-full px-fib-4 py-fib-3 h-fib-7 bg-white/phi-light border border-white/phi rounded-fib-4 text-white text-h5 appearance-none cursor-pointer focus:outline-none focus:ring-fib-1 focus:ring-vedic-saffron focus:border-vedic-saffron transition-all duration-phi;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right fib-4 center;
+    background-repeat: no-repeat;
+    background-size: 1.2em 1.2em;
+    padding-right: 2.5rem;
+  }
+
+  .math-select:hover {
+    @apply border-white/phi-dark;
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .math-select:focus {
+    @apply border-vedic-saffron;
+    background-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .math-select option {
+    background-color: #1a1a2e;
+    color: #ffffff;
+    padding: fib-3;
+  }
+
+  .math-select option:checked {
+    background: linear-gradient(#1a1a2e, #1a1a2e), linear-gradient(#ff9f1c, #ff9f1c);
+    background-color: #ff9f1c !important;
+  }
+  
+  /* Mathematical Section Titles */
+  .math-title-h1 {
+    @apply text-h1 font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-vedic-saffron to-vedic-orange mb-fib-6;
+    line-height: 1.236; /* φ² / 2 */
+  }
+  
+  .math-title-h2 {
+    @apply text-h2 font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-vedic-saffron to-vedic-orange mb-fib-5;
+    line-height: 1.618; /* φ */
+  }
+  
+  .math-title-h3 {
+    @apply text-h3 font-display font-semibold text-white mb-fib-4;
+    line-height: 1.618; /* φ */
+  }
+  
+  .math-subtitle {
+    @apply text-h4 text-white/phi font-medium mb-fib-6 leading-relaxed;
+  }
+  
+  /* Mathematical Glow Effects */
+  .math-glow {
+    text-shadow: 0 0 fib-4 rgba(255, 159, 28, 0.382), 0 0 fib-6 rgba(255, 159, 28, 0.236), 0 0 fib-8 rgba(255, 159, 28, 0.146);
+  }
+  
+  .math-glow-strong {
+    text-shadow: 0 0 fib-5 rgba(255, 159, 28, 0.618), 0 0 fib-7 rgba(255, 159, 28, 0.382), 0 0 fib-9 rgba(255, 159, 28, 0.236);
+  }
+  
+  /* Mathematical Glassmorphism */
+  .math-glass {
+    @apply bg-white/phi-light backdrop-blur-phi border border-white/phi rounded-fib-5;
+  }
+  
+  .math-glass-strong {
+    @apply bg-white/phi backdrop-blur-phi border border-white/phi-dark rounded-fib-6 shadow-phi;
+  }
+  
+  /* Mathematical Progress Indicators */
+  .math-progress-bar {
+    @apply h-fib-2 bg-white/phi-light rounded-fib-1 overflow-hidden;
+  }
+  
+  .math-progress-fill {
+    @apply h-full bg-gradient-to-r from-vedic-saffron to-vedic-orange rounded-fib-1 transition-all duration-phi;
+  }
+  
+  /* Mathematical Grid System */
+  .math-grid-2 {
+    @apply grid grid-cols-2 gap-fib-5;
+  }
+  
+  .math-grid-3 {
+    @apply grid grid-cols-3 gap-fib-5;
+  }
+  
+  .math-grid-4 {
+    @apply grid grid-cols-4 gap-fib-5;
+  }
+  
+  /* Mathematical Status Indicators */
+  .math-status-active {
+    @apply bg-gradient-to-r from-vedic-saffron to-vedic-orange text-white shadow-phi;
+  }
+  
+  .math-status-complete {
+    @apply bg-green-500 text-white;
+  }
+  
+  .math-status-inactive {
+    @apply bg-white/phi text-white/phi-dark;
+  }
+  
+  /* Zodiac Ring with Mathematical Precision */
+  .math-zodiac-ring {
+    @apply absolute inset-0 rounded-full border-2 border-vedic-saffron/phi;
+    animation: spin 60s linear infinite;
+  }
+  
+  /* Fibonacci Spiral Container */
+  .math-spiral-container {
+    @apply relative w-fib-9 h-fib-9;
+  }
+  
+  /* Golden Rectangle Container */
+  .math-golden-rect {
+    @apply w-golden-main;
+    aspect-ratio: 1.618;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 8s ease infinite;
+  }
+  
+  @keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  
+  .glass-morphism {
+    @apply bg-white/5 backdrop-blur-xl border border-white/10;
+  }
+  
+  .neon-glow {
+    box-shadow: 0 0 5px #ff9f1c, 0 0 20px #ff9f1c, 0 0 40px #ff6b35;
+  }
+  
+  /* Mathematical Animations */
+  .math-float {
+    animation: math-float 8s ease-in-out infinite;
+  }
+  
+  .math-pulse {
+    animation: math-pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .math-glow {
+    animation: math-glow 2s ease-in-out infinite alternate;
+  }
+  
+  .math-spiral {
+    animation: math-spiral 10s linear infinite;
+  }
+  
+  .math-fibonacci-float {
+    animation: math-fibonacci-float 13s ease-in-out infinite;
+  }
+}
+
+/* Mathematical Keyframe Animations */
+@keyframes math-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-21px); }
+}
+
+@keyframes math-pulse {
+  0%, 100% { opacity: 0.618; }
+  50% { opacity: 1; }
+}
+
+@keyframes math-glow {
+  0% {
+    box-shadow: 0 0 13px rgba(212, 175, 55, 0.382), 0 0 21px rgba(212, 175, 55, 0.236);
+  }
+  100% {
+    box-shadow: 0 0 21px rgba(212, 175, 55, 0.618), 0 0 34px rgba(212, 175, 55, 0.382);
+  }
+}
+
+@keyframes math-spiral {
+  0% { transform: rotate(0deg) scale(1); }
+  100% { transform: rotate(360deg) scale(1.618); }
+}
+
+@keyframes math-fibonacci-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33% { transform: translateY(-13px) rotate(137.5deg); }
+  66% { transform: translateY(-8px) rotate(275deg); }
+}
+
+/* Custom scrollbar with mathematical precision */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-vedic-navy;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-vedic-saffron/phi rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-vedic-saffron/phi-dark;
+}
+
+/* Smooth scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Form validation styles */
+input:invalid:not(:placeholder-shown),
+select:invalid:not(:placeholder-shown) {
+  @apply border-red-500/phi;
+}
+
+input:valid:not(:placeholder-shown),
+select:valid:not(:placeholder-shown) {
+  @apply border-green-500/phi;
+}
+
+/* Mathematical text utilities */
+.text-phi-gradient {
+  @apply text-transparent bg-clip-text bg-gradient-to-r from-vedic-saffron to-vedic-orange;
+}
+
+.text-fibonacci {
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.02em;
+}
+
+/* Golden ratio line heights */
+.leading-phi {
+  line-height: 1.618;
+}
+
+.leading-phi-squared {
+  line-height: 2.618;
+}
+
+/* Mathematical border utilities */
+.border-phi {
+  border-width: 1px;
+  border-color: rgba(255, 255, 255, 0.618);
+}
+
+.border-phi-light {
+  border-width: 1px;
+  border-color: rgba(255, 255, 255, 0.382);
+}
+
+.border-phi-dark {
+  border-width: 1px;
+  border-color: rgba(255, 255, 255, 0.786);
+}
+
+/* Mathematical spacing utilities */
+.space-y-phi > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-y-reverse: 0;
+  margin-top: calc(1.618rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(1.618rem * var(--tw-space-y-reverse));
+}
+
+.space-x-phi > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 0;
+  margin-right: calc(1.618rem * var(--tw-space-x-reverse));
+  margin-left: calc(1.618rem * calc(1 - var(--tw-space-x-reverse)));
+}
