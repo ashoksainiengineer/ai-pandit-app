@@ -8,6 +8,22 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        // Custom Vedic Theme Colors
+        'bg-base': '#1A1614',
+        'bg-surface': '#241F1C',
+        'bg-input': '#2E2724',
+        'bg-hover': '#3A3330',
+        'text-primary': '#F5F0EB',
+        'text-secondary': '#C4B8AD',
+        'text-muted': '#8C7F72',
+        'accent-primary': '#E8A849',
+        'accent-primary-hover': '#F0B85A',
+        'accent-secondary': '#6B9AC4',
+        'color-success': '#5CB57B',
+        'color-warning': '#E8A849',
+        'color-error': '#D64545',
+        'color-info': '#6B9AC4',
+        // Existing colors
         gold: {
           50: '#fff9e6',
           100: '#ffeeb3',
@@ -33,6 +49,7 @@ module.exports = {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         serif: ['Georgia', 'Cambria', 'serif'],
         display: ['Playfair Display', 'Georgia', 'serif'],
+        mono: ['JetBrains Mono', 'monospace'],
       },
       spacing: {
         // Mathematical Design System - Fibonacci Sequence
@@ -168,4 +185,4 @@ module.exports = {
     },
   },
   plugins: [],
-};
+}
