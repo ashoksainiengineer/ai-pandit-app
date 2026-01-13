@@ -6,37 +6,6 @@ import { Loader2, Sparkles, Sigma, FunctionSquare, Atom, Target } from 'lucide-r
 import FibonacciSpiral from '@/components/FibonacciSpiral';
 
 const processingStages = [
-<<<<<<< HEAD
-  { 
-    text: 'Calculating planetary positions...', 
-    icon: Atom,
-    duration: 2000,
-    description: 'Computing celestial coordinates with Swiss Ephemeris'
-  },
-  { 
-    text: 'Running Swiss Ephemeris...', 
-    icon: FunctionSquare,
-    duration: 2000,
-    description: 'High-precision astronomical calculations'
-  },
-  { 
-    text: 'Correlating life events...', 
-    icon: Target,
-    duration: 2000,
-    description: 'Matching events with planetary periods'
-  },
-  { 
-    text: 'Triangulating exact moment...', 
-    icon: Sigma,
-    duration: 2000,
-    description: 'Mathematical convergence algorithms'
-  },
-  { 
-    text: 'Verifying with Tattwa Shodhana...', 
-    icon: Sparkles,
-    duration: 2000,
-    description: 'Physical trait correlation analysis'
-=======
   {
     text: 'Initializing Swiss Ephemeris...',
     icon: Atom,
@@ -78,7 +47,6 @@ const processingStages = [
     icon: Sparkles,
     duration: 2000,
     description: 'AI determining the most accurate birth time with confidence scoring'
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
   }
 ];
 
@@ -90,21 +58,14 @@ export default function ProcessingAnimation() {
   useEffect(() => {
     const stageTimer = setInterval(() => {
       setCurrentStage(prev => (prev + 1) % processingStages.length);
-<<<<<<< HEAD
-    }, 2000);
+    }, 2300);
     
     const progressTimer = setInterval(() => {
-      setProgress(prev => Math.min(prev + 1, 100));
-=======
-    }, 2300); // Adjusted for longer AI analysis stage
-    
-    const progressTimer = setInterval(() => {
-      setProgress(prev => Math.min(prev + 0.8, 100)); // Slower progress for more stages
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
+      setProgress(prev => Math.min(prev + 0.8, 100));
     }, 100);
     
     const spiralTimer = setInterval(() => {
-      setSpiralRotation(prev => prev + 1.618); // Golden ratio rotation
+      setSpiralRotation(prev => prev + 1.618);
     }, 50);
     
     return () => {
@@ -117,34 +78,31 @@ export default function ProcessingAnimation() {
   const CurrentIcon = processingStages[currentStage].icon;
   
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-fib-8">
-      {/* Mathematical Header */}
+    <div className="w-full max-w-4xl mx-auto space-y-8">
       <motion.div
         initial={{ opacity: 0, y: 34 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.618, ease: "easeOut" }}
-        className="text-center mb-fib-8"
+        className="text-center mb-8"
       >
-        <div className="flex items-center justify-center gap-fib-3 mb-fib-5">
-          <Sigma className="w-fib-5 h-fib-5 text-vedic-saffron" />
-          <h2 className="math-title-h2">
+        <div className="flex items-center justify-center gap-3 mb-5">
+          <Sigma className="w-5 h-5 text-amber-500" />
+          <h2 className="text-2xl font-bold text-white">
             Mathematical Analysis
           </h2>
-          <FunctionSquare className="w-fib-5 h-fib-5 text-vedic-orange" />
+          <FunctionSquare className="w-5 h-5 text-orange-500" />
         </div>
-        <p className="math-subtitle">
+        <p className="text-lg text-white/70">
           Converging on your exact birth moment through mathematical precision
         </p>
       </motion.div>
       
-      {/* Main Processing Animation - Fibonacci Spiral Center */}
       <motion.div
-        className="relative w-fib-10 h-fib-10 mx-auto mb-fib-8"
+        className="relative w-64 h-64 mx-auto mb-8"
         initial={{ scale: 0.618, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.618, ease: "easeOut" }}
       >
-        {/* Background Fibonacci Spiral */}
         <div className="absolute inset-0 flex items-center justify-center">
           <motion.div
             animate={{ rotate: spiralRotation }}
@@ -154,10 +112,9 @@ export default function ProcessingAnimation() {
           </motion.div>
         </div>
         
-        {/* Central Processing Icon */}
         <div className="absolute inset-0 flex items-center justify-center">
           <motion.div
-            className="relative w-fib-8 h-fib-8 bg-gradient-to-br from-vedic-saffron to-vedic-orange rounded-fib-6 flex items-center justify-center shadow-phi-strong"
+            className="relative w-40 h-40 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full flex items-center justify-center shadow-lg"
             animate={{ 
               scale: [1, 1.05, 1],
               rotate: [0, 360]
@@ -175,23 +132,22 @@ export default function ProcessingAnimation() {
                 exit={{ opacity: 0, scale: 0.8 }}
                 transition={{ duration: 0.3 }}
               >
-                <CurrentIcon className="w-fib-5 h-fib-5 text-white" />
+                <CurrentIcon className="w-10 h-10 text-white" />
               </motion.div>
             </AnimatePresence>
           </motion.div>
         </div>
         
-        {/* Orbiting Data Points - Mathematical Positions */}
         {[...Array(8)].map((_, i) => {
-          const angle = (i * 137.5) * (Math.PI / 180); // Golden angle
-          const radius = 55 + (i * 13); // Fibonacci spacing
+          const angle = (i * 137.5) * (Math.PI / 180);
+          const radius = 55 + (i * 13);
           const x = Math.cos(angle) * radius;
           const y = Math.sin(angle) * radius;
           
           return (
             <motion.div
               key={i}
-              className="absolute w-fib-3 h-fib-3 bg-vedic-saffron rounded-full"
+              className="absolute w-3 h-3 bg-amber-500 rounded-full"
               style={{
                 left: '50%',
                 top: '50%',
@@ -205,7 +161,7 @@ export default function ProcessingAnimation() {
                 scale: [0.8, 1.2, 0.8]
               }}
               transition={{
-                duration: 2 + (i * 0.236), // Fibonacci timing
+                duration: 2 + (i * 0.236),
                 repeat: Infinity,
                 ease: "easeInOut",
                 delay: i * 0.2
@@ -215,9 +171,8 @@ export default function ProcessingAnimation() {
         })}
       </motion.div>
       
-      {/* Processing Text - Mathematical Typography */}
       <motion.div
-        className="text-center mb-fib-8"
+        className="text-center mb-8"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.3 }}
@@ -229,38 +184,37 @@ export default function ProcessingAnimation() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -13 }}
             transition={{ duration: 0.3 }}
-            className="space-y-fib-3"
+            className="space-y-3"
           >
-            <div className="flex items-center justify-center gap-fib-3 mb-fib-3">
-              <CurrentIcon className="w-fib-5 h-fib-5 text-vedic-saffron" />
-              <h3 className="text-h3 font-semibold text-white">
+            <div className="flex items-center justify-center gap-3 mb-3">
+              <CurrentIcon className="w-5 h-5 text-amber-500" />
+              <h3 className="text-xl font-semibold text-white">
                 {processingStages[currentStage].text}
               </h3>
             </div>
-            <p className="text-h6 text-white/phi-light">
+            <p className="text-sm text-white/70">
               {processingStages[currentStage].description}
             </p>
           </motion.div>
         </AnimatePresence>
       </motion.div>
       
-      {/* Progress Bar - Mathematical Precision */}
       <motion.div
-        className="space-y-fib-4"
+        className="space-y-4"
         initial={{ opacity: 0, y: 21 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
       >
         <div className="flex items-center justify-between">
-          <span className="text-h6 text-white/phi-light">Analysis Progress</span>
-          <span className="text-h5 font-mono text-vedic-saffron">
+          <span className="text-sm text-white/70">Analysis Progress</span>
+          <span className="text-lg font-mono text-amber-500">
             {progress.toFixed(1)}%
           </span>
         </div>
         
-        <div className="math-progress-bar h-fib-3 rounded-fib-2">
+        <div className="w-full bg-white/10 rounded-full h-3">
           <motion.div
-            className="math-progress-fill h-full rounded-fib-2 bg-gradient-to-r from-vedic-saffron to-vedic-orange"
+            className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-500"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.1 }}
@@ -268,56 +222,46 @@ export default function ProcessingAnimation() {
         </div>
         
         <div className="text-center">
-          <p className="text-phi-sm text-white/phi-light">
-<<<<<<< HEAD
-            Estimated time: 8-13 seconds (Fibonacci range)
-=======
+          <p className="text-sm text-white/60">
             Estimated time: 14-20 seconds (AI analysis requires more time)
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
           </p>
         </div>
       </motion.div>
       
-      {/* Mathematical Indicators */}
       <motion.div
-        className="grid grid-cols-3 gap-fib-4 mt-fib-8"
+        className="grid grid-cols-3 gap-4 mt-8"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.8 }}
       >
-        <div className="text-center p-fib-4 bg-white/phi-light rounded-fib-4 backdrop-blur-phi">
-          <div className="text-h5 font-mono text-vedic-saffron mb-fib-1">φ</div>
-          <div className="text-phi-sm text-white/phi-light">Golden Ratio</div>
+        <div className="text-center p-4 bg-white/10 rounded-lg backdrop-blur-sm">
+          <div className="text-lg font-mono text-amber-500 mb-1">φ</div>
+          <div className="text-sm text-white/70">Golden Ratio</div>
         </div>
-        <div className="text-center p-fib-4 bg-white/phi-light rounded-fib-4 backdrop-blur-phi">
-          <div className="text-h5 font-mono text-vedic-saffron mb-fib-1">0.001"</div>
-          <div className="text-phi-sm text-white/phi-light">Precision</div>
+        <div className="text-center p-4 bg-white/10 rounded-lg backdrop-blur-sm">
+          <div className="text-lg font-mono text-amber-500 mb-1">0.001"</div>
+          <div className="text-sm text-white/70">Precision</div>
         </div>
-        <div className="text-center p-fib-4 bg-white/phi-light rounded-fib-4 backdrop-blur-phi">
-<<<<<<< HEAD
-          <div className="text-h5 font-mono text-vedic-saffron mb-fib-1">{currentStage + 1}/5</div>
-=======
-          <div className="text-h5 font-mono text-vedic-saffron mb-fib-1">{currentStage + 1}/7</div>
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
-          <div className="text-phi-sm text-white/phi-light">Stage</div>
+        <div className="text-center p-4 bg-white/10 rounded-lg backdrop-blur-sm">
+          <div className="text-lg font-mono text-amber-500 mb-1">{currentStage + 1}/7</div>
+          <div className="text-sm text-white/70">Stage</div>
         </div>
       </motion.div>
       
-      {/* Floating Mathematical Elements */}
       {[...Array(13)].map((_, i) => {
-        const size = 3 + (i * 2); // Fibonacci sizes
-        const delay = i * 0.236; // Golden ratio delay
-        const duration = 3 + (i * 0.382); // Fibonacci duration
+        const size = 3 + (i * 2);
+        const delay = i * 0.236;
+        const duration = 3 + (i * 0.382);
         
         return (
           <motion.div
             key={i}
-            className="absolute rounded-full bg-vedic-saffron/phi"
+            className="absolute rounded-full bg-amber-500/30"
             style={{
               width: `${size}px`,
               height: `${size}px`,
-              left: `${(i * 13.75) % 100}%`, // Golden angle distribution
-              top: `${(i * 16.18) % 100}%`, // Golden ratio distribution
+              left: `${(i * 13.75) % 100}%`,
+              top: `${(i * 16.18) % 100}%`,
             }}
             animate={{
               opacity: [0.1, 0.6, 0.1],

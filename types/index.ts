@@ -12,10 +12,7 @@ export interface BirthData {
   longitude: number;
   timezone: string;
   gender: 'male' | 'female';
-<<<<<<< HEAD
-=======
   maritalStatus: 'single' | 'married' | 'divorced' | 'widowed';
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
   currentAge: number;
 }
 
@@ -47,18 +44,11 @@ export interface LifeEvent {
   id: string;
   category: EventCategory;
   eventType: string;
-<<<<<<< HEAD
-  eventDate: string; // YYYY-MM-DD or YYYY-MM or YYYY
-  dateAccuracy: 'exact' | 'month' | 'year' | 'approximate';
-  description: string;
-  importance: 'critical' | 'high' | 'medium' | 'low';
-=======
   eventDate: string; // YYYY-MM-DD or YYYY-MM or YYYY or "YYYY-MM-DD to YYYY-MM-DD"
   dateAccuracy: 'exact' | 'month' | 'year' | 'approximate' | 'range' | 'month-range' | 'year-range';
   description: string;
   importance: 'critical' | 'high' | 'medium' | 'low';
   eventTime?: string; // HH:MM format for exact dates
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
   metadata?: Record<string, any>;
 }
 

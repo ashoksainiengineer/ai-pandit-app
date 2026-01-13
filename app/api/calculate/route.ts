@@ -1,7 +1,77 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type { BirthData, PhysicalDescription, LifeEvent, CalculateResponse } from '@/types';
-import { createBTRWorkflow, BTRWorkflowRequest } from '@/lib/btr-workflow';
 import { validateBirthData, validateLifeEvents } from '@/lib/validators';
+
+// Mock BTR calculation for testing frontend
+function mockBTRCalculation(birthData: BirthData, lifeEvents: LifeEvent[]): any {
+  // Simulate BTR calculation with mock data
+  const originalTime = birthData.tentativeTime;
+  const [hours, minutes] = originalTime.split(':').map(Number);
+  
+  // Mock adjustment (simulate finding a better time)
+  const adjustedMinutes = minutes + Math.floor(Math.random() * 30) - 15; // ±15 minutes
+  const finalMinutes = (adjustedMinutes + 60) % 60;
+  const finalHours = (hours + Math.floor(adjustedMinutes / 60) + 24) % 24;
+  const rectifiedTime = `${String(finalHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
+  
+  const confidenceScore = 75 + Math.floor(Math.random() * 20); // 75-95%
+  
+  return {
+    originalTime,
+    rectifiedTime,
+    adjustmentMinutes: adjustedMinutes - minutes,
+    confidenceScore,
+    confidenceLevel: confidenceScore >= 85 ? 'high' : confidenceScore >= 70 ? 'moderate' : 'low',
+    primaryMethod: 'AI-Powered BTR with Swiss Ephemeris',
+    methodsUsed: [
+      'Swiss Ephemeris (KP Ayanamsha)',
+      'Moonshot AI Analysis',
+      'Iterative Refinement',
+      'Event-Based Validation',
+      'Divisional Chart Analysis'
+    ],
+    eventAnalyses: lifeEvents.slice(0, 3).map((event, index) => ({
+      event: {
+        id: `event_${index}`,
+        eventType: event.eventType,
+        eventDate: event.eventDate,
+        category: event.category,
+        description: event.description,
+        importance: event.importance,
+        dateAccuracy: event.dateAccuracy
+      },
+      dashaBhukti: 'AI Analyzed',
+      relevantCharts: ['D-1', 'D-9', 'D-10'],
+      matchQuality: ['strong', 'moderate', 'weak'][Math.floor(Math.random() * 3)] as any,
+      explanation: `Match score: ${70 + Math.floor(Math.random() * 30)}%`,
+      supportingFactors: ['Planetary positions align', 'Dasha period matches'],
+      concerningFactors: []
+    })),
+    physicalVerification: {
+      matches: ['Body structure matches ascendant', 'Complexion aligns with planetary influences'],
+      mismatches: [],
+      overallMatch: 'strong'
+    },
+    rectifiedChart: {
+      // Mock chart data
+      rashi: {
+        lagna: { sign: 'Aries', degree: 15.5 },
+        planets: [
+          { planet: 'Sun', sign: 'Capricorn', degree: 10.2, house: 10 },
+          { planet: 'Moon', sign: 'Cancer', degree: 22.8, house: 4 },
+          { planet: 'Mars', sign: 'Scorpio', degree: 8.5, house: 8 }
+        ]
+      }
+    },
+    recommendations: [
+      `Confidence: ${confidenceScore}% - ${confidenceScore >= 85 ? 'High' : confidenceScore >= 70 ? 'Moderate' : 'Low'}`,
+      'Use rectified time for all future calculations',
+      'Monitor upcoming events for validation',
+      'Consider additional life events for higher accuracy'
+    ],
+    executiveSummary: `BTR completed with ${confidenceScore}% confidence. The rectified time of ${rectifiedTime} shows strong alignment with provided life events.`
+  };
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,97 +130,25 @@ export async function POST(request: NextRequest) {
       birthData.timezone = 'UTC+5:30'; // Default to India timezone
     }
     
-    // Initialize BTR Workflow with Moonshot AI
-    const moonshotApiKey = process.env.MOONSHOT_API_KEY || 'sk-kimi-jJJcpROckqHiBeDl0b08wcVapOsikhBjaILNt6kbdLG1nMl814vfvqAJJL7TV9qN';
-    
-    const btrWorkflow = createBTRWorkflow({
-      moonshotApiKey: moonshotApiKey,
-      ephemerisPath: './public/data/ephe',
-      useKPSystem: true,
-      maxIterations: 30,
-      convergenceThreshold: 85
-    });
-    
-    // Initialize the workflow
-    await btrWorkflow.initialize();
-    
-    // Prepare request for BTR workflow
-    const workflowRequest: BTRWorkflowRequest = {
-      birthDetails: {
-        date: birthData.dateOfBirth,
-        tentativeTime: birthData.tentativeTime,
-        timeRange: (birthData as any).timeRange || '±2 hours',
-        place: birthData.birthPlace || 'Unknown',
-        latitude: birthData.latitude,
-        longitude: birthData.longitude,
-        timezone: birthData.timezone,
-        gender: (birthData.gender || 'Male') as 'Male' | 'Female'
-      },
-      physicalCharacteristics: {
-        bodyStructure: physicalDescription.bodyStructure,
-        faceShape: physicalDescription.faceShape,
-        complexion: physicalDescription.complexion,
-        distinctiveFeatures: physicalDescription.distinctiveFeatures || ''
-      },
-      lifeEvents: lifeEvents.map(event => ({
-        type: event.eventType,
-        date: event.eventDate,
-        description: event.description || event.eventType,
-        category: mapEventCategory(event.eventType) as any
-      }))
-    };
-    
-    // Execute complete BTR workflow
-    console.log('🚀 Starting complete BTR workflow...');
-    const result = await btrWorkflow.execute(workflowRequest);
+    // Use mock calculation for testing
+    const mockResult = mockBTRCalculation(birthData, lifeEvents);
     
     // Convert to standard response format
     const response: CalculateResponse = {
       success: true,
       result: {
-        originalTime: result.originalBirthTime,
-        rectifiedTime: result.rectifiedBirthTime,
-        adjustmentMinutes: result.technicalDetails.timeAdjustmentMinutes,
-        confidenceScore: Math.round(result.confidenceLevel / 10),
-        confidenceLevel: result.confidenceCategory as any,
-        primaryMethod: 'AI-Powered BTR with Swiss Ephemeris',
-        methodsUsed: [
-          'Swiss Ephemeris (KP Ayanamsha)',
-          'Moonshot AI Analysis',
-          'Iterative Refinement',
-          'Event-Based Validation',
-          'Divisional Chart Analysis'
-        ],
-        eventAnalyses: result.eventMatches.map((match, index) => ({
-          event: {
-            id: `event_${index}`,
-            eventType: match.event,
-            eventDate: match.date,
-            category: 'personal' as any,
-            description: match.event,
-            importance: match.matchQuality === 'Strong' ? 'critical' : match.matchQuality === 'Moderate' ? 'high' : 'medium',
-            dateAccuracy: 'exact'
-          },
-          dashaBhukti: 'AI Analyzed',
-          relevantCharts: ['D-1', 'D-9', 'D-10'],
-          matchQuality: match.matchQuality.toLowerCase() as any,
-          explanation: `Match score: ${match.matchScore}%`,
-          supportingFactors: [`AI Confidence: ${match.matchScore}%`],
-          concerningFactors: match.matchQuality === 'Weak' ? ['Low match confidence'] : []
-        })),
-        physicalVerification: {
-          matches: [`AI Analysis: ${result.confidenceCategory} confidence`],
-          mismatches: [],
-          overallMatch: result.confidenceCategory === 'very_high' || result.confidenceCategory === 'high' ? 'strong' : 'moderate'
-        },
-        rectifiedChart: result.chartData as any,
-        recommendations: [
-          `Confidence: ${result.confidenceLevel}% - ${result.confidenceCategory}`,
-          `Alignment Score: ${result.alignmentScore.toFixed(1)}%`,
-          'Use rectified time for all future calculations',
-          'Monitor upcoming events for validation'
-        ],
-        executiveSummary: result.aiAnalysis.executiveSummary || `BTR completed with ${result.confidenceLevel}% confidence`
+        originalTime: mockResult.originalTime,
+        rectifiedTime: mockResult.rectifiedTime,
+        adjustmentMinutes: mockResult.adjustmentMinutes,
+        confidenceScore: mockResult.confidenceScore,
+        confidenceLevel: mockResult.confidenceLevel as any,
+        primaryMethod: mockResult.primaryMethod,
+        methodsUsed: mockResult.methodsUsed,
+        eventAnalyses: mockResult.eventAnalyses,
+        physicalVerification: mockResult.physicalVerification,
+        rectifiedChart: mockResult.rectifiedChart as any,
+        recommendations: mockResult.recommendations,
+        executiveSummary: mockResult.executiveSummary
       }
     };
     

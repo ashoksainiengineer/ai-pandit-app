@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Calendar, Clock, MapPin, Info, ChevronDown } from 'lucide-react';
+import { User, Calendar, Clock, MapPin, Info, ChevronDown, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import type { BirthData } from '@/types';
 import { searchCities } from '@/lib/cities';
 import dynamic from 'next/dynamic';
@@ -17,20 +17,117 @@ interface BirthDataFormProps {
   setBirthData: (data: Partial<BirthData>) => void;
 }
 
+interface ValidationState {
+  fullName: boolean;
+  dateOfBirth: boolean;
+  tentativeTime: boolean;
+  birthPlace: boolean;
+  latitude: boolean;
+  longitude: boolean;
+  gender: boolean;
+}
+
 export default function BirthDataForm({ birthData, setBirthData }: BirthDataFormProps) {
   const [locationMode, setLocationMode] = useState<'search' | 'manual' | 'map'>('search');
   const [citySuggestions, setCitySuggestions] = useState<any[]>([]);
   const [showCitySuggestions, setShowCitySuggestions] = useState(false);
   const [isSearchingCities, setIsSearchingCities] = useState(false);
   const [showTimeHelp, setShowTimeHelp] = useState(false);
+  const [validation, setValidation] = useState<ValidationState>({
+    fullName: false,
+    dateOfBirth: false,
+    tentativeTime: false,
+    birthPlace: false,
+    latitude: false,
+    longitude: false,
+    gender: false
+  });
+  const [touched, setTouched] = useState<Record<keyof ValidationState, boolean>>({
+    fullName: false,
+    dateOfBirth: false,
+    tentativeTime: false,
+    birthPlace: false,
+    latitude: false,
+    longitude: false,
+    gender: false
+  });
+  
   const citiesDropdownRef = useRef<HTMLDivElement>(null);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Derived date values with memoization
+  const dateValues = useMemo(() => {
+    if (!birthData.dateOfBirth) {
+      return { day: '', month: '', year: '' };
+    }
+    const date = new Date(birthData.dateOfBirth);
+    if (isNaN(date.getTime())) {
+      return { day: '', month: '', year: '' };
+    }
+    return {
+      day: date.getDate().toString(),
+      month: date.getMonth().toString(),
+      year: date.getFullYear().toString()
+    };
+  }, [birthData.dateOfBirth]);
+  
+  // Time values
+  const timeValues = useMemo(() => {
+    if (!birthData.tentativeTime) {
+      return { hour: '', minute: '', period: 'AM' as const };
+    }
+    const [hours, minutes] = birthData.tentativeTime.split(':');
+    const hourNum = parseInt(hours);
+    const period = hourNum >= 12 ? 'PM' : 'AM';
+    const displayHour = hourNum === 0 ? 12 : hourNum > 12 ? hourNum - 12 : hourNum;
+    
+    return {
+      hour: displayHour.toString().padStart(2, '0'),
+      minute: minutes || '00',
+      period
+    };
+  }, [birthData.tentativeTime]);
+  
+  // Validation logic
+  const validateField = useCallback((field: keyof ValidationState, value: any): boolean => {
+    switch (field) {
+      case 'fullName':
+        return typeof value === 'string' && value.trim().length >= 2;
+      case 'dateOfBirth':
+        return typeof value === 'string' && value.trim().length > 0 && !isNaN(new Date(value).getTime());
+      case 'tentativeTime':
+        return typeof value === 'string' && /^\d{2}:\d{2}$/.test(value);
+      case 'birthPlace':
+        return typeof value === 'string' && value.trim().length >= 2;
+      case 'latitude':
+        return typeof value === 'number' && value >= -90 && value <= 90;
+      case 'longitude':
+        return typeof value === 'number' && value >= -180 && value <= 180;
+      case 'gender':
+        return value === 'male' || value === 'female';
+      default:
+        return false;
+    }
+  }, []);
+  
+  // Run validation on all fields
+  useEffect(() => {
+    const newValidation: ValidationState = {
+      fullName: validateField('fullName', birthData.fullName),
+      dateOfBirth: validateField('dateOfBirth', birthData.dateOfBirth),
+      tentativeTime: validateField('tentativeTime', birthData.tentativeTime),
+      birthPlace: validateField('birthPlace', birthData.birthPlace),
+      latitude: validateField('latitude', birthData.latitude),
+      longitude: validateField('longitude', birthData.longitude),
+      gender: validateField('gender', birthData.gender)
+    };
+    setValidation(newValidation);
+  }, [birthData, validateField]);
+  
   // Handle city search with debouncing
-  const handleCitySearch = (value: string) => {
+  const handleCitySearch = useCallback((value: string) => {
     setBirthData({ ...birthData, birthPlace: value });
     
-    // Clear existing timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
@@ -38,7 +135,6 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
     if (value.trim().length >= 2) {
       setIsSearchingCities(true);
       
-      // Debounce the search
       searchTimeoutRef.current = setTimeout(async () => {
         try {
           const results = await searchCities(value);
@@ -56,17 +152,13 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
       setShowCitySuggestions(false);
       setIsSearchingCities(false);
     }
-  };
+  }, [birthData, setBirthData]);
   
   // Handle city selection
-  const handleCitySelect = (city: any) => {
-    // Format the city display with full hierarchy
-    const cityDisplay = [
-      city.name,
-      city.district,
-      city.state,
-      city.country
-    ].filter(Boolean).join(', ');
+  const handleCitySelect = useCallback((city: any) => {
+    const cityDisplay = [city.name, city.district, city.state, city.country]
+      .filter(Boolean)
+      .join(', ');
     
     setBirthData({
       ...birthData,
@@ -76,7 +168,46 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
     });
     setCitySuggestions([]);
     setShowCitySuggestions(false);
-  };
+  }, [birthData, setBirthData]);
+  
+  // Date handlers
+  const handleDateChange = useCallback((field: 'day' | 'month' | 'year', value: string) => {
+    const currentDate = birthData.dateOfBirth ? new Date(birthData.dateOfBirth) : new Date();
+    const day = field === 'day' ? parseInt(value) : currentDate.getDate();
+    const month = field === 'month' ? parseInt(value) : currentDate.getMonth();
+    const year = field === 'year' ? parseInt(value) : currentDate.getFullYear();
+    
+    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+      const newDate = new Date(year, month, day);
+      if (!isNaN(newDate.getTime())) {
+        setBirthData({ ...birthData, dateOfBirth: newDate.toISOString().split('T')[0] });
+      }
+    }
+  }, [birthData.dateOfBirth, birthData, setBirthData]);
+  
+  // Time handlers
+  const handleTimeChange = useCallback((field: 'hour' | 'minute' | 'period', value: string) => {
+    const currentTime = birthData.tentativeTime || '12:00';
+    const [currentHour, currentMinute] = currentTime.split(':');
+    let hour24 = parseInt(currentHour) || 12;
+    const minute = parseInt(currentMinute) || 0;
+    
+    if (field === 'period') {
+      const isPM = value === 'PM';
+      if (isPM && hour24 < 12) hour24 += 12;
+      if (!isPM && hour24 === 12) hour24 = 0;
+    } else if (field === 'hour') {
+      const displayHour = parseInt(value) || 12;
+      const isPM = hour24 >= 12;
+      hour24 = displayHour === 12 ? (isPM ? 12 : 0) : (isPM ? displayHour + 12 : displayHour);
+    } else if (field === 'minute') {
+      const newMinute = parseInt(value) || 0;
+      setBirthData({ ...birthData, tentativeTime: `${String(hour24).padStart(2, '0')}:${String(newMinute).padStart(2, '0')}` });
+      return;
+    }
+    
+    setBirthData({ ...birthData, tentativeTime: `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}` });
+  }, [birthData.tentativeTime, birthData, setBirthData]);
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -95,7 +226,7 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
     };
   }, []);
   
-  // Time uncertainty options with emojis
+  // Time uncertainty options
   const timeUncertaintyOptions = [
     { value: 'exact', label: '🎯 Exact Time', description: 'Verified from birth certificate' },
     { value: '5min', label: '⏰ ±5 minutes', description: 'Very accurate estimate' },
@@ -119,133 +250,113 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
     { name: 'Ahmedabad', district: 'Ahmedabad', state: 'Gujarat', country: 'India', latitude: 23.0225, longitude: 72.5714 }
   ];
   
+  // Input component with validation
+  const ValidatedInput = ({ id, label, value, onChange, onBlur, isValid, touched: fieldTouched, type = 'text', ...props }: any) => {
+    return (
+      <div className="relative">
+        <label htmlFor={id} className="block text-sm font-medium text-white/80 mb-2">
+          {label}
+        </label>
+        <div className="relative">
+          <input
+            id={id}
+            type={type}
+            value={value}
+            onChange={onChange}
+            onBlur={onBlur}
+            className={`w-full px-4 py-3 bg-white/10 border rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 transition-all duration-300 ${
+              fieldTouched && !isValid 
+                ? 'border-red-500 focus:ring-red-500' 
+                : fieldTouched && isValid
+                ? 'border-green-500 focus:ring-green-500'
+                : 'border-white/20 focus:ring-amber-500'
+            }`}
+            {...props}
+          />
+          {fieldTouched && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+              {isValid ? (
+                <CheckCircle className="w-5 h-5 text-green-500" />
+              ) : (
+                <AlertCircle className="w-5 h-5 text-red-500" />
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+  
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className="space-y-8"
-    >
-      {/* Conversational Header */}
+    <div className="space-y-8">
       <div className="text-center mb-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
+        <div>
           <h2 className="text-3xl font-bold text-white mb-3">
             Let's start with basic details...
           </h2>
           <p className="text-lg text-white/70 max-w-2xl mx-auto">
             Every piece of information helps us find your exact birth time with precision
           </p>
-        </motion.div>
+        </div>
       </div>
       
-      {/* Conversational Form Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 max-w-4xl mx-auto"
-      >
+      <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-8 max-w-4xl mx-auto">
         <div className="space-y-8">
           
-          {/* Name - Conversational Style */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
-            <label className="block text-lg font-medium text-white mb-3">
-              What's your name?
-            </label>
-            <div className="relative">
-              <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50" />
-              <input
-                type="text"
-                value={birthData.fullName || ''}
-                onChange={(e) => setBirthData({ ...birthData, fullName: e.target.value })}
-                placeholder="Enter your full name"
-                className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
-                aria-label="Full Name"
-                required
-              />
-            </div>
+          {/* Name */}
+          <div>
+            <ValidatedInput
+              id="fullName"
+              label="What's your name?"
+              value={birthData.fullName || ''}
+              onChange={(e: any) => setBirthData({ ...birthData, fullName: e.target.value })}
+              onBlur={() => setTouched(prev => ({ ...prev, fullName: true }))}
+              isValid={validation.fullName}
+              touched={touched.fullName}
+              placeholder="Enter your full name"
+              required
+            />
             <p className="text-sm text-white/60 mt-2 flex items-center gap-2">
               <Info className="w-4 h-4" />
               This appears on your rectification report
             </p>
-          </motion.div>
+          </div>
           
-          {/* Date of Birth - Conversational Style */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
+          {/* Date of Birth */}
+          <div>
             <label className="block text-lg font-medium text-white mb-3">
               When were you born?
             </label>
             <div className="grid grid-cols-3 gap-4">
-              {/* Day */}
+              <ValidatedInput
+                id="day"
+                label="Day"
+                type="number"
+                min="1"
+                max="31"
+                value={dateValues.day}
+                onChange={(e: any) => handleDateChange('day', e.target.value)}
+                onBlur={() => setTouched(prev => ({ ...prev, dateOfBirth: true }))}
+                isValid={validation.dateOfBirth}
+                touched={touched.dateOfBirth}
+                placeholder="DD"
+                required
+              />
+              
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">Day</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="31"
-<<<<<<< HEAD
-                  value={birthData.dateOfBirth ? new Date(birthData.dateOfBirth).getDate() : ''}
-=======
-                  value={birthData.dateOfBirth ? (() => {
-                    const date = new Date(birthData.dateOfBirth);
-                    return !isNaN(date.getTime()) ? date.getDate() : '';
-                  })() : ''}
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
-                  onChange={(e) => {
-                    const day = parseInt(e.target.value);
-                    const currentDate = birthData.dateOfBirth ? new Date(birthData.dateOfBirth) : new Date();
-                    const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-<<<<<<< HEAD
-                    setBirthData({ ...birthData, dateOfBirth: newDate.toISOString().split('T')[0] });
-=======
-                    if (!isNaN(newDate.getTime())) {
-                      setBirthData({ ...birthData, dateOfBirth: newDate.toISOString().split('T')[0] });
-                    }
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
-                  }}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
-                  aria-label="Day of birth"
-                  required
-                />
-              </div>
-              {/* Month */}
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">Month</label>
+                <label htmlFor="month" className="block text-sm font-medium text-white/80 mb-2">Month</label>
                 <select
-<<<<<<< HEAD
-                  value={birthData.dateOfBirth ? new Date(birthData.dateOfBirth).getMonth() : ''}
-=======
-                  value={birthData.dateOfBirth ? (() => {
-                    const date = new Date(birthData.dateOfBirth);
-                    return !isNaN(date.getTime()) ? date.getMonth() : '';
-                  })() : ''}
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
-                  onChange={(e) => {
-                    const month = parseInt(e.target.value);
-                    const currentDate = birthData.dateOfBirth ? new Date(birthData.dateOfBirth) : new Date();
-                    const newDate = new Date(currentDate.getFullYear(), month, currentDate.getDate());
-<<<<<<< HEAD
-                    setBirthData({ ...birthData, dateOfBirth: newDate.toISOString().split('T')[0] });
-=======
-                    if (!isNaN(newDate.getTime())) {
-                      setBirthData({ ...birthData, dateOfBirth: newDate.toISOString().split('T')[0] });
-                    }
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
-                  }}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
-                  aria-label="Month of birth"
+                  id="month"
+                  value={dateValues.month}
+                  onChange={(e) => handleDateChange('month', e.target.value)}
+                  onBlur={() => setTouched(prev => ({ ...prev, dateOfBirth: true }))}
+                  className={`w-full px-4 py-3 bg-white/10 border rounded-xl text-white focus:outline-none focus:ring-2 transition-all duration-300 ${
+                    touched.dateOfBirth && !validation.dateOfBirth 
+                      ? 'border-red-500 focus:ring-red-500' 
+                      : touched.dateOfBirth && validation.dateOfBirth
+                      ? 'border-green-500 focus:ring-green-500'
+                      : 'border-white/20 focus:ring-amber-500'
+                  }`}
                   required
                 >
                   <option value="">Select</option>
@@ -256,121 +367,79 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                   ))}
                 </select>
               </div>
-              {/* Year */}
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">Year</label>
-                <input
-                  type="number"
-                  min="1900"
-                  max="2100"
-<<<<<<< HEAD
-                  value={birthData.dateOfBirth ? new Date(birthData.dateOfBirth).getFullYear() : ''}
-=======
-                  value={birthData.dateOfBirth ? (() => {
-                    const date = new Date(birthData.dateOfBirth);
-                    return !isNaN(date.getTime()) ? date.getFullYear() : '';
-                  })() : ''}
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
-                  onChange={(e) => {
-                    const year = parseInt(e.target.value);
-                    const currentDate = birthData.dateOfBirth ? new Date(birthData.dateOfBirth) : new Date();
-                    const newDate = new Date(year, currentDate.getMonth(), currentDate.getDate());
-<<<<<<< HEAD
-                    setBirthData({ ...birthData, dateOfBirth: newDate.toISOString().split('T')[0] });
-=======
-                    if (!isNaN(newDate.getTime())) {
-                      setBirthData({ ...birthData, dateOfBirth: newDate.toISOString().split('T')[0] });
-                    }
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
-                  }}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
-                  aria-label="Year of birth"
-                  required
-                />
-              </div>
+              
+              <ValidatedInput
+                id="year"
+                label="Year"
+                type="number"
+                min="1900"
+                max="2100"
+                value={dateValues.year}
+                onChange={(e: any) => handleDateChange('year', e.target.value)}
+                onBlur={() => setTouched(prev => ({ ...prev, dateOfBirth: true }))}
+                isValid={validation.dateOfBirth}
+                touched={touched.dateOfBirth}
+                placeholder="YYYY"
+                required
+              />
             </div>
-            <button className="text-sm text-amber-400 hover:text-amber-300 mt-2 flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              Select from calendar instead
-            </button>
-          </motion.div>
+          </div>
           
-          {/* Birth Time - The Critical One */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-          >
+          {/* Birth Time */}
+          <div>
             <label className="block text-lg font-medium text-white mb-3">
               What time were you born? (approximately)
             </label>
             
-            {/* Time Input */}
             <div className="grid grid-cols-3 gap-4 mb-4">
+              <ValidatedInput
+                id="hour"
+                label="Hour"
+                type="number"
+                min="1"
+                max="12"
+                value={timeValues.hour}
+                onChange={(e: any) => handleTimeChange('hour', e.target.value)}
+                onBlur={() => setTouched(prev => ({ ...prev, tentativeTime: true }))}
+                isValid={validation.tentativeTime}
+                touched={touched.tentativeTime}
+                placeholder="HH"
+                required
+              />
+              
+              <ValidatedInput
+                id="minute"
+                label="Minute"
+                type="number"
+                min="0"
+                max="59"
+                value={timeValues.minute}
+                onChange={(e: any) => handleTimeChange('minute', e.target.value)}
+                onBlur={() => setTouched(prev => ({ ...prev, tentativeTime: true }))}
+                isValid={validation.tentativeTime}
+                touched={touched.tentativeTime}
+                placeholder="MM"
+                required
+              />
+              
               <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">Hour</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="23"
-                  value={birthData.tentativeTime ? parseInt(birthData.tentativeTime.split(':')[0]) : ''}
-                  onChange={(e) => {
-                    const hours = parseInt(e.target.value);
-                    const currentTime = birthData.tentativeTime || '12:00';
-                    const [, minutes] = currentTime.split(':');
-                    setBirthData({ 
-                      ...birthData, 
-                      tentativeTime: `${String(hours).padStart(2, '0')}:${minutes}` 
-                    });
-                  }}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
-                  aria-label="Birth hour"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">Minutes</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="59"
-                  value={birthData.tentativeTime ? parseInt(birthData.tentativeTime.split(':')[1]) : ''}
-                  onChange={(e) => {
-                    const minutes = parseInt(e.target.value);
-                    const currentTime = birthData.tentativeTime || '12:00';
-                    const [hours] = currentTime.split(':');
-                    setBirthData({ 
-                      ...birthData, 
-                      tentativeTime: `${hours}:${String(minutes).padStart(2, '0')}` 
-                    });
-                  }}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
-                  aria-label="Birth minutes"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-white/70 mb-2">Period</label>
+                <label htmlFor="period" className="block text-sm font-medium text-white/80 mb-2">Period</label>
                 <select
-                  value={birthData.tentativeTime && parseInt(birthData.tentativeTime.split(':')[0]) >= 12 ? 'PM' : 'AM'}
-                  onChange={(e) => {
-                    const isPM = e.target.value === 'PM';
-                    const currentTime = birthData.tentativeTime || '12:00';
-                    const [hours, minutes] = currentTime.split(':');
-                    let hour24 = parseInt(hours);
-                    
-                    if (isPM && hour24 < 12) hour24 += 12;
-                    if (!isPM && hour24 === 12) hour24 = 0;
-                    
-                    setBirthData({ 
-                      ...birthData, 
-                      tentativeTime: `${String(hour24).padStart(2, '0')}:${minutes}` 
-                    });
-                  }}
-                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
+                  id="period"
+                  value={timeValues.period}
+                  onChange={(e) => handleTimeChange('period', e.target.value)}
+                  onBlur={() => setTouched(prev => ({ ...prev, tentativeTime: true }))}
+                  className={`w-full px-4 py-3 bg-white/10 border rounded-xl text-white focus:outline-none focus:ring-2 transition-all duration-300 ${
+                    touched.tentativeTime && !validation.tentativeTime 
+                      ? 'border-red-500 focus:ring-red-500' 
+                      : touched.tentativeTime && validation.tentativeTime
+                      ? 'border-green-500 focus:ring-green-500'
+                      : 'border-white/20 focus:ring-amber-500'
+                  }`}
+                  required
                 >
-                  <option value="AM">🌅 Morning (AM)</option>
-                  <option value="PM">🌆 Evening (PM)</option>
+                  <option value="AM">🌅 AM</option>
+                  <option value="PM">🌆 PM</option>
                 </select>
               </div>
             </div>
@@ -386,11 +455,11 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                     key={option.value}
                     type="button"
                     onClick={() => setBirthData({ ...birthData, timeUncertainty: option.value as any })}
-                    className={`p-3 rounded-xl text-center transition-all duration-300 border-2
-                      ${birthData.timeUncertainty === option.value
+                    className={`p-3 rounded-xl text-center transition-all duration-300 border-2 ${
+                      birthData.timeUncertainty === option.value
                         ? 'bg-amber-500/20 border-amber-500 text-white'
                         : 'bg-white/5 border-white/20 text-white/70 hover:border-white/40'
-                      }`}
+                    }`}
                   >
                     <div className="text-lg mb-1">{option.label.split(' ')[0]}</div>
                     <div className="text-xs">{option.label.split(' ')[1]}</div>
@@ -403,9 +472,10 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
               <button
                 onClick={() => setShowTimeHelp(!showTimeHelp)}
-                className="flex items-center gap-2 text-amber-400 hover:text-amber-300 mb-2"
+                className="flex items-center gap-2 text-amber-400 hover:text-amber-300 mb-2 w-full text-left"
+                type="button"
               >
-                <Info className="w-4 h-4" />
+                <Info className="w-4 h-4 flex-shrink-0" />
                 <span className="font-medium">Where to find your birth time</span>
                 <ChevronDown className={`w-4 h-4 transition-transform ${showTimeHelp ? 'rotate-180' : ''}`} />
               </button>
@@ -428,30 +498,26 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                 )}
               </AnimatePresence>
             </div>
-          </motion.div>
+          </div>
           
           {/* Birth Place */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
-          >
+          <div>
             <label className="block text-lg font-medium text-white mb-3">
               Where were you born?
             </label>
             
             {/* Location Mode Tabs */}
             <div className="flex gap-2 mb-4">
-              {['search', 'manual', 'map'].map((mode) => (
+              {(['search', 'manual', 'map'] as const).map((mode) => (
                 <button
                   key={mode}
                   type="button"
-                  onClick={() => setLocationMode(mode as any)}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all
-                    ${locationMode === mode
+                  onClick={() => setLocationMode(mode)}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                    locationMode === mode
                       ? 'bg-amber-500 text-white'
                       : 'bg-white/10 text-white/70 hover:bg-white/20'
-                    }`}
+                  }`}
                 >
                   {mode === 'search' && '🔍 Search'}
                   {mode === 'manual' && '✏️ Manual'}
@@ -464,17 +530,26 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
             {locationMode === 'search' && (
               <div className="space-y-4">
                 <div className="relative" ref={citiesDropdownRef}>
-                  <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50" />
+                  <MapPin className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50 pointer-events-none" />
                   <input
                     type="text"
                     value={birthData.birthPlace || ''}
                     onChange={(e) => handleCitySearch(e.target.value)}
                     onFocus={() => birthData.birthPlace && citySuggestions.length > 0 && setShowCitySuggestions(true)}
                     placeholder="Start typing city name..."
-                    className="w-full pl-12 pr-4 py-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
+                    className={`w-full pl-12 pr-4 py-4 bg-white/10 border rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 transition-all duration-300 ${
+                      touched.birthPlace && !validation.birthPlace 
+                        ? 'border-red-500 focus:ring-red-500' 
+                        : touched.birthPlace && validation.birthPlace
+                        ? 'border-green-500 focus:ring-green-500'
+                        : 'border-white/20 focus:ring-amber-500'
+                    }`}
                     aria-label="Birth place search"
                     required
                   />
+                  {isSearchingCities && (
+                    <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-amber-500 animate-spin" />
+                  )}
                 </div>
                 
                 {/* Popular Cities */}
@@ -486,6 +561,7 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                         key={city.name}
                         onClick={() => handleCitySelect(city)}
                         className="px-3 py-1 bg-white/10 hover:bg-white/20 rounded-lg text-sm text-white/80 transition-all"
+                        type="button"
                       >
                         {city.name}
                       </button>
@@ -506,14 +582,15 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                         <button
                           key={idx}
                           onClick={() => handleCitySelect(city)}
-                          className="w-full px-4 py-3 text-left hover:bg-amber-500/20 transition-colors border-b border-white/10 last:border-b-0"
+                          className="w-full px-4 py-3 text-left hover:bg-amber-500/20 transition-colors border-b border-white/10 last:border-b-0 flex flex-col"
+                          type="button"
                         >
                           <div className="font-medium text-white">{city.name}</div>
                           <div className="text-sm text-white/60 mt-1">
                             {[city.district, city.state, city.country].filter(Boolean).join(' • ')}
                           </div>
-                          <div className="text-xs text-amber-400 mt-1">
-                            Coordinates: {city.latitude.toFixed(4)}° N, {city.longitude.toFixed(4)}° E
+                          <div className="text-xs text-amber-400 mt-1 font-mono">
+                            {city.latitude.toFixed(4)}° N, {city.longitude.toFixed(4)}° E
                           </div>
                         </button>
                       ))}
@@ -526,46 +603,45 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
             {/* Manual Entry Mode */}
             {locationMode === 'manual' && (
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-white/70 mb-2">Birth Place Name</label>
-                  <input
-                    type="text"
-                    value={birthData.birthPlace || ''}
-                    onChange={(e) => setBirthData({ ...birthData, birthPlace: e.target.value })}
-                    placeholder="Enter city/town name"
-                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
-                    aria-label="Birth place name"
-                    required
-                  />
-                </div>
+                <ValidatedInput
+                  id="birthPlace"
+                  label="Birth Place Name"
+                  value={birthData.birthPlace || ''}
+                  onChange={(e: any) => setBirthData({ ...birthData, birthPlace: e.target.value })}
+                  onBlur={() => setTouched(prev => ({ ...prev, birthPlace: true }))}
+                  isValid={validation.birthPlace}
+                  touched={touched.birthPlace}
+                  placeholder="Enter city/town name"
+                  required
+                />
                 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-white/70 mb-2">Latitude</label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={birthData.latitude || ''}
-                      onChange={(e) => setBirthData({ ...birthData, latitude: parseFloat(e.target.value) })}
-                      placeholder="e.g., 28.7041"
-                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
-                      aria-label="Latitude coordinate"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-white/70 mb-2">Longitude</label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={birthData.longitude || ''}
-                      onChange={(e) => setBirthData({ ...birthData, longitude: parseFloat(e.target.value) })}
-                      placeholder="e.g., 77.1025"
-                      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
-                      aria-label="Longitude coordinate"
-                      required
-                    />
-                  </div>
+                  <ValidatedInput
+                    id="latitude"
+                    label="Latitude"
+                    type="number"
+                    step="0.0001"
+                    value={birthData.latitude?.toString() || ''}
+                    onChange={(e: any) => setBirthData({ ...birthData, latitude: parseFloat(e.target.value) })}
+                    onBlur={() => setTouched(prev => ({ ...prev, latitude: true }))}
+                    isValid={validation.latitude}
+                    touched={touched.latitude}
+                    placeholder="e.g., 28.7041"
+                    required
+                  />
+                  <ValidatedInput
+                    id="longitude"
+                    label="Longitude"
+                    type="number"
+                    step="0.0001"
+                    value={birthData.longitude?.toString() || ''}
+                    onChange={(e: any) => setBirthData({ ...birthData, longitude: parseFloat(e.target.value) })}
+                    onBlur={() => setTouched(prev => ({ ...prev, longitude: true }))}
+                    isValid={validation.longitude}
+                    touched={touched.longitude}
+                    placeholder="e.g., 77.1025"
+                    required
+                  />
                 </div>
               </div>
             )}
@@ -578,54 +654,63 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                   initialLon={birthData.longitude || 77}
                   onCoordinateSelect={(lat, lon) => {
                     setBirthData({ ...birthData, latitude: lat, longitude: lon });
+                    setTouched(prev => ({ ...prev, latitude: true, longitude: true }));
                   }}
                 />
               </div>
             )}
-          </motion.div>
+          </div>
           
-          {/* Gender - Visual Cards */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.7 }}
-          >
+          {/* Gender */}
+          <div>
             <label className="block text-lg font-medium text-white mb-3">
               What's your gender?
             </label>
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"
-                onClick={() => setBirthData({ ...birthData, gender: 'male' })}
-                className={`p-6 rounded-xl text-center transition-all duration-300 border-2
-                  ${birthData.gender === 'male'
-                    ? 'bg-blue-500/20 border-blue-500 text-white'
+                onClick={() => {
+                  setBirthData({ ...birthData, gender: 'male' });
+                  setTouched(prev => ({ ...prev, gender: true }));
+                }}
+                className={`p-6 rounded-xl text-center transition-all duration-300 border-2 ${
+                  birthData.gender === 'male'
+                    ? 'bg-blue-500/20 border-blue-500 text-white shadow-lg'
                     : 'bg-white/5 border-white/20 text-white/70 hover:border-white/40'
-                  }`}
+                }`}
               >
                 <div className="text-4xl mb-2">👨</div>
                 <div className="text-lg font-semibold">Male</div>
+                {touched.gender && validation.gender && birthData.gender === 'male' && (
+                  <CheckCircle className="w-5 h-5 text-green-500 mx-auto mt-2" />
+                )}
               </button>
               <button
                 type="button"
-                onClick={() => setBirthData({ ...birthData, gender: 'female' })}
-                className={`p-6 rounded-xl text-center transition-all duration-300 border-2
-                  ${birthData.gender === 'female'
-                    ? 'bg-pink-500/20 border-pink-500 text-white'
+                onClick={() => {
+                  setBirthData({ ...birthData, gender: 'female' });
+                  setTouched(prev => ({ ...prev, gender: true }));
+                }}
+                className={`p-6 rounded-xl text-center transition-all duration-300 border-2 ${
+                  birthData.gender === 'female'
+                    ? 'bg-pink-500/20 border-pink-500 text-white shadow-lg'
                     : 'bg-white/5 border-white/20 text-white/70 hover:border-white/40'
-                  }`}
+                }`}
               >
                 <div className="text-4xl mb-2">👩</div>
                 <div className="text-lg font-semibold">Female</div>
+                {touched.gender && validation.gender && birthData.gender === 'female' && (
+                  <CheckCircle className="w-5 h-5 text-green-500 mx-auto mt-2" />
+                )}
               </button>
             </div>
             <p className="text-sm text-white/60 mt-3 flex items-center gap-2">
-              <Info className="w-4 h-4" />
+              <Info className="w-4 h-4 flex-shrink-0" />
               Used for Tattwa Shodhana verification - an ancient method that cross-checks gender from birth chart
             </p>
-          </motion.div>
+          </div>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }

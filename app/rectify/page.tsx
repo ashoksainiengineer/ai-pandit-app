@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-<<<<<<< HEAD
 import {
   Calendar, Clock, MapPin, User, Activity, Sparkles,
   ArrowRight, ArrowLeft, Check, Loader2, Sigma, FunctionSquare
@@ -15,26 +14,11 @@ import LifeEventsForm from '@/components/LifeEventsForm';
 import ProcessingAnimation from '@/components/ProcessingAnimation';
 import ResultsDisplay from '@/components/ResultsDisplay';
 import LivePreviewPanel from '@/components/LivePreviewPanel';
-
-export default function BTRPage() {
-  const [step, setStep] = useState(1);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [result, setResult] = useState<RectificationResult | null>(null);
-  
-=======
-import type { BirthData, PhysicalDescription, LifeEvent, RectificationResult } from '@/types';
-import Header from '@/components/rectify/Header';
-import BirthDetailsStep from '@/components/rectify/steps/BirthDetailsStep';
-import PhysicalStep from '@/components/rectify/steps/PhysicalStep';
-import LifeEventsStep from '@/components/rectify/steps/LifeEventsStep';
-import LifeEventsStepUniversal from '@/components/rectify/steps/LifeEventsStepUniversal';
-import ReviewStep from '@/components/rectify/steps/ReviewStep';
-import ResultsPage from '@/components/rectify/ResultsPage';
 import { validateFormSubmission } from '@/lib/validators';
 import { calculateProgress, getProgressColor, getProgressMessage } from '@/lib/progressCalculator';
 
 export default function RectifyPage() {
-  const [currentStep, setCurrentStep] = useState(1);
+  const [step, setStep] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<RectificationResult | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
@@ -42,31 +26,20 @@ export default function RectifyPage() {
   const [overallProgress, setOverallProgress] = useState(0);
 
   // Form state
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
   const [birthData, setBirthData] = useState<Partial<BirthData>>({
     fullName: '',
     dateOfBirth: '',
     tentativeTime: '',
-<<<<<<< HEAD
-    timeUncertainty: 'exact',
-=======
     timeUncertainty: '30min',
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
     birthPlace: '',
     latitude: 0,
     longitude: 0,
     timezone: 'UTC+5:30',
     gender: 'male',
-<<<<<<< HEAD
-    currentAge: 0
-  });
-  
-=======
     maritalStatus: 'single',
     currentAge: 0
   });
 
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
   const [physicalDesc, setPhysicalDesc] = useState<Partial<PhysicalDescription>>({
     bodyStructure: 'average',
     height: 'average',
@@ -74,15 +47,6 @@ export default function RectifyPage() {
     complexion: 'wheatish',
     distinctiveFeatures: ''
   });
-<<<<<<< HEAD
-  
-  const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>([]);
-  
-  const handleSubmit = async () => {
-    setIsProcessing(true);
-    setStep(4);
-    
-=======
 
   const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>([]);
 
@@ -131,22 +95,12 @@ export default function RectifyPage() {
     }
 
     setIsProcessing(true);
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
+    setStep(4);
+    
     try {
       const response = await fetch('/api/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-<<<<<<< HEAD
-        body: JSON.stringify({ birthData, physicalDescription: physicalDesc, lifeEvents })
-      });
-      
-      const data = await response.json();
-      if (data.success) {
-        setResult(data.result);
-      }
-    } catch (error) {
-      console.error('Error:', error);
-=======
         body: JSON.stringify({
           birthData,
           physicalDescription: physicalDesc,
@@ -162,7 +116,6 @@ export default function RectifyPage() {
             errorMessage = errorData.error;
           }
         } catch (parseError) {
-          // If response.json() fails, use the status-based message
           console.warn('Failed to parse error response:', parseError);
         }
         throw new Error(errorMessage);
@@ -177,7 +130,6 @@ export default function RectifyPage() {
     } catch (error) {
       console.error('Calculation error:', error);
       
-      // More user-friendly error messages
       let errorMessage = 'Error during calculation. Please try again.';
       if (error instanceof Error) {
         if (error.message.includes('validation')) {
@@ -192,13 +144,11 @@ export default function RectifyPage() {
       }
       
       alert(errorMessage);
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
     } finally {
       setIsProcessing(false);
     }
   };
-<<<<<<< HEAD
-  
+
   const canProceed = () => {
     switch (step) {
       case 1:
@@ -211,7 +161,7 @@ export default function RectifyPage() {
         return false;
     }
   };
-  
+
   const renderStep = () => {
     const variants = {
       initial: { opacity: 0, x: 89 },
@@ -290,7 +240,7 @@ export default function RectifyPage() {
         return null;
     }
   };
-  
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative overflow-hidden">
       {/* Subtle Celestial Background */}
@@ -383,126 +333,5 @@ export default function RectifyPage() {
         </div>
       </footer>
     </main>
-=======
-
-  // If results are ready, show results page
-  if (result) {
-    return <ResultsPage result={result} onRestart={() => setResult(null)} />;
-  }
-
-  // Multi-step form
-  return (
-    <div className="min-h-screen bg-[#0F1419]">
-      <Header currentStep={currentStep} totalSteps={4} />
-
-      <main className="pt-[120px] pb-[140px] px-4">
-        <div className="max-w-2xl mx-auto">
-          <AnimatePresence mode="wait">
-            {currentStep === 1 && (
-              <motion.div
-                key="step-1"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <BirthDetailsStep birthData={birthData} setBirthData={setBirthData} />
-              </motion.div>
-            )}
-
-            {currentStep === 2 && (
-              <motion.div
-                key="step-2"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <PhysicalStep physicalDesc={physicalDesc} setPhysicalDesc={setPhysicalDesc} />
-              </motion.div>
-            )}
-
-            {currentStep === 3 && (
-              <motion.div
-                key="step-3"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <LifeEventsStepUniversal
-                  lifeEvents={lifeEvents}
-                  setLifeEvents={setLifeEvents}
-                  birthYear={birthData.dateOfBirth ? parseInt(birthData.dateOfBirth.split('-')[0]) : undefined}
-                  maritalStatus={birthData.maritalStatus}
-                  overallProgress={overallProgress}
-                />
-              </motion.div>
-            )}
-
-            {currentStep === 4 && (
-              <motion.div
-                key="step-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                <ReviewStep
-                  birthData={birthData}
-                  physicalDesc={physicalDesc}
-                  lifeEvents={lifeEvents}
-                  onEdit={(step) => setCurrentStep(step)}
-                  onSubmit={handleSubmit}
-                  isProcessing={isProcessing}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </main>
-
-      {/* Footer Navigation */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-[#1A1F26] border-t border-[#2D3542] px-4 py-4 backdrop-blur-sm">
-        <div className="max-w-2xl mx-auto flex items-center justify-between gap-4">
-          <button
-            onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
-            disabled={currentStep === 1}
-            className="px-6 py-3 rounded-lg border border-[#3D4654] text-[#A8B3C5] hover:text-[#F7F9FC] hover:border-[#A8B3C5] transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-          >
-            ← Back
-          </button>
-
-          <div className="text-xs text-[#6B7A90]">
-            {lastSaved && `💾 Saved just now`}
-          </div>
-
-          {currentStep < 4 ? (
-            <button
-              onClick={() => setCurrentStep(currentStep + 1)}
-              className="px-6 py-3 rounded-lg bg-gradient-to-r from-[#F5A623] to-[#E09000] text-[#0F1419] hover:shadow-lg hover:shadow-[#F5A623]/30 transition-all font-semibold"
-            >
-              Next →
-            </button>
-          ) : (
-            <button
-              onClick={handleSubmit}
-              disabled={isProcessing || lifeEvents.length < 3}
-              className="px-6 py-3 rounded-lg bg-gradient-to-r from-[#F5A623] to-[#E09000] text-[#0F1419] hover:shadow-lg hover:shadow-[#F5A623]/30 transition-all font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {isProcessing ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-[#0F1419]/30 border-t-[#0F1419] rounded-full animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>🔮 Calculate Birth Time</>
-              )}
-            </button>
-          )}
-        </div>
-      </footer>
-    </div>
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
   );
 }

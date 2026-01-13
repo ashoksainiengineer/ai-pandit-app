@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Briefcase, Heart, Baby, Users, Stethoscope, Landmark, Plane, GraduationCap,
@@ -8,42 +8,60 @@ import {
 } from 'lucide-react';
 import type { LifeEvent, EventCategory } from '@/types';
 import { EVENT_TYPES } from '@/types';
-<<<<<<< HEAD
-=======
 import StandardizedDateInput from '@/components/rectify/StandardizedDateInput';
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
 
 interface LifeEventsFormProps {
   lifeEvents: LifeEvent[];
   setLifeEvents: (events: LifeEvent[]) => void;
 }
 
+interface ValidationState {
+  eventType: boolean;
+  eventDate: boolean;
+  eventTime: boolean;
+  description: boolean;
+}
+
+interface TimeParts {
+  hour: string;
+  minute: string;
+  period: 'AM' | 'PM';
+}
+
 export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEventsFormProps) {
   const [selectedCategory, setSelectedCategory] = useState<EventCategory>('education');
   const [showHowItWorks, setShowHowItWorks] = useState(false);
+  const [touched, setTouched] = useState<Record<keyof ValidationState, boolean>>({
+    eventType: false,
+    eventDate: false,
+    eventTime: false,
+    description: false
+  });
+  
   const [newEvent, setNewEvent] = useState<Partial<LifeEvent>>({
     category: 'education',
     eventType: '',
     eventDate: '',
     dateAccuracy: 'exact',
     description: '',
-<<<<<<< HEAD
-    importance: 'medium'
-  });
-  
-=======
     importance: 'medium',
     eventTime: ''
   });
   
-  // Time parts for standardized time input
-  const [timeParts, setTimeParts] = useState({ hour: '', minute: '', period: 'AM' });
-  const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
-  const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
+  const [timeParts, setTimeParts] = useState<TimeParts>({ hour: '', minute: '', period: 'AM' });
   
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
+  const hours = useMemo(() => 
+    Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0')), 
+    []
+  );
+  
+  const minutes = useMemo(() => 
+    Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0')), 
+    []
+  );
+  
   // Visual category icons and colors
-  const categoryVisuals: Record<EventCategory, { icon: any; color: string; bgColor: string; emoji: string }> = {
+  const categoryVisuals = useMemo(() => ({
     education: { icon: GraduationCap, color: 'text-blue-400', bgColor: 'bg-blue-500/20', emoji: '📚' },
     career: { icon: Briefcase, color: 'text-green-400', bgColor: 'bg-green-500/20', emoji: '💼' },
     marriage: { icon: Heart, color: 'text-pink-400', bgColor: 'bg-pink-500/20', emoji: '💍' },
@@ -54,68 +72,50 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
     travel: { icon: Plane, color: 'text-cyan-400', bgColor: 'bg-cyan-500/20', emoji: '✈️' },
     spiritual: { icon: Target, color: 'text-indigo-400', bgColor: 'bg-indigo-500/20', emoji: '🕉️' },
     other: { icon: Target, color: 'text-gray-400', bgColor: 'bg-gray-500/20', emoji: '📌' }
-  };
+  }), []);
   
   // Importance levels with visual indicators
-  const importanceLevels = [
+  const importanceLevels = useMemo(() => [
     { value: 'critical', label: '🔴 Critical', description: 'Most reliable', color: 'border-red-500/50 bg-red-500/10' },
     { value: 'high', label: '🟠 High', description: 'Very reliable', color: 'border-orange-500/50 bg-orange-500/10' },
     { value: 'medium', label: '🟡 Medium', description: 'Moderately reliable', color: 'border-yellow-500/50 bg-yellow-500/10' },
     { value: 'low', label: '🟢 Low', description: 'Less reliable', color: 'border-green-500/50 bg-green-500/10' }
-  ];
+  ], []);
   
   // Date accuracy options
-  const dateAccuracyOptions = [
+  const dateAccuracyOptions = useMemo(() => [
     { value: 'exact', label: '📅 Exact Date', description: 'Day, month, year known' },
     { value: 'month', label: '📆 Month/Year', description: 'Only month and year' },
     { value: 'year', label: '🗓️ Year Only', description: 'Only year known' },
     { value: 'approximate', label: '⏰ Approximate', description: 'Rough estimate' }
-  ];
+  ], []);
   
-  const addEvent = () => {
-    if (!newEvent.eventType || !newEvent.eventDate) return;
-    
-    const event: LifeEvent = {
-      id: Date.now().toString(),
-      category: newEvent.category as EventCategory,
-      eventType: newEvent.eventType,
-      eventDate: newEvent.eventDate,
-      dateAccuracy: newEvent.dateAccuracy as any,
-      description: newEvent.description || '',
-<<<<<<< HEAD
-      importance: newEvent.importance as any
-    };
-    
-    setLifeEvents([...lifeEvents, event]);
-    setNewEvent({ 
-      category: selectedCategory, 
-      eventType: '', 
-      eventDate: '', 
-      dateAccuracy: 'exact', 
-      description: '', 
-      importance: 'medium' 
-    });
-  };
+  // Validation logic
+  const validateField = useCallback((field: keyof ValidationState, value: any): boolean => {
+    switch (field) {
+      case 'eventType':
+        return typeof value === 'string' && value.trim().length > 0;
+      case 'eventDate':
+        return typeof value === 'string' && value.trim().length > 0 && !isNaN(new Date(value).getTime());
+      case 'eventTime':
+        return value === '' || /^\d{2}:\d{2}$/.test(value);
+      case 'description':
+        return typeof value === 'string' && value.length <= 500; // Max 500 chars
+      default:
+        return false;
+    }
+  }, []);
   
-=======
-      importance: newEvent.importance as any,
-      eventTime: newEvent.eventTime || undefined
-    };
-    
-    setLifeEvents([...lifeEvents, event]);
-    setNewEvent({
-      category: selectedCategory,
-      eventType: '',
-      eventDate: '',
-      dateAccuracy: 'exact',
-      description: '',
-      importance: 'medium',
-      eventTime: ''
-    });
-  };
+  // Validation state
+  const validation = useMemo(() => ({
+    eventType: validateField('eventType', newEvent.eventType),
+    eventDate: validateField('eventDate', newEvent.eventDate),
+    eventTime: validateField('eventTime', newEvent.eventTime),
+    description: validateField('description', newEvent.description)
+  }), [newEvent, validateField]);
   
   // Helper function to convert 12-hour format to 24-hour format
-  const convertTo24HourFormat = (hour12: string, period: string): string => {
+  const convertTo24HourFormat = useCallback((hour12: string, period: string): string => {
     const hour = parseInt(hour12);
     let hour24 = hour;
     
@@ -126,47 +126,147 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
     }
     
     return hour24.toString().padStart(2, '0');
-  };
+  }, []);
   
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
-  const deleteEvent = (eventId: string) => {
+  // Handle time parts change
+  const handleTimePartsChange = useCallback((field: keyof TimeParts, value: string) => {
+    const updatedTimeParts = { ...timeParts, [field]: value };
+    setTimeParts(updatedTimeParts);
+    
+    if (updatedTimeParts.hour && updatedTimeParts.minute) {
+      const hour24 = convertTo24HourFormat(updatedTimeParts.hour, updatedTimeParts.period);
+      setNewEvent(prev => ({ ...prev, eventTime: `${hour24}:${updatedTimeParts.minute}` }));
+    } else {
+      setNewEvent(prev => ({ ...prev, eventTime: '' }));
+    }
+  }, [timeParts, convertTo24HourFormat]);
+  
+  // Add event handler
+  const addEvent = useCallback(() => {
+    if (!validation.eventType || !validation.eventDate) {
+      setTouched({ eventType: true, eventDate: true, eventTime: true, description: true });
+      return;
+    }
+    
+    const event: LifeEvent = {
+      id: Date.now().toString(),
+      category: newEvent.category as EventCategory,
+      eventType: newEvent.eventType!,
+      eventDate: newEvent.eventDate!,
+      dateAccuracy: newEvent.dateAccuracy as any,
+      description: newEvent.description || '',
+      importance: newEvent.importance as any,
+      eventTime: newEvent.eventTime || undefined
+    };
+    
+    setLifeEvents([...lifeEvents, event]);
+    
+    // Reset form
+    setNewEvent({
+      category: selectedCategory,
+      eventType: '',
+      eventDate: '',
+      dateAccuracy: 'exact',
+      description: '',
+      importance: 'medium',
+      eventTime: ''
+    });
+    setTimeParts({ hour: '', minute: '', period: 'AM' });
+    setTouched({ eventType: false, eventDate: false, eventTime: false, description: false });
+  }, [newEvent, selectedCategory, lifeEvents, setLifeEvents, validation]);
+  
+  // Delete event handler
+  const deleteEvent = useCallback((eventId: string) => {
     setLifeEvents(lifeEvents.filter(e => e.id !== eventId));
-  };
+  }, [lifeEvents, setLifeEvents]);
   
   // Calculate event quality score
-  const getEventQualityScore = () => {
+  const getEventQualityScore = useCallback(() => {
     if (lifeEvents.length === 0) return { score: 0, level: 'poor', message: 'No events added yet' };
     
     const hasMarriage = lifeEvents.some(e => e.category === 'marriage');
     const hasCritical = lifeEvents.some(e => e.importance === 'critical');
     const exactDates = lifeEvents.filter(e => e.dateAccuracy === 'exact').length;
+    const hasTimeInfo = lifeEvents.some(e => e.eventTime);
     
     let score = 0;
     if (lifeEvents.length >= 3) score += 30;
     if (lifeEvents.length >= 5) score += 20;
+    if (lifeEvents.length >= 7) score += 10;
     if (hasMarriage) score += 25;
     if (hasCritical) score += 15;
+    if (hasTimeInfo) score += 10;
     score += (exactDates / lifeEvents.length) * 30;
     
     if (score >= 80) return { score: Math.round(score), level: 'excellent', message: 'Excellent data quality!' };
     if (score >= 60) return { score: Math.round(score), level: 'good', message: 'Good data quality' };
     if (score >= 40) return { score: Math.round(score), level: 'fair', message: 'Fair data quality' };
     return { score: Math.round(score), level: 'poor', message: 'Need more reliable events' };
+  }, [lifeEvents]);
+  
+  const qualityScore = useMemo(() => getEventQualityScore(), [getEventQualityScore]);
+  
+  // Categories for selection
+  const categories = useMemo(() => [
+    { key: 'education' as EventCategory, label: 'Education', description: 'Academic achievements' },
+    { key: 'career' as EventCategory, label: 'Career', description: 'Professional milestones' },
+    { key: 'marriage' as EventCategory, label: 'Marriage', description: 'Relationship events' },
+    { key: 'children' as EventCategory, label: 'Children', description: 'Family expansion' },
+    { key: 'family' as EventCategory, label: 'Family', description: 'Family life events' },
+    { key: 'health' as EventCategory, label: 'Health', description: 'Medical events' },
+    { key: 'financial' as EventCategory, label: 'Financial', description: 'Money matters' },
+    { key: 'travel' as EventCategory, label: 'Travel', description: 'Journeys abroad' },
+    { key: 'spiritual' as EventCategory, label: 'Spiritual', description: 'Religious events' }
+  ], []);
+  
+  // Input component with validation
+  const ValidatedInput = ({ 
+    id, 
+    label, 
+    value, 
+    onChange, 
+    onBlur, 
+    isValid, 
+    touched: fieldTouched, 
+    type = 'text',
+    placeholder = '',
+    ...props 
+  }: any) => {
+    return (
+      <div className="relative">
+        <label htmlFor={id} className="block text-sm font-medium text-white/80 mb-2">
+          {label}
+        </label>
+        <div className="relative">
+          <input
+            id={id}
+            type={type}
+            value={value}
+            onChange={onChange}
+            onBlur={onBlur}
+            placeholder={placeholder}
+            className={`w-full px-4 py-3 bg-white/10 border rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 transition-all duration-300 ${
+              fieldTouched && !isValid 
+                ? 'border-red-500 focus:ring-red-500' 
+                : fieldTouched && isValid
+                ? 'border-green-500 focus:ring-green-500'
+                : 'border-white/20 focus:ring-amber-500'
+            }`}
+            {...props}
+          />
+          {fieldTouched && (
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+              {isValid ? (
+                <CheckCircle className="w-5 h-5 text-green-500" />
+              ) : (
+                <XCircle className="w-5 h-5 text-red-500" />
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
   };
-  
-  const qualityScore = getEventQualityScore();
-  
-  const categories: { key: EventCategory; label: string; description: string }[] = [
-    { key: 'education', label: 'Education', description: 'Academic achievements' },
-    { key: 'career', label: 'Career', description: 'Professional milestones' },
-    { key: 'marriage', label: 'Marriage', description: 'Relationship events' },
-    { key: 'children', label: 'Children', description: 'Family expansion' },
-    { key: 'family', label: 'Family', description: 'Family life events' },
-    { key: 'health', label: 'Health', description: 'Medical events' },
-    { key: 'financial', label: 'Financial', description: 'Money matters' },
-    { key: 'travel', label: 'Travel', description: 'Journeys abroad' },
-    { key: 'spiritual', label: 'Spiritual', description: 'Religious events' }
-  ];
   
   return (
     <motion.div
@@ -201,6 +301,7 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
         <button
           onClick={() => setShowHowItWorks(!showHowItWorks)}
           className="flex items-center gap-3 text-amber-400 hover:text-amber-300 mb-4 w-full"
+          type="button"
         >
           <Info className="w-5 h-5" />
           <span className="font-semibold">How This Works</span>
@@ -298,12 +399,6 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
             return (
               <motion.button
                 key={cat.key}
-<<<<<<< HEAD
-                onClick={() => { setSelectedCategory(cat.key); setNewEvent(prev => ({ ...prev, category: cat.key, eventType: '' })); }}
-                className={`p-4 rounded-xl text-center transition-all duration-300 border-2
-                  ${selectedCategory === cat.key 
-                    ? 'border-amber-500 bg-amber-500/20 shadow-lg' 
-=======
                 onClick={() => {
                   setSelectedCategory(cat.key);
                   setNewEvent(prev => ({
@@ -311,15 +406,16 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
                     category: cat.key,
                     eventType: ''
                   }));
+                  setTouched(prev => ({ ...prev, eventType: false }));
                 }}
                 className={`p-4 rounded-xl text-center transition-all duration-300 border-2
                   ${selectedCategory === cat.key
                     ? 'border-amber-500 bg-amber-500/20 shadow-lg'
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
                     : 'border-white/20 bg-white/5 hover:border-white/40'
                   }`}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
+                type="button"
               >
                 <div className="text-2xl mb-2">{visual.emoji}</div>
                 <div className="text-sm font-medium text-white">{cat.label}</div>
@@ -341,21 +437,29 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
               </label>
               <select
                 value={newEvent.eventType || ''}
-                onChange={(e) => setNewEvent(prev => ({ ...prev, eventType: e.target.value }))}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-<<<<<<< HEAD
-              >
-                <option value="">Select event type</option>
-                {EVENT_TYPES[selectedCategory].map(type => (
-=======
-                key={selectedCategory} // Force re-render when category changes
+                onChange={(e) => {
+                  setNewEvent(prev => ({ ...prev, eventType: e.target.value }));
+                  setTouched(prev => ({ ...prev, eventType: true }));
+                }}
+                onBlur={() => setTouched(prev => ({ ...prev, eventType: true }))}
+                className={`w-full px-4 py-3 bg-white/10 border rounded-xl text-white focus:outline-none focus:ring-2 transition-all duration-300 ${
+                  touched.eventType && !validation.eventType 
+                    ? 'border-red-500 focus:ring-red-500' 
+                    : touched.eventType && validation.eventType
+                    ? 'border-green-500 focus:ring-green-500'
+                    : 'border-white/20 focus:ring-amber-500'
+                }`}
+                key={selectedCategory}
+                required
               >
                 <option value="">Select event type</option>
                 {EVENT_TYPES[selectedCategory]?.map(type => (
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
                   <option key={type} value={type} className="bg-slate-800">{type}</option>
                 ))}
               </select>
+              {touched.eventType && !validation.eventType && (
+                <p className="text-xs text-red-400 mt-1">Please select an event type</p>
+              )}
             </div>
             
             {/* Event Date */}
@@ -363,28 +467,22 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
               <label className="block text-sm font-medium text-white/80 mb-2">
                 When did this happen?
               </label>
-<<<<<<< HEAD
-              <input
-                type="date"
-                value={newEvent.eventDate || ''}
-                onChange={(e) => setNewEvent(prev => ({ ...prev, eventDate: e.target.value }))}
-                className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-=======
               <StandardizedDateInput
                 value={newEvent.eventDate || ''}
-                onChange={(value) => setNewEvent(prev => ({ ...prev, eventDate: value }))}
+                onChange={(value) => {
+                  setNewEvent(prev => ({ ...prev, eventDate: value }));
+                  setTouched(prev => ({ ...prev, eventDate: true }));
+                }}
+                onBlur={() => setTouched(prev => ({ ...prev, eventDate: true }))}
                 dateType={newEvent.dateAccuracy as 'exact' | 'month' | 'year' | 'approximate'}
                 onDateTypeChange={(type) => setNewEvent(prev => ({ ...prev, dateAccuracy: type }))}
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
               />
+              {touched.eventDate && !validation.eventDate && (
+                <p className="text-xs text-red-400 mt-1">Please select a valid date</p>
+              )}
             </div>
           </div>
           
-<<<<<<< HEAD
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Date Accuracy */}
-            <div>
-=======
           {/* Time Input for Exact Dates - Standardized Format */}
           {newEvent.dateAccuracy === 'exact' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -396,14 +494,7 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
                   <div>
                     <select
                       value={timeParts.hour}
-                      onChange={(e) => {
-                        const newTimeParts = { ...timeParts, hour: e.target.value };
-                        setTimeParts(newTimeParts);
-                        if (newTimeParts.hour && newTimeParts.minute) {
-                          const hour24 = convertTo24HourFormat(newTimeParts.hour, newTimeParts.period);
-                          setNewEvent(prev => ({ ...prev, eventTime: `${hour24}:${newTimeParts.minute}` }));
-                        }
-                      }}
+                      onChange={(e) => handleTimePartsChange('hour', e.target.value)}
                       className="w-full h-12 px-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                     >
                       <option value="">Hour</option>
@@ -413,14 +504,7 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
                   <div>
                     <select
                       value={timeParts.minute}
-                      onChange={(e) => {
-                        const newTimeParts = { ...timeParts, minute: e.target.value };
-                        setTimeParts(newTimeParts);
-                        if (newTimeParts.hour && newTimeParts.minute) {
-                          const hour24 = convertTo24HourFormat(newTimeParts.hour, newTimeParts.period);
-                          setNewEvent(prev => ({ ...prev, eventTime: `${hour24}:${newTimeParts.minute}` }));
-                        }
-                      }}
+                      onChange={(e) => handleTimePartsChange('minute', e.target.value)}
                       className="w-full h-12 px-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                     >
                       <option value="">Minute</option>
@@ -430,14 +514,7 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
                   <div className="flex gap-2 items-center">
                     <button
                       type="button"
-                      onClick={() => {
-                        const newTimeParts = { ...timeParts, period: 'AM' };
-                        setTimeParts(newTimeParts);
-                        if (newTimeParts.hour && newTimeParts.minute) {
-                          const hour24 = convertTo24HourFormat(newTimeParts.hour, 'AM');
-                          setNewEvent(prev => ({ ...prev, eventTime: `${hour24}:${newTimeParts.minute}` }));
-                        }
-                      }}
+                      onClick={() => handleTimePartsChange('period', 'AM')}
                       className={`flex-1 h-12 rounded-xl font-medium transition-colors ${
                         timeParts.period === 'AM'
                           ? 'bg-amber-500 text-black'
@@ -448,14 +525,7 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        const newTimeParts = { ...timeParts, period: 'PM' };
-                        setTimeParts(newTimeParts);
-                        if (newTimeParts.hour && newTimeParts.minute) {
-                          const hour24 = convertTo24HourFormat(newTimeParts.hour, 'PM');
-                          setNewEvent(prev => ({ ...prev, eventTime: `${hour24}:${newTimeParts.minute}` }));
-                        }
-                      }}
+                      onClick={() => handleTimePartsChange('period', 'PM')}
                       className={`flex-1 h-12 rounded-xl font-medium transition-colors ${
                         timeParts.period === 'PM'
                           ? 'bg-amber-500 text-black'
@@ -472,32 +542,6 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
           )}
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Date Accuracy - Hidden since it's now handled by StandardizedDateInput */}
-            <div className="hidden">
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
-              <label className="block text-sm font-medium text-white/80 mb-2">
-                How accurate is this date?
-              </label>
-              <div className="space-y-2">
-                {dateAccuracyOptions.map((option) => (
-                  <label key={option.value} className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="dateAccuracy"
-                      value={option.value}
-                      checked={newEvent.dateAccuracy === option.value}
-                      onChange={(e) => setNewEvent(prev => ({ ...prev, dateAccuracy: e.target.value as any }))}
-                      className="text-amber-500"
-                    />
-                    <div>
-                      <div className="text-sm text-white">{option.label}</div>
-                      <div className="text-xs text-white/60">{option.description}</div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-            
             {/* Importance */}
             <div>
               <label className="block text-sm font-medium text-white/80 mb-2">
@@ -522,28 +566,43 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
                 ))}
               </div>
             </div>
-          </div>
-          
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-medium text-white/80 mb-2">
-              Any additional details? (Optional)
-            </label>
-            <textarea
-              value={newEvent.description || ''}
-              onChange={(e) => setNewEvent(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="E.g., 'Arranged marriage, venue was Delhi', 'Joined as Software Engineer'"
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
-              rows={3}
-            />
+            
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Any additional details? (Optional)
+              </label>
+              <textarea
+                value={newEvent.description || ''}
+                onChange={(e) => {
+                  setNewEvent(prev => ({ ...prev, description: e.target.value }));
+                  setTouched(prev => ({ ...prev, description: true }));
+                }}
+                onBlur={() => setTouched(prev => ({ ...prev, description: true }))}
+                placeholder="E.g., 'Arranged marriage, venue was Delhi', 'Joined as Software Engineer'"
+                className={`w-full px-4 py-3 bg-white/10 border rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 transition-all duration-300 resize-none ${
+                  touched.description && !validation.description 
+                    ? 'border-red-500 focus:ring-red-500' 
+                    : touched.description && validation.description
+                    ? 'border-green-500 focus:ring-green-500'
+                    : 'border-white/20 focus:ring-amber-500'
+                }`}
+                rows={3}
+                maxLength={500}
+              />
+              <div className="text-xs text-white/60 mt-1 text-right">
+                {(newEvent.description || '').length}/500
+              </div>
+            </div>
           </div>
           
           <motion.button
             onClick={addEvent}
-            disabled={!newEvent.eventType || !newEvent.eventDate}
+            disabled={!validation.eventType || !validation.eventDate}
             className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all duration-300 text-white font-medium"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            type="button"
           >
             <Plus className="w-5 h-5" />
             Add This Event
@@ -597,14 +656,6 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
                           <div className="flex items-center gap-4 text-sm text-white/70 mb-2">
                             <div className="flex items-center gap-1">
                               <Calendar className="w-4 h-4" />
-<<<<<<< HEAD
-                              {new Date(event.eventDate).toLocaleDateString('en-IN', { 
-                                day: 'numeric', 
-                                month: 'short', 
-                                year: 'numeric' 
-                              })}
-                            </div>
-=======
                               {new Date(event.eventDate).toLocaleDateString('en-IN', {
                                 day: 'numeric',
                                 month: 'short',
@@ -617,7 +668,6 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
                                 <span>{event.eventTime}</span>
                               </div>
                             )}
->>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
                             {event.dateAccuracy !== 'exact' && (
                               <div className="flex items-center gap-1">
                                 <Clock className="w-4 h-4" />
@@ -637,6 +687,7 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
                         className="p-2 text-red-400 hover:bg-red-500/20 rounded-lg transition-colors flex-shrink-0"
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
+                        type="button"
                       >
                         <Trash2 className="w-4 h-4" />
                       </motion.button>
