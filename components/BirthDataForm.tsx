@@ -195,12 +195,25 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                   type="number"
                   min="1"
                   max="31"
+<<<<<<< HEAD
                   value={birthData.dateOfBirth ? new Date(birthData.dateOfBirth).getDate() : ''}
+=======
+                  value={birthData.dateOfBirth ? (() => {
+                    const date = new Date(birthData.dateOfBirth);
+                    return !isNaN(date.getTime()) ? date.getDate() : '';
+                  })() : ''}
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
                   onChange={(e) => {
                     const day = parseInt(e.target.value);
                     const currentDate = birthData.dateOfBirth ? new Date(birthData.dateOfBirth) : new Date();
                     const newDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+<<<<<<< HEAD
                     setBirthData({ ...birthData, dateOfBirth: newDate.toISOString().split('T')[0] });
+=======
+                    if (!isNaN(newDate.getTime())) {
+                      setBirthData({ ...birthData, dateOfBirth: newDate.toISOString().split('T')[0] });
+                    }
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
                   }}
                   className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
                   aria-label="Day of birth"
@@ -211,12 +224,25 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
               <div>
                 <label className="block text-sm font-medium text-white/70 mb-2">Month</label>
                 <select
+<<<<<<< HEAD
                   value={birthData.dateOfBirth ? new Date(birthData.dateOfBirth).getMonth() : ''}
+=======
+                  value={birthData.dateOfBirth ? (() => {
+                    const date = new Date(birthData.dateOfBirth);
+                    return !isNaN(date.getTime()) ? date.getMonth() : '';
+                  })() : ''}
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
                   onChange={(e) => {
                     const month = parseInt(e.target.value);
                     const currentDate = birthData.dateOfBirth ? new Date(birthData.dateOfBirth) : new Date();
                     const newDate = new Date(currentDate.getFullYear(), month, currentDate.getDate());
+<<<<<<< HEAD
                     setBirthData({ ...birthData, dateOfBirth: newDate.toISOString().split('T')[0] });
+=======
+                    if (!isNaN(newDate.getTime())) {
+                      setBirthData({ ...birthData, dateOfBirth: newDate.toISOString().split('T')[0] });
+                    }
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
                   }}
                   className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
                   aria-label="Month of birth"
@@ -237,12 +263,25 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                   type="number"
                   min="1900"
                   max="2100"
+<<<<<<< HEAD
                   value={birthData.dateOfBirth ? new Date(birthData.dateOfBirth).getFullYear() : ''}
+=======
+                  value={birthData.dateOfBirth ? (() => {
+                    const date = new Date(birthData.dateOfBirth);
+                    return !isNaN(date.getTime()) ? date.getFullYear() : '';
+                  })() : ''}
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
                   onChange={(e) => {
                     const year = parseInt(e.target.value);
                     const currentDate = birthData.dateOfBirth ? new Date(birthData.dateOfBirth) : new Date();
                     const newDate = new Date(year, currentDate.getMonth(), currentDate.getDate());
+<<<<<<< HEAD
                     setBirthData({ ...birthData, dateOfBirth: newDate.toISOString().split('T')[0] });
+=======
+                    if (!isNaN(newDate.getTime())) {
+                      setBirthData({ ...birthData, dateOfBirth: newDate.toISOString().split('T')[0] });
+                    }
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
                   }}
                   className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all duration-300"
                   aria-label="Year of birth"

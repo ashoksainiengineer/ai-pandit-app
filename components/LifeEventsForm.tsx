@@ -8,6 +8,10 @@ import {
 } from 'lucide-react';
 import type { LifeEvent, EventCategory } from '@/types';
 import { EVENT_TYPES } from '@/types';
+<<<<<<< HEAD
+=======
+import StandardizedDateInput from '@/components/rectify/StandardizedDateInput';
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
 
 interface LifeEventsFormProps {
   lifeEvents: LifeEvent[];
@@ -23,9 +27,21 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
     eventDate: '',
     dateAccuracy: 'exact',
     description: '',
+<<<<<<< HEAD
     importance: 'medium'
   });
   
+=======
+    importance: 'medium',
+    eventTime: ''
+  });
+  
+  // Time parts for standardized time input
+  const [timeParts, setTimeParts] = useState({ hour: '', minute: '', period: 'AM' });
+  const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+  const minutes = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
+  
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
   // Visual category icons and colors
   const categoryVisuals: Record<EventCategory, { icon: any; color: string; bgColor: string; emoji: string }> = {
     education: { icon: GraduationCap, color: 'text-blue-400', bgColor: 'bg-blue-500/20', emoji: '📚' },
@@ -66,6 +82,7 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
       eventDate: newEvent.eventDate,
       dateAccuracy: newEvent.dateAccuracy as any,
       description: newEvent.description || '',
+<<<<<<< HEAD
       importance: newEvent.importance as any
     };
     
@@ -80,6 +97,38 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
     });
   };
   
+=======
+      importance: newEvent.importance as any,
+      eventTime: newEvent.eventTime || undefined
+    };
+    
+    setLifeEvents([...lifeEvents, event]);
+    setNewEvent({
+      category: selectedCategory,
+      eventType: '',
+      eventDate: '',
+      dateAccuracy: 'exact',
+      description: '',
+      importance: 'medium',
+      eventTime: ''
+    });
+  };
+  
+  // Helper function to convert 12-hour format to 24-hour format
+  const convertTo24HourFormat = (hour12: string, period: string): string => {
+    const hour = parseInt(hour12);
+    let hour24 = hour;
+    
+    if (period === 'PM' && hour !== 12) {
+      hour24 = hour + 12;
+    } else if (period === 'AM' && hour === 12) {
+      hour24 = 0;
+    }
+    
+    return hour24.toString().padStart(2, '0');
+  };
+  
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
   const deleteEvent = (eventId: string) => {
     setLifeEvents(lifeEvents.filter(e => e.id !== eventId));
   };
@@ -249,10 +298,24 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
             return (
               <motion.button
                 key={cat.key}
+<<<<<<< HEAD
                 onClick={() => { setSelectedCategory(cat.key); setNewEvent(prev => ({ ...prev, category: cat.key, eventType: '' })); }}
                 className={`p-4 rounded-xl text-center transition-all duration-300 border-2
                   ${selectedCategory === cat.key 
                     ? 'border-amber-500 bg-amber-500/20 shadow-lg' 
+=======
+                onClick={() => {
+                  setSelectedCategory(cat.key);
+                  setNewEvent(prev => ({
+                    ...prev,
+                    category: cat.key,
+                    eventType: ''
+                  }));
+                }}
+                className={`p-4 rounded-xl text-center transition-all duration-300 border-2
+                  ${selectedCategory === cat.key
+                    ? 'border-amber-500 bg-amber-500/20 shadow-lg'
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
                     : 'border-white/20 bg-white/5 hover:border-white/40'
                   }`}
                 whileHover={{ scale: 1.02 }}
@@ -280,9 +343,16 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
                 value={newEvent.eventType || ''}
                 onChange={(e) => setNewEvent(prev => ({ ...prev, eventType: e.target.value }))}
                 className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+<<<<<<< HEAD
               >
                 <option value="">Select event type</option>
                 {EVENT_TYPES[selectedCategory].map(type => (
+=======
+                key={selectedCategory} // Force re-render when category changes
+              >
+                <option value="">Select event type</option>
+                {EVENT_TYPES[selectedCategory]?.map(type => (
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
                   <option key={type} value={type} className="bg-slate-800">{type}</option>
                 ))}
               </select>
@@ -293,18 +363,118 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
               <label className="block text-sm font-medium text-white/80 mb-2">
                 When did this happen?
               </label>
+<<<<<<< HEAD
               <input
                 type="date"
                 value={newEvent.eventDate || ''}
                 onChange={(e) => setNewEvent(prev => ({ ...prev, eventDate: e.target.value }))}
                 className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+=======
+              <StandardizedDateInput
+                value={newEvent.eventDate || ''}
+                onChange={(value) => setNewEvent(prev => ({ ...prev, eventDate: value }))}
+                dateType={newEvent.dateAccuracy as 'exact' | 'month' | 'year' | 'approximate'}
+                onDateTypeChange={(type) => setNewEvent(prev => ({ ...prev, dateAccuracy: type }))}
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
               />
             </div>
           </div>
           
+<<<<<<< HEAD
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Date Accuracy */}
             <div>
+=======
+          {/* Time Input for Exact Dates - Standardized Format */}
+          {newEvent.dateAccuracy === 'exact' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  What time did this happen? (Optional)
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <select
+                      value={timeParts.hour}
+                      onChange={(e) => {
+                        const newTimeParts = { ...timeParts, hour: e.target.value };
+                        setTimeParts(newTimeParts);
+                        if (newTimeParts.hour && newTimeParts.minute) {
+                          const hour24 = convertTo24HourFormat(newTimeParts.hour, newTimeParts.period);
+                          setNewEvent(prev => ({ ...prev, eventTime: `${hour24}:${newTimeParts.minute}` }));
+                        }
+                      }}
+                      className="w-full h-12 px-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    >
+                      <option value="">Hour</option>
+                      {hours.map(h => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <select
+                      value={timeParts.minute}
+                      onChange={(e) => {
+                        const newTimeParts = { ...timeParts, minute: e.target.value };
+                        setTimeParts(newTimeParts);
+                        if (newTimeParts.hour && newTimeParts.minute) {
+                          const hour24 = convertTo24HourFormat(newTimeParts.hour, newTimeParts.period);
+                          setNewEvent(prev => ({ ...prev, eventTime: `${hour24}:${newTimeParts.minute}` }));
+                        }
+                      }}
+                      className="w-full h-12 px-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    >
+                      <option value="">Minute</option>
+                      {minutes.map(m => <option key={m} value={m}>{m}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newTimeParts = { ...timeParts, period: 'AM' };
+                        setTimeParts(newTimeParts);
+                        if (newTimeParts.hour && newTimeParts.minute) {
+                          const hour24 = convertTo24HourFormat(newTimeParts.hour, 'AM');
+                          setNewEvent(prev => ({ ...prev, eventTime: `${hour24}:${newTimeParts.minute}` }));
+                        }
+                      }}
+                      className={`flex-1 h-12 rounded-xl font-medium transition-colors ${
+                        timeParts.period === 'AM'
+                          ? 'bg-amber-500 text-black'
+                          : 'bg-white/10 text-white border border-white/20'
+                      }`}
+                    >
+                      AM
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newTimeParts = { ...timeParts, period: 'PM' };
+                        setTimeParts(newTimeParts);
+                        if (newTimeParts.hour && newTimeParts.minute) {
+                          const hour24 = convertTo24HourFormat(newTimeParts.hour, 'PM');
+                          setNewEvent(prev => ({ ...prev, eventTime: `${hour24}:${newTimeParts.minute}` }));
+                        }
+                      }}
+                      className={`flex-1 h-12 rounded-xl font-medium transition-colors ${
+                        timeParts.period === 'PM'
+                          ? 'bg-amber-500 text-black'
+                          : 'bg-white/10 text-white border border-white/20'
+                      }`}
+                    >
+                      PM
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div></div>
+            </div>
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Date Accuracy - Hidden since it's now handled by StandardizedDateInput */}
+            <div className="hidden">
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
               <label className="block text-sm font-medium text-white/80 mb-2">
                 How accurate is this date?
               </label>
@@ -427,12 +597,27 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
                           <div className="flex items-center gap-4 text-sm text-white/70 mb-2">
                             <div className="flex items-center gap-1">
                               <Calendar className="w-4 h-4" />
+<<<<<<< HEAD
                               {new Date(event.eventDate).toLocaleDateString('en-IN', { 
                                 day: 'numeric', 
                                 month: 'short', 
                                 year: 'numeric' 
                               })}
                             </div>
+=======
+                              {new Date(event.eventDate).toLocaleDateString('en-IN', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </div>
+                            {event.eventTime && (
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-4 h-4" />
+                                <span>{event.eventTime}</span>
+                              </div>
+                            )}
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
                             {event.dateAccuracy !== 'exact' && (
                               <div className="flex items-center gap-1">
                                 <Clock className="w-4 h-4" />

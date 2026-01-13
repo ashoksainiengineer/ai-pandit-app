@@ -170,3 +170,22 @@ yarn-error.log*
 *.local
 *.development
 *.test
+
+# Test files (keep only if needed for production)
+test-*.html
+test-*.js
+test-*.py
+
+# Documentation files (keep only essential ones)
+*-SUMMARY.md
+*-GUIDE.md
+*-OVERVIEW.md
+*-REVIEW.md
+*-REPORT.md
+*-STATUS.md
+*-PLAN.md
+*-SUMMARY.md
+*-COMPLETE.md
+*-VERIFICATION.md
+*-ENHANCEMENT.md
+*-FIX.md

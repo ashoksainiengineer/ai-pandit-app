@@ -6,6 +6,7 @@ import { Loader2, Sparkles, Sigma, FunctionSquare, Atom, Target } from 'lucide-r
 import FibonacciSpiral from '@/components/FibonacciSpiral';
 
 const processingStages = [
+<<<<<<< HEAD
   { 
     text: 'Calculating planetary positions...', 
     icon: Atom,
@@ -35,6 +36,49 @@ const processingStages = [
     icon: Sparkles,
     duration: 2000,
     description: 'Physical trait correlation analysis'
+=======
+  {
+    text: 'Initializing Swiss Ephemeris...',
+    icon: Atom,
+    duration: 2000,
+    description: 'Loading high-precision astronomical data for planetary calculations'
+  },
+  {
+    text: 'Calculating planetary positions...',
+    icon: FunctionSquare,
+    duration: 2500,
+    description: 'Computing exact celestial coordinates using Swiss Ephemeris algorithms'
+  },
+  {
+    text: 'Connecting to Moonshot AI...',
+    icon: Sparkles,
+    duration: 2000,
+    description: 'Establishing connection with Kimi AI model for advanced analysis'
+  },
+  {
+    text: 'AI analyzing life events...',
+    icon: Target,
+    duration: 3000,
+    description: 'Moonshot AI correlating your life events with planetary movements'
+  },
+  {
+    text: 'AI thinking process...',
+    icon: Sigma,
+    duration: 2500,
+    description: 'Advanced machine learning algorithms processing astrological patterns'
+  },
+  {
+    text: 'Cross-validating with multiple methods...',
+    icon: Atom,
+    duration: 2000,
+    description: 'KP system, Tattwa Shodhana, and divisional chart verification'
+  },
+  {
+    text: 'Finalizing rectified time...',
+    icon: Sparkles,
+    duration: 2000,
+    description: 'AI determining the most accurate birth time with confidence scoring'
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
   }
 ];
 
@@ -46,10 +90,17 @@ export default function ProcessingAnimation() {
   useEffect(() => {
     const stageTimer = setInterval(() => {
       setCurrentStage(prev => (prev + 1) % processingStages.length);
+<<<<<<< HEAD
     }, 2000);
     
     const progressTimer = setInterval(() => {
       setProgress(prev => Math.min(prev + 1, 100));
+=======
+    }, 2300); // Adjusted for longer AI analysis stage
+    
+    const progressTimer = setInterval(() => {
+      setProgress(prev => Math.min(prev + 0.8, 100)); // Slower progress for more stages
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
     }, 100);
     
     const spiralTimer = setInterval(() => {
@@ -218,7 +269,11 @@ export default function ProcessingAnimation() {
         
         <div className="text-center">
           <p className="text-phi-sm text-white/phi-light">
+<<<<<<< HEAD
             Estimated time: 8-13 seconds (Fibonacci range)
+=======
+            Estimated time: 14-20 seconds (AI analysis requires more time)
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
           </p>
         </div>
       </motion.div>
@@ -239,7 +294,11 @@ export default function ProcessingAnimation() {
           <div className="text-phi-sm text-white/phi-light">Precision</div>
         </div>
         <div className="text-center p-fib-4 bg-white/phi-light rounded-fib-4 backdrop-blur-phi">
+<<<<<<< HEAD
           <div className="text-h5 font-mono text-vedic-saffron mb-fib-1">{currentStage + 1}/5</div>
+=======
+          <div className="text-h5 font-mono text-vedic-saffron mb-fib-1">{currentStage + 1}/7</div>
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
           <div className="text-phi-sm text-white/phi-light">Stage</div>
         </div>
       </motion.div>

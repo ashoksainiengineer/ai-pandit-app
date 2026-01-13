@@ -75,6 +75,14 @@ export default function MapPicker({ initialLat, initialLon, onCoordinateSelect }
     }
   };
 
+<<<<<<< HEAD
+=======
+  // Prevent map interactions when interacting with search
+  const handleSearchContainerClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
   // Handle city selection from search
   const handleSearchSelect = (city: any) => {
     handleCoordinateChange(city.latitude, city.longitude);
@@ -108,8 +116,16 @@ export default function MapPicker({ initialLat, initialLon, onCoordinateSelect }
     const mapInstance = L.map(mapRef.current, {
       scrollWheelZoom: true,
       dragging: true,
+<<<<<<< HEAD
     }).setView([lat, lon], 12);
     
+=======
+      zoomControl: true,
+      attributionControl: false, // Disable default attribution to avoid conflicts
+    }).setView([lat, lon], 12);
+    
+    // Add custom attribution in a less intrusive position
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '© OpenStreetMap',
       maxZoom: 19,
@@ -119,6 +135,10 @@ export default function MapPicker({ initialLat, initialLon, onCoordinateSelect }
     const markerInstance = L.marker([lat, lon], {
       draggable: true,
       title: 'Birth Location Marker',
+<<<<<<< HEAD
+=======
+      zIndexOffset: 1000, // Ensure marker is above map but below search
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
     }).addTo(mapInstance)
       .bindPopup(`<div class="text-center">
         <p class="font-bold">Birth Location</p>
@@ -185,17 +205,31 @@ export default function MapPicker({ initialLat, initialLon, onCoordinateSelect }
 
   return (
     <div className="space-y-4 w-full">
+<<<<<<< HEAD
       {/* Map Container with Sticky Search Inside */}
       <div className="relative w-full rounded-lg border border-vedic-saffron/30 overflow-hidden bg-slate-900 shadow-2xl">
         {/* Sticky Search Box Overlay */}
         <div className="absolute top-0 left-0 right-0 z-40 p-4 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" ref={searchDropdownRef}>
           <div className="relative pointer-events-auto">
             <Search className="absolute left-3 top-3 w-5 h-5 text-vedic-saffron/70 pointer-events-none" />
+=======
+      {/* Map Container with Fixed Search Inside */}
+      <div className="relative w-full rounded-lg border border-vedic-saffron/30 overflow-hidden bg-slate-900 shadow-2xl z-0 isolate">
+        {/* Fixed Search Box - Always Visible */}
+        <div
+          className="absolute top-3 left-3 right-3 sm:left-4 sm:right-4 sm:top-4 z-10 pointer-events-none max-w-md mx-auto"
+          ref={searchDropdownRef}
+          onClick={handleSearchContainerClick}
+        >
+          <div className="relative pointer-events-auto">
+            <Search className="absolute left-2.5 top-2.5 w-4 h-4 text-vedic-saffron pointer-events-none z-10" />
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => handleCitySearch(e.target.value)}
               onFocus={() => searchQuery.length >= 2 && setShowSearchDropdown(true)}
+<<<<<<< HEAD
               placeholder="🔍 Jump to city..."
               className="w-full pl-10 pr-4 py-2.5 bg-white/95 backdrop-blur-sm border border-vedic-saffron/40 rounded-lg text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-vedic-saffron focus:border-transparent text-sm font-medium shadow-lg hover:bg-white transition-all duration-200"
             />
@@ -213,6 +247,31 @@ export default function MapPicker({ initialLat, initialLon, onCoordinateSelect }
                     className="w-full px-4 py-2.5 text-left hover:bg-vedic-saffron/15 transition-colors border-b border-slate-200/50 last:border-b-0 text-sm"
                   >
                     <div className="font-semibold text-slate-900">{city.name}</div>
+=======
+              placeholder="🔍 Search city..."
+              className="w-full pl-9 pr-9 py-2.5 bg-white/95 border-2 border-vedic-saffron/70 rounded-lg text-slate-900 placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-vedic-saffron focus:border-vedic-saffron text-sm font-medium shadow-lg hover:bg-white hover:border-vedic-saffron transition-all duration-200 backdrop-blur-sm"
+            />
+            {isSearching && (
+              <Loader2 className="absolute right-2.5 top-2.5 w-4 h-4 text-vedic-saffron animate-spin" />
+            )}
+            
+            {/* Search Dropdown - Always Visible When Results */}
+            {showSearchDropdown && searchResults.length > 0 && (
+              <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white/95 backdrop-blur-sm border-2 border-vedic-saffron/50 rounded-lg overflow-hidden z-20 shadow-lg max-h-48 overflow-y-auto">
+                <div className="bg-vedic-saffron/5 px-3 py-1.5 border-b border-vedic-saffron/30 sticky top-0">
+                  <p className="text-xs font-semibold text-vedic-saffron uppercase tracking-wide">{searchResults.length} Results</p>
+                </div>
+                {searchResults.map((city, idx) => (
+                  <button
+                    key={idx}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSearchSelect(city);
+                    }}
+                    className="w-full px-3 py-2.5 text-left hover:bg-vedic-saffron/20 transition-colors border-b border-slate-200/50 last:border-b-0 text-sm"
+                  >
+                    <div className="font-semibold text-slate-900 text-sm">{city.name}</div>
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
                     <div className="text-xs text-slate-600 mt-0.5 font-medium">
                       {[city.district, city.state, city.country].filter(Boolean).join(' • ')}
                     </div>
@@ -220,6 +279,7 @@ export default function MapPicker({ initialLat, initialLon, onCoordinateSelect }
                 ))}
               </div>
             )}
+<<<<<<< HEAD
           </div>
         </div>
 
@@ -230,6 +290,26 @@ export default function MapPicker({ initialLat, initialLon, onCoordinateSelect }
         />
         {!mapLoaded && (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+=======
+            
+            {/* No Results Message */}
+            {showSearchDropdown && searchQuery.length >= 2 && searchResults.length === 0 && !isSearching && (
+              <div className="absolute top-[calc(100%+6px)] left-0 right-0 bg-white/95 border-2 border-vedic-saffron/50 rounded-lg z-20 shadow-lg p-3">
+                <p className="text-sm text-slate-600 text-center">No cities found. Try a different name.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Map with proper z-index and isolation */}
+        <div
+          ref={mapRef}
+          className="w-full h-[400px] sm:h-[450px] md:h-[500px] relative"
+          style={{ zIndex: 0, isolation: 'isolate' }}
+        />
+        {!mapLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-900 rounded-lg z-0">
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
             <Loader2 className="w-8 h-8 text-vedic-saffron animate-spin" />
           </div>
         )}

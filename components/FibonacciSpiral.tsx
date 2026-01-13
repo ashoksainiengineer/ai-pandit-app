@@ -50,6 +50,10 @@ export default function FibonacciSpiral({
       height={size}
       viewBox={`0 0 ${size} ${size}`}
       className={className}
+<<<<<<< HEAD
+=======
+      suppressHydrationWarning
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: opacity, scale: 1 }}
       transition={{ duration: 2, ease: "easeOut" }}
@@ -67,6 +71,10 @@ export default function FibonacciSpiral({
             stroke={color}
             strokeWidth="1"
             opacity={opacity * Math.pow(0.618, i)}
+<<<<<<< HEAD
+=======
+            suppressHydrationWarning
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
             animate={animated ? {
               scale: [1, 1.618, 1],
               opacity: [opacity * Math.pow(0.618, i), opacity * Math.pow(0.618, i) * 1.618, opacity * Math.pow(0.618, i)]
@@ -120,6 +128,10 @@ export default function FibonacciSpiral({
             r="3"
             fill={color}
             opacity={opacity}
+<<<<<<< HEAD
+=======
+            suppressHydrationWarning
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
             animate={animated ? {
               scale: [1, 1.618, 1],
               opacity: [opacity, opacity * 1.618, opacity]

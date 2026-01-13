@@ -59,6 +59,10 @@ export default function ZodiacWheel({
         width={size}
         height={size}
         className="absolute inset-0"
+<<<<<<< HEAD
+=======
+        suppressHydrationWarning
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
         style={{ transform: `rotate(${rotation}deg)` }}
       >
         {/* Main circle */}
@@ -97,6 +101,10 @@ export default function ZodiacWheel({
             <g key={sign.name}>
               {/* Line to sign */}
               <line
+<<<<<<< HEAD
+=======
+                suppressHydrationWarning
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
                 x1={centerX}
                 y1={centerY}
                 x2={x}
@@ -108,6 +116,10 @@ export default function ZodiacWheel({
               
               {/* Sign symbol circle */}
               <circle
+<<<<<<< HEAD
+=======
+                suppressHydrationWarning
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
                 cx={x}
                 cy={y}
                 r={isHighlighted ? "21" : "13"}
@@ -119,6 +131,10 @@ export default function ZodiacWheel({
               
               {/* Sign symbol */}
               <text
+<<<<<<< HEAD
+=======
+                suppressHydrationWarning
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
                 x={x}
                 y={y + 5}
                 textAnchor="middle"
@@ -130,6 +146,10 @@ export default function ZodiacWheel({
               
               {/* Element indicator */}
               <circle
+<<<<<<< HEAD
+=======
+                suppressHydrationWarning
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
                 cx={x + 21 * Math.cos(angle)}
                 cy={y + 21 * Math.sin(angle)}
                 r="3"
@@ -187,6 +207,10 @@ export default function ZodiacWheel({
           <motion.div
             key={i}
             className="absolute w-[3px] h-[3px] bg-vedic-saffron rounded-full"
+<<<<<<< HEAD
+=======
+            suppressHydrationWarning
+>>>>>>> 5eadd4e619d7a701a8ffa07edaf7842ed1140c17
             style={{ left: x, top: y }}
             animate={{
               scale: [0, 1, 0],
