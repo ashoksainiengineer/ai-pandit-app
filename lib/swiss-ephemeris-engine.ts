@@ -27,8 +27,9 @@ const PLANETS = {
   URANUS: swisseph.SE_URANUS,
   NEPTUNE: swisseph.SE_NEPTUNE,
   PLUTO: swisseph.SE_PLUTO,
-  NODE: swisseph.SE_TRUE_NODE, // Rahu (True Node for KP)
+  NODE: swisseph.SE_TRUE_NODE, // Rahu (True Node)
   TRUE_NODE: swisseph.SE_TRUE_NODE, // True Rahu
+  MEAN_NODE: swisseph.SE_MEAN_NODE, // Mean Node for Vedic astrology (Rahu)
   CHIRON: swisseph.SE_CHIRON,
   PHOLUS: 16, // Not directly available in swisseph
   CERES: swisseph.SE_CERES,
@@ -174,6 +175,8 @@ export interface DashaPeriods {
     currentAntardasha: DashaPeriod;
     currentPratyantardasha: DashaPeriod;
     birthBalance: string; // Balance of dasha at birth
+    birthDasha: string; // Starting dasha at birth
+    balanceYears: number; // Balance in years
   };
   planetaryPeriods: Record<string, DashaPeriod[]>;
 }
@@ -209,11 +212,10 @@ export class SwissEphemerisEngine {
       // Set ephemeris file path for swisseph
       swisseph.swe_set_ephe_path(this.ephemerisPath);
       
-      // Set ayanamsha to KP (Krishnamurti) if using KP system
-      if (this.useKPSystem) {
-        swisseph.swe_set_sid_mode(AYANAMSHA_MODES.KP, 0, 0);
-        console.log('🎯 Using KP Ayanamsha (Krishnamurti Paddhati)');
-      }
+      // Set ayanamsha to LAHIRI for Vedic astrology (NOT KP)
+      // KP ayanamsa is not standard for Vedic astrology and causes 24° errors
+      swisseph.swe_set_sid_mode(AYANAMSHA_MODES.LAHIRI, 0, 0);
+      console.log('🎯 Using LAHIRI Ayanamsha (Chitrapaksha - Standard for Vedic Astrology)');
       
       this.isInitialized = true;
       console.log('✅ Swiss Ephemeris Engine initialized successfully');
@@ -231,7 +233,7 @@ export class SwissEphemerisEngine {
     latitude: number,
     longitude: number,
     timezone: string,
-    houseSystem: string = HOUSE_SYSTEMS.PLACIDUS
+    houseSystem: string = HOUSE_SYSTEMS.WHOLE_SIGN
   ): Promise<EphemerisCalculation> {
     if (!this.isInitialized) {
       throw new Error('Swiss Ephemeris Engine not initialized');
@@ -386,7 +388,7 @@ export class SwissEphemerisEngine {
       { name: 'mars', id: PLANETS.MARS },
       { name: 'jupiter', id: PLANETS.JUPITER },
       { name: 'saturn', id: PLANETS.SATURN },
-      { name: 'rahu', id: PLANETS.TRUE_NODE }, // True Rahu
+      { name: 'rahu', id: PLANETS.TRUE_NODE }, // True Node for accurate Vedic astrology (not Mean Node)
     ];
     
     // Calculate each planet's position
@@ -835,14 +837,129 @@ export class SwissEphemerisEngine {
    * Calculate divisional position
    */
   private calculateDivisionalPosition(longitude: number, division: number): number {
-    const sign = Math.floor(longitude / 30);
+    const signIndex = Math.floor(longitude / 30);
     const degreeInSign = longitude % 30;
-    const divisionSize = 30 / division;
-    const divisionNumber = Math.floor(degreeInSign / divisionSize);
     
-    // Simplified divisional calculation
-    // Real implementation would be more complex based on Parashara rules
-    return (sign * 30) + (divisionNumber * divisionSize) + (degreeInSign % divisionSize);
+    // Vedic divisional chart formulas based on Parashara
+    switch (division) {
+      case 9: // Navamsa (D-9)
+        return this.calculateNavamsa(signIndex, degreeInSign);
+      case 10: // Dasamsa (D-10)
+        return this.calculateDasamsa(signIndex, degreeInSign);
+      case 7: // Saptamsa (D-7)
+        return this.calculateSaptamsa(signIndex, degreeInSign);
+      case 12: // Dwadasamsa (D-12)
+        return this.calculateDwadasamsa(signIndex, degreeInSign);
+      case 30: // Trimsamsa (D-30)
+        return this.calculateTrimsamsa(signIndex, degreeInSign);
+      default:
+        // Generic calculation for other divisions
+        const divisionSize = 30 / division;
+        const divisionNumber = Math.floor(degreeInSign / divisionSize);
+        return (signIndex * 30) + (divisionNumber * divisionSize) + (degreeInSign % divisionSize);
+    }
+  }
+  
+  private calculateNavamsa(signIndex: number, degreeInSign: number): number {
+    // Navamsa = 9 divisions of 3°20' each (3.333333... degrees)
+    const navamsaSize = 3.3333333333333335; // Precise: 3°20'
+    const navamsaNumber = Math.floor(degreeInSign / navamsaSize);
+    
+    let navamsaSign: number;
+    // Movable signs (Aries, Cancer, Libra, Capricorn): start from same sign
+    if ([0, 3, 6, 9].includes(signIndex)) {
+      navamsaSign = (signIndex + navamsaNumber) % 12;
+    }
+    // Fixed signs (Taurus, Leo, Scorpio, Aquarius): start from 9th from sign
+    else if ([1, 4, 7, 10].includes(signIndex)) {
+      navamsaSign = (signIndex + 8 + navamsaNumber) % 12; // +8 = 9th sign
+    }
+    // Dual signs (Gemini, Virgo, Sagittarius, Pisces): start from 5th from sign
+    else {
+      navamsaSign = (signIndex + 4 + navamsaNumber) % 12; // +4 = 5th sign
+    }
+    
+    return navamsaSign * 30 + (degreeInSign % navamsaSize);
+  }
+  
+  private calculateDasamsa(signIndex: number, degreeInSign: number): number {
+    // Dasamsa = 10 divisions of 3° each
+    const dasamsaSize = 3.0;
+    const dasamsaNumber = Math.floor(degreeInSign / dasamsaSize);
+    
+    let dasamsaSign: number;
+    // Odd signs: start from same sign
+    if ((signIndex + 1) % 2 === 1) {
+      dasamsaSign = (signIndex + dasamsaNumber) % 12;
+    }
+    // Even signs: start from 9th from sign
+    else {
+      dasamsaSign = (signIndex + 8 + dasamsaNumber) % 12; // +8 = 9th sign
+    }
+    
+    return dasamsaSign * 30 + (degreeInSign % dasamsaSize);
+  }
+  
+  private calculateSaptamsa(signIndex: number, degreeInSign: number): number {
+    // Saptamsa = 7 divisions of ~4°17' each (4.285714... degrees)
+    const saptamsaSize = 4.285714285714286; // Precise: 30/7
+    const saptamsaNumber = Math.floor(degreeInSign / saptamsaSize);
+    
+    let saptamsaSign: number;
+    // Odd signs: start from same sign
+    if ((signIndex + 1) % 2 === 1) {
+      saptamsaSign = (signIndex + saptamsaNumber) % 12;
+    }
+    // Even signs: start from 7th from sign
+    else {
+      saptamsaSign = (signIndex + 6 + saptamsaNumber) % 12; // +6 = 7th sign
+    }
+    
+    return saptamsaSign * 30 + (degreeInSign % saptamsaSize);
+  }
+  
+  private calculateDwadasamsa(signIndex: number, degreeInSign: number): number {
+    // Dwadasamsa = 12 divisions of 2°30' each (2.5 degrees)
+    const dwadasamsaSize = 2.5;
+    const dwadasamsaNumber = Math.floor(degreeInSign / dwadasamsaSize);
+    
+    // Always start from same sign
+    const dwadasamsaSign = (signIndex + dwadasamsaNumber) % 12;
+    
+    return dwadasamsaSign * 30 + (degreeInSign % dwadasamsaSize);
+  }
+  
+  private calculateTrimsamsa(signIndex: number, degreeInSign: number): number {
+    // Trimsamsa = 30 divisions of 1° each
+    // Special rules based on sign and degree ranges
+    const trimsamsaSign = this.getTrimsamsaSign(signIndex, degreeInSign);
+    return trimsamsaSign * 30 + (degreeInSign % 1.0);
+  }
+  
+  private getTrimsamsaSign(signIndex: number, degreeInSign: number): number {
+    // Trimsamsa has special allocation rules based on degrees
+    const degree = Math.floor(degreeInSign);
+    
+    // Different rules for odd and even signs
+    const isOddSign = (signIndex + 1) % 2 === 1;
+    
+    if (isOddSign) {
+      // Odd signs (Aries, Gemini, Leo, Libra, Sagittarius, Aquarius)
+      if (degree >= 0 && degree < 5) return 4; // Mars (Aries)
+      if (degree >= 5 && degree < 10) return 2; // Venus (Taurus)
+      if (degree >= 10 && degree < 18) return 6; // Mercury (Virgo)
+      if (degree >= 18 && degree < 25) return 5; // Jupiter (Sagittarius)
+      if (degree >= 25 && degree < 30) return 7; // Saturn (Capricorn)
+    } else {
+      // Even signs (Taurus, Cancer, Virgo, Scorpio, Capricorn, Pisces)
+      if (degree >= 0 && degree < 5) return 2; // Venus (Taurus)
+      if (degree >= 5 && degree < 12) return 4; // Mars (Aries)
+      if (degree >= 12 && degree < 20) return 6; // Mercury (Virgo)
+      if (degree >= 20 && degree < 25) return 7; // Saturn (Capricorn)
+      if (degree >= 25 && degree < 30) return 5; // Jupiter (Sagittarius)
+    }
+    
+    return signIndex; // Fallback
   }
 
   /**
@@ -859,14 +976,17 @@ export class SwissEphemerisEngine {
   }
 
   /**
-   * Calculate dasha periods
+   * Calculate dasha periods with correct birth time balance
    */
   private calculateDashaPeriods(moonLongitude: number, birthDate: Date): DashaPeriods {
-    // Calculate current Vimshottari Dasha
-    const nakshatraIndex = Math.floor(moonLongitude / (360 / 27));
-    const nakshatraPortion = (moonLongitude % (360 / 27)) / (360 / 27);
+    // Calculate Moon's nakshatra (1-27)
+    const nakshatraSize = 13.333333333333334; // 360/27 = 13°20'
+    const nakshatraIndex = Math.floor(moonLongitude / nakshatraSize);
+    const positionInNakshatra = moonLongitude - (nakshatraIndex * nakshatraSize);
+    const portionTraversed = positionInNakshatra / nakshatraSize;
+    const portionRemaining = 1 - portionTraversed;
     
-    // Vimshottari dasha sequence and years
+    // Vimshottari dasha sequence and years (total must be exactly 120 years)
     const dashaSequence = [
       { planet: 'Ketu', years: 7 },
       { planet: 'Venus', years: 20 },
@@ -879,37 +999,54 @@ export class SwissEphemerisEngine {
       { planet: 'Mercury', years: 17 }
     ];
     
-    // Find current dasha
-    const currentDashaIndex = nakshatraIndex % 9;
-    const currentDasha = dashaSequence[currentDashaIndex];
-    const balanceYears = currentDasha.years * (1 - nakshatraPortion);
+    // Verify total is exactly 120 years
+    const totalYears = dashaSequence.reduce((sum, d) => sum + d.years, 0);
+    if (totalYears !== 120) {
+      throw new Error(`Vimshottari dasha must total 120 years, got ${totalYears}`);
+    }
     
-    // Calculate dasha periods
-    const currentMahadasha = this.calculateCurrentDasha(birthDate, balanceYears, currentDasha, dashaSequence);
-    const currentAntardasha = this.calculateCurrentAntardasha(birthDate, currentMahadasha, dashaSequence);
-    const currentPratyantardasha = this.calculateCurrentPratyantardasha(birthDate, currentAntardasha, dashaSequence);
+    // Find birth dasha based on Moon's nakshatra
+    const birthDashaIndex = nakshatraIndex % 9;
+    const birthDasha = dashaSequence[birthDashaIndex];
+    
+    // Calculate balance of dasha at birth (in years)
+    const balanceYears = birthDasha.years * portionRemaining;
+    
+    // Calculate precise balance in years, months, days
+    const balanceYearsInt = Math.floor(balanceYears);
+    const balanceMonths = Math.floor((balanceYears - balanceYearsInt) * 12);
+    const balanceDays = Math.floor(((balanceYears - balanceYearsInt) * 12 - balanceMonths) * 30.4375); // Average days per month accounting for leap years
+    
+    // Calculate dasha periods starting from birth date
+    const currentMahadasha = this.calculateBirthMahadasha(birthDate, balanceYears, birthDasha, dashaSequence);
+    const currentAntardasha = this.calculateBirthAntardasha(birthDate, currentMahadasha, dashaSequence);
+    const currentPratyantardasha = this.calculateBirthPratyantardasha(birthDate, currentAntardasha, dashaSequence);
     
     return {
       vimshottari: {
         currentMahadasha,
         currentAntardasha,
         currentPratyantardasha,
-        birthBalance: `${balanceYears.toFixed(2)} years`
+        birthBalance: `${balanceYearsInt} years ${balanceMonths} months ${balanceDays} days`,
+        birthDasha: birthDasha.planet,
+        balanceYears: balanceYears
       },
       planetaryPeriods: this.calculateAllDashaPeriods(birthDate, dashaSequence)
     };
   }
 
   /**
-   * Calculate current Mahadasha
+   * Calculate birth Mahadasha with correct balance
    */
-  private calculateCurrentDasha(birthDate: Date, balanceYears: number, currentDasha: any, dashaSequence: any[]): DashaPeriod {
+  private calculateBirthMahadasha(birthDate: Date, balanceYears: number, birthDasha: any, dashaSequence: any[]): DashaPeriod {
     const startDate = new Date(birthDate);
     const endDate = new Date(birthDate);
-    endDate.setFullYear(endDate.getFullYear() + balanceYears);
+    
+    // Add balance years using precise calculation (accounting for leap years)
+    this.addPreciseYears(endDate, balanceYears);
     
     return {
-      planet: currentDasha.planet,
+      planet: birthDasha.planet,
       startDate,
       endDate,
       duration: balanceYears
@@ -917,58 +1054,68 @@ export class SwissEphemerisEngine {
   }
 
   /**
-   * Calculate current Antardasha
+   * Calculate birth Antardasha (first antardasha in Mahadasha)
    */
-  private calculateCurrentAntardasha(birthDate: Date, mahadasha: DashaPeriod, dashaSequence: any[]): DashaPeriod {
-    // Simplified antardasha calculation
-    const now = new Date();
-    const mahadashaProgress = (now.getTime() - mahadasha.startDate.getTime()) / (mahadasha.endDate.getTime() - mahadasha.startDate.getTime());
+  private calculateBirthAntardasha(birthDate: Date, mahadasha: DashaPeriod, dashaSequence: any[]): DashaPeriod {
+    // First antardasha is always the same planet as Mahadasha
+    const antardashaDuration = mahadasha.duration * (mahadasha.planet === 'Ketu' ? 7 :
+                                   mahadasha.planet === 'Venus' ? 20 :
+                                   mahadasha.planet === 'Sun' ? 6 :
+                                   mahadasha.planet === 'Moon' ? 10 :
+                                   mahadasha.planet === 'Mars' ? 7 :
+                                   mahadasha.planet === 'Rahu' ? 18 :
+                                   mahadasha.planet === 'Jupiter' ? 16 :
+                                   mahadasha.planet === 'Saturn' ? 19 : 17) / 120;
     
-    // Find which antardasha we're in
-    const antardashaSequence = [...dashaSequence]; // Same sequence for antardasha
-    const antardashaIndex = Math.floor(mahadashaProgress * 9);
-    const currentAntardashaPlanet = antardashaSequence[antardashaIndex % 9];
-    
-    const antardashaDuration = mahadasha.duration * (currentAntardashaPlanet.years / 120);
-    const antardashaStart = new Date(mahadasha.startDate);
-    antardashaStart.setFullYear(antardashaStart.getFullYear() + (antardashaIndex * antardashaDuration));
-    
-    const antardashaEnd = new Date(antardashaStart);
-    antardashaEnd.setFullYear(antardashaEnd.getFullYear() + antardashaDuration);
+    const endDate = new Date(birthDate);
+    this.addPreciseYears(endDate, antardashaDuration);
     
     return {
-      planet: currentAntardashaPlanet.planet,
-      startDate: antardashaStart,
-      endDate: antardashaEnd,
+      planet: mahadasha.planet,
+      startDate: new Date(birthDate),
+      endDate,
       duration: antardashaDuration
     };
   }
 
   /**
-   * Calculate current Pratyantardasha
+   * Calculate birth Pratyantardasha (first pratyantardasha in Antardasha)
    */
-  private calculateCurrentPratyantardasha(birthDate: Date, antardasha: DashaPeriod, dashaSequence: any[]): DashaPeriod {
-    // Simplified pratyantardasha calculation
-    const now = new Date();
-    const antardashaProgress = (now.getTime() - antardasha.startDate.getTime()) / (antardasha.endDate.getTime() - antardasha.startDate.getTime());
+  private calculateBirthPratyantardasha(birthDate: Date, antardasha: DashaPeriod, dashaSequence: any[]): DashaPeriod {
+    // First pratyantardasha is the same planet as Antardasha
+    const pratyantardashaDuration = antardasha.duration * (antardasha.planet === 'Ketu' ? 7 :
+                                      antardasha.planet === 'Venus' ? 20 :
+                                      antardasha.planet === 'Sun' ? 6 :
+                                      antardasha.planet === 'Moon' ? 10 :
+                                      antardasha.planet === 'Mars' ? 7 :
+                                      antardasha.planet === 'Rahu' ? 18 :
+                                      antardasha.planet === 'Jupiter' ? 16 :
+                                      antardasha.planet === 'Saturn' ? 19 : 17) / 120;
     
-    const pratyantardashaSequence = [...dashaSequence]; // Same sequence
-    const pratyantardashaIndex = Math.floor(antardashaProgress * 9);
-    const currentPratyantardashaPlanet = pratyantardashaSequence[pratyantardashaIndex % 9];
-    
-    const pratyantardashaDuration = antardasha.duration * (currentPratyantardashaPlanet.years / 120);
-    const pratyantardashaStart = new Date(antardasha.startDate);
-    pratyantardashaStart.setFullYear(pratyantardashaStart.getFullYear() + (pratyantardashaIndex * pratyantardashaDuration));
-    
-    const pratyantardashaEnd = new Date(pratyantardashaStart);
-    pratyantardashaEnd.setFullYear(pratyantardashaEnd.getFullYear() + pratyantardashaDuration);
+    const endDate = new Date(birthDate);
+    this.addPreciseYears(endDate, pratyantardashaDuration);
     
     return {
-      planet: currentPratyantardashaPlanet.planet,
-      startDate: pratyantardashaStart,
-      endDate: pratyantardashaEnd,
+      planet: antardasha.planet,
+      startDate: new Date(birthDate),
+      endDate,
       duration: pratyantardashaDuration
     };
+  }
+  
+  /**
+   * Add precise years to a date (accounting for leap years)
+   */
+  private addPreciseYears(date: Date, years: number): void {
+    const wholeYears = Math.floor(years);
+    const fractionalYear = years - wholeYears;
+    
+    // Add whole years
+    date.setFullYear(date.getFullYear() + wholeYears);
+    
+    // Add fractional year using average days (365.25 for leap year accounting)
+    const daysToAdd = fractionalYear * 365.25;
+    date.setTime(date.getTime() + (daysToAdd * 24 * 60 * 60 * 1000));
   }
 
   /**
@@ -1016,9 +1163,597 @@ export class SwissEphemerisEngine {
   }
 
   private getZodiacSign(degree: number): string {
-    const signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 
+    const signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
                    'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
     return signs[Math.floor(degree / 30)] || 'Unknown';
+  }
+  
+  /**
+   * Calculate Shadbala (six-fold strength) for a planet
+   * Enhanced version with more accurate classical calculations
+   */
+  public calculateShadbala(planet: string, planetData: PlanetaryPosition, chartData: EphemerisCalculation): number {
+    // Enhanced Shadbala calculation following classical Parashara principles
+    // Total Shadbala is measured in Rupas (1 Rupa = 60 Virupas = 60 units)
+    // Typical range: 0-10 Rupas (0-600 Virupas)
+    
+    let totalStrength = 0;
+    
+    // 1. Sthana Bala (Positional strength) - 25% weight
+    // Includes: Uchcha Bala, Saptavargaja Bala, Ojhajugmariamsa Bala, Kendra Bala, Drekkana Bala
+    const sthanaBala = this.calculateEnhancedSthanaBala(planet, planetData, chartData);
+    totalStrength += sthanaBala * 0.25;
+    
+    // 2. Dig Bala (Directional strength) - 20% weight
+    // Based on exact longitudinal position relative to preferred direction
+    const digBala = this.calculateEnhancedDigBala(planet, planetData);
+    totalStrength += digBala * 0.20;
+    
+    // 3. Kaala Bala (Temporal strength) - 20% weight
+    // Includes: Natonnata Bala, Paksha Bala, Tribhaga Bala, Varsha-Masa-Dina-Hora Bala
+    const kaalaBala = this.calculateEnhancedKaalaBala(planet, planetData, chartData);
+    totalStrength += kaalaBala * 0.20;
+    
+    // 4. Chesta Bala (Motional strength) - 20% weight
+    // Based on retrogression and actual speed relative to mean speed
+    const chestaBala = this.calculateEnhancedChestaBala(planet, planetData);
+    totalStrength += chestaBala * 0.20;
+    
+    // 5. Naisargika Bala (Natural strength) - 10% weight
+    // Based on brightness and natural luminosity
+    const naisargikaBala = this.calculateEnhancedNaisargikaBala(planet);
+    totalStrength += naisargikaBala * 0.10;
+    
+    // 6. Drik Bala (Aspectual strength) - 5% weight
+    // Based on exact aspects from benefics and malefics with orbs
+    const drikBala = this.calculateEnhancedDrikBala(planet, planetData, chartData);
+    totalStrength += drikBala * 0.05;
+    
+    // Convert to 0-100 scale for consistency
+    return Math.max(0, Math.min(100, totalStrength));
+  }
+  
+  /**
+   * Calculate Enhanced Sthana Bala (Positional strength)
+   * More accurate classical calculation with all sub-components
+   */
+  private calculateEnhancedSthanaBala(planet: string, planetData: PlanetaryPosition, chartData: EphemerisCalculation): number {
+    let strength = 0;
+    
+    // 1. Uchcha Bala (Exaltation strength) - 40% of Sthana Bala
+    // Maximum 60 Virupas (1 Rupa) when exactly at exaltation point
+    const exaltationPoints: Record<string, number> = {
+      'Sun': 10,    // Aries 10°
+      'Moon': 33,   // Taurus 3°
+      'Mars': 298,  // Capricorn 28°
+      'Mercury': 163, // Virgo 13°
+      'Jupiter': 95, // Cancer 5°
+      'Venus': 337,  // Pisces 7°
+      'Saturn': 200, // Libra 20°
+      'Rahu': 180,   // Aquarius 0° (conventional)
+      'Ketu': 0      // Leo 0° (conventional)
+    };
+    
+    const debilitationPoints: Record<string, number> = {
+      'Sun': 190,    // Libra 10°
+      'Moon': 213,   // Scorpio 3°
+      'Mars': 118,   // Cancer 28°
+      'Mercury': 343, // Pisces 13°
+      'Jupiter': 275, // Capricorn 5°
+      'Venus': 157,  // Virgo 7°
+      'Saturn': 20,  // Aries 20°
+      'Rahu': 0,     // Leo 0° (conventional)
+      'Ketu': 180    // Aquarius 0° (conventional)
+    };
+    
+    const exaltationPoint = exaltationPoints[planet] || 0;
+    const debilitationPoint = debilitationPoints[planet] || 0;
+    
+    // Calculate distance from exaltation (0-180°)
+    let distanceFromExaltation = Math.abs(planetData.longitude - exaltationPoint);
+    if (distanceFromExaltation > 180) distanceFromExaltation = 360 - distanceFromExaltation;
+    
+    // Uchcha Bala formula: 60 - (distance × 60 / 180)
+    const uchchaBala = Math.max(0, 60 - (distanceFromExaltation * 60 / 180));
+    strength += uchchaBala * 0.4;
+    
+    // 2. Saptavargaja Bala (Divisional chart strength) - 30% of Sthana Bala
+    // Check dignity in 7 divisional charts (D-1, D-2, D-3, D-7, D-9, D-12, D-30)
+    let divisionalStrength = 0;
+    const divisionsToCheck = [1, 2, 3, 7, 9, 12, 30];
+    
+    for (const division of divisionsToCheck) {
+      const divisionalPos = this.calculateDivisionalPosition(planetData.longitude, division);
+      const dignity = this.getPlanetaryDignity(planet, divisionalPos);
+      
+      const dignityScore: Record<string, number> = {
+        'exalted': 60,
+        'own_sign': 45,
+        'friendly': 30,
+        'neutral': 15,
+        'enemy': 8,
+        'debilitated': 0
+      };
+      
+      divisionalStrength += dignityScore[dignity.dignity] || 15;
+    }
+    
+    // Average across 7 divisions
+    const saptavargajaBala = divisionalStrength / 7;
+    strength += saptavargajaBala * 0.3;
+    
+    // 3. Ojhajugmariamsa Bala (Odd-even sign strength) - 20% of Sthana Bala
+    // Male planets in odd signs, female planets in even signs get strength
+    const signIndex = Math.floor(planetData.longitude / 30);
+    const isOddSign = (signIndex + 1) % 2 === 1;
+    const isMalePlanet = ['Sun', 'Mars', 'Jupiter', 'Saturn'].includes(planet);
+    
+    const ojhaBala = (isOddSign && isMalePlanet) || (!isOddSign && !isMalePlanet) ? 15 : 5;
+    strength += ojhaBala * 0.2;
+    
+    // 4. Kendra Bala (Quadrant strength) - 10% of Sthana Bala
+    // Planets in kendras (1,4,7,10) get more strength
+    const house = this.getHouseFromLongitude(planetData.longitude, chartData.houseCusps.ascendant);
+    const kendraBala = [1, 4, 7, 10].includes(house) ? 60 : [2, 5, 8, 11].includes(house) ? 30 : 15;
+    strength += kendraBala * 0.1;
+    
+    // 5. Drekkana Bala (Decanate strength) - Additional component
+    // Planets in own decanate get extra strength
+    const decanate = Math.floor((planetData.longitude % 30) / 10);
+    const drekkanaLord = this.getDrekkanaLord(signIndex, decanate);
+    const drekkanaBala = drekkanaLord === planet ? 10 : 0;
+    strength += drekkanaBala * 0.05; // Small additional weight
+    
+    return Math.min(100, strength);
+  }
+  
+  /**
+   * Get Drekkana lord for a sign and decanate
+   */
+  private getDrekkanaLord(signIndex: number, decanate: number): string {
+    // Drekkana lords follow a special pattern
+    const drekkanaLords: Record<number, string[]> = {
+      0: ['Mars', 'Sun', 'Jupiter'],    // Aries
+      1: ['Venus', 'Mercury', 'Saturn'], // Taurus
+      2: ['Mercury', 'Venus', 'Saturn'], // Gemini
+      3: ['Moon', 'Mars', 'Jupiter'],    // Cancer
+      4: ['Sun', 'Jupiter', 'Mars'],     // Leo
+      5: ['Mercury', 'Saturn', 'Venus'], // Virgo
+      6: ['Venus', 'Saturn', 'Mercury'], // Libra
+      7: ['Mars', 'Jupiter', 'Sun'],     // Scorpio
+      8: ['Jupiter', 'Mars', 'Sun'],     // Sagittarius
+      9: ['Saturn', 'Venus', 'Mercury'], // Capricorn
+      10: ['Saturn', 'Venus', 'Mercury'], // Aquarius
+      11: ['Jupiter', 'Mars', 'Moon']    // Pisces
+    };
+    
+    return drekkanaLords[signIndex]?.[decanate] || 'Sun';
+  }
+  
+  /**
+   * Calculate Enhanced Dig Bala (Directional strength)
+   * Based on exact longitudinal position relative to preferred direction
+   */
+  private calculateEnhancedDigBala(planet: string, planetData: PlanetaryPosition): number {
+    // Each planet has a favorite direction (longitude)
+    // Maximum strength when exactly at preferred direction
+    const directionalStrength: Record<string, number> = {
+      'Sun': 90,   // East (Aries, Leo, Sagittarius) - 90°
+      'Moon': 0,   // North (Cancer) - 0°
+      'Mars': 90,  // East
+      'Mercury': 10, // North (some flexibility)
+      'Jupiter': 10, // North
+      'Venus': 180,  // South
+      'Saturn': 270, // West
+      'Rahu': 270,   // West
+      'Ketu': 90     // East
+    };
+    
+    const preferredDirection = directionalStrength[planet] || 0;
+    const actualDirection = planetData.longitude;
+    
+    // Calculate angular distance from preferred direction (0-180°)
+    let angularDistance = Math.abs(actualDirection - preferredDirection);
+    if (angularDistance > 180) angularDistance = 360 - angularDistance;
+    
+    // Dig Bala formula: 60 - (distance × 60 / 180)
+    // Maximum 60 Virupas when exactly at preferred direction
+    const digBala = Math.max(0, 60 - (angularDistance * 60 / 180));
+    
+    // Convert to 0-100 scale for consistency
+    return (digBala / 60) * 100;
+  }
+  
+  /**
+   * Calculate Enhanced Kaala Bala (Temporal strength)
+   * Includes: Natonnata Bala, Paksha Bala, Tribhaga Bala, Varsha-Masa-Dina-Hora Bala
+   */
+  private calculateEnhancedKaalaBala(planet: string, planetData: PlanetaryPosition, chartData: EphemerisCalculation): number {
+    let strength = 0;
+    
+    // 1. Natonnata Bala (Day/night strength) - 50% of Kaala Bala
+    const hour = chartData.timestamp.getHours();
+    const isDaytime = hour >= 6 && hour < 18;
+    
+    const dayPlanets = ['Sun', 'Jupiter', 'Saturn'];
+    const nightPlanets = ['Moon', 'Mars', 'Venus'];
+    
+    let natonnataBala = 30; // Base strength
+    if ((isDaytime && dayPlanets.includes(planet)) || (!isDaytime && nightPlanets.includes(planet))) {
+      natonnataBala = 60; // Strong when in natural time
+    }
+    
+    // Mercury is flexible - gets 50% strength in both day and night
+    if (planet === 'Mercury') {
+      natonnataBala = 45;
+    }
+    
+    strength += natonnataBala * 0.5;
+    
+    // 2. Paksha Bala (Lunar phase strength) - 30% of Kaala Bala
+    const moonPhase = chartData.lunarPhase.phaseAngle;
+    const isWaxing = moonPhase < 180;
+    
+    let pakshaBala = 30; // Base strength
+    if (['Moon', 'Mars', 'Saturn'].includes(planet)) {
+      // Malefics strong in Krishna Paksha (waning)
+      pakshaBala = isWaxing ? 30 : 60;
+    } else if (['Sun', 'Jupiter', 'Venus'].includes(planet)) {
+      // Benefics strong in Shukla Paksha (waxing)
+      pakshaBala = isWaxing ? 60 : 30;
+    }
+    
+    // Mercury is neutral
+    if (planet === 'Mercury') {
+      pakshaBala = 45;
+    }
+    
+    strength += pakshaBala * 0.3;
+    
+    // 3. Tribhaga Bala (Three-part division strength) - 20% of Kaala Bala
+    // Each day divided into 3 parts of 8 hours each
+    const isFirstTribhaga = hour >= 0 && hour < 8;   // 0-8 hours
+    const isSecondTribhaga = hour >= 8 && hour < 16; // 8-16 hours
+    const isThirdTribhaga = hour >= 16 && hour < 24; // 16-24 hours
+    
+    let tribhagaBala = 30; // Base strength
+    
+    if (planet === 'Sun' && isFirstTribhaga) {
+      tribhagaBala = 60; // Sun strong in first 8 hours
+    } else if (planet === 'Mars' && isSecondTribhaga) {
+      tribhagaBala = 60; // Mars strong in second 8 hours
+    } else if (planet === 'Jupiter' && isThirdTribhaga) {
+      tribhagaBala = 60; // Jupiter strong in third 8 hours
+    }
+    
+    strength += tribhagaBala * 0.2;
+    
+    // Convert to 0-100 scale
+    return Math.min(100, strength);
+  }
+  
+  /**
+   * Calculate Enhanced Chesta Bala (Motional strength)
+   * Based on retrogression and actual speed relative to mean speed
+   */
+  private calculateEnhancedChestaBala(planet: string, planetData: PlanetaryPosition): number {
+    // Sun and Moon have no Chesta Bala (always direct)
+    if (['Sun', 'Moon'].includes(planet)) {
+      return 0;
+    }
+    
+    // Mean speeds for each planet (degrees per day)
+    const meanSpeeds: Record<string, number> = {
+      'Mercury': 0.98,
+      'Venus': 0.62,
+      'Mars': 0.52,
+      'Jupiter': 0.083,
+      'Saturn': 0.034,
+      'Rahu': 0.053, // Always retrograde
+      'Ketu': 0.053  // Always retrograde
+    };
+    
+    const meanSpeed = meanSpeeds[planet] || 0.5;
+    const actualSpeed = Math.abs(planetData.speed);
+    
+    let chestaBala = 50; // Base strength
+    
+    if (planetData.retrograde) {
+      // Retrograde planets get maximum strength
+      // Formula: 60 - (meanSpeed × 60 / meanSpeed) = 0, but retrograde adds 60
+      chestaBala = 100; // Maximum strength when retrograde
+    } else {
+      // Direct motion - strength based on speed variation
+      const speedRatio = actualSpeed / meanSpeed;
+      
+      if (speedRatio > 1.5) {
+        chestaBala = 80; // Very fast
+      } else if (speedRatio > 1.2) {
+        chestaBala = 70; // Fast
+      } else if (speedRatio > 0.8) {
+        chestaBala = 60; // Normal speed
+      } else if (speedRatio > 0.5) {
+        chestaBala = 50; // Slow
+      } else {
+        chestaBala = 40; // Very slow
+      }
+    }
+    
+    return chestaBala;
+  }
+  
+  /**
+   * Calculate Enhanced Naisargika Bala (Natural strength)
+   * Based on brightness/luminosity and apparent size
+   */
+  private calculateEnhancedNaisargikaBala(planet: string): number {
+    // Based on brightness/luminosity and apparent size
+    // Maximum 60 Virupas according to classical texts
+    const naturalStrength: Record<string, number> = {
+      'Sun': 60,    // Brightest (Surya)
+      'Moon': 51.43, // Second brightest (Chandra)
+      'Venus': 42.86, // Bright planet
+      'Jupiter': 34.29, // Bright planet
+      'Mercury': 25.71, // Less bright
+      'Mars': 17.14, // Red planet
+      'Saturn': 8.57, // Distant planet
+      'Rahu': 8.57, // Shadow planet
+      'Ketu': 8.57  // Shadow planet
+    };
+    
+    const virupas = naturalStrength[planet] || 8.57;
+    
+    // Convert to 0-100 scale (60 Virupas = 100%)
+    return (virupas / 60) * 100;
+  }
+  
+  /**
+   * Calculate Enhanced Drik Bala (Aspectual strength)
+   * Based on exact aspects from benefics and malefics with proper orbs
+   */
+  private calculateEnhancedDrikBala(planet: string, planetData: PlanetaryPosition, chartData: EphemerisCalculation): number {
+    let strength = 50; // Base strength (neutral)
+    
+    // Vedic aspects with their strengths
+    const aspectStrengths: Record<string, number[]> = {
+      'Sun': [180], // 7th aspect
+      'Moon': [180], // 7th aspect
+      'Mars': [120, 180, 270], // 4th, 7th, 8th aspects
+      'Mercury': [180], // 7th aspect
+      'Jupiter': [60, 180, 300], // 5th, 7th, 9th aspects
+      'Venus': [180], // 7th aspect
+      'Saturn': [90, 180, 360], // 3rd, 7th, 10th aspects
+      'Rahu': [180], // 7th aspect
+      'Ketu': [180]  // 7th aspect
+    };
+    
+    const benefics = ['Jupiter', 'Venus', 'Moon', 'Mercury'];
+    const malefics = ['Saturn', 'Mars', 'Rahu', 'Ketu', 'Sun'];
+    
+    let beneficInfluence = 0;
+    let maleficInfluence = 0;
+    
+    for (const [otherPlanet, otherData] of Object.entries(chartData.planets)) {
+      if (otherPlanet === planet.toLowerCase()) continue;
+      
+      const otherPlanetName = otherPlanet.charAt(0).toUpperCase() + otherPlanet.slice(1);
+      const aspects = aspectStrengths[otherPlanetName] || [180];
+      
+      for (const aspect of aspects) {
+        const aspectDiff = this.calculateAspectDifference(planetData.longitude, otherData.longitude, aspect);
+        
+        if (aspectDiff !== null) {
+          // Aspect strength decreases with orb
+          const orbStrength = Math.max(0, 1 - (aspectDiff / 15)); // 15° orb
+          
+          if (benefics.includes(otherPlanetName)) {
+            beneficInfluence += orbStrength * 15; // Benefics add strength
+          } else if (malefics.includes(otherPlanetName)) {
+            maleficInfluence += orbStrength * 12; // Malefics reduce strength
+          }
+        }
+      }
+    }
+    
+    // Apply influences
+    strength += beneficInfluence;
+    strength -= maleficInfluence;
+    
+    return Math.max(0, Math.min(100, strength));
+  }
+  
+  /**
+   * Calculate aspect difference with orb
+   */
+  private calculateAspectDifference(longitude1: number, longitude2: number, aspect: number): number | null {
+    const orb = 15; // 15 degree orb for Vedic aspects
+    
+    let diff = Math.abs(longitude1 - longitude2);
+    if (diff > 180) diff = 360 - diff;
+    
+    const aspectDiff = Math.abs(diff - aspect);
+    
+    if (aspectDiff <= orb) {
+      return aspectDiff; // Return the orb difference (0 = exact aspect)
+    }
+    
+    return null; // No aspect within orb
+  }
+  
+  /**
+   * Get house from longitude
+   */
+  private getHouseFromLongitude(longitude: number, ascendant: number): number {
+    const signIndex = Math.floor(longitude / 30);
+    const ascendantSignIndex = Math.floor(ascendant / 30);
+    return ((signIndex - ascendantSignIndex + 12) % 12) + 1;
+  }
+  
+  /**
+   * Identify Raja Yogas (success combinations)
+   * Kendra (1,4,7,10) lord + Trikona (1,5,9) lord connection
+   */
+  public identifyRajaYogas(chartData: EphemerisCalculation): string[] {
+    const yogas: string[] = [];
+    const ascendant = chartData.houseCusps.ascendant;
+    
+    // Get kendra and trikona lords
+    const kendraLords = this.getKendraLords(ascendant);
+    const trikonaLords = this.getTrikonaLords(ascendant);
+    
+    // Check all combinations
+    for (const kendraLord of kendraLords) {
+      for (const trikonaLord of trikonaLords) {
+        if (kendraLord !== trikonaLord && this.arePlanetsConnected(kendraLord, trikonaLord, chartData)) {
+          yogas.push(`${kendraLord}-${trikonaLord} Raja Yoga`);
+        }
+      }
+    }
+    
+    return yogas;
+  }
+  
+  /**
+   * Identify Dhana Yogas (wealth combinations)
+   * 2nd-11th lord, 2nd-5th lord connections
+   */
+  public identifyDhanaYogas(chartData: EphemerisCalculation): string[] {
+    const yogas: string[] = [];
+    const ascendant = chartData.houseCusps.ascendant;
+    
+    const secondLord = this.getHouseLord(2, ascendant);
+    const fifthLord = this.getHouseLord(5, ascendant);
+    const eleventhLord = this.getHouseLord(11, ascendant);
+    
+    // 2nd-11th lord connection
+    if (this.arePlanetsConnected(secondLord, eleventhLord, chartData)) {
+      yogas.push(`${secondLord}-${eleventhLord} Dhana Yoga (2nd-11th)`);
+    }
+    
+    // 2nd-5th lord connection
+    if (this.arePlanetsConnected(secondLord, fifthLord, chartData)) {
+      yogas.push(`${secondLord}-${fifthLord} Dhana Yoga (2nd-5th)`);
+    }
+    
+    return yogas;
+  }
+  
+  /**
+   * Identify Arishta Yogas (difficulty combinations)
+   * 6th-8th-12th lord placements in kendras
+   */
+  public identifyArishtaYogas(chartData: EphemerisCalculation): string[] {
+    const yogas: string[] = [];
+    const ascendant = chartData.houseCusps.ascendant;
+    
+    const sixthLord = this.getHouseLord(6, ascendant);
+    const eighthLord = this.getHouseLord(8, ascendant);
+    const twelfthLord = this.getHouseLord(12, ascendant);
+    
+    const dusthanaLords = [sixthLord, eighthLord, twelfthLord];
+    const kendras = [1, 4, 7, 10];
+    
+    for (const lord of dusthanaLords) {
+      const lordPosition = chartData.planets[lord.toLowerCase() as keyof typeof chartData.planets];
+      if (lordPosition) {
+        const house = this.getHouseFromLongitude(lordPosition.longitude, ascendant);
+        if (kendras.includes(house)) {
+          yogas.push(`${lord} in ${house}th house - Arishta Yoga`);
+        }
+      }
+    }
+    
+    return yogas;
+  }
+  
+  /**
+   * Get kendra (quadrant) lords
+   */
+  private getKendraLords(ascendant: number): string[] {
+    const ascendantSign = Math.floor(ascendant / 30);
+    const kendraHouses = [0, 3, 6, 9]; // 1st, 4th, 7th, 10th from ascendant
+    const lords: string[] = [];
+    
+    for (const offset of kendraHouses) {
+      const sign = (ascendantSign + offset) % 12;
+      lords.push(this.getSignLord(sign));
+    }
+    
+    return lords;
+  }
+  
+  /**
+   * Get trikona (trine) lords
+   */
+  private getTrikonaLords(ascendant: number): string[] {
+    const ascendantSign = Math.floor(ascendant / 30);
+    const trikonaHouses = [0, 4, 8]; // 1st, 5th, 9th from ascendant
+    const lords: string[] = [];
+    
+    for (const offset of trikonaHouses) {
+      const sign = (ascendantSign + offset) % 12;
+      lords.push(this.getSignLord(sign));
+    }
+    
+    return lords;
+  }
+  
+  /**
+   * Get lord of a sign
+   */
+  private getSignLord(signIndex: number): string {
+    const signLords = [
+      'Mars',    // Aries
+      'Venus',   // Taurus
+      'Mercury', // Gemini
+      'Moon',    // Cancer
+      'Sun',     // Leo
+      'Mercury', // Virgo
+      'Venus',   // Libra
+      'Mars',    // Scorpio
+      'Jupiter', // Sagittarius
+      'Saturn',  // Capricorn
+      'Saturn',  // Aquarius
+      'Jupiter'  // Pisces
+    ];
+    return signLords[signIndex];
+  }
+  
+  /**
+   * Get lord of a house
+   */
+  private getHouseLord(house: number, ascendant: number): string {
+    const ascendantSign = Math.floor(ascendant / 30);
+    const sign = (ascendantSign + house - 1) % 12;
+    return this.getSignLord(sign);
+  }
+  
+  /**
+   * Check if two planets are connected (conjunction, aspect, or exchange)
+   */
+  private arePlanetsConnected(planet1: string, planet2: string, chartData: EphemerisCalculation): boolean {
+    const p1 = chartData.planets[planet1.toLowerCase() as keyof typeof chartData.planets];
+    const p2 = chartData.planets[planet2.toLowerCase() as keyof typeof chartData.planets];
+    
+    if (!p1 || !p2) return false;
+    
+    // Check conjunction (within 10°)
+    const diff = Math.abs(p1.longitude - p2.longitude);
+    if (diff <= 10 || diff >= 350) return true;
+    
+    // Check aspect (7th aspect for all planets)
+    const aspectDiff = Math.abs(p1.longitude - p2.longitude);
+    if (aspectDiff >= 170 && aspectDiff <= 190) return true;
+    
+    // Check special aspects
+    if (planet1 === 'Mars' && (aspectDiff >= 110 && aspectDiff <= 130)) return true; // 4th aspect
+    if (planet1 === 'Mars' && (aspectDiff >= 260 && aspectDiff <= 280)) return true; // 8th aspect
+    if (planet1 === 'Jupiter' && (aspectDiff >= 50 && aspectDiff <= 70)) return true; // 5th aspect
+    if (planet1 === 'Jupiter' && (aspectDiff >= 230 && aspectDiff <= 250)) return true; // 9th aspect
+    if (planet1 === 'Saturn' && (aspectDiff >= 80 && aspectDiff <= 100)) return true; // 3rd aspect
+    if (planet1 === 'Saturn' && (aspectDiff >= 200 && aspectDiff <= 220)) return true; // 10th aspect
+    
+    return false;
   }
 }
 

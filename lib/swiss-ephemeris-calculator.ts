@@ -302,10 +302,10 @@ export class SwissEphemerisCalculator {
       // Step 2: Calculate planetary positions
       const planets = await this.calculatePlanetaryPositions(timeData.julianDay);
 
-      // Step 3: Calculate house cusps (if Placidus is requested)
-      const houseCusps = this.config.houseSystem === 'placidus' 
-        ? await this.calculateHouseCusps(timeData.julianDay, latitude, longitude)
-        : this.calculateWholeSignHouses(planets);
+      // Step 3: Calculate house cusps (FORCE Whole Sign for Vedic astrology)
+      // IMPORTANT: Vedic astrology MUST use Whole Sign houses, not Placidus
+      // Placidus creates 6-8° errors in house cusps for Vedic charts
+      const houseCusps = this.calculateWholeSignHouses(planets);
 
       // Step 4: Calculate divisional charts
       const divisionalCharts = this.calculateDivisionalCharts(planets);
@@ -720,8 +720,117 @@ export class SwissEphemerisCalculator {
    * Calculate divisional position using Varga formula
    */
   private calculateDivisionalPosition(longitude: number, multiplier: number): number {
-    // Varga formula: (Longitude * Varga_Index) % 360
-    return (longitude * multiplier) % 360;
+    const signIndex = Math.floor(longitude / 30);
+    const degreeInSign = longitude % 30;
+    
+    // Use proper Varga formulas based on Parashara
+    switch (multiplier) {
+      case 9: // Navamsa (D-9) - 9 divisions of 3°20' each
+        return this.calculateNavamsa(signIndex, degreeInSign);
+      case 10: // Dasamsa (D-10) - 10 divisions of 3° each
+        return this.calculateDasamsa(signIndex, degreeInSign);
+      case 7: // Saptamsa (D-7) - 7 divisions of ~4°17' each
+        return this.calculateSaptamsa(signIndex, degreeInSign);
+      case 12: // Dwadasamsa (D-12) - 12 divisions of 2°30' each
+        return this.calculateDwadasamsa(signIndex, degreeInSign);
+      case 30: // Trimsamsa (D-30) - Special rules based on degree ranges
+        return this.calculateTrimsamsa(signIndex, degreeInSign);
+      default: // Generic calculation for other divisions
+        const portionSize = 30 / multiplier;
+        const portion = Math.floor(degreeInSign / portionSize);
+        const degreeInPortion = degreeInSign % portionSize;
+        const divisionalDegree = (degreeInPortion / portionSize) * 30;
+        return (signIndex * 30) + (portion * portionSize) + divisionalDegree;
+    }
+  }
+  
+  private calculateNavamsa(signIndex: number, degreeInSign: number): number {
+    const navamsaSize = 3.3333333333333335; // Precise: 3°20'
+    const navamsaNumber = Math.floor(degreeInSign / navamsaSize);
+    
+    let navamsaSign: number;
+    // Movable signs (Aries, Cancer, Libra, Capricorn): start from same sign
+    if ([0, 3, 6, 9].includes(signIndex)) {
+      navamsaSign = (signIndex + navamsaNumber) % 12;
+    }
+    // Fixed signs (Taurus, Leo, Scorpio, Aquarius): start from 9th from sign
+    else if ([1, 4, 7, 10].includes(signIndex)) {
+      navamsaSign = (signIndex + 8 + navamsaNumber) % 12; // +8 = 9th sign
+    }
+    // Dual signs (Gemini, Virgo, Sagittarius, Pisces): start from 5th from sign
+    else {
+      navamsaSign = (signIndex + 4 + navamsaNumber) % 12; // +4 = 5th sign
+    }
+    
+    return navamsaSign * 30 + (degreeInSign % navamsaSize);
+  }
+  
+  private calculateDasamsa(signIndex: number, degreeInSign: number): number {
+    const dasamsaSize = 3.0; // 10 divisions of 3° each
+    const dasamsaNumber = Math.floor(degreeInSign / dasamsaSize);
+    
+    let dasamsaSign: number;
+    // Odd signs: start from same sign
+    if ((signIndex + 1) % 2 === 1) {
+      dasamsaSign = (signIndex + dasamsaNumber) % 12;
+    }
+    // Even signs: start from 9th from sign
+    else {
+      dasamsaSign = (signIndex + 8 + dasamsaNumber) % 12; // +8 = 9th sign
+    }
+    
+    return dasamsaSign * 30 + (degreeInSign % dasamsaSize);
+  }
+  
+  private calculateSaptamsa(signIndex: number, degreeInSign: number): number {
+    const saptamsaSize = 4.285714285714286; // Precise: 30/7
+    const saptamsaNumber = Math.floor(degreeInSign / saptamsaSize);
+    
+    let saptamsaSign: number;
+    // Odd signs: start from same sign
+    if ((signIndex + 1) % 2 === 1) {
+      saptamsaSign = (signIndex + saptamsaNumber) % 12;
+    }
+    // Even signs: start from 7th from sign
+    else {
+      saptamsaSign = (signIndex + 6 + saptamsaNumber) % 12; // +6 = 7th sign
+    }
+    
+    return saptamsaSign * 30 + (degreeInSign % saptamsaSize);
+  }
+  
+  private calculateDwadasamsa(signIndex: number, degreeInSign: number): number {
+    const dwadasamsaSize = 2.5; // 12 divisions of 2°30' each
+    const dwadasamsaNumber = Math.floor(degreeInSign / dwadasamsaSize);
+    
+    // Always start from same sign
+    const dwadasamsaSign = (signIndex + dwadasamsaNumber) % 12;
+    
+    return dwadasamsaSign * 30 + (degreeInSign % dwadasamsaSize);
+  }
+  
+  private calculateTrimsamsa(signIndex: number, degreeInSign: number): number {
+    const degree = Math.floor(degreeInSign);
+    const isOddSign = (signIndex + 1) % 2 === 1;
+    let trimsamsaSign: number;
+    
+    if (isOddSign) {
+      // Odd signs: 0-5° = Mars (Aries), 5-10° = Venus (Taurus), 10-18° = Mercury (Virgo), 18-25° = Jupiter (Sagittarius), 25-30° = Saturn (Capricorn)
+      if (degree >= 0 && degree < 5) trimsamsaSign = 0; // Mars (Aries)
+      else if (degree >= 5 && degree < 10) trimsamsaSign = 1; // Venus (Taurus)
+      else if (degree >= 10 && degree < 18) trimsamsaSign = 5; // Mercury (Virgo)
+      else if (degree >= 18 && degree < 25) trimsamsaSign = 8; // Jupiter (Sagittarius)
+      else trimsamsaSign = 9; // Saturn (Capricorn)
+    } else {
+      // Even signs: 0-5° = Venus (Taurus), 5-12° = Mars (Aries), 12-20° = Mercury (Virgo), 20-25° = Saturn (Capricorn), 25-30° = Jupiter (Sagittarius)
+      if (degree >= 0 && degree < 5) trimsamsaSign = 1; // Venus (Taurus)
+      else if (degree >= 5 && degree < 12) trimsamsaSign = 0; // Mars (Aries)
+      else if (degree >= 12 && degree < 20) trimsamsaSign = 5; // Mercury (Virgo)
+      else if (degree >= 20 && degree < 25) trimsamsaSign = 9; // Saturn (Capricorn)
+      else trimsamsaSign = 8; // Jupiter (Sagittarius)
+    }
+    
+    return trimsamsaSign * 30 + (degreeInSign % 1.0);
   }
 
   /**

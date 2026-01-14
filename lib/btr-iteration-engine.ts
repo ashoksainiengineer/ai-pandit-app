@@ -13,6 +13,12 @@
 import { SwissEphemerisEngine, EphemerisCalculation } from './swiss-ephemeris-engine';
 import { LifeEvent } from '../types';
 
+// Zodiac signs for yoga identification
+const ZODIAC_SIGNS = [
+  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+];
+
 export interface BTREvent {
   eventType: 'marriage' | 'childbirth' | 'career' | 'education' | 'health' | 'travel' | 'property' | 'loss';
   date: Date;
@@ -107,10 +113,10 @@ export class BTREngine {
       maxTimeShift: 120, // ±2 hours max adjustment
       divisionalCharts: ['d1', 'd9', 'd60'],
       weightFactors: {
-        planets: 0.3,
-        houses: 0.25,
+        planets: 0.25,
+        houses: 0.30, // INCREASED: House lordship is critical for event timing
         dasha: 0.25,
-        divisional: 0.2
+        divisional: 0.20
       },
       ...config
     };
@@ -126,7 +132,12 @@ export class BTREngine {
     timezone: string,
     lifeEvents: BTREvent[]
   ): Promise<BTRResult> {
-    console.log('🌟 Starting BTR Iteration Process');
+    // MINIMUM EVENTS CHECK: Require at least 5 major life events for reliable rectification
+    if (lifeEvents.length < 5) {
+      throw new Error(`Minimum 5 major life events required for accurate birth time rectification. Provided: ${lifeEvents.length}`);
+    }
+    
+    console.log('🌟 Starting BTR 3-Phase Iteration Process');
     console.log(`📅 Original Time: ${originalBirthTime.toISOString()}`);
     console.log(`📍 Location: ${latitude}, ${longitude}`);
     console.log(`📋 Events: ${lifeEvents.length} life events to analyze`);
@@ -134,58 +145,119 @@ export class BTREngine {
     this.iterations = [];
     this.currentIteration = 0;
 
-    let currentTime = new Date(originalBirthTime);
-    let bestResult: BTRIteration | null = null;
+    let bestResult: BTRIteration;
     let converged = false;
 
-    // Initial analysis
-    const initialAnalysis = await this.analyzeIteration(currentTime, latitude, longitude, timezone, lifeEvents, 0);
-    this.iterations.push(initialAnalysis);
-    bestResult = initialAnalysis;
-
-    console.log(`🎯 Initial Alignment Score: ${initialAnalysis.alignmentScore.toFixed(2)}%`);
-
-    // Iterative refinement
-    while (this.currentIteration < this.config.maxIterations && !converged) {
-      this.currentIteration++;
-
-      // Generate time hypotheses based on discrepancies
-      const timeAdjustments = this.generateTimeHypotheses(initialAnalysis.discrepancies);
+    // ==================== PHASE 1: COARSE SEARCH (±2 hours at 2-minute intervals) ====================
+    console.log('🔍 PHASE 1: Coarse search with 120+ time candidates (±2 hours at 2-minute intervals)');
+    
+    const phase1Candidates: number[] = []; // in minutes
+    for (let minutes = -120; minutes <= 120; minutes += 2) {
+      phase1Candidates.push(minutes);
+    }
+    
+    console.log(`🎯 Testing ${phase1Candidates.length} time candidates...`);
+    
+    const phase1Results: BTRIteration[] = [];
+    for (const adjustment of phase1Candidates) {
+      const testTime = new Date(originalBirthTime.getTime() + (adjustment * 60 * 1000));
+      const iteration = await this.analyzeIteration(testTime, latitude, longitude, timezone, lifeEvents, adjustment);
+      phase1Results.push(iteration);
       
-      for (const adjustment of timeAdjustments) {
-        const newTime = new Date(currentTime.getTime() + (adjustment * 60 * 1000)); // Convert minutes to milliseconds
+      this.currentIteration++;
+      
+      // Progress logging
+      if (phase1Results.length % 20 === 0) {
+        console.log(`📝 Phase 1: ${phase1Results.length}/${phase1Candidates.length} candidates tested...`);
+      }
+    }
+    
+    // Initialize bestResult with the best from Phase 1
+    bestResult = phase1Results.reduce((best, iteration) =>
+      iteration.alignmentScore > best.alignmentScore ? iteration : best
+    );
+    
+    console.log(`✅ Phase 1 complete. Best score: ${bestResult.alignmentScore.toFixed(2)}%`);
+    
+    // ==================== PHASE 2: MEDIUM REFINEMENT (Top 5 at 30-second intervals) ====================
+    console.log('🔍 PHASE 2: Medium refinement of top 5 candidates at 30-second intervals');
+    
+    const top5Results = phase1Results
+      .sort((a, b) => b.alignmentScore - a.alignmentScore)
+      .slice(0, 5);
+    
+    console.log(`🎯 Testing top 5 candidates with 30-second precision...`);
+    
+    for (const topResult of top5Results) {
+      const baseAdjustment = topResult.timeShift;
+      
+      // Test ±30 seconds around each top candidate
+      for (let seconds = -30; seconds <= 30; seconds += 30) {
+        const adjustment = baseAdjustment + (seconds / 60); // Convert to minutes
+        const testTime = new Date(originalBirthTime.getTime() + (adjustment * 60 * 1000));
         
-        // Check if within allowed time shift
-        const timeShift = Math.abs(newTime.getTime() - originalBirthTime.getTime()) / (60 * 1000);
-        if (timeShift > this.config.maxTimeShift) continue;
-
-        const iteration = await this.analyzeIteration(newTime, latitude, longitude, timezone, lifeEvents, adjustment);
+        const iteration = await this.analyzeIteration(testTime, latitude, longitude, timezone, lifeEvents, adjustment);
         this.iterations.push(iteration);
-
-        console.log(`🔍 Iteration ${this.currentIteration}: Time Shift ${adjustment}min, Score: ${iteration.alignmentScore.toFixed(2)}%`);
-
-        // Update best result
+        
         if (iteration.alignmentScore > bestResult.alignmentScore) {
           bestResult = iteration;
-          currentTime = newTime;
+          console.log(`🎯 New best found: ${iteration.alignmentScore.toFixed(2)}% at ${adjustment.toFixed(1)} minutes`);
         }
-
+        
+        this.currentIteration++;
+        
         // Check convergence
         if (iteration.alignmentScore >= this.config.convergenceThreshold) {
           converged = true;
-          console.log(`🎉 Convergence achieved at ${iteration.alignmentScore.toFixed(2)}%`);
+          console.log(`🎉 Convergence achieved in Phase 2: ${iteration.alignmentScore.toFixed(2)}%`);
           break;
         }
       }
-
+      
       if (converged) break;
+    }
+    
+    console.log(`✅ Phase 2 complete. Best score: ${bestResult.alignmentScore.toFixed(2)}%`);
+    
+    // ==================== PHASE 3: FINE PRECISION (Best candidate at 5-second intervals) ====================
+    if (!converged) {
+      console.log('🔍 PHASE 3: Fine precision refinement at 5-second intervals');
+      
+      const bestAdjustment = bestResult.timeShift;
+      
+      // Test ±15 seconds around best candidate at 5-second intervals
+      for (let seconds = -15; seconds <= 15; seconds += 5) {
+        const adjustment = bestAdjustment + (seconds / 60); // Convert to minutes
+        const testTime = new Date(originalBirthTime.getTime() + (adjustment * 60 * 1000));
+        
+        const iteration = await this.analyzeIteration(testTime, latitude, longitude, timezone, lifeEvents, adjustment);
+        this.iterations.push(iteration);
+        
+        if (iteration.alignmentScore > bestResult.alignmentScore) {
+          bestResult = iteration;
+          console.log(`🎯 Final precision improved: ${iteration.alignmentScore.toFixed(2)}% at ${adjustment.toFixed(2)} minutes`);
+        }
+        
+        this.currentIteration++;
+        
+        // Check convergence
+        if (iteration.alignmentScore >= this.config.convergenceThreshold) {
+          converged = true;
+          console.log(`🎉 Convergence achieved in Phase 3: ${iteration.alignmentScore.toFixed(2)}%`);
+          break;
+        }
+      }
+      
+      console.log(`✅ Phase 3 complete. Final score: ${bestResult.alignmentScore.toFixed(2)}%`);
     }
 
     // Generate final result
     const finalResult = await this.generateFinalResult(originalBirthTime, bestResult, lifeEvents);
     
-    console.log(`✅ BTR Complete: Final Score ${finalResult.finalAlignmentScore.toFixed(2)}%`);
+    console.log(`✅ BTR Complete: ${finalResult.totalIterations} total iterations`);
+    console.log(`🎯 Final Alignment Score: ${finalResult.finalAlignmentScore.toFixed(2)}%`);
     console.log(`🕐 Rectified Time: ${finalResult.rectifiedTime.toISOString()}`);
+    console.log(`⏱️ Time Adjustment: ${((finalResult.rectifiedTime.getTime() - originalBirthTime.getTime()) / (1000 * 60)).toFixed(2)} minutes`);
     console.log(`🎯 Confidence: ${finalResult.confidenceLevel}`);
 
     return finalResult;
@@ -289,16 +361,191 @@ export class BTREngine {
   }
 
   /**
-   * 📅 Check dasha alignment
+   * 📅 Check dasha alignment with house lordship, aspects, and divisional charts
    */
   private checkDashaAlignment(event: BTREvent, chartData: EphemerisCalculation): boolean {
     const eventDasha = event.expectedDasha;
-    const currentDasha = chartData.dashaPeriods.vimshottari.currentMahadasha.planet;
-    const currentAntardasha = chartData.dashaPeriods.vimshottari.currentAntardasha.planet;
+    const mahadashaLord = chartData.dashaPeriods.vimshottari.currentMahadasha.planet;
+    const antardashaLord = chartData.dashaPeriods.vimshottari.currentAntardasha.planet;
     
-    return eventDasha.some(dasha => 
-      dasha === currentDasha || dasha === currentAntardasha
-    );
+    // STRICT CHECK: Impossible scenario detection
+    // If marriage happened during Saturn/Mars dasha with weak 7th house = IMPOSSIBLE
+    if (event.eventType === 'marriage' &&
+        (mahadashaLord === 'Saturn' || mahadashaLord === 'Mars') &&
+        !this.isPlanetStrongInDivisional(mahadashaLord, event.eventType, chartData)) {
+      return false; // Zero score for impossible combinations
+    }
+    
+    // If childbirth happened during Rahu/Ketu dasha with weak 5th house = IMPOSSIBLE
+    if (event.eventType === 'childbirth' &&
+        (mahadashaLord === 'Rahu' || mahadashaLord === 'Ketu') &&
+        !this.hasHouseLordshipConnection(mahadashaLord, [5], chartData)) {
+      return false; // Zero score for impossible combinations
+    }
+    
+    // Check if dasha lord has connection to event houses
+    for (const dashaPlanet of eventDasha) {
+      if (dashaPlanet === mahadashaLord || dashaPlanet === antardashaLord) {
+        // Check house lordship connection
+        if (this.hasHouseLordshipConnection(dashaPlanet, event.expectedHouses, chartData)) {
+          return true;
+        }
+        
+        // Check planetary aspects to event houses
+        if (this.hasAspectToHouses(dashaPlanet, event.expectedHouses, chartData)) {
+          return true;
+        }
+        
+        // Check divisional chart activation
+        if (this.isPlanetStrongInDivisional(dashaPlanet, event.eventType, chartData)) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  }
+  
+  /**
+   * 🏠 Check if planet rules or occupies event houses
+   */
+  private hasHouseLordshipConnection(planet: string, eventHouses: number[], chartData: EphemerisCalculation): boolean {
+    // Get houses ruled by the planet
+    const ruledHouses = this.getHousesRuledByPlanet(planet, chartData);
+    
+    // Check if planet rules any of the event houses
+    for (const house of eventHouses) {
+      if (ruledHouses.includes(house)) {
+        return true;
+      }
+    }
+    
+    // Check if planet occupies any of the event houses
+    const planetLongitude = chartData.planets[planet.toLowerCase() as keyof typeof chartData.planets]?.longitude;
+    if (planetLongitude !== undefined) {
+      const houseOfPlanet = this.getHouseFromLongitude(planetLongitude, chartData.houseCusps.ascendant);
+      if (eventHouses.includes(houseOfPlanet)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  /**
+   * 👁️ Check if planet aspects event houses
+   */
+  private hasAspectToHouses(planet: string, eventHouses: number[], chartData: EphemerisCalculation): boolean {
+    const planetLongitude = chartData.planets[planet.toLowerCase() as keyof typeof chartData.planets]?.longitude;
+    if (planetLongitude === undefined) return false;
+    
+    // Vedic aspects: all planets aspect 7th house
+    // Mars aspects 4th and 8th
+    // Jupiter aspects 5th and 9th
+    // Saturn aspects 3rd and 10th
+    
+    const planetHouse = this.getHouseFromLongitude(planetLongitude, chartData.houseCusps.ascendant);
+    const aspects: number[] = [7]; // All planets aspect 7th from themselves
+    
+    // Special aspects
+    if (planet === 'Mars') {
+      aspects.push(4, 8);
+    } else if (planet === 'Jupiter') {
+      aspects.push(5, 9);
+    } else if (planet === 'Saturn') {
+      aspects.push(3, 10);
+    }
+    
+    // Check if any aspected house matches event houses
+    for (const aspect of aspects) {
+      const aspectedHouse = ((planetHouse + aspect - 1) % 12) + 1;
+      if (eventHouses.includes(aspectedHouse)) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  
+  /**
+   * 📊 Check if planet is strong in relevant divisional chart
+   */
+  private isPlanetStrongInDivisional(planet: string, eventType: string, chartData: EphemerisCalculation): boolean {
+    const divisionalChartMap: Record<string, string> = {
+      'marriage': 'd9',
+      'childbirth': 'd7',
+      'career': 'd10',
+      'education': 'd24',
+      'property': 'd4'
+    };
+    
+    const chartName = divisionalChartMap[eventType];
+    if (!chartName) return false;
+    
+    const divisionalChart = chartData.divisionalCharts[chartName as keyof typeof chartData.divisionalCharts];
+    if (!divisionalChart) return false;
+    
+    const planetPosition = divisionalChart.planets[planet.toLowerCase()];
+    if (planetPosition === undefined) return false;
+    
+    // Check if planet is in good dignity in divisional chart
+    const signIndex = Math.floor(planetPosition / 30);
+    const sign = ZODIAC_SIGNS[signIndex];
+    
+    // Simplified dignity check
+    const planetDignities: Record<string, string[]> = {
+      'Sun': ['Leo', 'Aries'],
+      'Moon': ['Cancer', 'Taurus'],
+      'Mars': ['Aries', 'Scorpio', 'Capricorn'],
+      'Mercury': ['Gemini', 'Virgo'],
+      'Jupiter': ['Sagittarius', 'Pisces', 'Cancer'],
+      'Venus': ['Taurus', 'Libra', 'Pisces'],
+      'Saturn': ['Capricorn', 'Aquarius', 'Libra'],
+      'Rahu': ['Aquarius'],
+      'Ketu': ['Scorpio']
+    };
+    
+    const goodSigns = planetDignities[planet] || [];
+    return goodSigns.includes(sign);
+  }
+  
+  /**
+   * 🏠 Get houses ruled by a planet
+   */
+  private getHousesRuledByPlanet(planet: string, chartData: EphemerisCalculation): number[] {
+    const lagnaSignIndex = Math.floor(chartData.houseCusps.ascendant / 30);
+    
+    // Planet rulerships
+    const rulerships: Record<string, number[]> = {
+      'Sun': [5], // Leo
+      'Moon': [4], // Cancer
+      'Mars': [1, 8], // Aries, Scorpio
+      'Mercury': [3, 6], // Gemini, Virgo
+      'Jupiter': [9, 12], // Sagittarius, Pisces
+      'Venus': [2, 7], // Taurus, Libra
+      'Saturn': [10, 11], // Capricorn, Aquarius
+      'Rahu': [],
+      'Ketu': []
+    };
+    
+    const ruledSigns = rulerships[planet] || [];
+    const ruledHouses: number[] = [];
+    
+    for (const sign of ruledSigns) {
+      const house = ((sign - 1 - lagnaSignIndex + 12) % 12) + 1;
+      ruledHouses.push(house);
+    }
+    
+    return ruledHouses;
+  }
+  
+  /**
+   * 🏠 Get house number from longitude
+   */
+  private getHouseFromLongitude(longitude: number, ascendant: number): number {
+    const signIndex = Math.floor(longitude / 30);
+    const ascendantSignIndex = Math.floor(ascendant / 30);
+    return ((signIndex - ascendantSignIndex + 12) % 12) + 1;
   }
 
   /**
