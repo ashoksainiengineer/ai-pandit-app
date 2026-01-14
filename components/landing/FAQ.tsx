@@ -10,23 +10,23 @@ export default function FAQ() {
   const faqs = [
     {
       q: 'How accurate is the rectification?',
-      a: 'With 5+ life events, we achieve 85-95% confidence. More events = higher accuracy. We always show you the confidence score so you know exactly how reliable the result is.'
+      a: 'With 10+ life events, we achieve ±1-2 minute accuracy. The system tests 120+ time candidates using 3-phase refinement (2-min → 30-sec → 5-sec intervals). Confidence score is based on event-dasha correlation strength.'
     },
     {
-      q: 'What if I don\'t know any events with exact dates?',
-      a: 'That\'s okay! Month/year is often enough for major events like marriage, first job, or graduation. Even approximate dates help narrow down the search range.'
+      q: 'What makes this system technically superior?',
+      a: 'We use True Node (not Mean Node) for Rahu/Ketu, precise Lahiri ayanamsa, Whole Sign houses, classical divisional formulas, enhanced Shadbala calculations, and robust timezone handling with DST support. All calculations maintain 6+ decimal precision.'
     },
     {
       q: 'How many life events do I need?',
-      a: 'Minimum 3, recommended 5-7. Best events: marriage date, first child birth, parent\'s death, major surgery, first job. Marriage is typically the most reliable anchor.'
+      a: 'Minimum 5 events required. Best results with 10+ events: marriage, children birth, career milestones, education, health events, property purchases. Each event is correlated with Vimshottari dasha and divisional charts.'
     },
     {
-      q: 'What methods do you use?',
-      a: 'We combine K.N. Rao\'s event-based method, Vimshottari Dasha correlation, divisional chart analysis (D-1 to D-60), Tattwa Shodhana, and physical characteristics verification.'
+      q: 'What astrological methods are used?',
+      a: 'K.N. Rao event-based method, Vimshottari Dasha correlation, divisional chart analysis (D-9 for marriage, D-10 for career, D-7 for children), Shadbala (6-fold strength), yoga identification (Raja, Dhana, Arishta), and house lord verification.'
     },
     {
-      q: 'Is my data safe and private?',
-      a: 'Yes. Your data is encrypted and never shared. We only use it for rectification. You can request deletion anytime.'
+      q: 'How does the AI scoring work?',
+      a: 'AI analyzes each life event against dasha periods, checks divisional chart placements, verifies house lord strength, identifies yogas, and detects impossible scenarios. Scoring is consistent (temperature 0.3) with detailed reasoning provided.'
     }
   ];
 

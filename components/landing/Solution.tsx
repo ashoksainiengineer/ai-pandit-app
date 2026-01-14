@@ -4,10 +4,30 @@ import { motion } from 'framer-motion';
 
 export default function Solution() {
   const steps = [
-    { num: 1, title: 'You Share Birth Info', time: '~5 minutes', desc: 'Approximate time, place, date you know' },
-    { num: 2, title: 'You Add Life Events', time: '~10 minutes', desc: 'Marriage, job, children, major events' },
-    { num: 3, title: 'We Calculate & Verify', time: '~30 seconds', desc: 'AI analyzes event-dasha correlations' },
-    { num: 4, title: 'You Get Results', time: 'Instant', desc: 'Exact birth time with confidence %' }
+    {
+      num: 1,
+      title: 'Input Birth Details',
+      time: 'Precise Data Collection',
+      desc: 'Birth date, approximate time, location with timezone handling (supports DST)'
+    },
+    {
+      num: 2,
+      title: 'Add Life Events',
+      time: 'Event-Driven Analysis',
+      desc: 'Marriage, career, children, health - minimum 5 major events for accuracy'
+    },
+    {
+      num: 3,
+      title: 'AI-Powered Analysis',
+      time: '120+ Time Candidates',
+      desc: '3-phase refinement: 2-min intervals → 30-sec → 5-sec precision'
+    },
+    {
+      num: 4,
+      title: 'Get Exact Birth Time',
+      time: '±1-2 Minute Accuracy',
+      desc: 'Complete with confidence score, rectified chart, and event verification'
+    }
   ];
 
   return (
