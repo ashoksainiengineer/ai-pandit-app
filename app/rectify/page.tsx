@@ -31,12 +31,12 @@ export default function RectifyPage() {
     fullName: '',
     dateOfBirth: '',
     tentativeTime: '',
-    timeUncertainty: '30min',
+    timeUncertainty: undefined, // Start undefined to force selection
     birthPlace: '',
     latitude: 0,
     longitude: 0,
     timezone: 'UTC+5:30',
-    gender: 'male',
+    gender: undefined, // Start undefined to force selection
     maritalStatus: 'single',
     currentAge: 0
   });
@@ -153,7 +153,15 @@ export default function RectifyPage() {
   const canProceed = () => {
     switch (step) {
       case 1:
-        return birthData.fullName && birthData.dateOfBirth && birthData.tentativeTime && birthData.birthPlace;
+        // All fields are mandatory: name, date, time, time uncertainty, birth place, and gender
+        return birthData.fullName && 
+               birthData.fullName.trim().length >= 2 &&
+               birthData.dateOfBirth && 
+               birthData.tentativeTime && 
+               birthData.timeUncertainty && // Time uncertainty must be selected
+               birthData.birthPlace && 
+               birthData.birthPlace.trim().length >= 2 &&
+               birthData.gender; // Gender must be selected
       case 2:
         return true;
       case 3:
@@ -322,7 +330,7 @@ export default function RectifyPage() {
           >
             {step > 1 ? (
               <button
-                onClick={() => setStep(step - 1)}
+                onClick={handlePrevious}
                 className="flex items-center gap-3 px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all duration-300 text-white font-medium"
               >
                 <ArrowLeft className="w-5 h-5" /> Back
@@ -331,7 +339,7 @@ export default function RectifyPage() {
             
             {step < 3 ? (
               <button
-                onClick={() => setStep(step + 1)}
+                onClick={handleNext}
                 disabled={!canProceed()}
                 className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all duration-300 text-white font-medium"
               >

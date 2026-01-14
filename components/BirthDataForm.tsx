@@ -57,6 +57,10 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
       newErrors.tentativeTime = 'Please enter a valid time';
     }
     
+    if (!birthData.timeUncertainty) {
+      newErrors.timeUncertainty = 'Please select how sure you are about this time';
+    }
+    
     if (!birthData.birthPlace || birthData.birthPlace.trim().length < 2) {
       newErrors.birthPlace = 'Please enter your birth place';
     }
@@ -194,7 +198,7 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
     };
   }, []);
   
-  // Time uncertainty options
+  // Time uncertainty options (removed 'unknown' option as per requirements)
   const timeUncertaintyOptions = [
     { value: 'exact', label: '🎯 Exact Time', description: 'Verified from birth certificate', interval: '±0 min' },
     { value: '5min', label: '⏰ Very Accurate', description: 'Within 5 minutes', interval: '±5 min' },
@@ -203,7 +207,6 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
     { value: '1hour', label: '🕒 Approximate', description: 'Within 1 hour', interval: '±1 hour' },
     { value: '2hour', label: '🕓 Rough Estimate', description: 'Within 2 hours', interval: '±2 hours' },
     { value: '4hour', label: '🕔 Very Uncertain', description: 'Within 4 hours', interval: '±4 hours' },
-    { value: 'unknown', label: '❓ Unknown', description: 'No information available', interval: 'Unknown' },
     { value: 'custom', label: '✏️ Custom', description: 'Enter custom time range', interval: 'Custom' }
   ];
   
@@ -405,7 +408,16 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                 How sure are you about this time?
               </label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                {timeUncertaintyOptions.map((option) => (
+                {[
+                  { value: 'exact', label: '🎯 Exact Time', description: 'Verified from birth certificate', interval: '±0 min' },
+                  { value: '5min', label: '⏰ Very Accurate', description: 'Within 5 minutes', interval: '±5 min' },
+                  { value: '15min', label: '🕐 Accurate', description: 'Within 15 minutes', interval: '±15 min' },
+                  { value: '30min', label: '🕑 Fairly Accurate', description: 'Within 30 minutes', interval: '±30 min' },
+                  { value: '1hour', label: '🕒 Approximate', description: 'Within 1 hour', interval: '±1 hour' },
+                  { value: '2hour', label: '🕓 Rough Estimate', description: 'Within 2 hours', interval: '±2 hours' },
+                  { value: '4hour', label: '🕔 Very Uncertain', description: 'Within 4 hours', interval: '±4 hours' },
+                  { value: 'custom', label: '✏️ Custom', description: 'Enter custom time range', interval: 'Custom' }
+                ].map((option) => (
                   <motion.button
                     key={option.value}
                     type="button"
@@ -416,6 +428,7 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                         setBirthData({ ...birthData, timeUncertainty: option.value as any });
                         setCustomTimeUncertainty(''); // Clear custom input when selecting preset
                       }
+                      if (errors.timeUncertainty) setErrors(prev => ({ ...prev, timeUncertainty: '' }));
                     }}
                     className={`p-3 rounded-xl text-center transition-all duration-300 border-2 min-w-0 ${
                       birthData.timeUncertainty === option.value
@@ -432,6 +445,7 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                   </motion.button>
                 ))}
               </div>
+              <p className="text-xs text-white/60 mt-2">ℹ️ This helps us determine the search range for rectification</p>
               
               {/* Custom Time Uncertainty Input */}
               {birthData.timeUncertainty === 'custom' && (
@@ -458,6 +472,9 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
             
             {errors.tentativeTime && (
               <p className="text-sm text-red-400 mt-2">{errors.tentativeTime}</p>
+            )}
+            {errors.timeUncertainty && (
+              <p className="text-sm text-red-400 mt-2">{errors.timeUncertainty}</p>
             )}
           </div>
           

@@ -331,7 +331,9 @@ export default function BirthDetailsStep({ birthData, setBirthData }: BirthDetai
               </button>
             ))}
           </div>
+          <p className="text-xs text-[#6B7A90] mt-2">ℹ️ This helps us determine the search range for rectification</p>
         </div>
+        <p className="text-xs text-[#6B7A90] mt-2">ℹ️ This helps us determine the search range for rectification</p>
 
         {/* Birth Place */}
         <div>

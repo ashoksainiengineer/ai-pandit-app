@@ -1,12 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export default function FAQ() {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
-
   const faqs = [
     {
       q: 'How accurate is the rectification?',
@@ -27,6 +23,14 @@ export default function FAQ() {
     {
       q: 'How does the AI scoring work?',
       a: 'AI analyzes each life event against dasha periods, checks divisional chart placements, verifies house lord strength, identifies yogas, and detects impossible scenarios. Scoring is consistent (temperature 0.3) with detailed reasoning provided.'
+    },
+    {
+      q: 'How this works?',
+      a: 'Our system uses advanced Vedic astrology algorithms combined with machine learning. We analyze your life events against 120+ possible birth times, checking each against Vimshottari Dasha periods and divisional charts. The AI scores each candidate based on how well your life events match the astrological predictions, narrowing down to your exact birth time with ±1-2 minute accuracy.'
+    },
+    {
+      q: 'Why physical traits matter?',
+      a: 'Physical characteristics are crucial for verification through Tattwa Shodhana - an ancient Vedic method that cross-checks your appearance against your birth chart. Your body structure, face shape, complexion, and distinctive features provide additional validation points that help confirm the rectified birth time is accurate.'
     }
   ];
 
@@ -53,38 +57,16 @@ export default function FAQ() {
               whileInView={{ opacity: 1 }}
               transition={{ delay: index * 0.05 }}
               viewport={{ once: true }}
-              className="border border-[var(--border-default)] rounded-lg overflow-hidden hover:border-[var(--border-strong)] transition-colors"
+              className="border border-[var(--border-default)] rounded-lg hover:border-[var(--border-strong)] transition-colors"
             >
-              <button
-                onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                className="w-full px-6 py-4 flex items-center justify-between hover:bg-[var(--bg-hover)] transition-colors"
-              >
-                <span style={{ fontSize: 'var(--text-body)', fontWeight: 'var(--weight-medium)', color: 'var(--text-primary)' }}>
+              <div className="px-6 py-4">
+                <h3 style={{ fontSize: 'var(--text-body)', fontWeight: 'var(--weight-medium)', color: 'var(--text-primary)' }} className="mb-3">
                   {faq.q}
-                </span>
-                <motion.div
-                  animate={{ rotate: openIndex === index ? 180 : 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <ChevronDown size={20} style={{ color: 'var(--text-secondary)' }} />
-                </motion.div>
-              </button>
-
-              <AnimatePresence>
-                {openIndex === index && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="border-t border-[var(--border-default)]"
-                  >
-                    <p style={{ fontSize: 'var(--text-body)', color: 'var(--text-secondary)' }} className="px-6 py-4">
-                      {faq.a}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                </h3>
+                <p style={{ fontSize: 'var(--text-body)', color: 'var(--text-secondary)' }}>
+                  {faq.a}
+                </p>
+              </div>
             </motion.div>
           ))}
         </div>
