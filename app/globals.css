@@ -442,3 +442,15 @@ p {
     font-size: 16px; /* Prevents iOS zoom */
   }
 }
+
+/* Fix dropdown option text color */
+select option {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+/* Ensure dropdowns have proper background */
+select {
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+}

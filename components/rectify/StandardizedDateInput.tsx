@@ -150,7 +150,7 @@ export default function StandardizedDateInput({
   return (
     <div className="space-y-3">
       {/* Date Type Selector */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {[
           { value: 'exact', label: 'Exact Date' },
           { value: 'month', label: 'Month & Year' },
@@ -163,7 +163,7 @@ export default function StandardizedDateInput({
           <button
             key={option.value}
             onClick={() => onDateTypeChange(option.value as any)}
-            className={`px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+            className={`px-3 py-2 rounded-xl text-xs font-medium transition-all whitespace-nowrap ${
               dateType === option.value
                 ? 'bg-amber-500 text-black'
                 : 'bg-white/10 text-white border border-white/20 hover:border-white/40'

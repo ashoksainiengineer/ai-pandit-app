@@ -203,8 +203,12 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
     { value: '1hour', label: '🕒 Approximate', description: 'Within 1 hour', interval: '±1 hour' },
     { value: '2hour', label: '🕓 Rough Estimate', description: 'Within 2 hours', interval: '±2 hours' },
     { value: '4hour', label: '🕔 Very Uncertain', description: 'Within 4 hours', interval: '±4 hours' },
-    { value: 'unknown', label: '❓ Unknown', description: 'No information available', interval: 'Unknown' }
+    { value: 'unknown', label: '❓ Unknown', description: 'No information available', interval: 'Unknown' },
+    { value: 'custom', label: '✏️ Custom', description: 'Enter custom time range', interval: 'Custom' }
   ];
+  
+  // Custom time uncertainty state
+  const [customTimeUncertainty, setCustomTimeUncertainty] = useState('');
   
   // Popular Indian cities
   const popularCities = [
@@ -406,7 +410,12 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                     key={option.value}
                     type="button"
                     onClick={() => {
-                      setBirthData({ ...birthData, timeUncertainty: option.value as any });
+                      if (option.value === 'custom') {
+                        setBirthData({ ...birthData, timeUncertainty: 'custom' as any });
+                      } else {
+                        setBirthData({ ...birthData, timeUncertainty: option.value as any });
+                        setCustomTimeUncertainty(''); // Clear custom input when selecting preset
+                      }
                     }}
                     className={`p-3 rounded-xl text-center transition-all duration-300 border-2 min-w-0 ${
                       birthData.timeUncertainty === option.value
@@ -423,6 +432,28 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
                   </motion.button>
                 ))}
               </div>
+              
+              {/* Custom Time Uncertainty Input */}
+              {birthData.timeUncertainty === 'custom' && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-white/80 mb-2">
+                    Enter custom time uncertainty
+                  </label>
+                  <input
+                    type="text"
+                    value={customTimeUncertainty}
+                    onChange={(e) => {
+                      setCustomTimeUncertainty(e.target.value);
+                      setBirthData({ ...birthData, timeUncertainty: e.target.value as any });
+                    }}
+                    placeholder="e.g., ±10 min, ±3 hours, morning, evening..."
+                    className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  <p className="text-xs text-white/60 mt-2">
+                    💡 Describe how certain you are about the birth time
+                  </p>
+                </div>
+              )}
             </div>
             
             {errors.tentativeTime && (

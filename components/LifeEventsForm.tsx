@@ -102,7 +102,7 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
       case 'eventTime':
         return value === '' || /^\d{2}:\d{2}$/.test(value);
       case 'description':
-        return typeof value === 'string' && value.length <= 500; // Max 500 chars
+        return typeof value === 'string' && value.trim().length > 0 && value.length <= 500; // Required, max 500 chars
       default:
         return false;
     }
@@ -145,7 +145,7 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
   
   // Add event handler
   const addEvent = useCallback(() => {
-    if (!validation.eventType || !validation.eventDate) {
+    if (!validation.eventType || !validation.eventDate || !validation.description) {
       setTouched({ eventType: true, eventDate: true, eventTime: true, description: true });
       return;
     }
@@ -156,7 +156,7 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
       eventType: newEvent.eventType!,
       eventDate: newEvent.eventDate!,
       dateAccuracy: newEvent.dateAccuracy as any,
-      description: newEvent.description || '',
+      description: newEvent.description!,
       importance: newEvent.importance as any,
       eventTime: newEvent.eventTime || undefined
     };
@@ -214,7 +214,7 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
   }, [lifeEvents]);
   
   const saveEditEvent = useCallback(() => {
-    if (!editingEventId || !newEvent.eventType || !newEvent.eventDate) {
+    if (!editingEventId || !newEvent.eventType || !newEvent.eventDate || !newEvent.description) {
       setTouched({ eventType: true, eventDate: true, eventTime: true, description: true });
       return;
     }
@@ -638,10 +638,10 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
               </div>
             </div>
             
-            {/* Description */}
+            {/* Description - Now Required */}
             <div>
               <label className="block text-sm font-medium text-white/80 mb-2">
-                Any additional details? (Optional)
+                Any additional details? <span className="text-red-400">*</span>
               </label>
               <textarea
                 value={newEvent.description || ''}
@@ -652,15 +652,19 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
                 onBlur={() => setTouched(prev => ({ ...prev, description: true }))}
                 placeholder="E.g., 'Arranged marriage, venue was Delhi', 'Joined as Software Engineer'"
                 className={`w-full px-4 py-3 bg-white/10 border rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 transition-all duration-300 resize-none ${
-                  touched.description && !validation.description 
-                    ? 'border-red-500 focus:ring-red-500' 
+                  touched.description && !validation.description
+                    ? 'border-red-500 focus:ring-red-500'
                     : touched.description && validation.description
                     ? 'border-green-500 focus:ring-green-500'
                     : 'border-white/20 focus:ring-amber-500'
                 }`}
                 rows={3}
                 maxLength={500}
+                required
               />
+              {touched.description && !validation.description && (
+                <p className="text-xs text-red-400 mt-1">Please provide additional details about this event</p>
+              )}
               <div className="text-xs text-white/60 mt-1 text-right">
                 {(newEvent.description || '').length}/500
               </div>
@@ -669,7 +673,7 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
           
           <motion.button
             onClick={addEvent}
-            disabled={!validation.eventType || !validation.eventDate}
+            disabled={!validation.eventType || !validation.eventDate || !validation.description}
             className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl transition-all duration-300 text-white font-medium"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
