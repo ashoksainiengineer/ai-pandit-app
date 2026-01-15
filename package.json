@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "NODE_OPTIONS=\"--max-old-space-size=240\" next build",
+    "build": "NODE_OPTIONS=\"--max-old-space-size=256\" next build",
     "start": "node server.js",
     "lint": "next lint"
   },
@@ -24,7 +24,6 @@
     "react-dom": "^18.3.1",
     "sharp": "^0.33.0",
     "svix": "^1.84.1",
-    "three": "^0.164.1",
     "uuid": "^9.0.1"
   },
   "devDependencies": {

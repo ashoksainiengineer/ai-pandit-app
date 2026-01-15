@@ -40,7 +40,7 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/ephe ./ephe
 
 # Set memory optimization for Northflank's 256MB RAM limit
-ENV NODE_OPTIONS="--max-old-space-size=256"
+ENV NODE_OPTIONS="--max-old-space-size=180"
 ENV PORT=8080
 
 # Expose port
