@@ -14,8 +14,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies (including dev dependencies) using npm install to resolve conflicts
-RUN npm install --omit=dev
+# Install all dependencies (including dev dependencies) for the build
+RUN npm install
 
 # Copy source code
 COPY . .
@@ -29,19 +29,13 @@ FROM node:18-slim AS production
 # Set working directory
 WORKDIR /app
 
-# Create non-root user for security
-RUN groupadd -r pandit && useradd -r -g pandit pandit
-
 # Copy compiled application from builder stage
-COPY --from=builder --chown=pandit:pandit /app/dist ./dist
-COPY --from=builder --chown=pandit:pandit /app/node_modules ./node_modules
-COPY --from=builder --chown=pandit:pandit /app/package*.json ./
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
 
 # Copy required astrological data files
-COPY --from=builder --chown=pandit:pandit /app/ephe ./ephe
-
-# Switch to non-root user
-USER pandit
+COPY --from=builder /app/ephe ./ephe
 
 # Expose port
 EXPOSE 8080
