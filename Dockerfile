@@ -15,7 +15,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install all dependencies (including dev dependencies) using npm install to resolve conflicts
-RUN npm install
+RUN npm install --omit=dev
 
 # Copy source code
 COPY . .
