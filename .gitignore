@@ -4,3 +4,16 @@ node_modules/
 .env*.local
 .DS_Store
 *.log
+
+# Build output
+dist/
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
