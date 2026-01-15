@@ -43,9 +43,12 @@ export async function POST(request: Request) {
         error: 'Valid longitude is required'
       }, { status: 400 });
     }
+    
+    // Sanitize dateString to be YYYY-MM-DD
+    const formattedDate = new Date(dateString).toISOString().split('T')[0];
 
     // Validate and create date using the utility function
-    const dateResult = createValidDate(dateString, timeString, timezone);
+    const dateResult = createValidDate(formattedDate, timeString, timezone);
 
     if (!dateResult.isValid || !dateResult.date) {
       console.error('❌ Date validation failed:', dateResult.error);
@@ -77,6 +80,13 @@ export async function POST(request: Request) {
 
   } catch (error) {
     console.error('❌ Calculation error:', error);
+    if (error instanceof RangeError) {
+        return NextResponse.json({
+            success: false,
+            error: 'Invalid time value',
+            details: error.message
+        }, { status: 400 });
+    }
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',

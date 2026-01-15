@@ -59,11 +59,19 @@ export async function generateFinalMoonshotReport(
   }
 
   const birthDateForAgeCalc = new Date(birthData.dateOfBirth || '');
+  const year = birthDateForAgeCalc.getUTCFullYear();
+  const month = birthDateForAgeCalc.getUTCMonth() + 1;
+  const day = birthDateForAgeCalc.getUTCDate();
 
   // Transform the final result into the format the AI prompt expects.
   const promptData: MoonshootAIPromptData = {
     userData: {
-      birthData: birthData as MoonshootAIPromptData['userData']['birthData'],
+      birthData: {
+          ...birthData,
+          year,
+          month,
+          day,
+      } as MoonshootAIPromptData['userData']['birthData'],
       physicalDescription: {
         bodyStructure: physicalDescription.bodyStructure || 'average',
         height: physicalDescription.height || 'average',
