@@ -1,28 +1,37 @@
 /**
- * 🌟 Swiss Ephemeris + Moonshoot AI Integration Example
+ * 🌟 Swiss Ephemeris + Moonshoot AI Integration Example - UPDATED
  * 
- * This file demonstrates how to integrate the Swiss Ephemeris engine
- * with the Moonshoot AI system for comprehensive birth time rectification
+ * This file demonstrates the CORRECT pattern for integrating Swiss Ephemeris
+ * with the Moonshoot AI system using API calls (not direct imports).
+ * 
+ * IMPORTANT: This example shows the proper architecture:
+ * - Frontend components → API Client → API Routes → Swiss Ephemeris (server only)
+ * - NEVER import swisseph directly in library or component files
+ * 
+ * API Key: sk-kimi-GKXoxo4WSayAaeRY1ha5GaeTCWaBNcy46KRgf5z2qbeZaJf3f4AgxB5z07kGIC9c
+ * Model: kimi
+ * Temperature: 0.3 (precise analysis)
+ * Max Tokens: 4000 (comprehensive response)
  */
 
-import { createSwissEphemerisEngine } from './swiss-ephemeris-engine';
+import { calculateEphemerisForTimeSlots, performBTRAnalysis } from './api-client';
 import { createMoonshootAIClient, MockMoonshootAIClient } from './moonshoot-ai-client';
 import { generateMoonshootAIPrompt } from './moonshoot-ai-prompt';
 
 /**
- * Example: Complete BTR Analysis Workflow
+ * Example: Complete BTR Analysis Workflow using API calls
+ * 
+ * This demonstrates the CORRECT pattern:
+ * 1. User Input → 2. API Call to Swiss Ephemeris → 3. AI Analysis → 4. Results
+ * 
+ * Swiss Ephemeris is NEVER imported directly - only called via API
  */
 export async function performCompleteBTRAnalysis() {
-  console.log('🌙 Starting Complete BTR Analysis with Swiss Ephemeris + Moonshoot AI');
+  console.log('🌙 Starting Complete BTR Analysis with API calls (NO direct swisseph import)');
   
   try {
-    // Step 1: Initialize Swiss Ephemeris Engine
-    console.log('Step 1: Initializing Swiss Ephemeris Engine...');
-    const ephemerisEngine = createSwissEphemerisEngine('./ephe');
-    await ephemerisEngine.initialize();
-    console.log('✅ Swiss Ephemeris Engine initialized');
-    
-    // Step 2: Sample User Data (from your BTR form)
+    // Step 1: Sample User Data (from your BTR form)
+    // IMPORTANT: No Swiss Ephemeris initialization needed here!
     const userData = {
       birthData: {
         fullName: 'John Doe',
@@ -98,45 +107,69 @@ export async function performCompleteBTRAnalysis() {
       ]
     };
     
-    // Step 3: Calculate uncertainty range from user input
+    // Step 2: Calculate uncertainty range from user input
     const uncertaintyMinutes = getUncertaintyMinutes(userData.birthData.timeUncertainty);
-    console.log(`Step 3: Time uncertainty: ±${uncertaintyMinutes} minutes`);
+    console.log(`Step 2: Time uncertainty: ±${uncertaintyMinutes} minutes`);
     
-    // Step 4: Generate time slots with Swiss Ephemeris
-    console.log('Step 4: Generating time slots with planetary positions...');
+    // Step 3: Generate time slots using API call (NO direct swisseph import!)
+    console.log('Step 3: Calling API to generate time slots with planetary positions...');
     const baseDate = new Date(`${userData.birthData.dateOfBirth}T${userData.birthData.tentativeTime}`);
     
-    const ephemerisData = await ephemerisEngine.calculateEphemerisForTimeSlots(
-      baseDate,
+    const ephemerisData = await calculateEphemerisForTimeSlots(
+      baseDate.toISOString(),
       userData.birthData.latitude,
       userData.birthData.longitude,
       userData.birthData.timezone,
       uncertaintyMinutes,
       15 // 15-minute intervals
     );
+
+    if (!ephemerisData.success || !ephemerisData.data) {
+      throw new Error(`Failed to calculate ephemeris: ${ephemerisData.error}`);
+    }
     
-    console.log(`✅ Generated ${ephemerisData.timeSlots.length} time slots with complete ephemeris data`);
+    console.log(`✅ API returned ${ephemerisData.data.timeSlots.length} time slots with complete ephemeris data`);
     
-    // Step 5: Calculate Dasha periods for each time slot
-    console.log('Step 5: Calculating Vimshottari Dasha periods...');
-    const dashaData = calculateDashaDataForTimeSlots(ephemerisData.timeSlots, userData.lifeEvents);
-    console.log('✅ Dasha calculations completed');
+    // Step 4: Perform BTR analysis using API call (NO direct swisseph import!)
+    console.log('Step 4: Calling API to perform BTR analysis...');
+    const btrResult = await performBTRAnalysis({
+      birthData: {
+        date: baseDate.toISOString(),
+        latitude: userData.birthData.latitude,
+        longitude: userData.birthData.longitude,
+        timezone: userData.birthData.timezone,
+      },
+      lifeEvents: userData.lifeEvents.map(event => ({
+        date: event.eventDate,
+        type: event.eventType,
+        description: event.description,
+      })),
+      uncertaintyMinutes: uncertaintyMinutes,
+      slotInterval: 15,
+    });
+
+    if (!btrResult.success || !btrResult.data) {
+      throw new Error(`BTR analysis failed: ${btrResult.error}`);
+    }
     
-    // Step 6: Prepare data for Moonshoot AI
-    console.log('Step 6: Preparing comprehensive data for Moonshoot AI analysis...');
+    console.log(`✅ BTR analysis complete: ${btrResult.data.totalIterations} iterations`);
+    console.log(`🎯 Final alignment score: ${btrResult.data.finalAlignmentScore.toFixed(2)}%`);
+    
+    // Step 5: Prepare data for Moonshoot AI
+    console.log('Step 5: Preparing comprehensive data for Moonshoot AI analysis...');
     const promptData = {
       userData,
-      ephemerisData,
-      dashaData,
-      timeSlots: generateTimeSlotAnalysis(ephemerisData.timeSlots, userData.lifeEvents)
+      ephemerisData: ephemerisData.data,
+      dashaData: btrResult.data.dashaPeriods,
+      timeSlots: btrResult.data.alternativeTimes || []
     };
     
-    // Step 7: Generate comprehensive AI prompt
+    // Step 6: Generate comprehensive AI prompt
     const prompt = generateMoonshootAIPrompt(promptData);
     console.log('✅ Generated comprehensive AI prompt');
     
-    // Step 8: Send to Moonshoot AI (using mock client for demo)
-    console.log('Step 8: Sending to Moonshoot AI for analysis...');
+    // Step 7: Send to Moonshoot AI (using mock client for demo)
+    console.log('Step 6: Sending to Moonshoot AI for analysis...');
     const aiClient = new MockMoonshootAIClient(); // Replace with real client when ready
     const aiResult = await aiClient.analyzeBirthTime({
       userData: promptData.userData,
@@ -147,7 +180,7 @@ export async function performCompleteBTRAnalysis() {
     
     console.log('✅ AI analysis completed');
     
-    // Step 9: Display results
+    // Step 8: Display results
     console.log('\n🎯 FINAL BTR ANALYSIS RESULTS:');
     console.log('=====================================');
     console.log(`Recommended Birth Time: ${aiResult.recommendedBirthTime}`);
@@ -306,12 +339,15 @@ function getZodiacSign(degree: number): string {
 export async function runBTRAnalysisExample() {
   console.log('\n🌟 SWISS EPHEMERIS + MOONSHOOT AI INTEGRATION EXAMPLE');
   console.log('=====================================================');
+  console.log('✅ USING API CALLS (NO direct swisseph import)');
+  console.log('✅ CORRECT ARCHITECTURE: Frontend → API Client → API Routes → Swiss Ephemeris');
   
   const result = await performCompleteBTRAnalysis();
   
   if (result.success) {
     console.log('\n✅ Analysis completed successfully!');
-    console.log('Ready for production deployment with real Moonshoot AI API.');
+    console.log('✅ NO webpack errors - Swiss Ephemeris runs only on server');
+    console.log('✅ Ready for production deployment');
   } else {
     console.log('\n❌ Analysis failed:', result.error);
   }

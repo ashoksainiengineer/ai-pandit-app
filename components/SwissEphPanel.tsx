@@ -25,6 +25,9 @@ export const SwissEphPanel: React.FC<SwissEphPanelProps> = ({ calculations }) =>
   };
 
   const latestCalculation = calculations[calculations.length - 1];
+  
+  // Debug log
+  console.log('SwissEphPanel - calculations received:', calculations.length, 'latest:', latestCalculation);
 
   return (
     <div className="bg-black/30 backdrop-blur-sm rounded-2xl p-6 border border-blue-500/20">

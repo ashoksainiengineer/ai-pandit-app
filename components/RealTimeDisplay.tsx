@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { BTRProgressUpdate, FinalBTRReport, BTRPhase, SwissEphCalculation, AIAnalysis, ActivityLogEntry } from '@/types/btr-realtime';
 import { TopBar } from './TopBar';
@@ -289,8 +291,38 @@ export const RealTimeDisplay: React.FC<RealTimeDisplayProps> = ({ onComplete }) 
     return <FinalReport report={finalReport} />;
   }
 
+  const [activeTab, setActiveTab] = useState('swiss-ephemeris');
+  
+  const tabs = [
+    { id: 'swiss-ephemeris', label: 'Swiss Ephemeris (KP Ayanamsha)', icon: '🔮' },
+    { id: 'ai-analysis', label: 'Moonshot AI Analysis', icon: '🤖' },
+    { id: 'iterative-refinement', label: 'Iterative Refinement', icon: '🔄' },
+    { id: 'event-validation', label: 'Event-Based Validation', icon: '📅' },
+    { id: 'divisional-analysis', label: 'Divisional Chart Analysis', icon: '📊' }
+  ];
+
+  // Debug: Log the data being passed to child components
+  console.log('RealTimeDisplay - Data check:', {
+    swissEphCount: progress.swissEphCalculations.length,
+    aiAnalysesCount: progress.aiAnalyses.length,
+    activityLogCount: progress.activityLog.length,
+    currentCandidate: progress.currentCandidate,
+    bestCandidate: progress.bestCandidate,
+    overallProgress: progress.overallProgress
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+      {/* Active Processing Indicator */}
+      {!isComplete && (
+        <div className="fixed top-4 right-4 z-40 bg-green-900/30 border border-green-500/50 rounded-lg p-3 backdrop-blur-sm">
+          <div className="flex items-center space-x-2">
+            <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+            <span className="text-green-400 text-sm font-medium">Processing Active</span>
+          </div>
+        </div>
+      )}
+      
       {/* Celebration Overlay */}
       {isActive && (
         <div className="fixed inset-0 pointer-events-none z-50">
@@ -326,18 +358,163 @@ export const RealTimeDisplay: React.FC<RealTimeDisplayProps> = ({ onComplete }) 
       )}
       
       <div className="container mx-auto px-4 py-6">
+        {/* Header with active animation */}
+        {!isComplete && (
+          <div className="text-center mb-6">
+            <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-purple-900/50 to-pink-900/50 rounded-2xl border border-purple-500/30 backdrop-blur-sm">
+              <div className="relative">
+                <div className="w-4 h-4 bg-purple-400 rounded-full animate-ping absolute inline-flex" />
+                <div className="w-4 h-4 bg-purple-400 rounded-full relative inline-flex" />
+              </div>
+              <span className="text-purple-300 font-semibold">
+                🔮 Birth Time Rectification in Progress...
+              </span>
+            </div>
+          </div>
+        )}
+        
         {/* Top Bar */}
         <TopBar progress={progress} />
         
-        {/* Three Panels */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
-          {/* SwissEph Panel */}
-          <SwissEphPanel calculations={progress.swissEphCalculations} />
+        {/* Tab Navigation */}
+        <div className="mt-6">
+          <div className="flex gap-2 mb-6 border-b border-gray-700 overflow-x-auto">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-3 whitespace-nowrap text-sm font-medium transition-colors ${
+                  activeTab === tab.id
+                    ? 'text-purple-400 border-b-2 border-purple-400'
+                    : 'text-gray-400 hover:text-gray-300'
+                }`}
+              >
+                <span className="mr-2">{tab.icon}</span>
+                {tab.label}
+              </button>
+            ))}
+          </div>
           
-          {/* AI Analysis Panel */}
-          <AIAnalysisPanel analyses={progress.aiAnalyses} />
+          {/* Debug Info Panel */}
+          {!isComplete && (
+            <div className="bg-black/30 backdrop-blur-sm rounded-2xl p-4 border border-red-500/20 mb-6">
+              <h3 className="text-lg font-bold text-red-400 mb-3">🔍 Debug Information</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="text-gray-300">
+                  <span className="text-gray-500">SwissEph Calculations:</span>
+                  <span className="text-white font-bold">{progress.swissEphCalculations.length}</span>
+                </div>
+                <div className="text-gray-300">
+                  <span className="text-gray-500">AI Analyses:</span>
+                  <span className="text-white font-bold">{progress.aiAnalyses.length}</span>
+                </div>
+                <div className="text-gray-300">
+                  <span className="text-gray-500">Activity Log:</span>
+                  <span className="text-white font-bold">{progress.activityLog.length}</span>
+                </div>
+                <div className="text-gray-300">
+                  <span className="text-gray-500">Overall Progress:</span>
+                  <span className="text-white font-bold">{Math.round(progress.overallProgress)}%</span>
+                </div>
+              </div>
+              {progress.currentCandidate && (
+                <div className="mt-3 text-gray-300">
+                  <span className="text-gray-500">Current Candidate:</span>
+                  <span className="text-white font-bold">{progress.currentCandidate.time} ({progress.currentCandidate.score}/100)</span>
+                </div>
+              )}
+            </div>
+          )}
           
-          {/* Activity Log Panel */}
+          {/* Tab Content */}
+          <div className="space-y-6">
+            {activeTab === 'swiss-ephemeris' && (
+              <SwissEphPanel calculations={progress.swissEphCalculations} />
+            )}
+            
+            {activeTab === 'ai-analysis' && (
+              <AIAnalysisPanel analyses={progress.aiAnalyses} />
+            )}
+            
+            {activeTab === 'iterative-refinement' && (
+              <div className="bg-black/30 backdrop-blur-sm rounded-2xl p-6 border border-blue-500/20">
+                <h2 className="text-xl font-bold text-white mb-6 flex items-center">
+                  <span className="text-2xl mr-3">🔄</span>
+                  Iterative Refinement Process
+                </h2>
+                {progress.currentCandidate ? (
+                  <div className="space-y-4">
+                    <div className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 rounded-lg p-4 border border-blue-500/30">
+                      <div className="text-lg font-bold text-white">
+                        Current Candidate: {progress.currentCandidate.time}
+                      </div>
+                      <div className="text-sm text-blue-300 mt-1">
+                        Score: {progress.currentCandidate.score}/100
+                      </div>
+                    </div>
+                    <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-600/30">
+                      <div className="text-gray-300 text-sm mb-2">Phase: {progress.phase.name}</div>
+                      <div className="text-white font-medium">
+                        {progress.phase.description}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-gray-400 text-center py-8">Initializing refinement process...</div>
+                )}
+              </div>
+            )}
+            
+            {activeTab === 'event-validation' && (
+              <div className="bg-black/30 backdrop-blur-sm rounded-2xl p-6 border border-green-500/20">
+                <h2 className="text-xl font-bold text-white mb-6 flex items-center">
+                  <span className="text-2xl mr-3">📅</span>
+                  Event-Based Validation
+                </h2>
+                <div className="space-y-4">
+                  <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-600/30">
+                    <div className="text-gray-300 text-sm mb-2">Validation Method</div>
+                    <div className="text-white font-medium">
+                      Correlating life events with dasha periods and planetary transits
+                    </div>
+                  </div>
+                  <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-600/30">
+                    <div className="text-gray-300 text-sm mb-2">Events Analyzed</div>
+                    <div className="text-white font-medium">
+                      Marriage, career changes, education milestones, and major life transitions
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {activeTab === 'divisional-analysis' && (
+              <div className="bg-black/30 backdrop-blur-sm rounded-2xl p-6 border border-yellow-500/20">
+                <h2 className="text-xl font-bold text-white mb-6 flex items-center">
+                  <span className="text-2xl mr-3">📊</span>
+                  Divisional Chart Analysis
+                </h2>
+                <div className="space-y-4">
+                  <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-600/30">
+                    <div className="text-gray-300 text-sm mb-2">Charts Calculated</div>
+                    <div className="text-white font-medium">
+                      D-1 (Rashi), D-9 (Navamsa), D-10 (Dasamsa), D-7 (Saptamsa), D-12 (Dwadasamsa), D-30 (Trimsamsa)
+                    </div>
+                  </div>
+                  <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-600/30">
+                    <div className="text-gray-300 text-sm mb-2">Analysis Focus</div>
+                    <div className="text-white font-medium">
+                      Marriage (D-9), Career (D-10), Children (D-7), Parents (D-12), Misfortunes (D-30)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Activity Log Panel - Always visible at bottom */}
+        <div className="mt-6">
           <ActivityLogPanel logEntries={progress.activityLog} />
         </div>
       </div>

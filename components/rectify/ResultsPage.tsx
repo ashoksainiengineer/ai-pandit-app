@@ -14,7 +14,22 @@ const TABS = ['Summary', 'AI Analysis', 'Swiss Ephemeris', 'Event Analysis', 'Ch
 export default function ResultsPage({ result, onRestart }: ResultsPageProps) {
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>('Summary');
 
-
+  // Add null safety for all potentially undefined values
+  const rectifiedTime = result.rectifiedTime || 'N/A';
+  const originalTime = result.originalTime || 'N/A';
+  const confidenceScore = result.confidenceScore || 0;
+  const adjustmentMinutes = result.adjustmentMinutes || 0;
+  const eventAnalyses = result.eventAnalyses || [];
+  const recommendations = result.recommendations || [];
+  const lagnaSign = result.rectifiedChart?.rashi?.lagna?.sign || 'N/A';
+  const moonSign = result.rectifiedChart?.rashi?.planets?.find(p => p.planet === 'Moon')?.sign || 'N/A';
+  const currentDasha = result.rectifiedChart?.vimshottariDasha?.currentDasha || 'N/A';
+  const currentAntardasha = result.rectifiedChart?.vimshottariDasha?.currentAntardasha || 'N/A';
+  const balanceYears = result.rectifiedChart?.vimshottariDasha?.balanceYears || 0;
+  const balanceMonths = result.rectifiedChart?.vimshottariDasha?.balanceMonths || 0;
+  const planets = result.rectifiedChart?.rashi?.planets || [];
+  const divisionalCharts = result.rectifiedChart?.divisionalCharts || [];
+  const executiveSummary = result.executiveSummary || "Moonshot AI analyzed your birth data using advanced Vedic astrology algorithms, combining life event correlation with planetary position analysis to determine the most accurate birth time.";
 
   return (
     <motion.div
@@ -51,7 +66,7 @@ export default function ResultsPage({ result, onRestart }: ResultsPageProps) {
         >
           <div className="text-center">
             <div className="text-6xl font-bold text-[#F5A623] font-mono mb-2">
-              {result.rectifiedTime}
+              {rectifiedTime}
             </div>
             <div className="text-[#A8B3C5] mb-6">
               Rectified Birth Time
@@ -61,13 +76,13 @@ export default function ResultsPage({ result, onRestart }: ResultsPageProps) {
             <div className="inline-block bg-[#0F1419] rounded-lg px-6 py-3 mb-6">
               <div className="text-sm text-[#6B7A90] mb-1">Confidence Score</div>
               <div className="flex items-center gap-2">
-                <div className="text-2xl font-bold text-[#F5A623]">{Math.round(result.confidenceScore)}%</div>
+                <div className="text-2xl font-bold text-[#F5A623]">{Math.round(confidenceScore)}%</div>
                 <div className="flex gap-1">
                   {[...Array(5)].map((_, i) => (
                     <div
                       key={i}
                       className={`w-1.5 h-6 rounded-sm transition-all ${
-                        i < Math.round(result.confidenceScore / 20)
+                        i < Math.round(confidenceScore / 20)
                           ? 'bg-[#F5A623]'
                           : 'bg-[#2D3542]'
                       }`}
@@ -82,19 +97,19 @@ export default function ResultsPage({ result, onRestart }: ResultsPageProps) {
               <div className="bg-[#0F1419] rounded-lg p-4 border border-[#2D3542]">
                 <div className="text-2xl mb-2">🌞</div>
                 <div className="text-sm text-[#6B7A90] mb-1">Ascendant Sign</div>
-                <div className="font-semibold text-[#F7F9FC]">{result.rectifiedChart.rashi.lagna.sign}</div>
+                <div className="font-semibold text-[#F7F9FC]">{lagnaSign}</div>
               </div>
               <div className="bg-[#0F1419] rounded-lg p-4 border border-[#2D3542]">
                 <div className="text-2xl mb-2">🌙</div>
                 <div className="text-sm text-[#6B7A90] mb-1">Moon Sign</div>
                 <div className="font-semibold text-[#F7F9FC]">
-                  {result.rectifiedChart.rashi.planets.find(p => p.planet === 'Moon')?.sign || 'N/A'}
+                  {moonSign}
                 </div>
               </div>
               <div className="bg-[#0F1419] rounded-lg p-4 border border-[#2D3542]">
                 <div className="text-2xl mb-2">⏰</div>
                 <div className="text-sm text-[#6B7A90] mb-1">Current Dasha</div>
-                <div className="font-semibold text-[#F7F9FC]">{result.rectifiedChart.vimshottariDasha.currentDasha}</div>
+                <div className="font-semibold text-[#F7F9FC]">{currentDasha}</div>
               </div>
             </div>
           </div>
@@ -143,22 +158,22 @@ export default function ResultsPage({ result, onRestart }: ResultsPageProps) {
                 <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-[#6B7A90]">Original Birth Time:</span>
-                      <span className="text-[#F7F9FC] font-medium">{result.originalTime}</span>
+                      <span className="text-[#F7F9FC] font-medium">{originalTime}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[#6B7A90]">Rectified Birth Time:</span>
-                      <span className="text-[#F5A623] font-medium">{result.rectifiedTime}</span>
+                      <span className="text-[#F5A623] font-medium">{rectifiedTime}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-[#6B7A90]">Adjustment:</span>
                       <span className="text-[#F7F9FC] font-medium">
-                        {result.adjustmentMinutes < 0 ? '-' : '+'}{Math.abs(result.adjustmentMinutes)} minutes
+                        {adjustmentMinutes < 0 ? '-' : '+'}{Math.abs(adjustmentMinutes)} minutes
                       </span>
                     </div>
                     <div className="h-px bg-[#2D3542] my-2" />
                     <div className="flex justify-between font-semibold">
                       <span className="text-[#6B7A90]">Confidence:</span>
-                      <span className="text-[#F5A623]">{Math.round(result.confidenceScore)}%</span>
+                      <span className="text-[#F5A623]">{Math.round(confidenceScore)}%</span>
                     </div>
                   </div>
                 </div>
@@ -166,7 +181,7 @@ export default function ResultsPage({ result, onRestart }: ResultsPageProps) {
                 <div className="bg-[#F5A623]/10 border border-[#F5A623]/30 rounded-xl p-6">
                   <h4 className="font-semibold text-[#F5A623] mb-2">✨ How It Was Calculated</h4>
                   <p className="text-sm text-[#A8B3C5] leading-relaxed">
-                    Your birth time was rectified using advanced AI-powered analysis combined with Swiss Ephemeris calculations. {result.eventAnalyses.length} major life events were analyzed against precise planetary movements using Swiss Ephemeris data. Moonshot AI then processed this data with advanced Vedic astrology algorithms to identify the exact moment when your natal chart best correlates with these significant life events.
+                    Your birth time was rectified using advanced AI-powered analysis combined with Swiss Ephemeris calculations. {eventAnalyses.length} major life events were analyzed against precise planetary movements using Swiss Ephemeris data. Moonshot AI then processed this data with advanced Vedic astrology algorithms to identify the exact moment when your natal chart best correlates with these significant life events.
                   </p>
                 </div>
               </motion.div>
@@ -191,7 +206,7 @@ export default function ResultsPage({ result, onRestart }: ResultsPageProps) {
                     <div className="bg-[#0F1419] rounded-lg p-4 border border-[#2D3542]">
                       <h4 className="text-[#F5A623] font-medium mb-2">🧠 AI Thinking Process</h4>
                       <p className="text-sm text-[#A8B3C5] leading-relaxed">
-                        {result.executiveSummary || "Moonshot AI analyzed your birth data using advanced Vedic astrology algorithms, combining life event correlation with planetary position analysis to determine the most accurate birth time."}
+                        {executiveSummary}
                       </p>
                     </div>
 
@@ -199,14 +214,14 @@ export default function ResultsPage({ result, onRestart }: ResultsPageProps) {
                       <div className="bg-[#0F1419] rounded-lg p-4 border border-[#2D3542]">
                         <h5 className="text-[#F5A623] font-medium mb-2">📊 Analysis Method</h5>
                         <p className="text-xs text-[#A8B3C5]">
-                          Advanced machine learning algorithms processed {result.eventAnalyses.length} life events against Swiss Ephemeris planetary data using K.N. Rao's event-based rectification methodology.
+                          Advanced machine learning algorithms processed {eventAnalyses.length} life events against Swiss Ephemeris planetary data using K.N. Rao's event-based rectification methodology.
                         </p>
                       </div>
                       
                       <div className="bg-[#0F1419] rounded-lg p-4 border border-[#2D3542]">
                         <h5 className="text-[#F5A623] font-medium mb-2">🎯 Confidence Factors</h5>
                         <ul className="text-xs text-[#A8B3C5] space-y-1">
-                          <li>• Life event correlation: {Math.round(result.confidenceScore)}%</li>
+                          <li>• Life event correlation: {Math.round(confidenceScore)}%</li>
                           <li>• Planetary alignment accuracy</li>
                           <li>• Dasha period validation</li>
                           <li>• Cross-method verification</li>
@@ -245,7 +260,7 @@ export default function ResultsPage({ result, onRestart }: ResultsPageProps) {
                 <div className="bg-[#1A1F26] border border-[#2D3542] rounded-xl p-6">
                   <h4 className="text-lg font-semibold text-[#F7F9FC] mb-4">🎯 AI Recommendations</h4>
                   <div className="space-y-3">
-                    {result.recommendations?.slice(0, 3).map((rec, index) => (
+                    {recommendations.slice(0, 3).map((rec, index) => (
                       <div key={index} className="flex items-start gap-3 p-3 bg-[#0F1419] rounded-lg border border-[#2D3542]">
                         <span className="text-[#F5A623] text-sm mt-0.5">•</span>
                         <p className="text-sm text-[#A8B3C5]">{rec}</p>
@@ -275,7 +290,7 @@ export default function ResultsPage({ result, onRestart }: ResultsPageProps) {
                     <div className="bg-[#0F1419] rounded-lg p-4 border border-[#2D3542]">
                       <h4 className="text-blue-400 font-medium mb-3">🌌 Planetary Positions</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                        {result.rectifiedChart?.rashi?.planets?.map((planet, index) => (
+                        {planets.map((planet, index) => (
                           <div key={index} className="flex justify-between items-center p-2 bg-[#242B35] rounded">
                             <span className="text-[#F7F9FC] font-medium">{planet.planet}</span>
                             <span className="text-[#A8B3C5]">{planet.sign} {planet.degree?.toFixed(1)}°</span>
@@ -288,7 +303,7 @@ export default function ResultsPage({ result, onRestart }: ResultsPageProps) {
                       <div className="bg-[#0F1419] rounded-lg p-4 border border-[#2D3542]">
                         <h5 className="text-blue-400 font-medium mb-2">🏠 House Cusps</h5>
                         <div className="space-y-2 text-xs">
-                          {result.rectifiedChart?.divisionalCharts?.[0]?.planets?.slice(0, 12).map((planet, index) => (
+                          {divisionalCharts[0]?.planets?.slice(0, 12).map((planet, index) => (
                             <div key={index} className="flex justify-between">
                               <span className="text-[#6B7A90]">House {index + 1}:</span>
                               <span className="text-[#A8B3C5]">{planet.sign} {planet.degree?.toFixed(1) || '0.0'}°</span>
@@ -375,10 +390,10 @@ export default function ResultsPage({ result, onRestart }: ResultsPageProps) {
                 className="space-y-4"
               >
                 <div className="text-sm text-[#6B7A90] mb-4">
-                  Analysis of {result.eventAnalyses.length} major life events used in calculation
+                  Analysis of {eventAnalyses.length} major life events used in calculation
                 </div>
                 <div className="space-y-3">
-                  {result.eventAnalyses.slice(0, 3).map((analysis, i) => (
+                  {eventAnalyses.slice(0, 3).map((analysis, i) => (
                     <div key={i} className="bg-[#1A1F26] border border-[#2D3542] rounded-xl p-4">
                       <div className="flex justify-between items-start mb-2">
                         <span className="font-semibold text-[#F7F9FC]">Event {i + 1}: {analysis.event.eventType}</span>
@@ -430,15 +445,15 @@ export default function ResultsPage({ result, onRestart }: ResultsPageProps) {
                 <div className="space-y-3">
                     <div className="flex justify-between items-center p-3 bg-[#242B35] rounded-lg">
                       <span className="text-[#F7F9FC]">Current Dasha Lord:</span>
-                      <span className="text-[#F5A623] font-semibold">{result.rectifiedChart.vimshottariDasha.currentDasha}</span>
+                      <span className="text-[#F5A623] font-semibold">{currentDasha}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-[#242B35] rounded-lg">
                       <span className="text-[#F7F9FC]">Antardasha:</span>
-                      <span className="text-[#A8B3C5]">{result.rectifiedChart.vimshottariDasha.currentAntardasha}</span>
+                      <span className="text-[#A8B3C5]">{currentAntardasha}</span>
                     </div>
                     <div className="flex justify-between items-center p-3 bg-[#242B35] rounded-lg">
                       <span className="text-[#F7F9FC]">Balance Years:</span>
-                      <span className="text-[#A8B3C5]">{result.rectifiedChart.vimshottariDasha.balanceYears}.{result.rectifiedChart.vimshottariDasha.balanceMonths}</span>
+                      <span className="text-[#A8B3C5]">{balanceYears}.{balanceMonths}</span>
                     </div>
                   </div>
                 </div>
@@ -462,7 +477,7 @@ export default function ResultsPage({ result, onRestart }: ResultsPageProps) {
                   <h3 className="text-lg font-semibold text-[#F7F9FC]">Detailed Analysis Report</h3>
                 </div>
                   <p className="text-sm text-[#A8B3C5] mb-6 leading-relaxed">
-                    {result.executiveSummary}
+                    {executiveSummary}
                   </p>
                 <button className="w-full py-3 rounded-lg bg-[#F5A623] text-[#0F1419] hover:bg-[#FFBB3D] transition-colors font-semibold flex items-center justify-center gap-2">
                   <span>📥</span> Download Full Report (PDF)

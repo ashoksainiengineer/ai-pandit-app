@@ -4,15 +4,17 @@
  * This file contains the complete integration of Moonshot AI with the BTR system
  * using the provided API key and comprehensive analysis framework.
  * 
- * API Key: sk-kimi-jJJcpROckqHiBeDl0b08wcVapOsikhBjaILNt6kbdLG1nMl814vfvqAJJL7TV9qN
+ * API Key: sk-kimi-GKXoxo4WSayAaeRY1ha5GaeTCWaBNcy46KRgf5z2qbeZaJf3f4AgxB5z07kGIC9c
  * Model: kimi
  * Temperature: 0.3 (precise analysis)
  * Max Tokens: 4000 (comprehensive response)
+ * 
+ * IMPORTANT: This file uses the API client to call server-side Swiss Ephemeris calculations.
+ * It should NEVER import swisseph directly.
  */
 
-// Import existing modules - using the available implementations
-import { SwissEphemerisCalculator } from './swiss-ephemeris-calculator';
-import { performRectification } from './btr-engine';
+// Import API client for server-side calculations
+import { calculateBasicEphemeris, performBTRAnalysis as apiPerformBTRAnalysis } from './api-client';
 
 export interface MoonshotBTRConfig {
   apiKey: string;
@@ -30,7 +32,7 @@ export interface MoonshotBTRResult {
   finalAlignmentScore: number;
   confidenceLevel: 'very_high' | 'high' | 'medium' | 'low';
   moonshotAnalysis: MoonshotAIAnalysis;
-  chartData: any;
+  chartData: any; // Changed from specific type to any since we get data from API
   eventMatches: EventMatch[];
   alternativeTimes: AlternativeTime[];
   convergenceReason: string;
@@ -122,11 +124,13 @@ export interface AlternativeTime {
  * 
  * This class provides the complete integration of Moonshot AI with the BTR system
  * for high-accuracy birth time rectification using advanced Vedic astrology methods.
+ * 
+ * IMPORTANT: This class uses API calls for all Swiss Ephemeris calculations.
+ * It does NOT import or use swisseph directly.
  */
 export class MoonshotBTRIntegration {
-  private swissEphemeris: SwissEphemerisCalculator;
-  private moonshotClient: MoonshotAIClient;
   private config: MoonshotBTRConfig;
+  private moonshotClient: MoonshotAIClient;
 
   constructor(config: MoonshotBTRConfig) {
     this.config = {
@@ -135,16 +139,6 @@ export class MoonshotBTRIntegration {
       maxTokens: 4000,
       ...config
     };
-
-    // Initialize Swiss Ephemeris Calculator
-    this.swissEphemeris = new SwissEphemerisCalculator({
-      ephemerisPath: './ephe',
-      ayanamshaMode: 'kp',
-      houseSystem: 'placidus',
-      useTrueNodes: true,
-      highPrecision: true,
-      ...config.swissEphemerisConfig
-    });
 
     // Initialize Moonshot AI Client
     this.moonshotClient = new MoonshotAIClient({
@@ -161,8 +155,11 @@ export class MoonshotBTRIntegration {
   async initialize(): Promise<void> {
     console.log('🌟 Initializing Moonshot AI BTR Integration...');
     
-    // Initialize Swiss Ephemeris
-    await this.swissEphemeris.initialize();
+    // Test API connection
+    const isConnected = await this.moonshotClient.testConnection();
+    if (!isConnected) {
+      console.warn('⚠️  Warning: Could not connect to Moonshot AI API');
+    }
     
     console.log('✅ Moonshot AI BTR Integration initialized successfully');
   }
@@ -185,8 +182,8 @@ export class MoonshotBTRIntegration {
     console.log(`📋 Events: ${lifeEvents.length} life events to analyze`);
 
     try {
-      // Step 1: Perform BTR using the existing engine
-      const btrResult = await this.performBTRWithExistingEngine(
+      // Step 1: Perform BTR using API calls
+      const btrResult = await this.performBTRWithAPI(
         originalBirthTime,
         latitude,
         longitude,
@@ -235,6 +232,52 @@ export class MoonshotBTRIntegration {
   }
 
   /**
+   * Perform BTR using API calls
+   */
+  private async performBTRWithAPI(
+    originalBirthTime: Date,
+    latitude: number,
+    longitude: number,
+    timezone: string,
+    lifeEvents: any[],
+    physicalCharacteristics?: any
+  ): Promise<any> {
+    // Convert life events to BTR format
+    const btrEvents = lifeEvents.map(event => ({
+      eventType: event.eventType || 'other',
+      date: event.date || new Date(),
+      description: event.description || '',
+      expectedPlanets: event.expectedPlanets || [],
+      expectedHouses: event.expectedHouses || [],
+      expectedDasha: event.expectedDasha || [],
+      weight: event.weight || 5,
+    }));
+
+    // Perform BTR analysis using API
+    const btrResult = await apiPerformBTRAnalysis({
+      birthData: {
+        date: originalBirthTime.toISOString(),
+        latitude,
+        longitude,
+        timezone,
+      },
+      lifeEvents: btrEvents.map(event => ({
+        date: event.date.toISOString(),
+        type: event.eventType,
+        description: event.description,
+      })),
+      uncertaintyMinutes: 120,
+      slotInterval: 15,
+    });
+
+    if (!btrResult.success || !btrResult.data) {
+      throw new Error(`BTR API analysis failed: ${btrResult.error}`);
+    }
+
+    return btrResult.data;
+  }
+
+  /**
    * Generate comprehensive analysis using Moonshot AI
    */
   private async generateMoonshotAnalysis(
@@ -277,6 +320,8 @@ export class MoonshotBTRIntegration {
     additionalInfo?: any
   ): string {
     const timeAdjustment = this.calculateTimeAdjustment(originalTime, rectifiedTime);
+    const lat = chartData?.calculationConfig?.latitude || 'N/A';
+    const lng = chartData?.calculationConfig?.longitude || 'N/A';
     
     return `You are an expert Vedic astrologer specializing in Birth Time Rectification (BTR) with 30+ years of experience following the methods of K.N. Rao and other renowned astrologers. Analyze this BTR case comprehensively using advanced Vedic astrology principles.
 
@@ -285,7 +330,7 @@ export class MoonshotBTRIntegration {
 ORIGINAL BIRTH TIME: ${originalTime?.toISOString() || 'Invalid date'}
 RECTIFIED BIRTH TIME: ${rectifiedTime?.toISOString() || 'Invalid date'}
 TIME ADJUSTMENT: ${timeAdjustment}
-LOCATION: Latitude ${chartData.calculationConfig?.latitude || 'N/A'}, Longitude ${chartData.calculationConfig?.longitude || 'N/A'}
+LOCATION: Latitude ${lat}, Longitude ${lng}
 
 === CHART DATA ===
 ${this.formatChartData(chartData)}
@@ -376,7 +421,7 @@ CONFIDENCE LEVEL: Assess based on alignment percentage and provide specific reas
     if (chartData.planets) {
       formatted += 'PLANETARY POSITIONS:\n';
       Object.entries(chartData.planets).forEach(([planet, data]: [string, any]) => {
-        formatted += `- ${planet.toUpperCase()}: ${data.sign} ${data.longitudeDeg}°${data.longitudeMin}'${data.longitudeSec}"`;
+        formatted += `- ${planet.toUpperCase()}: ${data.sign || 'N/A'} ${data.longitudeDeg || 0}°${data.longitudeMin || 0}'${data.longitudeSec || 0}"`;
         if (data.retrograde) formatted += ' (R)';
         if (data.nakshatra) formatted += `, ${data.nakshatra}`;
         if (data.kpStarLord) formatted += `, Star Lord: ${data.kpStarLord}`;
@@ -389,8 +434,8 @@ CONFIDENCE LEVEL: Assess based on alignment percentage and provide specific reas
     if (chartData.houseCusps) {
       formatted += '\nHOUSE CUSPS:\n';
       const houseNames = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th', '11th', '12th'];
-      chartData.houseCusps.cuspSigns.forEach((sign: string, index: number) => {
-        formatted += `- ${houseNames[index]} House: ${sign} ${(chartData.houseCusps.cuspDegrees[index] || 0).toFixed(1)}°\n`;
+      chartData.houseCusps.cuspSigns?.forEach((sign: string, index: number) => {
+        formatted += `- ${houseNames[index]} House: ${sign || 'N/A'} ${(chartData.houseCusps.cuspDegrees?.[index] || 0).toFixed(1)}°\n`;
       });
     }
 
@@ -398,16 +443,16 @@ CONFIDENCE LEVEL: Assess based on alignment percentage and provide specific reas
     if (chartData.dashaPeriods) {
       formatted += '\nVIMSHOTTARI DASHA:\n';
       const vimshottari = chartData.dashaPeriods.vimshottari;
-      formatted += `- Mahadasha: ${vimshottari.currentMahadasha.planet}\n`;
-      formatted += `- Antardasha: ${vimshottari.currentAntardasha.planet}\n`;
-      formatted += `- Pratyantardasha: ${vimshottari.currentPratyantardasha.planet}\n`;
+      formatted += `- Mahadasha: ${vimshottari.currentMahadasha?.planet || 'N/A'}\n`;
+      formatted += `- Antardasha: ${vimshottari.currentAntardasha?.planet || 'N/A'}\n`;
+      formatted += `- Pratyantardasha: ${vimshottari.currentPratyantardasha?.planet || 'N/A'}\n`;
     }
 
     // Divisional charts
     if (chartData.divisionalCharts) {
       formatted += '\nDIVISIONAL CHARTS:\n';
       Object.entries(chartData.divisionalCharts).forEach(([chart, data]: [string, any]) => {
-        formatted += `- ${chart.toUpperCase()}: Lagna in ${data.lagnaSign} ${(data.lagnaDegree || 0).toFixed(1)}°\n`;
+        formatted += `- ${chart.toUpperCase()}: Lagna in ${data.lagnaSign || 'N/A'} ${(data.lagnaDegree || 0).toFixed(1)}°\n`;
       });
     }
 
@@ -421,13 +466,13 @@ CONFIDENCE LEVEL: Assess based on alignment percentage and provide specific reas
     let formatted = '';
     
     lifeEvents.forEach((event, index) => {
-      formatted += `EVENT ${index + 1}: ${event.eventType.toUpperCase()}\n`;
-      formatted += `- Date: ${event.date.toISOString().split('T')[0]}\n`;
-      formatted += `- Description: ${event.description}\n`;
-      formatted += `- Expected Planets: ${event.expectedPlanets.join(', ')}\n`;
-      formatted += `- Expected Houses: ${event.expectedHouses.join(', ')}\n`;
-      formatted += `- Expected Dasha: ${event.expectedDasha.join(', ')}\n`;
-      formatted += `- Weight: ${event.weight}/10\n\n`;
+      formatted += `EVENT ${index + 1}: ${(event.eventType || 'unknown').toUpperCase()}\n`;
+      formatted += `- Date: ${event.date?.toISOString?.()?.split('T')[0] || event.date || 'Invalid date'}\n`;
+      formatted += `- Description: ${event.description || ''}\n`;
+      formatted += `- Expected Planets: ${event.expectedPlanets?.join?.(', ') || 'N/A'}\n`;
+      formatted += `- Expected Houses: ${event.expectedHouses?.join?.(', ') || 'N/A'}\n`;
+      formatted += `- Expected Dasha: ${event.expectedDasha?.join?.(', ') || 'N/A'}\n`;
+      formatted += `- Weight: ${event.weight || 5}/10\n\n`;
     });
 
     return formatted;
@@ -614,99 +659,10 @@ CONFIDENCE LEVEL: Assess based on alignment percentage and provide specific reas
   }
 
   /**
-   * Perform BTR using the existing engine function
-   */
-  private async performBTRWithExistingEngine(
-    originalBirthTime: Date,
-    latitude: number,
-    longitude: number,
-    timezone: string,
-    lifeEvents: any[],
-    physicalCharacteristics?: any
-  ): Promise<any> {
-    // Convert to the format expected by the existing BTR engine
-    const birthData = {
-      fullName: 'Native',
-      dateOfBirth: originalBirthTime?.toISOString().split('T')[0] || 'Invalid date',
-      tentativeTime: originalBirthTime?.toTimeString().slice(0, 5) || 'Invalid time',
-      timeUncertainty: '30min' as const,
-      birthPlace: 'Unknown',
-      latitude,
-      longitude,
-      timezone,
-      gender: 'male' as const,
-      maritalStatus: 'single' as const,
-      currentAge: 30
-    };
-
-    const physicalDescription = {
-      bodyStructure: physicalCharacteristics?.bodyStructure || 'average',
-      faceShape: physicalCharacteristics?.faceShape || 'oval',
-      complexion: physicalCharacteristics?.complexion || 'fair',
-      height: physicalCharacteristics?.height || 'average',
-      distinctiveFeatures: physicalCharacteristics?.distinctiveFeatures || ''
-    };
-
-    // Convert life events to the expected format
-    const formattedLifeEvents = lifeEvents.map(event => ({
-      eventType: event.eventType,
-      eventDate: event.date?.toISOString().split('T')[0] || 'Invalid date',
-      description: event.description,
-      importance: event.weight >= 9 ? 'critical' : event.weight >= 7 ? 'high' : 'medium'
-    }));
-
-    // Convert life events to proper format for existing BTR engine
-    const btrLifeEvents = formattedLifeEvents.map(event => ({
-      id: `event_${Math.random().toString(36).substr(2, 9)}`,
-      eventType: event.eventType,
-      eventDate: event.eventDate, // Use the existing eventDate property
-      description: event.description,
-      importance: event.importance as 'critical' | 'high' | 'medium',
-      category: 'other' as const, // Use 'other' as it's a valid EventCategory
-      dateAccuracy: 'exact' as const
-    }));
-
-    // Use the existing performRectification function
-    const result = await performRectification(birthData, physicalDescription, btrLifeEvents);
-
-    // Convert the result to the expected format
-    return {
-      originalTime: originalBirthTime,
-      rectifiedTime: result.rectifiedTime ? new Date(`${birthData.dateOfBirth}T${result.rectifiedTime}:00`) : new Date(),
-      totalIterations: 15, // Estimated
-      finalAlignmentScore: result.confidenceScore * 10,
-      confidenceLevel: result.confidenceLevel,
-      chartData: result.rectifiedChart,
-      eventMatches: result.eventAnalyses.map(analysis => ({
-        event: analysis.event,
-        matchScore: analysis.matchQuality === 'strong' ? 90 :
-                   analysis.matchQuality === 'moderate' ? 70 :
-                   analysis.matchQuality === 'weak' ? 40 : 20,
-        matchingFactors: {
-          planets: analysis.supportingFactors.some((f: string) => f.includes('karaka')),
-          houses: analysis.supportingFactors.some((f: string) => f.includes('house')),
-          dasha: true,
-          divisional: analysis.supportingFactors.some((f: string) => f.includes('D-'))
-        },
-        notes: [analysis.explanation]
-      })),
-      alternativeTimes: [], // Could be added if needed
-      convergenceReason: `Achieved ${result.confidenceScore}/10 confidence level`
-    };
-  }
-
-  /**
    * Get Moonshot AI client for direct access
    */
   getMoonshotClient(): MoonshotAIClient {
     return this.moonshotClient;
-  }
-
-  /**
-   * Get Swiss Ephemeris calculator for direct access
-   */
-  getSwissEphemeris(): SwissEphemerisCalculator {
-    return this.swissEphemeris;
   }
 }
 
@@ -829,7 +785,7 @@ export function createMoonshotBTRIntegration(apiKey: string, config?: Partial<Mo
 /**
  * Example usage:
  * 
- * const integration = createMoonshotBTRIntegration('sk-kimi-jJJcpROckqHiBeDl0b08wcVapOsikhBjaILNt6kbdLG1nMl814vfvqAJJL7TV9qN');
+ * const integration = createMoonshotBTRIntegration('sk-kimi-GKXoxo4WSayAaeRY1ha5GaeTCWaBNcy46KRgf5z2qbeZaJf3f4AgxB5z07kGIC9c');
  * await integration.initialize();
  * 
  * const result = await integration.performBTRWithMoonshotAI(

@@ -30,6 +30,9 @@ export const AIAnalysisPanel: React.FC<AIAnalysisPanelProps> = ({ analyses }) =>
   };
 
   const latestAnalysis = analyses[analyses.length - 1];
+  
+  // Debug log
+  console.log('AIAnalysisPanel - analyses received:', analyses.length, 'latest:', latestAnalysis);
 
   return (
     <div className="bg-black/30 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/20">

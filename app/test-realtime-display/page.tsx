@@ -25,11 +25,7 @@ export default function TestRealTimeDisplay() {
           </div>
         </div>
 
-        <RealTimeDisplay 
-          onComplete={(report) => {
-            console.log('BTR Process Complete!', report);
-          }}
-        />
+        <RealTimeDisplay />
       </div>
     </div>
   );

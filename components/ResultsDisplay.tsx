@@ -113,11 +113,11 @@ const EventAnalysisCard = ({ analysis, index }: { analysis: EventAnalysis; index
           <div>
             <p className="font-medium text-white">{analysis.event.eventType}</p>
             <p className="text-sm text-white/60">
-              {new Date(analysis.event.eventDate).toLocaleDateString('en-IN', {
+              {analysis.event?.eventDate ? new Date(analysis.event.eventDate).toLocaleDateString('en-IN', {
                 day: 'numeric', month: 'short', year: 'numeric'
-              })}
+              }) : 'N/A'}
               <span className="mx-2">•</span>
-              {analysis.dashaBhukti}
+              {analysis.dashaBhukti || 'N/A'}
             </p>
           </div>
         </div>
@@ -140,7 +140,7 @@ const EventAnalysisCard = ({ analysis, index }: { analysis: EventAnalysis; index
               <p className="text-sm text-white/70">{analysis.explanation}</p>
             </div>
             
-            {analysis.supportingFactors.length > 0 && (
+            {analysis.supportingFactors && analysis.supportingFactors.length > 0 && (
               <div>
                 <h4 className="text-sm font-medium text-green-400 mb-2">Supporting Factors</h4>
                 <ul className="space-y-1">
@@ -154,7 +154,7 @@ const EventAnalysisCard = ({ analysis, index }: { analysis: EventAnalysis; index
               </div>
             )}
             
-            {analysis.concerningFactors.length > 0 && (
+            {analysis.concerningFactors && analysis.concerningFactors.length > 0 && (
               <div>
                 <h4 className="text-sm font-medium text-yellow-400 mb-2">Concerning Factors</h4>
                 <ul className="space-y-1">
@@ -168,13 +168,15 @@ const EventAnalysisCard = ({ analysis, index }: { analysis: EventAnalysis; index
               </div>
             )}
             
-            <div className="flex flex-wrap gap-2 pt-2">
-              {analysis.relevantCharts.map(chart => (
-                <span key={chart} className="px-2 py-1 bg-vedic-saffron/20 text-vedic-saffron rounded text-xs">
-                  {chart}
-                </span>
-              ))}
-            </div>
+            {analysis.relevantCharts && analysis.relevantCharts.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-2">
+                {analysis.relevantCharts.map(chart => (
+                  <span key={chart} className="px-2 py-1 bg-vedic-saffron/20 text-vedic-saffron rounded text-xs">
+                    {chart}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </motion.div>
       )}
@@ -193,6 +195,26 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
     { id: 'dasha', label: 'Dasha', icon: Clock }
   ];
   
+  // Add null safety for vimshottariDasha
+  const vimshottariDasha = result.rectifiedChart.vimshottariDasha || {
+    currentDasha: 'N/A',
+    currentAntardasha: 'N/A',
+    birthDasha: 'N/A',
+    balanceYears: 0,
+    balanceMonths: 0,
+    balanceDays: 0,
+    sequence: []
+  };
+  
+  // Add null safety for all potentially undefined arrays
+  const moonPlanet = result.rectifiedChart.rashi.planets?.find(p => p.planet === 'Moon');
+  const physicalMatches = result.physicalVerification?.matches || [];
+  const physicalMismatches = result.physicalVerification?.mismatches || [];
+  const recommendations = result.recommendations || [];
+  const eventAnalyses = result.eventAnalyses || [];
+  const planets = result.rectifiedChart.rashi.planets || [];
+  const methodsUsed = result.methodsUsed || [];
+  
   return (
     <div className="space-y-fib-8">
       {/* Hero Result Section - Golden Ratio Proportions */}
@@ -210,7 +232,7 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
           >
             <div className="absolute -inset-fib-2 bg-gradient-to-r from-vedic-saffron/20 to-vedic-orange/20 rounded-full animate-pulse" />
             <div className="relative text-center">
-              <p className="text-4xl font-bold text-white mb-fib-1">{result.rectifiedTime}</p>
+              <p className="text-4xl font-bold text-white mb-fib-1">{result.rectifiedTime || 'N/A'}</p>
               <p className="text-sm text-white/80 uppercase tracking-wider">Rectified Time</p>
             </div>
           </motion.div>
@@ -225,7 +247,7 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
             Birth Time Rectification Complete
           </h2>
           <p className="text-h5 text-white/70">
-            Adjustment: {result.adjustmentMinutes >= 0 ? '+' : ''}{result.adjustmentMinutes} minutes from {result.originalTime}
+            Adjustment: {result.adjustmentMinutes >= 0 ? '+' : ''}{result.adjustmentMinutes || 0} minutes from {result.originalTime || 'N/A'}
           </p>
         </motion.div>
         
@@ -243,7 +265,7 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
           transition={{ duration: 0.6, delay: 0.6 }}
           className="flex flex-wrap justify-center gap-fib-3"
         >
-          {result.methodsUsed.map((method, index) => (
+          {methodsUsed.map((method, index) => (
             <motion.span
               key={method}
               initial={{ opacity: 0, scale: 0.8 }}
@@ -309,10 +331,10 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
                   <span className="font-semibold text-white text-h6">Lagna (Ascendant)</span>
                 </div>
                 <p className="text-3xl font-bold text-vedic-saffron mb-fib-2">
-                  {result.rectifiedChart.rashi.lagna.sign}
+                  {result.rectifiedChart.rashi.lagna?.sign || 'N/A'}
                 </p>
                 <p className="text-white/60">
-                  {result.rectifiedChart.rashi.lagna.degree}° {result.rectifiedChart.rashi.lagna.minute}' • {result.rectifiedChart.rashi.lagna.nakshatra}
+                  {result.rectifiedChart.rashi.lagna?.degree || 0}° {result.rectifiedChart.rashi.lagna?.minute || 0}' • {result.rectifiedChart.rashi.lagna?.nakshatra || 'N/A'}
                 </p>
               </motion.div>
               
@@ -329,10 +351,10 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
                   <span className="font-semibold text-white text-h6">Moon Sign</span>
                 </div>
                 <p className="text-3xl font-bold text-blue-400 mb-fib-2">
-                  {result.rectifiedChart.rashi.planets.find(p => p.planet === 'Moon')?.sign}
+                  {moonPlanet?.sign || 'N/A'}
                 </p>
                 <p className="text-white/60">
-                  {result.rectifiedChart.rashi.planets.find(p => p.planet === 'Moon')?.nakshatra} • Pada {result.rectifiedChart.rashi.planets.find(p => p.planet === 'Moon')?.pada}
+                  {moonPlanet?.nakshatra || 'N/A'} • Pada {moonPlanet?.pada || 'N/A'}
                 </p>
               </motion.div>
               
@@ -349,10 +371,10 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
                   <span className="font-semibold text-white text-h6">Current Dasha</span>
                 </div>
                 <p className="text-3xl font-bold text-purple-400 mb-fib-2">
-                  {result.rectifiedChart.vimshottariDasha.currentDasha}
+                  {vimshottariDasha.currentDasha}
                 </p>
                 <p className="text-white/60">
-                  Antardasha: {result.rectifiedChart.vimshottariDasha.currentAntardasha}
+                  Antardasha: {vimshottariDasha.currentAntardasha}
                 </p>
               </motion.div>
             </div>
@@ -374,7 +396,7 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
                     Matching Features
                   </h4>
                   <ul className="space-y-fib-3">
-                    {result.physicalVerification.matches.map((match, i) => (
+                    {physicalMatches.map((match, i) => (
                       <motion.li
                         key={i}
                         initial={{ opacity: 0, x: -13 }}
@@ -388,14 +410,14 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
                     ))}
                   </ul>
                 </div>
-                {result.physicalVerification.mismatches.length > 0 && (
+                {physicalMismatches.length > 0 && (
                   <div className="vedic-card p-fib-6 border-yellow-500/30 bg-yellow-500/10">
                     <h4 className="text-h6 font-medium text-yellow-400 mb-fib-4 flex items-center gap-fib-2">
                       <AlertCircle className="w-fib-4 h-fib-4" />
                       Non-Matching Features
                     </h4>
                     <ul className="space-y-fib-3">
-                      {result.physicalVerification.mismatches.map((mismatch, i) => (
+                      {physicalMismatches.map((mismatch, i) => (
                         <motion.li
                           key={i}
                           initial={{ opacity: 0, x: -13 }}
@@ -424,7 +446,7 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
                 Recommendations
               </h3>
               <div className="space-y-fib-3">
-                {result.recommendations.map((rec, i) => (
+                {recommendations.map((rec, i) => (
                   <motion.div
                     key={i}
                     initial={{ opacity: 0, x: -21 }}
@@ -454,14 +476,14 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
               <h3 className="text-h4 font-semibold text-white">Event-by-Event Analysis</h3>
               <div className="flex items-center gap-fib-3 text-sm text-white/60">
                 <span className="w-fib-3 h-fib-3 bg-green-500 rounded-full"></span>
-                Strong: {result.eventAnalyses.filter(e => e.matchQuality === 'strong').length}
+                Strong: {eventAnalyses.filter(e => e.matchQuality === 'strong').length}
                 <span className="w-fib-3 h-fib-3 bg-blue-500 rounded-full ml-fib-3"></span>
-                Moderate: {result.eventAnalyses.filter(e => e.matchQuality === 'moderate').length}
+                Moderate: {eventAnalyses.filter(e => e.matchQuality === 'moderate').length}
               </div>
             </div>
             
             <div className="space-y-fib-4">
-              {result.eventAnalyses.map((analysis, index) => (
+              {eventAnalyses.map((analysis, index) => (
                 <EventAnalysisCard key={analysis.event.id} analysis={analysis} index={index} />
               ))}
             </div>
@@ -487,15 +509,15 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
               <div className="flex items-center gap-fib-6">
                 <div className="w-fib-8 h-fib-8 bg-vedic-saffron rounded-golden flex items-center justify-center">
                   <span className="text-3xl font-bold text-white">
-                    {result.rectifiedChart.rashi.lagna.sign.slice(0, 2)}
+                    {result.rectifiedChart.rashi.lagna?.sign?.slice(0, 2) || 'NA'}
                   </span>
                 </div>
                 <div>
                   <p className="text-h6 text-white/60 mb-fib-1">Lagna (Ascendant)</p>
-                  <p className="text-2xl font-bold text-white mb-fib-2">{result.rectifiedChart.rashi.lagna.sign}</p>
+                  <p className="text-2xl font-bold text-white mb-fib-2">{result.rectifiedChart.rashi.lagna?.sign || 'N/A'}</p>
                   <p className="text-h6 text-vedic-saffron">
-                    {result.rectifiedChart.rashi.lagna.degree}° {result.rectifiedChart.rashi.lagna.minute}' •
-                    {result.rectifiedChart.rashi.lagna.nakshatra} Pada {result.rectifiedChart.rashi.lagna.pada}
+                    {result.rectifiedChart.rashi.lagna?.degree || 0}° {result.rectifiedChart.rashi.lagna?.minute || 0}' •
+                    {result.rectifiedChart.rashi.lagna?.nakshatra || 'N/A'}
                   </p>
                 </div>
               </div>
@@ -509,7 +531,7 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
             >
               <h4 className="text-h4 font-semibold text-white mb-fib-5">Planetary Positions</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-fib-4">
-                {result.rectifiedChart.rashi.planets.map((planet, index) => (
+                {planets.map((planet, index) => (
                   <motion.div
                     key={planet.planet}
                     initial={{ opacity: 0, scale: 0.8 }}
@@ -529,28 +551,30 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
             </motion.div>
             
             {/* Divisional Charts Summary - Golden Ratio */}
-            <motion.div
-              initial={{ opacity: 0, y: 21 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 2 }}
-            >
-              <h4 className="text-h4 font-semibold text-white mb-fib-5">Divisional Charts Summary</h4>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-fib-4">
-                {result.rectifiedChart.divisionalCharts.map((chart, index) => (
-                  <motion.div
-                    key={chart.chartType}
-                    initial={{ opacity: 0, y: 13 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 2.2 + index * 0.1 }}
-                    className="vedic-card p-fib-4 text-center hover:border-vedic-saffron/30 transition-all"
-                  >
-                    <p className="text-vedic-saffron font-medium text-sm mb-fib-1">{chart.chartType}</p>
-                    <p className="text-white font-semibold">{chart.lagna.sign}</p>
-                    <p className="text-xs text-white/60 mt-fib-1">{chart.lagna.degree.toFixed(1)}°</p>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
+            {result.rectifiedChart.divisionalCharts && result.rectifiedChart.divisionalCharts.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 21 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 2 }}
+              >
+                <h4 className="text-h4 font-semibold text-white mb-fib-5">Divisional Charts Summary</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-fib-4">
+                  {result.rectifiedChart.divisionalCharts.map((chart, index) => (
+                    <motion.div
+                      key={chart.chartType}
+                      initial={{ opacity: 0, y: 13 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: 2.2 + index * 0.1 }}
+                      className="vedic-card p-fib-4 text-center hover:border-vedic-saffron/30 transition-all"
+                    >
+                      <p className="text-vedic-saffron font-medium text-sm mb-fib-1">{chart.chartType}</p>
+                      <p className="text-white font-semibold">{chart.lagna.sign}</p>
+                      <p className="text-xs text-white/60 mt-fib-1">{chart.lagna.degree.toFixed(1)}°</p>
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
           </motion.div>
         )}
         
@@ -573,23 +597,23 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-fib-6 text-center">
                 <div>
                   <p className="text-h6 text-white/60 mb-fib-2">Birth Dasha</p>
-                  <p className="text-2xl font-bold text-vedic-saffron">{result.rectifiedChart.vimshottariDasha.birthDasha}</p>
+                  <p className="text-2xl font-bold text-vedic-saffron">{vimshottariDasha.birthDasha}</p>
                 </div>
                 <div>
                   <p className="text-h6 text-white/60 mb-fib-2">Balance at Birth</p>
                   <p className="text-2xl font-bold text-white">
-                    {result.rectifiedChart.vimshottariDasha.balanceYears}Y
-                    {result.rectifiedChart.vimshottariDasha.balanceMonths}M
-                    {result.rectifiedChart.vimshottariDasha.balanceDays}D
+                    {vimshottariDasha.balanceYears}Y
+                    {vimshottariDasha.balanceMonths}M
+                    {vimshottariDasha.balanceDays}D
                   </p>
                 </div>
                 <div>
                   <p className="text-h6 text-white/60 mb-fib-2">Current Mahadasha</p>
-                  <p className="text-2xl font-bold text-green-400">{result.rectifiedChart.vimshottariDasha.currentDasha}</p>
+                  <p className="text-2xl font-bold text-green-400">{vimshottariDasha.currentDasha}</p>
                 </div>
                 <div>
                   <p className="text-h6 text-white/60 mb-fib-2">Current Antardasha</p>
-                  <p className="text-2xl font-bold text-blue-400">{result.rectifiedChart.vimshottariDasha.currentAntardasha}</p>
+                  <p className="text-2xl font-bold text-blue-400">{vimshottariDasha.currentAntardasha}</p>
                 </div>
               </div>
             </motion.div>
@@ -602,9 +626,9 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
             >
               <h4 className="text-h4 font-semibold text-white mb-fib-5">Mahadasha Sequence</h4>
               <div className="space-y-fib-3">
-                {result.rectifiedChart.vimshottariDasha.sequence.map((dasha, i) => {
-                  const isCurrent = dasha.planet === result.rectifiedChart.vimshottariDasha.currentDasha;
-                  const isPast = new Date() > dasha.endDate;
+                {vimshottariDasha.sequence && vimshottariDasha.sequence.map((dasha, i) => {
+                  const isCurrent = dasha.planet === vimshottariDasha.currentDasha;
+                  const isPast = dasha.endDate && new Date() > dasha.endDate;
                   
                   return (
                     <motion.div
@@ -625,7 +649,7 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
                           ${isCurrent ? 'bg-vedic-saffron shadow-lg' : 'bg-white/10'}`}
                         >
                           <span className={`font-bold text-h6 ${isCurrent ? 'text-white' : 'text-white/70'}`}>
-                            {dasha.planet.slice(0, 2)}
+                            {dasha.planet?.slice(0, 2) || 'NA'}
                           </span>
                         </div>
                         <div>
@@ -634,8 +658,8 @@ export default function ResultsDisplay({ result }: ResultsDisplayProps) {
                             {isCurrent && <span className="ml-fib-3 text-xs bg-vedic-saffron/30 px-fib-2 py-1 rounded-golden">Current</span>}
                           </p>
                           <p className="text-sm text-white/60">
-                            {dasha.startDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })} -
-                            {dasha.endDate.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
+                            {dasha.startDate?.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })} -
+                            {dasha.endDate?.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}
                           </p>
                         </div>
                       </div>

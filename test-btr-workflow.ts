@@ -12,7 +12,7 @@ async function testCompleteBTRWorkflow() {
 
   // Test configuration
   const testConfig = {
-    moonshotApiKey: process.env.MOONSHOT_API_KEY || 'sk-kimi-jJJcpROckqHiBeDl0b08wcVapOsikhBjaILNt6kbdLG1nMl814vfvqAJJL7TV9qN',
+    moonshotApiKey: process.env.MOONSHOT_API_KEY || 'sk-kimi-GKXoxo4WSayAaeRY1ha5GaeTCWaBNcy46KRgf5z2qbeZaJf3f4AgxB5z07kGIC9c',
     ephemerisPath: './ephe',
     useKPSystem: true,
     maxIterations: 10, // Reduced for testing

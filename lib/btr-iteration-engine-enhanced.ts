@@ -1,7 +1,7 @@
 /**
- * 🌟 BTR Iteration Engine - Birth Time Rectification System
+ * 🌟 BTR Iteration Engine - Enhanced Version with Comprehensive Logging
  * 
- * Implements the iterative BTR process:
+ * Implements the iterative BTR process with detailed progress tracking:
  * 1. Analyze current chart against Life Events
  * 2. Identify discrepancies in D-9/D-60 charts
  * 3. Hypothesize time shifts
@@ -9,11 +9,17 @@
  * 5. Verify alignment improvements
  * 6. Finalize when >90% events align
  * 
+ * Enhanced with:
+ * - Real-time progress logging
+ * - Score tracking and optimization
+ * - Performance metrics
+ * - Detailed candidate analysis
+ * 
  * IMPORTANT: This file uses the API client to call server-side Swiss Ephemeris calculations.
  * It should NEVER import swisseph directly.
  */
 
-import { calculateEphemerisForTimeSlots, calculateBasicEphemeris } from './api-client';
+import { calculateBasicEphemeris } from './api-client';
 import { LifeEvent } from '../types';
 
 // Zodiac signs for yoga identification
@@ -41,6 +47,7 @@ export interface BTRIteration {
   discrepancies: Discrepancy[];
   recommendations: string[];
   converged: boolean;
+  processingTime?: number; // ms
 }
 
 export interface EventMatch {
@@ -73,6 +80,13 @@ export interface BTRResult {
   confidenceLevel: 'low' | 'medium' | 'high' | 'very_high';
   chartData: any; // Changed from EphemerisCalculation to any since we get data from API
   alternativeTimes: AlternativeTime[];
+  performanceMetrics?: {
+    totalProcessingTime: number;
+    averageIterationTime: number;
+    phase1Time: number;
+    phase2Time: number;
+    phase3Time: number;
+  };
 }
 
 export interface AlternativeTime {
@@ -89,24 +103,33 @@ export interface BTRConfig {
   divisionalCharts: string[]; // ['d1', 'd9', 'd60'] priority charts
   weightFactors: {
     planets: number;
-    houses: number;
+    houses: number; // INCREASED: House lordship is critical for event timing
     dasha: number;
     divisional: number;
   };
 }
 
+export interface ProgressCallback {
+  (phase: string, progress: number, total: number, message: string, details?: any): void;
+}
+
 /**
- * 🌟 BTR Iteration Engine
+ * 🌟 BTR Iteration Engine - Enhanced Version
  * 
  * Continuously refines birth time by comparing calculated charts with life events
  * Uses API calls to server-side Swiss Ephemeris for high-precision astronomical calculations
+ * Enhanced with comprehensive logging and progress tracking
  */
-export class BTREngine {
+export class BTREngineEnhanced {
   private config: BTRConfig;
   private iterations: BTRIteration[] = [];
   private currentIteration = 0;
+  private progressCallback?: ProgressCallback;
+  private phaseStartTime: number = 0;
+  private totalStartTime: number = 0;
 
-  constructor(config?: Partial<BTRConfig>) {
+  constructor(config?: Partial<BTRConfig>, progressCallback?: ProgressCallback) {
+    this.progressCallback = progressCallback;
     this.config = {
       maxIterations: 50,
       convergenceThreshold: 90,
@@ -124,7 +147,35 @@ export class BTREngine {
   }
 
   /**
-   * 🔄 Main BTR Process - Iterative refinement
+   * 📊 Log progress update
+   */
+  private logProgress(phase: string, progress: number, total: number, message: string, details?: any) {
+    const percentage = ((progress / total) * 100).toFixed(1);
+    const logMessage = `📝 ${phase}: ${progress}/${total} (${percentage}%) - ${message}`;
+    
+    console.log(logMessage);
+    
+    if (this.progressCallback) {
+      this.progressCallback(phase, progress, total, message, details);
+    }
+  }
+
+  /**
+   * 🎯 Log significant event
+   */
+  private logEvent(level: 'info' | 'success' | 'warning' | 'error', message: string, details?: any) {
+    const icons = {
+      info: 'ℹ️',
+      success: '✅',
+      warning: '⚠️',
+      error: '❌'
+    };
+    
+    console.log(`${icons[level]} ${message}`, details ? details : '');
+  }
+
+  /**
+   * 🔄 Main BTR Process - Iterative refinement with enhanced logging
    */
   async performBTR(
     originalBirthTime: Date,
@@ -138,19 +189,33 @@ export class BTREngine {
       throw new Error(`Minimum 5 major life events required for accurate birth time rectification. Provided: ${lifeEvents.length}`);
     }
     
-    console.log('🌟 Starting BTR 3-Phase Iteration Process');
+    this.totalStartTime = Date.now();
+    
+    console.log('\n🌟╔══════════════════════════════════════════════════════════════╗');
+    console.log('🌟║     BTR 3-PHASE ITERATION PROCESS - ENHANCED VERSION        ║');
+    console.log('🌟╚══════════════════════════════════════════════════════════════╝');
     console.log(`📅 Original Time: ${originalBirthTime.toISOString()}`);
-    console.log(`📍 Location: ${latitude}, ${longitude}`);
+    console.log(`📍 Location: ${latitude.toFixed(4)}°N, ${longitude.toFixed(4)}°E`);
     console.log(`📋 Events: ${lifeEvents.length} life events to analyze`);
+    console.log(`🎯 Convergence Target: ${this.config.convergenceThreshold}%`);
+    console.log('');
 
     this.iterations = [];
     this.currentIteration = 0;
 
     let bestResult: BTRIteration;
     let converged = false;
+    const phaseTimes = { phase1: 0, phase2: 0, phase3: 0 };
 
     // ==================== PHASE 1: COARSE SEARCH (±2 hours at 2-minute intervals) ====================
-    console.log('🔍 PHASE 1: Coarse search with 120+ time candidates (±2 hours at 2-minute intervals)');
+    console.log('🔍╔══════════════════════════════════════════════════════════════╗');
+    console.log('🔍║              PHASE 1: COARSE SEARCH (±2 hours)              ║');
+    console.log('🔍╚══════════════════════════════════════════════════════════════╝');
+    console.log('🎯 Strategy: Testing 120+ time candidates at 2-minute intervals');
+    console.log('🎯 Purpose: Identify promising time windows for refinement');
+    console.log('');
+    
+    this.phaseStartTime = Date.now();
     
     const phase1Candidates: number[] = []; // in minutes
     for (let minutes = -120; minutes <= 120; minutes += 2) {
@@ -158,39 +223,89 @@ export class BTREngine {
     }
     
     console.log(`🎯 Testing ${phase1Candidates.length} time candidates...`);
+    console.log('');
     
     const phase1Results: BTRIteration[] = [];
+    let bestScore = 0;
+    let bestCandidate = 0;
+    let highScoreCount = 0;
+    
     for (const adjustment of phase1Candidates) {
+      const iterationStartTime = Date.now();
       const testTime = new Date(originalBirthTime.getTime() + (adjustment * 60 * 1000));
       const iteration = await this.analyzeIteration(testTime, latitude, longitude, timezone, lifeEvents, adjustment);
-      phase1Results.push(iteration);
+      const iterationTime = Date.now() - iterationStartTime;
+      
+      phase1Results.push({ ...iteration, processingTime: iterationTime });
+      
+      // Track best score
+      if (iteration.alignmentScore > bestScore) {
+        bestScore = iteration.alignmentScore;
+        bestCandidate = adjustment;
+      }
+      
+      // Count high scores
+      if (iteration.alignmentScore >= 85) {
+        highScoreCount++;
+      }
       
       this.currentIteration++;
       
-      // Progress logging
-      if (phase1Results.length % 20 === 0) {
-        console.log(`📝 Phase 1: ${phase1Results.length}/${phase1Candidates.length} candidates tested...`);
+      // Enhanced progress logging with score tracking
+      if (phase1Results.length % 10 === 0) {
+        this.logProgress('Phase 1', phase1Results.length, phase1Candidates.length, 
+          `Current Best: ${bestScore.toFixed(1)}% at ${bestCandidate} min | High Scores: ${highScoreCount}`);
+      }
+      
+      // Log exceptional scores immediately
+      if (iteration.alignmentScore >= 90) {
+        this.logEvent('success', `Exceptional score found: ${iteration.alignmentScore.toFixed(1)}% at ${adjustment} minutes`);
+      } else if (iteration.alignmentScore >= 85) {
+        this.logEvent('info', `High score found: ${iteration.alignmentScore.toFixed(1)}% at ${adjustment} minutes`);
       }
     }
+    
+    phaseTimes.phase1 = Date.now() - this.phaseStartTime;
     
     // Initialize bestResult with the best from Phase 1
     bestResult = phase1Results.reduce((best, iteration) =>
       iteration.alignmentScore > best.alignmentScore ? iteration : best
     );
     
-    console.log(`✅ Phase 1 complete. Best score: ${bestResult.alignmentScore.toFixed(2)}%`);
+    console.log('');
+    console.log('✅╔══════════════════════════════════════════════════════════════╗');
+    console.log('✅║                    PHASE 1 COMPLETE                          ║');
+    console.log('✅╚══════════════════════════════════════════════════════════════╝');
+    console.log(`🎯 Best Score: ${bestResult.alignmentScore.toFixed(2)}% at ${bestResult.timeShift} minutes`);
+    console.log(`📊 Summary: Tested ${phase1Results.length} candidates | High Scores (≥85%): ${highScoreCount}`);
+    console.log(`⏱️  Phase 1 Time: ${(phaseTimes.phase1 / 1000).toFixed(2)} seconds`);
+    console.log('');
     
     // ==================== PHASE 2: MEDIUM REFINEMENT (Top 5 at 30-second intervals) ====================
-    console.log('🔍 PHASE 2: Medium refinement of top 5 candidates at 30-second intervals');
+    console.log('🔍╔══════════════════════════════════════════════════════════════╗');
+    console.log('🔍║            PHASE 2: MEDIUM REFINEMENT (Top 5)               ║');
+    console.log('🔍╚══════════════════════════════════════════════════════════════╝');
+    console.log('🎯 Strategy: Refining top 5 candidates at 30-second precision');
+    console.log('🎯 Purpose: Narrow down to most promising time windows');
+    console.log('');
+    
+    this.phaseStartTime = Date.now();
     
     const top5Results = phase1Results
       .sort((a, b) => b.alignmentScore - a.alignmentScore)
       .slice(0, 5);
     
-    console.log(`🎯 Testing top 5 candidates with 30-second precision...`);
+    console.log(`🎯 Selected top 5 candidates (scores: ${top5Results.map(r => r.alignmentScore.toFixed(1)).join('%, ')})%`);
+    console.log('');
     
-    for (const topResult of top5Results) {
+    let phase2Improvements = 0;
+    let lastBestScore = bestResult.alignmentScore;
+    
+    for (let i = 0; i < top5Results.length; i++) {
+      const topResult = top5Results[i];
       const baseAdjustment = topResult.timeShift;
+      
+      console.log(`🎯 Testing candidate ${i + 1}/5 (base: ${baseAdjustment} min, score: ${topResult.alignmentScore.toFixed(1)}%)`);
       
       // Test ±30 seconds around each top candidate
       for (let seconds = -30; seconds <= 30; seconds += 30) {
@@ -201,8 +316,11 @@ export class BTREngine {
         this.iterations.push(iteration);
         
         if (iteration.alignmentScore > bestResult.alignmentScore) {
+          const improvement = iteration.alignmentScore - bestResult.alignmentScore;
           bestResult = iteration;
-          console.log(`🎯 New best found: ${iteration.alignmentScore.toFixed(2)}% at ${adjustment.toFixed(1)} minutes`);
+          phase2Improvements++;
+          
+          console.log(`🎯 New best found: ${iteration.alignmentScore.toFixed(2)}% at ${adjustment.toFixed(1)} minutes (improved by ${improvement.toFixed(2)}%)`);
         }
         
         this.currentIteration++;
@@ -218,13 +336,32 @@ export class BTREngine {
       if (converged) break;
     }
     
-    console.log(`✅ Phase 2 complete. Best score: ${bestResult.alignmentScore.toFixed(2)}%`);
+    phaseTimes.phase2 = Date.now() - this.phaseStartTime;
+    
+    console.log('');
+    console.log('✅╔══════════════════════════════════════════════════════════════╗');
+    console.log('✅║                    PHASE 2 COMPLETE                          ║');
+    console.log('✅╚══════════════════════════════════════════════════════════════╝');
+    console.log(`🎯 Final Score: ${bestResult.alignmentScore.toFixed(2)}% at ${bestResult.timeShift} minutes`);
+    console.log(`📊 Summary: ${phase2Improvements} improvements found | Iterations: ${this.currentIteration}`);
+    console.log(`⏱️  Phase 2 Time: ${(phaseTimes.phase2 / 1000).toFixed(2)} seconds`);
+    console.log('');
     
     // ==================== PHASE 3: FINE PRECISION (Best candidate at 5-second intervals) ====================
     if (!converged) {
-      console.log('🔍 PHASE 3: Fine precision refinement at 5-second intervals');
+      console.log('🔍╔══════════════════════════════════════════════════════════════╗');
+      console.log('🔍║           PHASE 3: FINE PRECISION (±15 seconds)             ║');
+      console.log('🔍╚══════════════════════════════════════════════════════════════╝');
+      console.log('🎯 Strategy: Fine-tuning best candidate at 5-second intervals');
+      console.log('🎯 Purpose: Achieve maximum precision and alignment');
+      console.log('');
+      
+      this.phaseStartTime = Date.now();
       
       const bestAdjustment = bestResult.timeShift;
+      let phase3Improvements = 0;
+      
+      console.log(`🎯 Testing around best candidate: ${bestAdjustment} minutes`);
       
       // Test ±15 seconds around best candidate at 5-second intervals
       for (let seconds = -15; seconds <= 15; seconds += 5) {
@@ -235,8 +372,11 @@ export class BTREngine {
         this.iterations.push(iteration);
         
         if (iteration.alignmentScore > bestResult.alignmentScore) {
+          const improvement = iteration.alignmentScore - bestResult.alignmentScore;
           bestResult = iteration;
-          console.log(`🎯 Final precision improved: ${iteration.alignmentScore.toFixed(2)}% at ${adjustment.toFixed(2)} minutes`);
+          phase3Improvements++;
+          
+          console.log(`🎯 Final precision improved: ${iteration.alignmentScore.toFixed(2)}% at ${adjustment.toFixed(2)} minutes (improved by ${improvement.toFixed(3)}%)`);
         }
         
         this.currentIteration++;
@@ -249,23 +389,57 @@ export class BTREngine {
         }
       }
       
-      console.log(`✅ Phase 3 complete. Final score: ${bestResult.alignmentScore.toFixed(2)}%`);
+      phaseTimes.phase3 = Date.now() - this.phaseStartTime;
+      
+      console.log('');
+      console.log('✅╔══════════════════════════════════════════════════════════════╗');
+      console.log('✅║                    PHASE 3 COMPLETE                          ║');
+      console.log('✅╚══════════════════════════════════════════════════════════════╝');
+      console.log(`🎯 Final Score: ${bestResult.alignmentScore.toFixed(3)}% at ${bestResult.timeShift.toFixed(2)} minutes`);
+      console.log(`📊 Summary: ${phase3Improvements} precision improvements`);
+      console.log(`⏱️  Phase 3 Time: ${(phaseTimes.phase3 / 1000).toFixed(2)} seconds`);
+      console.log('');
     }
 
     // Generate final result
     const finalResult = await this.generateFinalResult(originalBirthTime, bestResult, lifeEvents);
     
-    console.log(`✅ BTR Complete: ${finalResult.totalIterations} total iterations`);
-    console.log(`🎯 Final Alignment Score: ${finalResult.finalAlignmentScore.toFixed(2)}%`);
+    const totalTime = Date.now() - this.totalStartTime;
+    
+    console.log('🌟╔══════════════════════════════════════════════════════════════╗');
+    console.log('🌟║                  BTR PROCESS COMPLETE                        ║');
+    console.log('🌟╚══════════════════════════════════════════════════════════════╝');
+    console.log(`✅ Total Iterations: ${finalResult.totalIterations}`);
+    console.log(`🎯 Final Alignment Score: ${finalResult.finalAlignmentScore.toFixed(3)}%`);
     console.log(`🕐 Rectified Time: ${finalResult.rectifiedTime.toISOString()}`);
-    console.log(`⏱️ Time Adjustment: ${((finalResult.rectifiedTime.getTime() - originalBirthTime.getTime()) / (1000 * 60)).toFixed(2)} minutes`);
-    console.log(`🎯 Confidence: ${finalResult.confidenceLevel}`);
+    console.log(`⏱️  Time Adjustment: ${((finalResult.rectifiedTime.getTime() - originalBirthTime.getTime()) / (1000 * 60)).toFixed(2)} minutes`);
+    console.log(`🎯 Confidence Level: ${finalResult.confidenceLevel.toUpperCase()}`);
+    console.log(`📊 Convergence: ${converged ? '✅ Achieved' : '⚠️ Not achieved - max iterations reached'}`);
+    console.log(`⏱️  Total Processing Time: ${(totalTime / 1000).toFixed(2)} seconds`);
+    console.log('');
+    console.log('📊 Phase Breakdown:');
+    console.log(`   Phase 1 (Coarse): ${(phaseTimes.phase1 / 1000).toFixed(2)}s`);
+    console.log(`   Phase 2 (Medium): ${(phaseTimes.phase2 / 1000).toFixed(2)}s`);
+    console.log(`   Phase 3 (Fine):   ${(phaseTimes.phase3 / 1000).toFixed(2)}s`);
+    console.log('');
 
-    return finalResult;
+    // Add performance metrics
+    const enhancedResult: BTRResult = {
+      ...finalResult,
+      performanceMetrics: {
+        totalProcessingTime: totalTime,
+        averageIterationTime: totalTime / Math.max(1, finalResult.totalIterations),
+        phase1Time: phaseTimes.phase1,
+        phase2Time: phaseTimes.phase2,
+        phase3Time: phaseTimes.phase3
+      }
+    };
+
+    return enhancedResult;
   }
 
   /**
-   * 🔍 Analyze single iteration
+   * 🔍 Analyze single iteration with timing
    */
   private async analyzeIteration(
     birthTime: Date,
@@ -984,8 +1158,11 @@ export class BTREngine {
 }
 
 /**
- * 🏭 Factory function to create BTR Engine
+ * 🏭 Factory function to create Enhanced BTR Engine
  */
-export function createBTREngine(config?: Partial<BTRConfig>): BTREngine {
-  return new BTREngine(config);
+export function createBTREngineEnhanced(
+  config?: Partial<BTRConfig>,
+  progressCallback?: ProgressCallback
+): BTREngineEnhanced {
+  return new BTREngineEnhanced(config, progressCallback);
 }

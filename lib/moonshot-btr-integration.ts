@@ -3,14 +3,16 @@
  * 
  * Complete integration with Moonshoot AI for advanced Birth Time Rectification
  * using the provided API key and comprehensive BTR analysis framework
+ * 
+ * IMPORTANT: This file uses the API client to call server-side Swiss Ephemeris calculations.
+ * It should NEVER import swisseph directly.
  */
 
-import { BTREngine, BTREvent, BTRResult } from './btr-iteration-engine';
-import { SwissEphemerisEngine } from './swiss-ephemeris-engine';
-import { SwissEphemerisResult } from './swiss-ephemeris-calculator';
+import { calculateBasicEphemeris, performBTRAnalysis as apiPerformBTRAnalysis } from './api-client';
+import { BTREvent, BTRResult } from './btr-iteration-engine';
 
 // Moonshoot AI Configuration
-const MOONSHOT_API_KEY = 'sk-kimi-jJJcpROckqHiBeDl0b08wcVapOsikhBjaILNt6kbdLG1nMl814vfvqAJJL7TV9qN';
+const MOONSHOT_API_KEY = 'sk-kimi-GKXoxo4WSayAaeRY1ha5GaeTCWaBNcy46KRgf5z2qbeZaJf3f4AgxB5z07kGIC9c';
 const MOONSHOT_API_URL = 'https://api.moonshot.ai/v1/chat/completions';
 
 export interface MoonshotBTRRequest {
@@ -44,7 +46,7 @@ export interface MoonshotBTRRequest {
     travel: TravelEvent[];
     other: OtherEvent[];
   };
-  swissEphemerisData: SwissEphemerisResult;
+  swissEphemerisData: any; // Changed from SwissEphemerisResult to any since we get data from API
   btrIterationData: BTRResult;
 }
 
@@ -178,36 +180,14 @@ export interface AlternativeTime {
 
 /**
  * 🌟 Moonshot AI BTR Integration Class
+ * 
+ * IMPORTANT: This class uses API calls for all Swiss Ephemeris calculations.
+ * It does NOT import or use swisseph directly.
  */
 export class MoonshotBTRIntegration {
-  private swissEphemeris: SwissEphemerisEngine;
-  private btrEngine: BTREngine;
-
   constructor() {
-    this.swissEphemeris = new SwissEphemerisEngine('./ephe', true);
-
-    this.btrEngine = new BTREngine(this.swissEphemeris, {
-      maxIterations: 50,
-      convergenceThreshold: 85,
-      timeStep: 2,
-      maxTimeShift: 120,
-      divisionalCharts: ['d1', 'd9', 'd10', 'd7', 'd24', 'd60'],
-      weightFactors: {
-        planets: 0.25,
-        houses: 0.25,
-        dasha: 0.25,
-        divisional: 0.25
-      }
-    });
-  }
-
-  /**
-   * 🚀 Initialize the integration system
-   */
-  async initialize(): Promise<void> {
     console.log('🚀 Initializing Moonshot AI BTR Integration...');
-    await this.swissEphemeris.initialize();
-    console.log('✅ Moonshot AI BTR Integration ready');
+    console.log('✅ Moonshot AI BTR Integration ready (using API calls)');
   }
 
   /**
@@ -220,23 +200,35 @@ export class MoonshotBTRIntegration {
       // Step 1: Convert life events to BTR format
       const btrEvents = this.convertToBTREvents(request.lifeEvents);
       
-      // Step 2: Perform iterative BTR with Swiss Ephemeris
-      const btrResult = await this.btrEngine.performBTR(
-        new Date(request.birthDetails.date + 'T' + request.birthDetails.tentativeTime),
-        request.birthDetails.latitude,
-        request.birthDetails.longitude,
-        request.birthDetails.timezone,
-        btrEvents
-      );
+      // Step 2: Perform iterative BTR using API calls
+      const btrResult = await apiPerformBTRAnalysis({
+        birthData: {
+          date: request.birthDetails.date + 'T' + request.birthDetails.tentativeTime,
+          latitude: request.birthDetails.latitude,
+          longitude: request.birthDetails.longitude,
+          timezone: request.birthDetails.timezone,
+        },
+        lifeEvents: btrEvents.map(event => ({
+          date: event.date.toISOString(),
+          type: event.eventType,
+          description: event.description,
+        })),
+        uncertaintyMinutes: 120,
+        slotInterval: 15,
+      });
+
+      if (!btrResult.success || !btrResult.data) {
+        throw new Error(`BTR API analysis failed: ${btrResult.error}`);
+      }
 
       // Step 3: Prepare comprehensive analysis for Moonshot AI
-      const moonshotRequest = this.prepareMoonshotRequest(request, btrResult);
+      const moonshotRequest = this.prepareMoonshotRequest(request, btrResult.data);
       
       // Step 4: Get AI analysis from Moonshot
       const aiAnalysis = await this.getMoonshotAIAnalysis(moonshotRequest);
       
       // Step 5: Combine BTR results with AI insights
-      const finalResponse = this.combineResults(btrResult, aiAnalysis, request);
+      const finalResponse = this.combineResults(btrResult.data, aiAnalysis, request);
       
       console.log('✅ BTR analysis complete with Moonshot AI integration');
       return finalResponse;
@@ -881,7 +873,7 @@ export class MoonshotBTRIntegration {
   /**
    * 🧠 Prepare comprehensive request for Moonshot AI
    */
-  private prepareMoonshotRequest(request: MoonshotBTRRequest, btrResult: BTRResult): any {
+  private prepareMoonshotRequest(request: MoonshotBTRRequest, btrResult: any): any {
     return {
       model: 'kimi',
       messages: [
@@ -924,7 +916,7 @@ Use Lahiri Ayanamsa and provide detailed, professional analysis with clear confi
   /**
    * 📝 Format analysis request for Moonshot AI
    */
-  private formatAnalysisRequest(request: MoonshotBTRRequest, btrResult: BTRResult): string {
+  private formatAnalysisRequest(request: MoonshotBTRRequest, btrResult: any): string {
     return `
 # COMPREHENSIVE BIRTH TIME RECTIFICATION ANALYSIS
 
@@ -973,62 +965,70 @@ Format your response according to the specified structure with Executive Summary
   /**
    * 📊 Format Swiss Ephemeris data for AI analysis
    */
-  private formatSwissEphemerisData(data: SwissEphemerisResult): string {
+  private formatSwissEphemerisData(data: any): string {
+    if (!data || !data.planets) {
+      return '### Swiss Ephemeris data not available\n';
+    }
+    
     return `
 ### Planetary Positions (Sidereal - KP Ayanamsa):
-- Sun: ${data.planets.sun.sign} ${data.planets.sun.longitudeDeg}°${data.planets.sun.longitudeMin}'${data.planets.sun.longitudeSec}" (${data.planets.sun.nakshatra})
-- Moon: ${data.planets.moon.sign} ${data.planets.moon.longitudeDeg}°${data.planets.moon.longitudeMin}'${data.planets.moon.longitudeSec}" (${data.planets.moon.nakshatra})
-- Mars: ${data.planets.mars.sign} ${data.planets.mars.longitudeDeg}°${data.planets.mars.longitudeMin}'${data.planets.mars.longitudeSec}" (${data.planets.mars.nakshatra})
-- Mercury: ${data.planets.mercury.sign} ${data.planets.mercury.longitudeDeg}°${data.planets.mercury.longitudeMin}'${data.planets.mercury.longitudeSec}" (${data.planets.mercury.nakshatra})
-- Jupiter: ${data.planets.jupiter.sign} ${data.planets.jupiter.longitudeDeg}°${data.planets.jupiter.longitudeMin}'${data.planets.jupiter.longitudeSec}" (${data.planets.jupiter.nakshatra})
-- Venus: ${data.planets.venus.sign} ${data.planets.venus.longitudeDeg}°${data.planets.venus.longitudeMin}'${data.planets.venus.longitudeSec}" (${data.planets.venus.nakshatra})
-- Saturn: ${data.planets.saturn.sign} ${data.planets.saturn.longitudeDeg}°${data.planets.saturn.longitudeMin}'${data.planets.saturn.longitudeSec}" (${data.planets.saturn.nakshatra})
-- Rahu: ${data.planets.rahu.sign} ${data.planets.rahu.longitudeDeg}°${data.planets.rahu.longitudeMin}'${data.planets.rahu.longitudeSec}" (${data.planets.rahu.nakshatra})
-- Ketu: ${data.planets.ketu.sign} ${data.planets.ketu.longitudeDeg}°${data.planets.ketu.longitudeMin}'${data.planets.ketu.longitudeSec}" (${data.planets.ketu.nakshatra})
+- Sun: ${data.planets.sun?.sign || 'N/A'} ${data.planets.sun?.longitudeDeg || 0}°${data.planets.sun?.longitudeMin || 0}'${data.planets.sun?.longitudeSec || 0}" (${data.planets.sun?.nakshatra || 'N/A'})
+- Moon: ${data.planets.moon?.sign || 'N/A'} ${data.planets.moon?.longitudeDeg || 0}°${data.planets.moon?.longitudeMin || 0}'${data.planets.moon?.longitudeSec || 0}" (${data.planets.moon?.nakshatra || 'N/A'})
+- Mars: ${data.planets.mars?.sign || 'N/A'} ${data.planets.mars?.longitudeDeg || 0}°${data.planets.mars?.longitudeMin || 0}'${data.planets.mars?.longitudeSec || 0}" (${data.planets.mars?.nakshatra || 'N/A'})
+- Mercury: ${data.planets.mercury?.sign || 'N/A'} ${data.planets.mercury?.longitudeDeg || 0}°${data.planets.mercury?.longitudeMin || 0}'${data.planets.mercury?.longitudeSec || 0}" (${data.planets.mercury?.nakshatra || 'N/A'})
+- Jupiter: ${data.planets.jupiter?.sign || 'N/A'} ${data.planets.jupiter?.longitudeDeg || 0}°${data.planets.jupiter?.longitudeMin || 0}'${data.planets.jupiter?.longitudeSec || 0}" (${data.planets.jupiter?.nakshatra || 'N/A'})
+- Venus: ${data.planets.venus?.sign || 'N/A'} ${data.planets.venus?.longitudeDeg || 0}°${data.planets.venus?.longitudeMin || 0}'${data.planets.venus?.longitudeSec || 0}" (${data.planets.venus?.nakshatra || 'N/A'})
+- Saturn: ${data.planets.saturn?.sign || 'N/A'} ${data.planets.saturn?.longitudeDeg || 0}°${data.planets.saturn?.longitudeMin || 0}'${data.planets.saturn?.longitudeSec || 0}" (${data.planets.saturn?.nakshatra || 'N/A'})
+- Rahu: ${data.planets.rahu?.sign || 'N/A'} ${data.planets.rahu?.longitudeDeg || 0}°${data.planets.rahu?.longitudeMin || 0}'${data.planets.rahu?.longitudeSec || 0}" (${data.planets.rahu?.nakshatra || 'N/A'})
+- Ketu: ${data.planets.ketu?.sign || 'N/A'} ${data.planets.ketu?.longitudeDeg || 0}°${data.planets.ketu?.longitudeMin || 0}'${data.planets.ketu?.longitudeSec || 0}" (${data.planets.ketu?.nakshatra || 'N/A'})
 
 ### House Cusps (Placidus):
-- Ascendant: ${data.houseCusps.ascendant.toFixed(2)}° (${data.houseCusps.cuspSigns[0]})
-- 2nd House: ${data.houseCusps.secondHouse.toFixed(2)}° (${data.houseCusps.cuspSigns[1]})
-- 7th House: ${data.houseCusps.seventhHouse.toFixed(2)}° (${data.houseCusps.cuspSigns[6]})
-- 10th House: ${data.houseCusps.tenthHouse.toFixed(2)}° (${data.houseCusps.cuspSigns[9]})
+- Ascendant: ${data.houseCusps?.ascendant?.toFixed(2) || 0}° (${data.houseCusps?.cuspSigns?.[0] || 'N/A'})
+- 2nd House: ${data.houseCusps?.secondHouse?.toFixed(2) || 0}° (${data.houseCusps?.cuspSigns?.[1] || 'N/A'})
+- 7th House: ${data.houseCusps?.seventhHouse?.toFixed(2) || 0}° (${data.houseCusps?.cuspSigns?.[6] || 'N/A'})
+- 10th House: ${data.houseCusps?.tenthHouse?.toFixed(2) || 0}° (${data.houseCusps?.cuspSigns?.[9] || 'N/A'})
 
 ### Current Dasha Periods:
-- Mahadasha: ${data.dashaPeriods.vimshottari.currentMahadasha.planet}
-- Antardasha: ${data.dashaPeriods.vimshottari.currentAntardasha.planet}
-- Pratyantardasha: ${data.dashaPeriods.vimshottari.currentPratyantardasha.planet}
-- Birth Balance: ${data.dashaPeriods.vimshottari.birthBalance}
+- Mahadasha: ${data.dashaPeriods?.vimshottari?.currentMahadasha?.planet || 'N/A'}
+- Antardasha: ${data.dashaPeriods?.vimshottari?.currentAntardasha?.planet || 'N/A'}
+- Pratyantardasha: ${data.dashaPeriods?.vimshottari?.currentPratyantardasha?.planet || 'N/A'}
+- Birth Balance: ${data.dashaPeriods?.vimshottari?.birthBalance || 'N/A'}
 
 ### Key Divisional Charts:
-- D-1 (Rashi) Lagna: ${data.divisionalCharts.d1?.lagnaSign} ${data.divisionalCharts.d1?.lagnaDegree?.toFixed(1)}°
-- D-9 (Navamsa) Lagna: ${data.divisionalCharts.d9?.lagnaSign} ${data.divisionalCharts.d9?.lagnaDegree?.toFixed(1)}°
-- D-60 (Shastiamsa) Lagna: ${data.divisionalCharts.d60?.lagnaSign} ${data.divisionalCharts.d60?.lagnaDegree?.toFixed(1)}°
+- D-1 (Rashi) Lagna: ${data.divisionalCharts?.d1?.lagnaSign || 'N/A'} ${data.divisionalCharts?.d1?.lagnaDegree?.toFixed(1) || 0}°
+- D-9 (Navamsa) Lagna: ${data.divisionalCharts?.d9?.lagnaSign || 'N/A'} ${data.divisionalCharts?.d9?.lagnaDegree?.toFixed(1) || 0}°
+- D-60 (Shastiamsa) Lagna: ${data.divisionalCharts?.d60?.lagnaSign || 'N/A'} ${data.divisionalCharts?.d60?.lagnaDegree?.toFixed(1) || 0}°
 
-### Retrograde Planets: ${data.retrogradePlanets.join(', ') || 'None'}
+### Retrograde Planets: ${data.retrogradePlanets?.join(', ') || 'None'}
 `;
   }
 
   /**
    * 📊 Format BTR results for AI analysis
    */
-  private formatBTRResults(result: BTRResult): string {
+  private formatBTRResults(result: any): string {
+    if (!result) {
+      return '### BTR results not available\n';
+    }
+    
     return `
 ### BTR Iteration Results:
-- Original Time: ${result.originalTime.toISOString()}
-- Rectified Time: ${result.rectifiedTime.toISOString()}
-- Time Adjustment: ${((result.rectifiedTime.getTime() - result.originalTime.getTime()) / (1000 * 60)).toFixed(1)} minutes
-- Final Alignment Score: ${result.finalAlignmentScore.toFixed(2)}%
-- Confidence Level: ${result.confidenceLevel}
-- Total Iterations: ${result.totalIterations}
-- Convergence Reason: ${result.convergenceReason}
+- Original Time: ${result.originalTime?.toISOString() || 'N/A'}
+- Rectified Time: ${result.rectifiedTime?.toISOString() || 'N/A'}
+- Time Adjustment: ${result.originalTime && result.rectifiedTime ? ((result.rectifiedTime.getTime() - result.originalTime.getTime()) / (1000 * 60)).toFixed(1) : '0'} minutes
+- Final Alignment Score: ${result.finalAlignmentScore?.toFixed(2) || '0'}%
+- Confidence Level: ${result.confidenceLevel || 'N/A'}
+- Total Iterations: ${result.totalIterations || 0}
+- Convergence Reason: ${result.convergenceReason || 'N/A'}
 
 ### Event Matching Summary:
-${result.eventMatches.map(match => 
-  `- ${match.event.description}: ${match.matchScore.toFixed(1)}% (${match.matchingFactors.planets ? '✓' : '✗'} Planets, ${match.matchingFactors.houses ? '✓' : '✗'} Houses, ${match.matchingFactors.dasha ? '✓' : '✗'} Dasha, ${match.matchingFactors.divisional ? '✓' : '✗'} Divisional)`
-).join('\n')}
+${result.eventMatches?.map((match: any) => 
+  `- ${match.event?.description || 'Unknown'}: ${match.matchScore?.toFixed(1) || '0'}% (${match.matchingFactors?.planets ? '✓' : '✗'} Planets, ${match.matchingFactors?.houses ? '✓' : '✗'} Houses, ${match.matchingFactors?.dasha ? '✓' : '✗'} Dasha, ${match.matchingFactors?.divisional ? '✓' : '✗'} Divisional)`
+).join('\n') || 'No event matches available'}
 
 ### Alternative Times Considered:
-${result.alternativeTimes?.map(alt => 
-  `- ${alt.time.toISOString()}: ${alt.score.toFixed(1)}% - ${alt.reason}`
+${result.alternativeTimes?.map((alt: any) => 
+  `- ${alt.time?.toISOString() || 'N/A'}: ${alt.score?.toFixed(1) || '0'}% - ${alt.reason || 'No reason'}`
 ).join('\n') || 'None'}
 `;
   }
@@ -1140,7 +1140,7 @@ ${result.alternativeTimes?.map(alt =>
   /**
    * 🎯 Combine BTR results with AI insights
    */
-  private combineResults(btrResult: BTRResult, aiAnalysis: string, request: MoonshotBTRRequest): MoonshotBTRResponse {
+  private combineResults(btrResult: any, aiAnalysis: string, request: MoonshotBTRRequest): MoonshotBTRResponse {
     // Parse AI analysis to extract structured data
     const parsedAnalysis = this.parseAIAnalysis(aiAnalysis);
     
@@ -1175,7 +1175,7 @@ ${result.alternativeTimes?.map(alt =>
    * 🔍 Extract sections from AI analysis
    */
   private extractSection(analysis: string, sectionName: string): string {
-    const regex = new RegExp(`### ${sectionName}\\n([\\s\\S]*?)(?=###|\\n###|$)`, 'i');
+    const regex = new RegExp(`### ${sectionName}\n([\s\S]*?)(?=###|\n###|$)`, 'i');
     const match = analysis.match(regex);
     return match ? match[1].trim() : '';
   }
@@ -1269,7 +1269,7 @@ ${result.alternativeTimes?.map(alt =>
    * 🔍 Helper methods for parsing
    */
   private extractValue(text: string, label: string): string {
-    const regex = new RegExp(`${label}\\s*(.+?)(?=\\n[A-Z]|$)`, 'i');
+    const regex = new RegExp(`${label}\s*(.+?)(?=\n[A-Z]|$)`, 'i');
     const match = text.match(regex);
     return match ? match[1].trim() : '';
   }
@@ -1282,7 +1282,7 @@ ${result.alternativeTimes?.map(alt =>
   }
 
   private extractListItems(text: string, sectionName: string): string[] {
-    const sectionRegex = new RegExp(`${sectionName}([\\s\\S]*?)(?=\\n[A-Z]|$)`, 'i');
+    const sectionRegex = new RegExp(`${sectionName}([\s\S]*?)(?=\n[A-Z]|$)`, 'i');
     const sectionMatch = text.match(sectionRegex);
     
     if (!sectionMatch) return [];

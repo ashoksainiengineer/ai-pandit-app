@@ -6,6 +6,47 @@ interface FinalReportProps {
 }
 
 export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
+  // Add null safety for all potentially undefined values
+  const executiveSummary = report.executiveSummary || {
+    originalTime: 'N/A',
+    rectifiedTime: 'N/A',
+    adjustment: 'N/A',
+    confidence: 0,
+    confidenceCategory: 'N/A',
+    candidatesTested: 0,
+    duration: 'N/A'
+  };
+  
+  const rectifiedChart = report.rectifiedChart || {
+    ascendant: { sign: 'N/A', degree: 0, nakshatra: 'N/A', pada: 0 },
+    moon: { sign: 'N/A', degree: 0, nakshatra: 'N/A', pada: 0 },
+    birthDasha: { planet: 'N/A', yearsRemaining: 0 },
+    planetaryPositions: [],
+    divisionalCharts: { d9: 'N/A', d10: 'N/A' },
+    yogas: []
+  };
+  
+  const eventCorrelations = report.eventCorrelations || [];
+  const scoringBreakdown = report.scoringBreakdown || { total: { score: 0, max: 100, percentage: 0 } };
+  const supportingEvidence = report.supportingEvidence || [];
+  const redFlags = report.redFlags || [];
+  const alternativeTimes = report.alternativeTimes || [];
+  const recommendations = report.recommendations || {
+    primary: 'N/A',
+    secondary: [],
+    nextSteps: []
+  };
+  const methodology = report.methodology || {
+    ayanamsa: 'N/A',
+    houseSystem: 'N/A',
+    dashaSystem: 'N/A',
+    precision: 'N/A',
+    iterations: 0,
+    aiModel: 'N/A',
+    divisionalCharts: [],
+    references: []
+  };
+
   const getConfidenceColor = (score: number) => {
     if (score >= 90) return 'text-green-400';
     if (score >= 75) return 'text-yellow-400';
@@ -79,37 +120,37 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-600/30">
               <div className="text-gray-400 text-sm mb-2">Original Time</div>
-              <div className="text-white text-2xl font-bold">{report.executiveSummary.originalTime}</div>
+              <div className="text-white text-2xl font-bold">{executiveSummary.originalTime}</div>
             </div>
             
             <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-600/30">
               <div className="text-gray-400 text-sm mb-2">Rectified Time</div>
-              <div className="text-white text-2xl font-bold">{report.executiveSummary.rectifiedTime}</div>
+              <div className="text-white text-2xl font-bold">{executiveSummary.rectifiedTime}</div>
             </div>
             
             <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-600/30">
               <div className="text-gray-400 text-sm mb-2">Adjustment</div>
-              <div className="text-white text-2xl font-bold">{report.executiveSummary.adjustment}</div>
+              <div className="text-white text-2xl font-bold">{executiveSummary.adjustment}</div>
             </div>
             
-            <div className={['rounded-lg', 'p-6', 'border', getConfidenceBgColor(report.executiveSummary.confidence)].join(' ')}>
+            <div className={['rounded-lg', 'p-6', 'border', getConfidenceBgColor(executiveSummary.confidence)].join(' ')}>
               <div className="text-gray-400 text-sm mb-2">Confidence Score</div>
-              <div className={['text-3xl', 'font-bold', getConfidenceColor(report.executiveSummary.confidence)].join(' ')}>
-                {report.executiveSummary.confidence}/100
+              <div className={['text-3xl', 'font-bold', getConfidenceColor(executiveSummary.confidence)].join(' ')}>
+                {executiveSummary.confidence}/100
               </div>
-              <div className={['text-sm', 'mt-1', getConfidenceColor(report.executiveSummary.confidence)].join(' ')}>
-                {report.executiveSummary.confidenceCategory}
+              <div className={['text-sm', 'mt-1', getConfidenceColor(executiveSummary.confidence)].join(' ')}>
+                {executiveSummary.confidenceCategory}
               </div>
             </div>
             
             <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-600/30">
               <div className="text-gray-400 text-sm mb-2">Candidates Tested</div>
-              <div className="text-white text-2xl font-bold">{report.executiveSummary.candidatesTested}</div>
+              <div className="text-white text-2xl font-bold">{executiveSummary.candidatesTested}</div>
             </div>
             
             <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-600/30">
               <div className="text-gray-400 text-sm mb-2">Processing Time</div>
-              <div className="text-white text-2xl font-bold">{report.executiveSummary.duration}</div>
+              <div className="text-white text-2xl font-bold">{executiveSummary.duration}</div>
             </div>
           </div>
         </div>
@@ -129,19 +170,19 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-400">Sign:</span>
-                    <span className="text-white font-medium ml-2">{report.rectifiedChart.ascendant.sign}</span>
+                    <span className="text-white font-medium ml-2">{rectifiedChart.ascendant.sign}</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Degree:</span>
-                    <span className="text-white font-medium ml-2">{report.rectifiedChart.ascendant.degree}°</span>
+                    <span className="text-white font-medium ml-2">{rectifiedChart.ascendant.degree}°</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Nakshatra:</span>
-                    <span className="text-white font-medium ml-2">{report.rectifiedChart.ascendant.nakshatra}</span>
+                    <span className="text-white font-medium ml-2">{rectifiedChart.ascendant.nakshatra}</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Pada:</span>
-                    <span className="text-white font-medium ml-2">{report.rectifiedChart.ascendant.pada}</span>
+                    <span className="text-white font-medium ml-2">{rectifiedChart.ascendant.pada}</span>
                   </div>
                 </div>
               </div>
@@ -151,19 +192,19 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-400">Sign:</span>
-                    <span className="text-white font-medium ml-2">{report.rectifiedChart.moon.sign}</span>
+                    <span className="text-white font-medium ml-2">{rectifiedChart.moon.sign}</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Degree:</span>
-                    <span className="text-white font-medium ml-2">{report.rectifiedChart.moon.degree}°</span>
+                    <span className="text-white font-medium ml-2">{rectifiedChart.moon.degree}°</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Nakshatra:</span>
-                    <span className="text-white font-medium ml-2">{report.rectifiedChart.moon.nakshatra}</span>
+                    <span className="text-white font-medium ml-2">{rectifiedChart.moon.nakshatra}</span>
                   </div>
                   <div>
                     <span className="text-gray-400">Pada:</span>
-                    <span className="text-white font-medium ml-2">{report.rectifiedChart.moon.pada}</span>
+                    <span className="text-white font-medium ml-2">{rectifiedChart.moon.pada}</span>
                   </div>
                 </div>
               </div>
@@ -172,10 +213,10 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
                 <h3 className="text-lg font-bold text-white mb-3">Birth Dasha</h3>
                 <div className="text-center">
                   <div className="text-xl font-bold text-purple-400">
-                    {report.rectifiedChart.birthDasha.planet} Mahadasha
+                    {rectifiedChart.birthDasha.planet} Mahadasha
                   </div>
                   <div className="text-sm text-gray-400 mt-1">
-                    {report.rectifiedChart.birthDasha.yearsRemaining} years remaining
+                    {rectifiedChart.birthDasha.yearsRemaining} years remaining
                   </div>
                 </div>
               </div>
@@ -185,7 +226,7 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
             <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-600/30">
               <h3 className="text-lg font-bold text-white mb-3">Planetary Positions</h3>
               <div className="space-y-2 max-h-80 overflow-y-auto">
-                {report.rectifiedChart.planetaryPositions.map((planet, index) => (
+                {rectifiedChart.planetaryPositions.map((planet, index) => (
                   <div key={index} className="flex justify-between items-center py-2 border-b border-gray-700/30 last:border-0">
                     <div className="flex items-center space-x-3">
                       <span className="text-lg">
@@ -225,28 +266,28 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex justify-between">
                   <span className="text-gray-400">D9 (Navamsa):</span>
-                  <span className="text-white font-medium">{report.rectifiedChart.divisionalCharts.d9}</span>
+                  <span className="text-white font-medium">{rectifiedChart.divisionalCharts.d9}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">D10 (Dasamsa):</span>
-                  <span className="text-white font-medium">{report.rectifiedChart.divisionalCharts.d10}</span>
+                  <span className="text-white font-medium">{rectifiedChart.divisionalCharts.d10}</span>
                 </div>
-                {report.rectifiedChart.divisionalCharts.d7 && (
+                {rectifiedChart.divisionalCharts.d7 && (
                   <div className="flex justify-between">
                     <span className="text-gray-400">D7 (Saptamsa):</span>
-                    <span className="text-white font-medium">{report.rectifiedChart.divisionalCharts.d7}</span>
+                    <span className="text-white font-medium">{rectifiedChart.divisionalCharts.d7}</span>
                   </div>
                 )}
-                {report.rectifiedChart.divisionalCharts.d12 && (
+                {rectifiedChart.divisionalCharts.d12 && (
                   <div className="flex justify-between">
                     <span className="text-gray-400">D12 (Dwadasamsa):</span>
-                    <span className="text-white font-medium">{report.rectifiedChart.divisionalCharts.d12}</span>
+                    <span className="text-white font-medium">{rectifiedChart.divisionalCharts.d12}</span>
                   </div>
                 )}
-                {report.rectifiedChart.divisionalCharts.d30 && (
+                {rectifiedChart.divisionalCharts.d30 && (
                   <div className="flex justify-between">
                     <span className="text-gray-400">D30 (Trimsamsa):</span>
-                    <span className="text-white font-medium">{report.rectifiedChart.divisionalCharts.d30}</span>
+                    <span className="text-white font-medium">{rectifiedChart.divisionalCharts.d30}</span>
                   </div>
                 )}
               </div>
@@ -255,7 +296,7 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
             <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-600/30">
               <h3 className="text-lg font-bold text-white mb-3">Identified Yogas</h3>
               <div className="space-y-3">
-                {report.rectifiedChart.yogas.map((yoga, index) => (
+                {rectifiedChart.yogas.map((yoga, index) => (
                   <div key={index} className="border-b border-gray-700/30 pb-3 last:border-0 last:pb-0">
                     <div className="flex justify-between items-start mb-1">
                       <span className="text-white font-medium">{yoga.name}</span>
@@ -284,7 +325,7 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
           </h2>
           
           <div className="space-y-6">
-            {report.eventCorrelations.map((correlation, index) => (
+            {eventCorrelations.map((correlation, index) => (
               <div key={index} className="bg-slate-800/50 rounded-lg p-6 border border-slate-600/30">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-bold text-white">{correlation.event}</h3>
@@ -319,19 +360,19 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
             <div className="bg-green-900/30 rounded-lg p-4 border border-green-500/30">
               <div className="text-green-400 text-sm mb-1">Perfectly Matched</div>
               <div className="text-white text-2xl font-bold">
-                {report.eventCorrelations.filter(e => e.quality === 'EXCELLENT').length}/{report.eventCorrelations.length}
+                {eventCorrelations.filter(e => e.quality === 'EXCELLENT').length}/{eventCorrelations.length}
               </div>
             </div>
             <div className="bg-blue-900/30 rounded-lg p-4 border border-blue-500/30">
               <div className="text-blue-400 text-sm mb-1">Well Matched</div>
               <div className="text-white text-2xl font-bold">
-                {report.eventCorrelations.filter(e => e.quality === 'GOOD').length}/{report.eventCorrelations.length}
+                {eventCorrelations.filter(e => e.quality === 'GOOD').length}/{eventCorrelations.length}
               </div>
             </div>
             <div className="bg-slate-800/50 rounded-lg p-4 border border-slate-600/30">
               <div className="text-gray-400 text-sm mb-1">Overall Accuracy</div>
               <div className="text-white text-2xl font-bold">
-                {Math.round((report.eventCorrelations.reduce((sum, e) => sum + e.score, 0) / report.eventCorrelations.length) * 10)}%
+                {eventCorrelations.length > 0 ? Math.round((eventCorrelations.reduce((sum, e) => sum + e.score, 0) / eventCorrelations.length) * 10) : 0}%
               </div>
             </div>
           </div>
@@ -345,7 +386,7 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
           </h2>
           
           <div className="space-y-4">
-            {Object.entries(report.scoringBreakdown).filter(([key]) => key !== 'total').map(([key, breakdown]) => (
+            {Object.entries(scoringBreakdown).filter(([key]) => key !== 'total').map(([key, breakdown]) => (
               <div key={key} className="bg-slate-800/50 rounded-lg p-4 border border-slate-600/30">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-white font-medium capitalize">
@@ -356,7 +397,7 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
                   </span>
                 </div>
                 <div className="w-full bg-gray-700 rounded-full h-3">
-                  <div 
+                  <div
                     className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-1000"
                     style={{ width: `${breakdown.percentage}%` }}
                   />
@@ -368,23 +409,23 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
             ))}
             
             {/* Total Score */}
-            <div className={['rounded-lg', 'p-6', 'border-2', getConfidenceBgColor(report.scoringBreakdown.total.score)].join(' ')}>
+            <div className={['rounded-lg', 'p-6', 'border-2', getConfidenceBgColor(scoringBreakdown.total.score)].join(' ')}>
               <div className="flex justify-between items-center mb-2">
-                <span className={['text-xl', 'font-bold', getConfidenceColor(report.scoringBreakdown.total.score)].join(' ')}>
+                <span className={['text-xl', 'font-bold', getConfidenceColor(scoringBreakdown.total.score)].join(' ')}>
                   TOTAL SCORE
                 </span>
-                <span className={['text-3xl', 'font-bold', getConfidenceColor(report.scoringBreakdown.total.score)].join(' ')}>
-                  {report.scoringBreakdown.total.score}/{report.scoringBreakdown.total.max}
+                <span className={['text-3xl', 'font-bold', getConfidenceColor(scoringBreakdown.total.score)].join(' ')}>
+                  {scoringBreakdown.total.score}/{scoringBreakdown.total.max}
                 </span>
               </div>
               <div className="w-full bg-gray-700 rounded-full h-4">
-                <div 
+                <div
                   className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-full transition-all duration-1000"
-                  style={{ width: `${report.scoringBreakdown.total.percentage}%` }}
+                  style={{ width: `${scoringBreakdown.total.percentage}%` }}
                 />
               </div>
               <div className="text-right text-lg font-bold mt-2">
-                {report.scoringBreakdown.total.percentage}%
+                {scoringBreakdown.total.percentage}%
               </div>
             </div>
           </div>
@@ -400,7 +441,7 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
             </h2>
             
             <div className="space-y-4">
-              {report.supportingEvidence.map((evidence, index) => (
+              {supportingEvidence.map((evidence, index) => (
                 <div key={index} className="bg-slate-800/50 rounded-lg p-4 border border-slate-600/30">
                   <div className="flex items-start space-x-3">
                     <span className={['text-lg', 'flex-shrink-0', getImpactColor(evidence.impact)].join(' ')}>
@@ -423,9 +464,9 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
               Red Flags
             </h2>
             
-            {report.redFlags.length > 0 ? (
+            {redFlags.length > 0 ? (
               <div className="space-y-4">
-                {report.redFlags.map((flag, index) => (
+                {redFlags.map((flag, index) => (
                   <div key={index} className="bg-slate-800/50 rounded-lg p-4 border border-slate-600/30">
                     <div className="flex items-start space-x-3">
                       <span className={['text-lg', 'flex-shrink-0', getSeverityColor(flag.severity)].join(' ')}>
@@ -464,7 +505,7 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
           </h2>
           
           <div className="space-y-3">
-            {report.alternativeTimes.map((alt, index) => (
+            {alternativeTimes.map((alt, index) => (
               <div key={index} className="bg-slate-800/50 rounded-lg p-4 border border-slate-600/30 flex items-center justify-between">
                 <div className="flex items-center space-x-4">
                   <div className="text-2xl font-bold text-gray-400">#{alt.rank}</div>
@@ -492,15 +533,15 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
             <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-600/30">
               <h3 className="text-lg font-bold text-white mb-3">Primary Assessment</h3>
               <div className="text-gray-300 leading-relaxed">
-                {report.recommendations.primary}
+                {recommendations.primary}
               </div>
             </div>
             
-            {report.recommendations.secondary.length > 0 && (
+            {recommendations.secondary.length > 0 && (
               <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-600/30">
                 <h3 className="text-lg font-bold text-white mb-3">Secondary Recommendations</h3>
                 <ul className="space-y-2">
-                  {report.recommendations.secondary.map((rec, index) => (
+                  {recommendations.secondary.map((rec, index) => (
                     <li key={index} className="flex items-start space-x-2">
                       <span className="text-purple-400 mt-1">•</span>
                       <span className="text-gray-300">{rec}</span>
@@ -513,7 +554,7 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
             <div className="bg-slate-800/50 rounded-lg p-6 border border-slate-600/30">
               <h3 className="text-lg font-bold text-white mb-3">Next Steps</h3>
               <ul className="space-y-2">
-                {report.recommendations.nextSteps.map((step, index) => (
+                {recommendations.nextSteps.map((step, index) => (
                   <li key={index} className="flex items-start space-x-2">
                     <span className="text-green-400 mt-1">→</span>
                     <span className="text-gray-300">{step}</span>
@@ -537,23 +578,23 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Ayanamsa:</span>
-                  <span className="text-white font-medium">{report.methodology.ayanamsa}</span>
+                  <span className="text-white font-medium">{methodology.ayanamsa}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">House System:</span>
-                  <span className="text-white font-medium">{report.methodology.houseSystem}</span>
+                  <span className="text-white font-medium">{methodology.houseSystem}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Dasha System:</span>
-                  <span className="text-white font-medium">{report.methodology.dashaSystem}</span>
+                  <span className="text-white font-medium">{methodology.dashaSystem}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Precision:</span>
-                  <span className="text-white font-medium">{report.methodology.precision}</span>
+                  <span className="text-white font-medium">{methodology.precision}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Iterations:</span>
-                  <span className="text-white font-medium">{report.methodology.iterations}</span>
+                  <span className="text-white font-medium">{methodology.iterations}</span>
                 </div>
               </div>
             </div>
@@ -563,15 +604,15 @@ export const FinalReport: React.FC<FinalReportProps> = ({ report }) => {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-400">AI Model:</span>
-                  <span className="text-white font-medium">{report.methodology.aiModel}</span>
+                  <span className="text-white font-medium">{methodology.aiModel}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Divisional Charts:</span>
-                  <span className="text-white font-medium">{report.methodology.divisionalCharts.join(', ')}</span>
+                  <span className="text-white font-medium">{methodology.divisionalCharts.join(', ')}</span>
                 </div>
                 <div className="text-gray-400 mt-3">References:</div>
                 <div className="text-white text-xs mt-1">
-                  {report.methodology.references.join(', ')}
+                  {methodology.references.join(', ')}
                 </div>
               </div>
             </div>

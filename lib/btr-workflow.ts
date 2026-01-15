@@ -2,11 +2,14 @@
  * 🌟 Complete BTR Workflow Integration
  * 
  * Orchestrates the entire Birth Time Rectification process:
- * User Input → Swiss Ephemeris → AI Analysis → Iterative Refinement → Final BTR
+ * User Input → API calls to Swiss Ephemeris → AI Analysis → Iterative Refinement → Final BTR
+ * 
+ * IMPORTANT: This file uses the API client to call server-side Swiss Ephemeris calculations.
+ * It should NEVER import swisseph directly.
  */
 
-import { SwissEphemerisEngine } from './swiss-ephemeris-engine';
-import { BTREngine, BTREvent, BTRResult } from './btr-iteration-engine';
+import { performBTRAnalysis as apiPerformBTRAnalysis, calculateBasicEphemeris } from './api-client';
+import { BTREvent, BTRResult } from './btr-iteration-engine';
 import { createMoonshootAIClient, MoonshootAIConfig } from './moonshoot-ai-client';
 import { generateMoonshootAIPrompt } from './moonshoot-ai-prompt';
 
@@ -82,37 +85,18 @@ export interface BTRWorkflowConfig {
 
 /**
  * 🌟 BTR Workflow Orchestrator
+ * 
+ * IMPORTANT: This class uses API calls for all Swiss Ephemeris calculations.
+ * It does NOT import or use swisseph directly.
  */
 export class BTRWorkflow {
-  private swissEphemeris: SwissEphemerisEngine;
-  private btrEngine: BTREngine;
+  private btrEngine: any;
   private moonshotAI: any;
   private config: BTRWorkflowConfig;
 
   constructor(config: BTRWorkflowConfig) {
     this.config = config;
     
-    // Initialize Swiss Ephemeris with KP system
-    this.swissEphemeris = new SwissEphemerisEngine(
-      config.ephemerisPath || './ephe',
-      config.useKPSystem !== false // Default to true
-    );
-
-    // Initialize BTR Engine
-    this.btrEngine = new BTREngine(this.swissEphemeris, {
-      maxIterations: config.maxIterations || 30,
-      convergenceThreshold: config.convergenceThreshold || 85,
-      timeStep: 2,
-      maxTimeShift: 120,
-      divisionalCharts: ['d1', 'd9', 'd10', 'd7', 'd24', 'd60'],
-      weightFactors: {
-        planets: 0.25,
-        houses: 0.25,
-        dasha: 0.25,
-        divisional: 0.25
-      }
-    });
-
     // Initialize Moonshoot AI
     const moonshootConfig: MoonshootAIConfig = {
       apiKey: config.moonshotApiKey,
@@ -122,6 +106,8 @@ export class BTRWorkflow {
       maxTokens: 4000
     };
     this.moonshotAI = createMoonshootAIClient(moonshootConfig);
+    
+    console.log('🚀 BTR Workflow initialized (using API calls)');
   }
 
   /**
@@ -129,8 +115,8 @@ export class BTRWorkflow {
    */
   async initialize(): Promise<void> {
     console.log('🚀 Initializing BTR Workflow...');
-    await this.swissEphemeris.initialize();
-    console.log('✅ BTR Workflow ready');
+    // No need to initialize Swiss Ephemeris directly since we use API calls
+    console.log('✅ BTR Workflow ready (API-based)');
   }
 
   /**
@@ -147,48 +133,53 @@ export class BTRWorkflow {
       // Step 1: Convert life events to BTR format
       const btrEvents = this.convertToBTREvents(request.lifeEvents);
       
-      // Step 2: Initial Swiss Ephemeris calculation
+      // Step 2: Perform BTR analysis using API calls
       const baseDateTime = new Date(`${request.birthDetails.date}T${request.birthDetails.tentativeTime}`);
-      const initialEphemeris = await this.swissEphemeris.calculateEphemerisForBTR(
-        baseDateTime,
+      const btrResult = await apiPerformBTRAnalysis({
+        birthData: {
+          date: baseDateTime.toISOString(),
+          latitude: request.birthDetails.latitude,
+          longitude: request.birthDetails.longitude,
+          timezone: request.birthDetails.timezone,
+        },
+        lifeEvents: btrEvents.map(event => ({
+          date: event.date.toISOString(),
+          type: event.eventType,
+          description: event.description,
+        })),
+        uncertaintyMinutes: 120,
+        slotInterval: 15,
+      });
+
+      if (!btrResult.success || !btrResult.data) {
+        throw new Error(`BTR API analysis failed: ${btrResult.error}`);
+      }
+
+      console.log(`✅ BTR iterations complete: ${btrResult.data.totalIterations} iterations`);
+      console.log(`🎯 Final alignment score: ${btrResult.data.finalAlignmentScore.toFixed(2)}%`);
+
+      // Step 3: Calculate final ephemeris for rectified time using API
+      const finalEphemeris = await calculateBasicEphemeris(
+        btrResult.data.rectifiedTime.toISOString(),
         request.birthDetails.latitude,
-        request.birthDetails.longitude,
-        request.birthDetails.timezone
+        request.birthDetails.longitude
       );
 
-      console.log('✅ Initial ephemeris calculation complete');
+      if (!finalEphemeris.success || !finalEphemeris.data) {
+        throw new Error(`Final ephemeris calculation failed: ${finalEphemeris.error}`);
+      }
 
-      // Step 3: Perform iterative BTR refinement
-      const btrResult = await this.btrEngine.performBTR(
-        baseDateTime,
-        request.birthDetails.latitude,
-        request.birthDetails.longitude,
-        request.birthDetails.timezone,
-        btrEvents
-      );
-
-      console.log(`✅ BTR iterations complete: ${btrResult.totalIterations} iterations`);
-      console.log(`🎯 Final alignment score: ${btrResult.finalAlignmentScore.toFixed(2)}%`);
-
-      // Step 4: Calculate final ephemeris for rectified time
-      const finalEphemeris = await this.swissEphemeris.calculateEphemerisForBTR(
-        btrResult.rectifiedTime,
-        request.birthDetails.latitude,
-        request.birthDetails.longitude,
-        request.birthDetails.timezone
-      );
-
-      // Step 5: Prepare AI analysis request
-      const aiRequest = this.prepareAIRequest(request, finalEphemeris, btrResult);
+      // Step 4: Prepare AI analysis request
+      const aiRequest = this.prepareAIRequest(request, finalEphemeris.data, btrResult.data);
       
-      // Step 6: Get AI analysis from Moonshot
+      // Step 5: Get AI analysis from Moonshot
       const aiResponse = await this.moonshotAI.analyzeBirthTime(aiRequest);
 
       console.log('✅ AI analysis complete');
       console.log(`🤖 AI Confidence: ${aiResponse.confidenceLevel}%`);
 
-      // Step 7: Combine all results into final response
-      const finalResponse = this.combineResults(request, btrResult, finalEphemeris, aiResponse);
+      // Step 6: Combine all results into final response
+      const finalResponse = this.combineResults(request, btrResult.data, finalEphemeris.data, aiResponse);
 
       console.log('🎉 BTR Workflow complete!');
       console.log(`⏰ Rectified Time: ${finalResponse.rectifiedBirthTime}`);

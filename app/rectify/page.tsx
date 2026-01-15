@@ -14,6 +14,7 @@ import LifeEventsForm from '@/components/LifeEventsForm';
 import ProcessingAnimation from '@/components/ProcessingAnimation';
 import ResultsDisplay from '@/components/ResultsDisplay';
 import LivePreviewPanel from '@/components/LivePreviewPanel';
+import { RealTimeDisplay } from '@/components/RealTimeDisplay';
 import { validateFormSubmission } from '@/lib/validators';
 import { calculateProgress, getProgressColor, getProgressMessage } from '@/lib/progressCalculator';
 
@@ -259,7 +260,11 @@ export default function RectifyPage() {
             className="w-full flex justify-center"
           >
             {isProcessing ? (
-              <ProcessingAnimation />
+              <RealTimeDisplay onComplete={(report) => {
+                // Convert FinalBTRReport to RectificationResult if needed
+                // For now, just complete the processing
+                setIsProcessing(false);
+              }} />
             ) : result ? (
               <ResultsDisplay result={result} />
             ) : (

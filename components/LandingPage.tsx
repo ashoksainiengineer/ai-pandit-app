@@ -386,32 +386,31 @@ export default function LandingPage({ onEnter }: LandingPageProps) {
 
           <AnimatePresence mode="wait">
             {techSpecs.map((spec) => (
-              activeTab === spec.id && (
-                <motion.div
-                  key={spec.id}
-                  className="vedic-card p-[55px] text-center max-w-4xl mx-auto"
-                  initial={{ opacity: 0, y: 21 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -21 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <div className="w-[89px] h-[89px] mx-auto mb-[21px] bg-gradient-saffron rounded-[21px] flex items-center justify-center">
-                    <spec.icon className="w-[34px] h-[34px] text-white" />
-                  </div>
-                  
-                  <div className="text-[55px] font-bold text-vedic-saffron mb-[13px] font-mono">
-                    {spec.value}
-                  </div>
-                  
-                  <h3 className="text-[34px] font-semibold text-white mb-[13px]">
-                    {spec.title}
-                  </h3>
-                  
-                  <p className="text-[21px] text-white/phi leading-relaxed">
-                    {spec.description}
-                  </p>
-                </motion.div>
-              )
+              <motion.div
+                key={spec.id}
+                className="vedic-card p-[55px] text-center max-w-4xl mx-auto"
+                initial={{ opacity: 0, y: 21 }}
+                animate={{ opacity: activeTab === spec.id ? 1 : 0, y: activeTab === spec.id ? 0 : 21 }}
+                exit={{ opacity: 0, y: -21 }}
+                transition={{ duration: 0.5 }}
+                style={{ display: activeTab === spec.id ? 'block' : 'none' }}
+              >
+                <div className="w-[89px] h-[89px] mx-auto mb-[21px] bg-gradient-saffron rounded-[21px] flex items-center justify-center">
+                  <spec.icon className="w-[34px] h-[34px] text-white" />
+                </div>
+                
+                <div className="text-[55px] font-bold text-vedic-saffron mb-[13px] font-mono">
+                  {spec.value}
+                </div>
+                
+                <h3 className="text-[34px] font-semibold text-white mb-[13px]">
+                  {spec.title}
+                </h3>
+                
+                <p className="text-[21px] text-white/phi leading-relaxed">
+                  {spec.description}
+                </p>
+              </motion.div>
             ))}
           </AnimatePresence>
         </div>
