@@ -1,172 +1,233 @@
-// ==========================================
-// DATE UTILITY FUNCTIONS
-// ==========================================
-// Standardized date handling to fix YYYY-MM-DD vs DD-MM-YYYY inconsistencies
-
 /**
- * Formats a Date object to ISO string (YYYY-MM-DD)
+ * Date validation and formatting utilities
+ * Prevents "Invalid time value" errors by ensuring valid Date objects
  */
-export function formatDateToISO(date: Date | string): string {
-  if (typeof date === 'string') {
-    // If already in ISO format, return as-is
-    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      return date;
-    }
-    // If it's a string date, parse it first
-    date = new Date(date);
-  }
-  
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  
-  return `${year}-${month}-${day}`;
+
+export interface ValidatedDateResult {
+  isValid: boolean;
+  date: Date | null;
+  error?: string;
 }
 
 /**
- * Parses an ISO date string (YYYY-MM-DD) to a Date object
- * Validates the format and throws error if invalid
+ * Validates and creates a Date object from date and time strings
+ * Prevents common date parsing errors
  */
-export function parseISODate(dateStr: string): Date {
-  if (!dateStr || typeof dateStr !== 'string') {
-    throw new Error('Date string is required');
-  }
-
-  // Strict ISO format validation: YYYY-MM-DD
-  const isoRegex = /^\d{4}-\d{2}-\d{2}$/;
-  if (!isoRegex.test(dateStr)) {
-    throw new Error(`Invalid date format: ${dateStr}. Expected YYYY-MM-DD`);
-  }
-
-  const [year, month, day] = dateStr.split('-').map(Number);
-  
-  // Validate ranges
-  if (!isValidDate(year, month, day)) {
-    throw new Error(`Invalid date: ${dateStr}`);
-  }
-
-  // Create date (month is 0-indexed in JavaScript)
-  const date = new Date(year, month - 1, day);
-  
-  // Double-check the date wasn't invalid (like Feb 30)
-  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
-    throw new Error(`Invalid date: ${dateStr}`);
-  }
-
-  return date;
-}
-
-/**
- * Validates if a date is within reasonable astrological bounds
- */
-export function isValidBirthDate(dateStr: string): boolean {
+export function createValidDate(dateString: string, timeString: string, timeZone: string = 'UTC'): ValidatedDateResult {
   try {
-    const date = parseISODate(dateStr);
-    const today = new Date();
-    const minDate = new Date(1900, 0, 1);
-    
-    // Check if date is not in the future and not too far in the past
-    if (date > today) return false;
-    if (date < minDate) return false;
-    
-    // Check if person would be reasonable age (0-150 years)
-    const age = today.getFullYear() - date.getFullYear();
-    return age >= 0 && age <= 150;
-  } catch {
-    return false;
+    // Input validation
+    if (!dateString || !timeString) {
+      return {
+        isValid: false,
+        date: null,
+        error: 'Both date and time are required'
+      };
+    }
+
+    // Ensure dateString is in YYYY-MM-DD format
+    const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+    if (!dateRegex.test(dateString)) {
+      return {
+        isValid: false,
+        date: null,
+        error: `Invalid date format: ${dateString}. Expected YYYY-MM-DD`
+      };
+    }
+
+    // Ensure timeString is in HH:MM:SS or HH:MM format
+    const timeRegex = /^\d{2}:\d{2}(:\d{2})?$/;
+    if (!timeRegex.test(timeString)) {
+      return {
+        isValid: false,
+        date: null,
+        error: `Invalid time format: ${timeString}. Expected HH:MM or HH:MM:SS`
+      };
+    }
+
+    // Combine date and time
+    const timeWithSeconds = timeString.length === 5 ? `${timeString}:00` : timeString;
+    const dateTimeString = `${dateString}T${timeWithSeconds}`;
+
+    // Create date object
+    // Using UTC parsing and then adjusting for the timeZone is more reliable across environments
+    const date = new Date(dateTimeString + 'Z');
+
+    // Validate the resulting date
+    if (isNaN(date.getTime())) {
+      return {
+        isValid: false,
+        date: null,
+        error: `Invalid date/time combination: ${dateTimeString}`
+      };
+    }
+
+    // Check for reasonable date range (between 1900 and 2100)
+    const year = date.getUTCFullYear();
+    if (year < 1900 || year > 2100) {
+      return {
+        isValid: false,
+        date: null,
+        error: `Date year ${year} is outside reasonable range (1900-2100)`
+      };
+    }
+
+    return {
+      isValid: true,
+      date
+    };
+
+  } catch (error) {
+    return {
+      isValid: false,
+      date: null,
+      error: `Exception creating date: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
   }
 }
 
 /**
- * Validates if an event date is valid (not before birth, not in future)
+ * Safely creates a Date object with error handling
  */
-export function isValidEventDate(eventDate: string, birthDate: string): boolean {
+export function safeCreateDate(dateInput: string | Date): ValidatedDateResult {
   try {
-    const event = parseISODate(eventDate);
-    const birth = parseISODate(birthDate);
-    const today = new Date();
+    let date: Date;
     
-    // Event can't be before birth
-    if (event < birth) return false;
-    
-    // Event can't be in the future (allow 1 day buffer for timezone issues)
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    if (event > tomorrow) return false;
-    
-    return true;
-  } catch {
-    return false;
+    if (typeof dateInput === 'string') {
+      date = new Date(dateInput);
+    } else if (dateInput instanceof Date) {
+      date = dateInput;
+    } else {
+      return {
+        isValid: false,
+        date: null,
+        error: 'Invalid input type for date creation'
+      };
+    }
+
+    if (isNaN(date.getTime())) {
+      return {
+        isValid: false,
+        date: null,
+        error: `Invalid date: ${dateInput}`
+      };
+    }
+
+    return {
+      isValid: true,
+      date
+    };
+
+  } catch (error) {
+    return {
+      isValid: false,
+      date: null,
+      error: `Exception creating date: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
   }
 }
 
 /**
- * Calculates the difference in days between two dates
+ * Validates ISO date string format (YYYY-MM-DD)
  */
-export function getDateDifferenceDays(date1: Date, date2: Date): number {
-  const time1 = date1.getTime();
-  const time2 = date2.getTime();
-  const diffMs = Math.abs(time2 - time1);
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
+export function isValidISODate(dateString: string): boolean {
+  if (!dateString || typeof dateString !== 'string') return false;
+  
+  const regex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!regex.test(dateString)) return false;
+  
+  const date = new Date(dateString);
+  return !isNaN(date.getTime());
 }
 
 /**
- * Converts time string to 24-hour format
+ * Validates time string format (HH:MM or HH:MM:SS)
  */
-export function convertTo24Hour(timeStr: string): string {
-  // Handle both HH:MM and HH:MM AM/PM formats
-  const timeParts = timeStr.trim().split(/[\s:]+/);
+export function isValidTimeString(timeString: string): boolean {
+  if (!timeString || typeof timeString !== 'string') return false;
   
-  if (timeParts.length === 2) {
-    // HH:MM format (already 24-hour)
-    const [hours, minutes] = timeParts;
-    return `${hours.padStart(2, '0')}:${minutes.padStart(2, '0')}`;
-  } else if (timeParts.length === 3) {
-    // HH:MM AM/PM format
-    const [hoursStr, minutes, period] = timeParts;
-    let hours = parseInt(hoursStr);
+  const regex = /^\d{2}:\d{2}(:\d{2})?$/;
+  if (!regex.test(timeString)) return false;
+  
+  const [hours, minutes, seconds] = timeString.split(':').map(Number);
+  
+  if (hours < 0 || hours > 23) return false;
+  if (minutes < 0 || minutes > 59) return false;
+  if (seconds !== undefined && (seconds < 0 || seconds > 59)) return false;
+  
+  return true;
+}
+
+/**
+ * Combines date and time strings into ISO string with validation
+ */
+export function combineDateTimeToISO(dateString: string, timeString: string): string | null {
+  const result = createValidDate(dateString, timeString);
+  return result.isValid && result.date ? result.date.toISOString() : null;
+}
+
+/**
+ * Gets current date in ISO format (YYYY-MM-DD)
+ */
+export function getCurrentISODate(): string {
+  return new Date().toISOString().split('T')[0];
+}
+
+/**
+ * Calculates age from birth date to reference date
+ */
+export function calculateAge(birthDateString: string, referenceDate: Date = new Date()): number {
+  const result = safeCreateDate(birthDateString);
+  if (!result.isValid || !result.date) return 0;
+  
+  const birthDate = result.date;
+  let age = referenceDate.getFullYear() - birthDate.getFullYear();
+  
+  const monthDiff = referenceDate.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && referenceDate.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  
+  return age;
+}
+
+/**
+ * Formats a Date object to ISO date string (YYYY-MM-DD)
+ */
+export function formatDateToISO(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
+
+/**
+ * Formats a Date object to time string (HH:MM:SS)
+ */
+export function formatTimeToString(date: Date): string {
+  return date.toTimeString().split(' ')[0];
+}
+
+/**
+ * Adds minutes to a date safely
+ */
+export function addMinutesToDate(date: Date, minutes: number): ValidatedDateResult {
+  try {
+    const newDate = new Date(date.getTime() + minutes * 60000);
     
-    if (period.toUpperCase() === 'PM' && hours !== 12) {
-      hours += 12;
-    } else if (period.toUpperCase() === 'AM' && hours === 12) {
-      hours = 0;
+    if (isNaN(newDate.getTime())) {
+      return {
+        isValid: false,
+        date: null,
+        error: `Invalid result when adding ${minutes} minutes`
+      };
     }
     
-    return `${hours.toString().padStart(2, '0')}:${minutes.padStart(2, '0')}`;
+    return {
+      isValid: true,
+      date: newDate
+    };
+  } catch (error) {
+    return {
+      isValid: false,
+      date: null,
+      error: `Exception adding minutes: ${error instanceof Error ? error.message : 'Unknown error'}`
+    };
   }
-  
-  throw new Error(`Invalid time format: ${timeStr}`);
-}
-
-/**
- * Validates time format (HH:MM in 24-hour format)
- */
-export function isValidTimeFormat(timeStr: string): boolean {
-  // More flexible regex that allows both single and double digit hours
-  // Accepts: 8:30, 08:30, 23:59, 0:00, 00:00
-  const regex = /^(0?[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/;
-  return regex.test(timeStr);
-}
-
-/**
- * Helper function to validate date components
- */
-function isValidDate(year: number, month: number, day: number): boolean {
-  return (
-    year >= 1900 && year <= 2100 &&
-    month >= 1 && month <= 12 &&
-    day >= 1 && day <= 31 &&
-    // Additional validation for months with 30/31 days
-    !(day === 31 && [4, 6, 9, 11].includes(month)) &&
-    // February validation (including leap years)
-    !(month === 2 && day > 29) &&
-    !(month === 2 && day === 29 && !isLeapYear(year))
-  );
-}
-
-/**
- * Checks if a year is a leap year
- */
-function isLeapYear(year: number): boolean {
-  return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
 }

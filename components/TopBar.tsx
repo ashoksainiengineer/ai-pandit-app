@@ -1,5 +1,6 @@
 import React from 'react';
 import { BTRProgressUpdate } from '@/types/btr-realtime';
+import { UserButton } from '@clerk/nextjs';
 
 interface TopBarProps {
   progress: BTRProgressUpdate;
@@ -20,7 +21,10 @@ export const TopBar: React.FC<TopBarProps> = ({ progress }) => {
   };
 
   return (
-    <div className="bg-black/30 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/20">
+    <div className="bg-black/30 backdrop-blur-sm rounded-2xl p-6 border border-purple-500/20 relative">
+        <div className='absolute top-4 right-4'>
+            <UserButton afterSignOutUrl='/rectify' />
+        </div>
       {/* Progress Bar */}
       <div className="mb-4">
         <div className="flex justify-between text-sm text-gray-300 mb-2">

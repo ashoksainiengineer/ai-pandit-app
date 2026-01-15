@@ -1,25 +1,25 @@
 import type { Metadata } from "next";
+import { ClerkProvider } from '@clerk/nextjs';
+import { Inter } from 'next/font/google';
 import "./globals.css";
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Vedic Birth Time Rectification | जन्म समय शुद्धि",
-  description: "Accurate birth time rectification using authentic Vedic astrology methods including K.N. Rao's event-based approach, divisional charts, and Vimshottari Dasha analysis.",
-  keywords: ["Vedic Astrology", "Birth Time Rectification", "Jyotish", "Kundli", "BTR", "K.N. Rao"],
+  title: "AI-Pandit BTR Engine",
+  description: "AI-Powered Birth Time Rectification Engine",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-vedic-navy antialiased">
-        <ErrorBoundary>
-          {children}
-        </ErrorBoundary>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body className={inter.className}>{children}</body>
+      </html>
+    </ClerkProvider>
   );
 }

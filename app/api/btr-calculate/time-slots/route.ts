@@ -21,6 +21,43 @@ export async function POST(request: Request) {
       slotInterval
     });
 
+    // Validate required parameters
+    if (!baseDate) {
+      return NextResponse.json({
+        success: false,
+        error: 'baseDate parameter is required'
+      }, { status: 400 });
+    }
+
+    if (latitude === undefined || latitude === null || isNaN(Number(latitude))) {
+      return NextResponse.json({
+        success: false,
+        error: 'Valid latitude is required'
+      }, { status: 400 });
+    }
+
+    if (longitude === undefined || longitude === null || isNaN(Number(longitude))) {
+      return NextResponse.json({
+        success: false,
+        error: 'Valid longitude is required'
+      }, { status: 400 });
+    }
+
+    // Validate and create base date
+    let validBaseDate: Date;
+    try {
+      validBaseDate = new Date(baseDate);
+      if (isNaN(validBaseDate.getTime())) {
+        throw new Error(`Invalid baseDate format: ${baseDate}`);
+      }
+    } catch (dateError) {
+      console.error('❌ Base date validation failed:', dateError);
+      return NextResponse.json({
+        success: false,
+        error: `Invalid baseDate format. Expected ISO string or valid Date input. Received: ${baseDate}`
+      }, { status: 400 });
+    }
+
     // Initialize calculator
     const config: SwissEphemerisConfig = {
       ephemerisPath: './ephe',
@@ -33,24 +70,46 @@ export async function POST(request: Request) {
     await calculator.initialize();
 
     // Calculate ephemeris for multiple time slots
-    // Note: The calculator doesn't have a direct time slots method, so we'll simulate it
     const timeSlots = [];
-    const startTime = new Date(new Date(baseDate).getTime() - uncertaintyMinutes * 60000);
-    const endTime = new Date(new Date(baseDate).getTime() + uncertaintyMinutes * 60000);
+    const startTime = new Date(validBaseDate.getTime() - uncertaintyMinutes * 60000);
+    const endTime = new Date(validBaseDate.getTime() + uncertaintyMinutes * 60000);
+    
+    console.log(`🕐 Calculating time slots from ${startTime.toISOString()} to ${endTime.toISOString()} at ${slotInterval} minute intervals`);
     
     let currentTime = new Date(startTime);
+    let slotCount = 0;
+    
     while (currentTime <= endTime) {
-      const result = await calculator.calculateChartData(
-        currentTime,
-        latitude,
-        longitude,
-        timezone
-      );
-      timeSlots.push(result);
+      try {
+        const result = await calculator.calculateChartData(
+          currentTime,
+          Number(latitude),
+          Number(longitude),
+          timezone
+        );
+        timeSlots.push(result);
+        slotCount++;
+        
+        if (slotCount % 10 === 0) {
+          console.log(`📝 Processed ${slotCount} time slots...`);
+        }
+      } catch (calcError) {
+        console.error(`❌ Error calculating chart for time ${currentTime.toISOString()}:`, calcError);
+        // Continue with next time slot instead of failing completely
+      }
+      
       currentTime = new Date(currentTime.getTime() + slotInterval * 60000);
     }
 
-    console.log('✅ Time slots calculation successful:', timeSlots.length, 'slots generated');
+    console.log(`✅ Time slots calculation successful: ${timeSlots.length} slots generated out of ${slotCount} attempted`);
+
+    if (timeSlots.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: 'No valid time slots could be calculated',
+        details: 'All time slot calculations failed'
+      }, { status: 500 });
+    }
 
     return NextResponse.json({
       success: true,
