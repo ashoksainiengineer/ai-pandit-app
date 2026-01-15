@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
+# Set build memory limit (optimized for 256MB Northflank)
+ENV NODE_OPTIONS="--max-old-space-size=240"
+
 # Copy package files
 COPY package*.json ./
 

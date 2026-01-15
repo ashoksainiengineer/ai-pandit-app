@@ -1,9 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+
+  images: {
+    unoptimized: true,
+  },
   experimental: {
     serverComponentsExternalPackages: ['swisseph'],
     workerThreads: false,
+    webpackBuildWorker: false,
     cpus: 1
   },
   productionBrowserSourceMaps: false,
@@ -12,7 +17,8 @@ const nextConfig = {
   },
   typescript: {
     ignoreBuildErrors: true,
-  }
+  },
+
 };
 
 module.exports = nextConfig;
