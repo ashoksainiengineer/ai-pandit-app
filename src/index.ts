@@ -96,6 +96,6 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 AI-Pandit BTR Engine running on port ${PORT}`);
-  console.log(`📊 Memory limit: 450MB (optimized for Northflank 512MB tier)`);
+  console.log(`📊 Memory limit: 180MB (optimized for Northflank 256MB tier)`);
   console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
