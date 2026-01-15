@@ -6,10 +6,12 @@
     pkgs.nodejs_20
     pkgs.git
     pkgs.gh
-    # Astrology project (swisseph) ke liye ye zaruri hain
+    # Build tools for native modules like swisseph
     pkgs.gnumake
     pkgs.gcc
-    pkgs.stdenv.cc.cc.lib # Extension stability ke liye
+    pkgs.binutils
+    pkgs.glibc.dev
+    pkgs.stdenv.cc.cc.lib
   ];
 
   idx.extensions = [
@@ -17,10 +19,12 @@
     "google.generative-ai"
   ];
 
-  # Environment variables
   env = {
-    # Nix environment mein path fix karne ke liye
-    LD_LIBRARY_PATH = "${pkgs.stdenv.cc.cc.lib}/lib";
+    # Correct way to pass linker flags in Nix
+    # This tells the linker where to find C libraries like crti.o
+    NIX_LDFLAGS = "-L${pkgs.glibc.dev}/lib -L${pkgs.stdenv.cc.cc.lib}/lib";
+    # This tells the compiler where to find C headers
+    NIX_CFLAGS_COMPILE = "-I${pkgs.glibc.dev}/include";
   };
 
   idx.workspace = {

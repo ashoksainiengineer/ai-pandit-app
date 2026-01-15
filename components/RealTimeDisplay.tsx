@@ -32,6 +32,7 @@ export const RealTimeDisplay: React.FC<RealTimeDisplayProps> = ({ onComplete }) 
   const [isComplete, setIsComplete] = useState(false);
   const [finalReport, setFinalReport] = useState<FinalBTRReport | null>(null);
   const { isActive, triggerCelebration, particles } = useCelebrationAnimation();
+  const [activeTab, setActiveTab] = useState('swiss-ephemeris');
 
   // Simulate real-time updates (this will be replaced with actual BTR workflow integration)
   useEffect(() => {
@@ -290,8 +291,6 @@ export const RealTimeDisplay: React.FC<RealTimeDisplayProps> = ({ onComplete }) 
   if (isComplete && finalReport) {
     return <FinalReport report={finalReport} />;
   }
-
-  const [activeTab, setActiveTab] = useState('swiss-ephemeris');
   
   const tabs = [
     { id: 'swiss-ephemeris', label: 'Swiss Ephemeris (KP Ayanamsha)', icon: '🔮' },

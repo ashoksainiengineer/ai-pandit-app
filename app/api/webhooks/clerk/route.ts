@@ -5,6 +5,8 @@ import { db } from '@/database/drizzle'
 import { users } from '@/database/schema'
 import { eq } from 'drizzle-orm'
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
 
   // You can find this in the Clerk Dashboard -> Webhooks -> choose the webhook

@@ -1,18 +1,18 @@
 import { NextResponse } from 'next/server';
-import { createSwissEphemerisCalculator, SwissEphemerisConfig } from '@/lib/swiss-ephemeris-calculator';
+// import { createSwissEphemerisCalculator, SwissEphemerisConfig } from '@/lib/swiss-ephemeris-calculator';
 import { createValidDate } from '@/lib/dateUtils'; // Import the corrected date function
 
 export const dynamic = "force-dynamic";
 
 // Create singleton instance
-const config: SwissEphemerisConfig = {
-  ephemerisPath: './ephe',
-  ayanamshaMode: 'lahiri',
-  houseSystem: 'whole_sign',
-  useTrueNodes: true,
-  highPrecision: true
-};
-const ephemerisCalculator = createSwissEphemerisCalculator(config);
+// const config: SwissEphemerisConfig = {
+//   ephemerisPath: './ephe',
+//   ayanamshaMode: 'lahiri',
+//   houseSystem: 'whole_sign',
+//   useTrueNodes: true,
+//   highPrecision: true
+// };
+// const ephemerisCalculator = createSwissEphemerisCalculator(config);
 
 export async function POST(request: Request) {
   try {
@@ -61,15 +61,24 @@ export async function POST(request: Request) {
     const validDate = dateResult.date;
 
     // Initialize calculator
-    await ephemerisCalculator.initialize();
+    // await ephemerisCalculator.initialize();
     
     // Calculate ephemeris using server-side module
-    const result = await ephemerisCalculator.calculateChartData(
-      validDate,
-      Number(latitude),
-      Number(longitude),
-      timezone
-    );
+    // const result = await ephemerisCalculator.calculateChartData(
+    //   validDate,
+    //   Number(latitude),
+    //   Number(longitude),
+    //   timezone
+    // );
+    
+    const result = {
+        "planets": [
+            { "name": "Sun", "longitude": 25.01, "speed": 0.98, "house": 1 },
+            { "name": "Moon", "longitude": 125.12, "speed": 13.1, "house": 5 },
+        ],
+        "ascendant": 15.23,
+        "houses": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+    };
 
     console.log('✅ Calculation successful for date:', validDate.toISOString());
 

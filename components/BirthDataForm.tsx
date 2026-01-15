@@ -147,7 +147,7 @@ export default function BirthDataForm({ birthData, setBirthData }: BirthDataForm
   return (
     <div className="space-y-8">
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold text-white mb-3">Let's start with the basics...</h2>
+        <h2 className="text-3xl font-bold text-white mb-3">Let&apos;s start with the basics...</h2>
         <p className="text-lg text-white/70 max-w-2xl mx-auto">Your birth details are the foundation of the entire analysis.</p>
       </div>
       

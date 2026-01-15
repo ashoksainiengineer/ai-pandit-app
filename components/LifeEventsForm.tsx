@@ -397,7 +397,7 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
                   <li>First job / major promotion</li>
                   <li>Children's birth dates</li>
                   <li>Major health events or accidents</li>
-                  <li>Parent's death (if applicable)</li>
+                  <li>Parent&apos;s death (if applicable)</li>
                 </ol>
               </div>
               <p className="text-sm text-white/60">Think of it like solving a puzzle: More pieces = Clearer picture, Exact dates = Better fit</p>
@@ -772,7 +772,7 @@ export default function LifeEventsForm({ lifeEvents, setLifeEvents }: LifeEvents
                               </div>
                               {event.description && (
                                 <p className="text-sm text-white/80 italic bg-white/5 rounded-lg p-2">
-                                  "{event.description}"
+                                  &quot;{event.description}&quot;
                                 </p>
                               )}
                             </div>
