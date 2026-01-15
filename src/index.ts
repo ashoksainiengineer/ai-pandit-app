@@ -12,6 +12,11 @@ const PORT = process.env.PORT || 8080;
 // Middleware
 app.use(express.json());
 
+// Root route
+app.get('/', (req, res) => {
+  res.send('AI-Pandit BTR Engine is Live!');
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
