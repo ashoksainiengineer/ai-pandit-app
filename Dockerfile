@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Set build memory limit (optimized for 256MB Northflank)
-ENV NODE_OPTIONS="--max-old-space-size=240"
+ENV NODE_OPTIONS="--max-old-space-size=256"
 
 # Copy package files
 COPY package*.json ./
@@ -40,7 +40,7 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/ephe ./ephe
 
 # Set memory optimization for Northflank's 256MB RAM limit
-ENV NODE_OPTIONS="--max-old-space-size=180"
+ENV NODE_OPTIONS="--max-old-space-size=256"
 ENV PORT=8080
 
 # Expose port
