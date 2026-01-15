@@ -1,19 +1,15 @@
+import { authMiddleware } from "@clerk/nextjs/server";
 
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-
-const isPublicRoute = createRouteMatcher([
+export default authMiddleware({
+  // Add public routes here, which will be accessible without authentication
+  publicRoutes: [
     '/',
     '/sign-in(.*)',
     '/sign-up(.*)',
     '/api/webhooks/clerk',
     '/api/calculate',
     '/api/btr-calculate/time-slots'
-]);
-
-export default clerkMiddleware((auth, req) => {
-  if (!isPublicRoute(req)) {
-    auth().protect();
-  }
+  ],
 });
 
 export const config = {
