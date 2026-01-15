@@ -29,16 +29,19 @@ FROM node:18-slim AS production
 # Set working directory
 WORKDIR /app
 
-# Copy compiled application from builder stage
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package*.json ./
+# Copy standalone output from builder stage
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 
 # Copy required astrological data files
 COPY --from=builder /app/ephe ./ephe
 
-# Expose port
-EXPOSE 8080
+# Set memory optimization for Northflank's 256MB RAM limit
+ENV NODE_OPTIONS="--max-old-space-size=180"
 
-# Start the application with memory optimization for Northflank's 256MB RAM limit
-CMD ["node", "--max-old-space-size=180", "dist/index.js"]
+# Expose port
+EXPOSE 3000
+
+# Start the application
+CMD ["node", "server.js"]
