@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
-import { SwissEphemerisServer } from '@/lib/swiss-ephemeris-server';
+import { createSwissEphemerisCalculator, SwissEphemerisConfig } from '@/lib/swiss-ephemeris-calculator';
 
 // Create singleton instance
-const ephemerisServer = new SwissEphemerisServer('./ephe');
+const config: SwissEphemerisConfig = {
+  ephemerisPath: './ephe',
+  ayanamshaMode: 'lahiri',
+  houseSystem: 'whole_sign',
+  useTrueNodes: true,
+  highPrecision: true
+};
+const ephemerisCalculator = createSwissEphemerisCalculator(config);
 
 export async function POST(request: Request) {
   try {
@@ -11,11 +18,15 @@ export async function POST(request: Request) {
 
     console.log('🧮 Calculate API - Received request:', { date, latitude, longitude });
 
+    // Initialize calculator
+    await ephemerisCalculator.initialize();
+    
     // Calculate ephemeris using server-side module
-    const result = await ephemerisServer.calculateEphemeris(
+    const result = await ephemerisCalculator.calculateChartData(
       new Date(date),
       latitude,
-      longitude
+      longitude,
+      timezone
     );
 
     console.log('✅ Calculation successful');
