@@ -1,55 +1,36 @@
-import { BirthData, PhysicalDescription, LifeEvent as AppLifeEvent, EventCategory as AppEventCategory } from '@/types';
-import { generateMoonshootAIPrompt, MoonshootAIPromptData, LifeEvent as PromptLifeEvent } from './moonshoot-ai-prompt';
+import { generateMoonshootAIPrompt } from './moonshoot-ai-prompt';
+import {
+    LifeEvent as AppLifeEvent,
+    MoonshootAIPromptData,
+    LifeEvent as PromptLifeEvent,
+    DashaData,
+    EphemerisData,
+    BirthData,
+    PhysicalDescription
+} from './types';
 
-// Securely get Kimi/Anthropic variables from the environment
 const KIMI_API_KEY = process.env.ANTHROPIC_API_KEY;
 const KIMI_BASE_URL = process.env.ANTHROPIC_BASE_URL;
 const KIMI_MODEL = process.env.MOONSHOT_MODEL || 'kimi-for-coding';
 
-// --- DATA TRANSFORMATION LAYER ---
-
-/**
- * Calculates the age of a person at a given event date.
- */
 function calculateAgeAtEvent(birthDate: Date, eventDate: Date): number {
-  if (!birthDate || !eventDate || isNaN(birthDate.getTime()) || isNaN(eventDate.getTime())) {
-    return 0; // Return 0 for invalid dates
-  }
-  const diff = eventDate.getTime() - birthDate.getTime();
-  return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+  if (!birthDate || !eventDate || isNaN(birthDate.getTime()) || isNaN(eventDate.getTime())) return 0;
+  return Math.floor((eventDate.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25));
 }
 
-/**
- * Maps the application's event category to the AI prompt's event category.
- */
-function mapEventCategory(category: AppEventCategory): PromptLifeEvent['category'] {
-    if (category === 'children') return 'family';
-    // The type assertion is safe because other categories align
-    return category as PromptLifeEvent['category'];
+function mapEventCategory(category: AppLifeEvent['category']): PromptLifeEvent['category'] {
+    return category === 'children' ? 'family' : category;
 }
 
-/**
- * Transforms the application's LifeEvent[] to the format required by the AI prompt.
- */
 function transformLifeEvents(events: AppLifeEvent[], birthDate: Date): PromptLifeEvent[] {
   return events.map(event => ({
-    id: event.id,
+    ...event,
     category: mapEventCategory(event.category),
-    eventType: event.eventType,
-    eventDate: event.eventDate, // Property name is the same
-    dateAccuracy: event.dateAccuracy as 'exact' | 'month' | 'year', // Ensure compatibility
-    description: event.description,
-    // Map importance from App's 'critical' to Prompt's 'high'
     importance: event.importance === 'critical' ? 'high' : event.importance,
     ageAtEvent: calculateAgeAtEvent(birthDate, new Date(event.eventDate)),
   }));
 }
 
-// --- API INTEGRATION ---
-
-/**
- * Analyzes birth data using the Kimi AI API for a preliminary rectification analysis.
- */
 export async function getMoonshotAnalysis(
   birthData: Partial<BirthData>,
   physicalDescription: Partial<PhysicalDescription>,
@@ -57,14 +38,13 @@ export async function getMoonshotAnalysis(
 ): Promise<string> {
   if (!KIMI_API_KEY || !KIMI_BASE_URL) {
     console.error('CRITICAL: AI service is not configured.');
-    throw new Error('AI analysis service is not configured. Please contact support.');
+    throw new Error('AI analysis service is not configured.');
   }
 
-  const birthDateForAgeCalc = new Date(birthData.dateOfBirth || '');
+  const birthDateForAgeCalc = new Date(birthData.date || '');
 
   const promptData: MoonshootAIPromptData = {
     userData: {
-      // Cast to the prompt's expected type, assuming core data is present.
       birthData: birthData as MoonshootAIPromptData['userData']['birthData'],
       physicalDescription: {
         bodyStructure: physicalDescription.bodyStructure || 'average',
@@ -74,17 +54,13 @@ export async function getMoonshotAnalysis(
         distinctiveFeatures: physicalDescription.distinctiveFeatures || 'None',
       },
       lifeEvents: transformLifeEvents(lifeEvents, birthDateForAgeCalc),
+      relationship: 'single', 
+      occupation: ''
     },
-    // For initial analysis, these are placeholders as they are calculated later.
-    ephemerisData: { timeSlots: [] },
-    dashaData: {
-      vimshottariDasha: {
-        currentMahadasha: 'N/A', currentAntardasha: 'N/A', currentPratyantardasha: 'N/A',
-        mahadashaStartDate: 'N/A', mahadashaEndDate: 'N/A',
-      },
-      eventDashaCorrelations: [],
-    },
+    ephemerisData: {} as EphemerisData,
+    dashaData: {} as DashaData,
     timeSlots: [],
+    dominantSign: ''
   };
 
   const prompt = generateMoonshootAIPrompt(promptData);
@@ -92,25 +68,17 @@ export async function getMoonshotAnalysis(
   try {
     const response = await fetch(KIMI_BASE_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${KIMI_API_KEY}`,
-      },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${KIMI_API_KEY}` },
       body: JSON.stringify({
         model: KIMI_MODEL,
-        messages: [
-          { role: 'system', content: 'You are an expert Vedic Astrologer... [System Prompt]' },
-          { role: 'user', content: prompt },
-        ],
+        messages: [{ role: 'system', content: 'Expert Vedic Astrologer...' }, { role: 'user', content: prompt }],
         temperature: 0.3,
         max_tokens: 1500,
       }),
     });
 
     if (!response.ok) {
-      const errorBody = await response.text();
-      console.error('Kimi API Error:', errorBody);
-      throw new Error(`Kimi API request failed: ${response.status}`);
+      throw new Error(`Kimi API request failed: ${response.status} ${await response.text()}`);
     }
 
     const result = await response.json();

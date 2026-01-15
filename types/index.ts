@@ -2,11 +2,13 @@
 // BIRTH DATA TYPES
 // ==========================================
 
+export type TimeUncertainty = 'exact' | '5min' | '15min' | '30min' | '1hour' | '2hour' | '4hour' | 'unknown' | 'custom';
+
 export interface BirthData {
   fullName: string;
   dateOfBirth: string; // YYYY-MM-DD
   tentativeTime: string; // HH:MM
-  timeUncertainty: 'exact' | '5min' | '15min' | '30min' | '1hour' | '2hour' | '4hour' | 'unknown' | 'custom';
+  timeUncertainty: TimeUncertainty;
   birthPlace: string;
   latitude: number;
   longitude: number;

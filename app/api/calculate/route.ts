@@ -18,9 +18,9 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { birthData } = body;
-    const { date: dateString, tentativeTime: timeString, latitude, longitude, timezone = 'Asia/Kolkata' } = birthData;
+    const { date: dateString, tentativeTime: timeString, latitude, longitude, timezone, timeUncertainty } = birthData;
 
-    console.log('🧮 Calculate API - Received request:', { dateString, timeString, latitude, longitude, timezone });
+    console.log('🧮 Calculate API - Received request:', { dateString, timeString, latitude, longitude, timezone, timeUncertainty });
 
     // Validate required parameters
     if (!dateString || !timeString) {
@@ -99,6 +99,6 @@ export async function GET() {
   return NextResponse.json({
     success: true,
     message: 'Swiss Ephemeris Calculate API',
-    usage: 'Send POST with { birthData: { date, tentativeTime, latitude, longitude, timezone? } }'
+    usage: 'Send POST with { birthData: { date, tentativeTime, latitude, longitude, timezone?, timeUncertainty? } }'
   });
 }

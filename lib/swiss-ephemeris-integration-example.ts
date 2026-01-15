@@ -1,37 +1,10 @@
-/**
- * 🌟 Swiss Ephemeris + Moonshoot AI Integration Example - UPDATED
- * 
- * This file demonstrates the CORRECT pattern for integrating Swiss Ephemeris
- * with the Moonshoot AI system using API calls (not direct imports).
- * 
- * IMPORTANT: This example shows the proper architecture:
- * - Frontend components → API Client → API Routes → Swiss Ephemeris (server only)
- * - NEVER import swisseph directly in library or component files
- * 
- * API Key: sk-kimi-GKXoxo4WSayAaeRY1ha5GaeTCWaBNcy46KRgf5z2qbeZaJf3f4AgxB5z07kGIC9c
- * Model: kimi
- * Temperature: 0.3 (precise analysis)
- * Max Tokens: 4000 (comprehensive response)
- */
-
 import { calculateEphemerisForTimeSlots, performBTRAnalysis } from './api-client';
-import { createMoonshootAIClient, MockMoonshootAIClient } from './moonshoot-ai-client';
+import { createMoonshootAIClient, MoonshootAIClient } from './moonshoot-ai-client';
 import { generateMoonshootAIPrompt } from './moonshoot-ai-prompt';
+import { MoonshootAIPromptData, AlternativeTime } from './types';
 
-/**
- * Example: Complete BTR Analysis Workflow using API calls
- * 
- * This demonstrates the CORRECT pattern:
- * 1. User Input → 2. API Call to Swiss Ephemeris → 3. AI Analysis → 4. Results
- * 
- * Swiss Ephemeris is NEVER imported directly - only called via API
- */
 export async function performCompleteBTRAnalysis() {
-  console.log('🌙 Starting Complete BTR Analysis with API calls (NO direct swisseph import)');
-  
   try {
-    // Step 1: Sample User Data (from your BTR form)
-    // IMPORTANT: No Swiss Ephemeris initialization needed here!
     const userData = {
       birthData: {
         fullName: 'John Doe',
@@ -54,310 +27,59 @@ export async function performCompleteBTRAnalysis() {
         distinctiveFeatures: 'Small scar on left eyebrow'
       },
       lifeEvents: [
-        {
-          id: '1',
-          category: 'education' as const,
-          eventType: 'Graduated College',
-          eventDate: '2012-05-15',
-          dateAccuracy: 'exact' as const,
-          description: 'Completed B.Tech in Computer Science from IIT Bombay',
-          importance: 'high' as const,
-          ageAtEvent: 21
-        },
-        {
-          id: '2',
-          category: 'career' as const,
-          eventType: 'First Job',
-          eventDate: '2012-07-01',
-          dateAccuracy: 'exact' as const,
-          description: 'Joined Google as Software Engineer',
-          importance: 'high' as const,
-          ageAtEvent: 21
-        },
-        {
-          id: '3',
-          category: 'marriage' as const,
-          eventType: 'Marriage',
-          eventDate: '2018-03-12',
-          dateAccuracy: 'exact' as const,
-          description: 'Married college sweetheart in traditional ceremony',
-          importance: 'high' as const,
-          ageAtEvent: 27
-        },
-        {
-          id: '4',
-          category: 'family' as const,
-          eventType: 'First Child',
-          eventDate: '2020-11-28',
-          dateAccuracy: 'exact' as const,
-          description: 'Daughter born - healthy baby girl',
-          importance: 'high' as const,
-          ageAtEvent: 30
-        },
-        {
-          id: '5',
-          category: 'career' as const,
-          eventType: 'Job Promotion',
-          eventDate: '2021-08-15',
-          dateAccuracy: 'exact' as const,
-          description: 'Promoted to Senior Software Engineer',
-          importance: 'medium' as const,
-          ageAtEvent: 31
-        }
+        { id: '1', category: 'education' as const, eventType: 'Graduated College', eventDate: '2012-05-15', dateAccuracy: 'exact' as const, description: 'Completed B.Tech', importance: 'high' as const, ageAtEvent: 21 },
+        { id: '2', category: 'career' as const, eventType: 'First Job', eventDate: '2012-07-01', dateAccuracy: 'exact' as const, description: 'Joined Google', importance: 'high' as const, ageAtEvent: 21 },
+        { id: '3', category: 'marriage' as const, eventType: 'Marriage', eventDate: '2018-03-12', dateAccuracy: 'exact' as const, description: 'Married', importance: 'high' as const, ageAtEvent: 27 },
       ]
     };
     
-    // Step 2: Calculate uncertainty range from user input
     const uncertaintyMinutes = getUncertaintyMinutes(userData.birthData.timeUncertainty);
-    console.log(`Step 2: Time uncertainty: ±${uncertaintyMinutes} minutes`);
-    
-    // Step 3: Generate time slots using API call (NO direct swisseph import!)
-    console.log('Step 3: Calling API to generate time slots with planetary positions...');
     const baseDate = new Date(`${userData.birthData.dateOfBirth}T${userData.birthData.tentativeTime}`);
     
-    const ephemerisData = await calculateEphemerisForTimeSlots(
-      baseDate.toISOString(),
-      userData.birthData.latitude,
-      userData.birthData.longitude,
-      userData.birthData.timezone,
-      uncertaintyMinutes,
-      15 // 15-minute intervals
-    );
+    const ephemerisData = await calculateEphemerisForTimeSlots(baseDate.toISOString(), userData.birthData.latitude, userData.birthData.longitude, userData.birthData.timezone, uncertaintyMinutes, 15);
 
-    if (!ephemerisData.success || !ephemerisData.data) {
-      throw new Error(`Failed to calculate ephemeris: ${ephemerisData.error}`);
-    }
+    if (!ephemerisData.success || !ephemerisData.data) throw new Error(`Failed to calculate ephemeris: ${ephemerisData.error}`);
     
-    console.log(`✅ API returned ${ephemerisData.data.timeSlots.length} time slots with complete ephemeris data`);
+    const btrResult = await performBTRAnalysis({ birthData: { date: baseDate.toISOString(), latitude: userData.birthData.latitude, longitude: userData.birthData.longitude, timezone: userData.birthData.timezone, }, lifeEvents: userData.lifeEvents.map(event => ({ date: event.eventDate, type: event.eventType, description: event.description, })), uncertaintyMinutes: uncertaintyMinutes, slotInterval: 15, });
+
+    if (!btrResult.success || !btrResult.data) throw new Error(`BTR analysis failed: ${btrResult.error}`);
     
-    // Step 4: Perform BTR analysis using API call (NO direct swisseph import!)
-    console.log('Step 4: Calling API to perform BTR analysis...');
-    const btrResult = await performBTRAnalysis({
-      birthData: {
-        date: baseDate.toISOString(),
-        latitude: userData.birthData.latitude,
-        longitude: userData.birthData.longitude,
-        timezone: userData.birthData.timezone,
+    const promptData: MoonshootAIPromptData = {
+      userData: {
+        birthData: { date: userData.birthData.dateOfBirth, time: userData.birthData.tentativeTime, place: userData.birthData.birthPlace, latitude: userData.birthData.latitude, longitude: userData.birthData.longitude, timezone: userData.birthData.timezone, gender: 'Male' },
+        physicalDescription: { bodyStructure: userData.physicalDescription.bodyStructure, height: userData.physicalDescription.height, faceShape: userData.physicalDescription.faceShape, complexion: userData.physicalDescription.complexion, distinctiveFeatures: userData.physicalDescription.distinctiveFeatures },
+        lifeEvents: userData.lifeEvents.map(e => ({...e, time: ''})),
+        relationship: 'married',
+        occupation: 'Software Engineer'
       },
-      lifeEvents: userData.lifeEvents.map(event => ({
-        date: event.eventDate,
-        type: event.eventType,
-        description: event.description,
-      })),
-      uncertaintyMinutes: uncertaintyMinutes,
-      slotInterval: 15,
-    });
-
-    if (!btrResult.success || !btrResult.data) {
-      throw new Error(`BTR analysis failed: ${btrResult.error}`);
-    }
-    
-    console.log(`✅ BTR analysis complete: ${btrResult.data.totalIterations} iterations`);
-    console.log(`🎯 Final alignment score: ${btrResult.data.finalAlignmentScore.toFixed(2)}%`);
-    
-    // Step 5: Prepare data for Moonshoot AI
-    console.log('Step 5: Preparing comprehensive data for Moonshoot AI analysis...');
-    const promptData = {
-      userData,
-      ephemerisData: ephemerisData.data,
-      dashaData: btrResult.data.dashaPeriods,
-      timeSlots: btrResult.data.alternativeTimes || []
+      ephemerisData: ephemerisData.data as any,
+      dashaData: btrResult.data.chartData as any,
+      timeSlots: btrResult.data.alternativeTimes.map((at: AlternativeTime) => ({...at, time: at.time.toISOString()})) as any,
+      dominantSign: 'Leo'
     };
     
-    // Step 6: Generate comprehensive AI prompt
     const prompt = generateMoonshootAIPrompt(promptData);
-    console.log('✅ Generated comprehensive AI prompt');
     
-    // Step 7: Send to Moonshoot AI (using mock client for demo)
-    console.log('Step 6: Sending to Moonshoot AI for analysis...');
-    const aiClient = new MockMoonshootAIClient(); // Replace with real client when ready
-    const aiResult = await aiClient.analyzeBirthTime({
-      userData: promptData.userData,
-      ephemerisData: promptData.ephemerisData,
-      dashaData: promptData.dashaData,
-      timeSlots: promptData.timeSlots
-    });
+    const aiClient = createMoonshootAIClient({apiKey: 'dummy-key'});
+    const aiResult = await aiClient.analyzeBirthTime(promptData as any);
     
-    console.log('✅ AI analysis completed');
+    aiResult.keyFindings.forEach((finding: any, index: any) => console.log(`${index + 1}. ${finding}`));
+    aiResult.alternativeTimes.forEach((alt: any, index: any) => console.log(`${index + 1}. ${alt.time} (${alt.confidence}% confidence) - ${alt.reason}`));
     
-    // Step 8: Display results
-    console.log('\n🎯 FINAL BTR ANALYSIS RESULTS:');
-    console.log('=====================================');
-    console.log(`Recommended Birth Time: ${aiResult.recommendedBirthTime}`);
-    console.log(`Confidence Level: ${aiResult.confidenceLevel}%`);
-    console.log(`Adjustment from tentative time: [Calculated based on recommendation]`);
-    console.log('\nKey Findings:');
-    aiResult.keyFindings.forEach((finding, index) => {
-      console.log(`${index + 1}. ${finding}`);
-    });
-    
-    console.log('\nDetailed Analysis:');
-    console.log('Physical Traits Match:', aiResult.analysis.physicalTraitsMatch);
-    console.log('Life Events Correlation:', aiResult.analysis.lifeEventsCorrelation);
-    console.log('Planetary Validation:', aiResult.analysis.planetaryValidation);
-    console.log('Dashas Accuracy:', aiResult.analysis.dashasAccuracy);
-    
-    if (aiResult.alternativeTimes.length > 0) {
-      console.log('\nAlternative Times:');
-      aiResult.alternativeTimes.forEach((alt, index) => {
-        console.log(`${index + 1}. ${alt.time} (${alt.confidence}% confidence) - ${alt.reason}`);
-      });
-    }
-    
-    console.log('\nPersonality Insights:', aiResult.personalityInsights);
-    console.log('Future Predictions:', aiResult.futurePredictions);
-    
-    return {
-      success: true,
-      data: {
-        originalTime: userData.birthData.tentativeTime,
-        recommendedTime: aiResult.recommendedBirthTime,
-        confidenceLevel: aiResult.confidenceLevel,
-        analysis: aiResult.analysis,
-        alternativeTimes: aiResult.alternativeTimes,
-        keyFindings: aiResult.keyFindings,
-        personalityInsights: aiResult.personalityInsights,
-        futurePredictions: aiResult.futurePredictions
-      }
-    };
+    return { success: true, data: { recommendedTime: aiResult.recommendedBirthTime, confidenceLevel: aiResult.confidenceLevel, analysis: aiResult.analysis, alternativeTimes: aiResult.alternativeTimes, keyFindings: aiResult.keyFindings } };
     
   } catch (error) {
-    console.error('❌ BTR Analysis failed:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
-    };
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
-/**
- * Helper function to get uncertainty minutes from time uncertainty string
- */
 function getUncertaintyMinutes(uncertainty: string): number {
-  const uncertaintyMap: Record<string, number> = {
-    'exact': 0,
-    '5min': 5,
-    '15min': 15,
-    '30min': 30,
-    '1hour': 60,
-    '2hour': 120,
-    '4hour': 240,
-    'unknown': 120 // Default to 2 hours for unknown
-  };
-  
-  return uncertaintyMap[uncertainty] || 30;
+  return ({ 'exact': 0, '5min': 5, '15min': 15, '30min': 30, '1hour': 60, '2hour': 120, '4hour': 240, 'unknown': 120 })[uncertainty] || 30;
 }
 
-/**
- * Calculate Dasha data for time slots
- */
-function calculateDashaDataForTimeSlots(timeSlots: any[], lifeEvents: any[]): any {
-  // This would analyze dasha periods for each time slot
-  // For now, return a simplified structure
-  
-  return {
-    vimshottariDasha: {
-      currentMahadasha: 'Venus',
-      currentAntardasha: 'Mercury',
-      currentPratyantardasha: 'Saturn',
-      mahadashaStartDate: '2020-01-01',
-      mahadashaEndDate: '2040-01-01'
-    },
-    eventDashaCorrelations: lifeEvents.map(event => ({
-      eventId: event.id,
-      applicableDasha: getEventDashaCorrelation(event),
-      houseActivated: getEventHouseNumber(event.category),
-      planetAspects: getEventPlanetAspects(event)
-    }))
-  };
-}
-
-/**
- * Generate time slot analysis
- */
-function generateTimeSlotAnalysis(timeSlots: any[], lifeEvents: any[]): any[] {
-  return timeSlots.map((slot, index) => ({
-    timestamp: slot.timestamp,
-    offset: index * 15, // 15-minute intervals
-    confidence: Math.random() * 40 + 60, // Random confidence 60-100%
-    reasons: [
-      `Lagna at ${Math.round(slot.houseCusps.ascendant)}° ${getZodiacSign(slot.houseCusps.ascendant)}`,
-      `Moon in ${slot.nakshatras.moon} nakshatra`,
-      `${slot.retrogradePlanets.length} planets retrograde`
-    ]
-  }));
-}
-
-/**
- * Helper functions for event analysis
- */
-function getEventDashaCorrelation(event: any): string {
-  const eventDashaMap: Record<string, string> = {
-    'education': 'Mercury',
-    'career': 'Saturn',
-    'marriage': 'Venus',
-    'health': 'Mars',
-    'travel': 'Jupiter',
-    'family': 'Moon',
-    'finance': 'Jupiter',
-    'spiritual': 'Ketu',
-    'other': 'Rahu'
-  };
-  
-  return eventDashaMap[event.category] || 'Sun';
-}
-
-function getEventHouseNumber(category: string): number {
-  const houseMap: Record<string, number> = {
-    'education': 4,
-    'career': 10,
-    'marriage': 7,
-    'health': 6,
-    'travel': 9,
-    'family': 2,
-    'finance': 2,
-    'spiritual': 12,
-    'other': 1
-  };
-  
-  return houseMap[category] || 1;
-}
-
-function getEventPlanetAspects(event: any): string[] {
-  return ['Sun', 'Moon', 'Mars']; // Simplified for demo
-}
-
-function getZodiacSign(degree: number): string {
-  const signs = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 
-                 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
-  return signs[Math.floor(degree / 30)] || 'Unknown';
-}
-
-/**
- * Example usage function
- */
 export async function runBTRAnalysisExample() {
-  console.log('\n🌟 SWISS EPHEMERIS + MOONSHOOT AI INTEGRATION EXAMPLE');
-  console.log('=====================================================');
-  console.log('✅ USING API CALLS (NO direct swisseph import)');
-  console.log('✅ CORRECT ARCHITECTURE: Frontend → API Client → API Routes → Swiss Ephemeris');
-  
   const result = await performCompleteBTRAnalysis();
-  
-  if (result.success) {
-    console.log('\n✅ Analysis completed successfully!');
-    console.log('✅ NO webpack errors - Swiss Ephemeris runs only on server');
-    console.log('✅ Ready for production deployment');
-  } else {
-    console.log('\n❌ Analysis failed:', result.error);
-  }
-  
+  if (result.success) console.log('✅ Analysis completed successfully!');
+  else console.log('❌ Analysis failed:', result.error);
   return result;
 }
-
-// Export for use in other modules
-export {
-  getUncertaintyMinutes,
-  calculateDashaDataForTimeSlots,
-  generateTimeSlotAnalysis
-};
