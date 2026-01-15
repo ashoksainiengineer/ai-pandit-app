@@ -600,7 +600,7 @@ export function getTimezoneOffset(timezone: string, date: Date = new Date()): nu
     try {
       // Use Intl API for proper timezone handling
       const utcDate = new Date(date.toLocaleString("en-US", { timeZone: "UTC" }));
-      const tzDate = new Date(date.toLocaleString("en-US", { timeZone }));
+      const tzDate = new Date(date.toLocaleString("en-US", { timeZone: timezone }));
       const offset = (tzDate.getTime() - utcDate.getTime()) / (1000 * 60 * 60);
       return offset;
     } catch (error) {
@@ -708,6 +708,7 @@ export function calculateCompleteChart(birthData: BirthData): ChartCalculation {
   const planets = calculatePlanetaryPositions(jd, birthData.latitude, birthData.longitude);
   
   // Calculate Ascendant
+  const timezoneOffset = getTimezoneOffset(birthData.timezone);
   const lagna = calculateAscendant(jd, birthData.latitude, birthData.longitude, timezoneOffset);
   
   // Calculate divisional charts

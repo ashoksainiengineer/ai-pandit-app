@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  serverExternalPackages: ['swisseph'],
+  experimental: {
+    serverComponentsExternalPackages: ['swisseph'],
+  },
 };
 
 module.exports = nextConfig;
