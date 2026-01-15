@@ -30,7 +30,6 @@ FROM node:18-slim AS production
 WORKDIR /app
 
 # Copy standalone output from builder stage
-COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
