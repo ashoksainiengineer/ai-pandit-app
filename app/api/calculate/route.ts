@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createSwissEphemerisCalculator, SwissEphemerisConfig } from '@/lib/swiss-ephemeris-calculator';
 import { createValidDate } from '@/lib/dateUtils'; // Import the corrected date function
 
+export const dynamic = "force-dynamic";
+
 // Create singleton instance
 const config: SwissEphemerisConfig = {
   ephemerisPath: './ephe',

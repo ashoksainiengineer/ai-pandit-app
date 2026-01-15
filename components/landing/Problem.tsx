@@ -1,29 +1,14 @@
+
 'use client';
 
 import { motion } from 'framer-motion';
+import { HelpCircle, Target, AlertTriangle } from 'lucide-react';
 
 export default function Problem() {
-  const cards = [
-    {
-      icon: '⏱️',
-      title: 'Dasha Timing Shifts',
-      body: 'Even 10 minutes wrong can shift your Mahadasha start dates by months. Life events won\'t match predictions.'
-    },
-    {
-      icon: '♌',
-      title: 'Lagna Sign Changes',
-      body: 'Lagna changes every 2 hours. Wrong Lagna = wrong personality reading, wrong house placements, everything off.'
-    },
-    {
-      icon: '📊',
-      title: 'Divisional Charts Fail',
-      body: 'D-9 (Navamsa) changes every 13 minutes. D-60 changes every 2 minutes. Fine-tuning is impossible with wrong time.'
-    }
-  ];
-
   return (
-    <section className="py-24 px-6 bg-[var(--bg-surface)]">
+    <section id="how-it-works" className="py-24 px-6 bg-[var(--bg-surface)]">
       <div className="max-w-[1200px] mx-auto">
+        {/* Section Title */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -32,48 +17,78 @@ export default function Problem() {
           className="text-center mb-16"
         >
           <h2 style={{ fontSize: 'var(--text-h2)' }} className="font-bold text-[var(--text-primary)] mb-4">
-            Why Birth Time Matters
+            An Incorrect Birth Time is a Big Problem
           </h2>
-          <p style={{ fontSize: 'var(--text-body-lg)', color: 'var(--text-secondary)' }} className="max-w-[600px] mx-auto">
-            A 4-minute error shifts your Lagna by 1 degree. Here's what that means for your chart readings:
+          <p style={{ fontSize: 'var(--text-body-lg)', color: 'var(--text-secondary)' }} className="max-w-[700px] mx-auto">
+            Even a few minutes of inaccuracy can drastically alter your astrological chart and life predictions.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {cards.map((card, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1, duration: 0.5 }}
-              viewport={{ once: true }}
-              className="card hover:shadow-lg transition-shadow"
-            >
-              <div className="text-4xl mb-4">{card.icon}</div>
-              <h3 style={{ fontSize: 'var(--text-h4)' }} className="font-semibold text-[var(--text-primary)] mb-3">
-                {card.title}
-              </h3>
-              <p style={{ fontSize: 'var(--text-body)', color: 'var(--text-secondary)' }}>
-                {card.body}
-              </p>
-            </motion.div>
-          ))}
+        {/* Problem Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+          {/* Card 1: Wrong Ascendant */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            viewport={{ once: true }}
+            className="card"
+          >
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center">
+                <AlertTriangle className="w-8 h-8 text-red-500" />
+              </div>
+            </div>
+            <h3 style={{ fontSize: 'var(--text-h3)' }} className="font-semibold text-[var(--text-primary)] mb-2">
+              Wrong Ascendant
+            </h3>
+            <p style={{ fontSize: 'var(--text-body)', color: 'var(--text-secondary)' }}>
+              The Ascendant (Lagna) changes roughly every 2 hours. An incorrect time can place you in the wrong rising sign, altering your core identity.
+            </p>
+          </motion.div>
+
+          {/* Card 2: Inaccurate Houses */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            viewport={{ once: true }}
+            className="card"
+          >
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-blue-500/10 flex items-center justify-center">
+                <Target className="w-8 h-8 text-blue-500" />
+              </div>
+            </div>
+            <h3 style={{ fontSize: 'var(--text-h3)' }} className="font-semibold text-[var(--text-primary)] mb-2">
+              Inaccurate Houses
+            </h3>
+            <p style={{ fontSize: 'var(--text-body)', color: 'var(--text-secondary)' }}>
+              The house cusps shift very quickly. This misplaces planets, leading to flawed analysis of wealth, career, and relationships.
+            </p>
+          </motion.div>
+
+          {/* Card 3: Flawed Dasha Timings */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            viewport={{ once: true }}
+            className="card"
+          >
+            <div className="flex justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-purple-500/10 flex items-center justify-center">
+                <HelpCircle className="w-8 h-8 text-purple-500" />
+              </div>
+            </div>
+            <h3 style={{ fontSize: 'var(--text-h3)' }} className="font-semibold text-[var(--text-primary)] mb-2">
+              Flawed Dasha Timings
+            </h3>
+            <p style={{ fontSize: 'var(--text-body)', color: 'var(--text-secondary)' }}>
+              Vimshottari Dasha, the predictive timeline, is highly sensitive to birth time. An error here means all your life event predictions will be wrong.
+            </p>
+          </motion.div>
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          viewport={{ once: true }}
-          className="card-elevated max-w-[700px] mx-auto mt-16"
-        >
-          <p style={{ fontSize: 'var(--text-body)', color: 'var(--text-secondary)', fontStyle: 'italic' }} className="mb-4">
-            "I got my kundli made 5 times. Each astrologer gave different predictions because my birth time was wrong."
-          </p>
-          <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>
-            — Priya S., Mumbai
-          </p>
-        </motion.div>
       </div>
     </section>
   );

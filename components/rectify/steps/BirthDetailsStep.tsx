@@ -41,6 +41,7 @@ export default function BirthDetailsStep({ birthData, setBirthData }: BirthDetai
 
   // Initialize dropdowns from birthData on mount
   useEffect(() => {
+    if (!birthData) return; // Add a guard clause
     if (birthData.dateOfBirth) {
       const [year, month, day] = birthData.dateOfBirth.split('-');
       const monthName = months[parseInt(month) - 1];
@@ -86,7 +87,7 @@ export default function BirthDetailsStep({ birthData, setBirthData }: BirthDetai
         longitude: birthData.longitude
       });
     }
-  }, []);
+  }, [birthData]);
 
   // Debounced city search function
   const debouncedCitySearch = useCallback(

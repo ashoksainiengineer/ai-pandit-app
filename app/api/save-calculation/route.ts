@@ -2,13 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@libsql/client';
 
-// Initialize Turso client
-const db = createClient({
-  url: process.env.TURSO_DATABASE_URL!,
-  authToken: process.env.TURSO_AUTH_TOKEN!,
-});
+export const dynamic = "force-dynamic";
+
+// Initialize Turso client inside the handler
+async function getDbClient() {
+  return createClient({
+    url: process.env.TURSO_DATABASE_URL!,
+    authToken: process.env.TURSO_AUTH_TOKEN!,
+  });
+}
 
 export async function POST(request: NextRequest) {
+  const db = await getDbClient();
   try {
     // Protect the route - ensure user is authenticated
     const { userId } = auth();
