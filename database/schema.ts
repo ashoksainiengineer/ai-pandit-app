@@ -101,3 +101,13 @@ export const advancedVerifications = sqliteTable("advanced_verifications", {
   scoreImpact: real("score_impact"),
   createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
 });
+
+export const calculations = sqliteTable("calculations", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  birthData: text("birth_data"),
+  timeRange: text("time_range"),
+  results: text("results"),
+  aiSummary: text("ai_summary"),
+  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
+});

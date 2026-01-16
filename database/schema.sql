@@ -1,9 +1,10 @@
 -- ==========================================
 -- AI-PANDIT BIRTH TIME RECTIFICATION DATABASE SCHEMA
 -- Turso SQLite Database Schema
--- Version: 2.1
+-- Version: 2.2
 -- Author: Your Senior Dev
 -- Change Log:
+-- v2.2: Made marital_status mandatory and added custom time uncertainty field.
 -- v2.1: Modified time_slot_candidates to link to rectification_requests for real-time streaming.
 -- ==========================================
 
@@ -57,12 +58,13 @@ CREATE TABLE IF NOT EXISTS birth_data (
     date_of_birth TEXT NOT NULL,              -- Stored as 'YYYY-MM-DD'
     tentative_time TEXT NOT NULL,             -- Stored as 'HH:MM:SS'
     time_uncertainty TEXT NOT NULL,           -- e.g., 'exact', '5min', 'custom_range'
+    time_uncertainty_custom_minutes INTEGER,  -- Stores custom uncertainty value in minutes if selected
     birth_place TEXT NOT NULL,
     latitude REAL NOT NULL,
     longitude REAL NOT NULL,
     timezone TEXT NOT NULL,
     gender TEXT NOT NULL CHECK(gender IN ('male', 'female', 'other')),
-    marital_status TEXT,
+    marital_status TEXT NOT NULL CHECK(marital_status IN ('unmarried', 'married')),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (request_id) REFERENCES rectification_requests (id) ON DELETE CASCADE
 );
@@ -153,7 +155,7 @@ CREATE TABLE IF NOT EXISTS dasha_periods (
 
 -- ==========================================
 -- 9. ADVANCED VERIFICATIONS TABLE
--- Stores results from advanced astrological techniques used for cross-verification.
+-- Stores results from advanced astrological techniques for cross-verification.
 -- ==========================================
 CREATE TABLE IF NOT EXISTS advanced_verifications (
     id TEXT PRIMARY KEY,

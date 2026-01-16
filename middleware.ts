@@ -8,7 +8,7 @@ export default authMiddleware({
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       const res = new NextResponse();
-      res.headers.set('Access-Control-Allow-Origin', process.env.VERCEL_FRONTEND_URL || '');
+      res.headers.set('Access-Control-Allow-Origin', '*');
       res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
       res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
       return res;
@@ -17,16 +17,16 @@ export default authMiddleware({
     if (auth.userId && !auth.isPublicRoute) {
       const rectifyUrl = new URL("/rectify", req.url);
       const res = NextResponse.redirect(rectifyUrl);
-      res.headers.set('Access-Control-Allow-Origin', process.env.VERCEL_FRONTEND_URL || '');
+      res.headers.set('Access-Control-Allow-Origin', '*');
       return res;
     }
 
     const res = NextResponse.next();
-    res.headers.set('Access-Control-Allow-Origin', process.env.VERCEL_FRONTEND_URL || '');
+    res.headers.set('Access-Control-Allow-Origin', '*');
     return res;
   },
 });
 
 export const config = {
-  matcher: ["/((?!.+\.[\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: ["/((?!.+\.[\w]+$|_next).*)/", "/", "/(api|trpc)(.*)"],
 };
