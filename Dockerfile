@@ -1,41 +1,50 @@
 # Stage 1: Build Stage
-# ---------------------
 FROM node:20-slim AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Install dependencies
+# Copy package files and install dependencies
 COPY package*.json ./
 RUN npm install
 
-# Copy source code
+# Copy the rest of the source code
 COPY . .
 
-# Build the Next.js standalone application
+# Build the Next.js application
+# The standalone output will be in .next/standalone
 RUN npm run build
 
-# Prune dev dependencies
-RUN npm prune --production
-
 # Stage 2: Production Stage
-# -------------------------
-FROM node:20-slim AS production
+FROM node:20-slim AS runner
 
 WORKDIR /app
 
-# Set environment variables for production
+# Set production environment
 ENV NODE_ENV=production
+# Set heap memory limit for 512MB RAM
+ENV NODE_OPTIONS=--max-old-space-size=400
+# Expose the port the app will run on
+EXPOSE 3000
+ENV PORT=3000
 
-# Copy pruned dependencies and standalone build from builder stage
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/public ./public
+# Create a non-root user for security
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy the standalone output from the builder stage
 COPY --from=builder /app/.next/standalone ./
+# Copy public and static assets
+COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/static ./.next/static
 
-# Expose the port the app will run on
-EXPOSE 8080
+# The swisseph data files need to be copied manually
+COPY --from=builder /app/ephe ./ephe
 
-# Set the command to start the server with increased memory
-CMD ["node", "--max-old-space-size=400", "server.js"]
+# Change ownership of the app directory
+RUN chown -R nextjs:nodejs /app
+
+# Switch to the non-root user
+USER nextjs
+
+# Start the server
+CMD ["node", "server.js"]

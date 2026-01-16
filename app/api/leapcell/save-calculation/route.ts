@@ -1,29 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { createClient } from '@libsql/client';
+
+// This is your new backend endpoint on Leapcell.
+// It will handle saving the calculation data to Turso.
 
 export const dynamic = "force-dynamic";
 
-// Initialize Turso client inside the handler
 async function getDbClient() {
+  const url = process.env.TURSO_DATABASE_URL;
+  const authToken = process.env.TURSO_AUTH_TOKEN;
+
+  if (!url) {
+    throw new Error('TURSO_DATABASE_URL is not defined');
+  }
+  if (!authToken) {
+    throw new Error('TURSO_AUTH_TOKEN is not defined');
+  }
+
   return createClient({
-    url: process.env.TURSO_DATABASE_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN!,
+    url,
+    authToken,
   });
 }
 
 export async function POST(request: NextRequest) {
-  const db = await getDbClient();
   try {
-    // Protect the route - ensure user is authenticated
-    const { userId } = auth();
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
+    const userId = authHeader.substring(7, authHeader.length);
 
+    const db = await getDbClient();
     const body = await request.json();
     const { birthData, physicalDescription, lifeEvents, result } = body;
 
@@ -34,12 +42,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Start a transaction to save all data
     const birthDataId = `btr_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     const resultId = `result_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Save birth data
     await db.execute({
       sql: `
         INSERT INTO birth_data (
@@ -64,7 +70,6 @@ export async function POST(request: NextRequest) {
       ]
     });
 
-    // Save physical description
     if (physicalDescription) {
       await db.execute({
         sql: `
@@ -84,7 +89,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Save life events
     for (const event of (lifeEvents || [])) {
       await db.execute({
         sql: `
@@ -108,7 +112,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Save calculation session
     await db.execute({
       sql: `
         INSERT INTO calculation_sessions (
@@ -118,7 +121,6 @@ export async function POST(request: NextRequest) {
       args: [sessionId, birthDataId, `token_${Math.random().toString(36).substr(2, 9)}`, 4, true]
     });
 
-    // Save rectification result
     await db.execute({
       sql: `
         INSERT INTO rectification_results (
