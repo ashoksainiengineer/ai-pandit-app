@@ -99,8 +99,8 @@ export default function ReviewStep({
             <p className="text-white font-medium">{birthData.tentativeTime}</p>
           </div>
           <div>
-            <span className="text-gray-400">Time Uncertainty:</span>
-            <p className="text-white font-medium">{birthData.timeUncertainty}</p>
+            <span className="text-gray-400">Gender:</span>
+            <p className="text-white font-medium capitalize">{birthData.gender}</p>
           </div>
           <div>
             <span className="text-gray-400">Birth Place:</span>
@@ -108,10 +108,6 @@ export default function ReviewStep({
               <MapPin className="w-4 h-4" />
               {birthData.birthPlace}
             </p>
-          </div>
-          <div>
-            <span className="text-gray-400">Gender:</span>
-            <p className="text-white font-medium capitalize">{birthData.gender}</p>
           </div>
           <div className="md:col-span-2">
             <span className="text-gray-400">Timezone:</span>

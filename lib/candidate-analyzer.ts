@@ -1,4 +1,4 @@
-'use server';
+// Server-side only
 
 // lib/candidate-analyzer.ts
 // Analyze multiple candidate times and filter for accuracy

@@ -1,5 +1,3 @@
-'use server';
-
 // lib/time-offset-manager.ts
 // Manage time offset ranges and generate candidate times
 
@@ -9,7 +7,7 @@ import { logger } from '@/lib/logger';
 // TYPE DEFINITIONS
 // ═════════════════════════════════════════════════════════════════════════
 
-export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours';
+export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours' | 'seconds-30' | 'seconds-6';
 
 export interface TimeOffsetConfig {
   preset?: OffsetPreset;
@@ -28,7 +26,7 @@ export interface CandidateTime {
 // OFFSET CONFIGURATION PRESETS
 // ═════════════════════════════════════════════════════════════════════════
 
-const OFFSET_PRESETS: Record<OffsetPreset, { label: string; minutes: number; interval: number }> = {
+const OFFSET_PRESETS: Record<OffsetPreset, { label: string; minutes: number; interval: number; intervalSeconds?: number }> = {
   '30min': {
     label: '±30 minutes',
     minutes: 30,
@@ -48,6 +46,18 @@ const OFFSET_PRESETS: Record<OffsetPreset, { label: string; minutes: number; int
     label: '±4 hours',
     minutes: 240,
     interval: 15, // Check every 15 minutes (for performance)
+  },
+  'seconds-30': {
+    label: '±5 minutes (30-sec intervals)',
+    minutes: 5,
+    interval: 0.5,       // 30 seconds
+    intervalSeconds: 30, // Explicit seconds
+  },
+  'seconds-6': {
+    label: '±1 minute (6-sec intervals)',
+    minutes: 1,
+    interval: 0.1,      // 6 seconds
+    intervalSeconds: 6, // Explicit seconds
   },
 };
 

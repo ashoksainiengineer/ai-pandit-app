@@ -1,0 +1,281 @@
+/* app/globals.css - Premium BTR Theme */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CSS CUSTOM PROPERTIES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Colors */
+  --navy: #0F1419;
+  --navy-dark: #1A1F2E;
+  --navy-light: #2A3442;
+  --gold: #D4AF37;
+  --gold-muted: #C9A961;
+  --gold-light: #E8C54D;
+  --purple: #6A0572;
+  --purple-light: #8B1F97;
+  --emerald: #2D7A5C;
+  --emerald-light: #3D9A73;
+  --cream: #FFF8F0;
+  --saffron: #FF9F43;
+  
+  /* Semantic */
+  --bg-primary: var(--navy);
+  --bg-secondary: var(--navy-dark);
+  --bg-card: rgba(26, 31, 46, 0.8);
+  --text-primary: #F5F0EB;
+  --text-secondary: #C4B8AD;
+  --text-muted: #8C7F72;
+  --accent: var(--gold);
+  
+  /* Gradients */
+  --gradient-cosmic: linear-gradient(135deg, #0F1419 0%, #1A1F2E 50%, #2A3442 100%);
+  --gradient-gold: linear-gradient(135deg, #D4AF37 0%, #C9A961 100%);
+  --gradient-purple: linear-gradient(135deg, #6A0572 0%, #8B1F97 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BASE STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.font-display {
+  font-family: 'Playfair Display', serif;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   COMPONENT STYLES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Glass Card */
+.glass-card {
+  background: rgba(26, 31, 46, 0.7);
+  backdrop-filter: blur(21px);
+  -webkit-backdrop-filter: blur(21px);
+  border: 1px solid rgba(212, 175, 55, 0.1);
+  border-radius: 21px;
+}
+
+.glass-card:hover {
+  border-color: rgba(212, 175, 55, 0.3);
+  box-shadow: 0 0 34px rgba(212, 175, 55, 0.1);
+}
+
+/* Gold Button */
+.btn-gold {
+  background: var(--gradient-gold);
+  color: var(--navy);
+  font-weight: 600;
+  padding: 16px 32px;
+  border-radius: 13px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.382s ease;
+  font-family: 'Poppins', sans-serif;
+}
+
+.btn-gold:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 13px 34px rgba(212, 175, 55, 0.4);
+}
+
+.btn-gold:active {
+  transform: translateY(-2px);
+}
+
+/* Outline Button */
+.btn-outline {
+  background: transparent;
+  color: var(--gold);
+  font-weight: 500;
+  padding: 14px 28px;
+  border-radius: 13px;
+  border: 2px solid var(--gold);
+  cursor: pointer;
+  transition: all 0.382s ease;
+}
+
+.btn-outline:hover {
+  background: rgba(212, 175, 55, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Input Fields */
+.input-field {
+  background: rgba(42, 52, 66, 0.5);
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 13px;
+  padding: 16px 20px;
+  color: var(--text-primary);
+  font-size: 16px;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.1);
+}
+
+.input-field::placeholder {
+  color: var(--text-muted);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(212, 175, 55, 0.5);
+  }
+}
+
+@keyframes pulse-gold {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Stagger children */
+.stagger-children > * {
+  opacity: 0;
+  animation: fadeInUp 0.6s ease forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0.1s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.2s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.3s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.4s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.5s; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--navy-dark);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--gold-muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   UTILITY CLASSES
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.text-gradient-gold {
+  background: var(--gradient-gold);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.bg-stars {
+  background-image: 
+    radial-gradient(2px 2px at 20px 30px, rgba(255,255,255,0.3), transparent),
+    radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.2), transparent),
+    radial-gradient(1px 1px at 60px 100px, rgba(255,255,255,0.3), transparent),
+    radial-gradient(2px 2px at 80px 40px, rgba(255,255,255,0.15), transparent),
+    radial-gradient(1px 1px at 100px 80px, rgba(255,255,255,0.2), transparent),
+    radial-gradient(2px 2px at 150px 60px, rgba(255,255,255,0.25), transparent);
+  background-size: 200px 200px;
+  animation: float 60s linear infinite;
+}
+
+.container-narrow {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* Selection */
+::selection {
+  background: rgba(212, 175, 55, 0.3);
+  color: var(--text-primary);
+}

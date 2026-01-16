@@ -1,4 +1,4 @@
-'use server';
+// Server-side only
 
 // lib/kimi-k2-thinking-client.ts (UPDATED)
 // Enhanced for analyzing top candidates with Kimi K2

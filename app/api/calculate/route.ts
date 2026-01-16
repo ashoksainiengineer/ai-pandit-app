@@ -9,12 +9,9 @@ import {
   validateOffsetConfig,
   TimeOffsetConfig,
 } from '@/lib/time-offset-manager';
-import {
-  analyzeAndFilterCandidates,
-  RankedCandidates,
-} from '@/lib/candidate-analyzer';
+import analyzeAndFilterCandidates from '@/lib/candidate-analyzer';
 import { analyzeTopCandidatesWithKimi } from '@/lib/kimi-k2-thinking-client';
-import { BirthData, LifeEvent } from '@/lib/types';
+import { BirthData, LifeEvent, RankedCandidates } from '@/lib/types';
 
 interface CalculateRequest {
   birthData: BirthData;
@@ -102,7 +99,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Calculate
     const { userId } = await auth();
     if (!userId) {
       logger.warn('Unauthorized calculate request');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     // ─────────────────────────────────────────────────────────────────────
@@ -123,7 +120,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Calculate
 
     if (!birthData || !lifeEvents || lifeEvents.length < 3) {
       return NextResponse.json(
-        { error: 'Invalid input: need birthData and minimum 3 life events' },
+        { success: false, error: 'Invalid input: need birthData and minimum 3 life events' },
         { status: 400 }
       );
     }
@@ -132,7 +129,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Calculate
     const offsetValidation = validateOffsetConfig(offsetConfig);
     if (!offsetValidation.valid) {
       return NextResponse.json(
-        { error: offsetValidation.error || 'Invalid offset configuration' },
+        { success: false, error: offsetValidation.error || 'Invalid offset configuration' },
         { status: 400 }
       );
     }

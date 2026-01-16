@@ -1,4 +1,4 @@
-export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours';
+export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours' | 'seconds-30' | 'seconds-6';
 
 export interface TimeOffsetConfig {
   preset?: OffsetPreset;
@@ -17,13 +17,7 @@ export interface BirthData {
   gender: 'male' | 'female' | 'other';
 }
 
-export interface PhysicalTraits {
-  height: 'very short' | 'short' | 'medium' | 'tall' | 'very tall';
-  build: 'thin' | 'lean' | 'medium' | 'heavy' | 'obese';
-  complexion: 'very fair' | 'fair' | 'medium' | 'dark' | 'very dark';
-  appearance?: string;
-  marks?: string;
-}
+
 
 export type EventCategory =
   | 'education'
@@ -54,11 +48,34 @@ export interface LifeEvent {
   id: string;
   category: EventCategory;
   eventType: string;
-  eventDate: string;
+  // Flexible Date Fields
+  datePrecision: 'exact' | 'month' | 'year' | 'range';
+  eventDate: string; // YYYY-MM-DD or YYYY-MM or YYYY
+  endDate?: string; // For ranges
   eventTime?: string;
-  dateAccuracy: 'exact' | 'approximate' | 'rough';
+
   description: string;
   importance: 'low' | 'medium' | 'high' | 'critical';
+
+  // UI helpers
+  icon?: string;
+  color?: string;
+  ageAtEvent?: number;
+}
+
+export interface PhysicalTraits {
+  height?: {
+    cm: number;
+    feet: number;
+    inches: number;
+  };
+  build: 'slim' | 'medium' | 'athletic' | 'heavy' | 'very_heavy';
+  complexion: 'very_fair' | 'fair' | 'medium' | 'dark' | 'very_dark';
+  faceShape: 'round' | 'oval' | 'square' | 'long' | 'heart' | 'pear';
+  eyeColor: string;
+  hairColor: string;
+  specialFeatures?: string;
+  overallDescription?: string;
 }
 
 export interface RectificationSession {
@@ -66,7 +83,7 @@ export interface RectificationSession {
   userId: string;
   birthData: BirthData;
   physicalTraits?: PhysicalTraits;
-  lifeEvents: LifeEvent[];
+  lifeEvents: LifeEvent[]; // Update usage to new interface
   rectifiedTime?: string;
   accuracy?: number;
   confidence?: 'high' | 'medium' | 'low';
@@ -205,4 +222,57 @@ export interface BTROutput {
   };
   thinking?: string;
   ephemeris?: EphemerisData;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SECONDS-PRECISION BTR TYPES
+// ═════════════════════════════════════════════════════════════════════════════
+
+export interface SecondsPrecisionInput {
+  sessionId: string;
+  dateOfBirth: string;
+  tentativeTime: string;
+  latitude: number;
+  longitude: number;
+  timezone: string | number;
+  lifeEvents: LifeEvent[];
+  offsetConfig: TimeOffsetConfig;
+  physicalTraits?: PhysicalTraits;
+  spouseData?: {
+    dateOfBirth: string;
+    birthTime: string;
+    latitude: number;
+    longitude: number;
+    timezone: string | number;
+  };
+}
+
+export interface SecondsPrecisionResult {
+  rectifiedTime: string;       // HH:MM:SS format
+  accuracy: number;            // 0-100
+  confidence: string;          // "High" | "Medium" | "Low"
+  precisionLevel: 'seconds';
+  marginOfError: number;       // ±X seconds (3-5)
+  stagesCompleted: number;     // 1-10
+  boundaryWarnings: string[];
+  methodsUsed: string[];
+  processingTimeMs: number;
+  analysisResult: string;
+}
+
+export interface BoundarySafetyResult {
+  isSafe: boolean;
+  warnings: BoundaryWarning[];
+  nakshatraDistance: number;
+  lagnaDistance: number;
+  houseDistance: number;
+  overallRisk: 'low' | 'medium' | 'high';
+  recommendations: string[];
+}
+
+export interface BoundaryWarning {
+  type: 'nakshatra' | 'lagna' | 'house' | 'dasha';
+  message: string;
+  distanceSeconds: number;
+  severity: 'low' | 'medium' | 'high';
 }

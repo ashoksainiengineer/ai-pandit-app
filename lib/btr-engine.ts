@@ -1,5 +1,8 @@
-import { TimeUncertainty, LifeEvent, PhysicalTraits, EphemerisData, BTRInput, BTROutput } from './types';
+import { LifeEvent, PhysicalTraits, EphemerisData, BTRInput, BTROutput } from './types';
 import { calculateEphemeris } from './ephemeris';
+
+// Time uncertainty options as string type
+type TimeUncertainty = '±15 minutes' | '±30 minutes' | '±1 hour' | '±2 hours' | '±3 hours' | '±4 hours';
 
 const UNCERTAINTY_MINUTES: Record<TimeUncertainty, number> = {
   '±15 minutes': 15,
@@ -333,8 +336,9 @@ export async function processBirthTimeRectification(input: BTRInput): Promise<BT
       throw new Error('Invalid coordinates');
     }
 
-    // Phase 1: Generate candidates
-    const candidates = generateCandidates(input.timeEstimate, input.timeUncertainty);
+    // Phase 1: Generate candidates (using legacy uncertainty format)
+    const uncertainty = (input as any).timeUncertainty || '±1 hour';
+    const candidates = generateCandidates(input.timeEstimate, uncertainty as TimeUncertainty);
 
     // Phase 2: Quick filter
     const filteredCandidates = await quickFilterCandidates(
@@ -342,7 +346,7 @@ export async function processBirthTimeRectification(input: BTRInput): Promise<BT
       input.birthDate,
       input.latitude,
       input.longitude,
-      input.timezone,
+      String(input.timezone),
       input.lifeEvents,
       input.physicalTraits
     );
@@ -354,7 +358,7 @@ export async function processBirthTimeRectification(input: BTRInput): Promise<BT
       input.lifeEvents,
       input.latitude,
       input.longitude,
-      input.timezone
+      String(input.timezone)
     );
 
     // Phase 4: Select and compile results

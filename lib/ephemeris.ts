@@ -26,21 +26,109 @@ const SIGN_LORDS: Record<string, string> = {
   Pisces: 'Jupiter'
 };
 
+// Comprehensive timezone offsets (hours from UTC)
 const TIMEZONE_OFFSETS: Record<string, number> = {
+  // Indian Subcontinent
   'Asia/Kolkata': 5.5,
-  'UTC': 0,
-  'America/New_York': -5,
+  'Asia/Colombo': 5.5,
+  'Asia/Kathmandu': 5.75,
+  'Asia/Dhaka': 6,
+  'Asia/Karachi': 5,
+
+  // Southeast Asia
+  'Asia/Bangkok': 7,
+  'Asia/Singapore': 8,
+  'Asia/Jakarta': 7,
+  'Asia/Manila': 8,
+  'Asia/Kuala_Lumpur': 8,
+
+  // East Asia
+  'Asia/Tokyo': 9,
+  'Asia/Seoul': 9,
+  'Asia/Shanghai': 8,
+  'Asia/Hong_Kong': 8,
+  'Asia/Taipei': 8,
+
+  // Middle East
+  'Asia/Dubai': 4,
+  'Asia/Riyadh': 3,
+  'Asia/Tehran': 3.5,
+  'Asia/Jerusalem': 2,
+
+  // Europe
   'Europe/London': 0,
-  // Add more as needed
+  'Europe/Paris': 1,
+  'Europe/Berlin': 1,
+  'Europe/Rome': 1,
+  'Europe/Moscow': 3,
+  'Europe/Amsterdam': 1,
+
+  // Americas
+  'America/New_York': -5,
+  'America/Chicago': -6,
+  'America/Denver': -7,
+  'America/Los_Angeles': -8,
+  'America/Toronto': -5,
+  'America/Vancouver': -8,
+  'America/Mexico_City': -6,
+  'America/Sao_Paulo': -3,
+
+  // Pacific
+  'Australia/Sydney': 10,
+  'Australia/Melbourne': 10,
+  'Australia/Perth': 8,
+  'Pacific/Auckland': 12,
+  'Pacific/Fiji': 12,
+
+  // Africa
+  'Africa/Cairo': 2,
+  'Africa/Johannesburg': 2,
+  'Africa/Lagos': 1,
+
+  // Standard zones
+  'UTC': 0,
+  'GMT': 0,
 };
+
+/**
+ * Parse timezone string to offset in hours
+ * Supports: named zones, numeric offsets, +HH:MM format
+ */
+function parseTimezoneOffset(timezone: string): number {
+  // Check if it's a named timezone
+  if (TIMEZONE_OFFSETS[timezone] !== undefined) {
+    return TIMEZONE_OFFSETS[timezone];
+  }
+
+  // Check if it's a numeric offset (e.g., "5.5", "-8")
+  if (/^[+-]?\d+(\.\d+)?$/.test(timezone)) {
+    return parseFloat(timezone);
+  }
+
+  // Check if it's +HH:MM or -HH:MM format
+  const hmMatch = timezone.match(/^([+-])?(\d{1,2}):(\d{2})$/);
+  if (hmMatch) {
+    const sign = hmMatch[1] === '-' ? -1 : 1;
+    const hours = parseInt(hmMatch[2]);
+    const minutes = parseInt(hmMatch[3]);
+    return sign * (hours + minutes / 60);
+  }
+
+  // Default to UTC
+  console.warn(`Unknown timezone: ${timezone}, defaulting to UTC`);
+  return 0;
+}
 
 export function convertToUTC(date: string, time: string, timezone: string): Date {
   try {
     const [year, month, day] = date.split('-').map(Number);
-    const [hour, minute] = time.split(':').map(Number);
-    const localDate = new Date(year, month - 1, day, hour, minute);
+    const timeParts = time.split(':').map(Number);
+    const hour = timeParts[0] || 0;
+    const minute = timeParts[1] || 0;
+    const second = timeParts[2] || 0;
+    const localDate = new Date(year, month - 1, day, hour, minute, second);
 
-    const offset = TIMEZONE_OFFSETS[timezone] || 0;
+    const offset = parseTimezoneOffset(timezone);
     const utcDate = new Date(localDate.getTime() - offset * 3600000);
     return utcDate;
   } catch (error) {
@@ -73,8 +161,8 @@ function calculateSunLongitude(jd: number): number {
   const L0 = 280.46646 + 36000.76983 * T + 0.0003032 * T * T;
   const M = 357.52911 + 35999.05029 * T - 0.0001537 * T * T;
   const C = (1.914602 - 0.004817 * T - 0.000014 * T * T) * Math.sin(M * Math.PI / 180) +
-            (0.019993 - 0.000101 * T) * Math.sin(2 * M * Math.PI / 180) +
-            0.000289 * Math.sin(3 * M * Math.PI / 180);
+    (0.019993 - 0.000101 * T) * Math.sin(2 * M * Math.PI / 180) +
+    0.000289 * Math.sin(3 * M * Math.PI / 180);
   return (L0 + C) % 360;
 }
 
@@ -86,10 +174,10 @@ function calculateMoonLongitude(jd: number): number {
   const F = 93.2720950 + 483202.0175233 * T - 0.0036539 * T * T - T * T * T / 3526000 + T * T * T * T / 863310000;
 
   const sigmaL = 6288774 * Math.sin((M) * Math.PI / 180) +
-                1274027 * Math.sin((2 * D - M) * Math.PI / 180) +
-                658314 * Math.sin((2 * D) * Math.PI / 180) +
-                213618 * Math.sin((2 * M) * Math.PI / 180) +
-                -185116 * Math.sin((M) * Math.PI / 180) * Math.cos((F) * Math.PI / 180) / 1000000; // Approximate
+    1274027 * Math.sin((2 * D - M) * Math.PI / 180) +
+    658314 * Math.sin((2 * D) * Math.PI / 180) +
+    213618 * Math.sin((2 * M) * Math.PI / 180) +
+    -185116 * Math.sin((M) * Math.PI / 180) * Math.cos((F) * Math.PI / 180) / 1000000; // Approximate
 
   return (L0 + sigmaL / 1000000) % 360;
 }
