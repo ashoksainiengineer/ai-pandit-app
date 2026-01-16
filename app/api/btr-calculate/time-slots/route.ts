@@ -1,137 +1,52 @@
-import { NextResponse } from 'next/server';
-import { createSwissEphemerisCalculator, SwissEphemerisConfig } from '@/lib/swiss-ephemeris-calculator';
 
-export const dynamic = "force-dynamic";
+import { runBtrScan } from '@/lib/btr-iteration-engine';
+import { auth } from '@clerk/nextjs/server';
+import type { BirthData } from '@/types';
 
 export async function POST(request: Request) {
-  try {
+    const { userId } = auth();
+    if (!userId) {
+        return new Response("Unauthorized", { status: 401 });
+    }
+
     const body = await request.json();
-    const {
-      baseDate,
-      latitude,
-      longitude,
-      timezone = 'Asia/Kolkata',
-      uncertaintyMinutes = 120,
-      slotInterval = 15
-    } = body;
+    const { startTime, endTime, ...unvalidatedBirthData } = body;
 
-    console.log('🧮 BTR Time Slots API - Received request:', {
-      baseDate,
-      latitude,
-      longitude,
-      uncertaintyMinutes,
-      slotInterval
-    });
-
-    // Validate required parameters
-    if (!baseDate) {
-      return NextResponse.json({
-        success: false,
-        error: 'baseDate parameter is required'
-      }, { status: 400 });
-    }
-
-    if (latitude === undefined || latitude === null || isNaN(Number(latitude))) {
-      return NextResponse.json({
-        success: false,
-        error: 'Valid latitude is required'
-      }, { status: 400 });
-    }
-
-    if (longitude === undefined || longitude === null || isNaN(Number(longitude))) {
-      return NextResponse.json({
-        success: false,
-        error: 'Valid longitude is required'
-      }, { status: 400 });
-    }
-
-    // Validate and create base date
-    let validBaseDate: Date;
-    try {
-      validBaseDate = new Date(baseDate);
-      if (isNaN(validBaseDate.getTime())) {
-        throw new Error(`Invalid baseDate format: ${baseDate}`);
-      }
-    } catch (dateError) {
-      console.error('❌ Base date validation failed:', dateError);
-      return NextResponse.json({
-        success: false,
-        error: `Invalid baseDate format. Expected ISO string or valid Date input. Received: ${baseDate}`
-      }, { status: 400 });
-    }
-
-    // Initialize calculator
-    const config: SwissEphemerisConfig = {
-      ephemerisPath: './ephe',
-      ayanamshaMode: 'lahiri',
-      houseSystem: 'whole_sign',
-      useTrueNodes: true,
-      highPrecision: true
+    const birthData: Omit<BirthData, 'tentativeTime'> = {
+        fullName: unvalidatedBirthData.fullName || 'Sample Name',
+        birthDate: unvalidatedBirthData.birthDate || '1990-01-01',
+        birthLocation: unvalidatedBirthData.birthLocation || 'New York, USA',
+        timeUncertainty: unvalidatedBirthData.timeUncertainty || '30min'
     };
-    const calculator = createSwissEphemerisCalculator(config);
-    await calculator.initialize();
 
-    // Calculate ephemeris for multiple time slots
-    const timeSlots = [];
-    const startTime = new Date(validBaseDate.getTime() - uncertaintyMinutes * 60000);
-    const endTime = new Date(validBaseDate.getTime() + uncertaintyMinutes * 60000);
-    
-    console.log(`🕐 Calculating time slots from ${startTime.toISOString()} to ${endTime.toISOString()} at ${slotInterval} minute intervals`);
-    
-    let currentTime = new Date(startTime);
-    let slotCount = 0;
-    
-    while (currentTime <= endTime) {
-      try {
-        const result = await calculator.calculateChartData(
-          currentTime,
-          Number(latitude),
-          Number(longitude),
-          timezone
-        );
-        timeSlots.push(result);
-        slotCount++;
-        
-        if (slotCount % 10 === 0) {
-          console.log(`📝 Processed ${slotCount} time slots...`);
-        }
-      } catch (calcError) {
-        console.error(`❌ Error calculating chart for time ${currentTime.toISOString()}:`, calcError);
-        // Continue with next time slot instead of failing completely
-      }
-      
-      currentTime = new Date(currentTime.getTime() + slotInterval * 60000);
+    if (!startTime || !endTime) {
+        return new Response("Invalid time range", { status: 400 });
     }
 
-    console.log(`✅ Time slots calculation successful: ${timeSlots.length} slots generated out of ${slotCount} attempted`);
+    const stream = new ReadableStream({
+        async start(controller) {
+            const encoder = new TextEncoder();
+            let minuteCount = 0;
 
-    if (timeSlots.length === 0) {
-      return NextResponse.json({
-        success: false,
-        error: 'No valid time slots could be calculated',
-        details: 'All time slot calculations failed'
-      }, { status: 500 });
-    }
+            for await (const result of runBtrScan(birthData, startTime, endTime)) {
+                const progressMessage = `Analyzing minute ${minuteCount++}...\n\n`;
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify(progressMessage)}\n\n`));
+                // We are not sending the full chart data to the client for now to avoid overwhelming the connection
+            }
+            
+            // TODO: Send the results to Moonshot AI for analysis
+            // TODO: Save the final analysis to Turso DB
 
-    return NextResponse.json({
-      success: true,
-      data: { timeSlots }
+            controller.enqueue(encoder.encode('event: end\ndata: BTR scan completed successfully\n\n'));
+            controller.close();
+        },
     });
 
-  } catch (error) {
-    console.error('❌ Time slots calculation error:', error);
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      details: 'Failed to calculate time slots'
-    }, { status: 500 });
-  }
-}
-
-export async function GET() {
-  return NextResponse.json({
-    success: true,
-    message: 'BTR Time Slots API',
-    usage: 'Send POST with { baseDate, latitude, longitude, timezone?, uncertaintyMinutes?, slotInterval? }'
-  });
+    return new Response(stream, {
+        headers: {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+        },
+    });
 }

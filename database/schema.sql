@@ -1,8 +1,10 @@
 -- ==========================================
 -- AI-PANDIT BIRTH TIME RECTIFICATION DATABASE SCHEMA
 -- Turso SQLite Database Schema
--- Version: 2.0
+-- Version: 2.1
 -- Author: Your Senior Dev
+-- Change Log:
+-- v2.1: Modified time_slot_candidates to link to rectification_requests for real-time streaming.
 -- ==========================================
 
 -- Drop tables in reverse order of creation to avoid foreign key constraint errors
@@ -113,19 +115,20 @@ CREATE TABLE IF NOT EXISTS rectification_results (
 );
 
 -- ==========================================
--- 7. TIME SLOT CANDIDATES TABLE
+-- 7. TIME SLOT CANDIDATES TABLE (MODIFIED FOR REAL-TIME)
 -- Stores each evaluated time slot during the rectification process for traceability.
 -- ==========================================
 CREATE TABLE IF NOT EXISTS time_slot_candidates (
     id TEXT PRIMARY KEY,
-    result_id TEXT NOT NULL,
+    request_id TEXT NOT NULL,                 -- LINKED TO REQUESTS for real-time streaming
     time_slot TEXT NOT NULL,                  -- The specific time evaluated 'HH:MM:SS'
     ascendant_at_slot TEXT NOT NULL,
     score REAL NOT NULL,                      -- Score for this individual time slot
+    rank INTEGER,                             -- Live rank of the candidate, can be updated during processing
     evaluation_notes TEXT,                    -- AI notes on why this slot was scored as it was (JSON)
     is_best_candidate INTEGER NOT NULL DEFAULT 0, -- 1 for true, 0 for false
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (result_id) REFERENCES rectification_results (id) ON DELETE CASCADE
+    FOREIGN KEY (request_id) REFERENCES rectification_requests (id) ON DELETE CASCADE
 );
 
 -- ==========================================
@@ -171,7 +174,7 @@ CREATE INDEX IF NOT EXISTS idx_requests_user_id ON rectification_requests(user_i
 CREATE INDEX IF NOT EXISTS idx_birth_data_request_id ON birth_data(request_id);
 CREATE INDEX IF NOT EXISTS idx_life_events_request_id ON life_events(request_id);
 CREATE INDEX IF NOT EXISTS idx_results_request_id ON rectification_results(request_id);
-CREATE INDEX IF NOT EXISTS idx_candidates_result_id ON time_slot_candidates(result_id);
+CREATE INDEX IF NOT EXISTS idx_candidates_request_id ON time_slot_candidates(request_id); -- Changed from result_id
 CREATE INDEX IF NOT EXISTS idx_dasha_result_id ON dasha_periods(result_id);
 CREATE INDEX IF NOT EXISTS idx_verifications_result_id ON advanced_verifications(result_id);
 
@@ -191,7 +194,7 @@ SELECT
     res.ascendant_sign
 FROM users u
 JOIN rectification_requests rr ON u.id = rr.user_id
-JOIN rectification_results res ON rr.id = res.request_id
+LEFT JOIN rectification_results res ON rr.id = res.request_id -- Changed to LEFT JOIN as results might not exist yet
 ORDER BY rr.created_at DESC;
 
 -- ==========================================

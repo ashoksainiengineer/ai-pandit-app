@@ -6,11 +6,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "NODE_OPTIONS=\"--max-old-space-size=256\" next build",
-    "start": "node server.js",
+    "start": "NODE_OPTIONS='--max-old-space-size=400' HOSTNAME='0.0.0.0' PORT='8080' node .next/standalone/server.js",
     "lint": "next lint"
   },
   "dependencies": {
     "@clerk/nextjs": "^4.31.8",
+    "@leapcell/leapcell-js": "^0.0.14",
     "@libsql/client": "^0.17.0",
     "date-fns": "^3.6.0",
     "dotenv": "^16.3.1",

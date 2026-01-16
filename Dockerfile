@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /app
 
-# Set build memory limit (optimized for 256MB Northflank)
-ENV NODE_OPTIONS="--max-old-space-size=256"
+# Set higher build memory limit for compiling C library and Next.js build
+ENV NODE_OPTIONS="--max-old-space-size=448"
 
 # Copy package files
 COPY package*.json ./
@@ -39,8 +39,8 @@ COPY --from=builder /app/.next/static ./.next/static
 # Copy required astrological data files
 COPY --from=builder /app/ephe ./ephe
 
-# Set memory optimization for Northflank's 256MB RAM limit
-ENV NODE_OPTIONS="--max-old-space-size=180"
+# Set optimized production memory for Next.js server and BTR engine spikes (within 512MB limit)
+ENV NODE_OPTIONS="--max-old-space-size=320"
 ENV PORT=8080
 
 # Expose port

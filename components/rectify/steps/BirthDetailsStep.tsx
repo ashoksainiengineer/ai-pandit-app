@@ -28,6 +28,8 @@ export default function BirthDetailsStep({ birthData, setBirthData }: BirthDetai
   const [manualPlace, setManualPlace] = useState('');
   const [manualLat, setManualLat] = useState('');
   const [manualLon, setManualLon] = useState('');
+  const [customUncertainty, setCustomUncertainty] = useState('');
+
 
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
@@ -174,6 +176,20 @@ export default function BirthDetailsStep({ birthData, setBirthData }: BirthDetai
     });
   };
 
+  const handleUncertaintyChange = (value: string) => {
+    if (value !== 'custom') {
+      setCustomUncertainty(''); // Clear custom input if a preset is chosen
+    }
+    setBirthData({ ...birthData, timeUncertainty: value as any });
+  };
+
+  const handleCustomUncertaintyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCustomUncertainty(value);
+    setBirthData({ ...birthData, timeUncertainty: `${value}min` as any });
+  };
+
+
   return (
     <div className="space-y-8">
       {/* Step Title */}
@@ -308,19 +324,20 @@ export default function BirthDetailsStep({ birthData, setBirthData }: BirthDetai
           <label className="block text-sm font-semibold text-[#F7F9FC] mb-3">
             How sure are you about this time?
           </label>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {[
-              { emoji: '😰', label: 'Not Sure', interval: '±2 hours', value: '2hour' },
-              { emoji: '🤔', label: 'Roughly', interval: '±1 hour', value: '1hour' },
+              { emoji: '😰', label: 'Not Sure', interval: '±2 hours', value: '120min' },
+              { emoji: '🤔', label: 'Roughly', interval: '±1 hour', value: '60min' },
               { emoji: '😊', label: 'Somewhat', interval: '±30 min', value: '30min' },
               { emoji: '😄', label: 'Pretty Sure', interval: '±15 min', value: '15min' },
-              { emoji: '✅', label: 'Exact', interval: '±5 min', value: '5min' }
+              { emoji: '✅', label: 'Exact', interval: '±5 min', value: '5min' },
+              { emoji: '✍️', label: 'Custom', interval: 'Enter mins', value: 'custom' }
             ].map((option) => (
               <button
                 key={option.value}
-                onClick={() => setBirthData({ ...birthData, timeUncertainty: option.value as any })}
+                onClick={() => handleUncertaintyChange(option.value)}
                 className={`p-3 rounded-lg border-2 transition-all text-center ${
-                  birthData.timeUncertainty === option.value
+                  (birthData.timeUncertainty === option.value) || (option.value === 'custom' && customUncertainty !== '')
                     ? 'border-[#F5A623] bg-[#F5A623]/10'
                     : 'border-[#3D4654] bg-[#242B35] hover:border-[#2D3542]'
                 }`}
@@ -332,9 +349,20 @@ export default function BirthDetailsStep({ birthData, setBirthData }: BirthDetai
               </button>
             ))}
           </div>
+          {birthData.timeUncertainty === 'custom' && (
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-3">
+              <input
+                type="number"
+                value={customUncertainty}
+                onChange={handleCustomUncertaintyChange}
+                placeholder="Enter uncertainty in minutes (e.g., 45)"
+                className="w-full h-12 px-4 bg-[#242B35] border border-[#3D4654] rounded-lg text-[#F7F9FC] placeholder-[#6B7A90] focus:border-[#F5A623] focus:outline-none transition-colors"
+              />
+            </motion.div>
+          )}
           <p className="text-xs text-[#6B7A90] mt-2">ℹ️ This helps us determine the search range for rectification</p>
         </div>
-        <p className="text-xs text-[#6B7A90] mt-2">ℹ️ This helps us determine the search range for rectification</p>
+
 
         {/* Birth Place */}
         <div>
