@@ -1,50 +1,41 @@
-# Stage 1: Build stage with all build tools
-FROM node:18-slim AS builder
-
-# Install build dependencies for swisseph C library compilation
-RUN apt-get update && apt-get install -y \
-    build-essential \
-    python3 \
-    cmake \
-    && rm -rf /var/lib/apt/lists/*
+# Stage 1: Build Stage
+# ---------------------
+FROM node:20-slim AS builder
 
 # Set working directory
 WORKDIR /app
 
-# Set higher build memory limit for compiling C library and Next.js build
-ENV NODE_OPTIONS="--max-old-space-size=448"
-
-# Copy package files
+# Install dependencies
 COPY package*.json ./
-
-# Install all dependencies (including dev dependencies) for the build
 RUN npm install
 
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the Next.js standalone application
 RUN npm run build
 
-# Stage 2: Production stage - minimal image
-FROM node:18-slim AS production
+# Prune dev dependencies
+RUN npm prune --production
 
-# Set working directory
+# Stage 2: Production Stage
+# -------------------------
+FROM node:20-slim AS production
+
 WORKDIR /app
 
-# Copy standalone output from builder stage
+# Set environment variables for production
+ENV NODE_ENV=production
+
+# Copy pruned dependencies and standalone build from builder stage
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Copy required astrological data files
-COPY --from=builder /app/ephe ./ephe
-
-# Set optimized production memory for Next.js server and BTR engine spikes (within 512MB limit)
-ENV NODE_OPTIONS="--max-old-space-size=320"
-ENV PORT=8080
-
-# Expose port
+# Expose the port the app will run on
 EXPOSE 8080
 
-# Start the application
-CMD ["node", "server.js"]
+# Set the command to start the server with increased memory
+CMD ["node", "--max-old-space-size=400", "server.js"]

@@ -5,8 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "NODE_OPTIONS=\"--max-old-space-size=256\" next build",
-    "start": "NODE_OPTIONS='--max-old-space-size=400' HOSTNAME='0.0.0.0' PORT='8080' node .next/standalone/server.js",
+    "build": "next build",
+    "start": "node .next/standalone/server.js",
     "lint": "next lint"
   },
   "dependencies": {

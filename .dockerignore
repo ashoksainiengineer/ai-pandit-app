@@ -1,11 +1,7 @@
-node_modules
-dist
+Dockerfile
+.dockerignore
 .git
-.env
-.env.local
+.gitignore
+node_modules
 .next
-*.log
-.DS_Store
-npm-debug.log*
-.vscode
-.idea
+README.md
