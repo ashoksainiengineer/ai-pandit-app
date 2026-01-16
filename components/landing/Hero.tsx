@@ -1,67 +1,122 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { ArrowRight, Sparkles } from 'lucide-react';
+import FibonacciSpiral from '../FibonacciSpiral';
 
 export default function Hero() {
   return (
-    <section className="min-h-screen flex items-center justify-center px-6 pt-24 pb-16">
-      <div className="max-w-[800px] mx-auto text-center">
+    <section className="relative min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 overflow-hidden">
+      {/* Background Animation */}
+      <div className="absolute inset-0">
+        <FibonacciSpiral />
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.8 }}
+          className="mb-8"
         >
-          {/* Headline */}
-          <h1 style={{ fontSize: 'var(--text-display)' }} className="font-bold text-[var(--text-primary)] tracking-tight mb-6">
-            Don't Know Your<br />
-            <span style={{ color: 'var(--accent-primary)' }}>Exact Birth Time?</span>
-          </h1>
-
-          {/* Subheadline */}
-          <p style={{ fontSize: 'var(--text-body-lg)', color: 'var(--text-secondary)' }} className="max-w-[600px] mx-auto mb-10">
-            We'll find it. Using Vedic astrology principles, Swiss Ephemeris calculations, and AI-powered analysis.
-          </p>
-
-          {/* CTA Button */}
-          <Link href="/rectify" className="btn btn-primary text-lg px-10 h-14 mb-8 inline-flex">
-            Find My Birth Time
-            <ArrowRight className="w-5 h-5" />
-          </Link>
-
-          {/* Trust indicator */}
-          <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }} className="mb-12">
-            ⭐ Trusted by 14,000+ users across India
-          </p>
-
-          {/* Demo card */}
           <motion.div
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-400 text-sm font-medium mb-6"
+          >
+            <Sparkles className="w-4 h-4" />
+            AI-Powered Vedic Astrology
+          </motion.div>
+
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="card-elevated max-w-[400px] mx-auto"
+            transition={{ delay: 0.4, duration: 0.8 }}
+            className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6"
           >
-            <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }} className="mb-4">
-              Example Result
-            </p>
-            <div className="flex justify-between items-center mb-3">
-              <span style={{ color: 'var(--text-secondary)' }}>Your estimate:</span>
-              <span style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>~10:15 AM (±2hrs)</span>
-            </div>
-            <div className="flex justify-between items-center mb-3">
-              <span style={{ color: 'var(--text-secondary)' }}>Rectified time:</span>
-              <span style={{ color: 'var(--accent-primary)', fontFamily: 'var(--font-mono)', fontWeight: 'bold', fontSize: '1.125rem' }}>
-                10:23:47 AM
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span style={{ color: 'var(--text-secondary)' }}>Confidence:</span>
-              <span style={{ color: 'var(--color-success)', fontWeight: 'bold' }}>94%</span>
-            </div>
+            Know Your{' '}
+            <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
+              EXACT
+            </span>{' '}
+            Birth Time
+          </motion.h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.8 }}
+            className="text-xl md:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto"
+          >
+            Transform your astrology readings with AI-powered birth time rectification.
+            Get 95-98% accurate results in just 20-25 minutes.
+          </motion.p>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.8 }}
+            className="text-lg text-gray-400 mb-12 max-w-2xl mx-auto"
+          >
+            Enter your birth details and life events. Our advanced AI analyzes planetary positions
+            against your life's major events to determine your precise birth time.
+          </motion.p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.0, duration: 0.8 }}
+          className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+        >
+          <Link href="/rectify">
+            <motion.button
+              whileHover={{ scale: 1.05, boxShadow: '0 0 25px rgba(59, 130, 246, 0.5)' }}
+              whileTap={{ scale: 0.95 }}
+              className="group px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold text-lg rounded-xl transition-all duration-300 shadow-lg"
+            >
+              Get Your Analysis - ₹799
+              <ArrowRight className="inline-block w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
+            </motion.button>
+          </Link>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.2 }}
+            className="text-sm text-gray-400"
+          >
+            ✓ Lifetime access • ✓ Detailed 15-20 page report • ✓ 7-day money-back guarantee
           </motion.div>
         </motion.div>
+
+        {/* Stats */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.4, duration: 0.8 }}
+          className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto"
+        >
+          <div className="text-center">
+            <div className="text-3xl font-bold text-blue-400 mb-2">95-98%</div>
+            <div className="text-gray-400">Accuracy Rate</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-blue-400 mb-2">20-25min</div>
+            <div className="text-gray-400">Processing Time</div>
+          </div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-blue-400 mb-2">10,000+</div>
+            <div className="text-gray-400">Happy Customers</div>
+          </div>
+        </motion.div>
       </div>
+
+      {/* Bottom fade */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-slate-900 to-transparent pointer-events-none" />
     </section>
   );
 }

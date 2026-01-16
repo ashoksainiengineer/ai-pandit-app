@@ -1,107 +1,134 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import React from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { Check, Star, Clock, Target, FileText, Mail, Shield } from 'lucide-react';
+
+const features = [
+  {
+    icon: Target,
+    text: 'AI-powered deep analysis with Vedic astrology'
+  },
+  {
+    icon: FileText,
+    text: '15-20 page detailed report with charts'
+  },
+  {
+    icon: Check,
+    text: 'Event-by-event planetary breakdown'
+  },
+  {
+    icon: Target,
+    text: 'Alternative time suggestions'
+  },
+  {
+    icon: Mail,
+    text: 'Email support and follow-up consultation'
+  },
+  {
+    icon: Shield,
+    text: '7-day money-back guarantee'
+  }
+];
 
 export default function Pricing() {
   return (
-    <section id="pricing" className="py-24 px-6">
-      <div className="max-w-[1200px] mx-auto">
+    <section id="pricing" className="py-20 bg-slate-800">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.8 }}
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 style={{ fontSize: 'var(--text-h2)' }} className="font-bold text-[var(--text-primary)] mb-4">
-            Simple, Transparent Pricing
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+            Transparent Pricing
           </h2>
+          <p className="text-xl text-gray-300">
+            One-time payment, lifetime access to your analysis
+          </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-[800px] mx-auto mb-8">
-          {/* Basic Plan */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            viewport={{ once: true }}
-            className="card-elevated"
-          >
-            <h3 style={{ fontSize: 'var(--text-h3)' }} className="font-bold text-[var(--text-primary)] mb-2">
-              BASIC
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+          viewport={{ once: true }}
+          className="bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 rounded-2xl p-8 md:p-12 shadow-2xl hover:shadow-blue-500/10 transition-all duration-300"
+        >
+          <div className="text-center mb-8">
+            <h3 className="text-2xl font-bold text-white mb-2">
+              Premium Birth Time Analysis
             </h3>
-            <div className="flex items-baseline gap-2 mb-6">
-              <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--accent-primary)' }}>₹499</span>
-              <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>one-time</span>
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <span className="text-5xl font-bold text-blue-400">₹799</span>
+              <span className="text-gray-400">one-time</span>
             </div>
-            <ul className="space-y-3 mb-8">
-              {[
-                'Rectified time',
-                'Confidence score',
-                'Basic chart',
-                'Event verification'
-              ].map((item, index) => (
-                <li key={index} style={{ fontSize: 'var(--text-body)', color: 'var(--text-secondary)' }}>
-                  ✓ {item}
-                </li>
-              ))}
-            </ul>
-            <Link href="/rectify" className="btn btn-secondary w-full">
-              Get Started
-            </Link>
-          </motion.div>
+            <p className="text-gray-300">Lifetime access to your detailed analysis</p>
+          </div>
 
-          {/* Pro Plan */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1, duration: 0.5 }}
-            viewport={{ once: true }}
-            className="card-elevated border-2"
-            style={{ borderColor: 'var(--accent-primary)' }}
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <span style={{ fontSize: 'var(--text-body)', color: 'var(--accent-primary)', fontWeight: 'bold' }}>
-                ⭐ RECOMMENDED
-              </span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div className="flex items-center gap-3 p-4 bg-slate-600/30 rounded-lg">
+              <Clock className="w-5 h-5 text-blue-400 flex-shrink-0" />
+              <span className="text-gray-300">Processing time: ~20-25 minutes</span>
             </div>
-            <h3 style={{ fontSize: 'var(--text-h3)' }} className="font-bold text-[var(--text-primary)] mb-2">
-              PRO
-            </h3>
-            <div className="flex items-baseline gap-2 mb-6">
-              <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--accent-primary)' }}>₹999</span>
-              <span style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>one-time</span>
+            <div className="flex items-center gap-3 p-4 bg-slate-600/30 rounded-lg">
+              <Target className="w-5 h-5 text-green-400 flex-shrink-0" />
+              <span className="text-gray-300">Accuracy: 95-98%</span>
             </div>
-            <ul className="space-y-3 mb-8">
-              {[
-                'Everything in Basic',
-                'All 16 Varga charts',
-                'Dasha predictions',
-                'PDF report',
-                '30-day revision'
-              ].map((item, index) => (
-                <li key={index} style={{ fontSize: 'var(--text-body)', color: 'var(--text-secondary)' }}>
-                  ✓ {item}
-                </li>
-              ))}
-            </ul>
-            <Link href="/rectify" className="btn btn-primary w-full">
-              Get Pro →
+          </div>
+
+          <div className="space-y-4 mb-8">
+            <h4 className="text-lg font-semibold text-white mb-4">What's Included:</h4>
+            {features.map((feature, index) => {
+              const IconComponent = feature.icon;
+              return (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, x: -20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                  className="flex items-center gap-3"
+                >
+                  <div className="flex items-center justify-center w-6 h-6 bg-blue-600/20 rounded-full flex-shrink-0">
+                    <IconComponent className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <span className="text-gray-300">{feature.text}</span>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          <div className="text-center">
+            <Link href="/rectify">
+              <motion.button
+                whileHover={{ scale: 1.05, boxShadow: '0 0 25px rgba(59, 130, 246, 0.3)' }}
+                whileTap={{ scale: 0.95 }}
+                className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold text-lg rounded-xl transition-all duration-300 shadow-lg"
+              >
+                Get Your Analysis
+              </motion.button>
             </Link>
-          </motion.div>
-        </div>
+            <p className="text-sm text-gray-400 mt-4">
+              No hidden charges • Secure payment • Instant access
+            </p>
+          </div>
+        </motion.div>
 
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
           viewport={{ once: true }}
-          className="text-center"
+          className="text-center mt-8"
         >
-          <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)' }}>
-            🔒 Secure Payment • 💬 WhatsApp Support • ✓ Money-back guarantee
-          </p>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-600/10 border border-green-600/20 rounded-full text-green-400 text-sm">
+            <Shield className="w-4 h-4" />
+            Trusted by 10,000+ customers worldwide
+          </div>
         </motion.div>
       </div>
     </section>

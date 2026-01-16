@@ -1,175 +1,190 @@
 'use client';
 
+import React from 'react';
 import { motion } from 'framer-motion';
-import type { PhysicalDescription } from '@/types';
+import { AlertCircle, User, SkipForward, ChevronDown } from 'lucide-react';
+import { PhysicalTraits } from '../../../lib/types';
 
 interface PhysicalStepProps {
-  physicalDesc: Partial<PhysicalDescription>;
-  setPhysicalDesc: (data: Partial<PhysicalDescription>) => void;
+  physicalTraits?: PhysicalTraits;
+  setPhysicalTraits: (traits: PhysicalTraits) => void;
+  onContinue: () => void;
+  isOptional?: boolean;
 }
 
-export default function PhysicalStep({ physicalDesc, setPhysicalDesc }: PhysicalStepProps) {
-  const cardButtonClass = (isSelected: boolean) =>
-    `p-4 rounded-xl border-2 transition-all text-center ${
-      isSelected
-        ? 'border-[#F5A623] bg-[#F5A623]/10'
-        : 'border-[#3D4654] bg-[#242B35] hover:border-[#2D3542]'
-    }`;
+const HEIGHT_OPTIONS = ['very short', 'short', 'medium', 'tall', 'very tall'] as const;
+const BUILD_OPTIONS = ['thin', 'lean', 'medium', 'heavy', 'obese'] as const;
+const COMPLEXION_OPTIONS = ['very fair', 'fair', 'medium', 'dark', 'very dark'] as const;
+
+export default function PhysicalStep({
+  physicalTraits,
+  setPhysicalTraits,
+  onContinue,
+  isOptional = true
+}: PhysicalStepProps) {
+  const updateTrait = (key: keyof PhysicalTraits, value: string) => {
+    setPhysicalTraits({
+      ...physicalTraits,
+      [key]: value
+    } as PhysicalTraits);
+  };
+
+  const hasAnyTraits = physicalTraits &&
+    (physicalTraits.height || physicalTraits.build || physicalTraits.complexion ||
+     physicalTraits.appearance || physicalTraits.marks);
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0 }
+  };
 
   return (
-    <div className="space-y-8">
-      {/* Step Title */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-16 pt-8"
-      >
-        <div className="text-5xl mb-4">👤</div>
-        <h2 className="text-3xl font-bold text-[#F7F9FC] mb-2">Physical Appearance</h2>
-        <p className="text-[#A8B3C5] text-lg">
-          Your physical traits help verify the correct Ascendant.<br />
-          Answer honestly - there's no right or wrong.
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="max-w-2xl mx-auto space-y-6"
+    >
+      <motion.div variants={itemVariants} className="text-center mb-8">
+        <h2 className="text-2xl font-semibold text-white mb-2">Physical Characteristics</h2>
+        <p className="text-gray-300">
+          {isOptional
+            ? "These details can improve accuracy but are completely optional"
+            : "Please provide your physical characteristics"
+          }
         </p>
+        {isOptional && (
+          <p className="text-sm text-blue-400 mt-2">Skip this step if you prefer not to share</p>
+        )}
       </motion.div>
 
-      {/* Explanation Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="bg-[#F5A623]/10 border border-[#F5A623]/30 rounded-xl p-6"
-      >
-        <h3 className="font-semibold text-[#F5A623] mb-3 flex items-center gap-2">
-          <span>🔬</span> WHY WE ASK THIS
-        </h3>
-        <p className="text-sm text-[#A8B3C5] leading-relaxed">
-          In Vedic astrology, your Ascendant (rising sign) influences physical appearance: Leo rising → broad shoulders, Virgo rising → slim build, Taurus rising → sturdy build. This helps us verify if the calculated time is correct.
-        </p>
-      </motion.div>
-
-      {/* Form Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-[#1A1F26] border border-[#2D3542] rounded-2xl p-8 space-y-8"
-      >
-        {/* Body Structure */}
-        <div>
-          <label className="block text-sm font-semibold text-[#F7F9FC] mb-3">
-            How would you describe your body type?
-          </label>
-          <div className="grid grid-cols-4 gap-3">
-            {[
-              { emoji: '🧍', label: 'Slim', value: 'slim' },
-              { emoji: '🧍‍♂️', label: 'Average', value: 'average' },
-              { emoji: '💪', label: 'Athletic', value: 'athletic' },
-              { emoji: '🧍‍♂️', label: 'Heavy', value: 'heavy' }
-            ].map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setPhysicalDesc({ ...physicalDesc, bodyStructure: option.value as any })}
-                className={cardButtonClass(physicalDesc.bodyStructure === option.value)}
-              >
-                <div className="text-3xl mb-2">{option.emoji}</div>
-                <div className="text-sm font-medium text-[#F7F9FC]">{option.label}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Height */}
-        <div>
-          <label className="block text-sm font-semibold text-[#F7F9FC] mb-3">
-            Your height compared to average?
-          </label>
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { emoji: '📏', label: 'Below Avg', desc: '< 5\'4" (163cm)', value: 'short' },
-              { emoji: '📏', label: 'Average', desc: '5\'4"-5\'9"', value: 'average' },
-              { emoji: '📏', label: 'Above Avg', desc: '> 5\'9" (175cm)', value: 'tall' }
-            ].map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setPhysicalDesc({ ...physicalDesc, height: option.value as any })}
-                className={cardButtonClass(physicalDesc.height === option.value)}
-              >
-                <div className="text-3xl mb-2">{option.emoji}</div>
-                <div className="text-sm font-medium text-[#F7F9FC]">{option.label}</div>
-                <div className="text-xs text-[#6B7A90] mt-1">{option.desc}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Face Shape */}
-        <div>
-          <label className="block text-sm font-semibold text-[#F7F9FC] mb-3">
-            Which face shape is closest to yours?
-          </label>
-          <div className="grid grid-cols-5 gap-3">
-            {[
-              { emoji: '⭕', label: 'Round', value: 'round' },
-              { emoji: '⬭', label: 'Oval', value: 'oval' },
-              { emoji: '▢', label: 'Square', value: 'square' },
-              { emoji: '◇', label: 'Angular', value: 'angular' },
-              { emoji: '♡', label: 'Heart', value: 'heart' }
-            ].map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setPhysicalDesc({ ...physicalDesc, faceShape: option.value as any })}
-                className={cardButtonClass(physicalDesc.faceShape === option.value)}
-              >
-                <div className="text-3xl mb-2">{option.emoji}</div>
-                <div className="text-xs font-medium text-[#F7F9FC]">{option.label}</div>
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-[#6B7A90] mt-2">💡 Look in mirror: Is your face wider or longer?</p>
-        </div>
-
-        {/* Complexion */}
-        <div>
-          <label className="block text-sm font-semibold text-[#F7F9FC] mb-3">
-            Your natural complexion?
-          </label>
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { color: 'bg-orange-200', label: 'Fair', value: 'fair' },
-              { color: 'bg-yellow-700', label: 'Wheatish', value: 'wheatish' },
-              { color: 'bg-yellow-900', label: 'Dark', value: 'dark' }
-            ].map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setPhysicalDesc({ ...physicalDesc, complexion: option.value as any })}
-                className={`p-4 rounded-xl border-2 transition-all ${
-                  physicalDesc.complexion === option.value
-                    ? 'border-[#F5A623] ring-2 ring-[#F5A623]/50'
-                    : 'border-[#3D4654]'
-                }`}
-              >
-                <div className={`w-12 h-12 rounded-lg ${option.color} mx-auto mb-2`} />
-                <div className="text-sm font-medium text-[#F7F9FC]">{option.label}</div>
-              </button>
-            ))}
-          </div>
-          <p className="text-xs text-[#6B7A90] mt-2">ℹ️ Compare with unexposed skin (inside of forearm)</p>
-        </div>
-
-        {/* Distinctive Features */}
-        <div>
-          <label className="block text-sm font-semibold text-[#F7F9FC] mb-2">
-            Any distinctive features? <span className="text-[#6B7A90]">(Optional)</span>
-          </label>
-          <input
-            type="text"
-            value={physicalDesc.distinctiveFeatures || ''}
-            onChange={(e) => setPhysicalDesc({ ...physicalDesc, distinctiveFeatures: e.target.value })}
-            placeholder="E.g., birthmarks, scars, moles, prominent nose..."
-            className="w-full h-12 px-4 bg-[#242B35] border border-[#3D4654] rounded-lg text-[#F7F9FC] placeholder-[#6B7A90] focus:border-[#F5A623] focus:outline-none"
-          />
+      {/* Height */}
+      <motion.div variants={itemVariants} className="space-y-3">
+        <label className="flex items-center gap-2 text-sm text-gray-300">
+          <User className="w-4 h-4" />
+          Height
+        </label>
+        <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+          {HEIGHT_OPTIONS.map(option => (
+            <button
+              key={option}
+              onClick={() => updateTrait('height', option)}
+              className={`px-3 py-2 rounded-lg border transition-all text-sm ${
+                physicalTraits?.height === option
+                  ? 'bg-blue-600 border-blue-500 text-white'
+                  : 'bg-slate-700/50 border-slate-600 text-gray-300 hover:border-blue-400'
+              }`}
+            >
+              {option}
+            </button>
+          ))}
         </div>
       </motion.div>
-    </div>
+
+      {/* Build */}
+      <motion.div variants={itemVariants} className="space-y-3">
+        <label className="flex items-center gap-2 text-sm text-gray-300">
+          <User className="w-4 h-4" />
+          Build
+        </label>
+        <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+          {BUILD_OPTIONS.map(option => (
+            <button
+              key={option}
+              onClick={() => updateTrait('build', option)}
+              className={`px-3 py-2 rounded-lg border transition-all text-sm ${
+                physicalTraits?.build === option
+                  ? 'bg-blue-600 border-blue-500 text-white'
+                  : 'bg-slate-700/50 border-slate-600 text-gray-300 hover:border-blue-400'
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Complexion */}
+      <motion.div variants={itemVariants} className="space-y-3">
+        <label className="flex items-center gap-2 text-sm text-gray-300">
+          <User className="w-4 h-4" />
+          Complexion
+        </label>
+        <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+          {COMPLEXION_OPTIONS.map(option => (
+            <button
+              key={option}
+              onClick={() => updateTrait('complexion', option)}
+              className={`px-3 py-2 rounded-lg border transition-all text-sm ${
+                physicalTraits?.complexion === option
+                  ? 'bg-blue-600 border-blue-500 text-white'
+                  : 'bg-slate-700/50 border-slate-600 text-gray-300 hover:border-blue-400'
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Appearance */}
+      <motion.div variants={itemVariants} className="space-y-2">
+        <label className="text-sm text-gray-300">General Appearance (Optional)</label>
+        <textarea
+          value={physicalTraits?.appearance || ''}
+          onChange={(e) => updateTrait('appearance', e.target.value)}
+          placeholder="e.g., athletic build, prominent nose, etc."
+          rows={2}
+          className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none transition-colors resize-none"
+        />
+      </motion.div>
+
+      {/* Marks */}
+      <motion.div variants={itemVariants} className="space-y-2">
+        <label className="text-sm text-gray-300">Birth Marks or Scars (Optional)</label>
+        <textarea
+          value={physicalTraits?.marks || ''}
+          onChange={(e) => updateTrait('marks', e.target.value)}
+          placeholder="e.g., mole on left cheek, scar on right hand, etc."
+          rows={2}
+          className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none transition-colors resize-none"
+        />
+      </motion.div>
+
+      {/* Action Buttons */}
+      <motion.div variants={itemVariants} className="pt-6 space-y-3">
+        <motion.button
+          onClick={onContinue}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+        >
+          {hasAnyTraits ? 'Continue with These Details' : 'Continue without Physical Details'}
+          <ChevronDown className="w-5 h-5" />
+        </motion.button>
+
+        {isOptional && (
+          <motion.button
+            onClick={onContinue}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="w-full px-6 py-4 bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <SkipForward className="w-5 h-5" />
+            Skip This Step
+          </motion.button>
+        )}
+      </motion.div>
+    </motion.div>
   );
 }

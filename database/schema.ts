@@ -1,121 +1,91 @@
+import { sqliteTable, text, integer, real, index } from 'drizzle-orm/sqlite-core';
 
-import { sqliteTable, text, real, integer } from "drizzle-orm/sqlite-core";
+export const users = sqliteTable(
+  'users',
+  {
+    id: text('id').primaryKey(),
+    clerkId: text('clerkId').notNull().unique(),
+    email: text('email').notNull(),
+    fullName: text('fullName'),
+    createdAt: text('createdAt').default('CURRENT_TIMESTAMP'),
+    updatedAt: text('updatedAt').default('CURRENT_TIMESTAMP'),
+  },
+  (table) => ({
+    clerkIdIdx: index('users_clerkId_idx').on(table.clerkId),
+    emailIdx: index('users_email_idx').on(table.email),
+  })
+);
 
-export const users = sqliteTable("users", {
-  id: text("id").primaryKey(),
-  clerkId: text("clerk_id").unique().notNull(),
-  email: text("email").unique().notNull(),
-  fullName: text("full_name"),
-  profileImageUrl: text("profile_image_url"),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-  updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
-});
+export const sessions = sqliteTable(
+  'sessions',
+  {
+    id: text('id').primaryKey(),
+    userId: text('userId').notNull().references(() => users.id),
+    fullName: text('fullName').notNull(),
+    dateOfBirth: text('dateOfBirth').notNull(),
+    tentativeTime: text('tentativeTime').notNull(),
+    birthPlace: text('birthPlace').notNull(),
+    latitude: real('latitude').notNull(),
+    longitude: real('longitude').notNull(),
+    timezone: text('timezone').notNull(),
+    gender: text('gender'),
+    physicalTraits: text('physicalTraits'),
+    lifeEvents: text('lifeEvents').notNull(),
+    offsetConfig: text('offsetConfig'),
+    rectifiedTime: text('rectifiedTime'),
+    accuracy: integer('accuracy'),
+    confidence: text('confidence'),
+    analysisResult: text('analysisResult'),
+    status: text('status').default('pending'),
+    errorMessage: text('errorMessage'),
+    createdAt: text('createdAt').default('CURRENT_TIMESTAMP'),
+    updatedAt: text('updatedAt').default('CURRENT_TIMESTAMP'),
+    completedAt: text('completedAt'),
+  },
+  (table) => ({
+    userIdIdx: index('sessions_userId_idx').on(table.userId),
+    statusIdx: index('sessions_status_idx').on(table.status),
+    createdAtIdx: index('sessions_createdAt_idx').on(table.createdAt),
+  })
+);
 
-export const rectificationRequests = sqliteTable("rectification_requests", {
-  id: text("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  status: text("status").notNull().default("pending"),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-  updatedAt: text("updated_at").default("CURRENT_TIMESTAMP"),
-});
+export const calculations = sqliteTable(
+  'calculations',
+  {
+    id: text('id').primaryKey(),
+    sessionId: text('sessionId').notNull().references(() => sessions.id),
+    birthDateTime: text('birthDateTime').notNull(),
+    latitude: real('latitude').notNull(),
+    longitude: real('longitude').notNull(),
+    timezone: text('timezone').notNull(),
+    ephemerisData: text('ephemerisData').notNull(),
+    processingTime: integer('processingTime'),
+    success: integer('success').default(1),
+    createdAt: text('createdAt').default('CURRENT_TIMESTAMP'),
+  },
+  (table) => ({
+    sessionIdIdx: index('calculations_sessionId_idx').on(table.sessionId),
+    createdAtIdx: index('calculations_createdAt_idx').on(table.createdAt),
+  })
+);
 
-export const birthData = sqliteTable("birth_data", {
-  id: text("id").primaryKey(),
-  requestId: text("request_id").unique().notNull().references(() => rectificationRequests.id, { onDelete: "cascade" }),
-  fullName: text("full_name").notNull(),
-  dateOfBirth: text("date_of_birth").notNull(),
-  tentativeTime: text("tentative_time").notNull(),
-  timeUncertainty: text("time_uncertainty").notNull(),
-  birthPlace: text("birth_place").notNull(),
-  latitude: real("latitude").notNull(),
-  longitude: real("longitude").notNull(),
-  timezone: text("timezone").notNull(),
-  gender: text("gender").notNull(),
-  maritalStatus: text("marital_status"),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-});
-
-export const physicalDescriptions = sqliteTable("physical_descriptions", {
-  id: text("id").primaryKey(),
-  requestId: text("request_id").unique().notNull().references(() => rectificationRequests.id, { onDelete: "cascade" }),
-  bodyStructure: text("body_structure"),
-  height: text("height"),
-  faceShape: text("face_shape"),
-  complexion: text("complexion"),
-  distinctiveFeatures: text("distinctive_features"),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-});
-
-export const lifeEvents = sqliteTable("life_events", {
-  id: text("id").primaryKey(),
-  requestId: text("request_id").notNull().references(() => rectificationRequests.id, { onDelete: "cascade" }),
-  eventType: text("event_type").notNull(),
-  eventDate: text("event_date").notNull(),
-  eventDetails: text("event_details"),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-});
-
-export const rectificationResults = sqliteTable("rectification_results", {
-  id: text("id").primaryKey(),
-  requestId: text("request_id").unique().notNull().references(() => rectificationRequests.id, { onDelete: "cascade" }),
-  rectifiedBirthTime: text("rectified_birth_time").notNull(),
-  confidenceScore: real("confidence_score").notNull(),
-  ascendantSign: text("ascendant_sign").notNull(),
-  moonSign: text("moon_sign").notNull(),
-  sunSign: text("sun_sign").notNull(),
-  aiSummaryReport: text("ai_summary_report").notNull(),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-});
-
-export const timeSlotCandidates = sqliteTable("time_slot_candidates", {
-  id: text("id").primaryKey(),
-  resultId: text("result_id").notNull().references(() => rectificationResults.id, { onDelete: "cascade" }),
-  timeSlot: text("time_slot").notNull(),
-  ascendantAtSlot: text("ascendant_at_slot").notNull(),
-  score: real("score").notNull(),
-  evaluationNotes: text("evaluation_notes"),
-  isBestCandidate: integer("is_best_candidate").notNull().default(0),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-});
-
-export const dashaPeriods = sqliteTable("dasha_periods", {
-  id: text("id").primaryKey(),
-  resultId: text("result_id").notNull().references(() => rectificationResults.id, { onDelete: "cascade" }),
-  eventId: text("event_id").references(() => lifeEvents.id, { onDelete: "set null" }),
-  dashaSystem: text("dasha_system").notNull().default("Vimshottari"),
-  majorLord: text("major_lord").notNull(),
-  subLord: text("sub_lord").notNull(),
-  subSubLord: text("sub_sub_lord"),
-  startDate: text("start_date").notNull(),
-  endDate: text("end_date").notNull(),
-  isActiveDuringEvent: integer("is_active_during_event"),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-});
-
-export const advancedVerifications = sqliteTable("advanced_verifications", {
-  id: text("id").primaryKey(),
-  resultId: text("result_id").notNull().references(() => rectificationResults.id, { onDelete: "cascade" }),
-  methodName: text("method_name").notNull(),
-  isConsistent: integer("is_consistent").notNull(),
-  details: text("details"),
-  scoreImpact: real("score_impact"),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-});
-
-export const calculations = sqliteTable("calculations", {
-  id: text("id").primaryKey(),
-  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  birthData: text("birth_data"),
-  timeRange: text("time_range"),
-  results: text("results"),
-  aiSummary: text("ai_summary"),
-  createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
-});
-
-export const calculationSessions = sqliteTable("calculation_sessions", {
-  id: text("id").primaryKey(),
-  birthDataId: text("birth_data_id").notNull().references(() => birthData.id, { onDelete: "cascade" }),
-  sessionToken: text("session_token").notNull(),
-  currentStep: integer("current_step").notNull(),
-  isComplete: integer("is_complete").notNull().default(0),
-});
+export const payments = sqliteTable(
+  'payments',
+  {
+    id: text('id').primaryKey(),
+    userId: text('userId').notNull().references(() => users.id),
+    sessionId: text('sessionId').references(() => sessions.id),
+    amount: integer('amount'),
+    currency: text('currency').default('INR'),
+    status: text('status').default('pending'),
+    razorpayOrderId: text('razorpayOrderId'),
+    razorpayPaymentId: text('razorpayPaymentId'),
+    createdAt: text('createdAt').default('CURRENT_TIMESTAMP'),
+  },
+  (table) => ({
+    userIdIdx: index('payments_userId_idx').on(table.userId),
+    sessionIdIdx: index('payments_sessionId_idx').on(table.sessionId),
+    statusIdx: index('payments_status_idx').on(table.status),
+    createdAtIdx: index('payments_createdAt_idx').on(table.createdAt),
+  })
+);

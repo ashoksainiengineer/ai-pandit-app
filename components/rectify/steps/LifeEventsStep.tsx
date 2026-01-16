@@ -1,342 +1,462 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, Plus } from 'lucide-react';
-import type { LifeEvent } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
+import {
+  AlertCircle,
+  Plus,
+  Edit2,
+  Trash2,
+  Calendar,
+  Clock,
+  Tag,
+  ChevronDown,
+  GraduationCap,
+  Briefcase,
+  Heart,
+  Baby,
+  Users,
+  Stethoscope,
+  Landmark,
+  Plane,
+  Target
+} from 'lucide-react';
+import { LifeEvent, EventCategory } from '../../../lib/types';
+import { EVENT_TYPES } from '../../../lib/types';
 
 interface LifeEventsStepProps {
   lifeEvents: LifeEvent[];
   setLifeEvents: (events: LifeEvent[]) => void;
+  onContinue: () => void;
 }
 
-const EVENT_CATEGORIES = [
-  { id: 'education', emoji: '📚', label: 'Education' },
-  { id: 'career', emoji: '💼', label: 'Career' },
-  { id: 'marriage', emoji: '💍', label: 'Marriage' },
-  { id: 'children', emoji: '👶', label: 'Children' },
-  { id: 'family', emoji: '👨‍👩‍👧', label: 'Family' },
-  { id: 'health', emoji: '🏥', label: 'Health' },
-  { id: 'financial', emoji: '💰', label: 'Financial' },
-  { id: 'travel', emoji: '✈️', label: 'Travel' },
-];
-
-const EVENT_TYPES: Record<string, string[]> = {
-  education: ['School Completion', 'College Admission', 'Degree Completion', 'Exam Success'],
-  career: ['First Job', 'Job Change', 'Promotion', 'Business Start', 'Job Loss'],
-  marriage: ['Marriage', 'Engagement', 'Divorce'],
-  children: ['First Child Birth', 'Second Child Birth', 'Third Child Birth'],
-  family: ['Father\'s Death', 'Mother\'s Death', 'Sibling\'s Death'],
-  health: ['Major Illness', 'Surgery', 'Accident/Injury'],
-  financial: ['Property Purchase', 'Investment', 'Financial Loss'],
-  travel: ['Foreign Trip', 'Settlement Abroad', 'Relocation'],
+const CATEGORY_CONFIG: Record<EventCategory, { icon: React.ComponentType<any>; color: string; emoji: string }> = {
+  education: { icon: GraduationCap, color: 'blue-400', emoji: '📚' },
+  career: { icon: Briefcase, color: 'green-400', emoji: '💼' },
+  marriage: { icon: Heart, color: 'pink-400', emoji: '💍' },
+  children: { icon: Baby, color: 'purple-400', emoji: '👶' },
+  family: { icon: Users, color: 'orange-400', emoji: '👨‍👩‍👧' },
+  health: { icon: Stethoscope, color: 'red-400', emoji: '🏥' },
+  financial: { icon: Landmark, color: 'yellow-400', emoji: '💰' },
+  travel: { icon: Plane, color: 'cyan-400', emoji: '✈️' },
+  spiritual: { icon: Target, color: 'indigo-400', emoji: '🕉️' },
+  other: { icon: Target, color: 'gray-400', emoji: '📌' }
 };
 
-export default function LifeEventsStep({ lifeEvents, setLifeEvents }: LifeEventsStepProps) {
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [newEvent, setNewEvent] = useState<Partial<LifeEvent>>({});
-  const [isAddingEvent, setIsAddingEvent] = useState(false);
+interface FormErrors {
+  category?: string;
+  eventType?: string;
+  eventDate?: string;
+  description?: string;
+}
 
-  const handleAddEvent = () => {
-    if (!newEvent.eventType || !newEvent.eventDate) {
-      alert('Please fill all required fields');
-      return;
-    }
+export default function LifeEventsStep({ lifeEvents, setLifeEvents, onContinue }: LifeEventsStepProps) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<Partial<LifeEvent>>({
+    category: 'education',
+    eventType: '',
+    eventDate: '',
+    eventTime: '',
+    dateAccuracy: 'exact',
+    description: '',
+    importance: 'medium'
+  });
+  const [errors, setErrors] = useState<FormErrors>({});
 
-    const event: LifeEvent = {
-      id: uuidv4(),
-      category: selectedCategory as any,
-      eventType: newEvent.eventType,
-      eventDate: newEvent.eventDate,
-      dateAccuracy: newEvent.dateAccuracy || 'exact',
-      description: newEvent.description || '',
-      importance: newEvent.importance || 'medium',
-    };
-
-    setLifeEvents([...lifeEvents, event]);
-    setNewEvent({});
-    setSelectedCategory(null);
-    setIsAddingEvent(false);
+  const resetForm = () => {
+    setFormData({
+      category: 'education',
+      eventType: '',
+      eventDate: '',
+      eventTime: '',
+      dateAccuracy: 'exact',
+      description: '',
+      importance: 'medium'
+    });
+    setErrors({});
   };
 
-  const handleDeleteEvent = (id: string) => {
-    setLifeEvents(lifeEvents.filter(e => e.id !== id));
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+
+    if (!formData.category) newErrors.category = 'Category is required';
+    if (!formData.eventType) newErrors.eventType = 'Event type is required';
+    if (!formData.eventDate) newErrors.eventDate = 'Event date is required';
+    if (!formData.description) newErrors.description = 'Description is required';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const addEvent = () => {
+    if (!validateForm()) return;
+
+    const newEvent: LifeEvent = {
+      id: Date.now().toString(),
+      category: formData.category!,
+      eventType: formData.eventType!,
+      eventDate: formData.eventDate!,
+      eventTime: formData.eventTime,
+      dateAccuracy: formData.dateAccuracy!,
+      description: formData.description!,
+      importance: formData.importance!
+    };
+
+    setLifeEvents([...lifeEvents, newEvent]);
+    setIsAdding(false);
+    resetForm();
+  };
+
+  const updateEvent = () => {
+    if (!validateForm() || !editingId) return;
+
+    const updatedEvents = lifeEvents.map(event =>
+      event.id === editingId
+        ? { ...event, ...formData }
+        : event
+    );
+
+    setLifeEvents(updatedEvents);
+    setEditingId(null);
+    resetForm();
+  };
+
+  const deleteEvent = (id: string) => {
+    setLifeEvents(lifeEvents.filter(event => event.id !== id));
+  };
+
+  const startEdit = (event: LifeEvent) => {
+    setFormData(event);
+    setEditingId(event.id);
+    setIsAdding(true);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setIsAdding(false);
+    resetForm();
+  };
+
+  const handleCategoryChange = (category: EventCategory) => {
+    setFormData({
+      ...formData,
+      category,
+      eventType: EVENT_TYPES[category][0] // Set first event type as default
+    });
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 },
+    visible: { opacity: 1, y: 0 }
   };
 
   return (
-    <div className="space-y-8">
-      {/* Step Title */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-12"
-      >
-        <div className="text-5xl mb-4">📌</div>
-        <h2 className="text-3xl font-bold text-[#F7F9FC] mb-2">Life Events</h2>
-        <p className="text-[#A8B3C5] text-lg">
-          Add major events from your life. More events = more accurate rectification.
-        </p>
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="max-w-2xl mx-auto space-y-6"
+    >
+      <motion.div variants={itemVariants} className="text-center mb-8">
+        <h2 className="text-2xl font-semibold text-white mb-2">Life Events</h2>
+        <p className="text-gray-300">Add at least 3 significant life events to help with birth time rectification</p>
+        <p className="text-sm text-blue-400 mt-2">Added: {lifeEvents.length} events</p>
       </motion.div>
 
-      {/* Explanation Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.05 }}
-        className="bg-[#F5A623]/10 border border-[#F5A623]/30 rounded-xl p-6"
-      >
-        <h3 className="font-semibold text-[#F5A623] mb-3 flex items-center gap-2">
-          <span>🎯</span> HOW THIS WORKS
-        </h3>
-        <p className="text-sm text-[#A8B3C5] leading-relaxed mb-3">
-          Every major event happens during a specific planetary period. By matching events with their expected timing patterns, we pinpoint your exact birth moment.
-        </p>
-        <div className="text-sm text-[#A8B3C5]">
-          <div className="font-semibold text-[#F5A623] mb-2">⭐ BEST EVENTS TO ADD:</div>
-          <ul className="space-y-1 text-xs">
-            <li>✓ Marriage date (most reliable!)</li>
-            <li>✓ First job or major promotion</li>
-            <li>✓ Children's birth dates</li>
-            <li>✓ Major illness or surgery</li>
-            <li>✓ Parent's death (if applicable)</li>
-          </ul>
-        </div>
-      </motion.div>
-
-      {/* Event Counter */}
-      {lifeEvents.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="bg-[#242B35] border border-[#2D3542] rounded-xl p-4"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-[#F7F9FC]">
-              Events Added: {lifeEvents.length}/3 minimum
-            </span>
-            <span className="text-sm text-[#6B7A90]">
-              {lifeEvents.length >= 3 ? '✓ Ready to submit' : `Add ${3 - lifeEvents.length} more`}
-            </span>
-          </div>
-          <div className="w-full bg-[#1A1F26] h-1.5 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-[#F5A623] to-[#E09000]"
-              initial={{ width: 0 }}
-              animate={{ width: `${Math.min((lifeEvents.length / 5) * 100, 100)}%` }}
-              transition={{ duration: 0.5 }}
-            />
-          </div>
-        </motion.div>
-      )}
-
-      {/* Category Selection */}
-      {!isAddingEvent ? (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-[#1A1F26] border border-[#2D3542] rounded-2xl p-8"
-        >
-          <h3 className="text-sm font-semibold text-[#F7F9FC] mb-4">Select Event Category</h3>
-          <div className="grid grid-cols-4 gap-3">
-            {EVENT_CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => {
-                  setSelectedCategory(cat.id);
-                  setIsAddingEvent(true);
-                }}
-                className="p-3 rounded-lg border-2 border-[#3D4654] bg-[#242B35] hover:border-[#F5A623] transition-all"
-              >
-                <div className="text-2xl mb-1">{cat.emoji}</div>
-                <div className="text-xs font-medium text-[#F7F9FC]">{cat.label}</div>
-              </button>
-            ))}
-          </div>
-        </motion.div>
-      ) : null}
-
-      {/* Add Event Form */}
       <AnimatePresence>
-        {isAddingEvent && selectedCategory && (
+        {lifeEvents.map((event, index) => {
+          const config = CATEGORY_CONFIG[event.category];
+          const IconComponent = config.icon;
+
+          return (
+            <motion.div
+              key={event.id}
+              variants={itemVariants}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-slate-700/50 border border-slate-600 rounded-lg p-4"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3 flex-1">
+                  <div className={`p-2 rounded-lg bg-${config.color}/20`}>
+                    <IconComponent className={`w-5 h-5 text-${config.color}`} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">{config.emoji}</span>
+                      <h3 className="font-medium text-white">{event.eventType}</h3>
+                      <span className={`px-2 py-1 rounded text-xs bg-${config.color}/20 text-${config.color}`}>
+                        {event.category}
+                      </span>
+                    </div>
+                    <p className="text-gray-300 text-sm mb-2">{event.description}</p>
+                    <div className="flex items-center gap-4 text-sm text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-4 h-4" />
+                        {new Date(event.eventDate).toLocaleDateString()}
+                      </span>
+                      {event.eventTime && (
+                        <span className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          {event.eventTime}
+                        </span>
+                      )}
+                      <span className={`px-2 py-1 rounded text-xs bg-slate-600`}>
+                        {event.importance}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <motion.button
+                    onClick={() => startEdit(event)}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="p-2 text-gray-400 hover:text-blue-400 transition-colors"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </motion.button>
+                  <motion.button
+                    onClick={() => deleteEvent(event.id)}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="p-2 text-gray-400 hover:text-red-400 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isAdding && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="bg-[#1A1F26] border border-[#2D3542] rounded-2xl p-8 space-y-4"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-slate-700/50 border border-slate-600 rounded-lg p-6 space-y-4"
           >
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-[#F7F9FC]">
-                Add {EVENT_CATEGORIES.find(c => c.id === selectedCategory)?.label} Event
-              </h3>
-              <button
-                onClick={() => {
-                  setIsAddingEvent(false);
-                  setSelectedCategory(null);
-                  setNewEvent({});
-                }}
-                className="text-[#6B7A90] hover:text-[#F7F9FC]"
-              >
-                ✕
-              </button>
+            <h3 className="text-lg font-medium text-white mb-4">
+              {editingId ? 'Edit Event' : 'Add New Event'}
+            </h3>
+
+            {/* Category */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm text-gray-300">
+                <Tag className="w-4 h-4" />
+                Category *
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {Object.entries(CATEGORY_CONFIG).map(([category, config]) => {
+                  const IconComponent = config.icon;
+                  return (
+                    <button
+                      key={category}
+                      onClick={() => handleCategoryChange(category as EventCategory)}
+                      className={`p-3 rounded-lg border transition-all flex items-center gap-2 ${
+                        formData.category === category
+                          ? `bg-${config.color}/20 border-${config.color} text-white`
+                          : 'bg-slate-700/50 border-slate-600 text-gray-300 hover:border-blue-400'
+                      }`}
+                    >
+                      <IconComponent className="w-4 h-4" />
+                      <span className="text-sm">{category}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {errors.category && (
+                <p className="text-sm text-red-400 flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4" />
+                  {errors.category}
+                </p>
+              )}
             </div>
 
             {/* Event Type */}
-            <div>
-              <label className="block text-sm font-semibold text-[#F7F9FC] mb-2">What happened?</label>
-              <select
-                value={newEvent.eventType || ''}
-                onChange={(e) => setNewEvent({ ...newEvent, eventType: e.target.value })}
-                className="w-full h-12 px-4 bg-[#242B35] border border-[#3D4654] rounded-lg text-[#F7F9FC] focus:border-[#F5A623] focus:outline-none"
-              >
-                <option value="">Select event type</option>
-                {EVENT_TYPES[selectedCategory || 'education']?.map((type) => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
-            </div>
+            {formData.category && (
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm text-gray-300">
+                  <Tag className="w-4 h-4" />
+                  Event Type *
+                </label>
+                <select
+                  value={formData.eventType || ''}
+                  onChange={(e) => setFormData({ ...formData, eventType: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:border-blue-500 focus:outline-none transition-colors"
+                >
+                  <option value="">Select event type</option>
+                  {EVENT_TYPES[formData.category].map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+                {errors.eventType && (
+                  <p className="text-sm text-red-400 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {errors.eventType}
+                  </p>
+                )}
+              </div>
+            )}
 
-            {/* Date */}
-            <div>
-              <label className="block text-sm font-semibold text-[#F7F9FC] mb-2">When did this happen?</label>
+            {/* Event Date */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm text-gray-300">
+                <Calendar className="w-4 h-4" />
+                Event Date *
+              </label>
               <input
                 type="date"
-                value={newEvent.eventDate || ''}
-                onChange={(e) => setNewEvent({ ...newEvent, eventDate: e.target.value })}
-                className="w-full h-12 px-4 bg-[#242B35] border border-[#3D4654] rounded-lg text-[#F7F9FC] focus:border-[#F5A623] focus:outline-none"
+                value={formData.eventDate || ''}
+                onChange={(e) => setFormData({ ...formData, eventDate: e.target.value })}
+                className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:border-blue-500 focus:outline-none transition-colors"
+              />
+              {errors.eventDate && (
+                <p className="text-sm text-red-400 flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4" />
+                  {errors.eventDate}
+                </p>
+              )}
+            </div>
+
+            {/* Event Time */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm text-gray-300">
+                <Clock className="w-4 h-4" />
+                Event Time (Optional)
+              </label>
+              <input
+                type="time"
+                value={formData.eventTime || ''}
+                onChange={(e) => setFormData({ ...formData, eventTime: e.target.value })}
+                className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white focus:border-blue-500 focus:outline-none transition-colors"
               />
             </div>
 
             {/* Date Accuracy */}
-            <div>
-              <label className="block text-sm font-semibold text-[#F7F9FC] mb-2">Date accuracy:</label>
+            <div className="space-y-2">
+              <label className="text-sm text-gray-300">Date Accuracy</label>
               <div className="flex gap-2">
-                {['exact', 'month', 'year', 'approximate'].map((acc) => (
+                {(['exact', 'approximate', 'rough'] as const).map(accuracy => (
                   <button
-                    key={acc}
-                    onClick={() => setNewEvent({ ...newEvent, dateAccuracy: acc as any })}
-                    className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                      newEvent.dateAccuracy === acc
-                        ? 'bg-[#F5A623] text-[#0F1419]'
-                        : 'bg-[#242B35] text-[#A8B3C5] border border-[#3D4654]'
+                    key={accuracy}
+                    onClick={() => setFormData({ ...formData, dateAccuracy: accuracy })}
+                    className={`px-4 py-2 rounded-lg border transition-all ${
+                      formData.dateAccuracy === accuracy
+                        ? 'bg-blue-600 border-blue-500 text-white'
+                        : 'bg-slate-700/50 border-slate-600 text-gray-300 hover:border-blue-400'
                     }`}
                   >
-                    {acc === 'exact' && 'Exact'}
-                    {acc === 'month' && 'Month'}
-                    {acc === 'year' && 'Year'}
-                    {acc === 'approximate' && 'Approx'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Importance */}
-            <div>
-              <label className="block text-sm font-semibold text-[#F7F9FC] mb-2">How significant was this?</label>
-              <div className="flex gap-2">
-                {(['critical', 'high', 'medium', 'low'] as const).map((imp) => (
-                  <button
-                    key={imp}
-                    onClick={() => setNewEvent({ ...newEvent, importance: imp })}
-                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                      newEvent.importance === imp
-                        ? 'bg-[#F5A623] text-[#0F1419]'
-                        : 'bg-[#242B35] text-[#A8B3C5] border border-[#3D4654]'
-                    }`}
-                  >
-                    {'⭐'.repeat(imp === 'critical' ? 5 : imp === 'high' ? 4 : imp === 'medium' ? 3 : 2)}
+                    {accuracy}
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Description */}
-            <div>
-              <label className="block text-sm font-semibold text-[#F7F9FC] mb-2">Description (optional):</label>
-              <input
-                type="text"
-                value={newEvent.description || ''}
-                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                placeholder="Add any relevant details..."
-                className="w-full h-10 px-4 bg-[#242B35] border border-[#3D4654] rounded-lg text-[#F7F9FC] placeholder-[#6B7A90] focus:border-[#F5A623] focus:outline-none text-sm"
+            <div className="space-y-2">
+              <label className="text-sm text-gray-300">Description *</label>
+              <textarea
+                value={formData.description || ''}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Describe what happened in this event"
+                rows={3}
+                className="w-full px-4 py-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none transition-colors resize-none"
               />
+              {errors.description && (
+                <p className="text-sm text-red-400 flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4" />
+                  {errors.description}
+                </p>
+              )}
             </div>
 
-            {/* Actions */}
+            {/* Importance */}
+            <div className="space-y-2">
+              <label className="text-sm text-gray-300">Importance</label>
+              <div className="flex gap-2">
+                {(['low', 'medium', 'high', 'critical'] as const).map(importance => (
+                  <button
+                    key={importance}
+                    onClick={() => setFormData({ ...formData, importance })}
+                    className={`px-4 py-2 rounded-lg border transition-all ${
+                      formData.importance === importance
+                        ? 'bg-blue-600 border-blue-500 text-white'
+                        : 'bg-slate-700/50 border-slate-600 text-gray-300 hover:border-blue-400'
+                    }`}
+                  >
+                    {importance}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Buttons */}
             <div className="flex gap-3 pt-4">
-              <button
-                onClick={() => {
-                  setIsAddingEvent(false);
-                  setSelectedCategory(null);
-                  setNewEvent({});
-                }}
-                className="flex-1 px-4 py-2 rounded-lg border border-[#3D4654] text-[#A8B3C5] hover:border-[#A8B3C5] transition-colors font-medium text-sm"
+              <motion.button
+                onClick={editingId ? updateEvent : addEvent}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+              >
+                {editingId ? 'Update Event' : 'Add Event'}
+              </motion.button>
+              <motion.button
+                onClick={cancelEdit}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-lg transition-colors"
               >
                 Cancel
-              </button>
-              <button
-                onClick={handleAddEvent}
-                className="flex-1 px-4 py-2 rounded-lg bg-[#F5A623] text-[#0F1419] hover:bg-[#E09000] transition-colors font-medium text-sm"
-              >
-                ✓ Add Event
-              </button>
+              </motion.button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Events List */}
-      {lifeEvents.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-3"
-        >
-          <h3 className="text-sm font-semibold text-[#F7F9FC]">Your Events ({lifeEvents.length})</h3>
-          {lifeEvents.map((event, idx) => (
-            <motion.div
-              key={event.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="bg-[#1A1F26] border border-[#2D3542] rounded-lg p-4 hover:border-[#3D4654] transition-colors"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span>{EVENT_CATEGORIES.find(c => c.id === event.category)?.emoji}</span>
-                    <span className="font-semibold text-[#F7F9FC]">{event.eventType}</span>
-                    <span className="text-sm text-[#6B7A90]">
-                      {'⭐'.repeat(event.importance === 'critical' ? 5 : event.importance === 'high' ? 4 : event.importance === 'medium' ? 3 : 2)}
-                    </span>
-                  </div>
-                  <div className="text-xs text-[#6B7A90] mb-1">
-                    {new Date(event.eventDate).toLocaleDateString()} • {event.dateAccuracy}
-                  </div>
-                  {event.description && (
-                    <div className="text-sm text-[#A8B3C5]">"{event.description}"</div>
-                  )}
-                </div>
-                <button
-                  onClick={() => handleDeleteEvent(event.id)}
-                  className="text-[#6B7A90] hover:text-[#EF4444] transition-colors p-1"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </motion.div>
-          ))}
-
-          {!isAddingEvent && (
-            <button
-              onClick={() => setIsAddingEvent(true)}
-              className="w-full py-3 rounded-lg border-2 border-dashed border-[#3D4654] text-[#A8B3C5] hover:border-[#F5A623] hover:text-[#F7F9FC] transition-colors flex items-center justify-center gap-2 font-medium"
-            >
-              <Plus className="w-4 h-4" /> Add Another Event
-            </button>
-          )}
+      {!isAdding && (
+        <motion.div variants={itemVariants} className="text-center">
+          <motion.button
+            onClick={() => setIsAdding(true)}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 mx-auto"
+          >
+            <Plus className="w-5 h-5" />
+            Add Life Event
+          </motion.button>
         </motion.div>
       )}
-    </div>
+
+      {/* Continue Button */}
+      {lifeEvents.length >= 3 && (
+        <motion.div variants={itemVariants} className="pt-6">
+          <motion.button
+            onClick={onContinue}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            Continue to Physical Traits
+            <ChevronDown className="w-5 h-5" />
+          </motion.button>
+        </motion.div>
+      )}
+    </motion.div>
   );
 }

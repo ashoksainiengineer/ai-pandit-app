@@ -1,95 +1,112 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
+import { Mail, Star } from 'lucide-react';
 
 export default function Footer() {
+  const currentYear = new Date().getFullYear();
+
   return (
-    <footer className="bg-[var(--bg-surface)] border-t border-[var(--border-default)] py-16 px-6">
-      <div className="max-w-[1200px] mx-auto">
-        {/* Main Footer Content */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+    <footer className="bg-slate-900 border-t border-slate-800">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-2xl">🕉️</span>
-              <span style={{ fontSize: 'var(--text-h4)', fontWeight: 'bold', color: 'var(--text-primary)' }}>
-                AI-Pandit
-              </span>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            viewport={{ once: true }}
+            className="col-span-1 md:col-span-2"
+          >
+            <div className="flex items-center space-x-2 mb-4">
+              <Star className="w-8 h-8 text-blue-500" />
+              <span className="text-2xl font-bold text-white">AI-PANDIT</span>
             </div>
-            <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-secondary)' }}>
-              Vedic Birth Time Rectification
+            <p className="text-gray-400 text-sm leading-relaxed max-w-md">
+              Transforming astrology with AI-powered birth time rectification.
+              Get 95-98% accurate results with our advanced Vedic astrology analysis.
             </p>
-          </div>
+            <div className="flex items-center gap-2 mt-4">
+              <Mail className="w-4 h-4 text-blue-400" />
+              <a
+                href="mailto:support@ai-pandit.com"
+                className="text-blue-400 hover:text-blue-300 transition-colors text-sm"
+              >
+                support@ai-pandit.com
+              </a>
+            </div>
+          </motion.div>
 
-          {/* Links */}
-          <div>
-            <h4 style={{ fontSize: 'var(--text-h4)', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: 'var(--space-4)' }}>
-              Links
-            </h4>
+          {/* Quick Links */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            viewport={{ once: true }}
+          >
+            <h3 className="text-white font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2">
               {[
-                { label: 'How It Works', href: '#how-it-works' },
-                { label: 'Pricing', href: '#pricing' },
-                { label: 'About', href: '#' }
+                { href: '#home', label: 'Home' },
+                { href: '#how-it-works', label: 'How It Works' },
+                { href: '#pricing', label: 'Pricing' },
+                { href: '#faq', label: 'FAQ' }
               ].map((link) => (
-                <li key={link.label}>
-                  <a href={link.href} style={{ fontSize: 'var(--text-body)', color: 'var(--text-secondary)' }} className="hover:text-[var(--text-primary)] transition-colors">
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="text-gray-400 hover:text-blue-400 transition-colors text-sm"
+                  >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
-          </div>
-
-          {/* Support */}
-          <div>
-            <h4 style={{ fontSize: 'var(--text-h4)', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: 'var(--space-4)' }}>
-              Support
-            </h4>
-            <ul className="space-y-2">
-              {[
-                { label: 'FAQ', href: '#faq' },
-                { label: 'Contact Us', href: '#' },
-                { label: 'WhatsApp', href: '#' }
-              ].map((link) => (
-                <li key={link.label}>
-                  <a href={link.href} style={{ fontSize: 'var(--text-body)', color: 'var(--text-secondary)' }} className="hover:text-[var(--text-primary)] transition-colors">
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
+          </motion.div>
 
           {/* Legal */}
-          <div>
-            <h4 style={{ fontSize: 'var(--text-h4)', fontWeight: 'bold', color: 'var(--text-primary)', marginBottom: 'var(--space-4)' }}>
-              Legal
-            </h4>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+            viewport={{ once: true }}
+          >
+            <h3 className="text-white font-semibold mb-4">Legal</h3>
             <ul className="space-y-2">
               {[
-                { label: 'Privacy Policy', href: '#' },
-                { label: 'Terms of Service', href: '#' },
-                { label: 'Refund Policy', href: '#' }
+                { href: '#', label: 'Privacy Policy' },
+                { href: '#', label: 'Terms of Service' },
+                { href: '#', label: 'Contact' }
               ].map((link) => (
-                <li key={link.label}>
-                  <a href={link.href} style={{ fontSize: 'var(--text-body)', color: 'var(--text-secondary)' }} className="hover:text-[var(--text-primary)] transition-colors">
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className="text-gray-400 hover:text-blue-400 transition-colors text-sm"
+                  >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
-          </div>
+          </motion.div>
         </div>
 
-        {/* Divider */}
-        <div className="border-t border-[var(--border-default)] py-8">
-          <p style={{ fontSize: 'var(--text-small)', color: 'var(--text-muted)', textAlign: 'center' }}>
-            © 2025 AI-Pandit. All rights reserved.
-            <br />
-            Made with 🧡 in India
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
+          viewport={{ once: true }}
+          className="border-t border-slate-800 mt-8 pt-8 text-center"
+        >
+          <p className="text-gray-400 text-sm">
+            © {currentYear} AI-Pandit. All rights reserved.
           </p>
-        </div>
+          <p className="text-gray-500 text-xs mt-2">
+            Powered by advanced AI and Vedic astrology principles
+          </p>
+        </motion.div>
       </div>
     </footer>
   );

@@ -1,27 +1,16 @@
-export const timezones = [
-  { value: 'Etc/GMT+12', label: '(GMT-12:00) International Date Line West' },
-  { value: 'Pacific/Midway', label: '(GMT-11:00) Midway Island, Samoa' },
-  { value: 'Pacific/Honolulu', label: '(GMT-10:00) Hawaii' },
-  { value: 'America/Anchorage', label: '(GMT-09:00) Alaska' },
-  { value: 'America/Los_Angeles', label: '(GMT-08:00) Pacific Time (US & Canada)' },
-  { value: 'America/Denver', label: '(GMT-07:00) Mountain Time (US & Canada)' },
-  { value: 'America/Chicago', label: '(GMT-06:00) Central Time (US & Canada), Mexico City' },
-  { value: 'America/New_York', label: '(GMT-05:00) Eastern Time (US & Canada), Bogota, Lima' },
-  { value: 'America/Caracas', label: '(GMT-04:00) Atlantic Time (Canada), Caracas, La Paz' },
-  { value: 'America/Sao_Paulo', label: '(GMT-03:00) Brazil, Buenos Aires, Georgetown' },
-  { value: 'Atlantic/South_Georgia', label: '(GMT-02:00) Mid-Atlantic' },
-  { value: 'Atlantic/Azores', label: '(GMT-01:00) Azores, Cape Verde Islands' },
-  { value: 'Europe/London', label: '(GMT+00:00) Western Europe Time, London, Lisbon, Casablanca' },
-  { value: 'Europe/Paris', label: '(GMT+01:00) Brussels, Copenhagen, Madrid, Paris' },
-  { value: 'Europe/Kaliningrad', label: '(GMT+02:00) Kaliningrad, South Africa' },
-  { value: 'Europe/Moscow', label: '(GMT+03:00) Baghdad, Riyadh, Moscow, St. Petersburg' },
-  { value: 'Asia/Dubai', label: '(GMT+04:00) Abu Dhabi, Muscat, Baku, Tbilisi' },
-  { value: 'Asia/Karachi', label: '(GMT+05:00) Yekaterinburg, Islamabad, Karachi, Tashkent' },
-  { value: 'Asia/Kolkata', label: '(GMT+05:30) Mumbai, Kolkata, Chennai, New Delhi' },
-  { value: 'Asia/Dhaka', label: '(GMT+06:00) Almaty, Dhaka, Colombo' },
-  { value: 'Asia/Bangkok', label: '(GMT+07:00) Bangkok, Hanoi, Jakarta' },
-  { value: 'Asia/Hong_Kong', label: '(GMT+08:00) Beijing, Perth, Singapore, Hong Kong' },
-  { value: 'Asia/Tokyo', label: '(GMT+09:00) Tokyo, Seoul, Osaka, Sapporo, Yakutsk' },
-  { value: 'Australia/Sydney', label: '(GMT+10:00) Eastern Australia, Guam, Vladivostok' },
-  { value: 'Pacific/Auckland', label: '(GMT+12:00) Auckland, Wellington, Fiji, Kamchatka' },
+// lib/timezones.ts - Timezone definitions
+
+export interface Timezone {
+  value: string;
+  label: string;
+  offset: number;
+}
+
+export const timezones: Timezone[] = [
+  { value: 'UTC', label: 'UTC (GMT+0:00)', offset: 0 },
+  { value: 'IST', label: 'IST (GMT+5:30)', offset: 5.5 },
+  { value: 'EST', label: 'EST (GMT-5:00)', offset: -5 },
+  { value: 'PST', label: 'PST (GMT-8:00)', offset: -8 },
+  { value: 'CET', label: 'CET (GMT+1:00)', offset: 1 },
+  { value: 'JST', label: 'JST (GMT+9:00)', offset: 9 },
 ];

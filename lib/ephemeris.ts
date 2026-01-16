@@ -1,0 +1,230 @@
+import { EphemerisData, PlanetPosition, HousePosition } from './types';
+
+const ZODIAC_SIGNS = [
+  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+];
+
+const NAKSHATRAS = [
+  'Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashirsha', 'Ardra', 'Punarvasu', 'Pushya', 'Ashlesha',
+  'Magha', 'Purva Phalguni', 'Uttara Phalguni', 'Hasta', 'Chitra', 'Swati', 'Vishakha', 'Anuradha', 'Jyeshtha',
+  'Mula', 'Purva Ashadha', 'Uttara Ashadha', 'Shravana', 'Dhanishtha', 'Shatabhisha', 'Purva Bhadrapada', 'Uttara Bhadrapada', 'Revati'
+];
+
+const SIGN_LORDS: Record<string, string> = {
+  Aries: 'Mars',
+  Taurus: 'Venus',
+  Gemini: 'Mercury',
+  Cancer: 'Moon',
+  Leo: 'Sun',
+  Virgo: 'Mercury',
+  Libra: 'Venus',
+  Scorpio: 'Mars',
+  Sagittarius: 'Jupiter',
+  Capricorn: 'Saturn',
+  Aquarius: 'Saturn',
+  Pisces: 'Jupiter'
+};
+
+const TIMEZONE_OFFSETS: Record<string, number> = {
+  'Asia/Kolkata': 5.5,
+  'UTC': 0,
+  'America/New_York': -5,
+  'Europe/London': 0,
+  // Add more as needed
+};
+
+export function convertToUTC(date: string, time: string, timezone: string): Date {
+  try {
+    const [year, month, day] = date.split('-').map(Number);
+    const [hour, minute] = time.split(':').map(Number);
+    const localDate = new Date(year, month - 1, day, hour, minute);
+
+    const offset = TIMEZONE_OFFSETS[timezone] || 0;
+    const utcDate = new Date(localDate.getTime() - offset * 3600000);
+    return utcDate;
+  } catch (error) {
+    console.error('Error converting to UTC:', error);
+    throw new Error('Invalid date or time format');
+  }
+}
+
+export function calculateJulianDay(date: Date): number {
+  const a = Math.floor((14 - (date.getMonth() + 1)) / 12);
+  const y = date.getFullYear() + 4800 - a;
+  const m = (date.getMonth() + 1) + 12 * a - 3;
+  const jd = date.getDate() + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) - 32045;
+  const time = (date.getHours() - 12) / 24 + date.getMinutes() / 1440 + date.getSeconds() / 86400;
+  return jd + time;
+}
+
+export function getZodiacSign(longitude: number): string {
+  const index = Math.floor(longitude / 30) % 12;
+  return ZODIAC_SIGNS[index];
+}
+
+export function getNakshatra(longitude: number): string {
+  const index = Math.floor(longitude / (360 / 27)) % 27;
+  return NAKSHATRAS[index];
+}
+
+function calculateSunLongitude(jd: number): number {
+  const T = (jd - 2451545.0) / 36525;
+  const L0 = 280.46646 + 36000.76983 * T + 0.0003032 * T * T;
+  const M = 357.52911 + 35999.05029 * T - 0.0001537 * T * T;
+  const C = (1.914602 - 0.004817 * T - 0.000014 * T * T) * Math.sin(M * Math.PI / 180) +
+            (0.019993 - 0.000101 * T) * Math.sin(2 * M * Math.PI / 180) +
+            0.000289 * Math.sin(3 * M * Math.PI / 180);
+  return (L0 + C) % 360;
+}
+
+function calculateMoonLongitude(jd: number): number {
+  const T = (jd - 2451545.0) / 36525;
+  const L0 = 218.3164477 + 481267.88123421 * T - 0.0015786 * T * T + T * T * T / 538841 - T * T * T * T / 65194000;
+  const D = 297.8501921 + 445267.1114034 * T - 0.0018819 * T * T + T * T * T / 545868 - T * T * T * T / 113065000;
+  const M = 134.9633964 + 477198.8675055 * T + 0.0087972 * T * T + T * T * T / 69699 + T * T * T * T / 14712000;
+  const F = 93.2720950 + 483202.0175233 * T - 0.0036539 * T * T - T * T * T / 3526000 + T * T * T * T / 863310000;
+
+  const sigmaL = 6288774 * Math.sin((M) * Math.PI / 180) +
+                1274027 * Math.sin((2 * D - M) * Math.PI / 180) +
+                658314 * Math.sin((2 * D) * Math.PI / 180) +
+                213618 * Math.sin((2 * M) * Math.PI / 180) +
+                -185116 * Math.sin((M) * Math.PI / 180) * Math.cos((F) * Math.PI / 180) / 1000000; // Approximate
+
+  return (L0 + sigmaL / 1000000) % 360;
+}
+
+// Simplified functions for other planets - using mean longitudes for approximation
+function calculateMercuryLongitude(jd: number): number {
+  const T = (jd - 2451545.0) / 36525;
+  return (252.250906 + 149472.6746358 * T - 0.00000535 * T * T) % 360;
+}
+
+function calculateVenusLongitude(jd: number): number {
+  const T = (jd - 2451545.0) / 36525;
+  return (181.979801 + 58517.8156748 * T + 0.00000165 * T * T) % 360;
+}
+
+function calculateMarsLongitude(jd: number): number {
+  const T = (jd - 2451545.0) / 36525;
+  return (355.433275 + 19140.2993313 * T + 0.00000261 * T * T) % 360;
+}
+
+function calculateJupiterLongitude(jd: number): number {
+  const T = (jd - 2451545.0) / 36525;
+  return (34.351484 + 3034.9056746 * T - 0.00008501 * T * T) % 360;
+}
+
+function calculateSaturnLongitude(jd: number): number {
+  const T = (jd - 2451545.0) / 36525;
+  return (50.077471 + 1222.1137943 * T + 0.00021004 * T * T) % 360;
+}
+
+function calculateRahuLongitude(jd: number): number {
+  // Rahu is North Node, moves retrograde
+  const T = (jd - 2451545.0) / 36525;
+  return (125.044555 - 1934.1361849 * T + 0.0020762 * T * T) % 360;
+}
+
+function calculateKetuLongitude(rahuLongitude: number): number {
+  return (rahuLongitude + 180) % 360;
+}
+
+function isRetrograde(planet: string, jd: number): boolean {
+  // Simplified: only outer planets are retrograde sometimes
+  // For accuracy, would need speed calculations
+  return ['saturn', 'jupiter', 'mars', 'rahu'].includes(planet.toLowerCase());
+}
+
+function calculateAscendant(jd: number, latitude: number, longitude: number): { sign: string; degree: number; nakshatra: string; longitude: number } {
+  // Simplified ascendant calculation using RAMC
+  const T = (jd - 2451545.0) / 36525;
+  const GMST = 18.697374558 + 8640184.812866 * T / 3600 + 0.093104 * T * T - 0.0000062 * T * T * T;
+  const LST = (GMST + longitude / 15) % 24;
+  const RAMC = LST * 15;
+  const obliquity = 23.439281 - 0.0000004 * T;
+  const ascendant = Math.atan2(-Math.cos(RAMC * Math.PI / 180), Math.sin(RAMC * Math.PI / 180) * Math.cos(obliquity * Math.PI / 180) - Math.tan(latitude * Math.PI / 180) * Math.sin(obliquity * Math.PI / 180)) * 180 / Math.PI;
+  const ascLongitude = (ascendant + 360) % 360;
+  const sign = getZodiacSign(ascLongitude);
+  const degree = ascLongitude % 30;
+  const nakshatra = getNakshatra(ascLongitude);
+  return { longitude: ascLongitude, sign, degree, nakshatra };
+}
+
+function calculateHouses(ascendantLongitude: number, latitude: number): HousePosition[] {
+  // Simplified equal house system for demonstration
+  // For Placidus, would need more complex calculations
+  const houses: HousePosition[] = [];
+  for (let i = 0; i < 12; i++) {
+    const cusp = (ascendantLongitude + i * 30) % 360;
+    houses.push({
+      houseNumber: i + 1,
+      sign: getZodiacSign(cusp),
+      degree: cusp % 30,
+      cusp
+    });
+  }
+  return houses;
+}
+
+export async function calculateEphemeris(
+  birthDate: string,
+  birthTime: string,
+  latitude: number,
+  longitude: number,
+  timezone: string
+): Promise<EphemerisData> {
+  try {
+    // Validate inputs
+    if (latitude < -90 || latitude > 90) throw new Error('Invalid latitude');
+    if (longitude < -180 || longitude > 180) throw new Error('Invalid longitude');
+
+    const utcDate = convertToUTC(birthDate, birthTime, timezone);
+    const jd = calculateJulianDay(utcDate);
+
+    // Calculate planetary positions
+    const sunLong = calculateSunLongitude(jd);
+    const moonLong = calculateMoonLongitude(jd);
+    const mercuryLong = calculateMercuryLongitude(jd);
+    const venusLong = calculateVenusLongitude(jd);
+    const marsLong = calculateMarsLongitude(jd);
+    const jupiterLong = calculateJupiterLongitude(jd);
+    const saturnLong = calculateSaturnLongitude(jd);
+    const rahuLong = calculateRahuLongitude(jd);
+    const ketuLong = calculateKetuLongitude(rahuLong);
+
+    const planetLongitudes = {
+      sun: sunLong,
+      moon: moonLong,
+      mercury: mercuryLong,
+      venus: venusLong,
+      mars: marsLong,
+      jupiter: jupiterLong,
+      saturn: saturnLong,
+      rahu: rahuLong,
+      ketu: ketuLong
+    };
+
+    const planets: Record<string, PlanetPosition> = {};
+    for (const [planet, long] of Object.entries(planetLongitudes)) {
+      const sign = getZodiacSign(long);
+      const degree = long % 30;
+      const nakshatra = getNakshatra(long);
+      const lord = SIGN_LORDS[sign];
+      const retro = isRetrograde(planet, jd);
+      planets[planet as keyof typeof planets] = { sign, degree, longitude: long, nakshatra, lord, retro };
+    }
+
+    const ascendant = calculateAscendant(jd, latitude, longitude);
+    const houses = calculateHouses(ascendant.longitude, latitude);
+
+    return {
+      planets: planets as any,
+      ascendant,
+      houses
+    };
+  } catch (error) {
+    console.error('Error calculating ephemeris:', error);
+    throw new Error('Failed to calculate ephemeris data');
+  }
+}
