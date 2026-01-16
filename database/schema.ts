@@ -111,3 +111,11 @@ export const calculations = sqliteTable("calculations", {
   aiSummary: text("ai_summary"),
   createdAt: text("created_at").default("CURRENT_TIMESTAMP"),
 });
+
+export const calculationSessions = sqliteTable("calculation_sessions", {
+  id: text("id").primaryKey(),
+  birthDataId: text("birth_data_id").notNull().references(() => birthData.id, { onDelete: "cascade" }),
+  sessionToken: text("session_token").notNull(),
+  currentStep: integer("current_step").notNull(),
+  isComplete: integer("is_complete").notNull().default(0),
+});
