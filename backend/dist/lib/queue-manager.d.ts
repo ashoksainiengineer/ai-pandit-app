@@ -1,0 +1,61 @@
+export type QueueStatus = 'queued' | 'processing' | 'complete' | 'failed';
+export interface QueuePosition {
+    sessionId: string;
+    status: QueueStatus;
+    position: number;
+    estimatedWaitSeconds: number;
+    totalInQueue: number;
+    createdAt: string;
+}
+export interface QueueSubmitResult {
+    success: boolean;
+    sessionId?: string;
+    position?: number;
+    estimatedWaitSeconds?: number;
+    error?: string;
+}
+/**
+ * Add a new request to the queue
+ * Returns queue position and estimated wait time
+ */
+export declare function addToQueue(sessionId: string): Promise<QueueSubmitResult>;
+/**
+ * Get current queue position for a session
+ */
+export declare function getQueuePosition(sessionId: string): Promise<number>;
+/**
+ * Get full queue status for a session
+ */
+export declare function getQueueStatus(sessionId: string): Promise<QueuePosition | null>;
+/**
+ * Mark session as complete with results
+ */
+export declare function markAsComplete(sessionId: string, results: {
+    rectifiedTime: string;
+    accuracy: number;
+    confidence: string;
+    analysisResult: string;
+}): Promise<void>;
+/**
+ * Mark session as failed
+ */
+export declare function markAsFailed(sessionId: string, error: string): Promise<void>;
+/**
+ * Start the queue processor
+ * Runs in background, processes one request at a time
+ */
+export declare function startQueueProcessor(): void;
+/**
+ * Stop the queue processor (for graceful shutdown)
+ */
+export declare function stopQueueProcessor(): void;
+/**
+ * Get queue statistics
+ */
+export declare function getQueueStats(): Promise<{
+    queuedCount: number;
+    processingCount: number;
+    completedToday: number;
+    averageWaitTime: number;
+}>;
+//# sourceMappingURL=queue-manager.d.ts.map
