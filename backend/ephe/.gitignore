@@ -5,5 +5,7 @@
 # Or for Docker: they will be downloaded during build
 
 *.se1
+!semo_18.se1
+!sepl_18.se1
 *.cat
 !.gitkeep
