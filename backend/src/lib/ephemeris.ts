@@ -255,6 +255,12 @@ function parseDateTime(dateStr: string, timeStr: string) {
   return { year, month, day, hour, minute: minute || 0 };
 }
 
+// Check if high precision mode (Swiss Ephemeris) is available
+export function isHighPrecisionMode(): boolean {
+  initSwissEph();
+  return useSwissEph;
+}
+
 // Create a dummy swe object export if needed for dangerous direct access
 // but mostly we should use calculateEphemeris
 export { swe };
