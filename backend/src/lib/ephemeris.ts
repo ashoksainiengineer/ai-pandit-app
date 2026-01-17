@@ -1,7 +1,7 @@
 // backend/src/lib/ephemeris.ts
 // Centralized Ephemeris Calculation Module using Swiss Ephemeris (WASM)
 
-import { EphemerisData, PlanetPosition, HousePosition } from './types';
+import { EphemerisData, PlanetPosition, HousePosition } from './types.js';
 import path from 'path';
 
 // Load Swiss Ephemeris

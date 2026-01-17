@@ -2,11 +2,11 @@
 // Memory-efficient queue system for 512MB RAM backend
 // Design: Process one request at a time, queue others in database
 
-import { db } from '../database/drizzle';
-import { sessions } from '../database/schema';
+import { db } from '../database/drizzle.js';
+import { sessions } from '../database/schema.js';
 import { eq, and, or, desc, asc } from 'drizzle-orm';
-import { logger } from './logger';
-import { decryptData } from './crypto';
+import { logger } from './logger.js';
+import { decryptData } from './crypto.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // QUEUE CONFIGURATION
@@ -272,7 +272,7 @@ export async function markAsFailed(sessionId: string, error: string): Promise<vo
 // ═════════════════════════════════════════════════════════════════════════════
 
 // Import seconds-precision analysis function for ultimate accuracy
-import { processSecondsPrecisionBTR } from './seconds-precision-btr';
+import { processSecondsPrecisionBTR } from './seconds-precision-btr.js';
 
 /**
  * Start the queue processor

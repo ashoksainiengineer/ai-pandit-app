@@ -2,8 +2,8 @@
 // Real-time progress tracking for BTR analysis
 // Updates database with current step, message, and percentage
 
-import { db } from '../database/drizzle';
-import { sessions } from '../database/schema';
+import { db } from '../database/drizzle.js';
+import { sessions } from '../database/schema.js';
 import { eq } from 'drizzle-orm';
 
 // ═════════════════════════════════════════════════════════════════════════════

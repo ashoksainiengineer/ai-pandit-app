@@ -3,7 +3,7 @@
 // Sequential processing for 512MB RAM efficiency
 // Target: 99%+ accuracy
 
-import { calculateEphemeris } from './ephemeris';
+import { calculateEphemeris } from './ephemeris.js';
 import {
     calculateVimshottariDasha,
     getDashaForDate,
@@ -12,7 +12,7 @@ import {
     tropicalToSidereal,
     getNakshatraForLongitude,
     DashaPeriod,
-} from './vedic-astrology-engine';
+} from './vedic-astrology-engine.js';
 import {
     calculateYoginiDasha,
     getYoginiDashaForDate,
@@ -28,7 +28,7 @@ import {
     formatPhysicalTraitsAnalysis,
     formatArudhaLagna,
     YoginiDashaPeriod,
-} from './advanced-btr-methods';
+} from './advanced-btr-methods.js';
 import {
     calculateCharaKarakas,
     calculateCharaDasha,
@@ -43,14 +43,14 @@ import {
     formatRasiDasha,
     formatTatwaDasha,
     formatJaiminiAspects,
-} from './jaimini-astrology';
+} from './jaimini-astrology.js';
 import {
     callKimiK2,
     parseKimiAnalysisResponse,
-} from './kimi-k2-client';
-import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager';
-import { logger } from './logger';
-import { LifeEvent, EphemerisData } from './types';
+} from './kimi-k2-client.js';
+import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager.js';
+import { logger } from './logger.js';
+import { LifeEvent, EphemerisData } from './types.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES
