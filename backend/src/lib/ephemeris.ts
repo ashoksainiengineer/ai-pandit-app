@@ -20,7 +20,7 @@ function initSwissEph(): boolean {
   if (isInitialized) return useSwissEph;
 
   try {
-    swe = require('swisseph');
+    swe = require('sweph');
     // Path to ephemeris data files (memory-mapped, not loaded into RAM)
     const ephePath = process.env.SWISSEPH_PATH || '/app/ephe';
     swe.swe_set_ephe_path(ephePath);
