@@ -42,33 +42,34 @@ function scorePhysicalTraits(ephemeris: EphemerisData, physicalTraits?: Physical
   const earthSigns = ['Taurus', 'Virgo', 'Capricorn'];
   const waterSigns = ['Cancer', 'Scorpio', 'Pisces'];
 
-  // Height scoring
-  if (physicalTraits.height === 'tall' || physicalTraits.height === 'very tall') {
+  // Height scoring - now using height object with cm/feet
+  const heightCm = physicalTraits.height?.cm || 0;
+  if (heightCm > 175) { // tall
     if (fireSigns.includes(ascendantSign) || airSigns.includes(ascendantSign)) score += 30;
-  } else if (physicalTraits.height === 'short' || physicalTraits.height === 'very short') {
+  } else if (heightCm < 160) { // short
     if (earthSigns.includes(ascendantSign) || waterSigns.includes(ascendantSign)) score += 20;
   } else {
     score += 15;
   }
 
-  // Build scoring
-  if (physicalTraits.build === 'lean' || physicalTraits.build === 'thin') {
+  // Build scoring - uses correct enum values: slim, medium, athletic, heavy, very_heavy
+  if (physicalTraits.build === 'slim' || physicalTraits.build === 'athletic') {
     if (['Gemini', 'Virgo'].includes(ascendantSign)) score += 25;
-  } else if (physicalTraits.build === 'heavy' || physicalTraits.build === 'obese') {
+  } else if (physicalTraits.build === 'heavy' || physicalTraits.build === 'very_heavy') {
     if (['Taurus', 'Leo'].includes(ascendantSign)) score += 20;
   } else {
     score += 15;
   }
 
-  // Complexion scoring
+  // Complexion scoring - uses correct enum values: very_fair, fair, medium, dark, very_dark
   const sunSign = ephemeris.planets.sun.sign;
   const moonSign = ephemeris.planets.moon.sign;
   const lightSigns = ['Leo', 'Libra'];
   const darkSigns = ['Scorpio'];
 
-  if (physicalTraits.complexion === 'very fair' || physicalTraits.complexion === 'fair') {
+  if (physicalTraits.complexion === 'very_fair' || physicalTraits.complexion === 'fair') {
     if (lightSigns.includes(sunSign) || lightSigns.includes(moonSign)) score += 25;
-  } else if (physicalTraits.complexion === 'very dark' || physicalTraits.complexion === 'dark') {
+  } else if (physicalTraits.complexion === 'very_dark' || physicalTraits.complexion === 'dark') {
     if (darkSigns.includes(sunSign) || darkSigns.includes(moonSign)) score += 20;
   } else {
     score += 15;
@@ -220,7 +221,7 @@ function generateAIPrompt(
     .join(', ');
 
   const traitsStr = physicalTraits
-    ? `Height: ${physicalTraits.height}, Build: ${physicalTraits.build}, Complexion: ${physicalTraits.complexion}`
+    ? `Height: ${physicalTraits.height?.feet || 0}'${physicalTraits.height?.inches || 0}", Build: ${physicalTraits.build}, Complexion: ${physicalTraits.complexion}`
     : 'No physical traits provided';
 
   return `

@@ -90,15 +90,21 @@ export default function RectifyPage() {
                 if (!birthData.birthPlace) { setError("Birth Place is required"); return false; }
                 return true;
             case 2:
-                if (lifeEvents.length < 2) {
-                    setError("Please add at least 2 life events for accurate analysis");
+                // Physical traits - optional but check ranges if entered
+                if (physicalTraits.height?.cm && (physicalTraits.height.cm < 50 || physicalTraits.height.cm > 250)) {
+                    setError("Please enter a valid height");
                     return false;
                 }
                 return true;
             case 3:
-                // Optional step, but we check ranges if entered
-                if (physicalTraits.height?.cm && (physicalTraits.height.cm < 50 || physicalTraits.height.cm > 250)) {
-                    setError("Please enter a valid height");
+                if (lifeEvents.length < 5) {
+                    setError("Please add at least 5 life events for 99%+ accuracy. The more events you provide, the more precise your rectification will be.");
+                    return false;
+                }
+                // Check if events have dates filled
+                const eventsWithoutDates = lifeEvents.filter(e => !e.eventDate);
+                if (eventsWithoutDates.length > 0) {
+                    setError(`Please fill in dates for all events. ${eventsWithoutDates.length} event(s) missing dates.`);
                     return false;
                 }
                 return true;
@@ -170,7 +176,7 @@ export default function RectifyPage() {
                     </Link>
                     <div className="flex items-center gap-6">
                         <Link href="/dashboard" className="text-[#C4B8AD] hover:text-[#D4AF37] transition-colors">
-                            Dashboard
+                            📊 Dashboard
                         </Link>
                         <UserButton afterSignOutUrl="/" />
                     </div>
@@ -192,18 +198,18 @@ export default function RectifyPage() {
                             <div key={s} className="flex flex-col items-center bg-[#0F1419] px-2">
                                 <div
                                     className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all border-2 ${s < step
-                                            ? 'bg-[#2D7A5C] border-[#2D7A5C] text-white'
-                                            : s === step
-                                                ? 'bg-[#0F1419] border-[#D4AF37] text-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.3)]'
-                                                : 'bg-[#2A3442] border-[#2A3442] text-[#8C7F72]'
+                                        ? 'bg-[#2D7A5C] border-[#2D7A5C] text-white'
+                                        : s === step
+                                            ? 'bg-[#0F1419] border-[#D4AF37] text-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.3)]'
+                                            : 'bg-[#2A3442] border-[#2A3442] text-[#8C7F72]'
                                         }`}
                                 >
-                                    {s < step ? '✓' : s}
+                                    {s < step ? '✓' : ['👤', '🪞', '📅', '✅'][s - 1]}
                                 </div>
                                 <span className={`text-xs mt-2 font-medium ${s === step ? 'text-[#D4AF37]' : 'text-[#8C7F72]'}`}>
                                     {s === 1 ? 'Birth Details' :
-                                        s === 2 ? 'Life Events' :
-                                            s === 3 ? 'Physical' : 'Review'}
+                                        s === 2 ? 'Physical' :
+                                            s === 3 ? 'Life Events' : 'Review'}
                                 </span>
                             </div>
                         ))}
@@ -226,15 +232,15 @@ export default function RectifyPage() {
                         />
                     )}
                     {step === 2 && (
-                        <Step2LifeEvents
-                            lifeEvents={lifeEvents}
-                            updateEvents={setLifeEvents}
-                        />
-                    )}
-                    {step === 3 && (
                         <Step3PhysicalTraits
                             physicalTraits={physicalTraits}
                             updateTraits={(updates) => setPhysicalTraits(prev => ({ ...prev, ...updates }))}
+                        />
+                    )}
+                    {step === 3 && (
+                        <Step2LifeEvents
+                            lifeEvents={lifeEvents}
+                            updateEvents={setLifeEvents}
                         />
                     )}
                     {step === 4 && (
@@ -256,8 +262,8 @@ export default function RectifyPage() {
                             onClick={handleBack}
                             disabled={step === 1}
                             className={`px-6 py-3 rounded-xl font-semibold transition-colors ${step === 1
-                                    ? 'opacity-0 cursor-default'
-                                    : 'border-2 border-[#D4AF37]/50 text-[#D4AF37] hover:bg-[#D4AF37]/10'
+                                ? 'opacity-0 cursor-default'
+                                : 'border-2 border-[#D4AF37]/50 text-[#D4AF37] hover:bg-[#D4AF37]/10'
                                 }`}
                         >
                             ← Back

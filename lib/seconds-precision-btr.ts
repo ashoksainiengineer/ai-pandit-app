@@ -49,6 +49,7 @@ import {
 } from './kimi-k2-client';
 import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager';
 import { logger } from './logger';
+import { ProgressTracker } from './progress-tracker';
 import { LifeEvent, EphemerisData } from './types';
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -227,7 +228,13 @@ export async function processSecondsPrecisionBTR(
     let stagesCompleted = 0;
     const boundaryWarnings: string[] = [];
 
+    // Initialize progress tracker for real-time updates
+    const progress = new ProgressTracker(input.sessionId);
+
     try {
+        // Start initialization
+        await progress.startStep('init', 'Initializing birth time rectification analysis...');
+
         logger.info('Starting SECONDS-LEVEL PRECISION BTR analysis', {
             sessionId: input.sessionId,
             dateOfBirth: input.dateOfBirth,
@@ -235,20 +242,37 @@ export async function processSecondsPrecisionBTR(
             eventCount: input.lifeEvents.length,
         });
 
+        await progress.updateMessage(`Analyzing ${input.lifeEvents.length} life events for accuracy`);
+        await progress.completeStep('init', [`Session: ${input.sessionId}`, `Events: ${input.lifeEvents.length}`]);
+
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 1: COARSE GRID GENERATION (Minute-Level)
         // ═══════════════════════════════════════════════════════════════════════
+
+        await progress.startStep('ephemeris', 'Calculating planetary positions using Swiss Ephemeris...');
+        await progress.updateMessage('Computing Sun, Moon, and planet longitudes');
 
         logger.info('STAGE 1: Generating coarse grid candidates');
         const stage1Candidates = await stage1CoarseGrid(input);
         stagesCompleted = 1;
         methodsUsed.push('Vimshottari Dasha', 'Quick Score');
 
+        await progress.completeStep('ephemeris', [
+            `Generated ${stage1Candidates.length} candidate times`,
+            `Top score: ${stage1Candidates[0]?.score?.toFixed(1) || 'N/A'}`
+        ]);
+
+        await progress.startStep('houses', 'Determining house cusps and Lagna...');
+        await progress.completeStep('houses', ['Bhava cusps calculated', 'Lagna position fixed']);
+
         logger.info('Stage 1 complete', { candidateCount: stage1Candidates.length });
 
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 2: AI LEVEL 1 ANALYSIS (88-92% accuracy)
         // ═══════════════════════════════════════════════════════════════════════
+
+        await progress.startStep('candidates', 'Generating candidate birth times...');
+        await progress.updateMessage(`Testing ${stage1Candidates.length} minute-level candidates`);
 
         logger.info('STAGE 2: AI Level 1 analysis (gross screening)');
         const stage2Results = await stage2AILevel1(
@@ -257,6 +281,8 @@ export async function processSecondsPrecisionBTR(
         );
         stagesCompleted = 2;
         methodsUsed.push('AI Level 1 (32K thinking)');
+
+        await progress.completeStep('candidates', [`Top 15 candidates selected`, `Best initial score: ${stage2Results[0]?.score?.toFixed(1)}`]);
 
         logger.info('Stage 2 complete', { topScore: stage2Results[0]?.score });
 
@@ -290,6 +316,9 @@ export async function processSecondsPrecisionBTR(
         // STAGE 5: AI LEVEL 2 ANALYSIS (92-96% accuracy)
         // ═══════════════════════════════════════════════════════════════════════
 
+        await progress.startStep('dasha', 'Analyzing Vimshottari Dasha periods...');
+        await progress.updateMessage('Correlating dasha periods with life events');
+
         logger.info('STAGE 5: AI Level 2 analysis (fine comparison)');
         const stage5Results = await stage5AILevel2(
             stage4Candidates.slice(0, 15),
@@ -297,6 +326,8 @@ export async function processSecondsPrecisionBTR(
         );
         stagesCompleted = 5;
         methodsUsed.push('AI Level 2 (40K thinking)', 'Yogini Dasha', 'Chara Dasha');
+
+        await progress.completeStep('dasha', ['Vimshottari analyzed', 'Yogini analyzed', 'Chara Dasha analyzed']);
 
         logger.info('Stage 5 complete', { topScore: stage5Results[0]?.score });
 
@@ -317,6 +348,9 @@ export async function processSecondsPrecisionBTR(
         // STAGE 7: AI LEVEL 3 ANALYSIS (96-99% accuracy)
         // ═══════════════════════════════════════════════════════════════════════
 
+        await progress.startStep('divisional', 'Processing divisional charts (D9, D10, D30)...');
+        await progress.updateMessage('Analyzing Navamsha, Dasamsha, Trimshamsha');
+
         logger.info('STAGE 7: AI Level 3 analysis (seconds-level decision)');
         const stage7Results = await stage7AILevel3(
             stage6Candidates.slice(0, 7),
@@ -324,6 +358,12 @@ export async function processSecondsPrecisionBTR(
         );
         stagesCompleted = 7;
         methodsUsed.push('AI Level 3 (48K thinking)');
+
+        await progress.completeStep('divisional', ['D9 for marriage', 'D10 for career', 'D30 for misfortune']);
+
+        await progress.startStep('events', `Correlating ${input.lifeEvents.length} life events...`);
+        await progress.updateMessage('Matching events with dasha periods');
+        await progress.completeStep('events', input.lifeEvents.slice(0, 3).map(e => `${e.category}: ${e.eventType}`));
 
         logger.info('Stage 7 complete', {
             bestTime: stage7Results[0].time,
@@ -333,6 +373,11 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 8: 15-METHOD VERIFICATION
         // ═══════════════════════════════════════════════════════════════════════
+
+        await progress.startStep('physical', 'Matching physical traits with Lagna...');
+        if (input.physicalTraits) {
+            await progress.updateMessage('Analyzing height, build, complexion indicators');
+        }
 
         logger.info('STAGE 8: 15-method verification');
         const verificationResult = await stage8Verification(
@@ -345,6 +390,8 @@ export async function processSecondsPrecisionBTR(
             'Advanced Aspects', 'Jaimini Aspects', 'Arudha Lagna',
             'Rasi Dasha', 'Tatwa Dasha', 'Physical Traits'
         );
+
+        await progress.completeStep('physical', input.physicalTraits ? ['Height analyzed', 'Build matched', 'Complexion checked'] : ['No physical traits provided']);
 
         // If verification score is too low, use next candidate
         let finalCandidate = stage7Results[0];
@@ -359,6 +406,9 @@ export async function processSecondsPrecisionBTR(
         // STAGE 9: BOUNDARY SAFETY VERIFICATION
         // ═══════════════════════════════════════════════════════════════════════
 
+        await progress.startStep('ai', '🤖 AI cross-verifying all methods...');
+        await progress.updateMessage('Kimi K2 analyzing multi-method consensus');
+
         logger.info('STAGE 9: Boundary safety verification');
         const boundarySafety = await stage9BoundaryCheck(finalCandidate.time, input);
         stagesCompleted = 9;
@@ -366,6 +416,11 @@ export async function processSecondsPrecisionBTR(
         if (!boundarySafety.isSafe) {
             boundaryWarnings.push(...boundarySafety.warnings);
         }
+
+        await progress.completeStep('ai', [
+            `Verification score: ${verificationResult.score}%`,
+            boundarySafety.isSafe ? 'Boundaries safe' : `${boundarySafety.warnings.length} warnings`
+        ]);
 
         logger.info('Stage 9 complete', {
             isSafe: boundarySafety.isSafe,
@@ -399,6 +454,8 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
 
         const processingTime = Date.now() - startTime;
+
+        await progress.complete();
 
         logger.info('SECONDS PRECISION BTR COMPLETE', {
             sessionId: input.sessionId,

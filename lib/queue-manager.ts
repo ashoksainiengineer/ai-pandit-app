@@ -6,6 +6,7 @@ import { db } from '@/database/drizzle';
 import { sessions } from '@/database/schema';
 import { eq, and, or, desc, asc } from 'drizzle-orm';
 import { logger } from './logger';
+import { decryptData } from './crypto';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // QUEUE CONFIGURATION
@@ -330,6 +331,12 @@ async function processQueue(): Promise<void> {
 
       // Process the analysis
       try {
+        // 🔐 Decrypt sensitive data using userId
+        const decryptedLifeEvents = JSON.parse(decryptData(s.lifeEvents, s.userId));
+        const decryptedPhysicalTraits = s.physicalTraits
+          ? JSON.parse(decryptData(s.physicalTraits, s.userId))
+          : undefined;
+
         const result = await processSecondsPrecisionBTR({
           sessionId: nextId,
           dateOfBirth: s.dateOfBirth,
@@ -337,9 +344,9 @@ async function processQueue(): Promise<void> {
           latitude: s.latitude,
           longitude: s.longitude,
           timezone: s.timezone,
-          lifeEvents: JSON.parse(s.lifeEvents),
+          lifeEvents: decryptedLifeEvents,
           offsetConfig: s.offsetConfig ? JSON.parse(s.offsetConfig) : { preset: '1hour' },
-          physicalTraits: s.physicalTraits ? JSON.parse(s.physicalTraits) : undefined,
+          physicalTraits: decryptedPhysicalTraits,
         });
 
         await markAsComplete(nextId, result);

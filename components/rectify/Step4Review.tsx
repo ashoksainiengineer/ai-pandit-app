@@ -114,10 +114,9 @@ export default function Step4Review({ data, events, traits, onSubmit, isSubmitti
                                 <div className="flex justify-between">
                                     <span className="font-semibold text-[#F5F0EB]">{e.eventType}</span>
                                     <span className="text-[#D4AF37] bg-[#D4AF37]/10 px-2 rounded-full text-xs">
-                                        {e.datePrecision === 'exact' ? e.eventDate :
-                                            e.datePrecision === 'year' ? e.eventDate : // just year
-                                                e.datePrecision === 'range' ? `${e.eventDate} - ${e.endDate}` :
-                                                    e.eventDate}
+                                        {e.datePrecision?.includes('range')
+                                            ? `${e.eventDate} → ${e.endDate}`
+                                            : e.eventDate}
                                     </span>
                                 </div>
                                 {e.description && (

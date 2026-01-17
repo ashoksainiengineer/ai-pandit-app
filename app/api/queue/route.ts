@@ -7,6 +7,7 @@ import { logger } from '@/lib/logger';
 import { addToQueue, getQueueStatus, startQueueProcessor } from '@/lib/queue-manager';
 import { validateOffsetConfig, TimeOffsetConfig } from '@/lib/time-offset-manager';
 import { BirthData, LifeEvent } from '@/lib/types';
+import { encryptData, decryptData } from '@/lib/crypto';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // QUEUE API - Submit and Poll for BTR Analysis
@@ -100,23 +101,30 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Create session in database
+        // Create session in database with ENCRYPTED sensitive data
         const sessionId = crypto.randomUUID();
         const now = new Date().toISOString();
+
+        // Encrypt sensitive fields - only user can decrypt with their userId
+        const encryptedFullName = encryptData(birthData.fullName, userId);
+        const encryptedLifeEvents = encryptData(JSON.stringify(lifeEvents), userId);
+        const encryptedPhysicalTraits = physicalTraits
+            ? encryptData(JSON.stringify(physicalTraits), userId)
+            : null;
 
         await db.insert(sessions).values({
             id: sessionId,
             userId,
-            fullName: birthData.fullName,
-            dateOfBirth: birthData.dateOfBirth,
-            tentativeTime: birthData.tentativeTime,
-            birthPlace: birthData.birthPlace,
+            fullName: encryptedFullName, // 🔐 Encrypted
+            dateOfBirth: birthData.dateOfBirth, // Not encrypted (needed for calculations)
+            tentativeTime: birthData.tentativeTime, // Not encrypted (needed for calculations)
+            birthPlace: birthData.birthPlace, // Not encrypted (needed for display)
             latitude: birthData.latitude,
             longitude: birthData.longitude,
             timezone: birthData.timezone.toString(),
             gender: birthData.gender || 'other',
-            physicalTraits: physicalTraits ? JSON.stringify(physicalTraits) : null,
-            lifeEvents: JSON.stringify(lifeEvents),
+            physicalTraits: encryptedPhysicalTraits, // 🔐 Encrypted
+            lifeEvents: encryptedLifeEvents, // 🔐 Encrypted
             offsetConfig: JSON.stringify(offsetConfig),
             status: 'pending',
             createdAt: now,

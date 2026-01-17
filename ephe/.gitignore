@@ -1,0 +1,9 @@
+# Swiss Ephemeris Data Files
+# These are large binary files, download them with:
+# bash scripts/download-ephemeris.sh
+# 
+# Or for Docker: they will be downloaded during build
+
+*.se1
+*.cat
+!.gitkeep

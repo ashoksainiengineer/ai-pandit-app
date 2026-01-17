@@ -130,7 +130,7 @@ function generateEventCorrelations(ephemerisData: EphemerisData, lifeEvents: Lif
 
   for (const event of lifeEvents) {
     report += `${event.category.toUpperCase()}: ${event.eventType}\n`;
-    report += `Date: ${event.eventDate} (${event.dateAccuracy})\n`;
+    report += `Date: ${event.eventDate} (${event.datePrecision})\n`;
     report += `Importance: ${event.importance}\n`;
     report += 'Natal chart correlation: [Analysis pending]\n\n';
   }

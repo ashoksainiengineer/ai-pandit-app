@@ -48,11 +48,11 @@ export interface LifeEvent {
   id: string;
   category: EventCategory;
   eventType: string;
-  // Flexible Date Fields
-  datePrecision: 'exact' | 'month' | 'year' | 'range';
+  // Flexible Date Fields - Supporting 6 precision modes
+  datePrecision: 'exact' | 'month' | 'year' | 'date_range' | 'month_range' | 'year_range';
   eventDate: string; // YYYY-MM-DD or YYYY-MM or YYYY
   endDate?: string; // For ranges
-  eventTime?: string;
+  eventTime?: string; // HH:MM for exact dates
 
   description: string;
   importance: 'low' | 'medium' | 'high' | 'critical';
@@ -98,6 +98,7 @@ export interface PlanetPosition {
   degree: number;
   longitude: number;
   nakshatra: string;
+  nakshatraPada?: number; // 1-4, for sub-nakshatra precision
   lord: string;
   retro: boolean;
 }
