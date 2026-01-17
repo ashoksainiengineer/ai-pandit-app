@@ -17,7 +17,7 @@ function initSwissEph(): boolean {
   try {
     // Try WASM version first (preferred for Leapcell)
     try {
-      swe = require('swisseph-wasm');
+      swe = require('sweph-wasm');
       console.log('✅ Swiss Ephemeris (WASM) loaded');
     } catch (e) {
       // Fallback to standard package if WASM missing (dev environment)
