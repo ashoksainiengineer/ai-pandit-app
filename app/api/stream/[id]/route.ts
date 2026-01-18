@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@/lib/logger';
+import { NextRequest } from 'next/server';
 
+export const runtime = 'edge'; // Use Edge Runtime for long-lived SSE connections
 export const dynamic = 'force-dynamic';
 
 /**
- * SSE Proxy Route
+ * SSE Proxy Route (Edge Runtime)
  * Proxies real-time progress events from Leapcell backend to the Vercel frontend.
- * This avoids CORS/Mixed Content issues in the browser.
+ * Edge Runtime is required for long-lived streaming connections on Vercel.
  */
 export async function GET(
     request: NextRequest,
@@ -16,37 +16,41 @@ export async function GET(
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
     const streamUrl = `${backendUrl}/api/stream/${sessionId}`;
 
-    logger.info('Proxying SSE stream request', { sessionId, streamUrl });
+    console.log('Edge SSE Proxy: Connecting to', streamUrl);
 
     try {
         const response = await fetch(streamUrl, {
             headers: {
                 'Accept': 'text/event-stream',
+                'Cache-Control': 'no-cache',
             },
-            // Important for long-running SSE connections on some environments
-            cache: 'no-store',
         });
 
         if (!response.ok || !response.body) {
-            logger.error('Failed to connect to backend stream', {
-                sessionId,
-                status: response.status,
-                statusText: response.statusText
+            console.error('Edge SSE Proxy: Backend connection failed', response.status);
+            return new Response(`Backend stream unavailable: ${response.status}`, {
+                status: response.status
             });
-            return new NextResponse('Stream source not available', { status: response.status });
         }
 
-        // Return the stream directly from the backend
-        return new Response(response.body, {
+        // Create a TransformStream to pipe data through
+        const { readable, writable } = new TransformStream();
+
+        // Pipe the backend response to the client
+        response.body.pipeTo(writable).catch((err) => {
+            console.error('Edge SSE Proxy: Pipe error', err);
+        });
+
+        return new Response(readable, {
             headers: {
                 'Content-Type': 'text/event-stream',
                 'Cache-Control': 'no-cache, no-transform',
                 'Connection': 'keep-alive',
-                'X-Content-Type-Options': 'nosniff',
+                'X-Accel-Buffering': 'no',
             },
         });
     } catch (error) {
-        logger.error('SSE Proxy error', { sessionId, error });
-        return new NextResponse('Internal Server Error while proxying stream', { status: 500 });
+        console.error('Edge SSE Proxy: Error', error);
+        return new Response('SSE Proxy connection failed', { status: 500 });
     }
 }
