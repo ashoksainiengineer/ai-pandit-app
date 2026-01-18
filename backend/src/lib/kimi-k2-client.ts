@@ -210,6 +210,7 @@ export async function callKimiK2WithStream(
         model?: string;
         candidateTime?: string;
         abortSignal?: AbortSignal; // Support external cancellation
+        onToken?: (content: string, isThinking: boolean) => void; // For heartbeats
     }
 ): Promise<KimiK2Response> {
     const config = {
@@ -310,13 +311,20 @@ export async function callKimiK2WithStream(
                         // DeepSeek Reasoner's thinking tokens
                         fullThinking += delta.reasoning_content;
                         emitAIThinking(sessionId, delta.reasoning_content, stage, options?.candidateTime);
+
+                        // 💓 Heartbeat every ~100 tokens
+                        if (fullThinking.length % 500 < delta.reasoning_content.length) {
+                            options?.onToken?.(fullThinking, true);
+                        }
                     } else if (delta?.content) {
                         // Fallback: Emit content as "thinking" for non-reasoning models (for display)
-                        // This allows Stage 2/5 (Chat models) to show real-time progress
                         fullContent += delta.content;
-                        // For chat models, we treat content as thinking for the visual display
-                        // Always emit content as thinking to prevent blank screens
                         emitAIThinking(sessionId, delta.content, stage, options?.candidateTime);
+
+                        // 💓 Heartbeat every ~100 tokens
+                        if (fullContent.length % 500 < delta.content.length) {
+                            options?.onToken?.(fullContent, false);
+                        }
                     }
                 } catch {
                     // Ignore parse errors for incomplete chunks

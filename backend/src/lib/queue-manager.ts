@@ -4,7 +4,7 @@
 
 import { db } from '../database/drizzle';
 import { sessions } from '../database/schema';
-import { eq, and, or, desc, asc } from 'drizzle-orm';
+import { eq, and, or, desc, asc, lt } from 'drizzle-orm';
 import { logger } from './logger';
 import { decryptData } from './crypto';
 import {
@@ -274,6 +274,17 @@ export async function markAsFailed(sessionId: string, error: string): Promise<vo
 }
 
 /**
+ * Update session timestamp to prevent it from being marked as stale
+ */
+export async function heartbeat(sessionId: string): Promise<void> {
+  await db.update(sessions)
+    .set({
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(sessions.id, sessionId));
+}
+
+/**
  * Cancel a session
  */
 export async function cancelSession(sessionId: string): Promise<boolean> {
@@ -429,7 +440,7 @@ async function cleanupStaleRequests(): Promise<void> {
       .from(sessions)
       .where(and(
         eq(sessions.status, 'processing'),
-        // Note: This comparison works with ISO strings
+        lt(sessions.updatedAt, staleThreshold)
       ));
 
     for (const s of stale) {

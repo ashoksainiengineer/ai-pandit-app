@@ -302,7 +302,8 @@ export async function processSecondsPrecisionBTR(
         logger.info('STAGE 2: AI Level 1 analysis (gross screening)');
         const stage2Results = await stage2AILevel1(
             stage1Candidates.slice(0, 15),
-            input
+            input,
+            progress
         );
         stagesCompleted = 2;
         methodsUsed.push('AI Level 1 (32K thinking)');
@@ -356,7 +357,8 @@ export async function processSecondsPrecisionBTR(
         logger.info('STAGE 5: AI Level 2 analysis (fine comparison)');
         const stage5Results = await stage5AILevel2(
             stage4Candidates.slice(0, 15),
-            input
+            input,
+            progress
         );
         stagesCompleted = 5;
         methodsUsed.push('AI Level 2 (40K thinking)', 'Yogini Dasha', 'Chara Dasha');
@@ -394,7 +396,8 @@ export async function processSecondsPrecisionBTR(
         logger.info('STAGE 7: AI Level 3 analysis (seconds-level decision)');
         const stage7Results = await stage7AILevel3(
             stage6Candidates.slice(0, 7),
-            input
+            input,
+            progress
         );
         stagesCompleted = 7;
         methodsUsed.push('AI Level 3 (48K thinking)');
@@ -606,7 +609,8 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
 
 async function stage2AILevel1(
     candidates: StageCandidate[],
-    input: SecondsPrecisionInput
+    input: SecondsPrecisionInput,
+    progress: ProgressTracker
 ): Promise<StageCandidate[]> {
     const results: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
@@ -650,6 +654,12 @@ async function stage2AILevel1(
                         temperature: 0.3,
                         maxTokens: 4000,
                         candidateTime: candidate.time,
+                        abortSignal: input.abortSignal,
+                        onToken: (chunk) => {
+                            // 💓 Heartbeat: Update session timestamp every few chunks
+                            // This prevents the queue processor from marking the task as stale
+                            progress.updateMessage(`Analyzing candidate ${candidate.time}...`);
+                        }
                     }
                 );
 
@@ -804,7 +814,8 @@ async function stage4FineGrid(
 
 async function stage5AILevel2(
     candidates: StageCandidate[],
-    input: SecondsPrecisionInput
+    input: SecondsPrecisionInput,
+    progress: ProgressTracker
 ): Promise<StageCandidate[]> {
     const results: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
@@ -852,7 +863,11 @@ async function stage5AILevel2(
                     prompt,
                     {
                         candidateTime: candidate.time,
-                        abortSignal: input.abortSignal
+                        abortSignal: input.abortSignal,
+                        onToken: (chunk) => {
+                            // 💓 Heartbeat
+                            progress.updateMessage(`Comparing candidate ${candidate.time} (Stage 5)...`);
+                        }
                     }
                 );
                 console.log(`[Stage 5] AI response received for ${candidate.time}`);
@@ -978,7 +993,8 @@ async function stage6MicroGrid(
 
 async function stage7AILevel3(
     candidates: StageCandidate[],
-    input: SecondsPrecisionInput
+    input: SecondsPrecisionInput,
+    progress: ProgressTracker
 ): Promise<StageCandidate[]> {
     const results: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
@@ -1044,6 +1060,11 @@ ANALYZE EACH 6-SECOND CANDIDATE AND DETERMINE THE CORRECT BIRTH TIME.`;
             temperature: 0.1,
             maxTokens: 10000,
             candidateTime: candidates[0]?.time,
+            abortSignal: input.abortSignal,
+            onToken: (chunk) => {
+                // 💓 Heartbeat
+                progress.updateMessage('Finalizing seconds-level rectification decision...');
+            }
         }
     );
 
