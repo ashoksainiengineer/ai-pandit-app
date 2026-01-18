@@ -3,10 +3,10 @@
 // lib/candidate-analyzer.ts
 // Analyze multiple candidate times and filter for accuracy
 
-import { EphemerisData, LifeEvent, CandidateAnalysis, RankedCandidates } from './types.js';
-import { generateAstrologicalReport } from './astrological-data-processor.js';
-import { calculateEphemeris } from './ephemeris.js';
-import { logger } from './logger.js';
+import { EphemerisData, LifeEvent, CandidateAnalysis, RankedCandidates } from './types';
+import { generateAstrologicalReport } from './astrological-data-processor';
+import { calculateEphemeris } from './ephemeris';
+import { logger } from './logger';
 
 // ═════════════════════════════════════════════════════════════════════════
 // QUICK FILTERING RULES (Before Kimi K2 analysis)

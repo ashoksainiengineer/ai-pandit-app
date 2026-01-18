@@ -4,7 +4,7 @@ import { db } from '../database/drizzle.js';
 import { sessions } from '../database/schema.js';
 import { eq } from 'drizzle-orm';
 import { logger } from '../lib/logger.js';
-import { addToQueue, getQueueStatus, startQueueProcessor } from '../lib/queue-manager.js';
+import { addToQueue, getQueueStatus, startQueueProcessor, cancelSession } from '../lib/queue-manager.js';
 import { validateOffsetConfig, TimeOffsetConfig } from '../lib/time-offset-manager.js';
 import { BirthData, LifeEvent } from '../lib/types.js';
 import { encryptData } from '../lib/crypto.js';
@@ -96,6 +96,7 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
         await db.insert(sessions).values({
             id: sessionId,
             userId,
+            clerkId: userId, // Use userId as clerkId (same for Clerk auth)
             fullName: encryptedFullName,
             dateOfBirth: birthData.dateOfBirth,
             tentativeTime: birthData.tentativeTime,
@@ -223,6 +224,45 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
     } catch (error) {
         logger.error('Queue poll error', error);
         res.status(500).json({ success: false, error: 'Failed to get status' });
+    }
+});
+
+/**
+ * POST /api/queue/cancel - Cancel a session
+ */
+router.post('/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const userId = req.userId!;
+        const { sessionId } = req.body;
+
+        if (!sessionId) {
+            res.status(400).json({ success: false, error: 'sessionId is required' });
+            return;
+        }
+
+        // Verify session belongs to user
+        const session = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+
+        if (session.length === 0) {
+            res.status(404).json({ success: false, error: 'Session not found' });
+            return;
+        }
+
+        if (session[0].userId !== userId) {
+            res.status(403).json({ success: false, error: 'Unauthorized' });
+            return;
+        }
+
+        const success = await cancelSession(sessionId);
+
+        if (success) {
+            res.json({ success: true, message: 'Session cancelled' });
+        } else {
+            res.status(400).json({ success: false, error: 'Could not cancel session (may be already complete or failed)' });
+        }
+    } catch (error) {
+        logger.error('Cancel session error', error);
+        res.status(500).json({ success: false, error: 'Failed to cancel session' });
     }
 });
 

@@ -151,6 +151,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Calculate
     await db.insert(sessions).values({
       id: sessionId,
       userId,
+      clerkId: userId, // Clerk user ID - same as userId from auth
       fullName: birthData.fullName,
       dateOfBirth: birthData.dateOfBirth,
       tentativeTime: birthData.tentativeTime,

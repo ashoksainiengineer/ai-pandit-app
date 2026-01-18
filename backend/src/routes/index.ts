@@ -3,6 +3,7 @@ import healthRouter from './health.js';
 import calculateRouter from './calculate.js';
 import queueRouter from './queue.js';
 import progressRouter from './progress.js';
+import streamRouter from './stream.js';
 
 const router = Router();
 
@@ -11,5 +12,7 @@ router.use('/health', healthRouter);
 router.use('/calculate', calculateRouter);
 router.use('/queue', queueRouter);
 router.use('/queue/progress', progressRouter);
+router.use('/stream', streamRouter);
 
 export { router as routes };
+

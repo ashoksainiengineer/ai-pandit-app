@@ -80,6 +80,7 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
         await db.insert(sessions).values({
             id: sessionId,
             userId,
+            clerkId: userId, // Clerk user ID - same as userId from auth
             fullName: birthData.fullName,
             dateOfBirth: birthData.dateOfBirth,
             tentativeTime: birthData.tentativeTime,

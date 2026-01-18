@@ -20,7 +20,7 @@ const KIMI_CONFIG = {
     temperature: 0.1,      // Note: ignored by deepseek-reasoner
     retryAttempts: 3,
     retryDelayMs: 2000,
-    timeoutMs: 180000,     // 3 minutes timeout (reasoning takes longer)
+    timeoutMs: 300000,     // 5 minutes timeout (DeepSeek Reasoner can be slow)
 };
 
 // ═════════════════════════════════════════════════════════════════════════════

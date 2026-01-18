@@ -1,7 +1,7 @@
 // lib/astrological-data-processor.ts
 // Process ephemeris data and generate astrological reports
 
-import { EphemerisData, LifeEvent } from './types.js';
+import { EphemerisData, LifeEvent } from './types';
 
 export function generateAstrologicalReport(
   ephemerisData: EphemerisData,

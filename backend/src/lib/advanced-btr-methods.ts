@@ -2,7 +2,7 @@
 // Advanced Vedic Astrology Methods for 99%+ BTR Accuracy
 // Includes: Yogini Dasha, Divisional Charts, Physical Traits, Advanced Aspects, Arudha Lagna
 
-import { EphemerisData, PlanetPosition, LifeEvent } from './types.js';
+import { EphemerisData, PlanetPosition, LifeEvent } from './types';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES AND CONSTANTS

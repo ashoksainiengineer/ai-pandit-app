@@ -3,7 +3,7 @@
 // Sequential processing for 512MB RAM efficiency
 // Target: 99%+ accuracy
 
-import { calculateEphemeris } from './ephemeris.js';
+import { calculateEphemeris } from './ephemeris';
 import {
     calculateVimshottariDasha,
     getDashaForDate,
@@ -12,7 +12,7 @@ import {
     tropicalToSidereal,
     getNakshatraForLongitude,
     DashaPeriod,
-} from './vedic-astrology-engine.js';
+} from './vedic-astrology-engine';
 import {
     calculateYoginiDasha,
     getYoginiDashaForDate,
@@ -28,7 +28,7 @@ import {
     formatPhysicalTraitsAnalysis,
     formatArudhaLagna,
     YoginiDashaPeriod,
-} from './advanced-btr-methods.js';
+} from './advanced-btr-methods';
 import {
     calculateCharaKarakas,
     calculateCharaDasha,
@@ -43,14 +43,14 @@ import {
     formatRasiDasha,
     formatTatwaDasha,
     formatJaiminiAspects,
-} from './jaimini-astrology.js';
+} from './jaimini-astrology';
 import {
     callKimiK2,
     parseKimiAnalysisResponse,
-} from './kimi-k2-client.js';
-import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager.js';
-import { logger } from './logger.js';
-import { LifeEvent, EphemerisData } from './types.js';
+} from './kimi-k2-client';
+import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager';
+import { logger } from './logger';
+import { LifeEvent, EphemerisData } from './types';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -545,7 +545,7 @@ async function comprehensiveKimiAnalysis(
             const arudhaLagna = calculateArudhaLagna(ephemeris);
 
             // Physical traits analysis
-            let physicalTraitsAnalysis: any = null;
+            let physicalTraitsAnalysis: ReturnType<typeof scorePhysicalTraits> | undefined;
             if (physicalTraits) {
                 physicalTraitsAnalysis = scorePhysicalTraits(ephemeris, physicalTraits);
             }

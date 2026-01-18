@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
-import { BirthData, LifeEvent, PhysicalTraits } from '@/lib/types';
+import { BirthData, LifeEvent, PhysicalTraits, TimeOffsetConfig } from '@/lib/types';
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
 import Step2LifeEvents from '@/components/rectify/Step2LifeEvents';
 import Step3PhysicalTraits from '@/components/rectify/Step3PhysicalTraits';
@@ -37,6 +37,7 @@ export default function RectifyPage() {
     const [birthData, setBirthData] = useState<BirthData>(initialBirthData);
     const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>([]);
     const [physicalTraits, setPhysicalTraits] = useState<PhysicalTraits>(initialPhysicalTraits);
+    const [offsetConfig, setOffsetConfig] = useState<TimeOffsetConfig>({ preset: '1hour', customMinutes: 60, description: '±1 hour' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -57,7 +58,7 @@ export default function RectifyPage() {
                     birthData,
                     lifeEvents,
                     physicalTraits,
-                    offsetConfig: { preset: '1hour', customMinutes: 60 },
+                    offsetConfig, // Use state
                     sessionId: draftSessionId,
                 }),
             });
@@ -173,11 +174,7 @@ export default function RectifyPage() {
                     description: e.description,
                     importance: e.importance
                 })),
-                offsetConfig: {
-                    preset: '1hour', // Default logic for now, or add UI for it
-                    description: 'Unknown uncertainty',
-                    customMinutes: 60
-                },
+                offsetConfig, // Use state
                 physicalTraits
             };
 
@@ -270,6 +267,8 @@ export default function RectifyPage() {
                         <Step1BirthDetails
                             data={birthData}
                             updateData={(updates) => setBirthData(prev => ({ ...prev, ...updates }))}
+                            offsetConfig={offsetConfig}
+                            updateOffset={setOffsetConfig}
                         />
                     )}
                     {step === 2 && (
@@ -315,12 +314,12 @@ export default function RectifyPage() {
                             onClick={saveDraftToCloud}
                             disabled={cloudSaveStatus === 'saving' || !birthData.fullName}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${cloudSaveStatus === 'saved'
-                                    ? 'bg-[#2D7A5C]/20 text-[#2D7A5C] border border-[#2D7A5C]/30'
-                                    : cloudSaveStatus === 'saving'
-                                        ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30 animate-pulse'
-                                        : cloudSaveStatus === 'error'
-                                            ? 'bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/30'
-                                            : 'bg-[#2A3442] text-[#C4B8AD] border border-[#8C7F72]/30 hover:border-[#D4AF37]/50'
+                                ? 'bg-[#2D7A5C]/20 text-[#2D7A5C] border border-[#2D7A5C]/30'
+                                : cloudSaveStatus === 'saving'
+                                    ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30 animate-pulse'
+                                    : cloudSaveStatus === 'error'
+                                        ? 'bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/30'
+                                        : 'bg-[#2A3442] text-[#C4B8AD] border border-[#8C7F72]/30 hover:border-[#D4AF37]/50'
                                 }`}
                         >
                             {cloudSaveStatus === 'saving' ? (

@@ -23,8 +23,8 @@ export default function TimelineVisualizer({ events, onSelectEvent, selectedEven
         const precision = event.datePrecision;
         const start = event.eventDate;
         const end = event.endDate;
-        if (precision === 'year' || precision === 'year_range') return end ? `${start} → ${end}` : start;
-        if (precision === 'month' || precision === 'month_range') {
+        if (precision === 'year_range') return end ? `${start} → ${end}` : start;
+        if (precision === 'month_year' || precision === 'month_range') {
             const formatMonth = (d: string) => { const [y, m] = d.split('-'); const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; return m ? `${months[parseInt(m) - 1]} ${y}` : y; };
             return end ? `${formatMonth(start)} → ${formatMonth(end)}` : formatMonth(start);
         }

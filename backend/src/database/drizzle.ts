@@ -1,13 +1,18 @@
 // database/drizzle.ts
 // Turso (libSQL) database connection with Drizzle ORM
 
+import 'dotenv/config'; // Load env vars immediately
 import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
-import * as schema from './schema.js';
+import * as schema from './schema';
 
-// Turso connection URL and auth token
-const DATABASE_URL = process.env.DATABASE_URL || 'file:./local.db';
-const DATABASE_AUTH_TOKEN = process.env.DATABASE_AUTH_TOKEN;
+// Turso connection from environment variables
+const DATABASE_URL = process.env.TURSO_DATABASE_URL;
+const DATABASE_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN;
+
+if (!DATABASE_URL) {
+  throw new Error('TURSO_DATABASE_URL environment variable is not set');
+}
 
 // Create libSQL client
 const client = createClient({

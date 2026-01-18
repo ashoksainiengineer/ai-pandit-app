@@ -60,13 +60,13 @@ interface SubmitRequest {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// POST: Submit new analysis request to queue
+// POST: Submit new analysis request to queue (Proxies to Backend)
 // ═════════════════════════════════════════════════════════════════════════════
 
 export async function POST(request: NextRequest) {
     try {
         // Authenticate
-        const { userId } = await auth();
+        const { userId, getToken } = await auth();
         if (!userId) {
             return NextResponse.json(
                 { success: false, error: 'Unauthorized' },
@@ -74,145 +74,55 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Parse request
-        const body: SubmitRequest = await request.json();
-        const { birthData, lifeEvents, physicalTraits, offsetConfig } = body;
-
-        // Validate input
-        if (!birthData) {
+        const token = await getToken();
+        if (!token) {
             return NextResponse.json(
-                { success: false, error: 'Birth data is required' },
-                { status: 400 }
+                { success: false, error: 'No authentication token' },
+                { status: 401 }
             );
         }
 
-        if (!lifeEvents || lifeEvents.length < 3) {
-            return NextResponse.json(
-                { success: false, error: 'At least 3 life events are required' },
-                { status: 400 }
-            );
-        }
+        const body = await request.json();
 
-        // Validate offset config
-        const offsetValidation = validateOffsetConfig(offsetConfig);
-        if (!offsetValidation.valid) {
-            return NextResponse.json(
-                { success: false, error: offsetValidation.error },
-                { status: 400 }
-            );
-        }
+        // Backend URL (Leapcell or Local)
+        const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
 
-        // Validate birth data fields
-        const requiredFields = ['fullName', 'dateOfBirth', 'tentativeTime', 'birthPlace', 'latitude', 'longitude', 'timezone'];
-        for (const field of requiredFields) {
-            if (!birthData[field as keyof BirthData]) {
-                return NextResponse.json(
-                    { success: false, error: `${field} is required` },
-                    { status: 400 }
-                );
-            }
-        }
+        logger.info('Proxying BTR request to backend', { backendUrl: BACKEND_URL, userId });
 
-        // Validate date
-        const birthDate = new Date(birthData.dateOfBirth);
-        if (isNaN(birthDate.getTime())) {
-            return NextResponse.json(
-                { success: false, error: 'Invalid date of birth' },
-                { status: 400 }
-            );
-        }
-
-        // Validate coordinates
-        if (birthData.latitude < -90 || birthData.latitude > 90) {
-            return NextResponse.json(
-                { success: false, error: 'Invalid latitude' },
-                { status: 400 }
-            );
-        }
-        if (birthData.longitude < -180 || birthData.longitude > 180) {
-            return NextResponse.json(
-                { success: false, error: 'Invalid longitude' },
-                { status: 400 }
-            );
-        }
-
-        // Create session in database with ENCRYPTED sensitive data
-        const sessionId = crypto.randomUUID();
-        const now = new Date().toISOString();
-
-        // Ensure user exists in database (auto-sync from Clerk)
-        const internalUserId = await ensureUserExists(userId);
-
-        // Encrypt sensitive fields - only user can decrypt with their userId
-        const encryptedFullName = encryptData(birthData.fullName, userId);
-        const encryptedLifeEvents = encryptData(JSON.stringify(lifeEvents), userId);
-        const encryptedPhysicalTraits = physicalTraits
-            ? encryptData(JSON.stringify(physicalTraits), userId)
-            : null;
-
-        await db.insert(sessions).values({
-            id: sessionId,
-            userId: internalUserId,
-            clerkId: userId, // Store Clerk ID for decryption
-            fullName: encryptedFullName, // 🔐 Encrypted
-            dateOfBirth: birthData.dateOfBirth, // Not encrypted (needed for calculations)
-            tentativeTime: birthData.tentativeTime, // Not encrypted (needed for calculations)
-            birthPlace: birthData.birthPlace, // Not encrypted (needed for display)
-            latitude: birthData.latitude,
-            longitude: birthData.longitude,
-            timezone: birthData.timezone.toString(),
-            gender: birthData.gender || 'other',
-            physicalTraits: encryptedPhysicalTraits, // 🔐 Encrypted
-            lifeEvents: encryptedLifeEvents, // 🔐 Encrypted
-            offsetConfig: JSON.stringify(offsetConfig),
-            status: 'pending',
-            createdAt: now,
-            updatedAt: now,
-        });
-
-        logger.info('Session created', { sessionId, userId });
-
-        // Add to queue
-        const queueResult = await addToQueue(sessionId);
-
-        if (!queueResult.success) {
-            // Queue full - update session status
-            await db.update(sessions)
-                .set({ status: 'failed', errorMessage: queueResult.error })
-                .where(eq(sessions.id, sessionId));
-
-            return NextResponse.json(
-                { success: false, error: queueResult.error },
-                { status: 503 }
-            );
-        }
-
-        // Start queue processor (if not running)
-        startQueueProcessor();
-
-        return NextResponse.json({
-            success: true,
-            data: {
-                sessionId,
-                position: queueResult.position,
-                estimatedWaitSeconds: queueResult.estimatedWaitSeconds,
-                message: `Your request is in queue at position ${queueResult.position}`,
+        // Forward request to Backend
+        const backendResponse = await fetch(`${BACKEND_URL}/api/queue`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
             },
+            body: JSON.stringify(body),
         });
 
+        if (!backendResponse.ok) {
+            const errorText = await backendResponse.text();
+            let errorJson;
+            try {
+                errorJson = JSON.parse(errorText);
+            } catch (e) {
+                errorJson = { error: errorText };
+            }
+
+            logger.error('Backend submission failed', { status: backendResponse.status, error: errorJson });
+
+            return NextResponse.json(
+                { success: false, error: errorJson.error || 'Backend processing failed' },
+                { status: backendResponse.status }
+            );
+        }
+
+        const result = await backendResponse.json();
+        return NextResponse.json(result);
 
     } catch (error: any) {
-        logger.error('Queue submit error', error);
-        console.error('QUEUE API ERROR:', error); // Console log for debugging
-
-        // In development, return actual error message
-        const isDev = process.env.NODE_ENV === 'development';
-        const errorMessage = isDev && error?.message
-            ? `${error.message} (${error.constructor.name})`
-            : 'Failed to submit request';
-
+        logger.error('Queue proxy error', error);
         return NextResponse.json(
-            { success: false, error: errorMessage, stack: isDev ? error.stack : undefined },
+            { success: false, error: 'Failed to submit request to backend' },
             { status: 500 }
         );
     }

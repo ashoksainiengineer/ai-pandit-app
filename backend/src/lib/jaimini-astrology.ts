@@ -2,7 +2,7 @@
 // Jaimini Astrology System Methods
 // Includes: Chara Dasha, Chara Karakas, Jaimini Aspects
 
-import { EphemerisData } from './types.js';
+import { EphemerisData } from './types';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // JAIMINI SYSTEM CONSTANTS

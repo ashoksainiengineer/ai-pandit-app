@@ -33,6 +33,7 @@ export default function EditSessionPage() {
     const [birthData, setBirthData] = useState<BirthData | null>(null);
     const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>([]);
     const [physicalTraits, setPhysicalTraits] = useState<PhysicalTraits>(initialPhysicalTraits);
+    const [offsetConfig, setOffsetConfig] = useState<any>({ preset: '1hour', customMinutes: 60, description: '±1 hour' });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Load existing session data
@@ -52,6 +53,10 @@ export default function EditSessionPage() {
                 setLifeEvents(data.data.lifeEvents || []);
                 if (data.data.physicalTraits) {
                     setPhysicalTraits(data.data.physicalTraits);
+                }
+                // Load offset config if available, otherwise default
+                if (data.data.offsetConfig) {
+                    setOffsetConfig(data.data.offsetConfig);
                 }
                 setLoading(false);
             } catch (err) {
@@ -114,11 +119,7 @@ export default function EditSessionPage() {
                     birthData,
                     lifeEvents,
                     physicalTraits,
-                    offsetConfig: {
-                        preset: '1hour',
-                        description: 'Re-analysis',
-                        customMinutes: 60
-                    }
+                    offsetConfig // Use state instead of hardcoded
                 })
             });
 
@@ -240,6 +241,8 @@ export default function EditSessionPage() {
                         <Step1BirthDetails
                             data={birthData}
                             updateData={(updates) => setBirthData(prev => prev ? { ...prev, ...updates } : null)}
+                            offsetConfig={offsetConfig}
+                            updateOffset={setOffsetConfig}
                         />
                     )}
                     {step === 2 && (

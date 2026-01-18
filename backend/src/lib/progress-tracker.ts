@@ -1,10 +1,12 @@
 // lib/progress-tracker.ts
 // Real-time progress tracking for BTR analysis
 // Updates database with current step, message, and percentage
+// Also emits SSE events for real-time streaming
 
-import { db } from '../database/drizzle.js';
-import { sessions } from '../database/schema.js';
+import { db } from '../database/drizzle';
+import { sessions } from '../database/schema';
 import { eq } from 'drizzle-orm';
+import { emitProgress, emitComplete, emitError } from './session-events';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // PROGRESS STEPS DEFINITION
@@ -86,6 +88,16 @@ export class ProgressTracker {
         this.progress.liveMessage = message;
 
         await this.saveProgress();
+
+        // Emit SSE event for real-time streaming
+        emitProgress(
+            this.sessionId,
+            stepId,
+            stepIndex,
+            this.progress.totalSteps,
+            message || `Starting ${this.progress.steps[stepIndex].name}`,
+            undefined
+        );
     }
 
     /**
@@ -103,6 +115,16 @@ export class ProgressTracker {
         this.progress.lastUpdate = new Date().toISOString();
 
         await this.saveProgress();
+
+        // Emit SSE event for real-time streaming
+        emitProgress(
+            this.sessionId,
+            this.progress.steps[currentIndex]?.id || 'unknown',
+            currentIndex,
+            this.progress.totalSteps,
+            message,
+            details
+        );
     }
 
     /**
@@ -124,6 +146,16 @@ export class ProgressTracker {
         this.progress.lastUpdate = new Date().toISOString();
 
         await this.saveProgress();
+
+        // Emit SSE event for real-time streaming
+        emitProgress(
+            this.sessionId,
+            stepId,
+            stepIndex,
+            this.progress.totalSteps,
+            `Completed ${this.progress.steps[stepIndex].name}`,
+            details
+        );
     }
 
     /**
@@ -138,6 +170,9 @@ export class ProgressTracker {
         this.progress.lastUpdate = new Date().toISOString();
 
         await this.saveProgress();
+
+        // Emit SSE error event
+        emitError(this.sessionId, error, stepId);
     }
 
     /**
@@ -157,6 +192,8 @@ export class ProgressTracker {
         });
 
         await this.saveProgress();
+
+        // Emit SSE complete event (will be called with result data separately)
     }
 
     /**

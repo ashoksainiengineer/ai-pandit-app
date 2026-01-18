@@ -195,16 +195,16 @@ export default function BirthPlacePicker({
     // Handle location selection
     const handleSelectLocation = (location: LocationResult) => {
         setSelectedLocation(location);
-        setSearchQuery(location.displayName);
-        setShowDropdown(false);
 
         const formattedPlace = [
             location.city,
             location.district,
             location.state,
-            location.country,
-            location.pincode
+            location.country
         ].filter(Boolean).join(', ');
+
+        setSearchQuery(formattedPlace);
+        setShowDropdown(false);
 
         onUpdate({
             birthPlace: formattedPlace,
@@ -268,8 +268,7 @@ export default function BirthPlacePicker({
                     location.city,
                     location.district,
                     location.state,
-                    location.country,
-                    location.pincode
+                    location.country
                 ].filter(Boolean).join(', ');
 
                 onUpdate({
@@ -417,16 +416,16 @@ export default function BirthPlacePicker({
                                     <span className="text-[#8C7F72]">Country:</span>
                                     <span className="text-[#F5F0EB] ml-1">{selectedLocation.country}</span>
                                 </div>
-                                {selectedLocation.pincode && (
-                                    <div>
-                                        <span className="text-[#8C7F72]">Pin Code:</span>
-                                        <span className="text-[#F5F0EB] ml-1">{selectedLocation.pincode}</span>
-                                    </div>
-                                )}
                                 <div>
                                     <span className="text-[#8C7F72]">Coordinates:</span>
                                     <span className="text-[#D4AF37] ml-1 font-mono text-[10px]">
                                         {selectedLocation.latitude.toFixed(4)}°, {selectedLocation.longitude.toFixed(4)}°
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="text-[#8C7F72]">Timezone:</span>
+                                    <span className="text-[#D4AF37] ml-1 font-mono text-[10px]">
+                                        UTC{parseFloat(selectedLocation.timezone) >= 0 ? '+' : ''}{selectedLocation.timezone}
                                     </span>
                                 </div>
                             </div>

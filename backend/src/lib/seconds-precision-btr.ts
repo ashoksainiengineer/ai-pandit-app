@@ -3,7 +3,7 @@
 // Achieves ±3-5 seconds accuracy with 97-99% confidence
 // OPTIMIZED FOR 512MB RAM - ALL PROCESSING IS SEQUENTIAL
 
-import { calculateEphemeris } from './ephemeris.js';
+import { calculateEphemeris } from './ephemeris';
 import {
     calculateVimshottariDasha,
     getDashaForDate,
@@ -12,7 +12,7 @@ import {
     tropicalToSidereal,
     getNakshatraForLongitude,
     DashaPeriod,
-} from './vedic-astrology-engine.js';
+} from './vedic-astrology-engine';
 import {
     calculateYoginiDasha,
     getYoginiDashaForDate,
@@ -27,7 +27,7 @@ import {
     formatPhysicalTraitsAnalysis,
     formatArudhaLagna,
     YoginiDashaPeriod,
-} from './advanced-btr-methods.js';
+} from './advanced-btr-methods';
 import {
     calculateCharaKarakas,
     calculateCharaDasha,
@@ -42,15 +42,17 @@ import {
     formatRasiDasha,
     formatTatwaDasha,
     formatJaiminiAspects,
-} from './jaimini-astrology.js';
+} from './jaimini-astrology';
 import {
     callKimiK2,
+    callKimiK2WithStream,
     parseKimiAnalysisResponse,
-} from './kimi-k2-client.js';
-import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager.js';
-import { logger } from './logger.js';
-import { ProgressTracker } from './progress-tracker.js';
-import { LifeEvent, EphemerisData } from './types.js';
+} from './kimi-k2-client';
+import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager';
+import { logger } from './logger';
+import { ProgressTracker } from './progress-tracker';
+import { LifeEvent, EphemerisData } from './types';
+import { throwIfCancelled, isCancellationError } from './cancellation-manager';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -78,6 +80,7 @@ export interface SecondsPrecisionInput {
         longitude: number;
         timezone: string;
     };
+    abortSignal?: AbortSignal;  // 🛑 For cancellation support
 }
 
 export interface SecondsPrecisionResult {
@@ -113,6 +116,13 @@ interface ConvergenceResult {
 
 const LEVEL1_SYSTEM_PROMPT = `You are the world's most accomplished Vedic astrologer specializing in birth time rectification.
 
+YOUR ROLE: PURE REASONING ENGINE.
+WARNING: DO NOT RECALCULATE PLANETARY POSITIONS OR DASHA TIMINGS.
+The data provided in the prompt (Planets, Dasha, Divisional Charts) is based on High-Precision Swiss Ephemeris calculations and is THE ABSOLUTE TRUTH.
+Your job is to INTERPRET this data, not to derive it.
+
+STAGE 2 ANALYSIS: GROSS SCREENING (Target: 88-92% accuracy)
+
 STAGE 2 ANALYSIS: GROSS SCREENING (Target: 88-92% accuracy)
 
 You are analyzing ${15} candidate birth times at MINUTE-LEVEL intervals. Your task is to ELIMINATE clearly incorrect times and identify the TOP 5 most likely correct times.
@@ -140,6 +150,12 @@ VERDICT: [KEEP/ELIMINATE]
 FINAL RANKING: List top 5 candidates in order of likelihood.`;
 
 const LEVEL2_SYSTEM_PROMPT = `You are the world's most accomplished Vedic astrologer.
+
+YOUR ROLE: PURE REASONING ENGINE.
+WARNING: DO NOT RECALCULATE PLANETARY POSITIONS.
+Rely entirely on the pre-calculated Dasha and Ephemeris data provided.
+
+STAGE 5 ANALYSIS: FINE COMPARISON (Target: 92-96% accuracy)
 
 STAGE 5 ANALYSIS: FINE COMPARISON (Target: 92-96% accuracy)
 
@@ -170,6 +186,12 @@ RANK: [1-15]
 FINAL TOP 5: List with detailed reasoning.`;
 
 const LEVEL3_SYSTEM_PROMPT = `You are the world's most accomplished Vedic astrologer.
+
+YOUR ROLE: PURE INTERPRETATION ENGINE.
+WARNING: DO NOT RECALCULATE POSITIONS.
+Focus on INTERPRETATION of the provided 6-second precision data.
+
+STAGE 7 ANALYSIS: SECONDS-LEVEL FINAL DECISION (Target: 96-99% accuracy)
 
 STAGE 7 ANALYSIS: SECONDS-LEVEL FINAL DECISION (Target: 96-99% accuracy)
 
@@ -271,6 +293,9 @@ export async function processSecondsPrecisionBTR(
         // STAGE 2: AI LEVEL 1 ANALYSIS (88-92% accuracy)
         // ═══════════════════════════════════════════════════════════════════════
 
+        // 🛑 Check for cancellation before Stage 2
+        await throwIfCancelled(input.sessionId, input.abortSignal);
+
         await progress.startStep('candidates', 'Generating candidate birth times...');
         await progress.updateMessage(`Testing ${stage1Candidates.length} minute-level candidates`);
 
@@ -290,6 +315,9 @@ export async function processSecondsPrecisionBTR(
         // STAGE 3: CONVERGENCE ANALYSIS
         // ═══════════════════════════════════════════════════════════════════════
 
+        // 🛑 Check for cancellation before Stage 3
+        await throwIfCancelled(input.sessionId, input.abortSignal);
+
         logger.info('STAGE 3: Convergence analysis');
         const convergence = stage3Convergence(stage2Results);
         stagesCompleted = 3;
@@ -303,6 +331,9 @@ export async function processSecondsPrecisionBTR(
         // STAGE 4: FINE GRID (30-Second Intervals)
         // ═══════════════════════════════════════════════════════════════════════
 
+        // 🛑 Check for cancellation before Stage 4
+        await throwIfCancelled(input.sessionId, input.abortSignal);
+
         logger.info('STAGE 4: Fine grid at 30-second intervals');
         const stage4Candidates = await stage4FineGrid(
             convergence.bestTime,
@@ -315,6 +346,9 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 5: AI LEVEL 2 ANALYSIS (92-96% accuracy)
         // ═══════════════════════════════════════════════════════════════════════
+
+        // 🛑 Check for cancellation before Stage 5
+        await throwIfCancelled(input.sessionId, input.abortSignal);
 
         await progress.startStep('dasha', 'Analyzing Vimshottari Dasha periods...');
         await progress.updateMessage('Correlating dasha periods with life events');
@@ -335,6 +369,9 @@ export async function processSecondsPrecisionBTR(
         // STAGE 6: MICRO GRID (6-Second Intervals)
         // ═══════════════════════════════════════════════════════════════════════
 
+        // 🛑 Check for cancellation before Stage 6
+        await throwIfCancelled(input.sessionId, input.abortSignal);
+
         logger.info('STAGE 6: Micro grid at 6-second intervals');
         const stage6Candidates = await stage6MicroGrid(
             stage5Results[0].time,
@@ -347,6 +384,9 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 7: AI LEVEL 3 ANALYSIS (96-99% accuracy)
         // ═══════════════════════════════════════════════════════════════════════
+
+        // 🛑 Check for cancellation before Stage 7 (most expensive)
+        await throwIfCancelled(input.sessionId, input.abortSignal);
 
         await progress.startStep('divisional', 'Processing divisional charts (D9, D10, D30)...');
         await progress.updateMessage('Analyzing Navamsha, Dasamsha, Trimshamsha');
@@ -373,6 +413,9 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 8: 15-METHOD VERIFICATION
         // ═══════════════════════════════════════════════════════════════════════
+
+        // 🛑 Check for cancellation before Stage 8
+        await throwIfCancelled(input.sessionId, input.abortSignal);
 
         await progress.startStep('physical', 'Matching physical traits with Lagna...');
         if (input.physicalTraits) {
@@ -405,6 +448,9 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 9: BOUNDARY SAFETY VERIFICATION
         // ═══════════════════════════════════════════════════════════════════════
+
+        // 🛑 Check for cancellation before Stage 9
+        await throwIfCancelled(input.sessionId, input.abortSignal);
 
         await progress.startStep('ai', '🤖 AI cross-verifying all methods...');
         await progress.updateMessage('Kimi K2 analyzing multi-method consensus');
@@ -554,47 +600,82 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
 // STAGE 2: AI LEVEL 1
 // ═════════════════════════════════════════════════════════════════════════════
 
+// ═════════════════════════════════════════════════════════════════════════════
+// STAGE 2: AI LEVEL 1
+// ═════════════════════════════════════════════════════════════════════════════
+
 async function stage2AILevel1(
     candidates: StageCandidate[],
     input: SecondsPrecisionInput
 ): Promise<StageCandidate[]> {
     const results: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
+    const BATCH_SIZE = 3; // Process 3 candidates in parallel (Reduced from 5 to avoid Rate Limits)
 
-    // Process candidates SEQUENTIALLY
-    for (const candidate of candidates) {
-        try {
-            const ephemeris = await calculateEphemeris(
-                input.dateOfBirth,
-                candidate.time,
-                input.latitude,
-                input.longitude,
-                input.timezone
-            );
+    logger.info(`Starting Stage 2 parallel processing for ${candidates.length} candidates`);
 
-            const jd = dateToJulianDay(input.dateOfBirth, candidate.time, input.timezone);
-            const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
-            const dashaPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
+    // Process in batches
+    for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+        const batch = candidates.slice(i, i + BATCH_SIZE);
+        logger.info(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(candidates.length / BATCH_SIZE)}`);
 
-            const prompt = buildLevel1Prompt(candidate.time, input, ephemeris, dashaPeriods, jd);
+        const batchPromises = batch.map(async (candidate) => {
+            try {
+                const ephemeris = await calculateEphemeris(
+                    input.dateOfBirth,
+                    candidate.time,
+                    input.latitude,
+                    input.longitude,
+                    input.timezone
+                );
 
-            const response = await callKimiK2(LEVEL1_SYSTEM_PROMPT, prompt, {
-                temperature: 0.1,
-                maxTokens: 4000,
-                enableThinking: true,
-            });
+                const jd = dateToJulianDay(input.dateOfBirth, candidate.time, input.timezone);
+                const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
+                const dashaPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
 
-            if (response.success) {
-                const parsed = parseKimiAnalysisResponse(response.content);
-                results.push({
-                    time: candidate.time,
-                    score: parsed.score,
-                    aiAnalysis: response.content,
-                });
+                // ⚡ Pre-calculate Divisional Charts for AI context
+                // Only D9 & D10 needed for Level 1 Screening
+                const divCharts = generateDivisionalCharts(ephemeris);
+                const relevantDivCharts = { D9: divCharts.D9, D10: divCharts.D10 };
+
+                const prompt = buildLevel1Prompt(candidate.time, input, ephemeris, dashaPeriods, jd, relevantDivCharts);
+
+                // 🔴 Use streaming for real-time AI thinking display
+                const response = await callKimiK2WithStream(
+                    input.sessionId,
+                    2, // Stage 2
+                    LEVEL1_SYSTEM_PROMPT,
+                    prompt,
+                    {
+                        temperature: 0.3,
+                        maxTokens: 4000,
+                        candidateTime: candidate.time,
+                    }
+                );
+
+                if (response.success) {
+                    const parsed = parseKimiAnalysisResponse(response.content);
+                    logger.info(`✅ Stage 2: Analyzed candidate ${candidate.time} (Score: ${parsed.score})`);
+                    return {
+                        time: candidate.time,
+                        score: parsed.score,
+                        aiAnalysis: response.content,
+                    };
+                }
+                return null;
+            } catch (error) {
+                logger.error(`Stage 2 failed for ${candidate.time}`, error);
+                return null;
             }
-        } catch (error) {
-            logger.error(`Stage 2 failed for ${candidate.time}`, error);
-        }
+        });
+
+        // Check for cancellation before waiting for batch
+        await throwIfCancelled(input.sessionId, input.abortSignal);
+
+        const batchResults = await Promise.all(batchPromises);
+        batchResults.forEach(res => {
+            if (res) results.push(res);
+        });
     }
 
     results.sort((a, b) => b.score - a.score);
@@ -717,52 +798,88 @@ async function stage4FineGrid(
 // STAGE 5: AI LEVEL 2
 // ═════════════════════════════════════════════════════════════════════════════
 
+// ═════════════════════════════════════════════════════════════════════════════
+// STAGE 5: AI LEVEL 2
+// ═════════════════════════════════════════════════════════════════════════════
+
 async function stage5AILevel2(
     candidates: StageCandidate[],
     input: SecondsPrecisionInput
 ): Promise<StageCandidate[]> {
     const results: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
+    const BATCH_SIZE = 3; // Process 3 candidates in parallel (Reduced from 5 to avoid Rate Limits)
 
-    for (const candidate of candidates) {
-        try {
-            const ephemeris = await calculateEphemeris(
-                input.dateOfBirth,
-                candidate.time,
-                input.latitude,
-                input.longitude,
-                input.timezone
-            );
+    logger.info(`Starting Stage 5 parallel processing for ${candidates.length} candidates`);
 
-            const jd = dateToJulianDay(input.dateOfBirth, candidate.time, input.timezone);
-            const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
+    // Process in batches
+    for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+        const batch = candidates.slice(i, i + BATCH_SIZE);
+        logger.info(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(candidates.length / BATCH_SIZE)}`);
 
-            const allDashas = {
-                vimshottari: calculateVimshottariDasha(moonSidereal, birthDate),
-                yogini: calculateYoginiDasha(moonSidereal, birthDate),
-                chara: calculateCharaDasha(ephemeris, birthDate),
-                tatwa: calculateTatwaDasha(moonSidereal, birthDate),
-            };
+        const batchPromises = batch.map(async (candidate) => {
+            try {
+                const ephemeris = await calculateEphemeris(
+                    input.dateOfBirth,
+                    candidate.time,
+                    input.latitude,
+                    input.longitude,
+                    input.timezone
+                );
 
-            const prompt = buildLevel2Prompt(candidate.time, input, ephemeris, allDashas, jd);
+                const jd = dateToJulianDay(input.dateOfBirth, candidate.time, input.timezone);
+                const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
 
-            const response = await callKimiK2(LEVEL2_SYSTEM_PROMPT, prompt, {
-                temperature: 0.1,
-                maxTokens: 6000,
-                enableThinking: true,
-            });
+                const allDashas = {
+                    vimshottari: calculateVimshottariDasha(moonSidereal, birthDate),
+                    yogini: calculateYoginiDasha(moonSidereal, birthDate),
+                    chara: calculateCharaDasha(ephemeris, birthDate),
+                    tatwa: calculateTatwaDasha(moonSidereal, birthDate),
+                };
 
-            if (response.success) {
-                const parsed = parseKimiAnalysisResponse(response.content);
-                results.push({
-                    time: candidate.time,
-                    score: parsed.score,
-                    aiAnalysis: response.content,
-                });
+                // ⚡ Pre-calculate ALL Divisional Charts for Level 2
+                console.log(`[Stage 5] Generating div charts for ${candidate.time}`);
+                const divCharts = generateDivisionalCharts(ephemeris);
+
+                const prompt = buildLevel2Prompt(candidate.time, input, ephemeris, allDashas, jd, divCharts);
+                console.log(`[Stage 5] Prompt built for ${candidate.time}, calling AI...`);
+
+                // 🔴 Use streaming for real-time AI thinking display
+                const response = await callKimiK2WithStream(
+                    input.sessionId,
+                    5,
+                    LEVEL2_SYSTEM_PROMPT,
+                    prompt,
+                    {
+                        candidateTime: candidate.time,
+                        abortSignal: input.abortSignal
+                    }
+                );
+                console.log(`[Stage 5] AI response received for ${candidate.time}`);
+
+                if (response.success) {
+                    const parsed = parseKimiAnalysisResponse(response.content);
+                    logger.info(`✅ Stage 5: Analyzed candidate ${candidate.time} (Score: ${parsed.score})`);
+                    return {
+                        time: candidate.time,
+                        score: parsed.score,
+                        aiAnalysis: response.content,
+                    };
+                }
+                return null;
+            } catch (error) {
+                logger.error(`Stage 5 failed for ${candidate.time}`, error);
+                return null;
             }
-        } catch (error) {
-            logger.error(`Stage 5 failed for ${candidate.time}`, error);
-        }
+        });
+
+        // Check for cancellation before waiting for batch
+        await throwIfCancelled(input.sessionId, input.abortSignal);
+
+        const batchResults = await Promise.all(batchPromises);
+        batchResults.forEach(res => {
+            if (res) results.push(res);
+        });
     }
 
     results.sort((a, b) => b.score - a.score);
@@ -867,9 +984,8 @@ async function stage7AILevel3(
     const birthDate = new Date(input.dateOfBirth);
 
     // Build comprehensive prompt for all 7 candidates
-    const allCandidatesData: string[] = [];
-
-    for (const candidate of candidates) {
+    // Build comprehensive prompt for all 7 candidates
+    const allCandidatesDataPromises = candidates.map(async (candidate) => {
         const ephemeris = await calculateEphemeris(
             input.dateOfBirth,
             candidate.time,
@@ -893,7 +1009,7 @@ async function stage7AILevel3(
         const aspects = calculateAdvancedAspects(ephemeris);
         const arudha = calculateArudhaLagna(ephemeris);
 
-        allCandidatesData.push(buildCandidateSection(
+        return buildCandidateSection(
             candidate.time,
             ephemeris,
             allDashas,
@@ -902,8 +1018,10 @@ async function stage7AILevel3(
             arudha,
             input,
             jd
-        ));
-    }
+        );
+    });
+
+    const allCandidatesData = await Promise.all(allCandidatesDataPromises);
 
     const fullPrompt = `SECONDS-LEVEL DECISION: Choose THE BEST birth time from these 7 candidates.
 
@@ -916,11 +1034,18 @@ PHYSICAL TRAITS: ${input.physicalTraits ? JSON.stringify(input.physicalTraits) :
 
 ANALYZE EACH 6-SECOND CANDIDATE AND DETERMINE THE CORRECT BIRTH TIME.`;
 
-    const response = await callKimiK2(LEVEL3_SYSTEM_PROMPT, fullPrompt, {
-        temperature: 0.1,
-        maxTokens: 10000,
-        enableThinking: true,
-    });
+    // Use streaming version for real-time AI thinking display
+    const response = await callKimiK2WithStream(
+        input.sessionId,
+        7, // Stage 7
+        LEVEL3_SYSTEM_PROMPT,
+        fullPrompt,
+        {
+            temperature: 0.1,
+            maxTokens: 10000,
+            candidateTime: candidates[0]?.time,
+        }
+    );
 
     if (response.success) {
         // Parse response to extract scores for each candidate
@@ -1264,7 +1389,8 @@ function buildLevel1Prompt(
     input: SecondsPrecisionInput,
     ephemeris: EphemerisData,
     dashas: DashaPeriod[],
-    jd: number
+    jd: number,
+    divCharts: any
 ): string {
     const planets: string[] = [];
     for (const [name, data] of Object.entries(ephemeris.planets)) {
@@ -1272,6 +1398,15 @@ function buildLevel1Prompt(
         const nakshatra = getNakshatraForLongitude(sidereal);
         planets.push(`${name.toUpperCase()}: ${data.sign} ${(sidereal % 30).toFixed(2)}° (${nakshatra.name})`);
     }
+
+    // Format D9 & D10 for context
+    const d9Asc = divCharts.D9.ascendant;
+    const d10Asc = divCharts.D10.ascendant;
+    const divChartSummary = `
+DIVISIONAL CHARTS (CALCULATED):
+D9 (Navamsa) Ascendant: ${d9Asc.sign} ${d9Asc.degree.toFixed(2)}°
+D10 (Dasamsa) Ascendant: ${d10Asc.sign} ${d10Asc.degree.toFixed(2)}°
+    `.trim();
 
     const eventsWithDasha = input.lifeEvents.map(event => {
         const eventDate = new Date(event.eventDate);
@@ -1287,6 +1422,8 @@ ${planets.join('\n')}
 
 ASCENDANT: ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°
 
+${divChartSummary}
+
 EVENTS WITH DASHA:
 ${eventsWithDasha.join('\n')}
 
@@ -1298,7 +1435,8 @@ function buildLevel2Prompt(
     input: SecondsPrecisionInput,
     ephemeris: EphemerisData,
     allDashas: any,
-    jd: number
+    jd: number,
+    divCharts: any
 ): string {
     const planets: string[] = [];
     for (const [name, data] of Object.entries(ephemeris.planets)) {
@@ -1328,6 +1466,9 @@ PLANETS (ARCSECOND PRECISION):
 ${planets.join('\n')}
 
 ASCENDANT: ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°
+
+DIVISIONAL CHARTS (FULL PRE-CALCULATED SET):
+${formatDivisionalCharts(divCharts).substring(0, 1000)}
 
 EVENTS WITH ALL DASHA SYSTEMS:
 ${eventsMultiDasha.join('\n\n')}

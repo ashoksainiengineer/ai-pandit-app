@@ -82,6 +82,8 @@ app.use((req, res) => {
     res.status(404).json({ error: 'Not Found', path: req.path });
 });
 
+import { startQueueProcessor } from './lib/queue-manager.js';
+
 // =============================================================================
 // Start Server
 // =============================================================================
@@ -89,6 +91,10 @@ app.listen(PORT, () => {
     console.log(`🚀 AI Pandit BTR Engine running on port ${PORT}`);
     console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+
+    // Start processing queue on startup
+    console.log('🔄 Starting queue processor...');
+    startQueueProcessor();
 });
 
 export default app;

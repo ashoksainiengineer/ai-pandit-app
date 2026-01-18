@@ -2,8 +2,8 @@
 // Boundary Safety Verification for Seconds-Level BTR
 // Checks nakshatra, lagna, dasha, and house boundaries
 
-import { EphemerisData } from './types.js';
-import { tropicalToSidereal, getNakshatraForLongitude } from './vedic-astrology-engine.js';
+import { EphemerisData } from './types';
+import { tropicalToSidereal, getNakshatraForLongitude } from './vedic-astrology-engine';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES

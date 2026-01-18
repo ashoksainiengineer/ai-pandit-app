@@ -57,7 +57,7 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
         cols = 3
     }: {
         label: string;
-        options: typeof HEIGHT_OPTIONS;
+        options: { value: string; label: string; emoji: string; signs: string; cm?: number }[];
         value: string;
         onChange: (val: string) => void;
         cols?: number;
@@ -73,8 +73,8 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
                         whileHover={{ scale: 1.02, y: -2 }}
                         whileTap={{ scale: 0.98 }}
                         className={`p-5 rounded-xl text-center transition-all border-2 ${value === opt.value
-                                ? 'bg-[#E8A849]/15 border-[#E8A849]'
-                                : 'bg-[#2E2724] border-transparent hover:border-[#E8A849]/30'
+                            ? 'bg-[#E8A849]/15 border-[#E8A849]'
+                            : 'bg-[#2E2724] border-transparent hover:border-[#E8A849]/30'
                             }`}
                     >
                         <div className="text-4xl mb-2">{opt.emoji}</div>

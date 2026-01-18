@@ -4,6 +4,6 @@
 # 
 # Or for Docker: they will be downloaded during build
 
-*.se1
+# # *.se1
 *.cat
 !.gitkeep

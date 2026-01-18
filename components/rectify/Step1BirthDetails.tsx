@@ -206,8 +206,8 @@ export default function Step1BirthDetails({ data, updateData, offsetConfig, upda
                                     type="button"
                                     onClick={() => handleTimeChange('period', p)}
                                     className={`h-[52px] px-5 font-medium transition-all ${timeParts.period === p
-                                            ? 'bg-[#E8A849] text-[#1A1614]'
-                                            : 'text-[#8C7F72] hover:text-[#F5F0EB]'
+                                        ? 'bg-[#E8A849] text-[#1A1614]'
+                                        : 'text-[#8C7F72] hover:text-[#F5F0EB]'
                                         }`}
                                 >
                                     {p}
@@ -215,7 +215,15 @@ export default function Step1BirthDetails({ data, updateData, offsetConfig, upda
                             ))}
                         </div>
                     </div>
+                    {data.timezone !== undefined && (
+                        <p className="text-xs text-[#6B9AC4] mt-2 flex items-center gap-2">
+                            <span>🌍 Timezone:</span>
+                            <span className="font-mono">UTC{data.timezone >= 0 ? '+' : ''}{data.timezone}</span>
+                            <span className="text-[#8C7F72]">(based on Birth Place)</span>
+                        </p>
+                    )}
                 </div>
+
 
                 {/* Divider */}
                 <div className="border-t border-[#C4B8AD]/10" />
@@ -234,8 +242,8 @@ export default function Step1BirthDetails({ data, updateData, offsetConfig, upda
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 className={`py-3 px-2 rounded-lg text-sm font-medium transition-all border-2 ${selectedOffset === preset.value
-                                        ? 'bg-[#6B9AC4]/20 border-[#6B9AC4] text-[#6B9AC4]'
-                                        : 'bg-[#2E2724] border-transparent text-[#C4B8AD] hover:border-[#6B9AC4]/30'
+                                    ? 'bg-[#6B9AC4]/20 border-[#6B9AC4] text-[#6B9AC4]'
+                                    : 'bg-[#2E2724] border-transparent text-[#C4B8AD] hover:border-[#6B9AC4]/30'
                                     }`}
                             >
                                 {preset.label}
@@ -306,8 +314,8 @@ export default function Step1BirthDetails({ data, updateData, offsetConfig, upda
                                 whileHover={{ scale: 1.02 }}
                                 whileTap={{ scale: 0.98 }}
                                 className={`p-5 rounded-xl text-center transition-all border-2 ${data.gender === g.value
-                                        ? 'bg-[#E8A849]/20 border-[#E8A849]'
-                                        : 'bg-[#2E2724] border-transparent hover:border-[#E8A849]/30'
+                                    ? 'bg-[#E8A849]/20 border-[#E8A849]'
+                                    : 'bg-[#2E2724] border-transparent hover:border-[#E8A849]/30'
                                     }`}
                             >
                                 <span className="text-3xl">{g.icon}</span>
@@ -328,6 +336,6 @@ export default function Step1BirthDetails({ data, updateData, offsetConfig, upda
                 <span>🔒</span>
                 <span>Your data is end-to-end encrypted</span>
             </motion.div>
-        </motion.div>
+        </motion.div >
     );
 }

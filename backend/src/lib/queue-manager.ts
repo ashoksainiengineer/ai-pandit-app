@@ -2,11 +2,17 @@
 // Memory-efficient queue system for 512MB RAM backend
 // Design: Process one request at a time, queue others in database
 
-import { db } from '../database/drizzle.js';
-import { sessions } from '../database/schema.js';
+import { db } from '../database/drizzle';
+import { sessions } from '../database/schema';
 import { eq, and, or, desc, asc } from 'drizzle-orm';
-import { logger } from './logger.js';
-import { decryptData } from './crypto.js';
+import { logger } from './logger';
+import { decryptData } from './crypto';
+import {
+  createAbortController,
+  abortSession as abortSessionController,
+  cleanupController,
+  isCancellationError
+} from './cancellation-manager';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // QUEUE CONFIGURATION
@@ -267,12 +273,48 @@ export async function markAsFailed(sessionId: string, error: string): Promise<vo
   logger.error('Session marked failed', { sessionId, error });
 }
 
+/**
+ * Cancel a session
+ */
+export async function cancelSession(sessionId: string): Promise<boolean> {
+  try {
+    const session = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+    if (!session.length) return false;
+
+    // Only cancel if queued or processing
+    if (session[0].status !== 'queued' && session[0].status !== 'processing') {
+      return false;
+    }
+
+    // 🛑 ABORT the running process (this will cancel fetch requests!)
+    abortSessionController(sessionId);
+
+    await db.update(sessions)
+      .set({
+        status: 'failed',
+        errorMessage: 'Cancelled by user',
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(sessions.id, sessionId));
+
+    if (currentProcessingId === sessionId) {
+      currentProcessingId = null;
+    }
+
+    logger.info('Session cancelled by user', { sessionId });
+    return true;
+  } catch (error) {
+    logger.error('Failed to cancel session', error);
+    return false;
+  }
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // QUEUE PROCESSOR
 // ═════════════════════════════════════════════════════════════════════════════
 
 // Import seconds-precision analysis function for ultimate accuracy
-import { processSecondsPrecisionBTR } from './seconds-precision-btr.js';
+import { processSecondsPrecisionBTR } from './seconds-precision-btr';
 
 /**
  * Start the queue processor
@@ -329,12 +371,15 @@ async function processQueue(): Promise<void> {
 
       const s = session[0];
 
+      // 🛑 Create AbortController for this session
+      const abortController = createAbortController(nextId);
+
       // Process the analysis
       try {
-        // 🔐 Decrypt sensitive data using userId
-        const decryptedLifeEvents = JSON.parse(decryptData(s.lifeEvents, s.userId));
+        // 🔐 Decrypt sensitive data using clerkId (encryption key)
+        const decryptedLifeEvents = JSON.parse(decryptData(s.lifeEvents, s.clerkId));
         const decryptedPhysicalTraits = s.physicalTraits
-          ? JSON.parse(decryptData(s.physicalTraits, s.userId))
+          ? JSON.parse(decryptData(s.physicalTraits, s.clerkId))
           : undefined;
 
         const result = await processSecondsPrecisionBTR({
@@ -347,12 +392,22 @@ async function processQueue(): Promise<void> {
           lifeEvents: decryptedLifeEvents,
           offsetConfig: s.offsetConfig ? JSON.parse(s.offsetConfig) : { preset: '1hour' },
           physicalTraits: decryptedPhysicalTraits,
+          abortSignal: abortController.signal, // 🛑 Pass abort signal
         });
 
         await markAsComplete(nextId, result);
+        cleanupController(nextId); // Cleanup on success
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-        await markAsFailed(nextId, errorMsg);
+        // Check if this was a cancellation
+        if (isCancellationError(error)) {
+          logger.info('Session processing cancelled', { sessionId: nextId });
+          cleanupController(nextId);
+          // Status already set to 'failed' by cancelSession, no need to update
+        } else {
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          await markAsFailed(nextId, errorMsg);
+          cleanupController(nextId);
+        }
       }
 
     } catch (error) {
