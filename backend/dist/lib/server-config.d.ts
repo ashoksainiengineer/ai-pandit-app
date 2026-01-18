@@ -1,7 +1,7 @@
 export declare const serverConfig: {
     kimi: {
-        apiKey: string;
         baseUrl: string;
+        apiKey: string;
         model: string;
         maxTokens: number;
         temperature: number;

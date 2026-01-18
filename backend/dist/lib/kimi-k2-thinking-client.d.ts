@@ -1,5 +1,5 @@
-import { CandidateAnalysis } from './types.js';
-import { LifeEvent } from './types.js';
+import { CandidateAnalysis } from './types';
+import { LifeEvent } from './types';
 export interface KimiAnalysisResult {
     time: string;
     offsetMinutes: number;

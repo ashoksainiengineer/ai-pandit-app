@@ -76,13 +76,29 @@ app.use(error_handler_js_1.errorHandler);
 app.use((req, res) => {
     res.status(404).json({ error: 'Not Found', path: req.path });
 });
+const queue_manager_js_1 = require("./lib/queue-manager.js");
+const ephemeris_js_1 = require("./lib/ephemeris.js");
 // =============================================================================
 // Start Server
 // =============================================================================
-app.listen(PORT, () => {
-    console.log(`🚀 AI Pandit BTR Engine running on port ${PORT}`);
-    console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
-    console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+async function bootstrap() {
+    try {
+        console.log('⏳ Initializing Swiss Ephemeris engine...');
+        await (0, ephemeris_js_1.initSwissEph)();
+        app.listen(PORT, () => {
+            console.log(`🚀 AI Pandit BTR Engine running on port ${PORT}`);
+            console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
+            console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+            // Start processing queue on startup
+            console.log('🔄 Starting queue processor...');
+            (0, queue_manager_js_1.startQueueProcessor)();
+        });
+    }
+    catch (err) {
+        console.error('❌ Failed to start server:', err);
+        process.exit(1);
+    }
+}
+bootstrap();
 exports.default = app;
 //# sourceMappingURL=server.js.map

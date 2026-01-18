@@ -6,9 +6,9 @@ exports.kimiClient = exports.serverConfig = void 0;
 exports.serverConfig = {
     // AI Configuration
     kimi: {
-        apiKey: process.env.KIMI_API_KEY || '',
-        baseUrl: process.env.KIMI_BASE_URL || 'https://api.moonshot.cn/v1',
-        model: process.env.KIMI_MODEL || 'moonshot-v1-32k',
+        baseUrl: process.env.ANTHROPIC_BASE_URL || process.env.KIMI_BASE_URL || 'https://api.moonshot.cn/v1',
+        apiKey: process.env.ANTHROPIC_API_KEY || process.env.KIMI_API_KEY || '',
+        model: process.env.MOONSHOT_MODEL || process.env.KIMI_MODEL || 'moonshot-v1-auto',
         maxTokens: parseInt(process.env.KIMI_MAX_TOKENS || '4000'),
         temperature: parseFloat(process.env.KIMI_TEMPERATURE || '0.3'),
         thinkingBudget: parseInt(process.env.KIMI_THINKING_BUDGET || '8000'),

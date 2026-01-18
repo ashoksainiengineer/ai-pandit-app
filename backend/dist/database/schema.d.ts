@@ -161,6 +161,25 @@ export declare const sessions: import("drizzle-orm/sqlite-core").SQLiteTableWith
         }, {}, {
             length: number | undefined;
         }>;
+        clerkId: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "clerkId";
+            tableName: "sessions";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: true;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
         fullName: import("drizzle-orm/sqlite-core").SQLiteColumn<{
             name: "fullName";
             tableName: "sessions";

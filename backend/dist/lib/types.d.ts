@@ -20,7 +20,7 @@ export interface LifeEvent {
     id: string;
     category: EventCategory;
     eventType: string;
-    datePrecision: 'exact' | 'month' | 'year' | 'date_range' | 'month_range' | 'year_range';
+    datePrecision: 'exact_date_time' | 'exact_date' | 'month_year' | 'month_range' | 'year_range';
     eventDate: string;
     endDate?: string;
     eventTime?: string;

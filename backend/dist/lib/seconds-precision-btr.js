@@ -5,18 +5,26 @@
 // OPTIMIZED FOR 512MB RAM - ALL PROCESSING IS SEQUENTIAL
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.processSecondsPrecisionBTR = processSecondsPrecisionBTR;
-const ephemeris_js_1 = require("./ephemeris.js");
-const vedic_astrology_engine_js_1 = require("./vedic-astrology-engine.js");
-const advanced_btr_methods_js_1 = require("./advanced-btr-methods.js");
-const jaimini_astrology_js_1 = require("./jaimini-astrology.js");
-const kimi_k2_client_js_1 = require("./kimi-k2-client.js");
-const time_offset_manager_js_1 = require("./time-offset-manager.js");
-const logger_js_1 = require("./logger.js");
-const progress_tracker_js_1 = require("./progress-tracker.js");
+const ephemeris_1 = require("./ephemeris");
+const vedic_astrology_engine_1 = require("./vedic-astrology-engine");
+const advanced_btr_methods_1 = require("./advanced-btr-methods");
+const jaimini_astrology_1 = require("./jaimini-astrology");
+const kimi_k2_client_1 = require("./kimi-k2-client");
+const time_offset_manager_1 = require("./time-offset-manager");
+const logger_1 = require("./logger");
+const progress_tracker_1 = require("./progress-tracker");
+const cancellation_manager_1 = require("./cancellation-manager");
 // ═════════════════════════════════════════════════════════════════════════════
 // SYSTEM PROMPTS FOR MULTI-LEVEL AI ANALYSIS
 // ═════════════════════════════════════════════════════════════════════════════
 const LEVEL1_SYSTEM_PROMPT = `You are the world's most accomplished Vedic astrologer specializing in birth time rectification.
+
+YOUR ROLE: PURE REASONING ENGINE.
+WARNING: DO NOT RECALCULATE PLANETARY POSITIONS OR DASHA TIMINGS.
+The data provided in the prompt (Planets, Dasha, Divisional Charts) is based on High-Precision Swiss Ephemeris calculations and is THE ABSOLUTE TRUTH.
+Your job is to INTERPRET this data, not to derive it.
+
+STAGE 2 ANALYSIS: GROSS SCREENING (Target: 88-92% accuracy)
 
 STAGE 2 ANALYSIS: GROSS SCREENING (Target: 88-92% accuracy)
 
@@ -44,6 +52,12 @@ VERDICT: [KEEP/ELIMINATE]
 
 FINAL RANKING: List top 5 candidates in order of likelihood.`;
 const LEVEL2_SYSTEM_PROMPT = `You are the world's most accomplished Vedic astrologer.
+
+YOUR ROLE: PURE REASONING ENGINE.
+WARNING: DO NOT RECALCULATE PLANETARY POSITIONS.
+Rely entirely on the pre-calculated Dasha and Ephemeris data provided.
+
+STAGE 5 ANALYSIS: FINE COMPARISON (Target: 92-96% accuracy)
 
 STAGE 5 ANALYSIS: FINE COMPARISON (Target: 92-96% accuracy)
 
@@ -73,6 +87,12 @@ RANK: [1-15]
 
 FINAL TOP 5: List with detailed reasoning.`;
 const LEVEL3_SYSTEM_PROMPT = `You are the world's most accomplished Vedic astrologer.
+
+YOUR ROLE: PURE INTERPRETATION ENGINE.
+WARNING: DO NOT RECALCULATE POSITIONS.
+Focus on INTERPRETATION of the provided 6-second precision data.
+
+STAGE 7 ANALYSIS: SECONDS-LEVEL FINAL DECISION (Target: 96-99% accuracy)
 
 STAGE 7 ANALYSIS: SECONDS-LEVEL FINAL DECISION (Target: 96-99% accuracy)
 
@@ -127,11 +147,11 @@ async function processSecondsPrecisionBTR(input) {
     let stagesCompleted = 0;
     const boundaryWarnings = [];
     // Initialize progress tracker for real-time updates
-    const progress = new progress_tracker_js_1.ProgressTracker(input.sessionId);
+    const progress = new progress_tracker_1.ProgressTracker(input.sessionId);
     try {
         // Start initialization
         await progress.startStep('init', 'Initializing birth time rectification analysis...');
-        logger_js_1.logger.info('Starting SECONDS-LEVEL PRECISION BTR analysis', {
+        logger_1.logger.info('Starting SECONDS-LEVEL PRECISION BTR analysis', {
             sessionId: input.sessionId,
             dateOfBirth: input.dateOfBirth,
             tentativeTime: input.tentativeTime,
@@ -144,7 +164,7 @@ async function processSecondsPrecisionBTR(input) {
         // ═══════════════════════════════════════════════════════════════════════
         await progress.startStep('ephemeris', 'Calculating planetary positions using Swiss Ephemeris...');
         await progress.updateMessage('Computing Sun, Moon, and planet longitudes');
-        logger_js_1.logger.info('STAGE 1: Generating coarse grid candidates');
+        logger_1.logger.info('STAGE 1: Generating coarse grid candidates');
         const stage1Candidates = await stage1CoarseGrid(input);
         stagesCompleted = 1;
         methodsUsed.push('Vimshottari Dasha', 'Quick Score');
@@ -154,59 +174,71 @@ async function processSecondsPrecisionBTR(input) {
         ]);
         await progress.startStep('houses', 'Determining house cusps and Lagna...');
         await progress.completeStep('houses', ['Bhava cusps calculated', 'Lagna position fixed']);
-        logger_js_1.logger.info('Stage 1 complete', { candidateCount: stage1Candidates.length });
+        logger_1.logger.info('Stage 1 complete', { candidateCount: stage1Candidates.length });
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 2: AI LEVEL 1 ANALYSIS (88-92% accuracy)
         // ═══════════════════════════════════════════════════════════════════════
+        // 🛑 Check for cancellation before Stage 2
+        await (0, cancellation_manager_1.throwIfCancelled)(input.sessionId, input.abortSignal);
         await progress.startStep('candidates', 'Generating candidate birth times...');
         await progress.updateMessage(`Testing ${stage1Candidates.length} minute-level candidates`);
-        logger_js_1.logger.info('STAGE 2: AI Level 1 analysis (gross screening)');
+        logger_1.logger.info('STAGE 2: AI Level 1 analysis (gross screening)');
         const stage2Results = await stage2AILevel1(stage1Candidates.slice(0, 15), input);
         stagesCompleted = 2;
         methodsUsed.push('AI Level 1 (32K thinking)');
         await progress.completeStep('candidates', [`Top 15 candidates selected`, `Best initial score: ${stage2Results[0]?.score?.toFixed(1)}`]);
-        logger_js_1.logger.info('Stage 2 complete', { topScore: stage2Results[0]?.score });
+        logger_1.logger.info('Stage 2 complete', { topScore: stage2Results[0]?.score });
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 3: CONVERGENCE ANALYSIS
         // ═══════════════════════════════════════════════════════════════════════
-        logger_js_1.logger.info('STAGE 3: Convergence analysis');
+        // 🛑 Check for cancellation before Stage 3
+        await (0, cancellation_manager_1.throwIfCancelled)(input.sessionId, input.abortSignal);
+        logger_1.logger.info('STAGE 3: Convergence analysis');
         const convergence = stage3Convergence(stage2Results);
         stagesCompleted = 3;
-        logger_js_1.logger.info('Stage 3 complete', {
+        logger_1.logger.info('Stage 3 complete', {
             bestTime: convergence.bestTime,
             window: convergence.convergenceWindow,
         });
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 4: FINE GRID (30-Second Intervals)
         // ═══════════════════════════════════════════════════════════════════════
-        logger_js_1.logger.info('STAGE 4: Fine grid at 30-second intervals');
+        // 🛑 Check for cancellation before Stage 4
+        await (0, cancellation_manager_1.throwIfCancelled)(input.sessionId, input.abortSignal);
+        logger_1.logger.info('STAGE 4: Fine grid at 30-second intervals');
         const stage4Candidates = await stage4FineGrid(convergence.bestTime, input);
         stagesCompleted = 4;
-        logger_js_1.logger.info('Stage 4 complete', { candidateCount: stage4Candidates.length });
+        logger_1.logger.info('Stage 4 complete', { candidateCount: stage4Candidates.length });
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 5: AI LEVEL 2 ANALYSIS (92-96% accuracy)
         // ═══════════════════════════════════════════════════════════════════════
+        // 🛑 Check for cancellation before Stage 5
+        await (0, cancellation_manager_1.throwIfCancelled)(input.sessionId, input.abortSignal);
         await progress.startStep('dasha', 'Analyzing Vimshottari Dasha periods...');
         await progress.updateMessage('Correlating dasha periods with life events');
-        logger_js_1.logger.info('STAGE 5: AI Level 2 analysis (fine comparison)');
+        logger_1.logger.info('STAGE 5: AI Level 2 analysis (fine comparison)');
         const stage5Results = await stage5AILevel2(stage4Candidates.slice(0, 15), input);
         stagesCompleted = 5;
         methodsUsed.push('AI Level 2 (40K thinking)', 'Yogini Dasha', 'Chara Dasha');
         await progress.completeStep('dasha', ['Vimshottari analyzed', 'Yogini analyzed', 'Chara Dasha analyzed']);
-        logger_js_1.logger.info('Stage 5 complete', { topScore: stage5Results[0]?.score });
+        logger_1.logger.info('Stage 5 complete', { topScore: stage5Results[0]?.score });
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 6: MICRO GRID (6-Second Intervals)
         // ═══════════════════════════════════════════════════════════════════════
-        logger_js_1.logger.info('STAGE 6: Micro grid at 6-second intervals');
+        // 🛑 Check for cancellation before Stage 6
+        await (0, cancellation_manager_1.throwIfCancelled)(input.sessionId, input.abortSignal);
+        logger_1.logger.info('STAGE 6: Micro grid at 6-second intervals');
         const stage6Candidates = await stage6MicroGrid(stage5Results[0].time, input);
         stagesCompleted = 6;
-        logger_js_1.logger.info('Stage 6 complete', { candidateCount: stage6Candidates.length });
+        logger_1.logger.info('Stage 6 complete', { candidateCount: stage6Candidates.length });
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 7: AI LEVEL 3 ANALYSIS (96-99% accuracy)
         // ═══════════════════════════════════════════════════════════════════════
+        // 🛑 Check for cancellation before Stage 7 (most expensive)
+        await (0, cancellation_manager_1.throwIfCancelled)(input.sessionId, input.abortSignal);
         await progress.startStep('divisional', 'Processing divisional charts (D9, D10, D30)...');
         await progress.updateMessage('Analyzing Navamsha, Dasamsha, Trimshamsha');
-        logger_js_1.logger.info('STAGE 7: AI Level 3 analysis (seconds-level decision)');
+        logger_1.logger.info('STAGE 7: AI Level 3 analysis (seconds-level decision)');
         const stage7Results = await stage7AILevel3(stage6Candidates.slice(0, 7), input);
         stagesCompleted = 7;
         methodsUsed.push('AI Level 3 (48K thinking)');
@@ -214,18 +246,20 @@ async function processSecondsPrecisionBTR(input) {
         await progress.startStep('events', `Correlating ${input.lifeEvents.length} life events...`);
         await progress.updateMessage('Matching events with dasha periods');
         await progress.completeStep('events', input.lifeEvents.slice(0, 3).map(e => `${e.category}: ${e.eventType}`));
-        logger_js_1.logger.info('Stage 7 complete', {
+        logger_1.logger.info('Stage 7 complete', {
             bestTime: stage7Results[0].time,
             score: stage7Results[0].score,
         });
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 8: 15-METHOD VERIFICATION
         // ═══════════════════════════════════════════════════════════════════════
+        // 🛑 Check for cancellation before Stage 8
+        await (0, cancellation_manager_1.throwIfCancelled)(input.sessionId, input.abortSignal);
         await progress.startStep('physical', 'Matching physical traits with Lagna...');
         if (input.physicalTraits) {
             await progress.updateMessage('Analyzing height, build, complexion indicators');
         }
-        logger_js_1.logger.info('STAGE 8: 15-method verification');
+        logger_1.logger.info('STAGE 8: 15-method verification');
         const verificationResult = await stage8Verification(stage7Results[0].time, input);
         stagesCompleted = 8;
         methodsUsed.push('D2 Hora', 'D7 Saptamsha', 'D9 Navamsha', 'D10 Dasamsha', 'D30 Trimshamsha', 'Advanced Aspects', 'Jaimini Aspects', 'Arudha Lagna', 'Rasi Dasha', 'Tatwa Dasha', 'Physical Traits');
@@ -233,16 +267,18 @@ async function processSecondsPrecisionBTR(input) {
         // If verification score is too low, use next candidate
         let finalCandidate = stage7Results[0];
         if (verificationResult.score < 85 && stage7Results.length > 1) {
-            logger_js_1.logger.warn('Top candidate failed verification, trying next');
+            logger_1.logger.warn('Top candidate failed verification, trying next');
             finalCandidate = stage7Results[1];
         }
-        logger_js_1.logger.info('Stage 8 complete', { verificationScore: verificationResult.score });
+        logger_1.logger.info('Stage 8 complete', { verificationScore: verificationResult.score });
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 9: BOUNDARY SAFETY VERIFICATION
         // ═══════════════════════════════════════════════════════════════════════
+        // 🛑 Check for cancellation before Stage 9
+        await (0, cancellation_manager_1.throwIfCancelled)(input.sessionId, input.abortSignal);
         await progress.startStep('ai', '🤖 AI cross-verifying all methods...');
         await progress.updateMessage('Kimi K2 analyzing multi-method consensus');
-        logger_js_1.logger.info('STAGE 9: Boundary safety verification');
+        logger_1.logger.info('STAGE 9: Boundary safety verification');
         const boundarySafety = await stage9BoundaryCheck(finalCandidate.time, input);
         stagesCompleted = 9;
         if (!boundarySafety.isSafe) {
@@ -252,7 +288,7 @@ async function processSecondsPrecisionBTR(input) {
             `Verification score: ${verificationResult.score}%`,
             boundarySafety.isSafe ? 'Boundaries safe' : `${boundarySafety.warnings.length} warnings`
         ]);
-        logger_js_1.logger.info('Stage 9 complete', {
+        logger_1.logger.info('Stage 9 complete', {
             isSafe: boundarySafety.isSafe,
             warnings: boundarySafety.warnings.length,
         });
@@ -260,14 +296,14 @@ async function processSecondsPrecisionBTR(input) {
         // STAGE 10: SPOUSE/FAMILY CROSS-VERIFICATION (Optional)
         // ═══════════════════════════════════════════════════════════════════════
         if (input.spouseData) {
-            logger_js_1.logger.info('STAGE 10: Spouse cross-verification');
+            logger_1.logger.info('STAGE 10: Spouse cross-verification');
             const spouseVerification = await stage10SpouseVerification(finalCandidate.time, input);
             stagesCompleted = 10;
             methodsUsed.push('Spouse Synastry');
             if (spouseVerification.score < 70) {
                 boundaryWarnings.push('Spouse chart verification score is low');
             }
-            logger_js_1.logger.info('Stage 10 complete', { spouseScore: spouseVerification.score });
+            logger_1.logger.info('Stage 10 complete', { spouseScore: spouseVerification.score });
         }
         else {
             stagesCompleted = 10; // Skip stage 10
@@ -277,7 +313,7 @@ async function processSecondsPrecisionBTR(input) {
         // ═══════════════════════════════════════════════════════════════════════
         const processingTime = Date.now() - startTime;
         await progress.complete();
-        logger_js_1.logger.info('SECONDS PRECISION BTR COMPLETE', {
+        logger_1.logger.info('SECONDS PRECISION BTR COMPLETE', {
             sessionId: input.sessionId,
             rectifiedTime: finalCandidate.time,
             accuracy: finalCandidate.score,
@@ -308,7 +344,7 @@ async function processSecondsPrecisionBTR(input) {
         };
     }
     catch (error) {
-        logger_js_1.logger.error('Seconds precision BTR failed', error);
+        logger_1.logger.error('Seconds precision BTR failed', error);
         throw error;
     }
 }
@@ -316,23 +352,23 @@ async function processSecondsPrecisionBTR(input) {
 // STAGE 1: COARSE GRID
 // ═════════════════════════════════════════════════════════════════════════════
 async function stage1CoarseGrid(input) {
-    const candidates = (0, time_offset_manager_js_1.generateCandidateTimes)(input.tentativeTime, input.offsetConfig);
+    const candidates = (0, time_offset_manager_1.generateCandidateTimes)(input.tentativeTime, input.offsetConfig);
     const scored = [];
     const birthDate = new Date(input.dateOfBirth);
     // Process SEQUENTIALLY for RAM efficiency
     for (const candidate of candidates) {
         try {
-            const ephemeris = await (0, ephemeris_js_1.calculateEphemeris)(input.dateOfBirth, candidate.time, input.latitude, input.longitude, input.timezone);
+            const ephemeris = await (0, ephemeris_1.calculateEphemeris)(input.dateOfBirth, candidate.time, input.latitude, input.longitude, input.timezone);
             const jd = dateToJulianDay(input.dateOfBirth, candidate.time, input.timezone);
-            const moonSidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
-            const dashaPeriods = (0, vedic_astrology_engine_js_1.calculateVimshottariDasha)(moonSidereal, birthDate);
+            const moonSidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
+            const dashaPeriods = (0, vedic_astrology_engine_1.calculateVimshottariDasha)(moonSidereal, birthDate);
             let score = 50;
             let eventMatches = 0;
             for (const event of input.lifeEvents) {
                 const eventDate = new Date(event.eventDate);
-                const dasha = (0, vedic_astrology_engine_js_1.getDashaForDate)(dashaPeriods, eventDate);
+                const dasha = (0, vedic_astrology_engine_1.getDashaForDate)(dashaPeriods, eventDate);
                 if (dasha) {
-                    const correlation = (0, vedic_astrology_engine_js_1.dashaSupportsEvent)(dasha, event.category, event.eventType);
+                    const correlation = (0, vedic_astrology_engine_1.dashaSupportsEvent)(dasha, event.category, event.eventType);
                     if (correlation.supports) {
                         eventMatches++;
                         score += correlation.strength / input.lifeEvents.length;
@@ -348,7 +384,7 @@ async function stage1CoarseGrid(input) {
             }
         }
         catch (error) {
-            logger_js_1.logger.error(`Stage 1 failed for ${candidate.time}`, error);
+            logger_1.logger.error(`Stage 1 failed for ${candidate.time}`, error);
         }
     }
     scored.sort((a, b) => b.score - a.score);
@@ -357,34 +393,59 @@ async function stage1CoarseGrid(input) {
 // ═════════════════════════════════════════════════════════════════════════════
 // STAGE 2: AI LEVEL 1
 // ═════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════════════
+// STAGE 2: AI LEVEL 1
+// ═════════════════════════════════════════════════════════════════════════════
 async function stage2AILevel1(candidates, input) {
     const results = [];
     const birthDate = new Date(input.dateOfBirth);
-    // Process candidates SEQUENTIALLY
-    for (const candidate of candidates) {
-        try {
-            const ephemeris = await (0, ephemeris_js_1.calculateEphemeris)(input.dateOfBirth, candidate.time, input.latitude, input.longitude, input.timezone);
-            const jd = dateToJulianDay(input.dateOfBirth, candidate.time, input.timezone);
-            const moonSidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
-            const dashaPeriods = (0, vedic_astrology_engine_js_1.calculateVimshottariDasha)(moonSidereal, birthDate);
-            const prompt = buildLevel1Prompt(candidate.time, input, ephemeris, dashaPeriods, jd);
-            const response = await (0, kimi_k2_client_js_1.callKimiK2)(LEVEL1_SYSTEM_PROMPT, prompt, {
-                temperature: 0.1,
-                maxTokens: 4000,
-                enableThinking: true,
-            });
-            if (response.success) {
-                const parsed = (0, kimi_k2_client_js_1.parseKimiAnalysisResponse)(response.content);
-                results.push({
-                    time: candidate.time,
-                    score: parsed.score,
-                    aiAnalysis: response.content,
+    const BATCH_SIZE = 3; // Process 3 candidates in parallel (Reduced from 5 to avoid Rate Limits)
+    logger_1.logger.info(`Starting Stage 2 parallel processing for ${candidates.length} candidates`);
+    // Process in batches
+    for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+        const batch = candidates.slice(i, i + BATCH_SIZE);
+        logger_1.logger.info(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(candidates.length / BATCH_SIZE)}`);
+        const batchPromises = batch.map(async (candidate) => {
+            try {
+                const ephemeris = await (0, ephemeris_1.calculateEphemeris)(input.dateOfBirth, candidate.time, input.latitude, input.longitude, input.timezone);
+                const jd = dateToJulianDay(input.dateOfBirth, candidate.time, input.timezone);
+                const moonSidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
+                const dashaPeriods = (0, vedic_astrology_engine_1.calculateVimshottariDasha)(moonSidereal, birthDate);
+                // ⚡ Pre-calculate Divisional Charts for AI context
+                // Only D9 & D10 needed for Level 1 Screening
+                const divCharts = (0, advanced_btr_methods_1.generateDivisionalCharts)(ephemeris);
+                const relevantDivCharts = { D9: divCharts.D9, D10: divCharts.D10 };
+                const prompt = buildLevel1Prompt(candidate.time, input, ephemeris, dashaPeriods, jd, relevantDivCharts);
+                // 🔴 Use streaming for real-time AI thinking display
+                const response = await (0, kimi_k2_client_1.callKimiK2WithStream)(input.sessionId, 2, // Stage 2
+                LEVEL1_SYSTEM_PROMPT, prompt, {
+                    temperature: 0.3,
+                    maxTokens: 4000,
+                    candidateTime: candidate.time,
                 });
+                if (response.success) {
+                    const parsed = (0, kimi_k2_client_1.parseKimiAnalysisResponse)(response.content);
+                    logger_1.logger.info(`✅ Stage 2: Analyzed candidate ${candidate.time} (Score: ${parsed.score})`);
+                    return {
+                        time: candidate.time,
+                        score: parsed.score,
+                        aiAnalysis: response.content,
+                    };
+                }
+                return null;
             }
-        }
-        catch (error) {
-            logger_js_1.logger.error(`Stage 2 failed for ${candidate.time}`, error);
-        }
+            catch (error) {
+                logger_1.logger.error(`Stage 2 failed for ${candidate.time}`, error);
+                return null;
+            }
+        });
+        // Check for cancellation before waiting for batch
+        await (0, cancellation_manager_1.throwIfCancelled)(input.sessionId, input.abortSignal);
+        const batchResults = await Promise.all(batchPromises);
+        batchResults.forEach(res => {
+            if (res)
+                results.push(res);
+        });
     }
     results.sort((a, b) => b.score - a.score);
     return results;
@@ -423,39 +484,39 @@ async function stage4FineGrid(centerTime, input) {
     const birthDate = new Date(input.dateOfBirth);
     for (const candidateTime of candidates) {
         try {
-            const ephemeris = await (0, ephemeris_js_1.calculateEphemeris)(input.dateOfBirth, candidateTime, input.latitude, input.longitude, input.timezone);
+            const ephemeris = await (0, ephemeris_1.calculateEphemeris)(input.dateOfBirth, candidateTime, input.latitude, input.longitude, input.timezone);
             const jd = dateToJulianDay(input.dateOfBirth, candidateTime, input.timezone);
-            const moonSidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
+            const moonSidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
             // Multi-method scoring
-            const vimPeriods = (0, vedic_astrology_engine_js_1.calculateVimshottariDasha)(moonSidereal, birthDate);
-            const yogPeriods = (0, advanced_btr_methods_js_1.calculateYoginiDasha)(moonSidereal, birthDate);
-            const charaPeriods = (0, jaimini_astrology_js_1.calculateCharaDasha)(ephemeris, birthDate);
+            const vimPeriods = (0, vedic_astrology_engine_1.calculateVimshottariDasha)(moonSidereal, birthDate);
+            const yogPeriods = (0, advanced_btr_methods_1.calculateYoginiDasha)(moonSidereal, birthDate);
+            const charaPeriods = (0, jaimini_astrology_1.calculateCharaDasha)(ephemeris, birthDate);
             let score = 0;
             let methodMatches = 0;
             for (const event of input.lifeEvents) {
                 const eventDate = new Date(event.eventDate);
                 // Vimshottari check
-                const vimDasha = (0, vedic_astrology_engine_js_1.getDashaForDate)(vimPeriods, eventDate);
+                const vimDasha = (0, vedic_astrology_engine_1.getDashaForDate)(vimPeriods, eventDate);
                 if (vimDasha) {
-                    const vimMatch = (0, vedic_astrology_engine_js_1.dashaSupportsEvent)(vimDasha, event.category, event.eventType);
+                    const vimMatch = (0, vedic_astrology_engine_1.dashaSupportsEvent)(vimDasha, event.category, event.eventType);
                     if (vimMatch.supports) {
                         score += 25;
                         methodMatches++;
                     }
                 }
                 // Yogini check
-                const yogDasha = (0, advanced_btr_methods_js_1.getYoginiDashaForDate)(yogPeriods, eventDate);
+                const yogDasha = (0, advanced_btr_methods_1.getYoginiDashaForDate)(yogPeriods, eventDate);
                 if (yogDasha) {
-                    const yogMatch = (0, advanced_btr_methods_js_1.yoginiSupportsEvent)(yogDasha, event.category, event.eventType);
+                    const yogMatch = (0, advanced_btr_methods_1.yoginiSupportsEvent)(yogDasha, event.category, event.eventType);
                     if (yogMatch.supports) {
                         score += 15;
                         methodMatches++;
                     }
                 }
                 // Chara check
-                const charDasha = (0, jaimini_astrology_js_1.getCharaDashaForDate)(charaPeriods, eventDate);
+                const charDasha = (0, jaimini_astrology_1.getCharaDashaForDate)(charaPeriods, eventDate);
                 if (charDasha) {
-                    const charMatch = (0, jaimini_astrology_js_1.charaDashaSupportsEvent)(charDasha, event.category, ephemeris);
+                    const charMatch = (0, jaimini_astrology_1.charaDashaSupportsEvent)(charDasha, event.category, ephemeris);
                     if (charMatch.supports) {
                         score += 15;
                         methodMatches++;
@@ -468,7 +529,7 @@ async function stage4FineGrid(centerTime, input) {
             scored.push({ time: candidateTime, score });
         }
         catch (error) {
-            logger_js_1.logger.error(`Stage 4 failed for ${candidateTime}`, error);
+            logger_1.logger.error(`Stage 4 failed for ${candidateTime}`, error);
         }
     }
     scored.sort((a, b) => b.score - a.score);
@@ -477,38 +538,63 @@ async function stage4FineGrid(centerTime, input) {
 // ═════════════════════════════════════════════════════════════════════════════
 // STAGE 5: AI LEVEL 2
 // ═════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════════════
+// STAGE 5: AI LEVEL 2
+// ═════════════════════════════════════════════════════════════════════════════
 async function stage5AILevel2(candidates, input) {
     const results = [];
     const birthDate = new Date(input.dateOfBirth);
-    for (const candidate of candidates) {
-        try {
-            const ephemeris = await (0, ephemeris_js_1.calculateEphemeris)(input.dateOfBirth, candidate.time, input.latitude, input.longitude, input.timezone);
-            const jd = dateToJulianDay(input.dateOfBirth, candidate.time, input.timezone);
-            const moonSidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
-            const allDashas = {
-                vimshottari: (0, vedic_astrology_engine_js_1.calculateVimshottariDasha)(moonSidereal, birthDate),
-                yogini: (0, advanced_btr_methods_js_1.calculateYoginiDasha)(moonSidereal, birthDate),
-                chara: (0, jaimini_astrology_js_1.calculateCharaDasha)(ephemeris, birthDate),
-                tatwa: (0, jaimini_astrology_js_1.calculateTatwaDasha)(moonSidereal, birthDate),
-            };
-            const prompt = buildLevel2Prompt(candidate.time, input, ephemeris, allDashas, jd);
-            const response = await (0, kimi_k2_client_js_1.callKimiK2)(LEVEL2_SYSTEM_PROMPT, prompt, {
-                temperature: 0.1,
-                maxTokens: 6000,
-                enableThinking: true,
-            });
-            if (response.success) {
-                const parsed = (0, kimi_k2_client_js_1.parseKimiAnalysisResponse)(response.content);
-                results.push({
-                    time: candidate.time,
-                    score: parsed.score,
-                    aiAnalysis: response.content,
+    const BATCH_SIZE = 3; // Process 3 candidates in parallel (Reduced from 5 to avoid Rate Limits)
+    logger_1.logger.info(`Starting Stage 5 parallel processing for ${candidates.length} candidates`);
+    // Process in batches
+    for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+        const batch = candidates.slice(i, i + BATCH_SIZE);
+        logger_1.logger.info(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(candidates.length / BATCH_SIZE)}`);
+        const batchPromises = batch.map(async (candidate) => {
+            try {
+                const ephemeris = await (0, ephemeris_1.calculateEphemeris)(input.dateOfBirth, candidate.time, input.latitude, input.longitude, input.timezone);
+                const jd = dateToJulianDay(input.dateOfBirth, candidate.time, input.timezone);
+                const moonSidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
+                const allDashas = {
+                    vimshottari: (0, vedic_astrology_engine_1.calculateVimshottariDasha)(moonSidereal, birthDate),
+                    yogini: (0, advanced_btr_methods_1.calculateYoginiDasha)(moonSidereal, birthDate),
+                    chara: (0, jaimini_astrology_1.calculateCharaDasha)(ephemeris, birthDate),
+                    tatwa: (0, jaimini_astrology_1.calculateTatwaDasha)(moonSidereal, birthDate),
+                };
+                // ⚡ Pre-calculate ALL Divisional Charts for Level 2
+                console.log(`[Stage 5] Generating div charts for ${candidate.time}`);
+                const divCharts = (0, advanced_btr_methods_1.generateDivisionalCharts)(ephemeris);
+                const prompt = buildLevel2Prompt(candidate.time, input, ephemeris, allDashas, jd, divCharts);
+                console.log(`[Stage 5] Prompt built for ${candidate.time}, calling AI...`);
+                // 🔴 Use streaming for real-time AI thinking display
+                const response = await (0, kimi_k2_client_1.callKimiK2WithStream)(input.sessionId, 5, LEVEL2_SYSTEM_PROMPT, prompt, {
+                    candidateTime: candidate.time,
+                    abortSignal: input.abortSignal
                 });
+                console.log(`[Stage 5] AI response received for ${candidate.time}`);
+                if (response.success) {
+                    const parsed = (0, kimi_k2_client_1.parseKimiAnalysisResponse)(response.content);
+                    logger_1.logger.info(`✅ Stage 5: Analyzed candidate ${candidate.time} (Score: ${parsed.score})`);
+                    return {
+                        time: candidate.time,
+                        score: parsed.score,
+                        aiAnalysis: response.content,
+                    };
+                }
+                return null;
             }
-        }
-        catch (error) {
-            logger_js_1.logger.error(`Stage 5 failed for ${candidate.time}`, error);
-        }
+            catch (error) {
+                logger_1.logger.error(`Stage 5 failed for ${candidate.time}`, error);
+                return null;
+            }
+        });
+        // Check for cancellation before waiting for batch
+        await (0, cancellation_manager_1.throwIfCancelled)(input.sessionId, input.abortSignal);
+        const batchResults = await Promise.all(batchPromises);
+        batchResults.forEach(res => {
+            if (res)
+                results.push(res);
+        });
     }
     results.sort((a, b) => b.score - a.score);
     return results;
@@ -522,28 +608,28 @@ async function stage6MicroGrid(centerTime, input) {
     const birthDate = new Date(input.dateOfBirth);
     for (const candidateTime of candidates) {
         try {
-            const ephemeris = await (0, ephemeris_js_1.calculateEphemeris)(input.dateOfBirth, candidateTime, input.latitude, input.longitude, input.timezone);
+            const ephemeris = await (0, ephemeris_1.calculateEphemeris)(input.dateOfBirth, candidateTime, input.latitude, input.longitude, input.timezone);
             const jd = dateToJulianDay(input.dateOfBirth, candidateTime, input.timezone);
-            const moonSidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
+            const moonSidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
             // Comprehensive scoring at seconds level
-            const vimPeriods = (0, vedic_astrology_engine_js_1.calculateVimshottariDasha)(moonSidereal, birthDate);
-            const yogPeriods = (0, advanced_btr_methods_js_1.calculateYoginiDasha)(moonSidereal, birthDate);
-            const charaPeriods = (0, jaimini_astrology_js_1.calculateCharaDasha)(ephemeris, birthDate);
-            const divisionalCharts = (0, advanced_btr_methods_js_1.generateDivisionalCharts)(ephemeris);
+            const vimPeriods = (0, vedic_astrology_engine_1.calculateVimshottariDasha)(moonSidereal, birthDate);
+            const yogPeriods = (0, advanced_btr_methods_1.calculateYoginiDasha)(moonSidereal, birthDate);
+            const charaPeriods = (0, jaimini_astrology_1.calculateCharaDasha)(ephemeris, birthDate);
+            const divisionalCharts = (0, advanced_btr_methods_1.generateDivisionalCharts)(ephemeris);
             let score = 0;
             for (const event of input.lifeEvents) {
                 const eventDate = new Date(event.eventDate);
                 // All dasha systems
-                const vimDasha = (0, vedic_astrology_engine_js_1.getDashaForDate)(vimPeriods, eventDate);
-                const yogDasha = (0, advanced_btr_methods_js_1.getYoginiDashaForDate)(yogPeriods, eventDate);
-                const charDasha = (0, jaimini_astrology_js_1.getCharaDashaForDate)(charaPeriods, eventDate);
-                if (vimDasha && (0, vedic_astrology_engine_js_1.dashaSupportsEvent)(vimDasha, event.category, event.eventType).supports) {
+                const vimDasha = (0, vedic_astrology_engine_1.getDashaForDate)(vimPeriods, eventDate);
+                const yogDasha = (0, advanced_btr_methods_1.getYoginiDashaForDate)(yogPeriods, eventDate);
+                const charDasha = (0, jaimini_astrology_1.getCharaDashaForDate)(charaPeriods, eventDate);
+                if (vimDasha && (0, vedic_astrology_engine_1.dashaSupportsEvent)(vimDasha, event.category, event.eventType).supports) {
                     score += 20;
                 }
-                if (yogDasha && (0, advanced_btr_methods_js_1.yoginiSupportsEvent)(yogDasha, event.category, event.eventType).supports) {
+                if (yogDasha && (0, advanced_btr_methods_1.yoginiSupportsEvent)(yogDasha, event.category, event.eventType).supports) {
                     score += 10;
                 }
-                if (charDasha && (0, jaimini_astrology_js_1.charaDashaSupportsEvent)(charDasha, event.category, ephemeris).supports) {
+                if (charDasha && (0, jaimini_astrology_1.charaDashaSupportsEvent)(charDasha, event.category, ephemeris).supports) {
                     score += 10;
                 }
                 // Divisional chart bonus
@@ -562,7 +648,7 @@ async function stage6MicroGrid(centerTime, input) {
             }
             // Physical traits
             if (input.physicalTraits) {
-                const traitScore = (0, advanced_btr_methods_js_1.scorePhysicalTraits)(ephemeris, input.physicalTraits);
+                const traitScore = (0, advanced_btr_methods_1.scorePhysicalTraits)(ephemeris, input.physicalTraits);
                 score += traitScore.score * 0.1;
             }
             // Normalize
@@ -571,7 +657,7 @@ async function stage6MicroGrid(centerTime, input) {
             scored.push({ time: candidateTime, score });
         }
         catch (error) {
-            logger_js_1.logger.error(`Stage 6 failed for ${candidateTime}`, error);
+            logger_1.logger.error(`Stage 6 failed for ${candidateTime}`, error);
         }
     }
     scored.sort((a, b) => b.score - a.score);
@@ -584,23 +670,24 @@ async function stage7AILevel3(candidates, input) {
     const results = [];
     const birthDate = new Date(input.dateOfBirth);
     // Build comprehensive prompt for all 7 candidates
-    const allCandidatesData = [];
-    for (const candidate of candidates) {
-        const ephemeris = await (0, ephemeris_js_1.calculateEphemeris)(input.dateOfBirth, candidate.time, input.latitude, input.longitude, input.timezone);
+    // Build comprehensive prompt for all 7 candidates
+    const allCandidatesDataPromises = candidates.map(async (candidate) => {
+        const ephemeris = await (0, ephemeris_1.calculateEphemeris)(input.dateOfBirth, candidate.time, input.latitude, input.longitude, input.timezone);
         const jd = dateToJulianDay(input.dateOfBirth, candidate.time, input.timezone);
-        const moonSidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
+        const moonSidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
         const allDashas = {
-            vimshottari: (0, vedic_astrology_engine_js_1.calculateVimshottariDasha)(moonSidereal, birthDate),
-            yogini: (0, advanced_btr_methods_js_1.calculateYoginiDasha)(moonSidereal, birthDate),
-            chara: (0, jaimini_astrology_js_1.calculateCharaDasha)(ephemeris, birthDate),
-            rasi: (0, jaimini_astrology_js_1.calculateRasiDasha)(ephemeris, birthDate),
-            tatwa: (0, jaimini_astrology_js_1.calculateTatwaDasha)(moonSidereal, birthDate),
+            vimshottari: (0, vedic_astrology_engine_1.calculateVimshottariDasha)(moonSidereal, birthDate),
+            yogini: (0, advanced_btr_methods_1.calculateYoginiDasha)(moonSidereal, birthDate),
+            chara: (0, jaimini_astrology_1.calculateCharaDasha)(ephemeris, birthDate),
+            rasi: (0, jaimini_astrology_1.calculateRasiDasha)(ephemeris, birthDate),
+            tatwa: (0, jaimini_astrology_1.calculateTatwaDasha)(moonSidereal, birthDate),
         };
-        const divisionalCharts = (0, advanced_btr_methods_js_1.generateDivisionalCharts)(ephemeris);
-        const aspects = (0, advanced_btr_methods_js_1.calculateAdvancedAspects)(ephemeris);
-        const arudha = (0, advanced_btr_methods_js_1.calculateArudhaLagna)(ephemeris);
-        allCandidatesData.push(buildCandidateSection(candidate.time, ephemeris, allDashas, divisionalCharts, aspects, arudha, input, jd));
-    }
+        const divisionalCharts = (0, advanced_btr_methods_1.generateDivisionalCharts)(ephemeris);
+        const aspects = (0, advanced_btr_methods_1.calculateAdvancedAspects)(ephemeris);
+        const arudha = (0, advanced_btr_methods_1.calculateArudhaLagna)(ephemeris);
+        return buildCandidateSection(candidate.time, ephemeris, allDashas, divisionalCharts, aspects, arudha, input, jd);
+    });
+    const allCandidatesData = await Promise.all(allCandidatesDataPromises);
     const fullPrompt = `SECONDS-LEVEL DECISION: Choose THE BEST birth time from these 7 candidates.
 
 ${allCandidatesData.join('\n\n═══════════════════════════════════════════════════════════════════════════\n\n')}
@@ -611,10 +698,12 @@ ${input.lifeEvents.map(e => `- ${e.eventType} (${e.category}) on ${e.eventDate}:
 PHYSICAL TRAITS: ${input.physicalTraits ? JSON.stringify(input.physicalTraits) : 'Not provided'}
 
 ANALYZE EACH 6-SECOND CANDIDATE AND DETERMINE THE CORRECT BIRTH TIME.`;
-    const response = await (0, kimi_k2_client_js_1.callKimiK2)(LEVEL3_SYSTEM_PROMPT, fullPrompt, {
+    // Use streaming version for real-time AI thinking display
+    const response = await (0, kimi_k2_client_1.callKimiK2WithStream)(input.sessionId, 7, // Stage 7
+    LEVEL3_SYSTEM_PROMPT, fullPrompt, {
         temperature: 0.1,
         maxTokens: 10000,
-        enableThinking: true,
+        candidateTime: candidates[0]?.time,
     });
     if (response.success) {
         // Parse response to extract scores for each candidate
@@ -647,41 +736,41 @@ ANALYZE EACH 6-SECOND CANDIDATE AND DETERMINE THE CORRECT BIRTH TIME.`;
 async function stage8Verification(candidateTime, input) {
     const birthDate = new Date(input.dateOfBirth);
     const scores = {};
-    const ephemeris = await (0, ephemeris_js_1.calculateEphemeris)(input.dateOfBirth, candidateTime, input.latitude, input.longitude, input.timezone);
+    const ephemeris = await (0, ephemeris_1.calculateEphemeris)(input.dateOfBirth, candidateTime, input.latitude, input.longitude, input.timezone);
     const jd = dateToJulianDay(input.dateOfBirth, candidateTime, input.timezone);
-    const moonSidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
+    const moonSidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
     // Method 1: Vimshottari Dasha (15%)
-    const vimPeriods = (0, vedic_astrology_engine_js_1.calculateVimshottariDasha)(moonSidereal, birthDate);
+    const vimPeriods = (0, vedic_astrology_engine_1.calculateVimshottariDasha)(moonSidereal, birthDate);
     let vimScore = 0;
     for (const event of input.lifeEvents) {
-        const dasha = (0, vedic_astrology_engine_js_1.getDashaForDate)(vimPeriods, new Date(event.eventDate));
-        if (dasha && (0, vedic_astrology_engine_js_1.dashaSupportsEvent)(dasha, event.category, event.eventType).supports) {
+        const dasha = (0, vedic_astrology_engine_1.getDashaForDate)(vimPeriods, new Date(event.eventDate));
+        if (dasha && (0, vedic_astrology_engine_1.dashaSupportsEvent)(dasha, event.category, event.eventType).supports) {
             vimScore += 100 / input.lifeEvents.length;
         }
     }
     scores['vimshottari'] = Math.round(vimScore);
     // Method 2: Yogini Dasha (8%)
-    const yogPeriods = (0, advanced_btr_methods_js_1.calculateYoginiDasha)(moonSidereal, birthDate);
+    const yogPeriods = (0, advanced_btr_methods_1.calculateYoginiDasha)(moonSidereal, birthDate);
     let yogScore = 0;
     for (const event of input.lifeEvents) {
-        const dasha = (0, advanced_btr_methods_js_1.getYoginiDashaForDate)(yogPeriods, new Date(event.eventDate));
-        if (dasha && (0, advanced_btr_methods_js_1.yoginiSupportsEvent)(dasha, event.category, event.eventType).supports) {
+        const dasha = (0, advanced_btr_methods_1.getYoginiDashaForDate)(yogPeriods, new Date(event.eventDate));
+        if (dasha && (0, advanced_btr_methods_1.yoginiSupportsEvent)(dasha, event.category, event.eventType).supports) {
             yogScore += 100 / input.lifeEvents.length;
         }
     }
     scores['yogini'] = Math.round(yogScore);
     // Method 3: Chara Dasha (15%)
-    const charaPeriods = (0, jaimini_astrology_js_1.calculateCharaDasha)(ephemeris, birthDate);
+    const charaPeriods = (0, jaimini_astrology_1.calculateCharaDasha)(ephemeris, birthDate);
     let charaScore = 0;
     for (const event of input.lifeEvents) {
-        const dasha = (0, jaimini_astrology_js_1.getCharaDashaForDate)(charaPeriods, new Date(event.eventDate));
-        if (dasha && (0, jaimini_astrology_js_1.charaDashaSupportsEvent)(dasha, event.category, ephemeris).supports) {
+        const dasha = (0, jaimini_astrology_1.getCharaDashaForDate)(charaPeriods, new Date(event.eventDate));
+        if (dasha && (0, jaimini_astrology_1.charaDashaSupportsEvent)(dasha, event.category, ephemeris).supports) {
             charaScore += 100 / input.lifeEvents.length;
         }
     }
     scores['charaDasha'] = Math.round(charaScore);
     // Method 4: Divisional Charts (20%)
-    const divCharts = (0, advanced_btr_methods_js_1.generateDivisionalCharts)(ephemeris);
+    const divCharts = (0, advanced_btr_methods_1.generateDivisionalCharts)(ephemeris);
     let divScore = 50;
     if (input.lifeEvents.some(e => e.category === 'marriage') && divCharts['D9']) {
         const venusD9 = divCharts['D9'].planets.venus;
@@ -698,24 +787,24 @@ async function stage8Verification(candidateTime, input) {
     scores['divisionalCharts'] = Math.min(100, divScore);
     // Method 5: Physical Traits (10%)
     if (input.physicalTraits) {
-        const traitResult = (0, advanced_btr_methods_js_1.scorePhysicalTraits)(ephemeris, input.physicalTraits);
+        const traitResult = (0, advanced_btr_methods_1.scorePhysicalTraits)(ephemeris, input.physicalTraits);
         scores['physicalTraits'] = traitResult.score;
     }
     else {
         scores['physicalTraits'] = 50;
     }
     // Method 6: Advanced Aspects (10%)
-    const aspects = (0, advanced_btr_methods_js_1.calculateAdvancedAspects)(ephemeris);
+    const aspects = (0, advanced_btr_methods_1.calculateAdvancedAspects)(ephemeris);
     const beneficAspects = aspects.filter(a => ['trine', 'sextile', 'conjunction'].includes(a.aspectType) && a.strength !== 'weak').length;
     scores['aspects'] = Math.min(100, 50 + beneficAspects * 5);
     // Method 7: Arudha Lagna (5%)
-    const arudha = (0, advanced_btr_methods_js_1.calculateArudhaLagna)(ephemeris);
+    const arudha = (0, advanced_btr_methods_1.calculateArudhaLagna)(ephemeris);
     scores['arudhaLagna'] = arudha.strength === 'strong' ? 80 : arudha.strength === 'moderate' ? 60 : 40;
     // Method 8: Tatwa Dasha (2%)
-    const tatwaPeriods = (0, jaimini_astrology_js_1.calculateTatwaDasha)(moonSidereal, birthDate);
+    const tatwaPeriods = (0, jaimini_astrology_1.calculateTatwaDasha)(moonSidereal, birthDate);
     let tatwaScore = 50;
     for (const event of input.lifeEvents) {
-        if ((0, jaimini_astrology_js_1.getTatwaForDate)(tatwaPeriods, new Date(event.eventDate))) {
+        if ((0, jaimini_astrology_1.getTatwaForDate)(tatwaPeriods, new Date(event.eventDate))) {
             tatwaScore += 10;
         }
     }
@@ -741,9 +830,9 @@ async function stage8Verification(candidateTime, input) {
 // ═════════════════════════════════════════════════════════════════════════════
 async function stage9BoundaryCheck(candidateTime, input) {
     const warnings = [];
-    const ephemeris = await (0, ephemeris_js_1.calculateEphemeris)(input.dateOfBirth, candidateTime, input.latitude, input.longitude, input.timezone);
+    const ephemeris = await (0, ephemeris_1.calculateEphemeris)(input.dateOfBirth, candidateTime, input.latitude, input.longitude, input.timezone);
     const jd = dateToJulianDay(input.dateOfBirth, candidateTime, input.timezone);
-    const moonSidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
+    const moonSidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
     // Check nakshatra boundary
     const NAKSHATRA_SPAN = 360 / 27;
     const positionInNakshatra = moonSidereal % NAKSHATRA_SPAN;
@@ -779,8 +868,8 @@ async function stage10SpouseVerification(candidateTime, input) {
     if (!input.spouseData) {
         return { score: 50 };
     }
-    const userEphemeris = await (0, ephemeris_js_1.calculateEphemeris)(input.dateOfBirth, candidateTime, input.latitude, input.longitude, input.timezone);
-    const spouseEphemeris = await (0, ephemeris_js_1.calculateEphemeris)(input.spouseData.dateOfBirth, input.spouseData.birthTime, input.spouseData.latitude, input.spouseData.longitude, input.spouseData.timezone);
+    const userEphemeris = await (0, ephemeris_1.calculateEphemeris)(input.dateOfBirth, candidateTime, input.latitude, input.longitude, input.timezone);
+    const spouseEphemeris = await (0, ephemeris_1.calculateEphemeris)(input.spouseData.dateOfBirth, input.spouseData.birthTime, input.spouseData.latitude, input.spouseData.longitude, input.spouseData.timezone);
     let score = 50;
     // Check Venus-Venus aspects
     const userVenus = userEphemeris.planets.venus.longitude;
@@ -872,16 +961,24 @@ function getMarginOfError(score) {
         return 5;
     return 6;
 }
-function buildLevel1Prompt(time, input, ephemeris, dashas, jd) {
+function buildLevel1Prompt(time, input, ephemeris, dashas, jd, divCharts) {
     const planets = [];
     for (const [name, data] of Object.entries(ephemeris.planets)) {
-        const sidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(data.longitude, jd);
-        const nakshatra = (0, vedic_astrology_engine_js_1.getNakshatraForLongitude)(sidereal);
+        const sidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(data.longitude, jd);
+        const nakshatra = (0, vedic_astrology_engine_1.getNakshatraForLongitude)(sidereal);
         planets.push(`${name.toUpperCase()}: ${data.sign} ${(sidereal % 30).toFixed(2)}° (${nakshatra.name})`);
     }
+    // Format D9 & D10 for context
+    const d9Asc = divCharts.D9.ascendant;
+    const d10Asc = divCharts.D10.ascendant;
+    const divChartSummary = `
+DIVISIONAL CHARTS (CALCULATED):
+D9 (Navamsa) Ascendant: ${d9Asc.sign} ${d9Asc.degree.toFixed(2)}°
+D10 (Dasamsa) Ascendant: ${d10Asc.sign} ${d10Asc.degree.toFixed(2)}°
+    `.trim();
     const eventsWithDasha = input.lifeEvents.map(event => {
         const eventDate = new Date(event.eventDate);
-        const dasha = (0, vedic_astrology_engine_js_1.getDashaForDate)(dashas, eventDate);
+        const dasha = (0, vedic_astrology_engine_1.getDashaForDate)(dashas, eventDate);
         return `${event.eventType} (${event.category}) on ${event.eventDate}: ${dasha ? `${dasha.mahadasha}/${dasha.antardasha}` : 'N/A'}`;
     });
     return `CANDIDATE TIME: ${time}
@@ -892,24 +989,26 @@ ${planets.join('\n')}
 
 ASCENDANT: ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°
 
+${divChartSummary}
+
 EVENTS WITH DASHA:
 ${eventsWithDasha.join('\n')}
 
 Analyze this candidate and score 0-100.`;
 }
-function buildLevel2Prompt(time, input, ephemeris, allDashas, jd) {
+function buildLevel2Prompt(time, input, ephemeris, allDashas, jd, divCharts) {
     const planets = [];
     for (const [name, data] of Object.entries(ephemeris.planets)) {
-        const sidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(data.longitude, jd);
-        const nakshatra = (0, vedic_astrology_engine_js_1.getNakshatraForLongitude)(sidereal);
+        const sidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(data.longitude, jd);
+        const nakshatra = (0, vedic_astrology_engine_1.getNakshatraForLongitude)(sidereal);
         planets.push(`${name.toUpperCase()}: ${data.sign} ${(sidereal % 30).toFixed(4)}° (${nakshatra.name} pada ${nakshatra.pada})`);
     }
     const eventsMultiDasha = input.lifeEvents.map(event => {
         const eventDate = new Date(event.eventDate);
-        const vim = (0, vedic_astrology_engine_js_1.getDashaForDate)(allDashas.vimshottari, eventDate);
-        const yog = (0, advanced_btr_methods_js_1.getYoginiDashaForDate)(allDashas.yogini, eventDate);
-        const char = (0, jaimini_astrology_js_1.getCharaDashaForDate)(allDashas.chara, eventDate);
-        const tat = (0, jaimini_astrology_js_1.getTatwaForDate)(allDashas.tatwa, eventDate);
+        const vim = (0, vedic_astrology_engine_1.getDashaForDate)(allDashas.vimshottari, eventDate);
+        const yog = (0, advanced_btr_methods_1.getYoginiDashaForDate)(allDashas.yogini, eventDate);
+        const char = (0, jaimini_astrology_1.getCharaDashaForDate)(allDashas.chara, eventDate);
+        const tat = (0, jaimini_astrology_1.getTatwaForDate)(allDashas.tatwa, eventDate);
         return `${event.eventType} (${event.category}) on ${event.eventDate}:
   Vimshottari: ${vim ? `${vim.mahadasha}/${vim.antardasha}` : 'N/A'}
   Yogini: ${yog ? `${yog.name} (${yog.planet})` : 'N/A'}
@@ -924,6 +1023,9 @@ ${planets.join('\n')}
 
 ASCENDANT: ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°
 
+DIVISIONAL CHARTS (FULL PRE-CALCULATED SET):
+${(0, advanced_btr_methods_1.formatDivisionalCharts)(divCharts).substring(0, 1000)}
+
 EVENTS WITH ALL DASHA SYSTEMS:
 ${eventsMultiDasha.join('\n\n')}
 
@@ -932,8 +1034,8 @@ Compare this against other 30-second candidates. Score 0-100.`;
 function buildCandidateSection(time, ephemeris, allDashas, divCharts, aspects, arudha, input, jd) {
     const planets = [];
     for (const [name, data] of Object.entries(ephemeris.planets)) {
-        const sidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(data.longitude, jd);
-        const nakshatra = (0, vedic_astrology_engine_js_1.getNakshatraForLongitude)(sidereal);
+        const sidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(data.longitude, jd);
+        const nakshatra = (0, vedic_astrology_engine_1.getNakshatraForLongitude)(sidereal);
         planets.push(`${name.toUpperCase()}: ${data.sign} ${(sidereal % 30).toFixed(4)}° (${nakshatra.name} pada ${nakshatra.pada})`);
     }
     return `═══ CANDIDATE: ${time} ═══
@@ -943,11 +1045,11 @@ ${planets.join('\n')}
 
 ASCENDANT: ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°
 
-VIMSHOTTARI: ${(0, vedic_astrology_engine_js_1.formatDashaSequence)(allDashas.vimshottari).substring(0, 500)}
+VIMSHOTTARI: ${(0, vedic_astrology_engine_1.formatDashaSequence)(allDashas.vimshottari).substring(0, 500)}
 
-YOGINI: ${(0, advanced_btr_methods_js_1.formatYoginiDashaSequence)(allDashas.yogini).substring(0, 300)}
+YOGINI: ${(0, advanced_btr_methods_1.formatYoginiDashaSequence)(allDashas.yogini).substring(0, 300)}
 
-CHARA: ${(0, jaimini_astrology_js_1.formatCharaDasha)(allDashas.chara).substring(0, 300)}
+CHARA: ${(0, jaimini_astrology_1.formatCharaDasha)(allDashas.chara).substring(0, 300)}
 
 D9 NAVAMSHA: ${divCharts['D9'] ? `Ascendant: ${divCharts['D9'].ascendant.sign}` : 'N/A'}
 D10 DASAMSHA: ${divCharts['D10'] ? `Ascendant: ${divCharts['D10'].ascendant.sign}` : 'N/A'}

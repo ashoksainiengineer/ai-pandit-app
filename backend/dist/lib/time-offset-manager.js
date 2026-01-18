@@ -5,7 +5,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateCandidateTimes = generateCandidateTimes;
 exports.getOffsetConfigDescription = getOffsetConfigDescription;
 exports.validateOffsetConfig = validateOffsetConfig;
-const logger_js_1 = require("./logger.js");
+const logger_1 = require("./logger");
 // ═════════════════════════════════════════════════════════════════════════
 // OFFSET CONFIGURATION PRESETS
 // ═════════════════════════════════════════════════════════════════════════
@@ -49,7 +49,7 @@ const OFFSET_PRESETS = {
 function generateCandidateTimes(tentativeTime, // HH:MM:SS
 offsetConfig) {
     try {
-        logger_js_1.logger.info('Generating candidate times', { tentativeTime, offsetConfig });
+        logger_1.logger.info('Generating candidate times', { tentativeTime, offsetConfig });
         // ─────────────────────────────────────────────────────────────────────
         // Parse tentative time
         // ─────────────────────────────────────────────────────────────────────
@@ -77,7 +77,7 @@ offsetConfig) {
         else {
             throw new Error('No offset configuration provided');
         }
-        logger_js_1.logger.info('Offset configuration', {
+        logger_1.logger.info('Offset configuration', {
             offsetMinutes,
             interval,
             description,
@@ -113,7 +113,7 @@ offsetConfig) {
         }
         // Sort by priority (highest first)
         candidates.sort((a, b) => b.priority - a.priority);
-        logger_js_1.logger.info('Generated candidates', {
+        logger_1.logger.info('Generated candidates', {
             count: candidates.length,
             offsetRange: `${offsetMinutes} minutes`,
             interval: `${interval} minutes`,
@@ -121,7 +121,7 @@ offsetConfig) {
         return candidates;
     }
     catch (error) {
-        logger_js_1.logger.error('Candidate time generation failed', error);
+        logger_1.logger.error('Candidate time generation failed', error);
         throw error;
     }
 }

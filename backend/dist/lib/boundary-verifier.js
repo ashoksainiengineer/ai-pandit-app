@@ -7,7 +7,7 @@ exports.verifyBoundarySafety = verifyBoundarySafety;
 exports.isTimeSafeFromBoundaries = isTimeSafeFromBoundaries;
 exports.getSuggestedAlternatives = getSuggestedAlternatives;
 exports.formatBoundarySafetyResult = formatBoundarySafetyResult;
-const vedic_astrology_engine_js_1 = require("./vedic-astrology-engine.js");
+const vedic_astrology_engine_1 = require("./vedic-astrology-engine");
 // ═════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═════════════════════════════════════════════════════════════════════════════
@@ -38,7 +38,7 @@ function verifyBoundarySafety(ephemeris, julianDay) {
     // ─────────────────────────────────────────────────────────────────────────
     // 1. NAKSHATRA BOUNDARY CHECK
     // ─────────────────────────────────────────────────────────────────────────
-    const moonSidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, julianDay);
+    const moonSidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, julianDay);
     const positionInNakshatra = moonSidereal % NAKSHATRA_SPAN;
     const distanceToNextNakshatra = NAKSHATRA_SPAN - positionInNakshatra;
     const distanceToPrevNakshatra = positionInNakshatra;
@@ -47,7 +47,7 @@ function verifyBoundarySafety(ephemeris, julianDay) {
     const secsToPrevNakshatra = distanceToPrevNakshatra / RATES.moon;
     const nakshatraDistance = Math.min(secsToNextNakshatra, secsToPrevNakshatra);
     if (nakshatraDistance < SAFETY_THRESHOLDS.nakshatra) {
-        const currentNakshatra = (0, vedic_astrology_engine_js_1.getNakshatraForLongitude)(moonSidereal);
+        const currentNakshatra = (0, vedic_astrology_engine_1.getNakshatraForLongitude)(moonSidereal);
         warnings.push({
             type: 'nakshatra',
             message: `Moon is ${nakshatraDistance.toFixed(1)} seconds from nakshatra boundary (current: ${currentNakshatra.name})`,

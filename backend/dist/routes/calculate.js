@@ -51,6 +51,7 @@ router.post('/', auth_js_1.authMiddleware, async (req, res) => {
         await drizzle_js_1.db.insert(schema_js_1.sessions).values({
             id: sessionId,
             userId,
+            clerkId: userId, // Clerk user ID - same as userId from auth
             fullName: birthData.fullName,
             dateOfBirth: birthData.dateOfBirth,
             tentativeTime: birthData.tentativeTime,

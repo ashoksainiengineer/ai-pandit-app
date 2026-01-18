@@ -16,6 +16,7 @@ exports.users = (0, sqlite_core_1.sqliteTable)('users', {
 exports.sessions = (0, sqlite_core_1.sqliteTable)('sessions', {
     id: (0, sqlite_core_1.text)('id').primaryKey(),
     userId: (0, sqlite_core_1.text)('userId').notNull().references(() => exports.users.id),
+    clerkId: (0, sqlite_core_1.text)('clerkId').notNull(), // Clerk user ID for decryption key
     fullName: (0, sqlite_core_1.text)('fullName').notNull(),
     dateOfBirth: (0, sqlite_core_1.text)('dateOfBirth').notNull(),
     tentativeTime: (0, sqlite_core_1.text)('tentativeTime').notNull(),

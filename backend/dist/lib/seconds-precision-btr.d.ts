@@ -1,5 +1,5 @@
-import { TimeOffsetConfig } from './time-offset-manager.js';
-import { LifeEvent } from './types.js';
+import { TimeOffsetConfig } from './time-offset-manager';
+import { LifeEvent } from './types';
 export interface SecondsPrecisionInput {
     sessionId: string;
     dateOfBirth: string;
@@ -22,6 +22,7 @@ export interface SecondsPrecisionInput {
         longitude: number;
         timezone: string;
     };
+    abortSignal?: AbortSignal;
 }
 export interface SecondsPrecisionResult {
     rectifiedTime: string;

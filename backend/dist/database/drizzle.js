@@ -36,12 +36,16 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.client = exports.db = void 0;
+require("dotenv/config"); // Load env vars immediately
 const client_1 = require("@libsql/client");
 const libsql_1 = require("drizzle-orm/libsql");
-const schema = __importStar(require("./schema.js"));
-// Turso connection URL and auth token
-const DATABASE_URL = process.env.DATABASE_URL || 'file:./local.db';
-const DATABASE_AUTH_TOKEN = process.env.DATABASE_AUTH_TOKEN;
+const schema = __importStar(require("./schema"));
+// Turso connection from environment variables
+const DATABASE_URL = process.env.TURSO_DATABASE_URL;
+const DATABASE_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN;
+if (!DATABASE_URL) {
+    throw new Error('TURSO_DATABASE_URL environment variable is not set');
+}
 // Create libSQL client
 const client = (0, client_1.createClient)({
     url: DATABASE_URL,

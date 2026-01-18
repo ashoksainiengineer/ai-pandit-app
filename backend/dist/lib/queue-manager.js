@@ -8,14 +8,16 @@ exports.getQueuePosition = getQueuePosition;
 exports.getQueueStatus = getQueueStatus;
 exports.markAsComplete = markAsComplete;
 exports.markAsFailed = markAsFailed;
+exports.cancelSession = cancelSession;
 exports.startQueueProcessor = startQueueProcessor;
 exports.stopQueueProcessor = stopQueueProcessor;
 exports.getQueueStats = getQueueStats;
-const drizzle_js_1 = require("../database/drizzle.js");
-const schema_js_1 = require("../database/schema.js");
+const drizzle_1 = require("../database/drizzle");
+const schema_1 = require("../database/schema");
 const drizzle_orm_1 = require("drizzle-orm");
-const logger_js_1 = require("./logger.js");
-const crypto_js_1 = require("./crypto.js");
+const logger_1 = require("./logger");
+const crypto_1 = require("./crypto");
+const cancellation_manager_1 = require("./cancellation-manager");
 // ═════════════════════════════════════════════════════════════════════════════
 // QUEUE CONFIGURATION
 // ═════════════════════════════════════════════════════════════════════════════
@@ -49,16 +51,16 @@ async function addToQueue(sessionId) {
             };
         }
         // Update session status to queued
-        await drizzle_js_1.db.update(schema_js_1.sessions)
+        await drizzle_1.db.update(schema_1.sessions)
             .set({
             status: 'queued',
             updatedAt: new Date().toISOString(),
         })
-            .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, sessionId));
+            .where((0, drizzle_orm_1.eq)(schema_1.sessions.id, sessionId));
         // Get position in queue
         const position = await getQueuePosition(sessionId);
         const estimatedWait = position * QUEUE_CONFIG.estimatedTimePerRequest;
-        logger_js_1.logger.info('Request added to queue', {
+        logger_1.logger.info('Request added to queue', {
             sessionId,
             position,
             estimatedWait,
@@ -73,7 +75,7 @@ async function addToQueue(sessionId) {
         };
     }
     catch (error) {
-        logger_js_1.logger.error('Failed to add to queue', error);
+        logger_1.logger.error('Failed to add to queue', error);
         return {
             success: false,
             error: 'Failed to queue request',
@@ -86,15 +88,15 @@ async function addToQueue(sessionId) {
 async function getQueuePosition(sessionId) {
     try {
         // Get all queued sessions ordered by creation time
-        const queued = await drizzle_js_1.db.select({ id: schema_js_1.sessions.id })
-            .from(schema_js_1.sessions)
-            .where((0, drizzle_orm_1.or)((0, drizzle_orm_1.eq)(schema_js_1.sessions.status, 'queued'), (0, drizzle_orm_1.eq)(schema_js_1.sessions.status, 'processing')))
-            .orderBy((0, drizzle_orm_1.asc)(schema_js_1.sessions.createdAt));
+        const queued = await drizzle_1.db.select({ id: schema_1.sessions.id })
+            .from(schema_1.sessions)
+            .where((0, drizzle_orm_1.or)((0, drizzle_orm_1.eq)(schema_1.sessions.status, 'queued'), (0, drizzle_orm_1.eq)(schema_1.sessions.status, 'processing')))
+            .orderBy((0, drizzle_orm_1.asc)(schema_1.sessions.createdAt));
         const index = queued.findIndex(s => s.id === sessionId);
         return index === -1 ? 0 : index;
     }
     catch (error) {
-        logger_js_1.logger.error('Failed to get queue position', error);
+        logger_1.logger.error('Failed to get queue position', error);
         return 0;
     }
 }
@@ -103,9 +105,9 @@ async function getQueuePosition(sessionId) {
  */
 async function getQueueStatus(sessionId) {
     try {
-        const session = await drizzle_js_1.db.select()
-            .from(schema_js_1.sessions)
-            .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, sessionId))
+        const session = await drizzle_1.db.select()
+            .from(schema_1.sessions)
+            .where((0, drizzle_orm_1.eq)(schema_1.sessions.id, sessionId))
             .limit(1);
         if (session.length === 0) {
             return null;
@@ -125,7 +127,7 @@ async function getQueueStatus(sessionId) {
         };
     }
     catch (error) {
-        logger_js_1.logger.error('Failed to get queue status', error);
+        logger_1.logger.error('Failed to get queue status', error);
         return null;
     }
 }
@@ -134,9 +136,9 @@ async function getQueueStatus(sessionId) {
  */
 async function getQueuedCount() {
     try {
-        const result = await drizzle_js_1.db.select({ id: schema_js_1.sessions.id })
-            .from(schema_js_1.sessions)
-            .where((0, drizzle_orm_1.or)((0, drizzle_orm_1.eq)(schema_js_1.sessions.status, 'queued'), (0, drizzle_orm_1.eq)(schema_js_1.sessions.status, 'processing')));
+        const result = await drizzle_1.db.select({ id: schema_1.sessions.id })
+            .from(schema_1.sessions)
+            .where((0, drizzle_orm_1.or)((0, drizzle_orm_1.eq)(schema_1.sessions.status, 'queued'), (0, drizzle_orm_1.eq)(schema_1.sessions.status, 'processing')));
         return result.length;
     }
     catch (error) {
@@ -148,15 +150,15 @@ async function getQueuedCount() {
  */
 async function getNextInQueue() {
     try {
-        const next = await drizzle_js_1.db.select({ id: schema_js_1.sessions.id })
-            .from(schema_js_1.sessions)
-            .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.status, 'queued'))
-            .orderBy((0, drizzle_orm_1.asc)(schema_js_1.sessions.createdAt))
+        const next = await drizzle_1.db.select({ id: schema_1.sessions.id })
+            .from(schema_1.sessions)
+            .where((0, drizzle_orm_1.eq)(schema_1.sessions.status, 'queued'))
+            .orderBy((0, drizzle_orm_1.asc)(schema_1.sessions.createdAt))
             .limit(1);
         return next.length > 0 ? next[0].id : null;
     }
     catch (error) {
-        logger_js_1.logger.error('Failed to get next in queue', error);
+        logger_1.logger.error('Failed to get next in queue', error);
         return null;
     }
 }
@@ -164,19 +166,19 @@ async function getNextInQueue() {
  * Mark session as processing
  */
 async function markAsProcessing(sessionId) {
-    await drizzle_js_1.db.update(schema_js_1.sessions)
+    await drizzle_1.db.update(schema_1.sessions)
         .set({
         status: 'processing',
         updatedAt: new Date().toISOString(),
     })
-        .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, sessionId));
+        .where((0, drizzle_orm_1.eq)(schema_1.sessions.id, sessionId));
     currentProcessingId = sessionId;
 }
 /**
  * Mark session as complete with results
  */
 async function markAsComplete(sessionId, results) {
-    await drizzle_js_1.db.update(schema_js_1.sessions)
+    await drizzle_1.db.update(schema_1.sessions)
         .set({
         status: 'complete',
         rectifiedTime: results.rectifiedTime,
@@ -186,33 +188,65 @@ async function markAsComplete(sessionId, results) {
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
     })
-        .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, sessionId));
+        .where((0, drizzle_orm_1.eq)(schema_1.sessions.id, sessionId));
     if (currentProcessingId === sessionId) {
         currentProcessingId = null;
     }
-    logger_js_1.logger.info('Session marked complete', { sessionId });
+    logger_1.logger.info('Session marked complete', { sessionId });
 }
 /**
  * Mark session as failed
  */
 async function markAsFailed(sessionId, error) {
-    await drizzle_js_1.db.update(schema_js_1.sessions)
+    await drizzle_1.db.update(schema_1.sessions)
         .set({
         status: 'failed',
         errorMessage: error,
         updatedAt: new Date().toISOString(),
     })
-        .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, sessionId));
+        .where((0, drizzle_orm_1.eq)(schema_1.sessions.id, sessionId));
     if (currentProcessingId === sessionId) {
         currentProcessingId = null;
     }
-    logger_js_1.logger.error('Session marked failed', { sessionId, error });
+    logger_1.logger.error('Session marked failed', { sessionId, error });
+}
+/**
+ * Cancel a session
+ */
+async function cancelSession(sessionId) {
+    try {
+        const session = await drizzle_1.db.select().from(schema_1.sessions).where((0, drizzle_orm_1.eq)(schema_1.sessions.id, sessionId)).limit(1);
+        if (!session.length)
+            return false;
+        // Only cancel if queued or processing
+        if (session[0].status !== 'queued' && session[0].status !== 'processing') {
+            return false;
+        }
+        // 🛑 ABORT the running process (this will cancel fetch requests!)
+        (0, cancellation_manager_1.abortSession)(sessionId);
+        await drizzle_1.db.update(schema_1.sessions)
+            .set({
+            status: 'failed',
+            errorMessage: 'Cancelled by user',
+            updatedAt: new Date().toISOString(),
+        })
+            .where((0, drizzle_orm_1.eq)(schema_1.sessions.id, sessionId));
+        if (currentProcessingId === sessionId) {
+            currentProcessingId = null;
+        }
+        logger_1.logger.info('Session cancelled by user', { sessionId });
+        return true;
+    }
+    catch (error) {
+        logger_1.logger.error('Failed to cancel session', error);
+        return false;
+    }
 }
 // ═════════════════════════════════════════════════════════════════════════════
 // QUEUE PROCESSOR
 // ═════════════════════════════════════════════════════════════════════════════
 // Import seconds-precision analysis function for ultimate accuracy
-const seconds_precision_btr_js_1 = require("./seconds-precision-btr.js");
+const seconds_precision_btr_1 = require("./seconds-precision-btr");
 /**
  * Start the queue processor
  * Runs in background, processes one request at a time
@@ -246,25 +280,27 @@ async function processQueue() {
             }
             // Mark as processing
             await markAsProcessing(nextId);
-            logger_js_1.logger.info('Starting to process request', { sessionId: nextId });
+            logger_1.logger.info('Starting to process request', { sessionId: nextId });
             // Get session data
-            const session = await drizzle_js_1.db.select()
-                .from(schema_js_1.sessions)
-                .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, nextId))
+            const session = await drizzle_1.db.select()
+                .from(schema_1.sessions)
+                .where((0, drizzle_orm_1.eq)(schema_1.sessions.id, nextId))
                 .limit(1);
             if (session.length === 0) {
                 await markAsFailed(nextId, 'Session not found');
                 continue;
             }
             const s = session[0];
+            // 🛑 Create AbortController for this session
+            const abortController = (0, cancellation_manager_1.createAbortController)(nextId);
             // Process the analysis
             try {
-                // 🔐 Decrypt sensitive data using userId
-                const decryptedLifeEvents = JSON.parse((0, crypto_js_1.decryptData)(s.lifeEvents, s.userId));
+                // 🔐 Decrypt sensitive data using clerkId (encryption key)
+                const decryptedLifeEvents = JSON.parse((0, crypto_1.decryptData)(s.lifeEvents, s.clerkId));
                 const decryptedPhysicalTraits = s.physicalTraits
-                    ? JSON.parse((0, crypto_js_1.decryptData)(s.physicalTraits, s.userId))
+                    ? JSON.parse((0, crypto_1.decryptData)(s.physicalTraits, s.clerkId))
                     : undefined;
-                const result = await (0, seconds_precision_btr_js_1.processSecondsPrecisionBTR)({
+                const result = await (0, seconds_precision_btr_1.processSecondsPrecisionBTR)({
                     sessionId: nextId,
                     dateOfBirth: s.dateOfBirth,
                     tentativeTime: s.tentativeTime,
@@ -274,16 +310,27 @@ async function processQueue() {
                     lifeEvents: decryptedLifeEvents,
                     offsetConfig: s.offsetConfig ? JSON.parse(s.offsetConfig) : { preset: '1hour' },
                     physicalTraits: decryptedPhysicalTraits,
+                    abortSignal: abortController.signal, // 🛑 Pass abort signal
                 });
                 await markAsComplete(nextId, result);
+                (0, cancellation_manager_1.cleanupController)(nextId); // Cleanup on success
             }
             catch (error) {
-                const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-                await markAsFailed(nextId, errorMsg);
+                // Check if this was a cancellation
+                if ((0, cancellation_manager_1.isCancellationError)(error)) {
+                    logger_1.logger.info('Session processing cancelled', { sessionId: nextId });
+                    (0, cancellation_manager_1.cleanupController)(nextId);
+                    // Status already set to 'failed' by cancelSession, no need to update
+                }
+                else {
+                    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+                    await markAsFailed(nextId, errorMsg);
+                    (0, cancellation_manager_1.cleanupController)(nextId);
+                }
             }
         }
         catch (error) {
-            logger_js_1.logger.error('Queue processor error', error);
+            logger_1.logger.error('Queue processor error', error);
             await sleep(5000); // Wait before retry on error
         }
     }
@@ -295,16 +342,16 @@ async function cleanupStaleRequests() {
     try {
         const staleThreshold = new Date(Date.now() - QUEUE_CONFIG.staleTimeoutMs).toISOString();
         // Find processing requests that are too old
-        const stale = await drizzle_js_1.db.select({ id: schema_js_1.sessions.id })
-            .from(schema_js_1.sessions)
-            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_js_1.sessions.status, 'processing')));
+        const stale = await drizzle_1.db.select({ id: schema_1.sessions.id })
+            .from(schema_1.sessions)
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.sessions.status, 'processing')));
         for (const s of stale) {
             await markAsFailed(s.id, 'Request timed out');
-            logger_js_1.logger.warn('Cleaned up stale request', { sessionId: s.id });
+            logger_1.logger.warn('Cleaned up stale request', { sessionId: s.id });
         }
     }
     catch (error) {
-        logger_js_1.logger.error('Cleanup stale requests failed', error);
+        logger_1.logger.error('Cleanup stale requests failed', error);
     }
 }
 /**
@@ -312,25 +359,25 @@ async function cleanupStaleRequests() {
  */
 function stopQueueProcessor() {
     isProcessorRunning = false;
-    logger_js_1.logger.info('Queue processor stopped');
+    logger_1.logger.info('Queue processor stopped');
 }
 /**
  * Get queue statistics
  */
 async function getQueueStats() {
     try {
-        const queued = await drizzle_js_1.db.select({ id: schema_js_1.sessions.id })
-            .from(schema_js_1.sessions)
-            .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.status, 'queued'));
-        const processing = await drizzle_js_1.db.select({ id: schema_js_1.sessions.id })
-            .from(schema_js_1.sessions)
-            .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.status, 'processing'));
+        const queued = await drizzle_1.db.select({ id: schema_1.sessions.id })
+            .from(schema_1.sessions)
+            .where((0, drizzle_orm_1.eq)(schema_1.sessions.status, 'queued'));
+        const processing = await drizzle_1.db.select({ id: schema_1.sessions.id })
+            .from(schema_1.sessions)
+            .where((0, drizzle_orm_1.eq)(schema_1.sessions.status, 'processing'));
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const todayStr = today.toISOString();
-        const completed = await drizzle_js_1.db.select({ id: schema_js_1.sessions.id })
-            .from(schema_js_1.sessions)
-            .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.status, 'complete'));
+        const completed = await drizzle_1.db.select({ id: schema_1.sessions.id })
+            .from(schema_1.sessions)
+            .where((0, drizzle_orm_1.eq)(schema_1.sessions.status, 'complete'));
         return {
             queuedCount: queued.length,
             processingCount: processing.length,
@@ -339,7 +386,7 @@ async function getQueueStats() {
         };
     }
     catch (error) {
-        logger_js_1.logger.error('Failed to get queue stats', error);
+        logger_1.logger.error('Failed to get queue stats', error);
         return {
             queuedCount: 0,
             processingCount: 0,

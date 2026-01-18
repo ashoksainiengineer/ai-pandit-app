@@ -5,13 +5,13 @@
 // Target: 99%+ accuracy
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.processComprehensiveAnalysis = processComprehensiveAnalysis;
-const ephemeris_js_1 = require("./ephemeris.js");
-const vedic_astrology_engine_js_1 = require("./vedic-astrology-engine.js");
-const advanced_btr_methods_js_1 = require("./advanced-btr-methods.js");
-const jaimini_astrology_js_1 = require("./jaimini-astrology.js");
-const kimi_k2_client_js_1 = require("./kimi-k2-client.js");
-const time_offset_manager_js_1 = require("./time-offset-manager.js");
-const logger_js_1 = require("./logger.js");
+const ephemeris_1 = require("./ephemeris");
+const vedic_astrology_engine_1 = require("./vedic-astrology-engine");
+const advanced_btr_methods_1 = require("./advanced-btr-methods");
+const jaimini_astrology_1 = require("./jaimini-astrology");
+const kimi_k2_client_1 = require("./kimi-k2-client");
+const time_offset_manager_1 = require("./time-offset-manager");
+const logger_1 = require("./logger");
 // ═════════════════════════════════════════════════════════════════════════════
 // MASTER SYSTEM PROMPT FOR MULTI-METHOD ANALYSIS
 // ═════════════════════════════════════════════════════════════════════════════
@@ -91,7 +91,7 @@ async function processComprehensiveAnalysis(input) {
     const startTime = Date.now();
     const methodsUsed = [];
     try {
-        logger_js_1.logger.info('Starting COMPREHENSIVE BTR analysis (all methods)', {
+        logger_1.logger.info('Starting COMPREHENSIVE BTR analysis (all methods)', {
             sessionId: input.sessionId,
             dateOfBirth: input.dateOfBirth,
             tentativeTime: input.tentativeTime,
@@ -100,8 +100,8 @@ async function processComprehensiveAnalysis(input) {
         // ═══════════════════════════════════════════════════════════════════════
         // PHASE 1: Generate Candidate Times
         // ═══════════════════════════════════════════════════════════════════════
-        const candidates = (0, time_offset_manager_js_1.generateCandidateTimes)(input.tentativeTime, input.offsetConfig);
-        logger_js_1.logger.info('Generated candidates', { count: candidates.length });
+        const candidates = (0, time_offset_manager_1.generateCandidateTimes)(input.tentativeTime, input.offsetConfig);
+        logger_1.logger.info('Generated candidates', { count: candidates.length });
         // ═══════════════════════════════════════════════════════════════════════
         // PHASE 2: Multi-Method Quick Filter (Sequential for RAM efficiency)
         // ═══════════════════════════════════════════════════════════════════════
@@ -109,7 +109,7 @@ async function processComprehensiveAnalysis(input) {
         methodsUsed.push('Vimshottari Dasha', 'Yogini Dasha', 'Physical Traits', 'Chara Dasha');
         // Take top 5-7 for deep analysis
         const topCandidates = scoredCandidates.slice(0, 7);
-        logger_js_1.logger.info('Multi-method quick filter complete', {
+        logger_1.logger.info('Multi-method quick filter complete', {
             total: candidates.length,
             forDeepAnalysis: topCandidates.length,
             topScore: topCandidates[0]?.combinedScore || 0,
@@ -124,7 +124,7 @@ async function processComprehensiveAnalysis(input) {
         // ═══════════════════════════════════════════════════════════════════════
         const bestResult = selectBestWithConsensus(analysisResults);
         const processingTime = Date.now() - startTime;
-        logger_js_1.logger.info('COMPREHENSIVE BTR analysis complete', {
+        logger_1.logger.info('COMPREHENSIVE BTR analysis complete', {
             sessionId: input.sessionId,
             rectifiedTime: bestResult.time,
             accuracy: bestResult.score,
@@ -148,7 +148,7 @@ async function processComprehensiveAnalysis(input) {
         };
     }
     catch (error) {
-        logger_js_1.logger.error('Comprehensive BTR processing failed', error);
+        logger_1.logger.error('Comprehensive BTR processing failed', error);
         throw error;
     }
 }
@@ -162,20 +162,20 @@ async function multiMethodQuickFilter(candidates, dateOfBirth, latitude, longitu
     for (const candidate of candidates) {
         try {
             // Calculate ephemeris
-            const ephemeris = await (0, ephemeris_js_1.calculateEphemeris)(dateOfBirth, candidate.time, latitude, longitude, timezone);
+            const ephemeris = await (0, ephemeris_1.calculateEphemeris)(dateOfBirth, candidate.time, latitude, longitude, timezone);
             const jd = dateToJulianDay(dateOfBirth, candidate.time, timezone);
-            const moonSidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
+            const moonSidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
             // ═══════════════════════════════════════════════════════════════════
             // METHOD 1: Vimshottari Dasha Score
             // ═══════════════════════════════════════════════════════════════════
-            const vimshottariPeriods = (0, vedic_astrology_engine_js_1.calculateVimshottariDasha)(moonSidereal, birthDate);
+            const vimshottariPeriods = (0, vedic_astrology_engine_1.calculateVimshottariDasha)(moonSidereal, birthDate);
             let vimshottariScore = 0;
             let eventMatches = 0;
             for (const event of lifeEvents) {
                 const eventDate = new Date(event.eventDate);
-                const dasha = (0, vedic_astrology_engine_js_1.getDashaForDate)(vimshottariPeriods, eventDate);
+                const dasha = (0, vedic_astrology_engine_1.getDashaForDate)(vimshottariPeriods, eventDate);
                 if (dasha) {
-                    const correlation = (0, vedic_astrology_engine_js_1.dashaSupportsEvent)(dasha, event.category, event.eventType);
+                    const correlation = (0, vedic_astrology_engine_1.dashaSupportsEvent)(dasha, event.category, event.eventType);
                     if (correlation.supports) {
                         eventMatches++;
                         vimshottariScore += correlation.strength;
@@ -188,13 +188,13 @@ async function multiMethodQuickFilter(candidates, dateOfBirth, latitude, longitu
             // ═══════════════════════════════════════════════════════════════════
             // METHOD 2: Yogini Dasha Score
             // ═══════════════════════════════════════════════════════════════════
-            const yoginiPeriods = (0, advanced_btr_methods_js_1.calculateYoginiDasha)(moonSidereal, birthDate);
+            const yoginiPeriods = (0, advanced_btr_methods_1.calculateYoginiDasha)(moonSidereal, birthDate);
             let yoginiScore = 0;
             for (const event of lifeEvents) {
                 const eventDate = new Date(event.eventDate);
-                const yogini = (0, advanced_btr_methods_js_1.getYoginiDashaForDate)(yoginiPeriods, eventDate);
+                const yogini = (0, advanced_btr_methods_1.getYoginiDashaForDate)(yoginiPeriods, eventDate);
                 if (yogini) {
-                    const correlation = (0, advanced_btr_methods_js_1.yoginiSupportsEvent)(yogini, event.category, event.eventType);
+                    const correlation = (0, advanced_btr_methods_1.yoginiSupportsEvent)(yogini, event.category, event.eventType);
                     if (correlation.supports) {
                         yoginiScore += 100 / lifeEvents.length;
                     }
@@ -204,13 +204,13 @@ async function multiMethodQuickFilter(candidates, dateOfBirth, latitude, longitu
             // ═══════════════════════════════════════════════════════════════════
             // METHOD 3: Chara Dasha (Jaimini) Score
             // ═══════════════════════════════════════════════════════════════════
-            const charaPeriods = (0, jaimini_astrology_js_1.calculateCharaDasha)(ephemeris, birthDate);
+            const charaPeriods = (0, jaimini_astrology_1.calculateCharaDasha)(ephemeris, birthDate);
             let charaDashaScore = 0;
             for (const event of lifeEvents) {
                 const eventDate = new Date(event.eventDate);
-                const chara = (0, jaimini_astrology_js_1.getCharaDashaForDate)(charaPeriods, eventDate);
+                const chara = (0, jaimini_astrology_1.getCharaDashaForDate)(charaPeriods, eventDate);
                 if (chara) {
-                    const correlation = (0, jaimini_astrology_js_1.charaDashaSupportsEvent)(chara, event.category, ephemeris);
+                    const correlation = (0, jaimini_astrology_1.charaDashaSupportsEvent)(chara, event.category, ephemeris);
                     if (correlation.supports) {
                         charaDashaScore += correlation.strength / lifeEvents.length;
                     }
@@ -222,13 +222,13 @@ async function multiMethodQuickFilter(candidates, dateOfBirth, latitude, longitu
             // ═══════════════════════════════════════════════════════════════════
             let physicalTraitsScore = 50; // Neutral if not provided
             if (physicalTraits && (physicalTraits.height || physicalTraits.build || physicalTraits.complexion)) {
-                const traitAnalysis = (0, advanced_btr_methods_js_1.scorePhysicalTraits)(ephemeris, physicalTraits);
+                const traitAnalysis = (0, advanced_btr_methods_1.scorePhysicalTraits)(ephemeris, physicalTraits);
                 physicalTraitsScore = traitAnalysis.score;
             }
             // ═══════════════════════════════════════════════════════════════════
             // METHOD 5: Divisional Charts Quick Check
             // ═══════════════════════════════════════════════════════════════════
-            const divisionalCharts = (0, advanced_btr_methods_js_1.generateDivisionalCharts)(ephemeris);
+            const divisionalCharts = (0, advanced_btr_methods_1.generateDivisionalCharts)(ephemeris);
             let divisionalChartsScore = 50;
             // Check D9 for marriage events
             const hasMarriageEvent = lifeEvents.some(e => e.category === 'marriage' || e.eventType.toLowerCase().includes('marriage'));
@@ -259,7 +259,7 @@ async function multiMethodQuickFilter(candidates, dateOfBirth, latitude, longitu
             // ═══════════════════════════════════════════════════════════════════
             // METHOD 6: Advanced Aspects Score
             // ═══════════════════════════════════════════════════════════════════
-            const aspects = (0, advanced_btr_methods_js_1.calculateAdvancedAspects)(ephemeris);
+            const aspects = (0, advanced_btr_methods_1.calculateAdvancedAspects)(ephemeris);
             let advancedAspectsScore = 50;
             // Count beneficial aspects
             const beneficAspects = aspects.filter(a => ['trine', 'sextile', 'conjunction'].includes(a.aspectType) &&
@@ -291,7 +291,7 @@ async function multiMethodQuickFilter(candidates, dateOfBirth, latitude, longitu
             });
         }
         catch (error) {
-            logger_js_1.logger.error(`Multi-method filter failed for ${candidate.time}`, error);
+            logger_1.logger.error(`Multi-method filter failed for ${candidate.time}`, error);
         }
     }
     // Sort by combined score
@@ -304,31 +304,31 @@ async function comprehensiveKimiAnalysis(candidates, dateOfBirth, latitude, long
     // Process candidates SEQUENTIALLY (RAM efficiency)
     for (const candidate of candidates) {
         try {
-            logger_js_1.logger.info('Comprehensive Kimi analysis starting', { time: candidate.time });
+            logger_1.logger.info('Comprehensive Kimi analysis starting', { time: candidate.time });
             // Get ephemeris
-            const ephemeris = await (0, ephemeris_js_1.calculateEphemeris)(dateOfBirth, candidate.time, latitude, longitude, timezone);
+            const ephemeris = await (0, ephemeris_1.calculateEphemeris)(dateOfBirth, candidate.time, latitude, longitude, timezone);
             const jd = dateToJulianDay(dateOfBirth, candidate.time, timezone);
-            const moonSidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
+            const moonSidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
             // ═══════════════════════════════════════════════════════════════════
             // Calculate ALL dasha systems
             // ═══════════════════════════════════════════════════════════════════
-            const vimshottariPeriods = (0, vedic_astrology_engine_js_1.calculateVimshottariDasha)(moonSidereal, birthDate);
-            const yoginiPeriods = (0, advanced_btr_methods_js_1.calculateYoginiDasha)(moonSidereal, birthDate);
-            const charaPeriods = (0, jaimini_astrology_js_1.calculateCharaDasha)(ephemeris, birthDate);
-            const rasiPeriods = (0, jaimini_astrology_js_1.calculateRasiDasha)(ephemeris, birthDate);
-            const tatwaPeriods = (0, jaimini_astrology_js_1.calculateTatwaDasha)(moonSidereal, birthDate);
+            const vimshottariPeriods = (0, vedic_astrology_engine_1.calculateVimshottariDasha)(moonSidereal, birthDate);
+            const yoginiPeriods = (0, advanced_btr_methods_1.calculateYoginiDasha)(moonSidereal, birthDate);
+            const charaPeriods = (0, jaimini_astrology_1.calculateCharaDasha)(ephemeris, birthDate);
+            const rasiPeriods = (0, jaimini_astrology_1.calculateRasiDasha)(ephemeris, birthDate);
+            const tatwaPeriods = (0, jaimini_astrology_1.calculateTatwaDasha)(moonSidereal, birthDate);
             // ═══════════════════════════════════════════════════════════════════
             // Calculate ALL supplementary data
             // ═══════════════════════════════════════════════════════════════════
-            const divisionalCharts = (0, advanced_btr_methods_js_1.generateDivisionalCharts)(ephemeris);
-            const advancedAspects = (0, advanced_btr_methods_js_1.calculateAdvancedAspects)(ephemeris);
-            const jaiminiAspects = (0, jaimini_astrology_js_1.calculateJaiminiAspects)(ephemeris);
-            const charaKarakas = (0, jaimini_astrology_js_1.calculateCharaKarakas)(ephemeris);
-            const arudhaLagna = (0, advanced_btr_methods_js_1.calculateArudhaLagna)(ephemeris);
+            const divisionalCharts = (0, advanced_btr_methods_1.generateDivisionalCharts)(ephemeris);
+            const advancedAspects = (0, advanced_btr_methods_1.calculateAdvancedAspects)(ephemeris);
+            const jaiminiAspects = (0, jaimini_astrology_1.calculateJaiminiAspects)(ephemeris);
+            const charaKarakas = (0, jaimini_astrology_1.calculateCharaKarakas)(ephemeris);
+            const arudhaLagna = (0, advanced_btr_methods_1.calculateArudhaLagna)(ephemeris);
             // Physical traits analysis
-            let physicalTraitsAnalysis = null;
+            let physicalTraitsAnalysis;
             if (physicalTraits) {
-                physicalTraitsAnalysis = (0, advanced_btr_methods_js_1.scorePhysicalTraits)(ephemeris, physicalTraits);
+                physicalTraitsAnalysis = (0, advanced_btr_methods_1.scorePhysicalTraits)(ephemeris, physicalTraits);
             }
             // ═══════════════════════════════════════════════════════════════════
             // Build COMPREHENSIVE prompt for Kimi K2
@@ -341,17 +341,17 @@ async function comprehensiveKimiAnalysis(candidates, dateOfBirth, latitude, long
                 tatwa: tatwaPeriods,
             }, divisionalCharts, advancedAspects, jaiminiAspects, charaKarakas, arudhaLagna, physicalTraitsAnalysis);
             // Call Kimi K2 with extended tokens for comprehensive analysis
-            const response = await (0, kimi_k2_client_js_1.callKimiK2)(COMPREHENSIVE_SYSTEM_PROMPT, prompt, {
+            const response = await (0, kimi_k2_client_1.callKimiK2)(COMPREHENSIVE_SYSTEM_PROMPT, prompt, {
                 temperature: 0.1,
                 maxTokens: 12000, // More tokens for comprehensive analysis
                 enableThinking: true,
             });
             if (!response.success) {
-                logger_js_1.logger.error('Kimi K2 comprehensive call failed', { error: response.error });
+                logger_1.logger.error('Kimi K2 comprehensive call failed', { error: response.error });
                 continue;
             }
             // Parse response
-            const parsed = (0, kimi_k2_client_js_1.parseKimiAnalysisResponse)(response.content);
+            const parsed = (0, kimi_k2_client_1.parseKimiAnalysisResponse)(response.content);
             results.push({
                 time: candidate.time,
                 score: parsed.score,
@@ -368,14 +368,14 @@ async function comprehensiveKimiAnalysis(candidates, dateOfBirth, latitude, long
                 },
                 verdict: parsed.verdict,
             });
-            logger_js_1.logger.info('Comprehensive Kimi analysis complete', {
+            logger_1.logger.info('Comprehensive Kimi analysis complete', {
                 time: candidate.time,
                 score: parsed.score,
                 confidence: parsed.confidence,
             });
         }
         catch (error) {
-            logger_js_1.logger.error(`Comprehensive analysis failed for ${candidate.time}`, error);
+            logger_1.logger.error(`Comprehensive analysis failed for ${candidate.time}`, error);
         }
     }
     // Sort by score
@@ -389,17 +389,17 @@ function buildComprehensivePrompt(candidateTime, dateOfBirth, ephemeris, jd, lif
     // Format planetary positions
     const planets = [];
     for (const [name, data] of Object.entries(ephemeris.planets)) {
-        const sidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(data.longitude, jd);
-        const nakshatra = (0, vedic_astrology_engine_js_1.getNakshatraForLongitude)(sidereal);
+        const sidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(data.longitude, jd);
+        const nakshatra = (0, vedic_astrology_engine_1.getNakshatraForLongitude)(sidereal);
         planets.push(`${name.toUpperCase()}: ${data.sign} ${(sidereal % 30).toFixed(2)}° (${nakshatra.name} pada ${nakshatra.pada})`);
     }
     // Format life events with ALL dasha info
     const eventsWithAllDashas = lifeEvents.map(event => {
         const eventDate = new Date(event.eventDate);
-        const vimDasha = (0, vedic_astrology_engine_js_1.getDashaForDate)(allDashas.vimshottari, eventDate);
-        const yogDasha = (0, advanced_btr_methods_js_1.getYoginiDashaForDate)(allDashas.yogini, eventDate);
-        const charDasha = (0, jaimini_astrology_js_1.getCharaDashaForDate)(allDashas.chara, eventDate);
-        const tatDasha = (0, jaimini_astrology_js_1.getTatwaForDate)(allDashas.tatwa, eventDate);
+        const vimDasha = (0, vedic_astrology_engine_1.getDashaForDate)(allDashas.vimshottari, eventDate);
+        const yogDasha = (0, advanced_btr_methods_1.getYoginiDashaForDate)(allDashas.yogini, eventDate);
+        const charDasha = (0, jaimini_astrology_1.getCharaDashaForDate)(allDashas.chara, eventDate);
+        const tatDasha = (0, jaimini_astrology_1.getTatwaForDate)(allDashas.tatwa, eventDate);
         return `${event.eventType} (${event.category}) - ${event.eventDate}
    Description: ${event.description}
    Importance: ${event.importance}
@@ -428,37 +428,37 @@ HOUSE CUSPS:
 ${ephemeris.houses.map(h => `House ${h.houseNumber}: ${h.sign} ${h.degree.toFixed(2)}°`).join('\n')}
 
 ═════════════════════════════════════════════════════════════════════════════
-${(0, vedic_astrology_engine_js_1.formatDashaSequence)(allDashas.vimshottari)}
+${(0, vedic_astrology_engine_1.formatDashaSequence)(allDashas.vimshottari)}
 
 ═════════════════════════════════════════════════════════════════════════════
-${(0, advanced_btr_methods_js_1.formatYoginiDashaSequence)(allDashas.yogini)}
+${(0, advanced_btr_methods_1.formatYoginiDashaSequence)(allDashas.yogini)}
 
 ═════════════════════════════════════════════════════════════════════════════
-${(0, jaimini_astrology_js_1.formatCharaDasha)(allDashas.chara)}
+${(0, jaimini_astrology_1.formatCharaDasha)(allDashas.chara)}
 
 ═════════════════════════════════════════════════════════════════════════════
-${(0, jaimini_astrology_js_1.formatRasiDasha)(allDashas.rasi)}
+${(0, jaimini_astrology_1.formatRasiDasha)(allDashas.rasi)}
 
 ═════════════════════════════════════════════════════════════════════════════
-${(0, jaimini_astrology_js_1.formatTatwaDasha)(allDashas.tatwa)}
+${(0, jaimini_astrology_1.formatTatwaDasha)(allDashas.tatwa)}
 
 ═════════════════════════════════════════════════════════════════════════════
-${(0, jaimini_astrology_js_1.formatCharaKarakas)(charaKarakas)}
+${(0, jaimini_astrology_1.formatCharaKarakas)(charaKarakas)}
 
 ═════════════════════════════════════════════════════════════════════════════
-${(0, advanced_btr_methods_js_1.formatArudhaLagna)(arudhaLagna)}
+${(0, advanced_btr_methods_1.formatArudhaLagna)(arudhaLagna)}
 
 ═════════════════════════════════════════════════════════════════════════════
-${(0, advanced_btr_methods_js_1.formatDivisionalCharts)(divisionalCharts)}
+${(0, advanced_btr_methods_1.formatDivisionalCharts)(divisionalCharts)}
 
 ═════════════════════════════════════════════════════════════════════════════
-${(0, advanced_btr_methods_js_1.formatAdvancedAspects)(advancedAspects)}
+${(0, advanced_btr_methods_1.formatAdvancedAspects)(advancedAspects)}
 
 ═════════════════════════════════════════════════════════════════════════════
-${(0, jaimini_astrology_js_1.formatJaiminiAspects)(jaiminiAspects)}
+${(0, jaimini_astrology_1.formatJaiminiAspects)(jaiminiAspects)}
 
 ═════════════════════════════════════════════════════════════════════════════
-${physicalTraitsAnalysis ? (0, advanced_btr_methods_js_1.formatPhysicalTraitsAnalysis)(physicalTraitsAnalysis) : 'PHYSICAL TRAITS: Not provided'}
+${physicalTraitsAnalysis ? (0, advanced_btr_methods_1.formatPhysicalTraitsAnalysis)(physicalTraitsAnalysis) : 'PHYSICAL TRAITS: Not provided'}
 
 ═════════════════════════════════════════════════════════════════════════════
 LIFE EVENTS TO VERIFY (${lifeEvents.length} events):
@@ -501,7 +501,7 @@ function selectBestWithConsensus(results) {
     }
     // Already sorted by score
     const best = results[0];
-    logger_js_1.logger.info('Best candidate selected (multi-method consensus)', {
+    logger_1.logger.info('Best candidate selected (multi-method consensus)', {
         time: best.time,
         score: best.score,
         confidence: best.confidence,

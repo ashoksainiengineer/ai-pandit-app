@@ -1,4 +1,4 @@
-import { EphemerisData } from './types.js';
+import { EphemerisData } from './types';
 export interface CharaKaraka {
     planet: string;
     karakaName: string;

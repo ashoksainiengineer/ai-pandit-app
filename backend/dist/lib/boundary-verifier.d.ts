@@ -1,4 +1,4 @@
-import { EphemerisData } from './types.js';
+import { EphemerisData } from './types';
 export interface BoundaryWarning {
     type: 'nakshatra' | 'lagna' | 'house' | 'dasha';
     message: string;

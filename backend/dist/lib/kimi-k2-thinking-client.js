@@ -4,16 +4,16 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.analyzeTopCandidatesWithKimi = analyzeTopCandidatesWithKimi;
 // lib/kimi-k2-thinking-client.ts (UPDATED)
 // Enhanced for analyzing top candidates with Kimi K2
-const server_config_js_1 = require("./server-config.js");
-const astrological_data_processor_js_1 = require("./astrological-data-processor.js");
-const logger_js_1 = require("./logger.js");
+const server_config_1 = require("./server-config");
+const astrological_data_processor_1 = require("./astrological-data-processor");
+const logger_1 = require("./logger");
 // ═════════════════════════════════════════════════════════════════════════
 // MAIN: Analyze Top Candidates with Kimi K2
 // ═════════════════════════════════════════════════════════════════════════
 async function analyzeTopCandidatesWithKimi(topCandidates, lifeEvents) {
     const startTime = Date.now();
     try {
-        logger_js_1.logger.info('Starting Kimi K2 analysis of top candidates', {
+        logger_1.logger.info('Starting Kimi K2 analysis of top candidates', {
             candidateCount: topCandidates.length,
         });
         const kimiResults = [];
@@ -22,12 +22,12 @@ async function analyzeTopCandidatesWithKimi(topCandidates, lifeEvents) {
         // ─────────────────────────────────────────────────────────────────────
         for (const candidate of topCandidates) {
             try {
-                logger_js_1.logger.info('Analyzing candidate with Kimi K2', {
+                logger_1.logger.info('Analyzing candidate with Kimi K2', {
                     time: candidate.time,
                     quickScore: candidate.quickScore,
                 });
                 // Generate astrological report
-                const astrologicalReport = await (0, astrological_data_processor_js_1.generateAstrologicalReport)(candidate.ephemerisData, lifeEvents);
+                const astrologicalReport = await (0, astrological_data_processor_1.generateAstrologicalReport)(candidate.ephemerisData, lifeEvents);
                 // Build Kimi prompt
                 const kimiPrompt = buildKimiPromptForCandidate(candidate, astrologicalReport, lifeEvents);
                 // Call Kimi K2
@@ -35,14 +35,14 @@ async function analyzeTopCandidatesWithKimi(topCandidates, lifeEvents) {
                 // Parse response
                 const result = parseKimiResponse(kimiResponse, candidate);
                 kimiResults.push(result);
-                logger_js_1.logger.info('Kimi K2 analysis complete', {
+                logger_1.logger.info('Kimi K2 analysis complete', {
                     time: candidate.time,
                     score: result.score,
                     confidence: result.confidence,
                 });
             }
             catch (error) {
-                logger_js_1.logger.error(`Kimi K2 analysis failed for ${candidate.time}`, error);
+                logger_1.logger.error(`Kimi K2 analysis failed for ${candidate.time}`, error);
                 // Continue with next candidate
             }
         }
@@ -53,7 +53,7 @@ async function analyzeTopCandidatesWithKimi(topCandidates, lifeEvents) {
         const topRecommendation = kimiResults[0];
         const alternativeOptions = kimiResults.slice(1);
         const processingTime = Date.now() - startTime;
-        logger_js_1.logger.info('Top candidates analysis complete', {
+        logger_1.logger.info('Top candidates analysis complete', {
             topTime: topRecommendation.time,
             topScore: topRecommendation.score,
             processingTime,
@@ -66,7 +66,7 @@ async function analyzeTopCandidatesWithKimi(topCandidates, lifeEvents) {
         };
     }
     catch (error) {
-        logger_js_1.logger.error('Top candidates Kimi analysis failed', error);
+        logger_1.logger.error('Top candidates Kimi analysis failed', error);
         throw error;
     }
 }
@@ -154,13 +154,13 @@ KEY CONCERNS: [What doesn't match]
 // CALL: Kimi K2 with Thinking Mode
 // ═════════════════════════════════════════════════════════════════════════
 async function callKimiK2(prompt) {
-    return await server_config_js_1.kimiClient.messages.create({
-        model: server_config_js_1.serverConfig.kimi.model,
-        max_tokens: server_config_js_1.serverConfig.kimi.maxTokens,
-        temperature: server_config_js_1.serverConfig.kimi.temperature,
+    return await server_config_1.kimiClient.messages.create({
+        model: server_config_1.serverConfig.kimi.model,
+        max_tokens: server_config_1.serverConfig.kimi.maxTokens,
+        temperature: server_config_1.serverConfig.kimi.temperature,
         thinking: {
             type: 'enabled',
-            budget_tokens: server_config_js_1.serverConfig.kimi.thinkingBudget,
+            budget_tokens: server_config_1.serverConfig.kimi.thinkingBudget,
         },
         system: buildAstrologicalSystemPrompt(),
         messages: [

@@ -41,6 +41,10 @@ export declare function markAsComplete(sessionId: string, results: {
  */
 export declare function markAsFailed(sessionId: string, error: string): Promise<void>;
 /**
+ * Cancel a session
+ */
+export declare function cancelSession(sessionId: string): Promise<boolean>;
+/**
  * Start the queue processor
  * Runs in background, processes one request at a time
  */

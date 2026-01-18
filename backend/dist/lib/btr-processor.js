@@ -5,11 +5,11 @@ exports.processAnalysis = processAnalysis;
 // lib/btr-processor.ts
 // Main Birth Time Rectification processor
 // Optimized for 512MB RAM - minimal local computation, max Kimi K2 usage
-const ephemeris_js_1 = require("./ephemeris.js");
-const vedic_astrology_engine_js_1 = require("./vedic-astrology-engine.js");
-const kimi_k2_client_js_1 = require("./kimi-k2-client.js");
-const time_offset_manager_js_1 = require("./time-offset-manager.js");
-const logger_js_1 = require("./logger.js");
+const ephemeris_1 = require("./ephemeris");
+const vedic_astrology_engine_1 = require("./vedic-astrology-engine");
+const kimi_k2_client_1 = require("./kimi-k2-client");
+const time_offset_manager_1 = require("./time-offset-manager");
+const logger_1 = require("./logger");
 // ═════════════════════════════════════════════════════════════════════════════
 // MAIN PROCESSING FUNCTION
 // ═════════════════════════════════════════════════════════════════════════════
@@ -20,7 +20,7 @@ const logger_js_1 = require("./logger.js");
 async function processAnalysis(input) {
     const startTime = Date.now();
     try {
-        logger_js_1.logger.info('Starting BTR analysis', {
+        logger_1.logger.info('Starting BTR analysis', {
             sessionId: input.sessionId,
             dateOfBirth: input.dateOfBirth,
             tentativeTime: input.tentativeTime,
@@ -29,15 +29,15 @@ async function processAnalysis(input) {
         // ═══════════════════════════════════════════════════════════════════════
         // PHASE 1: Generate Candidate Times
         // ═══════════════════════════════════════════════════════════════════════
-        const candidates = (0, time_offset_manager_js_1.generateCandidateTimes)(input.tentativeTime, input.offsetConfig);
-        logger_js_1.logger.info('Generated candidates', { count: candidates.length });
+        const candidates = (0, time_offset_manager_1.generateCandidateTimes)(input.tentativeTime, input.offsetConfig);
+        logger_1.logger.info('Generated candidates', { count: candidates.length });
         // ═══════════════════════════════════════════════════════════════════════
         // PHASE 2: Quick Local Filtering (Memory-Efficient)
         // ═══════════════════════════════════════════════════════════════════════
         const scoredCandidates = await quickFilterCandidates(candidates, input.dateOfBirth, input.latitude, input.longitude, input.timezone, input.lifeEvents);
         // Take top 5 for deep analysis (save Kimi K2 tokens)
         const topCandidates = scoredCandidates.slice(0, 5);
-        logger_js_1.logger.info('Quick filter complete', {
+        logger_1.logger.info('Quick filter complete', {
             total: candidates.length,
             filtered: scoredCandidates.length,
             forDeepAnalysis: topCandidates.length,
@@ -51,7 +51,7 @@ async function processAnalysis(input) {
         // ═══════════════════════════════════════════════════════════════════════
         const bestResult = selectBestCandidate(analysisResults);
         const processingTime = Date.now() - startTime;
-        logger_js_1.logger.info('BTR analysis complete', {
+        logger_1.logger.info('BTR analysis complete', {
             sessionId: input.sessionId,
             rectifiedTime: bestResult.time,
             accuracy: bestResult.score,
@@ -70,7 +70,7 @@ async function processAnalysis(input) {
         };
     }
     catch (error) {
-        logger_js_1.logger.error('BTR processing failed', error);
+        logger_1.logger.error('BTR processing failed', error);
         throw error;
     }
 }
@@ -87,20 +87,20 @@ async function quickFilterCandidates(candidates, dateOfBirth, latitude, longitud
     for (const candidate of candidates) {
         try {
             // Calculate ephemeris for this time
-            const ephemeris = await (0, ephemeris_js_1.calculateEphemeris)(dateOfBirth, candidate.time, latitude, longitude, timezone);
+            const ephemeris = await (0, ephemeris_1.calculateEphemeris)(dateOfBirth, candidate.time, latitude, longitude, timezone);
             // Get sidereal Moon position
             const jd = dateToJulianDay(dateOfBirth, candidate.time, timezone);
-            const moonSidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
+            const moonSidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
             // Calculate Vimshottari Dasha
-            const dashaPeriods = (0, vedic_astrology_engine_js_1.calculateVimshottariDasha)(moonSidereal, birthDate);
+            const dashaPeriods = (0, vedic_astrology_engine_1.calculateVimshottariDasha)(moonSidereal, birthDate);
             // Score based on event-dasha correlation
             let dashaScore = 0;
             let eventMatches = 0;
             for (const event of lifeEvents) {
                 const eventDate = new Date(event.eventDate);
-                const dasha = (0, vedic_astrology_engine_js_1.getDashaForDate)(dashaPeriods, eventDate);
+                const dasha = (0, vedic_astrology_engine_1.getDashaForDate)(dashaPeriods, eventDate);
                 if (dasha) {
-                    const correlation = (0, vedic_astrology_engine_js_1.dashaSupportsEvent)(dasha, event.category, event.eventType);
+                    const correlation = (0, vedic_astrology_engine_1.dashaSupportsEvent)(dasha, event.category, event.eventType);
                     if (correlation.supports) {
                         eventMatches++;
                         dashaScore += correlation.strength;
@@ -122,7 +122,7 @@ async function quickFilterCandidates(candidates, dateOfBirth, latitude, longitud
             });
         }
         catch (error) {
-            logger_js_1.logger.error(`Quick filter failed for ${candidate.time}`, error);
+            logger_1.logger.error(`Quick filter failed for ${candidate.time}`, error);
         }
     }
     // Sort by quick score
@@ -138,22 +138,22 @@ async function analyzeWithKimiK2(candidates, dateOfBirth, latitude, longitude, t
     const birthDate = new Date(dateOfBirth);
     for (const candidate of candidates) {
         try {
-            logger_js_1.logger.info('Deep analysis starting', { time: candidate.time });
+            logger_1.logger.info('Deep analysis starting', { time: candidate.time });
             // Get ephemeris
-            const ephemeris = await (0, ephemeris_js_1.calculateEphemeris)(dateOfBirth, candidate.time, latitude, longitude, timezone);
+            const ephemeris = await (0, ephemeris_1.calculateEphemeris)(dateOfBirth, candidate.time, latitude, longitude, timezone);
             // Get Julian Day
             const jd = dateToJulianDay(dateOfBirth, candidate.time, timezone);
             // Get sidereal positions for all planets
             const planets = {};
             for (const [name, data] of Object.entries(ephemeris.planets)) {
-                const sidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(data.longitude, jd);
-                const nakshatra = (0, vedic_astrology_engine_js_1.getNakshatraForLongitude)(sidereal);
+                const sidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(data.longitude, jd);
+                const nakshatra = (0, vedic_astrology_engine_1.getNakshatraForLongitude)(sidereal);
                 planets[name] = `${data.sign} ${(sidereal % 30).toFixed(2)}° (${nakshatra.name} pada ${nakshatra.pada})`;
             }
             // Calculate Dasha
-            const moonSidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
-            const dashaPeriods = (0, vedic_astrology_engine_js_1.calculateVimshottariDasha)(moonSidereal, birthDate);
-            const dashaInfo = (0, vedic_astrology_engine_js_1.formatDashaSequence)(dashaPeriods);
+            const moonSidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
+            const dashaPeriods = (0, vedic_astrology_engine_1.calculateVimshottariDasha)(moonSidereal, birthDate);
+            const dashaInfo = (0, vedic_astrology_engine_1.formatDashaSequence)(dashaPeriods);
             // Format planetary positions for prompt
             const planetaryPositions = Object.entries(planets)
                 .map(([name, pos]) => `${name.toUpperCase()}: ${pos}`)
@@ -165,14 +165,14 @@ async function analyzeWithKimiK2(candidates, dateOfBirth, latitude, longitude, t
             // Format life events with dasha info
             const eventsWithDasha = lifeEvents.map(event => {
                 const eventDate = new Date(event.eventDate);
-                const dasha = (0, vedic_astrology_engine_js_1.getDashaForDate)(dashaPeriods, eventDate);
+                const dasha = (0, vedic_astrology_engine_1.getDashaForDate)(dashaPeriods, eventDate);
                 return {
                     ...event,
                     dasha: dasha ? `${dasha.mahadasha}/${dasha.antardasha}` : 'Unknown',
                 };
             });
             // Build comprehensive prompt for Kimi K2
-            const prompt = (0, kimi_k2_client_js_1.buildCandidateAnalysisPrompt)(candidate.time, dateOfBirth, planetaryPositions, housePositions, eventsWithDasha.map(e => ({
+            const prompt = (0, kimi_k2_client_1.buildCandidateAnalysisPrompt)(candidate.time, dateOfBirth, planetaryPositions, housePositions, eventsWithDasha.map(e => ({
                 category: e.category,
                 eventType: e.eventType,
                 eventDate: e.eventDate,
@@ -180,17 +180,17 @@ async function analyzeWithKimiK2(candidates, dateOfBirth, latitude, longitude, t
                 importance: e.importance,
             })), dashaInfo, physicalTraits);
             // Call Kimi K2 with extended thinking
-            const response = await (0, kimi_k2_client_js_1.callKimiK2)(kimi_k2_client_js_1.MASTER_ASTROLOGY_SYSTEM_PROMPT, prompt, {
+            const response = await (0, kimi_k2_client_1.callKimiK2)(kimi_k2_client_1.MASTER_ASTROLOGY_SYSTEM_PROMPT, prompt, {
                 temperature: 0.1,
                 maxTokens: 8000,
                 enableThinking: true,
             });
             if (!response.success) {
-                logger_js_1.logger.error('Kimi K2 call failed', { error: response.error });
+                logger_1.logger.error('Kimi K2 call failed', { error: response.error });
                 continue;
             }
             // Parse response
-            const parsed = (0, kimi_k2_client_js_1.parseKimiAnalysisResponse)(response.content);
+            const parsed = (0, kimi_k2_client_1.parseKimiAnalysisResponse)(response.content);
             results.push({
                 time: candidate.time,
                 score: parsed.score,
@@ -201,14 +201,14 @@ async function analyzeWithKimiK2(candidates, dateOfBirth, latitude, longitude, t
                 transitAnalysis: parsed.transitAnalysis,
                 verdict: parsed.verdict,
             });
-            logger_js_1.logger.info('Deep analysis complete', {
+            logger_1.logger.info('Deep analysis complete', {
                 time: candidate.time,
                 score: parsed.score,
                 confidence: parsed.confidence,
             });
         }
         catch (error) {
-            logger_js_1.logger.error(`Deep analysis failed for ${candidate.time}`, error);
+            logger_1.logger.error(`Deep analysis failed for ${candidate.time}`, error);
         }
     }
     // Sort by score
@@ -224,7 +224,7 @@ function selectBestCandidate(results) {
     }
     // Already sorted by score, return best
     const best = results[0];
-    logger_js_1.logger.info('Best candidate selected', {
+    logger_1.logger.info('Best candidate selected', {
         time: best.time,
         score: best.score,
         confidence: best.confidence,

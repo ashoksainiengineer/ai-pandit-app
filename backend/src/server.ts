@@ -83,18 +83,31 @@ app.use((req, res) => {
 });
 
 import { startQueueProcessor } from './lib/queue-manager.js';
+import { initSwissEph } from './lib/ephemeris.js';
 
 // =============================================================================
 // Start Server
 // =============================================================================
-app.listen(PORT, () => {
-    console.log(`🚀 AI Pandit BTR Engine running on port ${PORT}`);
-    console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
-    console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+async function bootstrap() {
+    try {
+        console.log('⏳ Initializing Swiss Ephemeris engine...');
+        await initSwissEph();
 
-    // Start processing queue on startup
-    console.log('🔄 Starting queue processor...');
-    startQueueProcessor();
-});
+        app.listen(PORT, () => {
+            console.log(`🚀 AI Pandit BTR Engine running on port ${PORT}`);
+            console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
+            console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+
+            // Start processing queue on startup
+            console.log('🔄 Starting queue processor...');
+            startQueueProcessor();
+        });
+    } catch (err) {
+        console.error('❌ Failed to start server:', err);
+        process.exit(1);
+    }
+}
+
+bootstrap();
 
 export default app;

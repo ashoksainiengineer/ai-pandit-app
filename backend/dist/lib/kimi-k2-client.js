@@ -3,26 +3,28 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.MASTER_ASTROLOGY_SYSTEM_PROMPT = void 0;
 exports.callKimiK2 = callKimiK2;
+exports.callKimiK2WithStream = callKimiK2WithStream;
 exports.buildCandidateAnalysisPrompt = buildCandidateAnalysisPrompt;
 exports.buildRankingPrompt = buildRankingPrompt;
 exports.parseKimiAnalysisResponse = parseKimiAnalysisResponse;
 // lib/kimi-k2-client.ts
 // Production Kimi K2 Turbo Thinking API Client
 // Optimized for maximum accuracy in birth time rectification
-const logger_js_1 = require("./logger.js");
+const logger_1 = require("./logger");
 // ═════════════════════════════════════════════════════════════════════════════
 // KIMI K2 CONFIGURATION
 // ═════════════════════════════════════════════════════════════════════════════
 const KIMI_CONFIG = {
-    baseUrl: process.env.KIMI_BASE_URL || 'https://api.moonshot.cn/v1',
-    apiKey: process.env.KIMI_API_KEY || '',
-    model: process.env.KIMI_MODEL || 'moonshot-v1-auto', // Auto selects best model
-    maxTokens: 16000, // Maximum output for detailed analysis
+    // DeepSeek first, then fallback to Kimi/Moonshot
+    baseUrl: process.env.DEEPSEEK_BASE_URL || process.env.ANTHROPIC_BASE_URL || process.env.KIMI_BASE_URL || 'https://api.deepseek.com',
+    apiKey: process.env.DEEPSEEK_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.KIMI_API_KEY || '',
+    model: process.env.DEEPSEEK_MODEL || process.env.MOONSHOT_MODEL || process.env.KIMI_MODEL || 'deepseek-reasoner', // V3 with CoT reasoning
+    maxTokens: 32000, // DeepSeek reasoner supports up to 64K
     thinkingBudget: 32000, // Extended thinking for highest accuracy
-    temperature: 0.1, // Low temperature for consistent, accurate output
+    temperature: 0.1, // Note: ignored by deepseek-reasoner
     retryAttempts: 3,
     retryDelayMs: 2000,
-    timeoutMs: 120000, // 2 minutes timeout (thinking mode takes time)
+    timeoutMs: 300000, // 5 minutes timeout (DeepSeek Reasoner can be slow)
 };
 // ═════════════════════════════════════════════════════════════════════════════
 // MAIN API CALL FUNCTION
@@ -36,35 +38,40 @@ async function callKimiK2(systemPrompt, userPrompt, options) {
         temperature: options?.temperature ?? KIMI_CONFIG.temperature,
         maxTokens: options?.maxTokens ?? KIMI_CONFIG.maxTokens,
         enableThinking: options?.enableThinking ?? true,
+        model: options?.model ?? KIMI_CONFIG.model,
     };
     if (!KIMI_CONFIG.apiKey) {
-        logger_js_1.logger.error('KIMI_API_KEY not configured');
+        logger_1.logger.error('DEEPSEEK_API_KEY not configured');
         return {
             success: false,
             content: '',
-            error: 'AI service not configured',
+            error: 'DeepSeek API key not configured',
         };
     }
     let lastError = null;
     for (let attempt = 1; attempt <= KIMI_CONFIG.retryAttempts; attempt++) {
         try {
-            logger_js_1.logger.info('Calling Kimi K2', {
+            logger_1.logger.info('Calling Kimi K2', {
                 attempt,
-                model: KIMI_CONFIG.model,
+                model: config.model,
                 enableThinking: config.enableThinking,
             });
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), KIMI_CONFIG.timeoutMs);
+            const isReasonerModel = config.model.includes('reasoner');
             const requestBody = {
-                model: KIMI_CONFIG.model,
+                model: config.model,
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userPrompt },
                 ],
                 max_tokens: config.maxTokens,
-                temperature: config.temperature,
                 stream: false,
             };
+            // DeepSeek Reasoner doesn't support temperature - only add for non-reasoner models
+            if (!isReasonerModel) {
+                requestBody.temperature = config.temperature;
+            }
             // Add thinking mode if enabled (Moonshot specific)
             if (config.enableThinking) {
                 requestBody.use_search = false; // Disable search for faster response
@@ -80,6 +87,11 @@ async function callKimiK2(systemPrompt, userPrompt, options) {
             });
             clearTimeout(timeoutId);
             if (!response.ok) {
+                if (response.status === 429) {
+                    logger_1.logger.warn(`Kimi K2 Rate Limit Hit (429). Waiting 30s before retry ${attempt}/${KIMI_CONFIG.retryAttempts}...`);
+                    await sleep(30000); // Wait 30 seconds
+                    continue; // Retry loop
+                }
                 const errorText = await response.text();
                 throw new Error(`Kimi API error ${response.status}: ${errorText}`);
             }
@@ -102,7 +114,7 @@ async function callKimiK2(systemPrompt, userPrompt, options) {
                 thinking = thinkingMatch[1].trim();
                 content = content.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '').trim();
             }
-            logger_js_1.logger.info('Kimi K2 response received', {
+            logger_1.logger.info('Kimi K2 response received', {
                 contentLength: content.length,
                 thinkingLength: thinking.length,
                 tokensUsed: data.usage?.total_tokens,
@@ -116,7 +128,7 @@ async function callKimiK2(systemPrompt, userPrompt, options) {
         }
         catch (error) {
             lastError = error;
-            logger_js_1.logger.error(`Kimi K2 attempt ${attempt} failed`, error);
+            logger_1.logger.error(`Kimi K2 attempt ${attempt} failed`, error);
             if (attempt < KIMI_CONFIG.retryAttempts) {
                 await sleep(KIMI_CONFIG.retryDelayMs * attempt);
             }
@@ -127,6 +139,139 @@ async function callKimiK2(systemPrompt, userPrompt, options) {
         content: '',
         error: lastError?.message || 'All retry attempts failed',
     };
+}
+// ═════════════════════════════════════════════════════════════════════════════
+// STREAMING API CALL FUNCTION (for real-time AI thinking)
+// ═════════════════════════════════════════════════════════════════════════════
+const session_events_1 = require("./session-events");
+/**
+ * Call Kimi K2 with streaming enabled
+ * Emits AI thinking tokens in real-time via SSE
+ *
+ * @param sessionId - Session ID for SSE emission
+ * @param stage - BTR stage number (2, 5, or 7)
+ * @param candidateTime - Optional candidate time being analyzed
+ */
+async function callKimiK2WithStream(sessionId, stage, systemPrompt, userPrompt, options) {
+    const config = {
+        temperature: options?.temperature ?? KIMI_CONFIG.temperature,
+        maxTokens: options?.maxTokens ?? KIMI_CONFIG.maxTokens,
+        model: options?.model ?? KIMI_CONFIG.model,
+    };
+    if (!KIMI_CONFIG.apiKey) {
+        return {
+            success: false,
+            content: '',
+            error: 'DeepSeek API key not configured',
+        };
+    }
+    try {
+        logger_1.logger.info('Calling Kimi K2 with streaming', {
+            sessionId,
+            stage,
+            model: config.model,
+            candidateTime: options?.candidateTime,
+        });
+        // Combine internal timeout with external abort signal
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), KIMI_CONFIG.timeoutMs);
+        if (options?.abortSignal) {
+            options.abortSignal.addEventListener('abort', () => {
+                logger_1.logger.info('Kimi K2 call cancelled by user');
+                controller.abort();
+            });
+        }
+        const isReasoningModel = config.model.includes('reasoner');
+        const requestBody = {
+            model: config.model,
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt },
+            ],
+            max_tokens: config.maxTokens,
+            stream: true, // Enable streaming
+        };
+        if (!isReasoningModel) {
+            requestBody.temperature = config.temperature;
+        }
+        const response = await fetch(`${KIMI_CONFIG.baseUrl}/v1/chat/completions`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${KIMI_CONFIG.apiKey}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestBody),
+            signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`API error ${response.status}: ${errorText}`);
+        }
+        // Process SSE stream
+        const reader = response.body?.getReader();
+        if (!reader) {
+            throw new Error('No response body');
+        }
+        const decoder = new TextDecoder();
+        let fullContent = '';
+        let fullThinking = '';
+        let buffer = '';
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done)
+                break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+            for (const line of lines) {
+                if (!line.startsWith('data: '))
+                    continue;
+                const data = line.slice(6);
+                if (data === '[DONE]')
+                    continue;
+                try {
+                    const parsed = JSON.parse(data);
+                    const delta = parsed.choices?.[0]?.delta;
+                    if (delta?.reasoning_content) {
+                        // DeepSeek Reasoner's thinking tokens
+                        fullThinking += delta.reasoning_content;
+                        (0, session_events_1.emitAIThinking)(sessionId, delta.reasoning_content, stage, options?.candidateTime);
+                    }
+                    else if (delta?.content) {
+                        // Fallback: Emit content as "thinking" for non-reasoning models (for display)
+                        // This allows Stage 2/5 (Chat models) to show real-time progress
+                        fullContent += delta.content;
+                        // For chat models, we treat content as thinking for the visual display
+                        // Always emit content as thinking to prevent blank screens
+                        (0, session_events_1.emitAIThinking)(sessionId, delta.content, stage, options?.candidateTime);
+                    }
+                }
+                catch {
+                    // Ignore parse errors for incomplete chunks
+                }
+            }
+        }
+        logger_1.logger.info('Streaming Kimi K2 complete', {
+            sessionId,
+            stage,
+            thinkingLength: fullThinking.length,
+            contentLength: fullContent.length,
+        });
+        return {
+            success: true,
+            thinking: fullThinking,
+            content: fullContent,
+        };
+    }
+    catch (error) {
+        logger_1.logger.error('Streaming Kimi K2 failed', error);
+        return {
+            success: false,
+            content: '',
+            error: error instanceof Error ? error.message : 'Streaming failed',
+        };
+    }
 }
 // ═════════════════════════════════════════════════════════════════════════════
 // SPECIALIZED ASTROLOGY PROMPTS
@@ -148,13 +293,13 @@ YOUR CREDENTIALS:
 YOUR APPROACH TO BIRTH TIME RECTIFICATION:
 
 1. VIMSHOTTARI DASHA ANALYSIS (Most Important - 40% weight)
-   - Calculate exact Mahadasha-Antardasha-Pratyantardasha for EACH life event
-   - The dasha active during an event MUST support that event type
-   - Marriage during Venus dasha, Career during Saturn/Sun dasha, etc.
+   - Analyze the PROVIDED Mahadasha-Antardasha-Pratyantardasha sequence for EACH life event
+   - Verify if the dasha active during an event supports that event type (using provided data)
+   - IMPORTANT: Use the provided dasha data. Do not recalculate.
    - Use the 120-year cycle starting from Moon's nakshatra position
 
 2. TRANSIT ANALYSIS (30% weight)
-   - Jupiter transits over natal planets/houses on event dates
+   - Analyze provided Jupiter transits over natal planets/houses on event dates
    - Saturn transits (Sade Sati, Ashtama Shani, etc.)
    - Rahu-Ketu axis transits
    - Double transit theory (Jupiter + Saturn must support event)

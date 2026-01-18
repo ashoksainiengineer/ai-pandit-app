@@ -1,4 +1,4 @@
-import { LifeEvent, RankedCandidates } from './types.js';
+import { LifeEvent, RankedCandidates } from './types';
 export declare function analyzeAndFilterCandidates(dateOfBirth: string, candidates: Array<{
     time: string;
     offsetMinutes: number;

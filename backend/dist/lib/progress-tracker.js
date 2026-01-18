@@ -2,12 +2,14 @@
 // lib/progress-tracker.ts
 // Real-time progress tracking for BTR analysis
 // Updates database with current step, message, and percentage
+// Also emits SSE events for real-time streaming
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProgressTracker = exports.ANALYSIS_STEPS = void 0;
 exports.getSessionProgress = getSessionProgress;
-const drizzle_js_1 = require("../database/drizzle.js");
-const schema_js_1 = require("../database/schema.js");
+const drizzle_1 = require("../database/drizzle");
+const schema_1 = require("../database/schema");
 const drizzle_orm_1 = require("drizzle-orm");
+const session_events_1 = require("./session-events");
 // Define all analysis steps
 exports.ANALYSIS_STEPS = [
     { id: 'init', name: 'Initializing Analysis', icon: '🚀' },
@@ -58,6 +60,8 @@ class ProgressTracker {
         this.progress.lastUpdate = new Date().toISOString();
         this.progress.liveMessage = message;
         await this.saveProgress();
+        // Emit SSE event for real-time streaming
+        (0, session_events_1.emitProgress)(this.sessionId, stepId, stepIndex, this.progress.totalSteps, message || `Starting ${this.progress.steps[stepIndex].name}`, undefined);
     }
     /**
      * Update current step with live message
@@ -73,6 +77,8 @@ class ProgressTracker {
         this.progress.liveMessage = message;
         this.progress.lastUpdate = new Date().toISOString();
         await this.saveProgress();
+        // Emit SSE event for real-time streaming
+        (0, session_events_1.emitProgress)(this.sessionId, this.progress.steps[currentIndex]?.id || 'unknown', currentIndex, this.progress.totalSteps, message, details);
     }
     /**
      * Complete a step
@@ -91,6 +97,8 @@ class ProgressTracker {
         this.progress.percentage = Math.round((completedCount / this.progress.totalSteps) * 100);
         this.progress.lastUpdate = new Date().toISOString();
         await this.saveProgress();
+        // Emit SSE event for real-time streaming
+        (0, session_events_1.emitProgress)(this.sessionId, stepId, stepIndex, this.progress.totalSteps, `Completed ${this.progress.steps[stepIndex].name}`, details);
     }
     /**
      * Mark step as error
@@ -103,6 +111,8 @@ class ProgressTracker {
         this.progress.steps[stepIndex].message = error;
         this.progress.lastUpdate = new Date().toISOString();
         await this.saveProgress();
+        // Emit SSE error event
+        (0, session_events_1.emitError)(this.sessionId, error, stepId);
     }
     /**
      * Complete all progress
@@ -119,18 +129,19 @@ class ProgressTracker {
             }
         });
         await this.saveProgress();
+        // Emit SSE complete event (will be called with result data separately)
     }
     /**
      * Save progress to database
      */
     async saveProgress() {
         try {
-            await drizzle_js_1.db.update(schema_js_1.sessions)
+            await drizzle_1.db.update(schema_1.sessions)
                 .set({
                 progressData: JSON.stringify(this.progress),
                 updatedAt: new Date().toISOString(),
             })
-                .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, this.sessionId));
+                .where((0, drizzle_orm_1.eq)(schema_1.sessions.id, this.sessionId));
         }
         catch (error) {
             console.error('Failed to save progress:', error);
@@ -152,9 +163,9 @@ exports.ProgressTracker = ProgressTracker;
  */
 async function getSessionProgress(sessionId) {
     try {
-        const result = await drizzle_js_1.db.select({ progressData: schema_js_1.sessions.progressData })
-            .from(schema_js_1.sessions)
-            .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, sessionId))
+        const result = await drizzle_1.db.select({ progressData: schema_1.sessions.progressData })
+            .from(schema_1.sessions)
+            .where((0, drizzle_orm_1.eq)(schema_1.sessions.id, sessionId))
             .limit(1);
         if (result.length === 0 || !result[0].progressData) {
             return null;

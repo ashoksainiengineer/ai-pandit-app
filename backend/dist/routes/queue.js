@@ -75,6 +75,7 @@ router.post('/', auth_js_1.authMiddleware, async (req, res) => {
         await drizzle_js_1.db.insert(schema_js_1.sessions).values({
             id: sessionId,
             userId,
+            clerkId: userId, // Use userId as clerkId (same for Clerk auth)
             fullName: encryptedFullName,
             dateOfBirth: birthData.dateOfBirth,
             tentativeTime: birthData.tentativeTime,
@@ -187,6 +188,40 @@ router.get('/', auth_js_1.authMiddleware, async (req, res) => {
     catch (error) {
         logger_js_1.logger.error('Queue poll error', error);
         res.status(500).json({ success: false, error: 'Failed to get status' });
+    }
+});
+/**
+ * POST /api/queue/cancel - Cancel a session
+ */
+router.post('/cancel', auth_js_1.authMiddleware, async (req, res) => {
+    try {
+        const userId = req.userId;
+        const { sessionId } = req.body;
+        if (!sessionId) {
+            res.status(400).json({ success: false, error: 'sessionId is required' });
+            return;
+        }
+        // Verify session belongs to user
+        const session = await drizzle_js_1.db.select().from(schema_js_1.sessions).where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, sessionId)).limit(1);
+        if (session.length === 0) {
+            res.status(404).json({ success: false, error: 'Session not found' });
+            return;
+        }
+        if (session[0].userId !== userId) {
+            res.status(403).json({ success: false, error: 'Unauthorized' });
+            return;
+        }
+        const success = await (0, queue_manager_js_1.cancelSession)(sessionId);
+        if (success) {
+            res.json({ success: true, message: 'Session cancelled' });
+        }
+        else {
+            res.status(400).json({ success: false, error: 'Could not cancel session (may be already complete or failed)' });
+        }
+    }
+    catch (error) {
+        logger_js_1.logger.error('Cancel session error', error);
+        res.status(500).json({ success: false, error: 'Failed to cancel session' });
     }
 });
 exports.default = router;

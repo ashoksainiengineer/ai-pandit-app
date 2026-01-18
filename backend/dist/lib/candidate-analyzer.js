@@ -2,14 +2,14 @@
 // Server-side only
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.analyzeAndFilterCandidates = analyzeAndFilterCandidates;
-const ephemeris_js_1 = require("./ephemeris.js");
-const logger_js_1 = require("./logger.js");
+const ephemeris_1 = require("./ephemeris");
+const logger_1 = require("./logger");
 // ═════════════════════════════════════════════════════════════════════════
 // QUICK FILTERING RULES (Before Kimi K2 analysis)
 // ═════════════════════════════════════════════════════════════════════════
 async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, longitude, timezone, lifeEvents) {
     try {
-        logger_js_1.logger.info('Starting candidate analysis and filtering', {
+        logger_1.logger.info('Starting candidate analysis and filtering', {
             totalCandidates: candidates.length,
             dateOfBirth,
         });
@@ -21,7 +21,7 @@ async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, lon
             try {
                 // Convert timezone number to string for ephemeris calculation
                 const timezoneString = getTimezoneString(timezone);
-                const ephemerisData = await (0, ephemeris_js_1.calculateEphemeris)(dateOfBirth, candidate.time, latitude, longitude, timezoneString);
+                const ephemerisData = await (0, ephemeris_1.calculateEphemeris)(dateOfBirth, candidate.time, latitude, longitude, timezoneString);
                 // Quick scoring without full Kimi analysis
                 const { quickScore, eventMatches, reason } = performQuickAnalysis(ephemerisData, lifeEvents);
                 analyzedCandidates.push({
@@ -34,14 +34,14 @@ async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, lon
                     shouldAnalyzeWithKimi: quickScore >= 40, // Only analyze promising candidates
                     reason,
                 });
-                logger_js_1.logger.debug('Candidate quick analysis complete', {
+                logger_1.logger.debug('Candidate quick analysis complete', {
                     time: candidate.time,
                     quickScore,
                     eventMatches,
                 });
             }
             catch (error) {
-                logger_js_1.logger.error(`Quick analysis failed for ${candidate.time}`, error);
+                logger_1.logger.error(`Quick analysis failed for ${candidate.time}`, error);
             }
         }
         // ─────────────────────────────────────────────────────────────────────
@@ -54,7 +54,7 @@ async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, lon
         const topCandidates = analyzedCandidates
             .filter((c) => c.shouldAnalyzeWithKimi)
             .slice(0, 5); // Top 5 candidates
-        logger_js_1.logger.info('Candidate filtering complete', {
+        logger_1.logger.info('Candidate filtering complete', {
             totalCandidates: analyzedCandidates.length,
             topCandidatesForKimi: topCandidates.length,
             topScores: topCandidates.map((c) => ({
@@ -69,7 +69,7 @@ async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, lon
         };
     }
     catch (error) {
-        logger_js_1.logger.error('Candidate analysis failed', error);
+        logger_1.logger.error('Candidate analysis failed', error);
         throw error;
     }
 }
