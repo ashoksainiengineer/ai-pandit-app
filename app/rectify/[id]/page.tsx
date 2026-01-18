@@ -238,35 +238,68 @@ export default function ProgressPage() {
                             return (
                                 <div
                                     key={step.id}
-                                    className={`flex items-center gap-4 p-3 rounded-lg transition-all duration-500 ${isActive ? 'bg-[#D4AF37]/10 border border-[#D4AF37]/20 scale-[1.02]' :
-                                            isPast ? 'opacity-50' : 'opacity-20'
+                                    className={`p-3 rounded-lg transition-all duration-500 ${isActive ? 'bg-[#D4AF37]/10 border border-[#D4AF37]/20 scale-[1.02]' :
+                                        isPast ? 'bg-[#2D7A5C]/5 border border-[#2D7A5C]/20' : 'opacity-30 bg-[#2A3442]/30'
                                         }`}
                                 >
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${isPast ? 'bg-[#2D7A5C] text-[#F5F0EB]' :
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors flex-shrink-0 ${isPast ? 'bg-[#2D7A5C] text-[#F5F0EB]' :
                                             isActive ? 'bg-[#D4AF37] text-[#0F1419]' :
                                                 'bg-[#2A3442] text-[#8C7F72]'
-                                        }`}>
-                                        {isPast ? '✓' : step.icon}
-                                    </div>
-
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span className={`font-medium ${isActive ? 'text-[#F5F0EB]' : 'text-[#C4B8AD]'}`}>
-                                                {step.name}
-                                            </span>
-                                            {isActive && (
-                                                <span className="text-[10px] bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 rounded animate-pulse">
-                                                    PROCESSING
-                                                </span>
-                                            )}
+                                            }`}>
+                                            {isPast ? '✓' : step.icon}
                                         </div>
 
-                                        {/* Show details for active or recently completed steps */}
-                                        {(isActive || (isPast && idx === progress.currentStep - 1)) && step.message && (
-                                            <div className="text-xs text-[#8C7F72] truncate font-mono">
-                                                {step.message}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className={`font-medium ${isActive ? 'text-[#F5F0EB]' : isPast ? 'text-[#2D7A5C]' : 'text-[#8C7F72]'}`}>
+                                                    {step.name}
+                                                </span>
+                                                {isActive && (
+                                                    <span className="text-[10px] bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 rounded animate-pulse">
+                                                        PROCESSING
+                                                    </span>
+                                                )}
+                                                {isPast && (
+                                                    <span className="text-[10px] bg-[#2D7A5C]/20 text-[#2D7A5C] px-2 py-0.5 rounded">
+                                                        COMPLETE
+                                                    </span>
+                                                )}
                                             </div>
-                                        )}
+
+                                            {/* Show message for active or completed steps */}
+                                            {(isActive || isPast) && step.message && (
+                                                <div className="text-xs text-[#C4B8AD] font-mono mb-2">
+                                                    {step.message}
+                                                </div>
+                                            )}
+
+                                            {/* Show details for completed steps */}
+                                            {isPast && step.details && step.details.length > 0 && (
+                                                <div className="mt-2 pt-2 border-t border-[#2D7A5C]/20">
+                                                    <div className="space-y-1">
+                                                        {step.details.map((detail, dIdx) => (
+                                                            <div key={dIdx} className="text-[11px] text-[#8C7F72] flex items-start gap-2">
+                                                                <span className="w-1 h-1 bg-[#2D7A5C] rounded-full mt-1.5 flex-shrink-0" />
+                                                                <span>{detail}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Show active step details */}
+                                            {isActive && step.details && step.details.length > 0 && (
+                                                <div className="mt-2 space-y-1">
+                                                    {step.details.slice(-3).map((detail, dIdx) => (
+                                                        <div key={dIdx} className="text-[11px] text-[#D4AF37] flex items-start gap-2">
+                                                            <span className="w-1 h-1 bg-[#D4AF37] rounded-full mt-1.5 flex-shrink-0" />
+                                                            <span>{detail}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             );

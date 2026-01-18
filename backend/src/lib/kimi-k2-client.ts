@@ -11,9 +11,9 @@ import { logger } from './logger.js';
 // ═════════════════════════════════════════════════════════════════════════════
 
 const KIMI_CONFIG = {
-    baseUrl: process.env.KIMI_BASE_URL || 'https://api.moonshot.cn/v1',
-    apiKey: process.env.KIMI_API_KEY || '',
-    model: process.env.KIMI_MODEL || 'moonshot-v1-auto', // Auto selects best model
+    baseUrl: process.env.ANTHROPIC_BASE_URL || process.env.KIMI_BASE_URL || 'https://api.moonshot.cn/v1',
+    apiKey: process.env.ANTHROPIC_API_KEY || process.env.KIMI_API_KEY || '',
+    model: process.env.MOONSHOT_MODEL || process.env.KIMI_MODEL || 'moonshot-v1-auto', // Auto selects best model
     maxTokens: 16000,      // Maximum output for detailed analysis
     thinkingBudget: 32000, // Extended thinking for highest accuracy
     temperature: 0.1,      // Low temperature for consistent, accurate output

@@ -1,13 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { db } from '@/database/drizzle';
-import { sessions } from '@/database/schema';
+import { sessions, users } from '@/database/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '@/lib/logger';
 import { addToQueue, getQueueStatus, startQueueProcessor } from '@/lib/queue-manager';
 import { validateOffsetConfig, TimeOffsetConfig } from '@/lib/time-offset-manager';
 import { BirthData, LifeEvent } from '@/lib/types';
 import { encryptData, decryptData } from '@/lib/crypto';
+
+// Helper: Ensure user exists in database (auto-sync from Clerk)
+async function ensureUserExists(clerkUserId: string): Promise<string> {
+    // Check if user exists
+    const existingUser = await db.select()
+        .from(users)
+        .where(eq(users.clerkId, clerkUserId))
+        .limit(1);
+
+    if (existingUser.length > 0) {
+        return existingUser[0].id;
+    }
+
+    // User doesn't exist - create from Clerk
+    const clerkUser = await currentUser();
+    if (!clerkUser) {
+        throw new Error('Could not fetch user from Clerk');
+    }
+
+    const userId = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    await db.insert(users).values({
+        id: userId,
+        clerkId: clerkUserId,
+        email: clerkUser.emailAddresses[0]?.emailAddress || '',
+        fullName: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null,
+        createdAt: now,
+        updatedAt: now,
+    });
+
+    logger.info('User synced from Clerk', { userId, clerkId: clerkUserId });
+    return userId;
+}
+
 
 // ═════════════════════════════════════════════════════════════════════════════
 // QUEUE API - Submit and Poll for BTR Analysis
@@ -105,6 +140,9 @@ export async function POST(request: NextRequest) {
         const sessionId = crypto.randomUUID();
         const now = new Date().toISOString();
 
+        // Ensure user exists in database (auto-sync from Clerk)
+        const internalUserId = await ensureUserExists(userId);
+
         // Encrypt sensitive fields - only user can decrypt with their userId
         const encryptedFullName = encryptData(birthData.fullName, userId);
         const encryptedLifeEvents = encryptData(JSON.stringify(lifeEvents), userId);
@@ -114,7 +152,8 @@ export async function POST(request: NextRequest) {
 
         await db.insert(sessions).values({
             id: sessionId,
-            userId,
+            userId: internalUserId,
+            clerkId: userId, // Store Clerk ID for decryption
             fullName: encryptedFullName, // 🔐 Encrypted
             dateOfBirth: birthData.dateOfBirth, // Not encrypted (needed for calculations)
             tentativeTime: birthData.tentativeTime, // Not encrypted (needed for calculations)
@@ -161,10 +200,19 @@ export async function POST(request: NextRequest) {
             },
         });
 
-    } catch (error) {
+
+    } catch (error: any) {
         logger.error('Queue submit error', error);
+        console.error('QUEUE API ERROR:', error); // Console log for debugging
+
+        // In development, return actual error message
+        const isDev = process.env.NODE_ENV === 'development';
+        const errorMessage = isDev && error?.message
+            ? `${error.message} (${error.constructor.name})`
+            : 'Failed to submit request';
+
         return NextResponse.json(
-            { success: false, error: 'Failed to submit request' },
+            { success: false, error: errorMessage, stack: isDev ? error.stack : undefined },
             { status: 500 }
         );
     }

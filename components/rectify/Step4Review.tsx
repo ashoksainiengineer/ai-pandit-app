@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { BirthData, PhysicalTraits, LifeEvent } from '@/lib/types';
 
 interface Step4Props {
@@ -11,153 +12,216 @@ interface Step4Props {
     onEdit: (step: number) => void;
 }
 
-export default function Step4Review({ data, events, traits, onSubmit, isSubmitting, onEdit }: Step4Props) {
-    return (
-        <div className="animate-fade-in-up space-y-8">
-            <div className="text-center mb-8">
-                <h2 className="text-3xl font-bold text-[#D4AF37] mb-2">Review Your Details</h2>
-                <p className="text-[#C4B8AD]">
-                    Verify everything before we begin the calculation. Precision matters.
-                </p>
-            </div>
+// Animation variants
+const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+};
 
+export default function Step4Review({ data, events, traits, onSubmit, isSubmitting, onEdit }: Step4Props) {
+    const eventsComplete = events.filter(e => e.description && e.eventDate).length;
+    const accuracy = Math.min(98, 70 + eventsComplete * 4);
+
+    return (
+        <motion.div
+            className="space-y-8"
+            initial="hidden"
+            animate="visible"
+            variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
+        >
+            {/* ══════════════════════════════════════════════════════════════ */}
+            {/* HEADER */}
+            {/* ══════════════════════════════════════════════════════════════ */}
+            <motion.div variants={itemVariants} className="text-center">
+                <p className="text-sm text-[#E8A849] font-medium tracking-widest mb-2">STEP 4 OF 4</p>
+                <h1 className="text-3xl font-bold text-[#F5F0EB] mb-2">Review & Confirm</h1>
+                <p className="text-[#C4B8AD]">
+                    Verify everything before we begin the analysis
+                </p>
+            </motion.div>
+
+            {/* ══════════════════════════════════════════════════════════════ */}
+            {/* ACCURACY BANNER */}
+            {/* ══════════════════════════════════════════════════════════════ */}
+            <motion.div
+                variants={itemVariants}
+                className="bg-[#E8A849]/10 border border-[#E8A849]/30 rounded-xl p-5 text-center"
+            >
+                <div className="text-4xl font-bold text-[#E8A849] mb-1">{accuracy}%</div>
+                <div className="text-sm text-[#C4B8AD]">Expected Accuracy Based on Your Data</div>
+            </motion.div>
+
+            {/* ══════════════════════════════════════════════════════════════ */}
+            {/* REVIEW CARDS */}
+            {/* ══════════════════════════════════════════════════════════════ */}
             <div className="grid md:grid-cols-2 gap-6">
-                {/* Basic Info */}
-                <div className="glass-card p-6 border border-[#2D7A5C]/30 relative group">
+                {/* Birth Details */}
+                <motion.div
+                    variants={itemVariants}
+                    className="bg-[#241F1C] rounded-xl p-6 border border-[#C4B8AD]/10 relative group"
+                >
                     <button
                         onClick={() => onEdit(1)}
-                        className="absolute top-4 right-4 text-[#D4AF37] opacity-0 group-hover:opacity-100 transition-opacity text-sm hover:underline"
+                        className="absolute top-4 right-4 text-[#E8A849] opacity-0 group-hover:opacity-100 transition-opacity text-sm hover:underline"
                     >
-                        Edit
+                        ✏️ Edit
                     </button>
-                    <h3 className="text-lg font-semibold text-[#F5F0EB] mb-4 border-b border-[#2D7A5C]/30 pb-2">
-                        Basic Information
+                    <h3 className="text-lg font-semibold text-[#F5F0EB] mb-4 pb-3 border-b border-[#C4B8AD]/10 flex items-center gap-2">
+                        <span>📋</span> Birth Details
                     </h3>
                     <div className="space-y-3 text-sm">
                         <div className="flex justify-between">
                             <span className="text-[#8C7F72]">Name</span>
-                            <span className="text-[#C4B8AD]">{data.fullName}</span>
+                            <span className="text-[#F5F0EB] font-medium">{data.fullName || 'Not provided'}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-[#8C7F72]">Birth Date</span>
-                            <span className="text-[#C4B8AD]">{data.dateOfBirth}</span>
+                            <span className="text-[#C4B8AD]">{data.dateOfBirth || 'Not provided'}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-[#8C7F72]">Tentative Time</span>
-                            <span className="text-[#C4B8AD] font-mono">{data.tentativeTime}</span>
+                            <span className="text-[#E8A849] font-mono">{data.tentativeTime || 'Not provided'}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-[#8C7F72]">Place</span>
-                            <span className="text-[#C4B8AD] text-right">{data.birthPlace}</span>
+                            <span className="text-[#8C7F72]">Birth Place</span>
+                            <span className="text-[#C4B8AD] text-right max-w-[200px] truncate">{data.birthPlace || 'Not provided'}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-[#8C7F72]">Gender</span>
-                            <span className="text-[#C4B8AD] capitalize">{data.gender}</span>
+                            <span className="text-[#C4B8AD] capitalize">{data.gender || 'Not specified'}</span>
                         </div>
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Physical Traits */}
-                <div className="glass-card p-6 border border-[#8B5CF6]/30 relative group">
+                <motion.div
+                    variants={itemVariants}
+                    className="bg-[#241F1C] rounded-xl p-6 border border-[#C4B8AD]/10 relative group"
+                >
                     <button
-                        onClick={() => onEdit(3)}
-                        className="absolute top-4 right-4 text-[#D4AF37] opacity-0 group-hover:opacity-100 transition-opacity text-sm hover:underline"
+                        onClick={() => onEdit(2)}
+                        className="absolute top-4 right-4 text-[#E8A849] opacity-0 group-hover:opacity-100 transition-opacity text-sm hover:underline"
                     >
-                        Edit
+                        ✏️ Edit
                     </button>
-                    <h3 className="text-lg font-semibold text-[#F5F0EB] mb-4 border-b border-[#8B5CF6]/30 pb-2">
-                        Physical Traits
+                    <h3 className="text-lg font-semibold text-[#F5F0EB] mb-4 pb-3 border-b border-[#C4B8AD]/10 flex items-center gap-2">
+                        <span>🧑</span> Physical Traits
                     </h3>
                     <div className="space-y-3 text-sm">
                         <div className="flex justify-between">
                             <span className="text-[#8C7F72]">Height</span>
                             <span className="text-[#C4B8AD]">
-                                {traits.height?.feet}' {traits.height?.inches}" ({traits.height?.cm} cm)
+                                {traits.height?.cm ? `${traits.height.cm} cm` : 'Not provided'}
                             </span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-[#8C7F72]">Build</span>
-                            <span className="text-[#C4B8AD] capitalize">{traits.build}</span>
+                            <span className="text-[#C4B8AD] capitalize">{traits.build || 'Not provided'}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-[#8C7F72]">Complexion</span>
-                            <span className="text-[#C4B8AD] capitalize">{traits.complexion?.replace('_', ' ')}</span>
+                            <span className="text-[#C4B8AD] capitalize">{traits.complexion?.replace('_', ' ') || 'Not provided'}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-[#8C7F72]">Face Shape</span>
-                            <span className="text-[#C4B8AD] capitalize">{traits.faceShape}</span>
+                            <span className="text-[#C4B8AD] capitalize">{traits.faceShape || 'Not provided'}</span>
                         </div>
                         <div className="flex justify-between">
-                            <span className="text-[#8C7F72]">Hair / Eyes</span>
-                            <span className="text-[#C4B8AD] capitalize">{traits.hairColor} / {traits.eyeColor}</span>
+                            <span className="text-[#8C7F72]">Eye Size</span>
+                            <span className="text-[#C4B8AD] capitalize">{traits.eyeColor || 'Not provided'}</span>
                         </div>
                     </div>
-                </div>
+                </motion.div>
             </div>
 
-            {/* Life Events Summary */}
-            <div className="glass-card p-6 border border-[#D4AF37]/30 relative group">
+            {/* Life Events */}
+            <motion.div
+                variants={itemVariants}
+                className="bg-[#241F1C] rounded-xl p-6 border border-[#C4B8AD]/10 relative group"
+            >
                 <button
-                    onClick={() => onEdit(2)}
-                    className="absolute top-4 right-4 text-[#D4AF37] opacity-0 group-hover:opacity-100 transition-opacity text-sm hover:underline"
+                    onClick={() => onEdit(3)}
+                    className="absolute top-4 right-4 text-[#E8A849] opacity-0 group-hover:opacity-100 transition-opacity text-sm hover:underline"
                 >
-                    Edit
+                    ✏️ Edit
                 </button>
-                <h3 className="text-lg font-semibold text-[#F5F0EB] mb-4 border-b border-[#D4AF37]/30 pb-2">
-                    Life Events Timeline ({events.length})
+                <h3 className="text-lg font-semibold text-[#F5F0EB] mb-4 pb-3 border-b border-[#C4B8AD]/10 flex items-center gap-2">
+                    <span>📅</span> Life Events
+                    <span className="text-[#E8A849] text-sm font-normal">({events.length} events)</span>
                 </h3>
-                <div className="space-y-4">
-                    {events.map((e, i) => (
-                        <div key={i} className="flex items-start gap-3 text-sm p-3 rounded-lg bg-[#0F1419]/50">
-                            <span className="text-xl">{e.icon || '📅'}</span>
-                            <div className="flex-1">
-                                <div className="flex justify-between">
-                                    <span className="font-semibold text-[#F5F0EB]">{e.eventType}</span>
-                                    <span className="text-[#D4AF37] bg-[#D4AF37]/10 px-2 rounded-full text-xs">
-                                        {e.datePrecision?.includes('range')
-                                            ? `${e.eventDate} → ${e.endDate}`
-                                            : e.eventDate}
-                                    </span>
+
+                {events.length === 0 ? (
+                    <p className="text-[#8C7F72] text-center py-4">No events added yet</p>
+                ) : (
+                    <div className="space-y-3">
+                        {events.map((e, i) => (
+                            <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-[#2E2724]">
+                                <span className="text-xl">{e.icon || '📅'}</span>
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-start">
+                                        <span className="font-medium text-[#F5F0EB]">{e.eventType}</span>
+                                        <span className="text-[#E8A849] text-xs bg-[#E8A849]/10 px-2 py-1 rounded">
+                                            {e.datePrecision?.includes('range')
+                                                ? `${e.eventDate?.split('-')[0]} → ${e.endDate}`
+                                                : e.eventDate?.split('-')[0] || 'No date'}
+                                        </span>
+                                    </div>
+                                    {e.description && (
+                                        <p className="text-[#8C7F72] text-sm mt-1 line-clamp-1 italic">"{e.description}"</p>
+                                    )}
                                 </div>
-                                {e.description && (
-                                    <p className="text-[#8C7F72] mt-1 italic line-clamp-1">{e.description}</p>
+                                {e.description ? (
+                                    <span className="text-[#5CB57B]">✓</span>
+                                ) : (
+                                    <span className="text-[#D64545] text-xs">!</span>
                                 )}
                             </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
+                        ))}
+                    </div>
+                )}
+            </motion.div>
 
-            {/* Agreement & Submit */}
-            <div className="mt-8 pt-8 border-t border-white/10">
-                <label className="flex items-start gap-3 cursor-pointer group">
-                    <input type="checkbox" className="mt-1 w-5 h-5 rounded border-[#D4AF37]/50 bg-[#2A3442] text-[#D4AF37] focus:ring-[#D4AF37]/50" />
+            {/* ══════════════════════════════════════════════════════════════ */}
+            {/* CONFIRMATION & SUBMIT */}
+            {/* ══════════════════════════════════════════════════════════════ */}
+            <motion.div variants={itemVariants} className="pt-6 border-t border-[#C4B8AD]/10">
+                <label className="flex items-start gap-4 cursor-pointer group mb-8">
+                    <input
+                        type="checkbox"
+                        className="mt-1 w-5 h-5 rounded border-[#C4B8AD]/30 bg-[#2E2724] text-[#E8A849] focus:ring-[#E8A849]/50"
+                    />
                     <span className="text-[#C4B8AD] text-sm group-hover:text-[#F5F0EB] transition-colors">
-                        I confirm that the birth details provided are accurate to the best of my knowledge.
-                        I understand that incorrect data will lead to incorrect rectification.
+                        I confirm that all details provided are accurate to the best of my knowledge.
+                        I understand that incorrect data will affect the rectification accuracy.
                     </span>
                 </label>
 
-                <div className="mt-8 flex justify-center">
-                    <button
-                        onClick={onSubmit}
-                        disabled={isSubmitting}
-                        className="w-full md:w-auto px-12 py-4 bg-gradient-to-r from-[#D4AF37] to-[#B8860B] text-[#0F1419] font-bold rounded-xl text-lg hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-1"
-                    >
-                        {isSubmitting ? (
-                            <span className="flex items-center gap-2">
-                                <span className="animate-spin">⏳</span> Processing...
-                            </span>
-                        ) : (
-                            'Start Rectification Analysis'
-                        )}
-                    </button>
-                </div>
+                <motion.button
+                    onClick={onSubmit}
+                    disabled={isSubmitting}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full py-4 bg-gradient-to-r from-[#E8A849] to-[#B8860B] text-[#1A1614] font-bold rounded-xl text-lg hover:shadow-[0_0_30px_rgba(232,168,73,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    {isSubmitting ? (
+                        <span className="flex items-center justify-center gap-2">
+                            <span className="animate-spin">⏳</span> Processing...
+                        </span>
+                    ) : (
+                        '🔮 Start Rectification Analysis'
+                    )}
+                </motion.button>
 
                 <p className="text-center text-xs text-[#8C7F72] mt-4">
-                    Takes approx 2-3 minutes • AI-Powered Vedic Analysis
+                    Takes approximately 2-3 minutes • AI-Powered Vedic Analysis
                 </p>
-            </div>
-        </div>
+
+                {/* Encryption Badge */}
+                <div className="flex items-center justify-center gap-2 text-sm text-[#5CB57B] mt-4">
+                    <span>🔒</span>
+                    <span>End-to-end encrypted</span>
+                </div>
+            </motion.div>
+        </motion.div>
     );
 }

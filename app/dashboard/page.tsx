@@ -152,7 +152,7 @@ export default async function DashboardPage() {
                                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                                         <div>
                                             <div className="flex items-center gap-3 mb-2">
-                                                <h3 className="font-semibold text-[#F5F0EB]">{session.fullName}</h3>
+                                                <h3 className="font-semibold text-[#F5F0EB]">📍 {session.birthPlace.split(',')[0]}</h3>
                                                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${session.status === 'complete'
                                                     ? 'bg-[#2D7A5C]/20 text-[#2D7A5C]'
                                                     : session.status === 'processing'
@@ -177,22 +177,62 @@ export default async function DashboardPage() {
                                             )}
                                         </div>
 
-                                        <div className="flex items-center gap-3">
-                                            {session.status === 'complete' ? (
-                                                <Link
-                                                    href={`/rectify/${session.id}/results`}
-                                                    className="px-4 py-2 bg-gradient-to-r from-[#D4AF37] to-[#C9A961] text-[#0F1419] rounded-lg font-medium text-sm hover:opacity-90 transition-opacity"
-                                                >
-                                                    View Results
-                                                </Link>
-                                            ) : session.status === 'processing' ? (
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            {/* Completed: View Results + Re-analyze */}
+                                            {session.status === 'complete' && (
+                                                <>
+                                                    <Link
+                                                        href={`/rectify/${session.id}/results`}
+                                                        className="px-4 py-2 bg-gradient-to-r from-[#D4AF37] to-[#C9A961] text-[#0F1419] rounded-lg font-medium text-sm hover:opacity-90 transition-opacity"
+                                                    >
+                                                        View Results
+                                                    </Link>
+                                                    <Link
+                                                        href={`/rectify/${session.id}/edit`}
+                                                        className="px-3 py-2 border border-[#6A0572]/50 text-[#6A0572] rounded-lg font-medium text-sm hover:bg-[#6A0572]/10 transition-colors"
+                                                    >
+                                                        🔄 Re-analyze
+                                                    </Link>
+                                                </>
+                                            )}
+
+                                            {/* Processing: View Progress */}
+                                            {session.status === 'processing' && (
                                                 <Link
                                                     href={`/rectify/${session.id}`}
-                                                    className="px-4 py-2 border border-[#D4AF37]/50 text-[#D4AF37] rounded-lg font-medium text-sm hover:bg-[#D4AF37]/10 transition-colors"
+                                                    className="px-4 py-2 border border-[#D4AF37]/50 text-[#D4AF37] rounded-lg font-medium text-sm hover:bg-[#D4AF37]/10 transition-colors animate-pulse"
                                                 >
-                                                    View Progress
+                                                    ⏳ View Progress
                                                 </Link>
-                                            ) : null}
+                                            )}
+
+                                            {/* Failed: Edit + Delete */}
+                                            {session.status === 'failed' && (
+                                                <>
+                                                    <Link
+                                                        href={`/rectify/${session.id}/edit`}
+                                                        className="px-4 py-2 bg-gradient-to-r from-[#D4AF37] to-[#C9A961] text-[#0F1419] rounded-lg font-medium text-sm hover:opacity-90 transition-opacity"
+                                                    >
+                                                        ✏️ Edit & Retry
+                                                    </Link>
+                                                </>
+                                            )}
+
+                                            {/* Pending: Edit + Cancel */}
+                                            {session.status === 'pending' && (
+                                                <>
+                                                    <Link
+                                                        href={`/rectify/${session.id}/edit`}
+                                                        className="px-3 py-2 border border-[#D4AF37]/50 text-[#D4AF37] rounded-lg font-medium text-sm hover:bg-[#D4AF37]/10 transition-colors"
+                                                    >
+                                                        ✏️ Edit
+                                                    </Link>
+                                                    <span className="text-xs text-[#8C7F72] bg-[#2A3442] px-2 py-1 rounded">
+                                                        ⏸ In Queue
+                                                    </span>
+                                                </>
+                                            )}
+
                                             <span className="text-xs text-[#8C7F72]">
                                                 {new Date(session.createdAt || '').toLocaleDateString()}
                                             </span>

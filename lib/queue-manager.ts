@@ -331,10 +331,10 @@ async function processQueue(): Promise<void> {
 
       // Process the analysis
       try {
-        // 🔐 Decrypt sensitive data using userId
-        const decryptedLifeEvents = JSON.parse(decryptData(s.lifeEvents, s.userId));
+        // 🔐 Decrypt sensitive data using clerkId (encryption key)
+        const decryptedLifeEvents = JSON.parse(decryptData(s.lifeEvents, s.clerkId));
         const decryptedPhysicalTraits = s.physicalTraits
-          ? JSON.parse(decryptData(s.physicalTraits, s.userId))
+          ? JSON.parse(decryptData(s.physicalTraits, s.clerkId))
           : undefined;
 
         const result = await processSecondsPrecisionBTR({

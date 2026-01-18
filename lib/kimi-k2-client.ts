@@ -11,15 +11,16 @@ import { logger } from './logger';
 // ═════════════════════════════════════════════════════════════════════════════
 
 const KIMI_CONFIG = {
-    baseUrl: process.env.KIMI_BASE_URL || 'https://api.moonshot.cn/v1',
-    apiKey: process.env.KIMI_API_KEY || '',
-    model: process.env.KIMI_MODEL || 'moonshot-v1-auto', // Auto selects best model
-    maxTokens: 16000,      // Maximum output for detailed analysis
+    // DeepSeek first, then fallback to Kimi/Moonshot
+    baseUrl: process.env.DEEPSEEK_BASE_URL || process.env.ANTHROPIC_BASE_URL || process.env.KIMI_BASE_URL || 'https://api.deepseek.com',
+    apiKey: process.env.DEEPSEEK_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.KIMI_API_KEY || '',
+    model: process.env.DEEPSEEK_MODEL || process.env.MOONSHOT_MODEL || process.env.KIMI_MODEL || 'deepseek-reasoner', // V3 with CoT reasoning
+    maxTokens: 32000,      // DeepSeek reasoner supports up to 64K
     thinkingBudget: 32000, // Extended thinking for highest accuracy
-    temperature: 0.1,      // Low temperature for consistent, accurate output
+    temperature: 0.1,      // Note: ignored by deepseek-reasoner
     retryAttempts: 3,
     retryDelayMs: 2000,
-    timeoutMs: 120000,     // 2 minutes timeout (thinking mode takes time)
+    timeoutMs: 180000,     // 3 minutes timeout (reasoning takes longer)
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -63,11 +64,11 @@ export async function callKimiK2(
     };
 
     if (!KIMI_CONFIG.apiKey) {
-        logger.error('KIMI_API_KEY not configured');
+        logger.error('DEEPSEEK_API_KEY not configured');
         return {
             success: false,
             content: '',
-            error: 'AI service not configured',
+            error: 'DeepSeek API key not configured',
         };
     }
 
@@ -84,6 +85,8 @@ export async function callKimiK2(
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), KIMI_CONFIG.timeoutMs);
 
+            const isReasonerModel = KIMI_CONFIG.model.includes('reasoner');
+
             const requestBody: any = {
                 model: KIMI_CONFIG.model,
                 messages: [
@@ -91,9 +94,13 @@ export async function callKimiK2(
                     { role: 'user', content: userPrompt },
                 ],
                 max_tokens: config.maxTokens,
-                temperature: config.temperature,
                 stream: false,
             };
+
+            // DeepSeek Reasoner doesn't support temperature - only add for non-reasoner models
+            if (!isReasonerModel) {
+                requestBody.temperature = config.temperature;
+            }
 
             // Add thinking mode if enabled (Moonshot specific)
             if (config.enableThinking) {

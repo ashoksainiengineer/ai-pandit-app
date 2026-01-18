@@ -120,20 +120,6 @@ export default function InteractiveMap({
     return (
         <div className="relative w-full h-72 rounded-xl overflow-hidden border border-[#D4AF37]/20">
             <div ref={mapRef} className="w-full h-full" />
-
-            {/* Click hint overlay */}
-            <div className="absolute top-2 left-2 right-2 z-[1000] pointer-events-none">
-                <div className="inline-block px-3 py-1 bg-black/70 rounded-full text-xs text-white">
-                    🖱️ Click on map to select location • Drag marker to adjust
-                </div>
-            </div>
-
-            {/* Zoom hint */}
-            <div className="absolute bottom-2 left-2 z-[1000] pointer-events-none">
-                <div className="inline-block px-2 py-1 bg-black/70 rounded text-[10px] text-white/70">
-                    Scroll to zoom • Drag to pan
-                </div>
-            </div>
         </div>
     );
 }

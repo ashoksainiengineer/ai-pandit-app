@@ -23,11 +23,11 @@ const initialBirthData: BirthData = {
 };
 
 const initialPhysicalTraits: PhysicalTraits = {
-    height: { cm: 0, feet: 0, inches: 0 },
+    height: { cm: 165, feet: 5, inches: 5 },
     build: 'medium',
     complexion: 'medium',
     faceShape: 'oval',
-    eyeColor: 'black',
+    eyeColor: 'brown',
     hairColor: 'black'
 };
 
@@ -39,6 +39,41 @@ export default function RectifyPage() {
     const [physicalTraits, setPhysicalTraits] = useState<PhysicalTraits>(initialPhysicalTraits);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Cloud draft sync
+    const [draftSessionId, setDraftSessionId] = useState<string | null>(null);
+    const [cloudSaveStatus, setCloudSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+    // Save draft to cloud (Turso)
+    const saveDraftToCloud = async () => {
+        if (!birthData.fullName) return; // Need at least name
+
+        setCloudSaveStatus('saving');
+        try {
+            const res = await fetch('/api/drafts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    birthData,
+                    lifeEvents,
+                    physicalTraits,
+                    offsetConfig: { preset: '1hour', customMinutes: 60 },
+                    sessionId: draftSessionId,
+                }),
+            });
+
+            const result = await res.json();
+            if (result.success) {
+                setDraftSessionId(result.sessionId);
+                setCloudSaveStatus('saved');
+                localStorage.setItem('btr_draft_id', result.sessionId);
+            } else {
+                setCloudSaveStatus('error');
+            }
+        } catch (err) {
+            setCloudSaveStatus('error');
+        }
+    };
 
     // Load from local storage on mount
     useEffect(() => {
@@ -119,14 +154,16 @@ export default function RectifyPage() {
 
         try {
             const payload = {
-                fullName: birthData.fullName,
-                dateOfBirth: birthData.dateOfBirth,
-                tentativeTime: birthData.tentativeTime,
-                birthPlace: birthData.birthPlace,
-                latitude: birthData.latitude || 28.6, // Fallback if geocoding failed
-                longitude: birthData.longitude || 77.2,
-                timezone: birthData.timezone,
-                gender: birthData.gender,
+                birthData: {
+                    fullName: birthData.fullName,
+                    dateOfBirth: birthData.dateOfBirth,
+                    tentativeTime: birthData.tentativeTime,
+                    birthPlace: birthData.birthPlace,
+                    latitude: birthData.latitude || 28.6, // Fallback if geocoding failed
+                    longitude: birthData.longitude || 77.2,
+                    timezone: birthData.timezone,
+                    gender: birthData.gender
+                },
                 lifeEvents: lifeEvents.map(e => ({
                     ...e,
                     // Ensure generic fields needed by backend are present
@@ -138,7 +175,8 @@ export default function RectifyPage() {
                 })),
                 offsetConfig: {
                     preset: '1hour', // Default logic for now, or add UI for it
-                    description: 'Unknown uncertainty'
+                    description: 'Unknown uncertainty',
+                    customMinutes: 60
                 },
                 physicalTraits
             };
@@ -150,16 +188,19 @@ export default function RectifyPage() {
             });
 
             const result = await response.json();
+            console.log('API Response:', result); // Debug logging
 
             if (result.success) {
                 // Clear storage on success
                 localStorage.removeItem('btr_form_data');
-                router.push(`/rectify/${result.sessionId}`);
+                router.push(`/rectify/${result.data.sessionId}`);
             } else {
+                console.error('API Error:', result.error);
                 setError(result.error || 'Failed to submit analysis');
             }
-        } catch (err) {
-            setError('Network error. Please try again.');
+        } catch (err: any) {
+            console.error('Submission error:', err);
+            setError(err.message || 'Network error. Please try again.');
         } finally {
             setIsSubmitting(false);
         }
@@ -257,7 +298,7 @@ export default function RectifyPage() {
 
                 {/* Navigation */}
                 {step < 4 && (
-                    <div className="flex justify-between mt-12 pt-6 border-t border-white/5">
+                    <div className="flex justify-between items-center mt-12 pt-6 border-t border-white/5">
                         <button
                             onClick={handleBack}
                             disabled={step === 1}
@@ -267,6 +308,30 @@ export default function RectifyPage() {
                                 }`}
                         >
                             ← Back
+                        </button>
+
+                        {/* Cloud Save Button */}
+                        <button
+                            onClick={saveDraftToCloud}
+                            disabled={cloudSaveStatus === 'saving' || !birthData.fullName}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${cloudSaveStatus === 'saved'
+                                    ? 'bg-[#2D7A5C]/20 text-[#2D7A5C] border border-[#2D7A5C]/30'
+                                    : cloudSaveStatus === 'saving'
+                                        ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30 animate-pulse'
+                                        : cloudSaveStatus === 'error'
+                                            ? 'bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/30'
+                                            : 'bg-[#2A3442] text-[#C4B8AD] border border-[#8C7F72]/30 hover:border-[#D4AF37]/50'
+                                }`}
+                        >
+                            {cloudSaveStatus === 'saving' ? (
+                                <>💾 Saving...</>
+                            ) : cloudSaveStatus === 'saved' ? (
+                                <>☁️ Saved to Cloud</>
+                            ) : cloudSaveStatus === 'error' ? (
+                                <>⚠️ Retry Save</>
+                            ) : (
+                                <>☁️ Save to Cloud</>
+                            )}
                         </button>
 
                         <button

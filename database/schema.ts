@@ -21,6 +21,7 @@ export const sessions = sqliteTable(
   {
     id: text('id').primaryKey(),
     userId: text('userId').notNull().references(() => users.id),
+    clerkId: text('clerkId').notNull(), // Clerk user ID for decryption key
     fullName: text('fullName').notNull(),
     dateOfBirth: text('dateOfBirth').notNull(),
     tentativeTime: text('tentativeTime').notNull(),
