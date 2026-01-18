@@ -54,7 +54,7 @@ export interface StreamState {
 
 export function useStreamProgress(
     sessionId: string | null,
-    backendUrl: string = '' // Default to relative path for SSE proxy
+    backendUrl: string = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080' // Direct backend connection
 ): StreamState {
     const [state, setState] = useState<StreamState>({
         isConnected: false,
