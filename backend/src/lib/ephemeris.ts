@@ -24,7 +24,8 @@ function initSwissEph(): boolean {
       swe = require('swisseph');
       console.log('✅ Native Swiss Ephemeris initialized');
     } catch (e) {
-      swe = require('sweph-wasm');
+      const wasmModule = require('sweph-wasm/src/wasm/index.js');
+      swe = wasmModule.default || wasmModule;
       console.log('✅ WASM Swiss Ephemeris initialized');
     }
 
