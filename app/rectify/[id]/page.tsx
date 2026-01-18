@@ -57,7 +57,7 @@ export default function ProgressPage() {
         progress: streamProgress,
         aiThinking,
         result
-    } = useStreamProgress(sessionId, process.env.NEXT_PUBLIC_BACKEND_URL);
+    } = useStreamProgress(sessionId); // Use local relative proxy
 
     // Cancel analysis state
     const [isCancelling, setIsCancelling] = useState(false);
@@ -81,8 +81,7 @@ export default function ProgressPage() {
                 console.warn('No auth token available for cancellation');
             }
 
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
-            const response = await fetch(`${backendUrl}/api/queue/cancel`, {
+            const response = await fetch(`/api/queue/cancel`, { // Use local relative proxy
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
