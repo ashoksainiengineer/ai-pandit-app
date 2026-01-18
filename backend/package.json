@@ -18,7 +18,6 @@
         "drizzle-orm": "^0.45.1",
         "express": "^4.18.2",
         "sweph-wasm": "^1.0.0",
-        "swisseph": "^0.5.17",
         "uuid": "^9.0.1"
     },
     "devDependencies": {

@@ -20,14 +20,20 @@ function initSwissEph(): boolean {
   if (isInitialized) return useSwissEph;
 
   try {
-    swe = require('swisseph');
+    try {
+      swe = require('swisseph');
+      console.log('✅ Native Swiss Ephemeris initialized');
+    } catch (e) {
+      swe = require('sweph-wasm');
+      console.log('✅ WASM Swiss Ephemeris initialized');
+    }
+
     // Path to ephemeris data files (memory-mapped, not loaded into RAM)
     const ephePath = process.env.SWISSEPH_PATH || '/app/ephe';
     swe.swe_set_ephe_path(ephePath);
     useSwissEph = true;
-    console.log('✅ Swiss Ephemeris initialized (memory-mapped mode)');
   } catch (error) {
-    console.warn('⚠️ Swiss Ephemeris not available - Using algorithmic calculations');
+    console.warn('⚠️ Swiss Ephemeris not available - Using algorithmic calculations', error);
     useSwissEph = false;
   }
   isInitialized = true;
