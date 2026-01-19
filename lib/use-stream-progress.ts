@@ -361,18 +361,11 @@ export function useStreamProgress(
             });
 
             // If connection fails, switch to polling IMMEDIATELY
-            if (eventSource.readyState === 2) { // Closed
-                console.warn('⚠️ [SSE] Connection closed. Switching to polling...');
-                eventSource.close();
-                startPolling(sessionId);
-                return;
-            }
-
-            setConnectionState(prev => ({
-                ...prev,
-                readyState: eventSource.readyState,
-                lastError: `EventSource Error (ReadyState: ${eventSource.readyState}). Retrying or Polling...`
-            }));
+            // Relaxed check: Switch on ANY error to ensure we don't get stuck
+            console.warn('⚠️ [SSE] Connection error/closed. Switching to polling...');
+            eventSource.close();
+            startPolling(sessionId);
+            return;
         };
 
         eventSource.onopen = () => {
