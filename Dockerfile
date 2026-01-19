@@ -62,6 +62,14 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Copy swisseph native module
 COPY --from=deps /app/node_modules/swisseph ./node_modules/swisseph 2>/dev/null || true
 
+# Copy and build backend
+COPY backend ./backend
+RUN cd backend && npm install && npm run build
+
+# Copy startup script
+COPY scripts/start-all.sh ./start-all.sh
+RUN chmod +x ./start-all.sh
+
 USER nextjs
 
 EXPOSE 3000
@@ -69,9 +77,10 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 ENV SWISSEPH_PATH=/app/ephe
+ENV NEXT_PUBLIC_BACKEND_URL="" 
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD wget -qO- http://localhost:3000/api/health || exit 1
 
-CMD ["node", "server.js"]
+CMD ["./start-all.sh"]
