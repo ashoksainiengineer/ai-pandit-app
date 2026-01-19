@@ -20,18 +20,25 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          set -e
+          
           # 1. Clean Slate Push
           mkdir -p ../sync_temp
           cp -ra backend/. ../sync_temp/
           cd ../sync_temp
           
+          # 2. Setup repo with LFS (Mandatory for binary files on HF)
           git init
+          git lfs install
+          git lfs track "*.se1"
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
           git checkout -b main
-          git add .
-          git commit -m "Sync from GitHub: ${{ github.sha }}"
           
-          # 2. Push to Hugging Face
-          git remote add hf https://ashoksainiengineer:$HF_TOKEN@huggingface.co/spaces/ashoksainiengineer/ai-pandit
+          git add .
+          git commit -m "Sync from GitHub: ${{ github.sha }} [LFS enabled]"
+          
+          # 3. Push to Hugging Face
+          HF_URL="https://ashoksainiengineer:$HF_TOKEN@huggingface.co/spaces/ashoksainiengineer/ai-pandit"
+          git remote add hf "$HF_URL"
           git push hf main:main --force
