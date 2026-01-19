@@ -31,6 +31,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
 # Build with memory limits
+RUN cd backend && npm install && npm run build
 RUN NODE_OPTIONS="--max-old-space-size=384" npm run build
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -59,12 +60,13 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Copy compiled backend
+COPY --from=builder /app/backend/dist ./backend/dist
+COPY --from=builder /app/backend/package*.json ./backend/
+RUN cd backend && npm install --omit=dev
+
 # Copy swisseph native module (only if it exists from deps)
 COPY --from=deps /app/node_modules/swisseph ./node_modules/swisseph
-
-# Copy and build backend
-COPY backend ./backend
-RUN cd backend && npm install && npm run build
 
 # Copy startup script
 COPY scripts/start-all.sh ./start-all.sh
