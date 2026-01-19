@@ -21,8 +21,9 @@ jobs:
           
           # 1. Clean Slate Push (WHOLE REPO)
           mkdir -p ../sync_temp
-          # Copy EVERYTHING except .git to avoid nested repo issues
-          rsync -av --progress . ../sync_temp/ --exclude .git
+          # Copy EVERYTHING except .git
+          cp -ra . ../sync_temp/
+          rm -rf ../sync_temp/.git
           cd ../sync_temp
           
           # 2. Setup repo with LFS

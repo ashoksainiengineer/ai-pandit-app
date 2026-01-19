@@ -9,7 +9,6 @@ FROM node:20-alpine AS base
 # Install build dependencies
 RUN apk add --no-cache python3 make g++ git curl
 
-# ═══════════════════════════════════════════════════════════════════════════
 # Dependencies Stage
 # ═══════════════════════════════════════════════════════════════════════════
 FROM base AS deps
@@ -17,6 +16,9 @@ WORKDIR /app
 
 COPY package.json package-lock.json* ./
 RUN npm ci --omit=dev --include=optional
+
+# 🛡️ GUARANTEE swisseph directory exists to avoid COPY failure
+RUN mkdir -p node_modules/swisseph && touch node_modules/swisseph/.placeholder
 
 # ═══════════════════════════════════════════════════════════════════════════
 # Builder Stage
@@ -35,7 +37,7 @@ RUN cd backend && npm install && npm run build
 RUN NODE_OPTIONS="--max-old-space-size=384" npm run build
 
 # ═══════════════════════════════════════════════════════════════════════════
-# Production Stage - Minimal Runtime (~150MB total)
+# Production Stage - Minimal Runtime
 # ═══════════════════════════════════════════════════════════════════════════
 FROM node:20-alpine AS runner
 WORKDIR /app
@@ -43,24 +45,23 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS="--max-old-space-size=384"
+# 🚀 CACHE BREAKER: Force HF to rebuild if stuck
+ENV BUILD_ID=20260119-2041
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
-# Download Swiss Ephemeris data (minimal set ~15MB)
-# Using curl with User-Agent to avoid 404/403 from astro.com
-RUN mkdir -p /app/ephe && \
-    cd /app/ephe && \
-    curl -L -A "Mozilla/5.0" -O https://download.astro.com/swisseph/ephe/sepl_18.se1 && \
-    curl -L -A "Mozilla/5.0" -O https://download.astro.com/swisseph/ephe/semo_18.se1 && \
-    curl -L -A "Mozilla/5.0" -O https://download.astro.com/swisseph/ephe/seas_18.se1 || \
-    echo "Warning: Ephemeris download failed, using local fallback"
-
-# Copy local ephe folder as fallback for missing files
+# Handle Ephemeris Data (Prefer local, fallback to download)
+RUN mkdir -p /app/ephe
+# Copy local files first
 COPY ephe/* /app/ephe/
+# Try downloading missing essentials (ignore failures if local exists)
+RUN cd /app/ephe && \
+    (curl -L -A "Mozilla/5.0" -O https://download.astro.com/swisseph/ephe/sepl_18.se1 || true) && \
+    (curl -L -A "Mozilla/5.0" -O https://download.astro.com/swisseph/ephe/semo_18.se1 || true)
 
-# Copy only production files
+# Copy production assets
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
@@ -70,9 +71,8 @@ COPY --from=builder /app/backend/dist ./backend/dist
 COPY --from=builder /app/backend/package*.json ./backend/
 RUN cd backend && npm install --omit=dev
 
-# Robustly copy swisseph native module (only if it exists)
-# Use a wildcard to prevent COPY from failing if the directory is missing
-COPY --from=deps /app/node_modules/swisseph* ./node_modules/swisseph/
+# Robustly copy swisseph native module (guaranteed to exist now)
+COPY --from=deps /app/node_modules/swisseph ./node_modules/swisseph
 
 # Copy startup script
 COPY scripts/start-all.sh ./start-all.sh
