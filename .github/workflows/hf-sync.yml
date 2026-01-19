@@ -22,21 +22,23 @@ jobs:
         run: |
           set -e
           
-          # 1. Clean Slate Push
+          # 1. Clean Slate Push (WHOLE REPO)
           mkdir -p ../sync_temp
-          cp -ra backend/. ../sync_temp/
+          # Copy EVERYTHING except .git to avoid nested repo issues
+          rsync -av --progress . ../sync_temp/ --exclude .git
           cd ../sync_temp
           
-          # 2. Setup repo with LFS (Mandatory for binary files on HF)
+          # 2. Setup repo with LFS
           git init
           git lfs install
           git lfs track "*.se1"
+          git lfs track "*.wasm"
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
           git checkout -b main
           
           git add .
-          git commit -m "Sync from GitHub: ${{ github.sha }} [LFS enabled]"
+          git commit -m "Sync whole repo: ${{ github.sha }}"
           
           # 3. Push to Hugging Face
           HF_URL="https://ashoksainiengineer:$HF_TOKEN@huggingface.co/spaces/ashoksainiengineer/ai-pandit"
