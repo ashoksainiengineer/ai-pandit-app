@@ -3,9 +3,6 @@ name: Sync to Hugging Face Spaces
 on:
   push:
     branches: [main]
-    paths:
-      - 'backend/**'
-      - '.github/workflows/hf-sync.yml'
 
 jobs:
   deploy:
