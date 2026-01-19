@@ -28,13 +28,18 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'no-cache, no-transform'); // no-transform is critical for some proxies
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+
+    // 🛡️ Explicit CORS for SSE (Crucial for HF Public Space)
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Last-Event-ID');
     res.flushHeaders();
 
     console.log(`[SSE] Headers flushed for ${sessionId}`);
 
-    // 🚀 Proxy-Buffering Bypass: Send a 2KB preamble
-    // Some cloud proxies (Leapcell/Cloudflare) buffer SSE until ~1-2KB is received.
-    res.write(':' + ' '.repeat(2048) + '\n\n');
+    // 🚀 Proxy-Buffering Bypass: Send a 4KB preamble
+    // Hugging Face/Cloudflare can be aggressive with buffering.
+    res.write(':' + ' '.repeat(4096) + '\n\n');
     res.write(': initial keepalive\n\n');
 
     console.log(`[SSE] Preamble sent for ${sessionId}`);

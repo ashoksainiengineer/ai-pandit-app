@@ -262,7 +262,8 @@ export function useStreamProgress(
 
         setConnectionState(prev => ({ ...prev, url, readyState: 0, lastError: null }));
 
-        const eventSource = new EventSource(url, { withCredentials: true });
+        // Create EventSource connection without credentials (for Public HF Space)
+        const eventSource = new EventSource(url);
         eventSourceRef.current = eventSource;
 
         // Connection Timeout Check (Increased to 20s for Cloud cold starts)
@@ -286,7 +287,11 @@ export function useStreamProgress(
         };
 
         eventSource.onerror = (error) => {
-            console.error('SSE connection error:', error);
+            console.error('❌ [SSE] Connection error/closed:', {
+                readyState: eventSource.readyState,
+                url: url,
+                event: error
+            });
             // Inspect event for details if possible (usually opaque in browser)
             setConnectionState(prev => ({
                 ...prev,
@@ -302,7 +307,7 @@ export function useStreamProgress(
         };
 
         eventSource.onopen = () => {
-            console.log('SSE connection established');
+            console.log('✅ [SSE] Connection established to', url);
             if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
             setState(prev => ({ ...prev, isConnected: true, error: null }));
             setConnectionState(prev => ({ ...prev, readyState: 1 }));
