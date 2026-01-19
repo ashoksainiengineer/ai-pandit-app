@@ -1,5 +1,6 @@
 // backend/src/routes/stream.ts
 // Server-Sent Events endpoint for real-time BTR progress streaming
+// Deployment Trigger: SSE Stability Fix Finalized
 
 import { Router, Request, Response } from 'express';
 import { sessionEvents, SessionEvent } from '../lib/session-events.js';
