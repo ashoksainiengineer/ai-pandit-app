@@ -20,11 +20,11 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # 1. Purana remote agar hai to hatayein (safety check)
+          # 1. Purana remote agar hai to hatayein
           git remote rm hf || true
           
           # 2. Hugging Face remote add karein
           git remote add hf https://ashoksainiengineer:$HF_TOKEN@huggingface.co/spaces/ashoksainiengineer/ai-pandit
           
-          # 3. Sirf backend folder ko root bana kar force push karein
-          git subtree push --prefix backend hf main --force
+          # 3. Subtree split karke force push karein (sabse reliable tarika)
+          git push hf $(git subtree split --prefix backend main):main --force
