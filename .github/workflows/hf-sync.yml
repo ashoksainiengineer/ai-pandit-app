@@ -1,0 +1,27 @@
+name: Sync to Hugging Face Spaces
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/hf-sync.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push to HF
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # 1. Hugging Face ki temporary repo setup karein
+          git remote add hf https://ashoksainiengineer:$HF_TOKEN@huggingface.co/spaces/ashoksainiengineer/ai-pandit
+          
+          # 2. Sirf backend folder ko root bana kar push karein (subtree push)
+          git subtree push --prefix backend hf main --force
