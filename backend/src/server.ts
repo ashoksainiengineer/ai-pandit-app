@@ -13,36 +13,20 @@ const PORT = process.env.PORT || 8080;
 // =============================================================================
 // CORS Configuration - Allow Vercel Frontend
 // =============================================================================
-const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    process.env.FRONTEND_URL,
-    /\.vercel\.app$/,
-].filter(Boolean);
-
 app.use(cors({
     origin: (origin, callback) => {
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin) return callback(null, true);
 
-        // Check if origin matches allowed patterns
-        const isAllowed = allowedOrigins.some(allowed => {
-            if (allowed instanceof RegExp) {
-                return allowed.test(origin);
-            }
-            return allowed === origin;
-        });
-
-        if (isAllowed) {
-            callback(null, true);
-        } else {
-            console.warn(`CORS blocked origin: ${origin}`);
-            callback(null, true); // Allow anyway for development
-        }
+        // 🔓 REFLECTING CORS: Allow ANY origin to connect for debugging
+        // This eliminates CORS as a failure cause.
+        // In production, we can lock this down later effectively throughout enviroment variables.
+        callback(null, true);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Last-Event-ID'],
+    exposedHeaders: ['Content-Type'],
 }));
 
 // =============================================================================

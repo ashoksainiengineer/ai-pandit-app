@@ -64,6 +64,10 @@ export interface StreamState {
     displayedCandidate: string | null; // Currently shown candidate time
     analyzedCount: number; // For counter: "5/15"
     totalCandidates: number;
+    // Enhanced Diagnostics
+    url?: string;
+    readyState?: number;
+    lastError?: string | null;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -90,8 +94,20 @@ export function useStreamProgress(
         totalCandidates: 0,
     });
 
+    // Enhanced State
+    const [connectionState, setConnectionState] = useState<{
+        url: string;
+        readyState: number; // 0=CONNECTING, 1=OPEN, 2=CLOSED
+        lastError: string | null;
+    }>({
+        url: '',
+        readyState: 0,
+        lastError: null
+    });
+
     const eventSourceRef = useRef<EventSource | null>(null);
     const rotationTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Handle incoming SSE events
     const handleEvent = useCallback((eventData: any) => {
@@ -99,6 +115,7 @@ export function useStreamProgress(
         switch (eventData.type) {
             case 'connected':
                 setState(prev => ({ ...prev, isConnected: true }));
+                setConnectionState(prev => ({ ...prev, readyState: 1 }));
                 break;
 
             case 'progress':
@@ -243,8 +260,21 @@ export function useStreamProgress(
         const url = `${backendUrl}/api/stream/${sessionId}`;
         console.log('Connecting to SSE stream:', url);
 
+        setConnectionState(prev => ({ ...prev, url, readyState: 0, lastError: null }));
+
         const eventSource = new EventSource(url);
         eventSourceRef.current = eventSource;
+
+        // Connection Timeout Check
+        connectionTimeoutRef.current = setTimeout(() => {
+            if (eventSource.readyState !== 1) { // Not OPEN
+                setState(prev => ({
+                    ...prev,
+                    error: `Connection timeout (10s) to ${url}. Check console.`,
+                }));
+                setConnectionState(prev => ({ ...prev, lastError: 'Timeout: Backend did not ensure connection.' }));
+            }
+        }, 10000);
 
         eventSource.onmessage = (event) => {
             try {
@@ -257,6 +287,13 @@ export function useStreamProgress(
 
         eventSource.onerror = (error) => {
             console.error('SSE connection error:', error);
+            // Inspect event for details if possible (usually opaque in browser)
+            setConnectionState(prev => ({
+                ...prev,
+                readyState: eventSource.readyState,
+                lastError: `EventSource Error (ReadyState: ${eventSource.readyState})`
+            }));
+
             setState(prev => ({
                 ...prev,
                 isConnected: false,
@@ -266,12 +303,15 @@ export function useStreamProgress(
 
         eventSource.onopen = () => {
             console.log('SSE connection established');
+            if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
             setState(prev => ({ ...prev, isConnected: true, error: null }));
+            setConnectionState(prev => ({ ...prev, readyState: 1 }));
         };
 
         // Cleanup on unmount
         return () => {
             console.log('Closing SSE connection');
+            if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
             eventSource.close();
             eventSourceRef.current = null;
         };
@@ -314,7 +354,7 @@ export function useStreamProgress(
         };
     }, []);
 
-    return state;
+    return { ...state, ...connectionState };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

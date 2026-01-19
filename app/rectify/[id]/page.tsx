@@ -126,7 +126,11 @@ export default function ProgressPage() {
         aiContext, // 🔮 New: Context Data
         candidateScores,
         analyzedCount,
-        result
+        result,
+        // Enhanced Diagnostics
+        url: connectionUrl,
+        readyState,
+        lastError
     } = useStreamProgress(sessionId, process.env.NEXT_PUBLIC_BACKEND_URL); // Direct backend connection
 
     // Cancel analysis state
@@ -237,13 +241,62 @@ export default function ProgressPage() {
     const isAIStepActive = aiSteps.includes(streamProgress?.step || '') ||
         (streamProgress?.stepIndex !== undefined && [3, 4, 5, 8].includes(streamProgress.stepIndex));
 
+
     if (loading && !isConnected) {
         return (
             <main className="min-h-screen bg-[#0F1419] flex items-center justify-center">
                 <div className="text-center">
                     <div className="w-16 h-16 border-4 border-[#D4AF37] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
                     <p className="text-[#C4B8AD]">Connecting to analysis engine...</p>
-                    <p className="text-xs text-[#8C7F72] mt-2">Establishing real-time connection...</p>
+                    <p className="text-xs text-[#8C7F72] mt-2 mb-4">Establishing real-time connection...</p>
+
+                    {/* Diagnostic Panel */}
+                    <div className="mt-8 text-left max-w-sm mx-auto bg-[#1A1F2E] border border-[#3A4452] rounded-lg p-4 text-xs font-mono">
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="font-bold text-[#F5F0EB]">🔍 Connection Diagnostics</span>
+                            <span className={`w-2 h-2 rounded-full ${readyState === 1 ? 'bg-green-500' : readyState === 0 ? 'bg-yellow-500' : 'bg-red-500'}`} />
+                        </div>
+
+                        <div className="space-y-2 text-[#8C7F72]">
+                            <div>
+                                <div className="uppercase text-[10px] tracking-wider mb-0.5">Target Backend</div>
+                                <div className="break-all text-[#C4B8AD] bg-black/20 p-1 rounded">
+                                    {connectionUrl || 'Initializing...'}
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                    <div className="uppercase text-[10px] tracking-wider mb-0.5">Status</div>
+                                    <div className={readyState === 1 ? 'text-green-400' : 'text-yellow-400'}>
+                                        {readyState === 0 ? 'CONNECTING' : readyState === 1 ? 'OPEN' : 'CLOSED'}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="uppercase text-[10px] tracking-wider mb-0.5">Session ID</div>
+                                    <div className="truncate">{sessionId}</div>
+                                </div>
+                            </div>
+
+                            {lastError && (
+                                <div>
+                                    <div className="uppercase text-[10px] tracking-wider mb-0.5 text-red-400">Error Details</div>
+                                    <div className="text-red-300 bg-red-900/10 p-1.5 rounded border border-red-500/20">
+                                        {lastError}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="pt-2 border-t border-[#3A4452] mt-2">
+                                <button
+                                    onClick={() => window.location.reload()}
+                                    className="w-full py-1.5 bg-[#D4AF37]/10 text-[#D4AF37] hover:bg-[#D4AF37]/20 rounded transition-colors"
+                                >
+                                    ↻ Retry Connection
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </main>
         );
