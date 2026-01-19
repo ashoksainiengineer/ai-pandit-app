@@ -20,17 +20,29 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # 2. Backend folder ko temporary location pe copy karein
-          mkdir ../sync_temp
-          cp -ra backend/. ../sync_temp/
+          set -x # Debugging enable karein
           
-          # 3. Naya git repo banayein aur push karein
+          # 1. Check if token exists
+          if [ -z "$HF_TOKEN" ]; then
+            echo "ERROR: HF_TOKEN is empty. Please add it to GitHub Secrets."
+            exit 1
+          fi
+          
+          # 2. Files check karein
+          ls -R backend
+          
+          # 3. Clean Slate Push
+          mkdir -p ../sync_temp
+          cp -ra backend/. ../sync_temp/
           cd ../sync_temp
+          
           git init
-          git config --global user.email "actions@github.com"
-          git config --global user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
           git checkout -b main
           git add .
           git commit -m "Sync from GitHub: ${{ github.sha }}"
+          
+          # 4. Push with detailed error info
           git remote add hf https://ashoksainiengineer:$HF_TOKEN@huggingface.co/spaces/ashoksainiengineer/ai-pandit
-          git push hf main:main --force
+          git push hf main:main --force || (echo "PUSH FAILED! Check if token has WRITE access and Space URL is correct." && exit 1)
