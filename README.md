@@ -6,7 +6,7 @@ colorTo: purple
 sdk: docker
 pinned: false
 app_port: 7860
-last_deployed: "2026-01-20 00:51:00 UTC"
+last_deployed: "2026-01-20 01:00:00 UTC (One-Shot Fix)"
 ---
 
 # AI Pandit - Unified BTR Engine
