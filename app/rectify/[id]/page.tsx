@@ -127,7 +127,7 @@ export default function ProgressPage() {
         candidateScores,
         analyzedCount,
         result
-    } = useStreamProgress(sessionId); // Use local relative proxy
+    } = useStreamProgress(sessionId, process.env.NEXT_PUBLIC_BACKEND_URL); // Direct backend connection
 
     // Cancel analysis state
     const [isCancelling, setIsCancelling] = useState(false);
@@ -151,7 +151,8 @@ export default function ProgressPage() {
                 console.warn('No auth token available for cancellation');
             }
 
-            const response = await fetch(`/api/queue/cancel`, { // Use local relative proxy
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+            const response = await fetch(`${backendUrl}/api/queue/cancel`, { // Direct backend connection
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -361,10 +362,10 @@ export default function ProgressPage() {
                                         {/* Phase & Level Badges */}
                                         <div className="flex items-center gap-2 mb-3 flex-wrap">
                                             <span className={`text-[10px] px-2 py-1 rounded uppercase tracking-wider font-bold ${stepInfo?.phase === 'setup' ? 'bg-blue-500/20 text-blue-400' :
-                                                    stepInfo?.phase === 'calculation' ? 'bg-purple-500/20 text-purple-400' :
-                                                        stepInfo?.phase === 'screening' ? 'bg-orange-500/20 text-orange-400' :
-                                                            stepInfo?.phase === 'verification' ? 'bg-cyan-500/20 text-cyan-400' :
-                                                                'bg-green-500/20 text-green-400'
+                                                stepInfo?.phase === 'calculation' ? 'bg-purple-500/20 text-purple-400' :
+                                                    stepInfo?.phase === 'screening' ? 'bg-orange-500/20 text-orange-400' :
+                                                        stepInfo?.phase === 'verification' ? 'bg-cyan-500/20 text-cyan-400' :
+                                                            'bg-green-500/20 text-green-400'
                                                 }`}>
                                                 {stepInfo?.phase}
                                             </span>
