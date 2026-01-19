@@ -21,57 +21,60 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
         return;
     }
 
-    logger.info('SSE connection requested', { sessionId });
+    console.log(`[SSE] >>> Connection requested for ${sessionId}`);
 
     // Set SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Cache-Control', 'no-cache, no-transform'); // no-transform is critical for some proxies
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
     res.flushHeaders();
+
+    console.log(`[SSE] Headers flushed for ${sessionId}`);
 
     // 🚀 Proxy-Buffering Bypass: Send a 2KB preamble
     // Some cloud proxies (Leapcell/Cloudflare) buffer SSE until ~1-2KB is received.
     res.write(':' + ' '.repeat(2048) + '\n\n');
     res.write(': initial keepalive\n\n');
 
+    console.log(`[SSE] Preamble sent for ${sessionId}`);
+
     // Send initial connection event
     sendEvent(res, { type: 'connected', sessionId, timestamp: new Date().toISOString() });
 
-    // Send current progress if exists (Moved after preamble to ensure connection opens first)
-    try {
-        const currentProgress = await getSessionProgress(sessionId);
-        if (currentProgress) {
-            sendEvent(res, {
-                type: 'initial_state',
-                progress: currentProgress
-            });
-        }
+    // Send current progress if exists (ASYNC - DON'T AWAIT to prevent blocking)
+    (async () => {
+        try {
+            console.log(`[SSE] Fetching initial progress for ${sessionId}`);
+            const currentProgress = await getSessionProgress(sessionId);
+            if (currentProgress) {
+                console.log(`[SSE] Sending initial state for ${sessionId}`);
+                sendEvent(res, {
+                    type: 'initial_state',
+                    progress: currentProgress
+                });
+            }
 
-        // 🔮 Send cached AI Context if exists (Transparency Fix)
-        const lastContext = sessionEvents.getLastContext(sessionId);
-        if (lastContext) {
-            console.log(`🔮 Sending cached AI Context for ${sessionId}`);
-            sendEvent(res, lastContext);
-        }
+            // 🔮 Send cached AI Context if exists
+            const lastContext = sessionEvents.getLastContext(sessionId);
+            if (lastContext) {
+                sendEvent(res, lastContext);
+            }
 
-        // 🧠 Send cached Thinking Buffer (Refresh Fix)
-        const thinkingBuffer = sessionEvents.getThinkingBuffer(sessionId);
-        if (thinkingBuffer) {
-            console.log(`🧠 Sending cached AI Thinking for ${sessionId} (len=${thinkingBuffer.text.length})`);
-            sendEvent(res, {
-                type: 'ai_thinking',
-                chunk: thinkingBuffer.text, // Send full history as one chunk
-                stage: thinkingBuffer.stage,
-                candidateTime: thinkingBuffer.candidateTime
-            });
-        } else {
-            console.log(`⚠️ No thinking buffer found for ${sessionId} on connection`);
+            // 🧠 Send cached Thinking Buffer
+            const thinkingBuffer = sessionEvents.getThinkingBuffer(sessionId);
+            if (thinkingBuffer) {
+                sendEvent(res, {
+                    type: 'ai_thinking',
+                    chunk: thinkingBuffer.text,
+                    stage: thinkingBuffer.stage,
+                    candidateTime: thinkingBuffer.candidateTime
+                });
+            }
+        } catch (error) {
+            console.error(`[SSE] Error in initial async sync for ${sessionId}:`, error);
         }
-
-    } catch (error) {
-        logger.error('Failed to get initial progress', { sessionId, error });
-    }
+    })();
 
     // Get emitter for this session
     const emitter = sessionEvents.getEmitter(sessionId);
