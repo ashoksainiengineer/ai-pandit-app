@@ -4,8 +4,8 @@
 # Runs both Next.js and Express Backend in the same container
 
 echo "📡 Starting Backend (Port 8080)..."
-cd /app/backend && npm start &
+cd /app/backend && PORT=8080 npm start &
 
-echo "🎨 Starting Frontend (Port 3000)..."
+echo "🎨 Starting Frontend (Port 7860/HF)..."
 # Standalone Next.js server runs from /app
 cd /app && node server.js

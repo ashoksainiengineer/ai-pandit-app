@@ -72,15 +72,15 @@ RUN chmod +x ./start-all.sh
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 7860
 
-ENV PORT=3000
+ENV PORT=7860
 ENV HOSTNAME="0.0.0.0"
 ENV SWISSEPH_PATH=/app/ephe
 ENV NEXT_PUBLIC_BACKEND_URL="" 
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD wget -qO- http://localhost:3000/api/health || exit 1
+    CMD wget -qO- http://localhost:7860/api/health || exit 1
 
 CMD ["./start-all.sh"]
