@@ -59,8 +59,8 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy swisseph native module
-COPY --from=deps /app/node_modules/swisseph ./node_modules/swisseph 2>/dev/null || true
+# Copy swisseph native module (only if it exists from deps)
+COPY --from=deps /app/node_modules/swisseph ./node_modules/swisseph
 
 # Copy and build backend
 COPY backend ./backend
