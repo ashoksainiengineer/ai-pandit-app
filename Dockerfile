@@ -49,11 +49,16 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 # Download Swiss Ephemeris data (minimal set ~15MB)
+# Using curl with User-Agent to avoid 404/403 from astro.com
 RUN mkdir -p /app/ephe && \
     cd /app/ephe && \
-    wget -q https://www.astro.com/ftp/swisseph/ephe/sepl_18.se1 && \
-    wget -q https://www.astro.com/ftp/swisseph/ephe/semo_18.se1 && \
-    wget -q https://www.astro.com/ftp/swisseph/ephe/seas_18.se1 || true
+    curl -L -A "Mozilla/5.0" -O https://download.astro.com/swisseph/ephe/sepl_18.se1 && \
+    curl -L -A "Mozilla/5.0" -O https://download.astro.com/swisseph/ephe/semo_18.se1 && \
+    curl -L -A "Mozilla/5.0" -O https://download.astro.com/swisseph/ephe/seas_18.se1 || \
+    echo "Warning: Ephemeris download failed, using local fallback"
+
+# Copy local ephe folder as fallback for missing files
+COPY ephe/* /app/ephe/
 
 # Copy only production files
 COPY --from=builder /app/public ./public
@@ -65,8 +70,9 @@ COPY --from=builder /app/backend/dist ./backend/dist
 COPY --from=builder /app/backend/package*.json ./backend/
 RUN cd backend && npm install --omit=dev
 
-# Copy swisseph native module (only if it exists from deps)
-COPY --from=deps /app/node_modules/swisseph ./node_modules/swisseph
+# Robustly copy swisseph native module (only if it exists)
+# Use a wildcard to prevent COPY from failing if the directory is missing
+COPY --from=deps /app/node_modules/swisseph* ./node_modules/swisseph/
 
 # Copy startup script
 COPY scripts/start-all.sh ./start-all.sh
