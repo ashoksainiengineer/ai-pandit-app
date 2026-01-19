@@ -13,11 +13,27 @@ const PORT = process.env.PORT || 8080;
 // =============================================================================
 // CORS Configuration - Ultra-Permissive for Debugging
 // =============================================================================
+// CORS Configuration - Secure with Credentials Support
 app.use(cors({
-    origin: '*',
-    credentials: false,
+    origin: (origin, callback) => {
+        const allowedOrigins = [
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+            process.env.FRONTEND_URL || ''
+        ];
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+
+        if (allowedOrigins.includes(origin) || origin.startsWith('http://localhost')) {
+            callback(null, true);
+        } else {
+            console.warn(`[CORS] Blocked origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Last-Event-ID'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Last-Event-ID', 'baggage', 'sentry-trace'],
     exposedHeaders: ['Content-Type'],
 }));
 

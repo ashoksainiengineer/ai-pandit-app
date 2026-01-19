@@ -213,6 +213,7 @@ export async function callKimiK2WithStream(
         abortSignal?: AbortSignal; // Support external cancellation
         onToken?: (content: string, isThinking: boolean) => void; // For heartbeats
         timeoutMs?: number; // Custom timeout
+        progressTracker?: any; // Avoiding circular import by using any, or import type if possible
     }
 ): Promise<KimiK2Response> {
     const config = {
@@ -329,6 +330,11 @@ export async function callKimiK2WithStream(
                         fullThinking += delta.reasoning_content;
                         emitAIThinking(sessionId, delta.reasoning_content, stage, options?.candidateTime);
 
+                        // 💾 Persist for Polling Fallback
+                        if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
+                            options.progressTracker.updateAIThinking(delta.reasoning_content, stage, options?.candidateTime).catch(() => { });
+                        }
+
                         // 💓 Heartbeat every ~100 tokens
                         if (fullThinking.length % 500 < delta.reasoning_content.length) {
                             options?.onToken?.(fullThinking, true);
@@ -337,6 +343,11 @@ export async function callKimiK2WithStream(
                         // Fallback: Emit content as "thinking" for non-reasoning models (for display)
                         fullContent += delta.content;
                         emitAIThinking(sessionId, delta.content, stage, options?.candidateTime);
+
+                        // 💾 Persist for Polling Fallback
+                        if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
+                            options.progressTracker.updateAIThinking(delta.content, stage, options?.candidateTime).catch(() => { });
+                        }
 
                         // 💓 Heartbeat every ~100 tokens
                         if (fullContent.length % 500 < delta.content.length) {

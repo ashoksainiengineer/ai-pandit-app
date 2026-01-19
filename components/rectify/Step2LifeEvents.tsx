@@ -23,11 +23,13 @@ const BTR_EVENTS = [
 ];
 
 // Date precision types - 5 options
-type DateType = 'exact_date_time' | 'exact_date' | 'month_year' | 'month_range' | 'year_range';
+// Date precision types - 6 options
+type DateType = 'exact_date_time' | 'exact_date' | 'month_year' | 'month_range' | 'year_range' | 'exact_date_range';
 
 const DATE_OPTIONS = [
     { val: 'exact_date_time', label: 'Exact Date & Time', desc: 'DD/MM/YYYY HH:MM' },
     { val: 'exact_date', label: 'Exact Date', desc: 'DD/MM/YYYY' },
+    { val: 'exact_date_range', label: 'Date Range', desc: 'DD/MM/YYYY → DD/MM/YYYY' },
     { val: 'month_year', label: 'Month & Year', desc: 'MM/YYYY' },
     { val: 'month_range', label: 'Month Range', desc: 'MM/YYYY → MM/YYYY' },
     { val: 'year_range', label: 'Year Range', desc: 'YYYY → YYYY' },
@@ -38,7 +40,7 @@ export default function Step2LifeEvents({ lifeEvents, updateEvents }: Step2Props
     const [selectedCat, setSelectedCat] = useState<EventCategory | null>(null);
 
     // Add new event
-    const addEvent = (label: string, icon: string, category: string) => {
+    const addEvent = (label: string, icon: string, category: string, isCustom: boolean = false) => {
         const newEvent: LifeEvent = {
             id: `evt_${Date.now()}`,
             category: category as any,
@@ -48,6 +50,7 @@ export default function Step2LifeEvents({ lifeEvents, updateEvents }: Step2Props
             eventDate: '',
             description: '',
             importance: 'high',
+            isCustom
         };
         updateEvents([...lifeEvents, newEvent]);
         setEditingId(newEvent.id);
@@ -69,8 +72,84 @@ export default function Step2LifeEvents({ lifeEvents, updateEvents }: Step2Props
     const days = Array.from({ length: 31 }, (_, i) => i + 1);
     const hours = Array.from({ length: 12 }, (_, i) => i + 1);
 
-    const eventsComplete = lifeEvents.filter(e => e.description && e.eventDate).length;
-    const accuracy = Math.min(98, 70 + eventsComplete * 4);
+
+    // Calculate Accuracy Score based on diversity and depth of events
+    const calculateAccuracy = () => {
+        // Base score just for reaching this step
+        let score = 30;
+
+        // Weights for different categories (High impact > Medium > Low)
+        const catWeights: Record<string, number> = {
+            marriage: 15,      // High importance for rectification
+            children: 15,      // High importance
+            family_events: 12, // Death/Birth of family often critical
+            health: 12,
+            career: 10,
+            education: 10,
+            financial: 8,
+            travel: 6,
+            spiritual: 5,
+            legal: 5,
+            other: 5
+        };
+
+        // Track usage per category for diminishing returns
+        const catUsage: Record<string, number> = {};
+
+        const validEvents = lifeEvents.filter(e => e.description && e.eventDate);
+
+        validEvents.forEach(evt => {
+            const cat = evt.category;
+            const weight = catWeights[cat] || 5;
+
+            // Increment usage count
+            catUsage[cat] = (catUsage[cat] || 0) + 1;
+            const count = catUsage[cat];
+
+            // Diminishing returns logic
+            if (count === 1) {
+                score += weight; // 1st event: 100% value
+            } else if (count === 2) {
+                score += weight * 0.4; // 2nd event: 40% value
+            } else if (count === 3) {
+                score += weight * 0.1; // 3rd event: 10% value
+            }
+            // 4th+ event adds 0 to score
+        });
+
+        return Math.min(98, Math.round(score));
+    };
+
+    const accuracy = calculateAccuracy();
+
+    // Sort events chronologically so timeline makes sense
+    const sortedEvents = [...lifeEvents].sort((a, b) => {
+        // Events with no date go to end, or we filters them? 
+        // User wants timeline, so date is key. 
+        if (!a.eventDate) return 1;
+        if (!b.eventDate) return -1;
+        return a.eventDate.localeCompare(b.eventDate);
+    });
+
+    const formatEventDate = (e: LifeEvent) => {
+        if (!e.eventDate) return 'No date';
+        const [y, m, d] = e.eventDate.split('-');
+        const mn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const mon = m ? mn[parseInt(m) - 1] : '';
+
+        if (e.datePrecision === 'month_year' && mon) return `${mon} ${y}`;
+        if ((e.datePrecision === 'exact_date' || e.datePrecision === 'exact_date_time') && mon && d) return `${d} ${mon} ${y}`;
+
+        if (e.datePrecision === 'exact_date_range' && e.endDate) {
+            const [ey, em, ed] = e.endDate.split('-');
+            const emon = em ? mn[parseInt(em) - 1] : '';
+            return `${d} ${mon} ${y} → ${ed} ${emon} ${ey}`;
+        }
+
+        if (e.endDate) return `${y} → ${e.endDate}`;
+        return y;
+    };
+
     const isAdded = (label: string) => lifeEvents.some(e => e.eventType === label);
 
     return (
@@ -113,7 +192,18 @@ export default function Step2LifeEvents({ lifeEvents, updateEvents }: Step2Props
                                 <div className="flex items-center gap-5">
                                     <span className="text-5xl">{event.icon}</span>
                                     <div>
-                                        <h2 className="text-xl font-semibold text-[#F5F0EB]">{event.eventType}</h2>
+                                        {event.isCustom ? (
+                                            <input
+                                                type="text"
+                                                autoFocus
+                                                value={event.eventType}
+                                                onChange={(e) => updateEvent(event.id, { eventType: e.target.value })}
+                                                className="bg-transparent text-xl font-semibold text-[#F5F0EB] border-b border-[#E8A849]/50 focus:border-[#E8A849] outline-none w-full min-w-[200px]"
+                                                placeholder="Enter Event Name"
+                                            />
+                                        ) : (
+                                            <h2 className="text-xl font-semibold text-[#F5F0EB]">{event.eventType}</h2>
+                                        )}
                                         <span className="text-sm text-[#C4B8AD]">{event.category}</span>
                                     </div>
                                 </div>
@@ -131,14 +221,14 @@ export default function Step2LifeEvents({ lifeEvents, updateEvents }: Step2Props
                                 {/* Date Type Selector - 5 Options */}
                                 <div>
                                     <label className="block text-sm font-medium text-[#E8A849] mb-4">📅 When did this happen?</label>
-                                    <div className="grid grid-cols-5 gap-2 mb-5">
+                                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-5">
                                         {DATE_OPTIONS.map(opt => (
                                             <button
                                                 key={opt.val}
                                                 onClick={() => updateEvent(event.id, { datePrecision: opt.val as any })}
                                                 className={`py-3 px-2 rounded-lg text-center transition-all border-2 ${dateType === opt.val
-                                                        ? 'bg-[#E8A849]/20 border-[#E8A849] text-[#F5F0EB]'
-                                                        : 'bg-[#2E2724] border-transparent text-[#C4B8AD] hover:border-[#E8A849]/30'
+                                                    ? 'bg-[#E8A849]/20 border-[#E8A849] text-[#F5F0EB]'
+                                                    : 'bg-[#2E2724] border-transparent text-[#C4B8AD] hover:border-[#E8A849]/30'
                                                     }`}
                                             >
                                                 <div className="font-medium text-xs">{opt.label}</div>
@@ -202,6 +292,56 @@ export default function Step2LifeEvents({ lifeEvents, updateEvents }: Step2Props
                                                     {years.map(yr => <option key={yr} value={yr}>{yr}</option>)}
                                                 </select>
                                             </>
+                                        )}
+
+                                        {/* Exact Date Range */}
+                                        {dateType === 'exact_date_range' && (
+                                            <div className="flex flex-col gap-3 w-full">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-[#8C7F72] w-10">From:</span>
+                                                    <select value={d || ''} onChange={(e) => updateEvent(event.id, { eventDate: `${y || currentYear}-${m || '01'}-${e.target.value.padStart(2, '0')}` })}
+                                                        className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none">
+                                                        <option value="">Day</option>
+                                                        {days.map(day => <option key={day} value={day.toString().padStart(2, '0')}>{day}</option>)}
+                                                    </select>
+                                                    <select value={m || ''} onChange={(e) => updateEvent(event.id, { eventDate: `${y || currentYear}-${e.target.value}-${d || '01'}` })}
+                                                        className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none flex-1">
+                                                        <option value="">Month</option>
+                                                        {months.map((mon, i) => <option key={mon} value={(i + 1).toString().padStart(2, '0')}>{mon}</option>)}
+                                                    </select>
+                                                    <select value={y || ''} onChange={(e) => updateEvent(event.id, { eventDate: `${e.target.value}-${m || '01'}-${d || '01'}` })}
+                                                        className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none w-24">
+                                                        <option value="">Year</option>
+                                                        {years.map(yr => <option key={yr} value={yr}>{yr}</option>)}
+                                                    </select>
+                                                </div>
+
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-[#8C7F72] w-10">To:</span>
+                                                    {(() => {
+                                                        const [ey, em, ed] = (event.endDate || '').split('-');
+                                                        return (
+                                                            <>
+                                                                <select value={ed || ''} onChange={(e) => updateEvent(event.id, { endDate: `${ey || currentYear}-${em || '01'}-${e.target.value.padStart(2, '0')}` })}
+                                                                    className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none">
+                                                                    <option value="">Day</option>
+                                                                    {days.map(day => <option key={day} value={day.toString().padStart(2, '0')}>{day}</option>)}
+                                                                </select>
+                                                                <select value={em || ''} onChange={(e) => updateEvent(event.id, { endDate: `${ey || currentYear}-${e.target.value}-${ed || '01'}` })}
+                                                                    className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none flex-1">
+                                                                    <option value="">Month</option>
+                                                                    {months.map((mon, i) => <option key={mon} value={(i + 1).toString().padStart(2, '0')}>{mon}</option>)}
+                                                                </select>
+                                                                <select value={ey || ''} onChange={(e) => updateEvent(event.id, { endDate: `${e.target.value}-${em || '01'}-${ed || '01'}` })}
+                                                                    className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none w-24">
+                                                                    <option value="">Year</option>
+                                                                    {years.map(yr => <option key={yr} value={yr}>{yr}</option>)}
+                                                                </select>
+                                                            </>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            </div>
                                         )}
 
                                         {/* Month & Year */}
@@ -313,8 +453,8 @@ export default function Step2LifeEvents({ lifeEvents, updateEvents }: Step2Props
                                     key={cat.id}
                                     onClick={() => setSelectedCat(selectedCat?.id === cat.id ? null : cat)}
                                     className={`px-4 py-2 rounded-lg text-sm transition-all ${selectedCat?.id === cat.id
-                                            ? 'bg-[#E8A849] text-[#1A1614] font-medium'
-                                            : 'bg-[#2E2724] text-[#C4B8AD] hover:bg-[#3A3330]'
+                                        ? 'bg-[#E8A849] text-[#1A1614] font-medium'
+                                        : 'bg-[#2E2724] text-[#C4B8AD] hover:bg-[#3A3330]'
                                         }`}
                                 >
                                     {cat.icon} {cat.label}
@@ -342,6 +482,13 @@ export default function Step2LifeEvents({ lifeEvents, updateEvents }: Step2Props
                                                 + {evt.label}
                                             </button>
                                         ))}
+                                        {/* Custom Event Button */}
+                                        <button
+                                            onClick={() => addEvent("Custom Event", selectedCat.icon, selectedCat.id, true)}
+                                            className="px-3 py-2 bg-[#2E2724] border border-[#E8A849] border-dashed rounded-lg text-sm text-[#E8A849] hover:bg-[#E8A849]/10 transition-all font-medium"
+                                        >
+                                            + Custom Event
+                                        </button>
                                     </div>
                                 </motion.div>
                             )}
@@ -363,8 +510,8 @@ export default function Step2LifeEvents({ lifeEvents, updateEvents }: Step2Props
                                         onClick={() => !added && addEvent(evt.label, evt.icon, evt.cat)}
                                         disabled={added}
                                         className={`p-3 rounded-lg text-center transition-all border ${added
-                                                ? 'bg-[#5CB57B]/10 border-[#5CB57B]/30 cursor-default'
-                                                : 'bg-[#2E2724] border-transparent hover:border-[#E8A849]/30'
+                                            ? 'bg-[#5CB57B]/10 border-[#5CB57B]/30 cursor-default'
+                                            : 'bg-[#2E2724] border-transparent hover:border-[#E8A849]/30'
                                             }`}
                                     >
                                         <div className="text-xl">{evt.icon}</div>
@@ -388,7 +535,7 @@ export default function Step2LifeEvents({ lifeEvents, updateEvents }: Step2Props
                         <span className="text-xs text-[#8C7F72]">{lifeEvents.length} events</span>
                     </div>
                     <div className="divide-y divide-[#C4B8AD]/10">
-                        {lifeEvents.map((event) => (
+                        {sortedEvents.map((event) => (
                             <motion.div
                                 key={event.id}
                                 onClick={() => setEditingId(event.id)}
@@ -398,9 +545,14 @@ export default function Step2LifeEvents({ lifeEvents, updateEvents }: Step2Props
                                 <span className="text-3xl">{event.icon}</span>
                                 <div className="flex-1">
                                     <div className="text-[#F5F0EB] font-medium">{event.eventType}</div>
-                                    <div className="text-sm text-[#8C7F72]">
-                                        {event.eventDate?.split('-')[0] || 'No date'}{event.endDate && ` → ${event.endDate}`}
+                                    <div className="text-xs text-[#E8A849] mb-1">
+                                        {formatEventDate(event)}
                                     </div>
+                                    {event.description && (
+                                        <p className="text-sm text-[#C4B8AD] line-clamp-2 leading-relaxed">
+                                            {event.description}
+                                        </p>
+                                    )}
                                 </div>
                                 {!event.description ? (
                                     <span className="px-3 py-1 bg-[#D64545]/10 border border-[#D64545]/30 text-[#D64545] text-xs rounded-full">Add details</span>

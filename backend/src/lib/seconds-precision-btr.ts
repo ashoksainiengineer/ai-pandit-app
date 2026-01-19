@@ -615,7 +615,7 @@ async function stage2AILevel1(
 ): Promise<StageCandidate[]> {
     const results: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
-    const BATCH_SIZE = 5; // Process 5 candidates in parallel (Balanced for DeepSeek Reasoner)
+    const BATCH_SIZE = 5; // Process 5 candidates in parallel (Optimized for HF Free Tier 2 vCPU)
 
     logger.info(`Starting Stage 2 parallel processing for ${candidates.length} candidates`);
 
@@ -671,6 +671,7 @@ async function stage2AILevel1(
                         candidateTime: candidate.time,
                         abortSignal: input.abortSignal,
                         timeoutMs: 120000, // 2 mins timeout for R1
+                        progressTracker: progress,
                         onToken: (chunk) => {
                             progress.updateMessage(`Analyzing candidate ${candidate.time}...`);
                         }
@@ -691,6 +692,7 @@ async function stage2AILevel1(
                             candidateTime: candidate.time,
                             abortSignal: input.abortSignal,
                             model: 'deepseek-chat',
+                            progressTracker: progress,
                             onToken: (chunk) => {
                                 progress.updateMessage(`Analyzing ${candidate.time} (Fallback)...`);
                             }

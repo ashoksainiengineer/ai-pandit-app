@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
@@ -224,32 +224,42 @@ export default function RectifyPage() {
             <div className="max-w-4xl mx-auto px-6 py-12">
                 {/* Progress Indicator */}
                 <div className="mb-12">
-                    <div className="flex items-center justify-between mb-4 relative">
-                        {/* Connecting Line */}
-                        <div className="absolute top-1/2 left-0 w-full h-1 bg-[#2A3442] -z-10 rounded-full" />
-                        <div
-                            className="absolute top-1/2 left-0 h-1 bg-[#D4AF37] -z-10 rounded-full transition-all duration-500"
-                            style={{ width: `${((step - 1) / 3) * 100}%` }}
-                        />
-
+                    <div className="flex items-start justify-between w-full">
                         {[1, 2, 3, 4].map((s) => (
-                            <div key={s} className="flex flex-col items-center bg-[#0F1419] px-2">
-                                <div
-                                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all border-2 ${s < step
-                                        ? 'bg-[#2D7A5C] border-[#2D7A5C] text-white'
-                                        : s === step
-                                            ? 'bg-[#0F1419] border-[#D4AF37] text-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.3)]'
-                                            : 'bg-[#2A3442] border-[#2A3442] text-[#8C7F72]'
-                                        }`}
+                            <React.Fragment key={s}>
+                                {/* Step Button */}
+                                <button
+                                    onClick={() => setStep(s)}
+                                    className="relative z-10 flex flex-col items-center min-w-[80px] outline-none focus:outline-none"
                                 >
-                                    {s < step ? '✓' : ['👤', '🪞', '📅', '✅'][s - 1]}
-                                </div>
-                                <span className={`text-xs mt-2 font-medium ${s === step ? 'text-[#D4AF37]' : 'text-[#8C7F72]'}`}>
-                                    {s === 1 ? 'Birth Details' :
-                                        s === 2 ? 'Physical' :
-                                            s === 3 ? 'Life Events' : 'Review'}
-                                </span>
-                            </div>
+                                    <div
+                                        className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all border-2 ${s < step
+                                            ? 'bg-[#2D7A5C] border-[#2D7A5C] text-white'
+                                            : s === step
+                                                ? 'bg-[#0F1419] border-[#D4AF37] text-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.3)]'
+                                                : 'bg-[#2A3442] border-[#2A3442] text-[#8C7F72]'
+                                            }`}
+                                    >
+                                        {s < step ? '✓' : ['👤', '🪞', '📅', '✅'][s - 1]}
+                                    </div>
+                                    <span className={`text-xs mt-2 font-medium whitespace-nowrap ${s === step ? 'text-[#D4AF37]' : 'text-[#8C7F72]'}`}>
+                                        {s === 1 ? 'Birth Details' :
+                                            s === 2 ? 'Physical' :
+                                                s === 3 ? 'Life Events' : 'Review'}
+                                    </span>
+                                </button>
+
+                                {/* Connector Line (Except for last item) */}
+                                {s < 4 && (
+                                    <div className="flex-1 mt-5 mx-2 h-0.5 bg-white relative rounded">
+                                        {/* Colored Progress Overlay */}
+                                        <div
+                                            className={`absolute top-0 left-0 h-full bg-[#D4AF37] transition-all duration-500 rounded ${s < step ? 'w-full' : 'w-0'
+                                                }`}
+                                        />
+                                    </div>
+                                )}
+                            </React.Fragment>
                         ))}
                     </div>
                 </div>
@@ -291,6 +301,7 @@ export default function RectifyPage() {
                             onSubmit={handleSubmit}
                             isSubmitting={isSubmitting}
                             onEdit={setStep}
+                            offsetConfig={offsetConfig}
                         />
                     )}
                 </div>

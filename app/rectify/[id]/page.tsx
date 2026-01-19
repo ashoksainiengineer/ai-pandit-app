@@ -7,6 +7,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs'
+import { motion } from 'framer-motion';
 import { useStreamProgress } from '@/lib/use-stream-progress';
 import { UnifiedAIPanel } from '@/components/rectify/UnifiedAIPanel';
 
@@ -123,6 +124,7 @@ export default function ProgressPage() {
         error: streamError,
         progress: streamProgress,
         aiThinking,
+        stageHistory,
         aiContext, // 🔮 New: Context Data
         candidateScores,
         analyzedCount,
@@ -131,7 +133,11 @@ export default function ProgressPage() {
         url: connectionUrl,
         readyState,
         lastError
-    } = useStreamProgress(sessionId, process.env.NEXT_PUBLIC_BACKEND_URL); // Direct backend connection
+    } = useStreamProgress(
+        sessionId,
+        process.env.NEXT_PUBLIC_BACKEND_URL,
+        useAuth().getToken // 🔒 Pass getToken for Auth
+    ); // Direct backend connection
 
     // Cancel analysis state
     const [isCancelling, setIsCancelling] = useState(false);
@@ -232,17 +238,20 @@ export default function ProgressPage() {
     useEffect(() => {
         if (streamError) {
             setError(streamError);
+            setLoading(false);
         }
     }, [streamError]);
 
     // Check if AI step is active (Stages 2, 5, 7 use AI)
     // stepIndex mapping: 0=init, 1=ephemeris, 2=houses, 3=candidates(Stage2), 4=dasha(Stage5), 5=divisional(Stage7), 6=events, 7=physical, 8=ai, 9=final
-    const aiSteps = ['candidates', 'dasha', 'divisional', 'ai'];
+    // Check if AI step is active (Stages 2, 5, 7 use AI)
+    // stepIndex mapping: 0=init, 1=ephemeris, 2=houses, 3=candidates(Stage2), 4=dasha(Stage5), 5=divisional(Stage7), 6=events, 7=physical, 8=ai, 9=final
+    const aiSteps = ['candidates', 'dasha', 'divisional', 'ai', 'final'];
     const isAIStepActive = aiSteps.includes(streamProgress?.step || '') ||
-        (streamProgress?.stepIndex !== undefined && [3, 4, 5, 8].includes(streamProgress.stepIndex));
+        (streamProgress?.stepIndex !== undefined && [3, 4, 5, 8, 9].includes(streamProgress.stepIndex));
 
 
-    if (loading && !isConnected) {
+    if (loading && !isConnected && readyState !== 3) {
         return (
             <main className="min-h-screen bg-[#0F1419] flex items-center justify-center">
                 <div className="text-center">
@@ -344,6 +353,15 @@ export default function ProgressPage() {
                         <span className="text-2xl">🕉️</span>
                         <span className="font-bold text-xl text-[#D4AF37]">AI Pandit</span>
                     </Link>
+                    <div className="flex items-center gap-4">
+                        <Link
+                            href="/rectify"
+                            className="hidden md:flex px-3 py-1.5 rounded-lg text-xs font-medium bg-[#2A3442] text-[#C4B8AD] hover:bg-[#3A4452] hover:text-[#D4AF37] transition-colors items-center gap-2"
+                        >
+                            ← Back to Dashboard
+                        </Link>
+                    </div>
+
                     <div className="flex items-center gap-6">
                         <div className="flex items-center gap-2 text-sm text-[#8C7F72]">
                             <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500'} animate-pulse`} />
@@ -371,6 +389,11 @@ export default function ProgressPage() {
                     <p className="text-[#C4B8AD] h-6 transition-all duration-300">
                         {progress?.liveMessage || 'Initializing analysis...'}
                     </p>
+                </div>
+
+                {/* Birth Details Summary - Added as requested */}
+                <div className="mb-8">
+                    <BirthDetailsSummary />
                 </div>
 
                 {/* Main Progress Display - Unified Container */}
@@ -486,6 +509,7 @@ export default function ProgressPage() {
                         <div className="mb-8">
                             <UnifiedAIPanel
                                 thinking={aiThinking}
+                                stageHistory={stageHistory}
                                 context={aiContext}
                                 isActive={isAIStepActive}
                                 stage={aiStage}
@@ -600,6 +624,84 @@ export default function ProgressPage() {
                 </div>
 
             </div>
-        </main>
+        </main >
+    );
+}
+
+function BirthDetailsSummary() {
+    const [details, setDetails] = useState<any>(null);
+
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('btr_form_data');
+            if (stored) {
+                const data = JSON.parse(stored);
+                if (data.birthData) {
+                    setDetails(data.birthData);
+                }
+            }
+        } catch (e) {
+            console.error("Failed to load birth details", e);
+        }
+    }, []);
+
+    if (!details) return null;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-card p-6 border border-[#D4AF37]/20 bg-[#1A1F2E]/80 backdrop-blur-xl relative overflow-hidden"
+        >
+            {/* Background Glow */}
+            <div className="absolute -top-24 -right-24 w-64 h-64 bg-[#D4AF37]/5 rounded-full blur-3xl" />
+
+            <div className="flex items-center gap-2 mb-6 text-[#8C7F72] text-[10px] uppercase tracking-[0.25em] font-bold">
+                <span className="w-6 h-[1px] bg-[#D4AF37]/40" />
+                Birth Data Blueprint
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/10 shadow-inner">
+                        👤
+                    </div>
+                    <div>
+                        <div className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold mb-1">Subject</div>
+                        <div className="text-[#F5F0EB] font-bold text-sm truncate">{details.fullName}</div>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 border border-purple-500/10 shadow-inner">
+                        📅
+                    </div>
+                    <div>
+                        <div className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold mb-1">Date</div>
+                        <div className="text-[#F5F0EB] font-bold text-sm font-mono">{details.dateOfBirth}</div>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/10 shadow-inner">
+                        📍
+                    </div>
+                    <div>
+                        <div className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold mb-1">Birth Place</div>
+                        <div className="text-[#F5F0EB] font-bold text-sm truncate">{details.birthPlace}</div>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 flex items-center justify-center text-[#D4AF37] border border-[#D4AF37]/10 shadow-inner">
+                        🕒
+                    </div>
+                    <div>
+                        <div className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold mb-1">Tentative Time</div>
+                        <div className="text-[#D4AF37] font-bold text-sm font-mono tracking-wide">{details.tentativeTime}</div>
+                    </div>
+                </div>
+            </div>
+        </motion.div>
     );
 }

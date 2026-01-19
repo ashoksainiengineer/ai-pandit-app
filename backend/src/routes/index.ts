@@ -8,6 +8,11 @@ import streamRouter from './stream.js';
 const router = Router();
 
 // Mount routes
+router.use((req, res, next) => {
+    console.log(`[DEBUG] Router Index Hit: ${req.path}`);
+    next();
+});
+
 router.use('/health', healthRouter);
 router.use('/calculate', calculateRouter);
 router.use('/queue/progress', progressRouter); // Order matters: more specific first

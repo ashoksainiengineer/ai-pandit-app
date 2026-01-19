@@ -558,7 +558,7 @@ export function calculateAccuracy(categoryEventCounts: Record<string, number>): 
     missingCategories: string[];
     suggestions: string[];
 } {
-    let totalAccuracy = 60; // Base accuracy from birth details
+    let totalAccuracy = 30; // Base accuracy from birth details
     const breakdown: { category: string; contribution: number; eventsProvided: number; minimumRequired: number }[] = [];
     const missingCategories: string[] = [];
     const suggestions: string[] = [];

@@ -1,7 +1,8 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import { BirthData, PhysicalTraits, LifeEvent } from '@/lib/types';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { BirthData, PhysicalTraits, LifeEvent, TimeOffsetConfig } from '@/lib/types';
 
 interface Step4Props {
     data: BirthData;
@@ -10,6 +11,7 @@ interface Step4Props {
     onSubmit: () => void;
     isSubmitting: boolean;
     onEdit: (step: number) => void;
+    offsetConfig?: TimeOffsetConfig;
 }
 
 // Animation variants
@@ -18,9 +20,37 @@ const itemVariants = {
     visible: { opacity: 1, y: 0 }
 };
 
-export default function Step4Review({ data, events, traits, onSubmit, isSubmitting, onEdit }: Step4Props) {
-    const eventsComplete = events.filter(e => e.description && e.eventDate).length;
-    const accuracy = Math.min(98, 70 + eventsComplete * 4);
+export default function Step4Review({ data, events, traits, onSubmit, isSubmitting, onEdit, offsetConfig }: Step4Props) {
+    const [confirmed, setConfirmed] = useState(false);
+
+    // Calculate Accuracy
+    const calculateAccuracy = () => {
+        let score = 30;
+        // Basic event count score
+        score += events.filter(e => e.description && e.eventDate).length * 10;
+        return Math.min(98, score);
+    };
+    const accuracy = calculateAccuracy();
+
+    // Estimate processing time based on offset
+    const estimatedMinutes = Math.max(2, Math.ceil((offsetConfig?.customMinutes || 60) / 60) + 1);
+    const timeRange = `${estimatedMinutes}-${estimatedMinutes + 1}`;
+
+    // Identify missing high-impact categories for dynamic suggestions
+    const getSuggestions = () => {
+        const categoriesPresent = new Set(events.map(e => e.category));
+        const suggestions = [];
+
+        if (!categoriesPresent.has('career')) suggestions.push('Career (First Job, Promotion)');
+        if (!categoriesPresent.has('marriage')) suggestions.push('Marriage');
+        if (!categoriesPresent.has('family')) suggestions.push('Family Events (Child birth, etc)');
+        if (!categoriesPresent.has('travel')) suggestions.push('Major Travel / Relocation');
+
+        return suggestions.slice(0, 3); // Return top 3 missing
+    };
+
+    const suggestions = getSuggestions();
+    const showLowAccuracyWarning = accuracy < 70; // Threshold for warning
 
     return (
         <motion.div
@@ -182,15 +212,52 @@ export default function Step4Review({ data, events, traits, onSubmit, isSubmitti
             </motion.div>
 
             {/* ══════════════════════════════════════════════════════════════ */}
+            {/* LOW ACCURACY WARNING POPUP */}
+            {/* ══════════════════════════════════════════════════════════════ */}
+            <AnimatePresence>
+                {showLowAccuracyWarning && !confirmed && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="bg-[#D64545]/10 border border-[#D64545]/30 rounded-xl p-5 mb-6"
+                    >
+                        <div className="flex gap-3">
+                            <span className="text-2xl">⚠️</span>
+                            <div>
+                                <h4 className="text-[#D64545] font-bold mb-1">Accuracy Check: Low ({accuracy}%)</h4>
+                                <p className="text-[#C4B8AD] text-sm mb-3">
+                                    We noticed you have limited events. For the highest precision (90%+), we recommend adding:
+                                </p>
+                                <ul className="list-disc list-inside text-sm text-[#E8A849] space-y-1">
+                                    {suggestions.map((s, i) => (
+                                        <li key={i}>{s}</li>
+                                    ))}
+                                </ul>
+                                <button
+                                    onClick={() => onEdit(3)}
+                                    className="mt-4 text-xs bg-[#D64545]/20 hover:bg-[#D64545]/30 text-[#F5F0EB] px-3 py-2 rounded-lg transition-colors"
+                                >
+                                    Go back to Add Events
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ══════════════════════════════════════════════════════════════ */}
             {/* CONFIRMATION & SUBMIT */}
             {/* ══════════════════════════════════════════════════════════════ */}
             <motion.div variants={itemVariants} className="pt-6 border-t border-[#C4B8AD]/10">
                 <label className="flex items-start gap-4 cursor-pointer group mb-8">
                     <input
                         type="checkbox"
-                        className="mt-1 w-5 h-5 rounded border-[#C4B8AD]/30 bg-[#2E2724] text-[#E8A849] focus:ring-[#E8A849]/50"
+                        checked={confirmed}
+                        onChange={(e) => setConfirmed(e.target.checked)}
+                        className="mt-1 w-5 h-5 rounded border-[#C4B8AD]/30 bg-[#2E2724] text-[#E8A849] focus:ring-[#E8A849]/50 accent-[#E8A849]"
                     />
-                    <span className="text-[#C4B8AD] text-sm group-hover:text-[#F5F0EB] transition-colors">
+                    <span className={`text-sm transition-colors ${confirmed ? 'text-[#F5F0EB]' : 'text-[#C4B8AD] group-hover:text-[#E8A849]'}`}>
                         I confirm that all details provided are accurate to the best of my knowledge.
                         I understand that incorrect data will affect the rectification accuracy.
                     </span>
@@ -198,22 +265,25 @@ export default function Step4Review({ data, events, traits, onSubmit, isSubmitti
 
                 <motion.button
                     onClick={onSubmit}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !confirmed}
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full py-4 bg-gradient-to-r from-[#E8A849] to-[#B8860B] text-[#1A1614] font-bold rounded-xl text-lg hover:shadow-[0_0_30px_rgba(232,168,73,0.3)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`w-full py-4 font-bold rounded-xl text-lg transition-all ${!confirmed
+                        ? 'bg-[#2A3442] text-[#8C7F72] cursor-not-allowed'
+                        : 'bg-gradient-to-r from-[#E8A849] to-[#B8860B] text-[#1A1614] hover:shadow-[0_0_30px_rgba(232,168,73,0.3)]'
+                        }`}
                 >
                     {isSubmitting ? (
                         <span className="flex items-center justify-center gap-2">
                             <span className="animate-spin">⏳</span> Processing...
                         </span>
                     ) : (
-                        '🔮 Start Rectification Analysis'
+                        `🔮 Start Rectification Analysis (Approx. ${timeRange} mins)`
                     )}
                 </motion.button>
 
                 <p className="text-center text-xs text-[#8C7F72] mt-4">
-                    Takes approximately 2-3 minutes • AI-Powered Vedic Analysis
+                    Takes approximately {timeRange} minutes • AI-Powered Vedic Analysis based on ±{(offsetConfig?.customMinutes || 60) < 60 ? `${offsetConfig?.customMinutes || 60} min` : `${Math.round((offsetConfig?.customMinutes || 60) / 60)} hr`} range
                 </p>
 
                 {/* Encryption Badge */}
@@ -222,6 +292,6 @@ export default function Step4Review({ data, events, traits, onSubmit, isSubmitti
                     <span>End-to-end encrypted</span>
                 </div>
             </motion.div>
-        </motion.div>
+        </motion.div >
     );
 }

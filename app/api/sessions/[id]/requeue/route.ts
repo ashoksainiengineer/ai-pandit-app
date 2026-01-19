@@ -48,6 +48,12 @@ export async function POST(request: NextRequest, { params }: SessionParams) {
             .set({
                 status: 'pending',
                 errorMessage: null,
+                rectifiedTime: null,
+                accuracy: null,
+                confidence: null,
+                analysisResult: null,
+                progressData: null, // Clear old progress artifacts
+                completedAt: null,
                 updatedAt: new Date().toISOString(),
             })
             .where(eq(sessions.id, sessionId));

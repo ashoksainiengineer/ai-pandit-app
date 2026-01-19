@@ -97,7 +97,7 @@ export async function PUT(request: NextRequest, { params }: SessionParams) {
 
         const sessionId = params.id;
         const body = await request.json();
-        const { birthData, lifeEvents, physicalTraits, offsetConfig } = body;
+        const { birthData, lifeEvents, physicalTraits, offsetConfig, isDraft } = body;
 
         // Get session to verify ownership
         const session = await db.select()
@@ -122,28 +122,37 @@ export async function PUT(request: NextRequest, { params }: SessionParams) {
 
         const now = new Date().toISOString();
 
-        // Update session and reset status to pending for re-processing
-        await db.update(sessions)
-            .set({
-                fullName: encryptedFullName,
-                dateOfBirth: birthData.dateOfBirth,
-                tentativeTime: birthData.tentativeTime,
-                birthPlace: birthData.birthPlace,
-                latitude: birthData.latitude,
-                longitude: birthData.longitude,
-                timezone: birthData.timezone.toString(),
-                gender: birthData.gender,
-                physicalTraits: encryptedPhysicalTraits,
-                lifeEvents: encryptedLifeEvents,
-                offsetConfig: JSON.stringify(offsetConfig),
+        // Update object
+        const updateData: any = {
+            fullName: encryptedFullName,
+            dateOfBirth: birthData.dateOfBirth,
+            tentativeTime: birthData.tentativeTime,
+            birthPlace: birthData.birthPlace,
+            latitude: birthData.latitude,
+            longitude: birthData.longitude,
+            timezone: birthData.timezone.toString(),
+            gender: birthData.gender,
+            physicalTraits: encryptedPhysicalTraits,
+            lifeEvents: encryptedLifeEvents,
+            offsetConfig: JSON.stringify(offsetConfig),
+            updatedAt: now,
+        };
+
+        // Only reset status and results if NOT a draft save
+        if (!isDraft) {
+            Object.assign(updateData, {
                 status: 'pending', // Reset to pending for re-queue
                 errorMessage: null, // Clear previous error
                 rectifiedTime: null, // Clear previous result
                 accuracy: null,
                 confidence: null,
                 analysisResult: null,
-                updatedAt: now,
-            })
+            });
+        }
+
+        // Update session
+        await db.update(sessions)
+            .set(updateData)
             .where(eq(sessions.id, sessionId));
 
         return NextResponse.json({

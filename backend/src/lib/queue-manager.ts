@@ -20,9 +20,9 @@ import { emitComplete } from './session-events';
 // ═════════════════════════════════════════════════════════════════════════════
 
 const QUEUE_CONFIG = {
-  maxConcurrent: 1,           // Process ONE at a time (512MB RAM)
+  maxConcurrent: 5,           // Process 5 sessions concurrently (High-RAM HF)
   pollIntervalMs: 2000,       // Frontend polls every 2 seconds
-  maxQueueSize: 50,           // Maximum pending requests
+  maxQueueSize: 1000,         // Scaled up for production
   staleTimeoutMs: 20 * 60 * 1000, // 20 minutes - comprehensive analysis takes longer
   estimatedTimePerRequest: 90, // ~90 seconds per analysis with all methods
 };

@@ -62,6 +62,7 @@ export interface StreamState {
     // Enhanced UX: Multi-candidate tracking
     allCandidates: Map<string, AIThinking>; // All active candidates' thinking
     displayedCandidate: string | null; // Currently shown candidate time
+    stageHistory: Map<number, string>; // History of thinking per stage (Stage ID -> Full Text)
     analyzedCount: number; // For counter: "5/15"
     totalCandidates: number;
     // Enhanced Diagnostics
@@ -76,7 +77,8 @@ export interface StreamState {
 
 export function useStreamProgress(
     sessionId: string | null,
-    backendUrl: string = '' // Empty = use relative path (proxy at /api/stream)
+    backendUrl: string = '', // Empty = use relative path (proxy at /api/stream)
+    getToken?: () => Promise<string | null> // 🔒 AUTH: Passing token provider
 ): StreamState {
     const [state, setState] = useState<StreamState>({
         isConnected: false,
@@ -90,6 +92,7 @@ export function useStreamProgress(
         // Enhanced UX
         allCandidates: new Map(),
         displayedCandidate: null,
+        stageHistory: new Map(),
         analyzedCount: 0,
         totalCandidates: 0,
     });
@@ -112,68 +115,176 @@ export function useStreamProgress(
     const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Polling function
-    const startPolling = useCallback((sid: string) => {
-        if (pollingIntervalRef.current) return;
-
-        console.log('🔄 [Stream] Switching to Polling Mode for', sid);
-        setConnectionState(prev => ({
-            ...prev,
-            readyState: 3, // Custom status for Polling
-            usingFallback: true
-        }));
-
-        // Immediate fetch
-        fetchProgress(sid);
-
-        pollingIntervalRef.current = setInterval(() => {
-            fetchProgress(sid);
-        }, 2000);
-    }, [backendUrl]); // backendUrl dependency if used in fetchProgress
-
-    const fetchProgress = async (sid: string) => {
+    // Polling fetch function - Memoized to prevent stale closures
+    const fetchProgress = useCallback(async (sid: string, baseUrl: string = ''): Promise<boolean> => {
         try {
-            const url = `${backendUrl}/api/queue/progress/${sid}`;
-            const res = await fetch(url);
-            if (!res.ok) throw new Error(`Polling failed: ${res.status}`);
+            const url = `${baseUrl}/api/queue/progress?sessionId=${sid}`;
+
+            // 🔐 AUTH: Get Token if provider exists
+            const token = getToken ? await getToken() : null;
+            const headers: HeadersInit = {
+                'Content-Type': 'application/json'
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const res = await fetch(url, { headers });
+
+            // Handle 404/500 separately
+            if (!res.ok) {
+                if (res.status === 404) throw new Error('Session not found');
+                throw new Error(`Polling failed: ${res.status}`);
+            }
 
             const data = await res.json();
             const progressData = data.progress;
 
+            let displayMessage = progressData.liveMessage || '';
+
+            // Inject Queue Status into message if queued
+            if (data.status === 'queued' && data.position > 0) {
+                const waitTime = data.estimatedWaitSeconds ? Math.ceil(data.estimatedWaitSeconds / 60) : 1;
+                displayMessage = `Waiting in queue (Position: ${data.position}, Est. wait: ${waitTime} min)`;
+            }
+
             if (data.status === 'complete' || data.status === 'failed') {
                 // Stop polling if done
-                if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+                return false;
+            }
+
+            if (progressData.lastAIThinking) {
+                // console.log('✅ [Poll] AI Data:', progressData.lastAIThinking.stage);
             }
 
             // Reuse the 'initial_state' logic to update UI
-            setState(prev => ({
-                ...prev,
-                isConnected: true,
-                progress: {
-                    step: progressData.steps[progressData.currentStep]?.id || '',
-                    stepIndex: progressData.currentStep,
-                    totalSteps: progressData.totalSteps,
-                    percentage: progressData.percentage,
-                    message: progressData.liveMessage || '',
-                    details: progressData.steps[progressData.currentStep]?.details,
-                },
-                candidateScores: progressData.candidateScores || [],
-                analyzedCount: (progressData.candidateScores || []).length,
-            }));
+            setState(prev => {
+                const newState = {
+                    ...prev,
+                    isConnected: true,
+                    progress: {
+                        step: progressData.steps[progressData.currentStep]?.id || '',
+                        stepIndex: progressData.currentStep,
+                        totalSteps: progressData.totalSteps,
+                        percentage: progressData.percentage,
+                        message: displayMessage,
+                        details: progressData.steps[progressData.currentStep]?.details,
+                    },
+                    candidateScores: progressData.candidateScores || [],
+                    analyzedCount: (progressData.candidateScores || []).length,
+                    // 🧠 Restore Reasoning from Polling
+                    aiThinking: progressData.lastAIThinking || prev.aiThinking,
+                };
 
-            // Handle completion from polling
+                // 🧠 Hydrate allCandidates Map for UI Display
+                if (progressData.lastAIThinking) {
+                    const thinking = progressData.lastAIThinking;
+                    const candidateTime = thinking.candidateTime || 'unknown';
+
+                    // Update map
+                    const stringMap = new Map(prev.allCandidates);
+                    stringMap.set(candidateTime, thinking);
+                    newState.allCandidates = stringMap;
+
+                    // Ensure something is displayed
+                    if (!newState.displayedCandidate) {
+                        newState.displayedCandidate = candidateTime;
+                    }
+                }
+
+                return newState;
+            });
+
+            // Handle completion from polling in case we missed the status above
             if (data.status === 'complete' && data.data?.analysisResult) {
                 setState(prev => ({
                     ...prev,
                     isComplete: true,
                     result: data.data
                 }));
+                return false;
             }
 
-        } catch (err) {
-            console.error('Polling error:', err);
+            return true; // Continue polling
+
+        } catch (err: any) {
+            // Handle 404 (Session not found / Dead session) - Non-retryable
+            const is404 = err.message?.includes('404') || err.message?.includes('Session not found');
+
+            if (is404) {
+                console.error('Session 404 - Stopping Polling');
+                setState(prev => ({
+                    ...prev,
+                    error: 'Session expired. Please start a new analysis.',
+                    isConnected: false,
+                    isComplete: true
+                }));
+                return false; // Stop
+            }
+
+            // Network Errors (Retryable) - Throw to trigger Backoff
+            throw err;
         }
-    };
+    }, [getToken]); // Dependency on getToken ensures we use latest auth
+
+    // Polling function with Robust Exponential Backoff
+    const startPolling = useCallback((sid: string) => {
+        // Prevent concurrent polling loops
+        if (pollingIntervalRef.current) return;
+
+        console.log('🔄 [Stream] Switching to Polling Mode for', sid);
+
+        // Determine effective backend URL
+        let effectiveUrl = backendUrl;
+        if (!effectiveUrl && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+            effectiveUrl = 'http://127.0.0.1:8080';
+        }
+
+        setConnectionState(prev => ({
+            ...prev,
+            readyState: 3, // Custom status for Polling
+            usingFallback: true,
+            url: effectiveUrl || '/api/queue/progress'
+        }));
+
+        // Recursive Polling Loop with Exponential Backoff
+        let errorCount = 0;
+        const maxDelay = 30000; // Cap at 30s
+        const baseDelay = 2000; // Start at 2s
+
+        const pollLoop = async () => {
+            // Basic stop condition
+            if (state.isComplete || state.error?.includes('Session expired')) {
+                return;
+            }
+
+            try {
+                const proceed = await fetchProgress(sid, effectiveUrl);
+
+                if (proceed) {
+                    errorCount = 0; // Reset on success
+                    // Continue polling
+                    pollingIntervalRef.current = setTimeout(pollLoop, baseDelay);
+                } else {
+                    // Stop polling (complete/failed)
+                    pollingIntervalRef.current = null;
+                }
+            } catch (err: any) {
+                errorCount++;
+                const delay = Math.min(baseDelay * Math.pow(1.5, errorCount), maxDelay);
+                console.warn(`[Poll] Network Error. Retrying in ${delay}ms...`);
+
+                // Retry
+                pollingIntervalRef.current = setTimeout(pollLoop, delay);
+            }
+        };
+
+        // Start loop
+        pollLoop();
+
+    }, [backendUrl, state.isComplete, state.error, fetchProgress]); // backendUrl dependency if used in fetchProgress
+
+
 
     // Handle incoming SSE events
     const handleEvent = useCallback((eventData: any) => {
@@ -233,10 +344,28 @@ export function useStreamProgress(
                         : prev.displayedCandidate;
                     const displayedThinking = updatedCandidates.get(displayed);
 
+                    // Update Stage History (Stage -> Full Text)
+                    const newStageHistory = new Map(prev.stageHistory);
+                    const currentStageText = newStageHistory.get(eventData.stage) || '';
+
+                    let textToAppend = eventData.chunk;
+
+                    // 🛡️ SMART LOGGING: Insert context headers on state transitions
+                    if (!currentStageText && candidateTime) {
+                        // First log for this stage
+                        textToAppend = `\n[STAGE START] 🚀 System initialized for ${candidateTime}\n${'━'.repeat(40)}\n\n${textToAppend}`;
+                    } else if (prev.displayedCandidate && candidateTime && prev.displayedCandidate !== candidateTime) {
+                        // Switched to a different candidate in the same stage
+                        textToAppend = `\n\n${'═'.repeat(40)}\n🎯 SWITCHING TO: ${candidateTime}\n${'═'.repeat(40)}\n\n${textToAppend}`;
+                    }
+
+                    newStageHistory.set(eventData.stage, currentStageText + textToAppend);
+
                     return {
                         ...prev,
                         allCandidates: updatedCandidates,
                         displayedCandidate: displayed,
+                        stageHistory: newStageHistory,
                         // Show the currently displayed candidate's thinking
                         aiThinking: displayedThinking || prev.aiThinking,
                     };
@@ -322,10 +451,10 @@ export function useStreamProgress(
     useEffect(() => {
         if (!sessionId) return;
 
-        // 🚀 FORCE POLLING MODE
-        console.log('🚀 [Stream] Force-starting Polling Mode');
-        startPolling(sessionId);
-        return;
+        // 🚀 FORCE POLLING MODE - DISABLED TO RESTORE STREAMING
+        // console.log('🚀 [Stream] Force-starting Polling Mode');
+        // startPolling(sessionId);
+        // return;
 
         // Don't restart SSE if already polling
         if (connectionState.usingFallback) return;
@@ -370,7 +499,6 @@ export function useStreamProgress(
         return () => {
             // Cleanup if needed
         };
-        */
     }, [sessionId, backendUrl, startPolling]);
 
     // Rotation Effect: Switch displayed candidate every 5 seconds

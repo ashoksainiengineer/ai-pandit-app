@@ -49,7 +49,7 @@ export interface LifeEvent {
   category: EventCategory;
   eventType: string;
   // Flexible Date Fields - Supporting 5 precision modes
-  datePrecision: 'exact_date_time' | 'exact_date' | 'month_year' | 'month_range' | 'year_range';
+  datePrecision: 'exact_date_time' | 'exact_date' | 'month_year' | 'month_range' | 'year_range' | 'exact_date_range';
   eventDate: string; // YYYY-MM-DD or YYYY-MM or YYYY
   endDate?: string; // For ranges
   eventTime?: string; // HH:MM for exact dates
@@ -61,6 +61,7 @@ export interface LifeEvent {
   icon?: string;
   color?: string;
   ageAtEvent?: number;
+  isCustom?: boolean;
 }
 
 export interface PhysicalTraits {

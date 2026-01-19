@@ -36,6 +36,10 @@ export default function EditSessionPage() {
     const [offsetConfig, setOffsetConfig] = useState<any>({ preset: '1hour', customMinutes: 60, description: '±1 hour' });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Auto-save state
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [savingStatus, setSavingStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
     // Load existing session data
     useEffect(() => {
         async function fetchSession() {
@@ -59,6 +63,7 @@ export default function EditSessionPage() {
                     setOffsetConfig(data.data.offsetConfig);
                 }
                 setLoading(false);
+                setIsLoaded(true); // Data loaded, enable auto-save
             } catch (err) {
                 setError('Failed to fetch session data');
                 setLoading(false);
@@ -67,6 +72,36 @@ export default function EditSessionPage() {
 
         fetchSession();
     }, [sessionId]);
+
+    // Auto-save effect
+    useEffect(() => {
+        if (!isLoaded || !birthData) return;
+
+        const saveDraft = async () => {
+            setSavingStatus('saving');
+            try {
+                await fetch(`/api/sessions/${sessionId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        birthData,
+                        lifeEvents,
+                        physicalTraits,
+                        offsetConfig,
+                        isDraft: true // Important: Don't reset status
+                    })
+                });
+                setSavingStatus('saved');
+                setTimeout(() => setSavingStatus('idle'), 2000);
+            } catch (err) {
+                console.error('Auto-save failed:', err);
+                setSavingStatus('error');
+            }
+        };
+
+        const timer = setTimeout(saveDraft, 1000);
+        return () => clearTimeout(timer);
+    }, [birthData, lifeEvents, physicalTraits, offsetConfig, isLoaded, sessionId]);
 
     const handleNext = () => {
         setError(null);
@@ -92,8 +127,18 @@ export default function EditSessionPage() {
                 if (!birthData.birthPlace) { setError("Birth Place is required"); return false; }
                 return true;
             case 2:
+                // Step 2 is Physical Traits in the UI order (step state map is: 1=Birth, 2=Physical, 3=LifeEvents, 4=Review) 
+                // Wait, in the render:
+                // step 2 = Step3PhysicalTraits
+                // step 3 = Step2LifeEvents
+                // This seems swapped compared to validate function?
+                // Let's check the render: 
+                // {step === 2 && (<Step3PhysicalTraits ... />)}
+                // {step === 3 && (<Step2LifeEvents ... />)}
+                // So Step 2 is Physical, Step 3 is Life Events.
                 return true;
             case 3:
+                // Life Events validation (Step 3)
                 if (lifeEvents.length < 5) {
                     setError("Please add at least 5 life events");
                     return false;
@@ -111,7 +156,7 @@ export default function EditSessionPage() {
         setError(null);
 
         try {
-            // First update the session
+            // Final update (not draft)
             const updateRes = await fetch(`/api/sessions/${sessionId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -119,7 +164,8 @@ export default function EditSessionPage() {
                     birthData,
                     lifeEvents,
                     physicalTraits,
-                    offsetConfig // Use state instead of hardcoded
+                    offsetConfig
+                    // isDraft undefined -> Resets status
                 })
             });
 
@@ -186,7 +232,13 @@ export default function EditSessionPage() {
                         <span className="font-bold text-xl text-[#D4AF37]">AI Pandit</span>
                     </Link>
                     <div className="flex items-center gap-6">
-                        <span className="text-[#D4AF37] text-sm font-medium">✏️ Editing Session</span>
+                        <div className="flex items-center gap-2 text-sm">
+                            {savingStatus === 'saving' && <span className="text-[#E8A849] animate-pulse">Saving...</span>}
+                            {savingStatus === 'saved' && <span className="text-[#5CB57B]">Saved ✓</span>}
+                            {savingStatus === 'error' && <span className="text-[#D64545]">Save Failed</span>}
+                            <span className="text-[#D4AF37] font-medium opacity-50">|</span>
+                            <span className="text-[#D4AF37] font-medium">✏️ Editing Session</span>
+                        </div>
                         <UserButton afterSignOutUrl="/" />
                     </div>
                 </div>
@@ -209,7 +261,11 @@ export default function EditSessionPage() {
                         />
 
                         {[1, 2, 3, 4].map((s) => (
-                            <div key={s} className="flex flex-col items-center bg-[#0F1419] px-2">
+                            <button
+                                key={s}
+                                onClick={() => setStep(s)}
+                                className="flex flex-col items-center bg-[#0F1419] px-2 outline-none focus:outline-none"
+                            >
                                 <div
                                     className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all border-2 ${s < step
                                         ? 'bg-[#2D7A5C] border-[#2D7A5C] text-white'
@@ -223,7 +279,7 @@ export default function EditSessionPage() {
                                 <span className={`text-xs mt-2 font-medium ${s === step ? 'text-[#D4AF37]' : 'text-[#8C7F72]'}`}>
                                     {s === 1 ? 'Birth Details' : s === 2 ? 'Physical' : s === 3 ? 'Life Events' : 'Review'}
                                 </span>
-                            </div>
+                            </button>
                         ))}
                     </div>
                 </div>
@@ -265,6 +321,7 @@ export default function EditSessionPage() {
                             onSubmit={handleSubmit}
                             isSubmitting={isSubmitting}
                             onEdit={setStep}
+                            offsetConfig={offsetConfig}
                         />
                     )}
                 </div>
