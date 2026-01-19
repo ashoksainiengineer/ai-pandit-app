@@ -10,8 +10,8 @@ const router = Router();
 // Mount routes
 router.use('/health', healthRouter);
 router.use('/calculate', calculateRouter);
+router.use('/queue/progress', progressRouter); // Order matters: more specific first
 router.use('/queue', queueRouter);
-router.use('/queue/progress', progressRouter);
 router.use('/stream', streamRouter);
 
 export { router as routes };

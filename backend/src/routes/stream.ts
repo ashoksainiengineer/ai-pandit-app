@@ -22,6 +22,7 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
     }
 
     console.log(`[SSE] >>> Connection requested for ${sessionId}`);
+    console.log(`[SSE] Incoming headers: ${JSON.stringify(req.headers)}`);
 
     // Set SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
