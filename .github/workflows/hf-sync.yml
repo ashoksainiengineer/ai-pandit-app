@@ -20,11 +20,18 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # 1. Purana remote agar hai to hatayein
-          git remote rm hf || true
+          # 1. Git identity setup (required for commit)
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
           
-          # 2. Hugging Face remote add karein
+          # 2. Backend folder ko temporary location pe copy karein
+          mkdir ../sync_temp
+          cp -ra backend/. ../sync_temp/
+          
+          # 3. Naya git repo banayein aur push karein
+          cd ../sync_temp
+          git init
+          git add .
+          git commit -m "Sync from GitHub: ${{ github.sha }}"
           git remote add hf https://ashoksainiengineer:$HF_TOKEN@huggingface.co/spaces/ashoksainiengineer/ai-pandit
-          
-          # 3. Subtree split karke force push karein (sabse reliable tarika)
-          git push hf $(git subtree split --prefix backend main):main --force
+          git push hf master:main --force
