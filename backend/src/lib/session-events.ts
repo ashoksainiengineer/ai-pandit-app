@@ -33,7 +33,7 @@ export interface EphemerisEvent {
 }
 
 export interface CandidateScoreEvent {
-    type: 'candidate_score';
+    type: 'candidate_score' | 'candidate_score_v2';
     time: string;
     score: number;
     stage: number;
@@ -45,6 +45,19 @@ export interface CompleteEvent {
     rectifiedTime: string;
     accuracy: number;
     confidence: string;
+}
+
+export interface AIContextEvent {
+    type: 'ai_context';
+    stage: number;
+    candidateTime: string;
+    planetaryInfo: {
+        sun: string;
+        moon: string;
+        ascendant: string;
+    };
+    dasha: string;
+    divCharts?: string;
 }
 
 export interface ErrorEvent {
@@ -59,7 +72,8 @@ export type SessionEvent =
     | EphemerisEvent
     | CandidateScoreEvent
     | CompleteEvent
-    | ErrorEvent;
+    | ErrorEvent
+    | AIContextEvent;
 
 // ═════════════════════════════════════════════════════════════════════════════
 // GLOBAL SESSION EVENT EMITTER
@@ -67,6 +81,9 @@ export type SessionEvent =
 
 class SessionEventManager {
     private emitters: Map<string, EventEmitter> = new Map();
+    private lastContexts: Map<string, AIContextEvent> = new Map();
+    // 🧠 Store accumulated thinking text per session { sessionId: { stage: number, text: string } }
+    private thinkingBuffers: Map<string, { stage: number; text: string; candidateTime?: string }> = new Map();
 
     /**
      * Get or create an emitter for a session
@@ -88,17 +105,23 @@ class SessionEventManager {
         if (emitter) {
             emitter.emit('event', event);
         }
+        if (event.type === 'ai_context') {
+            this.lastContexts.set(sessionId, event);
+        }
     }
 
     /**
      * Clean up emitter when session completes
      */
     cleanup(sessionId: string): void {
+        console.log(`🧹 Cleaning up session resources: ${sessionId?.slice(0, 8)}`);
         const emitter = this.emitters.get(sessionId);
         if (emitter) {
             emitter.removeAllListeners();
             this.emitters.delete(sessionId);
         }
+        this.lastContexts.delete(sessionId);
+        this.thinkingBuffers.delete(sessionId);
     }
 
     /**
@@ -108,6 +131,40 @@ class SessionEventManager {
         const emitter = this.emitters.get(sessionId);
         return emitter ? emitter.listenerCount('event') > 0 : false;
     }
+
+    /**
+     * Get the last AI Context for a session
+     */
+    getLastContext(sessionId: string): AIContextEvent | undefined {
+        return this.lastContexts.get(sessionId);
+    }
+
+    /**
+     * Append text to thinking buffer or start new
+     */
+    appendToThinkingBuffer(sessionId: string, stage: number, text: string, candidateTime?: string): void {
+        const current = this.thinkingBuffers.get(sessionId);
+
+        // If new stage or no buffer, start flesh
+        if (!current || current.stage !== stage) {
+            console.log(`📝 Starting New Thinking Buffer: ${sessionId?.slice(0, 8)} | Stage ${stage}`);
+            this.thinkingBuffers.set(sessionId, { stage, text, candidateTime });
+        } else {
+            // Append to existing
+            // Don't log every append, too noisy
+            current.text += text;
+            current.candidateTime = candidateTime || current.candidateTime;
+        }
+    }
+
+    /**
+     * Get accumulated thinking text
+     */
+    getThinkingBuffer(sessionId: string): { stage: number; text: string; candidateTime?: string } | undefined {
+        const buffer = this.thinkingBuffers.get(sessionId);
+        console.log(`📖 Reading Thinking Buffer: ${sessionId?.slice(0, 8)} | Found=${!!buffer} | Len=${buffer?.text?.length}`);
+        return buffer;
+    }
 }
 
 // Global singleton
@@ -116,6 +173,7 @@ export const sessionEvents = new SessionEventManager();
 // ═════════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
 // ═════════════════════════════════════════════════════════════════════════════
+
 
 export function emitProgress(
     sessionId: string,
@@ -142,6 +200,11 @@ export function emitAIThinking(
     stage: number,
     candidateTime?: string
 ): void {
+    console.log('🔥 emitAIThinking called:', { sessionId: sessionId?.slice(0, 8), stage, chunkLen: chunk?.length, candidateTime });
+
+    // 🧠 Store content for reconnects
+    sessionEvents.appendToThinkingBuffer(sessionId, stage, chunk, candidateTime);
+
     sessionEvents.emit(sessionId, {
         type: 'ai_thinking',
         chunk,
@@ -149,6 +212,8 @@ export function emitAIThinking(
         candidateTime,
     });
 }
+
+
 
 export function emitEphemeris(
     sessionId: string,
@@ -173,8 +238,9 @@ export function emitCandidateScore(
     stage: number,
     rank?: number
 ): void {
+    console.log(`⚡ Emit Candidate Score: ${sessionId} | ${time} | ${score}`);
     sessionEvents.emit(sessionId, {
-        type: 'candidate_score',
+        type: 'candidate_score_v2',
         time,
         score,
         stage,
@@ -188,6 +254,8 @@ export function emitComplete(
     accuracy: number,
     confidence: string
 ): void {
+    console.log('🎉 emitComplete CALLED:', { sessionId: sessionId?.slice(0, 8), rectifiedTime, accuracy, confidence });
+    require('fs').appendFileSync('/tmp/ai-debug.log', `${new Date().toISOString()} 🎉 emitComplete: ${sessionId?.slice(0, 8)} time=${rectifiedTime} acc=${accuracy} conf=${confidence}\n`);
     sessionEvents.emit(sessionId, {
         type: 'complete',
         rectifiedTime,
@@ -198,6 +266,7 @@ export function emitComplete(
     setTimeout(() => sessionEvents.cleanup(sessionId), 5000);
 }
 
+
 export function emitError(
     sessionId: string,
     message: string,
@@ -207,5 +276,15 @@ export function emitError(
         type: 'error',
         message,
         stage,
+    });
+}
+
+export function emitAIContext(
+    sessionId: string,
+    data: Omit<AIContextEvent, 'type'>
+): void {
+    sessionEvents.emit(sessionId, {
+        type: 'ai_context',
+        ...data
     });
 }

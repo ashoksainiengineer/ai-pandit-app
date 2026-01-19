@@ -25,6 +25,18 @@ export interface AIThinking {
     fullText: string;
 }
 
+export interface AIContextData {
+    stage: number;
+    candidateTime: string;
+    planetaryInfo: {
+        sun: string;
+        moon: string;
+        ascendant: string;
+    };
+    dasha: string;
+    divCharts?: string;
+}
+
 export interface CandidateScore {
     time: string;
     score: number;
@@ -44,8 +56,14 @@ export interface StreamState {
     error: string | null;
     progress: StreamProgress | null;
     aiThinking: AIThinking | null;
+    aiContext: AIContextData | null;
     candidateScores: CandidateScore[];
     result: StreamResult | null;
+    // Enhanced UX: Multi-candidate tracking
+    allCandidates: Map<string, AIThinking>; // All active candidates' thinking
+    displayedCandidate: string | null; // Currently shown candidate time
+    analyzedCount: number; // For counter: "5/15"
+    totalCandidates: number;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -54,7 +72,7 @@ export interface StreamState {
 
 export function useStreamProgress(
     sessionId: string | null,
-    backendUrl: string = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080' // Direct backend connection
+    backendUrl: string = '' // Empty = use relative path (proxy at /api/stream)
 ): StreamState {
     const [state, setState] = useState<StreamState>({
         isConnected: false,
@@ -62,14 +80,22 @@ export function useStreamProgress(
         error: null,
         progress: null,
         aiThinking: null,
+        aiContext: null,
         candidateScores: [],
         result: null,
+        // Enhanced UX
+        allCandidates: new Map(),
+        displayedCandidate: null,
+        analyzedCount: 0,
+        totalCandidates: 0,
     });
 
     const eventSourceRef = useRef<EventSource | null>(null);
+    const rotationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // Handle incoming SSE events
     const handleEvent = useCallback((eventData: any) => {
+        // console.log('Stream event:', eventData.type); // Comment out to reduce noise
         switch (eventData.type) {
             case 'connected':
                 setState(prev => ({ ...prev, isConnected: true }));
@@ -91,32 +117,54 @@ export function useStreamProgress(
                 }));
                 break;
 
+            case 'ai_context':
+                setState(prev => ({
+                    ...prev,
+                    aiContext: eventData
+                }));
+                break;
+
             case 'ai_thinking':
                 setState(prev => {
-                    const current = prev.aiThinking;
+                    const candidateTime = eventData.candidateTime || 'unknown';
 
-                    // Lock onto a single candidate to prevent scrambled text from parallel streams
-                    if (current && current.stage === eventData.stage && current.candidateTime && eventData.candidateTime && current.candidateTime !== eventData.candidateTime) {
-                        // Ignore interleaved chunks from other parallel candidates for visual clarity
-                        return prev;
-                    }
+                    // Check if we moved to a new stage (all candidates in map should belong to same stage)
+                    const firstExisting = prev.allCandidates.values().next().value;
+                    const isNewStage = firstExisting && firstExisting.stage !== eventData.stage;
+
+                    // Store thinking for ALL candidates (for rotation)
+                    // If new stage, clear old candidates to focus on current stage
+                    const updatedCandidates = isNewStage ? new Map() : new Map(prev.allCandidates);
+                    const existing = updatedCandidates.get(candidateTime);
+
+                    updatedCandidates.set(candidateTime, {
+                        stage: eventData.stage,
+                        candidateTime,
+                        chunks: [...(existing?.chunks || []), eventData.chunk],
+                        fullText: (existing?.fullText || '') + eventData.chunk,
+                    });
+
+                    // Set first candidate as displayed if none selected OR if current displayed is no longer in map (stage switch)
+                    const displayed = (!prev.displayedCandidate || !updatedCandidates.has(prev.displayedCandidate))
+                        ? candidateTime
+                        : prev.displayedCandidate;
+                    const displayedThinking = updatedCandidates.get(displayed);
 
                     return {
                         ...prev,
-                        aiThinking: {
-                            stage: eventData.stage,
-                            candidateTime: eventData.candidateTime || current?.candidateTime,
-                            chunks: [...(current?.chunks || []), eventData.chunk],
-                            fullText: (current?.candidateTime === eventData.candidateTime ? (current?.fullText || '') : '') + eventData.chunk,
-                        },
+                        allCandidates: updatedCandidates,
+                        displayedCandidate: displayed,
+                        // Show the currently displayed candidate's thinking
+                        aiThinking: displayedThinking || prev.aiThinking,
                     };
                 });
                 break;
 
             case 'candidate_score':
-                setState(prev => ({
-                    ...prev,
-                    candidateScores: [
+            case 'candidate_score_v2':
+                console.log('✅ Received Candidate Score:', eventData);
+                setState(prev => {
+                    const newScores = [
                         ...prev.candidateScores.filter(c => c.time !== eventData.time),
                         {
                             time: eventData.time,
@@ -124,8 +172,19 @@ export function useStreamProgress(
                             stage: eventData.stage,
                             rank: eventData.rank,
                         },
-                    ],
-                }));
+                    ];
+
+                    // Remove completed candidate from active pool
+                    const updatedCandidates = new Map(prev.allCandidates);
+                    updatedCandidates.delete(eventData.time);
+
+                    return {
+                        ...prev,
+                        candidateScores: newScores,
+                        allCandidates: updatedCandidates,
+                        analyzedCount: newScores.filter(s => s.stage === eventData.stage).length,
+                    };
+                });
                 break;
 
             case 'ephemeris':
@@ -168,6 +227,9 @@ export function useStreamProgress(
                             percentage: eventData.progress.percentage,
                             message: eventData.progress.liveMessage || '',
                         },
+                        // Load persisted candidate scores
+                        candidateScores: eventData.progress.candidateScores || [],
+                        analyzedCount: (eventData.progress.candidateScores || []).length,
                     }));
                 }
                 break;
@@ -214,6 +276,43 @@ export function useStreamProgress(
             eventSourceRef.current = null;
         };
     }, [sessionId, backendUrl, handleEvent]);
+
+    // Rotation Effect: Switch displayed candidate every 5 seconds
+    useEffect(() => {
+        if (rotationTimerRef.current) clearInterval(rotationTimerRef.current);
+
+        rotationTimerRef.current = setInterval(() => {
+            setState(prev => {
+                const candidates = Array.from(prev.allCandidates.keys());
+                if (candidates.length <= 1) return prev; // No rotation needed
+
+                const currentKey = prev.displayedCandidate || '';
+                const currentIndex = candidates.indexOf(currentKey);
+                // Cycle to next, handling -1 by going to 0
+                const nextIndex = (currentIndex + 1) % candidates.length;
+                const nextCandidate = candidates[nextIndex];
+
+                return {
+                    ...prev,
+                    displayedCandidate: nextCandidate,
+                    aiThinking: prev.allCandidates.get(nextCandidate) || prev.aiThinking
+                };
+            });
+        }, 5000); // Rotate every 5 seconds
+
+        return () => {
+            if (rotationTimerRef.current) clearInterval(rotationTimerRef.current);
+        };
+    }, []);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (eventSourceRef.current) {
+                eventSourceRef.current.close();
+            }
+        };
+    }, []);
 
     return state;
 }

@@ -8,10 +8,12 @@ exports.getQueuePosition = getQueuePosition;
 exports.getQueueStatus = getQueueStatus;
 exports.markAsComplete = markAsComplete;
 exports.markAsFailed = markAsFailed;
+exports.heartbeat = heartbeat;
 exports.cancelSession = cancelSession;
 exports.startQueueProcessor = startQueueProcessor;
 exports.stopQueueProcessor = stopQueueProcessor;
 exports.getQueueStats = getQueueStats;
+exports.cleanupZombiesOnStartup = cleanupZombiesOnStartup;
 const drizzle_1 = require("../database/drizzle");
 const schema_1 = require("../database/schema");
 const drizzle_orm_1 = require("drizzle-orm");
@@ -150,9 +152,10 @@ async function getQueuedCount() {
  */
 async function getNextInQueue() {
     try {
+        // Check for both 'pending' (new submissions) and 'queued' status
         const next = await drizzle_1.db.select({ id: schema_1.sessions.id })
             .from(schema_1.sessions)
-            .where((0, drizzle_orm_1.eq)(schema_1.sessions.status, 'queued'))
+            .where((0, drizzle_orm_1.or)((0, drizzle_orm_1.eq)(schema_1.sessions.status, 'pending'), (0, drizzle_orm_1.eq)(schema_1.sessions.status, 'queued')))
             .orderBy((0, drizzle_orm_1.asc)(schema_1.sessions.createdAt))
             .limit(1);
         return next.length > 0 ? next[0].id : null;
@@ -209,6 +212,16 @@ async function markAsFailed(sessionId, error) {
         currentProcessingId = null;
     }
     logger_1.logger.error('Session marked failed', { sessionId, error });
+}
+/**
+ * Update session timestamp to prevent it from being marked as stale
+ */
+async function heartbeat(sessionId) {
+    await drizzle_1.db.update(schema_1.sessions)
+        .set({
+        updatedAt: new Date().toISOString(),
+    })
+        .where((0, drizzle_orm_1.eq)(schema_1.sessions.id, sessionId));
 }
 /**
  * Cancel a session
@@ -344,7 +357,7 @@ async function cleanupStaleRequests() {
         // Find processing requests that are too old
         const stale = await drizzle_1.db.select({ id: schema_1.sessions.id })
             .from(schema_1.sessions)
-            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.sessions.status, 'processing')));
+            .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.sessions.status, 'processing'), (0, drizzle_orm_1.lt)(schema_1.sessions.updatedAt, staleThreshold)));
         for (const s of stale) {
             await markAsFailed(s.id, 'Request timed out');
             logger_1.logger.warn('Cleaned up stale request', { sessionId: s.id });
@@ -400,5 +413,25 @@ async function getQueueStats() {
 // ═════════════════════════════════════════════════════════════════════════════
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+/**
+ * Cleanup processing sessions on startup (Zombie killer)
+ * Resets any session stuck in 'processing' state to 'failed'
+ */
+async function cleanupZombiesOnStartup() {
+    try {
+        const zombies = await drizzle_1.db.select({ id: schema_1.sessions.id })
+            .from(schema_1.sessions)
+            .where((0, drizzle_orm_1.eq)(schema_1.sessions.status, 'processing'));
+        if (zombies.length > 0) {
+            logger_1.logger.warn(`Found ${zombies.length} zombie sessions from previous run. Cleaning up...`);
+            for (const zombie of zombies) {
+                await markAsFailed(zombie.id, 'Process interrupted (Server Restart)');
+            }
+        }
+    }
+    catch (error) {
+        logger_1.logger.error('Zombie cleanup failed', error);
+    }
 }
 //# sourceMappingURL=queue-manager.js.map

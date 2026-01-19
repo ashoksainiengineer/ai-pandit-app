@@ -13,6 +13,7 @@ import {
   cleanupController,
   isCancellationError
 } from './cancellation-manager';
+import { emitComplete } from './session-events';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // QUEUE CONFIGURATION
@@ -196,9 +197,15 @@ async function getQueuedCount(): Promise<number> {
  */
 async function getNextInQueue(): Promise<string | null> {
   try {
+    // Check for both 'pending' (new submissions) and 'queued' status
     const next = await db.select({ id: sessions.id })
       .from(sessions)
-      .where(eq(sessions.status, 'queued'))
+      .where(
+        or(
+          eq(sessions.status, 'pending'),
+          eq(sessions.status, 'queued')
+        )
+      )
       .orderBy(asc(sessions.createdAt))
       .limit(1);
 
@@ -252,6 +259,14 @@ export async function markAsComplete(
   }
 
   logger.info('Session marked complete', { sessionId });
+
+  // ⚡ Emit Complete Event so frontend gets the result!
+  emitComplete(
+    sessionId,
+    results.rectifiedTime,
+    results.accuracy,
+    results.confidence
+  );
 }
 
 /**
@@ -294,6 +309,7 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
 
     // Only cancel if queued or processing
     if (session[0].status !== 'queued' && session[0].status !== 'processing') {
+      logger.warn(`Cannot cancel session ${sessionId}: status is '${session[0].status}'`);
       return false;
     }
 
@@ -509,5 +525,27 @@ export async function getQueueStats(): Promise<{
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Cleanup processing sessions on startup (Zombie killer)
+ * Resets any session stuck in 'processing' state to 'failed'
+ */
+export async function cleanupZombiesOnStartup(): Promise<void> {
+  try {
+    const zombies = await db.select({ id: sessions.id })
+      .from(sessions)
+      .where(eq(sessions.status, 'processing'));
+
+    if (zombies.length > 0) {
+      logger.warn(`Found ${zombies.length} zombie sessions from previous run. Cleaning up...`);
+
+      for (const zombie of zombies) {
+        await markAsFailed(zombie.id, 'Process interrupted (Server Restart)');
+      }
+    }
+  } catch (error) {
+    logger.error('Zombie cleanup failed', error);
+  }
 }
 

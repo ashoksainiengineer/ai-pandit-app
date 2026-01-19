@@ -53,6 +53,7 @@ import { logger } from './logger';
 import { ProgressTracker } from './progress-tracker';
 import { LifeEvent, EphemerisData } from './types';
 import { throwIfCancelled, isCancellationError } from './cancellation-manager';
+import { emitCandidateScore, emitAIContext } from './session-events';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -117,7 +118,7 @@ interface ConvergenceResult {
 const LEVEL1_SYSTEM_PROMPT = `You are the world's most accomplished Vedic astrologer specializing in birth time rectification.
 
 YOUR ROLE: PURE REASONING ENGINE.
-WARNING: DO NOT RECALCULATE PLANETARY POSITIONS OR DASHA TIMINGS.
+CRITICAL: CALCULATION IS FORBIDDEN. YOU ARE AN INTERPRETER. DO NOT CALCULATE POSITIONS OR DASHAS. Interpret the provided data tables as ABSOLUTE TRUTH.
 The data provided in the prompt (Planets, Dasha, Divisional Charts) is based on High-Precision Swiss Ephemeris calculations and is THE ABSOLUTE TRUTH.
 Your job is to INTERPRET this data, not to derive it.
 
@@ -152,7 +153,7 @@ FINAL RANKING: List top 5 candidates in order of likelihood.`;
 const LEVEL2_SYSTEM_PROMPT = `You are the world's most accomplished Vedic astrologer.
 
 YOUR ROLE: PURE REASONING ENGINE.
-WARNING: DO NOT RECALCULATE PLANETARY POSITIONS.
+CRITICAL: CALCULATION IS FORBIDDEN. YOU ARE AN INTERPRETER. DO NOT CALCULATE POSITIONS OR DASHAS. Interpret the provided data tables as ABSOLUTE TRUTH.
 Rely entirely on the pre-calculated Dasha and Ephemeris data provided.
 
 STAGE 5 ANALYSIS: FINE COMPARISON (Target: 92-96% accuracy)
@@ -456,7 +457,7 @@ export async function processSecondsPrecisionBTR(
         await throwIfCancelled(input.sessionId, input.abortSignal);
 
         await progress.startStep('ai', '🤖 AI cross-verifying all methods...');
-        await progress.updateMessage('Kimi K2 analyzing multi-method consensus');
+        await progress.updateMessage('Performing final boundary and safety checks');
 
         logger.info('STAGE 9: Boundary safety verification');
         const boundarySafety = await stage9BoundaryCheck(finalCandidate.time, input);
@@ -614,7 +615,7 @@ async function stage2AILevel1(
 ): Promise<StageCandidate[]> {
     const results: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
-    const BATCH_SIZE = 3; // Process 3 candidates in parallel (Reduced from 5 to avoid Rate Limits)
+    const BATCH_SIZE = 5; // Process 5 candidates in parallel (Balanced for DeepSeek Reasoner)
 
     logger.info(`Starting Stage 2 parallel processing for ${candidates.length} candidates`);
 
@@ -637,6 +638,19 @@ async function stage2AILevel1(
                 const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
                 const dashaPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
 
+                // 🔮 Emit AI Context (Engine Data) for transparency
+                emitAIContext(input.sessionId, {
+                    stage: 2,
+                    candidateTime: candidate.time,
+                    planetaryInfo: {
+                        sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
+                        moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
+                        ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+                    },
+                    dasha: `${dashaPeriods[0].lord} (until ${dashaPeriods[0].endDate.toISOString().split('T')[0]})`,
+                    divCharts: "Analyzing D9/D10"
+                });
+
                 // ⚡ Pre-calculate Divisional Charts for AI context
                 // Only D9 & D10 needed for Level 1 Screening
                 const divCharts = generateDivisionalCharts(ephemeris);
@@ -645,7 +659,7 @@ async function stage2AILevel1(
                 const prompt = buildLevel1Prompt(candidate.time, input, ephemeris, dashaPeriods, jd, relevantDivCharts);
 
                 // 🔴 Use streaming for real-time AI thinking display
-                const response = await callKimiK2WithStream(
+                let response = await callKimiK2WithStream(
                     input.sessionId,
                     2, // Stage 2
                     LEVEL1_SYSTEM_PROMPT,
@@ -653,19 +667,48 @@ async function stage2AILevel1(
                     {
                         temperature: 0.3,
                         maxTokens: 4000,
+                        model: 'deepseek-reasoner', // Explicit reasoning model for thinking stream
                         candidateTime: candidate.time,
                         abortSignal: input.abortSignal,
+                        timeoutMs: 120000, // 2 mins timeout for R1
                         onToken: (chunk) => {
-                            // 💓 Heartbeat: Update session timestamp every few chunks
-                            // This prevents the queue processor from marking the task as stale
                             progress.updateMessage(`Analyzing candidate ${candidate.time}...`);
                         }
                     }
                 );
 
+                // Fallback if primary model fails
+                if (!response.success) {
+                    logger.warn(`Stage 2 Primary AI Failed for ${candidate.time}, switching to fallback...`);
+                    response = await callKimiK2WithStream(
+                        input.sessionId,
+                        2,
+                        LEVEL1_SYSTEM_PROMPT,
+                        prompt,
+                        {
+                            temperature: 0.3,
+                            maxTokens: 4000,
+                            candidateTime: candidate.time,
+                            abortSignal: input.abortSignal,
+                            model: 'deepseek-chat',
+                            onToken: (chunk) => {
+                                progress.updateMessage(`Analyzing ${candidate.time} (Fallback)...`);
+                            }
+                        }
+                    );
+                }
+
                 if (response.success) {
                     const parsed = parseKimiAnalysisResponse(response.content);
                     logger.info(`✅ Stage 2: Analyzed candidate ${candidate.time} (Score: ${parsed.score})`);
+
+                    // 📊 Add and persist score
+                    await progress.addCandidateScore({
+                        time: candidate.time,
+                        score: parsed.score,
+                        stage: 2
+                    });
+
                     return {
                         time: candidate.time,
                         score: parsed.score,
@@ -819,7 +862,7 @@ async function stage5AILevel2(
 ): Promise<StageCandidate[]> {
     const results: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
-    const BATCH_SIZE = 3; // Process 3 candidates in parallel (Reduced from 5 to avoid Rate Limits)
+    const BATCH_SIZE = 5; // Process 5 candidates in parallel (Balanced for DeepSeek Reasoner)
 
     logger.info(`Starting Stage 5 parallel processing for ${candidates.length} candidates`);
 
@@ -852,29 +895,69 @@ async function stage5AILevel2(
                 console.log(`[Stage 5] Generating div charts for ${candidate.time}`);
                 const divCharts = generateDivisionalCharts(ephemeris);
 
+                // 🔮 Emit AI Context
+                emitAIContext(input.sessionId, {
+                    stage: 5,
+                    candidateTime: candidate.time,
+                    planetaryInfo: {
+                        sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
+                        moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
+                        ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+                    },
+                    dasha: `${allDashas.vimshottari[0].lord} (until ${allDashas.vimshottari[0].endDate.toISOString().split('T')[0]})`,
+                    divCharts: `D9 Lagna: ${divCharts.D9.ascendant.sign}`
+                });
+
                 const prompt = buildLevel2Prompt(candidate.time, input, ephemeris, allDashas, jd, divCharts);
                 console.log(`[Stage 5] Prompt built for ${candidate.time}, calling AI...`);
 
                 // 🔴 Use streaming for real-time AI thinking display
-                const response = await callKimiK2WithStream(
+                let response = await callKimiK2WithStream(
                     input.sessionId,
                     5,
                     LEVEL2_SYSTEM_PROMPT,
                     prompt,
                     {
+                        model: 'deepseek-reasoner', // Explicit reasoning model for thinking stream
                         candidateTime: candidate.time,
                         abortSignal: input.abortSignal,
+                        timeoutMs: 120000, // 2 mins timeout
                         onToken: (chunk) => {
                             // 💓 Heartbeat
                             progress.updateMessage(`Comparing candidate ${candidate.time} (Stage 5)...`);
                         }
                     }
                 );
+
+                // Fallback if primary model fails
+                if (!response.success) {
+                    logger.warn(`Stage 5 Primary AI Failed for ${candidate.time}, switching to fallback...`);
+                    response = await callKimiK2WithStream(
+                        input.sessionId,
+                        5,
+                        LEVEL2_SYSTEM_PROMPT,
+                        prompt,
+                        {
+                            candidateTime: candidate.time,
+                            abortSignal: input.abortSignal,
+                            model: 'deepseek-chat',
+                            onToken: (chunk) => progress.updateMessage(`Comparing ${candidate.time} (Fallback)...`)
+                        }
+                    );
+                }
                 console.log(`[Stage 5] AI response received for ${candidate.time}`);
 
                 if (response.success) {
                     const parsed = parseKimiAnalysisResponse(response.content);
                     logger.info(`✅ Stage 5: Analyzed candidate ${candidate.time} (Score: ${parsed.score})`);
+
+                    // 📊 Add and persist score
+                    await progress.addCandidateScore({
+                        time: candidate.time,
+                        score: parsed.score,
+                        stage: 5
+                    });
+
                     return {
                         time: candidate.time,
                         score: parsed.score,
@@ -1051,22 +1134,47 @@ PHYSICAL TRAITS: ${input.physicalTraits ? JSON.stringify(input.physicalTraits) :
 ANALYZE EACH 6-SECOND CANDIDATE AND DETERMINE THE CORRECT BIRTH TIME.`;
 
     // Use streaming version for real-time AI thinking display
-    const response = await callKimiK2WithStream(
+    let response = await callKimiK2WithStream(
         input.sessionId,
         7, // Stage 7
         LEVEL3_SYSTEM_PROMPT,
         fullPrompt,
         {
+            model: 'deepseek-reasoner', // Explicit reasoning model for thinking stream
             temperature: 0.1,
             maxTokens: 10000,
-            candidateTime: candidates[0]?.time,
+            candidateTime: 'final_decision',
             abortSignal: input.abortSignal,
             onToken: (chunk) => {
                 // 💓 Heartbeat
                 progress.updateMessage('Finalizing seconds-level rectification decision...');
             }
         }
+
     );
+
+    // Fallback if primary model fails (returns empty or errors)
+    if (!response.success) {
+        logger.warn('Stage 7 Primary AI Failed, Retrying with Fallback Model (DeepSeek Chat)...');
+        progress.updateMessage('Primary model unstable, switching to fallback model...');
+
+        response = await callKimiK2WithStream(
+            input.sessionId,
+            7,
+            LEVEL3_SYSTEM_PROMPT,
+            fullPrompt,
+            {
+                temperature: 0.5,
+                maxTokens: 8000,
+                candidateTime: 'final_decision',
+                abortSignal: input.abortSignal,
+                model: 'deepseek-chat',
+                onToken: (chunk) => {
+                    progress.updateMessage('Finalizing with fallback model...');
+                }
+            }
+        );
+    }
 
     if (response.success) {
         // Parse response to extract scores for each candidate
@@ -1079,6 +1187,13 @@ ANALYZE EACH 6-SECOND CANDIDATE AND DETERMINE THE CORRECT BIRTH TIME.`;
                 time: candidate.time,
                 score,
                 aiAnalysis: response.content,
+            });
+
+            // 📊 Add and persist score
+            await progress.addCandidateScore({
+                time: candidate.time,
+                score,
+                stage: 7
             });
         }
 

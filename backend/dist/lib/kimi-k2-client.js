@@ -174,7 +174,8 @@ async function callKimiK2WithStream(sessionId, stage, systemPrompt, userPrompt, 
         });
         // Combine internal timeout with external abort signal
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), KIMI_CONFIG.timeoutMs);
+        const timeoutMs = options?.timeoutMs ?? KIMI_CONFIG.timeoutMs;
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
         if (options?.abortSignal) {
             options.abortSignal.addEventListener('abort', () => {
                 logger_1.logger.info('Kimi K2 call cancelled by user');
@@ -237,14 +238,19 @@ async function callKimiK2WithStream(sessionId, stage, systemPrompt, userPrompt, 
                         // DeepSeek Reasoner's thinking tokens
                         fullThinking += delta.reasoning_content;
                         (0, session_events_1.emitAIThinking)(sessionId, delta.reasoning_content, stage, options?.candidateTime);
+                        // 💓 Heartbeat every ~100 tokens
+                        if (fullThinking.length % 500 < delta.reasoning_content.length) {
+                            options?.onToken?.(fullThinking, true);
+                        }
                     }
                     else if (delta?.content) {
                         // Fallback: Emit content as "thinking" for non-reasoning models (for display)
-                        // This allows Stage 2/5 (Chat models) to show real-time progress
                         fullContent += delta.content;
-                        // For chat models, we treat content as thinking for the visual display
-                        // Always emit content as thinking to prevent blank screens
                         (0, session_events_1.emitAIThinking)(sessionId, delta.content, stage, options?.candidateTime);
+                        // 💓 Heartbeat every ~100 tokens
+                        if (fullContent.length % 500 < delta.content.length) {
+                            options?.onToken?.(fullContent, false);
+                        }
                     }
                 }
                 catch {
@@ -258,6 +264,9 @@ async function callKimiK2WithStream(sessionId, stage, systemPrompt, userPrompt, 
             thinkingLength: fullThinking.length,
             contentLength: fullContent.length,
         });
+        if (!fullThinking && !fullContent) {
+            throw new Error('Empty response from AI provider');
+        }
         return {
             success: true,
             thinking: fullThinking,

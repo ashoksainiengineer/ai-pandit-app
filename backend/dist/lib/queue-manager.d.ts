@@ -41,6 +41,10 @@ export declare function markAsComplete(sessionId: string, results: {
  */
 export declare function markAsFailed(sessionId: string, error: string): Promise<void>;
 /**
+ * Update session timestamp to prevent it from being marked as stale
+ */
+export declare function heartbeat(sessionId: string): Promise<void>;
+/**
  * Cancel a session
  */
 export declare function cancelSession(sessionId: string): Promise<boolean>;
@@ -62,4 +66,9 @@ export declare function getQueueStats(): Promise<{
     completedToday: number;
     averageWaitTime: number;
 }>;
+/**
+ * Cleanup processing sessions on startup (Zombie killer)
+ * Resets any session stuck in 'processing' state to 'failed'
+ */
+export declare function cleanupZombiesOnStartup(): Promise<void>;
 //# sourceMappingURL=queue-manager.d.ts.map

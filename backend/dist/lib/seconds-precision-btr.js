@@ -14,13 +14,14 @@ const time_offset_manager_1 = require("./time-offset-manager");
 const logger_1 = require("./logger");
 const progress_tracker_1 = require("./progress-tracker");
 const cancellation_manager_1 = require("./cancellation-manager");
+const session_events_1 = require("./session-events");
 // ═════════════════════════════════════════════════════════════════════════════
 // SYSTEM PROMPTS FOR MULTI-LEVEL AI ANALYSIS
 // ═════════════════════════════════════════════════════════════════════════════
 const LEVEL1_SYSTEM_PROMPT = `You are the world's most accomplished Vedic astrologer specializing in birth time rectification.
 
 YOUR ROLE: PURE REASONING ENGINE.
-WARNING: DO NOT RECALCULATE PLANETARY POSITIONS OR DASHA TIMINGS.
+CRITICAL: CALCULATION IS FORBIDDEN. YOU ARE AN INTERPRETER. DO NOT CALCULATE POSITIONS OR DASHAS. Interpret the provided data tables as ABSOLUTE TRUTH.
 The data provided in the prompt (Planets, Dasha, Divisional Charts) is based on High-Precision Swiss Ephemeris calculations and is THE ABSOLUTE TRUTH.
 Your job is to INTERPRET this data, not to derive it.
 
@@ -54,7 +55,7 @@ FINAL RANKING: List top 5 candidates in order of likelihood.`;
 const LEVEL2_SYSTEM_PROMPT = `You are the world's most accomplished Vedic astrologer.
 
 YOUR ROLE: PURE REASONING ENGINE.
-WARNING: DO NOT RECALCULATE PLANETARY POSITIONS.
+CRITICAL: CALCULATION IS FORBIDDEN. YOU ARE AN INTERPRETER. DO NOT CALCULATE POSITIONS OR DASHAS. Interpret the provided data tables as ABSOLUTE TRUTH.
 Rely entirely on the pre-calculated Dasha and Ephemeris data provided.
 
 STAGE 5 ANALYSIS: FINE COMPARISON (Target: 92-96% accuracy)
@@ -183,7 +184,7 @@ async function processSecondsPrecisionBTR(input) {
         await progress.startStep('candidates', 'Generating candidate birth times...');
         await progress.updateMessage(`Testing ${stage1Candidates.length} minute-level candidates`);
         logger_1.logger.info('STAGE 2: AI Level 1 analysis (gross screening)');
-        const stage2Results = await stage2AILevel1(stage1Candidates.slice(0, 15), input);
+        const stage2Results = await stage2AILevel1(stage1Candidates.slice(0, 15), input, progress);
         stagesCompleted = 2;
         methodsUsed.push('AI Level 1 (32K thinking)');
         await progress.completeStep('candidates', [`Top 15 candidates selected`, `Best initial score: ${stage2Results[0]?.score?.toFixed(1)}`]);
@@ -217,7 +218,7 @@ async function processSecondsPrecisionBTR(input) {
         await progress.startStep('dasha', 'Analyzing Vimshottari Dasha periods...');
         await progress.updateMessage('Correlating dasha periods with life events');
         logger_1.logger.info('STAGE 5: AI Level 2 analysis (fine comparison)');
-        const stage5Results = await stage5AILevel2(stage4Candidates.slice(0, 15), input);
+        const stage5Results = await stage5AILevel2(stage4Candidates.slice(0, 15), input, progress);
         stagesCompleted = 5;
         methodsUsed.push('AI Level 2 (40K thinking)', 'Yogini Dasha', 'Chara Dasha');
         await progress.completeStep('dasha', ['Vimshottari analyzed', 'Yogini analyzed', 'Chara Dasha analyzed']);
@@ -239,7 +240,7 @@ async function processSecondsPrecisionBTR(input) {
         await progress.startStep('divisional', 'Processing divisional charts (D9, D10, D30)...');
         await progress.updateMessage('Analyzing Navamsha, Dasamsha, Trimshamsha');
         logger_1.logger.info('STAGE 7: AI Level 3 analysis (seconds-level decision)');
-        const stage7Results = await stage7AILevel3(stage6Candidates.slice(0, 7), input);
+        const stage7Results = await stage7AILevel3(stage6Candidates.slice(0, 7), input, progress);
         stagesCompleted = 7;
         methodsUsed.push('AI Level 3 (48K thinking)');
         await progress.completeStep('divisional', ['D9 for marriage', 'D10 for career', 'D30 for misfortune']);
@@ -277,7 +278,7 @@ async function processSecondsPrecisionBTR(input) {
         // 🛑 Check for cancellation before Stage 9
         await (0, cancellation_manager_1.throwIfCancelled)(input.sessionId, input.abortSignal);
         await progress.startStep('ai', '🤖 AI cross-verifying all methods...');
-        await progress.updateMessage('Kimi K2 analyzing multi-method consensus');
+        await progress.updateMessage('Performing final boundary and safety checks');
         logger_1.logger.info('STAGE 9: Boundary safety verification');
         const boundarySafety = await stage9BoundaryCheck(finalCandidate.time, input);
         stagesCompleted = 9;
@@ -396,10 +397,10 @@ async function stage1CoarseGrid(input) {
 // ═════════════════════════════════════════════════════════════════════════════
 // STAGE 2: AI LEVEL 1
 // ═════════════════════════════════════════════════════════════════════════════
-async function stage2AILevel1(candidates, input) {
+async function stage2AILevel1(candidates, input, progress) {
     const results = [];
     const birthDate = new Date(input.dateOfBirth);
-    const BATCH_SIZE = 3; // Process 3 candidates in parallel (Reduced from 5 to avoid Rate Limits)
+    const BATCH_SIZE = 5; // Process 5 candidates in parallel (Balanced for DeepSeek Reasoner)
     logger_1.logger.info(`Starting Stage 2 parallel processing for ${candidates.length} candidates`);
     // Process in batches
     for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
@@ -411,21 +412,58 @@ async function stage2AILevel1(candidates, input) {
                 const jd = dateToJulianDay(input.dateOfBirth, candidate.time, input.timezone);
                 const moonSidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
                 const dashaPeriods = (0, vedic_astrology_engine_1.calculateVimshottariDasha)(moonSidereal, birthDate);
+                // 🔮 Emit AI Context (Engine Data) for transparency
+                (0, session_events_1.emitAIContext)(input.sessionId, {
+                    stage: 2,
+                    candidateTime: candidate.time,
+                    planetaryInfo: {
+                        sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
+                        moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
+                        ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+                    },
+                    dasha: `${dashaPeriods[0].lord} (until ${dashaPeriods[0].endDate.toISOString().split('T')[0]})`,
+                    divCharts: "Analyzing D9/D10"
+                });
                 // ⚡ Pre-calculate Divisional Charts for AI context
                 // Only D9 & D10 needed for Level 1 Screening
                 const divCharts = (0, advanced_btr_methods_1.generateDivisionalCharts)(ephemeris);
                 const relevantDivCharts = { D9: divCharts.D9, D10: divCharts.D10 };
                 const prompt = buildLevel1Prompt(candidate.time, input, ephemeris, dashaPeriods, jd, relevantDivCharts);
                 // 🔴 Use streaming for real-time AI thinking display
-                const response = await (0, kimi_k2_client_1.callKimiK2WithStream)(input.sessionId, 2, // Stage 2
+                let response = await (0, kimi_k2_client_1.callKimiK2WithStream)(input.sessionId, 2, // Stage 2
                 LEVEL1_SYSTEM_PROMPT, prompt, {
                     temperature: 0.3,
                     maxTokens: 4000,
                     candidateTime: candidate.time,
+                    abortSignal: input.abortSignal,
+                    timeoutMs: 120000, // 2 mins timeout for R1
+                    onToken: (chunk) => {
+                        progress.updateMessage(`Analyzing candidate ${candidate.time}...`);
+                    }
                 });
+                // Fallback if primary model fails
+                if (!response.success) {
+                    logger_1.logger.warn(`Stage 2 Primary AI Failed for ${candidate.time}, switching to fallback...`);
+                    response = await (0, kimi_k2_client_1.callKimiK2WithStream)(input.sessionId, 2, LEVEL1_SYSTEM_PROMPT, prompt, {
+                        temperature: 0.3,
+                        maxTokens: 4000,
+                        candidateTime: candidate.time,
+                        abortSignal: input.abortSignal,
+                        model: 'deepseek-chat',
+                        onToken: (chunk) => {
+                            progress.updateMessage(`Analyzing ${candidate.time} (Fallback)...`);
+                        }
+                    });
+                }
                 if (response.success) {
                     const parsed = (0, kimi_k2_client_1.parseKimiAnalysisResponse)(response.content);
                     logger_1.logger.info(`✅ Stage 2: Analyzed candidate ${candidate.time} (Score: ${parsed.score})`);
+                    // 📊 Add and persist score
+                    await progress.addCandidateScore({
+                        time: candidate.time,
+                        score: parsed.score,
+                        stage: 2
+                    });
                     return {
                         time: candidate.time,
                         score: parsed.score,
@@ -541,10 +579,10 @@ async function stage4FineGrid(centerTime, input) {
 // ═════════════════════════════════════════════════════════════════════════════
 // STAGE 5: AI LEVEL 2
 // ═════════════════════════════════════════════════════════════════════════════
-async function stage5AILevel2(candidates, input) {
+async function stage5AILevel2(candidates, input, progress) {
     const results = [];
     const birthDate = new Date(input.dateOfBirth);
-    const BATCH_SIZE = 3; // Process 3 candidates in parallel (Reduced from 5 to avoid Rate Limits)
+    const BATCH_SIZE = 5; // Process 5 candidates in parallel (Balanced for DeepSeek Reasoner)
     logger_1.logger.info(`Starting Stage 5 parallel processing for ${candidates.length} candidates`);
     // Process in batches
     for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
@@ -564,17 +602,50 @@ async function stage5AILevel2(candidates, input) {
                 // ⚡ Pre-calculate ALL Divisional Charts for Level 2
                 console.log(`[Stage 5] Generating div charts for ${candidate.time}`);
                 const divCharts = (0, advanced_btr_methods_1.generateDivisionalCharts)(ephemeris);
+                // 🔮 Emit AI Context
+                (0, session_events_1.emitAIContext)(input.sessionId, {
+                    stage: 5,
+                    candidateTime: candidate.time,
+                    planetaryInfo: {
+                        sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
+                        moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
+                        ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+                    },
+                    dasha: `${allDashas.vimshottari[0].lord} (until ${allDashas.vimshottari[0].endDate.toISOString().split('T')[0]})`,
+                    divCharts: `D9 Lagna: ${divCharts.D9.ascendant.sign}`
+                });
                 const prompt = buildLevel2Prompt(candidate.time, input, ephemeris, allDashas, jd, divCharts);
                 console.log(`[Stage 5] Prompt built for ${candidate.time}, calling AI...`);
                 // 🔴 Use streaming for real-time AI thinking display
-                const response = await (0, kimi_k2_client_1.callKimiK2WithStream)(input.sessionId, 5, LEVEL2_SYSTEM_PROMPT, prompt, {
+                let response = await (0, kimi_k2_client_1.callKimiK2WithStream)(input.sessionId, 5, LEVEL2_SYSTEM_PROMPT, prompt, {
                     candidateTime: candidate.time,
-                    abortSignal: input.abortSignal
+                    abortSignal: input.abortSignal,
+                    timeoutMs: 120000, // 2 mins timeout
+                    onToken: (chunk) => {
+                        // 💓 Heartbeat
+                        progress.updateMessage(`Comparing candidate ${candidate.time} (Stage 5)...`);
+                    }
                 });
+                // Fallback if primary model fails
+                if (!response.success) {
+                    logger_1.logger.warn(`Stage 5 Primary AI Failed for ${candidate.time}, switching to fallback...`);
+                    response = await (0, kimi_k2_client_1.callKimiK2WithStream)(input.sessionId, 5, LEVEL2_SYSTEM_PROMPT, prompt, {
+                        candidateTime: candidate.time,
+                        abortSignal: input.abortSignal,
+                        model: 'deepseek-chat',
+                        onToken: (chunk) => progress.updateMessage(`Comparing ${candidate.time} (Fallback)...`)
+                    });
+                }
                 console.log(`[Stage 5] AI response received for ${candidate.time}`);
                 if (response.success) {
                     const parsed = (0, kimi_k2_client_1.parseKimiAnalysisResponse)(response.content);
                     logger_1.logger.info(`✅ Stage 5: Analyzed candidate ${candidate.time} (Score: ${parsed.score})`);
+                    // 📊 Add and persist score
+                    await progress.addCandidateScore({
+                        time: candidate.time,
+                        score: parsed.score,
+                        stage: 5
+                    });
                     return {
                         time: candidate.time,
                         score: parsed.score,
@@ -666,7 +737,7 @@ async function stage6MicroGrid(centerTime, input) {
 // ═════════════════════════════════════════════════════════════════════════════
 // STAGE 7: AI LEVEL 3 (Final Decision)
 // ═════════════════════════════════════════════════════════════════════════════
-async function stage7AILevel3(candidates, input) {
+async function stage7AILevel3(candidates, input, progress) {
     const results = [];
     const birthDate = new Date(input.dateOfBirth);
     // Build comprehensive prompt for all 7 candidates
@@ -699,12 +770,32 @@ PHYSICAL TRAITS: ${input.physicalTraits ? JSON.stringify(input.physicalTraits) :
 
 ANALYZE EACH 6-SECOND CANDIDATE AND DETERMINE THE CORRECT BIRTH TIME.`;
     // Use streaming version for real-time AI thinking display
-    const response = await (0, kimi_k2_client_1.callKimiK2WithStream)(input.sessionId, 7, // Stage 7
+    let response = await (0, kimi_k2_client_1.callKimiK2WithStream)(input.sessionId, 7, // Stage 7
     LEVEL3_SYSTEM_PROMPT, fullPrompt, {
         temperature: 0.1,
         maxTokens: 10000,
-        candidateTime: candidates[0]?.time,
+        candidateTime: 'final_decision',
+        abortSignal: input.abortSignal,
+        onToken: (chunk) => {
+            // 💓 Heartbeat
+            progress.updateMessage('Finalizing seconds-level rectification decision...');
+        }
     });
+    // Fallback if primary model fails (returns empty or errors)
+    if (!response.success) {
+        logger_1.logger.warn('Stage 7 Primary AI Failed, Retrying with Fallback Model (DeepSeek Chat)...');
+        progress.updateMessage('Primary model unstable, switching to fallback model...');
+        response = await (0, kimi_k2_client_1.callKimiK2WithStream)(input.sessionId, 7, LEVEL3_SYSTEM_PROMPT, fullPrompt, {
+            temperature: 0.5,
+            maxTokens: 8000,
+            candidateTime: 'final_decision',
+            abortSignal: input.abortSignal,
+            model: 'deepseek-chat',
+            onToken: (chunk) => {
+                progress.updateMessage('Finalizing with fallback model...');
+            }
+        });
+    }
     if (response.success) {
         // Parse response to extract scores for each candidate
         for (const candidate of candidates) {
@@ -715,6 +806,12 @@ ANALYZE EACH 6-SECOND CANDIDATE AND DETERMINE THE CORRECT BIRTH TIME.`;
                 time: candidate.time,
                 score,
                 aiAnalysis: response.content,
+            });
+            // 📊 Add and persist score
+            await progress.addCandidateScore({
+                time: candidate.time,
+                score,
+                stage: 7
             });
         }
         // Also check for BEST TIME in verdict

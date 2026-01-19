@@ -6,6 +6,7 @@
 
 import { logger } from './logger';
 
+
 // ═════════════════════════════════════════════════════════════════════════════
 // KIMI K2 CONFIGURATION
 // ═════════════════════════════════════════════════════════════════════════════
@@ -211,6 +212,7 @@ export async function callKimiK2WithStream(
         candidateTime?: string;
         abortSignal?: AbortSignal; // Support external cancellation
         onToken?: (content: string, isThinking: boolean) => void; // For heartbeats
+        timeoutMs?: number; // Custom timeout
     }
 ): Promise<KimiK2Response> {
     const config = {
@@ -228,6 +230,11 @@ export async function callKimiK2WithStream(
     }
 
     try {
+        // 🚀 Debug: Log function entry to file
+        const entryMsg = `🚀 callKimiK2WithStream CALLED: sessionId=${sessionId?.slice(0, 8)}, stage=${stage}, model=${config.model}, candidateTime=${options?.candidateTime}\n`;
+        console.log(entryMsg);
+        require('fs').appendFileSync('/tmp/ai-debug.log', `${new Date().toISOString()} ${entryMsg}`);
+
         logger.info('Calling Kimi K2 with streaming', {
             sessionId,
             stage,
@@ -235,9 +242,11 @@ export async function callKimiK2WithStream(
             candidateTime: options?.candidateTime,
         });
 
+
         // Combine internal timeout with external abort signal
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), KIMI_CONFIG.timeoutMs);
+        const timeoutMs = options?.timeoutMs ?? KIMI_CONFIG.timeoutMs;
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
         if (options?.abortSignal) {
             options.abortSignal.addEventListener('abort', () => {
@@ -307,6 +316,14 @@ export async function callKimiK2WithStream(
                     const parsed = JSON.parse(data);
                     const delta = parsed.choices?.[0]?.delta;
 
+                    // 🔍 Debug: Log what we're receiving from DeepSeek
+                    if (delta) {
+                        const debugMsg = `🔍 DeepSeek delta: hasReasoning=${!!delta.reasoning_content}, hasContent=${!!delta.content}, len=${delta.content?.length || delta.reasoning_content?.length || 0}\n`;
+                        console.log(debugMsg);
+                        require('fs').appendFileSync('/tmp/ai-debug.log', `${new Date().toISOString()} ${debugMsg}`);
+                    }
+
+
                     if (delta?.reasoning_content) {
                         // DeepSeek Reasoner's thinking tokens
                         fullThinking += delta.reasoning_content;
@@ -338,6 +355,10 @@ export async function callKimiK2WithStream(
             thinkingLength: fullThinking.length,
             contentLength: fullContent.length,
         });
+
+        if (!fullThinking && !fullContent) {
+            throw new Error('Empty response from AI provider');
+        }
 
         return {
             success: true,

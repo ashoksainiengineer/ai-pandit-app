@@ -23,11 +23,9 @@ const activeControllers = new Map();
  * Create an AbortController for a session
  */
 function createAbortController(sessionId) {
-    // Clean up any existing controller
-    const existing = activeControllers.get(sessionId);
-    if (existing) {
-        existing.abort();
-    }
+    // Clean up any existing controller (don't abort - just replace)
+    // Aborting the old one would trigger cancellation checks
+    activeControllers.delete(sessionId);
     const controller = new AbortController();
     activeControllers.set(sessionId, controller);
     logger_1.logger.info('AbortController created', { sessionId });
@@ -59,18 +57,29 @@ function cleanupController(sessionId) {
     activeControllers.delete(sessionId);
 }
 /**
- * Check if session is cancelled (from database)
+ * Check if session is cancelled by user (from database)
+ * Only returns true if user explicitly cancelled, not if failed for other reasons
  */
 async function isSessionCancelled(sessionId) {
     try {
-        const result = await drizzle_1.db.select({ status: schema_1.sessions.status })
+        const result = await drizzle_1.db.select({
+            status: schema_1.sessions.status,
+            errorMessage: schema_1.sessions.errorMessage
+        })
             .from(schema_1.sessions)
             .where((0, drizzle_orm_1.eq)(schema_1.sessions.id, sessionId))
             .limit(1);
         if (result.length === 0)
             return true; // Session not found = treat as cancelled
-        const status = result[0].status;
-        return status === 'failed' || status === 'complete';
+        const { status, errorMessage } = result[0];
+        // Only treat as cancelled if:
+        // 1. User explicitly cancelled (specific error message)
+        // 2. Session is complete (processing done)
+        if (status === 'complete')
+            return true;
+        if (status === 'failed' && errorMessage?.includes('Cancelled by user'))
+            return true;
+        return false;
     }
     catch (error) {
         logger_1.logger.error('Failed to check session status', { sessionId, error });

@@ -41,6 +41,28 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
                 progress: currentProgress
             });
         }
+
+        // 🔮 Send cached AI Context if exists (Transparency Fix)
+        const lastContext = sessionEvents.getLastContext(sessionId);
+        if (lastContext) {
+            console.log(`🔮 Sending cached AI Context for ${sessionId}`);
+            sendEvent(res, lastContext);
+        }
+
+        // 🧠 Send cached Thinking Buffer (Refresh Fix)
+        const thinkingBuffer = sessionEvents.getThinkingBuffer(sessionId);
+        if (thinkingBuffer) {
+            console.log(`🧠 Sending cached AI Thinking for ${sessionId} (len=${thinkingBuffer.text.length})`);
+            sendEvent(res, {
+                type: 'ai_thinking',
+                chunk: thinkingBuffer.text, // Send full history as one chunk
+                stage: thinkingBuffer.stage,
+                candidateTime: thinkingBuffer.candidateTime
+            });
+        } else {
+            console.log(`⚠️ No thinking buffer found for ${sessionId} on connection`);
+        }
+
     } catch (error) {
         logger.error('Failed to get initial progress', { sessionId, error });
     }
@@ -87,6 +109,13 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
  */
 function sendEvent(res: Response, data: any): void {
     try {
+        // Debug outgoing AI thinking events
+        if (data.type === 'ai_thinking') {
+            console.log('🧠 SSE ai_thinking:', data.candidateTime, 'chunk:', data.chunk?.length, 'chars');
+        }
+        if (data.type === 'candidate_score') console.log('📊 Sending Candidate Score:', data);
+
+
         const eventData = JSON.stringify(data);
         res.write(`data: ${eventData}\n\n`);
     } catch (error) {

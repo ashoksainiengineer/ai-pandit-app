@@ -74,6 +74,9 @@ router.get('/:sessionId', async (req, res) => {
  */
 function sendEvent(res, data) {
     try {
+        // console.log('➡️ SSE:', data.type); // Debug outgoing events
+        if (data.type === 'candidate_score')
+            console.log('📊 Sending Candidate Score:', data);
         const eventData = JSON.stringify(data);
         res.write(`data: ${eventData}\n\n`);
     }

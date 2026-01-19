@@ -1,3 +1,9 @@
+export interface CandidateScore {
+    time: string;
+    score: number;
+    stage: number;
+    rank?: number;
+}
 export interface ProgressStep {
     id: string;
     name: string;
@@ -15,6 +21,7 @@ export interface ProgressData {
     steps: ProgressStep[];
     lastUpdate: string;
     liveMessage?: string;
+    candidateScores: CandidateScore[];
 }
 export declare const ANALYSIS_STEPS: Omit<ProgressStep, 'status'>[];
 export declare class ProgressTracker {
@@ -42,6 +49,10 @@ export declare class ProgressTracker {
      * Complete all progress
      */
     complete(): Promise<void>;
+    /**
+     * Add and persist candidate score
+     */
+    addCandidateScore(score: CandidateScore): Promise<void>;
     /**
      * Save progress to database
      */

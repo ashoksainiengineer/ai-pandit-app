@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
-import { createClerkClient } from '@clerk/backend';
+import { createClerkClient, verifyToken } from '@clerk/backend';
 
 const clerk = createClerkClient({
     secretKey: process.env.CLERK_SECRET_KEY,
 });
+
 
 export interface AuthenticatedRequest extends Request {
     userId?: string;
@@ -44,16 +45,21 @@ export async function authMiddleware(
 
         try {
             // Verify the session token with Clerk
-            const session = await clerk.sessions.verifySession(token, token);
+            // Fix: Use verifyToken with secret key
+            const session = await verifyToken(token, {
+                secretKey: process.env.CLERK_SECRET_KEY,
+                jwtKey: process.env.CLERK_JWT_KEY // Optional if using local verification
+            });
 
-            if (session && session.userId) {
-                req.userId = session.userId;
-                req.sessionId = session.id;
+            if (session && session.sub) {
+                req.userId = session.sub;
+                req.sessionId = session.sid;
                 next();
             } else {
                 res.status(401).json({ error: 'Invalid session' });
             }
         } catch (clerkError) {
+
             // For development, allow requests without valid Clerk token
             if (process.env.NODE_ENV === 'development') {
                 console.warn('⚠️ Auth bypassed in development mode (fallback)');
@@ -65,6 +71,7 @@ export async function authMiddleware(
             console.error('Clerk verification error:', clerkError);
             res.status(401).json({ error: 'Token verification failed' });
         }
+
     } catch (error) {
         console.error('Auth middleware error:', error);
         res.status(500).json({ error: 'Authentication error' });

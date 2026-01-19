@@ -15,7 +15,8 @@ export declare function abortSession(sessionId: string): boolean;
  */
 export declare function cleanupController(sessionId: string): void;
 /**
- * Check if session is cancelled (from database)
+ * Check if session is cancelled by user (from database)
+ * Only returns true if user explicitly cancelled, not if failed for other reasons
  */
 export declare function isSessionCancelled(sessionId: string): Promise<boolean>;
 /**

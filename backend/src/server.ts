@@ -82,7 +82,7 @@ app.use((req, res) => {
     res.status(404).json({ error: 'Not Found', path: req.path });
 });
 
-import { startQueueProcessor } from './lib/queue-manager.js';
+import { startQueueProcessor, cleanupZombiesOnStartup } from './lib/queue-manager.js';
 import { initSwissEph } from './lib/ephemeris.js';
 
 // =============================================================================
@@ -100,7 +100,9 @@ async function bootstrap() {
 
             // Start processing queue on startup
             console.log('🔄 Starting queue processor...');
-            startQueueProcessor();
+            cleanupZombiesOnStartup().then(() => {
+                startQueueProcessor();
+            });
         });
     } catch (err) {
         console.error('❌ Failed to start server:', err);

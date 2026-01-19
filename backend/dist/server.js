@@ -91,7 +91,9 @@ async function bootstrap() {
             console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
             // Start processing queue on startup
             console.log('🔄 Starting queue processor...');
-            (0, queue_manager_js_1.startQueueProcessor)();
+            (0, queue_manager_js_1.cleanupZombiesOnStartup)().then(() => {
+                (0, queue_manager_js_1.startQueueProcessor)();
+            });
         });
     }
     catch (err) {

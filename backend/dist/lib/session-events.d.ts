@@ -25,7 +25,7 @@ export interface EphemerisEvent {
     moonNakshatra: string;
 }
 export interface CandidateScoreEvent {
-    type: 'candidate_score';
+    type: 'candidate_score' | 'candidate_score_v2';
     time: string;
     score: number;
     stage: number;
@@ -37,12 +37,24 @@ export interface CompleteEvent {
     accuracy: number;
     confidence: string;
 }
+export interface AIContextEvent {
+    type: 'ai_context';
+    stage: number;
+    candidateTime: string;
+    planetaryInfo: {
+        sun: string;
+        moon: string;
+        ascendant: string;
+    };
+    dasha: string;
+    divCharts?: string;
+}
 export interface ErrorEvent {
     type: 'error';
     message: string;
     stage?: string;
 }
-export type SessionEvent = ProgressEvent | AIThinkingEvent | EphemerisEvent | CandidateScoreEvent | CompleteEvent | ErrorEvent;
+export type SessionEvent = ProgressEvent | AIThinkingEvent | EphemerisEvent | CandidateScoreEvent | CompleteEvent | ErrorEvent | AIContextEvent;
 declare class SessionEventManager {
     private emitters;
     /**
@@ -72,5 +84,6 @@ export declare function emitEphemeris(sessionId: string, candidateTime: string, 
 export declare function emitCandidateScore(sessionId: string, time: string, score: number, stage: number, rank?: number): void;
 export declare function emitComplete(sessionId: string, rectifiedTime: string, accuracy: number, confidence: string): void;
 export declare function emitError(sessionId: string, message: string, stage?: string): void;
+export declare function emitAIContext(sessionId: string, data: Omit<AIContextEvent, 'type'>): void;
 export {};
 //# sourceMappingURL=session-events.d.ts.map

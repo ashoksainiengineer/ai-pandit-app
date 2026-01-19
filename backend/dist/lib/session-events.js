@@ -9,6 +9,7 @@ exports.emitEphemeris = emitEphemeris;
 exports.emitCandidateScore = emitCandidateScore;
 exports.emitComplete = emitComplete;
 exports.emitError = emitError;
+exports.emitAIContext = emitAIContext;
 const events_1 = require("events");
 // ═════════════════════════════════════════════════════════════════════════════
 // GLOBAL SESSION EVENT EMITTER
@@ -87,8 +88,9 @@ function emitEphemeris(sessionId, candidateTime, ascendant, moonSign, moonNaksha
     });
 }
 function emitCandidateScore(sessionId, time, score, stage, rank) {
+    console.log(`⚡ Emit Candidate Score: ${sessionId} | ${time} | ${score}`);
     exports.sessionEvents.emit(sessionId, {
-        type: 'candidate_score',
+        type: 'candidate_score_v2',
         time,
         score,
         stage,
@@ -110,6 +112,12 @@ function emitError(sessionId, message, stage) {
         type: 'error',
         message,
         stage,
+    });
+}
+function emitAIContext(sessionId, data) {
+    exports.sessionEvents.emit(sessionId, {
+        type: 'ai_context',
+        ...data
     });
 }
 //# sourceMappingURL=session-events.js.map

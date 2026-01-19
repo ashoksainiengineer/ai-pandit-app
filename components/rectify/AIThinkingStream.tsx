@@ -14,33 +14,50 @@ interface AIThinkingStreamProps {
     } | null;
     isActive: boolean;
     stage?: number; // Explicit stage from parent
+    analyzedCount?: number;
+    totalCandidates?: number;
 }
 
-export default function AIThinkingStream({ thinking, isActive, stage }: AIThinkingStreamProps) {
+export default function AIThinkingStream({ thinking, isActive, stage, analyzedCount, totalCandidates }: AIThinkingStreamProps) {
     const [displayedText, setDisplayedText] = useState('');
     const [cursorVisible, setCursorVisible] = useState(true);
     const containerRef = useRef<HTMLDivElement>(null);
     const lastLengthRef = useRef(0);
+    const prevCandidateRef = useRef('');
 
-    // Smooth text append with auto-scroll
+    // Smooth text append with auto-scroll and candidate switch handling
     useEffect(() => {
-        if (!thinking?.fullText) {
+        const candidateTime = thinking?.candidateTime;
+        const fullText = thinking?.fullText;
+
+        if (!fullText) {
             setDisplayedText('');
             lastLengthRef.current = 0;
             return;
         }
 
-        // Only append new characters
-        if (thinking.fullText.length > lastLengthRef.current) {
-            setDisplayedText(thinking.fullText);
-            lastLengthRef.current = thinking.fullText.length;
+        // Check if candidate changed - RESET everything
+        if (candidateTime !== prevCandidateRef.current) {
+            setDisplayedText(fullText);
+            lastLengthRef.current = fullText.length;
+            prevCandidateRef.current = candidateTime || '';
+            if (containerRef.current) {
+                containerRef.current.scrollTop = containerRef.current.scrollHeight;
+            }
+            return;
+        }
+
+        // Same candidate - Append only new characters
+        if (fullText.length > lastLengthRef.current) {
+            setDisplayedText(fullText);
+            lastLengthRef.current = fullText.length;
 
             // Auto-scroll to bottom
             if (containerRef.current) {
                 containerRef.current.scrollTop = containerRef.current.scrollHeight;
             }
         }
-    }, [thinking?.fullText]);
+    }, [thinking?.fullText, thinking?.candidateTime]);
 
     // Cursor blink effect
     useEffect(() => {
@@ -81,7 +98,14 @@ export default function AIThinkingStream({ thinking, isActive, stage }: AIThinki
                             <h3 className="font-bold text-[#F5F0EB]">{stageName}</h3>
                             {thinking?.candidateTime && (
                                 <p className="text-xs text-[#8B5CF6]">
-                                    Analyzing: {thinking.candidateTime}
+                                    Analyzing: <span className="font-mono text-purple-300">
+                                        {thinking?.candidateTime === 'final_decision'
+                                            ? 'All Candidates'
+                                            : thinking?.candidateTime}
+                                    </span>
+                                    {analyzedCount !== undefined && (
+                                        <span className="opacity-70"> • {analyzedCount}{totalCandidates ? `/${totalCandidates}` : ''} Analyzed</span>
+                                    )}
                                 </p>
                             )}
                         </div>
@@ -118,7 +142,7 @@ export default function AIThinkingStream({ thinking, isActive, stage }: AIThinki
                     ) : (
                         <div className="text-[#8C7F72] flex items-center gap-2">
                             <span className="animate-spin">⚙️</span>
-                            Initializing AI reasoning engine...
+                            Initializing DeepSeek R1 (Thinking Process)...
                         </div>
                     )}
                 </div>
@@ -130,7 +154,7 @@ export default function AIThinkingStream({ thinking, isActive, stage }: AIThinki
                     </span>
                     <span className="flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#2D7A5C]" />
-                        DeepSeek {thinking?.stage === 7 ? 'Reasoner (R1)' : 'V3'}
+                        DeepSeek {[2, 5, 7].includes(thinking?.stage || 0) ? 'Reasoner (R1)' : 'V3'}
                     </span>
                 </div>
             </motion.div>

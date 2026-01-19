@@ -43,6 +43,7 @@ class ProgressTracker {
                 status: 'pending',
             })),
             lastUpdate: new Date().toISOString(),
+            candidateScores: [],
         };
     }
     /**
@@ -130,6 +131,15 @@ class ProgressTracker {
         });
         await this.saveProgress();
         // Emit SSE complete event (will be called with result data separately)
+    }
+    /**
+     * Add and persist candidate score
+     */
+    async addCandidateScore(score) {
+        this.progress.candidateScores.push(score);
+        // Emit event directly
+        (0, session_events_1.emitCandidateScore)(this.sessionId, score.time, score.score, score.stage, score.rank);
+        await this.saveProgress();
     }
     /**
      * Save progress to database

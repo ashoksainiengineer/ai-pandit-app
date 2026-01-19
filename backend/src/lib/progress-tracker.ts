@@ -6,7 +6,14 @@
 import { db } from '../database/drizzle';
 import { sessions } from '../database/schema';
 import { eq } from 'drizzle-orm';
-import { emitProgress, emitComplete, emitError } from './session-events';
+import { emitProgress, emitComplete, emitError, emitCandidateScore } from './session-events';
+
+export interface CandidateScore {
+    time: string;
+    score: number;
+    stage: number;
+    rank?: number;
+}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // PROGRESS STEPS DEFINITION
@@ -30,6 +37,7 @@ export interface ProgressData {
     steps: ProgressStep[];
     lastUpdate: string;
     liveMessage?: string;
+    candidateScores: CandidateScore[];
 }
 
 // Define all analysis steps
@@ -69,6 +77,7 @@ export class ProgressTracker {
                 status: 'pending' as const,
             })),
             lastUpdate: new Date().toISOString(),
+            candidateScores: [],
         };
     }
 
@@ -194,6 +203,24 @@ export class ProgressTracker {
         await this.saveProgress();
 
         // Emit SSE complete event (will be called with result data separately)
+    }
+
+    /**
+     * Add and persist candidate score
+     */
+    public async addCandidateScore(score: CandidateScore): Promise<void> {
+        this.progress.candidateScores.push(score);
+
+        // Emit event directly
+        emitCandidateScore(
+            this.sessionId,
+            score.time,
+            score.score,
+            score.stage,
+            score.rank
+        );
+
+        await this.saveProgress();
     }
 
     /**
