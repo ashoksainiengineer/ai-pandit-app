@@ -30,13 +30,15 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
     res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
     res.flushHeaders();
 
-    // 🚀 High-speed keep-alive preamble
+    // 🚀 Proxy-Buffering Bypass: Send a 2KB preamble
+    // Some cloud proxies (Leapcell/Cloudflare) buffer SSE until ~1-2KB is received.
+    res.write(':' + ' '.repeat(2048) + '\n\n');
     res.write(': initial keepalive\n\n');
 
     // Send initial connection event
     sendEvent(res, { type: 'connected', sessionId, timestamp: new Date().toISOString() });
 
-    // Send current progress if exists
+    // Send current progress if exists (Moved after preamble to ensure connection opens first)
     try {
         const currentProgress = await getSessionProgress(sessionId);
         if (currentProgress) {
