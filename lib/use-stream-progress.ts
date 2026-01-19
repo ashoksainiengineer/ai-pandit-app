@@ -262,19 +262,19 @@ export function useStreamProgress(
 
         setConnectionState(prev => ({ ...prev, url, readyState: 0, lastError: null }));
 
-        const eventSource = new EventSource(url);
+        const eventSource = new EventSource(url, { withCredentials: true });
         eventSourceRef.current = eventSource;
 
-        // Connection Timeout Check
+        // Connection Timeout Check (Increased to 20s for Cloud cold starts)
         connectionTimeoutRef.current = setTimeout(() => {
             if (eventSource.readyState !== 1) { // Not OPEN
                 setState(prev => ({
                     ...prev,
-                    error: `Connection timeout (10s) to ${url}. Check console.`,
+                    error: `Connection timeout (20s) to ${url}. Check console.`,
                 }));
-                setConnectionState(prev => ({ ...prev, lastError: 'Timeout: Backend did not ensure connection.' }));
+                setConnectionState(prev => ({ ...prev, lastError: 'Timeout: Backend did not ensure connection. Possible server cold-start or proxy issue.' }));
             }
-        }, 10000);
+        }, 20000);
 
         eventSource.onmessage = (event) => {
             try {

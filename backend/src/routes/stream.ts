@@ -29,6 +29,9 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
     res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
     res.flushHeaders();
 
+    // 🚀 High-speed keep-alive preamble
+    res.write(': initial keepalive\n\n');
+
     // Send initial connection event
     sendEvent(res, { type: 'connected', sessionId, timestamp: new Date().toISOString() });
 
@@ -85,10 +88,12 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
     // Subscribe to events
     emitter.on('event', eventHandler);
 
-    // Keep-alive ping every 30 seconds
+    // Keep-alive ping every 15 seconds (more frequent for Cloud/Vercel proxies)
     const pingInterval = setInterval(() => {
+        // Send a comment ping to keep connection alive without parsing overhead
+        res.write(': ping\n\n');
         sendEvent(res, { type: 'ping', timestamp: new Date().toISOString() });
-    }, 30000);
+    }, 15000);
 
     // Cleanup on disconnect
     req.on('close', () => {
