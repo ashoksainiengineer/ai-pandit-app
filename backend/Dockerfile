@@ -48,14 +48,14 @@ COPY ephe/ ./ephe/
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PORT=8080
+ENV PORT=7860
 
 # Expose port
-EXPOSE 8080
+EXPOSE 7860
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/health || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:7860/api/health || exit 1
 
 # Start server
 CMD ["node", "dist/server.js"]
