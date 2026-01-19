@@ -5,11 +5,11 @@ import { getQueueStatus } from '../lib/queue-manager.js';
 const router = Router();
 
 /**
- * GET /api/queue/progress - Get detailed progress for a session
+ * GET /api/queue/progress/:sessionId - Get detailed progress for a session
  */
-router.get('/', async (req: Request, res: Response) => {
+router.get('/:sessionId', async (req: Request, res: Response) => {
     try {
-        const sessionId = req.query.sessionId as string;
+        const { sessionId } = req.params;
 
         if (!sessionId) {
             res.status(400).json({ error: 'Session ID is required' });

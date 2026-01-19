@@ -11,19 +11,11 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 // =============================================================================
-// CORS Configuration - Allow Vercel Frontend
+// CORS Configuration - Ultra-Permissive for Debugging
 // =============================================================================
 app.use(cors({
-    origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin) return callback(null, true);
-
-        // 🔓 REFLECTING CORS: Allow ANY origin to connect for debugging
-        // This eliminates CORS as a failure cause.
-        // In production, we can lock this down later effectively throughout enviroment variables.
-        callback(null, true);
-    },
-    credentials: true,
+    origin: '*',
+    credentials: false,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Last-Event-ID'],
     exposedHeaders: ['Content-Type'],
@@ -52,8 +44,15 @@ app.get('/', (req, res) => {
         status: 'ok',
         service: 'AI Pandit BTR Engine',
         version: '1.0.0',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        env: process.env.NODE_ENV || 'development'
     });
+});
+
+// Diagnostic ping
+app.get('/api/debug/ping', (req, res) => {
+    console.log('[DEBUG] Ping received');
+    res.json({ pong: true, timestamp: new Date().toISOString(), headers: req.headers });
 });
 
 // =============================================================================
