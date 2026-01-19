@@ -94,20 +94,86 @@ export function useStreamProgress(
         totalCandidates: 0,
     });
 
-    // Enhanced State
+    // Enhanced State with Polling
     const [connectionState, setConnectionState] = useState<{
         url: string;
-        readyState: number; // 0=CONNECTING, 1=OPEN, 2=CLOSED
+        readyState: number; // 0=CONNECTING, 1=OPEN, 2=CLOSED, 3=POLLING
         lastError: string | null;
+        usingFallback: boolean;
     }>({
         url: '',
         readyState: 0,
-        lastError: null
+        lastError: null,
+        usingFallback: false
     });
 
     const eventSourceRef = useRef<EventSource | null>(null);
     const rotationTimerRef = useRef<NodeJS.Timeout | null>(null);
     const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Polling function
+    const startPolling = useCallback((sid: string) => {
+        if (pollingIntervalRef.current) return;
+
+        console.log('🔄 [Stream] Switching to Polling Mode for', sid);
+        setConnectionState(prev => ({
+            ...prev,
+            readyState: 3, // Custom status for Polling
+            usingFallback: true
+        }));
+
+        // Immediate fetch
+        fetchProgress(sid);
+
+        pollingIntervalRef.current = setInterval(() => {
+            fetchProgress(sid);
+        }, 2000);
+    }, [backendUrl]); // backendUrl dependency if used in fetchProgress
+
+    const fetchProgress = async (sid: string) => {
+        try {
+            const url = `${backendUrl}/api/queue/progress/${sid}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`Polling failed: ${res.status}`);
+
+            const data = await res.json();
+            const progressData = data.progress;
+
+            if (data.status === 'complete' || data.status === 'failed') {
+                // Stop polling if done
+                if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
+            }
+
+            // Reuse the 'initial_state' logic to update UI
+            setState(prev => ({
+                ...prev,
+                isConnected: true,
+                progress: {
+                    step: progressData.steps[progressData.currentStep]?.id || '',
+                    stepIndex: progressData.currentStep,
+                    totalSteps: progressData.totalSteps,
+                    percentage: progressData.percentage,
+                    message: progressData.liveMessage || '',
+                    details: progressData.steps[progressData.currentStep]?.details,
+                },
+                candidateScores: progressData.candidateScores || [],
+                analyzedCount: (progressData.candidateScores || []).length,
+            }));
+
+            // Handle completion from polling
+            if (data.status === 'complete' && data.data?.analysisResult) {
+                setState(prev => ({
+                    ...prev,
+                    isComplete: true,
+                    result: data.data
+                }));
+            }
+
+        } catch (err) {
+            console.error('Polling error:', err);
+        }
+    };
 
     // Handle incoming SSE events
     const handleEvent = useCallback((eventData: any) => {
@@ -256,6 +322,9 @@ export function useStreamProgress(
     useEffect(() => {
         if (!sessionId) return;
 
+        // Don't restart SSE if already polling
+        if (connectionState.usingFallback) return;
+
         // Create EventSource connection
         const url = `${backendUrl}/api/stream/${sessionId}`;
         console.log('Connecting to SSE stream:', url);
@@ -269,13 +338,11 @@ export function useStreamProgress(
         // Connection Timeout Check (Increased to 20s for Cloud cold starts)
         connectionTimeoutRef.current = setTimeout(() => {
             if (eventSource.readyState !== 1) { // Not OPEN
-                setState(prev => ({
-                    ...prev,
-                    error: `Connection timeout (20s) to ${url}. Check console.`,
-                }));
-                setConnectionState(prev => ({ ...prev, lastError: 'Timeout: Backend did not ensure connection. Possible server cold-start or proxy issue.' }));
+                console.warn('⚠️ [SSE] Connection timeout. Switching to polling...');
+                eventSource.close();
+                startPolling(sessionId);
             }
-        }, 20000);
+        }, 15000); // 15s timeout before switching to polling
 
         eventSource.onmessage = (event) => {
             try {
@@ -292,17 +359,19 @@ export function useStreamProgress(
                 url: url,
                 event: error
             });
-            // Inspect event for details if possible (usually opaque in browser)
+
+            // If connection fails, switch to polling IMMEDIATELY
+            if (eventSource.readyState === 2) { // Closed
+                console.warn('⚠️ [SSE] Connection closed. Switching to polling...');
+                eventSource.close();
+                startPolling(sessionId);
+                return;
+            }
+
             setConnectionState(prev => ({
                 ...prev,
                 readyState: eventSource.readyState,
-                lastError: `EventSource Error (ReadyState: ${eventSource.readyState})`
-            }));
-
-            setState(prev => ({
-                ...prev,
-                isConnected: false,
-                error: 'Connection lost. Retrying...',
+                lastError: `EventSource Error (ReadyState: ${eventSource.readyState}). Retrying or Polling...`
             }));
         };
 
@@ -320,7 +389,7 @@ export function useStreamProgress(
             eventSource.close();
             eventSourceRef.current = null;
         };
-    }, [sessionId, backendUrl, handleEvent]);
+    }, [sessionId, backendUrl, handleEvent, startPolling, connectionState.usingFallback]);
 
     // Rotation Effect: Switch displayed candidate every 5 seconds
     useEffect(() => {
@@ -350,12 +419,10 @@ export function useStreamProgress(
         };
     }, []);
 
-    // Cleanup on unmount
+    // Cleanup polling on unmount
     useEffect(() => {
         return () => {
-            if (eventSourceRef.current) {
-                eventSourceRef.current.close();
-            }
+            if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
         };
     }, []);
 

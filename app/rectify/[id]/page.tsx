@@ -254,7 +254,7 @@ export default function ProgressPage() {
                     <div className="mt-8 text-left max-w-sm mx-auto bg-[#1A1F2E] border border-[#3A4452] rounded-lg p-4 text-xs font-mono">
                         <div className="flex items-center justify-between mb-2">
                             <span className="font-bold text-[#F5F0EB]">🔍 Connection Diagnostics</span>
-                            <span className={`w-2 h-2 rounded-full ${readyState === 1 ? 'bg-green-500' : readyState === 0 ? 'bg-yellow-500' : 'bg-red-500'}`} />
+                            <span className={`w-2 h-2 rounded-full ${readyState === 1 ? 'bg-green-500' : readyState === 3 ? 'bg-blue-500 animate-pulse' : readyState === 0 ? 'bg-yellow-500' : 'bg-red-500'}`} />
                         </div>
 
                         <div className="space-y-2 text-[#8C7F72]">
@@ -268,8 +268,8 @@ export default function ProgressPage() {
                             <div className="grid grid-cols-2 gap-2">
                                 <div>
                                     <div className="uppercase text-[10px] tracking-wider mb-0.5">Status</div>
-                                    <div className={readyState === 1 ? 'text-green-400' : 'text-yellow-400'}>
-                                        {readyState === 0 ? 'CONNECTING' : readyState === 1 ? 'OPEN' : 'CLOSED'}
+                                    <div className={readyState === 1 ? 'text-green-400' : readyState === 3 ? 'text-blue-400 font-bold' : 'text-yellow-400'}>
+                                        {readyState === 0 ? 'CONNECTING' : readyState === 1 ? 'OPEN' : readyState === 3 ? 'POLLING (Fallback)' : 'CLOSED'}
                                     </div>
                                 </div>
                                 <div>
