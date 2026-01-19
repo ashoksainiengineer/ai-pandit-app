@@ -253,7 +253,7 @@ export default function ProgressPage() {
                     {/* Diagnostic Panel */}
                     <div className="mt-8 text-left max-w-sm mx-auto bg-[#1A1F2E] border border-[#3A4452] rounded-lg p-4 text-xs font-mono">
                         <div className="flex items-center justify-between mb-2">
-                            <span className="font-bold text-[#F5F0EB]">🔍 Connection Diagnostics</span>
+                            <span className="font-bold text-[#F5F0EB]">🔍 Connection Diagnostics v2.0</span>
                             <span className={`w-2 h-2 rounded-full ${readyState === 1 ? 'bg-green-500' : readyState === 3 ? 'bg-blue-500 animate-pulse' : readyState === 0 ? 'bg-yellow-500' : 'bg-red-500'}`} />
                         </div>
 

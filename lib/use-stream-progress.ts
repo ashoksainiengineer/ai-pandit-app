@@ -322,6 +322,11 @@ export function useStreamProgress(
     useEffect(() => {
         if (!sessionId) return;
 
+        // 🚀 FORCE POLLING MODE
+        console.log('🚀 [Stream] Force-starting Polling Mode');
+        startPolling(sessionId);
+        return;
+
         // Don't restart SSE if already polling
         if (connectionState.usingFallback) return;
 
@@ -354,35 +359,19 @@ export function useStreamProgress(
         };
 
         eventSource.onerror = (error) => {
-            console.error('❌ [SSE] Connection error/closed:', {
-                readyState: eventSource.readyState,
-                url: url,
-                event: error
-            });
-
-            // If connection fails, switch to polling IMMEDIATELY
-            // Relaxed check: Switch on ANY error to ensure we don't get stuck
-            console.warn('⚠️ [SSE] Connection error/closed. Switching to polling...');
-            eventSource.close();
-            startPolling(sessionId);
-            return;
+            // ...
         };
 
         eventSource.onopen = () => {
-            console.log('✅ [SSE] Connection established to', url);
-            if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
-            setState(prev => ({ ...prev, isConnected: true, error: null }));
-            setConnectionState(prev => ({ ...prev, readyState: 1 }));
+            // ...
         };
 
         // Cleanup on unmount
         return () => {
-            console.log('Closing SSE connection');
-            if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
-            eventSource.close();
-            eventSourceRef.current = null;
+            // Cleanup if needed
         };
-    }, [sessionId, backendUrl, handleEvent, startPolling, connectionState.usingFallback]);
+        */
+    }, [sessionId, backendUrl, startPolling]);
 
     // Rotation Effect: Switch displayed candidate every 5 seconds
     useEffect(() => {
