@@ -69,6 +69,8 @@ async function handleProgressRequest(sessionId: string, userId: string, res: Res
             dateOfBirth: queueStatus.session?.dateOfBirth,
             tentativeTime: queueStatus.session?.tentativeTime,
             birthPlace: queueStatus.session?.birthPlace,
+            offsetConfig: queueStatus.session?.offsetConfig ? (typeof queueStatus.session.offsetConfig === 'string' ? JSON.parse(queueStatus.session.offsetConfig) : queueStatus.session.offsetConfig) : undefined,
+            timezone: queueStatus.session?.timezone,
         },
         progress: progress || {
             currentStep: 0,

@@ -23,6 +23,7 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=7860
+ENV CACHE_BUST=2026-01-20-T13-10
 ENV SWISSEPH_PATH=/app/ephe
 
 # Install minimal runtime dependencies for WASM/Node

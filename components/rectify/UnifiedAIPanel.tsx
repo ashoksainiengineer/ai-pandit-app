@@ -7,6 +7,7 @@ import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AIContextData } from '@/lib/use-stream-progress';
 import { ChevronDown, ChevronUp, Brain, Zap, Clock, Activity } from 'lucide-react';
+import { Typewriter } from '@/components/ui/Typewriter';
 
 interface UnifiedAIPanelProps {
     thinking: {
@@ -272,8 +273,12 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
             className="p-4 bg-[#0F1419]/50 font-mono text-sm text-[#D1D5DB] leading-relaxed max-h-[300px] overflow-y-auto custom-scrollbar"
         >
             {content ? (
-                <div className="whitespace-pre-wrap break-words border-l-2 border-indigo-500/30 pl-4 py-1">
-                    {content}
+                <div className="break-words border-l-2 border-indigo-500/30 pl-4 py-1">
+                    {isThinking ? (
+                        <Typewriter content={content} speed={15} />
+                    ) : (
+                        <span className="whitespace-pre-wrap">{content}</span>
+                    )}
                     {isThinking && (
                         <span className="inline-block w-2 h-4 bg-[#8B5CF6] ml-1 animate-pulse align-text-bottom" />
                     )}

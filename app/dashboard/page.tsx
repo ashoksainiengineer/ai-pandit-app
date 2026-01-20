@@ -159,11 +159,14 @@ export default async function DashboardPage() {
                                                         ? 'bg-[#D4AF37]/20 text-[#D4AF37]'
                                                         : session.status === 'failed'
                                                             ? 'bg-[#EF4444]/20 text-[#EF4444]'
-                                                            : 'bg-[#6A0572]/20 text-[#6A0572]'
+                                                            : session.status === 'queued'
+                                                                ? 'bg-[#3B82F6]/20 text-[#3B82F6]'
+                                                                : 'bg-[#6A0572]/20 text-[#6A0572]'
                                                     }`}>
                                                     {session.status === 'complete' ? '✓ Complete' :
                                                         session.status === 'processing' ? '⏳ Processing' :
-                                                            session.status === 'failed' ? '✗ Failed' : '⏸ Pending'}
+                                                            session.status === 'failed' ? '✗ Failed' :
+                                                                session.status === 'queued' ? '🕒 Queued' : '⏸ Pending'}
                                                 </span>
                                             </div>
                                             <p className="text-sm text-[#8C7F72]">
@@ -218,19 +221,14 @@ export default async function DashboardPage() {
                                                 </>
                                             )}
 
-                                            {/* Pending: Edit + Cancel */}
-                                            {session.status === 'pending' && (
-                                                <>
-                                                    <Link
-                                                        href={`/rectify/${session.id}/edit`}
-                                                        className="px-3 py-2 border border-[#D4AF37]/50 text-[#D4AF37] rounded-lg font-medium text-sm hover:bg-[#D4AF37]/10 transition-colors"
-                                                    >
-                                                        ✏️ Edit
-                                                    </Link>
-                                                    <span className="text-xs text-[#8C7F72] bg-[#2A3442] px-2 py-1 rounded">
-                                                        ⏸ In Queue
-                                                    </span>
-                                                </>
+                                            {/* Queued/Pending: View Progress (Waiting) */}
+                                            {(session.status === 'queued' || session.status === 'pending') && (
+                                                <Link
+                                                    href={`/rectify/${session.id}`}
+                                                    className="px-4 py-2 border border-[#3B82F6]/50 text-[#3B82F6] rounded-lg font-medium text-sm hover:bg-[#3B82F6]/10 transition-colors"
+                                                >
+                                                    🕒 View Status
+                                                </Link>
                                             )}
 
                                             <span className="text-xs text-[#8C7F72]">

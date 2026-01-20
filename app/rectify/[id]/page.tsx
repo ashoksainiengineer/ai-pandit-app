@@ -653,6 +653,16 @@ function BirthDetailsSummary({ metadata }: { metadata?: any }) {
 
     if (!isClient || !details) return null;
 
+    // Format Date: DD Month YYYY
+    const formattedDate = details.dateOfBirth ? new Date(details.dateOfBirth).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    }) : 'Unknown';
+
+    // Format Time: HH:MM:SS
+    const formattedTime = details.tentativeTime || 'Unknown';
+
     return (
         <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
@@ -684,7 +694,7 @@ function BirthDetailsSummary({ metadata }: { metadata?: any }) {
                     </div>
                     <div>
                         <div className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold mb-1">Date</div>
-                        <div className="text-[#F5F0EB] font-bold text-sm font-mono">{details.dateOfBirth}</div>
+                        <div className="text-[#F5F0EB] font-bold text-sm font-mono">{formattedDate}</div>
                     </div>
                 </div>
 
@@ -703,8 +713,16 @@ function BirthDetailsSummary({ metadata }: { metadata?: any }) {
                         🕒
                     </div>
                     <div>
-                        <div className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold mb-1">Tentative Time</div>
-                        <div className="text-[#D4AF37] font-bold text-sm font-mono tracking-wide">{details.tentativeTime}</div>
+                        <div className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold mb-1">Time & Zone</div>
+                        <div className="text-[#D4AF37] font-bold text-sm font-mono tracking-wide">
+                            {formattedTime}
+                            {details.timezone && <span className="text-[#8C7F72] text-[10px] ml-1">({details.timezone})</span>}
+                        </div>
+                        {details.offsetConfig && (
+                            <div className="text-[10px] text-[#2D7A5C] mt-0.5 font-mono">
+                                ±{details.offsetConfig.minutes || (details.offsetConfig.preset === '1hour' ? '60' : '30')} min
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
