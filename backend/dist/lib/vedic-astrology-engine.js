@@ -383,6 +383,7 @@ function getNakshatraForLongitude(siderealLongitude) {
         name: nakshatra.name,
         lord: nakshatra.lord,
         pada,
+        number: (index % 27) + 1,
     };
 }
 //# sourceMappingURL=vedic-astrology-engine.js.map

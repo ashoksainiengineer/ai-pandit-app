@@ -89,7 +89,7 @@ async function quickFilterCandidates(candidates, dateOfBirth, latitude, longitud
             // Calculate ephemeris for this time
             const ephemeris = await (0, ephemeris_1.calculateEphemeris)(dateOfBirth, candidate.time, latitude, longitude, timezone);
             // Get sidereal Moon position
-            const jd = dateToJulianDay(dateOfBirth, candidate.time, timezone);
+            const jd = (0, ephemeris_1.calculateJulianDay)((0, ephemeris_1.convertToUTC)(dateOfBirth, candidate.time, timezone));
             const moonSidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
             // Calculate Vimshottari Dasha
             const dashaPeriods = (0, vedic_astrology_engine_1.calculateVimshottariDasha)(moonSidereal, birthDate);
@@ -142,7 +142,7 @@ async function analyzeWithKimiK2(candidates, dateOfBirth, latitude, longitude, t
             // Get ephemeris
             const ephemeris = await (0, ephemeris_1.calculateEphemeris)(dateOfBirth, candidate.time, latitude, longitude, timezone);
             // Get Julian Day
-            const jd = dateToJulianDay(dateOfBirth, candidate.time, timezone);
+            const jd = (0, ephemeris_1.calculateJulianDay)((0, ephemeris_1.convertToUTC)(dateOfBirth, candidate.time, timezone));
             // Get sidereal positions for all planets
             const planets = {};
             for (const [name, data] of Object.entries(ephemeris.planets)) {
@@ -234,45 +234,5 @@ function selectBestCandidate(results) {
 // ═════════════════════════════════════════════════════════════════════════════
 // UTILITY FUNCTIONS
 // ═════════════════════════════════════════════════════════════════════════════
-/**
- * Convert date and time to Julian Day
- */
-function dateToJulianDay(dateStr, timeStr, timezone) {
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const [hour, minute, second] = timeStr.split(':').map(n => Number(n) || 0);
-    // Parse timezone offset
-    let tzOffset = 0;
-    if (timezone.includes('/')) {
-        // Named timezone - estimate offset
-        if (timezone.includes('Kolkata'))
-            tzOffset = 5.5;
-        else if (timezone.includes('New_York'))
-            tzOffset = -5;
-        else if (timezone.includes('London'))
-            tzOffset = 0;
-        else if (timezone.includes('Los_Angeles'))
-            tzOffset = -8;
-    }
-    else if (timezone.match(/^[+-]?\d+(\.\d+)?$/)) {
-        tzOffset = parseFloat(timezone);
-    }
-    // Convert to UTC
-    const utcHour = hour - tzOffset;
-    const timeDecimal = utcHour + minute / 60 + second / 3600;
-    // Julian Day calculation
-    let y = year;
-    let m = month;
-    if (m <= 2) {
-        y -= 1;
-        m += 12;
-    }
-    const a = Math.floor(y / 100);
-    const b = 2 - a + Math.floor(a / 4);
-    const jd = Math.floor(365.25 * (y + 4716)) +
-        Math.floor(30.6001 * (m + 1)) +
-        day + b - 1524.5 +
-        timeDecimal / 24;
-    return jd;
-}
 exports.default = processAnalysis;
 //# sourceMappingURL=btr-processor.js.map

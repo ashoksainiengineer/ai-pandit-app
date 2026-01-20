@@ -13,37 +13,31 @@ dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 8080;
 // =============================================================================
-// CORS Configuration - Allow Vercel Frontend
+// CORS Configuration - Ultra-Permissive for Debugging
 // =============================================================================
-const allowedOrigins = [
-    'http://localhost:3000',
-    'http://localhost:3001',
-    process.env.FRONTEND_URL,
-    /\.vercel\.app$/,
-].filter(Boolean);
+// CORS Configuration - Secure with Credentials Support
 app.use((0, cors_1.default)({
     origin: (origin, callback) => {
+        const allowedOrigins = [
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+            process.env.FRONTEND_URL || ''
+        ];
         // Allow requests with no origin (like mobile apps or curl requests)
         if (!origin)
             return callback(null, true);
-        // Check if origin matches allowed patterns
-        const isAllowed = allowedOrigins.some(allowed => {
-            if (allowed instanceof RegExp) {
-                return allowed.test(origin);
-            }
-            return allowed === origin;
-        });
-        if (isAllowed) {
+        if (allowedOrigins.includes(origin) || origin.startsWith('http://localhost')) {
             callback(null, true);
         }
         else {
-            console.warn(`CORS blocked origin: ${origin}`);
-            callback(null, true); // Allow anyway for development
+            console.warn(`[CORS] Blocked origin: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
         }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Last-Event-ID', 'baggage', 'sentry-trace'],
+    exposedHeaders: ['Content-Type'],
 }));
 // =============================================================================
 // Middleware
@@ -52,7 +46,7 @@ app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
 // Request logging
 app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Headers: ${JSON.stringify(req.headers)}`);
     next();
 });
 // =============================================================================
@@ -65,8 +59,14 @@ app.get('/', (req, res) => {
         status: 'ok',
         service: 'AI Pandit BTR Engine',
         version: '1.0.0',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        env: process.env.NODE_ENV || 'development'
     });
+});
+// Diagnostic ping
+app.get('/api/debug/ping', (req, res) => {
+    console.log('[DEBUG] Ping received');
+    res.json({ pong: true, timestamp: new Date().toISOString(), headers: req.headers });
 });
 // =============================================================================
 // Error Handling

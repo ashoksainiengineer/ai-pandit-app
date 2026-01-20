@@ -81,7 +81,7 @@ export default function Pricing() {
           </div>
 
           <div className="space-y-4 mb-8">
-            <h4 className="text-lg font-semibold text-white mb-4">What's Included:</h4>
+            <h4 className="text-lg font-semibold text-white mb-4">What&apos;s Included:</h4>
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (

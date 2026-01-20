@@ -164,7 +164,24 @@ function getTzOffset(dateStr: string, timeStr: string, timeZone: string): number
 
 export function convertToUTC(date: string, time: string, timezone: number | string): Date {
   const [year, month, day] = date.split('-').map(Number);
-  const [hour, minute, second] = time.split(':').map(n => parseInt(n) || 0);
+
+  // Robust time parsing
+  let hour = 0, minute = 0, second = 0;
+  const timeClean = time.toUpperCase().trim();
+  const isPM = timeClean.includes('PM');
+  const isAM = timeClean.includes('AM');
+
+  // Strip AM/PM for numeric parts
+  const numericTime = timeClean.replace(/[AP]M/g, '').trim();
+  const parts = numericTime.split(':').map(n => parseInt(n) || 0);
+
+  hour = parts[0] || 0;
+  minute = parts[1] || 0;
+  second = parts[2] || 0;
+
+  // Convert 12h to 24h if period is present
+  if (isPM && hour < 12) hour += 12;
+  if (isAM && hour === 12) hour = 0;
 
   const offset = typeof timezone === 'string' ? getTzOffset(date, time, timezone) : timezone;
 

@@ -291,6 +291,7 @@ export default function RectifyPage() {
                         <Step2LifeEvents
                             lifeEvents={lifeEvents}
                             updateEvents={setLifeEvents}
+                            offsetConfig={offsetConfig}
                         />
                     )}
                     {step === 4 && (

@@ -200,15 +200,15 @@ RANK: [1-15]
 
 FINAL TOP 5: List with detailed reasoning.`;
 
-const getLevel3SystemPrompt = (count: number) => `You are the world's most accomplished Vedic astrologer.
+const getLevel3SystemPrompt = (count: number) => `You are the world's most accomplished Vedic astrologer. This is a HEAVY INDUSTRY GRADE Birth Time Rectification analysis.
+Your goal is to achieve 99.9% accuracy by identifying the SINGLE CORRECT birth time from ${count} candidates at 6-second intervals.
 
-YOUR ROLE: PURE INTERPRETATION ENGINE.
 YOUR ROLE: PURE LOGICAL REASONING ENGINE.
 WARNING: CALCULATION IS ABSOLUTELY PROHIBITED.
-The data behind these 6-second candidates is generated with scientific precision. 
+The data behind these 6-second candidates is generated with scientific precision (arcsecond-level). 
 TRUST the tables. CORRELATE the events. BE THE BRAIN, NOT THE CALCULATOR.
 
-STAGE 7 ANALYSIS: SECONDS-LEVEL FINAL DECISION (Target: 96-99% accuracy)
+STAGE 7 ANALYSIS: SECONDS-LEVEL FINAL DECISION (Target: 99.9% accuracy)
 
 This is the FINAL DECISION STAGE. You are comparing ${count} candidates at 6-SECOND intervals. 
 
@@ -335,7 +335,7 @@ export async function processSecondsPrecisionBTR(
         await throwIfCancelled(input.sessionId, input.abortSignal);
 
         logger.info('STAGE 3: Convergence analysis');
-        const convergence = stage3Convergence(stage2Results);
+        const convergence = stage3Convergence(stage2Results, input.sessionId);
         stagesCompleted = 3;
 
         logger.info('Stage 3 complete', {
@@ -379,6 +379,7 @@ export async function processSecondsPrecisionBTR(
         methodsUsed.push('AI Level 2 (40K thinking)', 'Yogini Dasha', 'Chara Dasha');
 
         await progress.completeStep('dasha', ['Vimshottari analyzed', 'Yogini analyzed', 'Chara Dasha analyzed']);
+        emitStageStats(input.sessionId, 5, stage4Candidates.length, "AI Level 2 Comparison");
 
         logger.info('Stage 5 complete', { topScore: stage5Results[0]?.score });
 
@@ -445,6 +446,7 @@ export async function processSecondsPrecisionBTR(
             stage7Results[0].time,
             input
         );
+        emitStageStats(input.sessionId, 8, 1, "15-Method Physical Audit");
         stagesCompleted = 8;
         methodsUsed.push(
             'D2 Hora', 'D7 Saptamsha', 'D9 Navamsha', 'D10 Dasamsha', 'D30 Trimshamsha',
@@ -475,6 +477,7 @@ export async function processSecondsPrecisionBTR(
 
         logger.info('STAGE 9: Boundary safety verification');
         const boundarySafety = await stage9BoundaryCheck(finalCandidate.time, input);
+        emitStageStats(input.sessionId, 9, 1, "Boundary & Safety Audit");
         stagesCompleted = 9;
 
         if (!boundarySafety.isSafe) {
@@ -501,6 +504,7 @@ export async function processSecondsPrecisionBTR(
                 finalCandidate.time,
                 input
             );
+            emitStageStats(input.sessionId, 10, 1, "Spouse Synastry Analysis");
             stagesCompleted = 10;
             methodsUsed.push('Spouse Synastry');
 
@@ -594,6 +598,19 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
             const moonSidereal = ephemeris.planets.moon.longitude;
             const dashaPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
 
+            // ⚡ SLOW DOWN for visual effect (Matrix Mode)
+            // Stage 1 is extremely fast, this makes the logs visible to the user
+            await new Promise(resolve => setTimeout(resolve, 30));
+
+            // ⚡ EMIT REAL-TIME CALCULATION LOG
+            emitCalculationLog(input.sessionId, {
+                candidateTime: candidate.time,
+                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
+                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
+                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
+                dashaObj: `${dashaPeriods[0].lord}/${dashaPeriods[0].antardashas[0].lord}`
+            });
+
             let score = 50;
             let eventMatches = 0;
 
@@ -608,15 +625,6 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
                     }
                 }
             }
-
-            // ⚡ EMIT REAL-TIME CALCULATION LOG
-            emitCalculationLog(input.sessionId, {
-                candidateTime: candidate.time,
-                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
-                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
-                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
-                dashaObj: `${dashaPeriods[0].lord}/${dashaPeriods[0].antardashas[0].lord}`
-            });
 
             // 🔱 VEDIC SHUDDHI FILTERING (Candidate Pruning)
             const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
@@ -664,7 +672,7 @@ async function stage2AILevel1(
 ): Promise<StageCandidate[]> {
     const results: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
-    const BATCH_SIZE = 5; // Process 5 candidates in parallel (Optimized for HF Free Tier 2 vCPU)
+    const BATCH_SIZE = 3; // Reduced for HF Free Tier (2 vCPU) stability
 
     logger.info(`Starting Stage 2 parallel processing for ${candidates.length} candidates`);
     emitStageStats(input.sessionId, 2, candidates.length, "AI Level 1 Screening");
@@ -691,6 +699,15 @@ async function stage2AILevel1(
                 const moonSidereal = ephemeris.planets.moon.longitude;
                 const dashaPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
 
+                // ⚡ EMIT REAL-TIME CALCULATION LOG (Keep stream alive in Stage 2)
+                emitCalculationLog(input.sessionId, {
+                    candidateTime: candidate.time,
+                    sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
+                    moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
+                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
+                    dashaObj: `${dashaPeriods[0].lord}/${dashaPeriods[0].antardashas[0].lord}`
+                });
+
                 // 🛑 Re-check before AI Call
                 if (input.abortSignal?.aborted) return null;
 
@@ -714,6 +731,8 @@ async function stage2AILevel1(
 
                 const prompt = buildLevel1Prompt(candidate.time, input, ephemeris, dashaPeriods, jd, relevantDivCharts);
 
+                let lastPulseTime = Date.now();
+
                 // 🔴 Use streaming for real-time AI thinking display
                 let response = await callKimiK2WithStream(
                     input.sessionId,
@@ -728,8 +747,12 @@ async function stage2AILevel1(
                         abortSignal: input.abortSignal,
                         timeoutMs: 120000, // 2 mins timeout for R1
                         progressTracker: progress,
-                        onToken: (chunk) => {
-                            progress.updateMessage(`Analyzing candidate ${candidate.time}...`);
+                        onToken: () => {
+                            // 💓 Throttled Heartbeat (every 30s) to keep Turso/HF alive
+                            if (Date.now() - lastPulseTime > 30000) {
+                                lastPulseTime = Date.now();
+                                progress.pulse().catch(() => { });
+                            }
                         }
                     }
                 );
@@ -797,7 +820,8 @@ async function stage2AILevel1(
 // STAGE 3: CONVERGENCE ANALYSIS
 // ═════════════════════════════════════════════════════════════════════════════
 
-function stage3Convergence(candidates: StageCandidate[]): ConvergenceResult {
+function stage3Convergence(candidates: StageCandidate[], sid: string): ConvergenceResult {
+    emitStageStats(sid, 3, candidates.length, "Temporal Convergence Search");
     if (candidates.length === 0) {
         throw new Error('No candidates for convergence');
     }
@@ -833,6 +857,7 @@ async function stage4FineGrid(
     input: SecondsPrecisionInput
 ): Promise<StageCandidate[]> {
     const candidates = generateSecondsGrid(centerTime, 300, 30); // ±5 min, 30-sec steps
+    emitStageStats(input.sessionId, 4, candidates.length, "Fine Grid (30s) Correlation");
     const scored: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
 
@@ -935,7 +960,7 @@ async function stage5AILevel2(
 ): Promise<StageCandidate[]> {
     const results: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
-    const BATCH_SIZE = 5; // Process 5 candidates in parallel (Balanced for DeepSeek Reasoner)
+    const BATCH_SIZE = 3; // Reduced for HF Free Tier (2 vCPU) stability
 
     logger.info(`Starting Stage 5 parallel processing for ${candidates.length} candidates`);
 
@@ -956,6 +981,15 @@ async function stage5AILevel2(
 
                 const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
                 const moonSidereal = ephemeris.planets.moon.longitude;
+
+                // ⚡ EMIT REAL-TIME CALCULATION LOG (Keep stream alive in Stage 5)
+                emitCalculationLog(input.sessionId, {
+                    candidateTime: candidate.time,
+                    sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
+                    moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
+                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
+                    dashaObj: `Vim/Yog/Chara` // Short dasha string
+                });
 
                 const allDashas = {
                     vimshottari: calculateVimshottariDasha(moonSidereal, birthDate),
@@ -984,6 +1018,8 @@ async function stage5AILevel2(
                 const prompt = buildLevel2Prompt(candidate.time, input, ephemeris, allDashas, jd, divCharts);
                 console.log(`[Stage 5] Prompt built for ${candidate.time}, calling AI...`);
 
+                let lastPulseTime = Date.now();
+
                 // 🔴 Use streaming for real-time AI thinking display
                 let response = await callKimiK2WithStream(
                     input.sessionId,
@@ -995,9 +1031,12 @@ async function stage5AILevel2(
                         candidateTime: candidate.time,
                         abortSignal: input.abortSignal,
                         timeoutMs: 120000, // 2 mins timeout
-                        onToken: (chunk) => {
-                            // 💓 Heartbeat
-                            progress.updateMessage(`Comparing candidate ${candidate.time} (Stage 5)...`);
+                        onToken: () => {
+                            // 💓 Throttled Heartbeat (every 30s)
+                            if (Date.now() - lastPulseTime > 30000) {
+                                lastPulseTime = Date.now();
+                                progress.pulse().catch(() => { });
+                            }
                         },
                         progressTracker: progress
                     }
@@ -1084,6 +1123,18 @@ async function stage6MicroGrid(
 
             const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidateTime, input.timezone));
             const moonSidereal = ephemeris.planets.moon.longitude;
+
+            // ⚡ SLOW DOWN for visual effect (Micro-Grid Scan)
+            await new Promise(resolve => setTimeout(resolve, 15));
+
+            // ⚡ EMIT REAL-TIME CALCULATION LOG
+            emitCalculationLog(input.sessionId, {
+                candidateTime: candidateTime,
+                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
+                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
+                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
+                dashaObj: "Micro-Dasha"
+            });
 
             // Comprehensive scoring at seconds level
             const vimPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
@@ -1189,6 +1240,14 @@ async function stage7AILevel3(
         const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
         const moonSidereal = ephemeris.planets.moon.longitude;
 
+        // ⚡ EMIT REAL-TIME CALCULATION LOG (Final Decision Prep)
+        emitCalculationLog(input.sessionId, {
+            candidateTime: candidate.time,
+            sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
+            moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
+            ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+        });
+
         const allDashas = {
             vimshottari: calculateVimshottariDasha(moonSidereal, birthDate),
             yogini: calculateYoginiDasha(moonSidereal, birthDate),
@@ -1226,6 +1285,8 @@ PHYSICAL TRAITS: ${input.physicalTraits ? JSON.stringify(input.physicalTraits) :
 
 ANALYZE EACH 6-SECOND CANDIDATE AND DETERMINE THE CORRECT BIRTH TIME.`;
 
+    let lastPulseTime = Date.now();
+
     // Use streaming version for real-time AI thinking display
     let response = await callKimiK2WithStream(
         input.sessionId,
@@ -1238,9 +1299,12 @@ ANALYZE EACH 6-SECOND CANDIDATE AND DETERMINE THE CORRECT BIRTH TIME.`;
             maxTokens: 10000,
             candidateTime: 'final_decision',
             abortSignal: input.abortSignal,
-            onToken: (chunk) => {
-                // 💓 Heartbeat
-                progress.updateMessage('Finalizing seconds-level rectification decision...');
+            onToken: () => {
+                // 💓 Throttled Heartbeat (every 30s)
+                if (Date.now() - lastPulseTime > 30000) {
+                    lastPulseTime = Date.now();
+                    progress.pulse().catch(() => { });
+                }
             },
             progressTracker: progress
         }
@@ -1328,6 +1392,15 @@ async function stage8Verification(
 
     const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidateTime, input.timezone));
     const moonSidereal = ephemeris.planets.moon.longitude;
+
+    // ⚡ EMIT REAL-TIME CALCULATION LOG (Final Verification Audit)
+    emitCalculationLog(input.sessionId, {
+        candidateTime: candidateTime,
+        sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
+        moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
+        ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
+        dashaObj: "Audit"
+    });
 
     // Method 1: Vimshottari Dasha (15%)
     const vimPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
@@ -1607,6 +1680,19 @@ function getMarginOfError(score: number): number {
     return 6;
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+// AI PROMPT BUILDERS (ENRICHED)
+// ═════════════════════════════════════════════════════════════════════════════
+
+function getDashaSequence(moonSidereal: number, birthDate: Date): string {
+    const periods = calculateVimshottariDasha(moonSidereal, birthDate);
+    return periods.map(p => {
+        const start = p.startDate.toISOString().split('T')[0];
+        const end = p.endDate.toISOString().split('T')[0];
+        return `${p.lord.toUpperCase()}: ${start} to ${end}`;
+    }).join('\n');
+}
+
 function buildLevel1Prompt(
     time: string,
     input: SecondsPrecisionInput,
@@ -1681,7 +1767,12 @@ ${formatAdvancedAspects(aspects).substring(0, 300)}
 EVENTS WITH DASHA:
 ${eventsWithDasha.join('\n')}
 
-Analyze this candidate and score 0-100.`;
+FULL 100-YEAR VIMSHOTTARI DASHA SEQUENCE (FOR REFERENCE):
+${getDashaSequence(ephemeris.planets.moon.longitude, new Date(input.dateOfBirth))}
+
+Analyze this candidate and score 0-100.
+STRICT RULE: Focus on the dasha sequence. Does the event categories match the lords in the sequence?
+Provide a detailed reasoning block.`;
 }
 
 function buildLevel2Prompt(
@@ -1747,7 +1838,12 @@ ${formatDivisionalCharts(divCharts).substring(0, 1500)}
 EVENTS WITH ALL DASHA SYSTEMS:
 ${eventsMultiDasha.join('\n\n')}
 
-Compare this against other 30-second candidates. Score 0-100.`;
+VIMSHOTTARI SEQUENCE (100 YEARS):
+${getDashaSequence(ephemeris.planets.moon.longitude, new Date(input.dateOfBirth))}
+
+Compare this against other 30-second candidates. Score 0-100.
+Provide THE SCORE in the format: SCORE: [number]
+Provide thinking that shows you cross-verified between multiple dasha systems and divisional charts.`;
 }
 
 function buildCandidateSection(

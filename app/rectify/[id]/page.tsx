@@ -389,7 +389,7 @@ export default function ProgressPage() {
                 <div className="mb-6 rounded-lg overflow-hidden border border-[#3A4452] shadow-2xl">
                     <AnalysisPipelineTracker
                         stats={stageStats}
-                        currentStage={streamProgress?.stepIndex || 0}
+                        currentStage={stageStats.length > 0 ? stageStats[stageStats.length - 1].stage : 1}
                         isConnected={isConnected}
                     />
                 </div>
@@ -512,12 +512,18 @@ export default function ProgressPage() {
 
 
 
-                {/* Unified AI Analysis Panel */}
-                {(isAIStepActive || aiThinking) && (() => {
+                {/* Unified AI Analysis Panel (Now visible from Stage 1 for calculation logs) */}
+                {(isAIStepActive || aiThinking || calculationLogs.length > 0) && (() => {
                     let aiStage = 2;
                     if (streamProgress) {
-                        if (streamProgress.step === 'divisional' || streamProgress.stepIndex === 5) aiStage = 5;
-                        else if (['ai', 'final'].includes(streamProgress.step || '') || [8, 9].includes(streamProgress.stepIndex || -1)) aiStage = 7;
+                        // Correct Mapping for UnifiedAIPanel highlights:
+                        // Step 4 (Dasha Alignment) -> AI Level 1 (Stage 2)
+                        // Step 5 (Divisional) -> AI Level 2 (Stage 5)
+                        // Step 8/9 (AI/Final) -> AI Level 3 (Stage 7)
+
+                        if (streamProgress.stepIndex === 4) aiStage = 2;
+                        else if (streamProgress.stepIndex === 5) aiStage = 5;
+                        else if (streamProgress.stepIndex >= 8) aiStage = 7;
                     }
 
                     return (
@@ -526,7 +532,7 @@ export default function ProgressPage() {
                                 thinking={aiThinking}
                                 stageHistory={stageHistory}
                                 context={aiContext}
-                                isActive={isAIStepActive}
+                                isActive={isConnected}
                                 stage={aiStage}
                                 analyzedCount={analyzedCount}
                                 candidateScores={candidateScores}

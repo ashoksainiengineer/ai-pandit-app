@@ -42,13 +42,12 @@ export default function ResultsPage({ analysisData, onNewAnalysis }: ResultsPage
             <div className="text-center">
               <p className="text-sm text-green-600">Confidence</p>
               <p
-                className={`text-3xl font-bold ${
-                  confidence === 'High'
+                className={`text-3xl font-bold ${confidence === 'High'
                     ? 'text-green-900'
                     : confidence === 'Medium'
                       ? 'text-yellow-900'
                       : 'text-red-900'
-                }`}
+                  }`}
               >
                 {confidence}
               </p>
@@ -88,31 +87,28 @@ export default function ResultsPage({ analysisData, onNewAnalysis }: ResultsPage
         <div className="flex gap-4">
           <button
             onClick={() => setSelectedTab('top')}
-            className={`px-6 py-3 font-medium border-b-2 transition ${
-              selectedTab === 'top'
+            className={`px-6 py-3 font-medium border-b-2 transition ${selectedTab === 'top'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             Top Choice
           </button>
           <button
             onClick={() => setSelectedTab('alternatives')}
-            className={`px-6 py-3 font-medium border-b-2 transition ${
-              selectedTab === 'alternatives'
+            className={`px-6 py-3 font-medium border-b-2 transition ${selectedTab === 'alternatives'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             Alternative Options ({alternativeOptions.length})
           </button>
           <button
             onClick={() => setSelectedTab('all')}
-            className={`px-6 py-3 font-medium border-b-2 transition ${
-              selectedTab === 'all'
+            className={`px-6 py-3 font-medium border-b-2 transition ${selectedTab === 'all'
                 ? 'border-blue-500 text-blue-600'
                 : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
+              }`}
           >
             All Candidates ({statistics.allCandidateScores.length})
           </button>
@@ -132,7 +128,7 @@ export default function ResultsPage({ analysisData, onNewAnalysis }: ResultsPage
         <div className="space-y-4">
           <h2 className="text-2xl font-bold">Backup Options</h2>
           <p className="text-gray-600 mb-4">
-            If the top recommendation doesn't feel right, consider these alternatives:
+            If the top recommendation doesn&apos;t feel right, consider these alternatives:
           </p>
           {alternativeOptions.map((candidate: any, idx: number) => (
             <CandidateCard key={idx} candidate={candidate} rank={idx + 2} />

@@ -6,6 +6,7 @@ export interface QueuePosition {
     estimatedWaitSeconds: number;
     totalInQueue: number;
     createdAt: string;
+    session?: any;
 }
 export interface QueueSubmitResult {
     success: boolean;

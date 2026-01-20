@@ -41,14 +41,17 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
 
     console.log(`[SSE] Headers flushed for ${sessionId}`);
 
-    // 🚀 Proxy-Buffering Bypass: Send a 4KB preamble
-    // Hugging Face/Cloudflare can be aggressive with buffering.
-    res.write(':' + ' '.repeat(2048) + '\n'); // 2KB (some proxies trigger at 2KB)
-    res.write(':' + ' '.repeat(2048) + '\n\n'); // Another 2KB
-    res.write(': initial keepalive\n\n');
+    // 🚀 Proxy-Buffering Bypass: Send a HEAVY 8KB preamble
+    // Hugging Face/Cloudflare/Vercel can be aggressive with buffering.
+    // We send 8KB specifically to clear most edge caches and proxies.
+    res.write(':' + ' '.repeat(2048) + '\n');
+    res.write(':' + ' '.repeat(2048) + '\n');
+    res.write(':' + ' '.repeat(2048) + '\n');
+    res.write(':' + ' '.repeat(2048) + '\n\n');
+    res.write(': initial god-tier keepalive\n\n');
     if ((res as any).flush) (res as any).flush();
 
-    console.log(`[SSE] Preamble sent for ${sessionId}`);
+    console.log(`[SSE] 🚀 8KB Preamble sent for ${sessionId} to clear proxies`);
 
     // Send initial connection event
     sendEvent(res, { type: 'connected', sessionId, timestamp: new Date().toISOString() });

@@ -49,14 +49,34 @@ export interface AIContextEvent {
     dasha: string;
     divCharts?: string;
 }
+export interface CalculationLogEvent {
+    type: 'calculation_log';
+    logId: string;
+    candidateTime: string;
+    sunPos: string;
+    moonPos: string;
+    ascendant: string;
+    dashaObj?: string;
+}
 export interface ErrorEvent {
     type: 'error';
     message: string;
     stage?: string;
 }
-export type SessionEvent = ProgressEvent | AIThinkingEvent | EphemerisEvent | CandidateScoreEvent | CompleteEvent | ErrorEvent | AIContextEvent;
+export interface StageStatsEvent {
+    type: 'stage_stats';
+    stage: number;
+    candidateCount: number;
+    description: string;
+}
+export type SessionEvent = ProgressEvent | AIThinkingEvent | EphemerisEvent | CandidateScoreEvent | CompleteEvent | ErrorEvent | AIContextEvent | CalculationLogEvent | StageStatsEvent;
 declare class SessionEventManager {
     private emitters;
+    private lastContexts;
+    private thinkingBuffers;
+    private calculationLogBuffers;
+    private lastActive;
+    constructor();
     /**
      * Get or create an emitter for a session
      */
@@ -73,6 +93,38 @@ declare class SessionEventManager {
      * Check if session has active listeners
      */
     hasListeners(sessionId: string): boolean;
+    /**
+     * Get the last AI Context for a session
+     */
+    getLastContext(sessionId: string): AIContextEvent | undefined;
+    /**
+     * Append text to thinking buffer or start new
+     */
+    appendToThinkingBuffer(sessionId: string, stage: number, text: string, candidateTime?: string): void;
+    /**
+     * Get accumulated thinking text
+     */
+    getThinkingBuffer(sessionId: string): {
+        stage: number;
+        text: string;
+        candidateTime?: string;
+    } | undefined;
+    /**
+     * Append to calculation log buffer (Keep last 50)
+     */
+    appendToCalculationBuffer(sessionId: string, log: CalculationLogEvent): void;
+    /**
+     * Get recent calculation logs
+     */
+    getCalculationBuffer(sessionId: string): CalculationLogEvent[] | undefined;
+    /**
+     * Update last active timestamp
+     */
+    private touch;
+    /**
+     * Remove stale sessions (> 1 hour inactive)
+     */
+    private garbageCollect;
 }
 export declare const sessionEvents: SessionEventManager;
 export declare function emitProgress(sessionId: string, step: string, stepIndex: number, totalSteps: number, message: string, details?: string[]): void;
@@ -85,5 +137,7 @@ export declare function emitCandidateScore(sessionId: string, time: string, scor
 export declare function emitComplete(sessionId: string, rectifiedTime: string, accuracy: number, confidence: string): void;
 export declare function emitError(sessionId: string, message: string, stage?: string): void;
 export declare function emitAIContext(sessionId: string, data: Omit<AIContextEvent, 'type'>): void;
+export declare function emitCalculationLog(sessionId: string, data: Omit<CalculationLogEvent, 'type' | 'logId'>): void;
+export declare function emitStageStats(sessionId: string, stage: number, candidateCount: number, description: string): void;
 export {};
 //# sourceMappingURL=session-events.d.ts.map

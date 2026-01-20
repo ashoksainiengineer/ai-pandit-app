@@ -20,13 +20,14 @@ const drizzle_orm_1 = require("drizzle-orm");
 const logger_1 = require("./logger");
 const crypto_1 = require("./crypto");
 const cancellation_manager_1 = require("./cancellation-manager");
+const session_events_1 = require("./session-events");
 // ═════════════════════════════════════════════════════════════════════════════
 // QUEUE CONFIGURATION
 // ═════════════════════════════════════════════════════════════════════════════
 const QUEUE_CONFIG = {
-    maxConcurrent: 1, // Process ONE at a time (512MB RAM)
+    maxConcurrent: 5, // Process 5 sessions concurrently (High-RAM HF)
     pollIntervalMs: 2000, // Frontend polls every 2 seconds
-    maxQueueSize: 50, // Maximum pending requests
+    maxQueueSize: 1000, // Scaled up for production
     staleTimeoutMs: 20 * 60 * 1000, // 20 minutes - comprehensive analysis takes longer
     estimatedTimePerRequest: 90, // ~90 seconds per analysis with all methods
 };
@@ -126,6 +127,7 @@ async function getQueueStatus(sessionId) {
             estimatedWaitSeconds: position * QUEUE_CONFIG.estimatedTimePerRequest,
             totalInQueue,
             createdAt: s.createdAt || '',
+            session: s,
         };
     }
     catch (error) {
@@ -196,6 +198,8 @@ async function markAsComplete(sessionId, results) {
         currentProcessingId = null;
     }
     logger_1.logger.info('Session marked complete', { sessionId });
+    // ⚡ Emit Complete Event so frontend gets the result!
+    (0, session_events_1.emitComplete)(sessionId, results.rectifiedTime, results.accuracy, results.confidence);
 }
 /**
  * Mark session as failed
@@ -233,6 +237,7 @@ async function cancelSession(sessionId) {
             return false;
         // Only cancel if queued or processing
         if (session[0].status !== 'queued' && session[0].status !== 'processing') {
+            logger_1.logger.warn(`Cannot cancel session ${sessionId}: status is '${session[0].status}'`);
             return false;
         }
         // 🛑 ABORT the running process (this will cancel fetch requests!)

@@ -519,32 +519,32 @@ export function useStreamProgress(
     useEffect(() => {
         if (!sessionId) return;
 
-        // 🚀 FORCE POLLING MODE - DISABLED TO RESTORE STREAMING
-        // console.log('🚀 [Stream] Force-starting Polling Mode');
-        // startPolling(sessionId);
-        // return;
+        // 🛡️ [GOD-TIER] DUAL-PATH INITIALIZATION
+        // Start a single polling fetch immediately to clear the "Connecting..." screen
+        // while the SSE stream negotiates its way through proxies.
+        console.log('🛡️ [Stream] God-Tier Dual-Path Init for', sessionId);
+        fetchProgress(sessionId, backendUrl).catch(e => console.warn('[Poll-Init] Failed, relying on SSE:', e));
 
         // Don't restart SSE if already polling
         if (connectionState.usingFallback) return;
 
         // Create EventSource connection
         const url = `${backendUrl}/api/stream/${sessionId}`;
-        console.log('Connecting to SSE stream:', url);
+        console.log('📡 [SSE] Connecting to stream:', url);
 
         setConnectionState(prev => ({ ...prev, url, readyState: 0, lastError: null }));
 
-        // Create EventSource connection without credentials (for Public HF Space)
         const eventSource = new EventSource(url);
         eventSourceRef.current = eventSource;
 
-        // Connection Timeout Check (Increased to 20s for Cloud cold starts)
+        // 🏁 Connection Race: If SSE doesn't open in 5s, switch to full polling mode
         connectionTimeoutRef.current = setTimeout(() => {
             if (eventSource.readyState !== 1) { // Not OPEN
-                console.warn('⚠️ [SSE] Connection timeout. Switching to polling...');
+                console.warn('⚠️ [SSE] Negotiation slow. Escalating to Polling Mode...');
                 eventSource.close();
                 startPolling(sessionId);
             }
-        }, 45000); // 45s timeout before switching to polling (Increased for HF Cold Starts)
+        }, 8000); // 8s tolerance for slow HF Cold Starts
 
         eventSource.onmessage = (event) => {
             try {
@@ -555,19 +555,39 @@ export function useStreamProgress(
             }
         };
 
-        eventSource.onerror = (error) => {
-            // ...
+        eventSource.onerror = (err) => {
+            console.error('📡 [SSE] Stream Error:', err);
+            // Don't immediately switch to polling, let browser retry unless we hit our timeout
         };
 
         eventSource.onopen = () => {
-            // ...
+            console.log('📡 [SSE] Connection Established Successfully');
+            if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
+            setConnectionState(prev => ({ ...prev, readyState: 1, lastError: null }));
         };
 
-        // Cleanup on unmount
-        return () => {
-            // Cleanup if needed
+        // 🔄 [GOD-TIER] OFFLINE SYNC
+        // Auto-reconnect when user's internet returns
+        const handleOnline = () => {
+            console.log('🌐 [Network] Back online! Re-calibrating stream...');
+            if (eventSource.readyState !== 1) {
+                eventSource.close();
+                // Kill current timers and restart
+                if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
+                // Simple re-trigger since dependency array will catch the toggle if we use a state?
+                // Actually, just calling fetchProgress once is safer.
+                fetchProgress(sessionId, backendUrl);
+            }
         };
-    }, [sessionId, backendUrl, startPolling]);
+
+        window.addEventListener('online', handleOnline);
+
+        return () => {
+            eventSource.close();
+            if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
+            window.removeEventListener('online', handleOnline);
+        };
+    }, [sessionId, backendUrl, startPolling, fetchProgress]);
 
     // Rotation Effect: Switch displayed candidate every 5 seconds
     useEffect(() => {

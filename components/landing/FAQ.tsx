@@ -110,7 +110,7 @@ export default function FAQ() {
           className="text-center mt-12"
         >
           <p className="text-gray-400 mb-6">
-            Still have questions? We're here to help.
+            Still have questions? We&apos;re here to help.
           </p>
           <motion.button
             whileHover={{ scale: 1.05 }}

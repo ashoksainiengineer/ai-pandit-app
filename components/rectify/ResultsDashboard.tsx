@@ -285,7 +285,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ sessionId, d
                                     This time was selected from an initial pool of over {(analysisDetails?.stageHistory?.stage1Count || 100)} candidates through a rigorous 10-stage elimination process.
                                 </p>
                                 <div className="my-6 p-4 bg-[#D4AF37]/5 border-l-2 border-[#D4AF37] text-sm text-[#F5F0EB]">
-                                    "The logical convergence of Dasha patterns (Vimshottari/Yogini) and Divisional Chart markers (D9/D10) strongly favors this specific second. The probability of this alignment occurring by chance is less than 0.01%."
+                                    &quot;The logical convergence of Dasha patterns (Vimshottari/Yogini) and Divisional Chart markers (D9/D10) strongly favors this specific second. The probability of this alignment occurring by chance is less than 0.01%.&quot;
                                 </div>
                                 <h4 className="font-bold text-[#F5F0EB] mt-6 mb-2">Key Confirmation Factors:</h4>
                                 <ul className="space-y-2 text-[#8C7F72] text-sm">
@@ -348,9 +348,9 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ sessionId, d
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full flex flex-col">
                                 <div className="flex-1 bg-black rounded-lg border border-[#3A4452] p-4 font-mono text-xs text-green-500 overflow-y-auto max-h-[400px]">
                                     <div className="text-[#8C7F72] mb-2 border-b border-[#3A4452] pb-2">
-                                        // SYSTEM LOGS - SESSION {sessionId}
+                                        {`// SYSTEM LOGS - SESSION ${sessionId}`}
                                         <br />
-                                        // MODE: GOD TIER REASONING
+                                        {`// MODE: GOD TIER REASONING`}
                                     </div>
                                     {analysisDetails?.aiAnalysis ? (
                                         <div className="whitespace-pre-wrap leading-relaxed opacity-90">

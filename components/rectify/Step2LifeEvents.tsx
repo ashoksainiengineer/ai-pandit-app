@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LifeEvent } from '@/lib/types';
+import { BirthData, LifeEvent, TimeOffsetConfig } from '@/lib/types';
 import EVENT_CATEGORIES, { EventCategory, EventTemplate } from '@/lib/event-categories';
 
 interface Step2Props {
     lifeEvents: LifeEvent[];
     updateEvents: (events: LifeEvent[]) => void;
+    offsetConfig?: TimeOffsetConfig;
 }
 
 // High-impact BTR events
@@ -157,15 +158,37 @@ export default function Step2LifeEvents({ lifeEvents, updateEvents }: Step2Props
             {/* ══════════════════════════════════════════════════════════════ */}
             {/* HEADER */}
             {/* ══════════════════════════════════════════════════════════════ */}
-            <div className="flex items-end justify-between">
-                <div>
+            <div className="flex items-start justify-between">
+                <div className="flex-1">
                     <p className="text-sm text-[#E8A849] font-medium tracking-widest mb-2">STEP 3 OF 4</p>
                     <h1 className="text-3xl font-bold text-[#F5F0EB]">Life Events</h1>
-                    <p className="text-[#C4B8AD] mt-2 text-sm">Add significant events from your life</p>
+                    <p className="text-[#C4B8AD] mt-2 text-sm leading-relaxed max-w-md">
+                        Add significant events to correlate with planetary transits.
+                        {offsetConfig?.preset === '30min' && " Aim for 3-5 precise events."}
+                        {offsetConfig?.preset === '1hour' && " Aim for 5-7 diverse events."}
+                        {offsetConfig?.preset === '2hours' && " Aim for 7-10 events + Physical traits."}
+                        {(offsetConfig?.preset === '4hours' || (offsetConfig?.customMinutes && offsetConfig.customMinutes > 120)) &&
+                            " Required: 10+ major life-altering events to navigate this large window."}
+                    </p>
                 </div>
-                <div className="text-right">
-                    <div className="text-4xl font-bold text-[#E8A849]">{accuracy}%</div>
-                    <div className="text-xs text-[#8C7F72]">Accuracy Potential</div>
+                <div className="flex gap-8 items-start">
+                    <div className="text-right p-3 rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/5 min-w-[150px]">
+                        <div className="text-xs text-[#8C7F72] uppercase tracking-wider mb-1">Vedic Status</div>
+                        <div className={`text-sm font-bold ${accuracy > 80 ? 'text-emerald-500' : accuracy > 50 ? 'text-[#E8A849]' : 'text-[#D64545]'}`}>
+                            {accuracy > 80 ? '🔒 Pinned' : accuracy > 50 ? '⚡ Calibrating' : '🔍 Searching'}
+                        </div>
+                        <div className="text-[10px] text-[#8C7F72] mt-1">
+                            {lifeEvents.length} of {
+                                offsetConfig?.preset === '30min' ? 4 :
+                                    offsetConfig?.preset === '1hour' ? 6 :
+                                        offsetConfig?.preset === '2hours' ? 8 : 12
+                            } Target
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <div className="text-4xl font-bold text-[#E8A849]">{accuracy}%</div>
+                        <div className="text-xs text-[#8C7F72]">Accuracy Potential</div>
+                    </div>
                 </div>
             </div>
 

@@ -197,7 +197,7 @@ export default function Step4Review({ data, events, traits, onSubmit, isSubmitti
                                         </span>
                                     </div>
                                     {e.description && (
-                                        <p className="text-[#8C7F72] text-sm mt-1 line-clamp-1 italic">"{e.description}"</p>
+                                        <p className="text-[#8C7F72] text-sm mt-1 line-clamp-1 italic">&quot;{e.description}&quot;</p>
                                     )}
                                 </div>
                                 {e.description ? (

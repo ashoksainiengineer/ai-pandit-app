@@ -102,7 +102,7 @@ export default function Problem() {
               Transform Your Astrology Journey
             </h3>
             <p className="text-gray-300 text-lg mb-6">
-              Don't let inaccurate birth time hold back your astrological insights.
+              Don&apos;t let inaccurate birth time hold back your astrological insights.
               Get the precision you deserve with AI-powered analysis.
             </p>
             <motion.button

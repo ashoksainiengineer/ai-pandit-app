@@ -35,6 +35,7 @@ export declare function callKimiK2WithStream(sessionId: string, stage: number, s
     abortSignal?: AbortSignal;
     onToken?: (content: string, isThinking: boolean) => void;
     timeoutMs?: number;
+    progressTracker?: any;
 }): Promise<KimiK2Response>;
 /**
  * Master system prompt for Vedic astrology birth time rectification

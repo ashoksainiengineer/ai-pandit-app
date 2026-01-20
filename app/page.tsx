@@ -186,7 +186,7 @@ export default function HomePage() {
                         <span className="text-[#D4AF37] font-bold tracking-wider text-sm uppercase mb-2 block">Our Technology</span>
                         <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white">How We Fix It.</h2>
                         <p className="text-[#C4B8AD] max-w-2xl mx-auto">
-                            We don't guess. We calculate. Our engine runs your chart through 15 layers of verification.
+                            We don&apos;t guess. We calculate. Our engine runs your chart through 15 layers of verification.
                         </p>
                     </div>
 
@@ -220,7 +220,7 @@ export default function HomePage() {
                             </div>
                             <h3 className="text-xl font-bold text-[#F5F0EB] mb-3">Tattwa Shodhana</h3>
                             <p className="text-sm text-[#C4B8AD] leading-relaxed">
-                                We apply the ancient "Tattwa Shodhana" (Elemental Verification) method to cross-verify your gender and birth day with the ruling element of the time, acting as a final fail-safe.
+                                We apply the ancient &quot;Tattwa Shodhana&quot; (Elemental Verification) method to cross-verify your gender and birth day with the ruling element of the time, acting as a final fail-safe.
                             </p>
                         </div>
                     </div>

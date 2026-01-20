@@ -179,7 +179,7 @@ export default function Step1BirthDetails({ data, updateData, offsetConfig, upda
                         🕐 Approximate Birth Time <span className="text-[#D64545]">*</span>
                     </label>
                     <p className="text-xs text-[#8C7F72]">
-                        Don't worry if it's not exact - that's what we're here to rectify!
+                        Don&apos;t worry if it&apos;s not exact - that&apos;s what we&apos;re here to rectify!
                     </p>
                     <div className="flex items-center gap-3">
                         <select
@@ -275,6 +275,37 @@ export default function Step1BirthDetails({ data, updateData, offsetConfig, upda
                         </motion.div>
                     )}
                 </div>
+
+                {/* Vedic Guidance Alert */}
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    key={selectedOffset + (selectedOffset === 'custom' ? customOffset : '')}
+                    className="p-4 rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/5 space-y-2"
+                >
+                    <div className="flex items-center gap-2 text-[#D4AF37]">
+                        <span className="text-lg">📜</span>
+                        <span className="text-xs font-bold uppercase tracking-widest">Astrological Guidance</span>
+                    </div>
+                    <p className="text-xs text-[#C4B8AD] leading-relaxed">
+                        {selectedOffset === '30min' && "Ideal for high-precision records. 3-4 major life events (Marriage, Job, Travel) are typically sufficient for seconds-level locking."}
+                        {selectedOffset === '1hour' && "Moderate window. 5-7 events recommended, including family-related dates and significant career transitions."}
+                        {selectedOffset === '2hours' && "Significant uncertainty. 7-10 events + accurately described Physical Traits (height/build) are critical to resolve possible Sign & Nakshatra changes."}
+                        {selectedOffset === '4hours' && "Large window. Requires 10+ events spanning decades + Spouse's birth data (if available) + Detailed physical markers for Vedic Shuddhi verification."}
+                        {selectedOffset === 'custom' && customOffset > 240 && "Extreme uncertainty (Full Day Scan). Full life history (15+ events) + Major medical/accident dates + Complete physical profile mandatory for a 99% accurate resolve."}
+                        {selectedOffset === 'custom' && customOffset <= 240 && "Custom window. Ensure you provide enough Life Events (5-10) to correlate with the chosen time range for accurate dasha alignment."}
+                    </p>
+                    <div className="flex gap-4 pt-1">
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                            <span className="text-[10px] text-[#8C7F72]">Precision: {selectedOffset === '30min' ? 'Elite' : (selectedOffset === '1hour' || selectedOffset === '2hours') ? 'High' : 'Complex'}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#D4AF37] shadow-[0_0_8px_rgba(212,175,55,0.5)]"></div>
+                            <span className="text-[10px] text-[#8C7F72]">Complexity: {selectedOffset === '30min' ? 'Low' : (selectedOffset === '1hour' || selectedOffset === '2hours') ? 'Medium' : 'High'}</span>
+                        </div>
+                    </div>
+                </motion.div>
 
                 {/* Divider */}
                 <div className="border-t border-[#C4B8AD]/10" />

@@ -207,7 +207,9 @@ router.post('/cancel', auth_js_1.authMiddleware, async (req, res) => {
             res.status(404).json({ success: false, error: 'Session not found' });
             return;
         }
-        if (session[0].userId !== userId) {
+        // Verify using clerkId (which matches the auth token), not internal userId
+        if (session[0].clerkId !== userId) {
+            logger_js_1.logger.warn(`Cancel unauthorized: Session ${sessionId} owned by ${session[0].clerkId}, requested by ${userId}`);
             res.status(403).json({ success: false, error: 'Unauthorized' });
             return;
         }

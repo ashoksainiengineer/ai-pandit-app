@@ -166,6 +166,10 @@ async function callKimiK2WithStream(sessionId, stage, systemPrompt, userPrompt, 
         };
     }
     try {
+        // 🚀 Debug: Log function entry to file
+        const entryMsg = `🚀 callKimiK2WithStream CALLED: sessionId=${sessionId?.slice(0, 8)}, stage=${stage}, model=${config.model}, candidateTime=${options?.candidateTime}\n`;
+        console.log(entryMsg);
+        require('fs').appendFileSync('/tmp/ai-debug.log', `${new Date().toISOString()} ${entryMsg}`);
         logger_1.logger.info('Calling Kimi K2 with streaming', {
             sessionId,
             stage,
@@ -234,10 +238,20 @@ async function callKimiK2WithStream(sessionId, stage, systemPrompt, userPrompt, 
                 try {
                     const parsed = JSON.parse(data);
                     const delta = parsed.choices?.[0]?.delta;
+                    // 🔍 Debug: Log what we're receiving from DeepSeek
+                    if (delta) {
+                        const debugMsg = `🔍 DeepSeek delta: hasReasoning=${!!delta.reasoning_content}, hasContent=${!!delta.content}, len=${delta.content?.length || delta.reasoning_content?.length || 0}\n`;
+                        console.log(debugMsg);
+                        require('fs').appendFileSync('/tmp/ai-debug.log', `${new Date().toISOString()} ${debugMsg}`);
+                    }
                     if (delta?.reasoning_content) {
                         // DeepSeek Reasoner's thinking tokens
                         fullThinking += delta.reasoning_content;
                         (0, session_events_1.emitAIThinking)(sessionId, delta.reasoning_content, stage, options?.candidateTime);
+                        // 💾 Persist for Polling Fallback
+                        if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
+                            options.progressTracker.updateAIThinking(delta.reasoning_content, stage, options?.candidateTime).catch(() => { });
+                        }
                         // 💓 Heartbeat every ~100 tokens
                         if (fullThinking.length % 500 < delta.reasoning_content.length) {
                             options?.onToken?.(fullThinking, true);
@@ -247,6 +261,10 @@ async function callKimiK2WithStream(sessionId, stage, systemPrompt, userPrompt, 
                         // Fallback: Emit content as "thinking" for non-reasoning models (for display)
                         fullContent += delta.content;
                         (0, session_events_1.emitAIThinking)(sessionId, delta.content, stage, options?.candidateTime);
+                        // 💾 Persist for Polling Fallback
+                        if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
+                            options.progressTracker.updateAIThinking(delta.content, stage, options?.candidateTime).catch(() => { });
+                        }
                         // 💓 Heartbeat every ~100 tokens
                         if (fullContent.length % 500 < delta.content.length) {
                             options?.onToken?.(fullContent, false);

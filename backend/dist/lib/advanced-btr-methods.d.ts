@@ -38,6 +38,12 @@ export interface ArudhaLagna {
     lord: string;
     strength: 'strong' | 'moderate' | 'weak';
 }
+export interface SpecialLagna {
+    name: string;
+    longitude: number;
+    sign: string;
+    degree: number;
+}
 export interface SecondaryProgression {
     eventAge: number;
     progressedDate: Date;
@@ -105,9 +111,23 @@ export declare function calculateD30(longitude: number): {
     ruler: string;
 };
 /**
+ * Calculate D60 (Shashtiamsha) Chart - Cyclic/Sequential
+ * Each sign divided into 60 parts (0.5° each)
+ * Crucial for seconds-level rectification.
+ */
+export declare function calculateD60(longitude: number): {
+    sign: string;
+    degree: number;
+};
+/**
  * Generate complete divisional chart for all planets
  */
 export declare function generateDivisionalCharts(ephemeris: EphemerisData): Record<string, DivisionalChart>;
+/**
+ * Positional Strength (Shadbala-Lite)
+ * Identifies Exaltation, Debilitation, and Moolatrikona.
+ */
+export declare function calculateShadbalaLite(ephemeris: EphemerisData): Record<string, string>;
 interface PhysicalTraits {
     height?: 'short' | 'medium' | 'tall';
     build?: 'slim' | 'medium' | 'heavy';
@@ -136,10 +156,52 @@ export declare function calculateSecondaryProgression(birthDate: Date, eventDate
  * Get progressed date for an event age
  */
 export declare function getProgressedDate(birthDate: Date, eventAge: number): Date;
+export interface PanchangaData {
+    tithi: {
+        name: string;
+        number: number;
+        percentage: number;
+    };
+    yoga: {
+        name: string;
+        number: number;
+        percentage: number;
+    };
+    karana: {
+        name: string;
+        number: number;
+    };
+    weekday: string;
+}
+/**
+ * Calculate Panchanga elements from Sun and Moon positions
+ */
+export declare function calculatePanchanga(ephemeris: EphemerisData, birthDate: Date): PanchangaData;
+export interface BoundarySafety {
+    lagnaSignBoundary: number;
+    moonNakshatraBoundary: number;
+    isDangerous: boolean;
+}
+/**
+ * Calculate how close we are to critical sign/nakshatra boundaries in SECONDS
+ */
+export declare function calculateBoundarySafety(ephemeris: EphemerisData): BoundarySafety;
+export declare function formatPanchanga(p: PanchangaData): string;
+export declare function formatBoundarySafety(b: BoundarySafety): string;
 export declare function formatYoginiDashaSequence(periods: YoginiDashaPeriod[]): string;
 export declare function formatDivisionalCharts(charts: Record<string, DivisionalChart>): string;
 export declare function formatAdvancedAspects(aspects: AspectData[]): string;
 export declare function formatPhysicalTraitsAnalysis(analysis: PhysicalTraitsScore): string;
 export declare function formatArudhaLagna(al: ArudhaLagna): string;
+/**
+ * Calculate Hora Lagna (HL) - Wealth/Status verification
+ */
+export declare function calculateHoraLagna(sunriseJd: number, birthJd: number, ascendantLongitude: number): SpecialLagna;
+/**
+ * Calculate Ghati Lagna (GL) - Power/Authority verification
+ */
+export declare function calculateGhatiLagna(sunriseJd: number, birthJd: number, ascendantLongitude: number): SpecialLagna;
+export declare function formatSpecialLagnas(hl: SpecialLagna, gl: SpecialLagna): string;
+export declare function formatShadbalaLite(strengths: Record<string, string>): string;
 export {};
 //# sourceMappingURL=advanced-btr-methods.d.ts.map

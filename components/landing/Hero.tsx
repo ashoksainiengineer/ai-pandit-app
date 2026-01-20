@@ -62,7 +62,7 @@ export default function Hero() {
             className="text-lg text-gray-400 mb-12 max-w-2xl mx-auto"
           >
             Enter your birth details and life events. Our advanced AI analyzes planetary positions
-            against your life's major events to determine your precise birth time.
+            against your life&apos;s major events to determine your precise birth time.
           </motion.p>
         </motion.div>
 

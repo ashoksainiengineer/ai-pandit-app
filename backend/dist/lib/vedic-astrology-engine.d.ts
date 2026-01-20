@@ -69,5 +69,6 @@ export declare function getNakshatraForLongitude(siderealLongitude: number): {
     name: string;
     lord: string;
     pada: number;
+    number: number;
 };
 //# sourceMappingURL=vedic-astrology-engine.d.ts.map

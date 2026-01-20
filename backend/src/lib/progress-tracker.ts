@@ -142,6 +142,17 @@ export class ProgressTracker {
         }
 
         // ❌ NO DB SAVE - Pure Stream as requested
+        // BUT update lastActive for GC
+        ProgressTracker.activeInstances.set(this.sessionId, this);
+    }
+
+    /**
+     * Heartbeat to keep session alive in DB
+     * Called automatically during progress updates but can be called manually
+     */
+    async pulse(): Promise<void> {
+        this.progress.lastUpdate = new Date().toISOString();
+        await this.saveProgress(false); // Quick pulse without thinking logs
     }
 
     /**
@@ -200,7 +211,8 @@ export class ProgressTracker {
     }
 
     /**
-     * Complete a step
+     * Complete a step - PERSISTENT FLUSH
+     * This is where we save AI thinking to DB as it's a major milestone
      */
     async completeStep(stepId: string, details?: string[]): Promise<void> {
         const stepIndex = this.progress.steps.findIndex(s => s.id === stepId);
@@ -217,7 +229,8 @@ export class ProgressTracker {
         this.progress.percentage = Math.round((completedCount / this.progress.totalSteps) * 100);
         this.progress.lastUpdate = new Date().toISOString();
 
-        await this.saveProgress();
+        // 🛡️ PERSISTENT FLUSH: Save thinking to DB on stage completion
+        await this.saveProgress(true);
 
         // Emit SSE event for real-time streaming
         emitProgress(
@@ -241,7 +254,7 @@ export class ProgressTracker {
         this.progress.steps[stepIndex].message = error;
         this.progress.lastUpdate = new Date().toISOString();
 
-        await this.saveProgress();
+        await this.saveProgress(true); // Save state on error
 
         // Emit SSE error event
         emitError(this.sessionId, error, stepId);
@@ -266,7 +279,7 @@ export class ProgressTracker {
             }
         });
 
-        await this.saveProgress();
+        await this.saveProgress(true); // Final flush
 
         // Cleanup memory after short delay (preserve for immediate polling)
         setTimeout(() => {
@@ -294,17 +307,31 @@ export class ProgressTracker {
 
     /**
      * Save progress to database
+     * @param includeThinking Set to true for MAJOR flushes (stage completion) to save DB writes
      */
-    private async saveProgress(): Promise<void> {
+    private async saveProgress(includeThinking: boolean = false): Promise<void> {
         try {
-            // 🛡️ Data Minimization: Strip reasoning tokens/AI thinking from database persistence
-            // We keep it in memory for real-time polling, but dont save to Turso
+            // 🛡️ Data Minimization: Strip reasoning tokens/AI thinking from regular database persistence
+            // We only keep it in MAJOR flushes to save Turso Write Quota
             const dbProgress = { ...this.progress };
-            delete dbProgress.lastAIThinking;
+            if (!includeThinking) {
+                delete dbProgress.lastAIThinking;
+            }
+
+            // 💾 Size Limit Check: Truncate if too huge (Turso fallback)
+            let progressJson = JSON.stringify(dbProgress);
+            if (progressJson.length > 90000) {
+                // If still too big even with optimization, truncate thinking logs
+                if (dbProgress.lastAIThinking) {
+                    dbProgress.lastAIThinking.fullText = dbProgress.lastAIThinking.fullText.slice(-20000);
+                    dbProgress.lastAIThinking.chunks = [];
+                    progressJson = JSON.stringify(dbProgress);
+                }
+            }
 
             await db.update(sessions)
                 .set({
-                    progressData: JSON.stringify(dbProgress),
+                    progressData: progressJson,
                     updatedAt: new Date().toISOString(),
                 })
                 .where(eq(sessions.id, this.sessionId));

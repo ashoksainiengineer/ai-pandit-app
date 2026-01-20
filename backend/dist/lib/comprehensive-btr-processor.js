@@ -163,7 +163,7 @@ async function multiMethodQuickFilter(candidates, dateOfBirth, latitude, longitu
         try {
             // Calculate ephemeris
             const ephemeris = await (0, ephemeris_1.calculateEphemeris)(dateOfBirth, candidate.time, latitude, longitude, timezone);
-            const jd = dateToJulianDay(dateOfBirth, candidate.time, timezone);
+            const jd = (0, ephemeris_1.calculateJulianDay)((0, ephemeris_1.convertToUTC)(dateOfBirth, candidate.time, timezone));
             const moonSidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
             // ═══════════════════════════════════════════════════════════════════
             // METHOD 1: Vimshottari Dasha Score
@@ -307,7 +307,7 @@ async function comprehensiveKimiAnalysis(candidates, dateOfBirth, latitude, long
             logger_1.logger.info('Comprehensive Kimi analysis starting', { time: candidate.time });
             // Get ephemeris
             const ephemeris = await (0, ephemeris_1.calculateEphemeris)(dateOfBirth, candidate.time, latitude, longitude, timezone);
-            const jd = dateToJulianDay(dateOfBirth, candidate.time, timezone);
+            const jd = (0, ephemeris_1.calculateJulianDay)((0, ephemeris_1.convertToUTC)(dateOfBirth, candidate.time, timezone));
             const moonSidereal = (0, vedic_astrology_engine_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, jd);
             // ═══════════════════════════════════════════════════════════════════
             // Calculate ALL dasha systems
@@ -512,38 +512,5 @@ function selectBestWithConsensus(results) {
 // ═════════════════════════════════════════════════════════════════════════════
 // UTILITY
 // ═════════════════════════════════════════════════════════════════════════════
-function dateToJulianDay(dateStr, timeStr, timezone) {
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const [hour, minute, second] = timeStr.split(':').map(n => Number(n) || 0);
-    let tzOffset = 0;
-    if (timezone.includes('/')) {
-        if (timezone.includes('Kolkata'))
-            tzOffset = 5.5;
-        else if (timezone.includes('New_York'))
-            tzOffset = -5;
-        else if (timezone.includes('London'))
-            tzOffset = 0;
-        else if (timezone.includes('Los_Angeles'))
-            tzOffset = -8;
-    }
-    else if (timezone.match(/^[+-]?\d+(\.\d+)?$/)) {
-        tzOffset = parseFloat(timezone);
-    }
-    const utcHour = hour - tzOffset;
-    const timeDecimal = utcHour + minute / 60 + second / 3600;
-    let y = year;
-    let m = month;
-    if (m <= 2) {
-        y -= 1;
-        m += 12;
-    }
-    const a = Math.floor(y / 100);
-    const b = 2 - a + Math.floor(a / 4);
-    const jd = Math.floor(365.25 * (y + 4716)) +
-        Math.floor(30.6001 * (m + 1)) +
-        day + b - 1524.5 +
-        timeDecimal / 24;
-    return jd;
-}
 exports.default = processComprehensiveAnalysis;
 //# sourceMappingURL=comprehensive-btr-processor.js.map

@@ -32,10 +32,14 @@ async function authMiddleware(req, res, next) {
         }
         try {
             // Verify the session token with Clerk
-            const session = await clerk.sessions.verifySession(token, token);
-            if (session && session.userId) {
-                req.userId = session.userId;
-                req.sessionId = session.id;
+            // Fix: Use verifyToken with secret key
+            const session = await (0, backend_1.verifyToken)(token, {
+                secretKey: process.env.CLERK_SECRET_KEY,
+                jwtKey: process.env.CLERK_JWT_KEY // Optional if using local verification
+            });
+            if (session && session.sub) {
+                req.userId = session.sub;
+                req.sessionId = session.sid;
                 next();
             }
             else {

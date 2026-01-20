@@ -30,40 +30,43 @@ async function initSwissEph() {
     if (isInitialized)
         return useSwissEph;
     try {
-        // 1. Dynamic import of the ESM wrapper class
+        // 1. Dynamic import of the ESM wrapper class from swisseph-wasm
         const { default: SwissEph } = await import('swisseph-wasm');
         // 2. Instantiate and initialize the module
         const instance = new SwissEph();
         await instance.initSwissEph();
-        // 3. Configure ephemeris path
-        const ephePath = process.env.SWISSEPH_PATH || '/app/ephe';
-        instance.set_ephe_path(ephePath);
-        // 4. Create a synchronous adapter to match the native 'swisseph' package API
+        // 3. Create a synchronous adapter to match the native 'swisseph' package API
+        // We use library methods for higher accuracy and better object shapes
         swe = {
+            ...instance, // Spread constants and other methods
             swe_set_sid_mode: (mode, t0, ayT0) => instance.set_sid_mode(mode, t0, ayT0),
             swe_get_ayanamsa_ut: (jd) => instance.get_ayanamsa_ut(jd),
             swe_calc_ut: (jd, ipl, flags) => {
-                const res = instance.calc_ut(jd, ipl, flags);
+                // Use the built-in calc method which returns a clean object
+                const res = instance.calc(jd, ipl, flags);
                 return {
-                    longitude: res[0],
-                    latitude: res[1],
-                    distance: res[2],
-                    longitudeSpeed: res[3],
-                    latitudeSpeed: res[4],
-                    distanceSpeed: res[5]
+                    longitude: res.longitude,
+                    latitude: res.latitude,
+                    distance: res.distance,
+                    longitudeSpeed: res.longitudeSpeed,
+                    latitudeSpeed: res.latitudeSpeed,
+                    distanceSpeed: res.distanceSpeed
                 };
             },
             swe_houses: (jd, lat, lon, hsys) => {
+                // Use the built-in houses method
                 const res = instance.houses(jd, lat, lon, hsys);
                 return {
                     house: Array.from(res.cusps),
                     ascendant: res.ascmc[0],
                     mc: res.ascmc[1]
                 };
-            }
+            },
+            // Expose astronomical julday
+            swe_julday: (y, m, d, h) => instance.julday(y, m, d, h)
         };
         useSwissEph = true;
-        console.log('✅ Swiss Ephemeris WASM (Prolaxu) initialized');
+        console.log('✅ Swiss Ephemeris WASM (Prolaxu) initialized (using bundled data)');
     }
     catch (error) {
         console.warn('⚠️ Swiss Ephemeris WASM failed to load - Falling back to algorithmic', error);
@@ -115,10 +118,63 @@ function getNakshatra(longitude) {
 function getNakshatraPada(longitude) {
     return Math.floor((longitude % 13.333333333) / 3.333333333) + 1;
 }
+/**
+ * Get timezone offset for an IANA timezone string at a specific date/time
+ * Correctly handles historical DST changes using the Intl API.
+ */
+function getTzOffset(dateStr, timeStr, timeZone) {
+    if (!timeZone || timeZone === 'UTC')
+        return 0;
+    // If it's a numeric offset (e.g. "+5.5" or "5.5")
+    if (timeZone.match(/^[+-]?\d+(\.\d+)?$/)) {
+        return parseFloat(timeZone);
+    }
+    try {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        const [h, min, s] = timeStr.split(':').map(n => parseInt(n) || 0);
+        // We create a date object. The system time doesn't matter, we just need the wall clock parts.
+        const dt = new Date(y, m - 1, d, h, min, s);
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone,
+            timeZoneName: 'shortOffset',
+        });
+        const parts = formatter.formatToParts(dt);
+        const offsetStr = parts.find(p => p.type === 'timeZoneName')?.value || '';
+        if (offsetStr.includes('GMT')) {
+            const match = offsetStr.match(/GMT([+-])(\d+)(:(\d+))?/);
+            if (match) {
+                const sign = match[1] === '+' ? 1 : -1;
+                const hours = parseInt(match[2]);
+                const minutes = match[4] ? parseInt(match[4]) : 0;
+                return sign * (hours + minutes / 60);
+            }
+        }
+    }
+    catch (e) {
+        console.warn(`Timezone lookup failed for ${timeZone}, falling back to 0:`, e);
+    }
+    return 0;
+}
 function convertToUTC(date, time, timezone) {
     const [year, month, day] = date.split('-').map(Number);
-    const [hour, minute, second] = time.split(':').map(n => parseInt(n) || 0);
-    return new Date(Date.UTC(year, month - 1, day, hour, minute, second) - timezone * 3600000);
+    // Robust time parsing
+    let hour = 0, minute = 0, second = 0;
+    const timeClean = time.toUpperCase().trim();
+    const isPM = timeClean.includes('PM');
+    const isAM = timeClean.includes('AM');
+    // Strip AM/PM for numeric parts
+    const numericTime = timeClean.replace(/[AP]M/g, '').trim();
+    const parts = numericTime.split(':').map(n => parseInt(n) || 0);
+    hour = parts[0] || 0;
+    minute = parts[1] || 0;
+    second = parts[2] || 0;
+    // Convert 12h to 24h if period is present
+    if (isPM && hour < 12)
+        hour += 12;
+    if (isAM && hour === 12)
+        hour = 0;
+    const offset = typeof timezone === 'string' ? getTzOffset(date, time, timezone) : timezone;
+    return new Date(Date.UTC(year, month - 1, day, hour, minute, second) - offset * 3600000);
 }
 function calculateJulianDay(date) {
     const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1, d = date.getUTCDate();
@@ -212,9 +268,13 @@ async function calculateEphemeris(birthDate, birthTime, latitude, longitude, tim
     if (longitude < -180 || longitude > 180)
         throw new Error('Invalid longitude');
     const tz = typeof timezone === 'number' ? timezone : parseFloat(String(timezone)) || 5.5;
-    const jd = calculateJulianDay(convertToUTC(birthDate, birthTime, tz));
+    const utcDate = convertToUTC(birthDate, birthTime, tz);
     // Use pre-initialized Swiss Ephemeris status
     const highPrecision = getSwissEphStatus();
+    // Use high-precision Julian Day if available
+    const jd = (highPrecision && swe && swe.swe_julday)
+        ? swe.swe_julday(utcDate.getUTCFullYear(), utcDate.getUTCMonth() + 1, utcDate.getUTCDate(), utcDate.getUTCHours() + utcDate.getUTCMinutes() / 60 + utcDate.getUTCSeconds() / 3600)
+        : calculateJulianDay(utcDate);
     // Calculate planets - sequential to minimize memory
     const planetNames = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'rahu'];
     const planets = {};
@@ -241,8 +301,8 @@ async function calculateEphemeris(birthDate, birthTime, latitude, longitude, tim
             nakshatra: getNakshatra(ketuLng), nakshatraPada: getNakshatraPada(ketuLng),
             lord: getLord(ketuSign), retro: true
         };
-        // Ascendant from Swiss Ephemeris
-        const houses = swe.swe_houses(jd, latitude, longitude, 'P');
+        // Houses from Swiss Ephemeris (Whole Sign)
+        const houses = swe.swe_houses(jd, latitude, longitude, 'W');
         const ayanamsa = swe.swe_get_ayanamsa_ut(jd);
         let ascLng = houses.ascendant - ayanamsa;
         if (ascLng < 0)
@@ -288,11 +348,16 @@ async function calculateEphemeris(birthDate, birthTime, latitude, longitude, tim
         const ascLng = calcAscendant(jd, latitude, longitude);
         const ascSign = getZodiacSign(ascLng);
         const ascendant = { sign: ascSign, degree: ascLng % 30, longitude: ascLng, nakshatra: getNakshatra(ascLng), nakshatraPada: getNakshatraPada(ascLng) };
-        // Equal houses
+        // Whole Sign houses
         const houseList = [];
+        // In Whole Sign, the first house starts at 0° of the sign containing the Ascendant
+        const ascSignIndex = ZODIAC_SIGNS.indexOf(ascendant.sign);
         for (let i = 0; i < 12; i++) {
-            const cusp = (ascLng + i * 30) % 360;
-            houseList.push({ houseNumber: i + 1, sign: getZodiacSign(cusp), degree: cusp % 30, cusp });
+            const houseSignIndex = (ascSignIndex + i) % 12;
+            const sign = ZODIAC_SIGNS[houseSignIndex];
+            // Whole Sign cusp is defined as 0° of the sign
+            const cusp = houseSignIndex * 30;
+            houseList.push({ houseNumber: i + 1, sign, degree: 0, cusp });
         }
         return { planets: planets, ascendant, houses: houseList };
     }
