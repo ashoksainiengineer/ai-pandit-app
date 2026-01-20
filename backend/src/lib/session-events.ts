@@ -60,10 +60,26 @@ export interface AIContextEvent {
     divCharts?: string;
 }
 
+export interface CalculationLogEvent {
+    type: 'calculation_log';
+    candidateTime: string;
+    sunPos: string;
+    moonPos: string;
+    ascendant: string;
+    dashaObj?: string; // Short dasha string
+}
+
 export interface ErrorEvent {
     type: 'error';
     message: string;
     stage?: string;
+}
+
+export interface StageStatsEvent {
+    type: 'stage_stats';
+    stage: number;
+    candidateCount: number;
+    description: string;
 }
 
 export type SessionEvent =
@@ -73,7 +89,9 @@ export type SessionEvent =
     | CandidateScoreEvent
     | CompleteEvent
     | ErrorEvent
-    | AIContextEvent;
+    | AIContextEvent
+    | CalculationLogEvent
+    | StageStatsEvent;
 
 // ═════════════════════════════════════════════════════════════════════════════
 // GLOBAL SESSION EVENT EMITTER
@@ -286,5 +304,29 @@ export function emitAIContext(
     sessionEvents.emit(sessionId, {
         type: 'ai_context',
         ...data
+    });
+}
+
+export function emitCalculationLog(
+    sessionId: string,
+    data: Omit<CalculationLogEvent, 'type'>
+): void {
+    sessionEvents.emit(sessionId, {
+        type: 'calculation_log',
+        ...data
+    });
+}
+
+export function emitStageStats(
+    sessionId: string,
+    stage: number,
+    candidateCount: number,
+    description: string
+): void {
+    sessionEvents.emit(sessionId, {
+        type: 'stage_stats',
+        stage,
+        candidateCount,
+        description
     });
 }

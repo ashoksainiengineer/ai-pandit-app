@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AIContextData } from '@/lib/use-stream-progress';
 import { ChevronDown, ChevronUp, Brain, Zap, Clock, Activity } from 'lucide-react';
 import { Typewriter } from '@/components/ui/Typewriter';
+import { LiveCalculationPanel, CalculationLog } from './LiveCalculationPanel';
 
 interface UnifiedAIPanelProps {
     thinking: {
@@ -22,6 +23,7 @@ interface UnifiedAIPanelProps {
     analyzedCount?: number;
     totalCandidates?: number;
     candidateScores?: Array<{ time: string; score: number; stage: number; rank?: number }>;
+    calculationLogs?: CalculationLog[];
 }
 
 
@@ -33,7 +35,8 @@ export function UnifiedAIPanel({
     stage,
     analyzedCount,
     totalCandidates,
-    candidateScores
+    candidateScores,
+    calculationLogs
 }: UnifiedAIPanelProps) {
     // Current active stage
     const currentStage = thinking?.stage || stage || 2;
@@ -179,6 +182,14 @@ export function UnifiedAIPanel({
                     </motion.div>
                 )
             }
+
+            {/* Live Calculation Stream */}
+            {calculationLogs && (
+                <LiveCalculationPanel
+                    logs={calculationLogs}
+                    isAnalyzing={isActive}
+                />
+            )}
 
             {/* Live Score Table */}
             {

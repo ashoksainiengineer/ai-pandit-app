@@ -10,6 +10,7 @@ import { useAuth } from '@clerk/nextjs'
 import { motion } from 'framer-motion';
 import { useStreamProgress } from '@/lib/use-stream-progress';
 import { UnifiedAIPanel } from '@/components/rectify/UnifiedAIPanel';
+import { AnalysisPipelineTracker } from '@/components/rectify/AnalysisPipelineTracker';
 
 
 export const dynamic = 'force-dynamic';
@@ -127,6 +128,8 @@ export default function ProgressPage() {
         stageHistory,
         aiContext, // 🔮 New: Context Data
         candidateScores,
+        calculationLogs, // ⚡ New: Calculation Logs
+        stageStats, // ⚡ New: Stage Stats
         analyzedCount,
         result,
         // Enhanced Diagnostics
@@ -381,7 +384,18 @@ export default function ProgressPage() {
                 </div>
             </nav>
 
-            <div className="max-w-4xl mx-auto px-6 py-12">
+            <div className="max-w-7xl mx-auto px-6 pb-6">
+                {/* ⚡ New Pipeline Tracker */}
+                <div className="mb-6 rounded-lg overflow-hidden border border-[#3A4452] shadow-2xl">
+                    <AnalysisPipelineTracker
+                        stats={stageStats}
+                        currentStage={streamProgress?.stepIndex || 0}
+                        isConnected={isConnected}
+                    />
+                </div>
+            </div>
+
+            <div className="max-w-4xl mx-auto px-6 pb-12">
                 {/* Header Section */}
                 <div className="text-center mb-12">
                     <h1 className="text-3xl font-bold text-[#F5F0EB] mb-2 animate-fade-in">
@@ -516,6 +530,7 @@ export default function ProgressPage() {
                                 stage={aiStage}
                                 analyzedCount={analyzedCount}
                                 candidateScores={candidateScores}
+                                calculationLogs={calculationLogs}
                             />
                         </div>
                     );

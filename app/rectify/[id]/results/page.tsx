@@ -1,0 +1,76 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { ResultsDashboard } from '@/components/rectify/ResultsDashboard';
+import { useStreamProgress } from '@/lib/use-stream-progress';
+
+export default function ResultsPage() {
+    const params = useParams();
+    const router = useRouter();
+    const id = params.id as string;
+
+    const [resultData, setResultData] = useState<any>(null);
+    const [birthData, setBirthData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    // Hydrate from localStorage first for speed
+    useEffect(() => {
+        if (!id) return;
+
+        // 1. Try Local Storage (Fastest)
+        const stored = localStorage.getItem(`rectification_result_${id}`);
+        const storedBirthData = localStorage.getItem(`birthData_${id}`);
+
+        if (stored) {
+            try {
+                setResultData(JSON.parse(stored));
+            } catch (e) {
+                console.error("Failed to parse stored result", e);
+            }
+        }
+
+        if (storedBirthData) {
+            try {
+                setBirthData(JSON.parse(storedBirthData));
+            } catch (e) {
+                console.error("Failed to parse stored birth data", e);
+            }
+        }
+
+        setLoading(false);
+
+        // 2. TODO: Fetch from API if not in local storage (for shared links)
+    }, [id]);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#0F1419] flex items-center justify-center text-[#D4AF37]">
+                <div className="animate-spin rounded-full h-12 w-12 border-2 border-[#D4AF37] border-t-transparent" />
+            </div>
+        );
+    }
+
+    if (!resultData || !birthData) {
+        return (
+            <div className="min-h-screen bg-[#0F1419] flex flex-col items-center justify-center text-[#F5F0EB]">
+                <h1 className="text-2xl font-bold mb-4">No Results Found</h1>
+                <p className="text-[#8C7F72] mb-8">Could not retrieve analysis data for this session.</p>
+                <button
+                    onClick={() => router.push(`/rectify/${id}`)}
+                    className="text-[#D4AF37] hover:underline"
+                >
+                    Return to Analysis
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <ResultsDashboard
+            sessionId={id}
+            data={resultData}
+            birthData={birthData}
+        />
+    );
+}

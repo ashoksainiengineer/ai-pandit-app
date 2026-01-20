@@ -44,6 +44,21 @@ export interface CandidateScore {
     rank?: number;
 }
 
+export interface StageStat {
+    stage: number;
+    candidateCount: number;
+    description: string;
+}
+
+export interface CalculationLog {
+    candidateTime: string;
+    sunPos: string;
+    moonPos: string;
+    ascendant: string;
+    dashaObj?: string;
+    timestamp: number;
+}
+
 export interface StreamResult {
     rectifiedTime: string;
     accuracy: number;
@@ -58,6 +73,8 @@ export interface StreamState {
     aiThinking: AIThinking | null;
     aiContext: AIContextData | null;
     candidateScores: CandidateScore[];
+    calculationLogs: CalculationLog[];
+    stageStats: StageStat[]; // ⚡ New: Pipeline Tracking
     result: StreamResult | null;
     metadata?: {
         fullName?: string;
@@ -94,6 +111,8 @@ export function useStreamProgress(
         aiThinking: null,
         aiContext: null,
         candidateScores: [],
+        calculationLogs: [],
+        stageStats: [],
         result: null,
         // Enhanced UX
         allCandidates: new Map(),
@@ -410,6 +429,38 @@ export function useStreamProgress(
             case 'ephemeris':
                 // Ephemeris data can be added to state if needed for display
                 console.log('Ephemeris data:', eventData);
+                break;
+
+            case 'calculation_log':
+                setState(prev => ({
+                    ...prev,
+                    calculationLogs: [
+                        ...prev.calculationLogs,
+                        {
+                            candidateTime: eventData.candidateTime,
+                            sunPos: eventData.sunPos,
+                            moonPos: eventData.moonPos,
+                            ascendant: eventData.ascendant,
+                            dashaObj: eventData.dashaObj,
+                            timestamp: Date.now()
+                        }
+                    ].slice(-100) // Keep last 100 logs
+                }));
+                break;
+
+            case 'stage_stats':
+                setState(prev => {
+                    const exists = prev.stageStats.find(s => s.stage === eventData.stage);
+                    if (exists) return prev; // Avoid duplicates
+                    return {
+                        ...prev,
+                        stageStats: [...prev.stageStats, {
+                            stage: eventData.stage,
+                            candidateCount: eventData.candidateCount,
+                            description: eventData.description
+                        }].sort((a, b) => a.stage - b.stage)
+                    };
+                });
                 break;
 
             case 'complete':

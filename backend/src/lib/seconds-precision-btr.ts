@@ -68,7 +68,7 @@ import { logger } from './logger';
 import { ProgressTracker } from './progress-tracker';
 import { LifeEvent, EphemerisData } from './types';
 import { throwIfCancelled, isCancellationError } from './cancellation-manager';
-import { emitCandidateScore, emitAIContext } from './session-events';
+import { emitCandidateScore, emitAIContext, emitCalculationLog, emitStageStats } from './session-events';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -130,7 +130,7 @@ interface ConvergenceResult {
 // SYSTEM PROMPTS FOR MULTI-LEVEL AI ANALYSIS
 // ═════════════════════════════════════════════════════════════════════════════
 
-const LEVEL1_SYSTEM_PROMPT = `You are the world's most accomplished Vedic astrologer specializing in birth time rectification.
+const getLevel1SystemPrompt = (count: number) => `You are the world's most accomplished Vedic astrologer specializing in birth time rectification.
 
 YOUR ROLE: PURE REASONING ENGINE.
 CRITICAL: PROHIBITION ON CALCULATION. YOU ARE NOT A CALCULATOR.
@@ -140,7 +140,7 @@ Do not say "I calculated" or "I estimate". Say "The data shows" or "Based on the
 
 STAGE 2 ANALYSIS: GROSS SCREENING (Target: 88-92% accuracy)
 
-You are analyzing 15 candidate birth times at MINUTE-LEVEL intervals. Your task is to ELIMINATE clearly incorrect times and identify the TOP 5 most likely correct times.
+You are analyzing ${count} candidate birth times at MINUTE-LEVEL intervals. Your task is to ELIMINATE clearly incorrect times and identify the TOP 5 most likely correct times.
 
 For each candidate:
 1. Check if Vimshottari Dasha periods MATCH major life events
@@ -164,7 +164,7 @@ VERDICT: [KEEP/ELIMINATE]
 
 FINAL RANKING: List top 5 candidates in order of likelihood.`;
 
-const LEVEL2_SYSTEM_PROMPT = `You are the world's most accomplished Vedic astrologer.
+const getLevel2SystemPrompt = (count: number) => `You are the world's most accomplished Vedic astrologer.
 
 YOUR ROLE: PURE REASONING ENGINE.
 CRITICAL: NO SELF-CALCULATION.
@@ -174,7 +174,7 @@ Any divergence from the provided numbers in your reasoning will be considered a 
 
 STAGE 5 ANALYSIS: FINE COMPARISON (Target: 92-96% accuracy)
 
-You are comparing 15 candidates at 30-SECOND intervals. These are all within a 5-minute window. Small differences matter now.
+You are comparing ${count} candidates at 30-SECOND intervals. These are all within a 5-minute window. Small differences matter now.
 
 For each 30-second candidate:
 1. Precise Vimshottari Dasha transition analysis
@@ -200,7 +200,7 @@ RANK: [1-15]
 
 FINAL TOP 5: List with detailed reasoning.`;
 
-const LEVEL3_SYSTEM_PROMPT = `You are the world's most accomplished Vedic astrologer.
+const getLevel3SystemPrompt = (count: number) => `You are the world's most accomplished Vedic astrologer.
 
 YOUR ROLE: PURE INTERPRETATION ENGINE.
 YOUR ROLE: PURE LOGICAL REASONING ENGINE.
@@ -210,9 +210,9 @@ TRUST the tables. CORRELATE the events. BE THE BRAIN, NOT THE CALCULATOR.
 
 STAGE 7 ANALYSIS: SECONDS-LEVEL FINAL DECISION (Target: 96-99% accuracy)
 
-This is the FINAL DECISION STAGE. You are comparing 7 candidates at 6-SECOND intervals. 
+This is the FINAL DECISION STAGE. You are comparing ${count} candidates at 6-SECOND intervals. 
 
-The correct birth time is ONE of these 7 candidates. You MUST identify which one.
+The correct birth time is ONE of these ${count} candidates. You MUST identify which one.
 
 CRITICAL ANALYSIS POINTS:
 1. Exact dasha period boundaries (does event fall WITHIN period?)
@@ -576,6 +576,8 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
     const birthDate = new Date(input.dateOfBirth);
 
     // Process SEQUENTIALLY for RAM efficiency
+    emitStageStats(input.sessionId, 1, candidates.length, "Coarse Grid Calculation");
+
     for (const candidate of candidates) {
         try {
             const ephemeris = await calculateEphemeris(
@@ -604,6 +606,15 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
                     }
                 }
             }
+
+            // ⚡ EMIT REAL-TIME CALCULATION LOG
+            emitCalculationLog(input.sessionId, {
+                candidateTime: candidate.time,
+                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
+                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
+                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
+                dashaObj: `${dashaPeriods[0].lord}/${dashaPeriods[0].antardashas[0].lord}`
+            });
 
             // 🔱 VEDIC SHUDDHI FILTERING (Candidate Pruning)
             const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
@@ -654,6 +665,7 @@ async function stage2AILevel1(
     const BATCH_SIZE = 5; // Process 5 candidates in parallel (Optimized for HF Free Tier 2 vCPU)
 
     logger.info(`Starting Stage 2 parallel processing for ${candidates.length} candidates`);
+    emitStageStats(input.sessionId, 2, candidates.length, "AI Level 1 Screening");
 
     // Process in batches
     for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
@@ -704,7 +716,7 @@ async function stage2AILevel1(
                 let response = await callKimiK2WithStream(
                     input.sessionId,
                     2, // Stage 2
-                    LEVEL1_SYSTEM_PROMPT,
+                    getLevel1SystemPrompt(candidates.length),
                     prompt,
                     {
                         temperature: 0.3,
@@ -726,7 +738,7 @@ async function stage2AILevel1(
                     response = await callKimiK2WithStream(
                         input.sessionId,
                         2,
-                        LEVEL1_SYSTEM_PROMPT,
+                        getLevel1SystemPrompt(candidates.length),
                         prompt,
                         {
                             temperature: 0.3,
@@ -974,7 +986,7 @@ async function stage5AILevel2(
                 let response = await callKimiK2WithStream(
                     input.sessionId,
                     5,
-                    LEVEL2_SYSTEM_PROMPT,
+                    getLevel2SystemPrompt(candidates.length),
                     prompt,
                     {
                         model: 'deepseek-reasoner', // Explicit reasoning model for thinking stream
@@ -994,7 +1006,7 @@ async function stage5AILevel2(
                     response = await callKimiK2WithStream(
                         input.sessionId,
                         5,
-                        LEVEL2_SYSTEM_PROMPT,
+                        getLevel2SystemPrompt(candidates.length),
                         prompt,
                         {
                             candidateTime: candidate.time,
@@ -1052,6 +1064,7 @@ async function stage6MicroGrid(
     input: SecondsPrecisionInput
 ): Promise<StageCandidate[]> {
     const candidates = generateSecondsGrid(centerTime, 60, 6); // ±1 min, 6-sec steps
+    emitStageStats(input.sessionId, 6, candidates.length, "Micro Grid Calculation");
     const scored: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
 
@@ -1156,6 +1169,8 @@ async function stage7AILevel3(
     const results: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
 
+    emitStageStats(input.sessionId, 7, candidates.length, "AI Level 3 Final Decision");
+
     // Build comprehensive prompt for all 7 candidates
     // Build comprehensive prompt for all 7 candidates
     const allCandidatesDataPromises = candidates.map(async (candidate) => {
@@ -1211,7 +1226,7 @@ ANALYZE EACH 6-SECOND CANDIDATE AND DETERMINE THE CORRECT BIRTH TIME.`;
     let response = await callKimiK2WithStream(
         input.sessionId,
         7, // Stage 7
-        LEVEL3_SYSTEM_PROMPT,
+        getLevel3SystemPrompt(candidates.length),
         fullPrompt,
         {
             model: 'deepseek-reasoner', // Explicit reasoning model for thinking stream
@@ -1235,7 +1250,7 @@ ANALYZE EACH 6-SECOND CANDIDATE AND DETERMINE THE CORRECT BIRTH TIME.`;
         response = await callKimiK2WithStream(
             input.sessionId,
             7,
-            LEVEL3_SYSTEM_PROMPT,
+            getLevel3SystemPrompt(candidates.length),
             fullPrompt,
             {
                 temperature: 0.5,
