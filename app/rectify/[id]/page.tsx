@@ -692,52 +692,54 @@ function BirthDetailsSummary({ metadata }: { metadata?: any }) {
                 Birth Data Blueprint
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/10 shadow-inner">
+            <div className="flex flex-wrap gap-8 relative z-10 p-2">
+                <div className="flex items-center gap-4 min-w-[200px] flex-1">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/10 shadow-inner shrink-0">
                         👤
                     </div>
-                    <div>
+                    <div className="min-w-0">
                         <div className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold mb-1">Subject</div>
-                        <div className="text-[#F5F0EB] font-bold text-sm truncate">{details.fullName}</div>
+                        <div className="text-[#F5F0EB] font-bold text-sm truncate" title={details.fullName}>{details.fullName}</div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 border border-purple-500/10 shadow-inner">
+                <div className="flex items-center gap-4 min-w-[200px] flex-1">
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 border border-purple-500/10 shadow-inner shrink-0">
                         📅
                     </div>
-                    <div>
+                    <div className="min-w-0">
                         <div className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold mb-1">Date</div>
-                        <div className="text-[#F5F0EB] font-bold text-sm font-mono">{formattedDate}</div>
+                        <div className="text-[#F5F0EB] font-bold text-sm font-mono whitespace-nowrap">{formattedDate}</div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/10 shadow-inner">
+                <div className="flex items-center gap-4 min-w-[200px] flex-1">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/10 shadow-inner shrink-0">
                         📍
                     </div>
-                    <div>
+                    <div className="min-w-0">
                         <div className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold mb-1">Birth Place</div>
-                        <div className="text-[#F5F0EB] font-bold text-sm truncate">{details.birthPlace}</div>
+                        <div className="text-[#F5F0EB] font-bold text-sm truncate" title={details.birthPlace}>{details.birthPlace}</div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 flex items-center justify-center text-[#D4AF37] border border-[#D4AF37]/10 shadow-inner">
+                <div className="flex items-center gap-4 min-w-[200px] flex-1">
+                    <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/10 flex items-center justify-center text-[#D4AF37] border border-[#D4AF37]/10 shadow-inner shrink-0">
                         🕒
                     </div>
-                    <div>
+                    <div className="min-w-0">
                         <div className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold mb-1">Time & Zone</div>
-                        <div className="text-[#D4AF37] font-bold text-sm font-mono tracking-wide">
-                            {formattedTime}
-                            {details.timezone && <span className="text-[#8C7F72] text-[10px] ml-1">({details.timezone})</span>}
-                        </div>
-                        {details.offsetConfig && (
-                            <div className="text-[10px] text-[#2D7A5C] mt-0.5 font-mono">
-                                ±{details.offsetConfig.minutes || (details.offsetConfig.preset === '1hour' ? '60' : '30')} min
+                        <div className="flex flex-col">
+                            <div className="text-[#D4AF37] font-bold text-sm font-mono tracking-wide whitespace-nowrap">
+                                {formattedTime}
+                                {details.timezone && <span className="text-[#8C7F72] text-[10px] ml-1 opacity-75">({details.timezone})</span>}
                             </div>
-                        )}
+                            {details.offsetConfig && (
+                                <div className="text-[10px] text-[#2D7A5C] font-mono">
+                                    ±{details.offsetConfig.minutes || (details.offsetConfig.preset === '1hour' ? '60' : '30')} min scan
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

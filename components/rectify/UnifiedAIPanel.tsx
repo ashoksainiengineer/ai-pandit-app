@@ -264,7 +264,12 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
     // Auto-scroll logic
     useEffect(() => {
         if (shouldAutoScroll && scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+            // Use requestAnimationFrame to ensure DOM update is complete
+            requestAnimationFrame(() => {
+                if (scrollRef.current) {
+                    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+                }
+            });
         }
     }, [content, shouldAutoScroll]);
 
@@ -272,7 +277,11 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
     const handleScroll = () => {
         if (scrollRef.current) {
             const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+            // Buffer of 50px to prevent jitter
             const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 50;
+
+            // Only update if the user actually initiated a scroll, not the auto-scroll
+            // (Use a simple heuristic or state check if needed, but for now this is standard)
             setShouldAutoScroll(isAtBottom);
         }
     };
@@ -281,7 +290,7 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
         <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="p-4 bg-[#0F1419]/50 font-mono text-sm text-[#D1D5DB] leading-relaxed max-h-[300px] overflow-y-auto custom-scrollbar"
+            className="p-4 bg-[#0F1419]/50 font-mono text-sm text-[#D1D5DB] leading-relaxed max-h-[300px] overflow-y-auto custom-scrollbar scroll-smooth"
         >
             {content ? (
                 <div className="break-words border-l-2 border-indigo-500/30 pl-4 py-1">

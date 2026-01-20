@@ -18,6 +18,15 @@ const STAGE_CONFIG = [
     { id: 7, label: 'LEVEL 3 FINAL', type: 'ai', color: 'green' },
 ];
 
+const ScanLine = () => (
+    <motion.div
+        className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-[#D4AF37]/20 to-transparent z-0 pointer-events-none"
+        initial={{ top: '-100%' }}
+        animate={{ top: '200%' }}
+        transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+    />
+);
+
 export const AnalysisPipelineTracker: React.FC<AnalysisPipelineTrackerProps> = ({ stats, currentStage, isConnected }) => {
 
     // Find active stats for display
@@ -55,39 +64,66 @@ export const AnalysisPipelineTracker: React.FC<AnalysisPipelineTrackerProps> = (
                                     />
                                 )}
 
-                                <div className={`relative z-10 border p-2 rounded transition-all duration-300
-                                    ${isActive ? 'bg-[#D4AF37]/10 border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.2)]' :
-                                        isPast ? 'bg-[#0F1419] border-[#D4AF37]/30 opacity-70' :
-                                            'bg-[#0F1419] border-[#3A4452] opacity-40'}`}>
+                                <motion.div
+                                    initial={false}
+                                    animate={{
+                                        borderColor: isActive ? '#D4AF37' : isPast ? 'rgba(212,175,55,0.3)' : '#3A4452',
+                                        backgroundColor: isActive ? 'rgba(212,175,55,0.05)' : '#0F1419',
+                                        boxShadow: isActive ? '0 0 15px rgba(212,175,55,0.2)' : 'none'
+                                    }}
+                                    className={`relative z-10 border p-2 rounded transition-all duration-300 overflow-hidden
+                                    ${isPast ? 'opacity-70' : isActive ? 'opacity-100' : 'opacity-40'}`}
+                                >
+                                    {isActive && <ScanLine />}
 
-                                    <div className="flex justify-between items-start mb-1">
+                                    <div className="flex justify-between items-start mb-1 relative z-10">
                                         <span className={`text-[9px] font-bold ${isActive ? 'text-[#D4AF37]' : 'text-[#8C7F72]'}`}>
                                             {stage.id.toString().padStart(2, '0')}
                                         </span>
                                         {stage.type === 'ai' && (
-                                            <span className="text-[8px] bg-purple-500/20 text-purple-300 px-1 rounded">AI</span>
+                                            <AnimatePresence>
+                                                {isActive && (
+                                                    <motion.span
+                                                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                                        className="text-[8px] bg-purple-500/20 text-purple-300 px-1 rounded animate-pulse"
+                                                    >
+                                                        AI
+                                                    </motion.span>
+                                                )}
+                                                {!isActive && (
+                                                    <span className="text-[8px] bg-purple-500/10 text-purple-300/50 px-1 rounded">AI</span>
+                                                )}
+                                            </AnimatePresence>
                                         )}
                                     </div>
 
-                                    <div className={`text-[10px] font-bold truncate mb-1 ${isActive ? 'text-[#F5F0EB]' : 'text-[#8C7F72]'}`}>
+                                    <div className={`text-[10px] font-bold truncate mb-1 relative z-10 ${isActive ? 'text-[#F5F0EB]' : 'text-[#8C7F72]'}`}>
                                         {stage.label}
                                     </div>
 
-                                    <div className="h-4 flex items-center">
+                                    <div className="h-4 flex items-center relative z-10">
                                         {stat ? (
-                                            <div className="flex items-center gap-1 text-[#D4AF37]">
-                                                <span className="text-lg">⚡</span>
+                                            <motion.div
+                                                initial={{ scale: 0.8, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 1 }}
+                                                className="flex items-center gap-1 text-[#D4AF37]"
+                                            >
+                                                <span className="text-lg animate-pulse">⚡</span>
                                                 <span className="font-bold">{stat.candidateCount}</span>
-                                            </div>
+                                            </motion.div>
                                         ) : isActive ? (
                                             <div className="w-full h-1 bg-[#3A4452] rounded overflow-hidden">
-                                                <div className="h-full bg-[#D4AF37] animate-progress-indeterminate" />
+                                                <motion.div
+                                                    className="h-full bg-[#D4AF37]"
+                                                    animate={{ x: ['-100%', '100%'] }}
+                                                    transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                                                />
                                             </div>
                                         ) : (
                                             <span className="text-[9px] text-[#3A4452]">-</span>
                                         )}
                                     </div>
-                                </div>
+                                </motion.div>
                             </div>
                         );
                     })}

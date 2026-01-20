@@ -82,6 +82,13 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
                     candidateTime: thinkingBuffer.candidateTime
                 });
             }
+
+            // 🧮 Send cached Calculation Logs (Immediate "Matrix" Effect)
+            const calcLogs = sessionEvents.getCalculationBuffer(sessionId);
+            if (calcLogs && calcLogs.length > 0) {
+                console.log(`[SSE] Replaying ${calcLogs.length} calc logs for ${sessionId}`);
+                calcLogs.forEach(log => sendEvent(res, log));
+            }
         } catch (error) {
             console.error(`[SSE] Error in initial async sync for ${sessionId}:`, error);
         }

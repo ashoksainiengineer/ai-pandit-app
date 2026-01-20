@@ -51,6 +51,7 @@ export interface StageStat {
 }
 
 export interface CalculationLog {
+    logId: string; // 🆔 Unique ID for deduplication
     candidateTime: string;
     sunPos: string;
     moonPos: string;
@@ -432,20 +433,28 @@ export function useStreamProgress(
                 break;
 
             case 'calculation_log':
-                setState(prev => ({
-                    ...prev,
-                    calculationLogs: [
-                        ...prev.calculationLogs,
-                        {
-                            candidateTime: eventData.candidateTime,
-                            sunPos: eventData.sunPos,
-                            moonPos: eventData.moonPos,
-                            ascendant: eventData.ascendant,
-                            dashaObj: eventData.dashaObj,
-                            timestamp: Date.now()
-                        }
-                    ].slice(-100) // Keep last 100 logs
-                }));
+                setState(prev => {
+                    // 🛡️ Robust Deduplication: Check if logId already exists
+                    if (eventData.logId && prev.calculationLogs.some(log => log.logId === eventData.logId)) {
+                        return prev;
+                    }
+
+                    return {
+                        ...prev,
+                        calculationLogs: [
+                            ...prev.calculationLogs,
+                            {
+                                logId: eventData.logId,
+                                candidateTime: eventData.candidateTime,
+                                sunPos: eventData.sunPos,
+                                moonPos: eventData.moonPos,
+                                ascendant: eventData.ascendant,
+                                dashaObj: eventData.dashaObj,
+                                timestamp: Date.now()
+                            }
+                        ].slice(-100) // Keep last 100 logs
+                    };
+                });
                 break;
 
             case 'stage_stats':

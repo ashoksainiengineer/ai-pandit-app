@@ -62,6 +62,7 @@ export interface AIContextEvent {
 
 export interface CalculationLogEvent {
     type: 'calculation_log';
+    logId: string; // 🆔 Unique ID for deduplication
     candidateTime: string;
     sunPos: string;
     moonPos: string;
@@ -102,11 +103,21 @@ class SessionEventManager {
     private lastContexts: Map<string, AIContextEvent> = new Map();
     // 🧠 Store accumulated thinking text per session { sessionId: { stage: number, text: string } }
     private thinkingBuffers: Map<string, { stage: number; text: string; candidateTime?: string }> = new Map();
+    // 🧮 Store recent calculation logs for immediate UI feedback on connect (Circular Buffer-ish)
+    private calculationLogBuffers: Map<string, CalculationLogEvent[]> = new Map();
+    // ⏱️ Track last activity for garbage collection
+    private lastActive: Map<string, number> = new Map();
+
+    constructor() {
+        // Run garbage collection every 10 minutes
+        setInterval(() => this.garbageCollect(), 10 * 60 * 1000);
+    }
 
     /**
      * Get or create an emitter for a session
      */
     getEmitter(sessionId: string): EventEmitter {
+        this.touch(sessionId);
         if (!this.emitters.has(sessionId)) {
             const emitter = new EventEmitter();
             emitter.setMaxListeners(10); // Allow multiple SSE connections
@@ -119,12 +130,16 @@ class SessionEventManager {
      * Emit an event for a session
      */
     emit(sessionId: string, event: SessionEvent): void {
+        this.touch(sessionId);
         const emitter = this.emitters.get(sessionId);
         if (emitter) {
             emitter.emit('event', event);
         }
         if (event.type === 'ai_context') {
             this.lastContexts.set(sessionId, event);
+        }
+        if (event.type === 'calculation_log') {
+            this.appendToCalculationBuffer(sessionId, event);
         }
     }
 
@@ -140,6 +155,8 @@ class SessionEventManager {
         }
         this.lastContexts.delete(sessionId);
         this.thinkingBuffers.delete(sessionId);
+        this.calculationLogBuffers.delete(sessionId);
+        this.lastActive.delete(sessionId);
     }
 
     /**
@@ -154,6 +171,7 @@ class SessionEventManager {
      * Get the last AI Context for a session
      */
     getLastContext(sessionId: string): AIContextEvent | undefined {
+        this.touch(sessionId);
         return this.lastContexts.get(sessionId);
     }
 
@@ -161,6 +179,7 @@ class SessionEventManager {
      * Append text to thinking buffer or start new
      */
     appendToThinkingBuffer(sessionId: string, stage: number, text: string, candidateTime?: string): void {
+        this.touch(sessionId);
         const current = this.thinkingBuffers.get(sessionId);
 
         // If new stage or no buffer, start flesh
@@ -179,9 +198,61 @@ class SessionEventManager {
      * Get accumulated thinking text
      */
     getThinkingBuffer(sessionId: string): { stage: number; text: string; candidateTime?: string } | undefined {
+        this.touch(sessionId);
         const buffer = this.thinkingBuffers.get(sessionId);
         console.log(`📖 Reading Thinking Buffer: ${sessionId?.slice(0, 8)} | Found=${!!buffer} | Len=${buffer?.text?.length}`);
         return buffer;
+    }
+
+    /**
+     * Append to calculation log buffer (Keep last 50)
+     */
+    appendToCalculationBuffer(sessionId: string, log: CalculationLogEvent): void {
+        // No need to touch() here as it's called by emit() which touches
+        if (!this.calculationLogBuffers.has(sessionId)) {
+            this.calculationLogBuffers.set(sessionId, []);
+        }
+        const buffer = this.calculationLogBuffers.get(sessionId)!;
+        buffer.push(log);
+        // Keep last 50 logs to prevent memory leak but ensure context
+        if (buffer.length > 50) {
+            buffer.shift();
+        }
+    }
+
+    /**
+     * Get recent calculation logs
+     */
+    getCalculationBuffer(sessionId: string): CalculationLogEvent[] | undefined {
+        this.touch(sessionId);
+        return this.calculationLogBuffers.get(sessionId);
+    }
+
+    /**
+     * Update last active timestamp
+     */
+    private touch(sessionId: string): void {
+        this.lastActive.set(sessionId, Date.now());
+    }
+
+    /**
+     * Remove stale sessions (> 1 hour inactive)
+     */
+    private garbageCollect(): void {
+        const now = Date.now();
+        const timeout = 60 * 60 * 1000; // 1 Hour TTL
+
+        let cleaned = 0;
+        for (const [sessionId, lastActive] of this.lastActive.entries()) {
+            if (now - lastActive > timeout) {
+                console.log(`🗑️ Robust Garbage Collection: Removing stale session ${sessionId?.slice(0, 8)}`);
+                this.cleanup(sessionId);
+                cleaned++;
+            }
+        }
+        if (cleaned > 0) {
+            console.log(`🧹 GC Complete: Cleaned ${cleaned} stale sessions.`);
+        }
     }
 }
 
@@ -218,7 +289,7 @@ export function emitAIThinking(
     stage: number,
     candidateTime?: string
 ): void {
-    console.log('🔥 emitAIThinking called:', { sessionId: sessionId?.slice(0, 8), stage, chunkLen: chunk?.length, candidateTime });
+    // console.log('🔥 emitAIThinking called:', { sessionId: sessionId?.slice(0, 8), stage, chunkLen: chunk?.length, candidateTime });
 
     // 🧠 Store content for reconnects
     sessionEvents.appendToThinkingBuffer(sessionId, stage, chunk, candidateTime);
@@ -273,7 +344,6 @@ export function emitComplete(
     confidence: string
 ): void {
     console.log('🎉 emitComplete CALLED:', { sessionId: sessionId?.slice(0, 8), rectifiedTime, accuracy, confidence });
-    require('fs').appendFileSync('/tmp/ai-debug.log', `${new Date().toISOString()} 🎉 emitComplete: ${sessionId?.slice(0, 8)} time=${rectifiedTime} acc=${accuracy} conf=${confidence}\n`);
     sessionEvents.emit(sessionId, {
         type: 'complete',
         rectifiedTime,
@@ -309,10 +379,12 @@ export function emitAIContext(
 
 export function emitCalculationLog(
     sessionId: string,
-    data: Omit<CalculationLogEvent, 'type'>
+    data: Omit<CalculationLogEvent, 'type' | 'logId'>
 ): void {
+    const crypto = require('crypto');
     sessionEvents.emit(sessionId, {
         type: 'calculation_log',
+        logId: crypto.randomUUID(),
         ...data
     });
 }

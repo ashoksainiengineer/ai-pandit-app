@@ -529,9 +529,9 @@ export async function processSecondsPrecisionBTR(
             processingTimeMs: processingTime,
         });
 
-        // 🛡️ Data Minimization: Strip reasoning tokens/AI analysis from database persistence
-        // Only keep scores, times, and essential metadata
-        const { aiAnalysis: _f, ...finalCandidateClean } = finalCandidate;
+        // 🛡️ Data Minimization: Strip reasoning tokens/AI analysis from alternatives only
+        // Keep the WINNER'S analysis for the "System Logs" view in the dashboard
+        const finalCandidateClean = finalCandidate;
         const cleanAlternatives = stage7Results.slice(1, 4).map(c => {
             const { aiAnalysis: _a, ...clean } = c;
             return clean;
@@ -548,7 +548,7 @@ export async function processSecondsPrecisionBTR(
             methodsUsed,
             processingTimeMs: processingTime,
             analysisResult: JSON.stringify({
-                finalCandidate: finalCandidateClean,
+                finalCandidate: finalCandidateClean, // Now includes aiAnalysis
                 alternatives: cleanAlternatives,
                 verificationScore: verificationResult.score,
                 boundarySafety,
@@ -557,6 +557,8 @@ export async function processSecondsPrecisionBTR(
                     stage4Count: stage4Candidates.length,
                     stage6Count: stage6Candidates.length,
                 },
+                // Also explicitly save the main analysis text at the top level for easier access if needed
+                aiAnalysis: finalCandidate.aiAnalysis
             }),
         };
 
@@ -996,7 +998,8 @@ async function stage5AILevel2(
                         onToken: (chunk) => {
                             // 💓 Heartbeat
                             progress.updateMessage(`Comparing candidate ${candidate.time} (Stage 5)...`);
-                        }
+                        },
+                        progressTracker: progress
                     }
                 );
 
@@ -1012,7 +1015,8 @@ async function stage5AILevel2(
                             candidateTime: candidate.time,
                             abortSignal: input.abortSignal,
                             model: 'deepseek-chat',
-                            onToken: (chunk) => progress.updateMessage(`Comparing ${candidate.time} (Fallback)...`)
+                            onToken: (chunk) => progress.updateMessage(`Comparing ${candidate.time} (Fallback)...`),
+                            progressTracker: progress
                         }
                     );
                 }
@@ -1230,14 +1234,15 @@ ANALYZE EACH 6-SECOND CANDIDATE AND DETERMINE THE CORRECT BIRTH TIME.`;
         fullPrompt,
         {
             model: 'deepseek-reasoner', // Explicit reasoning model for thinking stream
-            temperature: 0.1,
+            temperature: 0.0,
             maxTokens: 10000,
             candidateTime: 'final_decision',
             abortSignal: input.abortSignal,
             onToken: (chunk) => {
                 // 💓 Heartbeat
                 progress.updateMessage('Finalizing seconds-level rectification decision...');
-            }
+            },
+            progressTracker: progress
         }
 
     );
@@ -1260,7 +1265,8 @@ ANALYZE EACH 6-SECOND CANDIDATE AND DETERMINE THE CORRECT BIRTH TIME.`;
                 model: 'deepseek-chat',
                 onToken: (chunk) => {
                     progress.updateMessage('Finalizing with fallback model...');
-                }
+                },
+                progressTracker: progress
             }
         );
     }
