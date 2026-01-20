@@ -260,29 +260,50 @@ export function UnifiedAIPanel({
 function ScrollableContent({ content, isThinking }: { content: string; isThinking: boolean }) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+    const lastContentLengthRef = useRef(0);
 
     // Auto-scroll logic
     useEffect(() => {
-        if (shouldAutoScroll && scrollRef.current) {
-            // Use requestAnimationFrame to ensure DOM update is complete
-            requestAnimationFrame(() => {
-                if (scrollRef.current) {
-                    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-                }
-            });
+        if (!scrollRef.current) return;
+
+        const el = scrollRef.current;
+
+        // If content reset or first load, scroll to bottom
+        if (content.length < lastContentLengthRef.current) {
+            el.scrollTop = el.scrollHeight;
+            setShouldAutoScroll(true);
         }
+
+        if (shouldAutoScroll) {
+            // Use requestAnimationFrame to ensure DOM update is complete
+            const scrollToEnd = () => {
+                if (el) {
+                    el.scrollTop = el.scrollHeight;
+                }
+            };
+            requestAnimationFrame(scrollToEnd);
+            // Double-nudge for slow rendering
+            const timer = setTimeout(scrollToEnd, 100);
+            return () => clearTimeout(timer);
+        }
+
+        lastContentLengthRef.current = content.length;
     }, [content, shouldAutoScroll]);
 
-    // Handle scroll events to toggle auto-scroll
+    // Robust scroll listener to detect if user scrolled UP
     const handleScroll = () => {
-        if (scrollRef.current) {
-            const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-            // Buffer of 50px to prevent jitter
-            const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 50;
+        if (!scrollRef.current) return;
 
-            // Only update if the user actually initiated a scroll, not the auto-scroll
-            // (Use a simple heuristic or state check if needed, but for now this is standard)
-            setShouldAutoScroll(isAtBottom);
+        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+        // Buffer of 30px
+        const isAtBottom = scrollHeight - scrollTop - clientHeight < 30;
+
+        // If we are at bottom, re-enable auto-scroll
+        if (isAtBottom && !shouldAutoScroll) {
+            setShouldAutoScroll(true);
+        } else if (!isAtBottom && shouldAutoScroll) {
+            // User scrolled up - disable auto-scroll
+            setShouldAutoScroll(false);
         }
     };
 
@@ -290,24 +311,35 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
         <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="p-4 bg-[#0F1419]/50 font-mono text-sm text-[#D1D5DB] leading-relaxed max-h-[300px] overflow-y-auto custom-scrollbar scroll-smooth"
+            className="p-4 bg-[#0F1419]/50 font-mono text-sm text-[#D1D5DB] leading-relaxed max-h-[400px] overflow-y-auto custom-scrollbar scroll-smooth relative"
         >
             {content ? (
-                <div className="break-words border-l-2 border-indigo-500/30 pl-4 py-1">
+                <div className="break-words border-l-2 border-[#D4AF37]/30 pl-4 py-1 relative">
                     {isThinking ? (
                         <Typewriter content={content} speed={15} />
                     ) : (
                         <span className="whitespace-pre-wrap">{content}</span>
                     )}
                     {isThinking && (
-                        <span className="inline-block w-2 h-4 bg-[#8B5CF6] ml-1 animate-pulse align-text-bottom" />
+                        <span className="inline-block w-2 h-4 bg-[#D4AF37] ml-1 animate-pulse align-text-bottom" />
                     )}
                 </div>
             ) : (
                 <div className="text-[#6B7280] italic flex items-center gap-2">
-                    <span className="animate-spin">⏳</span>
+                    <span className="animate-spin text-[#D4AF37]">⏳</span>
                     Initializing reasoning engine...
                 </div>
+            )}
+
+            {/* Scroll Nudge Button (Optional: if user scrolled up, show a "Down" indicator) */}
+            {!shouldAutoScroll && content && (
+                <button
+                    onClick={() => setShouldAutoScroll(true)}
+                    className="absolute bottom-4 right-4 bg-[#D4AF37]/20 hover:bg-[#D4AF37]/40 text-[#D4AF37] p-1 rounded-full border border-[#D4AF37]/30 transition-all animate-bounce"
+                    title="Scroll to bottom"
+                >
+                    <ChevronDown className="w-4 h-4" />
+                </button>
             )}
         </div>
     );

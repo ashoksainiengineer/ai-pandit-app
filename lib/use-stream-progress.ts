@@ -82,6 +82,12 @@ export interface StreamState {
         dateOfBirth?: string;
         tentativeTime?: string;
         birthPlace?: string;
+        timezone?: string;
+        status?: string;
+        offsetConfig?: {
+            preset: string;
+            minutes?: number;
+        };
     };
     // Enhanced UX: Multi-candidate tracking
     allCandidates: Map<string, AIThinking>; // All active candidates' thinking
@@ -156,10 +162,13 @@ export function useStreamProgress(
                     setState(prev => ({
                         ...prev,
                         metadata: {
-                            fullName: s.fullName,
-                            dateOfBirth: s.dateOfBirth,
-                            tentativeTime: s.tentativeTime,
-                            birthPlace: s.birthPlace
+                            fullName: s.birthData.fullName,
+                            dateOfBirth: s.birthData.dateOfBirth,
+                            tentativeTime: s.birthData.tentativeTime,
+                            birthPlace: s.birthData.birthPlace,
+                            timezone: s.birthData.timezone,
+                            status: s.status,
+                            offsetConfig: s.offsetConfig
                         }
                     }));
                 }

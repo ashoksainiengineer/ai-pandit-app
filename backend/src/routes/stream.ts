@@ -1,8 +1,11 @@
 // backend/src/routes/stream.ts
 // Server-Sent Events endpoint for real-time BTR progress streaming
-// Deployment Trigger: SSE Stability Fix Finalized
+// Deployment Trigger: SSE Status Check & Terminal State Handling
 
 import { Router, Request, Response } from 'express';
+import { db } from '../database/drizzle.js';
+import { sessions } from '../database/schema.js';
+import { eq } from 'drizzle-orm';
 import { sessionEvents, SessionEvent } from '../lib/session-events.js';
 import { getSessionProgress } from '../lib/progress-tracker.js';
 import { logger } from '../lib/logger.js';
@@ -22,6 +25,31 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
     }
 
     console.log(`[SSE] >>> Connection requested for ${sessionId}`);
+
+    // 🛡️ SECURITY & STATUS CHECK: Fetch session status first
+    let currentStatus = 'pending';
+    try {
+        const session = await db.select({ status: sessions.status })
+            .from(sessions)
+            .where(eq(sessions.id, sessionId))
+            .limit(1);
+
+        if (session.length === 0) {
+            res.status(404).json({ error: 'Session not found' });
+            return;
+        }
+        currentStatus = session[0].status || 'pending';
+
+        // Handle terminal states immediately
+        if (currentStatus === 'cancelled' || currentStatus === 'error') {
+            console.log(`[SSE] Session ${sessionId} is in terminal state: ${currentStatus}. Refusing connection.`);
+            res.status(200).json({ status: currentStatus, message: `Session is in terminal state: ${currentStatus}` });
+            return;
+        }
+    } catch (error) {
+        console.error(`[SSE] Error checking session status for ${sessionId}:`, error);
+    }
+
     console.log(`[SSE] Incoming headers: ${JSON.stringify(req.headers)}`);
 
     // Set SSE headers

@@ -147,6 +147,13 @@ export default function ProgressPage() {
     const [isCancelling, setIsCancelling] = useState(false);
     const [cancelled, setCancelled] = useState(false);
 
+    // Sync cancellation state from backend status
+    useEffect(() => {
+        if (sessionMetadata?.status === 'cancelled') {
+            setCancelled(true);
+        }
+    }, [sessionMetadata?.status]);
+
     // Cancel analysis handler
     const { getToken } = useAuth();
 
