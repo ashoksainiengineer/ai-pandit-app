@@ -59,6 +59,12 @@ export interface StreamState {
     aiContext: AIContextData | null;
     candidateScores: CandidateScore[];
     result: StreamResult | null;
+    metadata?: {
+        fullName?: string;
+        dateOfBirth?: string;
+        tentativeTime?: string;
+        birthPlace?: string;
+    };
     // Enhanced UX: Multi-candidate tracking
     allCandidates: Map<string, AIThinking>; // All active candidates' thinking
     displayedCandidate: string | null; // Currently shown candidate time
@@ -174,6 +180,8 @@ export function useStreamProgress(
                     analyzedCount: (progressData.candidateScores || []).length,
                     // 🧠 Restore Reasoning from Polling
                     aiThinking: progressData.lastAIThinking || prev.aiThinking,
+                    // 📋 Capture session metadata for Blueprint display
+                    metadata: data.metadata || prev.metadata,
                 };
 
                 // 🧠 Hydrate allCandidates Map for UI Display

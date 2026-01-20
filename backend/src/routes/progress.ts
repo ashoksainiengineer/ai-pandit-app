@@ -57,6 +57,13 @@ async function handleProgressRequest(sessionId: string, res: Response) {
         status: queueStatus.status,
         position: queueStatus.position,
         estimatedWaitSeconds: queueStatus.estimatedWaitSeconds,
+        // Include session metadata for frontend "Blueprint" display
+        metadata: {
+            fullName: queueStatus.session?.fullName,
+            dateOfBirth: queueStatus.session?.dateOfBirth,
+            tentativeTime: queueStatus.session?.tentativeTime,
+            birthPlace: queueStatus.session?.birthPlace,
+        },
         progress: progress || {
             currentStep: 0,
             totalSteps: 10,

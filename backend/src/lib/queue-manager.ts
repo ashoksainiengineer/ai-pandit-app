@@ -44,6 +44,7 @@ export interface QueuePosition {
   estimatedWaitSeconds: number;
   totalInQueue: number;
   createdAt: string;
+  session?: any;          // Full session metadata for UI
 }
 
 export interface QueueSubmitResult {
@@ -167,6 +168,7 @@ export async function getQueueStatus(sessionId: string): Promise<QueuePosition |
       estimatedWaitSeconds: position * QUEUE_CONFIG.estimatedTimePerRequest,
       totalInQueue,
       createdAt: s.createdAt || '',
+      session: s,
     };
   } catch (error) {
     logger.error('Failed to get queue status', error);

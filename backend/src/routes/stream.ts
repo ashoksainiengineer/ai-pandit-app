@@ -135,6 +135,14 @@ function sendEvent(res: Response, data: any): void {
 
         const eventData = JSON.stringify(data);
         res.write(`data: ${eventData}\n\n`);
+
+        // 🚀 FORCE FLUSH: Bypass proxy buffering for smooth "typewriter" effect
+        if ((res as any).flush) {
+            (res as any).flush();
+        } else if (res.socket) {
+            // Internal Node.js socket flush attempt
+            (res.socket as any)._handle?.setNoDelay?.(true);
+        }
     } catch (error) {
         console.error('Failed to send SSE event:', error);
     }

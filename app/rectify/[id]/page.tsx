@@ -131,8 +131,9 @@ export default function ProgressPage() {
         result,
         // Enhanced Diagnostics
         url: connectionUrl,
+        lastError,
         readyState,
-        lastError
+        metadata: sessionMetadata
     } = useStreamProgress(
         sessionId,
         process.env.NEXT_PUBLIC_BACKEND_URL,
@@ -393,7 +394,7 @@ export default function ProgressPage() {
 
                 {/* Birth Details Summary - Added as requested */}
                 <div className="mb-8">
-                    <BirthDetailsSummary />
+                    <BirthDetailsSummary metadata={sessionMetadata} />
                 </div>
 
                 {/* Main Progress Display - Unified Container */}
@@ -628,16 +629,18 @@ export default function ProgressPage() {
     );
 }
 
-function BirthDetailsSummary() {
-    const [details, setDetails] = useState<any>(null);
+function BirthDetailsSummary({ metadata }: { metadata?: any }) {
+    const [localData, setLocalData] = useState<any>(null);
+    const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
+        setIsClient(true);
         try {
             const stored = localStorage.getItem('btr_form_data');
             if (stored) {
                 const data = JSON.parse(stored);
                 if (data.birthData) {
-                    setDetails(data.birthData);
+                    setLocalData(data.birthData);
                 }
             }
         } catch (e) {
@@ -645,7 +648,10 @@ function BirthDetailsSummary() {
         }
     }, []);
 
-    if (!details) return null;
+    // Prioritize streaming metadata from backend, fallback to localStorage
+    const details = metadata?.fullName ? metadata : localData;
+
+    if (!isClient || !details) return null;
 
     return (
         <motion.div
