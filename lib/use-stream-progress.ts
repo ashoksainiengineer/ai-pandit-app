@@ -375,6 +375,9 @@ export function useStreamProgress(
                 break;
 
             case 'ai_thinking':
+                // 🧩 Diagnostics: Track missing tokens
+                if (eventData.chunk) console.log(`🧠 [Stream] Received AI Chunk (${eventData.chunk.length} chars)`);
+
                 setState(prev => {
                     const candidateTime = eventData.candidateTime || 'unknown';
 
@@ -398,6 +401,7 @@ export function useStreamProgress(
                     const displayed = (!prev.displayedCandidate || !updatedCandidates.has(prev.displayedCandidate))
                         ? candidateTime
                         : prev.displayedCandidate;
+
                     const displayedThinking = updatedCandidates.get(displayed);
 
                     // Update Stage History (Stage -> Full Text)
@@ -461,6 +465,7 @@ export function useStreamProgress(
                 break;
 
             case 'calculation_log':
+                console.log('🧮 [Stream] Received Calculation Log:', eventData.candidateTime);
                 setState(prev => {
                     // 🛡️ Robust Deduplication: Check if logId already exists
                     if (eventData.logId && prev.calculationLogs.some(log => log.logId === eventData.logId)) {

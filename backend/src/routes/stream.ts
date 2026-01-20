@@ -41,17 +41,12 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
 
     console.log(`[SSE] Headers flushed for ${sessionId}`);
 
-    // 🚀 Proxy-Buffering Bypass: Send a HEAVY 8KB preamble
-    // Hugging Face/Cloudflare/Vercel can be aggressive with buffering.
-    // We send 8KB specifically to clear most edge caches and proxies.
-    res.write(':' + ' '.repeat(2048) + '\n');
-    res.write(':' + ' '.repeat(2048) + '\n');
-    res.write(':' + ' '.repeat(2048) + '\n');
-    res.write(':' + ' '.repeat(2048) + '\n\n');
-    res.write(': initial god-tier keepalive\n\n');
-    if ((res as any).flush) (res as any).flush();
+    // 🚀 Proxy-Buffering Bypass: Send a 2KB preamble
+    res.write(':' + ' '.repeat(1024) + '\n');
+    res.write(':' + ' '.repeat(1024) + '\n\n');
 
-    console.log(`[SSE] 🚀 8KB Preamble sent for ${sessionId} to clear proxies`);
+    if ((res as any).flush) (res as any).flush();
+    console.log(`[SSE] 🚀 2KB Preamble sent for ${sessionId}`);
 
     // Send initial connection event
     sendEvent(res, { type: 'connected', sessionId, timestamp: new Date().toISOString() });
@@ -154,10 +149,6 @@ function sendEvent(res: Response, data: any): void {
         // 🚀 Aggressive Flush for Real-time tokens
         if ((res as any).flush) {
             (res as any).flush();
-        } else if (res.socket) {
-            // Internal Node.js socket flush attempt + Nudge
-            (res.socket as any)._handle?.setNoDelay?.(true);
-            (res.socket as any).write(': \n');
         }
     } catch (error) {
         console.error('Failed to send SSE event:', error);
