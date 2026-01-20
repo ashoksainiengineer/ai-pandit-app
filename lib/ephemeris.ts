@@ -15,25 +15,61 @@ let swe: any = null;
 let useSwissEph = false;
 let isInitialized = false;
 
-// Lazy initialization - only load when first calculation requested
-function initSwissEph(): boolean {
+/**
+ * Initializes the Swiss Ephemeris WASM module
+ */
+export async function initSwissEph(): Promise<boolean> {
   if (isInitialized) return useSwissEph;
 
   try {
-    // 🛡️ Next.js/Webpack workaround: use eval('require') to hide native module from build-time bundling
-    const nativeRequire = eval('require');
-    swe = nativeRequire('swisseph');
-    // Path to ephemeris data files (memory-mapped, not loaded into RAM)
+    // 1. Dynamic import of the ESM wrapper class from swisseph-wasm
+    const { default: SwissEph } = await import('swisseph-wasm');
+
+    // 2. Instantiate and initialize the module
+    const instance = new SwissEph();
+    await (instance as any).initSwissEph();
+
+    // 3. Configure ephemeris path
     const ephePath = process.env.SWISSEPH_PATH || '/app/ephe';
-    swe.swe_set_ephe_path(ephePath);
+    (instance as any).set_ephe_path(ephePath);
+
+    // 4. Create a synchronous adapter to match the native 'swisseph' package API
+    swe = {
+      swe_set_sid_mode: (mode: number, t0: number, ayT0: number) => (instance as any).set_sid_mode(mode, t0, ayT0),
+      swe_get_ayanamsa_ut: (jd: number) => (instance as any).get_ayanamsa_ut(jd),
+      swe_calc_ut: (jd: number, ipl: number, flags: number) => {
+        const res = (instance as any).calc_ut(jd, ipl, flags);
+        return {
+          longitude: res[0],
+          latitude: res[1],
+          distance: res[2],
+          longitudeSpeed: res[3],
+          latitudeSpeed: res[4],
+          distanceSpeed: res[5]
+        };
+      },
+      swe_houses: (jd: number, lat: number, lon: number, hsys: string) => {
+        const res = (instance as any).houses(jd, lat, lon, hsys);
+        return {
+          house: Array.from(res.cusps as any),
+          ascendant: (res.ascmc as any)[0],
+          mc: (res.ascmc as any)[1]
+        };
+      }
+    };
+
     useSwissEph = true;
-    console.log('✅ Swiss Ephemeris initialized (memory-mapped mode)');
+    console.log('✅ Swiss Ephemeris WASM initialized (memory-mapped mode)');
   } catch (error) {
-    console.warn('⚠️ Swiss Ephemeris not available - Using algorithmic calculations');
+    console.warn('⚠️ Swiss Ephemeris WASM not available - Using algorithmic calculations', error);
     useSwissEph = false;
   }
   isInitialized = true;
   return useSwissEph;
+}
+
+function getSwissEphStatus(): boolean {
+  return isInitialized && useSwissEph;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -196,7 +232,7 @@ export async function calculateEphemeris(
   const jd = calculateJulianDay(convertToUTC(birthDate, birthTime, tz));
 
   // Initialize Swiss Ephemeris (lazy load)
-  const highPrecision = initSwissEph();
+  const highPrecision = await initSwissEph();
 
   // Calculate planets - sequential to minimize memory
   const planetNames = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'rahu'] as const;
@@ -301,10 +337,10 @@ export async function calculateEphemeris(
 // EXPORTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function isHighPrecisionMode(): boolean { return initSwissEph(); }
+export function isHighPrecisionMode(): boolean { return getSwissEphStatus(); }
 
 export function getAyanamsa(jd: number): number {
-  if (initSwissEph() && swe) {
+  if (getSwissEphStatus() && swe) {
     swe.swe_set_sid_mode(SE_SIDM_LAHIRI, 0, 0);
     return swe.swe_get_ayanamsa_ut(jd);
   }
