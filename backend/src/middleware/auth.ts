@@ -13,7 +13,7 @@ export interface AuthenticatedRequest extends Request {
 
 /**
  * Middleware to verify Clerk authentication
- * Extracts user ID from Bearer token
+ * Extracts user ID from Bearer token using industrial-grade verification
  */
 export async function authMiddleware(
     req: AuthenticatedRequest,
@@ -24,31 +24,20 @@ export async function authMiddleware(
         const authHeader = req.headers.authorization;
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            // Allow dev bypass if configured
-            if (process.env.NODE_ENV === 'development') {
-                req.userId = 'dev-user';
-                next();
-                return;
-            }
-            res.status(401).json({ error: 'No authorization token provided' });
+            res.status(401).json({
+                success: false,
+                error: 'No authorization token provided',
+                code: 'UNAUTHORIZED'
+            });
             return;
         }
 
         const token = authHeader.split(' ')[1];
 
-        // Explicit dev token bypass (allow unconditionally for local testing if env is missing)
-        if (token === 'dev-token-fallback' || (process.env.NODE_ENV === 'development' && token === 'dev-token-fallback')) {
-            req.userId = 'dev-user';
-            next();
-            return;
-        }
-
+        // 🛡️ INDUSTRIAL GRADE VERIFICATION
         try {
-            // Verify the session token with Clerk
-            // Fix: Use verifyToken with secret key
             const session = await verifyToken(token, {
                 secretKey: process.env.CLERK_SECRET_KEY,
-                jwtKey: process.env.CLERK_JWT_KEY // Optional if using local verification
             });
 
             if (session && session.sub) {
@@ -56,55 +45,25 @@ export async function authMiddleware(
                 req.sessionId = session.sid;
                 next();
             } else {
-                res.status(401).json({ error: 'Invalid session' });
+                res.status(401).json({
+                    success: false,
+                    error: 'Invalid or expired session',
+                    code: 'INVALID_SESSION'
+                });
             }
-        } catch (clerkError) {
+        } catch (clerkError: any) {
+            console.error('🔒 [Auth] Token verification failed:', clerkError.message);
 
-            // For development, allow requests without valid Clerk token
-            if (process.env.NODE_ENV === 'development') {
-                console.warn('⚠️ Auth bypassed in development mode (fallback)');
-                req.userId = 'dev-user';
-                next();
-                return;
-            }
-
-            console.error('Clerk verification error:', clerkError);
-            res.status(401).json({ error: 'Token verification failed' });
+            res.status(401).json({
+                success: false,
+                error: 'Authentication failed',
+                code: 'AUTH_FAILED',
+                details: process.env.NODE_ENV === 'development' ? clerkError.message : undefined
+            });
         }
 
     } catch (error) {
-        console.error('Auth middleware error:', error);
-        res.status(500).json({ error: 'Authentication error' });
+        console.error('CRITICAL: Auth middleware error:', error);
+        res.status(500).json({ success: false, error: 'Internal server error during authentication' });
     }
-}
-
-/**
- * Optional auth - allows unauthenticated requests but attaches user if present
- */
-export async function optionalAuth(
-    req: AuthenticatedRequest,
-    res: Response,
-    next: NextFunction
-): Promise<void> {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        next();
-        return;
-    }
-
-    try {
-        const token = authHeader.split(' ')[1];
-        const session = await clerk.sessions.verifySession(token, token);
-
-        if (session && session.userId) {
-            req.userId = session.userId;
-            req.sessionId = session.id;
-        }
-    } catch (error) {
-        // Ignore auth errors for optional auth
-        console.warn('Optional auth failed:', error);
-    }
-
-    next();
 }

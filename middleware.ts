@@ -11,7 +11,7 @@ const isProtectedRoute = createRouteMatcher([
     '/api/queue(.*)',
 ]);
 
-// Define which routes are always public
+// Define which routes are always public (Landing page, Auth, Webhooks)
 const isPublicRoute = createRouteMatcher([
     '/',
     '/sign-in(.*)',
@@ -20,8 +20,8 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
-    // Protect routes that require authentication
-    if (isProtectedRoute(req)) {
+    // Protect all routes except public ones
+    if (!isPublicRoute(req)) {
         await auth.protect();
     }
 });

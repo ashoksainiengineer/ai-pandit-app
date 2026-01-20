@@ -3,7 +3,7 @@
 import { motion } from 'framer-motion';
 import { PhysicalTraits } from '@/lib/types';
 
-interface Step3Props {
+interface Step2Props {
     physicalTraits: PhysicalTraits;
     updateTraits: (traits: Partial<PhysicalTraits>) => void;
 }
@@ -46,7 +46,7 @@ const itemVariants = {
     visible: { opacity: 1, y: 0 }
 };
 
-export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: Step3Props) {
+export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: Step2Props) {
 
     // Reusable Selection Card
     const TraitSelector = ({

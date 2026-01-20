@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { db } from '@/database/drizzle';
 import { sessions, users } from '@/database/schema';
 import { eq } from 'drizzle-orm';
@@ -9,39 +9,7 @@ import { validateOffsetConfig, TimeOffsetConfig } from '@/lib/time-offset-manage
 import { BirthData, LifeEvent } from '@/lib/types';
 import { encryptData, decryptData } from '@/lib/crypto';
 
-// Helper: Ensure user exists in database (auto-sync from Clerk)
-async function ensureUserExists(clerkUserId: string): Promise<string> {
-    // Check if user exists
-    const existingUser = await db.select()
-        .from(users)
-        .where(eq(users.clerkId, clerkUserId))
-        .limit(1);
-
-    if (existingUser.length > 0) {
-        return existingUser[0].id;
-    }
-
-    // User doesn't exist - create from Clerk
-    const clerkUser = await currentUser();
-    if (!clerkUser) {
-        throw new Error('Could not fetch user from Clerk');
-    }
-
-    const userId = crypto.randomUUID();
-    const now = new Date().toISOString();
-
-    await db.insert(users).values({
-        id: userId,
-        clerkId: clerkUserId,
-        email: clerkUser.emailAddresses[0]?.emailAddress || '',
-        fullName: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null,
-        createdAt: now,
-        updatedAt: now,
-    });
-
-    logger.info('User synced from Clerk', { userId, clerkId: clerkUserId });
-    return userId;
-}
+// Queue API - Submit and Poll for BTR Analysis
 
 
 // ═════════════════════════════════════════════════════════════════════════════

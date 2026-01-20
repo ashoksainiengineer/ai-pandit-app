@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
 import { BirthData, LifeEvent, PhysicalTraits, TimeOffsetConfig } from '@/lib/types';
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
-import Step2LifeEvents from '@/components/rectify/Step2LifeEvents';
-import Step3PhysicalTraits from '@/components/rectify/Step3PhysicalTraits';
+import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
+import Step2PhysicalTraits from '@/components/rectify/Step2PhysicalTraits';
 import Step4Review from '@/components/rectify/Step4Review';
 
 // Initial States
@@ -104,6 +104,7 @@ export default function RectifyPage() {
     }, [birthData, lifeEvents, physicalTraits, step]);
 
     const handleNext = () => {
+        if (isSubmitting) return; // Prevent navigation while submitting
         setError(null);
         if (validateStep(step)) {
             setStep(s => s + 1);
@@ -150,6 +151,12 @@ export default function RectifyPage() {
     };
 
     const handleSubmit = async () => {
+        // CRITICAL GUARD: Only allow submission if on Step 4 (Review)
+        if (step !== 4) {
+            console.error("Attempted to submit analysis from step", step);
+            return;
+        }
+
         setIsSubmitting(true);
         setError(null);
 
@@ -272,6 +279,7 @@ export default function RectifyPage() {
                 )}
 
                 {/* Step Content */}
+                {/* Step Content: UI Order (1: Birth, 2: Physical, 3: LifeEvents, 4: Review) */}
                 <div className="min-h-[400px]">
                     {step === 1 && (
                         <Step1BirthDetails
@@ -282,13 +290,13 @@ export default function RectifyPage() {
                         />
                     )}
                     {step === 2 && (
-                        <Step3PhysicalTraits
+                        <Step2PhysicalTraits
                             physicalTraits={physicalTraits}
                             updateTraits={(updates) => setPhysicalTraits(prev => ({ ...prev, ...updates }))}
                         />
                     )}
                     {step === 3 && (
-                        <Step2LifeEvents
+                        <Step3LifeEvents
                             lifeEvents={lifeEvents}
                             updateEvents={setLifeEvents}
                             offsetConfig={offsetConfig}

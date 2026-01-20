@@ -1,4 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import { db } from '@/database/drizzle';
+import { sessions } from '@/database/schema';
+import { eq } from 'drizzle-orm';
 
 // Use Node.js runtime (not Edge) for better SSE support in development
 export const dynamic = 'force-dynamic';
@@ -14,16 +18,36 @@ export async function GET(
     { params }: { params: { id: string } }
 ) {
     const sessionId = params.id;
+
+    // 1. Authenticate user
+    const { userId, getToken } = await auth();
+    if (!userId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // 2. Verify Session Ownership
+    const session = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+    if (session.length === 0) {
+        return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+
+    if (session[0].userId !== userId) {
+        console.warn(`User ${userId} attempted to access session ${sessionId} owned by ${session[0].userId}`);
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const token = await getToken();
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
     const streamUrl = `${backendUrl}/api/stream/${sessionId}`;
 
-    console.log('SSE Proxy: Connecting to', streamUrl);
+    console.log(`SSE Proxy: User ${userId} connecting to`, streamUrl);
 
     try {
         const response = await fetch(streamUrl, {
             headers: {
                 'Accept': 'text/event-stream',
                 'Cache-Control': 'no-cache',
+                'Authorization': `Bearer ${token}`,
             },
             // @ts-ignore - Next.js specific option
             cache: 'no-store',

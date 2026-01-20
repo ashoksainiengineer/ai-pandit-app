@@ -22,6 +22,13 @@ const itemVariants = {
 
 export default function Step4Review({ data, events, traits, onSubmit, isSubmitting, onEdit, offsetConfig }: Step4Props) {
     const [confirmed, setConfirmed] = useState(false);
+    const [cooldown, setCooldown] = useState(true);
+
+    // Safety: 1-second cooldown after mounting to prevent accidental "double-click" submission
+    // from the previous step which uses a button in the same visual location.
+    useState(() => {
+        setTimeout(() => setCooldown(false), 1000);
+    });
 
     // Calculate Accuracy
     const calculateAccuracy = () => {
@@ -268,7 +275,7 @@ export default function Step4Review({ data, events, traits, onSubmit, isSubmitti
                     disabled={isSubmitting || !confirmed}
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
-                    className={`w-full py-4 font-bold rounded-xl text-lg transition-all ${!confirmed
+                    className={`w-full py-4 font-bold rounded-xl text-lg transition-all ${(!confirmed || cooldown)
                         ? 'bg-[#2A3442] text-[#8C7F72] cursor-not-allowed'
                         : 'bg-gradient-to-r from-[#E8A849] to-[#B8860B] text-[#1A1614] hover:shadow-[0_0_30px_rgba(232,168,73,0.3)]'
                         }`}
@@ -276,6 +283,10 @@ export default function Step4Review({ data, events, traits, onSubmit, isSubmitti
                     {isSubmitting ? (
                         <span className="flex items-center justify-center gap-2">
                             <span className="animate-spin">⏳</span> Processing...
+                        </span>
+                    ) : cooldown ? (
+                        <span className="flex items-center justify-center gap-2">
+                            <span className="animate-pulse">⏳</span> Preparing Analysis...
                         </span>
                     ) : (
                         `🔮 Start Rectification Analysis (Approx. ${timeRange} mins)`

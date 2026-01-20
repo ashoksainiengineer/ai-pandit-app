@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BirthData, LifeEvent, TimeOffsetConfig } from '@/lib/types';
 import EVENT_CATEGORIES, { EventCategory, EventTemplate } from '@/lib/event-categories';
 
-interface Step2Props {
+interface Step3Props {
     lifeEvents: LifeEvent[];
     updateEvents: (events: LifeEvent[]) => void;
     offsetConfig?: TimeOffsetConfig;
@@ -36,7 +36,7 @@ const DATE_OPTIONS = [
     { val: 'year_range', label: 'Year Range', desc: 'YYYY → YYYY' },
 ];
 
-export default function Step2LifeEvents({ lifeEvents, updateEvents }: Step2Props) {
+export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig }: Step3Props) {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [selectedCat, setSelectedCat] = useState<EventCategory | null>(null);
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { db } from '@/database/drizzle';
 import { sessions, users } from '@/database/schema';
 import { eq } from 'drizzle-orm';
@@ -9,36 +9,7 @@ import { encryptData } from '@/lib/crypto';
 // DRAFT API - Save form data without starting analysis
 // ═════════════════════════════════════════════════════════════════════════════
 
-// Helper: Ensure user exists in database
-async function ensureUserExists(clerkUserId: string): Promise<string> {
-    const existingUser = await db.select()
-        .from(users)
-        .where(eq(users.clerkId, clerkUserId))
-        .limit(1);
-
-    if (existingUser.length > 0) {
-        return existingUser[0].id;
-    }
-
-    const clerkUser = await currentUser();
-    if (!clerkUser) {
-        throw new Error('Could not fetch user from Clerk');
-    }
-
-    const userId = crypto.randomUUID();
-    const now = new Date().toISOString();
-
-    await db.insert(users).values({
-        id: userId,
-        clerkId: clerkUserId,
-        email: clerkUser.emailAddresses[0]?.emailAddress || '',
-        fullName: `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null,
-        createdAt: now,
-        updatedAt: now,
-    });
-
-    return userId;
-}
+// Draft API - Save form data without starting analysis
 
 // ═════════════════════════════════════════════════════════════════════════════
 // POST: Save draft (without starting analysis)
@@ -62,7 +33,18 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        const internalUserId = await ensureUserExists(clerkId);
+        // Get User from DB (Synced via Webhook)
+        const user = await db.select()
+            .from(users)
+            .where(eq(users.clerkId, clerkId))
+            .limit(1);
+
+        if (user.length === 0) {
+            // Highly unlikely with global middleware, but handle for safety
+            return NextResponse.json({ error: 'User profile not synchronized' }, { status: 403 });
+        }
+
+        const internalUserId = user[0].id;
         const now = new Date().toISOString();
 
         // Encrypt sensitive data

@@ -9,8 +9,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
 import { BirthData, LifeEvent, PhysicalTraits } from '@/lib/types';
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
-import Step2LifeEvents from '@/components/rectify/Step2LifeEvents';
-import Step3PhysicalTraits from '@/components/rectify/Step3PhysicalTraits';
+import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
+import Step2PhysicalTraits from '@/components/rectify/Step2PhysicalTraits';
 import Step4Review from '@/components/rectify/Step4Review';
 
 const initialPhysicalTraits: PhysicalTraits = {
@@ -129,12 +129,12 @@ export default function EditSessionPage() {
             case 2:
                 // Step 2 is Physical Traits in the UI order (step state map is: 1=Birth, 2=Physical, 3=LifeEvents, 4=Review) 
                 // Wait, in the render:
-                // step 2 = Step3PhysicalTraits
-                // step 3 = Step2LifeEvents
+                // step 2 = Step2PhysicalTraits
+                // step 3 = Step3LifeEvents
                 // This seems swapped compared to validate function?
                 // Let's check the render: 
-                // {step === 2 && (<Step3PhysicalTraits ... />)}
-                // {step === 3 && (<Step2LifeEvents ... />)}
+                // {step === 2 && (<Step2PhysicalTraits ... />)}
+                // {step === 3 && (<Step3LifeEvents ... />)}
                 // So Step 2 is Physical, Step 3 is Life Events.
                 return true;
             case 3:
@@ -302,13 +302,13 @@ export default function EditSessionPage() {
                         />
                     )}
                     {step === 2 && (
-                        <Step3PhysicalTraits
+                        <Step2PhysicalTraits
                             physicalTraits={physicalTraits}
                             updateTraits={(updates) => setPhysicalTraits(prev => ({ ...prev, ...updates }))}
                         />
                     )}
                     {step === 3 && (
-                        <Step2LifeEvents
+                        <Step3LifeEvents
                             lifeEvents={lifeEvents}
                             updateEvents={setLifeEvents}
                         />
