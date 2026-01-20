@@ -27,39 +27,41 @@ export async function initSwissEph(): Promise<boolean> {
 
     // 2. Instantiate and initialize the module
     const instance = new SwissEph();
-    await (instance as any).initSwissEph();
+    await instance.initSwissEph();
 
-    // 3. Configure ephemeris path
-    const ephePath = process.env.SWISSEPH_PATH || '/app/ephe';
-    (instance as any).set_ephe_path(ephePath);
-
-    // 4. Create a synchronous adapter to match the native 'swisseph' package API
+    // 3. Create a synchronous adapter to match the native 'swisseph' package API
+    // We use library methods for higher accuracy and better object shapes
     swe = {
+      ...instance, // Spread constants and other methods
       swe_set_sid_mode: (mode: number, t0: number, ayT0: number) => (instance as any).set_sid_mode(mode, t0, ayT0),
       swe_get_ayanamsa_ut: (jd: number) => (instance as any).get_ayanamsa_ut(jd),
       swe_calc_ut: (jd: number, ipl: number, flags: number) => {
-        const res = (instance as any).calc_ut(jd, ipl, flags);
+        // Use the built-in calc method which returns a clean object
+        const res = (instance as any).calc(jd, ipl, flags);
         return {
-          longitude: res[0],
-          latitude: res[1],
-          distance: res[2],
-          longitudeSpeed: res[3],
-          latitudeSpeed: res[4],
-          distanceSpeed: res[5]
+          longitude: res.longitude,
+          latitude: res.latitude,
+          distance: res.distance,
+          longitudeSpeed: res.longitudeSpeed,
+          latitudeSpeed: res.latitudeSpeed,
+          distanceSpeed: res.distanceSpeed
         };
       },
       swe_houses: (jd: number, lat: number, lon: number, hsys: string) => {
+        // Use the built-in houses method
         const res = (instance as any).houses(jd, lat, lon, hsys);
         return {
           house: Array.from(res.cusps as any),
           ascendant: (res.ascmc as any)[0],
           mc: (res.ascmc as any)[1]
         };
-      }
+      },
+      // Expose astronomical julday
+      swe_julday: (y: number, m: number, d: number, h: number) => instance.julday(y, m, d, h)
     };
 
     useSwissEph = true;
-    console.log('✅ Swiss Ephemeris WASM initialized (memory-mapped mode)');
+    console.log('✅ Swiss Ephemeris WASM initialized (using bundled data)');
   } catch (error) {
     console.warn('⚠️ Swiss Ephemeris WASM not available - Using algorithmic calculations', error);
     useSwissEph = false;
