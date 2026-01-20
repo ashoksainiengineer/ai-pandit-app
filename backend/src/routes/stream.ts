@@ -26,9 +26,12 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
 
     // Set SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache, no-transform'); // no-transform is critical for some proxies
+    res.setHeader('Cache-Control', 'no-cache, no-transform, no-store, must-revalidate');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
 
     // 🛡️ Explicit CORS for SSE (Crucial for HF Public Space)
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -40,8 +43,10 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
 
     // 🚀 Proxy-Buffering Bypass: Send a 4KB preamble
     // Hugging Face/Cloudflare can be aggressive with buffering.
-    res.write(':' + ' '.repeat(4096) + '\n\n');
+    res.write(':' + ' '.repeat(2048) + '\n'); // 2KB (some proxies trigger at 2KB)
+    res.write(':' + ' '.repeat(2048) + '\n\n'); // Another 2KB
     res.write(': initial keepalive\n\n');
+    if ((res as any).flush) (res as any).flush();
 
     console.log(`[SSE] Preamble sent for ${sessionId}`);
 
@@ -136,12 +141,13 @@ function sendEvent(res: Response, data: any): void {
         const eventData = JSON.stringify(data);
         res.write(`data: ${eventData}\n\n`);
 
-        // 🚀 FORCE FLUSH: Bypass proxy buffering for smooth "typewriter" effect
+        // 🚀 Aggressive Flush for Real-time tokens
         if ((res as any).flush) {
             (res as any).flush();
         } else if (res.socket) {
-            // Internal Node.js socket flush attempt
+            // Internal Node.js socket flush attempt + Nudge
             (res.socket as any)._handle?.setNoDelay?.(true);
+            (res.socket as any).write(': \n');
         }
     } catch (error) {
         console.error('Failed to send SSE event:', error);

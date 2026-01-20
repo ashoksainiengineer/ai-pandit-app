@@ -13,7 +13,8 @@ console.log('✅ Progress Route Loaded');
 router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { sessionId } = req.params;
-        await handleProgressRequest(sessionId, res);
+        const userId = req.userId!;
+        await handleProgressRequest(sessionId, userId, res);
     } catch (error) {
         console.error('Progress fetch failed:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -26,14 +27,17 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
 router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const sessionId = req.query.sessionId as string;
-        await handleProgressRequest(sessionId, res);
+        const userId = req.userId!;
+        await handleProgressRequest(sessionId, userId, res);
     } catch (error) {
         console.error('Progress fetch failed:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-async function handleProgressRequest(sessionId: string, res: Response) {
+import { decryptData } from '../lib/crypto.js';
+
+async function handleProgressRequest(sessionId: string, userId: string, res: Response) {
     // console.log(`[DEBUG] Progress route hit for ID: ${sessionId}`);
 
     if (!sessionId) {
@@ -59,7 +63,11 @@ async function handleProgressRequest(sessionId: string, res: Response) {
         estimatedWaitSeconds: queueStatus.estimatedWaitSeconds,
         // Include session metadata for frontend "Blueprint" display
         metadata: {
-            fullName: queueStatus.session?.fullName,
+            fullName: queueStatus.session?.fullName
+                ? (queueStatus.session.fullName.startsWith('AES:')
+                    ? decryptData(queueStatus.session.fullName, userId)
+                    : queueStatus.session.fullName)
+                : undefined,
             dateOfBirth: queueStatus.session?.dateOfBirth,
             tentativeTime: queueStatus.session?.tentativeTime,
             birthPlace: queueStatus.session?.birthPlace,
