@@ -484,7 +484,7 @@ export function useStreamProgress(
                 eventSource.close();
                 startPolling(sessionId);
             }
-        }, 15000); // 15s timeout before switching to polling
+        }, 45000); // 45s timeout before switching to polling (Increased for HF Cold Starts)
 
         eventSource.onmessage = (event) => {
             try {

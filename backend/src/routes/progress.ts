@@ -35,7 +35,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
     }
 });
 
-import { decryptData } from '../lib/crypto.js';
+import { safeDecrypt } from '../lib/crypto.js';
 
 async function handleProgressRequest(sessionId: string, userId: string, res: Response) {
     // console.log(`[DEBUG] Progress route hit for ID: ${sessionId}`);
@@ -64,9 +64,7 @@ async function handleProgressRequest(sessionId: string, userId: string, res: Res
         // Include session metadata for frontend "Blueprint" display
         metadata: {
             fullName: queueStatus.session?.fullName
-                ? (queueStatus.session.fullName.startsWith('AES:')
-                    ? decryptData(queueStatus.session.fullName, userId)
-                    : queueStatus.session.fullName)
+                ? safeDecrypt(queueStatus.session.fullName, userId)
                 : undefined,
             dateOfBirth: queueStatus.session?.dateOfBirth,
             tentativeTime: queueStatus.session?.tentativeTime,
