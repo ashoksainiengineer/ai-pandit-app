@@ -123,7 +123,6 @@ export function useStreamProgress(
         totalCandidates: 0,
     });
 
-    // Enhanced State with Polling
     const [connectionState, setConnectionState] = useState<{
         url: string;
         readyState: number; // 0=CONNECTING, 1=OPEN, 2=CLOSED, 3=POLLING
@@ -140,6 +139,35 @@ export function useStreamProgress(
     const rotationTimerRef = useRef<NodeJS.Timeout | null>(null);
     const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+    // 1. Fetch Session Metadata (Birth Data)
+    const fetchSessionData = useCallback(async (sid: string) => {
+        try {
+            console.log('📦 [Stream] Fetching session metadata for', sid);
+            const token = getToken ? await getToken() : null;
+            const headers: HeadersInit = {};
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const res = await fetch(`/api/sessions/${sid}`, { headers });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success && data.data) {
+                    const s = data.data;
+                    setState(prev => ({
+                        ...prev,
+                        metadata: {
+                            fullName: s.fullName,
+                            dateOfBirth: s.dateOfBirth,
+                            tentativeTime: s.tentativeTime,
+                            birthPlace: s.birthPlace
+                        }
+                    }));
+                }
+            }
+        } catch (e) {
+            console.warn('[Metadata] Failed to load session details:', e);
+        }
+    }, [getToken]);
 
     // Polling fetch function - Memoized to prevent stale closures
     const fetchProgress = useCallback(async (sid: string, baseUrl: string = ''): Promise<boolean> => {
@@ -518,6 +546,9 @@ export function useStreamProgress(
 
     useEffect(() => {
         if (!sessionId) return;
+
+        // 1. Load session metadata immediately
+        fetchSessionData(sessionId);
 
         // 🛡️ [GOD-TIER] DUAL-PATH INITIALIZATION
         // Start a single polling fetch immediately to clear the "Connecting..." screen

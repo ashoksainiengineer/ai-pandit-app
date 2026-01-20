@@ -139,9 +139,9 @@ export default function ProgressPage() {
         metadata: sessionMetadata
     } = useStreamProgress(
         sessionId,
-        process.env.NEXT_PUBLIC_BACKEND_URL,
+        '', // Use local proxy (/api/stream) instead of direct backend connection
         useAuth().getToken // 🔒 Pass getToken for Auth
-    ); // Direct backend connection
+    );
 
     // Cancel analysis state
     const [isCancelling, setIsCancelling] = useState(false);
@@ -165,15 +165,13 @@ export default function ProgressPage() {
                 console.warn('No auth token available for cancellation');
             }
 
-            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '';
-            const response = await fetch(`${backendUrl}/api/queue/cancel`, { // Direct backend connection
+            const response = await fetch('/api/queue/cancel', { // Use local proxy
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
                 },
                 body: JSON.stringify({ sessionId }),
-                credentials: 'include',
             });
 
             const data = await response.json();

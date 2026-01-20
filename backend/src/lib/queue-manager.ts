@@ -309,9 +309,9 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
     const session = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
     if (!session.length) return false;
 
-    // Only cancel if queued or processing
-    if (session[0].status !== 'queued' && session[0].status !== 'processing') {
-      logger.warn(`Cannot cancel session ${sessionId}: status is '${session[0].status}'`);
+    // Only cancel if pending, queued or processing
+    if (session[0].status !== 'pending' && session[0].status !== 'queued' && session[0].status !== 'processing') {
+      logger.warn(`Cannot cancel session ${sessionId}: status is '${session[0].status}' (expected pending, queued or processing)`);
       return false;
     }
 
