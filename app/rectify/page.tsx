@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { UserButton } from '@clerk/nextjs';
+import { UserButton, useAuth } from '@clerk/nextjs';
 import { BirthData, LifeEvent, PhysicalTraits, TimeOffsetConfig } from '@/lib/types';
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
 import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
@@ -40,6 +40,8 @@ export default function RectifyPage() {
     const [offsetConfig, setOffsetConfig] = useState<TimeOffsetConfig>({ preset: '1hour', customMinutes: 60, description: '±1 hour' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { getToken } = useAuth();
+
 
     // Cloud draft sync
     const [draftSessionId, setDraftSessionId] = useState<string | null>(null);
@@ -185,9 +187,15 @@ export default function RectifyPage() {
                 physicalTraits
             };
 
-            const response = await fetch('/api/queue', {
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+            const token = await getToken();
+
+            const response = await fetch(`${backendUrl}/api/queue`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(payload)
             });
 
