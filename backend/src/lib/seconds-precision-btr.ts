@@ -662,6 +662,9 @@ async function stage2AILevel1(
 
         const batchPromises = batch.map(async (candidate) => {
             try {
+                // 🛑 Immediate Check inside the loop
+                if (input.abortSignal?.aborted) return null;
+
                 const ephemeris = await calculateEphemeris(
                     input.dateOfBirth,
                     candidate.time,
@@ -673,6 +676,9 @@ async function stage2AILevel1(
                 const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
                 const moonSidereal = ephemeris.planets.moon.longitude;
                 const dashaPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
+
+                // 🛑 Re-check before AI Call
+                if (input.abortSignal?.aborted) return null;
 
                 // 🔮 Emit AI Context (Engine Data) for transparency
                 emitAIContext(input.sessionId, {
