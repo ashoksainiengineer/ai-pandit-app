@@ -1,85 +1,47 @@
 # ═══════════════════════════════════════════════════════════════════════════
-# AI Pandit - Unified BTR Engine (Hugging Face Optimized)
+# AI Pandit - BTR Engine (Hugging Face Backend Only)
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Stage 1: Build everything
+# Stage 1: Build
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Install build dependencies
-RUN apk add --no-cache python3 make g++ git curl
-
-# Copy core files first for better caching
+# Copy package files
 COPY package.json package-lock.json* ./
-RUN npm ci
+# Install root dependencies (including swisseph-wasm)
+RUN npm ci --omit=dev --ignore-scripts
 
-# Ensure swisseph is actually built (native module fallback)
-RUN if [ ! -d "node_modules/swisseph" ]; then \
-    echo "⚠️ swisseph missing, attempting focused install..."; \
-    npm install swisseph; \
-    fi
-
-# Copy source
+# Copy the rest of the source
 COPY . .
 
-# Build Backend first
+# Build Backend (requires devDeps in backend folder)
 RUN cd backend && npm install && npm run build
 
-# Build Next.js Frontend
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_ENV=production
-# Mock DB URL for build time to prevent Drizzle from crashing
-ENV TURSO_DATABASE_URL="libsql://dummy-at-build-time.turso.io"
-RUN NODE_OPTIONS="--max-old-space-size=384" npm run build
-
-# ═══════════════════════════════════════════════════════════════════════════
 # Stage 2: Minimal Runtime
-# ═══════════════════════════════════════════════════════════════════════════
 FROM node:20-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_OPTIONS="--max-old-space-size=384"
-# 🚀 CACHE BREAKER - Guaranteed fresh build
-ENV BUILD_VERSION="1.0.1-final"
+ENV PORT=7860
+ENV SWISSEPH_PATH=/app/ephe
 
-# Create non-root user
-RUN apk add --no-cache libstdc++ libgcc && \
-    addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs
+# Install minimal runtime dependencies for WASM/Node
+RUN apk add --no-cache libstdc++ libgcc
 
-# Ephemeris Data (Local fallbacks prioritized to avoid 404s)
+# Ephemeris Data
 RUN mkdir -p /app/ephe
 COPY ephe/* /app/ephe/
 
-# Copy Standalone Next.js files
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Copy compiled backend
+# Copy built backend and its production dependencies
 COPY --from=builder /app/backend/dist ./backend/dist
 COPY --from=builder /app/backend/package*.json ./backend/
-RUN cd backend && npm install --omit=dev
+# Copy root node_modules for shared libs like swisseph-wasm
+COPY --from=builder /app/node_modules ./node_modules
 
-# Robust swisseph handling
-COPY --from=builder /app/node_modules/swisseph ./node_modules/swisseph
-
-# Startup Script
-COPY scripts/start-all.sh ./start-all.sh
-RUN chmod +x ./start-all.sh
-
-USER nextjs
+# Install backend-specific production dependencies
+RUN cd backend && npm install --omit=dev --ignore-scripts
 
 EXPOSE 7860
-ENV PORT=7860
-ENV HOSTNAME="0.0.0.0"
-ENV SWISSEPH_PATH=/app/ephe
-ENV NEXT_PUBLIC_BACKEND_URL=""
 
-# Simple Healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD wget -qO- http://localhost:7860/api/health || exit 1
-
-CMD ["./start-all.sh"]
+# Start the backend engine directly
+CMD ["node", "backend/dist/server.js"]

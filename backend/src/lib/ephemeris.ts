@@ -279,10 +279,15 @@ export async function calculateEphemeris(
   if (longitude < -180 || longitude > 180) throw new Error('Invalid longitude');
 
   const tz = typeof timezone === 'number' ? timezone : parseFloat(String(timezone)) || 5.5;
-  const jd = calculateJulianDay(convertToUTC(birthDate, birthTime, tz));
+  const utcDate = convertToUTC(birthDate, birthTime, tz);
 
   // Use pre-initialized Swiss Ephemeris status
   const highPrecision = getSwissEphStatus();
+
+  // Use high-precision Julian Day if available
+  const jd = (highPrecision && swe && (swe as any).swe_julday)
+    ? (swe as any).swe_julday(utcDate.getUTCFullYear(), utcDate.getUTCMonth() + 1, utcDate.getUTCDate(), utcDate.getUTCHours() + utcDate.getUTCMinutes() / 60 + utcDate.getUTCSeconds() / 3600)
+    : calculateJulianDay(utcDate);
 
   // Calculate planets - sequential to minimize memory
   const planetNames = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'rahu'] as const;
