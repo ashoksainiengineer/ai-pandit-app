@@ -117,10 +117,56 @@ export function getNakshatraPada(longitude: number): number {
   return Math.floor((longitude % 13.333333333) / 3.333333333) + 1;
 }
 
-export function convertToUTC(date: string, time: string, timezone: number): Date {
+/**
+ * Get timezone offset for an IANA timezone string at a specific date/time
+ * Correctly handles historical DST changes using the Intl API.
+ */
+function getTzOffset(dateStr: string, timeStr: string, timeZone: string): number {
+  if (!timeZone || timeZone === 'UTC') return 0;
+
+  // If it's a numeric offset (e.g. "+5.5" or "5.5")
+  if (timeZone.match(/^[+-]?\d+(\.\d+)?$/)) {
+    return parseFloat(timeZone);
+  }
+
+  try {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const [h, min, s] = timeStr.split(':').map(n => parseInt(n) || 0);
+
+    // We create a date object. The system time doesn't matter, we just need the wall clock parts.
+    const dt = new Date(y, m - 1, d, h, min, s);
+
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      timeZoneName: 'shortOffset',
+    });
+
+    const parts = formatter.formatToParts(dt);
+    const offsetStr = parts.find(p => p.type === 'timeZoneName')?.value || '';
+
+    if (offsetStr.includes('GMT')) {
+      const match = offsetStr.match(/GMT([+-])(\d+)(:(\d+))?/);
+      if (match) {
+        const sign = match[1] === '+' ? 1 : -1;
+        const hours = parseInt(match[2]);
+        const minutes = match[4] ? parseInt(match[4]) : 0;
+        return sign * (hours + minutes / 60);
+      }
+    }
+  } catch (e) {
+    console.warn(`Timezone lookup failed for ${timeZone}, falling back to 0:`, e);
+  }
+
+  return 0;
+}
+
+export function convertToUTC(date: string, time: string, timezone: number | string): Date {
   const [year, month, day] = date.split('-').map(Number);
   const [hour, minute, second] = time.split(':').map(n => parseInt(n) || 0);
-  return new Date(Date.UTC(year, month - 1, day, hour, minute, second) - timezone * 3600000);
+
+  const offset = typeof timezone === 'string' ? getTzOffset(date, time, timezone) : timezone;
+
+  return new Date(Date.UTC(year, month - 1, day, hour, minute, second) - offset * 3600000);
 }
 
 export function calculateJulianDay(date: Date): number {
@@ -268,8 +314,8 @@ export async function calculateEphemeris(
       lord: getLord(ketuSign), retro: true
     };
 
-    // Ascendant from Swiss Ephemeris
-    const houses = swe.swe_houses(jd, latitude, longitude, 'P');
+    // Houses from Swiss Ephemeris (Whole Sign)
+    const houses = swe.swe_houses(jd, latitude, longitude, 'W');
     const ayanamsa = swe.swe_get_ayanamsa_ut(jd);
     let ascLng = houses.ascendant - ayanamsa;
     if (ascLng < 0) ascLng += 360;
@@ -324,11 +370,16 @@ export async function calculateEphemeris(
     const ascSign = getZodiacSign(ascLng);
     const ascendant = { sign: ascSign, degree: ascLng % 30, longitude: ascLng, nakshatra: getNakshatra(ascLng), nakshatraPada: getNakshatraPada(ascLng) };
 
-    // Equal houses
+    // Whole Sign houses
     const houseList: HousePosition[] = [];
+    // In Whole Sign, the first house starts at 0° of the sign containing the Ascendant
+    const ascSignIndex = ZODIAC_SIGNS.indexOf(ascendant.sign as any);
     for (let i = 0; i < 12; i++) {
-      const cusp = (ascLng + i * 30) % 360;
-      houseList.push({ houseNumber: i + 1, sign: getZodiacSign(cusp), degree: cusp % 30, cusp });
+      const houseSignIndex = (ascSignIndex + i) % 12;
+      const sign = ZODIAC_SIGNS[houseSignIndex];
+      // Whole Sign cusp is defined as 0° of the sign
+      const cusp = houseSignIndex * 30;
+      houseList.push({ houseNumber: i + 1, sign, degree: 0, cusp });
     }
 
     return { planets: planets as any, ascendant, houses: houseList };

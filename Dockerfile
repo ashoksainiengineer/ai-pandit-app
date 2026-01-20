@@ -11,10 +11,13 @@ RUN apk add --no-cache python3 make g++ git curl
 
 # Copy core files first for better caching
 COPY package.json package-lock.json* ./
-RUN npm ci --include=optional
+RUN npm ci
 
-# 🛡️ FOOLPROOF: Ensure swisseph exists even if it fails to build
-RUN mkdir -p node_modules/swisseph && touch node_modules/swisseph/.placeholder
+# Ensure swisseph is actually built (native module fallback)
+RUN if [ ! -d "node_modules/swisseph" ]; then \
+    echo "⚠️ swisseph missing, attempting focused install..."; \
+    npm install swisseph; \
+    fi
 
 # Copy source
 COPY . .
@@ -25,6 +28,8 @@ RUN cd backend && npm install && npm run build
 # Build Next.js Frontend
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+# Mock DB URL for build time to prevent Drizzle from crashing
+ENV TURSO_DATABASE_URL="libsql://dummy-at-build-time.turso.io"
 RUN NODE_OPTIONS="--max-old-space-size=384" npm run build
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -40,7 +45,8 @@ ENV NODE_OPTIONS="--max-old-space-size=384"
 ENV BUILD_VERSION="1.0.1-final"
 
 # Create non-root user
-RUN addgroup --system --gid 1001 nodejs && \
+RUN apk add --no-cache libstdc++ libgcc && \
+    addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 # Ephemeris Data (Local fallbacks prioritized to avoid 404s)

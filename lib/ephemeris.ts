@@ -20,7 +20,9 @@ function initSwissEph(): boolean {
   if (isInitialized) return useSwissEph;
 
   try {
-    swe = require('swisseph');
+    // 🛡️ Next.js/Webpack workaround: use eval('require') to hide native module from build-time bundling
+    const nativeRequire = eval('require');
+    swe = nativeRequire('swisseph');
     // Path to ephemeris data files (memory-mapped, not loaded into RAM)
     const ephePath = process.env.SWISSEPH_PATH || '/app/ephe';
     swe.swe_set_ephe_path(ephePath);

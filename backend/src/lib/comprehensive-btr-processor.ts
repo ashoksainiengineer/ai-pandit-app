@@ -3,7 +3,7 @@
 // Sequential processing for 512MB RAM efficiency
 // Target: 99%+ accuracy
 
-import { calculateEphemeris } from './ephemeris';
+import { calculateEphemeris, calculateJulianDay, convertToUTC } from './ephemeris';
 import {
     calculateVimshottariDasha,
     getDashaForDate,
@@ -318,7 +318,7 @@ async function multiMethodQuickFilter(
                 timezone
             );
 
-            const jd = dateToJulianDay(dateOfBirth, candidate.time, timezone);
+            const jd = calculateJulianDay(convertToUTC(dateOfBirth, candidate.time, timezone));
             const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
 
             // ═══════════════════════════════════════════════════════════════════
@@ -523,7 +523,7 @@ async function comprehensiveKimiAnalysis(
                 timezone
             );
 
-            const jd = dateToJulianDay(dateOfBirth, candidate.time, timezone);
+            const jd = calculateJulianDay(convertToUTC(dateOfBirth, candidate.time, timezone));
             const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
 
             // ═══════════════════════════════════════════════════════════════════
@@ -787,39 +787,6 @@ function selectBestWithConsensus(results: ComprehensiveAnalysisResult[]): Compre
 // UTILITY
 // ═════════════════════════════════════════════════════════════════════════════
 
-function dateToJulianDay(dateStr: string, timeStr: string, timezone: string): number {
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const [hour, minute, second] = timeStr.split(':').map(n => Number(n) || 0);
 
-    let tzOffset = 0;
-    if (timezone.includes('/')) {
-        if (timezone.includes('Kolkata')) tzOffset = 5.5;
-        else if (timezone.includes('New_York')) tzOffset = -5;
-        else if (timezone.includes('London')) tzOffset = 0;
-        else if (timezone.includes('Los_Angeles')) tzOffset = -8;
-    } else if (timezone.match(/^[+-]?\d+(\.\d+)?$/)) {
-        tzOffset = parseFloat(timezone);
-    }
-
-    const utcHour = hour - tzOffset;
-    const timeDecimal = utcHour + minute / 60 + second / 3600;
-
-    let y = year;
-    let m = month;
-    if (m <= 2) {
-        y -= 1;
-        m += 12;
-    }
-
-    const a = Math.floor(y / 100);
-    const b = 2 - a + Math.floor(a / 4);
-
-    const jd = Math.floor(365.25 * (y + 4716)) +
-        Math.floor(30.6001 * (m + 1)) +
-        day + b - 1524.5 +
-        timeDecimal / 24;
-
-    return jd;
-}
 
 export default processComprehensiveAnalysis;

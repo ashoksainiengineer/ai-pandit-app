@@ -297,10 +297,14 @@ export class ProgressTracker {
      */
     private async saveProgress(): Promise<void> {
         try {
-            // console.log('[ProgressTracker] Saving progress to DB...');
+            // 🛡️ Data Minimization: Strip reasoning tokens/AI thinking from database persistence
+            // We keep it in memory for real-time polling, but dont save to Turso
+            const dbProgress = { ...this.progress };
+            delete dbProgress.lastAIThinking;
+
             await db.update(sessions)
                 .set({
-                    progressData: JSON.stringify(this.progress),
+                    progressData: JSON.stringify(dbProgress),
                     updatedAt: new Date().toISOString(),
                 })
                 .where(eq(sessions.id, this.sessionId));

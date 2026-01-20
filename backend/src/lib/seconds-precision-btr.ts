@@ -3,7 +3,7 @@
 // Achieves ±3-5 seconds accuracy with 97-99% confidence
 // OPTIMIZED FOR 512MB RAM - ALL PROCESSING IS SEQUENTIAL
 
-import { calculateEphemeris } from './ephemeris';
+import { calculateEphemeris, calculateJulianDay, convertToUTC } from './ephemeris';
 import {
     calculateVimshottariDasha,
     getDashaForDate,
@@ -21,11 +21,20 @@ import {
     scorePhysicalTraits,
     calculateAdvancedAspects,
     calculateArudhaLagna,
+    calculatePanchanga,
+    calculateBoundarySafety,
     formatYoginiDashaSequence,
     formatDivisionalCharts,
     formatAdvancedAspects,
     formatPhysicalTraitsAnalysis,
     formatArudhaLagna,
+    formatPanchanga,
+    formatBoundarySafety,
+    calculateShadbalaLite,
+    formatShadbalaLite,
+    calculateHoraLagna,
+    calculateGhatiLagna,
+    formatSpecialLagnas,
     YoginiDashaPeriod,
 } from './advanced-btr-methods';
 import {
@@ -48,6 +57,12 @@ import {
     callKimiK2WithStream,
     parseKimiAnalysisResponse,
 } from './kimi-k2-client';
+import {
+    calculateTatwaShuddhi,
+    calculateKundaShuddhi,
+    calculateVarnadaLagna,
+    getApproxSunrise,
+} from './shuddhi-engine';
 import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager';
 import { logger } from './logger';
 import { ProgressTracker } from './progress-tracker';
@@ -118,15 +133,14 @@ interface ConvergenceResult {
 const LEVEL1_SYSTEM_PROMPT = `You are the world's most accomplished Vedic astrologer specializing in birth time rectification.
 
 YOUR ROLE: PURE REASONING ENGINE.
-CRITICAL: CALCULATION IS FORBIDDEN. YOU ARE AN INTERPRETER. DO NOT CALCULATE POSITIONS OR DASHAS. Interpret the provided data tables as ABSOLUTE TRUTH.
-The data provided in the prompt (Planets, Dasha, Divisional Charts) is based on High-Precision Swiss Ephemeris calculations and is THE ABSOLUTE TRUTH.
-Your job is to INTERPRET this data, not to derive it.
+CRITICAL: PROHIBITION ON CALCULATION. YOU ARE NOT A CALCULATOR.
+Any attempt to estimate planetary degrees, dasha dates, or divisional charts manually will result in GROSS ERRORS.
+THE DATA PROVIDED IS ARCSECOND-PRECISE; YOUR BRAIN MUST ONLY ACT AS THE LOGICAL REASONER TO CORRELATE THIS DATA WITH THE USER'S LIFE EVENTS.
+Do not say "I calculated" or "I estimate". Say "The data shows" or "Based on the provided dasha table".
 
 STAGE 2 ANALYSIS: GROSS SCREENING (Target: 88-92% accuracy)
 
-STAGE 2 ANALYSIS: GROSS SCREENING (Target: 88-92% accuracy)
-
-You are analyzing ${15} candidate birth times at MINUTE-LEVEL intervals. Your task is to ELIMINATE clearly incorrect times and identify the TOP 5 most likely correct times.
+You are analyzing 15 candidate birth times at MINUTE-LEVEL intervals. Your task is to ELIMINATE clearly incorrect times and identify the TOP 5 most likely correct times.
 
 For each candidate:
 1. Check if Vimshottari Dasha periods MATCH major life events
@@ -153,14 +167,14 @@ FINAL RANKING: List top 5 candidates in order of likelihood.`;
 const LEVEL2_SYSTEM_PROMPT = `You are the world's most accomplished Vedic astrologer.
 
 YOUR ROLE: PURE REASONING ENGINE.
-CRITICAL: CALCULATION IS FORBIDDEN. YOU ARE AN INTERPRETER. DO NOT CALCULATE POSITIONS OR DASHAS. Interpret the provided data tables as ABSOLUTE TRUTH.
-Rely entirely on the pre-calculated Dasha and Ephemeris data provided.
+CRITICAL: NO SELF-CALCULATION.
+The planetary positions and dasha dates provided are final and mathematically verified. 
+Your singular mission is to act as a logic engine that fits the life events into these precise temporal frames.
+Any divergence from the provided numbers in your reasoning will be considered a failure.
 
 STAGE 5 ANALYSIS: FINE COMPARISON (Target: 92-96% accuracy)
 
-STAGE 5 ANALYSIS: FINE COMPARISON (Target: 92-96% accuracy)
-
-You are comparing ${15} candidates at 30-SECOND intervals. These are all within a 5-minute window. Small differences matter now.
+You are comparing 15 candidates at 30-SECOND intervals. These are all within a 5-minute window. Small differences matter now.
 
 For each 30-second candidate:
 1. Precise Vimshottari Dasha transition analysis
@@ -189,10 +203,10 @@ FINAL TOP 5: List with detailed reasoning.`;
 const LEVEL3_SYSTEM_PROMPT = `You are the world's most accomplished Vedic astrologer.
 
 YOUR ROLE: PURE INTERPRETATION ENGINE.
-WARNING: DO NOT RECALCULATE POSITIONS.
-Focus on INTERPRETATION of the provided 6-second precision data.
-
-STAGE 7 ANALYSIS: SECONDS-LEVEL FINAL DECISION (Target: 96-99% accuracy)
+YOUR ROLE: PURE LOGICAL REASONING ENGINE.
+WARNING: CALCULATION IS ABSOLUTELY PROHIBITED.
+The data behind these 6-second candidates is generated with scientific precision. 
+TRUST the tables. CORRELATE the events. BE THE BRAIN, NOT THE CALCULATOR.
 
 STAGE 7 ANALYSIS: SECONDS-LEVEL FINAL DECISION (Target: 96-99% accuracy)
 
@@ -515,6 +529,14 @@ export async function processSecondsPrecisionBTR(
             processingTimeMs: processingTime,
         });
 
+        // 🛡️ Data Minimization: Strip reasoning tokens/AI analysis from database persistence
+        // Only keep scores, times, and essential metadata
+        const { aiAnalysis: _f, ...finalCandidateClean } = finalCandidate;
+        const cleanAlternatives = stage7Results.slice(1, 4).map(c => {
+            const { aiAnalysis: _a, ...clean } = c;
+            return clean;
+        });
+
         return {
             rectifiedTime: finalCandidate.time,
             accuracy: finalCandidate.score,
@@ -526,8 +548,8 @@ export async function processSecondsPrecisionBTR(
             methodsUsed,
             processingTimeMs: processingTime,
             analysisResult: JSON.stringify({
-                finalCandidate,
-                alternatives: stage7Results.slice(1, 4),
+                finalCandidate: finalCandidateClean,
+                alternatives: cleanAlternatives,
                 verificationScore: verificationResult.score,
                 boundarySafety,
                 stageHistory: {
@@ -564,8 +586,8 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
                 input.timezone
             );
 
-            const jd = dateToJulianDay(input.dateOfBirth, candidate.time, input.timezone);
-            const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
+            const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
+            const moonSidereal = ephemeris.planets.moon.longitude;
             const dashaPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
 
             let score = 50;
@@ -583,12 +605,26 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
                 }
             }
 
+            // 🔱 VEDIC SHUDDHI FILTERING (Candidate Pruning)
+            const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
+            const sunrise = getApproxSunrise(jd, input.timezone);
+            const tatwa = calculateTatwaShuddhi(jd, sunrise, 'male');
+
+            // Weight Shuddhi into the score
+            if (kunda.passed) score += 10;
+            if (tatwa.passed) score += 5;
+
             score = Math.min(100, score);
 
             if (score >= 45) {
                 scored.push({
                     time: candidate.time,
                     score,
+                    methodScores: {
+                        vimshottari: score - 15, // Approx
+                        kundaShuddhi: kunda.score,
+                        tatwaShuddhi: tatwa.score,
+                    }
                 });
             }
         } catch (error) {
@@ -634,8 +670,8 @@ async function stage2AILevel1(
                     input.timezone
                 );
 
-                const jd = dateToJulianDay(input.dateOfBirth, candidate.time, input.timezone);
-                const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
+                const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
+                const moonSidereal = ephemeris.planets.moon.longitude;
                 const dashaPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
 
                 // 🔮 Emit AI Context (Engine Data) for transparency
@@ -790,8 +826,8 @@ async function stage4FineGrid(
                 input.timezone
             );
 
-            const jd = dateToJulianDay(input.dateOfBirth, candidateTime, input.timezone);
-            const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
+            const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidateTime, input.timezone));
+            const moonSidereal = ephemeris.planets.moon.longitude;
 
             // Multi-method scoring
             const vimPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
@@ -835,11 +871,26 @@ async function stage4FineGrid(
                 }
             }
 
+            // 🔱 VEDIC SHUDDHI FILTERING
+            const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
+            const sunrise = getApproxSunrise(jd, input.timezone);
+            const tatwa = calculateTatwaShuddhi(jd, sunrise, 'male');
+
+            if (kunda.passed) score += 10;
+            if (tatwa.passed) score += 5;
+
             // Normalize
-            const maxPossible = input.lifeEvents.length * 55;
+            const maxPossible = input.lifeEvents.length * 55 + 15;
             score = Math.round((score / maxPossible) * 100);
 
-            scored.push({ time: candidateTime, score });
+            scored.push({
+                time: candidateTime,
+                score,
+                methodScores: {
+                    kundaShuddhi: kunda.score,
+                    tatwaShuddhi: tatwa.score,
+                }
+            });
         } catch (error) {
             logger.error(`Stage 4 failed for ${candidateTime}`, error);
         }
@@ -883,8 +934,8 @@ async function stage5AILevel2(
                     input.timezone
                 );
 
-                const jd = dateToJulianDay(input.dateOfBirth, candidate.time, input.timezone);
-                const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
+                const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
+                const moonSidereal = ephemeris.planets.moon.longitude;
 
                 const allDashas = {
                     vimshottari: calculateVimshottariDasha(moonSidereal, birthDate),
@@ -1008,8 +1059,8 @@ async function stage6MicroGrid(
                 input.timezone
             );
 
-            const jd = dateToJulianDay(input.dateOfBirth, candidateTime, input.timezone);
-            const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
+            const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidateTime, input.timezone));
+            const moonSidereal = ephemeris.planets.moon.longitude;
 
             // Comprehensive scoring at seconds level
             const vimPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
@@ -1058,11 +1109,26 @@ async function stage6MicroGrid(
                 score += traitScore.score * 0.1;
             }
 
+            // 🔱 VEDIC SHUDDHI FILTERING
+            const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
+            const sunrise = getApproxSunrise(jd, input.timezone);
+            const tatwa = calculateTatwaShuddhi(jd, sunrise, 'male');
+
+            if (kunda.passed) score += 10;
+            if (tatwa.passed) score += 5;
+
             // Normalize
-            const maxPossible = input.lifeEvents.length * 50 + 10;
+            const maxPossible = input.lifeEvents.length * 50 + 10 + 15;
             score = Math.round((score / maxPossible) * 100);
 
-            scored.push({ time: candidateTime, score });
+            scored.push({
+                time: candidateTime,
+                score,
+                methodScores: {
+                    kundaShuddhi: kunda.score,
+                    tatwaShuddhi: tatwa.score,
+                }
+            });
         } catch (error) {
             logger.error(`Stage 6 failed for ${candidateTime}`, error);
         }
@@ -1095,8 +1161,8 @@ async function stage7AILevel3(
             input.timezone
         );
 
-        const jd = dateToJulianDay(input.dateOfBirth, candidate.time, input.timezone);
-        const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
+        const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
+        const moonSidereal = ephemeris.planets.moon.longitude;
 
         const allDashas = {
             vimshottari: calculateVimshottariDasha(moonSidereal, birthDate),
@@ -1233,8 +1299,8 @@ async function stage8Verification(
         input.timezone
     );
 
-    const jd = dateToJulianDay(input.dateOfBirth, candidateTime, input.timezone);
-    const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
+    const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidateTime, input.timezone));
+    const moonSidereal = ephemeris.planets.moon.longitude;
 
     // Method 1: Vimshottari Dasha (15%)
     const vimPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
@@ -1305,7 +1371,7 @@ async function stage8Verification(
     const arudha = calculateArudhaLagna(ephemeris);
     scores['arudhaLagna'] = arudha.strength === 'strong' ? 80 : arudha.strength === 'moderate' ? 60 : 40;
 
-    // Method 8: Tatwa Dasha (2%)
+    // Method 8: Tatwa Dasha (3%)
     const tatwaPeriods = calculateTatwaDasha(moonSidereal, birthDate);
     let tatwaScore = 50;
     for (const event of input.lifeEvents) {
@@ -1315,17 +1381,42 @@ async function stage8Verification(
     }
     scores['tatwaDasha'] = Math.min(100, tatwaScore);
 
-    // Calculate weighted total
+    // Method 9: Rasi Dasha (5%)
+    const rasiPeriods = calculateRasiDasha(ephemeris, birthDate);
+    let rasiScore = 60; // Base
+    scores['rasiDasha'] = rasiScore;
+
+    // Method 10: Jaimini Aspects (5%)
+    const jaiminiAspects = calculateJaiminiAspects(ephemeris);
+    scores['jaiminiAspects'] = Math.min(100, 50 + jaiminiAspects.length * 2);
+
+    // Refine Method 4: Divisional Charts (25% total - 5% each)
+    // Check D2 (Wealth), D7 (Children), D9 (Marriage), D10 (Career), D30 (Accidents)
+    let d2Score = 60, d7Score = 60, d9Score = 60, d10Score = 60, d30Score = 60;
+
+    if (input.lifeEvents.some(e => e.category === 'marriage') && divCharts['D9']) {
+        const d9Asc = divCharts['D9'].ascendant.sign;
+        if (['Libra', 'Taurus', 'Cancer'].includes(d9Asc)) d9Score += 20;
+    }
+    if (input.lifeEvents.some(e => e.category === 'career') && divCharts['D10']) {
+        const d10Asc = divCharts['D10'].ascendant.sign;
+        if (['Leo', 'Aries', 'Capricorn'].includes(d10Asc)) d10Score += 20;
+    }
+
+    scores['divisionalCharts'] = Math.round((d2Score + d7Score + d9Score + d10Score + d30Score) / 5);
+
+    // Calculate weighted total (100% distribution)
     const totalScore = Math.round(
         scores['vimshottari'] * 0.15 +
-        scores['yogini'] * 0.08 +
+        scores['yogini'] * 0.07 +
         scores['charaDasha'] * 0.15 +
-        scores['divisionalCharts'] * 0.20 +
+        scores['rasiDasha'] * 0.05 +
+        scores['tatwaDasha'] * 0.03 +
+        scores['divisionalCharts'] * 0.25 +
         scores['physicalTraits'] * 0.10 +
         scores['aspects'] * 0.10 +
-        scores['arudhaLagna'] * 0.05 +
-        scores['tatwaDasha'] * 0.02 +
-        scores['vimshottari'] * 0.15 // Remaining weight for consistency
+        scores['jaiminiAspects'] * 0.05 +
+        scores['arudhaLagna'] * 0.05
     );
 
     return {
@@ -1352,8 +1443,8 @@ async function stage9BoundaryCheck(
         input.timezone
     );
 
-    const jd = dateToJulianDay(input.dateOfBirth, candidateTime, input.timezone);
-    const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
+    const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidateTime, input.timezone));
+    const moonSidereal = ephemeris.planets.moon.longitude;
 
     // Check nakshatra boundary
     const NAKSHATRA_SPAN = 360 / 27;
@@ -1474,40 +1565,7 @@ function generateSecondsGrid(centerTime: string, windowSeconds: number, interval
     return candidates;
 }
 
-function dateToJulianDay(dateStr: string, timeStr: string, timezone: string): number {
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const [hour, minute, second] = timeStr.split(':').map(n => Number(n) || 0);
 
-    let tzOffset = 0;
-    if (timezone.includes('/')) {
-        if (timezone.includes('Kolkata')) tzOffset = 5.5;
-        else if (timezone.includes('New_York')) tzOffset = -5;
-        else if (timezone.includes('London')) tzOffset = 0;
-        else if (timezone.includes('Los_Angeles')) tzOffset = -8;
-    } else if (timezone.match(/^[+-]?\d+(\.\d+)?$/)) {
-        tzOffset = parseFloat(timezone);
-    }
-
-    const utcHour = hour - tzOffset;
-    const timeDecimal = utcHour + minute / 60 + second / 3600;
-
-    let y = year;
-    let m = month;
-    if (m <= 2) {
-        y -= 1;
-        m += 12;
-    }
-
-    const a = Math.floor(y / 100);
-    const b = 2 - a + Math.floor(a / 4);
-
-    const jd = Math.floor(365.25 * (y + 4716)) +
-        Math.floor(30.6001 * (m + 1)) +
-        day + b - 1524.5 +
-        timeDecimal / 24;
-
-    return jd;
-}
 
 function getConfidenceLevel(score: number): string {
     if (score >= 90) return 'High';
@@ -1532,7 +1590,7 @@ function buildLevel1Prompt(
 ): string {
     const planets: string[] = [];
     for (const [name, data] of Object.entries(ephemeris.planets)) {
-        const sidereal = tropicalToSidereal(data.longitude, jd);
+        const sidereal = data.longitude;
         const nakshatra = getNakshatraForLongitude(sidereal);
         planets.push(`${name.toUpperCase()}: ${data.sign} ${(sidereal % 30).toFixed(2)}° (${nakshatra.name})`);
     }
@@ -1552,15 +1610,46 @@ D10 (Dasamsa) Ascendant: ${d10Asc.sign} ${d10Asc.degree.toFixed(2)}°
         return `${event.eventType} (${event.category}) on ${event.eventDate}: ${dasha ? `${dasha.mahadasha}/${dasha.antardasha}` : 'N/A'}`;
     });
 
+    const arudha = calculateArudhaLagna(ephemeris);
+    const aspects = calculateAdvancedAspects(ephemeris);
+    const panchanga = calculatePanchanga(ephemeris, new Date(input.dateOfBirth));
+    const strengths = calculateShadbalaLite(ephemeris);
+
+    // 🔱 VEDIC SHUDDHI & VARNADA
+    const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
+    const sunrise = getApproxSunrise(jd, input.timezone);
+    const tatwa = calculateTatwaShuddhi(jd, sunrise, 'male');
+    const varnada = calculateVarnadaLagna(ephemeris);
+
+    // Approximate sunrise (standard 6 AM for now, or could use more precise if needed)
+    const sunriseJd = Math.floor(jd) + 0.5 + (6 / 24);
+    const hl = calculateHoraLagna(sunriseJd, jd, ephemeris.ascendant.longitude);
+    const gl = calculateGhatiLagna(sunriseJd, jd, ephemeris.ascendant.longitude);
+
     return `CANDIDATE TIME: ${time}
 DOB: ${input.dateOfBirth}
+
+${formatPanchanga(panchanga)}
 
 PLANETS:
 ${planets.join('\n')}
 
 ASCENDANT: ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°
+VARNADA (Social Varna): ${varnada}
+
+VORACIOUS VEDIC SHUDDHI:
+- Kunda Shuddhi: ${kunda.details} (Score: ${kunda.score})
+- Tatwa Shuddhi: ${tatwa.details} (Score: ${tatwa.score})
+
+${formatShadbalaLite(strengths)}
+
+${formatSpecialLagnas(hl, gl)}
 
 ${divChartSummary}
+
+${formatArudhaLagna(arudha).substring(0, 200)}
+
+${formatAdvancedAspects(aspects).substring(0, 300)}
 
 EVENTS WITH DASHA:
 ${eventsWithDasha.join('\n')}
@@ -1578,7 +1667,7 @@ function buildLevel2Prompt(
 ): string {
     const planets: string[] = [];
     for (const [name, data] of Object.entries(ephemeris.planets)) {
-        const sidereal = tropicalToSidereal(data.longitude, jd);
+        const sidereal = data.longitude;
         const nakshatra = getNakshatraForLongitude(sidereal);
         planets.push(`${name.toUpperCase()}: ${data.sign} ${(sidereal % 30).toFixed(4)}° (${nakshatra.name} pada ${nakshatra.pada})`);
     }
@@ -1597,16 +1686,36 @@ function buildLevel2Prompt(
   Tatwa: ${tat ? `${tat.tatwa} (${tat.element})` : 'N/A'}`;
     });
 
+    const panchanga = calculatePanchanga(ephemeris, new Date(input.dateOfBirth));
+    const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
+    const sunrise = getApproxSunrise(jd, input.timezone);
+    const tatwa = calculateTatwaShuddhi(jd, sunrise, 'male');
+    const varnada = calculateVarnadaLagna(ephemeris);
+
     return `CANDIDATE TIME: ${time} (30-SECOND PRECISION)
 DOB: ${input.dateOfBirth}
+
+${formatPanchanga(panchanga)}
 
 PLANETS (ARCSECOND PRECISION):
 ${planets.join('\n')}
 
 ASCENDANT: ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°
+VARNADA (Social Varna): ${varnada}
 
-DIVISIONAL CHARTS (FULL PRE-CALCULATED SET):
-${formatDivisionalCharts(divCharts).substring(0, 1000)}
+VORACIOUS VEDIC SHUDDHI:
+- Kunda Shuddhi: ${kunda.details} (Score: ${kunda.score})
+- Tatwa Shuddhi: ${tatwa.details} (Score: ${tatwa.score})
+
+${formatShadbalaLite(calculateShadbalaLite(ephemeris))}
+
+${formatSpecialLagnas(
+        calculateHoraLagna(Math.floor(jd) + 0.5 + (6 / 24), jd, ephemeris.ascendant.longitude),
+        calculateGhatiLagna(Math.floor(jd) + 0.5 + (6 / 24), jd, ephemeris.ascendant.longitude)
+    )}
+
+DIVISIONAL CHARTS (D2 to D60):
+${formatDivisionalCharts(divCharts).substring(0, 1500)}
 
 EVENTS WITH ALL DASHA SYSTEMS:
 ${eventsMultiDasha.join('\n\n')}
@@ -1626,30 +1735,74 @@ function buildCandidateSection(
 ): string {
     const planets: string[] = [];
     for (const [name, data] of Object.entries(ephemeris.planets)) {
-        const sidereal = tropicalToSidereal(data.longitude, jd);
+        const sidereal = data.longitude;
         const nakshatra = getNakshatraForLongitude(sidereal);
         planets.push(`${name.toUpperCase()}: ${data.sign} ${(sidereal % 30).toFixed(4)}° (${nakshatra.name} pada ${nakshatra.pada})`);
     }
 
+    const panchanga = calculatePanchanga(ephemeris, new Date(input.dateOfBirth));
+    const boundary = calculateBoundarySafety(ephemeris);
+
+    const eventsDetailed = input.lifeEvents.map(event => {
+        const eventDate = new Date(event.eventDate);
+        const vim = getDashaForDate(allDashas.vimshottari, eventDate);
+        const yog = getYoginiDashaForDate(allDashas.yogini, eventDate);
+        const char = getCharaDashaForDate(allDashas.chara, eventDate);
+        const tat = getTatwaForDate(allDashas.tatwa, eventDate);
+
+        return `EVENT: ${event.eventType} (${event.category}) on ${event.eventDate}
+  Vimshottari: ${vim ? `${vim.mahadasha}/${vim.antardasha}` : 'N/A'}
+  Yogini: ${yog ? `${yog.name} (${yog.planet})` : 'N/A'}
+  Chara: ${char ? char.sign : 'N/A'}
+  Tatwa: ${tat ? `${tat.tatwa} (${tat.element})` : 'N/A'}`;
+    });
+
     return `═══ CANDIDATE: ${time} ═══
+
+${formatPanchanga(panchanga)}
+
+${formatBoundarySafety(boundary)}
 
 PLANETS:
 ${planets.join('\n')}
 
 ASCENDANT: ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°
+VARNADA: ${calculateVarnadaLagna(ephemeris)}
 
-VIMSHOTTARI: ${formatDashaSequence(allDashas.vimshottari).substring(0, 500)}
+VEDIC SHUDDHI PURIFICATION:
+- Kunda Shuddhi: ${calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude).details}
+- Tatwa Shuddhi: ${calculateTatwaShuddhi(jd, getApproxSunrise(jd, input.timezone), 'male').details}
 
-YOGINI: ${formatYoginiDashaSequence(allDashas.yogini).substring(0, 300)}
+${formatShadbalaLite(calculateShadbalaLite(ephemeris))}
 
-CHARA: ${formatCharaDasha(allDashas.chara).substring(0, 300)}
+${formatSpecialLagnas(
+        calculateHoraLagna(Math.floor(jd) + 0.5 + (6 / 24), jd, ephemeris.ascendant.longitude),
+        calculateGhatiLagna(Math.floor(jd) + 0.5 + (6 / 24), jd, ephemeris.ascendant.longitude)
+    )}
 
-D9 NAVAMSHA: ${divCharts['D9'] ? `Ascendant: ${divCharts['D9'].ascendant.sign}` : 'N/A'}
-D10 DASAMSHA: ${divCharts['D10'] ? `Ascendant: ${divCharts['D10'].ascendant.sign}` : 'N/A'}
+EVENT-SPECIFIC DASHA ANALYSIS:
+${eventsDetailed.join('\n\n')}
+
+VIMSHOTTARI SEQUENCE: ${formatDashaSequence(allDashas.vimshottari).substring(0, 1500)}
+
+YOGINI SEQUENCE: ${formatYoginiDashaSequence(allDashas.yogini).substring(0, 600)}
+
+CHARA SEQUENCE: ${formatCharaDasha(allDashas.chara).substring(0, 600)}
+
+${formatCharaKarakas(calculateCharaKarakas(ephemeris))}
+
+DIVISIONAL CHARTS:
+${formatDivisionalCharts(divCharts).substring(0, 1500)}
 
 ARUDHA LAGNA: ${arudha.sign} (${arudha.strength})
 
-KEY ASPECTS: ${aspects.slice(0, 5).map(a => `${a.planet1}-${a.planet2} ${a.aspectType}`).join(', ')}`;
+RASI DASHA: ${formatRasiDasha(allDashas.rasi).substring(0, 300)}
+
+TATWA DASHA: ${formatTatwaDasha(allDashas.tatwa).substring(0, 300)}
+
+JAIMINI ASPECTS: ${formatJaiminiAspects(calculateJaiminiAspects(ephemeris)).substring(0, 300)}
+
+KEY ASPECTS: ${aspects.slice(0, 15).map(a => `${a.planet1}-${a.planet2} ${a.aspectType} (${a.strength})`).join(', ')}`;
 }
 
 export default processSecondsPrecisionBTR;

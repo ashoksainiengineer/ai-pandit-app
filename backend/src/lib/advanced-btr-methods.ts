@@ -17,7 +17,7 @@ export interface YoginiDashaPeriod {
 }
 
 export interface DivisionalChart {
-    chartType: string;  // D2, D7, D9, D10, D30
+    chartType: string;  // D2, D7, D9, D10, D30, D60
     planets: Record<string, { sign: string; degree: number; house: number }>;
     ascendant: { sign: string; degree: number };
 }
@@ -43,6 +43,13 @@ export interface ArudhaLagna {
     degree: number;
     lord: string;
     strength: 'strong' | 'moderate' | 'weak';
+}
+
+export interface SpecialLagna {
+    name: string;
+    longitude: number;
+    sign: string;
+    degree: number;
 }
 
 export interface SecondaryProgression {
@@ -298,41 +305,45 @@ export function calculateD30(longitude: number): { sign: string; degree: number;
     const degreeInSign = longitude % 30;
     const isOddSign = signIndex % 2 === 0;
 
-    // D30 divisions for odd signs: Mars(5°), Saturn(5°), Jupiter(8°), Mercury(7°), Venus(5°)
-    // For even signs: reverse order
-    const oddDivisions = [
-        { ruler: 'Mars', degrees: 5, sign: 0 },    // Aries
-        { ruler: 'Saturn', degrees: 5, sign: 10 },  // Aquarius
-        { ruler: 'Jupiter', degrees: 8, sign: 8 },  // Sagittarius
-        { ruler: 'Mercury', degrees: 7, sign: 2 },  // Gemini
-        { ruler: 'Venus', degrees: 5, sign: 6 },    // Libra
-    ];
+    // Standard Parashari Trimshamsha degrees
+    const oddLimits = [5, 10, 18, 25, 30];
+    const evenLimits = [5, 12, 20, 25, 30];
+    const oddRulers = ['Mars', 'Saturn', 'Jupiter', 'Mercury', 'Venus'];
+    const evenRulers = ['Venus', 'Mercury', 'Jupiter', 'Saturn', 'Mars'];
+    const oddSigns = ['Aries', 'Aquarius', 'Sagittarius', 'Gemini', 'Libra'];
+    const evenSigns = ['Taurus', 'Virgo', 'Pisces', 'Capricorn', 'Scorpio'];
 
-    const evenDivisions = [
-        { ruler: 'Venus', degrees: 5, sign: 1 },    // Taurus
-        { ruler: 'Mercury', degrees: 7, sign: 5 },  // Virgo
-        { ruler: 'Jupiter', degrees: 8, sign: 11 }, // Pisces
-        { ruler: 'Saturn', degrees: 5, sign: 9 },   // Capricorn
-        { ruler: 'Mars', degrees: 5, sign: 7 },     // Scorpio
-    ];
+    const limits = isOddSign ? oddLimits : evenLimits;
+    const rulers = isOddSign ? oddRulers : evenRulers;
+    const signs = isOddSign ? oddSigns : evenSigns;
 
-    const divisions = isOddSign ? oddDivisions : evenDivisions;
-    let cumulative = 0;
+    let idx = 0;
+    while (idx < 5 && degreeInSign >= limits[idx]) idx++;
+    if (idx === 5) idx = 4;
 
-    for (const div of divisions) {
-        if (degreeInSign < cumulative + div.degrees) {
-            return {
-                sign: ZODIAC_SIGNS[div.sign],
-                degree: (degreeInSign - cumulative) * (30 / div.degrees),
-                ruler: div.ruler,
-            };
-        }
-        cumulative += div.degrees;
-    }
-
-    // Fallback
-    return { sign: ZODIAC_SIGNS[0], degree: 0, ruler: 'Mars' };
+    return { sign: signs[idx], degree: 0, ruler: rulers[idx] };
 }
+
+/**
+ * Calculate D60 (Shashtiamsha) Chart - Cyclic/Sequential
+ * Each sign divided into 60 parts (0.5° each)
+ * Crucial for seconds-level rectification.
+ */
+export function calculateD60(longitude: number): { sign: string; degree: number } {
+    const totalHalfDegrees = Math.floor(longitude / 0.5);
+    const signIndex = Math.floor(longitude / 30);
+    const halfDegreeInSign = Math.floor((longitude % 30) / 0.5);
+
+    // Cyclic order starting from the sign residency
+    const d60SignIndex = (signIndex + halfDegreeInSign) % 12;
+
+    return {
+        sign: ZODIAC_SIGNS[d60SignIndex],
+        degree: (longitude % 0.5) * 60,
+    };
+}
+
+
 
 /**
  * Generate complete divisional chart for all planets
@@ -341,58 +352,81 @@ export function generateDivisionalCharts(
     ephemeris: EphemerisData
 ): Record<string, DivisionalChart> {
     const charts: Record<string, DivisionalChart> = {};
+    const chartTypes = ['D2', 'D7', 'D9', 'D10', 'D30', 'D60'];
 
-    const chartTypes = [
-        { name: 'D2', calc: calculateD2 },
-        { name: 'D7', calc: calculateD7 },
-        { name: 'D9', calc: calculateD9 },
-        { name: 'D10', calc: calculateD10 },
-    ];
-
-    for (const chartType of chartTypes) {
+    for (const type of chartTypes) {
         const planets: Record<string, { sign: string; degree: number; house: number }> = {};
+        for (const [name, pos] of Object.entries(ephemeris.planets)) {
+            let div: { sign: string; degree: number };
+            if (type === 'D2') div = calculateD2(pos.longitude);
+            else if (type === 'D7') div = calculateD7(pos.longitude);
+            else if (type === 'D9') div = calculateD9(pos.longitude);
+            else if (type === 'D10') div = calculateD10(pos.longitude);
+            else if (type === 'D30') div = calculateD30(pos.longitude);
+            else if (type === 'D60') div = calculateD60(pos.longitude);
+            else div = { sign: pos.sign, degree: pos.degree };
 
-        for (const [planetName, planetData] of Object.entries(ephemeris.planets)) {
-            const result = chartType.calc(planetData.longitude);
-            const houseNum = ZODIAC_SIGNS.indexOf(result.sign) + 1;
-            planets[planetName] = {
-                sign: result.sign,
-                degree: result.degree,
-                house: houseNum,
-            };
+            // Find house in divisional chart (relative to divisional ascendant sign - Whole Sign)
+            const divAsc = type === 'D2' ? calculateD2(ephemeris.ascendant.longitude) :
+                type === 'D7' ? calculateD7(ephemeris.ascendant.longitude) :
+                    type === 'D9' ? calculateD9(ephemeris.ascendant.longitude) :
+                        type === 'D10' ? calculateD10(ephemeris.ascendant.longitude) :
+                            type === 'D30' ? calculateD30(ephemeris.ascendant.longitude) :
+                                type === 'D60' ? calculateD60(ephemeris.ascendant.longitude) :
+                                    { sign: ephemeris.ascendant.sign, degree: ephemeris.ascendant.degree };
+
+            const signIdx = ZODIAC_SIGNS.indexOf(div.sign);
+            const ascIdx = ZODIAC_SIGNS.indexOf(divAsc.sign);
+            const house = ((signIdx - ascIdx + 12) % 12) + 1;
+
+            planets[name] = { ...div, house };
         }
 
-        // Calculate ascendant in divisional chart
-        const lagnaResult = chartType.calc(ephemeris.ascendant.longitude);
+        const ascDiv = type === 'D2' ? calculateD2(ephemeris.ascendant.longitude) :
+            type === 'D7' ? calculateD7(ephemeris.ascendant.longitude) :
+                type === 'D9' ? calculateD9(ephemeris.ascendant.longitude) :
+                    type === 'D10' ? calculateD10(ephemeris.ascendant.longitude) :
+                        type === 'D30' ? calculateD30(ephemeris.ascendant.longitude) :
+                            type === 'D60' ? calculateD60(ephemeris.ascendant.longitude) :
+                                { sign: ephemeris.ascendant.sign, degree: ephemeris.ascendant.degree };
 
-        charts[chartType.name] = {
-            chartType: chartType.name,
+        charts[type] = {
+            chartType: type,
             planets,
-            ascendant: {
-                sign: lagnaResult.sign,
-                degree: lagnaResult.degree,
-            },
+            ascendant: ascDiv,
         };
     }
-
-    // Add D30 separately due to different return type
-    const d30Planets: Record<string, { sign: string; degree: number; house: number }> = {};
-    for (const [planetName, planetData] of Object.entries(ephemeris.planets)) {
-        const result = calculateD30(planetData.longitude);
-        d30Planets[planetName] = {
-            sign: result.sign,
-            degree: result.degree,
-            house: ZODIAC_SIGNS.indexOf(result.sign) + 1,
-        };
-    }
-    const d30Lagna = calculateD30(ephemeris.ascendant.longitude);
-    charts['D30'] = {
-        chartType: 'D30',
-        planets: d30Planets,
-        ascendant: { sign: d30Lagna.sign, degree: d30Lagna.degree },
-    };
 
     return charts;
+}
+
+/**
+ * Positional Strength (Shadbala-Lite)
+ * Identifies Exaltation, Debilitation, and Moolatrikona.
+ */
+export function calculateShadbalaLite(ephemeris: EphemerisData): Record<string, string> {
+    const results: Record<string, string> = {};
+    const strengths: Record<string, { exalt: string; debilit: string; mt: string }> = {
+        sun: { exalt: 'Aries', debilit: 'Libra', mt: 'Leo' },
+        moon: { exalt: 'Taurus', debilit: 'Scorpio', mt: 'Taurus' },
+        mars: { exalt: 'Capricorn', debilit: 'Cancer', mt: 'Aries' },
+        mercury: { exalt: 'Virgo', debilit: 'Pisces', mt: 'Virgo' },
+        jupiter: { exalt: 'Cancer', debilit: 'Capricorn', mt: 'Sagittarius' },
+        venus: { exalt: 'Pisces', debilit: 'Virgo', mt: 'Libra' },
+        saturn: { exalt: 'Libra', debilit: 'Aries', mt: 'Aquarius' }
+    };
+
+    for (const [planet, pos] of Object.entries(ephemeris.planets)) {
+        const s = strengths[planet];
+        if (!s) continue;
+
+        if (pos.sign === s.exalt) results[planet] = 'Exalted (Strongest)';
+        else if (pos.sign === s.debilit) results[planet] = 'Debilitated (Weakest)';
+        else if (pos.sign === s.mt) results[planet] = 'Moolatrikona (Very Strong)';
+        else if (pos.lord === planet) results[planet] = 'Own House (Strong)';
+        else results[planet] = 'Neutral';
+    }
+    return results;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -698,6 +732,123 @@ export function getProgressedDate(birthDate: Date, eventAge: number): Date {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// PANCHANGA CALCULATION (Five Pillars)
+// ═════════════════════════════════════════════════════════════════════════════
+
+export interface PanchangaData {
+    tithi: { name: string; number: number; percentage: number };
+    yoga: { name: string; number: number; percentage: number };
+    karana: { name: string; number: number };
+    weekday: string;
+}
+
+const TITHI_NAMES = [
+    'Prathama', 'Dwitiya', 'Tritiya', 'Chaturthi', 'Panchami', 'Shashti', 'Saptami', 'Ashtami',
+    'Navami', 'Dashami', 'Ekadashi', 'Dwadashi', 'Trayodashi', 'Chaturdashi', 'Purnima',
+    'Prathama', 'Dwitiya', 'Tritiya', 'Chaturthi', 'Panchami', 'Shashti', 'Saptami', 'Ashtami',
+    'Navami', 'Dashami', 'Ekadashi', 'Dwadashi', 'Trayodashi', 'Chaturdashi', 'Amavasya'
+];
+
+const YOGA_NAMES = [
+    'Vishkumbha', 'Preeti', 'Ayushman', 'Saubhagya', 'Shobhana', 'Atiganda', 'Sukarma', 'Dhriti',
+    'Shoola', 'Ganda', 'Vriddhi', 'Dhruva', 'Vyaghpata', 'Harshana', 'Vajra', 'Siddhi',
+    'Vyatipata', 'Variyan', 'Parigha', 'Shiva', 'Siddha', 'Sadhya', 'Shubha', 'Shukla',
+    'Brahma', 'Indra', 'Vaidhriti'
+];
+
+/**
+ * Calculate Panchanga elements from Sun and Moon positions
+ */
+export function calculatePanchanga(ephemeris: EphemerisData, birthDate: Date): PanchangaData {
+    const sunLong = ephemeris.planets.sun.longitude;
+    const moonLong = ephemeris.planets.moon.longitude;
+
+    // Tithi: (Moon - Sun) / 12
+    let tithiDiff = moonLong - sunLong;
+    if (tithiDiff < 0) tithiDiff += 360;
+    const tithiNum = Math.floor(tithiDiff / 12) + 1;
+    const tithiPerc = (tithiDiff % 12) / 12 * 100;
+
+    // Yoga: (Sun + Moon) / 13°20'
+    let yogaSum = sunLong + moonLong;
+    if (yogaSum >= 360) yogaSum -= 360;
+    const yogaNum = Math.floor(yogaSum / (360 / 27)) + 1;
+    const yogaPerc = (yogaSum % (360 / 27)) / (360 / 27) * 100;
+
+    // Karana: Half of Tithi
+    const karanaNum = Math.floor(tithiDiff / 6) + 1;
+
+    const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+    return {
+        tithi: { name: TITHI_NAMES[(tithiNum - 1) % 30], number: tithiNum, percentage: tithiPerc },
+        yoga: { name: YOGA_NAMES[(yogaNum - 1) % 27], number: yogaNum, percentage: yogaPerc },
+        karana: { name: `Karana ${karanaNum}`, number: karanaNum },
+        weekday: weekdays[birthDate.getDay()],
+    };
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// BOUNDARY SAFETY (Seconds to Boundary)
+// ═════════════════════════════════════════════════════════════════════════════
+
+export interface BoundarySafety {
+    lagnaSignBoundary: number; // Seconds to closest sign boundary
+    moonNakshatraBoundary: number; // Seconds to closest nakshatra boundary
+    isDangerous: boolean;
+}
+
+/**
+ * Calculate how close we are to critical sign/nakshatra boundaries in SECONDS
+ */
+export function calculateBoundarySafety(ephemeris: EphemerisData): BoundarySafety {
+    const lagnaLong = ephemeris.ascendant.longitude;
+    const moonLong = ephemeris.planets.moon.longitude;
+
+    // Sign boundary (every 30 degrees)
+    const distToNextSign = 30 - (lagnaLong % 30);
+    const distToPrevSign = lagnaLong % 30;
+    const minSignDist = Math.min(distToNextSign, distToPrevSign);
+
+    // Approx 240 seconds per degree for Lagna
+    const signSeconds = minSignDist * 240;
+
+    // Nakshatra boundary (every 13.333 degrees)
+    const nakSpan = 360 / 27;
+    const distToNextNak = nakSpan - (moonLong % nakSpan);
+    const distToPrevNak = moonLong % nakSpan;
+    const minNakDist = Math.min(distToNextNak, distToPrevNak);
+
+    // Moon moves ~13.18 deg/day => ~1 degree in 6600 seconds
+    const nakSeconds = minNakDist * 6600;
+
+    return {
+        lagnaSignBoundary: Math.round(signSeconds),
+        moonNakshatraBoundary: Math.round(nakSeconds),
+        isDangerous: signSeconds < 30 || nakSeconds < 60,
+    };
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// FORMATTING ENHANCEMENTS
+// ═════════════════════════════════════════════════════════════════════════════
+
+export function formatPanchanga(p: PanchangaData): string {
+    return `PANCHANGA:
+Tithi: ${p.tithi.name} (${p.tithi.percentage.toFixed(1)}% complete)
+Yoga: ${p.yoga.name} (${p.yoga.percentage.toFixed(1)}% complete)
+Karana: ${p.karana.name}
+Weekday: ${p.weekday}`;
+}
+
+export function formatBoundarySafety(b: BoundarySafety): string {
+    return `BOUNDARY SENSITIVITY:
+Lagna Sign Boundary: ${b.lagnaSignBoundary}s away
+Moon Nakshatra Boundary: ${b.moonNakshatraBoundary}s away
+Status: ${b.isDangerous ? '⚠️ CRITICAL (Highly sensitive to seconds)' : 'Stable'}`;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 // FORMATTING FOR KIMI K2 PROMPTS
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -766,6 +917,65 @@ Sign: ${al.sign}
 Lord: ${al.lord}
 Strength: ${al.strength}
 Significance: Shows how person is perceived publicly, career success, material achievements`;
+}
+
+/**
+ * Calculate Hora Lagna (HL) - Wealth/Status verification
+ */
+export function calculateHoraLagna(
+    sunriseJd: number,
+    birthJd: number,
+    ascendantLongitude: number
+): SpecialLagna {
+    // Time since sunrise in hours
+    const dt = (birthJd - sunriseJd) * 24;
+    // HL = Sun (at sunrise) + dt * 30 (approximately, but accurately using BPHS house-based method)
+    // Here we use the simplified standard formula: HL = Asc + (dt * 30)
+    const hlLong = (ascendantLongitude + (dt * 30)) % 360;
+    const signIndex = Math.floor(hlLong / 30);
+    return {
+        name: 'Hora Lagna',
+        longitude: hlLong,
+        sign: ZODIAC_SIGNS[signIndex],
+        degree: hlLong % 30
+    };
+}
+
+/**
+ * Calculate Ghati Lagna (GL) - Power/Authority verification
+ */
+export function calculateGhatiLagna(
+    sunriseJd: number,
+    birthJd: number,
+    ascendantLongitude: number
+): SpecialLagna {
+    // Time since sunrise in hours
+    const dt = (birthJd - sunriseJd) * 24;
+    // GL = Asc + (dt * 60)
+    const glLong = (ascendantLongitude + (dt * 60)) % 360;
+    const signIndex = Math.floor(glLong / 30);
+    return {
+        name: 'Ghati Lagna',
+        longitude: glLong,
+        sign: ZODIAC_SIGNS[signIndex],
+        degree: glLong % 30
+    };
+}
+
+export function formatSpecialLagnas(hl: SpecialLagna, gl: SpecialLagna): string {
+    return `SPECIAL LAGNAS:
+1. Hora Lagna (Wealth/Status): ${hl.sign} at ${hl.degree.toFixed(2)}°
+   Verification: Check HL house placements for major financial gains/losses.
+2. Ghati Lagna (Power/Authority): ${gl.sign} at ${gl.degree.toFixed(2)}°
+   Verification: Check GL house/lord strength for promotions, authority, or leadership.`;
+}
+
+export function formatShadbalaLite(strengths: Record<string, string>): string {
+    const lines = ['PLANETARY STRENGTHS (Shadbala-Lite):'];
+    for (const [planet, strength] of Object.entries(strengths)) {
+        lines.push(`${planet.charAt(0).toUpperCase() + planet.slice(1)}: ${strength}`);
+    }
+    return lines.join('\n');
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

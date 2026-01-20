@@ -18,6 +18,22 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/stream/:path*',
+        destination: 'http://localhost:8080/api/stream/:path*',
+      },
+      {
+        source: '/api/queue/:path*',
+        destination: 'http://localhost:8080/api/queue/:path*',
+      },
+      {
+        source: '/api/health/backend',
+        destination: 'http://localhost:8080/api/health',
+      }
+    ];
+  },
 };
 
 module.exports = nextConfig;

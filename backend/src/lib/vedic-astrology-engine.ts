@@ -484,6 +484,7 @@ export function getNakshatraForLongitude(siderealLongitude: number): {
     name: string;
     lord: string;
     pada: number;
+    number: number;
 } {
     const index = Math.floor(siderealLongitude / NAKSHATRA_SPAN);
     const nakshatra = NAKSHATRAS[index % 27];
@@ -496,6 +497,7 @@ export function getNakshatraForLongitude(siderealLongitude: number): {
         name: nakshatra.name,
         lord: nakshatra.lord,
         pada,
+        number: (index % 27) + 1,
     };
 }
 

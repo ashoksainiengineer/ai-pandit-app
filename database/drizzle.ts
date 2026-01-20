@@ -9,8 +9,8 @@ import * as schema from './schema';
 const DATABASE_URL = process.env.TURSO_DATABASE_URL;
 const DATABASE_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN;
 
-if (!DATABASE_URL) {
-  throw new Error('TURSO_DATABASE_URL environment variable is not set');
+if (!DATABASE_URL && process.env.NODE_ENV === 'production') {
+  console.warn('⚠️ TURSO_DATABASE_URL environment variable is not set');
 }
 
 // Create libSQL client

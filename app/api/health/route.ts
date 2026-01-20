@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getMemoryStats, getActiveCalculations } from '@/lib/memory-manager';
 import { isHighPrecisionMode } from '@/lib/ephemeris';

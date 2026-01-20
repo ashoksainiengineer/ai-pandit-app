@@ -4,7 +4,7 @@
 // Main Birth Time Rectification processor
 // Optimized for 512MB RAM - minimal local computation, max Kimi K2 usage
 
-import { calculateEphemeris } from './ephemeris';
+import { calculateEphemeris, calculateJulianDay, convertToUTC } from './ephemeris';
 import {
     calculateVimshottariDasha,
     getDashaForDate,
@@ -185,7 +185,7 @@ async function quickFilterCandidates(
             );
 
             // Get sidereal Moon position
-            const jd = dateToJulianDay(dateOfBirth, candidate.time, timezone);
+            const jd = calculateJulianDay(convertToUTC(dateOfBirth, candidate.time, timezone));
             const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
 
             // Calculate Vimshottari Dasha
@@ -285,7 +285,7 @@ async function analyzeWithKimiK2(
             );
 
             // Get Julian Day
-            const jd = dateToJulianDay(dateOfBirth, candidate.time, timezone);
+            const jd = calculateJulianDay(convertToUTC(dateOfBirth, candidate.time, timezone));
 
             // Get sidereal positions for all planets
             const planets: Record<string, string> = {};
@@ -409,50 +409,6 @@ function selectBestCandidate(results: KimiAnalysis[]): KimiAnalysis {
 // UTILITY FUNCTIONS
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * Convert date and time to Julian Day
- */
-function dateToJulianDay(
-    dateStr: string,
-    timeStr: string,
-    timezone: string
-): number {
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const [hour, minute, second] = timeStr.split(':').map(n => Number(n) || 0);
 
-    // Parse timezone offset
-    let tzOffset = 0;
-    if (timezone.includes('/')) {
-        // Named timezone - estimate offset
-        if (timezone.includes('Kolkata')) tzOffset = 5.5;
-        else if (timezone.includes('New_York')) tzOffset = -5;
-        else if (timezone.includes('London')) tzOffset = 0;
-        else if (timezone.includes('Los_Angeles')) tzOffset = -8;
-    } else if (timezone.match(/^[+-]?\d+(\.\d+)?$/)) {
-        tzOffset = parseFloat(timezone);
-    }
-
-    // Convert to UTC
-    const utcHour = hour - tzOffset;
-    const timeDecimal = utcHour + minute / 60 + second / 3600;
-
-    // Julian Day calculation
-    let y = year;
-    let m = month;
-    if (m <= 2) {
-        y -= 1;
-        m += 12;
-    }
-
-    const a = Math.floor(y / 100);
-    const b = 2 - a + Math.floor(a / 4);
-
-    const jd = Math.floor(365.25 * (y + 4716)) +
-        Math.floor(30.6001 * (m + 1)) +
-        day + b - 1524.5 +
-        timeDecimal / 24;
-
-    return jd;
-}
 
 export default processAnalysis;
