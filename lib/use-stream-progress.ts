@@ -84,6 +84,8 @@ export interface StreamState {
         birthPlace?: string;
         timezone?: string;
         status?: string;
+        lifeEvents?: any[];
+        physicalTraits?: any;
         offsetConfig?: {
             preset: string;
             minutes?: number;
@@ -168,6 +170,8 @@ export function useStreamProgress(
                             birthPlace: s.birthData.birthPlace,
                             timezone: s.birthData.timezone,
                             status: s.status,
+                            lifeEvents: s.lifeEvents,
+                            physicalTraits: s.physicalTraits,
                             offsetConfig: s.offsetConfig
                         }
                     }));
@@ -379,7 +383,8 @@ export function useStreamProgress(
             case 'ai_context':
                 setState(prev => ({
                     ...prev,
-                    aiContext: eventData
+                    aiContext: eventData,
+                    displayedCandidate: eventData.candidateTime || prev.displayedCandidate
                 }));
                 break;
 
@@ -413,30 +418,31 @@ export function useStreamProgress(
 
                     const displayedThinking = updatedCandidates.get(displayed);
 
-                    // Update Stage History (Stage -> Full Text)
+                    // 🛡️ STREAM ISOLATION: Only append to the main stage history if this candidate is the one being displayed.
+                    // This prevents parallel candidates from interleaving their tokens in the global log.
                     const newStageHistory = new Map(prev.stageHistory);
-                    const currentStageText = newStageHistory.get(eventData.stage) || '';
+                    if (candidateTime === displayed) {
+                        const currentStageText = newStageHistory.get(eventData.stage) || '';
+                        let textToAppend = eventData.chunk;
 
-                    let textToAppend = eventData.chunk;
+                        // Insert context headers on state transitions
+                        if (!currentStageText) {
+                            textToAppend = `\n[STAGE START] 🚀 System initialized for ${candidateTime}\n${'━'.repeat(40)}\n\n${textToAppend}`;
+                        } else if (prev.displayedCandidate && prev.displayedCandidate !== displayed) {
+                            // Switched to a different candidate in the same stage (HUD update)
+                            textToAppend = `\n\n${'═'.repeat(40)}\n🎯 SWITCHING TO: ${candidateTime}\n${'═'.repeat(40)}\n\n${textToAppend}`;
+                        }
 
-                    // 🛡️ SMART LOGGING: Insert context headers on state transitions
-                    if (!currentStageText && candidateTime) {
-                        // First log for this stage
-                        textToAppend = `\n[STAGE START] 🚀 System initialized for ${candidateTime}\n${'━'.repeat(40)}\n\n${textToAppend}`;
-                    } else if (prev.displayedCandidate && candidateTime && prev.displayedCandidate !== candidateTime) {
-                        // Switched to a different candidate in the same stage
-                        textToAppend = `\n\n${'═'.repeat(40)}\n🎯 SWITCHING TO: ${candidateTime}\n${'═'.repeat(40)}\n\n${textToAppend}`;
+                        newStageHistory.set(eventData.stage, currentStageText + textToAppend);
                     }
-
-                    newStageHistory.set(eventData.stage, currentStageText + textToAppend);
 
                     return {
                         ...prev,
                         allCandidates: updatedCandidates,
                         displayedCandidate: displayed,
                         stageHistory: newStageHistory,
-                        // Show the currently displayed candidate's thinking
-                        aiThinking: displayedThinking || prev.aiThinking,
+                        // Show the currently displayed candidate's thinking (Isolated)
+                        aiThinking: updatedCandidates.get(displayed) || prev.aiThinking,
                     };
                 });
                 break;

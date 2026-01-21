@@ -235,9 +235,9 @@ async function cancelSession(sessionId) {
         const session = await drizzle_1.db.select().from(schema_1.sessions).where((0, drizzle_orm_1.eq)(schema_1.sessions.id, sessionId)).limit(1);
         if (!session.length)
             return false;
-        // Only cancel if queued or processing
-        if (session[0].status !== 'queued' && session[0].status !== 'processing') {
-            logger_1.logger.warn(`Cannot cancel session ${sessionId}: status is '${session[0].status}'`);
+        // Only cancel if pending, queued or processing
+        if (session[0].status !== 'pending' && session[0].status !== 'queued' && session[0].status !== 'processing') {
+            logger_1.logger.warn(`Cannot cancel session ${sessionId}: status is '${session[0].status}' (expected pending, queued or processing)`);
             return false;
         }
         // 🛑 ABORT the running process (this will cancel fetch requests!)

@@ -1,9 +1,12 @@
 "use strict";
 // backend/src/routes/stream.ts
 // Server-Sent Events endpoint for real-time BTR progress streaming
-// Deployment Trigger: SSE Stability Fix Finalized
+// Deployment Trigger: SSE Status Check & Terminal State Handling
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const drizzle_js_1 = require("../database/drizzle.js");
+const schema_js_1 = require("../database/schema.js");
+const drizzle_orm_1 = require("drizzle-orm");
 const session_events_js_1 = require("../lib/session-events.js");
 const progress_tracker_js_1 = require("../lib/progress-tracker.js");
 const logger_js_1 = require("../lib/logger.js");
@@ -19,6 +22,28 @@ router.get('/:sessionId', async (req, res) => {
         return;
     }
     console.log(`[SSE] >>> Connection requested for ${sessionId}`);
+    // 🛡️ SECURITY & STATUS CHECK: Fetch session status first
+    let currentStatus = 'pending';
+    try {
+        const session = await drizzle_js_1.db.select({ status: schema_js_1.sessions.status })
+            .from(schema_js_1.sessions)
+            .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, sessionId))
+            .limit(1);
+        if (session.length === 0) {
+            res.status(404).json({ error: 'Session not found' });
+            return;
+        }
+        currentStatus = session[0].status || 'pending';
+        // Handle terminal states immediately
+        if (currentStatus === 'cancelled' || currentStatus === 'error') {
+            console.log(`[SSE] Session ${sessionId} is in terminal state: ${currentStatus}. Refusing connection.`);
+            res.status(200).json({ status: currentStatus, message: `Session is in terminal state: ${currentStatus}` });
+            return;
+        }
+    }
+    catch (error) {
+        console.error(`[SSE] Error checking session status for ${sessionId}:`, error);
+    }
     console.log(`[SSE] Incoming headers: ${JSON.stringify(req.headers)}`);
     // Set SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
@@ -34,17 +59,12 @@ router.get('/:sessionId', async (req, res) => {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Last-Event-ID');
     res.flushHeaders();
     console.log(`[SSE] Headers flushed for ${sessionId}`);
-    // 🚀 Proxy-Buffering Bypass: Send a HEAVY 8KB preamble
-    // Hugging Face/Cloudflare/Vercel can be aggressive with buffering.
-    // We send 8KB specifically to clear most edge caches and proxies.
-    res.write(':' + ' '.repeat(2048) + '\n');
-    res.write(':' + ' '.repeat(2048) + '\n');
-    res.write(':' + ' '.repeat(2048) + '\n');
-    res.write(':' + ' '.repeat(2048) + '\n\n');
-    res.write(': initial god-tier keepalive\n\n');
+    // 🚀 Proxy-Buffering Bypass: Send a 2KB preamble
+    res.write(':' + ' '.repeat(1024) + '\n');
+    res.write(':' + ' '.repeat(1024) + '\n\n');
     if (res.flush)
         res.flush();
-    console.log(`[SSE] 🚀 8KB Preamble sent for ${sessionId} to clear proxies`);
+    console.log(`[SSE] 🚀 2KB Preamble sent for ${sessionId}`);
     // Send initial connection event
     sendEvent(res, { type: 'connected', sessionId, timestamp: new Date().toISOString() });
     // Send current progress if exists (ASYNC - DON'T AWAIT to prevent blocking)
@@ -133,11 +153,6 @@ function sendEvent(res, data) {
         // 🚀 Aggressive Flush for Real-time tokens
         if (res.flush) {
             res.flush();
-        }
-        else if (res.socket) {
-            // Internal Node.js socket flush attempt + Nudge
-            res.socket._handle?.setNoDelay?.(true);
-            res.socket.write(': \n');
         }
     }
     catch (error) {

@@ -27,8 +27,11 @@ const initialPhysicalTraits: PhysicalTraits = {
     build: 'medium',
     complexion: 'medium',
     faceShape: 'oval',
-    eyeColor: 'brown',
-    hairColor: 'black'
+    eyeColor: 'medium',
+    hairColor: 'black',
+    hairType: 'straight',
+    prakriti: 'pitta',
+    noseType: 'sharp'
 };
 
 export default function RectifyPage() {
@@ -87,6 +90,7 @@ export default function RectifyPage() {
                 if (parsed.birthData) setBirthData(parsed.birthData);
                 if (parsed.lifeEvents) setLifeEvents(parsed.lifeEvents);
                 if (parsed.physicalTraits) setPhysicalTraits(parsed.physicalTraits);
+                if (parsed.offsetConfig) setOffsetConfig(parsed.offsetConfig);
                 if (parsed.step) setStep(parsed.step);
             } catch (e) {
                 console.error('Failed to restore form data', e);
@@ -100,6 +104,7 @@ export default function RectifyPage() {
             birthData,
             lifeEvents,
             physicalTraits,
+            offsetConfig,
             step
         };
         localStorage.setItem('btr_form_data', JSON.stringify(dataToSave));

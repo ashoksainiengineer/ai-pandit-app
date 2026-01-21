@@ -262,41 +262,42 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     const lastContentLengthRef = useRef(0);
 
-    // Auto-scroll logic
+    // Auto-scroll logic using ResizeObserver
     useEffect(() => {
         if (!scrollRef.current) return;
 
         const el = scrollRef.current;
 
-        // If content reset or first load, scroll to bottom
+        // Use ResizeObserver to detect when content height changes (e.g., during typewriting)
+        const observer = new ResizeObserver(() => {
+            if (shouldAutoScroll) {
+                el.scrollTop = el.scrollHeight;
+            }
+        });
+
+        // Observe the inner content container (the first child of the scrollable div)
+        const contentEl = el.firstElementChild;
+        if (contentEl) {
+            observer.observe(contentEl);
+        }
+
+        // Handle initial scroll and content resets
         if (content.length < lastContentLengthRef.current) {
             el.scrollTop = el.scrollHeight;
             setShouldAutoScroll(true);
         }
-
-        if (shouldAutoScroll) {
-            // Use requestAnimationFrame to ensure DOM update is complete
-            const scrollToEnd = () => {
-                if (el) {
-                    el.scrollTop = el.scrollHeight;
-                }
-            };
-            requestAnimationFrame(scrollToEnd);
-            // Double-nudge for slow rendering
-            const timer = setTimeout(scrollToEnd, 100);
-            return () => clearTimeout(timer);
-        }
-
         lastContentLengthRef.current = content.length;
-    }, [content, shouldAutoScroll]);
+
+        return () => observer.disconnect();
+    }, [shouldAutoScroll, content.length]);
 
     // Robust scroll listener to detect if user scrolled UP
     const handleScroll = () => {
         if (!scrollRef.current) return;
 
         const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-        // Buffer of 30px
-        const isAtBottom = scrollHeight - scrollTop - clientHeight < 30;
+        // Buffer of 50px for better sensitivity on different zoom levels
+        const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
 
         // If we are at bottom, re-enable auto-scroll
         if (isAtBottom && !shouldAutoScroll) {

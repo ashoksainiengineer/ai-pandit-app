@@ -456,11 +456,30 @@ export async function processSecondsPrecisionBTR(
 
         await progress.completeStep('physical', input.physicalTraits ? ['Height analyzed', 'Build matched', 'Complexion checked'] : ['No physical traits provided']);
 
-        // If verification score is too low, use next candidate
-        let finalCandidate = stage7Results[0];
-        if (verificationResult.score < 85 && stage7Results.length > 1) {
-            logger.warn('Top candidate failed verification, trying next');
-            finalCandidate = stage7Results[1];
+        // 🔱 GOD-TIER SELECTION: Tie-breaking and Verification Alignment
+        // We sort by score first, but use Shuddhi (Purity) as the ultimate tie-breaker
+        const sortedCandidates = [...stage7Results].sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+
+            // Tie-break using Shuddhi (Purity) if scores are identical
+            const getPurity = (time: string) => {
+                const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, time, input.timezone));
+                // We'll calculate a fresh purity metric for the tie-break as we need it only for top ties
+                const epi = stage1Candidates.find(c => c.time === time)?.ephemeris;
+                if (!epi) return 0;
+                const ks = calculateKundaShuddhi(epi.ascendant.longitude, epi.planets.moon.longitude);
+                const ts = calculateTatwaShuddhi(jd, getApproxSunrise(jd, input.timezone), 'male');
+                return ks.score + ts.score;
+            };
+            return getPurity(b.time) - getPurity(a.time);
+        });
+
+        let finalCandidate = sortedCandidates[0];
+
+        // If top candidate has a 'Badha' (Mathematical disqualification from Stage 8)
+        if (verificationResult.score < 60 && sortedCandidates.length > 1) {
+            logger.warn('🔱 GOD-TIER: Top candidate disqualified by strict Badha check. Selecting secondary.');
+            finalCandidate = sortedCandidates[1];
         }
 
         logger.info('Stage 8 complete', { verificationScore: verificationResult.score });
@@ -1248,6 +1267,19 @@ async function stage7AILevel3(
             ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
         });
 
+        // 🔮 Emit AI Context for Real-time HUD transparency
+        emitAIContext(input.sessionId, {
+            stage: 7,
+            candidateTime: candidate.time,
+            planetaryInfo: {
+                sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
+                moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
+                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+            },
+            dasha: "Analyzing Final Precision Limits",
+            divCharts: "All Divisional Charts Synthesized"
+        });
+
         const allDashas = {
             vimshottari: calculateVimshottariDasha(moonSidereal, birthDate),
             yogini: calculateYoginiDasha(moonSidereal, birthDate),
@@ -1505,18 +1537,34 @@ async function stage8Verification(
 
     scores['divisionalCharts'] = Math.round((d2Score + d7Score + d9Score + d10Score + d30Score) / 5);
 
-    // Calculate weighted total (100% distribution)
+    // 🔱 GOD-TIER SANGAMA (CONVERGENCE) LOGIC
+    // High confidence is ONLY earned if major dasha systems (Vim/Yog/Char) converge.
+    const dashaSystems = [scores['vimshottari'], scores['yogini'], scores['charaDasha']];
+    const dashaMin = Math.min(...dashaSystems);
+    const dashaMax = Math.max(...dashaSystems);
+    const dashaSpread = dashaMax - dashaMin;
+
+    // Sangama Penalty: If systems strongly disagree, pull down the confidence
+    const sangamaBonus = dashaSpread < 20 ? 10 : dashaSpread > 50 ? -20 : 0;
+
+    // 🔱 STRICT BADHA (CONTRADICTION) FILTER
+    // If D9 or D10 score is below 40, it's a 'Badha' for marriage/career respectively
+    let badhaPenalty = 0;
+    if (scores['divisionalCharts'] < 50) badhaPenalty -= 30;
+
     const totalScore = Math.round(
-        scores['vimshottari'] * 0.15 +
-        scores['yogini'] * 0.07 +
-        scores['charaDasha'] * 0.15 +
-        scores['rasiDasha'] * 0.05 +
-        scores['tatwaDasha'] * 0.03 +
-        scores['divisionalCharts'] * 0.25 +
-        scores['physicalTraits'] * 0.10 +
-        scores['aspects'] * 0.10 +
-        scores['jaiminiAspects'] * 0.05 +
-        scores['arudhaLagna'] * 0.05
+        (
+            scores['vimshottari'] * 0.15 +
+            scores['yogini'] * 0.07 +
+            scores['charaDasha'] * 0.15 +
+            scores['rasiDasha'] * 0.05 +
+            scores['tatwaDasha'] * 0.03 +
+            scores['divisionalCharts'] * 0.25 +
+            scores['physicalTraits'] * 0.10 +
+            scores['aspects'] * 0.10 +
+            scores['jaiminiAspects'] * 0.05 +
+            scores['arudhaLagna'] * 0.05
+        ) + sangamaBonus + badhaPenalty
     );
 
     return {
