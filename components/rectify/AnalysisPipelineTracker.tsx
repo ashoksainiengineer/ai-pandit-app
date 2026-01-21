@@ -33,21 +33,24 @@ const ScanLine = () => (
 export const AnalysisPipelineTracker: React.FC<AnalysisPipelineTrackerProps> = ({ stats, currentStage, isConnected }) => {
     const [load, setLoad] = useState(72.4);
 
-    // 💓 Simulated Load Jitter (Industrial Feel)
+    // 💓 Neural Load Logic (Responsive to Stage)
     useEffect(() => {
         const interval = setInterval(() => {
             setLoad(prev => {
-                const change = (Math.random() - 0.5) * 5;
-                const next = Math.max(65, Math.min(98, prev + change));
+                const isAIStage = STAGE_CONFIG.find(s => s.id === currentStage)?.type === 'ai';
+                const baseLoad = isAIStage ? 85 : currentStage > 0 ? 45 : 12;
+                const jitter = (Math.random() - 0.5) * 10;
+                const next = Math.max(10, Math.min(99, baseLoad + jitter));
                 return Number(next.toFixed(1));
             });
-        }, 800);
+        }, 1200);
         return () => clearInterval(interval);
-    }, []);
+    }, [currentStage]);
 
     // Find active stats for display
     const activeStat = stats[stats.length - 1];
     const candidateCount = activeStat?.candidateCount || 0;
+    const isAIStage = STAGE_CONFIG.find(s => s.id === currentStage)?.type === 'ai';
 
     return (
         <div className="w-full bg-[#0F1419] border-t border-[#3A4452] p-4 font-mono text-xs overflow-hidden relative">
@@ -74,11 +77,15 @@ export const AnalysisPipelineTracker: React.FC<AnalysisPipelineTrackerProps> = (
                     <div className="flex gap-8">
                         <div className="text-right">
                             <div className="text-[#8C7F72] text-[8px] uppercase tracking-[0.2em]">Buffer Sessions</div>
-                            <div className="text-[#D4AF37] font-bold">STABLE</div>
+                            <div className={`font-bold ${isConnected ? 'text-[#D4AF37]' : 'text-red-400'}`}>
+                                {isConnected ? 'STABLE' : 'DRAINING'}
+                            </div>
                         </div>
                         <div className="text-right">
                             <div className="text-[#8C7F72] text-[8px] uppercase tracking-[0.2em]">Compute Pool</div>
-                            <div className="text-[#D4AF37] font-bold whitespace-nowrap overflow-hidden max-w-[120px]">R1-REASONER-V1</div>
+                            <div className={`${currentStage > 0 ? 'text-[#D4AF37]' : 'text-[#8C7F72]'} font-bold whitespace-nowrap overflow-hidden max-w-[120px]`}>
+                                {currentStage > 0 ? (STAGE_CONFIG.find(s => s.id === currentStage)?.type === 'ai' ? 'R1-REASONER-V1' : 'SWISS-EPHEM-V2') : 'IDLE'}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -156,7 +163,7 @@ export const AnalysisPipelineTracker: React.FC<AnalysisPipelineTrackerProps> = (
                     <div>
                         <div className="text-[8px] text-[#8C7F72] uppercase tracking-[0.2em] mb-1">Compute Throughput</div>
                         <div className="text-[#F5F0EB] text-xs font-mono">
-                            {(candidateCount * (currentStage % 3 === 0 ? 1240 : 420)).toLocaleString()} OPS/S
+                            {currentStage > 0 ? (isAIStage ? '1.42 T-OPS/S' : `${(candidateCount * 420).toLocaleString()} OPS/S`) : '0.00 OPS/S'}
                         </div>
                     </div>
                     <div>

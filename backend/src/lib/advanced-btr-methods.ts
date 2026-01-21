@@ -437,6 +437,9 @@ interface PhysicalTraits {
     height?: 'short' | 'medium' | 'tall';
     build?: 'slim' | 'medium' | 'heavy';
     complexion?: 'fair' | 'medium' | 'dark';
+    hairType?: 'straight' | 'curly' | 'wavy' | 'thin' | 'thick';
+    prakriti?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha';
+    noseType?: 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
     appearance?: string;
 }
 
@@ -516,20 +519,61 @@ export function scorePhysicalTraits(
         }
     }
 
-    // Complexion matching (30 points max) - use both Lagna and Moon
+    // Complexion matching (15 points) - use both Lagna and Moon
     if (traits.complexion) {
         const lagnaMatch = expectedTraits.complexion.includes(traits.complexion);
         const moonMatch = moonComplexion?.includes(traits.complexion);
 
         if (lagnaMatch && moonMatch) {
-            score += 20;
+            score += 10;
             matches.push(`Both Lagna (${lagnaSign}) and Moon (${moonSign}) match ${traits.complexion} complexion`);
         } else if (lagnaMatch || moonMatch) {
-            score += 10;
+            score += 5;
             matches.push(`${lagnaMatch ? 'Lagna' : 'Moon'} matches ${traits.complexion} complexion`);
         } else {
-            score -= 10;
+            score -= 5;
             mismatches.push(`Neither Lagna (${lagnaSign}) nor Moon (${moonSign}) typically gives ${traits.complexion} complexion`);
+        }
+    }
+
+    // Hair Type matching (10 points)
+    if (traits.hairType) {
+        if (['curly', 'thick'].includes(traits.hairType) && ['Leo', 'Aries', 'Scorpio'].includes(lagnaSign)) {
+            score += 5;
+            matches.push(`${lagnaSign} Lagna matches ${traits.hairType} hair`);
+        } else if (['straight', 'thin'].includes(traits.hairType) && ['Virgo', 'Gemini', 'Libra'].includes(lagnaSign)) {
+            score += 5;
+            matches.push(`${lagnaSign} Lagna matches ${traits.hairType} hair`);
+        }
+    }
+
+    // Prakriti matching (20 points - High indicator)
+    if (traits.prakriti) {
+        const fireSigns = ['Aries', 'Leo', 'Sagittarius'];
+        const earthSigns = ['Taurus', 'Virgo', 'Capricorn'];
+        const airSigns = ['Gemini', 'Libra', 'Aquarius'];
+        const waterSigns = ['Cancer', 'Scorpio', 'Pisces'];
+
+        if (traits.prakriti.includes('pitta') && fireSigns.includes(lagnaSign)) {
+            score += 10;
+            matches.push(`${lagnaSign} (Fire) aligns with Pitta prakriti`);
+        } else if (traits.prakriti.includes('vata') && airSigns.includes(lagnaSign)) {
+            score += 10;
+            matches.push(`${lagnaSign} (Air) aligns with Vata prakriti`);
+        } else if (traits.prakriti.includes('kapha') && waterSigns.includes(lagnaSign)) {
+            score += 10;
+            matches.push(`${lagnaSign} (Water) aligns with Kapha prakriti`);
+        }
+    }
+
+    // Nose Type matching (10 points)
+    if (traits.noseType) {
+        if (traits.noseType === 'sharp' && ['Aries', 'Leo', 'Virgo'].includes(lagnaSign)) {
+            score += 5;
+            matches.push(`${lagnaSign} typically gives a sharp nose`);
+        } else if (traits.noseType === 'aquiline' && ['Sagittarius', 'Scorpio'].includes(lagnaSign)) {
+            score += 5;
+            matches.push(`${lagnaSign} aligns with aquiline features`);
         }
     }
 

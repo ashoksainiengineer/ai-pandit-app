@@ -331,7 +331,7 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
             {content ? (
                 <div className="break-words border-l-2 border-[#D4AF37]/30 pl-4 py-1 relative">
                     {isThinking ? (
-                        <Typewriter content={content} speed={15} />
+                        <Typewriter content={content} speed={5} />
                     ) : (
                         <span className="whitespace-pre-wrap">{content}</span>
                     )}

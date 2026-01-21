@@ -25,14 +25,15 @@ export function Typewriter({ content, speed = 10, onComplete }: TypewriterProps)
 
         const animate = () => {
             if (indexRef.current < content.length) {
-                // Add next character
-                const nextChar = content.charAt(indexRef.current);
-                setDisplayedText((prev) => prev + nextChar);
-                indexRef.current++;
+                // If we are lagging far behind (e.g. > 100 chars), catch up faster
+                const lag = content.length - indexRef.current;
+                const charsToAppend = lag > 100 ? 10 : lag > 30 ? 3 : 1;
 
-                // Variable speed to mimic human typing slightly? 
-                // No, sticking to constant for smoothness as requested "robot typewriter"
-                timeoutRef.current = setTimeout(animate, speed);
+                const nextChunk = content.substring(indexRef.current, indexRef.current + charsToAppend);
+                setDisplayedText((prev) => prev + nextChunk);
+                indexRef.current += charsToAppend;
+
+                timeoutRef.current = setTimeout(animate, lag > 100 ? 0 : speed);
             } else {
                 if (onComplete) onComplete();
             }

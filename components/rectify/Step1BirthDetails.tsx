@@ -40,7 +40,7 @@ export default function Step1BirthDetails({ data, updateData, offsetConfig, upda
     });
 
     const [selectedOffset, setSelectedOffset] = useState<OffsetPreset>(offsetConfig?.preset || '1hour');
-    const [customOffset, setCustomOffset] = useState<number>(60);
+    const [customOffset, setCustomOffset] = useState<number>(offsetConfig?.customMinutes ?? 0);
 
     useEffect(() => {
         if (data.tentativeTime) {
@@ -77,6 +77,8 @@ export default function Step1BirthDetails({ data, updateData, offsetConfig, upda
         if (preset !== 'custom') {
             const presetData = OFFSET_PRESETS.find(p => p.value === preset);
             updateOffset?.({ preset, customMinutes: presetData?.minutes || 60, description: presetData?.label || '' });
+        } else {
+            updateOffset?.({ preset: 'custom', customMinutes: customOffset, description: `±${customOffset} min` });
         }
     };
 

@@ -74,6 +74,9 @@ export interface PhysicalTraits {
   faceShape: 'round' | 'oval' | 'square' | 'long' | 'heart' | 'pear';
   eyeColor: string;
   hairColor: string;
+  hairType?: 'straight' | 'curly' | 'wavy' | 'thin' | 'thick';
+  prakriti?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha';
+  noseType?: 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
   specialFeatures?: string;
   overallDescription?: string;
 }

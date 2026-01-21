@@ -87,6 +87,9 @@ export interface SecondsPrecisionInput {
         height?: 'short' | 'medium' | 'tall';
         build?: 'slim' | 'medium' | 'heavy';
         complexion?: 'fair' | 'medium' | 'dark';
+        hairType?: 'straight' | 'curly' | 'wavy' | 'thin' | 'thick';
+        prakriti?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha';
+        noseType?: 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
         appearance?: string;
     };
     spouseData?: {
@@ -624,9 +627,9 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
             // ⚡ EMIT REAL-TIME CALCULATION LOG
             emitCalculationLog(input.sessionId, {
                 candidateTime: candidate.time,
-                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
-                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
-                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
+                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
+                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`,
                 dashaObj: `${dashaPeriods[0].lord}/${dashaPeriods[0].antardashas[0].lord}`
             });
 
@@ -635,9 +638,9 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
                 stage: 1,
                 candidateTime: candidate.time,
                 planetaryInfo: {
-                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
-                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
-                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
+                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
                 },
                 dasha: `${dashaPeriods[0].lord}/${dashaPeriods[0].antardashas[0].lord}`,
                 divCharts: "Vedic Shuddhi Scan"
@@ -734,9 +737,9 @@ async function stage2AILevel1(
                 // ⚡ EMIT REAL-TIME CALCULATION LOG (Keep stream alive in Stage 2)
                 emitCalculationLog(input.sessionId, {
                     candidateTime: candidate.time,
-                    sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
-                    moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
-                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
+                    sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
+                    moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`,
                     dashaObj: `${dashaPeriods[0].lord}/${dashaPeriods[0].antardashas[0].lord}`
                 });
 
@@ -748,9 +751,9 @@ async function stage2AILevel1(
                     stage: 2,
                     candidateTime: candidate.time,
                     planetaryInfo: {
-                        sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
-                        moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
-                        ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+                        sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
+                        moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                        ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
                     },
                     dasha: `${dashaPeriods[0].lord} (until ${dashaPeriods[0].endDate.toISOString().split('T')[0]})`,
                     divCharts: "Analyzing D9/D10"
@@ -911,9 +914,9 @@ async function stage4FineGrid(
                 stage: 4,
                 candidateTime: candidateTime,
                 planetaryInfo: {
-                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
-                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
-                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
+                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
                 },
                 dasha: "Fine Correlation Scan",
                 divCharts: "D9 Navamsha Audit"
@@ -1030,9 +1033,9 @@ async function stage5AILevel2(
                 // ⚡ EMIT REAL-TIME CALCULATION LOG (Keep stream alive in Stage 5)
                 emitCalculationLog(input.sessionId, {
                     candidateTime: candidate.time,
-                    sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
-                    moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
-                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
+                    sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
+                    moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`,
                     dashaObj: `Vim/Yog/Chara` // Short dasha string
                 });
 
@@ -1052,9 +1055,9 @@ async function stage5AILevel2(
                     stage: 5,
                     candidateTime: candidate.time,
                     planetaryInfo: {
-                        sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
-                        moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
-                        ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+                        sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
+                        moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                        ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
                     },
                     dasha: `${allDashas.vimshottari[0].lord} (until ${allDashas.vimshottari[0].endDate.toISOString().split('T')[0]})`,
                     divCharts: `D9 Lagna: ${divCharts.D9.ascendant.sign}`
@@ -1174,9 +1177,9 @@ async function stage6MicroGrid(
                 stage: 6,
                 candidateTime: candidateTime,
                 planetaryInfo: {
-                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
-                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
-                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
+                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
                 },
                 dasha: "Sub-Second Micro Correlation",
                 divCharts: "D60 Shashtiamsha"
@@ -1188,9 +1191,9 @@ async function stage6MicroGrid(
             // ⚡ EMIT REAL-TIME CALCULATION LOG
             emitCalculationLog(input.sessionId, {
                 candidateTime: candidateTime,
-                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
-                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
-                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
+                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
+                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`,
                 dashaObj: "Micro-Dasha"
             });
 
@@ -1301,9 +1304,9 @@ async function stage7AILevel3(
         // ⚡ EMIT REAL-TIME CALCULATION LOG (Final Decision Prep)
         emitCalculationLog(input.sessionId, {
             candidateTime: candidate.time,
-            sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
-            moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
-            ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+            sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
+            moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+            ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
         });
 
         // 🔮 Emit AI Context for Real-time HUD transparency
@@ -1311,9 +1314,9 @@ async function stage7AILevel3(
             stage: 7,
             candidateTime: candidate.time,
             planetaryInfo: {
-                sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
-                moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
-                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+                sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
+                moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
             },
             dasha: "Analyzing Final Precision Limits",
             divCharts: "All Divisional Charts Synthesized"
@@ -1467,9 +1470,9 @@ async function stage8Verification(
     // ⚡ EMIT REAL-TIME CALCULATION LOG (Final Verification Audit)
     emitCalculationLog(input.sessionId, {
         candidateTime: candidateTime,
-        sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
-        moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
-        ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
+        sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
+        moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+        ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`,
         dashaObj: "Audit"
     });
 
@@ -1478,9 +1481,9 @@ async function stage8Verification(
         stage: 8,
         candidateTime: candidateTime,
         planetaryInfo: {
-            sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
-            moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
-            ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+            sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
+            moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+            ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
         },
         dasha: "15-Method System Convergence",
         divCharts: "Full Divisional Synthesis"
@@ -1805,7 +1808,7 @@ function buildLevel1Prompt(
     for (const [name, data] of Object.entries(ephemeris.planets)) {
         const sidereal = data.longitude;
         const nakshatra = getNakshatraForLongitude(sidereal);
-        planets.push(`${name.toUpperCase()}: ${data.sign} ${(sidereal % 30).toFixed(2)}° (${nakshatra.name})`);
+        planets.push(`${name.toUpperCase()}: ${data.sign} ${(sidereal % 30).toFixed(4)}° (${nakshatra.name})`);
     }
 
     // Format D9 & D10 for context
@@ -1813,8 +1816,8 @@ function buildLevel1Prompt(
     const d10Asc = divCharts.D10.ascendant;
     const divChartSummary = `
 DIVISIONAL CHARTS (CALCULATED):
-D9 (Navamsa) Ascendant: ${d9Asc.sign} ${d9Asc.degree.toFixed(2)}°
-D10 (Dasamsa) Ascendant: ${d10Asc.sign} ${d10Asc.degree.toFixed(2)}°
+D9 (Navamsa) Ascendant: ${d9Asc.sign} ${d9Asc.degree.toFixed(4)}°
+D10 (Dasamsa) Ascendant: ${d10Asc.sign} ${d10Asc.degree.toFixed(4)}°
     `.trim();
 
     const eventsWithDasha = input.lifeEvents.map(event => {
@@ -1847,7 +1850,7 @@ ${formatPanchanga(panchanga)}
 PLANETS:
 ${planets.join('\n')}
 
-ASCENDANT: ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°
+ASCENDANT: ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°
 VARNADA (Social Varna): ${varnada}
 
 VORACIOUS VEDIC SHUDDHI:
