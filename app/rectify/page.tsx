@@ -83,6 +83,17 @@ export default function RectifyPage() {
 
     // Load from local storage on mount
     useEffect(() => {
+        // --- GOD-TIER WARMUP TRIGGER ---
+        // Wake up Hugging Face Space immediately so it's ready by Step 4
+        const pingWarmup = async () => {
+            try {
+                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+                console.log('[WARMUP] Activating Sacred Engine in background...');
+                fetch(`${backendUrl}/api/warmup`).catch(() => { }); // Fire and forget
+            } catch (e) { }
+        };
+        pingWarmup();
+
         const saved = localStorage.getItem('btr_form_data');
         if (saved) {
             try {

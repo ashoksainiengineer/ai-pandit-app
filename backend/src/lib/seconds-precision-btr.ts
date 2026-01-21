@@ -661,6 +661,8 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
     emitStageStats(input.sessionId, 1, candidates.length, "Coarse Grid Calculation");
 
     for (const candidate of candidates) {
+        // 🛑 Check for cancellation inside the loop
+        await throwIfCancelled(input.sessionId, input.abortSignal);
         try {
             const ephemeris = await calculateEphemeris(
                 input.dateOfBirth,
@@ -786,8 +788,8 @@ async function stage2AILevel1(
 
         const batchPromises = batch.map(async (candidate) => {
             try {
-                // 🛑 Immediate Check inside the loop
-                if (input.abortSignal?.aborted) return null;
+                // 🛑 Immediate Check inside the loop for cancellation
+                await throwIfCancelled(input.sessionId, input.abortSignal);
 
                 const ephemeris = await calculateEphemeris(
                     input.dateOfBirth,
@@ -846,7 +848,7 @@ async function stage2AILevel1(
                         maxTokens: 4000,
                         model: 'deepseek-reasoner', // Explicit reasoning model for thinking stream
                         candidateTime: candidate.time,
-                        abortSignal: input.abortSignal,
+                        abortSignal: input.abortSignal, // 🛑 Pass abort signal
                         timeoutMs: 120000, // 2 mins timeout for R1
                         progressTracker: progress,
                         onToken: () => {
@@ -1088,6 +1090,9 @@ async function stage5AILevel2(
 
         const batchPromises = batch.map(async (candidate) => {
             try {
+                // 🛑 Immediate Check inside the loop for cancellation
+                await throwIfCancelled(input.sessionId, input.abortSignal);
+
                 const ephemeris = await calculateEphemeris(
                     input.dateOfBirth,
                     candidate.time,
@@ -1230,6 +1235,8 @@ async function stage6MicroGrid(
     const birthDate = new Date(input.dateOfBirth);
 
     for (const candidateTime of candidates) {
+        // 🛑 Check for cancellation inside the loop
+        await throwIfCancelled(input.sessionId, input.abortSignal);
         try {
             const ephemeris = await calculateEphemeris(
                 input.dateOfBirth,
@@ -1580,6 +1587,8 @@ async function stage8Verification(
     const vimPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
     let vimScore = 0;
     for (const event of input.lifeEvents) {
+        // 🛑 Check for cancellation inside the loop
+        await throwIfCancelled(input.sessionId, input.abortSignal);
         const dasha = getDashaForDate(vimPeriods, new Date(event.eventDate));
         if (dasha) {
             const support = dashaSupportsEvent(dasha, event.category, event.eventType);

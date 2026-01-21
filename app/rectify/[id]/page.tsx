@@ -284,10 +284,6 @@ export default function ProgressPage() {
             const userToken = await getToken();
             const token = userToken || (process.env.NODE_ENV === 'development' ? 'dev-token-fallback' : '');
 
-            if (!token) {
-                console.warn('No auth token available for cancellation');
-            }
-
             const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
             const response = await fetch(`${backendUrl}/api/queue/cancel`, { // Direct backend connection
                 method: 'POST',
@@ -300,8 +296,9 @@ export default function ProgressPage() {
 
             const data = await response.json();
             if (data.success) {
+                // Wait for backend to confirm cancellation (which stops loops)
                 setCancelled(true);
-                setTimeout(() => router.push('/rectify'), 2000);
+                router.push('/rectify');
             } else {
                 alert('Could not cancel: ' + (data.error || 'Unknown error'));
             }
@@ -312,6 +309,20 @@ export default function ProgressPage() {
             setIsCancelling(false);
         }
     };
+
+    // 🛡️ Back-Button Trap (Redirect to Dashboard during active/complete session)
+    useEffect(() => {
+        const handlePopState = () => {
+            // Push a new state to stay on this page, then redirect
+            window.history.pushState(null, '', window.location.href);
+            router.push('/rectify');
+        };
+
+        window.history.pushState(null, '', window.location.href);
+        window.addEventListener('popstate', handlePopState);
+
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [router]);
 
     // Convert stream progress to local progress format
     const [progress, setProgress] = useState<ProgressData | null>(null);

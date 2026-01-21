@@ -4,6 +4,7 @@ import calculateRouter from './calculate.js';
 import queueRouter from './queue.js';
 import progressRouter from './progress.js';
 import streamRouter from './stream.js';
+import warmupRouter from './warmup.js';
 
 const router = Router();
 
@@ -14,6 +15,7 @@ router.use((req, res, next) => {
 });
 
 router.use('/health', healthRouter);
+router.use('/warmup', warmupRouter);
 router.use('/calculate', calculateRouter);
 router.use('/queue/progress', progressRouter); // Order matters: more specific first
 router.use('/queue', queueRouter);
