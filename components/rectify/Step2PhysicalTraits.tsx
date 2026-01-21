@@ -252,42 +252,32 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
             {/* ══════════════════════════════════════════════════════════════ */}
             {/* HEADER */}
             {/* ══════════════════════════════════════════════════════════════ */}
-            <motion.div variants={itemVariants} className="text-center md:text-left">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E8A849]/10 border border-[#E8A849]/20 mb-4">
-                    <Zap className="w-3 h-3 text-[#E8A849]" />
-                    <span className="text-[10px] text-[#E8A849] font-black tracking-[0.2em] uppercase underline-offset-4">
-                        Analysis Stage 03: Biological Checksum
-                    </span>
-                </div>
-                <h1 className="text-5xl font-black text-[#F5F0EB] tracking-tighter mb-4 lg:max-w-3xl">
-                    Physiological <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#E8A849] to-[#F5F0EB]">Markers</span>
-                </h1>
-                <p className="text-[#C4B8AD] text-lg max-w-2xl leading-relaxed font-medium">
+            <motion.div variants={itemVariants}>
+                <p className="text-sm text-[#E8A849] font-medium tracking-widest mb-2">STEP 2 OF 4</p>
+                <h1 className="text-3xl font-bold text-[#F5F0EB]">Physical Traits</h1>
+                <p className="text-[#C4B8AD] mt-2 text-sm max-w-2xl leading-relaxed">
                     Vedic rectification uses <span className="text-[#E8A849] font-bold italic">Samudrik Shastra</span> (Body Signatures) to verify Lagna (Ascendant) and Dasha sequences.
                 </p>
             </motion.div>
 
             {/* ══════════════════════════════════════════════════════════════ */}
-            {/* VEDIC ALERT */}
+            {/* VEDIC CONTEXT CARD */}
             {/* ══════════════════════════════════════════════════════════════ */}
             <motion.div
                 variants={itemVariants}
-                className="relative group lg:max-w-4xl"
+                className="bg-[#241F1C] border border-[#C4B8AD]/10 rounded-xl p-6 flex flex-col md:flex-row items-center gap-5"
             >
-                <div className="absolute -inset-1 bg-gradient-to-r from-[#6B9AC4]/50 to-[#E8A849]/50 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000"></div>
-                <div className="relative bg-[#1A1614]/80 backdrop-blur-xl border border-[#C4B8AD]/10 rounded-2xl p-8 flex flex-col md:flex-row items-center gap-6">
-                    <div className="p-5 rounded-2xl bg-gradient-to-br from-[#6B9AC4]/30 to-transparent border border-[#6B9AC4]/20 shadow-2xl">
-                        <Brain className="w-8 h-8 text-[#6B9AC4]" />
-                    </div>
-                    <div>
-                        <h4 className="text-xl font-black text-[#F5F0EB] mb-2 items-center flex gap-2">
-                            Lagna-Varnada Verification
-                        </h4>
-                        <p className="text-sm text-[#C4B8AD] leading-relaxed max-w-xl">
-                            Each of the 12 Ascendants produces distinct skeletal and muscular structures.
-                            Your biological patterns act as a <span className="text-[#6B9AC4] font-mono">Dasha-Sync Validation</span> for the AI engine.
-                        </p>
-                    </div>
+                <div className="p-3 rounded-xl bg-[#E8A849]/10 border border-[#E8A849]/20 shrink-0">
+                    <Brain className="w-6 h-6 text-[#E8A849]" />
+                </div>
+                <div>
+                    <h4 className="text-lg font-bold text-[#F5F0EB] mb-1">
+                        Lagna-Varnada Verification
+                    </h4>
+                    <p className="text-sm text-[#C4B8AD] leading-relaxed">
+                        Each of the 12 Ascendants produces distinct skeletal and muscular structures.
+                        Your biological patterns act as a <span className="text-[#E8A849]/80 font-mono">Dasha-Sync Validation</span> for the AI engine.
+                    </p>
                 </div>
             </motion.div>
 

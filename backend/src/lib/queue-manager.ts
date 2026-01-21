@@ -20,11 +20,12 @@ import { emitComplete } from './session-events';
 // ═════════════════════════════════════════════════════════════════════════════
 
 const QUEUE_CONFIG = {
-  maxConcurrent: 5,           // Process 5 sessions concurrently (High-RAM HF)
-  pollIntervalMs: 2000,       // Frontend polls every 2 seconds
-  maxQueueSize: 1000,         // Scaled up for production
-  staleTimeoutMs: 20 * 60 * 1000, // 20 minutes - comprehensive analysis takes longer
-  estimatedTimePerRequest: 90, // ~90 seconds per analysis with all methods
+  maxConcurrent: parseInt(process.env.MAX_CONCURRENT_SESSIONS || '3'), // Process N sessions concurrently
+  pollIntervalMs: 2000,
+  maxQueueSize: 1000,
+  staleTimeoutMs: 30 * 60 * 1000, // 30 mins
+  baseAnalysisTime: 300,        // 5 Mins for God-Tier analysis (1 user)
+  contentionMultiplier: 0.4,    // Each extra user adds 40% time due to CPU sharing
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -56,10 +57,12 @@ export interface QueueSubmitResult {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// IN-MEMORY STATE (minimal - just tracking current job)
+// IN-MEMORY STATE (minimal - just tracking current jobs)
 // ═════════════════════════════════════════════════════════════════════════════
 
-let currentProcessingId: string | null = null;
+// Track multiple concurrent processing IDs
+const activeProcessingIds = new Set<string>();
+const processingStartTimes = new Map<string, number>(); // sessionId -> timestamp
 let isProcessorRunning = false;
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -90,24 +93,22 @@ export async function addToQueue(sessionId: string): Promise<QueueSubmitResult> 
       })
       .where(eq(sessions.id, sessionId));
 
-    // Get position in queue
-    const position = await getQueuePosition(sessionId);
-    const estimatedWait = position * QUEUE_CONFIG.estimatedTimePerRequest;
+    // Start processor if not running
+    startQueueProcessor();
+
+    const status = await getQueueStatus(sessionId);
 
     logger.info('Request added to queue', {
       sessionId,
-      position,
-      estimatedWait,
+      position: status?.position || 0,
+      estimatedWait: status?.estimatedWaitSeconds || 0,
     });
-
-    // Start processor if not running
-    startQueueProcessor();
 
     return {
       success: true,
       sessionId,
-      position,
-      estimatedWaitSeconds: estimatedWait,
+      position: status?.position || 0,
+      estimatedWaitSeconds: status?.estimatedWaitSeconds || 0,
     };
   } catch (error) {
     logger.error('Failed to add to queue', error);
@@ -123,8 +124,8 @@ export async function addToQueue(sessionId: string): Promise<QueueSubmitResult> 
  */
 export async function getQueuePosition(sessionId: string): Promise<number> {
   try {
-    // Get all queued sessions ordered by creation time
-    const queued = await db.select({ id: sessions.id })
+    // Get all active sessions (processing or queued) ordered by creation time
+    const active = await db.select({ id: sessions.id, status: sessions.status })
       .from(sessions)
       .where(or(
         eq(sessions.status, 'queued'),
@@ -132,8 +133,20 @@ export async function getQueuePosition(sessionId: string): Promise<number> {
       ))
       .orderBy(asc(sessions.createdAt));
 
-    const index = queued.findIndex(s => s.id === sessionId);
-    return index === -1 ? 0 : index;
+    const item = active.find(s => s.id === sessionId);
+    if (!item) return 0;
+
+    // If already processing, position is effectively 0
+    if (item.status === 'processing') return 0;
+
+    // Find index among ONLY queued items, BUT only those that aren't in the top 'maxConcurrent' spots
+    const index = active.findIndex(s => s.id === sessionId);
+
+    // Position = Rank - active_slots + 1
+    // Example: indices 0,1,2 are active. Index 3 is next (Position 1).
+    const position = Math.max(1, index - QUEUE_CONFIG.maxConcurrent + 1);
+
+    return position;
   } catch (error) {
     logger.error('Failed to get queue position', error);
     return 0;
@@ -159,13 +172,38 @@ export async function getQueueStatus(sessionId: string): Promise<QueuePosition |
       ? await getQueuePosition(sessionId)
       : 0;
 
+    // 🚀 GOD-TIER DYNAMIC WAIT ESTIMATION
+    let estimatedWaitSeconds = 0;
+    const activeCount = activeProcessingIds.size;
+
+    if (s.status === 'queued') {
+      // 1. Calculate how much time is left in the CURRENT active slots
+      const contentionFactor = 1 + (Math.max(0, activeCount - 1) * QUEUE_CONFIG.contentionMultiplier);
+      const adjustedCycleTime = QUEUE_CONFIG.baseAnalysisTime * contentionFactor;
+
+      const sessionTimes = Array.from(processingStartTimes.values());
+      const remainingTimes = sessionTimes.map(startTime => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        return Math.max(10, adjustedCycleTime - elapsed);
+      });
+
+      // The next slot opens at the MIN of remaining times
+      const nextSlotAvailableIn = remainingTimes.length > 0 ? Math.min(...remainingTimes) : 0;
+
+      // 2. Add time for people ahead of you in the queue
+      const itemsAhead = Math.max(0, position - 1);
+      const waitPerQueueItem = adjustedCycleTime / QUEUE_CONFIG.maxConcurrent;
+
+      estimatedWaitSeconds = Math.ceil(nextSlotAvailableIn + (itemsAhead * waitPerQueueItem));
+    }
+
     const totalInQueue = await getQueuedCount();
 
     return {
       sessionId,
       status: s.status as QueueStatus,
       position,
-      estimatedWaitSeconds: position * QUEUE_CONFIG.estimatedTimePerRequest,
+      estimatedWaitSeconds,
       totalInQueue,
       createdAt: s.createdAt || '',
       session: s,
@@ -229,7 +267,8 @@ async function markAsProcessing(sessionId: string): Promise<void> {
     })
     .where(eq(sessions.id, sessionId));
 
-  currentProcessingId = sessionId;
+  activeProcessingIds.add(sessionId);
+  processingStartTimes.set(sessionId, Date.now());
 }
 
 /**
@@ -256,9 +295,8 @@ export async function markAsComplete(
     })
     .where(eq(sessions.id, sessionId));
 
-  if (currentProcessingId === sessionId) {
-    currentProcessingId = null;
-  }
+  activeProcessingIds.delete(sessionId);
+  processingStartTimes.delete(sessionId);
 
   logger.info('Session marked complete', { sessionId });
 
@@ -283,9 +321,8 @@ export async function markAsFailed(sessionId: string, error: string): Promise<vo
     })
     .where(eq(sessions.id, sessionId));
 
-  if (currentProcessingId === sessionId) {
-    currentProcessingId = null;
-  }
+  activeProcessingIds.delete(sessionId);
+  processingStartTimes.delete(sessionId);
 
   logger.error('Session marked failed', { sessionId, error });
 }
@@ -326,9 +363,8 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
       })
       .where(eq(sessions.id, sessionId));
 
-    if (currentProcessingId === sessionId) {
-      currentProcessingId = null;
-    }
+    activeProcessingIds.delete(sessionId);
+    processingStartTimes.delete(sessionId);
 
     logger.info('Session cancelled by user', { sessionId });
     return true;
@@ -367,8 +403,8 @@ async function processQueue(): Promise<void> {
       // Check for stale processing requests (crashed mid-process)
       await cleanupStaleRequests();
 
-      // Check if already processing something
-      if (currentProcessingId !== null) {
+      // Check concurrent limit
+      if (activeProcessingIds.size >= QUEUE_CONFIG.maxConcurrent) {
         await sleep(1000);
         continue;
       }
@@ -385,64 +421,79 @@ async function processQueue(): Promise<void> {
       // Mark as processing
       await markAsProcessing(nextId);
 
-      logger.info('Starting to process request', { sessionId: nextId });
-
-      // Get session data
-      const session = await db.select()
-        .from(sessions)
-        .where(eq(sessions.id, nextId))
-        .limit(1);
-
-      if (session.length === 0) {
-        await markAsFailed(nextId, 'Session not found');
-        continue;
-      }
-
-      const s = session[0];
-
-      // 🛑 Create AbortController for this session
-      const abortController = createAbortController(nextId);
-
-      // Process the analysis
-      try {
-        // 🔐 Decrypt sensitive data using clerkId (encryption key)
-        const decryptedLifeEvents = JSON.parse(decryptData(s.lifeEvents, s.clerkId));
-        const decryptedPhysicalTraits = s.physicalTraits
-          ? JSON.parse(decryptData(s.physicalTraits, s.clerkId))
-          : undefined;
-
-        const result = await processSecondsPrecisionBTR({
-          sessionId: nextId,
-          dateOfBirth: s.dateOfBirth,
-          tentativeTime: s.tentativeTime,
-          latitude: s.latitude,
-          longitude: s.longitude,
-          timezone: s.timezone,
-          lifeEvents: decryptedLifeEvents,
-          offsetConfig: s.offsetConfig ? JSON.parse(s.offsetConfig) : { preset: '1hour' },
-          physicalTraits: decryptedPhysicalTraits,
-          abortSignal: abortController.signal, // 🛑 Pass abort signal
-        });
-
-        await markAsComplete(nextId, result);
-        cleanupController(nextId); // Cleanup on success
-      } catch (error) {
-        // Check if this was a cancellation
-        if (isCancellationError(error)) {
-          logger.info('Session processing cancelled', { sessionId: nextId });
-          cleanupController(nextId);
-          // Status already set to 'failed' by cancelSession, no need to update
-        } else {
-          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-          await markAsFailed(nextId, errorMsg);
-          cleanupController(nextId);
-        }
-      }
+      // ⚡ ASYNC EXECUTION: Don't await the heavy process!
+      // Fire and loop back immediately to pick up next task if slot available
+      processSessionAsync(nextId);
 
     } catch (error) {
       logger.error('Queue processor error', error);
       await sleep(5000); // Wait before retry on error
     }
+  }
+}
+
+/**
+ * Process a single session (async worker)
+ */
+async function processSessionAsync(sessionId: string): Promise<void> {
+  try {
+    logger.info('Starting to process request', { sessionId });
+
+    // Get session data
+    const session = await db.select()
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .limit(1);
+
+    if (session.length === 0) {
+      await markAsFailed(sessionId, 'Session not found');
+      return;
+    }
+
+    const s = session[0];
+
+    // 🛑 Create AbortController for this session
+    const abortController = createAbortController(sessionId);
+
+    // Process the analysis
+    try {
+      // 🔐 Decrypt sensitive data using clerkId (encryption key)
+      const decryptedLifeEvents = JSON.parse(decryptData(s.lifeEvents, s.clerkId));
+      const decryptedPhysicalTraits = s.physicalTraits
+        ? JSON.parse(decryptData(s.physicalTraits, s.clerkId))
+        : undefined;
+
+      const result = await processSecondsPrecisionBTR({
+        sessionId: sessionId,
+        dateOfBirth: s.dateOfBirth,
+        tentativeTime: s.tentativeTime,
+        latitude: s.latitude,
+        longitude: s.longitude,
+        timezone: s.timezone,
+        lifeEvents: decryptedLifeEvents,
+        offsetConfig: s.offsetConfig ? JSON.parse(s.offsetConfig) : { preset: '1hour' },
+        physicalTraits: decryptedPhysicalTraits,
+        abortSignal: abortController.signal, // 🛑 Pass abort signal
+      });
+
+      await markAsComplete(sessionId, result);
+      cleanupController(sessionId); // Cleanup on success
+    } catch (error) {
+      // Check if this was a cancellation
+      if (isCancellationError(error)) {
+        logger.info('Session processing cancelled', { sessionId });
+        cleanupController(sessionId);
+        // Status already set to 'failed' by cancelSession, no need to update
+      } else {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        await markAsFailed(sessionId, errorMsg);
+        cleanupController(sessionId);
+      }
+    }
+  } catch (error) {
+    logger.error('Async worker error', error);
+    // Ensure we clean up the slot if catastrophic failure
+    activeProcessingIds.delete(sessionId);
   }
 }
 
@@ -508,7 +559,7 @@ export async function getQueueStats(): Promise<{
       queuedCount: queued.length,
       processingCount: processing.length,
       completedToday: completed.length,
-      averageWaitTime: QUEUE_CONFIG.estimatedTimePerRequest,
+      averageWaitTime: QUEUE_CONFIG.baseAnalysisTime,
     };
   } catch (error) {
     logger.error('Failed to get queue stats', error);

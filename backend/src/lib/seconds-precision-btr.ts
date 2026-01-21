@@ -290,6 +290,7 @@ export async function processSecondsPrecisionBTR(
     const methodsUsed: string[] = [];
     let stagesCompleted = 0;
     const boundaryWarnings: string[] = [];
+    let timelineCount = 0; // Tracks parallel multi-track timelines
 
     // Initialize progress tracker for real-time updates
     const progress = new ProgressTracker(input.sessionId);
@@ -410,7 +411,7 @@ export async function processSecondsPrecisionBTR(
 
         logger.info('STAGE 5: AI Level 2 analysis (fine comparison)');
         const stage5Results = await stage5AILevel2(
-            stage4Candidates.slice(0, 15),
+            stage4Candidates, // 🔓 GOD-TIER: UNLOCKED! No 15 limit.
             input,
             progress
         );
@@ -423,20 +424,46 @@ export async function processSecondsPrecisionBTR(
         logger.info('Stage 5 complete', { topScore: stage5Results[0]?.score });
 
         // ═══════════════════════════════════════════════════════════════════════
-        // STAGE 6: MICRO GRID (6-Second Intervals)
+        // STAGE 6: MICRO GRID (6-Second Intervals) - MULTI-TRACK EDITION
         // ═══════════════════════════════════════════════════════════════════════
 
         // 🛑 Check for cancellation before Stage 6
         await throwIfCancelled(input.sessionId, input.abortSignal);
 
-        logger.info('STAGE 6: Micro grid at 6-second intervals');
-        const stage6Candidates = await stage6MicroGrid(
-            stage5Results[0].time,
-            input
-        );
+        logger.info('STAGE 6: Micro grid at 6-second intervals (Multi-Track)');
+
+        // 🏆 GOD-TIER: MULTI-TRACK ANALYSIS
+        // If the "True Time" is ranked #2 or #3 in Stage 5, we shouldn't discard it.
+        // We take the TOP 5 candidates GUARANTEED.
+        // PLUS: We include ANY candidate with a score >= 80 (High Probability).
+        // This makes the system "Elastic" - it expands for complex charts and contracts for simple ones.
+        const topContenders = stage5Results.filter((c, i) => i < 5 || c.score >= 80);
+        timelineCount = topContenders.length;
+
+        const allMicroCandidates: any[] = [];
+        const seenTimes = new Set<string>();
+
+        await progress.updateMessage(`Running Micro-Grid for Top ${topContenders.length} timelines...`);
+
+        for (const contender of topContenders) {
+            const microData = await stage6MicroGrid(contender.time, input);
+            microData.forEach(c => {
+                if (!seenTimes.has(c.time)) {
+                    seenTimes.add(c.time);
+                    allMicroCandidates.push(c);
+                }
+            });
+        }
+
+        // Sort the massive pool by algorithmic score before AI gets it
+        const stage6Candidates = allMicroCandidates.sort((a, b) => b.score - a.score);
+
         stagesCompleted = 6;
 
-        logger.info('Stage 6 complete', { candidateCount: stage6Candidates.length });
+        logger.info('Stage 6 complete', {
+            candidateCount: stage6Candidates.length,
+            timelinesReference: topContenders.map(c => c.time)
+        });
 
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 7: AI LEVEL 3 ANALYSIS (96-99% accuracy)
@@ -636,6 +663,8 @@ export async function processSecondsPrecisionBTR(
                     stage1Count: stage1Candidates.length,
                     stage4Count: stage4Candidates.length,
                     stage6Count: stage6Candidates.length,
+                    stage7Count: stage7Results.length,
+                    timelineCount,
                 },
                 // Also explicitly save the main analysis text at the top level for easier access if needed
                 aiAnalysis: finalCandidate.aiAnalysis
@@ -1068,158 +1097,7 @@ async function stage4FineGrid(
 // STAGE 5: AI LEVEL 2
 // ═════════════════════════════════════════════════════════════════════════════
 
-// ═════════════════════════════════════════════════════════════════════════════
-// STAGE 5: AI LEVEL 2
-// ═════════════════════════════════════════════════════════════════════════════
 
-async function stage5AILevel2(
-    candidates: StageCandidate[],
-    input: SecondsPrecisionInput,
-    progress: ProgressTracker
-): Promise<StageCandidate[]> {
-    const results: StageCandidate[] = [];
-    const birthDate = new Date(input.dateOfBirth);
-    const BATCH_SIZE = 3; // Reduced for HF Free Tier (2 vCPU) stability
-
-    logger.info(`Starting Stage 5 parallel processing for ${candidates.length} candidates`);
-
-    // Process in batches
-    for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
-        const batch = candidates.slice(i, i + BATCH_SIZE);
-        logger.info(`Processing batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(candidates.length / BATCH_SIZE)}`);
-
-        const batchPromises = batch.map(async (candidate) => {
-            try {
-                // 🛑 Immediate Check inside the loop for cancellation
-                await throwIfCancelled(input.sessionId, input.abortSignal);
-
-                const ephemeris = await calculateEphemeris(
-                    input.dateOfBirth,
-                    candidate.time,
-                    input.latitude,
-                    input.longitude,
-                    input.timezone
-                );
-
-                const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
-                const moonSidereal = ephemeris.planets.moon.longitude;
-
-                // ⚡ EMIT REAL-TIME CALCULATION LOG (Keep stream alive in Stage 5)
-                emitCalculationLog(input.sessionId, {
-                    candidateTime: candidate.time,
-                    sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
-                    moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
-                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`,
-                    dashaObj: `Vim/Yog/Chara` // Short dasha string
-                });
-
-                const allDashas = {
-                    vimshottari: calculateVimshottariDasha(moonSidereal, birthDate),
-                    yogini: calculateYoginiDasha(moonSidereal, birthDate),
-                    chara: calculateCharaDasha(ephemeris, birthDate),
-                    tatwa: calculateTatwaDasha(moonSidereal, birthDate),
-                };
-
-                // ⚡ Pre-calculate ALL Divisional Charts for Level 2
-                console.log(`[Stage 5] Generating div charts for ${candidate.time}`);
-                const divCharts = generateDivisionalCharts(ephemeris);
-
-                // 🔮 Emit AI Context
-                emitAIContext(input.sessionId, {
-                    stage: 5,
-                    candidateTime: candidate.time,
-                    planetaryInfo: {
-                        sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
-                        moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
-                        ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
-                    },
-                    dasha: `${allDashas.vimshottari[0].lord} (until ${allDashas.vimshottari[0].endDate.toISOString().split('T')[0]})`,
-                    divCharts: `D9 Lagna: ${divCharts.D9.ascendant.sign}`
-                });
-
-                const maturationData = calculatePlanetaryMaturation(birthDate);
-                const prompt = buildLevel2Prompt(candidate.time, input, ephemeris, allDashas, jd, divCharts, maturationData);
-                console.log(`[Stage 5] Prompt built for ${candidate.time}, calling AI...`);
-
-                let lastPulseTime = Date.now();
-
-                // 🔴 Use streaming for real-time AI thinking display
-                let response = await callKimiK2WithStream(
-                    input.sessionId,
-                    5,
-                    getLevel2SystemPrompt(candidates.length),
-                    prompt,
-                    {
-                        model: 'deepseek-reasoner', // Explicit reasoning model for thinking stream
-                        candidateTime: candidate.time,
-                        abortSignal: input.abortSignal,
-                        timeoutMs: 120000, // 2 mins timeout
-                        onToken: () => {
-                            // 💓 Throttled Heartbeat (every 30s)
-                            if (Date.now() - lastPulseTime > 30000) {
-                                lastPulseTime = Date.now();
-                                progress.pulse().catch(() => { });
-                            }
-                        },
-                        progressTracker: progress
-                    }
-                );
-
-                // Fallback if primary model fails
-                if (!response.success) {
-                    logger.warn(`Stage 5 Primary AI Failed for ${candidate.time}, switching to fallback...`);
-                    response = await callKimiK2WithStream(
-                        input.sessionId,
-                        5,
-                        getLevel2SystemPrompt(candidates.length),
-                        prompt,
-                        {
-                            candidateTime: candidate.time,
-                            abortSignal: input.abortSignal,
-                            model: 'deepseek-chat',
-                            onToken: (chunk) => progress.updateMessage(`Comparing ${candidate.time} (Fallback)...`),
-                            progressTracker: progress
-                        }
-                    );
-                }
-                console.log(`[Stage 5] AI response received for ${candidate.time}`);
-
-                if (response.success) {
-                    const parsed = parseKimiAnalysisResponse(response.content);
-                    logger.info(`✅ Stage 5: Analyzed candidate ${candidate.time} (Score: ${parsed.score})`);
-
-                    // 📊 Add and persist score
-                    await progress.addCandidateScore({
-                        time: candidate.time,
-                        score: parsed.score,
-                        stage: 5
-                    });
-
-                    return {
-                        time: candidate.time,
-                        score: parsed.score,
-                        aiAnalysis: response.content,
-                    };
-                }
-                return null;
-            } catch (error) {
-                logger.error(`Stage 5 failed for ${candidate.time}`, error);
-                return null;
-            }
-        });
-
-        // Check for cancellation before waiting for batch
-        await throwIfCancelled(input.sessionId, input.abortSignal);
-
-        const batchResults = await Promise.all(batchPromises);
-        batchResults.forEach(res => {
-            if (res) results.push(res);
-        });
-    }
-
-    results.sort((a, b) => b.score - a.score);
-    return results;
-}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // STAGE 6: MICRO GRID (6-Second Intervals)
@@ -1352,179 +1230,7 @@ async function stage6MicroGrid(
     return scored;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// STAGE 7: AI LEVEL 3 (Final Decision)
-// ═════════════════════════════════════════════════════════════════════════════
 
-async function stage7AILevel3(
-    candidates: StageCandidate[],
-    input: SecondsPrecisionInput,
-    progress: ProgressTracker
-): Promise<StageCandidate[]> {
-    const results: StageCandidate[] = [];
-    const birthDate = new Date(input.dateOfBirth);
-
-    emitStageStats(input.sessionId, 7, candidates.length, "AI Level 3 Final Decision");
-
-    // Build comprehensive prompt for all 7 candidates
-    // Build comprehensive prompt for all 7 candidates
-    const allCandidatesDataPromises = candidates.map(async (candidate) => {
-        const ephemeris = await calculateEphemeris(
-            input.dateOfBirth,
-            candidate.time,
-            input.latitude,
-            input.longitude,
-            input.timezone
-        );
-
-        const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
-        const moonSidereal = ephemeris.planets.moon.longitude;
-
-        // ⚡ EMIT REAL-TIME CALCULATION LOG (Final Decision Prep)
-        emitCalculationLog(input.sessionId, {
-            candidateTime: candidate.time,
-            sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
-            moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
-            ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
-        });
-
-        // 🔮 Emit AI Context for Real-time HUD transparency
-        emitAIContext(input.sessionId, {
-            stage: 7,
-            candidateTime: candidate.time,
-            planetaryInfo: {
-                sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
-                moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
-                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
-            },
-            dasha: "Analyzing Final Precision Limits",
-            divCharts: "All Divisional Charts Synthesized"
-        });
-
-        const allDashas = {
-            vimshottari: calculateVimshottariDasha(moonSidereal, birthDate),
-            yogini: calculateYoginiDasha(moonSidereal, birthDate),
-            chara: calculateCharaDasha(ephemeris, birthDate),
-            rasi: calculateRasiDasha(ephemeris, birthDate),
-            tatwa: calculateTatwaDasha(moonSidereal, birthDate),
-        };
-
-        const divisionalCharts = generateDivisionalCharts(ephemeris);
-        const aspects = calculateAdvancedAspects(ephemeris);
-        const arudha = calculateArudhaLagna(ephemeris);
-
-        const maturationData = calculatePlanetaryMaturation(birthDate);
-        return buildCandidateSection(
-            candidate.time,
-            ephemeris,
-            allDashas,
-            divisionalCharts,
-            aspects,
-            arudha,
-            input,
-            jd,
-            maturationData
-        );
-    });
-
-    const allCandidatesData = await Promise.all(allCandidatesDataPromises);
-
-    const fullPrompt = `SECONDS-LEVEL DECISION: Choose THE BEST birth time from these 7 candidates.
-
-${allCandidatesData.join('\n\n═══════════════════════════════════════════════════════════════════════════\n\n')}
-
-LIFE EVENTS TO VERIFY:
-${input.lifeEvents.map(e => `- ${e.eventType} (${e.category}) on ${e.eventDate}: ${e.description}`).join('\n')}
-
-PHYSICAL TRAITS: ${input.physicalTraits ? JSON.stringify(input.physicalTraits) : 'Not provided'}
-
-ANALYZE EACH 6-SECOND CANDIDATE AND DETERMINE THE CORRECT BIRTH TIME.`;
-
-    let lastPulseTime = Date.now();
-
-    // Use streaming version for real-time AI thinking display
-    let response = await callKimiK2WithStream(
-        input.sessionId,
-        7, // Stage 7
-        getLevel3SystemPrompt(candidates.length),
-        fullPrompt,
-        {
-            model: 'deepseek-reasoner', // Explicit reasoning model for thinking stream
-            temperature: 0.0,
-            maxTokens: 10000,
-            candidateTime: 'final_decision',
-            abortSignal: input.abortSignal,
-            onToken: () => {
-                // 💓 Throttled Heartbeat (every 30s)
-                if (Date.now() - lastPulseTime > 30000) {
-                    lastPulseTime = Date.now();
-                    progress.pulse().catch(() => { });
-                }
-            },
-            progressTracker: progress
-        }
-
-    );
-
-    // Fallback if primary model fails (returns empty or errors)
-    if (!response.success) {
-        logger.warn('Stage 7 Primary AI Failed, Retrying with Fallback Model (DeepSeek Chat)...');
-        progress.updateMessage('Primary model unstable, switching to fallback model...');
-
-        response = await callKimiK2WithStream(
-            input.sessionId,
-            7,
-            getLevel3SystemPrompt(candidates.length),
-            fullPrompt,
-            {
-                temperature: 0.5,
-                maxTokens: 8000,
-                candidateTime: 'final_decision',
-                abortSignal: input.abortSignal,
-                model: 'deepseek-chat',
-                onToken: (chunk) => {
-                    progress.updateMessage('Finalizing with fallback model...');
-                },
-                progressTracker: progress
-            }
-        );
-    }
-
-    if (response.success) {
-        // Parse response to extract scores for each candidate
-        for (const candidate of candidates) {
-            const timePattern = new RegExp(`TIME:\\s*${candidate.time.replace(/:/g, ':')}[\\s\\S]*?(?:SCORE|CONFIDENCE):\\s*(\\d+)`, 'i');
-            const match = response.content.match(timePattern);
-            const score = match ? parseInt(match[1]) : 50;
-
-            results.push({
-                time: candidate.time,
-                score,
-                aiAnalysis: response.content,
-            });
-
-            // 📊 Add and persist score
-            await progress.addCandidateScore({
-                time: candidate.time,
-                score,
-                stage: 7
-            });
-        }
-
-        // Also check for BEST TIME in verdict
-        const bestMatch = response.content.match(/BEST TIME:\s*(\d{2}:\d{2}:\d{2})/i);
-        if (bestMatch) {
-            const bestTime = bestMatch[1];
-            const bestCandidate = results.find(r => r.time === bestTime);
-            if (bestCandidate) {
-                bestCandidate.score = Math.max(bestCandidate.score, 95);
-            }
-        }
-    }
-
-    results.sort((a, b) => b.score - a.score);
-    return results;
-}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // STAGE 8: 15-METHOD VERIFICATION
@@ -1937,6 +1643,282 @@ function getMarginOfError(score: number): number {
     if (score >= 90) return 4;
     if (score >= 85) return 5;
     return 6;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ESSENCE PROTOCOL: BATCH PROMPT BUILDER 🧠
+// ═════════════════════════════════════════════════════════════════════════════
+
+function buildBatchComparisonPrompt(
+    candidates: any[],
+    input: SecondsPrecisionInput,
+    stageLevel: number
+): string {
+    const timeFrame = stageLevel === 2 ? "30-SECOND" : "6-SECOND";
+
+    // 1. Header (Context - Sent Once)
+    let prompt = `TASK: RELATIVE RANKING OF ${candidates.length} BIRTH TIME CANDIDATES (${timeFrame} PRECISION)
+GOAL: Identify the true birth time by comparing candidates side-by-side.
+METHOD: Look for "lock-in" logic where a Dasha transition aligns perfectly with a life event.
+
+DATA KEY:
+- P: Planets (Su=Sun, Mo=Moon, Ma=Mars, Me=Merc, Ju=Jup, Ve=Ven, Sa=Sat, Ra=Rahu, Ke=Ketu)
+- D9/D10: Navamsha/Dasamsha Ascendants
+- S: Shuddhi Score (Kunda + Tatwa)
+- EVENTS: [Type] (Date) | [Active Dasha] | [Status/Delta]
+
+DOB: ${input.dateOfBirth} | LAT: ${input.latitude} | LON: ${input.longitude}
+
+════════════════════ CANDIDATE BATCH ════════════════════
+`;
+
+    // 2. Batch Body (Compressed Candidates)
+    candidates.forEach((c, index) => {
+        const eph = c.ephemeris;
+        const d9 = c.divCharts.D9.ascendant;
+        const d10 = c.divCharts.D10.ascendant;
+        const shuddhi = c.shuddhiScore || "N/A"; // Assuming shuddhi score is passed or we calc it
+
+        // Compact Planet String
+        const planetsCompact = Object.entries(eph.planets)
+            .map(([k, v]: [string, any]) => `${k.substring(0, 2).charAt(0).toUpperCase() + k.substring(0, 2).slice(1)}:${v.sign.substring(0, 2)} ${v.degree.toFixed(2)}°`)
+            .join(' | ');
+
+        prompt += `\n### C${index + 1} [${c.time}] (Score: ${c.score})
+SIG: Lagna: ${eph.ascendant.sign.substring(0, 2)} ${eph.ascendant.degree.toFixed(3)}° | Mo: ${eph.planets.moon.sign.substring(0, 2)} ${eph.planets.moon.degree.toFixed(2)}°
+VARGA: D9:${d9.sign.substring(0, 2)} | D10:${d10.sign.substring(0, 2)}
+SHUDDHI: ${shuddhi}
+EVENTS:
+`;
+        // Events with Delta Logic
+        input.lifeEvents.forEach((e) => {
+            const date = new Date(e.eventDate);
+            // We re-calculate dasha here to be sure, or pass it in 'c'
+            const dasha = getDashaForDate(c.allDashas?.vimshottari || [], date);
+            const dashaStr = dasha ? `${dasha.mahadasha.substring(0, 2)}/${dasha.antardasha.substring(0, 2)}/${dasha.pratyantardasha?.substring(0, 2) || ''}` : "N/A";
+
+            let status = "";
+            if (dasha?.sandhiInfo?.isNearTransition) {
+                status = `🔱 SANDHI [${dasha.sandhiInfo.distanceMinutes.toFixed(1)}m]`;
+            }
+
+            prompt += `- ${e.category} (${e.eventDate.split('T')[0]}): ${dashaStr} ${status}\n`;
+        });
+    });
+
+    // 3. Footer (Strict Output Instructions)
+    prompt += `
+════════════════════ INSTRUCTIONS ════════════════════
+Analyze the differences (deltas) between these candidates.
+1. Which candidate has the BEST Dasha-Event alignment?
+2. Does the Moon position in C${Math.ceil(candidates.length / 2)} fit the mental events better than C1?
+3. Check D9/D10 lagna shifts.
+
+OUTPUT FORMAT (STRICT):
+RANKING:
+1. [TIME] - [REASONING]
+2. [TIME] - [REASONING]
+...
+FINAL VERDICT: [TIME]
+CONFIDENCE: [0-100]`;
+
+    return prompt;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// STAGE 5: AI LEVEL 2 ANALYSIS (Refactored for Batching)
+// ═════════════════════════════════════════════════════════════════════════════
+
+// ═════════════════════════════════════════════════════════════════════════════
+// STAGE 5: AI LEVEL 2 ANALYSIS (Refactored for Dynamic Tournament)
+// ═════════════════════════════════════════════════════════════════════════════
+
+async function stage5AILevel2(
+    candidates: any[],
+    input: SecondsPrecisionInput,
+    progress: ProgressTracker
+): Promise<any[]> {
+    if (candidates.length === 0) return [];
+
+    // 🏆 GOD-TIER LOGIC: THE SELF-REGULATING VALVE
+    // Instead of a hard limit (Top 10), we use a "Quality Threshold".
+    // 1. Calculate the "Cream Threshold": What is the score of the Top 20th percentile?
+    // 2. Or use a hard floor (e.g., Score > 60).
+    // Logic: In a +/- 6hr window, garbage will have scores < 40-50.
+    // In a +/- 10min window, many will have > 70. The system adapts.
+
+    const QUALITY_FLOOR = 60; // Base threshold for consideration
+    let qualifiedCandidates = candidates.filter(c => c.score >= QUALITY_FLOOR);
+
+    // Safety Valve: If strictly filtering leaves too few (< 5), lower the bar to ensure analysis
+    if (qualifiedCandidates.length < 5) {
+        qualifiedCandidates = candidates.slice(0, 10); // Take top 10 regardless of score
+    }
+
+    // Efficiency Valve: If huge window passes too many (> 50), take the Top 50 to prevent timeout
+    // (50 candidates = 5 batches = ~60s processing time, acceptable for God Tier)
+    if (qualifiedCandidates.length > 50) {
+        qualifiedCandidates = qualifiedCandidates.slice(0, 50);
+    }
+
+    logger.info(`Phase 9: Dynamic Tournament initialized. Qualified Gladiators: ${qualifiedCandidates.length} (from Pool of ${candidates.length})`);
+
+    // ⚔️ THE TOURNAMENT: PARALLEL BATCH PROCESSING
+    const BATCH_SIZE = 10; // Optimal for Cognitive Bandwidth
+    const tournamentResults: any[] = [];
+
+    // Create Batches
+    const batches: any[][] = [];
+    for (let i = 0; i < qualifiedCandidates.length; i += BATCH_SIZE) {
+        batches.push(qualifiedCandidates.slice(i, i + BATCH_SIZE));
+    }
+
+    // Process Batches in Parallel (The "Royal Rumble")
+    // Note: We use Promise.all to run them simultaneously.
+    const batchPromises = batches.map(async (batch, batchIndex) => {
+        await throwIfCancelled(input.sessionId, input.abortSignal);
+
+        logger.info(`⚔️ Tournament Batch ${batchIndex + 1}/${batches.length} entering the arena...`);
+
+        // Build Payload
+        const prompt = buildBatchComparisonPrompt(batch, input, 2);
+
+        // Call AI
+        let aiResponse = "";
+        try {
+            const response = await callKimiK2(prompt, input.sessionId);
+            if (response.success) {
+                aiResponse = response.content;
+            } else {
+                logger.warn(`Batch ${batchIndex + 1} AI failed.`);
+                return []; // Batch failed, no survivors
+            }
+        } catch (e: any) {
+            logger.error(`Batch ${batchIndex + 1} Error`, e);
+            return [];
+        }
+
+        // Update Progress Context (Showcase first candidate of batch as sample)
+        const sample = batch[0];
+        if (sample && sample.ephemeris) {
+            const planetaryInfo = {
+                ascendant: sample.ephemeris.Ascendant ? `${sample.ephemeris.Ascendant.sign} ${sample.ephemeris.Ascendant.degree.toFixed(2)}` : 'N/A',
+                sun: sample.ephemeris.Sun ? `${sample.ephemeris.Sun.sign} ${sample.ephemeris.Sun.degree.toFixed(2)}` : 'N/A',
+                moon: sample.ephemeris.Moon ? `${sample.ephemeris.Moon.sign} ${sample.ephemeris.Moon.degree.toFixed(2)}` : 'N/A'
+            };
+            await progress.updateAIContext({
+                stage: 5,
+                candidateTime: `Batch ${batchIndex + 1}: ${sample.time}...`,
+                planetaryInfo,
+                dasha: "Analyzing batch Dasha congruency...",
+                divCharts: "Cross-checking divisional charts..."
+            });
+            await progress.updateMessage(`Analyzing Tournament Batch ${batchIndex + 1}/${batches.length}...`);
+        }
+
+        // Parse Survivors
+        return batch.map(c => {
+            const isWinner = aiResponse.includes(`FINAL VERDICT: ${c.time}`);
+            const isRank1 = aiResponse.includes(`1. ${c.time}`) || aiResponse.includes(`1. [${c.time}]`);
+
+            let boost = 0;
+            if (isWinner) boost += 20;
+            if (isRank1) boost += 15;
+
+            // AI Analysis Injection
+            let analysis = "Analyzed in tournament.";
+            if (isWinner) analysis = "🏆 BATCH WINNER: " + aiResponse.substring(0, 200) + "...";
+
+            return {
+                ...c,
+                score: Math.min(100, c.score + boost),
+                aiAnalysis: analysis
+            };
+        });
+    });
+
+    const resultsNested = await Promise.all(batchPromises);
+
+    // Flatten results
+    resultsNested.forEach(batchResult => {
+        if (batchResult) tournamentResults.push(...batchResult);
+    });
+
+    // Final Sort: The winners of each batch will have boosted scores and float to top
+    return tournamentResults.sort((a, b) => b.score - a.score);
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// STAGE 7: AI LEVEL 3 ANALYSIS (Refactored for Batching)
+// ═════════════════════════════════════════════════════════════════════════════
+
+async function stage7AILevel3(
+    candidates: any[],
+    input: SecondsPrecisionInput,
+    progress: ProgressTracker
+): Promise<any[]> {
+    // 🏆 GOD-TIER GRAND FINALS
+    // No arbitrary limits. All winners from the Tournament (Stage 5) enter the Grand Finals.
+    // However, for pure safety/cost control, we might cap at 20-30 if needed, but per user instruction, we go ALL IN.
+
+    // Safety: If somehow thousands came through, cap at 200 to prevent timeout.
+    // 200 candidates allows for an extremely wide margin of error in Stage 6.
+    let batch = candidates;
+    if (batch.length > 200) {
+        logger.warn(`Stage 7: Capping Grand Finals at 200 candidates (received ${batch.length})`);
+        batch = candidates.slice(0, 200);
+    }
+
+    await throwIfCancelled(input.sessionId, input.abortSignal);
+
+    logger.info(`Phase 9: Stage 7 Grand Finals - ${batch.length} Finalists entering...`);
+
+    const prompt = buildBatchComparisonPrompt(batch, input, 3); // Level 3 context
+
+    // Update Context for Grand Finals
+    const sample = batch[0];
+    if (sample && sample.ephemeris) {
+        const planetaryInfo = {
+            ascendant: sample.ephemeris.Ascendant ? `${sample.ephemeris.Ascendant.sign} ${sample.ephemeris.Ascendant.degree.toFixed(2)}` : 'N/A',
+            sun: sample.ephemeris.Sun ? `${sample.ephemeris.Sun.sign} ${sample.ephemeris.Sun.degree.toFixed(2)}` : 'N/A',
+            moon: sample.ephemeris.Moon ? `${sample.ephemeris.Moon.sign} ${sample.ephemeris.Moon.degree.toFixed(2)}` : 'N/A'
+        };
+        await progress.updateAIContext({
+            stage: 7, // Level 3
+            candidateTime: `Grand Finals: ${batch.length} Candidates...`,
+            planetaryInfo,
+            dasha: "Synthesizing final verdict...",
+            divCharts: "DeepSeek Reasoner Analysis..."
+        });
+    }
+
+    let aiResponse = "";
+    try {
+        const response = await callKimiK2(prompt, input.sessionId);
+        if (response.success) {
+            aiResponse = response.content;
+        } else {
+            logger.warn(`Stage 7 AI failed: ${response.error}`);
+        }
+    } catch (e) {
+        logger.error("AI Stage 7 Failed", e);
+        return batch; // Fallback to algorithmic sort
+    }
+
+    const rankedCandidates = batch.map(c => {
+        const isWinner = aiResponse.includes(`FINAL VERDICT: ${c.time}`);
+        let boost = 0;
+        if (isWinner) boost += 25; // Massive boost for final winner
+
+        // Also parse confidence if possible
+        return {
+            ...c,
+            score: Math.min(99.9, c.score + boost),
+            aiAnalysis: isWinner ? aiResponse.substring(0, 500) : "Batch Analyzed"
+        };
+    });
+
+    return rankedCandidates.sort((a, b) => b.score - a.score);
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

@@ -9,8 +9,8 @@ interface LiveScoreTableProps {
 export function LiveScoreTable({ scores, className = '' }: LiveScoreTableProps) {
     // Sort by score descending (highest first)
     const sortedScores = [...scores].sort((a, b) => b.score - a.score);
-    // Take top 10
-    const topScores = sortedScores.slice(0, 10);
+    // Live Tournament Feed: Show all active candidates in scrollable view
+    const topScores = sortedScores;
 
     return (
         <div className={`mt-6 overflow-hidden rounded-xl border border-white/10 bg-black/20 backdrop-blur-sm ${className}`}>

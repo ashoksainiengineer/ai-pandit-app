@@ -230,161 +230,167 @@ export async function callKimiK2WithStream(
         };
     }
 
-    try {
-        // 🚀 Debug: Log function entry to file
-        const entryMsg = `🚀 callKimiK2WithStream CALLED: sessionId=${sessionId?.slice(0, 8)}, stage=${stage}, model=${config.model}, candidateTime=${options?.candidateTime}\n`;
-        console.log(entryMsg);
-        require('fs').appendFileSync('/tmp/ai-debug.log', `${new Date().toISOString()} ${entryMsg}`);
+    let lastError: Error | null = null;
 
-        logger.info('Calling Kimi K2 with streaming', {
-            sessionId,
-            stage,
-            model: config.model,
-            candidateTime: options?.candidateTime,
-        });
+    // Retry Loop for Streaming resilience
+    for (let attempt = 1; attempt <= KIMI_CONFIG.retryAttempts; attempt++) {
+        try {
+            // 🚀 Debug: Log function entry
+            const entryMsg = `🚀 callKimiK2WithStream ATTEMPT ${attempt}/${KIMI_CONFIG.retryAttempts}: sessionId=${sessionId?.slice(0, 8)}, stage=${stage}\n`;
+            console.log(entryMsg);
 
-
-        // Combine internal timeout with external abort signal
-        const controller = new AbortController();
-        const timeoutMs = options?.timeoutMs ?? KIMI_CONFIG.timeoutMs;
-        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-        if (options?.abortSignal) {
-            options.abortSignal.addEventListener('abort', () => {
-                logger.info('Kimi K2 call cancelled by user');
-                controller.abort();
+            logger.info('Calling Kimi K2 with streaming', {
+                sessionId,
+                stage,
+                attempt,
+                model: config.model,
             });
-        }
 
-        const isReasoningModel = config.model.includes('reasoner');
+            // Combine internal timeout with external abort signal
+            const controller = new AbortController();
+            const timeoutMs = options?.timeoutMs ?? KIMI_CONFIG.timeoutMs;
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-        const requestBody: any = {
-            model: config.model,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt },
-            ],
-            max_tokens: config.maxTokens,
-            stream: true, // Enable streaming
-        };
+            if (options?.abortSignal) {
+                options.abortSignal.addEventListener('abort', () => {
+                    logger.info('Kimi K2 call cancelled by user');
+                    controller.abort();
+                });
+            }
 
-        if (!isReasoningModel) {
-            requestBody.temperature = config.temperature;
-        }
+            const isReasoningModel = config.model.includes('reasoner');
 
-        const response = await fetch(`${KIMI_CONFIG.baseUrl}/v1/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${KIMI_CONFIG.apiKey}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody),
-            signal: controller.signal,
-        });
+            const requestBody: any = {
+                model: config.model,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userPrompt },
+                ],
+                max_tokens: config.maxTokens,
+                stream: true, // Enable streaming
+            };
 
-        clearTimeout(timeoutId);
+            if (!isReasoningModel) {
+                requestBody.temperature = config.temperature;
+            }
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`API error ${response.status}: ${errorText}`);
-        }
+            const response = await fetch(`${KIMI_CONFIG.baseUrl}/v1/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${KIMI_CONFIG.apiKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody),
+                signal: controller.signal,
+            });
 
-        // Process SSE stream
-        const reader = response.body?.getReader();
-        if (!reader) {
-            throw new Error('No response body');
-        }
+            clearTimeout(timeoutId);
 
-        const decoder = new TextDecoder();
-        let fullContent = '';
-        let fullThinking = '';
-        let buffer = '';
+            if (!response.ok) {
+                const errorText = await response.text();
+                // 429 = Rate Limit -> Retry
+                // 5xx = Server Error -> Retry
+                throw new Error(`API error ${response.status}: ${errorText}`);
+            }
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+            // Process SSE stream
+            const reader = response.body?.getReader();
+            if (!reader) {
+                throw new Error('No response body');
+            }
 
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split('\n');
-            buffer = lines.pop() || '';
+            const decoder = new TextDecoder();
+            let fullContent = '';
+            let fullThinking = '';
+            let buffer = '';
 
-            for (const line of lines) {
-                if (!line.startsWith('data: ')) continue;
-                const data = line.slice(6);
-                if (data === '[DONE]') continue;
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
 
-                try {
-                    const parsed = JSON.parse(data);
-                    const delta = parsed.choices?.[0]?.delta;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
 
-                    // 🔍 Debug: Log what we're receiving from DeepSeek
-                    if (delta) {
-                        const debugMsg = `🔍 DeepSeek delta: hasReasoning=${!!delta.reasoning_content}, hasContent=${!!delta.content}, len=${delta.content?.length || delta.reasoning_content?.length || 0}\n`;
-                        console.log(debugMsg);
-                        require('fs').appendFileSync('/tmp/ai-debug.log', `${new Date().toISOString()} ${debugMsg}`);
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    const data = line.slice(6);
+                    if (data === '[DONE]') continue;
+
+                    try {
+                        const parsed = JSON.parse(data);
+                        const delta = parsed.choices?.[0]?.delta;
+
+                        if (delta?.reasoning_content) {
+                            // DeepSeek Reasoner's thinking tokens
+                            fullThinking += delta.reasoning_content;
+                            emitAIThinking(sessionId, delta.reasoning_content, stage, options?.candidateTime);
+
+                            // 💾 Persist for Polling Fallback
+                            if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
+                                options.progressTracker.updateAIThinking(delta.reasoning_content, stage, options?.candidateTime).catch(() => { });
+                            }
+
+                            // 💓 Heartbeat every ~100 tokens
+                            if (fullThinking.length % 500 < delta.reasoning_content.length) {
+                                options?.onToken?.(fullThinking, true);
+                            }
+                        } else if (delta?.content) {
+                            // Fallback: Emit content as "thinking" for non-reasoning models
+                            fullContent += delta.content;
+                            emitAIThinking(sessionId, delta.content, stage, options?.candidateTime);
+
+                            // 💾 Persist for Polling Fallback
+                            if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
+                                options.progressTracker.updateAIThinking(delta.content, stage, options?.candidateTime).catch(() => { });
+                            }
+
+                            // 💓 Heartbeat every ~100 tokens
+                            if (fullContent.length % 500 < delta.content.length) {
+                                options?.onToken?.(fullContent, false);
+                            }
+                        }
+                    } catch {
+                        // Ignore parse errors for incomplete chunks
                     }
-
-
-                    if (delta?.reasoning_content) {
-                        // DeepSeek Reasoner's thinking tokens
-                        fullThinking += delta.reasoning_content;
-                        emitAIThinking(sessionId, delta.reasoning_content, stage, options?.candidateTime);
-
-                        // 💾 Persist for Polling Fallback
-                        if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
-                            options.progressTracker.updateAIThinking(delta.reasoning_content, stage, options?.candidateTime).catch(() => { });
-                        }
-
-                        // 💓 Heartbeat every ~100 tokens
-                        if (fullThinking.length % 500 < delta.reasoning_content.length) {
-                            options?.onToken?.(fullThinking, true);
-                        }
-                    } else if (delta?.content) {
-                        // Fallback: Emit content as "thinking" for non-reasoning models (for display)
-                        fullContent += delta.content;
-                        emitAIThinking(sessionId, delta.content, stage, options?.candidateTime);
-
-                        // 💾 Persist for Polling Fallback
-                        if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
-                            options.progressTracker.updateAIThinking(delta.content, stage, options?.candidateTime).catch(() => { });
-                        }
-
-                        // 💓 Heartbeat every ~100 tokens
-                        if (fullContent.length % 500 < delta.content.length) {
-                            options?.onToken?.(fullContent, false);
-                        }
-                    }
-                } catch {
-                    // Ignore parse errors for incomplete chunks
                 }
             }
+
+            logger.info('Streaming Kimi K2 complete', {
+                sessionId,
+                stage,
+                thinkingLength: fullThinking.length,
+            });
+
+            if (!fullThinking && !fullContent) {
+                // If completely empty, treat as failure and retry
+                throw new Error('Empty response from AI provider');
+            }
+
+            return {
+                success: true,
+                thinking: fullThinking,
+                content: fullContent,
+            };
+
+        } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
+            logger.warn(`Streaming attempt ${attempt} failed: ${lastError.message}`);
+
+            // Wait with backoff before retry (except last attempt)
+            if (attempt < KIMI_CONFIG.retryAttempts) {
+                await sleep(KIMI_CONFIG.retryDelayMs * attempt);
+            }
         }
-
-        logger.info('Streaming Kimi K2 complete', {
-            sessionId,
-            stage,
-            thinkingLength: fullThinking.length,
-            contentLength: fullContent.length,
-        });
-
-        if (!fullThinking && !fullContent) {
-            throw new Error('Empty response from AI provider');
-        }
-
-        return {
-            success: true,
-            thinking: fullThinking,
-            content: fullContent,
-        };
-
-    } catch (error) {
-        logger.error('Streaming Kimi K2 failed', error);
-        return {
-            success: false,
-            content: '',
-            error: error instanceof Error ? error.message : 'Streaming failed',
-        };
     }
+
+    // If all retries failed
+    logger.error('All Streaming Kimi K2 attempts failed', lastError);
+    return {
+        success: false,
+        content: '',
+        error: lastError?.message || 'Streaming failed after retries',
+    };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

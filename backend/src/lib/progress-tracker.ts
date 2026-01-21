@@ -6,7 +6,9 @@
 import { db } from '../database/drizzle';
 import { sessions } from '../database/schema';
 import { eq } from 'drizzle-orm';
-import { emitProgress, emitComplete, emitError, emitCandidateScore } from './session-events';
+import { emitProgress, emitComplete, emitError, emitCandidateScore, emitAIContext } from './session-events';
+
+// ═════════════════════════════════════════════════════════════════════════════
 
 export interface CandidateScore {
     time: string;
@@ -37,6 +39,18 @@ export interface AIThinkingData {
     fullText: string;
 }
 
+export interface AIContextData {
+    stage: number;
+    candidateTime: string;
+    planetaryInfo: {
+        ascendant: string;
+        sun: string;
+        moon: string;
+    };
+    dasha: string;
+    divCharts?: string;
+}
+
 export interface ProgressData {
     currentStep: number;
     totalSteps: number;
@@ -46,7 +60,9 @@ export interface ProgressData {
     liveMessage?: string;
     candidateScores: CandidateScore[];
     lastAIThinking?: AIThinkingData;
+    aiContext?: AIContextData;
 }
+
 
 // Define all analysis steps
 export const ANALYSIS_STEPS: Omit<ProgressStep, 'status'>[] = [
@@ -144,6 +160,21 @@ export class ProgressTracker {
         // ❌ NO DB SAVE - Pure Stream as requested
         // BUT update lastActive for GC
         ProgressTracker.activeInstances.set(this.sessionId, this);
+    }
+
+    /**
+     * Update AI Context (Ground Truth Display)
+     */
+    async updateAIContext(context: AIContextData): Promise<void> {
+        this.progress.aiContext = context;
+        this.progress.lastUpdate = new Date().toISOString();
+
+        // Emit Real-Time Event for Frontend
+        emitAIContext(this.sessionId, context);
+
+        // We don't necessarily need to save to DB for every context switch if it's high freq,
+        // but for batch sample it's low freq enough.
+        await this.saveProgress(false);
     }
 
     /**

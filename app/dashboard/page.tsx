@@ -153,30 +153,43 @@ export default async function DashboardPage() {
                                         <div>
                                             <div className="flex items-center gap-3 mb-2">
                                                 <h3 className="font-semibold text-[#F5F0EB]">📍 {session.birthPlace.split(',')[0]}</h3>
-                                                <span className={`px-2 py-1 rounded-full text-xs font-medium ${session.status === 'complete'
-                                                    ? 'bg-[#2D7A5C]/20 text-[#2D7A5C]'
+                                                <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${session.status === 'complete'
+                                                    ? 'bg-[#2D7A5C]/20 text-[#2D7A5C] border border-[#2D7A5C]/50'
                                                     : session.status === 'processing'
-                                                        ? 'bg-[#D4AF37]/20 text-[#D4AF37]'
+                                                        ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/50 animate-pulse'
                                                         : session.status === 'failed'
-                                                            ? 'bg-[#EF4444]/20 text-[#EF4444]'
-                                                            : session.status === 'queued'
-                                                                ? 'bg-[#3B82F6]/20 text-[#3B82F6]'
-                                                                : 'bg-[#6A0572]/20 text-[#6A0572]'
+                                                            ? 'bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/50'
+                                                            : 'bg-[#3B82F6]/20 text-[#3B82F6] border border-[#3B82F6]/50'
                                                     }`}>
-                                                    {session.status === 'complete' ? '✓ Complete' :
-                                                        session.status === 'processing' ? '⏳ Processing' :
-                                                            session.status === 'failed' ? '✗ Failed' :
-                                                                session.status === 'queued' ? '🕒 Queued' : '⏸ Pending'}
+                                                    {session.status === 'complete' ? '✓ GOD-TIER VERIFIED' :
+                                                        session.status === 'processing' ? '⚡ ANALYZING MULTIVERSE' :
+                                                            session.status === 'failed' ? '✗ FAILED' :
+                                                                '🕒 QUEUED'}
                                                 </span>
                                             </div>
                                             <p className="text-sm text-[#8C7F72]">
                                                 DOB: {session.dateOfBirth} • {session.birthPlace}
                                             </p>
                                             {session.rectifiedTime && (
-                                                <p className="text-sm text-[#D4AF37] mt-1">
-                                                    Rectified: <span className="font-mono font-bold">{session.rectifiedTime}</span>
-                                                    {session.confidence && <span className="text-[#2D7A5C] ml-2">({session.confidence} confidence)</span>}
-                                                </p>
+                                                <div className="mt-2 flex items-center gap-4">
+                                                    <p className="text-sm text-[#D4AF37]">
+                                                        <span className="text-[#8C7F72] uppercase text-[10px] tracking-wider block mb-1">Rectified Truth</span>
+                                                        <span className="font-mono font-bold text-lg">{session.rectifiedTime}</span>
+                                                    </p>
+                                                    {session.confidence && (
+                                                        <div className="flex flex-col gap-1 items-end ml-auto">
+                                                            <span className="text-[10px] text-[#2D7A5C] font-bold uppercase tracking-wider">
+                                                                {session.confidence} Confidence
+                                                            </span>
+                                                            <div className="w-24 h-1 bg-[#151a21] rounded-full overflow-hidden">
+                                                                <div
+                                                                    className="h-full bg-gradient-to-r from-[#D4AF37] to-[#2D7A5C]"
+                                                                    style={{ width: '99%' }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
                                             )}
                                         </div>
 

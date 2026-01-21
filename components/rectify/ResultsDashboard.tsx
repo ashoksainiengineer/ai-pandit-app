@@ -263,11 +263,13 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ sessionId, d
                         </div>
                         <div className="bg-[#151a21] border border-[#3A4452] rounded-xl p-4 hover:border-[#D4AF37]/50 transition-colors">
                             <div className="text-[#8C7F72] text-[10px] uppercase font-mono mb-1">Processing</div>
-                            <div className="text-xl font-bold font-mono text-white">{(analysisDetails?.stageHistory?.stage4Count || 0) * 5} Ops</div>
+                            <div className="text-xl font-bold font-mono text-white">{(analysisDetails?.stageHistory?.stage4Count || 0)} Ops</div>
                         </div>
                         <div className="bg-[#151a21] border border-[#3A4452] rounded-xl p-4 hover:border-[#D4AF37]/50 transition-colors">
-                            <div className="text-[#8C7F72] text-[10px] uppercase font-mono mb-1">Engine</div>
-                            <div className="text-xl font-bold font-mono text-white">V.2.1</div>
+                            <div className="text-[#8C7F72] text-[10px] uppercase font-mono mb-1">Multi-Verse</div>
+                            <div className="text-xl font-bold font-mono text-white">
+                                {analysisDetails?.stageHistory?.timelineCount || 5} Tracks
+                            </div>
                         </div>
                     </div>
 
@@ -321,7 +323,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ sessionId, d
                                     </h3>
                                     <p className="text-[#8C7F72] leading-relaxed">
                                         The rectification engine has successfully converged on a final birth time of <strong className="text-[#F5F0EB]">{data.rectifiedTime}</strong>.
-                                        This time was selected from an initial pool of over {(analysisDetails?.stageHistory?.stage1Count || 100)} candidates through a rigorous 10-stage elimination process.
+                                        This time was selected from an initial pool of over <strong>{(analysisDetails?.stageHistory?.stage1Count || 100)} candidates</strong>, narrowing down to <strong>{analysisDetails?.stageHistory?.timelineCount || 5} parallel timelines</strong>, and finally verified via a rigorous 10-stage elimination process.
                                     </p>
                                     <div className="my-6 p-4 bg-[#D4AF37]/5 border-l-2 border-[#D4AF37] text-sm text-[#F5F0EB]">
                                         &quot;The logical convergence of Dasha patterns (Vimshottari/Yogini) and Divisional Chart markers (D9/D10) strongly favors this specific second.&quot;
