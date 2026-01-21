@@ -630,6 +630,19 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
                 dashaObj: `${dashaPeriods[0].lord}/${dashaPeriods[0].antardashas[0].lord}`
             });
 
+            // 🔮 Emit engine context for JSON HUD
+            emitAIContext(input.sessionId, {
+                stage: 1,
+                candidateTime: candidate.time,
+                planetaryInfo: {
+                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
+                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
+                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+                },
+                dasha: `${dashaPeriods[0].lord}/${dashaPeriods[0].antardashas[0].lord}`,
+                divCharts: "Vedic Shuddhi Scan"
+            });
+
             let score = 50;
             let eventMatches = 0;
 
@@ -893,6 +906,19 @@ async function stage4FineGrid(
             const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidateTime, input.timezone));
             const moonSidereal = ephemeris.planets.moon.longitude;
 
+            // 🔮 Emit engine context for JSON HUD
+            emitAIContext(input.sessionId, {
+                stage: 4,
+                candidateTime: candidateTime,
+                planetaryInfo: {
+                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
+                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
+                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+                },
+                dasha: "Fine Correlation Scan",
+                divCharts: "D9 Navamsha Audit"
+            });
+
             // Multi-method scoring
             const vimPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
             const yogPeriods = calculateYoginiDasha(moonSidereal, birthDate);
@@ -1142,6 +1168,19 @@ async function stage6MicroGrid(
 
             const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidateTime, input.timezone));
             const moonSidereal = ephemeris.planets.moon.longitude;
+
+            // 🔮 Emit engine context for JSON HUD
+            emitAIContext(input.sessionId, {
+                stage: 6,
+                candidateTime: candidateTime,
+                planetaryInfo: {
+                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
+                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
+                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+                },
+                dasha: "Sub-Second Micro Correlation",
+                divCharts: "D60 Shashtiamsha"
+            });
 
             // ⚡ SLOW DOWN for visual effect (Micro-Grid Scan)
             await new Promise(resolve => setTimeout(resolve, 15));
@@ -1432,6 +1471,19 @@ async function stage8Verification(
         moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
         ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
         dashaObj: "Audit"
+    });
+
+    // 🔮 Emit engine context (Verification)
+    emitAIContext(input.sessionId, {
+        stage: 8,
+        candidateTime: candidateTime,
+        planetaryInfo: {
+            sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(2)}°`,
+            moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(2)}°`,
+            ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+        },
+        dasha: "15-Method System Convergence",
+        divCharts: "Full Divisional Synthesis"
     });
 
     // Method 1: Vimshottari Dasha (15%)

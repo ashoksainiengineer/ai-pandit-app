@@ -260,52 +260,64 @@ export function UnifiedAIPanel({
 function ScrollableContent({ content, isThinking }: { content: string; isThinking: boolean }) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+    const scrollAnchorRef = useRef<HTMLDivElement>(null);
     const lastContentLengthRef = useRef(0);
 
-    // Auto-scroll logic using ResizeObserver
+    const scrollToEnd = (forceWindowScroll = false) => {
+        if (!shouldAutoScroll) return;
+
+        // Internal container scroll
+        if (scrollAnchorRef.current) {
+            scrollAnchorRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
+        }
+
+        // Viewport synchronization: If the typing area is getting close to the bottom of the screen,
+        // we should scroll the window to keep it visible.
+        if (isThinking || forceWindowScroll) {
+            const el = scrollRef.current;
+            if (el) {
+                const rect = el.getBoundingClientRect();
+                const viewportHeight = window.innerHeight;
+                // If the bottom of our container is below the viewport or very close to it (100px buffer)
+                if (rect.bottom > viewportHeight - 100) {
+                    window.scrollBy({ top: rect.bottom - (viewportHeight - 100), behavior: 'auto' });
+                }
+            }
+        }
+    };
+
+    // Use ResizeObserver for content growth
     useEffect(() => {
         if (!scrollRef.current) return;
 
         const el = scrollRef.current;
-
-        const scrollToEnd = () => {
-            if (shouldAutoScroll) {
-                el.scrollTop = el.scrollHeight;
-            }
-        };
-
         const observer = new ResizeObserver(() => {
-            // Use requestAnimationFrame to ensure scroll happens after the next layout/paint
-            requestAnimationFrame(scrollToEnd);
+            scrollToEnd();
         });
 
         const contentEl = el.firstElementChild;
-        if (contentEl) {
-            observer.observe(contentEl);
-        }
+        if (contentEl) observer.observe(contentEl);
 
-        // Force scroll when content length changes significantly (e.g., new stage)
-        if (Math.abs(content.length - lastContentLengthRef.current) > 50) {
-            scrollToEnd();
+        // Immediate scroll on significant changes
+        if (Math.abs(content.length - lastContentLengthRef.current) > 20) {
+            scrollToEnd(true);
         }
         lastContentLengthRef.current = content.length;
 
         return () => observer.disconnect();
-    }, [shouldAutoScroll, content.length]);
+    }, [shouldAutoScroll, content.length, isThinking]);
 
-    // Robust scroll listener to detect if user scrolled UP
     const handleScroll = () => {
         if (!scrollRef.current) return;
 
         const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-        // Strict bottom detection
-        const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 10;
+        // Strict bottom detection - 15px buffer for various browser scaling
+        const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 15;
 
         if (isAtBottom) {
             setShouldAutoScroll(true);
         } else {
-            // Only disable if the user explicitly scrolls up by a significant amount
-            // This prevents accidental disabled auto-scroll from small jitter
+            // Only disable if the user explicitly scrolls up
             setShouldAutoScroll(false);
         }
     };
@@ -326,6 +338,8 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
                     {isThinking && (
                         <span className="inline-block w-2 h-4 bg-[#D4AF37] ml-1 animate-pulse align-text-bottom" />
                     )}
+                    {/* Anchor for sticky scroll */}
+                    <div ref={scrollAnchorRef} className="h-px w-full" />
                 </div>
             ) : (
                 <div className="text-[#6B7280] italic flex items-center gap-2">

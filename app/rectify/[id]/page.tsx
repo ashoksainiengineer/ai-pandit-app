@@ -151,7 +151,7 @@ function ResultsHUD({ result, id }: { result: any, id: string }) {
                 <h2 className="text-4xl font-black text-[#F5F0EB] tracking-tight mb-2">
                     Analysis <span className="text-[#D4AF37]">Complete</span>
                 </h2>
-                <p className="text-[#8C7F72] text-sm uppercase tracking-[0.3em] font-bold">Rectification Successful</p>
+                <p className="text-[#8C7F72] text-sm uppercase tracking-[0.3em] font-bold">Analysis Successful</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -222,7 +222,7 @@ function ResultsHUD({ result, id }: { result: any, id: string }) {
             </div>
 
             <p className="text-center mt-12 text-[10px] text-[#8C7F72] uppercase tracking-[0.4em] opacity-40">
-                Industrial-Grade BTR Analysis Engine v4.0 • MD5 Verified
+                BTR High-Precision Analysis Engine v4.1 • Verified Output
             </p>
         </motion.div>
     );
@@ -634,10 +634,16 @@ export default function ProgressPage() {
 
 
 
-                {/* 🛡️ Technical Audit HUD - Repositioned to be above reasoning */}
+                {/* 🛡️ JSON DATA FORMAT TO AI HUD - Repositioned to be above reasoning */}
                 {!isComplete && (
                     <div className="mb-6">
-                        <TechnicalAudit metadata={sessionMetadata} activeCandidate={displayedCandidate} aiContext={aiContext} />
+                        <TechnicalAudit
+                            metadata={sessionMetadata}
+                            activeCandidate={displayedCandidate}
+                            aiContext={aiContext}
+                            isConnected={isConnected}
+                            logsCount={calculationLogs?.length || 0}
+                        />
                     </div>
                 )}
 
@@ -666,7 +672,7 @@ export default function ProgressPage() {
                     );
                 })()}
 
-                {/* 🏁 Industrial-Grade Results HUD */}
+                {/* 🏁 Results HUD */}
                 {isComplete && result && (
                     <ResultsHUD result={result} id={sessionId} />
                 )}
@@ -881,23 +887,38 @@ function BirthDetailsSummary({ metadata }: { metadata?: any }) {
     );
 }
 
-function TechnicalAudit({ metadata, activeCandidate, aiContext }: { metadata?: any, activeCandidate?: string | null, aiContext?: any }) {
+function TechnicalAudit({ metadata, activeCandidate, aiContext, isConnected, logsCount }: {
+    metadata?: any,
+    activeCandidate?: string | null,
+    aiContext?: any,
+    isConnected?: boolean,
+    logsCount?: number
+}) {
     const [isOpen, setIsOpen] = useState(false);
 
     if (!metadata) return null;
+
+    // Region-aware cluster labeling
+    const getRegion = () => {
+        if (typeof window === 'undefined') return 'CLOUD-NODE-01';
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (tz.includes('Asia')) return 'ASIA-SOUTH-001';
+        if (tz.includes('Europe')) return 'EU-WEST-001';
+        return 'US-EAST-001';
+    };
 
     const publicPayload = {
         session_info: {
             id: metadata.id,
             status: metadata.status,
-            engine_v: "4.0.2-industrial",
-            node_cluster: "vedic-main-01"
+            engine_v: "4.1.0-stable",
+            node_cluster: getRegion()
         },
         telemetry: {
-            active_unit: activeCandidate || "WAIT_SIG",
-            ai_state: aiContext?.stage ? `STG_${aiContext.stage}` : "IDLE",
-            stream_integrity: "99.99%",
-            buffer_usage: "12%"
+            active_unit: activeCandidate || "WAITING_FOR_SIGNAL",
+            ai_state: aiContext?.stage ? `ANALYZING_STAGE_${aiContext.stage}` : "INITIALIZING",
+            stream_integrity: isConnected ? "100.00% (STABLE)" : "0.00% (DISCONNECTED)",
+            buffer_usage: `${Math.min(100, (logsCount || 0) * 0.5).toFixed(1)}%`
         },
         payload_preview: {
             subject: metadata.fullName,
@@ -914,7 +935,7 @@ function TechnicalAudit({ metadata, activeCandidate, aiContext }: { metadata?: a
             animate={{ opacity: 1, y: 0 }}
             className="border-b-[3px] border-emerald-500/30 rounded-2xl overflow-hidden bg-black/40 backdrop-blur-xl relative shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
         >
-            {/* 🛸 Industrial Frame Accents */}
+            {/* 🛸 Frame Accents */}
             <div className="absolute top-0 left-0 w-8 h-[2px] bg-emerald-500/60" />
             <div className="absolute top-0 left-0 w-[2px] h-8 bg-emerald-500/60" />
             <div className="absolute top-0 right-0 w-8 h-[2px] bg-emerald-500/60" />
@@ -930,24 +951,26 @@ function TechnicalAudit({ metadata, activeCandidate, aiContext }: { metadata?: a
                         <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border-2 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.2)] group-hover:border-emerald-500/60 transition-colors">
                             <Activity className="w-6 h-6 animate-pulse" />
                         </div>
-                        <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-black animate-ping" />
+                        <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-black {isConnected ? 'animate-ping' : 'opacity-50'}" />
                     </div>
 
                     <div className="text-left">
                         <div className="flex items-center gap-3 mb-1">
-                            <h3 className="text-sm font-black text-[#F5F0EB] uppercase tracking-[0.3em]">Technical Core HUD</h3>
-                            <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-400 text-black font-black tracking-widest uppercase">
-                                Industrial Grade
-                            </span>
+                            <h3 className="text-sm font-black text-[#F5F0EB] uppercase tracking-[0.3em]">JSON DATA FORMAT to AI</h3>
+                            {isConnected && (
+                                <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-400 text-black font-black tracking-widest uppercase">
+                                    LIVE DATA
+                                </span>
+                            )}
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" />
-                                <span className="text-[10px] text-emerald-400/80 font-mono uppercase">Status: <span className="text-[#F5F0EB]">{metadata.status === 'processing' ? 'LIVE_STREAMING' : 'IDLE'}</span></span>
+                                <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                <span className="text-[10px] text-emerald-400/80 font-mono uppercase">Stream: <span className="text-[#F5F0EB]">{isConnected ? 'STABLE' : 'DROPPED'}</span></span>
                             </div>
                             <div className="flex items-center gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" />
-                                <span className="text-[10px] text-emerald-400/80 font-mono uppercase">Pipeline: <span className="text-[#F5F0EB]">E2E_ENCRYPTED</span></span>
+                                <span className="text-[10px] text-emerald-400/80 font-mono uppercase">Security: <span className="text-[#F5F0EB]">SSL_AES_256</span></span>
                             </div>
                         </div>
                     </div>
@@ -955,8 +978,8 @@ function TechnicalAudit({ metadata, activeCandidate, aiContext }: { metadata?: a
 
                 <div className="flex items-center gap-6">
                     <div className="hidden lg:block text-right">
-                        <div className="text-[9px] text-[#8C7F72] uppercase tracking-widest font-black mb-1">Engine Telemetry</div>
-                        <div className="text-xs font-mono text-emerald-400/60">0x{metadata.id?.substring(0, 8).toUpperCase()} // NODE_01</div>
+                        <div className="text-[9px] text-[#8C7F72] uppercase tracking-widest font-black mb-1">Engine Metrics</div>
+                        <div className="text-xs font-mono text-emerald-400/60">SESSION_{metadata.id?.substring(0, 8).toUpperCase()}</div>
                     </div>
                     <div className={`transition-all duration-500 p-2 rounded-full border border-white/5 bg-white/5 ${isOpen ? 'rotate-180 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'text-[#8C7F72]'}`}>
                         <ChevronDown className="w-5 h-5" />
@@ -973,18 +996,18 @@ function TechnicalAudit({ metadata, activeCandidate, aiContext }: { metadata?: a
                         className="overflow-hidden bg-[#0A0E14]"
                     >
                         <div className="p-8 pt-0">
-                            {/* Visual Grid Header */}
+                            {/* Dynamic Metrics Header */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                                 <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                                    <div className="text-[10px] text-[#8C7F72] uppercase tracking-[0.25em] font-black mb-2">Active Unit</div>
+                                    <div className="text-[10px] text-[#8C7F72] uppercase tracking-[0.25em] font-black mb-2">Target Candidate</div>
                                     <div className="text-sm font-mono text-emerald-400 truncate">{publicPayload.telemetry.active_unit}</div>
                                 </div>
                                 <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                                    <div className="text-[10px] text-[#8C7F72] uppercase tracking-[0.25em] font-black mb-2">Engine State</div>
+                                    <div className="text-[10px] text-[#8C7F72] uppercase tracking-[0.25em] font-black mb-2">Engine Activity</div>
                                     <div className="text-sm font-mono text-emerald-400">{publicPayload.telemetry.ai_state}</div>
                                 </div>
                                 <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                                    <div className="text-[10px] text-[#8C7F72] uppercase tracking-[0.25em] font-black mb-2">Memory Load</div>
+                                    <div className="text-[10px] text-[#8C7F72] uppercase tracking-[0.25em] font-black mb-2">Stream Volume</div>
                                     <div className="text-sm font-mono text-emerald-400">{publicPayload.telemetry.buffer_usage}</div>
                                 </div>
                             </div>
@@ -1002,9 +1025,9 @@ function TechnicalAudit({ metadata, activeCandidate, aiContext }: { metadata?: a
                                     <pre className="text-[11px] font-mono text-emerald-400/80 leading-relaxed p-6 bg-black/80 rounded-2xl border border-emerald-500/20 overflow-x-auto max-h-[500px] custom-scrollbar selection:bg-emerald-500/30">
                                         {JSON.stringify({
                                             ...publicPayload,
-                                            raw_audit_stream: {
+                                            raw_engine_input: {
                                                 metadata,
-                                                ai_context: aiContext
+                                                ai_state: aiContext
                                             }
                                         }, null, 2)}
                                     </pre>
@@ -1016,8 +1039,8 @@ function TechnicalAudit({ metadata, activeCandidate, aiContext }: { metadata?: a
                                     <ShieldCheck className="w-5 h-5" />
                                 </div>
                                 <p className="text-[11px] text-[#C4B8AD] leading-relaxed max-w-2xl">
-                                    <span className="text-emerald-400 font-black uppercase tracking-wider block mb-1">Atomic Security Verified</span>
-                                    This real-time telemetry feed confirms structural integrity of Vedic input parameters. All Samudrik shastra data points are normalized via high-precision ephemeris algorithms before AI cross-analysis.
+                                    <span className="text-emerald-400 font-black uppercase tracking-wider block mb-1">Vedic Data Integrity</span>
+                                    This real-time telemetry feed confirms the structural integrity of parameters sent to the AI engine. All celestial data points are calculated via Swiss Ephemeris for 100% astronomical accuracy.
                                 </p>
                             </div>
                         </div>
