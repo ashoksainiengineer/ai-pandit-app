@@ -27,13 +27,18 @@ interface UnifiedAIPanelProps {
 }
 
 
-// Utility to strip thinking tags from reasoning text
+// Utility to strip thinking tags and internal markers from reasoning text
 const cleanReasoningText = (text: string) => {
     if (!text) return '';
-    // Strip <thought>...</thought> and any other XML-like tags the AI might emit
+
+    // Aggressive pattern to strip <thought>, [STAGE], or any XML-like opening/closing tags
+    // Also handles partial opening tags like <tho... to prevent flicker
     return text
-        .replace(/<thought>[\s\S]*?<\/thought>/g, '')
-        .replace(/<[\w\s="']+>|<\/[\w\s]+>/g, '')
+        .replace(/<thought>[\s\S]*?<\/thought>/g, '') // Complete thought blocks
+        .replace(/<thought[\s\S]*$/g, '')              // Partial opening thought tag
+        .replace(/<[\w\s="']+>|<\/[\w\s]+>/g, '')      // Any other complete tags
+        .replace(/\[STAGE START\][\s\S]*?━+[\r\n]*/g, '') // Internal stage markers
+        .replace(/═+[\r\n]*🎯 SWITCHING TO:[\s\S]*?═+[\r\n]*/g, '') // Switch markers
         .trim();
 };
 
@@ -279,7 +284,7 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
 
         // Internal container scroll
         if (scrollAnchorRef.current) {
-            scrollAnchorRef.current.scrollIntoView({ behavior: 'auto', block: 'end' });
+            scrollAnchorRef.current.scrollIntoView({ behavior: 'instant', block: 'end' });
         }
 
         // Viewport synchronization: If the typing area is getting close to the bottom of the screen,
@@ -310,8 +315,8 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
         const contentEl = el.firstElementChild;
         if (contentEl) observer.observe(contentEl);
 
-        // Immediate scroll on significant changes (debounce-like threshold)
-        if (Math.abs(content.length - lastContentLengthRef.current) > 10) {
+        // Immediate scroll on significant changes (Zero-Tolerance)
+        if (content.length !== lastContentLengthRef.current) {
             scrollToEnd(true);
             lastContentLengthRef.current = content.length;
         }

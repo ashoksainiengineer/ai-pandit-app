@@ -288,3 +288,61 @@ export interface BoundaryWarning {
   distanceSeconds: number;
   severity: 'low' | 'medium' | 'high';
 }
+
+/**
+ * 🏆 GOD-TIER ARCHIVE STRUCTURE
+ * 
+ * This is the ultimate, compressed JSON record of the entire BTR journey.
+ * Optimized for Turso storage while preserving 100% of the reasoning and technical proof.
+ */
+export interface MasterAnalysisArchive {
+  version: string;       // e.g., "1.0.0"
+  sessionId: string;
+  generatedAt: string;
+
+  // 1. Input Context (Minimal)
+  birthContext: {
+    name: string;
+    originalTime: string;
+    location: string;
+    offsetScan: string;
+  };
+
+  // 2. Final Rectification Result
+  finalResult: {
+    time: string;
+    accuracy: number;
+    confidence: string;
+    marginOfError: number;
+    methodsUsed: string[];
+  };
+
+  // 3. The "Brain" (Consolidated Reasoning)
+  // We store the pure cleaned text here.
+  reasoning: {
+    discovery: string;    // Stage 2 (Coarse narrowing)
+    refinement: string;   // Stage 5 (Method-by-method depth)
+    precision: string;    // Stage 7 (Final second validation)
+    summary: string;      // Final verdict
+  };
+
+  // 4. Technical Proof (The "God-Data")
+  technicalProof: {
+    ephemeris: EphemerisData;
+    boundarySafety: {
+      nakshatra: { distance: number; warning?: string };
+      lagna: { distance: number; warning?: string };
+      dasha: { distance: number; warning?: string };
+    };
+    methodologyBreakdown: {
+      [key: string]: { score: number; verdict: string };
+    };
+  };
+
+  // 5. Alternate Paths (Top 3 runners up)
+  alternatives: Array<{
+    time: string;
+    score: number;
+    reason: string;
+  }>;
+}

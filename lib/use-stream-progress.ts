@@ -423,16 +423,7 @@ export function useStreamProgress(
                     const newStageHistory = new Map(prev.stageHistory);
                     if (candidateTime === displayed) {
                         const currentStageText = newStageHistory.get(eventData.stage) || '';
-                        let textToAppend = eventData.chunk;
-
-                        // Insert context headers on state transitions
-                        if (!currentStageText) {
-                            textToAppend = `\n[STAGE START] 🚀 System initialized for ${candidateTime}\n${'━'.repeat(40)}\n\n${textToAppend}`;
-                        } else if (prev.displayedCandidate && prev.displayedCandidate !== displayed) {
-                            // Switched to a different candidate in the same stage (HUD update)
-                            textToAppend = `\n\n${'═'.repeat(40)}\n🎯 SWITCHING TO: ${candidateTime}\n${'═'.repeat(40)}\n\n${textToAppend}`;
-                        }
-
+                        const textToAppend = eventData.chunk;
                         newStageHistory.set(eventData.stage, currentStageText + textToAppend);
                     }
 

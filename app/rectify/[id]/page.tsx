@@ -23,7 +23,6 @@ import {
 } from 'lucide-react';
 import { useStreamProgress } from '@/lib/use-stream-progress';
 import { UnifiedAIPanel } from '@/components/rectify/UnifiedAIPanel';
-import { AnalysisPipelineTracker } from '@/components/rectify/AnalysisPipelineTracker';
 
 
 export const dynamic = 'force-dynamic';
@@ -549,15 +548,8 @@ export default function ProgressPage() {
                 </div>
             </nav>
 
-            <div className="max-w-7xl mx-auto px-6 pb-6">
-                {/* ⚡ New Pipeline Tracker */}
-                <div className="mb-6 rounded-lg overflow-hidden border border-[#3A4452] shadow-2xl">
-                    <AnalysisPipelineTracker
-                        stats={stageStats}
-                        currentStage={stageStats.length > 0 ? stageStats[stageStats.length - 1].stage : 1}
-                        isConnected={isConnected}
-                    />
-                </div>
+            <div className="max-w-7xl mx-auto px-6 pb-2">
+                {/* Visual Space Refinement */}
             </div>
 
             <div className="max-w-4xl mx-auto px-6 pb-12">
@@ -676,19 +668,6 @@ export default function ProgressPage() {
 
 
 
-
-                {/* 🛡️ JSON DATA FORMAT TO AI HUD - Repositioned to be above reasoning */}
-                {!isComplete && (
-                    <div className="mb-6">
-                        <TechnicalAudit
-                            metadata={sessionMetadata}
-                            activeCandidate={displayedCandidate}
-                            aiContext={aiContext}
-                            isConnected={isConnected}
-                            logsCount={calculationLogs?.length || 0}
-                        />
-                    </div>
-                )}
 
                 {/* Unified AI Analysis Panel (Now visible from Stage 1 for calculation logs) */}
                 {(isAIStepActive || aiThinking || (calculationLogs?.length ?? 0) > 0) && !isComplete && (() => {
@@ -936,166 +915,3 @@ function BirthDetailsSummary({ metadata }: { metadata?: any }) {
     );
 }
 
-function TechnicalAudit({ metadata, activeCandidate, aiContext, isConnected, logsCount }: {
-    metadata?: any,
-    activeCandidate?: string | null,
-    aiContext?: any,
-    isConnected?: boolean,
-    logsCount?: number
-}) {
-    const [isOpen, setIsOpen] = useState(false);
-
-    if (!metadata) return null;
-
-    // Region-aware cluster labeling
-    const getRegion = () => {
-        if (typeof window === 'undefined') return 'CLOUD-NODE-01';
-        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (tz.includes('Asia')) return 'ASIA-SOUTH-001';
-        if (tz.includes('Europe')) return 'EU-WEST-001';
-        return 'US-EAST-001';
-    };
-
-    const publicPayload = {
-        session_info: {
-            id: metadata.id,
-            status: metadata.status,
-            engine_v: "4.1.0-stable",
-            node_cluster: getRegion()
-        },
-        telemetry: {
-            active_unit: activeCandidate || "WAITING_FOR_SIGNAL",
-            ai_state: aiContext?.stage ? `ANALYZING_STAGE_${aiContext.stage}` : "INITIALIZING",
-            stream_integrity: isConnected ? "100.00% (STABLE)" : "0.00% (DISCONNECTED)",
-            buffer_usage: `${Math.min(100, (logsCount || 0) * 0.5).toFixed(1)}%`
-        },
-        payload_preview: {
-            subject: metadata.fullName,
-            dob: metadata.dateOfBirth,
-            scan_config: metadata.offsetConfig,
-            events_count: metadata.lifeEvents?.length || 0,
-            traits: metadata.physicalTraits ? Object.keys(metadata.physicalTraits).length : 0
-        }
-    };
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="border-b-[3px] border-emerald-500/30 rounded-2xl overflow-hidden bg-black/40 backdrop-blur-xl relative shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
-        >
-            {/* 🛸 Frame Accents */}
-            <div className="absolute top-0 left-0 w-8 h-[2px] bg-emerald-500/60" />
-            <div className="absolute top-0 left-0 w-[2px] h-8 bg-emerald-500/60" />
-            <div className="absolute top-0 right-0 w-8 h-[2px] bg-emerald-500/60" />
-            <div className="absolute top-0 right-0 w-[2px] h-8 bg-emerald-500/60" />
-
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between p-6 px-8 hover:bg-emerald-500/[0.03] transition-all group relative"
-            >
-                <div className="flex items-center gap-6">
-                    {/* Pulsing Core */}
-                    <div className="relative">
-                        <div className="w-12 h-12 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border-2 border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.2)] group-hover:border-emerald-500/60 transition-colors">
-                            <Activity className="w-6 h-6 animate-pulse" />
-                        </div>
-                        <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 border-2 border-black {isConnected ? 'animate-ping' : 'opacity-50'}" />
-                    </div>
-
-                    <div className="text-left">
-                        <div className="flex items-center gap-3 mb-1">
-                            <h3 className="text-sm font-black text-[#F5F0EB] uppercase tracking-[0.3em]">JSON DATA FORMAT to AI</h3>
-                            {isConnected && (
-                                <span className="text-[9px] px-2 py-0.5 rounded bg-emerald-400 text-black font-black tracking-widest uppercase">
-                                    LIVE DATA
-                                </span>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-1.5">
-                                <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                                <span className="text-[10px] text-emerald-400/80 font-mono uppercase">Stream: <span className="text-[#F5F0EB]">{isConnected ? 'STABLE' : 'DROPPED'}</span></span>
-                            </div>
-                            <div className="flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/40" />
-                                <span className="text-[10px] text-emerald-400/80 font-mono uppercase">Security: <span className="text-[#F5F0EB]">SSL_AES_256</span></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-6">
-                    <div className="hidden lg:block text-right">
-                        <div className="text-[9px] text-[#8C7F72] uppercase tracking-widest font-black mb-1">Engine Metrics</div>
-                        <div className="text-xs font-mono text-emerald-400/60">SESSION_{metadata.id?.substring(0, 8).toUpperCase()}</div>
-                    </div>
-                    <div className={`transition-all duration-500 p-2 rounded-full border border-white/5 bg-white/5 ${isOpen ? 'rotate-180 border-emerald-500/50 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]' : 'text-[#8C7F72]'}`}>
-                        <ChevronDown className="w-5 h-5" />
-                    </div>
-                </div>
-            </button>
-
-            <AnimatePresence>
-                {isOpen && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden bg-[#0A0E14]"
-                    >
-                        <div className="p-8 pt-0">
-                            {/* Dynamic Metrics Header */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                                    <div className="text-[10px] text-[#8C7F72] uppercase tracking-[0.25em] font-black mb-2">Target Candidate</div>
-                                    <div className="text-sm font-mono text-emerald-400 truncate">{publicPayload.telemetry.active_unit}</div>
-                                </div>
-                                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                                    <div className="text-[10px] text-[#8C7F72] uppercase tracking-[0.25em] font-black mb-2">Engine Activity</div>
-                                    <div className="text-sm font-mono text-emerald-400">{publicPayload.telemetry.ai_state}</div>
-                                </div>
-                                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5">
-                                    <div className="text-[10px] text-[#8C7F72] uppercase tracking-[0.25em] font-black mb-2">Stream Volume</div>
-                                    <div className="text-sm font-mono text-emerald-400">{publicPayload.telemetry.buffer_usage}</div>
-                                </div>
-                            </div>
-
-                            <div className="relative">
-                                {/* Scanline Effect */}
-                                <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] pointer-events-none z-10 opacity-20" />
-                                <div className="absolute inset-0 bg-[length:100%_2px] bg-[linear-gradient(transparent,rgba(16,185,129,0.1),transparent)] animate-scanline pointer-events-none z-10" />
-
-                                <motion.div
-                                    key={JSON.stringify(publicPayload)}
-                                    initial={{ opacity: 0.5 }}
-                                    animate={{ opacity: 1 }}
-                                >
-                                    <pre className="text-[11px] font-mono text-emerald-400/80 leading-relaxed p-6 bg-black/80 rounded-2xl border border-emerald-500/20 overflow-x-auto max-h-[500px] custom-scrollbar selection:bg-emerald-500/30">
-                                        {JSON.stringify({
-                                            ...publicPayload,
-                                            raw_engine_input: {
-                                                metadata,
-                                                ai_state: aiContext
-                                            }
-                                        }, null, 2)}
-                                    </pre>
-                                </motion.div>
-                            </div>
-
-                            <div className="mt-8 flex items-center gap-6 p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/10">
-                                <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
-                                    <ShieldCheck className="w-5 h-5" />
-                                </div>
-                                <p className="text-[11px] text-[#C4B8AD] leading-relaxed max-w-2xl">
-                                    <span className="text-emerald-400 font-black uppercase tracking-wider block mb-1">Vedic Data Integrity</span>
-                                    This real-time telemetry feed confirms the structural integrity of parameters sent to the AI engine. All celestial data points are calculated via Swiss Ephemeris for 100% astronomical accuracy.
-                                </p>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </motion.div>
-    );
-}

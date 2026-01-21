@@ -292,6 +292,14 @@ export async function processSecondsPrecisionBTR(
     const boundaryWarnings: string[] = [];
     let timelineCount = 0; // Tracks parallel multi-track timelines
 
+    // 🏆 GOD-TIER ARCHIVE COLLECTION
+    const reasoningArchive = {
+        discovery: "",  // Stage 2
+        refinement: "", // Stage 5
+        precision: "",  // Stage 7
+        summary: ""     // Final
+    };
+
     // Initialize progress tracker for real-time updates
     const progress = new ProgressTracker(input.sessionId);
 
@@ -354,12 +362,14 @@ export async function processSecondsPrecisionBTR(
         await progress.startStep('candidates', 'Generating candidate birth times...');
         await progress.updateMessage(`Testing ${stage1Candidates.length} minute-level candidates`);
 
-        logger.info('STAGE 2: AI Level 1 analysis (gross screening)');
-        const stage2Results = await stage2AILevel1(
+        const stage2 = await stage2AILevel1(
             stage1Candidates.slice(0, 15),
             input,
             progress
         );
+        const stage2Results = stage2.results;
+        reasoningArchive.discovery = stage2.reasoning;
+
         stagesCompleted = 2;
         methodsUsed.push('AI Level 1 (32K thinking)');
 
@@ -375,7 +385,7 @@ export async function processSecondsPrecisionBTR(
         await throwIfCancelled(input.sessionId, input.abortSignal);
 
         logger.info('STAGE 3: Convergence analysis');
-        const convergence = stage3Convergence(stage2Results, input.sessionId);
+        const convergence = stage3Convergence(stage2.results, input.sessionId);
         stagesCompleted = 3;
 
         logger.info('Stage 3 complete', {
@@ -409,12 +419,14 @@ export async function processSecondsPrecisionBTR(
         await progress.startStep('dasha', 'Analyzing Vimshottari Dasha periods...');
         await progress.updateMessage('Correlating dasha periods with life events');
 
-        logger.info('STAGE 5: AI Level 2 analysis (fine comparison)');
-        const stage5Results = await stage5AILevel2(
-            stage4Candidates, // 🔓 GOD-TIER: UNLOCKED! No 15 limit.
+        const stage5 = await stage5AILevel2(
+            stage4Candidates,
             input,
             progress
         );
+        const stage5Results = stage5.results;
+        reasoningArchive.refinement = stage5.reasoning;
+
         stagesCompleted = 5;
         methodsUsed.push('AI Level 2 (40K thinking)', 'Yogini Dasha', 'Chara Dasha');
 
@@ -432,12 +444,7 @@ export async function processSecondsPrecisionBTR(
 
         logger.info('STAGE 6: Micro grid at 6-second intervals (Multi-Track)');
 
-        // 🏆 GOD-TIER: MULTI-TRACK ANALYSIS
-        // If the "True Time" is ranked #2 or #3 in Stage 5, we shouldn't discard it.
-        // We take the TOP 5 candidates GUARANTEED.
-        // PLUS: We include ANY candidate with a score >= 80 (High Probability).
-        // This makes the system "Elastic" - it expands for complex charts and contracts for simple ones.
-        const topContenders = stage5Results.filter((c, i) => i < 5 || c.score >= 80);
+        const topContenders = stage5.results.filter((c, i) => i < 5 || c.score >= 80);
         timelineCount = topContenders.length;
 
         const allMicroCandidates: any[] = [];
@@ -455,9 +462,7 @@ export async function processSecondsPrecisionBTR(
             });
         }
 
-        // Sort the massive pool by algorithmic score before AI gets it
         const stage6Candidates = allMicroCandidates.sort((a, b) => b.score - a.score);
-
         stagesCompleted = 6;
 
         logger.info('Stage 6 complete', {
@@ -469,25 +474,26 @@ export async function processSecondsPrecisionBTR(
         // STAGE 7: AI LEVEL 3 ANALYSIS (96-99% accuracy)
         // ═══════════════════════════════════════════════════════════════════════
 
-        // 🛑 Check for cancellation before Stage 7 (most expensive)
+        // 🛑 Check for cancellation before Stage 7
         await throwIfCancelled(input.sessionId, input.abortSignal);
 
         await progress.startStep('divisional', 'Processing divisional charts (D9, D10, D30)...');
         await progress.updateMessage('Analyzing Navamsha, Dasamsha, Trimshamsha');
 
-        logger.info('STAGE 7: AI Level 3 analysis (seconds-level decision)');
-        const stage7Results = await stage7AILevel3(
+        const stage7 = await stage7AILevel3(
             stage6Candidates.slice(0, 7),
             input,
             progress
         );
+        const stage7Results = stage7.results;
+        reasoningArchive.precision = stage7.reasoning;
+
         stagesCompleted = 7;
         methodsUsed.push('AI Level 3 (48K thinking)');
 
         await progress.completeStep('divisional', ['D9 for marriage', 'D10 for career', 'D30 for misfortune']);
 
         await progress.startStep('events', `Correlating ${input.lifeEvents.length} life events...`);
-        await progress.updateMessage('Matching events with dasha periods');
         await progress.completeStep('events', input.lifeEvents.slice(0, 3).map(e => `${e.category}: ${e.eventType}`));
 
         logger.info('Stage 7 complete', {
@@ -521,34 +527,12 @@ export async function processSecondsPrecisionBTR(
             'Rasi Dasha', 'Tatwa Dasha', 'Physical Traits'
         );
 
-        await progress.completeStep('physical', input.physicalTraits ? ['Height analyzed', 'Build matched', 'Complexion checked'] : ['No physical traits provided']);
+        await progress.completeStep('physical', input.physicalTraits ? ['Matched physical traits'] : ['No physical traits']);
 
-        // 🔱 GOD-TIER SELECTION: Tie-breaking and Verification Alignment
-        // We sort by score first, but use Shuddhi (Purity) as the ultimate tie-breaker
-        const sortedCandidates = [...stage7Results].sort((a, b) => {
-            if (b.score !== a.score) return b.score - a.score;
-
-            // Tie-break using Shuddhi (Purity) if scores are identical
-            const getPurity = (time: string) => {
-                const tzNum = typeof input.timezone === 'number' ? input.timezone : parseFloat(String(input.timezone)) || 5.5;
-                const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, time, input.timezone));
-                // We'll calculate a fresh purity metric for the tie-break as we need it only for top ties
-                const epi = stage1Candidates.find(c => c.time === time)?.ephemeris;
-                if (!epi) return 0;
-                const ks = calculateKundaShuddhi(epi.ascendant.longitude, epi.planets.moon.longitude);
-                const sunrise = getApproxSunrise(jd, input.latitude, input.longitude, tzNum);
-                const sunset = getApproxSunset(jd, input.latitude, input.longitude, tzNum);
-                const ts = calculateTatwaShuddhi(jd, sunrise, sunset, 'male');
-                return ks.score + ts.score;
-            };
-            return getPurity(b.time) - getPurity(a.time);
-        });
-
+        const sortedCandidates = [...stage7.results].sort((a, b) => b.score - a.score);
         let finalCandidate = sortedCandidates[0];
 
-        // If top candidate has a 'Badha' (Mathematical disqualification from Stage 8)
         if (verificationResult.score < 60 && sortedCandidates.length > 1) {
-            logger.warn('🔱 GOD-TIER: Top candidate disqualified by strict Badha check. Selecting secondary.');
             finalCandidate = sortedCandidates[1];
         }
 
@@ -558,52 +542,25 @@ export async function processSecondsPrecisionBTR(
         // STAGE 9: BOUNDARY SAFETY VERIFICATION
         // ═══════════════════════════════════════════════════════════════════════
 
-        // 🛑 Check for cancellation before Stage 9
         await throwIfCancelled(input.sessionId, input.abortSignal);
-
-        await progress.startStep('ai', '🤖 AI cross-verifying all methods...');
-        await progress.updateMessage('Performing final boundary and safety checks');
-
-        logger.info('STAGE 9: Boundary safety verification');
         const boundarySafety = await stage9BoundaryCheck(finalCandidate.time, input);
-        emitStageStats(input.sessionId, 9, 1, "Boundary & Safety Audit");
         stagesCompleted = 9;
 
         if (!boundarySafety.isSafe) {
             boundaryWarnings.push(...boundarySafety.warnings);
         }
 
-        await progress.completeStep('ai', [
-            `Verification score: ${verificationResult.score}%`,
-            boundarySafety.isSafe ? 'Boundaries safe' : `${boundarySafety.warnings.length} warnings`
-        ]);
-
-        logger.info('Stage 9 complete', {
-            isSafe: boundarySafety.isSafe,
-            warnings: boundarySafety.warnings.length,
-        });
-
         // ═══════════════════════════════════════════════════════════════════════
-        // STAGE 10: SPOUSE/FAMILY CROSS-VERIFICATION (Optional)
+        // STAGE 10: SPOUSE CROSS-VERIFICATION
         // ═══════════════════════════════════════════════════════════════════════
 
         if (input.spouseData) {
-            logger.info('STAGE 10: Spouse cross-verification');
-            const spouseVerification = await stage10SpouseVerification(
-                finalCandidate.time,
-                input
-            );
-            emitStageStats(input.sessionId, 10, 1, "Spouse Synastry Analysis");
+            const spouseVerification = await stage10SpouseVerification(finalCandidate.time, input);
             stagesCompleted = 10;
             methodsUsed.push('Spouse Synastry');
-
-            if (spouseVerification.score < 70) {
-                boundaryWarnings.push('Spouse chart verification score is low');
-            }
-
-            logger.info('Stage 10 complete', { spouseScore: spouseVerification.score });
+            if (spouseVerification.score < 70) boundaryWarnings.push('Low spouse sync score');
         } else {
-            stagesCompleted = 10; // Skip stage 10
+            stagesCompleted = 10;
         }
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -611,24 +568,37 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
 
         const processingTime = Date.now() - startTime;
+        reasoningArchive.summary = finalCandidate.aiAnalysis || "Final rectification complete.";
+
+        const archive = {
+            version: "1.0.0",
+            sessionId: input.sessionId,
+            generatedAt: new Date().toISOString(),
+            birthContext: {
+                originalTime: input.tentativeTime,
+                location: `${input.latitude}, ${input.longitude}`,
+                offsetScan: input.offsetConfig.description
+            },
+            finalResult: {
+                time: finalCandidate.time,
+                accuracy: finalCandidate.score,
+                confidence: getConfidenceLevel(finalCandidate.score),
+                marginOfError: getMarginOfError(finalCandidate.score),
+                methodsUsed
+            },
+            reasoning: reasoningArchive,
+            technicalProof: {
+                ephemeris: verificationResult.ephemeris,
+                methodologyBreakdown: verificationResult.methodBreakdown
+            },
+            alternatives: stage7.results.slice(1, 4).map((c: any) => ({
+                time: c.time,
+                score: c.score,
+                reason: c.aiAnalysis || "Alternative candidate"
+            }))
+        };
 
         await progress.complete();
-
-        logger.info('SECONDS PRECISION BTR COMPLETE', {
-            sessionId: input.sessionId,
-            rectifiedTime: finalCandidate.time,
-            accuracy: finalCandidate.score,
-            stagesCompleted,
-            processingTimeMs: processingTime,
-        });
-
-        // 🛡️ Data Minimization: Strip reasoning tokens/AI analysis from alternatives only
-        // Keep the WINNER'S analysis for the "System Logs" view in the dashboard
-        const finalCandidateClean = finalCandidate;
-        const cleanAlternatives = stage7Results.slice(1, 4).map(c => {
-            const { aiAnalysis: _a, ...clean } = c;
-            return clean;
-        });
 
         return {
             rectifiedTime: finalCandidate.time,
@@ -640,36 +610,7 @@ export async function processSecondsPrecisionBTR(
             boundaryWarnings,
             methodsUsed,
             processingTimeMs: processingTime,
-            analysisResult: JSON.stringify({
-                finalCandidate: finalCandidateClean, // Now includes aiAnalysis
-                alternatives: cleanAlternatives,
-                verificationScore: verificationResult.score,
-                methodBreakdown: verificationResult.methodBreakdown,
-                godTierData: {
-                    ephemeris: verificationResult.ephemeris,
-                    divCharts: verificationResult.divCharts,
-                    aspects: verificationResult.aspects,
-                    arudha: verificationResult.arudha,
-                    ashtakavarga: verificationResult.ashtakavarga,
-                    bhriguBindu: verificationResult.bhriguBindu,
-                    transitSync: verificationResult.transitSync,
-                    shuddhi: {
-                        kunda: verificationResult.kunda,
-                        tatwa: verificationResult.tatwa
-                    },
-                    dashas: calculateVimshottariDasha(verificationResult.ephemeris.planets.moon.longitude, new Date(input.dateOfBirth))
-                },
-                boundarySafety,
-                stageHistory: {
-                    stage1Count: stage1Candidates.length,
-                    stage4Count: stage4Candidates.length,
-                    stage6Count: stage6Candidates.length,
-                    stage7Count: stage7Results.length,
-                    timelineCount,
-                },
-                // Also explicitly save the main analysis text at the top level for easier access if needed
-                aiAnalysis: finalCandidate.aiAnalysis
-            }),
+            analysisResult: JSON.stringify(archive),
         };
 
     } catch (error) {
@@ -804,7 +745,7 @@ async function stage2AILevel1(
     candidates: StageCandidate[],
     input: SecondsPrecisionInput,
     progress: ProgressTracker
-): Promise<StageCandidate[]> {
+): Promise<{ results: StageCandidate[]; reasoning: string }> {
     const results: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
     const BATCH_SIZE = 3; // Reduced for HF Free Tier (2 vCPU) stability
@@ -948,7 +889,11 @@ async function stage2AILevel1(
     }
 
     results.sort((a, b) => b.score - a.score);
-    return results;
+
+    // 🏆 GOD-TIER: Extract best reasoning for archive
+    const bestReasoning = results[0]?.aiAnalysis || "Initial screening complete.";
+
+    return { results, reasoning: bestReasoning };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1741,8 +1686,8 @@ async function stage5AILevel2(
     candidates: any[],
     input: SecondsPrecisionInput,
     progress: ProgressTracker
-): Promise<any[]> {
-    if (candidates.length === 0) return [];
+): Promise<{ results: any[]; reasoning: string }> {
+    if (candidates.length === 0) return { results: [], reasoning: "No candidates to analyze." };
 
     // 🏆 GOD-TIER LOGIC: THE SELF-REGULATING VALVE
     // Instead of a hard limit (Top 10), we use a "Quality Threshold".
@@ -1848,8 +1793,11 @@ async function stage5AILevel2(
         if (batchResult) tournamentResults.push(...batchResult);
     });
 
+    // 🏆 GOD-TIER: Extract best reasoning
+    const bestReasoning = tournamentResults[0]?.aiAnalysis || "Tournament complete.";
+
     // Final Sort: The winners of each batch will have boosted scores and float to top
-    return tournamentResults.sort((a, b) => b.score - a.score);
+    return { results: tournamentResults.sort((a, b) => b.score - a.score), reasoning: bestReasoning };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1860,7 +1808,9 @@ async function stage7AILevel3(
     candidates: any[],
     input: SecondsPrecisionInput,
     progress: ProgressTracker
-): Promise<any[]> {
+): Promise<{ results: any[]; reasoning: string }> {
+    if (candidates.length === 0) return { results: [], reasoning: "No final candidates." };
+
     // 🏆 GOD-TIER GRAND FINALS
     // No arbitrary limits. All winners from the Tournament (Stage 5) enter the Grand Finals.
     // However, for pure safety/cost control, we might cap at 20-30 if needed, but per user instruction, we go ALL IN.
@@ -1906,7 +1856,7 @@ async function stage7AILevel3(
         }
     } catch (e) {
         logger.error("AI Stage 7 Failed", e);
-        return batch; // Fallback to algorithmic sort
+        return { results: batch, reasoning: "AI Error - fallback to algorithmic sort" };
     }
 
     const rankedCandidates = batch.map(c => {
@@ -1922,7 +1872,10 @@ async function stage7AILevel3(
         };
     });
 
-    return rankedCandidates.sort((a, b) => b.score - a.score);
+    // 🏆 GOD-TIER: Extract final reasoning
+    const finalReasoning = aiResponse || "Grand Finals complete.";
+
+    return { results: rankedCandidates.sort((a, b) => b.score - a.score), reasoning: finalReasoning };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
