@@ -656,7 +656,8 @@ export async function processSecondsPrecisionBTR(
                     shuddhi: {
                         kunda: verificationResult.kunda,
                         tatwa: verificationResult.tatwa
-                    }
+                    },
+                    dashas: calculateVimshottariDasha(verificationResult.ephemeris.planets.moon.longitude, new Date(input.dateOfBirth))
                 },
                 boundarySafety,
                 stageHistory: {
@@ -774,6 +775,7 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
                 scored.push({
                     time: candidate.time,
                     score,
+                    ephemeris, // 🔱 Preserved for final report
                     methodScores: {
                         vimshottari: score - 15, // Approx
                         kundaShuddhi: kunda.score,
@@ -924,7 +926,7 @@ async function stage2AILevel1(
                     });
 
                     return {
-                        time: candidate.time,
+                        ...candidate, // 🔱 Preserves ephemeris/dashas from previous stages
                         score: parsed.score,
                         aiAnalysis: response.content,
                     };
@@ -1079,6 +1081,7 @@ async function stage4FineGrid(
             scored.push({
                 time: candidateTime,
                 score,
+                ephemeris, // 🔱 Preserved for final report
                 methodScores: {
                     kundaShuddhi: kunda.score,
                     tatwaShuddhi: tatwa.score,
@@ -1216,6 +1219,7 @@ async function stage6MicroGrid(
             scored.push({
                 time: candidateTime,
                 score,
+                ephemeris, // 🔱 Preserved for final report
                 methodScores: {
                     kundaShuddhi: kunda.score,
                     tatwaShuddhi: tatwa.score,
@@ -1924,6 +1928,35 @@ async function stage7AILevel3(
 // ═════════════════════════════════════════════════════════════════════════════
 // AI PROMPT BUILDERS (ENRICHED)
 // ═════════════════════════════════════════════════════════════════════════════
+// 🔱 ESSENCE PROTOCOL: Data Minimization for AI Payloads
+function minifyDashas(dashas: any[], levels: number = 2): any[] {
+    if (!dashas) return [];
+    return dashas.map(d => {
+        const min: any = {
+            lord: d.lord,
+            start: d.startDate instanceof Date ? d.startDate.toISOString().split('T')[0] : d.startDate,
+            end: d.endDate instanceof Date ? d.endDate.toISOString().split('T')[0] : d.endDate,
+        };
+        if (levels > 1 && d.subPeriods) {
+            min.sub = minifyDashas(d.subPeriods, levels - 1);
+        }
+        return min;
+    });
+}
+
+function minifyPlanets(planets: any): any {
+    const min: any = {};
+    for (const [name, data] of Object.entries(planets)) {
+        const d: any = data;
+        min[name] = {
+            sign: d.sign,
+            long: d.longitude.toFixed(4),
+            deg: d.degree.toFixed(4),
+            retro: d.isRetrograde
+        };
+    }
+    return min;
+}
 
 function getDashaSequence(moonSidereal: number, birthDate: Date): string {
     const periods = calculateVimshottariDasha(moonSidereal, birthDate);
@@ -2030,11 +2063,9 @@ ${getDashaSequence(ephemeris.planets.moon.longitude, new Date(input.dateOfBirth)
 <TECHNICAL_DATA_JSON>
 ${JSON.stringify({
         time,
-        planets: ephemeris.planets,
-        ascendant: ephemeris.ascendant,
-        maturation: maturationData,
-        shuddhi: { kunda, tatwa },
-        dashas: dashas.slice(0, 5) // Includes Level 5 recursive depth
+        planets: minifyPlanets(ephemeris.planets),
+        ascendant: { sign: ephemeris.ascendant.sign, degree: ephemeris.ascendant.degree.toFixed(4) },
+        dashas: minifyDashas(dashas, 3)
     }, null, 2)}
 </TECHNICAL_DATA_JSON>
 
@@ -2127,17 +2158,16 @@ ${getDashaSequence(ephemeris.planets.moon.longitude, new Date(input.dateOfBirth)
 <TECHNICAL_DATA_JSON>
 ${JSON.stringify({
         time,
-        planets: ephemeris.planets,
-        ascendant: ephemeris.ascendant,
-        maturation: maturationData,
+        planets: minifyPlanets(ephemeris.planets),
+        ascendant: { sign: ephemeris.ascendant.sign, degree: ephemeris.ascendant.degree.toFixed(4) },
         dashas: {
-            vimshottari: allDashas.vimshottari.slice(0, 5),
-            yogini: allDashas.yogini.slice(0, 5)
+            vimshottari: minifyDashas(allDashas.vimshottari, 2),
+            yogini: minifyDashas(allDashas.yogini, 2)
         },
         varga: {
-            D24: divCharts.D24,
-            D40: divCharts.D40,
-            D45: divCharts.D45
+            D24: { ascendant: divCharts.D24.ascendant },
+            D40: { ascendant: divCharts.D40.ascendant },
+            D45: { ascendant: divCharts.D45.ascendant }
         }
     }, null, 2)}
 </TECHNICAL_DATA_JSON>
