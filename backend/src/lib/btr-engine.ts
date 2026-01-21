@@ -113,6 +113,10 @@ function getKeyPlanetsForEvent(event: LifeEvent): string[] {
     children: ['Jupiter', 'Venus'],
     health: ['Mars', 'Saturn'],
     financial: ['Jupiter', 'Venus'],
+    legal: ['Mars', 'Saturn', 'Jupiter'],
+    public_life: ['Sun', 'Jupiter', 'Rahu'],
+    karmic_events: ['Rahu', 'Ketu', 'Saturn'],
+    identity_shifts: ['Sun', 'Moon', 'Mars'],
   };
 
   return categoryMap[event.category] || ['Jupiter'];

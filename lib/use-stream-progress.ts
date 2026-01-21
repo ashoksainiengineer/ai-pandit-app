@@ -574,10 +574,14 @@ export function useStreamProgress(
         // Start a single polling fetch immediately to clear the "Connecting..." screen
         // while the SSE stream negotiates its way through proxies.
         console.log('🛡️ [Stream] God-Tier Dual-Path Init for', sessionId);
-        fetchProgress(sessionId, backendUrl).catch(e => console.warn('[Poll-Init] Failed, relying on SSE:', e));
 
-        // Don't restart SSE if already polling
-        if (connectionState.usingFallback) return;
+        let isInitialFetchDone = false;
+        fetchProgress(sessionId, backendUrl).then(() => {
+            isInitialFetchDone = true;
+        }).catch(e => console.warn('[Poll-Init] Failed, relying on SSE:', e));
+
+        // Don't restart SSE if already polling or complete
+        if (connectionState.usingFallback || state.isComplete) return;
 
         // Create EventSource connection
         const url = `${backendUrl}/api/stream/${sessionId}`;
@@ -597,7 +601,22 @@ export function useStreamProgress(
             }
         }, 8000); // 8s tolerance for slow HF Cold Starts
 
+        // 💓 HEARTBEAT MONITOR: If no activity for 60s, force refresh
+        let lastActivity = Date.now();
+        const activityCheck = setInterval(() => {
+            if (state.isComplete) {
+                clearInterval(activityCheck);
+                return;
+            }
+            if (Date.now() - lastActivity > 60000 && eventSource.readyState === 1) {
+                console.warn('💓 [Heartbeat] Connection stale. Refreshing...');
+                eventSource.close();
+                startPolling(sessionId);
+            }
+        }, 30000);
+
         eventSource.onmessage = (event) => {
+            lastActivity = Date.now();
             try {
                 const data = JSON.parse(event.data);
                 handleEvent(data);
@@ -606,9 +625,14 @@ export function useStreamProgress(
             }
         };
 
-        eventSource.onerror = (err) => {
+        eventSource.onerror = (err: any) => {
             console.error('📡 [SSE] Stream Error:', err);
-            // Don't immediately switch to polling, let browser retry unless we hit our timeout
+            // If we get an auth error (401/403), we might need to refresh token
+            if (err?.status === 401 || err?.status === 403) {
+                console.log('🔒 [Auth] Token might be expired. Retrying polling path...');
+                eventSource.close();
+                startPolling(sessionId);
+            }
         };
 
         eventSource.onopen = () => {
@@ -617,28 +641,35 @@ export function useStreamProgress(
             setConnectionState(prev => ({ ...prev, readyState: 1, lastError: null }));
         };
 
-        // 🔄 [GOD-TIER] OFFLINE SYNC
-        // Auto-reconnect when user's internet returns
-        const handleOnline = () => {
-            console.log('🌐 [Network] Back online! Re-calibrating stream...');
-            if (eventSource.readyState !== 1) {
-                eventSource.close();
-                // Kill current timers and restart
-                if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
-                // Simple re-trigger since dependency array will catch the toggle if we use a state?
-                // Actually, just calling fetchProgress once is safer.
+        // 🔄 [GOD-TIER] VISIBILITY & ONLINE SYNC
+        // Auto-reconnect when user returns to tab or internet returns
+        const handleSync = () => {
+            const isVisible = document.visibilityState === 'visible';
+            if (isVisible) {
+                console.log('🌐 [Sync] tab focused/back online! Re-calibrating...');
+
+                // Always do a quick poll check on focus to ensure we didn't miss completion
                 fetchProgress(sessionId, backendUrl);
+
+                if (eventSource.readyState !== 1 && !state.isComplete) {
+                    eventSource.close();
+                    if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
+                    startPolling(sessionId);
+                }
             }
         };
 
-        window.addEventListener('online', handleOnline);
+        window.addEventListener('online', handleSync);
+        document.addEventListener('visibilitychange', handleSync);
 
         return () => {
             eventSource.close();
+            clearInterval(activityCheck);
             if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
-            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('online', handleSync);
+            document.removeEventListener('visibilitychange', handleSync);
         };
-    }, [sessionId, backendUrl, startPolling, fetchProgress]);
+    }, [sessionId, backendUrl, startPolling, fetchProgress, state.isComplete]);
 
     // Rotation Effect: Switch displayed candidate every 5 seconds
     useEffect(() => {

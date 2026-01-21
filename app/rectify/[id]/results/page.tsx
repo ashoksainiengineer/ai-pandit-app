@@ -38,9 +38,36 @@ export default function ResultsPage() {
             }
         }
 
-        setLoading(false);
+        // 2. Fetch from API if not in local storage (for shared links or manual refresh)
+        const fetchFromServer = async () => {
+            try {
+                console.log('📡 [Results] Local data missing. Hydrating from API...');
+                const res = await fetch(`/api/sessions/${id}`);
+                const data = await res.json();
 
-        // 2. TODO: Fetch from API if not in local storage (for shared links)
+                if (data.success && data.data) {
+                    const session = data.data;
+                    if (session.analysisResult) {
+                        setResultData(session.analysisResult);
+                        setBirthData(session.birthData);
+
+                        // Persist back to localStorage for future speed
+                        localStorage.setItem(`rectification_result_${id}`, JSON.stringify(session.analysisResult));
+                        localStorage.setItem(`birthData_${id}`, JSON.stringify(session.birthData));
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch session from server:', err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (!stored || !storedBirthData) {
+            fetchFromServer();
+        } else {
+            setLoading(false);
+        }
     }, [id]);
 
     if (loading) {

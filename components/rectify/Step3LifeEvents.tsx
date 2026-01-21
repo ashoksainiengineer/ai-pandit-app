@@ -20,6 +20,10 @@ const BTR_EVENTS = [
     { label: 'Surgery/Accident', icon: '🏥', cat: 'health', boost: 8 },
     { label: 'Property Purchase', icon: '🏠', cat: 'financial', boost: 7 },
     { label: 'Foreign Move', icon: '✈️', cat: 'travel', boost: 7 },
+    { label: 'Legal Victory', icon: '⚖️', cat: 'legal', boost: 7 },
+    { label: 'Guru Diksha', icon: '🕉️', cat: 'spiritual', boost: 8 },
+    { label: 'Sudden Windfall', icon: '🌊', cat: 'karmic_events', boost: 7 },
+    { label: 'Identity Shift', icon: '👤', cat: 'identity_shifts', boost: 6 },
     { label: 'Graduation', icon: '🎓', cat: 'education', boost: 6 },
 ];
 
@@ -83,14 +87,17 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
         const catWeights: Record<string, number> = {
             marriage: 15,      // High importance for rectification
             children: 15,      // High importance
+            karmic_events: 15, // Sudden luck/loss/accidents (Rahu/Ketu/Bhrigu)
+            identity_shifts: 12, // Physical change (1st house/Asc)
             family_events: 12, // Death/Birth of family often critical
             health: 12,
-            career: 10,
+            career: 12,
+            public_life: 10,  // Fame/Awards (10th house)
+            spiritual: 10,    // Guru Diksha/Initiation
             education: 10,
+            legal: 8,         // Legal wins/cases (6th house)
             financial: 8,
             travel: 6,
-            spiritual: 5,
-            legal: 5,
             other: 5
         };
 
@@ -549,13 +556,87 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
             )}
 
             {/* ══════════════════════════════════════════════════════════════ */}
+            {/* DIVINE GUIDANCE (Persuasion Engine) */}
+            {/* ══════════════════════════════════════════════════════════════ */}
+            {!editingId && (
+                <div className="relative group">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-[#D4AF37]/0 via-[#D4AF37]/20 to-[#D4AF37]/0 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-1000"></div>
+                    <div className="relative bg-[#1A1614] border border-[#D4AF37]/30 rounded-2xl p-6 overflow-hidden">
+                        <div className="flex items-start gap-6">
+                            <div className="w-16 h-16 rounded-full bg-[#D4AF37]/10 flex items-center justify-center flex-shrink-0 border border-[#D4AF37]/20 shadow-[0_0_20px_rgba(212,175,55,0.1)]">
+                                <span className="text-3xl">🧘‍♂️</span>
+                            </div>
+                            <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <h3 className="text-[#E8A849] font-black uppercase tracking-[0.2em] text-xs">Divine Guidance</h3>
+                                    <div className="h-[1px] flex-1 bg-gradient-to-r from-[#D4AF37]/30 to-transparent"></div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    {accuracy < 50 ? (
+                                        <>
+                                            <p className="text-[#F5F0EB] text-lg font-bold leading-tight">
+                                                “Your life’s tapestry is still thin. The planets need more anchors to calculate your true destiny.”
+                                            </p>
+                                            <p className="text-[#8C7F72] text-sm italic">
+                                                With only {lifeEvents.length} events, the rectification engine remains in a fog. To achieve sub-10s precision, we require at least {
+                                                    offsetConfig?.preset === '30min' ? '4' : '8'
+                                                } diverse significant milestones. Poor data leads to blurred results.
+                                            </p>
+                                        </>
+                                    ) : accuracy < 85 ? (
+                                        <>
+                                            <p className="text-[#F5F0EB] text-lg font-bold leading-tight">
+                                                “The alignment is forming, but the nodes remain restless. Diversify your story.”
+                                            </p>
+                                            <p className="text-[#8C7F72] text-sm italic">
+                                                You have provided good volume, but lacks variety. Have you experienced any sudden <span className="text-[#E8A849]">Karmic Twists</span> (accidents/scams) or <span className="text-[#E8A849]">Identity Shifts</span> (weight change/name change)? Adding these will lock your Ascendant degree.
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p className="text-[#5CB57B] text-lg font-bold leading-tight">
+                                                “The Karma is converging. Your timeline is now a solid pillar for rectification.”
+                                            </p>
+                                            <p className="text-[#8C7F72] text-sm italic">
+                                                Excellent detail. You have provided a wide range of house-triggers (Bhavas). The precision will be exceptional.
+                                            </p>
+                                        </>
+                                    )}
+
+                                    {/* Categorical Suggestions */}
+                                    <div className="flex flex-wrap gap-2 mt-4">
+                                        {!lifeEvents.some(e => e.category === 'marriage') && (
+                                            <button onClick={() => setSelectedCat(EVENT_CATEGORIES.find(c => c.id === 'marriage') || null)} className="px-3 py-1.5 rounded-full bg-[#E8A849]/5 border border-[#E8A849]/20 text-[10px] text-[#E8A849] hover:bg-[#E8A849]/10 transition-all font-bold tracking-widest uppercase">
+                                                + Relationship History
+                                            </button>
+                                        )}
+                                        {!lifeEvents.some(e => e.category === 'karmic_events') && (
+                                            <button onClick={() => setSelectedCat(EVENT_CATEGORIES.find(c => c.id === 'karmic_events') || null)} className="px-3 py-1.5 rounded-full bg-[#E8A849]/5 border border-[#E8A849]/20 text-[10px] text-[#E8A849] hover:bg-[#E8A849]/10 transition-all font-bold tracking-widest uppercase">
+                                                + Sudden Accidents/Luck
+                                            </button>
+                                        )}
+                                        {!lifeEvents.some(e => e.category === 'identity_shifts') && (
+                                            <button onClick={() => setSelectedCat(EVENT_CATEGORIES.find(c => c.id === 'identity_shifts') || null)} className="px-3 py-1.5 rounded-full bg-[#E8A849]/5 border border-[#E8A849]/20 text-[10px] text-[#E8A849] hover:bg-[#E8A849]/10 transition-all font-bold tracking-widest uppercase">
+                                                + Physical Transformations
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════ */}
             {/* TIMELINE */}
             {/* ══════════════════════════════════════════════════════════════ */}
             {lifeEvents.length > 0 && (
                 <div className="bg-[#241F1C] rounded-xl border border-[#C4B8AD]/10">
                     <div className="px-6 py-4 border-b border-[#C4B8AD]/10 flex justify-between">
-                        <h3 className="text-sm font-semibold text-[#F5F0EB]">📜 Your Timeline</h3>
-                        <span className="text-xs text-[#8C7F72]">{lifeEvents.length} events</span>
+                        <h3 className="text-sm font-semibold text-[#F5F0EB]">📜 Your Journey Timeline</h3>
+                        <span className="text-xs text-[#8C7F72]">{lifeEvents.length} events added</span>
                     </div>
                     <div className="divide-y divide-[#C4B8AD]/10">
                         {sortedEvents.map((event) => (

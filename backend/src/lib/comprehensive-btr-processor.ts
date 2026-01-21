@@ -433,15 +433,13 @@ async function multiMethodQuickFilter(
             const aspects = calculateAdvancedAspects(ephemeris);
             let advancedAspectsScore = 50;
 
-            // Count beneficial aspects
+            // Count beneficial aspects (Vedic Drishti)
             const beneficAspects = aspects.filter(a =>
-                ['trine', 'sextile', 'conjunction'].includes(a.aspectType) &&
-                a.strength !== 'weak'
+                a.strength >= 75
             ).length;
 
             const maleficAspects = aspects.filter(a =>
-                ['square', 'opposition'].includes(a.aspectType) &&
-                a.strength !== 'weak'
+                a.strength < 50
             ).length;
 
             advancedAspectsScore += (beneficAspects - maleficAspects) * 5;

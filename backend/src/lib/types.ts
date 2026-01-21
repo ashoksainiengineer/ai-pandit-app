@@ -29,6 +29,10 @@ export type EventCategory =
   | 'financial'
   | 'travel'
   | 'spiritual'
+  | 'legal'
+  | 'public_life'
+  | 'karmic_events'
+  | 'identity_shifts'
   | 'other';
 
 export const EVENT_TYPES: Record<EventCategory, string[]> = {
@@ -41,6 +45,10 @@ export const EVENT_TYPES: Record<EventCategory, string[]> = {
   financial: ['Money gain', 'Property purchase', 'Business deal'],
   travel: ['Long journey', 'Relocation', 'International travel'],
   spiritual: ['Spiritual awakening', 'Meditation retreat', 'Religious event'],
+  legal: ['Court case started', 'Legal win', 'Court verdict'],
+  public_life: ['Award', 'Fame spike', 'Public recognition'],
+  karmic_events: ['Sudden windfall', 'Natural disaster', 'Pet loss'],
+  identity_shifts: ['Weight transform', 'Nickname change', 'Appearance shift'],
   other: ['Custom event'],
 };
 

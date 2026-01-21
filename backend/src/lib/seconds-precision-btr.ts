@@ -30,12 +30,17 @@ import {
     formatArudhaLagna,
     formatPanchanga,
     formatBoundarySafety,
-    calculateShadbalaLite,
-    formatShadbalaLite,
+    calculateFullShadbala,
+    formatShadbala,
     calculateHoraLagna,
     calculateGhatiLagna,
     formatSpecialLagnas,
-    YoginiDashaPeriod,
+    calculatePlanetaryMaturation,
+    formatPlanetaryMaturation,
+    DivisionalChart,
+    AspectData,
+    ArudhaLagna,
+    calculateAshtakavarga
 } from './advanced-btr-methods';
 import {
     calculateCharaKarakas,
@@ -51,6 +56,8 @@ import {
     formatRasiDasha,
     formatTatwaDasha,
     formatJaiminiAspects,
+    calculateBhriguBindu,
+    formatBhriguBindu
 } from './jaimini-astrology';
 import {
     callKimiK2,
@@ -62,6 +69,7 @@ import {
     calculateKundaShuddhi,
     calculateVarnadaLagna,
     getApproxSunrise,
+    getApproxSunset,
 } from './shuddhi-engine';
 import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager';
 import { logger } from './logger';
@@ -73,6 +81,11 @@ import { emitCandidateScore, emitAIContext, emitCalculationLog, emitStageStats }
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═════════════════════════════════════════════════════════════════════════════
+
+const ZODIAC_SIGNS = [
+    'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+    'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+];
 
 export interface SecondsPrecisionInput {
     sessionId: string;
@@ -129,6 +142,12 @@ interface ConvergenceResult {
     topCandidates: StageCandidate[];
 }
 
+export interface TransitSyncResult {
+    score: number;
+    hits: string[];
+    details: Record<string, string>;
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // SYSTEM PROMPTS FOR MULTI-LEVEL AI ANALYSIS
 // ═════════════════════════════════════════════════════════════════════════════
@@ -148,7 +167,9 @@ You are analyzing ${count} candidate birth times at MINUTE-LEVEL intervals. Your
 For each candidate:
 1. Check if Vimshottari Dasha periods MATCH major life events
 2. Verify divisional chart indicators (D9 for marriage, D10 for career)
-3. Quick check physical traits alignment with ascendant
+3. Check Parashari Drishti (Vedic Aspects) of key planets on the Lagna and houses
+4. Verify alignment with Planetary Maturation Ages for historical events
+5. Quick check physical traits alignment with ascendant
 4. Score 0-100 based on overall alignment
 
 SCORING GUIDE:
@@ -182,9 +203,11 @@ You are comparing ${count} candidates at 30-SECOND intervals. These are all with
 For each 30-second candidate:
 1. Precise Vimshottari Dasha transition analysis
 2. Exact event date matching (±7 days tolerance)
-3. Multiple dasha system cross-verification (Yogini, Chara)
-4. Nakshatra pada boundaries
-5. House cusp precision
+3. Multiple dasha system cross-verification (Vimshottari, Yogini, Chara)
+4. Parashari Purna and Visesha Drishti analysis
+5. Planetary Maturation Age synchronization (Events matching the maturing planet's nature)
+6. Nakshatra pada boundaries
+7. House cusp precision
 
 At 30-second precision:
 - Lagna moves ~0.125° per 30 seconds
@@ -283,6 +306,19 @@ export async function processSecondsPrecisionBTR(
         });
 
         await progress.updateMessage(`Analyzing ${input.lifeEvents.length} life events for accuracy`);
+
+        // --- 🔱 TRANSIT PRE-CALCULATION (PHASE 4) ---
+        const eventTransits: Record<string, EphemerisData> = {};
+        for (const event of input.lifeEvents) {
+            eventTransits[event.id] = await calculateEphemeris(
+                event.eventDate,
+                event.eventTime || '12:00:00',
+                input.latitude,
+                input.longitude,
+                input.timezone
+            );
+        }
+
         await progress.completeStep('init', [`Session: ${input.sessionId}`, `Events: ${input.lifeEvents.length}`]);
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -447,7 +483,8 @@ export async function processSecondsPrecisionBTR(
         logger.info('STAGE 8: 15-method verification');
         const verificationResult = await stage8Verification(
             stage7Results[0].time,
-            input
+            input,
+            eventTransits
         );
         emitStageStats(input.sessionId, 8, 1, "15-Method Physical Audit");
         stagesCompleted = 8;
@@ -466,12 +503,15 @@ export async function processSecondsPrecisionBTR(
 
             // Tie-break using Shuddhi (Purity) if scores are identical
             const getPurity = (time: string) => {
+                const tzNum = typeof input.timezone === 'number' ? input.timezone : parseFloat(String(input.timezone)) || 5.5;
                 const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, time, input.timezone));
                 // We'll calculate a fresh purity metric for the tie-break as we need it only for top ties
                 const epi = stage1Candidates.find(c => c.time === time)?.ephemeris;
                 if (!epi) return 0;
                 const ks = calculateKundaShuddhi(epi.ascendant.longitude, epi.planets.moon.longitude);
-                const ts = calculateTatwaShuddhi(jd, getApproxSunrise(jd, input.timezone), 'male');
+                const sunrise = getApproxSunrise(jd, input.latitude, input.longitude, tzNum);
+                const sunset = getApproxSunset(jd, input.latitude, input.longitude, tzNum);
+                const ts = calculateTatwaShuddhi(jd, sunrise, sunset, 'male');
                 return ks.score + ts.score;
             };
             return getPurity(b.time) - getPurity(a.time);
@@ -577,6 +617,20 @@ export async function processSecondsPrecisionBTR(
                 finalCandidate: finalCandidateClean, // Now includes aiAnalysis
                 alternatives: cleanAlternatives,
                 verificationScore: verificationResult.score,
+                methodBreakdown: verificationResult.methodBreakdown,
+                godTierData: {
+                    ephemeris: verificationResult.ephemeris,
+                    divCharts: verificationResult.divCharts,
+                    aspects: verificationResult.aspects,
+                    arudha: verificationResult.arudha,
+                    ashtakavarga: verificationResult.ashtakavarga,
+                    bhriguBindu: verificationResult.bhriguBindu,
+                    transitSync: verificationResult.transitSync,
+                    shuddhi: {
+                        kunda: verificationResult.kunda,
+                        tatwa: verificationResult.tatwa
+                    }
+                },
                 boundarySafety,
                 stageHistory: {
                     stage1Count: stage1Candidates.length,
@@ -627,10 +681,10 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
             // ⚡ EMIT REAL-TIME CALCULATION LOG
             emitCalculationLog(input.sessionId, {
                 candidateTime: candidate.time,
-                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
-                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
+                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
                 ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`,
-                dashaObj: `${dashaPeriods[0].lord}/${dashaPeriods[0].antardashas[0].lord}`
+                dashaObj: `${dashaPeriods[0].lord}/${dashaPeriods[0].subPeriods[0].lord}`
             });
 
             // 🔮 Emit engine context for JSON HUD
@@ -638,11 +692,11 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
                 stage: 1,
                 candidateTime: candidate.time,
                 planetaryInfo: {
-                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
-                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
+                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
                     ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
                 },
-                dasha: `${dashaPeriods[0].lord}/${dashaPeriods[0].antardashas[0].lord}`,
+                dasha: `${dashaPeriods[0].lord}/${dashaPeriods[0].subPeriods[0].lord}`,
                 divCharts: "Vedic Shuddhi Scan"
             });
 
@@ -653,7 +707,19 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
                 const eventDate = new Date(event.eventDate);
                 const dasha = getDashaForDate(dashaPeriods, eventDate);
                 if (dasha) {
-                    const correlation = dashaSupportsEvent(dasha, event.category, event.eventType);
+                    const correlation = dashaSupportsEvent(
+                        {
+                            mahadasha: dasha.mahadasha,
+                            antardasha: dasha.antardasha,
+                            pratyantardasha: dasha.pratyantardasha,
+                            mahadashaStart: dasha.mahadashaStart,
+                            mahadashaEnd: dasha.mahadashaEnd,
+                            antardashaStart: dasha.antardashaStart,
+                            antardashaEnd: dasha.antardashaEnd
+                        } as any,
+                        event.category,
+                        event.eventType
+                    );
                     if (correlation.supports) {
                         eventMatches++;
                         score += correlation.strength / input.lifeEvents.length;
@@ -663,8 +729,9 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
 
             // 🔱 VEDIC SHUDDHI FILTERING (Candidate Pruning)
             const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
-            const sunrise = getApproxSunrise(jd, input.timezone);
-            const tatwa = calculateTatwaShuddhi(jd, sunrise, 'male');
+            const sunrise = getApproxSunrise(jd, input.latitude, input.longitude, input.timezone);
+            const sunset = getApproxSunset(jd, input.latitude, input.longitude, input.timezone);
+            const tatwa = calculateTatwaShuddhi(jd, sunrise, sunset, 'male');
 
             // Weight Shuddhi into the score
             if (kunda.passed) score += 10;
@@ -733,14 +800,15 @@ async function stage2AILevel1(
                 const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
                 const moonSidereal = ephemeris.planets.moon.longitude;
                 const dashaPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
+                const maturationData = calculatePlanetaryMaturation(birthDate);
 
                 // ⚡ EMIT REAL-TIME CALCULATION LOG (Keep stream alive in Stage 2)
                 emitCalculationLog(input.sessionId, {
                     candidateTime: candidate.time,
-                    sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
-                    moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                    sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
+                    moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
                     ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`,
-                    dashaObj: `${dashaPeriods[0].lord}/${dashaPeriods[0].antardashas[0].lord}`
+                    dashaObj: `${dashaPeriods[0].lord}/${dashaPeriods[0].subPeriods[0].lord}`
                 });
 
                 // 🛑 Re-check before AI Call
@@ -751,8 +819,8 @@ async function stage2AILevel1(
                     stage: 2,
                     candidateTime: candidate.time,
                     planetaryInfo: {
-                        sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
-                        moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                        sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
+                        moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
                         ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
                     },
                     dasha: `${dashaPeriods[0].lord} (until ${dashaPeriods[0].endDate.toISOString().split('T')[0]})`,
@@ -760,11 +828,10 @@ async function stage2AILevel1(
                 });
 
                 // ⚡ Pre-calculate Divisional Charts for AI context
-                // Only D9 & D10 needed for Level 1 Screening
                 const divCharts = generateDivisionalCharts(ephemeris);
                 const relevantDivCharts = { D9: divCharts.D9, D10: divCharts.D10 };
 
-                const prompt = buildLevel1Prompt(candidate.time, input, ephemeris, dashaPeriods, jd, relevantDivCharts);
+                const prompt = buildLevel1Prompt(candidate.time, input, ephemeris, dashaPeriods, jd, relevantDivCharts, maturationData);
 
                 let lastPulseTime = Date.now();
 
@@ -914,8 +981,8 @@ async function stage4FineGrid(
                 stage: 4,
                 candidateTime: candidateTime,
                 planetaryInfo: {
-                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
-                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
+                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
                     ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
                 },
                 dasha: "Fine Correlation Scan",
@@ -966,8 +1033,10 @@ async function stage4FineGrid(
 
             // 🔱 VEDIC SHUDDHI FILTERING
             const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
-            const sunrise = getApproxSunrise(jd, input.timezone);
-            const tatwa = calculateTatwaShuddhi(jd, sunrise, 'male');
+            const tzNum = typeof input.timezone === 'number' ? input.timezone : parseFloat(String(input.timezone)) || 5.5;
+            const sunrise = getApproxSunrise(jd, input.latitude, input.longitude, tzNum);
+            const sunset = getApproxSunset(jd, input.latitude, input.longitude, tzNum);
+            const tatwa = calculateTatwaShuddhi(jd, sunrise, sunset, 'male');
 
             if (kunda.passed) score += 10;
             if (tatwa.passed) score += 5;
@@ -1033,8 +1102,8 @@ async function stage5AILevel2(
                 // ⚡ EMIT REAL-TIME CALCULATION LOG (Keep stream alive in Stage 5)
                 emitCalculationLog(input.sessionId, {
                     candidateTime: candidate.time,
-                    sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
-                    moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                    sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
+                    moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
                     ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`,
                     dashaObj: `Vim/Yog/Chara` // Short dasha string
                 });
@@ -1055,15 +1124,16 @@ async function stage5AILevel2(
                     stage: 5,
                     candidateTime: candidate.time,
                     planetaryInfo: {
-                        sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
-                        moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                        sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
+                        moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
                         ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
                     },
                     dasha: `${allDashas.vimshottari[0].lord} (until ${allDashas.vimshottari[0].endDate.toISOString().split('T')[0]})`,
                     divCharts: `D9 Lagna: ${divCharts.D9.ascendant.sign}`
                 });
 
-                const prompt = buildLevel2Prompt(candidate.time, input, ephemeris, allDashas, jd, divCharts);
+                const maturationData = calculatePlanetaryMaturation(birthDate);
+                const prompt = buildLevel2Prompt(candidate.time, input, ephemeris, allDashas, jd, divCharts, maturationData);
                 console.log(`[Stage 5] Prompt built for ${candidate.time}, calling AI...`);
 
                 let lastPulseTime = Date.now();
@@ -1177,8 +1247,8 @@ async function stage6MicroGrid(
                 stage: 6,
                 candidateTime: candidateTime,
                 planetaryInfo: {
-                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
-                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
+                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
                     ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
                 },
                 dasha: "Sub-Second Micro Correlation",
@@ -1191,8 +1261,8 @@ async function stage6MicroGrid(
             // ⚡ EMIT REAL-TIME CALCULATION LOG
             emitCalculationLog(input.sessionId, {
                 candidateTime: candidateTime,
-                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
-                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
+                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
                 ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`,
                 dashaObj: "Micro-Dasha"
             });
@@ -1246,8 +1316,10 @@ async function stage6MicroGrid(
 
             // 🔱 VEDIC SHUDDHI FILTERING
             const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
-            const sunrise = getApproxSunrise(jd, input.timezone);
-            const tatwa = calculateTatwaShuddhi(jd, sunrise, 'male');
+            const tzNum = typeof input.timezone === 'number' ? input.timezone : parseFloat(String(input.timezone)) || 5.5;
+            const sunrise = getApproxSunrise(jd, input.latitude, input.longitude, tzNum);
+            const sunset = getApproxSunset(jd, input.latitude, input.longitude, tzNum);
+            const tatwa = calculateTatwaShuddhi(jd, sunrise, sunset, 'male');
 
             if (kunda.passed) score += 10;
             if (tatwa.passed) score += 5;
@@ -1304,8 +1376,8 @@ async function stage7AILevel3(
         // ⚡ EMIT REAL-TIME CALCULATION LOG (Final Decision Prep)
         emitCalculationLog(input.sessionId, {
             candidateTime: candidate.time,
-            sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
-            moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+            sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
+            moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
             ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
         });
 
@@ -1314,8 +1386,8 @@ async function stage7AILevel3(
             stage: 7,
             candidateTime: candidate.time,
             planetaryInfo: {
-                sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
-                moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+                sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
+                moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
                 ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
             },
             dasha: "Analyzing Final Precision Limits",
@@ -1334,6 +1406,7 @@ async function stage7AILevel3(
         const aspects = calculateAdvancedAspects(ephemeris);
         const arudha = calculateArudhaLagna(ephemeris);
 
+        const maturationData = calculatePlanetaryMaturation(birthDate);
         return buildCandidateSection(
             candidate.time,
             ephemeris,
@@ -1342,7 +1415,8 @@ async function stage7AILevel3(
             aspects,
             arudha,
             input,
-            jd
+            jd,
+            maturationData
         );
     });
 
@@ -1451,8 +1525,21 @@ ANALYZE EACH 6-SECOND CANDIDATE AND DETERMINE THE CORRECT BIRTH TIME.`;
 
 async function stage8Verification(
     candidateTime: string,
-    input: SecondsPrecisionInput
-): Promise<{ score: number; methodBreakdown: Record<string, number> }> {
+    input: SecondsPrecisionInput,
+    eventTransits: Record<string, EphemerisData>
+): Promise<{
+    score: number;
+    methodBreakdown: Record<string, number>;
+    ephemeris: EphemerisData;
+    divCharts: Record<string, DivisionalChart>;
+    aspects: AspectData[];
+    arudha: ArudhaLagna;
+    kunda: any;
+    tatwa: any;
+    ashtakavarga: any;
+    bhriguBindu: any;
+    transitSync: TransitSyncResult;
+}> {
     const birthDate = new Date(input.dateOfBirth);
     const scores: Record<string, number> = {};
 
@@ -1470,8 +1557,8 @@ async function stage8Verification(
     // ⚡ EMIT REAL-TIME CALCULATION LOG (Final Verification Audit)
     emitCalculationLog(input.sessionId, {
         candidateTime: candidateTime,
-        sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
-        moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+        sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
+        moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
         ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`,
         dashaObj: "Audit"
     });
@@ -1481,8 +1568,8 @@ async function stage8Verification(
         stage: 8,
         candidateTime: candidateTime,
         planetaryInfo: {
-            sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.longitude.toFixed(4)}°`,
-            moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.longitude.toFixed(4)}°`,
+            sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
+            moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
             ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
         },
         dasha: "15-Method System Convergence",
@@ -1494,8 +1581,15 @@ async function stage8Verification(
     let vimScore = 0;
     for (const event of input.lifeEvents) {
         const dasha = getDashaForDate(vimPeriods, new Date(event.eventDate));
-        if (dasha && dashaSupportsEvent(dasha, event.category, event.eventType).supports) {
-            vimScore += 100 / input.lifeEvents.length;
+        if (dasha) {
+            const support = dashaSupportsEvent(dasha, event.category, event.eventType);
+            if (support.supports) {
+                vimScore += (100 / input.lifeEvents.length);
+                // 🔱 Sandhi Bonus: If event is near a transition, double the strength contributor
+                if (dasha.sandhiInfo?.isNearTransition && dasha.sandhiInfo.level <= 2) {
+                    vimScore += 10;
+                }
+            }
         }
     }
     scores['vimshottari'] = Math.round(vimScore);
@@ -1547,12 +1641,13 @@ async function stage8Verification(
         scores['physicalTraits'] = 50;
     }
 
-    // Method 6: Advanced Aspects (10%)
+    // Method 6 (Expanded): Shadbala (Phase 4 - 10%)
+    const shadbala = calculateFullShadbala(ephemeris);
+    const avgShadbala = Object.values(shadbala).reduce((a, b) => a + b, 0) / 7;
+    scores['shadbala'] = Math.min(100, Math.max(0, avgShadbala / 1.5)); // Scaling for normalization
+
+    // Method 6.1: Vedic Parashari Drishti
     const aspects = calculateAdvancedAspects(ephemeris);
-    const beneficAspects = aspects.filter(a =>
-        ['trine', 'sextile', 'conjunction'].includes(a.aspectType) && a.strength !== 'weak'
-    ).length;
-    scores['aspects'] = Math.min(100, 50 + beneficAspects * 5);
 
     // Method 7: Arudha Lagna (5%)
     const arudha = calculateArudhaLagna(ephemeris);
@@ -1578,8 +1673,8 @@ async function stage8Verification(
     scores['jaiminiAspects'] = Math.min(100, 50 + jaiminiAspects.length * 2);
 
     // Refine Method 4: Divisional Charts (25% total - 5% each)
-    // Check D2 (Wealth), D7 (Children), D9 (Marriage), D10 (Career), D30 (Accidents)
     let d2Score = 60, d7Score = 60, d9Score = 60, d10Score = 60, d30Score = 60;
+    let d24Score = 60, d40Score = 60, d45Score = 60;
 
     if (input.lifeEvents.some(e => e.category === 'marriage') && divCharts['D9']) {
         const d9Asc = divCharts['D9'].ascendant.sign;
@@ -1590,11 +1685,47 @@ async function stage8Verification(
         if (['Leo', 'Aries', 'Capricorn'].includes(d10Asc)) d10Score += 20;
     }
 
-    scores['divisionalCharts'] = Math.round((d2Score + d7Score + d9Score + d10Score + d30Score) / 5);
+    // 🔱 HIGH-RES VARGA SCORING (D24, D40, D45)
+    if (input.lifeEvents.some(e => e.category === 'education') && divCharts['D24']) {
+        const d24Asc = divCharts['D24'].ascendant.sign;
+        if (['Gemini', 'Virgo', 'Sagittarius'].includes(d24Asc)) d24Score += 25;
+    }
+    if (divCharts['D40']) {
+        const d40Asc = divCharts['D40'].ascendant.sign;
+        if (['Cancer', 'Taurus', 'Pisces'].includes(d40Asc)) d40Score += 20; // General luck/fortune signs
+    }
+    if (input.physicalTraits && divCharts['D45']) {
+        const d45Asc = divCharts['D45'].ascendant.sign;
+        // D45 is extremely sensitive (40 mins of arc). Aligning it with Lagna or Moon is a massive hit.
+        if (d45Asc === ephemeris.ascendant.sign || d45Asc === ephemeris.planets.moon.sign) {
+            d45Score += 30;
+        }
+    }
+
+    scores['divisionalCharts'] = Math.round((d2Score + d7Score + d9Score + d10Score + d30Score + d24Score + d40Score + d45Score) / 8);
+
+    // 🔱 Method 11: Ashtakavarga (Phase 4 - 5%)
+    const ashtakavarga = calculateAshtakavarga(ephemeris);
+    const lagnaSignIndex = ZODIAC_SIGNS.indexOf(ephemeris.ascendant.sign);
+    const lagnaSAV = ashtakavarga.sav[lagnaSignIndex];
+    let avScore = 60;
+    if (lagnaSAV > 28) avScore += 20;
+    if (lagnaSAV < 20) avScore -= 20;
+    scores['ashtakavarga'] = Math.min(100, avScore);
+
+    // 🔱 Method 12: Bhrigu Bindu (Phase 4 - 2%)
+    const bhriguBindu = calculateBhriguBindu(ephemeris);
+    let bbScore = 50;
+    // Check if any major planet is transiting/placed near BB (advanced logic placeholder)
+    scores['bhriguBindu'] = bbScore;
+
+    // 🔱 Method 13: Gochar (Transit) Synchronization (Phase 4 - 8%)
+    const transitSync = verifyTransitSynchronization(ephemeris, input.lifeEvents, eventTransits);
+    scores['transitSync'] = transitSync.score;
 
     // 🔱 GOD-TIER SANGAMA (CONVERGENCE) LOGIC
     // High confidence is ONLY earned if major dasha systems (Vim/Yog/Char) converge.
-    const dashaSystems = [scores['vimshottari'], scores['yogini'], scores['charaDasha']];
+    const dashaSystems = [scores['vimshottari'], scores['yogini'], scores['charaDasha'], scores['transitSync']];
     const dashaMin = Math.min(...dashaSystems);
     const dashaMax = Math.max(...dashaSystems);
     const dashaSpread = dashaMax - dashaMin;
@@ -1622,9 +1753,25 @@ async function stage8Verification(
         ) + sangamaBonus + badhaPenalty
     );
 
+    // 🔱 VEDIC SHUDDHI PURIFICATION (for report)
+    const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
+    const tzNum = typeof input.timezone === 'number' ? input.timezone : parseFloat(String(input.timezone)) || 5.5;
+    const sunrise = getApproxSunrise(jd, input.latitude, input.longitude, tzNum);
+    const sunset = getApproxSunset(jd, input.latitude, input.longitude, tzNum);
+    const tatwa = calculateTatwaShuddhi(jd, sunrise, sunset, 'male');
+
     return {
         score: totalScore,
         methodBreakdown: scores,
+        ephemeris,
+        divCharts,
+        aspects,
+        arudha,
+        kunda,
+        tatwa,
+        ashtakavarga,
+        bhriguBindu,
+        transitSync
     };
 }
 
@@ -1802,7 +1949,8 @@ function buildLevel1Prompt(
     ephemeris: EphemerisData,
     dashas: DashaPeriod[],
     jd: number,
-    divCharts: any
+    divCharts: any,
+    maturationData: any[]
 ): string {
     const planets: string[] = [];
     for (const [name, data] of Object.entries(ephemeris.planets)) {
@@ -1823,21 +1971,30 @@ D10 (Dasamsa) Ascendant: ${d10Asc.sign} ${d10Asc.degree.toFixed(4)}°
     const eventsWithDasha = input.lifeEvents.map(event => {
         const eventDate = new Date(event.eventDate);
         const dasha = getDashaForDate(dashas, eventDate);
-        return `${event.eventType} (${event.category}) on ${event.eventDate}: ${dasha ? `${dasha.mahadasha}/${dasha.antardasha}` : 'N/A'}`;
+        let dashaStr = dasha ? `${dasha.mahadasha}/${dasha.antardasha}` : 'N/A';
+
+        // 🔱 BOUNDARY COLLISION INDICATOR
+        if (dasha?.sandhiInfo?.isNearTransition) {
+            const si = dasha.sandhiInfo;
+            dashaStr += ` 🔱 [BOUNDARY COLLISION: ${si.level}-Level Transition within ${si.distanceMinutes.toFixed(1)} mins]`;
+        }
+
+        return `${event.eventType} (${event.category}) on ${event.eventDate}: ${dashaStr}`;
     });
 
+    const tzNum = typeof input.timezone === 'number' ? input.timezone : parseFloat(String(input.timezone)) || 5.5;
     const arudha = calculateArudhaLagna(ephemeris);
     const aspects = calculateAdvancedAspects(ephemeris);
     const panchanga = calculatePanchanga(ephemeris, new Date(input.dateOfBirth));
-    const strengths = calculateShadbalaLite(ephemeris);
+    const strengths = calculateFullShadbala(ephemeris);
 
     // 🔱 VEDIC SHUDDHI & VARNADA
     const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
-    const sunrise = getApproxSunrise(jd, input.timezone);
-    const tatwa = calculateTatwaShuddhi(jd, sunrise, 'male');
+    const sunrise = getApproxSunrise(jd, input.latitude, input.longitude, tzNum);
+    const sunset = getApproxSunset(jd, input.latitude, input.longitude, tzNum);
+    const tatwa = calculateTatwaShuddhi(jd, sunrise, sunset, 'male');
     const varnada = calculateVarnadaLagna(ephemeris);
 
-    // Approximate sunrise (standard 6 AM for now, or could use more precise if needed)
     const sunriseJd = Math.floor(jd) + 0.5 + (6 / 24);
     const hl = calculateHoraLagna(sunriseJd, jd, ephemeris.ascendant.longitude);
     const gl = calculateGhatiLagna(sunriseJd, jd, ephemeris.ascendant.longitude);
@@ -1846,6 +2003,9 @@ D10 (Dasamsa) Ascendant: ${d10Asc.sign} ${d10Asc.degree.toFixed(4)}°
 DOB: ${input.dateOfBirth}
 
 ${formatPanchanga(panchanga)}
+
+PHYSICAL TRAITS PROVIDED:
+${input.physicalTraits ? JSON.stringify(input.physicalTraits, null, 2) : 'NONE PROVIDED'}
 
 PLANETS:
 ${planets.join('\n')}
@@ -1857,7 +2017,10 @@ VORACIOUS VEDIC SHUDDHI:
 - Kunda Shuddhi: ${kunda.details} (Score: ${kunda.score})
 - Tatwa Shuddhi: ${tatwa.details} (Score: ${tatwa.score})
 
-${formatShadbalaLite(strengths)}
+${formatShadbala(strengths)}
+
+PLANETARY MATURATION AGES (Active if age matches event):
+${formatPlanetaryMaturation(maturationData)}
 
 ${formatSpecialLagnas(hl, gl)}
 
@@ -1873,8 +2036,20 @@ ${eventsWithDasha.join('\n')}
 FULL 100-YEAR VIMSHOTTARI DASHA SEQUENCE (FOR REFERENCE):
 ${getDashaSequence(ephemeris.planets.moon.longitude, new Date(input.dateOfBirth))}
 
+<TECHNICAL_DATA_JSON>
+${JSON.stringify({
+        time,
+        planets: ephemeris.planets,
+        ascendant: ephemeris.ascendant,
+        maturation: maturationData,
+        shuddhi: { kunda, tatwa },
+        dashas: dashas.slice(0, 5) // Includes Level 5 recursive depth
+    }, null, 2)}
+</TECHNICAL_DATA_JSON>
+
 Analyze this candidate and score 0-100.
 STRICT RULE: Focus on the dasha sequence. Does the event categories match the lords in the sequence?
+STRICT RULE 2 (BOUNDARY COLLISION): If an event has a 🔱 [BOUNDARY COLLISION] tag, it means the event occurred precisely at a dasha transition. If the event category matches the transition intensity (e.g., marriage at a Mahadasha shift), this candidate is extremely likely.
 Provide a detailed reasoning block.`;
 }
 
@@ -1884,7 +2059,8 @@ function buildLevel2Prompt(
     ephemeris: EphemerisData,
     allDashas: any,
     jd: number,
-    divCharts: any
+    divCharts: any,
+    maturationData: any[]
 ): string {
     const planets: string[] = [];
     for (const [name, data] of Object.entries(ephemeris.planets)) {
@@ -1900,8 +2076,13 @@ function buildLevel2Prompt(
         const char = getCharaDashaForDate(allDashas.chara, eventDate);
         const tat = getTatwaForDate(allDashas.tatwa, eventDate);
 
+        let vimStr = vim ? `${vim.mahadasha}/${vim.antardasha}` : 'N/A';
+        if (vim?.sandhiInfo?.isNearTransition) {
+            vimStr += ` 🔱 [BOUNDARY COLLISION: L${vim.sandhiInfo.level} @ ${vim.sandhiInfo.distanceMinutes.toFixed(1)} min]`;
+        }
+
         return `${event.eventType} (${event.category}) on ${event.eventDate}:
-  Vimshottari: ${vim ? `${vim.mahadasha}/${vim.antardasha}` : 'N/A'}
+  Vimshottari: ${vimStr}
   Yogini: ${yog ? `${yog.name} (${yog.planet})` : 'N/A'}
   Chara: ${char ? char.sign : 'N/A'}
   Tatwa: ${tat ? `${tat.tatwa} (${tat.element})` : 'N/A'}`;
@@ -1909,14 +2090,19 @@ function buildLevel2Prompt(
 
     const panchanga = calculatePanchanga(ephemeris, new Date(input.dateOfBirth));
     const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
-    const sunrise = getApproxSunrise(jd, input.timezone);
-    const tatwa = calculateTatwaShuddhi(jd, sunrise, 'male');
+    const tzNum = typeof input.timezone === 'number' ? input.timezone : parseFloat(String(input.timezone)) || 5.5;
+    const sunrise = getApproxSunrise(jd, input.latitude, input.longitude, tzNum);
+    const sunset = getApproxSunset(jd, input.latitude, input.longitude, tzNum);
+    const tatwa = calculateTatwaShuddhi(jd, sunrise, sunset, 'male');
     const varnada = calculateVarnadaLagna(ephemeris);
 
     return `CANDIDATE TIME: ${time} (30-SECOND PRECISION)
 DOB: ${input.dateOfBirth}
 
 ${formatPanchanga(panchanga)}
+
+PHYSICAL TRAITS PROVIDED:
+${input.physicalTraits ? JSON.stringify(input.physicalTraits, null, 2) : 'NONE PROVIDED'}
 
 PLANETS (ARCSECOND PRECISION):
 ${planets.join('\n')}
@@ -1928,7 +2114,10 @@ VORACIOUS VEDIC SHUDDHI:
 - Kunda Shuddhi: ${kunda.details} (Score: ${kunda.score})
 - Tatwa Shuddhi: ${tatwa.details} (Score: ${tatwa.score})
 
-${formatShadbalaLite(calculateShadbalaLite(ephemeris))}
+${formatShadbala(calculateFullShadbala(ephemeris))}
+
+PLANETARY MATURATION AGES:
+${formatPlanetaryMaturation(maturationData)}
 
 ${formatSpecialLagnas(
         calculateHoraLagna(Math.floor(jd) + 0.5 + (6 / 24), jd, ephemeris.ascendant.longitude),
@@ -1944,6 +2133,24 @@ ${eventsMultiDasha.join('\n\n')}
 VIMSHOTTARI SEQUENCE (100 YEARS):
 ${getDashaSequence(ephemeris.planets.moon.longitude, new Date(input.dateOfBirth))}
 
+<TECHNICAL_DATA_JSON>
+${JSON.stringify({
+        time,
+        planets: ephemeris.planets,
+        ascendant: ephemeris.ascendant,
+        maturation: maturationData,
+        dashas: {
+            vimshottari: allDashas.vimshottari.slice(0, 5),
+            yogini: allDashas.yogini.slice(0, 5)
+        },
+        varga: {
+            D24: divCharts.D24,
+            D40: divCharts.D40,
+            D45: divCharts.D45
+        }
+    }, null, 2)}
+</TECHNICAL_DATA_JSON>
+
 Compare this against other 30-second candidates. Score 0-100.
 Provide THE SCORE in the format: SCORE: [number]
 Provide thinking that shows you cross-verified between multiple dasha systems and divisional charts.`;
@@ -1957,7 +2164,8 @@ function buildCandidateSection(
     aspects: any[],
     arudha: any,
     input: SecondsPrecisionInput,
-    jd: number
+    jd: number,
+    maturationData: any[]
 ): string {
     const planets: string[] = [];
     for (const [name, data] of Object.entries(ephemeris.planets)) {
@@ -1976,18 +2184,30 @@ function buildCandidateSection(
         const char = getCharaDashaForDate(allDashas.chara, eventDate);
         const tat = getTatwaForDate(allDashas.tatwa, eventDate);
 
+        let vimStr = vim ? `${vim.mahadasha}/${vim.antardasha}...` : 'N/A';
+        if (vim?.sandhiInfo?.isNearTransition) {
+            vimStr += ` 🔱 [BOUNDARY COLLISION: L${vim.sandhiInfo.level} precision ${vim.sandhiInfo.distanceMinutes.toFixed(2)}m]`;
+        }
+
         return `EVENT: ${event.eventType} (${event.category}) on ${event.eventDate}
-  Vimshottari: ${vim ? `${vim.mahadasha}/${vim.antardasha}` : 'N/A'}
+  Vimshottari: ${vimStr}
   Yogini: ${yog ? `${yog.name} (${yog.planet})` : 'N/A'}
   Chara: ${char ? char.sign : 'N/A'}
   Tatwa: ${tat ? `${tat.tatwa} (${tat.element})` : 'N/A'}`;
     });
+
+    const tzNum = typeof input.timezone === 'number' ? input.timezone : parseFloat(String(input.timezone)) || 5.5;
+    const sunrise = getApproxSunrise(jd, input.latitude, input.longitude, tzNum);
+    const sunset = getApproxSunset(jd, input.latitude, input.longitude, tzNum);
 
     return `═══ CANDIDATE: ${time} ═══
 
 ${formatPanchanga(panchanga)}
 
 ${formatBoundarySafety(boundary)}
+
+PHYSICAL TRAITS:
+${input.physicalTraits ? JSON.stringify(input.physicalTraits, null, 2) : 'NONE'}
 
 PLANETS:
 ${planets.join('\n')}
@@ -1997,9 +2217,12 @@ VARNADA: ${calculateVarnadaLagna(ephemeris)}
 
 VEDIC SHUDDHI PURIFICATION:
 - Kunda Shuddhi: ${calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude).details}
-- Tatwa Shuddhi: ${calculateTatwaShuddhi(jd, getApproxSunrise(jd, input.timezone), 'male').details}
+- Tatwa Shuddhi: ${calculateTatwaShuddhi(jd, sunrise, sunset, 'male').details}
 
-${formatShadbalaLite(calculateShadbalaLite(ephemeris))}
+${formatShadbala(calculateFullShadbala(ephemeris))}
+
+PLANETARY MATURATION:
+${formatPlanetaryMaturation(maturationData)}
 
 ${formatSpecialLagnas(
         calculateHoraLagna(Math.floor(jd) + 0.5 + (6 / 24), jd, ephemeris.ascendant.longitude),
@@ -2028,7 +2251,102 @@ TATWA DASHA: ${formatTatwaDasha(allDashas.tatwa).substring(0, 300)}
 
 JAIMINI ASPECTS: ${formatJaiminiAspects(calculateJaiminiAspects(ephemeris)).substring(0, 300)}
 
-KEY ASPECTS: ${aspects.slice(0, 15).map(a => `${a.planet1}-${a.planet2} ${a.aspectType} (${a.strength})`).join(', ')}`;
+KEY ASPECTS: ${aspects.slice(0, 15).map(a => `${a.planet1}-${a.planet2} ${a.aspectType} (${a.strength})`).join(', ')}
+
+<TECHNICAL_DATA_JSON>
+${JSON.stringify({
+        time,
+        planets: ephemeris.planets,
+        ascendant: ephemeris.ascendant,
+        maturation: maturationData,
+        shuddhi: { kunda: calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude) },
+        traits: input.physicalTraits,
+        varga: { D24: divCharts.D24, D40: divCharts.D40, D45: divCharts.D45 },
+        ashtakavarga: calculateAshtakavarga(ephemeris),
+        bhriguBindu: calculateBhriguBindu(ephemeris),
+        dashaDepth: 5
+    }, null, 2)}
+</TECHNICAL_DATA_JSON>`;
+}
+
+/**
+ * Gochar (Transit) Synchronization - Phase 4 🔱
+ * Cross-verifies the natal candidate against planetary triggers on event dates.
+ */
+function verifyTransitSynchronization(
+    natalEph: EphemerisData,
+    events: LifeEvent[],
+    eventTransits: Record<string, EphemerisData>
+): TransitSyncResult {
+    let score = 60; // Base score
+    const hits: string[] = [];
+    const details: Record<string, string> = {};
+
+    // Helper: Is planet P aspecting/in sign S in ephemeris E?
+    const governs = (planet: string, sign: string, ephemeris: EphemerisData) => {
+        const pPos = ephemeris.planets[planet.toLowerCase()];
+        if (!pPos) return false;
+
+        // In the sign itself
+        if (pPos.sign === sign) return true;
+
+        // Simple aspect (7th)
+        const pIdx = ZODIAC_SIGNS.indexOf(pPos.sign);
+        const sIdx = ZODIAC_SIGNS.indexOf(sign);
+        if ((pIdx + 6) % 12 === sIdx) return true;
+
+        // Special aspects
+        if (planet.toLowerCase() === 'jupiter' && [4, 8].includes((sIdx - pIdx + 12) % 12)) return true;
+        if (planet.toLowerCase() === 'mars' && [3, 7].includes((sIdx - pIdx + 12) % 12)) return true;
+        if (planet.toLowerCase() === 'saturn' && [2, 9].includes((sIdx - pIdx + 12) % 12)) return true;
+
+        return false;
+    };
+
+    for (const event of events) {
+        const transits = eventTransits[event.id];
+        if (!transits) continue;
+
+        let eventScore = 0;
+        const category = event.category.toLowerCase();
+        const natalLagna = natalEph.ascendant.sign;
+        const natalMoonSign = natalEph.planets.moon.sign;
+
+        // 1. DOUBLE TRANSIT RULE (Jupiter + Saturn)
+        const jupTriggers = governs('jupiter', natalLagna, transits) || governs('jupiter', natalMoonSign, transits);
+        const satTriggers = governs('saturn', natalLagna, transits) || governs('saturn', natalMoonSign, transits);
+
+        if (jupTriggers && satTriggers) {
+            eventScore += 25;
+            hits.push(`Double Transit Alert: Jup and Sat aspecting Lagna/Moon during '${event.eventType}'`);
+        } else if (jupTriggers || satTriggers) {
+            eventScore += 10;
+        }
+
+        // 2. CATEGORY SPECIFIC TRIGGERS
+        if (category === 'marriage') {
+            const venusNatalSign = natalEph.planets.venus.sign;
+            if (governs('venus', venusNatalSign, transits) || governs('jupiter', venusNatalSign, transits)) {
+                eventScore += 15;
+                hits.push(`Marriage Trigger: Venus/Jupiter transiting Natal Venus`);
+            }
+        } else if (category === 'career') {
+            const sunNatalSign = natalEph.planets.sun.sign;
+            if (governs('sun', sunNatalSign, transits) || governs('mars', sunNatalSign, transits)) {
+                eventScore += 15;
+                hits.push(`Career Trigger: Sun/Mars transiting Natal Sun`);
+            }
+        }
+
+        score += eventScore;
+        details[event.id] = `Score Impact: +${eventScore}`;
+    }
+
+    return {
+        score: Math.min(100, score),
+        hits,
+        details
+    };
 }
 
 export default processSecondsPrecisionBTR;

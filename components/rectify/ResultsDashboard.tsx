@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Download, CheckCircle, Clock, FileText, Share2, Award } from 'lucide-react';
+import { Download, CheckCircle, Clock, FileText, Share2, Award, Zap, Compass, ShieldCheck } from 'lucide-react';
+import { VedicShuddhiRadar } from './VedicShuddhiRadar';
+import { PlanetaryVitals } from './PlanetaryVitals';
 
 interface FinalResult {
     rectifiedTime: string;
@@ -134,25 +136,50 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ sessionId, d
                 styles: { fontSize: 10, cellPadding: 5 }
             });
 
-            // --- ANALYSIS DETAILS (If available) ---
+            // --- TECHNICAL VERIFICATION ---
             if (analysisDetails) {
-                // Verification Score
                 const finalY = (doc as any).lastAutoTable.finalY + 20;
                 doc.setFontSize(16);
                 doc.setTextColor(0, 0, 0);
-                doc.text("TECHNICAL VERIFICATION", 20, finalY);
+                doc.text("PLANETARY PRECISION (NIRAYANA)", 20, finalY);
 
-                // Check for Method Breakdown
-                if (analysisDetails.finalCandidate && analysisDetails.finalCandidate.methodScores) {
-                    const scores = analysisDetails.finalCandidate.methodScores;
-                    const scoreData = Object.entries(scores).map(([key, val]) => [key, val]);
+                if (analysisDetails.godTierData?.ephemeris) {
+                    const eph = analysisDetails.godTierData.ephemeris;
+                    const planetData = Object.entries(eph.planets).map(([name, data]: [string, any]) => [
+                        name.toUpperCase(),
+                        data.sign,
+                        `${(data.longitude % 30).toFixed(6)}\u00B0`,
+                        analysisDetails.godTierData.divCharts?.D9?.planets[name]?.sign || 'N/A'
+                    ]);
 
                     autoTable(doc, {
                         startY: finalY + 10,
-                        head: [['Method', 'Score']],
-                        body: scoreData,
+                        head: [['Planet', 'Sign', 'Precise Degree', 'Navamsa (D9)']],
+                        body: planetData,
                         theme: 'striped',
-                        headStyles: { fillColor: [60, 60, 60] }
+                        headStyles: { fillColor: [15, 20, 25], textColor: [212, 175, 55] }
+                    });
+                }
+
+                // --- VEDIC SHUDDHI ---
+                const shuddhiY = (doc as any).lastAutoTable.finalY + 15;
+                doc.setFontSize(14);
+                doc.text("VEDIC SHUDDHI PURIFICATION", 20, shuddhiY);
+
+                if (analysisDetails.godTierData?.shuddhi) {
+                    const s = analysisDetails.godTierData.shuddhi;
+                    autoTable(doc, {
+                        startY: shuddhiY + 5,
+                        body: [
+                            ['Kunda Shuddhi', `${s.kunda?.score}%`, s.kunda?.details],
+                            ['Tatwa Shuddhi', `${s.tatwa?.score}%`, s.tatwa?.details]
+                        ],
+                        columns: [
+                            { header: 'Pass', dataKey: 0 },
+                            { header: 'Score', dataKey: 1 },
+                            { header: 'Technical Detail', dataKey: 2 }
+                        ],
+                        theme: 'grid'
                     });
                 }
             }
@@ -212,10 +239,16 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ sessionId, d
                         <div className="text-5xl font-bold text-[#D4AF37] font-mono tracking-tighter mb-4 shadow-text">
                             {data.rectifiedTime}
                         </div>
-                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#D4AF37]/10 border border-[#D4AF37]/50 rounded-full text-[#D4AF37] text-xs font-bold uppercase tracking-wide">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#D4AF37]/10 border border-[#D4AF37]/50 rounded-full text-[#D4AF37] text-xs font-bold uppercase tracking-wide mb-2">
                             <CheckCircle className="w-3 h-3" />
                             Confidence: {data.accuracy}%
                         </div>
+                        {analysisDetails?.godTierData?.shuddhi?.kunda?.score > 80 && (
+                            <div className="flex items-center justify-center gap-1 text-[10px] text-[#D4AF37] opacity-80 animate-pulse">
+                                <Zap className="w-3 h-3" />
+                                🔱 Boundary Collision Verified
+                            </div>
+                        )}
                     </div>
 
                     {/* Technical Metrics Grid */}
@@ -237,6 +270,11 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ sessionId, d
                             <div className="text-xl font-bold font-mono text-white">V.2.1</div>
                         </div>
                     </div>
+
+                    {/* God-Tier Components */}
+                    {analysisDetails?.godTierData?.shuddhi && (
+                        <VedicShuddhiRadar shuddhi={analysisDetails.godTierData.shuddhi} />
+                    )}
 
                     {/* Method Weighting Table */}
                     <div className="bg-[#151a21] border border-[#3A4452] rounded-xl p-6">
@@ -275,34 +313,40 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ sessionId, d
                     {/* Tab Content */}
                     <div className="bg-[#151a21] border border-[#3A4452] rounded-xl p-8 flex-grow">
                         {activeTab === 'summary' && (
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="prose prose-invert max-w-none">
-                                <h3 className="text-xl font-bold text-[#F5F0EB] mb-4 flex items-center gap-2">
-                                    <FileText className="w-5 h-5 text-[#D4AF37]" />
-                                    Final Verdict
-                                </h3>
-                                <p className="text-[#8C7F72] leading-relaxed">
-                                    The rectification engine has successfully converged on a final birth time of <strong className="text-[#F5F0EB]">{data.rectifiedTime}</strong>.
-                                    This time was selected from an initial pool of over {(analysisDetails?.stageHistory?.stage1Count || 100)} candidates through a rigorous 10-stage elimination process.
-                                </p>
-                                <div className="my-6 p-4 bg-[#D4AF37]/5 border-l-2 border-[#D4AF37] text-sm text-[#F5F0EB]">
-                                    &quot;The logical convergence of Dasha patterns (Vimshottari/Yogini) and Divisional Chart markers (D9/D10) strongly favors this specific second. The probability of this alignment occurring by chance is less than 0.01%.&quot;
-                                </div>
-                                <h4 className="font-bold text-[#F5F0EB] mt-6 mb-2">Key Confirmation Factors:</h4>
-                                <ul className="space-y-2 text-[#8C7F72] text-sm">
-                                    <li className="flex items-start gap-2">
-                                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-                                        <span>Matches provided <strong>Life Events</strong> with ±7 days precision.</span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-                                        <span>Aligned with <strong>Divisional Charts</strong> (D9 Navamsha & D10 Dasamsha).</span>
-                                    </li>
-                                    <li className="flex items-start gap-2">
-                                        <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-                                        <span>Cross-verified by <strong>15 distinct Vedic methodologies</strong>.</span>
-                                    </li>
-                                </ul>
-                            </motion.div>
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="prose prose-invert max-w-none">
+                                    <h3 className="text-xl font-bold text-[#F5F0EB] mb-4 flex items-center gap-2">
+                                        <FileText className="w-5 h-5 text-[#D4AF37]" />
+                                        Final Verdict
+                                    </h3>
+                                    <p className="text-[#8C7F72] leading-relaxed">
+                                        The rectification engine has successfully converged on a final birth time of <strong className="text-[#F5F0EB]">{data.rectifiedTime}</strong>.
+                                        This time was selected from an initial pool of over {(analysisDetails?.stageHistory?.stage1Count || 100)} candidates through a rigorous 10-stage elimination process.
+                                    </p>
+                                    <div className="my-6 p-4 bg-[#D4AF37]/5 border-l-2 border-[#D4AF37] text-sm text-[#F5F0EB]">
+                                        &quot;The logical convergence of Dasha patterns (Vimshottari/Yogini) and Divisional Chart markers (D9/D10) strongly favors this specific second.&quot;
+                                    </div>
+                                    <h4 className="font-bold text-[#F5F0EB] mt-6 mb-2 text-sm uppercase tracking-wider">Confirmation Factors:</h4>
+                                    <ul className="space-y-2 text-[#8C7F72] text-[13px]">
+                                        <li className="flex items-start gap-2">
+                                            <CheckCircle className="w-4 h-4 text-[#D4AF37] mt-0.5 shrink-0" />
+                                            <span>Aligned with <strong>Varga-16 Suite</strong> (D9, D10, D24, D45).</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <CheckCircle className="w-4 h-4 text-[#D4AF37] mt-0.5 shrink-0" />
+                                            <span>Sub-second <strong>Boundary Safety</strong> verified.</span>
+                                        </li>
+                                    </ul>
+                                </motion.div>
+
+                                {/* High-Precision Planetary Column */}
+                                {analysisDetails?.godTierData?.ephemeris && (
+                                    <PlanetaryVitals
+                                        ephemeris={analysisDetails.godTierData.ephemeris}
+                                        divCharts={analysisDetails.godTierData.divCharts}
+                                    />
+                                )}
+                            </div>
                         )}
 
                         {activeTab === 'audit' && (

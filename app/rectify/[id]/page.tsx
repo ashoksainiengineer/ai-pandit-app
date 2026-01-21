@@ -439,14 +439,46 @@ export default function ProgressPage() {
 
     if (error) {
         return (
-            <main className="min-h-screen bg-[#0F1419] flex items-center justify-center">
-                <div className="text-center max-w-md px-6">
-                    <div className="text-6xl mb-4">❌</div>
-                    <h1 className="text-2xl font-bold text-[#F5F0EB] mb-2">Something went wrong</h1>
-                    <p className="text-[#C4B8AD] mb-6">{error}</p>
-                    <Link href="/rectify" className="inline-block px-6 py-3 bg-[#D4AF37] text-[#0F1419] rounded-lg font-bold hover:opacity-90 transition-opacity">
-                        Start New Analysis
-                    </Link>
+            <main className="min-h-screen bg-[#0F1419] flex items-center justify-center p-6">
+                <div className="glass-card max-w-lg w-full p-8 border-red-500/30 text-center relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-orange-500" />
+                    <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Info className="w-10 h-10 text-red-400" />
+                    </div>
+                    <h1 className="text-2xl font-black text-[#F5F0EB] mb-4 uppercase tracking-tight">System Interruption</h1>
+                    <p className="text-[#C4B8AD] mb-8 leading-relaxed">
+                        {error.includes('expired')
+                            ? "Your analysis session has expired or was removed from the queue. This usually happens if the connection is lost for a long duration."
+                            : `The analysis engine encountered a synchronization issue: ${error}`}
+                    </p>
+
+                    <div className="space-y-4">
+                        <button
+                            onClick={() => window.location.reload()}
+                            className="w-full py-4 bg-[#D4AF37] text-[#0F1419] rounded-xl font-black uppercase tracking-widest text-sm hover:opacity-90 transition-all shadow-[0_10px_20px_rgba(212,175,55,0.2)]"
+                        >
+                            ↻ Attempt Re-Sync
+                        </button>
+                        <Link
+                            href="/rectify"
+                            className="block w-full py-4 border border-white/10 text-[#8C7F72] rounded-xl font-black uppercase tracking-widest text-sm hover:text-[#F5F0EB] transition-all"
+                        >
+                            Return to Dashboard
+                        </Link>
+                    </div>
+
+                    {/* Technical Diagnostic Toggle */}
+                    <details className="mt-8 text-left">
+                        <summary className="text-[10px] text-[#8C7F72] cursor-pointer hover:text-[#C4B8AD] uppercase tracking-[0.2em] font-bold">
+                            View Diagnostic Trace
+                        </summary>
+                        <div className="mt-4 p-4 bg-black/40 rounded-lg font-mono text-[10px] text-[#8C7F72] break-all border border-white/5">
+                            <div>SESSION_ID: {sessionId}</div>
+                            <div>READY_STATE: {readyState}</div>
+                            <div>LAST_ERR: {lastError || 'N/A'}</div>
+                            <div>ENV: {process.env.NODE_ENV}</div>
+                        </div>
+                    </details>
                 </div>
             </main>
         );
