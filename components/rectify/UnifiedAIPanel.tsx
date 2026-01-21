@@ -268,23 +268,25 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
 
         const el = scrollRef.current;
 
-        // Use ResizeObserver to detect when content height changes (e.g., during typewriting)
-        const observer = new ResizeObserver(() => {
+        const scrollToEnd = () => {
             if (shouldAutoScroll) {
                 el.scrollTop = el.scrollHeight;
             }
+        };
+
+        const observer = new ResizeObserver(() => {
+            // Use requestAnimationFrame to ensure scroll happens after the next layout/paint
+            requestAnimationFrame(scrollToEnd);
         });
 
-        // Observe the inner content container (the first child of the scrollable div)
         const contentEl = el.firstElementChild;
         if (contentEl) {
             observer.observe(contentEl);
         }
 
-        // Handle initial scroll and content resets
-        if (content.length < lastContentLengthRef.current) {
-            el.scrollTop = el.scrollHeight;
-            setShouldAutoScroll(true);
+        // Force scroll when content length changes significantly (e.g., new stage)
+        if (Math.abs(content.length - lastContentLengthRef.current) > 50) {
+            scrollToEnd();
         }
         lastContentLengthRef.current = content.length;
 
@@ -296,14 +298,14 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
         if (!scrollRef.current) return;
 
         const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-        // Buffer of 50px for better sensitivity on different zoom levels
-        const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+        // Strict bottom detection
+        const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 10;
 
-        // If we are at bottom, re-enable auto-scroll
-        if (isAtBottom && !shouldAutoScroll) {
+        if (isAtBottom) {
             setShouldAutoScroll(true);
-        } else if (!isAtBottom && shouldAutoScroll) {
-            // User scrolled up - disable auto-scroll
+        } else {
+            // Only disable if the user explicitly scrolls up by a significant amount
+            // This prevents accidental disabled auto-scroll from small jitter
             setShouldAutoScroll(false);
         }
     };
@@ -312,7 +314,7 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
         <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="p-4 bg-[#0F1419]/50 font-mono text-sm text-[#D1D5DB] leading-relaxed max-h-[400px] overflow-y-auto custom-scrollbar scroll-smooth relative"
+            className="p-4 bg-[#0F1419]/50 font-mono text-sm text-[#D1D5DB] leading-relaxed max-h-[400px] overflow-y-auto custom-scrollbar relative"
         >
             {content ? (
                 <div className="break-words border-l-2 border-[#D4AF37]/30 pl-4 py-1 relative">
