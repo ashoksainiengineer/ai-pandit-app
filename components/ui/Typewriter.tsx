@@ -25,15 +25,22 @@ export function Typewriter({ content, speed = 10, onComplete }: TypewriterProps)
 
         const animate = () => {
             if (indexRef.current < content.length) {
-                // If we are lagging far behind (e.g. > 100 chars), catch up faster
+                // If we are lagging far behind, catch up MUCH faster
                 const lag = content.length - indexRef.current;
-                const charsToAppend = lag > 100 ? 10 : lag > 30 ? 3 : 1;
+
+                // Adaptive chunking based on lag severity
+                let charsToAppend = 1;
+                if (lag > 200) charsToAppend = 20;
+                else if (lag > 100) charsToAppend = 10;
+                else if (lag > 50) charsToAppend = 5;
+                else if (lag > 20) charsToAppend = 2;
 
                 const nextChunk = content.substring(indexRef.current, indexRef.current + charsToAppend);
                 setDisplayedText((prev) => prev + nextChunk);
                 indexRef.current += charsToAppend;
 
-                timeoutRef.current = setTimeout(animate, lag > 100 ? 0 : speed);
+                // Remove artificial delay if lag is significant
+                timeoutRef.current = setTimeout(animate, lag > 50 ? 0 : speed);
             } else {
                 if (onComplete) onComplete();
             }

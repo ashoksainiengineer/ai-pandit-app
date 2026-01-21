@@ -918,8 +918,14 @@ function BirthDetailsSummary({ metadata }: { metadata?: any }) {
                                 {details.timezone && <span className="text-[#8C7F72] text-[10px] ml-1 opacity-75">({details.timezone})</span>}
                             </div>
                             {details.offsetConfig && (
-                                <div className="text-[10px] text-[#2D7A5C] font-mono">
-                                    ±{details.offsetConfig.minutes || (details.offsetConfig.preset === '1hour' ? '60' : '30')} min scan
+                                <div className="text-[10px] text-emerald-400 font-mono mt-1 flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20 w-fit">
+                                    <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                                    ±{details.offsetConfig.customMinutes ||
+                                        (details.offsetConfig.preset === '1hour' ? '60' :
+                                            details.offsetConfig.preset === '30min' ? '30' :
+                                                details.offsetConfig.preset === '2hours' ? '120' :
+                                                    details.offsetConfig.preset === '4hours' ? '240' :
+                                                        details.offsetConfig.preset === 'seconds-30' ? '0.5' : '1')} min scan
                                 </div>
                             )}
                         </div>

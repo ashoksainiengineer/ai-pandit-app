@@ -27,6 +27,16 @@ interface UnifiedAIPanelProps {
 }
 
 
+// Utility to strip thinking tags from reasoning text
+const cleanReasoningText = (text: string) => {
+    if (!text) return '';
+    // Strip <thought>...</thought> and any other XML-like tags the AI might emit
+    return text
+        .replace(/<thought>[\s\S]*?<\/thought>/g, '')
+        .replace(/<[\w\s="']+>|<\/[\w\s]+>/g, '')
+        .trim();
+};
+
 export function UnifiedAIPanel({
     thinking,
     stageHistory,
@@ -75,7 +85,8 @@ export function UnifiedAIPanel({
                 // Determine content for this stage
                 const historyText = stageHistory?.get(stageConfig.id);
                 const isCurrent = currentStage === stageConfig.id;
-                const content = isCurrent ? (thinking?.fullText || historyText) : historyText;
+                const rawContent = isCurrent ? (thinking?.fullText || historyText) : historyText;
+                const content = cleanReasoningText(rawContent || '');
 
                 // Only show if we have content or it's current
                 if (!content && !isCurrent) return null;
@@ -129,10 +140,10 @@ export function UnifiedAIPanel({
                         <AnimatePresence>
                             {isExpanded && (
                                 <motion.div
-                                    initial={{ height: 0 }}
-                                    animate={{ height: 'auto' }}
-                                    exit={{ height: 0 }}
-                                    transition={{ duration: 0.2 }}
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.15 }}
                                     className="overflow-hidden border-t border-[#3A4452]/50"
                                 >
                                     <ScrollableContent content={content || ''} isThinking={isCurrent && isActive} />
@@ -205,45 +216,45 @@ export function UnifiedAIPanel({
                                 {candidateScores.length} Analyzed
                             </span>
                         </div>
-                        <div className="max-h-[200px] overflow-y-auto">
-                            <table className="w-full text-xs">
-                                <thead className="bg-[#0F1419]/50 sticky top-0">
+                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                            <table className="w-full text-xs border-collapse">
+                                <thead className="bg-[#0F1419]/80 sticky top-0 z-10 backdrop-blur-sm">
                                     <tr className="text-[#8C7F72] uppercase tracking-wider">
-                                        <th className="px-4 py-2 text-left">Rank</th>
-                                        <th className="px-4 py-2 text-left">Time</th>
-                                        <th className="px-4 py-2 text-center">Score</th>
-                                        <th className="px-4 py-2 text-right">Status</th>
+                                        <th className="px-4 py-3 text-left w-16">Rank</th>
+                                        <th className="px-4 py-3 text-left w-32">Birth Time</th>
+                                        <th className="px-4 py-3 text-center">Match Score</th>
+                                        <th className="px-4 py-3 text-right w-24">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {candidateScores
                                         .sort((a, b) => b.score - a.score)
                                         .map((candidate, idx) => (
-                                            <tr key={`${candidate.time}-${idx}`} className="border-t border-[#3A4452]/50 hover:bg-[#2A3442]/30">
-                                                <td className="px-4 py-2 font-bold text-[#D4AF37]">#{idx + 1}</td>
-                                                <td className="px-4 py-2 font-mono text-[#F5F0EB]">{candidate.time}</td>
-                                                <td className="px-4 py-2 text-center">
-                                                    <div className="flex items-center justify-center gap-2">
-                                                        <div className="w-16 bg-[#3A4452] rounded-full h-1.5 overflow-hidden">
-                                                            <div
-                                                                className={`h-full transition-all duration-500 ${candidate.score >= 80 ? 'bg-green-500' :
-                                                                    candidate.score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                                            <tr key={`${candidate.time}-${idx}`} className="border-t border-[#3A4452]/50 hover:bg-[#D4AF37]/5 transition-colors group">
+                                                <td className="px-4 py-2.5 font-bold text-[#D4AF37]">#{idx + 1}</td>
+                                                <td className="px-4 py-2.5 font-mono text-[#F5F0EB]">{candidate.time}</td>
+                                                <td className="px-4 py-2.5 text-center">
+                                                    <div className="flex items-center justify-center gap-3">
+                                                        <div className="w-24 bg-[#3A4452] rounded-full h-1.5 overflow-hidden">
+                                                            <motion.div
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${candidate.score}%` }}
+                                                                className={`h-full transition-all duration-1000 ${candidate.score >= 80 ? 'bg-emerald-500' :
+                                                                    candidate.score >= 60 ? 'bg-amber-500' : 'bg-rose-500'
                                                                     }`}
-                                                                style={{ width: `${candidate.score}%` }}
                                                             />
                                                         </div>
-                                                        <span className="font-mono">{candidate.score}</span>
+                                                        <span className="font-mono min-w-[2ch] whitespace-nowrap">{candidate.score}</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-4 py-2 text-right">
-                                                    <span className={`px-2 py-0.5 rounded text-[10px] ${candidate.score >= 70
-                                                        ? 'bg-green-500/20 text-green-400'
-                                                        : 'bg-red-500/20 text-red-400'
+                                                <td className="px-4 py-2.5 text-right">
+                                                    <span className={`px-2 py-1 rounded text-[9px] font-bold tracking-tighter ${candidate.score >= 70
+                                                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                                                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                                                         }`}>
-                                                        {candidate.score >= 70 ? 'KEEP' : 'ELIMINATE'}
+                                                        {candidate.score >= 70 ? 'VALID' : 'REJECT'}
                                                     </span>
                                                 </td>
-
                                             </tr>
                                         ))}
                                 </tbody>
@@ -292,17 +303,18 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
 
         const el = scrollRef.current;
         const observer = new ResizeObserver(() => {
-            scrollToEnd();
+            // Use requestAnimationFrame for smoother scrolling sync
+            requestAnimationFrame(() => scrollToEnd());
         });
 
         const contentEl = el.firstElementChild;
         if (contentEl) observer.observe(contentEl);
 
-        // Immediate scroll on significant changes
-        if (Math.abs(content.length - lastContentLengthRef.current) > 20) {
+        // Immediate scroll on significant changes (debounce-like threshold)
+        if (Math.abs(content.length - lastContentLengthRef.current) > 10) {
             scrollToEnd(true);
+            lastContentLengthRef.current = content.length;
         }
-        lastContentLengthRef.current = content.length;
 
         return () => observer.disconnect();
     }, [shouldAutoScroll, content.length, isThinking]);
