@@ -2,9 +2,9 @@
 
 // lib/btr-processor.ts
 // Main Birth Time Rectification processor
-// Optimized for 512MB RAM - minimal local computation, max AI K2 usage
+// Optimized for high-performance AI integration
 
-import { calculateEphemeris } from './ephemeris';
+import { calculateEphemeris, calculateJulianDay, convertToUTC } from './ephemeris';
 import {
     calculateVimshottariDasha,
     getDashaForDate,
@@ -15,11 +15,11 @@ import {
     DashaPeriod,
 } from './vedic-astrology-engine';
 import {
-    callAIK2,
+    callAI,
     MASTER_ASTROLOGY_SYSTEM_PROMPT,
     buildCandidateAnalysisPrompt,
     parseAIAnalysisResponse,
-} from './AI-k2-client';
+} from './ai-client';
 import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager';
 import { logger } from './logger';
 import { LifeEvent, EphemerisData } from './types';
@@ -65,7 +65,7 @@ export interface CandidateScore {
 
 /**
  * Main processing function - called by queue manager
- * Optimized for memory efficiency on 512MB RAM
+ * Optimized for high-performance scale
  */
 export async function processAnalysis(input: ProcessInput): Promise<ProcessResult> {
     const startTime = Date.now();
@@ -99,7 +99,7 @@ export async function processAnalysis(input: ProcessInput): Promise<ProcessResul
             input.lifeEvents
         );
 
-        // Take top 5 for deep analysis (save AI K2 tokens)
+        // Take top 5 for deep analysis (save AI tokens)
         const topCandidates = scoredCandidates.slice(0, 5);
 
         logger.info('Quick filter complete', {
@@ -109,10 +109,10 @@ export async function processAnalysis(input: ProcessInput): Promise<ProcessResul
         });
 
         // ═══════════════════════════════════════════════════════════════════════
-        // PHASE 3: Deep Analysis with AI K2 (The Heavy Lifting)
+        // PHASE 3: Deep Analysis with AI (The Heavy Lifting)
         // ═══════════════════════════════════════════════════════════════════════
 
-        const analysisResults = await analyzeWithAIK2(
+        const analysisResults = await analyzeWithAI(
             topCandidates,
             input.dateOfBirth,
             input.latitude,
@@ -160,7 +160,7 @@ export async function processAnalysis(input: ProcessInput): Promise<ProcessResul
 
 /**
  * Quick filter using local Dasha calculations
- * This reduces candidates before expensive AI K2 calls
+ * This reduces candidates before expensive AI calls
  */
 async function quickFilterCandidates(
     candidates: Array<{ time: string; offsetMinutes: number; offsetDescription: string }>,
@@ -185,7 +185,7 @@ async function quickFilterCandidates(
             );
 
             // Get sidereal Moon position
-            const jd = dateToJulianDay(dateOfBirth, candidate.time, timezone);
+            const jd = calculateJulianDay(convertToUTC(dateOfBirth, candidate.time, timezone));
             const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
 
             // Calculate Vimshottari Dasha
@@ -256,10 +256,10 @@ interface AIAnalysis {
 }
 
 /**
- * Deep analysis using AI K2 with extended thinking
+ * Deep analysis using AI with extended thinking
  * This is where the magic happens - expert-level analysis
  */
-async function analyzeWithAIK2(
+async function analyzeWithAI(
     candidates: CandidateScore[],
     dateOfBirth: string,
     latitude: number,
@@ -285,7 +285,7 @@ async function analyzeWithAIK2(
             );
 
             // Get Julian Day
-            const jd = dateToJulianDay(dateOfBirth, candidate.time, timezone);
+            const jd = calculateJulianDay(convertToUTC(dateOfBirth, candidate.time, timezone));
 
             // Get sidereal positions for all planets
             const planets: Record<string, string> = {};
@@ -320,7 +320,7 @@ async function analyzeWithAIK2(
                 };
             });
 
-            // Build comprehensive prompt for AI K2
+            // Build comprehensive prompt for AI
             const prompt = buildCandidateAnalysisPrompt(
                 candidate.time,
                 dateOfBirth,
@@ -337,8 +337,8 @@ async function analyzeWithAIK2(
                 physicalTraits
             );
 
-            // Call AI K2 with extended thinking
-            const response = await callAIK2(
+            // Call AI with extended thinking
+            const response = await callAI(
                 MASTER_ASTROLOGY_SYSTEM_PROMPT,
                 prompt,
                 {
@@ -349,7 +349,7 @@ async function analyzeWithAIK2(
             );
 
             if (!response.success) {
-                logger.error('AI K2 call failed', { error: response.error });
+                logger.error('AI call failed', { error: response.error });
                 continue;
             }
 
@@ -409,50 +409,6 @@ function selectBestCandidate(results: AIAnalysis[]): AIAnalysis {
 // UTILITY FUNCTIONS
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * Convert date and time to Julian Day
- */
-function dateToJulianDay(
-    dateStr: string,
-    timeStr: string,
-    timezone: string
-): number {
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const [hour, minute, second] = timeStr.split(':').map(n => Number(n) || 0);
 
-    // Parse timezone offset
-    let tzOffset = 0;
-    if (timezone.includes('/')) {
-        // Named timezone - estimate offset
-        if (timezone.includes('Kolkata')) tzOffset = 5.5;
-        else if (timezone.includes('New_York')) tzOffset = -5;
-        else if (timezone.includes('London')) tzOffset = 0;
-        else if (timezone.includes('Los_Angeles')) tzOffset = -8;
-    } else if (timezone.match(/^[+-]?\d+(\.\d+)?$/)) {
-        tzOffset = parseFloat(timezone);
-    }
-
-    // Convert to UTC
-    const utcHour = hour - tzOffset;
-    const timeDecimal = utcHour + minute / 60 + second / 3600;
-
-    // Julian Day calculation
-    let y = year;
-    let m = month;
-    if (m <= 2) {
-        y -= 1;
-        m += 12;
-    }
-
-    const a = Math.floor(y / 100);
-    const b = 2 - a + Math.floor(a / 4);
-
-    const jd = Math.floor(365.25 * (y + 4716)) +
-        Math.floor(30.6001 * (m + 1)) +
-        day + b - 1524.5 +
-        timeDecimal / 24;
-
-    return jd;
-}
 
 export default processAnalysis;

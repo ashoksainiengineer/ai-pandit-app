@@ -13,6 +13,8 @@ export const serverConfig = {
     temperature: parseFloat(process.env.AI_TEMPERATURE || '0.1'),
     thinkingBudget: parseInt(process.env.AI_THINKING_BUDGET || '32000'),
   },
+
+  // Database
   database: {
     url: process.env.DATABASE_URL || 'file:./dev.db',
     authToken: process.env.DATABASE_AUTH_TOKEN,

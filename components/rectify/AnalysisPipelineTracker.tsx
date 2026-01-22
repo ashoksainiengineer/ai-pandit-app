@@ -9,16 +9,16 @@ interface AnalysisPipelineTrackerProps {
 }
 
 const STAGE_CONFIG = [
-    { id: 1, label: 'COARSE GRID', type: 'calc' },
-    { id: 2, label: 'PRUNING', type: 'ai' },
-    { id: 3, label: 'REFINEMENT', type: 'calc' },
-    { id: 4, label: 'FINE GRID', type: 'calc' },
-    { id: 5, label: 'AI ANALYSIS', type: 'ai' },
-    { id: 6, label: 'MICRO GRID', type: 'calc' },
-    { id: 7, label: 'AI PRECISION', type: 'ai' },
-    { id: 8, label: 'VERIFICATION', type: 'calc' },
-    { id: 9, label: 'AUDIT', type: 'calc' },
-    { id: 10, label: 'FINAL', type: 'ai' },
+    { id: 1, label: 'GRID INITIALIZATION', type: 'calc' },
+    { id: 2, label: 'NEURAL SCREENING (L1)', type: 'ai' },
+    { id: 3, label: 'GRID PRECISION (30s)', type: 'calc' },
+    { id: 4, label: 'TOURNAMENT DYNAMICS (L2)', type: 'ai' },
+    { id: 5, label: 'BOUNDARY COLLISION SCAN', type: 'calc' },
+    { id: 6, label: 'MICRO-GRID SYNC (6s)', type: 'calc' },
+    { id: 7, label: 'GRAND FINALS (L3)', type: 'ai' },
+    { id: 8, label: 'TRANSIT SYNCHRONIZATION', type: 'calc' },
+    { id: 9, label: 'VEDIC SHUDDHI AUDIT', type: 'calc' },
+    { id: 10, label: 'ARCHIVE SEALING', type: 'ai' },
 ];
 
 const ScanLine = () => (

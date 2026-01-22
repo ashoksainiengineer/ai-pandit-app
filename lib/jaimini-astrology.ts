@@ -441,8 +441,6 @@ function getAnnualThemes(age: number): string[] {
     // Key age themes
     if (age === 18 || age === 19) themes.push('Rahu maturation - Breaking from tradition');
     if (age === 36) themes.push('Double Jupiter Return - Career peak');
-    if (age === 42) themes.push('Uranus opposition - Midlife evaluation');
-    if (age === 48) themes.push('Chiron Return - Healing old wounds');
 
     if (themes.length === 0) themes.push('Standard year');
 
@@ -591,3 +589,54 @@ export function charaDashaSupportsEvent(
 }
 
 // All functions are exported inline (export function ...)
+// ═════════════════════════════════════════════════════════════════════════════
+// BHRIGU BINDU (THE DESTINY POINT - PHASE 4)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Calculates Bhrigu Bindu - The midpoint between Moon and Rahu.
+ * Also calculates the Destiny Axis (midpoint of Moon and Ketu).
+ */
+export function calculateBhriguBindu(ephemeris: EphemerisData): {
+    bhriguBindu: number;
+    destinyAxis: number;
+    sign: string;
+    degree: number;
+} {
+    const moon = ephemeris.planets.moon.longitude;
+    const rahu = ephemeris.planets.rahu.longitude;
+    const ketu = ephemeris.planets.ketu.longitude;
+
+    // Standard Bhrigu Bindu Formula: (Moon + Rahu) / 2
+    // Handling 360 wrap
+    let bb = (moon + rahu) / 2;
+    // Check if Rahu is behind Moon or vice versa, the shorter arc is usually used
+    // but the most common formula is average.
+    // However, if the distance is > 180, we add 360 to the smaller one before averaging.
+    const diff = Math.abs(moon - rahu);
+    if (diff > 180) {
+        bb = (moon + rahu + 360) / 2;
+    }
+    bb = bb % 360;
+
+    // Destiny Axis (optional but useful)
+    let da = (moon + ketu) / 2;
+    const diffDa = Math.abs(moon - ketu);
+    if (diffDa > 180) {
+        da = (moon + ketu + 360) / 2;
+    }
+    da = da % 360;
+
+    const sign = ZODIAC_SIGNS[Math.floor(bb / 30)];
+
+    return {
+        bhriguBindu: bb,
+        destinyAxis: da,
+        sign,
+        degree: bb % 30
+    };
+}
+
+export function formatBhriguBindu(data: { sign: string; degree: number }): string {
+    return `BHRIGU BINDU (Destiny Point): ${data.sign} ${data.degree.toFixed(2)}°`;
+}

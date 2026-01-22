@@ -1,10 +1,21 @@
 // lib/progress-tracker.ts
 // Real-time progress tracking for BTR analysis
 // Updates database with current step, message, and percentage
+// Also emits SSE events for real-time streaming
 
-import { db } from '@/database/drizzle';
-import { sessions } from '@/database/schema';
+import { db } from '../database/drizzle.js';
+import { sessions } from '../database/schema.js';
 import { eq } from 'drizzle-orm';
+import { emitProgress, emitComplete, emitError, emitCandidateScore, emitAIContext } from './session-events';
+
+// ═════════════════════════════════════════════════════════════════════════════
+
+export interface CandidateScore {
+    time: string;
+    score: number;
+    stage: number;
+    rank?: number;
+}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // PROGRESS STEPS DEFINITION
@@ -21,6 +32,25 @@ export interface ProgressStep {
     completedAt?: string;
 }
 
+export interface AIThinkingData {
+    stage: number;
+    candidateTime?: string;
+    chunks: string[];
+    fullText: string;
+}
+
+export interface AIContextData {
+    stage: number;
+    candidateTime: string;
+    planetaryInfo: {
+        ascendant: string;
+        sun: string;
+        moon: string;
+    };
+    dasha: string;
+    divCharts?: string;
+}
+
 export interface ProgressData {
     currentStep: number;
     totalSteps: number;
@@ -28,7 +58,11 @@ export interface ProgressData {
     steps: ProgressStep[];
     lastUpdate: string;
     liveMessage?: string;
+    candidateScores: CandidateScore[];
+    lastAIThinking?: AIThinkingData;
+    aiContext?: AIContextData;
 }
+
 
 // Define all analysis steps
 export const ANALYSIS_STEPS: Omit<ProgressStep, 'status'>[] = [
@@ -49,13 +83,29 @@ export const ANALYSIS_STEPS: Omit<ProgressStep, 'status'>[] = [
 // ═════════════════════════════════════════════════════════════════════════════
 
 export class ProgressTracker {
+    // 🚀 STATIC REGISTRY FOR FAST POLLING (No DB Hits)
+    private static activeInstances = new Map<string, ProgressTracker>();
+
     private sessionId: string;
     private progress: ProgressData;
+
+    private candidateBuffers: Map<string, string> = new Map();
+    private lastPulseTime: number = 0;
 
     constructor(sessionId: string) {
         this.sessionId = sessionId;
         this.progress = this.initProgress();
+        // Register this instance for real-time polling
+        ProgressTracker.activeInstances.set(sessionId, this);
     }
+
+    /**
+     * Get active in-memory instance
+     */
+    public static getInstance(sessionId: string): ProgressTracker | undefined {
+        return ProgressTracker.activeInstances.get(sessionId);
+    }
+
 
     private initProgress(): ProgressData {
         return {
@@ -67,7 +117,82 @@ export class ProgressTracker {
                 status: 'pending' as const,
             })),
             lastUpdate: new Date().toISOString(),
+            candidateScores: [],
+            lastAIThinking: undefined,
         };
+    }
+
+    /**
+     * Update AI thinking logs - PURE MEMORY STREAMING
+     * No DB Connection overhead for tokens
+     */
+    private candidateLogs = new Map<string, string>();
+
+    /**
+     * Update AI thinking logs - PURE MEMORY STREAMING with ISOLATION
+     * Prevents interleaving of parallel candidate streams
+     */
+    async updateAIThinking(text: string, stage: number, candidateTime: string = 'general'): Promise<void> {
+
+        // 1. Append to ISOLATED Candidate Log
+        const currentLog = this.candidateLogs.get(candidateTime) || '';
+        const updatedLog = currentLog + text;
+        this.candidateLogs.set(candidateTime, updatedLog);
+
+        // 2. Update Display State (Snapshot of this candidate)
+        // This ensures the UI sees a coherent stream for the *latest active* candidate
+        this.progress.lastAIThinking = {
+            stage,
+            candidateTime,
+            chunks: [], // UI can parse chunks from fullText if needed, or we safely disregard strictly for now
+            fullText: updatedLog
+        };
+
+        // 3. Optional: Add to chunks if we want structured logs (but keep it simple for robustness)
+        // If we switch candidates, we reset the chunks in the view model naturally above
+        // For pure streaming, fullText is the source of truth.
+
+        // Truncate individual log if too long (Memory Protection)
+        if (updatedLog.length > 50000) {
+            this.candidateLogs.set(candidateTime, updatedLog.slice(-50000));
+            this.progress.lastAIThinking.fullText = this.candidateLogs.get(candidateTime)!;
+        }
+
+        // ❌ NO DB SAVE - Pure Stream as requested
+        // BUT update lastActive for GC
+        ProgressTracker.activeInstances.set(this.sessionId, this);
+
+        // 💓 DEBOUNCED DB PULSE: Keep session alive in DB during long AI streaming
+        // Only update DB every 30 seconds to save IO but prevent stale cleanup (30 mins)
+        const now = Date.now();
+        if (now - this.lastPulseTime > 30000) {
+            this.lastPulseTime = now;
+            this.pulse().catch(err => console.error('Heartbeat pulse failed:', err));
+        }
+    }
+
+    /**
+     * Update AI Context (Ground Truth Display)
+     */
+    async updateAIContext(context: AIContextData): Promise<void> {
+        this.progress.aiContext = context;
+        this.progress.lastUpdate = new Date().toISOString();
+
+        // Emit Real-Time Event for Frontend
+        emitAIContext(this.sessionId, context);
+
+        // We don't necessarily need to save to DB for every context switch if it's high freq,
+        // but for batch sample it's low freq enough.
+        await this.saveProgress(false);
+    }
+
+    /**
+     * Heartbeat to keep session alive in DB
+     * Called automatically during progress updates but can be called manually
+     */
+    async pulse(): Promise<void> {
+        this.progress.lastUpdate = new Date().toISOString();
+        await this.saveProgress(false); // Quick pulse without thinking logs
     }
 
     /**
@@ -86,6 +211,16 @@ export class ProgressTracker {
         this.progress.liveMessage = message;
 
         await this.saveProgress();
+
+        // Emit SSE event for real-time streaming
+        emitProgress(
+            this.sessionId,
+            stepId,
+            stepIndex,
+            this.progress.totalSteps,
+            message || `Starting ${this.progress.steps[stepIndex].name}`,
+            undefined
+        );
     }
 
     /**
@@ -103,10 +238,21 @@ export class ProgressTracker {
         this.progress.lastUpdate = new Date().toISOString();
 
         await this.saveProgress();
+
+        // Emit SSE event for real-time streaming
+        emitProgress(
+            this.sessionId,
+            this.progress.steps[currentIndex]?.id || 'unknown',
+            currentIndex,
+            this.progress.totalSteps,
+            message,
+            details
+        );
     }
 
     /**
-     * Complete a step
+     * Complete a step - PERSISTENT FLUSH
+     * This is where we save AI thinking to DB as it's a major milestone
      */
     async completeStep(stepId: string, details?: string[]): Promise<void> {
         const stepIndex = this.progress.steps.findIndex(s => s.id === stepId);
@@ -123,7 +269,18 @@ export class ProgressTracker {
         this.progress.percentage = Math.round((completedCount / this.progress.totalSteps) * 100);
         this.progress.lastUpdate = new Date().toISOString();
 
-        await this.saveProgress();
+        // 🛡️ PERSISTENT FLUSH: Save thinking to DB on stage completion
+        await this.saveProgress(true);
+
+        // Emit SSE event for real-time streaming
+        emitProgress(
+            this.sessionId,
+            stepId,
+            stepIndex,
+            this.progress.totalSteps,
+            `Completed ${this.progress.steps[stepIndex].name}`,
+            details
+        );
     }
 
     /**
@@ -137,7 +294,13 @@ export class ProgressTracker {
         this.progress.steps[stepIndex].message = error;
         this.progress.lastUpdate = new Date().toISOString();
 
-        await this.saveProgress();
+        await this.saveProgress(true); // Save state on error
+
+        // Emit SSE error event
+        emitError(this.sessionId, error, stepId);
+
+        // Allow some time for error to be read before cleanup?
+        // Actually, we should probably keep failed sessions in memory for a bit too.
     }
 
     /**
@@ -156,17 +319,59 @@ export class ProgressTracker {
             }
         });
 
+        await this.saveProgress(true); // Final flush
+
+        // Cleanup memory after short delay (preserve for immediate polling)
+        setTimeout(() => {
+            ProgressTracker.activeInstances.delete(this.sessionId);
+        }, 120000); // Keep in memory for 2 minutes after completion
+    }
+
+    /**
+     * Add and persist candidate score
+     */
+    public async addCandidateScore(score: CandidateScore): Promise<void> {
+        this.progress.candidateScores.push(score);
+
+        // Emit event directly
+        emitCandidateScore(
+            this.sessionId,
+            score.time,
+            score.score,
+            score.stage,
+            score.rank
+        );
+
         await this.saveProgress();
     }
 
     /**
      * Save progress to database
+     * @param includeThinking Set to true for MAJOR flushes (stage completion) to save DB writes
      */
-    private async saveProgress(): Promise<void> {
+    private async saveProgress(includeThinking: boolean = false): Promise<void> {
         try {
+            // 🛡️ Data Minimization: Strip reasoning tokens/AI thinking from regular database persistence
+            // We only keep it in MAJOR flushes to save Turso Write Quota
+            const dbProgress = { ...this.progress };
+            if (!includeThinking) {
+                delete dbProgress.lastAIThinking;
+            }
+
+            // 💾 Size Limit Check: Truncate if too huge (Turso fallback)
+            let progressJson = JSON.stringify(dbProgress);
+            if (progressJson.length > 90000) {
+                // If still too big even with optimization, truncate thinking logs
+                if (dbProgress.lastAIThinking) {
+                    dbProgress.lastAIThinking.fullText = dbProgress.lastAIThinking.fullText.slice(-20000);
+                    dbProgress.lastAIThinking.chunks = [];
+                    progressJson = JSON.stringify(dbProgress);
+                }
+            }
+
             await db.update(sessions)
                 .set({
-                    progressData: JSON.stringify(this.progress),
+                    progressData: progressJson,
                     updatedAt: new Date().toISOString(),
                 })
                 .where(eq(sessions.id, this.sessionId));
@@ -189,8 +394,17 @@ export class ProgressTracker {
 
 /**
  * Get progress for a session
+ * 🚀 PRIORITIZES IN-MEMORY STATE FOR STREAMING
  */
 export async function getSessionProgress(sessionId: string): Promise<ProgressData | null> {
+
+    // 1. Check In-Memory (Real-time)
+    const activeInstance = ProgressTracker.getInstance(sessionId);
+    if (activeInstance) {
+        return activeInstance.getProgress();
+    }
+
+    // 2. Fallback to Database (Persistence)
     try {
         const result = await db.select({ progressData: sessions.progressData })
             .from(sessions)

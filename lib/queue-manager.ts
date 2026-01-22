@@ -1,23 +1,32 @@
 // lib/queue-manager.ts
-// Memory-efficient queue system for 512MB RAM backend
-// Design: Process one request at a time, queue others in database
+// Efficient queue system for high-performance AI backend
+// Design: Process multiple requests concurrently based on system capacity
 
-import { db } from '@/database/drizzle';
-import { sessions } from '@/database/schema';
-import { eq, and, or, desc, asc } from 'drizzle-orm';
+import { db } from '../database/drizzle.js';
+import { sessions } from '../database/schema.js';
+import { eq, and, or, desc, asc, lt } from 'drizzle-orm';
 import { logger } from './logger';
 import { decryptData } from './crypto';
+import {
+  createAbortController,
+  abortSession as abortSessionController,
+  cleanupController,
+  isCancellationError
+} from './cancellation-manager';
+import { emitComplete } from './session-events';
+
 
 // ═════════════════════════════════════════════════════════════════════════════
 // QUEUE CONFIGURATION
 // ═════════════════════════════════════════════════════════════════════════════
 
 const QUEUE_CONFIG = {
-  maxConcurrent: 1,           // Process ONE at a time (512MB RAM)
-  pollIntervalMs: 2000,       // Frontend polls every 2 seconds
-  maxQueueSize: 50,           // Maximum pending requests
-  staleTimeoutMs: 20 * 60 * 1000, // 20 minutes - comprehensive analysis takes longer
-  estimatedTimePerRequest: 90, // ~90 seconds per analysis with all methods
+  maxConcurrent: parseInt(process.env.MAX_CONCURRENT_SESSIONS || '3'), // Process N sessions concurrently
+  pollIntervalMs: 2000,
+  maxQueueSize: 1000,
+  staleTimeoutMs: 30 * 60 * 1000, // 30 mins
+  baseAnalysisTime: 240,        // 4 Mins for God-Tier analysis (1 user)
+  contentionMultiplier: 0.2,    // Lower per-user overhead due to parallel AI batching
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -37,6 +46,7 @@ export interface QueuePosition {
   estimatedWaitSeconds: number;
   totalInQueue: number;
   createdAt: string;
+  session?: any;          // Full session metadata for UI
 }
 
 export interface QueueSubmitResult {
@@ -48,10 +58,12 @@ export interface QueueSubmitResult {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// IN-MEMORY STATE (minimal - just tracking current job)
+// IN-MEMORY STATE (minimal - just tracking current jobs)
 // ═════════════════════════════════════════════════════════════════════════════
 
-let currentProcessingId: string | null = null;
+// Track multiple concurrent processing IDs
+const activeProcessingIds = new Set<string>();
+const processingStartTimes = new Map<string, number>(); // sessionId -> timestamp
 let isProcessorRunning = false;
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -82,24 +94,22 @@ export async function addToQueue(sessionId: string): Promise<QueueSubmitResult> 
       })
       .where(eq(sessions.id, sessionId));
 
-    // Get position in queue
-    const position = await getQueuePosition(sessionId);
-    const estimatedWait = position * QUEUE_CONFIG.estimatedTimePerRequest;
+    // Start processor if not running
+    startQueueProcessor();
+
+    const status = await getQueueStatus(sessionId);
 
     logger.info('Request added to queue', {
       sessionId,
-      position,
-      estimatedWait,
+      position: status?.position || 0,
+      estimatedWait: status?.estimatedWaitSeconds || 0,
     });
-
-    // Start processor if not running
-    startQueueProcessor();
 
     return {
       success: true,
       sessionId,
-      position,
-      estimatedWaitSeconds: estimatedWait,
+      position: status?.position || 0,
+      estimatedWaitSeconds: status?.estimatedWaitSeconds || 0,
     };
   } catch (error) {
     logger.error('Failed to add to queue', error);
@@ -115,8 +125,8 @@ export async function addToQueue(sessionId: string): Promise<QueueSubmitResult> 
  */
 export async function getQueuePosition(sessionId: string): Promise<number> {
   try {
-    // Get all queued sessions ordered by creation time
-    const queued = await db.select({ id: sessions.id })
+    // Get all active sessions (processing or queued) ordered by creation time
+    const active = await db.select({ id: sessions.id, status: sessions.status })
       .from(sessions)
       .where(or(
         eq(sessions.status, 'queued'),
@@ -124,8 +134,20 @@ export async function getQueuePosition(sessionId: string): Promise<number> {
       ))
       .orderBy(asc(sessions.createdAt));
 
-    const index = queued.findIndex(s => s.id === sessionId);
-    return index === -1 ? 0 : index;
+    const item = active.find(s => s.id === sessionId);
+    if (!item) return 0;
+
+    // If already processing, position is effectively 0
+    if (item.status === 'processing') return 0;
+
+    // Find index among ONLY queued items, BUT only those that aren't in the top 'maxConcurrent' spots
+    const index = active.findIndex(s => s.id === sessionId);
+
+    // Position = Rank - active_slots + 1
+    // Example: indices 0,1,2 are active. Index 3 is next (Position 1).
+    const position = Math.max(1, index - QUEUE_CONFIG.maxConcurrent + 1);
+
+    return position;
   } catch (error) {
     logger.error('Failed to get queue position', error);
     return 0;
@@ -151,15 +173,41 @@ export async function getQueueStatus(sessionId: string): Promise<QueuePosition |
       ? await getQueuePosition(sessionId)
       : 0;
 
+    // 🚀 GOD-TIER DYNAMIC WAIT ESTIMATION
+    let estimatedWaitSeconds = 0;
+    const activeCount = activeProcessingIds.size;
+
+    if (s.status === 'queued') {
+      // 1. Calculate how much time is left in the CURRENT active slots
+      const contentionFactor = 1 + (Math.max(0, activeCount - 1) * QUEUE_CONFIG.contentionMultiplier);
+      const adjustedCycleTime = QUEUE_CONFIG.baseAnalysisTime * contentionFactor;
+
+      const sessionTimes = Array.from(processingStartTimes.values());
+      const remainingTimes = sessionTimes.map(startTime => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        return Math.max(10, adjustedCycleTime - elapsed);
+      });
+
+      // The next slot opens at the MIN of remaining times
+      const nextSlotAvailableIn = remainingTimes.length > 0 ? Math.min(...remainingTimes) : 0;
+
+      // 2. Add time for people ahead of you in the queue
+      const itemsAhead = Math.max(0, position - 1);
+      const waitPerQueueItem = adjustedCycleTime / QUEUE_CONFIG.maxConcurrent;
+
+      estimatedWaitSeconds = Math.ceil(nextSlotAvailableIn + (itemsAhead * waitPerQueueItem));
+    }
+
     const totalInQueue = await getQueuedCount();
 
     return {
       sessionId,
       status: s.status as QueueStatus,
       position,
-      estimatedWaitSeconds: position * QUEUE_CONFIG.estimatedTimePerRequest,
+      estimatedWaitSeconds,
       totalInQueue,
       createdAt: s.createdAt || '',
+      session: s,
     };
   } catch (error) {
     logger.error('Failed to get queue status', error);
@@ -190,9 +238,15 @@ async function getQueuedCount(): Promise<number> {
  */
 async function getNextInQueue(): Promise<string | null> {
   try {
+    // Check for both 'pending' (new submissions) and 'queued' status
     const next = await db.select({ id: sessions.id })
       .from(sessions)
-      .where(eq(sessions.status, 'queued'))
+      .where(
+        or(
+          eq(sessions.status, 'pending'),
+          eq(sessions.status, 'queued')
+        )
+      )
       .orderBy(asc(sessions.createdAt))
       .limit(1);
 
@@ -214,7 +268,8 @@ async function markAsProcessing(sessionId: string): Promise<void> {
     })
     .where(eq(sessions.id, sessionId));
 
-  currentProcessingId = sessionId;
+  activeProcessingIds.add(sessionId);
+  processingStartTimes.set(sessionId, Date.now());
 }
 
 /**
@@ -241,11 +296,18 @@ export async function markAsComplete(
     })
     .where(eq(sessions.id, sessionId));
 
-  if (currentProcessingId === sessionId) {
-    currentProcessingId = null;
-  }
+  activeProcessingIds.delete(sessionId);
+  processingStartTimes.delete(sessionId);
 
   logger.info('Session marked complete', { sessionId });
+
+  // ⚡ Emit Complete Event so frontend gets the result!
+  emitComplete(
+    sessionId,
+    results.rectifiedTime,
+    results.accuracy,
+    results.confidence
+  );
 }
 
 /**
@@ -260,11 +322,57 @@ export async function markAsFailed(sessionId: string, error: string): Promise<vo
     })
     .where(eq(sessions.id, sessionId));
 
-  if (currentProcessingId === sessionId) {
-    currentProcessingId = null;
-  }
+  activeProcessingIds.delete(sessionId);
+  processingStartTimes.delete(sessionId);
 
   logger.error('Session marked failed', { sessionId, error });
+}
+
+/**
+ * Update session timestamp to prevent it from being marked as stale
+ */
+export async function heartbeat(sessionId: string): Promise<void> {
+  await db.update(sessions)
+    .set({
+      updatedAt: new Date().toISOString(),
+    })
+    .where(eq(sessions.id, sessionId));
+}
+
+/**
+ * Cancel a session
+ */
+export async function cancelSession(sessionId: string): Promise<boolean> {
+  try {
+    const session = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+    if (!session.length) return false;
+
+    // Only cancel if pending, queued or processing
+    if (session[0].status !== 'pending' && session[0].status !== 'queued' && session[0].status !== 'processing') {
+      logger.warn(`Cannot cancel session ${sessionId}: status is '${session[0].status}' (expected pending, queued or processing)`);
+      return false;
+    }
+
+    // 🛑 ABORT the running process (this will cancel fetch requests!)
+    abortSessionController(sessionId);
+
+    await db.update(sessions)
+      .set({
+        status: 'failed',
+        errorMessage: 'Cancelled by user',
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(sessions.id, sessionId));
+
+    activeProcessingIds.delete(sessionId);
+    processingStartTimes.delete(sessionId);
+
+    logger.info('Session cancelled by user', { sessionId });
+    return true;
+  } catch (error) {
+    logger.error('Failed to cancel session', error);
+    return false;
+  }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -291,13 +399,22 @@ export function startQueueProcessor(): void {
  * Main queue processing loop
  */
 async function processQueue(): Promise<void> {
+  logger.info('Queue processor loop started');
   while (isProcessorRunning) {
     try {
       // Check for stale processing requests (crashed mid-process)
       await cleanupStaleRequests();
 
-      // Check if already processing something
-      if (currentProcessingId !== null) {
+      // Check concurrent limit
+      if (activeProcessingIds.size >= QUEUE_CONFIG.maxConcurrent) {
+        // High frequency logging for wait state - only log if queue not empty to avoid noise
+        const queuedCount = await getQueuedCount();
+        if (queuedCount > activeProcessingIds.size) {
+          logger.debug('Queue blocked: all slots full', {
+            active: activeProcessingIds.size,
+            max: QUEUE_CONFIG.maxConcurrent
+          });
+        }
         await sleep(1000);
         continue;
       }
@@ -314,51 +431,79 @@ async function processQueue(): Promise<void> {
       // Mark as processing
       await markAsProcessing(nextId);
 
-      logger.info('Starting to process request', { sessionId: nextId });
-
-      // Get session data
-      const session = await db.select()
-        .from(sessions)
-        .where(eq(sessions.id, nextId))
-        .limit(1);
-
-      if (session.length === 0) {
-        await markAsFailed(nextId, 'Session not found');
-        continue;
-      }
-
-      const s = session[0];
-
-      // Process the analysis
-      try {
-        // 🔐 Decrypt sensitive data using clerkId (encryption key)
-        const decryptedLifeEvents = JSON.parse(decryptData(s.lifeEvents, s.clerkId));
-        const decryptedPhysicalTraits = s.physicalTraits
-          ? JSON.parse(decryptData(s.physicalTraits, s.clerkId))
-          : undefined;
-
-        const result = await processSecondsPrecisionBTR({
-          sessionId: nextId,
-          dateOfBirth: s.dateOfBirth,
-          tentativeTime: s.tentativeTime,
-          latitude: s.latitude,
-          longitude: s.longitude,
-          timezone: s.timezone,
-          lifeEvents: decryptedLifeEvents,
-          offsetConfig: s.offsetConfig ? JSON.parse(s.offsetConfig) : { preset: '1hour' },
-          physicalTraits: decryptedPhysicalTraits,
-        });
-
-        await markAsComplete(nextId, result);
-      } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-        await markAsFailed(nextId, errorMsg);
-      }
+      // ⚡ ASYNC EXECUTION: Don't await the heavy process!
+      // Fire and loop back immediately to pick up next task if slot available
+      processSessionAsync(nextId);
 
     } catch (error) {
       logger.error('Queue processor error', error);
       await sleep(5000); // Wait before retry on error
     }
+  }
+}
+
+/**
+ * Process a single session (async worker)
+ */
+async function processSessionAsync(sessionId: string): Promise<void> {
+  try {
+    logger.info('Starting to process request', { sessionId });
+
+    // Get session data
+    const session = await db.select()
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .limit(1);
+
+    if (session.length === 0) {
+      await markAsFailed(sessionId, 'Session not found');
+      return;
+    }
+
+    const s = session[0];
+
+    // 🛑 Create AbortController for this session
+    const abortController = createAbortController(sessionId);
+
+    // Process the analysis
+    try {
+      // 🔐 Decrypt sensitive data using clerkId (encryption key)
+      const decryptedLifeEvents = JSON.parse(decryptData(s.lifeEvents, s.clerkId));
+      const decryptedPhysicalTraits = s.physicalTraits
+        ? JSON.parse(decryptData(s.physicalTraits, s.clerkId))
+        : undefined;
+
+      const result = await processSecondsPrecisionBTR({
+        sessionId: sessionId,
+        dateOfBirth: s.dateOfBirth,
+        tentativeTime: s.tentativeTime,
+        latitude: s.latitude,
+        longitude: s.longitude,
+        timezone: s.timezone,
+        lifeEvents: decryptedLifeEvents,
+        offsetConfig: s.offsetConfig ? JSON.parse(s.offsetConfig) : { preset: '1hour' },
+        physicalTraits: decryptedPhysicalTraits,
+        abortSignal: abortController.signal, // 🛑 Pass abort signal
+      });
+
+      await markAsComplete(sessionId, result);
+      cleanupController(sessionId); // Cleanup on success
+    } catch (error) {
+      // Check if this was a cancellation
+      if (isCancellationError(error)) {
+        logger.info('Session processing cancelled', { sessionId });
+        cleanupController(sessionId);
+        // Status already set to 'failed' by cancelSession, no need to update
+      } else {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        await markAsFailed(sessionId, errorMsg);
+        cleanupController(sessionId);
+      }
+    }
+  } catch (error) {
+    logger.error('Async worker error', error);
+    // Ensure we clean up the slot if catastrophic failure
+    activeProcessingIds.delete(sessionId);
   }
 }
 
@@ -374,7 +519,7 @@ async function cleanupStaleRequests(): Promise<void> {
       .from(sessions)
       .where(and(
         eq(sessions.status, 'processing'),
-        // Note: This comparison works with ISO strings
+        lt(sessions.updatedAt, staleThreshold)
       ));
 
     for (const s of stale) {
@@ -424,7 +569,7 @@ export async function getQueueStats(): Promise<{
       queuedCount: queued.length,
       processingCount: processing.length,
       completedToday: completed.length,
-      averageWaitTime: QUEUE_CONFIG.estimatedTimePerRequest,
+      averageWaitTime: QUEUE_CONFIG.baseAnalysisTime,
     };
   } catch (error) {
     logger.error('Failed to get queue stats', error);
@@ -443,5 +588,27 @@ export async function getQueueStats(): Promise<{
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Cleanup processing sessions on startup (Zombie killer)
+ * Resets any session stuck in 'processing' state to 'failed'
+ */
+export async function cleanupZombiesOnStartup(): Promise<void> {
+  try {
+    const zombies = await db.select({ id: sessions.id })
+      .from(sessions)
+      .where(eq(sessions.status, 'processing'));
+
+    if (zombies.length > 0) {
+      logger.warn(`Found ${zombies.length} zombie sessions from previous run. Cleaning up...`);
+
+      for (const zombie of zombies) {
+        await markAsFailed(zombie.id, 'Process interrupted (Server Restart)');
+      }
+    }
+  } catch (error) {
+    logger.error('Zombie cleanup failed', error);
+  }
 }
 

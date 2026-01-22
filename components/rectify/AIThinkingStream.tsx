@@ -91,13 +91,25 @@ export default function AIThinkingStream({ thinking, isActive, stage, analyzedCo
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#6366F1] flex items-center justify-center">
-                            <span className="text-xl">🧠</span>
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#6366F1] flex items-center justify-center relative overflow-hidden group">
+                            <motion.div
+                                animate={{ y: [-20, 20] }}
+                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                className="absolute inset-0 bg-white/20 h-1 w-full"
+                            />
+                            <span className="text-xl relative z-10">🧠</span>
                         </div>
                         <div>
-                            <h3 className="font-bold text-[#F5F0EB]">{stageName}</h3>
+                            <div className="flex items-center gap-2">
+                                <h3 className="font-bold text-[#F5F0EB]">{stageName}</h3>
+                                {[7].includes(currentStage) && (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-black animate-pulse">
+                                        ESSENCE PROTOCOL
+                                    </span>
+                                )}
+                            </div>
                             {thinking?.candidateTime && (
-                                <p className="text-xs text-[#8B5CF6]">
+                                <p className="text-xs text-[#8C7F72]">
                                     Analyzing: <span className="font-mono text-purple-300">
                                         {thinking?.candidateTime === 'final_decision'
                                             ? 'All Candidates'
@@ -114,7 +126,7 @@ export default function AIThinkingStream({ thinking, isActive, stage, analyzedCo
                     {isActive && (
                         <div className="flex items-center gap-2">
                             <span className="w-2 h-2 rounded-full bg-[#8B5CF6] animate-pulse" />
-                            <span className="text-xs text-[#8B5CF6] font-medium">THINKING</span>
+                            <span className="text-xs text-[#8B5CF6] font-medium tracking-widest">REASONING</span>
                         </div>
                     )}
                 </div>

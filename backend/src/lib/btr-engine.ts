@@ -268,10 +268,10 @@ export function selectBestCandidate(
 ): BTROutput {
   const best = candidates[0];
 
-  let confidence: 'high' | 'medium' | 'low';
-  if (best.aiScore >= 95) confidence = 'high';
-  else if (best.aiScore >= 85) confidence = 'medium';
-  else confidence = 'low';
+  let confidence: 'High' | 'Medium' | 'Low';
+  if (best.aiScore >= 95) confidence = 'High';
+  else if (best.aiScore >= 85) confidence = 'Medium';
+  else confidence = 'Low';
 
   // Mock event analysis - in real implementation, would analyze each event
   const eventAnalysis = [

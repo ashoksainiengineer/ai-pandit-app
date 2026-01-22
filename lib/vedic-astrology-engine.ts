@@ -1,15 +1,6 @@
-// lib/vedic-astrology-engine.ts
-// Expert-level Vedic Astrology calculations
-// Vimshottari Dasha, Transits, House Analysis
+import { getAyanamsa } from './ephemeris';
 
 // ═════════════════════════════════════════════════════════════════════════════
-// ASTROLOGICAL CONSTANTS
-// ═════════════════════════════════════════════════════════════════════════════
-
-// Lahiri Ayanamsa calculation constants
-// Current Lahiri Ayanamsa = 24.1398° (for 2024, increases ~50" per year)
-const AYANAMSA_J2000 = 23.8529722; // Lahiri Ayanamsa at J2000.0
-const AYANAMSA_RATE = 50.27 / 3600; // degrees per year
 
 // Vimshottari Dasha periods (in years)
 export const DASHA_YEARS: Record<string, number> = {
@@ -76,24 +67,31 @@ export interface DashaPeriod {
     startDate: Date;
     endDate: Date;
     durationYears: number;
-    antardashas: AntardashaPeriod[];
-}
-
-export interface AntardashaPeriod {
-    lord: string;
-    startDate: Date;
-    endDate: Date;
-    durationDays: number;
+    subPeriods: DashaPeriod[]; // Recursive for infinite depth
 }
 
 export interface DashaAtDate {
     mahadasha: string;
     antardasha: string;
     pratyantardasha: string;
+    sukshmadasha: string;
+    pranadasha: string;
     mahadashaStart: Date;
     mahadashaEnd: Date;
     antardashaStart: Date;
     antardashaEnd: Date;
+    pratyantarStart: Date;
+    pratyantarEnd: Date;
+    sukshmaStart: Date;
+    sukshmaEnd: Date;
+    pranaStart: Date;
+    pranaEnd: Date;
+    sandhiInfo?: {
+        isNearTransition: boolean;
+        level: number; // 1-5 which level transition
+        distanceMinutes: number;
+        transitionType: 'start' | 'end';
+    };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -102,11 +100,10 @@ export interface DashaAtDate {
 
 /**
  * Calculate Lahiri Ayanamsa for a given Julian Day
+ * Synchronized with Swiss Ephemeris for God-Tier Precision.
  */
 export function calculateLahiriAyanamsa(julianDay: number): number {
-    const J2000 = 2451545.0;
-    const yearsSinceJ2000 = (julianDay - J2000) / 365.25;
-    return AYANAMSA_J2000 + (AYANAMSA_RATE * yearsSinceJ2000);
+    return getAyanamsa(julianDay);
 }
 
 /**
@@ -161,20 +158,25 @@ export function calculateVimshottariDasha(
         startDate: new Date(currentDate),
         endDate: firstEndDate,
         durationYears: remainingYears,
-        antardashas: calculateAntardashas(
+        subPeriods: calculateSubDashas(
             birthNakshatraLord,
             currentDate,
             firstEndDate,
-            positionInNakshatra // Start from current position
+            5, // GOD-TIER: 5 levels deep
+            positionInNakshatra
         ),
     });
     currentDate = firstEndDate;
     dashaIndex = (dashaIndex + 1) % 9;
 
-    // Remaining full periods (for ~100+ years from birth)
-    for (let cycle = 0; cycle < 2; cycle++) { // 2 cycles = 240 years coverage
+    // Remaining full periods (for ~120 years from birth)
+    for (let cycle = 0; cycle < 1; cycle++) { // 1 cycle (120 years) is sufficient for life
         for (let i = 0; i < 9; i++) {
             const lord = DASHA_SEQUENCE[dashaIndex];
+            if (lord === birthNakshatraLord && cycle === 0) {
+                dashaIndex = (dashaIndex + 1) % 9;
+                continue; // Already added birth dasha
+            }
             const years = DASHA_YEARS[lord];
             const endDate = addYears(currentDate, years);
 
@@ -183,7 +185,7 @@ export function calculateVimshottariDasha(
                 startDate: new Date(currentDate),
                 endDate,
                 durationYears: years,
-                antardashas: calculateAntardashas(lord, currentDate, endDate, 0),
+                subPeriods: calculateSubDashas(lord, currentDate, endDate, 5, 0),
             });
 
             currentDate = endDate;
@@ -197,19 +199,25 @@ export function calculateVimshottariDasha(
 /**
  * Calculate Antardasha periods within a Mahadasha
  */
-function calculateAntardashas(
+/**
+ * Generic Recursive Sub-Dasha Calculation
+ * Supports Level 2 (Antar) to Level 5 (Prana)
+ */
+function calculateSubDashas(
     mahadashaLord: string,
     startDate: Date,
     endDate: Date,
-    startOffset: number = 0 // 0-1, how much of first antardasha has elapsed
-): AntardashaPeriod[] {
-    const mahadashaYears = DASHA_YEARS[mahadashaLord];
-    const totalDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24);
+    maxLevel: number = 2,
+    startOffset: number = 0, // 0-1, amount of the first period already elapsed
+    currentLevel: number = 2
+): DashaPeriod[] {
+    if (currentLevel > maxLevel) return [];
 
-    const antardashas: AntardashaPeriod[] = [];
+    const totalDurationMs = endDate.getTime() - startDate.getTime();
+    const subPeriods: DashaPeriod[] = [];
     let currentDate = new Date(startDate);
 
-    // Find starting index (antardasha sequence starts with mahadasha lord)
+    // Sub-dasha sequence starts with the current parent lord
     let startIndex = DASHA_SEQUENCE.indexOf(mahadashaLord);
 
     for (let i = 0; i < 9; i++) {
@@ -217,71 +225,155 @@ function calculateAntardashas(
         const lord = DASHA_SEQUENCE[index];
         const lordYears = DASHA_YEARS[lord];
 
-        // Antardasha duration = (Mahadasha years × Antardasha planet years) / Total cycle
-        const proportionalDays = (mahadashaYears * lordYears / TOTAL_DASHA_YEARS) * 365.25;
+        // Traditional Rule: Sub-period is proportional to planet's years in 120-year cycle
+        const proportion = lordYears / TOTAL_DASHA_YEARS;
+        let pDurationMs = totalDurationMs * proportion;
 
-        // Apply offset for first antardasha if needed
-        let actualDays = proportionalDays;
+        // Apply offset for the very first period of birth
         if (i === 0 && startOffset > 0) {
-            const elapsedDays = startOffset * proportionalDays;
-            actualDays = proportionalDays - elapsedDays;
-            // Skip this antardasha if fully elapsed
-            if (actualDays <= 0) continue;
+            const elapsed = startOffset * pDurationMs;
+            pDurationMs -= elapsed;
+            if (pDurationMs <= 0) continue;
         }
 
-        const endDateAntardasha = new Date(currentDate.getTime() + actualDays * 24 * 60 * 60 * 1000);
+        const pEndDate = new Date(currentDate.getTime() + pDurationMs);
 
-        antardashas.push({
+        // Sanity check for very small periods (Prana level can be minutes)
+        if (pDurationMs < 1000) continue;
+
+        subPeriods.push({
             lord,
             startDate: new Date(currentDate),
-            endDate: endDateAntardasha,
-            durationDays: Math.round(actualDays),
+            endDate: pEndDate,
+            durationYears: pDurationMs / (365.25 * 24 * 60 * 60 * 1000),
+            subPeriods: calculateSubDashas(lord, currentDate, pEndDate, maxLevel, 0, currentLevel + 1)
         });
 
-        currentDate = endDateAntardasha;
+        currentDate = pEndDate;
     }
 
-    return antardashas;
+    return subPeriods;
 }
 
 /**
  * Get Dasha active on a specific date
  * Used to verify life events
  */
+/**
+ * Get Dasha active on a specific date (5 levels deep)
+ * Used to verify life events with GOD-TIER precision
+ */
 export function getDashaForDate(
     periods: DashaPeriod[],
     eventDate: Date
 ): DashaAtDate | null {
-    for (const mahadasha of periods) {
-        if (eventDate >= mahadasha.startDate && eventDate <= mahadasha.endDate) {
-            // Find antardasha
-            for (const antardasha of mahadasha.antardashas) {
-                if (eventDate >= antardasha.startDate && eventDate <= antardasha.endDate) {
+    for (const maha of periods) {
+        if (eventDate >= maha.startDate && eventDate <= maha.endDate) {
+            // Level 2 (Antar)
+            for (const antar of maha.subPeriods) {
+                if (eventDate >= antar.startDate && eventDate <= antar.endDate) {
+                    // Level 3 (Pratyantar)
+                    for (const prat of antar.subPeriods) {
+                        if (eventDate >= prat.startDate && eventDate <= prat.endDate) {
+                            // Level 4 (Sukshma)
+                            for (const suksh of prat.subPeriods) {
+                                if (eventDate >= suksh.startDate && eventDate <= suksh.endDate) {
+                                    // Level 5 (Prana)
+                                    for (const prana of suksh.subPeriods) {
+                                        if (eventDate >= prana.startDate && eventDate <= prana.endDate) {
+                                            const dasha: DashaAtDate = {
+                                                mahadasha: maha.lord,
+                                                antardasha: antar.lord,
+                                                pratyantardasha: prat.lord,
+                                                sukshmadasha: suksh.lord,
+                                                pranadasha: prana.lord,
+                                                mahadashaStart: maha.startDate,
+                                                mahadashaEnd: maha.endDate,
+                                                antardashaStart: antar.startDate,
+                                                antardashaEnd: antar.endDate,
+                                                pratyantarStart: prat.startDate,
+                                                pratyantarEnd: prat.endDate,
+                                                sukshmaStart: suksh.startDate,
+                                                sukshmaEnd: suksh.endDate,
+                                                pranaStart: prana.startDate,
+                                                pranaEnd: prana.endDate
+                                            };
+
+                                            // Attach Sandhi Info (Transition analysis)
+                                            dasha.sandhiInfo = calculateDashaSandhi(dasha, eventDate);
+                                            return dasha;
+                                        }
+                                    }
+                                    // Fallback to Level 4
+                                    return {
+                                        mahadasha: maha.lord,
+                                        antardasha: antar.lord,
+                                        pratyantardasha: prat.lord,
+                                        sukshmadasha: suksh.lord,
+                                        pranadasha: 'Unknown',
+                                        mahadashaStart: maha.startDate,
+                                        mahadashaEnd: maha.endDate,
+                                        antardashaStart: antar.startDate,
+                                        antardashaEnd: antar.endDate,
+                                        pratyantarStart: prat.startDate,
+                                        pratyantarEnd: prat.endDate,
+                                        sukshmaStart: suksh.startDate,
+                                        sukshmaEnd: suksh.endDate,
+                                        pranaStart: new Date(), pranaEnd: new Date()
+                                    };
+                                }
+                            }
+                            // Fallback to Level 3
+                            return {
+                                mahadasha: maha.lord,
+                                antardasha: antar.lord,
+                                pratyantardasha: prat.lord,
+                                sukshmadasha: 'Unknown',
+                                pranadasha: 'Unknown',
+                                mahadashaStart: maha.startDate,
+                                mahadashaEnd: maha.endDate,
+                                antardashaStart: antar.startDate,
+                                antardashaEnd: antar.endDate,
+                                pratyantarStart: prat.startDate,
+                                pratyantarEnd: prat.endDate,
+                                sukshmaStart: new Date(), sukshmaEnd: new Date(),
+                                pranaStart: new Date(), pranaEnd: new Date()
+                            };
+                        }
+                    }
+                    // Fallback to Level 2
                     return {
-                        mahadasha: mahadasha.lord,
-                        antardasha: antardasha.lord,
-                        pratyantardasha: '', // Can add if needed
-                        mahadashaStart: mahadasha.startDate,
-                        mahadashaEnd: mahadasha.endDate,
-                        antardashaStart: antardasha.startDate,
-                        antardashaEnd: antardasha.endDate,
+                        mahadasha: maha.lord,
+                        antardasha: antar.lord,
+                        pratyantardasha: 'Unknown',
+                        sukshmadasha: 'Unknown',
+                        pranadasha: 'Unknown',
+                        mahadashaStart: maha.startDate,
+                        mahadashaEnd: maha.endDate,
+                        antardashaStart: antar.startDate,
+                        antardashaEnd: antar.endDate,
+                        pratyantarStart: new Date(), pratyantarEnd: new Date(),
+                        sukshmaStart: new Date(), sukshmaEnd: new Date(),
+                        pranaStart: new Date(), pranaEnd: new Date()
                     };
                 }
             }
-
-            // If no antardasha found, return just mahadasha
+            // Fallback to Level 1
             return {
-                mahadasha: mahadasha.lord,
+                mahadasha: maha.lord,
                 antardasha: 'Unknown',
-                pratyantardasha: '',
-                mahadashaStart: mahadasha.startDate,
-                mahadashaEnd: mahadasha.endDate,
-                antardashaStart: new Date(),
-                antardashaEnd: new Date(),
+                pratyantardasha: 'Unknown',
+                sukshmadasha: 'Unknown',
+                pranadasha: 'Unknown',
+                mahadashaStart: maha.startDate,
+                mahadashaEnd: maha.endDate,
+                antardashaStart: new Date(), antardashaEnd: new Date(),
+                pratyantarStart: new Date(), pratyantarEnd: new Date(),
+                sukshmaStart: new Date(), sukshmaEnd: new Date(),
+                pranaStart: new Date(), pranaEnd: new Date()
             };
         }
     }
-
     return null;
 }
 
@@ -318,6 +410,44 @@ const DASHA_EVENT_MAP: Record<string, string[]> = {
     // Spiritual, detachment, losses
     Ketu: ['spiritual', 'losses', 'isolation', 'mystical', 'past_karma', 'endings'],
 };
+
+/**
+ * Detect Dasha Sandhi (Transition twilight)
+ * Events near transitions are high-confidence indicators.
+ */
+function calculateDashaSandhi(dasha: DashaAtDate, date: Date): DashaAtDate['sandhiInfo'] {
+    const time = date.getTime();
+
+    // Level 1-2 transitions (Mahadasha, Antardasha) are the most powerful
+    const transitions = [
+        { start: dasha.mahadashaStart.getTime(), end: dasha.mahadashaEnd.getTime(), level: 1 },
+        { start: dasha.antardashaStart.getTime(), end: dasha.antardashaEnd.getTime(), level: 2 },
+        { start: dasha.pratyantarStart.getTime(), end: dasha.pratyantarEnd.getTime(), level: 3 },
+        { start: dasha.sukshmaStart.getTime(), end: dasha.sukshmaEnd.getTime(), level: 4 },
+        { start: dasha.pranaStart.getTime(), end: dasha.pranaEnd.getTime(), level: 5 }
+    ];
+
+    for (const t of transitions) {
+        const startDiff = Math.abs(time - t.start) / (60 * 1000);
+        const endDiff = Math.abs(time - t.end) / (60 * 1000);
+
+        // Thresholds: L1=30d, L2=7d, L3=2d, L4=12h, L5=2h
+        const threshold = t.level === 1 ? 43200 : // 30 days in mins
+            t.level === 2 ? 10080 : // 7 days in mins
+                t.level === 3 ? 2880 :  // 2 days in mins
+                    t.level === 4 ? 720 :   // 12 hours in mins
+                        60;                     // 1 hour in mins
+
+        if (startDiff < threshold) {
+            return { isNearTransition: true, level: t.level, distanceMinutes: startDiff, transitionType: 'start' };
+        }
+        if (endDiff < threshold) {
+            return { isNearTransition: true, level: t.level, distanceMinutes: endDiff, transitionType: 'end' };
+        }
+    }
+
+    return { isNearTransition: false, level: 0, distanceMinutes: 0, transitionType: 'start' };
+}
 
 /**
  * Check if a dasha supports a particular event type
@@ -398,11 +528,18 @@ export function formatDashaSequence(periods: DashaPeriod[]): string {
 
         lines.push(`\n${period.lord} MAHADASHA: ${start} to ${end} (${period.durationYears.toFixed(1)} years)`);
 
-        // Add antardashas
-        for (const antar of period.antardashas) {
+        // Add level 2 (Antar)
+        for (const antar of period.subPeriods) {
             const aStart = formatDate(antar.startDate);
             const aEnd = formatDate(antar.endDate);
             lines.push(`  └─ ${period.lord}/${antar.lord}: ${aStart} to ${aEnd}`);
+
+            // For AI prompt, we limit to 3 levels deep per candidate section to avoid token bloat
+            // while keeping the full technical resolution available in the JSON Technical Data.
+            for (const prat of antar.subPeriods) {
+                const pStart = formatDate(prat.startDate);
+                lines.push(`     · ${prat.lord}: starts ${pStart}`);
+            }
         }
     }
 
@@ -484,6 +621,7 @@ export function getNakshatraForLongitude(siderealLongitude: number): {
     name: string;
     lord: string;
     pada: number;
+    number: number;
 } {
     const index = Math.floor(siderealLongitude / NAKSHATRA_SPAN);
     const nakshatra = NAKSHATRAS[index % 27];
@@ -496,6 +634,7 @@ export function getNakshatraForLongitude(siderealLongitude: number): {
         name: nakshatra.name,
         lord: nakshatra.lord,
         pada,
+        number: (index % 27) + 1,
     };
 }
 

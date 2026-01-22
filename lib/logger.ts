@@ -12,15 +12,19 @@ interface Logger {
 
 export const logger: Logger = {
   debug: (message: string, data?: any) => {
-    console.debug(`[DEBUG] ${message}`, data);
+    if (data) console.debug(`[DEBUG] ${message}`, data);
+    else console.debug(`[DEBUG] ${message}`);
   },
   info: (message: string, data?: any) => {
-    console.info(`[INFO] ${message}`, data);
+    if (data) console.info(`[INFO] ${message}`, data);
+    else console.info(`[INFO] ${message}`);
   },
   warn: (message: string, data?: any) => {
-    console.warn(`[WARN] ${message}`, data);
+    if (data) console.warn(`[WARN] ${message}`, data);
+    else console.warn(`[WARN] ${message}`);
   },
   error: (message: string, data?: any) => {
-    console.error(`[ERROR] ${message}`, data);
+    if (data) console.error(`[ERROR] ${message}`, data);
+    else console.error(`[ERROR] ${message}`);
   },
 };

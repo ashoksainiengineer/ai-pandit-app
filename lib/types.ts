@@ -1,4 +1,4 @@
-export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours' | 'seconds-30' | 'seconds-6' | 'custom';
+export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours' | 'seconds-30' | 'seconds-6';
 
 export interface TimeOffsetConfig {
   preset?: OffsetPreset;
@@ -57,7 +57,7 @@ export interface LifeEvent {
   category: EventCategory;
   eventType: string;
   // Flexible Date Fields - Supporting 5 precision modes
-  datePrecision: 'exact_date_time' | 'exact_date' | 'month_year' | 'month_range' | 'year_range' | 'exact_date_range';
+  datePrecision: 'exact_date_time' | 'exact_date' | 'month_year' | 'month_range' | 'year_range';
   eventDate: string; // YYYY-MM-DD or YYYY-MM or YYYY
   endDate?: string; // For ranges
   eventTime?: string; // HH:MM for exact dates
@@ -69,7 +69,6 @@ export interface LifeEvent {
   icon?: string;
   color?: string;
   ageAtEvent?: number;
-  isCustom?: boolean;
 }
 
 export interface PhysicalTraits {
@@ -98,7 +97,7 @@ export interface RectificationSession {
   lifeEvents: LifeEvent[]; // Update usage to new interface
   rectifiedTime?: string;
   accuracy?: number;
-  confidence?: 'high' | 'medium' | 'low';
+  confidence?: 'High' | 'Medium' | 'Low';
   analysisResult?: any;
   createdAt: Date;
   updatedAt: Date;
@@ -143,10 +142,10 @@ export interface HousePosition {
   cusp: number;
 }
 
-export interface AIAnalysisResult {
+export interface SimpleAIAnalysisResult {
   rectifiedTime: string;
   accuracy: number;
-  confidence: 'high' | 'medium' | 'low';
+  confidence: 'High' | 'Medium' | 'Low';
   reasoning: string;
   alternativeTimes: Array<{ time: string; score: number }>;
   eventAnalysis: Array<{
@@ -187,7 +186,7 @@ export interface CandidateAnalysis {
 }
 
 export interface RankedCandidates {
-  topCandidates: CandidateAnalysis[]; // Top 5 candidates for AI analysis
+  topCandidates: CandidateAnalysis[]; // Top 5 candidates for deep analysis
   allCandidates: CandidateAnalysis[]; // All candidates sorted by score
   totalAnalyzed: number;
 }
@@ -220,7 +219,7 @@ export interface TopCandidatesAnalysis {
 export interface BTROutput {
   rectifiedTime: string;
   accuracy: number;
-  confidence: 'high' | 'medium' | 'low';
+  confidence: 'High' | 'Medium' | 'Low';
   processingTime: number;
   analysis: {
     eventAnalysis: Array<{
@@ -288,4 +287,62 @@ export interface BoundaryWarning {
   message: string;
   distanceSeconds: number;
   severity: 'low' | 'medium' | 'high';
+}
+
+/**
+ * 🏆 GOD-TIER ARCHIVE STRUCTURE
+ * 
+ * This is the ultimate, compressed JSON record of the entire BTR journey.
+ * Optimized for Turso storage while preserving 100% of the reasoning and technical proof.
+ */
+export interface MasterAnalysisArchive {
+  version: string;       // e.g., "1.0.0"
+  sessionId: string;
+  generatedAt: string;
+
+  // 1. Input Context (Minimal)
+  birthContext: {
+    name: string;
+    originalTime: string;
+    location: string;
+    offsetScan: string;
+  };
+
+  // 2. Final Rectification Result
+  finalResult: {
+    time: string;
+    accuracy: number;
+    confidence: string;
+    marginOfError: number;
+    methodsUsed: string[];
+  };
+
+  // 3. The "Brain" (Consolidated Reasoning)
+  // We store the pure cleaned text here.
+  reasoning: {
+    discovery: string;    // Stage 2 (Coarse narrowing)
+    refinement: string;   // Stage 5 (Method-by-method depth)
+    precision: string;    // Stage 7 (Final second validation)
+    summary: string;      // Final verdict
+  };
+
+  // 4. Technical Proof (The "God-Data")
+  technicalProof: {
+    ephemeris: EphemerisData;
+    boundarySafety: {
+      nakshatra: { distance: number; warning?: string };
+      lagna: { distance: number; warning?: string };
+      dasha: { distance: number; warning?: string };
+    };
+    methodologyBreakdown: {
+      [key: string]: { score: number; verdict: string };
+    };
+  };
+
+  // 5. Alternate Paths (Top 3 runners up)
+  alternatives: Array<{
+    time: string;
+    score: number;
+    reason: string;
+  }>;
 }

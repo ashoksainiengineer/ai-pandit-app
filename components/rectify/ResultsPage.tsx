@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, Clock, RotateCcw } from 'lucide-react';
+import { CheckCircle, Clock, RotateCcw, ShieldCheck } from 'lucide-react';
 
 interface ResultsPageProps {
   analysisData: any; // From the new API response
@@ -22,31 +22,31 @@ export default function ResultsPage({ analysisData, onNewAnalysis }: ResultsPage
   } = analysisData;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8 text-[#F5F0EB]">
       {/* ═════════════════════════════════════════════════════════════════ */}
       {/* TOP RECOMMENDATION - LARGE CARD */}
       {/* ═════════════════════════════════════════════════════════════════ */}
 
-      <div className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl p-8">
+      <div className="bg-[#151a21] border-2 border-[#D4AF37]/30 rounded-xl p-8 shadow-[0_0_30px_rgba(212,175,55,0.1)]">
         <div className="text-center">
-          <p className="text-sm font-medium text-green-700 mb-2">RECTIFIED BIRTH TIME</p>
-          <h1 className="text-5xl font-bold text-green-900 font-mono mb-4">
+          <p className="text-[10px] font-black text-[#8C7F72] uppercase tracking-[0.3em] mb-4">Rectified Birth Time</p>
+          <h1 className="text-6xl font-black text-[#D4AF37] font-mono mb-6 tracking-tighter">
             {rectifiedTime}
           </h1>
 
-          <div className="flex justify-center gap-8 mb-6">
+          <div className="flex justify-center gap-12 mb-8">
             <div className="text-center">
-              <p className="text-sm text-green-600">Accuracy Score</p>
-              <p className="text-3xl font-bold text-green-900">{accuracy}/100</p>
+              <p className="text-[10px] text-[#8C7F72] uppercase font-bold mb-1">Accuracy Score</p>
+              <p className="text-4xl font-black text-[#F5F0EB]">{accuracy}%</p>
             </div>
             <div className="text-center">
-              <p className="text-sm text-green-600">Confidence</p>
+              <p className="text-[10px] text-[#8C7F72] uppercase font-bold mb-1">Confidence</p>
               <p
-                className={`text-3xl font-bold ${confidence === 'High'
-                  ? 'text-green-900'
+                className={`text-4xl font-black ${confidence === 'High'
+                  ? 'text-emerald-400'
                   : confidence === 'Medium'
-                    ? 'text-yellow-900'
-                    : 'text-red-900'
+                    ? 'text-yellow-400'
+                    : 'text-red-400'
                   }`}
               >
                 {confidence}
@@ -54,26 +54,31 @@ export default function ResultsPage({ analysisData, onNewAnalysis }: ResultsPage
             </div>
           </div>
 
-          <p className="text-lg text-green-800 mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#D4AF37]/10 border border-[#D4AF37]/50 rounded-full text-[#D4AF37] text-xs font-bold uppercase tracking-widest mb-8">
+            <Clock className="w-4 h-4" />
             {topRecommendation.offsetDescription}
-          </p>
+          </div>
 
-          <div className="bg-white rounded-lg p-6 text-left">
-            <h3 className="font-semibold text-lg mb-3">Recommendation</h3>
-            <p className="text-gray-700 mb-4">{topRecommendation.recommendation}</p>
+          <div className="bg-[#0F1419] border border-[#3A4452] rounded-xl p-8 text-left space-y-6">
+            <div>
+              <h3 className="text-[#D4AF37] font-black uppercase tracking-wider text-sm mb-3">Logical Verdict</h3>
+              <p className="text-[#C4B8AD] leading-relaxed">{topRecommendation.recommendation}</p>
+            </div>
 
-            <h3 className="font-semibold text-lg mb-2">Key Strengths</h3>
-            <p className="text-gray-700 text-sm mb-4">
-              {extractSection(topRecommendation.analysis, 'STRENGTHS')}
-            </p>
+            <div>
+              <h3 className="text-[#D4AF37] font-black uppercase tracking-wider text-sm mb-3">Precision Strengths</h3>
+              <p className="text-[#8C7F72] text-sm leading-relaxed">
+                {extractSection(topRecommendation.analysis, 'STRENGTHS')}
+              </p>
+            </div>
 
             {topRecommendation.dashaAnalysis && (
-              <>
-                <h3 className="font-semibold text-lg mb-2">Dasha Analysis</h3>
-                <p className="text-gray-700 text-sm mb-4">
+              <div>
+                <h3 className="text-[#D4AF37] font-black uppercase tracking-wider text-sm mb-3">Vimshottari/Yogini Alignment</h3>
+                <p className="text-[#8C7F72] text-sm leading-relaxed">
                   {topRecommendation.dashaAnalysis}
                 </p>
-              </>
+              </div>
             )}
           </div>
         </div>
@@ -83,52 +88,52 @@ export default function ResultsPage({ analysisData, onNewAnalysis }: ResultsPage
       {/* TABS: TOP / ALTERNATIVES / ALL CANDIDATES */}
       {/* ═════════════════════════════════════════════════════════════════ */}
 
-      <div className="border-b">
-        <div className="flex gap-4">
+      <div className="border-b border-[#3A4452]">
+        <div className="flex gap-8">
           <button
             onClick={() => setSelectedTab('top')}
-            className={`px-6 py-3 font-medium border-b-2 transition ${selectedTab === 'top'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-600 hover:text-gray-900'
+            className={`pb-4 text-xs font-black uppercase tracking-widest transition-all ${selectedTab === 'top'
+              ? 'text-[#D4AF37] border-b-2 border-[#D4AF37]'
+              : 'text-[#8C7F72] hover:text-[#F5F0EB]'
               }`}
           >
-            Top Choice
+            Finalist
           </button>
           <button
             onClick={() => setSelectedTab('alternatives')}
-            className={`px-6 py-3 font-medium border-b-2 transition ${selectedTab === 'alternatives'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-600 hover:text-gray-900'
+            className={`pb-4 text-xs font-black uppercase tracking-widest transition-all ${selectedTab === 'alternatives'
+              ? 'text-[#D4AF37] border-b-2 border-[#D4AF37]'
+              : 'text-[#8C7F72] hover:text-[#F5F0EB]'
               }`}
           >
-            Alternative Options ({alternativeOptions.length})
+            Alternatives ({alternativeOptions.length})
           </button>
           <button
             onClick={() => setSelectedTab('all')}
-            className={`px-6 py-3 font-medium border-b-2 transition ${selectedTab === 'all'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-600 hover:text-gray-900'
+            className={`pb-4 text-xs font-black uppercase tracking-widest transition-all ${selectedTab === 'all'
+              ? 'text-[#D4AF37] border-b-2 border-[#D4AF37]'
+              : 'text-[#8C7F72] hover:text-[#F5F0EB]'
               }`}
           >
-            All Candidates ({statistics.allCandidateScores.length})
+            Compute Grid ({statistics.allCandidateScores.length})
           </button>
         </div>
       </div>
 
       {/* TOP CHOICE CONTENT */}
       {selectedTab === 'top' && (
-        <div className="bg-white rounded-lg border p-6 space-y-4">
-          <h2 className="text-2xl font-bold">Most Likely Birth Time</h2>
+        <div className="bg-[#151a21] border border-[#3A4452] rounded-xl p-8 space-y-6">
+          <h2 className="text-xl font-black text-[#F5F0EB] uppercase tracking-tight">Primary Candidate Analysis</h2>
           <CandidateCard candidate={topRecommendation} />
         </div>
       )}
 
       {/* ALTERNATIVES CONTENT */}
       {selectedTab === 'alternatives' && (
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold">Backup Options</h2>
-          <p className="text-gray-600 mb-4">
-            If the top recommendation doesn&apos;t feel right, consider these alternatives:
+        <div className="space-y-6">
+          <h2 className="text-xl font-black text-[#F5F0EB] uppercase tracking-tight">Secondary Timeline Options</h2>
+          <p className="text-[#8C7F72] text-sm">
+            High-precision alternatives that crossed the Level 2 neural screening threshold:
           </p>
           {alternativeOptions.map((candidate: any, idx: number) => (
             <CandidateCard key={idx} candidate={candidate} rank={idx + 2} />
@@ -138,27 +143,36 @@ export default function ResultsPage({ analysisData, onNewAnalysis }: ResultsPage
 
       {/* ALL CANDIDATES CONTENT */}
       {selectedTab === 'all' && (
-        <div className="space-y-4">
-          <h2 className="text-2xl font-bold">All Analyzed Times</h2>
-          <p className="text-gray-600 mb-4">
-            {statistics.totalCandidatesGenerated} times generated,
-            {statistics.topCandidatesAnalyzed} pre-filtered,
-            {statistics.deepAnalysisCount} deeply analyzed with AI
-          </p>
+        <div className="space-y-6">
+          <h2 className="text-xl font-black text-[#F5F0EB] uppercase tracking-tight">Full Compute Statistics</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+            <div className="bg-[#151a21] border border-[#3A4452] p-4 rounded-xl">
+              <p className="text-[10px] text-[#8C7F72] uppercase font-bold mb-1">Generated</p>
+              <p className="text-xl font-mono text-white">{statistics.totalCandidatesGenerated}</p>
+            </div>
+            <div className="bg-[#151a21] border border-[#3A4452] p-4 rounded-xl">
+              <p className="text-[10px] text-[#8C7F72] uppercase font-bold mb-1">Screened</p>
+              <p className="text-xl font-mono text-white">{statistics.topCandidatesAnalyzed}</p>
+            </div>
+            <div className="bg-[#151a21] border border-[#3A4452] p-4 rounded-xl">
+              <p className="text-[10px] text-[#8C7F72] uppercase font-bold mb-1">Neural Ops</p>
+              <p className="text-xl font-mono text-white">{statistics.deepAnalysisCount}</p>
+            </div>
+          </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
             {statistics.allCandidateScores.map(
               (candidate: any, idx: number) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between p-4 bg-[#151a21] border border-[#3A4452]/50 rounded-xl hover:border-[#D4AF37]/30 transition-colors"
                 >
                   <div>
-                    <p className="font-mono font-semibold">{candidate.time}</p>
-                    <p className="text-sm text-gray-600">{candidate.offsetDescription}</p>
+                    <p className="font-mono text-lg text-[#F5F0EB]">{candidate.time}</p>
+                    <p className="text-[10px] text-[#8C7F72] uppercase">{candidate.offsetDescription}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold">{candidate.quickScore}/100</p>
+                    <p className="text-xl font-black text-[#D4AF37]">{candidate.quickScore}%</p>
                   </div>
                 </div>
               )
@@ -168,42 +182,30 @@ export default function ResultsPage({ analysisData, onNewAnalysis }: ResultsPage
       )}
 
       {/* ═════════════════════════════════════════════════════════════════ */}
-      {/* STATISTICS */}
+      {/* STATISTICS FOOTER */}
       {/* ═════════════════════════════════════════════════════════════════ */}
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="font-semibold text-lg mb-4">Analysis Statistics</h3>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-gray-600">Generated Times</p>
-            <p className="text-2xl font-bold">{statistics.totalCandidatesGenerated}</p>
-          </div>
-
-          <div>
-            <p className="text-sm text-gray-600">Pre-filtered</p>
-            <p className="text-2xl font-bold">{statistics.topCandidatesAnalyzed}</p>
-          </div>
-
-          <div>
-            <p className="text-sm text-gray-600">AI Analysis</p>
-            <p className="text-2xl font-bold">{statistics.deepAnalysisCount}</p>
-          </div>
-
-          <div>
-            <p className="text-sm text-gray-600">Processing Time</p>
-            <p className="text-2xl font-bold">{statistics.processingTime.totalSeconds}s</p>
+      <div className="bg-[#D4AF37]/5 border border-[#D4AF37]/20 rounded-xl p-8 flex items-center justify-between">
+        <div>
+          <h3 className="font-black text-[#D4AF37] uppercase tracking-widest text-xs mb-1">Compute Latency</h3>
+          <p className="text-2xl font-black text-[#F5F0EB] font-mono">{statistics.processingTime.totalSeconds}s</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] text-[#8C7F72] uppercase font-bold tracking-widest mb-2">Engine Integrity</p>
+          <div className="flex items-center gap-1.5 justify-end text-emerald-400 font-black text-xs">
+            <ShieldCheck className="w-4 h-4" />
+            VERIFIED OUTPUT
           </div>
         </div>
       </div>
 
       {/* New Analysis Button */}
-      <div className="text-center">
+      <div className="text-center pt-8">
         <button
           onClick={onNewAnalysis}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          className="px-10 py-4 bg-gradient-to-r from-[#D4AF37] to-[#C9A961] text-[#0F1419] rounded-xl font-black uppercase tracking-widest text-sm shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:shadow-[0_15px_40px_rgba(212,175,55,0.3)] hover:-translate-y-1 transition-all"
         >
-          Start New Analysis
+          Initialize New Matrix
         </button>
       </div>
     </div>
@@ -223,45 +225,45 @@ function CandidateCard({
 }) {
   const scoreColor =
     candidate.score >= 80
-      ? 'text-green-600'
+      ? 'text-emerald-400'
       : candidate.score >= 60
-        ? 'text-yellow-600'
-        : 'text-red-600';
+        ? 'text-yellow-400'
+        : 'text-red-400';
 
   const confidenceColor =
     candidate.confidence === 'High'
-      ? 'bg-green-100 text-green-800'
+      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
       : candidate.confidence === 'Medium'
-        ? 'bg-yellow-100 text-yellow-800'
-        : 'bg-red-100 text-red-800';
+        ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
+        : 'bg-red-500/10 text-red-400 border border-red-500/20';
 
   return (
-    <div className="bg-white rounded-lg border p-6 space-y-4">
-      {rank && <p className="text-sm font-semibold text-gray-500">#{rank}</p>}
+    <div className="bg-[#0F1419] rounded-xl border border-[#3A4452] p-6 space-y-4 hover:border-[#D4AF37]/30 transition-all">
+      {rank && <p className="text-[10px] font-black text-[#8C7F72] uppercase tracking-[0.2em]">Priority Sequence Alpha #{rank}</p>}
 
       <div className="flex items-center justify-between">
-        <h3 className="text-2xl font-mono font-bold">{candidate.time}</h3>
+        <h3 className="text-3xl font-mono font-black text-[#D4AF37] tracking-tighter">{candidate.time}</h3>
         <div className="text-right">
-          <p className={`text-3xl font-bold ${scoreColor}`}>{candidate.score}/100</p>
-          <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${confidenceColor}`}>
-            {candidate.confidence}
+          <p className={`text-2xl font-black ${scoreColor}`}>{candidate.score}%</p>
+          <span className={`inline-block px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${confidenceColor} mt-1`}>
+            {candidate.confidence} Confidence
           </span>
         </div>
       </div>
 
-      <p className="text-gray-600">{candidate.offsetDescription}</p>
+      <p className="text-[#8C7F72] text-xs font-medium uppercase tracking-wider">{candidate.offsetDescription}</p>
 
       {candidate.recommendation && (
-        <div className="bg-gray-50 rounded-lg p-4">
-          <p className="font-semibold mb-2">Recommendation</p>
-          <p className="text-gray-700">{candidate.recommendation}</p>
+        <div className="bg-[#151a21] rounded-xl border border-[#3A4452]/50 p-6">
+          <p className="text-[10px] font-black text-[#D4AF37] uppercase tracking-widest mb-3">Neural Decision</p>
+          <p className="text-[#C4B8AD] text-sm leading-relaxed">{candidate.recommendation}</p>
         </div>
       )}
 
       {candidate.analysis && (
-        <div className="bg-gray-50 rounded-lg p-4 max-h-48 overflow-y-auto">
-          <p className="font-semibold mb-2">Analysis</p>
-          <p className="text-gray-700 text-sm whitespace-pre-wrap">
+        <div className="bg-[#151a21] rounded-xl border border-[#3A4452]/50 p-6 max-h-64 overflow-y-auto custom-scrollbar">
+          <p className="text-[10px] font-black text-[#8C7F72] uppercase tracking-widest mb-3">Verification Trace</p>
+          <p className="text-[#8C7F72] text-xs leading-relaxed whitespace-pre-wrap">
             {candidate.analysis}
           </p>
         </div>

@@ -614,6 +614,57 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
+ * Execute AI calls in parallel batches with rate-limit awareness
+ * This allows high-throughput analysis while staying within API limits
+ */
+export async function executeAIInParallel(
+    tasks: Array<() => Promise<AIResponse>>,
+    concurrency: number = 3,
+    staggerMs: number = 500
+): Promise<AIResponse[]> {
+    const results: AIResponse[] = new Array(tasks.length);
+    const queue = tasks.map((task, index) => ({ task, index }));
+    let activeCount = 0;
+    let nextIndex = 0;
+
+    return new Promise((resolve) => {
+        async function runNext() {
+            if (nextIndex >= tasks.length && activeCount === 0) {
+                resolve(results);
+                return;
+            }
+
+            while (activeCount < concurrency && nextIndex < tasks.length) {
+                const { task, index } = queue[nextIndex++];
+                activeCount++;
+
+                // Staggered start to prevent instant 429 burst
+                if (staggerMs > 0 && activeCount > 1) {
+                    await sleep(staggerMs * (activeCount - 1));
+                }
+
+                (async () => {
+                    try {
+                        results[index] = await task();
+                    } catch (error) {
+                        results[index] = {
+                            success: false,
+                            content: '',
+                            error: error instanceof Error ? error.message : String(error)
+                        };
+                    } finally {
+                        activeCount--;
+                        runNext();
+                    }
+                })();
+            }
+        }
+
+        runNext();
+    });
+}
+
+/**
  * Parse AI response to extract structured data
  */
 export function parseAIAnalysisResponse(content: string): {

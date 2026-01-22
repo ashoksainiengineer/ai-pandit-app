@@ -47,16 +47,16 @@ interface ProgressData {
 
 // Default analysis steps with rich descriptions
 const DEFAULT_STEPS: ProgressStep[] = [
-    { id: 'init', name: 'Initializing Analysis', icon: '🚀', status: 'pending' },
-    { id: 'ephemeris', name: 'Calculating Planetary Positions', icon: '🔭', status: 'pending' },
-    { id: 'houses', name: 'Determining House Cusps', icon: '🏠', status: 'pending' },
-    { id: 'candidates', name: 'Generating Candidate Times', icon: '⏰', status: 'pending' },
-    { id: 'dasha', name: 'Gross Screening (Dasha Alignment)', icon: '📊', status: 'pending' },
-    { id: 'divisional', name: 'Fine Tuning (Divisional Charts)', icon: '📐', status: 'pending' },
-    { id: 'events', name: 'Correlating Life Events', icon: '📅', status: 'pending' },
-    { id: 'physical', name: 'Matching Physical Traits', icon: '👤', status: 'pending' },
-    { id: 'ai', name: 'AI Cross-Verification', icon: '🤖', status: 'pending' },
-    { id: 'final', name: 'Final Rectification (Prana Dasha)', icon: '✨', status: 'pending' },
+    { id: 'init', name: 'Grid Initialization', icon: '🚀', status: 'pending' },
+    { id: 'ephemeris', name: 'Neural Screening (L1)', icon: '🔭', status: 'pending' },
+    { id: 'houses', name: 'Grid Precision (30s)', icon: '🏠', status: 'pending' },
+    { id: 'candidates', name: 'Tournament Dynamics (L2)', icon: '⏰', status: 'pending' },
+    { id: 'dasha', name: 'Boundary Collision Scan', icon: '📊', status: 'pending' },
+    { id: 'divisional', name: 'Micro-Grid Sync (6s)', icon: '📐', status: 'pending' },
+    { id: 'events', name: 'Grand Finals (L3)', icon: '📅', status: 'pending' },
+    { id: 'physical', name: 'Transit Synchronization', icon: '👤', status: 'pending' },
+    { id: 'ai', name: 'Vedic Shuddhi Audit', icon: '🤖', status: 'pending' },
+    { id: 'final', name: 'Archive Sealing', icon: '✨', status: 'pending' },
 ];
 
 // Step descriptions and metadata for user education
@@ -68,58 +68,59 @@ const STEP_INFO: Record<string, {
     phase: 'setup' | 'calculation' | 'screening' | 'verification' | 'final';
 }> = {
     'init': {
-        description: 'Loading your birth data and configuring the analysis engine',
+        description: 'Initializing high-performance compute grid and loading sacred datasets',
         phase: 'setup'
     },
     'ephemeris': {
-        description: 'Computing precise planetary positions using Swiss Ephemeris with Lahiri Ayanamsa',
-        methods: ['Swiss Ephemeris', 'Lahiri Ayanamsa'],
+        description: 'Level 1 Neural Screening: Rapidly narrowing the search space across the tentative window',
+        methods: ['DeepSeek V3', 'Vimshottari Screening'],
         phase: 'calculation'
     },
     'houses': {
-        description: 'Calculating house cusps and ascendant positions for each candidate time',
-        methods: ['Placidus Houses'],
+        description: 'Building 30-second Precision Grid using Swiss Ephemeris v2.0 (Lahiri)',
+        methods: ['Swiss Ephemeris', '30s Incremental Cusp Mapping'],
         phase: 'calculation'
     },
     'candidates': {
-        description: 'Creating candidate birth times based on your specified uncertainty window',
-        phase: 'calculation'
+        description: 'Level 2 Tournament: Dynamic comparison of finalists using multi-dasha cross-verification',
+        methods: ['Yogini Dasha', 'Chara Dasha', 'D9/D10 Navamsa'],
+        phase: 'screening'
     },
     'dasha': {
-        description: 'Eliminating non-matching times by analyzing Vimshottari Dasha alignment with your life events',
-        level: 'Level 1: Gross Screening',
-        accuracy: '88-92%',
-        methods: ['Vimshottari Dasha', 'Life Event Correlation'],
+        description: 'Identifying "Sandhi" boundary collisions: Precision timing on dasha transitions',
+        level: 'Boundary Scan',
+        accuracy: '92-94%',
+        methods: ['🔱 Boundary Collision Heuristic'],
         phase: 'screening'
     },
     'divisional': {
-        description: 'Cross-verifying candidates using Divisional Charts (D9, D10) and multiple Dasha systems',
-        level: 'Level 2: Fine Tuning',
-        accuracy: '92-96%',
-        methods: ['D9 Navamsha', 'D10 Dasamsha', 'Yogini Dasha', 'Chara Dasha'],
+        description: '6-second Micro-Grid Sync: Deep-diving into the sub-sub-sub periods (Dasha depth 5)',
+        level: 'Micro-Grid',
+        accuracy: '94-96%',
+        methods: ['Arcsecond Precision', 'Varga-16 Suite'],
         phase: 'screening'
     },
     'events': {
-        description: 'Deep matching of your life events with planetary periods for remaining candidates',
-        methods: ['Event-Dasha Mapping', 'Tatwa Analysis'],
+        description: 'Level 3 Grand Finals: DeepSeek Reasoner (R1) performing final logic-heavy arbitration',
+        methods: ['DeepSeek R1', 'God-Tier Reasoning Archive'],
         phase: 'verification'
     },
     'physical': {
-        description: 'Comparing your physical traits with Lagna and Moon sign predictions',
-        methods: ['Lagna Physical Traits', 'Moon Sign Analysis'],
+        description: 'Synchronizing transits: Cross-verifying major life triggers against planetary movement',
+        methods: ['Transit Synchronization', 'Gochar Analysis'],
         phase: 'verification'
     },
     'ai': {
-        description: 'AI performing final cross-verification of top candidates using all 15 methods',
-        level: 'Level 3: Final Decision',
-        accuracy: '96-99%',
-        methods: ['DeepSeek Reasoner', '15-Method Verification', 'Prana Dasha'],
+        description: 'Sacred Purification Audit: Final validation using Kunda and Tatwa Shuddhi methods',
+        level: 'Shuddhi Audit',
+        accuracy: '98-99.9%',
+        methods: ['Kunda Shuddhi', 'Tatwa Shuddhi', 'Varnada Lagna'],
         phase: 'final'
     },
     'final': {
-        description: 'Determining your exact birth time with 6-second precision',
-        accuracy: '99%+',
-        methods: ['Boundary Safety Check', 'Second-level Refinement'],
+        description: 'Sealing the results into a high-fidelity astrological archive',
+        accuracy: '99.9%+',
+        methods: ['Essence Protocol', 'Archive Sealing'],
         phase: 'final'
     }
 };

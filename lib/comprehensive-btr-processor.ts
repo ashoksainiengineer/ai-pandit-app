@@ -1,9 +1,9 @@
 // lib/comprehensive-btr-processor.ts
 // MAXIMUM ACCURACY BTR Processor using ALL 15+ Vedic Methods
-// Sequential processing for 512MB RAM efficiency
+// Performance optimized processing for high-capacity AI backend
 // Target: 99%+ accuracy
 
-import { calculateEphemeris } from './ephemeris';
+import { calculateEphemeris, calculateJulianDay, convertToUTC } from './ephemeris';
 import {
     calculateVimshottariDasha,
     getDashaForDate,
@@ -45,9 +45,9 @@ import {
     formatJaiminiAspects,
 } from './jaimini-astrology';
 import {
-    callAIK2,
+    callAI,
     parseAIAnalysisResponse,
-} from './AI-k2-client';
+} from './ai-client';
 import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager';
 import { logger } from './logger';
 import { LifeEvent, EphemerisData } from './types';
@@ -225,10 +225,10 @@ export async function processComprehensiveAnalysis(
         });
 
         // ═══════════════════════════════════════════════════════════════════════
-        // PHASE 3: COMPREHENSIVE Deep Analysis with AI K2
+        // PHASE 3: COMPREHENSIVE Deep Analysis with AI
         // ═══════════════════════════════════════════════════════════════════════
 
-        const analysisResults = await comprehensiveAIAnalysis(
+        const analysisResults = await analyzeDeeplyWithAI(
             topCandidates,
             input.dateOfBirth,
             input.latitude,
@@ -318,7 +318,7 @@ async function multiMethodQuickFilter(
                 timezone
             );
 
-            const jd = dateToJulianDay(dateOfBirth, candidate.time, timezone);
+            const jd = calculateJulianDay(convertToUTC(dateOfBirth, candidate.time, timezone));
             const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
 
             // ═══════════════════════════════════════════════════════════════════
@@ -433,15 +433,13 @@ async function multiMethodQuickFilter(
             const aspects = calculateAdvancedAspects(ephemeris);
             let advancedAspectsScore = 50;
 
-            // Count beneficial aspects
+            // Count beneficial aspects (Vedic Drishti)
             const beneficAspects = aspects.filter(a =>
-                ['trine', 'sextile', 'conjunction'].includes(a.aspectType) &&
-                a.strength !== 'weak'
+                a.strength >= 75
             ).length;
 
             const maleficAspects = aspects.filter(a =>
-                ['square', 'opposition'].includes(a.aspectType) &&
-                a.strength !== 'weak'
+                a.strength < 50
             ).length;
 
             advancedAspectsScore += (beneficAspects - maleficAspects) * 5;
@@ -484,7 +482,7 @@ async function multiMethodQuickFilter(
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// PHASE 3: COMPREHENSIVE AI K2 ANALYSIS
+// PHASE 3: COMPREHENSIVE AI ANALYSIS
 // ═════════════════════════════════════════════════════════════════════════════
 
 interface ComprehensiveAnalysisResult {
@@ -497,7 +495,7 @@ interface ComprehensiveAnalysisResult {
     verdict: string;
 }
 
-async function comprehensiveAIAnalysis(
+async function analyzeDeeplyWithAI(
     candidates: MultiMethodScore[],
     dateOfBirth: string,
     latitude: number,
@@ -523,7 +521,7 @@ async function comprehensiveAIAnalysis(
                 timezone
             );
 
-            const jd = dateToJulianDay(dateOfBirth, candidate.time, timezone);
+            const jd = calculateJulianDay(convertToUTC(dateOfBirth, candidate.time, timezone));
             const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, jd);
 
             // ═══════════════════════════════════════════════════════════════════
@@ -545,13 +543,13 @@ async function comprehensiveAIAnalysis(
             const arudhaLagna = calculateArudhaLagna(ephemeris);
 
             // Physical traits analysis
-            let physicalTraitsAnalysis = null;
+            let physicalTraitsAnalysis: ReturnType<typeof scorePhysicalTraits> | undefined;
             if (physicalTraits) {
                 physicalTraitsAnalysis = scorePhysicalTraits(ephemeris, physicalTraits);
             }
 
             // ═══════════════════════════════════════════════════════════════════
-            // Build COMPREHENSIVE prompt for AI K2
+            // Build COMPREHENSIVE prompt for AI
             // ═══════════════════════════════════════════════════════════════════
             const prompt = buildComprehensivePrompt(
                 candidate.time,
@@ -574,8 +572,8 @@ async function comprehensiveAIAnalysis(
                 physicalTraitsAnalysis
             );
 
-            // Call AI K2 with extended tokens for comprehensive analysis
-            const response = await callAIK2(
+            // Call AI with extended tokens for comprehensive analysis
+            const response = await callAI(
                 COMPREHENSIVE_SYSTEM_PROMPT,
                 prompt,
                 {
@@ -586,7 +584,7 @@ async function comprehensiveAIAnalysis(
             );
 
             if (!response.success) {
-                logger.error('AI K2 comprehensive call failed', { error: response.error });
+                logger.error('AI comprehensive call failed', { error: response.error });
                 continue;
             }
 
@@ -787,39 +785,6 @@ function selectBestWithConsensus(results: ComprehensiveAnalysisResult[]): Compre
 // UTILITY
 // ═════════════════════════════════════════════════════════════════════════════
 
-function dateToJulianDay(dateStr: string, timeStr: string, timezone: string): number {
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const [hour, minute, second] = timeStr.split(':').map(n => Number(n) || 0);
 
-    let tzOffset = 0;
-    if (timezone.includes('/')) {
-        if (timezone.includes('Kolkata')) tzOffset = 5.5;
-        else if (timezone.includes('New_York')) tzOffset = -5;
-        else if (timezone.includes('London')) tzOffset = 0;
-        else if (timezone.includes('Los_Angeles')) tzOffset = -8;
-    } else if (timezone.match(/^[+-]?\d+(\.\d+)?$/)) {
-        tzOffset = parseFloat(timezone);
-    }
-
-    const utcHour = hour - tzOffset;
-    const timeDecimal = utcHour + minute / 60 + second / 3600;
-
-    let y = year;
-    let m = month;
-    if (m <= 2) {
-        y -= 1;
-        m += 12;
-    }
-
-    const a = Math.floor(y / 100);
-    const b = 2 - a + Math.floor(a / 4);
-
-    const jd = Math.floor(365.25 * (y + 4716)) +
-        Math.floor(30.6001 * (m + 1)) +
-        day + b - 1524.5 +
-        timeDecimal / 24;
-
-    return jd;
-}
 
 export default processComprehensiveAnalysis;

@@ -1,7 +1,7 @@
 // lib/time-offset-manager.ts
 // Manage time offset ranges and generate candidate times
 
-import { logger } from '@/lib/logger';
+import { logger } from './logger';
 
 // ═════════════════════════════════════════════════════════════════════════
 // TYPE DEFINITIONS

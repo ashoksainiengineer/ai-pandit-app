@@ -97,7 +97,7 @@ export interface RectificationSession {
   lifeEvents: LifeEvent[]; // Update usage to new interface
   rectifiedTime?: string;
   accuracy?: number;
-  confidence?: 'high' | 'medium' | 'low';
+  confidence?: 'High' | 'Medium' | 'Low';
   analysisResult?: any;
   createdAt: Date;
   updatedAt: Date;
@@ -145,7 +145,7 @@ export interface HousePosition {
 export interface SimpleAIAnalysisResult {
   rectifiedTime: string;
   accuracy: number;
-  confidence: 'high' | 'medium' | 'low';
+  confidence: 'High' | 'Medium' | 'Low';
   reasoning: string;
   alternativeTimes: Array<{ time: string; score: number }>;
   eventAnalysis: Array<{
@@ -196,7 +196,7 @@ export interface AIAnalysisResult {
   offsetMinutes: number;
   offsetDescription: string;
   score: number; // 0-100 confidence
-  confidence: 'high' | 'medium' | 'low'; // Confidence level
+  confidence: 'High' | 'Medium' | 'Low'; // Confidence level
   analysis: string; // Detailed analysis from AI
   thinking: string; // AI's thinking process (truncated)
   eventMatches: {
@@ -219,7 +219,7 @@ export interface TopCandidatesAnalysis {
 export interface BTROutput {
   rectifiedTime: string;
   accuracy: number;
-  confidence: 'high' | 'medium' | 'low';
+  confidence: 'High' | 'Medium' | 'Low';
   processingTime: number;
   analysis: {
     eventAnalysis: Array<{

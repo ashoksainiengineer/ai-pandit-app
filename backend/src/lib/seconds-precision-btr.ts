@@ -160,6 +160,8 @@ Any attempt to estimate planetary degrees, dasha dates, or divisional charts man
 THE DATA PROVIDED IS ARCSECOND-PRECISE; YOUR BRAIN MUST ONLY ACT AS THE LOGICAL REASONER TO CORRELATE THIS DATA WITH THE USER'S LIFE EVENTS.
 Do not say "I calculated" or "I estimate". Say "The data shows" or "Based on the provided dasha table".
 
+🔱 ESSENCE PROTOCOL: Use the <TECHNICAL_DATA_JSON> block at the end of each candidate for arcsecond-precise longitude/degree verification.
+
 STAGE 2 ANALYSIS: GROSS SCREENING (Target: 88-92% accuracy)
 
 You are analyzing ${count} candidate birth times at MINUTE-LEVEL intervals. Your task is to ELIMINATE clearly incorrect times and identify the TOP 5 most likely correct times.
@@ -195,6 +197,8 @@ CRITICAL: NO SELF-CALCULATION.
 The planetary positions and dasha dates provided are final and mathematically verified. 
 Your singular mission is to act as a logic engine that fits the life events into these precise temporal frames.
 Any divergence from the provided numbers in your reasoning will be considered a failure.
+
+🔱 ESSENCE PROTOCOL: The <TECHNICAL_DATA_JSON> block contains minified high-precision data. Use it to verify dasha transitions at the second-level.
 
 STAGE 5 ANALYSIS: FINE COMPARISON (Target: 92-96% accuracy)
 
@@ -233,6 +237,8 @@ YOUR ROLE: PURE LOGICAL REASONING ENGINE.
 WARNING: CALCULATION IS ABSOLUTELY PROHIBITED.
 The data behind these 6-second candidates is generated with scientific precision (arcsecond-level). 
 TRUST the tables. CORRELATE the events. BE THE BRAIN, NOT THE CALCULATOR.
+
+🔱 ESSENCE PROTOCOL: Access the <TECHNICAL_DATA_JSON> block for arcsecond positions. This is the only source of truth for 6-second difference verification.
 
 STAGE 7 ANALYSIS: SECONDS-LEVEL FINAL DECISION (Target: 99.9% accuracy)
 
@@ -1907,6 +1913,18 @@ function minifyPlanets(planets: any): any {
     return min;
 }
 
+function minifyDivCharts(divCharts: any): any {
+    if (!divCharts) return {};
+    const min: any = {};
+    for (const [key, chart] of Object.entries(divCharts)) {
+        const c: any = chart;
+        min[key] = {
+            asc: { sign: c.ascendant.sign, deg: c.ascendant.degree.toFixed(4) }
+        };
+    }
+    return min;
+}
+
 function getDashaSequence(moonSidereal: number, birthDate: Date): string {
     const periods = calculateVimshottariDasha(moonSidereal, birthDate);
     return periods.map(p => {
@@ -2014,6 +2032,7 @@ ${JSON.stringify({
         time,
         planets: minifyPlanets(ephemeris.planets),
         ascendant: { sign: ephemeris.ascendant.sign, degree: ephemeris.ascendant.degree.toFixed(4) },
+        varga: minifyDivCharts(divCharts),
         dashas: minifyDashas(dashas, 3)
     }, null, 2)}
 </TECHNICAL_DATA_JSON>
@@ -2113,11 +2132,7 @@ ${JSON.stringify({
             vimshottari: minifyDashas(allDashas.vimshottari, 2),
             yogini: minifyDashas(allDashas.yogini, 2)
         },
-        varga: {
-            D24: { ascendant: divCharts.D24.ascendant },
-            D40: { ascendant: divCharts.D40.ascendant },
-            D45: { ascendant: divCharts.D45.ascendant }
-        }
+        varga: minifyDivCharts({ D24: divCharts.D24, D40: divCharts.D40, D45: divCharts.D45 })
     }, null, 2)}
 </TECHNICAL_DATA_JSON>
 
@@ -2226,14 +2241,10 @@ KEY ASPECTS: ${aspects.slice(0, 15).map(a => `${a.planet1}-${a.planet2} ${a.aspe
 <TECHNICAL_DATA_JSON>
 ${JSON.stringify({
         time,
-        planets: ephemeris.planets,
-        ascendant: ephemeris.ascendant,
-        maturation: maturationData,
-        shuddhi: { kunda: calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude) },
-        traits: input.physicalTraits,
-        varga: { D24: divCharts.D24, D40: divCharts.D40, D45: divCharts.D45 },
-        ashtakavarga: calculateAshtakavarga(ephemeris),
-        bhriguBindu: calculateBhriguBindu(ephemeris),
+        planets: minifyPlanets(ephemeris.planets),
+        ascendant: { sign: ephemeris.ascendant.sign, degree: ephemeris.ascendant.degree.toFixed(4) },
+        varga: minifyDivCharts({ D24: divCharts.D24, D40: divCharts.D40, D45: divCharts.D45 }),
+        shuddhi: { kundaScore: calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude).score },
         dashaDepth: 5
     }, null, 2)}
 </TECHNICAL_DATA_JSON>`;
