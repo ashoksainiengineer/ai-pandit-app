@@ -85,6 +85,12 @@ export interface PhysicalTraits {
   hairType?: 'straight' | 'curly' | 'wavy' | 'thin' | 'thick';
   prakriti?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha';
   noseType?: 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
+  eyeShape?: 'almond' | 'round' | 'deep_set' | 'hooded' | 'wide';
+  foreheadHeight?: 'high' | 'broad' | 'narrow' | 'rounded';
+  jawLine?: 'strong' | 'defined' | 'soft' | 'pointed' | 'round';
+  chinType?: 'cleft' | 'pointed' | 'round' | 'square';
+  shoulderWidth?: 'broad' | 'average' | 'narrow' | 'sloping';
+  fingerLength?: 'long' | 'short' | 'average' | 'tapered';
   specialFeatures?: string;
   overallDescription?: string;
 }

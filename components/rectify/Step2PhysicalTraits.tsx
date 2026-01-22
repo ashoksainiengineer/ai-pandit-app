@@ -1,8 +1,8 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PhysicalTraits } from '@/lib/types';
-import { Brain, User, Zap, Sparkles, HelpCircle, Info } from 'lucide-react';
+import { Brain, User, Zap, Sparkles, HelpCircle, Info, Eye, ScanFace, Activity, Fingerprint, Ruler } from 'lucide-react';
 import { useState } from 'react';
 
 interface Step2Props {
@@ -11,374 +11,318 @@ interface Step2Props {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// VEDIC-GRADE OPTIONS (Samudrik Shastra inspired)
+// SAMUDRIKA SHASTRA DATASETS (GOD TIER)
 // ═════════════════════════════════════════════════════════════════════════════
 
+const TABS = [
+    { id: 'face', label: 'Mukha (Face)', icon: ScanFace },
+    { id: 'structure', label: 'Deha (Structure)', icon: Activity },
+    { id: 'details', label: 'Lakshan (Details)', icon: Fingerprint },
+];
+
+const EYE_SHAPES = [
+    { value: 'almond', label: 'Almond', emoji: '👁️', signs: 'Venus/Mercury (Artist)', guide: 'Tapered ends, classic shape.' },
+    { value: 'round', label: 'Round/Large', emoji: '👀', signs: 'Moon/Jupiter (Empath)', guide: 'Open, innocent, watery gaze.' },
+    { value: 'deep_set', label: 'Deep Set', emoji: '🕶️', signs: 'Saturn/Scorpio (Observer)', guide: 'Brow bone prominent, eyes shadown.' },
+    { value: 'hooded', label: 'Hooded', emoji: '😑', signs: 'Mars/Lion (Intense)', guide: 'Upper lid covers crease.' },
+];
+
+const FOREHEAD_TYPES = [
+    { value: 'high', label: 'High/Broad', emoji: '🧠', signs: 'Sun/Jupiter (Intellect)', guide: 'Sign of wisdom and leadership.' },
+    { value: 'narrow', label: 'Narrow', emoji: '🤏', signs: 'Saturn/Mercury (Practical)', guide: 'Focused, grounded nature.' },
+    { value: 'rounded', label: 'Rounded', emoji: '🌕', signs: 'Moon (Creative)', guide: 'Imaginative and emotional.' },
+];
+
+const JAW_TYPES = [
+    { value: 'strong', label: 'Strong/Square', emoji: '⬛', signs: 'Mars (Warrior)', guide: 'Willpower, determination.' },
+    { value: 'pointed', label: 'Pointed', emoji: '🔻', signs: 'Mercury (Analyst)', guide: 'Quick wit, sharp speech.' },
+    { value: 'round', label: 'Soft/Round', emoji: '⚪', signs: 'Venus (Harmony)', guide: 'Gentle nature, peace lover.' },
+];
+
 const HEIGHT_OPTIONS = [
-    {
-        value: 'short',
-        label: 'Short',
-        emoji: '🧒',
-        signs: 'Cancer, Capricorn, Pisces Influence',
-        guide: 'Below 5\'3" for men, 5\'0" for women.'
-    },
-    {
-        value: 'medium',
-        label: 'Average',
-        emoji: '🧑',
-        signs: 'Taurus, Virgo, Libra Influence',
-        guide: 'Standard average height for your region/ethnicity.'
-    },
-    {
-        value: 'tall',
-        label: 'Tall',
-        emoji: '🧑‍🦰',
-        signs: 'Aries, Sagittarius, Aquarius Influence',
-        guide: 'Noticeably taller than peers (Above 5\'11" men).'
-    },
+    { value: 'short', label: 'Short', emoji: '🧒', signs: 'Water/Earth Signs', guide: '< 5\'4" (M) | < 5\'1" (F)' },
+    { value: 'medium', label: 'Average', emoji: '🧑', signs: 'Variable/Mixed', guide: 'Standard for region.' },
+    { value: 'tall', label: 'Tall', emoji: '🧍', signs: 'Fire/Air Signs', guide: '> 5\'11" (M) | > 5\'7" (F)' },
 ];
 
-const PRAKRITI_OPTIONS = [
-    {
-        value: 'vata',
-        label: 'Vata (Thin)',
-        emoji: '💨',
-        signs: 'Light Frame, Quick, Dry Skin',
-        guide: 'Bony joints, thin hair, difficulty gaining weight, feels cold easily.'
-    },
-    {
-        value: 'pitta',
-        label: 'Pitta (Medium)',
-        emoji: '🔥',
-        signs: 'Moderate Build, Fiery, Sharp Eyes',
-        guide: 'Fair/Reddish skin, early graying, sharp intellect, medium muscularity.'
-    },
-    {
-        value: 'kapha',
-        label: 'Kapha (Strong)',
-        emoji: '💧',
-        signs: 'Large Frame, Calm, Oily Skin',
-        guide: 'Broad shoulders, thick hair, gains weight easily, deep steady voice.'
-    },
+const FRAME_OPTIONS = [
+    { value: 'vata', label: 'Vata (Slim)', emoji: '🦴', signs: 'Saturn/Mercury', guide: 'Thin frame, visible joints.' },
+    { value: 'pitta', label: 'Pitta (Athletic)', emoji: '🔥', signs: 'Mars/Sun', guide: 'Medium build, muscular.' },
+    { value: 'kapha', label: 'Kapha (Solid)', emoji: '🐘', signs: 'Jupiter/Moon', guide: 'Broad, heavy, endurance.' },
 ];
 
-const HAIR_TYPE_OPTIONS = [
-    {
-        value: 'straight',
-        label: 'Straight',
-        emoji: '💇‍♂️',
-        signs: 'Saturn influence (Structured)',
-        guide: 'Hair falls straight, rarely curls even when damp.'
-    },
-    {
-        value: 'curly',
-        label: 'Curly/Kinky',
-        emoji: '🌀',
-        signs: 'Rahu/Mercury influence (Dynamic)',
-        guide: 'Natural coils, springs, or tight ringlets.'
-    },
-    {
-        value: 'wavy',
-        label: 'Wavy',
-        emoji: '🌊',
-        signs: 'Venus/Moon influence (Soft)',
-        guide: 'Loose curves or "S" shape pattern.'
-    },
-    {
-        value: 'thin',
-        label: 'Fine/Thin',
-        emoji: '🌱',
-        signs: 'Sun/Mars influence (Sharp)',
-        guide: 'Sparse or silky hair, scalp visible in light.'
-    },
+const SHOULDER_OPTIONS = [
+    { value: 'broad', label: 'Broad', emoji: '💪', signs: 'Mars (Action)', guide: 'Wider than hips.' },
+    { value: 'sloping', label: 'Sloping', emoji: '📉', signs: 'Mercury (Fluid)', guide: 'Gentle slope from neck.' },
+    { value: 'narrow', label: 'Narrow', emoji: '🥢', signs: 'Saturn (Restriction)', guide: 'Compact frame.' },
 ];
 
-const NOSE_TYPE_OPTIONS = [
-    {
-        value: 'sharp',
-        label: 'Sharp/Pointed',
-        emoji: '👃',
-        signs: 'Mars/Sun - Sharp intellect',
-        guide: 'Prominent bridge, pointed tip, "arrow" like.'
-    },
-    {
-        value: 'blunt',
-        label: 'Blunt/Rounded',
-        emoji: '👃',
-        signs: 'Venus/Moon - Emotional',
-        guide: 'Softer edges, rounded tip, fleshy.'
-    },
-    {
-        value: 'aquiline',
-        label: 'Aquiline (Eagle)',
-        emoji: '🦅',
-        signs: 'Saturn/Rahu - Leadership',
-        guide: 'Curved or hooked profile, prominent middle.'
-    },
+const HAIR_OPTIONS = [
+    { value: 'straight', label: 'Straight', emoji: '⬇️', signs: 'Saturn', guide: 'Falls flat/straight.' },
+    { value: 'wavy', label: 'Wavy', emoji: '〰️', signs: 'Venus/Moon', guide: 'Soft curls/S-waves.' },
+    { value: 'curly', label: 'Curly', emoji: '🌀', signs: 'Rahu/Mars', guide: 'Tight curls/coils.' },
+    { value: 'thin', label: 'Fine/Thin', emoji: '🌿', signs: 'Sun (Heat)', guide: 'Silky or receding.' },
 ];
 
-const FACE_SHAPES = [
-    { value: 'round', label: 'Round', emoji: '🌕', signs: 'Moon Ruled', guide: 'Width and length are almost equal.' },
-    { value: 'oval', label: 'Oval', emoji: '🥚', signs: 'Mercury Ruled', guide: 'Length is more than width, tapered chin.' },
-    { value: 'square', label: 'Square', emoji: '⬜', signs: 'Mars Ruled', guide: 'Strong angular jawline, broad forehead.' },
-    { value: 'long', label: 'Long', emoji: '📏', signs: 'Saturn Ruled', guide: 'Narrow and long, prominent cheekbones.' },
-];
-
-// Item animation variants
-const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
-};
 
 export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: Step2Props) {
+    const [activeTab, setActiveTab] = useState('face');
     const [activeHelp, setActiveHelp] = useState<string | null>(null);
 
-    // Reusable Selection Card
-    const TraitSelector = ({
-        label,
-        icon: Icon,
-        options,
-        value,
-        onChange,
-        cols = 3,
-        description,
-        groupId
-    }: {
-        label: string;
-        icon: any;
-        options: { value: string; label: string; emoji: string; signs: string; guide: string }[];
-        value: string;
-        onChange: (val: string) => void;
-        cols?: number;
-        description?: string;
-        groupId: string;
-    }) => (
-        <div className="space-y-4">
+    // Helper to get helper text color
+    const getSignColor = (signs: string) => {
+        if (signs.includes('Mars') || signs.includes('Sun')) return 'text-red-400';
+        if (signs.includes('Venus') || signs.includes('Moon')) return 'text-emerald-400';
+        if (signs.includes('Saturn')) return 'text-blue-400';
+        return 'text-[#6B9AC4]';
+    }
+
+    const TraitSelector = ({ label, icon: Icon, options, value, onChange, groupId, description, grid = 3 }: any) => (
+        <div className="space-y-4 animate-fade-in-up">
             <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-lg bg-[#E8A849]/10 flex items-center justify-center border border-[#E8A849]/20 shadow-[0_0_10px_rgba(232,168,73,0.05)]">
-                        <Icon className="w-4 h-4 text-[#E8A849]" />
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-[#E8A849]/10 border border-[#E8A849]/20">
+                        <Icon className="w-5 h-5 text-[#E8A849]" />
                     </div>
                     <div>
-                        <label className="block text-sm font-black text-[#F5F0EB] tracking-wide uppercase">{label}</label>
-                        {description && <p className="text-[10px] text-[#8C7F72] uppercase tracking-[0.1em] font-medium">{description}</p>}
+                        <h3 className="text-sm font-black text-[#F5F0EB] uppercase tracking-wide">{label}</h3>
+                        {description && <p className="text-[10px] text-[#8C7F72] uppercase tracking-wider">{description}</p>}
                     </div>
                 </div>
                 <button
                     onClick={() => setActiveHelp(activeHelp === groupId ? null : groupId)}
-                    className="p-2 rounded-full hover:bg-white/5 transition-colors group"
+                    className={`p-2 rounded-full transition-all ${activeHelp === groupId ? 'bg-[#E8A849] text-black' : 'hover:bg-white/5 text-[#8C7F72]'}`}
                 >
-                    <HelpCircle className={`w-4 h-4 transition-colors ${activeHelp === groupId ? 'text-[#E8A849]' : 'text-[#8C7F72] group-hover:text-[#F5F0EB]'}`} />
+                    <HelpCircle className="w-4 h-4" />
                 </button>
             </div>
 
-            {activeHelp === groupId && (
-                <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-[#6B9AC4]/10 border border-[#6B9AC4]/20 rounded-xl p-4 mb-4"
-                >
-                    <div className="flex gap-3">
-                        <Info className="w-4 h-4 text-[#6B9AC4] shrink-0 mt-0.5" />
-                        <div className="text-xs text-[#C4B8AD] leading-relaxed">
-                            <span className="text-[#6B9AC4] font-bold">Identification Guide:</span> Select the option that most closely matches your <span className="text-[#F5F0EB] font-bold italic">Natural State</span> (excluding enhancements or medical procedures). Vedic analysis relies on genetic markers.
+            {/* Context Help */}
+            <AnimatePresence>
+                {activeHelp === groupId && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="overflow-hidden"
+                    >
+                        <div className="bg-[#6B9AC4]/10 border border-[#6B9AC4]/20 rounded-xl p-4 mb-4 text-xs leading-relaxed text-[#C4B8AD] flex gap-3">
+                            <Info className="w-4 h-4 text-[#6B9AC4] shrink-0 mt-0.5" />
+                            <div>
+                                <strong className="text-[#6B9AC4]">Astrological Logic:</strong> This trait helps the AI differentiate between planetary influences on your Ascendant.
+                                <br />
+                                <span className="italic opacity-70">Example: A &quot;Mars&quot; jawline rules out soft ascendants like Pisces.</span>
+                            </div>
                         </div>
-                    </div>
-                </motion.div>
-            )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-            <div className={`grid gap-3 ${cols === 4 ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
-                {options.map((opt) => (
-                    <motion.button
+            <div className={`grid gap-3 ${grid === 4 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
+                {options.map((opt: any) => (
+                    <button
                         key={opt.value}
                         type="button"
                         onClick={() => onChange(opt.value)}
-                        whileHover={{ scale: 1.02, y: -2 }}
-                        whileTap={{ scale: 0.98 }}
-                        className={`p-5 rounded-2xl text-left transition-all border relative overflow-hidden group ${value === opt.value
-                            ? 'bg-gradient-to-br from-[#E8A849]/20 to-transparent border-[#E8A849] shadow-[0_10px_30px_rgba(232,168,73,0.1)]'
-                            : 'bg-[#1A1614] border-[#C4B8AD]/10 hover:border-[#E8A849]/30 hover:bg-[#201C1A]'
+                        className={`relative p-4 rounded-xl border text-left transition-all group overflow-hidden ${value === opt.value
+                            ? 'bg-[#E8A849]/10 border-[#E8A849] shadow-[0_0_20px_rgba(232,168,73,0.1)]'
+                            : 'bg-[#151a21] border-[#3A4452]/40 hover:border-[#E8A849]/50'
                             }`}
                     >
                         {value === opt.value && (
-                            <div className="absolute top-3 right-3">
-                                <Sparkles className="w-4 h-4 text-[#E8A849] animate-pulse" />
+                            <div className="absolute top-0 right-0 p-2">
+                                <Sparkles className="w-3 h-3 text-[#E8A849] animate-pulse" />
                             </div>
                         )}
-                        <div className="flex items-center gap-4 md:block">
-                            <div className="text-4xl mb-3 filter drop-shadow-[0_0_8px_rgba(0,0,0,0.5)]">{opt.emoji}</div>
-                            <div>
-                                <div className="text-base font-black text-[#F5F0EB] group-hover:text-[#E8A849] transition-colors tracking-tight">
-                                    {opt.label}
-                                </div>
-                                <div className="text-[10px] text-[#6B9AC4] font-bold uppercase tracking-widest mt-1 opacity-80">
-                                    {opt.signs}
-                                </div>
-                            </div>
+                        <div className="text-2xl mb-2">{opt.emoji}</div>
+                        <div className="font-bold text-[#F5F0EB] text-sm mb-1">{opt.label}</div>
+                        <div className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${getSignColor(opt.signs)}`}>
+                            {opt.signs}
                         </div>
-                        <div className="mt-4 pt-4 border-t border-[#F5F0EB]/5">
-                            <p className="text-xs text-[#8C7F72] leading-relaxed group-hover:text-[#C4B8AD] transition-colors italic">
-                                "{opt.guide}"
-                            </p>
+                        <div className="text-[10px] text-[#8C7F72] italic leading-tight group-hover:text-[#C4B8AD] transition-colors">
+                            &quot;{opt.guide}&quot;
                         </div>
-
-                        {/* Interactive selection highlight */}
-                        {value === opt.value && (
-                            <motion.div
-                                layoutId="active-highlight"
-                                className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#E8A849] to-transparent"
-                            />
-                        )}
-                    </motion.button>
+                    </button>
                 ))}
             </div>
         </div>
     );
 
-    const getHeightValue = () => {
-        const cm = physicalTraits.height?.cm || 168;
-        if (cm < 162) return 'short';
-        if (cm >= 178) return 'tall';
-        return 'medium';
-    };
-
     return (
-        <motion.div
-            className="space-y-12 pb-12"
-            initial="hidden"
-            animate="visible"
-            variants={{ visible: { transition: { staggerChildren: 0.15 } } }}
-        >
-            {/* ══════════════════════════════════════════════════════════════ */}
-            {/* HEADER */}
-            {/* ══════════════════════════════════════════════════════════════ */}
-            <motion.div variants={itemVariants}>
-                <p className="text-sm text-[#E8A849] font-medium tracking-widest mb-2">STEP 2 OF 4</p>
-                <h1 className="text-3xl font-bold text-[#F5F0EB]">Physical Traits</h1>
-                <p className="text-[#C4B8AD] mt-2 text-sm max-w-2xl leading-relaxed">
-                    Vedic rectification uses <span className="text-[#E8A849] font-bold italic">Samudrik Shastra</span> (Body Signatures) to verify Lagna (Ascendant) and Dasha sequences.
+        <div className="w-full max-w-4xl mx-auto pb-12">
+            {/* Header */}
+            <div className="mb-8 text-center">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E8A849]/10 border border-[#E8A849]/20 text-[#E8A849] text-xs font-bold uppercase tracking-widest mb-4">
+                    <ScanFace className="w-3 h-3" />
+                    Samudrika Shastra 2.0
+                </div>
+                <h1 className="text-3xl font-black text-[#F5F0EB] mb-2">Biometric Verification</h1>
+                <p className="text-[#8C7F72] text-sm max-w-xl mx-auto">
+                    Your physical form is a map of your karma. Providing accurate details helps us fingerprint your true Ascendant.
                 </p>
-            </motion.div>
+            </div>
 
-            {/* ══════════════════════════════════════════════════════════════ */}
-            {/* VEDIC CONTEXT CARD */}
-            {/* ══════════════════════════════════════════════════════════════ */}
-            <motion.div
-                variants={itemVariants}
-                className="bg-[#241F1C] border border-[#C4B8AD]/10 rounded-xl p-6 flex flex-col md:flex-row items-center gap-5"
-            >
-                <div className="p-3 rounded-xl bg-[#E8A849]/10 border border-[#E8A849]/20 shrink-0">
-                    <Brain className="w-6 h-6 text-[#E8A849]" />
+            {/* Navigation Tabs */}
+            <div className="flex p-1 bg-[#151a21] border border-[#3A4452] rounded-xl mb-8 sticky top-4 z-20 shadow-xl backdrop-blur-xl">
+                {TABS.map((tab) => {
+                    const TabIcon = tab.icon;
+                    const isActive = activeTab === tab.id;
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${isActive
+                                ? 'bg-[#E8A849] text-black shadow-lg'
+                                : 'text-[#8C7F72] hover:text-[#F5F0EB] hover:bg-white/5'
+                                }`}
+                        >
+                            <TabIcon className="w-4 h-4" />
+                            <span className="hidden md:inline">{tab.label}</span>
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Tab Content */}
+            <div className="min-h-[500px]">
+                <AnimatePresence mode="wait">
+                    {activeTab === 'face' && (
+                        <motion.div
+                            key="face"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            className="space-y-10"
+                        >
+                            <TraitSelector
+                                label="Netra (The Gaze)"
+                                icon={Eye}
+                                groupId="eyes"
+                                description="Window to the Moon Sign"
+                                options={EYE_SHAPES}
+                                value={physicalTraits.eyeShape || 'almond'}
+                                onChange={(val: any) => updateTraits({ eyeShape: val })}
+                                grid={4}
+                            />
+                            <TraitSelector
+                                label="Lalat (Forehead)"
+                                icon={Brain}
+                                groupId="forehead"
+                                description="Seat of Intelligence (Mercury/Jupiter)"
+                                options={FOREHEAD_TYPES}
+                                value={physicalTraits.foreheadHeight || 'high'}
+                                onChange={(val: any) => updateTraits({ foreheadHeight: val })}
+                            />
+                            <TraitSelector
+                                label="Hanu (Jawline)"
+                                icon={ScanFace}
+                                groupId="jaw"
+                                description="Determine Willpower (Mars Strength)"
+                                options={JAW_TYPES}
+                                value={physicalTraits.jawLine || 'defined'}
+                                onChange={(val: any) => updateTraits({ jawLine: val })}
+                            />
+                        </motion.div>
+                    )}
+
+                    {activeTab === 'structure' && (
+                        <motion.div
+                            key="structure"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            className="space-y-10"
+                        >
+                            <TraitSelector
+                                label="Sharira (Constitution)"
+                                icon={Activity}
+                                groupId="frame"
+                                description="Overall Elemental Balance"
+                                options={FRAME_OPTIONS}
+                                value={physicalTraits.prakriti || 'pitta'}
+                                onChange={(val: any) => updateTraits({ prakriti: val })}
+                            />
+                            <TraitSelector
+                                label="Deha (Height)"
+                                icon={Ruler}
+                                groupId="height"
+                                description="Vertical Aspect"
+                                options={HEIGHT_OPTIONS}
+                                value={(physicalTraits.height?.cm || 168) < 162 ? 'short' : (physicalTraits.height?.cm || 168) > 178 ? 'tall' : 'medium'}
+                                onChange={(val: any) => {
+                                    const cm = val === 'short' ? 155 : val === 'tall' ? 180 : 168;
+                                    updateTraits({ height: { cm, feet: 5, inches: 6 } });
+                                }}
+                            />
+                            <TraitSelector
+                                label="Skandha (Shoulders)"
+                                icon={User}
+                                groupId="shoulders"
+                                description="Planetary Strength Indicator"
+                                options={SHOULDER_OPTIONS}
+                                value={physicalTraits.shoulderWidth || 'average'}
+                                onChange={(val: any) => updateTraits({ shoulderWidth: val })}
+                            />
+                        </motion.div>
+                    )}
+
+                    {activeTab === 'details' && (
+                        <motion.div
+                            key="details"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            className="space-y-10"
+                        >
+                            <TraitSelector
+                                label="Kesha (Hair Texture)"
+                                icon={Sparkles}
+                                groupId="hair"
+                                description="Influence of Saturn/Venus"
+                                options={HAIR_OPTIONS}
+                                value={physicalTraits.hairType || 'straight'}
+                                onChange={(val: any) => updateTraits({ hairType: val })}
+                                grid={4}
+                            />
+
+                            {/* Special Marks */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-[#E8A849]/10 border border-[#E8A849]/20">
+                                        <Fingerprint className="w-5 h-5 text-[#E8A849]" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-black text-[#F5F0EB] uppercase tracking-wide">Vishesha Lakshan</h3>
+                                        <p className="text-[10px] text-[#8C7F72] uppercase tracking-wider">Unique Distinguishing Marks</p>
+                                    </div>
+                                </div>
+                                <div className="relative">
+                                    <textarea
+                                        value={physicalTraits.specialFeatures || ''}
+                                        onChange={(e) => updateTraits({ specialFeatures: e.target.value })}
+                                        placeholder="Describe scars, moles (tilaks), or unique physical features..."
+                                        className="w-full h-32 bg-[#151a21] border border-[#3A4452] rounded-xl p-4 text-sm text-[#F5F0EB] placeholder-[#8C7F72] focus:border-[#E8A849] focus:ring-1 focus:ring-[#E8A849] outline-none transition-all resize-none"
+                                    />
+                                    <div className="absolute bottom-4 right-4 text-[10px] text-[#8C7F72] flex items-center gap-1">
+                                        <Zap className="w-3 h-3 text-[#E8A849]" />
+                                        Encrypted
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            {/* Validation Badge */}
+            <div className="mt-12 flex justify-center">
+                <div className="flex items-center gap-2 px-4 py-2 bg-[#2D7A5C]/10 border border-[#2D7A5C]/20 rounded-full">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#2D7A5C]">
+                        AI-PANDIT LOGIC SYNC: ACTIVE
+                    </span>
                 </div>
-                <div>
-                    <h4 className="text-lg font-bold text-[#F5F0EB] mb-1">
-                        Lagna-Varnada Verification
-                    </h4>
-                    <p className="text-sm text-[#C4B8AD] leading-relaxed">
-                        Each of the 12 Ascendants produces distinct skeletal and muscular structures.
-                        Your biological patterns act as a <span className="text-[#E8A849]/80 font-mono">Dasha-Sync Validation</span> for the AI engine.
-                    </p>
-                </div>
-            </motion.div>
-
-            {/* ══════════════════════════════════════════════════════════════ */}
-            {/* TRAITS FORM */}
-            {/* ══════════════════════════════════════════════════════════════ */}
-            <motion.div
-                variants={itemVariants}
-                className="space-y-16"
-            >
-                {/* 1. Body Prakriti */}
-                <TraitSelector
-                    label="Ayurvedic Constitution (Prakriti)"
-                    icon={Zap}
-                    groupId="prakriti"
-                    description="Overall Energy & Skeletal Frame"
-                    options={PRAKRITI_OPTIONS}
-                    value={physicalTraits.prakriti || 'pitta'}
-                    onChange={(val) => updateTraits({ prakriti: val as any })}
-                />
-
-                {/* 2. Height */}
-                <TraitSelector
-                    label="Vertical Stature (Deha)"
-                    icon={User}
-                    groupId="height"
-                    description="General Height Category"
-                    options={HEIGHT_OPTIONS}
-                    value={getHeightValue()}
-                    onChange={(val) => {
-                        const opt = HEIGHT_OPTIONS.find(o => o.value === val);
-                        updateTraits({ height: { cm: opt?.value === 'short' ? 155 : opt?.value === 'tall' ? 180 : 168, feet: 5, inches: 6 } });
-                    }}
-                />
-
-                {/* 3. Hair Type */}
-                <TraitSelector
-                    label="Crowning Glory (Kesha)"
-                    icon={Sparkles}
-                    groupId="hair"
-                    description="Texture & Growth Pattern"
-                    options={HAIR_TYPE_OPTIONS}
-                    value={physicalTraits.hairType || 'straight'}
-                    onChange={(val) => updateTraits({ hairType: val as any })}
-                />
-
-                {/* 4. Nose Type */}
-                <TraitSelector
-                    label="Nasik (The Bridge)"
-                    icon={User}
-                    groupId="nose"
-                    description="Planetary Influence Marker"
-                    options={NOSE_TYPE_OPTIONS}
-                    value={physicalTraits.noseType || 'sharp'}
-                    onChange={(val) => updateTraits({ noseType: val as any })}
-                />
-
-                {/* 5. Face Shape */}
-                <TraitSelector
-                    label="Mukha (Face Geometry)"
-                    icon={User}
-                    groupId="face"
-                    description="Geometric Facial Signature"
-                    options={FACE_SHAPES}
-                    value={physicalTraits.faceShape || 'oval'}
-                    onChange={(val) => updateTraits({ faceShape: val as any })}
-                    cols={4}
-                />
-
-                {/* Special Features */}
-                <motion.div variants={itemVariants} className="space-y-4">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-lg bg-[#E8A849]/10 flex items-center justify-center border border-[#E8A849]/20">
-                            <Sparkles className="w-4 h-4 text-[#E8A849]" />
-                        </div>
-                        <div>
-                            <label className="block text-sm font-black text-[#F5F0EB] tracking-wide uppercase">
-                                Distinguishing Marks (Tilak/Lakshan)
-                            </label>
-                            <p className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-medium">Moles, Scars, or Unusual Markers</p>
-                        </div>
-                    </div>
-                    <textarea
-                        value={physicalTraits.specialFeatures || ''}
-                        onChange={(e) => updateTraits({ specialFeatures: e.target.value })}
-                        placeholder="e.g., Mole on left forehead (Sun), birthmark on lower neck (Venus)..."
-                        className="w-full h-[150px] p-6 bg-[#1A1614] border border-[#C4B8AD]/10 rounded-2xl text-[#F5F0EB] placeholder-[#8C7F72]/50 resize-none focus:border-[#E8A849] focus:ring-1 focus:ring-[#E8A849]/30 outline-none transition-all shadow-2xl font-medium"
-                    />
-                </motion.div>
-            </motion.div>
-
-            {/* ══════════════════════════════════════════════════════════════ */}
-            {/* TRUST BADGE */}
-            {/* ══════════════════════════════════════════════════════════════ */}
-            <motion.div
-                variants={itemVariants}
-                className="flex items-center justify-center gap-3 text-xs text-[#5CB57B] font-bold bg-[#5CB57B]/5 py-3 rounded-full border border-[#5CB57B]/10 max-w-sm mx-auto"
-            >
-                <div className="w-2 h-2 rounded-full bg-[#5CB57B] animate-pulse shadow-[0_0_8px_rgba(92,181,123,0.5)]" />
-                <span className="tracking-widest uppercase">Encrypted Physiological Profile Active</span>
-            </motion.div>
-        </motion.div >
+            </div>
+        </div>
     );
 }
