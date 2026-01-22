@@ -10,7 +10,10 @@ export interface CalculationLog {
     moonPos: string;
     ascendant: string;
     dashaObj?: string;
+    message: string;
+    log: string; // Alias for compatibility with new terminal
     timestamp: number;
+    level: 1 | 2 | 3;
 }
 
 interface LiveCalculationPanelProps {

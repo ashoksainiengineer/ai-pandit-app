@@ -282,6 +282,7 @@ export async function markAsComplete(
     accuracy: number;
     confidence: string;
     analysisResult: string;
+    reasoningLogs?: string | null;
   }
 ): Promise<void> {
   await db.update(sessions)
@@ -291,9 +292,10 @@ export async function markAsComplete(
       accuracy: results.accuracy,
       confidence: results.confidence,
       analysisResult: results.analysisResult,
+      reasoningLogs: results.reasoningLogs,
       completedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-    })
+    } as any)
     .where(eq(sessions.id, sessionId));
 
   activeProcessingIds.delete(sessionId);
@@ -361,13 +363,17 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
         status: 'failed',
         errorMessage: 'Cancelled by user',
         updatedAt: new Date().toISOString(),
-      })
+        // 🗑️ HARD WIPE: Clear heavy data to save Turso Free Tier limit
+        progressData: null,
+        analysisResult: null,
+        reasoningLogs: null
+      } as any)
       .where(eq(sessions.id, sessionId));
 
     activeProcessingIds.delete(sessionId);
     processingStartTimes.delete(sessionId);
 
-    logger.info('Session cancelled by user', { sessionId });
+    logger.info('Session cancelled by user (Hard Wipe Complete)', { sessionId });
     return true;
   } catch (error) {
     logger.error('Failed to cancel session', error);
@@ -486,7 +492,28 @@ async function processSessionAsync(sessionId: string): Promise<void> {
         abortSignal: abortController.signal, // 🛑 Pass abort signal
       });
 
-      await markAsComplete(sessionId, result);
+      // ✂️ SPLIT REASONING LOGS (Database Optimization)
+      // Extract the heavy reasoning text from the main JSON blob to store efficiently
+      let reasoningLogs: string | null = null;
+      let optimizedAnalysis = result.analysisResult;
+
+      try {
+        const params = JSON.parse(result.analysisResult);
+        if (params.reasoning) {
+          reasoningLogs = JSON.stringify(params.reasoning);
+          delete params.reasoning; // Remove from main blob
+          optimizedAnalysis = JSON.stringify(params);
+        }
+      } catch (e) {
+        logger.warn('Failed to split reasoning logs', e);
+      }
+
+      await markAsComplete(sessionId, {
+        ...result,
+        analysisResult: optimizedAnalysis,
+        reasoningLogs
+      });
+
       cleanupController(sessionId); // Cleanup on success
     } catch (error) {
       // Check if this was a cancellation

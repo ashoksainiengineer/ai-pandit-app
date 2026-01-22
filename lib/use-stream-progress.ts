@@ -58,6 +58,9 @@ export interface CalculationLog {
     ascendant: string;
     dashaObj?: string;
     timestamp: number;
+    message: string;        // Added for compatibility
+    log: string;            // Added for God Mode Console
+    level: 1 | 2 | 3;       // Added for filtering
 }
 
 export interface StreamResult {
@@ -498,7 +501,10 @@ export function useStreamProgress(
                                 moonPos: eventData.moonPos,
                                 ascendant: eventData.ascendant,
                                 dashaObj: eventData.dashaObj,
-                                timestamp: Date.now()
+                                timestamp: Date.now(),
+                                message: `Log for ${eventData.candidateTime}`, // Default message
+                                log: `Processed ${eventData.candidateTime}`,   // Default console log
+                                level: 1 as 1 | 2 | 3 // Explicit cast to satisfy union type
                             }
                         ].slice(-100) // Keep last 100 logs
                     };

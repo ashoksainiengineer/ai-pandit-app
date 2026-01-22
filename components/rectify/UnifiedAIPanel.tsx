@@ -39,6 +39,8 @@ const cleanReasoningText = (text: string) => {
         .replace(/<[\w\s="']+>|<\/[\w\s]+>/g, '')      // Any other complete tags
         .replace(/\[STAGE START\][\s\S]*?━+[\r\n]*/g, '') // Internal stage markers
         .replace(/═+[\r\n]*🎯 SWITCHING TO:[\s\S]*?═+[\r\n]*/g, '') // Switch markers
+        .replace(/[*#`]/g, '')                        // Remove Markdown noise (*, #, `)
+        .replace(/(\r\n|\n|\r){3,}/g, '\n\n')         // Collapse excessive newlines
         .trim();
 };
 

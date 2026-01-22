@@ -37,7 +37,8 @@ export const sessions = sqliteTable(
     accuracy: integer('accuracy'),
     confidence: text('confidence'),
     analysisResult: text('analysisResult'),
-    progressData: text('progressData'), // Real-time progress for polling
+    progressData: text('progressData'), // Ephemeral: Cleared on cancel/complete
+    reasoningLogs: text('reasoningLogs'), // Permanent: Compressed "God Mode" logs for Deep Report
     status: text('status').default('pending'),
     errorMessage: text('errorMessage'),
     createdAt: text('createdAt').default('CURRENT_TIMESTAMP'),
