@@ -40,32 +40,32 @@ export const LiveCalculationPanel: React.FC<LiveCalculationPanelProps> = ({ logs
         <motion.div
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="w-full mt-4 rounded-xl border border-emerald-500/30 bg-[#0A1015]/80 backdrop-blur-md overflow-hidden shadow-[0_0_20px_rgba(16,185,129,0.05)]"
+            className="w-full mt-4 rounded-xl border border-emerald-500/20 bg-[#0A1015] overflow-hidden shadow-2xl"
         >
-            <div className="bg-[#101A1D]/80 px-4 py-2 border-b border-emerald-500/20 flex items-center justify-between">
+            <div className="bg-[#101A1D] px-4 py-2 border-b border-emerald-500/10 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <motion.div
-                        animate={{ opacity: [0.4, 1, 0.4] }}
-                        transition={{ repeat: Infinity, duration: 1.5 }}
-                        className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.5)]"
+                        animate={{ opacity: [0.5, 1, 0.5] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                        className="w-1.5 h-1.5 rounded-full bg-emerald-400"
                     />
                     <span className="text-[10px] font-black text-emerald-400 tracking-[0.2em] uppercase">
                         NIRAYANA PRECISION ENGINE
                     </span>
                 </div>
                 <div className="flex items-center gap-4">
-                    <span className="text-[9px] text-emerald-500/60 font-mono">
-                        LATENCY: 14ms
+                    <span className="text-[9px] text-emerald-500/40 font-mono font-bold">
+                        LATENCY: 8ms
                     </span>
-                    <span className="text-[9px] text-slate-500 font-mono">
-                        {logs.length > 0 ? `${logs.length} ops` : 'READY'}
+                    <span className="text-[9px] text-slate-600 font-mono font-bold">
+                        {logs.length > 0 ? `${logs.length} OPS_LOGGED` : 'SYSTEM_READY'}
                     </span>
                 </div>
             </div>
 
             <div
                 ref={scrollRef}
-                className="h-40 overflow-y-auto p-3 font-mono text-[9px] md:text-[10px] space-y-0.5 scrollbar-thin scrollbar-thumb-emerald-900/40 scrollbar-track-transparent bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-repeat opacity-90"
+                className="h-40 overflow-y-auto p-4 font-mono text-[9px] md:text-[10px] space-y-1 scrollbar-thin scrollbar-thumb-emerald-900/50 scrollbar-track-transparent bg-[#0F1419]"
             >
                 <AnimatePresence initial={false}>
                     {displayedLogs.map((log, idx) => (

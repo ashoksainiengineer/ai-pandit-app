@@ -78,9 +78,9 @@ export function UnifiedAIPanel({
     // Actually, we can just show "Processing" for the active one.
 
     const STAGES = [
-        { id: 2, name: 'Neural Screening', level: 1, color: 'orange', accuracy: '85-88%' },
-        { id: 5, name: 'Tournament Dynamics', level: 2, color: 'blue', accuracy: '90-94%' },
-        { id: 7, name: 'Grand Finals (R1)', level: 3, color: 'purple', accuracy: '95-99.9%' },
+        { id: 2, name: 'Neural Screening', level: 1, color: 'orange', accuracy: '80-88%' },
+        { id: 4, name: 'Tournament Dynamics', level: 2, color: 'blue', accuracy: '90-95%' },
+        { id: 7, name: 'Grand Finals (R1)', level: 3, color: 'purple', accuracy: '98-99.9%' },
     ];
 
     return (
