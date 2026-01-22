@@ -261,6 +261,15 @@ export function useStreamProgress(
                     }
                 }
 
+                // 🧠 Hydrate stageHistory Map for UI Re-synchronization (God-Tier Re-sync)
+                if (progressData.stageHistory) {
+                    const historyMap = new Map<number, string>();
+                    Object.entries(progressData.stageHistory).forEach(([stage, text]) => {
+                        historyMap.set(parseInt(stage), text as string);
+                    });
+                    newState.stageHistory = historyMap;
+                }
+
                 return newState;
             });
 
@@ -549,6 +558,8 @@ export function useStreamProgress(
                         // Load persisted candidate scores
                         candidateScores: eventData.progress.candidateScores || [],
                         analyzedCount: (eventData.progress.candidateScores || []).length,
+                        // 🏛️ Hydrate stageHistory on initial sync
+                        stageHistory: eventData.progress.stageHistory ? new Map(Object.entries(eventData.progress.stageHistory).map(([k, v]) => [parseInt(k), v as string])) : prev.stageHistory,
                     }));
                 }
                 break;

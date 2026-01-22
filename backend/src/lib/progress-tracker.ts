@@ -61,6 +61,7 @@ export interface ProgressData {
     candidateScores: CandidateScore[];
     lastAIThinking?: AIThinkingData;
     aiContext?: AIContextData;
+    stageHistory?: Record<number, string>; // 🏛️ Persistent reasoning history per stage
 }
 
 
@@ -119,6 +120,7 @@ export class ProgressTracker {
             lastUpdate: new Date().toISOString(),
             candidateScores: [],
             lastAIThinking: undefined,
+            stageHistory: {},
         };
     }
 
@@ -144,9 +146,13 @@ export class ProgressTracker {
         this.progress.lastAIThinking = {
             stage,
             candidateTime,
-            chunks: [], // UI can parse chunks from fullText if needed, or we safely disregard strictly for now
+            chunks: [], // UI can parse chunks from fullText if needed
             fullText: updatedLog
         };
+
+        // 🏛️ Real-time memory sync for stage history
+        if (!this.progress.stageHistory) this.progress.stageHistory = {};
+        this.progress.stageHistory[stage] = updatedLog;
 
         // 3. Optional: Add to chunks if we want structured logs (but keep it simple for robustness)
         // If we switch candidates, we reset the chunks in the view model naturally above
@@ -351,11 +357,15 @@ export class ProgressTracker {
      */
     private async saveProgress(includeThinking: boolean = false): Promise<void> {
         try {
-            // 🛡️ Data Minimization: Strip reasoning tokens/AI thinking from regular database persistence
-            // We only keep it in MAJOR flushes to save Turso Write Quota
+            // 🛡️ [TURSO OPTIMIZED] Data Minimization
+            // We only keep the active reasoning in MAJOR flushes (includeThinking=true)
             const dbProgress = { ...this.progress };
             if (!includeThinking) {
+                // Remove transient fields for heartbeat/minor updates
                 delete dbProgress.lastAIThinking;
+
+                // Keep stageHistory BUT limit size if not a major flush
+                // Actually, stageHistory should always stay in DB once snapshotted
             }
 
             // 💾 Size Limit Check: Truncate if too huge (Turso fallback)
