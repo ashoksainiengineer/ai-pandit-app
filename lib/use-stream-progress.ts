@@ -100,6 +100,7 @@ export interface StreamState {
     stageHistory: Map<number, string>; // History of thinking per stage (Stage ID -> Full Text)
     analyzedCount: number; // For counter: "5/15"
     totalCandidates: number;
+    startedAt?: string; // ⏱️ Absolute session start time
     // Enhanced Diagnostics
     url?: string;
     readyState?: number;
@@ -246,6 +247,7 @@ export function useStreamProgress(
                     aiThinking: progressData.lastAIThinking || prev.aiThinking,
                     // 📋 Capture session metadata for Blueprint display
                     metadata: data.metadata || prev.metadata,
+                    startedAt: progressData.startedAt || prev.startedAt,
                 };
 
                 // 🧠 Hydrate allCandidates Map for UI Display
@@ -389,6 +391,7 @@ export function useStreamProgress(
                         message: eventData.message,
                         details: eventData.details,
                     },
+                    startedAt: eventData.startedAt || prev.startedAt,
                 }));
                 break;
 
@@ -566,6 +569,7 @@ export function useStreamProgress(
                         analyzedCount: (eventData.progress.candidateScores || []).length,
                         // 🏛️ Hydrate stageHistory on initial sync
                         stageHistory: eventData.progress.stageHistory ? new Map(Object.entries(eventData.progress.stageHistory).map(([k, v]) => [parseInt(k), v as string])) : prev.stageHistory,
+                        startedAt: eventData.progress.startedAt,
                     }));
                 }
                 break;

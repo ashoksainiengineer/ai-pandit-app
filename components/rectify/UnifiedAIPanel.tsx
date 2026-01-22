@@ -24,6 +24,7 @@ interface UnifiedAIPanelProps {
     totalCandidates?: number;
     candidateScores?: Array<{ time: string; score: number; stage: number; rank?: number }>;
     calculationLogs?: CalculationLog[];
+    unifiedMode?: boolean; // 🌊 Unified stream mode
 }
 
 
@@ -50,7 +51,8 @@ export function UnifiedAIPanel({
     analyzedCount,
     totalCandidates,
     candidateScores,
-    calculationLogs
+    calculationLogs,
+    unifiedMode
 }: UnifiedAIPanelProps) {
     // Current active stage
     const currentStage = thinking?.stage || stage || 2;
@@ -82,6 +84,87 @@ export function UnifiedAIPanel({
         { id: 7, name: 'Grand Finals (R1)', level: 3, color: 'purple', accuracy: '98-99.9%' },
     ];
 
+    if (unifiedMode) {
+        // 🌊 GOD-TIER UNIFIED MODE: Single continuous stream
+        const currentStageConfig = STAGES.find(s => s.id === currentStage) || STAGES[0];
+
+        // Accumulate all historic text into one blob or just show the active one?
+        // User wants "SAARE LEVELS KA REASONING EK HI CONTAINER ME"
+        // So we concatenate history + current thinking
+        let unifiedContent = '';
+        STAGES.forEach(s => {
+            const hist = stageHistory?.get(s.id);
+            if (hist) {
+                unifiedContent += `\n--- LEVEL ${s.level}: ${s.name} ---\n${hist}\n`;
+            } else if (s.id === currentStage && thinking?.fullText) {
+                unifiedContent += `\n--- LEVEL ${s.level}: ${s.name} [ACTIVE] ---\n${thinking.fullText}`;
+            }
+        });
+
+        const activeContent = cleanReasoningText(unifiedContent || '');
+
+        return (
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border border-[#D4AF37]/50 bg-[#1A1F2E]/90 shadow-[0_0_20px_rgba(212,175,55,0.1)] overflow-hidden"
+            >
+                {/* Dynamic Header */}
+                <div className="p-4 bg-[#2A3442]/30 flex items-center justify-between border-b border-[#D4AF37]/20">
+                    <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${currentStageConfig.color === 'orange' ? 'from-orange-500 to-amber-600' :
+                            currentStageConfig.color === 'blue' ? 'from-blue-500 to-cyan-600' :
+                                'from-purple-500 to-pink-600'
+                            } flex items-center justify-center shadow-lg relative`}>
+                            <Brain className="w-5 h-5 text-white" />
+                            {isActive && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />}
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-base text-[#D4AF37]">
+                                Reasoning Engine: {currentStageConfig.name}
+                            </h3>
+                            <div className="flex items-center gap-2 text-[10px] text-[#8C7F72] font-mono">
+                                <Activity className="w-3 h-3 text-emerald-500" />
+                                {isActive ? 'LIVE_NEURAL_STREAM' : 'VOD_REASONING_ARCHIVE'}
+                            </div>
+                        </div>
+                    </div>
+
+                    {isActive && (
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#8B5CF6]/20 border border-[#8B5CF6]/30">
+                            <span className="text-[10px] font-medium text-[#8B5CF6] uppercase tracking-wider">Processing Level {currentStageConfig.level}</span>
+                        </div>
+                    )}
+                </div>
+
+                {/* Single Scroller */}
+                <ScrollableContent content={activeContent} isThinking={isActive} />
+
+                {/* Calculation Stats Strip */}
+                {calculationLogs && calculationLogs.length > 0 && (
+                    <div className="px-4 py-2 bg-[#0F1419] border-t border-[#3A4452]/50 flex items-center justify-between text-[10px]">
+                        <div className="flex items-center gap-4 text-[#8C7F72]">
+                            <div className="flex items-center gap-1">
+                                <Zap className="w-3 h-3 text-[#D4AF37]" />
+                                Engine OPS: 1.42 T/s
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                Latency: 42ms
+                            </div>
+                        </div>
+                        {thinking?.candidateTime && (
+                            <div className="text-[#D4AF37] font-bold">
+                                FOCUS: {thinking.candidateTime}
+                            </div>
+                        )}
+                    </div>
+                )}
+            </motion.div>
+        );
+    }
+
+    // Default accordion mode (Legacy fallback)
     return (
         <div className="space-y-4">
             {/* Stage-based Accordions */}

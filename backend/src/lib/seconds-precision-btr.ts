@@ -592,9 +592,14 @@ export async function processSecondsPrecisionBTR(
         // STAGE 9: BOUNDARY SAFETY VERIFICATION
         // ═══════════════════════════════════════════════════════════════════════
 
+        await progress.startStep('ai', 'Vedic Shuddhi Audit: Finalizing spiritual alignment...');
+        await progress.updateMessage('Verifying Kunda, Tatwa, and Boundary integrity');
+
         await throwIfCancelled(input.sessionId, input.abortSignal);
         const boundarySafety = await stage9BoundaryCheck(finalCandidate.time, input);
         stagesCompleted = 9;
+
+        await progress.completeStep('ai', ['Kunda verified', 'Tatwa shuddhi complete', 'Boundary safety confirmed']);
 
         if (!boundarySafety.isSafe) {
             boundaryWarnings.push(...boundarySafety.warnings);
@@ -603,6 +608,8 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 10: SPOUSE CROSS-VERIFICATION
         // ═══════════════════════════════════════════════════════════════════════
+        await progress.startStep('final', 'Sealing the results into deep archive...');
+        await progress.updateMessage('Compiling technical evidence and spouse sync');
 
         if (input.spouseData) {
             const spouseVerification = await stage10SpouseVerification(finalCandidate.time, input);
@@ -612,6 +619,8 @@ export async function processSecondsPrecisionBTR(
         } else {
             stagesCompleted = 10;
         }
+
+        await progress.completeStep('final', ['Analysis complete', 'Technical proof generated']);
 
         // ═══════════════════════════════════════════════════════════════════════
         // FINAL RESULT COMPILATION
@@ -649,6 +658,7 @@ export async function processSecondsPrecisionBTR(
         };
 
         await progress.complete();
+        await progress.updatePercentage(100); // 🏁 Ensure 100% ONLY after finalization
 
         return {
             rectifiedTime: finalCandidate.time,
@@ -1820,6 +1830,15 @@ async function stage5AILevel2(
             };
         });
 
+        // ⚡ EMIT SCORE FOR EACH CANDIDATE IN BATCH
+        for (const winner of batchWinners) {
+            await progress.addCandidateScore({
+                time: winner.time,
+                score: winner.score,
+                stage: 5
+            });
+        }
+
         tournamentResults.push(...batchWinners);
     }
 
@@ -1915,6 +1934,15 @@ async function stage7AILevel3(
                 aiAnalysis: isWinner ? "🌟 FINALIST: " + aiResponse.substring(0, 200) + "..." : "Analyzed in finals."
             };
         });
+
+        // ⚡ EMIT SCORE FOR EACH CANDIDATE IN FINALS
+        for (const res of rankedBatch) {
+            await progress.addCandidateScore({
+                time: res.time,
+                score: res.score,
+                stage: 7
+            });
+        }
 
         finalResults.push(...rankedBatch);
     }

@@ -26,6 +26,7 @@ import { UnifiedAIPanel } from '@/components/rectify/UnifiedAIPanel';
 import { LiveScoreTable } from '@/components/rectify/LiveScoreTable';
 import { LiveGodModeTerminal } from '@/components/rectify/LiveGodModeTerminal';
 import { BTRProcessFlow } from '@/components/rectify/BTRProcessFlow';
+import { CandidateLevelTables } from '@/components/rectify/CandidateLevelTables';
 
 
 
@@ -234,16 +235,17 @@ function ResultsHUD({ result, id }: { result: any, id: string }) {
 }
 
 // ⏱️ Live Timer Component
-function AnalysisTimer({ startTime }: { startTime?: string }) {
+function AnalysisTimer({ startTime, startedAt }: { startTime?: string, startedAt?: string }) {
     const [elapsed, setElapsed] = useState(0);
 
     useEffect(() => {
-        const start = startTime ? new Date(startTime).getTime() : Date.now();
+        // ⏱️ Absolute sync: Use startedAt (session start) if available, fallback to step start
+        const start = (startedAt || startTime) ? new Date(startedAt || startTime!).getTime() : Date.now();
         const interval = setInterval(() => {
             setElapsed(Math.floor((Date.now() - start) / 1000));
         }, 1000);
         return () => clearInterval(interval);
-    }, [startTime]);
+    }, [startTime, startedAt]);
 
     const minutes = Math.floor(elapsed / 60);
     const seconds = elapsed % 60;
@@ -277,7 +279,9 @@ export default function ProgressPage() {
         calculationLogs, // ⚡ New: Calculation Logs
         stageStats, // ⚡ New: Stage Stats
         analyzedCount,
+        totalCandidates, // 📊 Added for UI summary
         result,
+        startedAt, // ⏱️ Absolute session start time
         // Enhanced Diagnostics
         url: connectionUrl,
         lastError,
@@ -577,9 +581,13 @@ export default function ProgressPage() {
             {/* Navigation */}
             <nav className="sticky top-0 z-50 bg-[#0F1419]/90 backdrop-blur-xl border-b border-[#D4AF37]/10">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-3">
-                        <span className="text-2xl">🕉️</span>
-                        <span className="font-bold text-xl text-[#D4AF37]">AI Pandit</span>
+                    <Link href="/" className="flex items-center gap-3 group">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4AF37] to-[#F5D061] flex items-center justify-center shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-transform group-hover:scale-110">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" className="w-7 h-7 text-[#0F1419]">
+                                <path fill="currentColor" d="M374.9 319C354.5 319 336 304.5 336 283.5c0-21.5 17.5-38.5 38.5-38.5 21.5 0 38.5 17 38.5 38.5S396.4 319 374.9 319zm135.5-12.2c-.3-15.5-3-29.6-7.8-42C485.4 223 446.7 184 400.1 169.2c-4.1-1.3-8.2-2.3-12.3-3.1-40.2-7.5-73.4 25.4-73.4 65.5 0 34.6 28.5 62.1 63.8 62.1 6.3 0 12.3-.9 17.8-2.6 5.6-1.7 10.6-5.8 14-11 11.2 5.1 18.2 16.5 18.2 29.8 0 35.8-29.2 65-65 65-17.6 0-33.6-7-45.3-18.4l-1.3-1.4c-9.5-10.4-23.1-16.1-37.1-15.4-1.2 0-2.3-.1-3.5-.1-34.9 0-63.5 16.3-81.8 45.4-14.8 23.5-22.3 52.8-22.3 87.2 0 86 69.8 156 155.8 156s155.8-70 155.8-156c0-34.4-11.2-66.2-30.7-91.8zM196.5 147.2c-15.3-20.1-24.3-45.2-24.3-72.3 0-66.1 53.7-119.8 119.8-119.8 8.1 0 16 .8 23.6 2.3 27 5.4 47.3 29.3 47.3 57.8 0 32.4-26.2 58.7-58.7 58.7-4.1 0-8.1-.4-12-.1 1.7-18.3 11-34.1 24.5-44.5 10.4-7.8 16.6-20.3 16.6-33.6 0-23.6-19.1-42.7-42.7-42.7-23.6 0-42.7 19.1-42.7 42.7s19.1 42.7 42.7 42.7c3.8 0 7.4-.5 10.9-1.4l.2.3c21 21.3 34 50.7 34 83.1 0 63.5-51.5 115-115 115-32.3 0-61.7-13.4-82.9-34.9l-.3-.3c-1.3-1.3-2.1-3.1-2.1-5s.8-3.7 2.1-5c14.6-14.6 38.3-14.6 52.9 0l.3.3c15.1 15.1 35.8-3 35.8-3zm18.3 117c-25.2 0-45.5-20.4-45.5-45.5s20.4-45.5 45.5-45.5 45.5 20.4 45.5 45.5-20.4 45.5-45.5 45.5z" />
+                            </svg>
+                        </div>
+                        <span className="font-bold text-xl text-[#F5F0EB] tracking-tight group-hover:text-[#D4AF37] transition-colors">AI Pandit</span>
                     </Link>
                     <div className="flex items-center gap-4">
                         <Link
@@ -620,7 +628,7 @@ export default function ProgressPage() {
                     </h1>
                     <div className="text-[#C4B8AD] h-6 transition-all duration-300 flex items-center justify-center gap-3">
                         <span>{progress?.liveMessage || 'Initializing analysis...'}</span>
-                        {!isComplete && !cancelled && <AnalysisTimer startTime={progress?.steps[0]?.startedAt} />}
+                        {!isComplete && !cancelled && <AnalysisTimer startTime={progress?.steps[0]?.startedAt} startedAt={startedAt} />}
                     </div>
                 </div>
 
@@ -677,27 +685,19 @@ export default function ProgressPage() {
                                     </defs>
                                 </svg>
 
-                                {/* Center Content */}
+                                {/* Center Content - Cleaned Up */}
                                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
                                     <motion.div
                                         initial={{ scale: 0.9, opacity: 0 }}
                                         animate={{ scale: 1, opacity: 1 }}
-                                        className="text-4xl font-black text-[#D4AF37] tracking-tighter"
+                                        className="text-5xl font-black text-[#D4AF37] tracking-tighter"
                                     >
                                         {progress?.percentage || 0}
-                                        <span className="text-base ml-0.5 opacity-70">%</span>
+                                        <span className="text-xl ml-0.5 opacity-70">%</span>
                                     </motion.div>
-                                    <div className="text-[9px] text-[#8C7F72] font-black uppercase tracking-[0.2em] mt-1">
-                                        SYNCING_SOUL
+                                    <div className="text-[10px] text-[#8C7F72] font-semibold uppercase tracking-[0.25em] mt-1">
+                                        Progress
                                     </div>
-                                </div>
-
-                                {/* Orbiting Stats */}
-                                <div className="absolute -top-2 -right-2 bg-[#1A2433] border border-[#D4AF37]/20 rounded-lg px-2 py-1 flex items-center gap-1.5 shadow-xl">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                    <span className="text-[10px] font-mono text-emerald-400 font-bold">
-                                        {progress?.currentStep === 10 ? '99.9%' : (64 + (progress?.percentage || 0) * 0.3).toFixed(1)}%
-                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -773,7 +773,7 @@ export default function ProgressPage() {
 
 
 
-                {/* Unified AI Analysis Panel (Now visible from Stage 1 for calculation logs) */}
+                {/* Unified AI Analysis Panel (Unified Continuous Stream) */}
                 {(isAIStepActive || aiThinking || (calculationLogs?.length ?? 0) > 0) && !isComplete && (() => {
                     let aiStage = 2;
                     if (streamProgress) {
@@ -791,12 +791,24 @@ export default function ProgressPage() {
                                 isActive={isConnected && !isComplete}
                                 stage={aiStage}
                                 analyzedCount={analyzedCount}
+                                totalCandidates={totalCandidates}
                                 candidateScores={candidateScores}
                                 calculationLogs={calculationLogs}
+                                unifiedMode={true} // 🌊 Set unified mode
                             />
                         </div>
                     );
                 })()}
+
+                {/* 📊 DECOUPLED CANDIDATE TABLES (Level by Level) */}
+                {!isComplete && (candidateScores?.length ?? 0) > 0 && (
+                    <div className="mb-8">
+                        <CandidateLevelTables
+                            candidateScores={candidateScores || []}
+                            currentStage={progress?.currentStep || 0}
+                        />
+                    </div>
+                )}
 
                 {/* 🔱 LIVE GOD MODE TERMINAL */}
                 <div className="mb-8 animate-fade-in-up">

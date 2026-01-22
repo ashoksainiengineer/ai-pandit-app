@@ -58,6 +58,7 @@ export interface ProgressData {
     steps: ProgressStep[];
     lastUpdate: string;
     liveMessage?: string;
+    startedAt?: string; // ⏱️ Absolute session start time
     candidateScores: CandidateScore[];
     lastAIThinking?: AIThinkingData;
     aiContext?: AIContextData;
@@ -216,6 +217,11 @@ export class ProgressTracker {
         this.progress.lastUpdate = new Date().toISOString();
         this.progress.liveMessage = message;
 
+        // ⏱️ Initialize global session start time on first step
+        if (stepId === 'init' && !this.progress.startedAt) {
+            this.progress.startedAt = this.progress.steps[stepIndex].startedAt;
+        }
+
         await this.saveProgress();
 
         // Emit SSE event for real-time streaming
@@ -253,6 +259,25 @@ export class ProgressTracker {
             this.progress.totalSteps,
             message,
             details
+        );
+    }
+
+    /**
+     * Update percentage manually
+     */
+    async updatePercentage(percentage: number): Promise<void> {
+        this.progress.percentage = percentage;
+        this.progress.lastUpdate = new Date().toISOString();
+        await this.saveProgress();
+
+        // Emit update
+        emitProgress(
+            this.sessionId,
+            this.progress.steps[this.progress.currentStep]?.id || 'unknown',
+            this.progress.currentStep,
+            this.progress.totalSteps,
+            this.progress.liveMessage || '',
+            undefined
         );
     }
 
