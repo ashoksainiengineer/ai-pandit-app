@@ -7,6 +7,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/database/drizzle';
 import { sessions, users } from '@/database/schema';
 import { eq, desc } from 'drizzle-orm';
+import { safeDecrypt } from '@/lib/crypto';
 
 async function getUserSessions(clerkId: string) {
     try {
@@ -25,7 +26,11 @@ async function getUserSessions(clerkId: string) {
             orderBy: [desc(sessions.createdAt)],
         });
 
-        return userSessions;
+        // Decrypt names for display
+        return userSessions.map(s => ({
+            ...s,
+            fullName: safeDecrypt(s.fullName, clerkId)
+        }));
     } catch (error) {
         console.error('Error fetching sessions:', error);
         return [];
@@ -46,9 +51,11 @@ export default async function DashboardPage() {
             {/* Navigation */}
             <nav className="sticky top-0 z-50 bg-[#0F1419]/90 backdrop-blur-xl border-b border-[#D4AF37]/10">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-3">
-                        <span className="text-2xl">🕉️</span>
-                        <span className="font-bold text-xl text-[#D4AF37]">AI Pandit</span>
+                    <Link href="/" className="flex items-center gap-3 group">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4AF37] to-[#F5D061] flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.3)] group-hover:scale-110 transition-transform">
+                            <span className="text-2xl drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">🕉️</span>
+                        </div>
+                        <span className="font-bold text-xl text-[#D4AF37] tracking-tight">AI Pandit</span>
                     </Link>
 
                     <div className="flex items-center gap-6">
