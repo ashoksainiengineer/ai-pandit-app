@@ -43,10 +43,10 @@ export default function ResultsPage({ analysisData, onNewAnalysis }: ResultsPage
               <p className="text-sm text-green-600">Confidence</p>
               <p
                 className={`text-3xl font-bold ${confidence === 'High'
-                    ? 'text-green-900'
-                    : confidence === 'Medium'
-                      ? 'text-yellow-900'
-                      : 'text-red-900'
+                  ? 'text-green-900'
+                  : confidence === 'Medium'
+                    ? 'text-yellow-900'
+                    : 'text-red-900'
                   }`}
               >
                 {confidence}
@@ -88,8 +88,8 @@ export default function ResultsPage({ analysisData, onNewAnalysis }: ResultsPage
           <button
             onClick={() => setSelectedTab('top')}
             className={`px-6 py-3 font-medium border-b-2 transition ${selectedTab === 'top'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
           >
             Top Choice
@@ -97,8 +97,8 @@ export default function ResultsPage({ analysisData, onNewAnalysis }: ResultsPage
           <button
             onClick={() => setSelectedTab('alternatives')}
             className={`px-6 py-3 font-medium border-b-2 transition ${selectedTab === 'alternatives'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
           >
             Alternative Options ({alternativeOptions.length})
@@ -106,8 +106,8 @@ export default function ResultsPage({ analysisData, onNewAnalysis }: ResultsPage
           <button
             onClick={() => setSelectedTab('all')}
             className={`px-6 py-3 font-medium border-b-2 transition ${selectedTab === 'all'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-600 hover:text-gray-900'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
           >
             All Candidates ({statistics.allCandidateScores.length})
@@ -143,7 +143,7 @@ export default function ResultsPage({ analysisData, onNewAnalysis }: ResultsPage
           <p className="text-gray-600 mb-4">
             {statistics.totalCandidatesGenerated} times generated,
             {statistics.topCandidatesAnalyzed} pre-filtered,
-            {statistics.deepAnalysisCount} deeply analyzed with Kimi K2
+            {statistics.deepAnalysisCount} deeply analyzed with AI
           </p>
 
           <div className="space-y-2">
@@ -186,7 +186,7 @@ export default function ResultsPage({ analysisData, onNewAnalysis }: ResultsPage
           </div>
 
           <div>
-            <p className="text-sm text-gray-600">Kimi K2 Analysis</p>
+            <p className="text-sm text-gray-600">AI Analysis</p>
             <p className="text-2xl font-bold">{statistics.deepAnalysisCount}</p>
           </div>
 

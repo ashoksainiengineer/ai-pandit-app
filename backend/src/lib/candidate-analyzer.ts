@@ -3,13 +3,13 @@
 // lib/candidate-analyzer.ts
 // Analyze multiple candidate times and filter for accuracy
 
-import { EphemerisData, LifeEvent, CandidateAnalysis, RankedCandidates } from './types';
-import { generateAstrologicalReport } from './astrological-data-processor';
-import { calculateEphemeris } from './ephemeris';
-import { logger } from './logger';
+import { EphemerisData, LifeEvent, CandidateAnalysis, RankedCandidates } from './types.js';
+import { generateAstrologicalReport } from './astrological-data-processor.js';
+import { calculateEphemeris } from './ephemeris.js';
+import { logger } from './logger.js';
 
 // ═════════════════════════════════════════════════════════════════════════
-// QUICK FILTERING RULES (Before Kimi K2 analysis)
+// QUICK FILTERING RULES (Before AI K2 analysis)
 // ═════════════════════════════════════════════════════════════════════════
 
 export async function analyzeAndFilterCandidates(
@@ -45,7 +45,7 @@ export async function analyzeAndFilterCandidates(
           timezoneString
         );
 
-        // Quick scoring without full Kimi analysis
+        // Quick scoring without full AI analysis
         const { quickScore, eventMatches, reason } = performQuickAnalysis(
           ephemerisData,
           lifeEvents
@@ -58,7 +58,7 @@ export async function analyzeAndFilterCandidates(
           ephemerisData,
           quickScore,
           eventMatches,
-          shouldAnalyzeWithKimi: quickScore >= 40, // Only analyze promising candidates
+          shouldAnalyzeWithAI: quickScore >= 40, // Only analyze promising candidates
           reason,
         });
 
@@ -79,16 +79,16 @@ export async function analyzeAndFilterCandidates(
     analyzedCandidates.sort((a, b) => b.quickScore - a.quickScore);
 
     // ─────────────────────────────────────────────────────────────────────
-    // STEP 3: Select top candidates for Kimi K2 analysis
+    // STEP 3: Select top candidates for AI K2 analysis
     // ─────────────────────────────────────────────────────────────────────
 
     const topCandidates = analyzedCandidates
-      .filter((c) => c.shouldAnalyzeWithKimi)
+      .filter((c) => c.shouldAnalyzeWithAI)
       .slice(0, 5); // Top 5 candidates
 
     logger.info('Candidate filtering complete', {
       totalCandidates: analyzedCandidates.length,
-      topCandidatesForKimi: topCandidates.length,
+      topCandidatesForAI: topCandidates.length,
       topScores: topCandidates.map((c) => ({
         time: c.time,
         quickScore: c.quickScore,
@@ -107,7 +107,7 @@ export async function analyzeAndFilterCandidates(
 }
 
 // ═════════════════════════════════════════════════════════════════════════
-// QUICK ANALYSIS: Fast filtering without Kimi
+// QUICK ANALYSIS: Fast filtering without AI
 // ═════════════════════════════════════════════════════════════════════════
 
 function performQuickAnalysis(

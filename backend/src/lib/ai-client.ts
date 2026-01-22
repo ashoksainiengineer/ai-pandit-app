@@ -1,21 +1,21 @@
 // Server-side only
 
-// lib/kimi-k2-client.ts
-// Production Kimi K2 Turbo Thinking API Client
+// lib/ai-client.ts
+// Production AI Thinking API Client
 // Optimized for maximum accuracy in birth time rectification
 
-import { logger } from './logger';
+import { logger } from './logger.js';
 
 
 // ═════════════════════════════════════════════════════════════════════════════
-// KIMI K2 CONFIGURATION
+// AI CONFIGURATION
 // ═════════════════════════════════════════════════════════════════════════════
 
-const KIMI_CONFIG = {
-    // DeepSeek first, then fallback to Kimi/Moonshot
-    baseUrl: process.env.DEEPSEEK_BASE_URL || process.env.ANTHROPIC_BASE_URL || process.env.KIMI_BASE_URL || 'https://api.deepseek.com',
-    apiKey: process.env.DEEPSEEK_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.KIMI_API_KEY || '',
-    model: process.env.DEEPSEEK_MODEL || process.env.MOONSHOT_MODEL || process.env.KIMI_MODEL || 'deepseek-reasoner', // V3 with CoT reasoning
+const AI_CONFIG = {
+    // AI Model and connection settings
+    baseUrl: process.env.AI_BASE_URL || process.env.DEEPSEEK_BASE_URL || process.env.ANTHROPIC_BASE_URL || process.env.AI_BASE_URL || 'https://api.deepseek.com',
+    apiKey: process.env.AI_API_KEY || process.env.DEEPSEEK_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.AI_API_KEY || '',
+    model: process.env.AI_MODEL || process.env.DEEPSEEK_MODEL || process.env.AI_MODEL || process.env.AI_MODEL || 'deepseek-reasoner', // V3 with CoT reasoning
     maxTokens: 32000,      // DeepSeek reasoner supports up to 64K
     thinkingBudget: 32000, // Extended thinking for highest accuracy
     temperature: 0.1,      // Note: ignored by deepseek-reasoner
@@ -28,7 +28,7 @@ const KIMI_CONFIG = {
 // RESPONSE TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-export interface KimiK2Response {
+export interface AIResponse {
     success: boolean;
     thinking?: string;       // Internal reasoning (if thinking mode)
     content: string;         // Final analysis
@@ -36,7 +36,7 @@ export interface KimiK2Response {
     error?: string;
 }
 
-export interface KimiK2Message {
+export interface AIMessage {
     role: 'system' | 'user' | 'assistant';
     content: string;
 }
@@ -46,10 +46,10 @@ export interface KimiK2Message {
 // ═════════════════════════════════════════════════════════════════════════════
 
 /**
- * Call Kimi K2 with extended thinking mode
+ * Call AI with extended thinking mode
  * This is the core function for all AI analysis
  */
-export async function callKimiK2(
+export async function callAI(
     systemPrompt: string,
     userPrompt: string,
     options?: {
@@ -58,35 +58,35 @@ export async function callKimiK2(
         enableThinking?: boolean;
         model?: string;
     }
-): Promise<KimiK2Response> {
+): Promise<AIResponse> {
     const config = {
-        temperature: options?.temperature ?? KIMI_CONFIG.temperature,
-        maxTokens: options?.maxTokens ?? KIMI_CONFIG.maxTokens,
+        temperature: options?.temperature ?? AI_CONFIG.temperature,
+        maxTokens: options?.maxTokens ?? AI_CONFIG.maxTokens,
         enableThinking: options?.enableThinking ?? true,
-        model: options?.model ?? KIMI_CONFIG.model,
+        model: options?.model ?? AI_CONFIG.model,
     };
 
-    if (!KIMI_CONFIG.apiKey) {
-        logger.error('DEEPSEEK_API_KEY not configured');
+    if (!AI_CONFIG.apiKey) {
+        logger.error('AI API_KEY not configured');
         return {
             success: false,
             content: '',
-            error: 'DeepSeek API key not configured',
+            error: 'AI API key not configured',
         };
     }
 
     let lastError: Error | null = null;
 
-    for (let attempt = 1; attempt <= KIMI_CONFIG.retryAttempts; attempt++) {
+    for (let attempt = 1; attempt <= AI_CONFIG.retryAttempts; attempt++) {
         try {
-            logger.info('Calling Kimi K2', {
+            logger.info('Calling AI Engine', {
                 attempt,
                 model: config.model,
                 enableThinking: config.enableThinking,
             });
 
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), KIMI_CONFIG.timeoutMs);
+            const timeoutId = setTimeout(() => controller.abort(), AI_CONFIG.timeoutMs);
 
             const isReasonerModel = config.model.includes('reasoner');
 
@@ -105,16 +105,16 @@ export async function callKimiK2(
                 requestBody.temperature = config.temperature;
             }
 
-            // Add thinking mode if enabled (Moonshot specific)
+            // Add thinking mode if enabled
             if (config.enableThinking) {
                 requestBody.use_search = false; // Disable search for faster response
             }
 
-            const response = await fetch(`${KIMI_CONFIG.baseUrl}/chat/completions`, {
+            const response = await fetch(`${AI_CONFIG.baseUrl}/v1/chat/completions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${KIMI_CONFIG.apiKey}`,
+                    'Authorization': `Bearer ${AI_CONFIG.apiKey}`,
                 },
                 body: JSON.stringify(requestBody),
                 signal: controller.signal,
@@ -124,12 +124,12 @@ export async function callKimiK2(
 
             if (!response.ok) {
                 if (response.status === 429) {
-                    logger.warn(`Kimi K2 Rate Limit Hit (429). Waiting 30s before retry ${attempt}/${KIMI_CONFIG.retryAttempts}...`);
+                    logger.warn(`AI Rate Limit Hit (429). Waiting 30s before retry ${attempt}/${AI_CONFIG.retryAttempts}...`);
                     await sleep(30000); // Wait 30 seconds
                     continue; // Retry loop
                 }
                 const errorText = await response.text();
-                throw new Error(`Kimi API error ${response.status}: ${errorText}`);
+                throw new Error(`AI API error ${response.status}: ${errorText}`);
             }
 
             const data = await response.json() as any;
@@ -137,7 +137,7 @@ export async function callKimiK2(
             // Parse response
             const message = data.choices?.[0]?.message;
             if (!message) {
-                throw new Error('Invalid response format from Kimi');
+                throw new Error('Invalid response format from AI');
             }
 
             // Extract thinking (if present) and content
@@ -156,7 +156,7 @@ export async function callKimiK2(
                 content = content.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '').trim();
             }
 
-            logger.info('Kimi K2 response received', {
+            logger.info('AI response received', {
                 contentLength: content.length,
                 thinkingLength: thinking.length,
                 tokensUsed: data.usage?.total_tokens,
@@ -171,10 +171,10 @@ export async function callKimiK2(
 
         } catch (error) {
             lastError = error as Error;
-            logger.error(`Kimi K2 attempt ${attempt} failed`, error);
+            logger.error(`AI attempt ${attempt} failed`, error);
 
-            if (attempt < KIMI_CONFIG.retryAttempts) {
-                await sleep(KIMI_CONFIG.retryDelayMs * attempt);
+            if (attempt < AI_CONFIG.retryAttempts) {
+                await sleep(AI_CONFIG.retryDelayMs * attempt);
             }
         }
     }
@@ -190,17 +190,17 @@ export async function callKimiK2(
 // STREAMING API CALL FUNCTION (for real-time AI thinking)
 // ═════════════════════════════════════════════════════════════════════════════
 
-import { emitAIThinking } from './session-events';
+import { emitAIThinking } from './session-events.js';
 
 /**
- * Call Kimi K2 with streaming enabled
+ * Call AI with streaming enabled
  * Emits AI thinking tokens in real-time via SSE
  * 
  * @param sessionId - Session ID for SSE emission
  * @param stage - BTR stage number (2, 5, or 7)
  * @param candidateTime - Optional candidate time being analyzed
  */
-export async function callKimiK2WithStream(
+export async function callAIWithStream(
     sessionId: string,
     stage: number,
     systemPrompt: string,
@@ -215,31 +215,31 @@ export async function callKimiK2WithStream(
         timeoutMs?: number; // Custom timeout
         progressTracker?: any; // Avoiding circular import by using any, or import type if possible
     }
-): Promise<KimiK2Response> {
+): Promise<AIResponse> {
     const config = {
-        temperature: options?.temperature ?? KIMI_CONFIG.temperature,
-        maxTokens: options?.maxTokens ?? KIMI_CONFIG.maxTokens,
-        model: options?.model ?? KIMI_CONFIG.model,
+        temperature: options?.temperature ?? AI_CONFIG.temperature,
+        maxTokens: options?.maxTokens ?? AI_CONFIG.maxTokens,
+        model: options?.model ?? AI_CONFIG.model,
     };
 
-    if (!KIMI_CONFIG.apiKey) {
+    if (!AI_CONFIG.apiKey) {
         return {
             success: false,
             content: '',
-            error: 'DeepSeek API key not configured',
+            error: 'AI API key not configured',
         };
     }
 
     let lastError: Error | null = null;
 
     // Retry Loop for Streaming resilience
-    for (let attempt = 1; attempt <= KIMI_CONFIG.retryAttempts; attempt++) {
+    for (let attempt = 1; attempt <= AI_CONFIG.retryAttempts; attempt++) {
         try {
             // 🚀 Debug: Log function entry
-            const entryMsg = `🚀 callKimiK2WithStream ATTEMPT ${attempt}/${KIMI_CONFIG.retryAttempts}: sessionId=${sessionId?.slice(0, 8)}, stage=${stage}\n`;
+            const entryMsg = `🚀 callAIWithStream ATTEMPT ${attempt}/${AI_CONFIG.retryAttempts}: sessionId=${sessionId?.slice(0, 8)}, stage=${stage}\n`;
             console.log(entryMsg);
 
-            logger.info('Calling Kimi K2 with streaming', {
+            logger.info('Calling AI with streaming', {
                 sessionId,
                 stage,
                 attempt,
@@ -248,12 +248,12 @@ export async function callKimiK2WithStream(
 
             // Combine internal timeout with external abort signal
             const controller = new AbortController();
-            const timeoutMs = options?.timeoutMs ?? KIMI_CONFIG.timeoutMs;
+            const timeoutMs = options?.timeoutMs ?? AI_CONFIG.timeoutMs;
             const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
             if (options?.abortSignal) {
                 options.abortSignal.addEventListener('abort', () => {
-                    logger.info('Kimi K2 call cancelled by user');
+                    logger.info('AI call cancelled by user');
                     controller.abort();
                 });
             }
@@ -274,10 +274,10 @@ export async function callKimiK2WithStream(
                 requestBody.temperature = config.temperature;
             }
 
-            const response = await fetch(`${KIMI_CONFIG.baseUrl}/v1/chat/completions`, {
+            const response = await fetch(`${AI_CONFIG.baseUrl}/v1/chat/completions`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${KIMI_CONFIG.apiKey}`,
+                    'Authorization': `Bearer ${AI_CONFIG.apiKey}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(requestBody),
@@ -356,7 +356,7 @@ export async function callKimiK2WithStream(
                 }
             }
 
-            logger.info('Streaming Kimi K2 complete', {
+            logger.info('Streaming AI complete', {
                 sessionId,
                 stage,
                 thinkingLength: fullThinking.length,
@@ -378,14 +378,14 @@ export async function callKimiK2WithStream(
             logger.warn(`Streaming attempt ${attempt} failed: ${lastError.message}`);
 
             // Wait with backoff before retry (except last attempt)
-            if (attempt < KIMI_CONFIG.retryAttempts) {
-                await sleep(KIMI_CONFIG.retryDelayMs * attempt);
+            if (attempt < AI_CONFIG.retryAttempts) {
+                await sleep(AI_CONFIG.retryDelayMs * attempt);
             }
         }
     }
 
     // If all retries failed
-    logger.error('All Streaming Kimi K2 attempts failed', lastError);
+    logger.error('All Streaming AI attempts failed', lastError);
     return {
         success: false,
         content: '',
@@ -399,7 +399,7 @@ export async function callKimiK2WithStream(
 
 /**
  * Master system prompt for Vedic astrology birth time rectification
- * This defines Kimi K2 as the world's most expert Vedic astrologer
+ * This defines the AI as the world's most expert Vedic astrologer
  */
 export const MASTER_ASTROLOGY_SYSTEM_PROMPT = `You are the world's most accomplished Vedic (Jyotish) astrologer with 50+ years of expertise in birth time rectification (Janma Samay Shuddhi).
 
@@ -614,9 +614,60 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Parse Kimi response to extract structured data
+ * Execute AI calls in parallel batches with rate-limit awareness
+ * This allows high-throughput analysis while staying within API limits
  */
-export function parseKimiAnalysisResponse(content: string): {
+export async function executeAIInParallel(
+    tasks: Array<() => Promise<AIResponse>>,
+    concurrency: number = 3,
+    staggerMs: number = 500
+): Promise<AIResponse[]> {
+    const results: AIResponse[] = new Array(tasks.length);
+    const queue = tasks.map((task, index) => ({ task, index }));
+    let activeCount = 0;
+    let nextIndex = 0;
+
+    return new Promise((resolve) => {
+        async function runNext() {
+            if (nextIndex >= tasks.length && activeCount === 0) {
+                resolve(results);
+                return;
+            }
+
+            while (activeCount < concurrency && nextIndex < tasks.length) {
+                const { task, index } = queue[nextIndex++];
+                activeCount++;
+
+                // Staggered start to prevent instant 429 burst
+                if (staggerMs > 0 && activeCount > 1) {
+                    await sleep(staggerMs * (activeCount - 1));
+                }
+
+                (async () => {
+                    try {
+                        results[index] = await task();
+                    } catch (error) {
+                        results[index] = {
+                            success: false,
+                            content: '',
+                            error: error instanceof Error ? error.message : String(error)
+                        };
+                    } finally {
+                        activeCount--;
+                        runNext();
+                    }
+                })();
+            }
+        }
+
+        runNext();
+    });
+}
+
+/**
+ * Parse AI response to extract structured data
+ */
+export function parseAIAnalysisResponse(content: string): {
     score: number;
     confidence: 'High' | 'Medium' | 'Low';
     verdict: string;
@@ -668,9 +719,9 @@ export function parseKimiAnalysisResponse(content: string): {
 }
 
 export default {
-    callKimiK2,
+    callAI,
     MASTER_ASTROLOGY_SYSTEM_PROMPT,
     buildCandidateAnalysisPrompt,
     buildRankingPrompt,
-    parseKimiAnalysisResponse,
+    parseAIAnalysisResponse,
 };

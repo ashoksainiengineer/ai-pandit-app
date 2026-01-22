@@ -1,5 +1,6 @@
-import { LifeEvent, PhysicalTraits, EphemerisData, BTRInput, BTROutput } from './types';
-import { calculateEphemeris } from './ephemeris';
+import { LifeEvent, PhysicalTraits, EphemerisData, BTRInput, BTROutput } from './types.js';
+import { calculateEphemeris } from './ephemeris.js';
+import { callAI } from './ai-client.js';
 
 // Time uncertainty options as string type
 type TimeUncertainty = '±15 minutes' | '±30 minutes' | '±1 hour' | '±2 hours' | '±3 hours' | '±4 hours';
@@ -159,48 +160,27 @@ export async function quickFilterCandidates(
   return scoredCandidates.sort((a, b) => b.score - a.score).slice(0, 50);
 }
 
-async function callAI(prompt: string): Promise<{ score: number; thinking: string }> {
-  const KIMI_API_KEY = process.env.ANTHROPIC_API_KEY;
-  const KIMI_BASE_URL = process.env.ANTHROPIC_BASE_URL;
-  const KIMI_MODEL = process.env.MOONSHOT_MODEL || 'kimi-for-coding';
-
-  if (!KIMI_API_KEY || !KIMI_BASE_URL) {
-    throw new Error('AI service is not configured.');
-  }
-
+async function analyzeCandidateWithAI(prompt: string): Promise<{ score: number; thinking: string }> {
   try {
-    const response = await fetch(KIMI_BASE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${KIMI_API_KEY}` },
-      body: JSON.stringify({
-        model: KIMI_MODEL,
-        messages: [
-          { role: 'system', content: 'You are an expert Vedic astrologer analyzing birth time rectification. Return only a JSON object with score (0-100) and thinking (detailed reasoning).' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.3,
-        max_tokens: 2000,
-      }),
+    const response = await callAI('You are an expert Vedic astrologer analyzing birth time rectification. Return only a JSON object with score (0-100) and thinking (detailed reasoning).', prompt, {
+      temperature: 0.3,
+      maxTokens: 2000,
     });
 
-    if (!response.ok) {
-      throw new Error(`AI API request failed: ${response.status}`);
+    if (!response.success) {
+      throw new Error(response.error || 'AI analysis failed');
     }
 
-    const result = await response.json() as {
-      choices?: Array<{ message: { content: string } }>;
-    };
-    const content = result.choices?.[0]?.message?.content?.trim() || '';
-
-    // Parse JSON response
+    // Parse JSON response or extract from text
     try {
-      const parsed = JSON.parse(content);
-      return { score: parsed.score || 50, thinking: parsed.thinking || content };
+      const parsed = JSON.parse(response.content);
+      return { score: parsed.score || 50, thinking: parsed.thinking || response.content };
     } catch {
-      // Extract score from text if not JSON
-      const scoreMatch = content.match(/(\d+)(?:\s*\/\s*100|\s*%)/);
-      const score = scoreMatch ? Math.min(100, parseInt(scoreMatch[1])) : 50;
-      return { score, thinking: content };
+      const scoreMatch = response.content.match(/(\d+)(?:\s*\/\s*100|\s*%)/);
+      return {
+        score: scoreMatch ? Math.min(100, parseInt(scoreMatch[1])) : 50,
+        thinking: response.content || response.thinking || ''
+      };
     }
   } catch (error) {
     console.error('AI call failed:', error);
@@ -264,7 +244,7 @@ export async function analyzeWithAI(
     try {
       const ephemeris = await calculateEphemeris(birthDate, candidate.time, latitude, longitude, timezone);
       const prompt = generateAIPrompt(candidate.time, ephemeris, lifeEvents);
-      const aiResult = await callAI(prompt);
+      const aiResult = await analyzeCandidateWithAI(prompt);
       results.push({
         time: candidate.time,
         aiScore: aiResult.score,

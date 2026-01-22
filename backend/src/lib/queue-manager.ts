@@ -1,19 +1,20 @@
 // lib/queue-manager.ts
-// Memory-efficient queue system for 512MB RAM backend
-// Design: Process one request at a time, queue others in database
+// Efficient queue system for high-performance AI backend
+// Design: Process multiple requests concurrently based on system capacity
 
-import { db } from '../database/drizzle';
-import { sessions } from '../database/schema';
+import { db } from '../database/drizzle.js';
+import { sessions } from '../database/schema.js';
 import { eq, and, or, desc, asc, lt } from 'drizzle-orm';
-import { logger } from './logger';
-import { decryptData } from './crypto';
+import { logger } from './logger.js';
+import { decryptData } from './crypto.js';
 import {
   createAbortController,
   abortSession as abortSessionController,
   cleanupController,
   isCancellationError
-} from './cancellation-manager';
-import { emitComplete } from './session-events';
+} from './cancellation-manager.js';
+import { emitComplete } from './session-events.js';
+
 
 // ═════════════════════════════════════════════════════════════════════════════
 // QUEUE CONFIGURATION
@@ -24,8 +25,8 @@ const QUEUE_CONFIG = {
   pollIntervalMs: 2000,
   maxQueueSize: 1000,
   staleTimeoutMs: 30 * 60 * 1000, // 30 mins
-  baseAnalysisTime: 300,        // 5 Mins for God-Tier analysis (1 user)
-  contentionMultiplier: 0.4,    // Each extra user adds 40% time due to CPU sharing
+  baseAnalysisTime: 240,        // 4 Mins for God-Tier analysis (1 user)
+  contentionMultiplier: 0.2,    // Lower per-user overhead due to parallel AI batching
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -379,7 +380,7 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
 // ═════════════════════════════════════════════════════════════════════════════
 
 // Import seconds-precision analysis function for ultimate accuracy
-import { processSecondsPrecisionBTR } from './seconds-precision-btr';
+import { processSecondsPrecisionBTR } from './seconds-precision-btr.js';
 
 /**
  * Start the queue processor
@@ -398,6 +399,7 @@ export function startQueueProcessor(): void {
  * Main queue processing loop
  */
 async function processQueue(): Promise<void> {
+  logger.info('Queue processor loop started');
   while (isProcessorRunning) {
     try {
       // Check for stale processing requests (crashed mid-process)
@@ -405,6 +407,14 @@ async function processQueue(): Promise<void> {
 
       // Check concurrent limit
       if (activeProcessingIds.size >= QUEUE_CONFIG.maxConcurrent) {
+        // High frequency logging for wait state - only log if queue not empty to avoid noise
+        const queuedCount = await getQueuedCount();
+        if (queuedCount > activeProcessingIds.size) {
+          logger.debug('Queue blocked: all slots full', {
+            active: activeProcessingIds.size,
+            max: QUEUE_CONFIG.maxConcurrent
+          });
+        }
         await sleep(1000);
         continue;
       }

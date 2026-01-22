@@ -1,9 +1,8 @@
 // lib/seconds-precision-btr.ts
 // 10-Stage Seconds-Level Precision Birth Time Rectification Algorithm
 // Achieves ±3-5 seconds accuracy with 97-99% confidence
-// OPTIMIZED FOR 512MB RAM - ALL PROCESSING IS SEQUENTIAL
 
-import { calculateEphemeris, calculateJulianDay, convertToUTC } from './ephemeris';
+import { calculateEphemeris, calculateJulianDay, convertToUTC } from './ephemeris.js';
 import {
     calculateVimshottariDasha,
     getDashaForDate,
@@ -12,7 +11,7 @@ import {
     tropicalToSidereal,
     getNakshatraForLongitude,
     DashaPeriod,
-} from './vedic-astrology-engine';
+} from './vedic-astrology-engine.js';
 import {
     calculateYoginiDasha,
     getYoginiDashaForDate,
@@ -41,7 +40,7 @@ import {
     AspectData,
     ArudhaLagna,
     calculateAshtakavarga
-} from './advanced-btr-methods';
+} from './advanced-btr-methods.js';
 import {
     calculateCharaKarakas,
     calculateCharaDasha,
@@ -58,25 +57,26 @@ import {
     formatJaiminiAspects,
     calculateBhriguBindu,
     formatBhriguBindu
-} from './jaimini-astrology';
+} from './jaimini-astrology.js';
 import {
-    callKimiK2,
-    callKimiK2WithStream,
-    parseKimiAnalysisResponse,
-} from './kimi-k2-client';
+    callAI,
+    callAIWithStream,
+    parseAIAnalysisResponse,
+    executeAIInParallel,
+} from './ai-client.js';
 import {
     calculateTatwaShuddhi,
     calculateKundaShuddhi,
     calculateVarnadaLagna,
     getApproxSunrise,
     getApproxSunset,
-} from './shuddhi-engine';
-import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager';
-import { logger } from './logger';
-import { ProgressTracker } from './progress-tracker';
-import { LifeEvent, EphemerisData } from './types';
-import { throwIfCancelled, isCancellationError } from './cancellation-manager';
-import { emitCandidateScore, emitAIContext, emitCalculationLog, emitStageStats } from './session-events';
+} from './shuddhi-engine.js';
+import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager.js';
+import { logger } from './logger.js';
+import { ProgressTracker } from './progress-tracker.js';
+import { LifeEvent, EphemerisData } from './types.js';
+import { throwIfCancelled, isCancellationError } from './cancellation-manager.js';
+import { emitCandidateScore, emitAIContext, emitCalculationLog, emitStageStats } from './session-events.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -497,8 +497,8 @@ export async function processSecondsPrecisionBTR(
         await progress.completeStep('events', input.lifeEvents.slice(0, 3).map(e => `${e.category}: ${e.eventType}`));
 
         logger.info('Stage 7 complete', {
-            bestTime: stage7Results[0].time,
-            score: stage7Results[0].score,
+            bestTime: stage7Results[0]?.time || 'None',
+            score: stage7Results[0]?.score || 0,
         });
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -737,10 +737,6 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
 // STAGE 2: AI LEVEL 1
 // ═════════════════════════════════════════════════════════════════════════════
 
-// ═════════════════════════════════════════════════════════════════════════════
-// STAGE 2: AI LEVEL 1
-// ═════════════════════════════════════════════════════════════════════════════
-
 async function stage2AILevel1(
     candidates: StageCandidate[],
     input: SecondsPrecisionInput,
@@ -810,7 +806,7 @@ async function stage2AILevel1(
                 let lastPulseTime = Date.now();
 
                 // 🔴 Use streaming for real-time AI thinking display
-                let response = await callKimiK2WithStream(
+                let response = await callAIWithStream(
                     input.sessionId,
                     2, // Stage 2
                     getLevel1SystemPrompt(candidates.length),
@@ -836,7 +832,7 @@ async function stage2AILevel1(
                 // Fallback if primary model fails
                 if (!response.success) {
                     logger.warn(`Stage 2 Primary AI Failed for ${candidate.time}, switching to fallback...`);
-                    response = await callKimiK2WithStream(
+                    response = await callAIWithStream(
                         input.sessionId,
                         2,
                         getLevel1SystemPrompt(candidates.length),
@@ -856,7 +852,7 @@ async function stage2AILevel1(
                 }
 
                 if (response.success) {
-                    const parsed = parseKimiAnalysisResponse(response.content);
+                    const parsed = parseAIAnalysisResponse(response.content);
                     logger.info(`✅ Stage 2: Analyzed candidate ${candidate.time} (Score: ${parsed.score})`);
 
                     // 📊 Add and persist score
@@ -1713,7 +1709,8 @@ async function stage5AILevel2(
     logger.info(`Phase 9: Dynamic Tournament initialized. Qualified Gladiators: ${qualifiedCandidates.length} (from Pool of ${candidates.length})`);
 
     // ⚔️ THE TOURNAMENT: PARALLEL BATCH PROCESSING
-    const BATCH_SIZE = 10; // Optimal for Cognitive Bandwidth
+    const BATCH_SIZE = 10;
+    const CONCURRENCY = 3; // Respect AI API RPS limits
     const tournamentResults: any[] = [];
 
     // Create Batches
@@ -1722,51 +1719,42 @@ async function stage5AILevel2(
         batches.push(qualifiedCandidates.slice(i, i + BATCH_SIZE));
     }
 
-    // Process Batches in Parallel (The "Royal Rumble")
-    // Note: We use Promise.all to run them simultaneously.
-    const batchPromises = batches.map(async (batch, batchIndex) => {
+    // Process Batches with managed parallel execution
+    const tasks = batches.map((batch, batchIndex) => async () => {
         await throwIfCancelled(input.sessionId, input.abortSignal);
-
         logger.info(`⚔️ Tournament Batch ${batchIndex + 1}/${batches.length} entering the arena...`);
 
-        // Build Payload
         const prompt = buildBatchComparisonPrompt(batch, input, 2);
 
-        // Call AI
-        let aiResponse = "";
-        try {
-            const response = await callKimiK2(prompt, input.sessionId);
-            if (response.success) {
-                aiResponse = response.content;
-            } else {
-                logger.warn(`Batch ${batchIndex + 1} AI failed.`);
-                return []; // Batch failed, no survivors
+        // Call AI with STREAMING
+        return await callAIWithStream(
+            input.sessionId,
+            5,
+            getLevel2SystemPrompt(batch.length),
+            prompt,
+            {
+                temperature: 0.1,
+                maxTokens: 8000,
+                model: 'deepseek-reasoner',
+                abortSignal: input.abortSignal,
+                progressTracker: progress,
+                candidateTime: `Batch ${batchIndex + 1}`
             }
-        } catch (e: any) {
-            logger.error(`Batch ${batchIndex + 1} Error`, e);
-            return [];
+        );
+    });
+
+    const responses = await executeAIInParallel(tasks, CONCURRENCY, 1000);
+
+    for (let i = 0; i < batches.length; i++) {
+        const batch = batches[i];
+        const response = responses[i];
+        const aiResponse = response.success ? (response.content || response.thinking || "") : "";
+
+        if (!response.success) {
+            logger.warn(`Batch ${i + 1} AI failed. Falling back to algorithmic scores.`);
         }
 
-        // Update Progress Context (Showcase first candidate of batch as sample)
-        const sample = batch[0];
-        if (sample && sample.ephemeris) {
-            const planetaryInfo = {
-                ascendant: sample.ephemeris.Ascendant ? `${sample.ephemeris.Ascendant.sign} ${sample.ephemeris.Ascendant.degree.toFixed(2)}` : 'N/A',
-                sun: sample.ephemeris.Sun ? `${sample.ephemeris.Sun.sign} ${sample.ephemeris.Sun.degree.toFixed(2)}` : 'N/A',
-                moon: sample.ephemeris.Moon ? `${sample.ephemeris.Moon.sign} ${sample.ephemeris.Moon.degree.toFixed(2)}` : 'N/A'
-            };
-            await progress.updateAIContext({
-                stage: 5,
-                candidateTime: `Batch ${batchIndex + 1}: ${sample.time}...`,
-                planetaryInfo,
-                dasha: "Analyzing batch Dasha congruency...",
-                divCharts: "Cross-checking divisional charts..."
-            });
-            await progress.updateMessage(`Analyzing Tournament Batch ${batchIndex + 1}/${batches.length}...`);
-        }
-
-        // Parse Survivors
-        return batch.map(c => {
+        const batchWinners = batch.map(c => {
             const isWinner = aiResponse.includes(`FINAL VERDICT: ${c.time}`);
             const isRank1 = aiResponse.includes(`1. ${c.time}`) || aiResponse.includes(`1. [${c.time}]`);
 
@@ -1774,24 +1762,17 @@ async function stage5AILevel2(
             if (isWinner) boost += 20;
             if (isRank1) boost += 15;
 
-            // AI Analysis Injection
-            let analysis = "Analyzed in tournament.";
-            if (isWinner) analysis = "🏆 BATCH WINNER: " + aiResponse.substring(0, 200) + "...";
-
             return {
                 ...c,
-                score: Math.min(100, c.score + boost),
-                aiAnalysis: analysis
+                score: Math.min(100, (c.score || 0) + boost),
+                aiAnalysis: isWinner ? "🏆 BATCH WINNER: " + aiResponse.substring(0, 200) + "..." : "Analyzed in tournament."
             };
         });
-    });
 
-    const resultsNested = await Promise.all(batchPromises);
+        tournamentResults.push(...batchWinners);
+    }
 
-    // Flatten results
-    resultsNested.forEach(batchResult => {
-        if (batchResult) tournamentResults.push(...batchResult);
-    });
+    // Flattening is done inside loop now.
 
     // 🏆 GOD-TIER: Extract best reasoning
     const bestReasoning = tournamentResults[0]?.aiAnalysis || "Tournament complete.";
@@ -1827,55 +1808,70 @@ async function stage7AILevel3(
 
     logger.info(`Phase 9: Stage 7 Grand Finals - ${batch.length} Finalists entering...`);
 
-    const prompt = buildBatchComparisonPrompt(batch, input, 3); // Level 3 context
+    // ⚔️ GRAND FINALS: PARALLEL PROCESSING
+    const BATCH_SIZE = 5;
+    const CONCURRENCY = 2; // Micro-precision requires more focus, lower concurrency
+    const finalResults: any[] = [];
 
-    // Update Context for Grand Finals
-    const sample = batch[0];
-    if (sample && sample.ephemeris) {
-        const planetaryInfo = {
-            ascendant: sample.ephemeris.Ascendant ? `${sample.ephemeris.Ascendant.sign} ${sample.ephemeris.Ascendant.degree.toFixed(2)}` : 'N/A',
-            sun: sample.ephemeris.Sun ? `${sample.ephemeris.Sun.sign} ${sample.ephemeris.Sun.degree.toFixed(2)}` : 'N/A',
-            moon: sample.ephemeris.Moon ? `${sample.ephemeris.Moon.sign} ${sample.ephemeris.Moon.degree.toFixed(2)}` : 'N/A'
-        };
-        await progress.updateAIContext({
-            stage: 7, // Level 3
-            candidateTime: `Grand Finals: ${batch.length} Candidates...`,
-            planetaryInfo,
-            dasha: "Synthesizing final verdict...",
-            divCharts: "DeepSeek Reasoner Analysis..."
-        });
+    // Create Batches
+    const batches: any[][] = [];
+    for (let i = 0; i < batch.length; i += BATCH_SIZE) {
+        batches.push(batch.slice(i, i + BATCH_SIZE));
     }
 
-    let aiResponse = "";
-    try {
-        const response = await callKimiK2(prompt, input.sessionId);
-        if (response.success) {
-            aiResponse = response.content;
-        } else {
-            logger.warn(`Stage 7 AI failed: ${response.error}`);
-        }
-    } catch (e) {
-        logger.error("AI Stage 7 Failed", e);
-        return { results: batch, reasoning: "AI Error - fallback to algorithmic sort" };
-    }
+    // Process Batches in parallel
+    const tasks = batches.map((currentBatch, batchIndex) => async () => {
+        await throwIfCancelled(input.sessionId, input.abortSignal);
+        logger.info(`⚔️ Grand Finals Batch ${batchIndex + 1}/${batches.length} entering...`);
 
-    const rankedCandidates = batch.map(c => {
-        const isWinner = aiResponse.includes(`FINAL VERDICT: ${c.time}`);
-        let boost = 0;
-        if (isWinner) boost += 25; // Massive boost for final winner
+        const prompt = buildBatchComparisonPrompt(currentBatch, input, 3);
 
-        // Also parse confidence if possible
-        return {
-            ...c,
-            score: Math.min(99.9, c.score + boost),
-            aiAnalysis: isWinner ? aiResponse.substring(0, 500) : "Batch Analyzed"
-        };
+        return await callAIWithStream(
+            input.sessionId,
+            7,
+            getLevel3SystemPrompt(currentBatch.length),
+            prompt,
+            {
+                temperature: 0.1,
+                maxTokens: 12000,
+                model: 'deepseek-reasoner',
+                abortSignal: input.abortSignal,
+                progressTracker: progress,
+                candidateTime: `Finals Batch ${batchIndex + 1}`
+            }
+        );
     });
 
-    // 🏆 GOD-TIER: Extract final reasoning
-    const finalReasoning = aiResponse || "Grand Finals complete.";
+    const responses = await executeAIInParallel(tasks, CONCURRENCY, 1500);
 
-    return { results: rankedCandidates.sort((a, b) => b.score - a.score), reasoning: finalReasoning };
+    for (let i = 0; i < batches.length; i++) {
+        const currentBatch = batches[i];
+        const response = responses[i];
+        const aiResponse = response.success ? (response.content || response.thinking || "") : "";
+
+        if (!response.success) {
+            logger.warn(`Grand Finals Batch ${i + 1} AI failed.`);
+        }
+
+        const rankedBatch = currentBatch.map(c => {
+            const isWinner = aiResponse.includes(`FINAL VERDICT: ${c.time}`);
+            let boost = 0;
+            if (isWinner) boost += 25;
+
+            return {
+                ...c,
+                score: Math.min(100, (c.score || 0) + boost),
+                aiAnalysis: isWinner ? "🌟 FINALIST: " + aiResponse.substring(0, 200) + "..." : "Analyzed in finals."
+            };
+        });
+
+        finalResults.push(...rankedBatch);
+    }
+    // Sort and return
+    const sortedFinal = finalResults.sort((a, b) => b.score - a.score);
+    const finalReasoning = sortedFinal[0]?.aiAnalysis || "Grand Finals complete.";
+
+    return { results: sortedFinal, reasoning: finalReasoning };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

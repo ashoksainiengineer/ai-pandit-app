@@ -460,7 +460,7 @@ export function getTithiPraveshaForYear(
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// FORMATTING FOR KIMI K2 PROMPTS
+// FORMATTING FOR AI K2 PROMPTS
 // ═════════════════════════════════════════════════════════════════════════════
 
 export function formatCharaKarakas(karakas: CharaKaraka[]): string {

@@ -1,9 +1,9 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// EPHEMERIS MODULE - Memory-Optimized for 512MB RAM (Leapcell)
+// EPHEMERIS MODULE - High-Precision AI-Enhanced
 // Uses Swiss Ephemeris with minimal memory footprint
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { EphemerisData, PlanetPosition, HousePosition } from './types';
+import { EphemerisData, PlanetPosition, HousePosition } from './types.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MEMORY-EFFICIENT SWISS EPHEMERIS

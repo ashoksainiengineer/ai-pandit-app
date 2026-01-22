@@ -2,7 +2,7 @@
 // Advanced Vedic Astrology Methods for 99%+ BTR Accuracy
 // Includes: Yogini Dasha, Divisional Charts, Physical Traits, Advanced Aspects, Arudha Lagna
 
-import { EphemerisData, PlanetPosition, LifeEvent } from './types';
+import { EphemerisData, PlanetPosition, LifeEvent } from './types.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES AND CONSTANTS
@@ -957,7 +957,7 @@ Status: ${b.isDangerous ? '⚠️ CRITICAL (Highly sensitive to seconds)' : 'Sta
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// FORMATTING FOR KIMI K2 PROMPTS
+// FORMATTING FOR AI K2 PROMPTS
 // ═════════════════════════════════════════════════════════════════════════════
 
 export function formatYoginiDashaSequence(periods: YoginiDashaPeriod[]): string {

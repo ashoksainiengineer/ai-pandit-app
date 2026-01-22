@@ -383,11 +383,11 @@ export function dashaSupportsEvent(
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// FORMAT DASHA FOR KIMI PROMPT
+// FORMAT DASHA FOR AI PROMPT
 // ═════════════════════════════════════════════════════════════════════════════
 
 /**
- * Format dasha sequence for Kimi K2 analysis
+ * Format dasha sequence for AI K2 analysis
  */
 export function formatDashaSequence(periods: DashaPeriod[]): string {
     const lines: string[] = ['VIMSHOTTARI DASHA SEQUENCE:'];

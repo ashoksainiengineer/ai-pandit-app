@@ -698,7 +698,7 @@ export function getProgressedDate(birthDate: Date, eventAge: number): Date {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// FORMATTING FOR KIMI K2 PROMPTS
+// FORMATTING FOR AI K2 PROMPTS
 // ═════════════════════════════════════════════════════════════════════════════
 
 export function formatYoginiDashaSequence(periods: YoginiDashaPeriod[]): string {

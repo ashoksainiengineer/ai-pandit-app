@@ -3,13 +3,13 @@ import { Router } from 'express';
 const router = Router();
 
 router.get('/', async (req, res) => {
-    const KIMI_BASE_URL = process.env.ANTHROPIC_BASE_URL;
+    const AI_BASE_URL = process.env.ANTHROPIC_BASE_URL;
 
-    if (!KIMI_BASE_URL) {
+    if (!AI_BASE_URL) {
         return res.status(500).json({ error: 'Sacred AI endpoint not configured' });
     }
 
-    console.log(`[WARMUP] Initiating anticipatory ping to: ${KIMI_BASE_URL}`);
+    console.log(`[WARMUP] Initiating anticipatory ping to: ${AI_BASE_URL}`);
 
     try {
         // We use a short timeout (5s) because we don't want to block the user.
@@ -17,7 +17,7 @@ router.get('/', async (req, res) => {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
 
-        const response = await fetch(KIMI_BASE_URL, {
+        const response = await fetch(AI_BASE_URL, {
             method: 'GET',
             signal: controller.signal,
             headers: {

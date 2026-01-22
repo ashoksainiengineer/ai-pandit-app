@@ -156,20 +156,20 @@ export async function quickFilterCandidates(
 }
 
 async function callAI(prompt: string): Promise<{ score: number; thinking: string }> {
-  const KIMI_API_KEY = process.env.ANTHROPIC_API_KEY;
-  const KIMI_BASE_URL = process.env.ANTHROPIC_BASE_URL;
-  const KIMI_MODEL = process.env.MOONSHOT_MODEL || 'kimi-for-coding';
+  const AI_API_KEY = process.env.ANTHROPIC_API_KEY;
+  const AI_BASE_URL = process.env.ANTHROPIC_BASE_URL;
+  const AI_MODEL = process.env.AI_MODEL || 'AI-for-coding';
 
-  if (!KIMI_API_KEY || !KIMI_BASE_URL) {
+  if (!AI_API_KEY || !AI_BASE_URL) {
     throw new Error('AI service is not configured.');
   }
 
   try {
-    const response = await fetch(KIMI_BASE_URL, {
+    const response = await fetch(AI_BASE_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${KIMI_API_KEY}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${AI_API_KEY}` },
       body: JSON.stringify({
-        model: KIMI_MODEL,
+        model: AI_MODEL,
         messages: [
           { role: 'system', content: 'You are an expert Vedic astrologer analyzing birth time rectification. Return only a JSON object with score (0-100) and thinking (detailed reasoning).' },
           { role: 'user', content: prompt }

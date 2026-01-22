@@ -1,26 +1,26 @@
 // Server-side only
 
-// lib/kimi-k2-thinking-client.ts (UPDATED)
-// Enhanced for analyzing top candidates with Kimi K2
+// lib/ai-thinking-client.ts (UPDATED)
+// Enhanced for analyzing top candidates with AI Thinking
 
-import { kimiClient, serverConfig } from '@/lib/server-config';
-import { generateAstrologicalReport } from '@/lib/astrological-data-processor';
-import { CandidateAnalysis } from '@/lib/types';
-import { EphemerisData, LifeEvent } from '@/lib/types';
-import { logger } from '@/lib/logger';
+import { aiClient, serverConfig } from './server-config.js';
+import { generateAstrologicalReport } from './astrological-data-processor.js';
+import { CandidateAnalysis } from './types.js';
+import { EphemerisData, LifeEvent } from './types.js';
+import { logger } from './logger.js';
 
 // ═════════════════════════════════════════════════════════════════════════
 // TYPE DEFINITIONS
 // ═════════════════════════════════════════════════════════════════════════
 
-export interface KimiAnalysisResult {
+export interface AIAnalysisResult {
   time: string;
   offsetMinutes: number;
   offsetDescription: string;
   score: number; // 0-100 confidence
   confidence: 'High' | 'Medium' | 'Low'; // Confidence level
-  analysis: string; // Detailed analysis from Kimi
-  thinking: string; // Kimi's thinking process (truncated)
+  analysis: string; // Detailed analysis from AI
+  thinking: string; // AI's thinking process (truncated)
   eventMatches: {
     eventType: string;
     matches: boolean;
@@ -32,36 +32,36 @@ export interface KimiAnalysisResult {
 }
 
 export interface TopCandidatesAnalysis {
-  candidates: KimiAnalysisResult[];
-  topRecommendation: KimiAnalysisResult; // #1 choice
-  alternativeOptions: KimiAnalysisResult[]; // Backup options
+  candidates: AIAnalysisResult[];
+  topRecommendation: AIAnalysisResult; // #1 choice
+  alternativeOptions: AIAnalysisResult[]; // Backup options
   processingTime: number;
 }
 
 // ═════════════════════════════════════════════════════════════════════════
-// MAIN: Analyze Top Candidates with Kimi K2
+// MAIN: Analyze Top Candidates with AI
 // ═════════════════════════════════════════════════════════════════════════
 
-export async function analyzeTopCandidatesWithKimi(
+export async function analyzeTopCandidatesWithAI(
   topCandidates: CandidateAnalysis[],
   lifeEvents: LifeEvent[]
 ): Promise<TopCandidatesAnalysis> {
   const startTime = Date.now();
 
   try {
-    logger.info('Starting Kimi K2 analysis of top candidates', {
+    logger.info('Starting AI analysis of top candidates', {
       candidateCount: topCandidates.length,
     });
 
-    const kimiResults: KimiAnalysisResult[] = [];
+    const aiResults: AIAnalysisResult[] = [];
 
     // ─────────────────────────────────────────────────────────────────────
-    // Analyze each top candidate with Kimi K2
+    // Analyze each top candidate with AI
     // ─────────────────────────────────────────────────────────────────────
 
     for (const candidate of topCandidates) {
       try {
-        logger.info('Analyzing candidate with Kimi K2', {
+        logger.info('Analyzing candidate with AI', {
           time: candidate.time,
           quickScore: candidate.quickScore,
         });
@@ -72,28 +72,28 @@ export async function analyzeTopCandidatesWithKimi(
           lifeEvents
         );
 
-        // Build Kimi prompt
-        const kimiPrompt = buildKimiPromptForCandidate(
+        // Build AI prompt
+        const aiPrompt = buildAIPromptForCandidate(
           candidate,
           astrologicalReport,
           lifeEvents
         );
 
-        // Call Kimi K2
-        const kimiResponse = await callKimiK2(kimiPrompt);
+        // Call AI
+        const aiResponse = await callAI(aiPrompt);
 
         // Parse response
-        const result = parseKimiResponse(kimiResponse, candidate);
+        const result = parseAIResponse(aiResponse, candidate);
 
-        kimiResults.push(result);
+        aiResults.push(result);
 
-        logger.info('Kimi K2 analysis complete', {
+        logger.info('AI analysis complete', {
           time: candidate.time,
           score: result.score,
           confidence: result.confidence,
         });
       } catch (error) {
-        logger.error(`Kimi K2 analysis failed for ${candidate.time}`, error);
+        logger.error(`AI analysis failed for ${candidate.time}`, error);
         // Continue with next candidate
       }
     }
@@ -102,10 +102,10 @@ export async function analyzeTopCandidatesWithKimi(
     // Sort by score and select top recommendation
     // ─────────────────────────────────────────────────────────────────────
 
-    kimiResults.sort((a, b) => b.score - a.score);
+    aiResults.sort((a, b) => b.score - a.score);
 
-    const topRecommendation = kimiResults[0];
-    const alternativeOptions = kimiResults.slice(1);
+    const topRecommendation = aiResults[0];
+    const alternativeOptions = aiResults.slice(1);
 
     const processingTime = Date.now() - startTime;
 
@@ -116,22 +116,22 @@ export async function analyzeTopCandidatesWithKimi(
     });
 
     return {
-      candidates: kimiResults,
+      candidates: aiResults,
       topRecommendation,
       alternativeOptions,
       processingTime,
     };
   } catch (error) {
-    logger.error('Top candidates Kimi analysis failed', error);
+    logger.error('Top candidates AI analysis failed', error);
     throw error;
   }
 }
 
 // ═════════════════════════════════════════════════════════════════════════
-// BUILD: Kimi Prompt for Candidate Time
+// BUILD: AI Prompt for Candidate Time
 // ═════════════════════════════════════════════════════════════════════════
 
-function buildKimiPromptForCandidate(
+function buildAIPromptForCandidate(
   candidate: CandidateAnalysis,
   astrologicalReport: any,
   lifeEvents: LifeEvent[]
@@ -168,7 +168,7 @@ ${astrologicalReport.eventCorrelations}
 
 ═════════════════════════════════════════════════════════════════════════════
 
-ANALYSIS TASK FOR KIMI K2:
+ANALYSIS TASK FOR AI:
 
 For this birth time candidate (${candidate.time}):
 
@@ -214,17 +214,17 @@ KEY CONCERNS: [What doesn't match]
 }
 
 // ═════════════════════════════════════════════════════════════════════════
-// CALL: Kimi K2 with Thinking Mode
+// CALL: AI with Thinking Mode
 // ═════════════════════════════════════════════════════════════════════════
 
-async function callKimiK2(prompt: string): Promise<any> {
-  return await kimiClient.messages.create({
-    model: serverConfig.kimi.model,
-    max_tokens: serverConfig.kimi.maxTokens,
-    temperature: serverConfig.kimi.temperature,
+async function callAI(prompt: string): Promise<any> {
+  return await aiClient.messages.create({
+    model: serverConfig.ai.model,
+    max_tokens: serverConfig.ai.maxTokens,
+    temperature: serverConfig.ai.temperature,
     thinking: {
       type: 'enabled',
-      budget_tokens: serverConfig.kimi.thinkingBudget,
+      budget_tokens: serverConfig.ai.thinkingBudget,
     },
     system: buildAstrologicalSystemPrompt(),
     messages: [
@@ -277,13 +277,13 @@ Clear scores and recommendations.`;
 }
 
 // ═════════════════════════════════════════════════════════════════════════
-// PARSE: Kimi K2 Response
+// PARSE: AI Response
 // ═════════════════════════════════════════════════════════════════════════
 
-function parseKimiResponse(
+function parseAIResponse(
   response: any,
   candidate: CandidateAnalysis
-): KimiAnalysisResult {
+): AIAnalysisResult {
   const thinking = response.content.find((block: any) => block.type === 'thinking')?.thinking || '';
   const analysis = response.content.find((block: any) => block.type === 'text')?.text || '';
 
@@ -332,4 +332,4 @@ function extractSection(text: string, sectionName: string): string {
   return match ? match[1].trim() : '';
 }
 
-export default analyzeTopCandidatesWithKimi;
+export default analyzeTopCandidatesWithAI;

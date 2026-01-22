@@ -11,7 +11,7 @@ import {
   TimeOffsetConfig,
 } from '@/lib/time-offset-manager';
 import analyzeAndFilterCandidates from '@/lib/candidate-analyzer';
-import { analyzeTopCandidatesWithKimi } from '@/lib/kimi-k2-thinking-client';
+import { analyzeTopCandidatesWithAI } from '@/lib/ai-thinking-client';
 import { BirthData, LifeEvent, RankedCandidates } from '@/lib/types';
 
 interface CalculateRequest {
@@ -202,17 +202,16 @@ export async function POST(request: NextRequest): Promise<NextResponse<Calculate
     });
 
     // ─────────────────────────────────────────────────────────────────────
-    // 7. DEEP ANALYSIS WITH KIMI K2 FOR TOP CANDIDATES
+    // 7. DEEP ANALYSIS WITH AI FOR TOP CANDIDATES
     // ─────────────────────────────────────────────────────────────────────
-
-    const kimiResults = await analyzeTopCandidatesWithKimi(
+    const aiResults = await analyzeTopCandidatesWithAI(
       rankedCandidates.topCandidates,
       lifeEvents
     );
 
-    logger.info('Kimi K2 analysis complete', {
-      topTime: kimiResults.topRecommendation.time,
-      topScore: kimiResults.topRecommendation.score,
+    logger.info('AI deep analysis complete', {
+      topTime: aiResults.topRecommendation.time,
+      topScore: aiResults.topRecommendation.score,
       sessionId,
     });
 
@@ -224,12 +223,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<Calculate
 
     await db.update(sessions)
       .set({
-        rectifiedTime: kimiResults.topRecommendation.time,
-        accuracy: kimiResults.topRecommendation.score,
-        confidence: kimiResults.topRecommendation.confidence,
+        rectifiedTime: aiResults.topRecommendation.time,
+        accuracy: aiResults.topRecommendation.score,
+        confidence: aiResults.topRecommendation.confidence,
         analysisResult: JSON.stringify({
-          topRecommendation: kimiResults.topRecommendation,
-          alternativeOptions: kimiResults.alternativeOptions,
+          topRecommendation: aiResults.topRecommendation,
+          alternativeOptions: aiResults.alternativeOptions,
           allCandidates: rankedCandidates.allCandidates.map((c) => ({
             time: c.time,
             offsetDescription: c.offsetDescription,
@@ -237,8 +236,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<Calculate
             eventMatches: c.eventMatches,
           })),
           totalCandidatesAnalyzed: rankedCandidates.totalAnalyzed,
-          totalCandidatesWithKimi: kimiResults.candidates.length,
-          processingTime: kimiResults.processingTime,
+          totalCandidatesWithAI: aiResults.candidates.length,
+          processingTime: aiResults.processingTime,
         }),
         status: 'complete',
         updatedAt: updateNow,
@@ -257,23 +256,23 @@ export async function POST(request: NextRequest): Promise<NextResponse<Calculate
       success: true,
       data: {
         sessionId,
-        rectifiedTime: kimiResults.topRecommendation.time,
-        accuracy: kimiResults.topRecommendation.score,
-        confidence: kimiResults.topRecommendation.confidence,
+        rectifiedTime: aiResults.topRecommendation.time,
+        accuracy: aiResults.topRecommendation.score,
+        confidence: aiResults.topRecommendation.confidence,
 
         // Top recommendation
         topRecommendation: {
-          time: kimiResults.topRecommendation.time,
-          offsetMinutes: kimiResults.topRecommendation.offsetMinutes,
-          offsetDescription: kimiResults.topRecommendation.offsetDescription,
-          score: kimiResults.topRecommendation.score,
-          confidence: kimiResults.topRecommendation.confidence,
-          analysis: kimiResults.topRecommendation.analysis.substring(0, 2000),
-          recommendation: kimiResults.topRecommendation.recommendation,
+          time: aiResults.topRecommendation.time,
+          offsetMinutes: aiResults.topRecommendation.offsetMinutes,
+          offsetDescription: aiResults.topRecommendation.offsetDescription,
+          score: aiResults.topRecommendation.score,
+          confidence: aiResults.topRecommendation.confidence,
+          analysis: aiResults.topRecommendation.analysis.substring(0, 2000),
+          recommendation: aiResults.topRecommendation.recommendation,
         },
 
         // Alternative options (top 4 alternatives)
-        alternativeOptions: kimiResults.alternativeOptions.slice(0, 4).map((c) => ({
+        alternativeOptions: aiResults.alternativeOptions.slice(0, 4).map((c) => ({
           time: c.time,
           offsetMinutes: c.offsetMinutes,
           offsetDescription: c.offsetDescription,
@@ -285,7 +284,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Calculate
         statistics: {
           totalCandidatesGenerated: candidates.length,
           topCandidatesAnalyzed: rankedCandidates.topCandidates.length,
-          deepAnalysisCount: kimiResults.candidates.length,
+          deepAnalysisCount: aiResults.candidates.length,
           allCandidateScores: rankedCandidates.allCandidates.map((c) => ({
             time: c.time,
             quickScore: c.quickScore,

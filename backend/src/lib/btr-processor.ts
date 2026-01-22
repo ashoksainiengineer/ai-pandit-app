@@ -2,9 +2,9 @@
 
 // lib/btr-processor.ts
 // Main Birth Time Rectification processor
-// Optimized for 512MB RAM - minimal local computation, max Kimi K2 usage
+// Optimized for high-performance AI integration
 
-import { calculateEphemeris, calculateJulianDay, convertToUTC } from './ephemeris';
+import { calculateEphemeris, calculateJulianDay, convertToUTC } from './ephemeris.js';
 import {
     calculateVimshottariDasha,
     getDashaForDate,
@@ -13,16 +13,16 @@ import {
     tropicalToSidereal,
     getNakshatraForLongitude,
     DashaPeriod,
-} from './vedic-astrology-engine';
+} from './vedic-astrology-engine.js';
 import {
-    callKimiK2,
+    callAI,
     MASTER_ASTROLOGY_SYSTEM_PROMPT,
     buildCandidateAnalysisPrompt,
-    parseKimiAnalysisResponse,
-} from './kimi-k2-client';
-import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager';
-import { logger } from './logger';
-import { LifeEvent, EphemerisData } from './types';
+    parseAIAnalysisResponse,
+} from './ai-client.js';
+import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager.js';
+import { logger } from './logger.js';
+import { LifeEvent, EphemerisData } from './types.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // PROCESSOR TYPES
@@ -65,7 +65,7 @@ export interface CandidateScore {
 
 /**
  * Main processing function - called by queue manager
- * Optimized for memory efficiency on 512MB RAM
+ * Optimized for high-performance scale
  */
 export async function processAnalysis(input: ProcessInput): Promise<ProcessResult> {
     const startTime = Date.now();
@@ -99,7 +99,7 @@ export async function processAnalysis(input: ProcessInput): Promise<ProcessResul
             input.lifeEvents
         );
 
-        // Take top 5 for deep analysis (save Kimi K2 tokens)
+        // Take top 5 for deep analysis (save AI tokens)
         const topCandidates = scoredCandidates.slice(0, 5);
 
         logger.info('Quick filter complete', {
@@ -109,10 +109,10 @@ export async function processAnalysis(input: ProcessInput): Promise<ProcessResul
         });
 
         // ═══════════════════════════════════════════════════════════════════════
-        // PHASE 3: Deep Analysis with Kimi K2 (The Heavy Lifting)
+        // PHASE 3: Deep Analysis with AI (The Heavy Lifting)
         // ═══════════════════════════════════════════════════════════════════════
 
-        const analysisResults = await analyzeWithKimiK2(
+        const analysisResults = await analyzeWithAI(
             topCandidates,
             input.dateOfBirth,
             input.latitude,
@@ -160,7 +160,7 @@ export async function processAnalysis(input: ProcessInput): Promise<ProcessResul
 
 /**
  * Quick filter using local Dasha calculations
- * This reduces candidates before expensive Kimi K2 calls
+ * This reduces candidates before expensive AI calls
  */
 async function quickFilterCandidates(
     candidates: Array<{ time: string; offsetMinutes: number; offsetDescription: string }>,
@@ -241,10 +241,10 @@ async function quickFilterCandidates(
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// PHASE 3: DEEP ANALYSIS WITH KIMI K2
+// PHASE 3: DEEP ANALYSIS WITH AI K2
 // ═════════════════════════════════════════════════════════════════════════════
 
-interface KimiAnalysis {
+interface AIAnalysis {
     time: string;
     score: number;
     confidence: string;
@@ -256,10 +256,10 @@ interface KimiAnalysis {
 }
 
 /**
- * Deep analysis using Kimi K2 with extended thinking
+ * Deep analysis using AI with extended thinking
  * This is where the magic happens - expert-level analysis
  */
-async function analyzeWithKimiK2(
+async function analyzeWithAI(
     candidates: CandidateScore[],
     dateOfBirth: string,
     latitude: number,
@@ -267,8 +267,8 @@ async function analyzeWithKimiK2(
     timezone: string,
     lifeEvents: LifeEvent[],
     physicalTraits?: { height?: string; build?: string; complexion?: string }
-): Promise<KimiAnalysis[]> {
-    const results: KimiAnalysis[] = [];
+): Promise<AIAnalysis[]> {
+    const results: AIAnalysis[] = [];
     const birthDate = new Date(dateOfBirth);
 
     for (const candidate of candidates) {
@@ -320,7 +320,7 @@ async function analyzeWithKimiK2(
                 };
             });
 
-            // Build comprehensive prompt for Kimi K2
+            // Build comprehensive prompt for AI
             const prompt = buildCandidateAnalysisPrompt(
                 candidate.time,
                 dateOfBirth,
@@ -337,8 +337,8 @@ async function analyzeWithKimiK2(
                 physicalTraits
             );
 
-            // Call Kimi K2 with extended thinking
-            const response = await callKimiK2(
+            // Call AI with extended thinking
+            const response = await callAI(
                 MASTER_ASTROLOGY_SYSTEM_PROMPT,
                 prompt,
                 {
@@ -349,12 +349,12 @@ async function analyzeWithKimiK2(
             );
 
             if (!response.success) {
-                logger.error('Kimi K2 call failed', { error: response.error });
+                logger.error('AI call failed', { error: response.error });
                 continue;
             }
 
             // Parse response
-            const parsed = parseKimiAnalysisResponse(response.content);
+            const parsed = parseAIAnalysisResponse(response.content);
 
             results.push({
                 time: candidate.time,
@@ -388,7 +388,7 @@ async function analyzeWithKimiK2(
 // PHASE 4: FINAL SELECTION
 // ═════════════════════════════════════════════════════════════════════════════
 
-function selectBestCandidate(results: KimiAnalysis[]): KimiAnalysis {
+function selectBestCandidate(results: AIAnalysis[]): AIAnalysis {
     if (results.length === 0) {
         throw new Error('No analysis results available');
     }

@@ -5,13 +5,13 @@ import { Client } from '@libsql/client';
 
 export const serverConfig = {
   // AI Configuration
-  kimi: {
-    baseUrl: process.env.ANTHROPIC_BASE_URL || process.env.KIMI_BASE_URL || 'https://api.moonshot.cn/v1',
-    apiKey: process.env.ANTHROPIC_API_KEY || process.env.KIMI_API_KEY || '',
-    model: process.env.MOONSHOT_MODEL || process.env.KIMI_MODEL || 'moonshot-v1-auto',
-    maxTokens: parseInt(process.env.KIMI_MAX_TOKENS || '4000'),
-    temperature: parseFloat(process.env.KIMI_TEMPERATURE || '0.3'),
-    thinkingBudget: parseInt(process.env.KIMI_THINKING_BUDGET || '8000'),
+  AI: {
+    baseUrl: process.env.ANTHROPIC_BASE_URL || process.env.AI_BASE_URL || 'https://api.AI.cn/v1',
+    apiKey: process.env.ANTHROPIC_API_KEY || process.env.AI_API_KEY || '',
+    model: process.env.AI_MODEL || process.env.AI_MODEL || 'AI-v1-auto',
+    maxTokens: parseInt(process.env.AI_MAX_TOKENS || '4000'),
+    temperature: parseFloat(process.env.AI_TEMPERATURE || '0.3'),
+    thinkingBudget: parseInt(process.env.AI_THINKING_BUDGET || '8000'),
   },
 
   // Database
@@ -27,11 +27,11 @@ export const serverConfig = {
 
 // Database client - will be imported from drizzle
 
-// Kimi client (simplified for now)
-export const kimiClient = {
+// AI client (simplified for now)
+export const AIClient = {
   messages: {
     create: async (options: any) => {
-      // This would be the actual Kimi API call
+      // This would be the actual AI API call
       // For now, return a mock response
       return {
         content: [

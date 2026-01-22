@@ -1,9 +1,9 @@
 // lib/comprehensive-btr-processor.ts
 // MAXIMUM ACCURACY BTR Processor using ALL 15+ Vedic Methods
-// Sequential processing for 512MB RAM efficiency
+// Performance optimized processing for high-capacity AI backend
 // Target: 99%+ accuracy
 
-import { calculateEphemeris, calculateJulianDay, convertToUTC } from './ephemeris';
+import { calculateEphemeris, calculateJulianDay, convertToUTC } from './ephemeris.js';
 import {
     calculateVimshottariDasha,
     getDashaForDate,
@@ -12,7 +12,7 @@ import {
     tropicalToSidereal,
     getNakshatraForLongitude,
     DashaPeriod,
-} from './vedic-astrology-engine';
+} from './vedic-astrology-engine.js';
 import {
     calculateYoginiDasha,
     getYoginiDashaForDate,
@@ -28,7 +28,7 @@ import {
     formatPhysicalTraitsAnalysis,
     formatArudhaLagna,
     YoginiDashaPeriod,
-} from './advanced-btr-methods';
+} from './advanced-btr-methods.js';
 import {
     calculateCharaKarakas,
     calculateCharaDasha,
@@ -43,14 +43,14 @@ import {
     formatRasiDasha,
     formatTatwaDasha,
     formatJaiminiAspects,
-} from './jaimini-astrology';
+} from './jaimini-astrology.js';
 import {
-    callKimiK2,
-    parseKimiAnalysisResponse,
-} from './kimi-k2-client';
-import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager';
-import { logger } from './logger';
-import { LifeEvent, EphemerisData } from './types';
+    callAI,
+    parseAIAnalysisResponse,
+} from './ai-client.js';
+import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager.js';
+import { logger } from './logger.js';
+import { LifeEvent, EphemerisData } from './types.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -225,10 +225,10 @@ export async function processComprehensiveAnalysis(
         });
 
         // ═══════════════════════════════════════════════════════════════════════
-        // PHASE 3: COMPREHENSIVE Deep Analysis with Kimi K2
+        // PHASE 3: COMPREHENSIVE Deep Analysis with AI
         // ═══════════════════════════════════════════════════════════════════════
 
-        const analysisResults = await comprehensiveKimiAnalysis(
+        const analysisResults = await analyzeDeeplyWithAI(
             topCandidates,
             input.dateOfBirth,
             input.latitude,
@@ -482,7 +482,7 @@ async function multiMethodQuickFilter(
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// PHASE 3: COMPREHENSIVE KIMI K2 ANALYSIS
+// PHASE 3: COMPREHENSIVE AI ANALYSIS
 // ═════════════════════════════════════════════════════════════════════════════
 
 interface ComprehensiveAnalysisResult {
@@ -495,7 +495,7 @@ interface ComprehensiveAnalysisResult {
     verdict: string;
 }
 
-async function comprehensiveKimiAnalysis(
+async function analyzeDeeplyWithAI(
     candidates: MultiMethodScore[],
     dateOfBirth: string,
     latitude: number,
@@ -510,7 +510,7 @@ async function comprehensiveKimiAnalysis(
     // Process candidates SEQUENTIALLY (RAM efficiency)
     for (const candidate of candidates) {
         try {
-            logger.info('Comprehensive Kimi analysis starting', { time: candidate.time });
+            logger.info('Comprehensive AI analysis starting', { time: candidate.time });
 
             // Get ephemeris
             const ephemeris = await calculateEphemeris(
@@ -549,7 +549,7 @@ async function comprehensiveKimiAnalysis(
             }
 
             // ═══════════════════════════════════════════════════════════════════
-            // Build COMPREHENSIVE prompt for Kimi K2
+            // Build COMPREHENSIVE prompt for AI
             // ═══════════════════════════════════════════════════════════════════
             const prompt = buildComprehensivePrompt(
                 candidate.time,
@@ -572,8 +572,8 @@ async function comprehensiveKimiAnalysis(
                 physicalTraitsAnalysis
             );
 
-            // Call Kimi K2 with extended tokens for comprehensive analysis
-            const response = await callKimiK2(
+            // Call AI with extended tokens for comprehensive analysis
+            const response = await callAI(
                 COMPREHENSIVE_SYSTEM_PROMPT,
                 prompt,
                 {
@@ -584,12 +584,12 @@ async function comprehensiveKimiAnalysis(
             );
 
             if (!response.success) {
-                logger.error('Kimi K2 comprehensive call failed', { error: response.error });
+                logger.error('AI comprehensive call failed', { error: response.error });
                 continue;
             }
 
             // Parse response
-            const parsed = parseKimiAnalysisResponse(response.content);
+            const parsed = parseAIAnalysisResponse(response.content);
 
             results.push({
                 time: candidate.time,
@@ -608,7 +608,7 @@ async function comprehensiveKimiAnalysis(
                 verdict: parsed.verdict,
             });
 
-            logger.info('Comprehensive Kimi analysis complete', {
+            logger.info('Comprehensive AI analysis complete', {
                 time: candidate.time,
                 score: parsed.score,
                 confidence: parsed.confidence,

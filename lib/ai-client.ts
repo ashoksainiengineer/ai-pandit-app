@@ -1,20 +1,21 @@
 // Server-side only
 
-// lib/kimi-k2-client.ts
-// Production Kimi K2 Turbo Thinking API Client
+// lib/ai-client.ts
+// Production AI Thinking API Client
 // Optimized for maximum accuracy in birth time rectification
 
-import { logger } from './logger';
+import { logger } from './logger.js';
+
 
 // ═════════════════════════════════════════════════════════════════════════════
-// KIMI K2 CONFIGURATION
+// AI CONFIGURATION
 // ═════════════════════════════════════════════════════════════════════════════
 
-const KIMI_CONFIG = {
-    // DeepSeek first, then fallback to Kimi/Moonshot
-    baseUrl: process.env.DEEPSEEK_BASE_URL || process.env.ANTHROPIC_BASE_URL || process.env.KIMI_BASE_URL || 'https://api.deepseek.com',
-    apiKey: process.env.DEEPSEEK_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.KIMI_API_KEY || '',
-    model: process.env.DEEPSEEK_MODEL || process.env.MOONSHOT_MODEL || process.env.KIMI_MODEL || 'deepseek-reasoner', // V3 with CoT reasoning
+const AI_CONFIG = {
+    // AI Model and connection settings
+    baseUrl: process.env.AI_BASE_URL || process.env.DEEPSEEK_BASE_URL || process.env.ANTHROPIC_BASE_URL || process.env.AI_BASE_URL || 'https://api.deepseek.com',
+    apiKey: process.env.AI_API_KEY || process.env.DEEPSEEK_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.AI_API_KEY || '',
+    model: process.env.AI_MODEL || process.env.DEEPSEEK_MODEL || process.env.AI_MODEL || process.env.AI_MODEL || 'deepseek-reasoner', // V3 with CoT reasoning
     maxTokens: 32000,      // DeepSeek reasoner supports up to 64K
     thinkingBudget: 32000, // Extended thinking for highest accuracy
     temperature: 0.1,      // Note: ignored by deepseek-reasoner
@@ -27,7 +28,7 @@ const KIMI_CONFIG = {
 // RESPONSE TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-export interface KimiK2Response {
+export interface AIResponse {
     success: boolean;
     thinking?: string;       // Internal reasoning (if thinking mode)
     content: string;         // Final analysis
@@ -35,7 +36,7 @@ export interface KimiK2Response {
     error?: string;
 }
 
-export interface KimiK2Message {
+export interface AIMessage {
     role: 'system' | 'user' | 'assistant';
     content: string;
 }
@@ -45,50 +46,52 @@ export interface KimiK2Message {
 // ═════════════════════════════════════════════════════════════════════════════
 
 /**
- * Call Kimi K2 with extended thinking mode
+ * Call AI with extended thinking mode
  * This is the core function for all AI analysis
  */
-export async function callKimiK2(
+export async function callAI(
     systemPrompt: string,
     userPrompt: string,
     options?: {
         temperature?: number;
         maxTokens?: number;
         enableThinking?: boolean;
+        model?: string;
     }
-): Promise<KimiK2Response> {
+): Promise<AIResponse> {
     const config = {
-        temperature: options?.temperature ?? KIMI_CONFIG.temperature,
-        maxTokens: options?.maxTokens ?? KIMI_CONFIG.maxTokens,
+        temperature: options?.temperature ?? AI_CONFIG.temperature,
+        maxTokens: options?.maxTokens ?? AI_CONFIG.maxTokens,
         enableThinking: options?.enableThinking ?? true,
+        model: options?.model ?? AI_CONFIG.model,
     };
 
-    if (!KIMI_CONFIG.apiKey) {
-        logger.error('DEEPSEEK_API_KEY not configured');
+    if (!AI_CONFIG.apiKey) {
+        logger.error('AI API_KEY not configured');
         return {
             success: false,
             content: '',
-            error: 'DeepSeek API key not configured',
+            error: 'AI API key not configured',
         };
     }
 
     let lastError: Error | null = null;
 
-    for (let attempt = 1; attempt <= KIMI_CONFIG.retryAttempts; attempt++) {
+    for (let attempt = 1; attempt <= AI_CONFIG.retryAttempts; attempt++) {
         try {
-            logger.info('Calling Kimi K2', {
+            logger.info('Calling AI Engine', {
                 attempt,
-                model: KIMI_CONFIG.model,
+                model: config.model,
                 enableThinking: config.enableThinking,
             });
 
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), KIMI_CONFIG.timeoutMs);
+            const timeoutId = setTimeout(() => controller.abort(), AI_CONFIG.timeoutMs);
 
-            const isReasonerModel = KIMI_CONFIG.model.includes('reasoner');
+            const isReasonerModel = config.model.includes('reasoner');
 
             const requestBody: any = {
-                model: KIMI_CONFIG.model,
+                model: config.model,
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userPrompt },
@@ -102,16 +105,16 @@ export async function callKimiK2(
                 requestBody.temperature = config.temperature;
             }
 
-            // Add thinking mode if enabled (Moonshot specific)
+            // Add thinking mode if enabled
             if (config.enableThinking) {
                 requestBody.use_search = false; // Disable search for faster response
             }
 
-            const response = await fetch(`${KIMI_CONFIG.baseUrl}/chat/completions`, {
+            const response = await fetch(`${AI_CONFIG.baseUrl}/v1/chat/completions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${KIMI_CONFIG.apiKey}`,
+                    'Authorization': `Bearer ${AI_CONFIG.apiKey}`,
                 },
                 body: JSON.stringify(requestBody),
                 signal: controller.signal,
@@ -120,16 +123,21 @@ export async function callKimiK2(
             clearTimeout(timeoutId);
 
             if (!response.ok) {
+                if (response.status === 429) {
+                    logger.warn(`AI Rate Limit Hit (429). Waiting 30s before retry ${attempt}/${AI_CONFIG.retryAttempts}...`);
+                    await sleep(30000); // Wait 30 seconds
+                    continue; // Retry loop
+                }
                 const errorText = await response.text();
-                throw new Error(`Kimi API error ${response.status}: ${errorText}`);
+                throw new Error(`AI API error ${response.status}: ${errorText}`);
             }
 
-            const data = await response.json();
+            const data = await response.json() as any;
 
             // Parse response
             const message = data.choices?.[0]?.message;
             if (!message) {
-                throw new Error('Invalid response format from Kimi');
+                throw new Error('Invalid response format from AI');
             }
 
             // Extract thinking (if present) and content
@@ -148,7 +156,7 @@ export async function callKimiK2(
                 content = content.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '').trim();
             }
 
-            logger.info('Kimi K2 response received', {
+            logger.info('AI response received', {
                 contentLength: content.length,
                 thinkingLength: thinking.length,
                 tokensUsed: data.usage?.total_tokens,
@@ -163,10 +171,10 @@ export async function callKimiK2(
 
         } catch (error) {
             lastError = error as Error;
-            logger.error(`Kimi K2 attempt ${attempt} failed`, error);
+            logger.error(`AI attempt ${attempt} failed`, error);
 
-            if (attempt < KIMI_CONFIG.retryAttempts) {
-                await sleep(KIMI_CONFIG.retryDelayMs * attempt);
+            if (attempt < AI_CONFIG.retryAttempts) {
+                await sleep(AI_CONFIG.retryDelayMs * attempt);
             }
         }
     }
@@ -179,12 +187,219 @@ export async function callKimiK2(
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// STREAMING API CALL FUNCTION (for real-time AI thinking)
+// ═════════════════════════════════════════════════════════════════════════════
+
+import { emitAIThinking } from './session-events.js';
+
+/**
+ * Call AI with streaming enabled
+ * Emits AI thinking tokens in real-time via SSE
+ * 
+ * @param sessionId - Session ID for SSE emission
+ * @param stage - BTR stage number (2, 5, or 7)
+ * @param candidateTime - Optional candidate time being analyzed
+ */
+export async function callAIWithStream(
+    sessionId: string,
+    stage: number,
+    systemPrompt: string,
+    userPrompt: string,
+    options?: {
+        temperature?: number;
+        maxTokens?: number;
+        model?: string;
+        candidateTime?: string;
+        abortSignal?: AbortSignal; // Support external cancellation
+        onToken?: (content: string, isThinking: boolean) => void; // For heartbeats
+        timeoutMs?: number; // Custom timeout
+        progressTracker?: any; // Avoiding circular import by using any, or import type if possible
+    }
+): Promise<AIResponse> {
+    const config = {
+        temperature: options?.temperature ?? AI_CONFIG.temperature,
+        maxTokens: options?.maxTokens ?? AI_CONFIG.maxTokens,
+        model: options?.model ?? AI_CONFIG.model,
+    };
+
+    if (!AI_CONFIG.apiKey) {
+        return {
+            success: false,
+            content: '',
+            error: 'AI API key not configured',
+        };
+    }
+
+    let lastError: Error | null = null;
+
+    // Retry Loop for Streaming resilience
+    for (let attempt = 1; attempt <= AI_CONFIG.retryAttempts; attempt++) {
+        try {
+            // 🚀 Debug: Log function entry
+            const entryMsg = `🚀 callAIWithStream ATTEMPT ${attempt}/${AI_CONFIG.retryAttempts}: sessionId=${sessionId?.slice(0, 8)}, stage=${stage}\n`;
+            console.log(entryMsg);
+
+            logger.info('Calling AI with streaming', {
+                sessionId,
+                stage,
+                attempt,
+                model: config.model,
+            });
+
+            // Combine internal timeout with external abort signal
+            const controller = new AbortController();
+            const timeoutMs = options?.timeoutMs ?? AI_CONFIG.timeoutMs;
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+            if (options?.abortSignal) {
+                options.abortSignal.addEventListener('abort', () => {
+                    logger.info('AI call cancelled by user');
+                    controller.abort();
+                });
+            }
+
+            const isReasoningModel = config.model.includes('reasoner');
+
+            const requestBody: any = {
+                model: config.model,
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userPrompt },
+                ],
+                max_tokens: config.maxTokens,
+                stream: true, // Enable streaming
+            };
+
+            if (!isReasoningModel) {
+                requestBody.temperature = config.temperature;
+            }
+
+            const response = await fetch(`${AI_CONFIG.baseUrl}/v1/chat/completions`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${AI_CONFIG.apiKey}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody),
+                signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                // 429 = Rate Limit -> Retry
+                // 5xx = Server Error -> Retry
+                throw new Error(`API error ${response.status}: ${errorText}`);
+            }
+
+            // Process SSE stream
+            const reader = response.body?.getReader();
+            if (!reader) {
+                throw new Error('No response body');
+            }
+
+            const decoder = new TextDecoder();
+            let fullContent = '';
+            let fullThinking = '';
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || '';
+
+                for (const line of lines) {
+                    if (!line.startsWith('data: ')) continue;
+                    const data = line.slice(6);
+                    if (data === '[DONE]') continue;
+
+                    try {
+                        const parsed = JSON.parse(data);
+                        const delta = parsed.choices?.[0]?.delta;
+
+                        if (delta?.reasoning_content) {
+                            // DeepSeek Reasoner's thinking tokens
+                            fullThinking += delta.reasoning_content;
+                            emitAIThinking(sessionId, delta.reasoning_content, stage, options?.candidateTime);
+
+                            // 💾 Persist for Polling Fallback
+                            if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
+                                options.progressTracker.updateAIThinking(delta.reasoning_content, stage, options?.candidateTime).catch(() => { });
+                            }
+
+                            // 💓 Heartbeat every ~100 tokens
+                            if (fullThinking.length % 500 < delta.reasoning_content.length) {
+                                options?.onToken?.(fullThinking, true);
+                            }
+                        } else if (delta?.content) {
+                            // Fallback: Emit content as "thinking" for non-reasoning models
+                            fullContent += delta.content;
+                            emitAIThinking(sessionId, delta.content, stage, options?.candidateTime);
+
+                            // 💾 Persist for Polling Fallback
+                            if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
+                                options.progressTracker.updateAIThinking(delta.content, stage, options?.candidateTime).catch(() => { });
+                            }
+
+                            // 💓 Heartbeat every ~100 tokens
+                            if (fullContent.length % 500 < delta.content.length) {
+                                options?.onToken?.(fullContent, false);
+                            }
+                        }
+                    } catch {
+                        // Ignore parse errors for incomplete chunks
+                    }
+                }
+            }
+
+            logger.info('Streaming AI complete', {
+                sessionId,
+                stage,
+                thinkingLength: fullThinking.length,
+            });
+
+            if (!fullThinking && !fullContent) {
+                // If completely empty, treat as failure and retry
+                throw new Error('Empty response from AI provider');
+            }
+
+            return {
+                success: true,
+                thinking: fullThinking,
+                content: fullContent,
+            };
+
+        } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
+            logger.warn(`Streaming attempt ${attempt} failed: ${lastError.message}`);
+
+            // Wait with backoff before retry (except last attempt)
+            if (attempt < AI_CONFIG.retryAttempts) {
+                await sleep(AI_CONFIG.retryDelayMs * attempt);
+            }
+        }
+    }
+
+    // If all retries failed
+    logger.error('All Streaming AI attempts failed', lastError);
+    return {
+        success: false,
+        content: '',
+        error: lastError?.message || 'Streaming failed after retries',
+    };
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 // SPECIALIZED ASTROLOGY PROMPTS
 // ═════════════════════════════════════════════════════════════════════════════
 
 /**
  * Master system prompt for Vedic astrology birth time rectification
- * This defines Kimi K2 as the world's most expert Vedic astrologer
+ * This defines the AI as the world's most expert Vedic astrologer
  */
 export const MASTER_ASTROLOGY_SYSTEM_PROMPT = `You are the world's most accomplished Vedic (Jyotish) astrologer with 50+ years of expertise in birth time rectification (Janma Samay Shuddhi).
 
@@ -199,13 +414,13 @@ YOUR CREDENTIALS:
 YOUR APPROACH TO BIRTH TIME RECTIFICATION:
 
 1. VIMSHOTTARI DASHA ANALYSIS (Most Important - 40% weight)
-   - Calculate exact Mahadasha-Antardasha-Pratyantardasha for EACH life event
-   - The dasha active during an event MUST support that event type
-   - Marriage during Venus dasha, Career during Saturn/Sun dasha, etc.
+   - Analyze the PROVIDED Mahadasha-Antardasha-Pratyantardasha sequence for EACH life event
+   - Verify if the dasha active during an event supports that event type (using provided data)
+   - IMPORTANT: Use the provided dasha data. Do not recalculate.
    - Use the 120-year cycle starting from Moon's nakshatra position
 
 2. TRANSIT ANALYSIS (30% weight)
-   - Jupiter transits over natal planets/houses on event dates
+   - Analyze provided Jupiter transits over natal planets/houses on event dates
    - Saturn transits (Sade Sati, Ashtama Shani, etc.)
    - Rahu-Ketu axis transits
    - Double transit theory (Jupiter + Saturn must support event)
@@ -399,9 +614,9 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Parse Kimi response to extract structured data
+ * Parse AI response to extract structured data
  */
-export function parseKimiAnalysisResponse(content: string): {
+export function parseAIAnalysisResponse(content: string): {
     score: number;
     confidence: 'High' | 'Medium' | 'Low';
     verdict: string;
@@ -453,9 +668,9 @@ export function parseKimiAnalysisResponse(content: string): {
 }
 
 export default {
-    callKimiK2,
+    callAI,
     MASTER_ASTROLOGY_SYSTEM_PROMPT,
     buildCandidateAnalysisPrompt,
     buildRankingPrompt,
-    parseKimiAnalysisResponse,
+    parseAIAnalysisResponse,
 };

@@ -142,7 +142,7 @@ export interface HousePosition {
   cusp: number;
 }
 
-export interface AIAnalysisResult {
+export interface SimpleAIAnalysisResult {
   rectifiedTime: string;
   accuracy: number;
   confidence: 'high' | 'medium' | 'low';
@@ -181,24 +181,24 @@ export interface CandidateAnalysis {
   ephemerisData: EphemerisData;
   quickScore: number; // Quick pre-analysis score
   eventMatches: number; // How many events match
-  shouldAnalyzeWithKimi: boolean; // Is this worth analyzing with Kimi?
+  shouldAnalyzeWithAI: boolean; // Is this worth analyzing with AI?
   reason: string; // Why is this ranked this way
 }
 
 export interface RankedCandidates {
-  topCandidates: CandidateAnalysis[]; // Top 5 candidates for Kimi analysis
+  topCandidates: CandidateAnalysis[]; // Top 5 candidates for deep analysis
   allCandidates: CandidateAnalysis[]; // All candidates sorted by score
   totalAnalyzed: number;
 }
 
-export interface KimiAnalysisResult {
+export interface AIAnalysisResult {
   time: string;
   offsetMinutes: number;
   offsetDescription: string;
   score: number; // 0-100 confidence
-  confidence: 'High' | 'Medium' | 'Low'; // Confidence level
-  analysis: string; // Detailed analysis from Kimi
-  thinking: string; // Kimi's thinking process (truncated)
+  confidence: 'high' | 'medium' | 'low'; // Confidence level
+  analysis: string; // Detailed analysis from AI
+  thinking: string; // AI's thinking process (truncated)
   eventMatches: {
     eventType: string;
     matches: boolean;
@@ -210,9 +210,9 @@ export interface KimiAnalysisResult {
 }
 
 export interface TopCandidatesAnalysis {
-  candidates: KimiAnalysisResult[];
-  topRecommendation: KimiAnalysisResult; // #1 choice
-  alternativeOptions: KimiAnalysisResult[]; // Backup options
+  candidates: AIAnalysisResult[];
+  topRecommendation: AIAnalysisResult; // #1 choice
+  alternativeOptions: AIAnalysisResult[]; // Backup options
   processingTime: number;
 }
 

@@ -44,9 +44,9 @@ import {
     formatJaiminiAspects,
 } from './jaimini-astrology';
 import {
-    callKimiK2,
-    parseKimiAnalysisResponse,
-} from './kimi-k2-client';
+    callAIK2,
+    parseAIAnalysisResponse,
+} from './AI-k2-client';
 import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager';
 import { logger } from './logger';
 import { ProgressTracker } from './progress-tracker';
@@ -407,7 +407,7 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
 
         await progress.startStep('ai', '🤖 AI cross-verifying all methods...');
-        await progress.updateMessage('Kimi K2 analyzing multi-method consensus');
+        await progress.updateMessage('AI K2 analyzing multi-method consensus');
 
         logger.info('STAGE 9: Boundary safety verification');
         const boundarySafety = await stage9BoundaryCheck(finalCandidate.time, input);
@@ -578,14 +578,14 @@ async function stage2AILevel1(
 
             const prompt = buildLevel1Prompt(candidate.time, input, ephemeris, dashaPeriods, jd);
 
-            const response = await callKimiK2(LEVEL1_SYSTEM_PROMPT, prompt, {
+            const response = await callAIK2(LEVEL1_SYSTEM_PROMPT, prompt, {
                 temperature: 0.1,
                 maxTokens: 4000,
                 enableThinking: true,
             });
 
             if (response.success) {
-                const parsed = parseKimiAnalysisResponse(response.content);
+                const parsed = parseAIAnalysisResponse(response.content);
                 results.push({
                     time: candidate.time,
                     score: parsed.score,
@@ -746,14 +746,14 @@ async function stage5AILevel2(
 
             const prompt = buildLevel2Prompt(candidate.time, input, ephemeris, allDashas, jd);
 
-            const response = await callKimiK2(LEVEL2_SYSTEM_PROMPT, prompt, {
+            const response = await callAIK2(LEVEL2_SYSTEM_PROMPT, prompt, {
                 temperature: 0.1,
                 maxTokens: 6000,
                 enableThinking: true,
             });
 
             if (response.success) {
-                const parsed = parseKimiAnalysisResponse(response.content);
+                const parsed = parseAIAnalysisResponse(response.content);
                 results.push({
                     time: candidate.time,
                     score: parsed.score,
@@ -916,7 +916,7 @@ PHYSICAL TRAITS: ${input.physicalTraits ? JSON.stringify(input.physicalTraits) :
 
 ANALYZE EACH 6-SECOND CANDIDATE AND DETERMINE THE CORRECT BIRTH TIME.`;
 
-    const response = await callKimiK2(LEVEL3_SYSTEM_PROMPT, fullPrompt, {
+    const response = await callAIK2(LEVEL3_SYSTEM_PROMPT, fullPrompt, {
         temperature: 0.1,
         maxTokens: 10000,
         enableThinking: true,

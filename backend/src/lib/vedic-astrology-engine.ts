@@ -1,4 +1,4 @@
-import { getAyanamsa } from './ephemeris';
+import { getAyanamsa } from './ephemeris.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -513,11 +513,11 @@ export function dashaSupportsEvent(
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// FORMAT DASHA FOR KIMI PROMPT
+// FORMAT DASHA FOR AI PROMPT
 // ═════════════════════════════════════════════════════════════════════════════
 
 /**
- * Format dasha sequence for Kimi K2 analysis
+ * Format dasha sequence for AI K2 analysis
  */
 export function formatDashaSequence(periods: DashaPeriod[]): string {
     const lines: string[] = ['VIMSHOTTARI DASHA SEQUENCE:'];
@@ -534,7 +534,7 @@ export function formatDashaSequence(periods: DashaPeriod[]): string {
             const aEnd = formatDate(antar.endDate);
             lines.push(`  └─ ${period.lord}/${antar.lord}: ${aStart} to ${aEnd}`);
 
-            // For Kimi prompt, we limit to 3 levels deep per candidate section to avoid token bloat
+            // For AI prompt, we limit to 3 levels deep per candidate section to avoid token bloat
             // while keeping the full technical resolution available in the JSON Technical Data.
             for (const prat of antar.subPeriods) {
                 const pStart = formatDate(prat.startDate);

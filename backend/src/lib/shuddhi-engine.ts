@@ -2,8 +2,8 @@
 // Vedic Shuddhi (Purification) Subsystem
 // Used for candidate filtering and probability scoring
 
-import { getNakshatraForLongitude } from './vedic-astrology-engine';
-import { EphemerisData } from './types';
+import { getNakshatraForLongitude } from './vedic-astrology-engine.js';
+import { EphemerisData } from './types.js';
 
 export interface ShuddhiScore {
     passed: boolean;

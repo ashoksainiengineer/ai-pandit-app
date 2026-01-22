@@ -3,10 +3,10 @@
 // Updates database with current step, message, and percentage
 // Also emits SSE events for real-time streaming
 
-import { db } from '../database/drizzle';
-import { sessions } from '../database/schema';
+import { db } from '../database/drizzle.js';
+import { sessions } from '../database/schema.js';
 import { eq } from 'drizzle-orm';
-import { emitProgress, emitComplete, emitError, emitCandidateScore, emitAIContext } from './session-events';
+import { emitProgress, emitComplete, emitError, emitCandidateScore, emitAIContext } from './session-events.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -90,6 +90,7 @@ export class ProgressTracker {
     private progress: ProgressData;
 
     private candidateBuffers: Map<string, string> = new Map();
+    private lastPulseTime: number = 0;
 
     constructor(sessionId: string) {
         this.sessionId = sessionId;
@@ -160,6 +161,14 @@ export class ProgressTracker {
         // ❌ NO DB SAVE - Pure Stream as requested
         // BUT update lastActive for GC
         ProgressTracker.activeInstances.set(this.sessionId, this);
+
+        // 💓 DEBOUNCED DB PULSE: Keep session alive in DB during long AI streaming
+        // Only update DB every 30 seconds to save IO but prevent stale cleanup (30 mins)
+        const now = Date.now();
+        if (now - this.lastPulseTime > 30000) {
+            this.lastPulseTime = now;
+            this.pulse().catch(err => console.error('Heartbeat pulse failed:', err));
+        }
     }
 
     /**
