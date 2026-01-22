@@ -47,16 +47,17 @@ router.get('/:sessionId', async (req, res) => {
     console.log(`[SSE] Incoming headers: ${JSON.stringify(req.headers)}`);
     // Set SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache, no-transform, no-store, must-revalidate');
+    res.setHeader('Cache-Control', 'no-cache, no-transform, no-store, must-revalidate, private');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
+    res.setHeader('Transfer-Encoding', 'chunked'); // Explicitly request chunked encoding
     // 🛡️ Explicit CORS for SSE (Crucial for HF Public Space)
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Last-Event-ID');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Last-Event-ID, Authorization');
     res.flushHeaders();
     console.log(`[SSE] Headers flushed for ${sessionId}`);
     // 🚀 Proxy-Buffering Bypass: Send a 2KB preamble

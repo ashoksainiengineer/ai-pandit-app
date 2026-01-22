@@ -2,14 +2,14 @@
 // Server-side only
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.analyzeAndFilterCandidates = analyzeAndFilterCandidates;
-const ephemeris_1 = require("./ephemeris");
-const logger_1 = require("./logger");
+const ephemeris_js_1 = require("./ephemeris.js");
+const logger_js_1 = require("./logger.js");
 // ═════════════════════════════════════════════════════════════════════════
-// QUICK FILTERING RULES (Before Kimi K2 analysis)
+// QUICK FILTERING RULES (Before AI K2 analysis)
 // ═════════════════════════════════════════════════════════════════════════
 async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, longitude, timezone, lifeEvents) {
     try {
-        logger_1.logger.info('Starting candidate analysis and filtering', {
+        logger_js_1.logger.info('Starting candidate analysis and filtering', {
             totalCandidates: candidates.length,
             dateOfBirth,
         });
@@ -21,8 +21,8 @@ async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, lon
             try {
                 // Convert timezone number to string for ephemeris calculation
                 const timezoneString = getTimezoneString(timezone);
-                const ephemerisData = await (0, ephemeris_1.calculateEphemeris)(dateOfBirth, candidate.time, latitude, longitude, timezoneString);
-                // Quick scoring without full Kimi analysis
+                const ephemerisData = await (0, ephemeris_js_1.calculateEphemeris)(dateOfBirth, candidate.time, latitude, longitude, timezoneString);
+                // Quick scoring without full AI analysis
                 const { quickScore, eventMatches, reason } = performQuickAnalysis(ephemerisData, lifeEvents);
                 analyzedCandidates.push({
                     time: candidate.time,
@@ -31,17 +31,17 @@ async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, lon
                     ephemerisData,
                     quickScore,
                     eventMatches,
-                    shouldAnalyzeWithKimi: quickScore >= 40, // Only analyze promising candidates
+                    shouldAnalyzeWithAI: quickScore >= 40, // Only analyze promising candidates
                     reason,
                 });
-                logger_1.logger.debug('Candidate quick analysis complete', {
+                logger_js_1.logger.debug('Candidate quick analysis complete', {
                     time: candidate.time,
                     quickScore,
                     eventMatches,
                 });
             }
             catch (error) {
-                logger_1.logger.error(`Quick analysis failed for ${candidate.time}`, error);
+                logger_js_1.logger.error(`Quick analysis failed for ${candidate.time}`, error);
             }
         }
         // ─────────────────────────────────────────────────────────────────────
@@ -49,14 +49,14 @@ async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, lon
         // ─────────────────────────────────────────────────────────────────────
         analyzedCandidates.sort((a, b) => b.quickScore - a.quickScore);
         // ─────────────────────────────────────────────────────────────────────
-        // STEP 3: Select top candidates for Kimi K2 analysis
+        // STEP 3: Select top candidates for AI K2 analysis
         // ─────────────────────────────────────────────────────────────────────
         const topCandidates = analyzedCandidates
-            .filter((c) => c.shouldAnalyzeWithKimi)
+            .filter((c) => c.shouldAnalyzeWithAI)
             .slice(0, 5); // Top 5 candidates
-        logger_1.logger.info('Candidate filtering complete', {
+        logger_js_1.logger.info('Candidate filtering complete', {
             totalCandidates: analyzedCandidates.length,
-            topCandidatesForKimi: topCandidates.length,
+            topCandidatesForAI: topCandidates.length,
             topScores: topCandidates.map((c) => ({
                 time: c.time,
                 quickScore: c.quickScore,
@@ -69,12 +69,12 @@ async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, lon
         };
     }
     catch (error) {
-        logger_1.logger.error('Candidate analysis failed', error);
+        logger_js_1.logger.error('Candidate analysis failed', error);
         throw error;
     }
 }
 // ═════════════════════════════════════════════════════════════════════════
-// QUICK ANALYSIS: Fast filtering without Kimi
+// QUICK ANALYSIS: Fast filtering without AI
 // ═════════════════════════════════════════════════════════════════════════
 function performQuickAnalysis(ephemerisData, lifeEvents) {
     // Quick scoring based on:

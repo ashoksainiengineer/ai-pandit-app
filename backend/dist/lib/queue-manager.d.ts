@@ -36,6 +36,7 @@ export declare function markAsComplete(sessionId: string, results: {
     accuracy: number;
     confidence: string;
     analysisResult: string;
+    reasoningLogs?: string | null;
 }): Promise<void>;
 /**
  * Mark session as failed

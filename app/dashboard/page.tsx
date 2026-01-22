@@ -152,7 +152,7 @@ export default async function DashboardPage() {
                                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                                         <div>
                                             <div className="flex items-center gap-3 mb-2">
-                                                <h3 className="font-semibold text-[#F5F0EB]">📍 {session.birthPlace.split(',')[0]}</h3>
+                                                <h3 className="font-semibold text-[#F5F0EB]">👤 {session.fullName}</h3>
                                                 <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${session.status === 'complete'
                                                     ? 'bg-[#2D7A5C]/20 text-[#2D7A5C] border border-[#2D7A5C]/50'
                                                     : session.status === 'processing'

@@ -33,13 +33,38 @@ const cleanReasoningText = (text: string) => {
 
     // Strip tags but KEEP the content inside for transparency
     return text
-        .replace(/<\/?thought>/g, '')      // Remove <thought> and </thought> tags
-        .replace(/<\/?think>/g, '')        // Remove <think> and </think> tags (DeepSeek R1 variant)
-        .replace(/\[STAGE \w+\]/g, '')     // Remove [STAGE START] markers
-        .replace(/═+[\r\n]*🎯 SWITCHING TO:[\s\S]*?═+[\r\n]*/g, '') // Switch markers
-        .replace(/[*#`]/g, '')             // Remove Markdown noise (*, #, `)
-        .replace(/(\r\n|\n|\r){3,}/g, '\n\n') // Collapse excessive newlines
+        .replace(/<\/?thought>/g, '')
+        .replace(/<\/?think>/g, '')
+        .replace(/\[STAGE \w+\]/g, '')
+        .replace(/═+[\r\n]*🎯 SWITCHING TO:[\s\S]*?═+[\r\n]*/g, '')
+        .replace(/--- LEVEL \d: [\s\S]*? ---\n/g, '') // Remove internal separators to rebuild them
+        .replace(/(\r\n|\n|\r){3,}/g, '\n\n')
         .trim();
+};
+
+const formatStructuredSections = (text: string) => {
+    // Basic pattern matching for common AI headers to make them pop
+    return text.split('\n').map((line, i) => {
+        if (/^(DASHA CHECK|DIVISIONAL CHECK|TRANSIT ANALYSIS|VERDICT|FINAL RANKING|PLANETARY ANALYSIS|EVENT CORRELATION|PHYSICAL AUDIT):/i.test(line)) {
+            const [label, ...rest] = line.split(':');
+            return (
+                <div key={i} className="mt-4 mb-2 first:mt-0">
+                    <span className="text-[#D4AF37] font-black uppercase text-[10px] tracking-widest bg-[#D4AF37]/10 px-2 py-0.5 rounded border border-[#D4AF37]/20">
+                        {label}
+                    </span>
+                    <p className="mt-1 text-[#F5F0EB]">{rest.join(':').trim()}</p>
+                </div>
+            );
+        }
+        if (/^TIME: \d{2}:\d{2}:\d{2}/i.test(line)) {
+            return (
+                <div key={i} className="mt-6 mb-3 border-l-2 border-emerald-500 pl-3">
+                    <span className="text-emerald-400 font-black text-lg font-mono">{line}</span>
+                </div>
+            );
+        }
+        return <div key={i} className="mb-1">{line}</div>;
+    });
 };
 
 export function UnifiedAIPanel({
@@ -419,12 +444,17 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
             {content ? (
                 <div className="break-words border-l-2 border-[#D4AF37]/30 pl-4 py-1 relative">
                     {isThinking ? (
-                        <Typewriter content={content} speed={5} />
+                        <Typewriter
+                            content={content}
+                            speed={5}
+                        // Custom renderer for typewriter (or wrap it after it's done)
+                        // For simplicity, we just render it formatted if NOT thinking
+                        />
                     ) : (
-                        <span className="whitespace-pre-wrap">{content}</span>
+                        <div className="whitespace-pre-wrap">{formatStructuredSections(content)}</div>
                     )}
                     {isThinking && (
-                        <span className="inline-block w-2 h-4 bg-[#D4AF37] ml-1 animate-pulse align-text-bottom" />
+                        <span className="inline-block w-2 h-4 bg-[#D4AF37] ml-1 animate-pulse align-text-bottom shadow-[0_0_5px_#D4AF37]" />
                     )}
                     {/* Anchor for sticky scroll */}
                     <div ref={scrollAnchorRef} className="h-px w-full" />

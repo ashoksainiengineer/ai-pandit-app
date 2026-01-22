@@ -5,7 +5,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateCandidateTimes = generateCandidateTimes;
 exports.getOffsetConfigDescription = getOffsetConfigDescription;
 exports.validateOffsetConfig = validateOffsetConfig;
-const logger_1 = require("./logger");
+const logger_js_1 = require("./logger.js");
 // ═════════════════════════════════════════════════════════════════════════
 // OFFSET CONFIGURATION PRESETS
 // ═════════════════════════════════════════════════════════════════════════
@@ -13,34 +13,33 @@ const OFFSET_PRESETS = {
     '30min': {
         label: '±30 minutes',
         minutes: 30,
-        interval: 5, // Check every 5 minutes
+        interval: 0.5,
     },
     '1hour': {
         label: '±1 hour',
         minutes: 60,
-        interval: 5, // Check every 5 minutes
+        interval: 0.5,
     },
     '2hours': {
         label: '±2 hours',
         minutes: 120,
-        interval: 10, // Check every 10 minutes (for performance)
+        interval: 0.5,
     },
     '4hours': {
         label: '±4 hours',
         minutes: 240,
-        interval: 15, // Check every 15 minutes (for performance)
+        interval: 0.5,
     },
     'seconds-30': {
         label: '±5 minutes (30-sec intervals)',
         minutes: 5,
-        interval: 0.5, // 30 seconds
-        intervalSeconds: 30, // Explicit seconds
+        interval: 0.5,
     },
     'seconds-6': {
         label: '±1 minute (6-sec intervals)',
         minutes: 1,
-        interval: 0.1, // 6 seconds
-        intervalSeconds: 6, // Explicit seconds
+        interval: 0.1, // Keep 6s for the micro-scan preset if used elsewhere
+        intervalSeconds: 6,
     },
 };
 // ═════════════════════════════════════════════════════════════════════════
@@ -49,7 +48,7 @@ const OFFSET_PRESETS = {
 function generateCandidateTimes(tentativeTime, // HH:MM:SS
 offsetConfig) {
     try {
-        logger_1.logger.info('Generating candidate times', { tentativeTime, offsetConfig });
+        logger_js_1.logger.info('Generating candidate times', { tentativeTime, offsetConfig });
         // ─────────────────────────────────────────────────────────────────────
         // Parse tentative time
         // ─────────────────────────────────────────────────────────────────────
@@ -64,20 +63,20 @@ offsetConfig) {
         if (offsetConfig.customMinutes !== undefined) {
             // Custom offset specified
             offsetMinutes = offsetConfig.customMinutes;
-            interval = Math.max(1, Math.floor(offsetMinutes / 20)); // Auto-calculate interval
+            interval = 0.5; // Fixed 30-second interval for all custom ranges
             description = `±${offsetMinutes} minutes (custom)`;
         }
         else if (offsetConfig.preset) {
             // Preset offset selected
             const preset = OFFSET_PRESETS[offsetConfig.preset];
             offsetMinutes = preset.minutes;
-            interval = preset.interval;
+            interval = 0.5; // Fixed 30-second interval for all presets (High Precision Stage 1)
             description = preset.label;
         }
         else {
             throw new Error('No offset configuration provided');
         }
-        logger_1.logger.info('Offset configuration', {
+        logger_js_1.logger.info('Offset configuration', {
             offsetMinutes,
             interval,
             description,
@@ -113,7 +112,7 @@ offsetConfig) {
         }
         // Sort by priority (highest first)
         candidates.sort((a, b) => b.priority - a.priority);
-        logger_1.logger.info('Generated candidates', {
+        logger_js_1.logger.info('Generated candidates', {
             count: candidates.length,
             offsetRange: `${offsetMinutes} minutes`,
             interval: `${interval} minutes`,
@@ -121,7 +120,7 @@ offsetConfig) {
         return candidates;
     }
     catch (error) {
-        logger_1.logger.error('Candidate time generation failed', error);
+        logger_js_1.logger.error('Candidate time generation failed', error);
         throw error;
     }
 }

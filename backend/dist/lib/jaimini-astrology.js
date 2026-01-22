@@ -18,6 +18,8 @@ exports.formatRasiDasha = formatRasiDasha;
 exports.formatTatwaDasha = formatTatwaDasha;
 exports.formatJaiminiAspects = formatJaiminiAspects;
 exports.charaDashaSupportsEvent = charaDashaSupportsEvent;
+exports.calculateBhriguBindu = calculateBhriguBindu;
+exports.formatBhriguBindu = formatBhriguBindu;
 // ═════════════════════════════════════════════════════════════════════════════
 // JAIMINI SYSTEM CONSTANTS
 // ═════════════════════════════════════════════════════════════════════════════
@@ -319,10 +321,6 @@ function getAnnualThemes(age) {
         themes.push('Rahu maturation - Breaking from tradition');
     if (age === 36)
         themes.push('Double Jupiter Return - Career peak');
-    if (age === 42)
-        themes.push('Uranus opposition - Midlife evaluation');
-    if (age === 48)
-        themes.push('Chiron Return - Healing old wounds');
     if (themes.length === 0)
         themes.push('Standard year');
     return themes;
@@ -334,7 +332,7 @@ function getTithiPraveshaForYear(returns, year) {
     return returns.find(r => r.year === year) || null;
 }
 // ═════════════════════════════════════════════════════════════════════════════
-// FORMATTING FOR KIMI K2 PROMPTS
+// FORMATTING FOR AI K2 PROMPTS
 // ═════════════════════════════════════════════════════════════════════════════
 function formatCharaKarakas(karakas) {
     const lines = ['CHARA KARAKAS (Jaimini Significators):'];
@@ -444,4 +442,44 @@ function charaDashaSupportsEvent(dasha, eventCategory, ephemeris) {
     };
 }
 // All functions are exported inline (export function ...)
+// ═════════════════════════════════════════════════════════════════════════════
+// BHRIGU BINDU (THE DESTINY POINT - PHASE 4)
+// ═════════════════════════════════════════════════════════════════════════════
+/**
+ * Calculates Bhrigu Bindu - The midpoint between Moon and Rahu.
+ * Also calculates the Destiny Axis (midpoint of Moon and Ketu).
+ */
+function calculateBhriguBindu(ephemeris) {
+    const moon = ephemeris.planets.moon.longitude;
+    const rahu = ephemeris.planets.rahu.longitude;
+    const ketu = ephemeris.planets.ketu.longitude;
+    // Standard Bhrigu Bindu Formula: (Moon + Rahu) / 2
+    // Handling 360 wrap
+    let bb = (moon + rahu) / 2;
+    // Check if Rahu is behind Moon or vice versa, the shorter arc is usually used
+    // but the most common formula is average.
+    // However, if the distance is > 180, we add 360 to the smaller one before averaging.
+    const diff = Math.abs(moon - rahu);
+    if (diff > 180) {
+        bb = (moon + rahu + 360) / 2;
+    }
+    bb = bb % 360;
+    // Destiny Axis (optional but useful)
+    let da = (moon + ketu) / 2;
+    const diffDa = Math.abs(moon - ketu);
+    if (diffDa > 180) {
+        da = (moon + ketu + 360) / 2;
+    }
+    da = da % 360;
+    const sign = ZODIAC_SIGNS[Math.floor(bb / 30)];
+    return {
+        bhriguBindu: bb,
+        destinyAxis: da,
+        sign,
+        degree: bb % 30
+    };
+}
+function formatBhriguBindu(data) {
+    return `BHRIGU BINDU (Destiny Point): ${data.sign} ${data.degree.toFixed(2)}°`;
+}
 //# sourceMappingURL=jaimini-astrology.js.map

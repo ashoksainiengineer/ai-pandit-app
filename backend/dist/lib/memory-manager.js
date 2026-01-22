@@ -1,6 +1,6 @@
 "use strict";
 // ═══════════════════════════════════════════════════════════════════════════
-// MEMORY MANAGER - Optimized for 512MB RAM (Leapcell)
+// RESOURCE MANAGER - Optimized for Scalable AI Infrastructure
 // Monitors and manages memory usage during BTR calculations
 // ═══════════════════════════════════════════════════════════════════════════
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -12,9 +12,9 @@ exports.withMemoryCheck = withMemoryCheck;
 exports.withConcurrencyLimit = withConcurrencyLimit;
 exports.getActiveCalculations = getActiveCalculations;
 const MB = 1024 * 1024;
-const MAX_HEAP = 384 * MB; // Leave 128MB for OS + buffers
-const WARNING_THRESHOLD = 0.75; // 75% of max heap
-const CRITICAL_THRESHOLD = 0.90; // 90% of max heap
+const MAX_HEAP = 1024 * MB; // 1GB - High-Performance AI baseline
+const WARNING_THRESHOLD = 0.80; // 80% of max heap
+const CRITICAL_THRESHOLD = 0.95; // 95% of max heap
 function getMemoryStats() {
     const mem = process.memoryUsage();
     return {
@@ -65,9 +65,9 @@ async function withMemoryCheck(label, fn) {
     logMemory(`After ${label}`);
     return result;
 }
-// Queue memory management
+// Queue resource management
 let activeCalculations = 0;
-const MAX_CONCURRENT = 2; // Max 2 concurrent BTR calculations
+const MAX_CONCURRENT = 4; // Scaled for high-performance infrastructure
 async function withConcurrencyLimit(fn) {
     while (activeCalculations >= MAX_CONCURRENT) {
         await new Promise(resolve => setTimeout(resolve, 1000));

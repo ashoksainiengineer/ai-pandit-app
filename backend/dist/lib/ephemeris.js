@@ -1,6 +1,6 @@
 "use strict";
 // ═══════════════════════════════════════════════════════════════════════════
-// EPHEMERIS MODULE - Memory-Optimized for 512MB RAM (Leapcell)
+// EPHEMERIS MODULE - High-Precision AI-Enhanced
 // Uses Swiss Ephemeris with minimal memory footprint
 // ═══════════════════════════════════════════════════════════════════════════
 Object.defineProperty(exports, "__esModule", { value: true });

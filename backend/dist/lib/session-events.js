@@ -1,6 +1,9 @@
 "use strict";
 // backend/src/lib/session-events.ts
 // Global EventEmitter for real-time session progress streaming
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.sessionEvents = void 0;
 exports.emitProgress = emitProgress;
@@ -13,6 +16,7 @@ exports.emitAIContext = emitAIContext;
 exports.emitCalculationLog = emitCalculationLog;
 exports.emitStageStats = emitStageStats;
 const events_1 = require("events");
+const crypto_1 = __importDefault(require("crypto"));
 // ═════════════════════════════════════════════════════════════════════════════
 // GLOBAL SESSION EVENT EMITTER
 // ═════════════════════════════════════════════════════════════════════════════
@@ -231,10 +235,9 @@ function emitAIContext(sessionId, data) {
     });
 }
 function emitCalculationLog(sessionId, data) {
-    const crypto = require('crypto');
     exports.sessionEvents.emit(sessionId, {
         type: 'calculation_log',
-        logId: crypto.randomUUID(),
+        logId: crypto_1.default.randomUUID(),
         ...data
     });
 }

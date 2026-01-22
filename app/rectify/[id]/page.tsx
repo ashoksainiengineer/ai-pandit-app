@@ -234,12 +234,11 @@ function ResultsHUD({ result, id }: { result: any, id: string }) {
     );
 }
 
-// ⏱️ Live Timer Component
-function AnalysisTimer({ startTime, startedAt }: { startTime?: string, startedAt?: string }) {
+// ⏱️ Live Timer & ETA Component
+function AnalysisTimer({ startTime, startedAt, estimatedTimeRemaining }: { startTime?: string, startedAt?: string, estimatedTimeRemaining?: number }) {
     const [elapsed, setElapsed] = useState(0);
 
     useEffect(() => {
-        // ⏱️ Absolute sync: Use startedAt (session start) if available, fallback to step start
         const start = (startedAt || startTime) ? new Date(startedAt || startTime!).getTime() : Date.now();
         const interval = setInterval(() => {
             setElapsed(Math.floor((Date.now() - start) / 1000));
@@ -247,15 +246,25 @@ function AnalysisTimer({ startTime, startedAt }: { startTime?: string, startedAt
         return () => clearInterval(interval);
     }, [startTime, startedAt]);
 
-    const minutes = Math.floor(elapsed / 60);
-    const seconds = elapsed % 60;
+    const formatTime = (totalSeconds: number) => {
+        if (totalSeconds < 0) return "00:00";
+        const mins = Math.floor(totalSeconds / 60);
+        const secs = totalSeconds % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
 
     return (
-        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#1A1F2E] border border-[#3A4452] text-xs font-mono text-[#8C7F72]">
-            <Clock className="w-3 h-3 text-[#D4AF37] animate-pulse" />
-            <span>
-                {minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
-            </span>
+        <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#1A1F2E] border border-[#3A4452] text-xs font-mono text-[#8C7F72]">
+                <Clock className="w-3 h-3 text-[#D4AF37] animate-pulse" />
+                <span>{formatTime(elapsed)}</span>
+            </div>
+            {estimatedTimeRemaining !== undefined && estimatedTimeRemaining > 0 && (
+                <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/20 text-xs font-mono text-[#D4AF37]">
+                    <span className="text-[10px] font-bold uppercase tracking-tighter opacity-70">Est. Final:</span>
+                    <span>{formatTime(estimatedTimeRemaining)}</span>
+                </div>
+            )}
         </div>
     );
 }
@@ -282,12 +291,9 @@ export default function ProgressPage() {
         totalCandidates, // 📊 Added for UI summary
         result,
         startedAt, // ⏱️ Absolute session start time
-        // Enhanced Diagnostics
-        url: connectionUrl,
-        lastError,
-        readyState,
         displayedCandidate,
-        metadata: sessionMetadata
+        metadata: sessionMetadata,
+        estimatedTimeRemaining // ⏱️ Extract ETA
     } = useStreamProgress(
         sessionId,
         process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080', // Direct backend connection for local dev from cloud frontend
@@ -626,9 +632,15 @@ export default function ProgressPage() {
                     <h1 className="text-3xl font-bold text-[#F5F0EB] mb-2 animate-fade-in">
                         🔮 Rectifying Your Birth Time
                     </h1>
-                    <div className="text-[#C4B8AD] h-6 transition-all duration-300 flex items-center justify-center gap-3">
-                        <span>{progress?.liveMessage || 'Initializing analysis...'}</span>
-                        {!isComplete && !cancelled && <AnalysisTimer startTime={progress?.steps[0]?.startedAt} startedAt={startedAt} />}
+                    <div className="text-[#C4B8AD] min-h-[40px] transition-all duration-300 flex flex-col items-center justify-center gap-3">
+                        <span className="text-sm font-medium tracking-wide">{progress?.liveMessage || 'Initializing analysis...'}</span>
+                        {!isComplete && !cancelled && (
+                            <AnalysisTimer
+                                startTime={progress?.steps[0]?.startedAt}
+                                startedAt={startedAt}
+                                estimatedTimeRemaining={estimatedTimeRemaining} // ⏱️ Pass ETA
+                            />
+                        )}
                     </div>
                 </div>
 

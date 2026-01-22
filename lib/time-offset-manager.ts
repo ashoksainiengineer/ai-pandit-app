@@ -99,11 +99,11 @@ export function generateCandidateTimes(
       const preset = OFFSET_PRESETS[offsetConfig.preset];
       offsetMinutes = preset.minutes;
 
-      // FORCE DYNAMIC INTERVAL for larger offsets to ensure deep scan
+      // FORCE DENSE INTERVAL for better coverage of timing errors
       if (offsetMinutes >= 60) {
-        interval = Math.max(1, Math.floor(offsetMinutes / 24)); // e.g. 120/24 = 5 min interval
+        interval = Math.max(1, Math.floor(offsetMinutes / 60)); // e.g. 1 min for 1h, 2 min for 2h
       } else {
-        interval = preset.interval;
+        interval = Math.min(preset.interval, 2); // Even for 30min, check every 2 minutes
       }
 
       description = preset.label;

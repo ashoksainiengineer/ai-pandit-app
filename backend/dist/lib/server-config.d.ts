@@ -1,5 +1,5 @@
 export declare const serverConfig: {
-    kimi: {
+    ai: {
         baseUrl: string;
         apiKey: string;
         model: string;
@@ -14,7 +14,7 @@ export declare const serverConfig: {
     maxRetries: number;
     timeout: number;
 };
-export declare const kimiClient: {
+export declare const aiClient: {
     messages: {
         create: (options: any) => Promise<{
             content: ({

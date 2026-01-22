@@ -4,25 +4,34 @@ export interface DashaPeriod {
     startDate: Date;
     endDate: Date;
     durationYears: number;
-    antardashas: AntardashaPeriod[];
-}
-export interface AntardashaPeriod {
-    lord: string;
-    startDate: Date;
-    endDate: Date;
-    durationDays: number;
+    subPeriods: DashaPeriod[];
 }
 export interface DashaAtDate {
     mahadasha: string;
     antardasha: string;
     pratyantardasha: string;
+    sukshmadasha: string;
+    pranadasha: string;
     mahadashaStart: Date;
     mahadashaEnd: Date;
     antardashaStart: Date;
     antardashaEnd: Date;
+    pratyantarStart: Date;
+    pratyantarEnd: Date;
+    sukshmaStart: Date;
+    sukshmaEnd: Date;
+    pranaStart: Date;
+    pranaEnd: Date;
+    sandhiInfo?: {
+        isNearTransition: boolean;
+        level: number;
+        distanceMinutes: number;
+        transitionType: 'start' | 'end';
+    };
 }
 /**
  * Calculate Lahiri Ayanamsa for a given Julian Day
+ * Synchronized with Swiss Ephemeris for God-Tier Precision.
  */
 export declare function calculateLahiriAyanamsa(julianDay: number): number;
 /**
@@ -39,6 +48,10 @@ birthDate: Date): DashaPeriod[];
  * Get Dasha active on a specific date
  * Used to verify life events
  */
+/**
+ * Get Dasha active on a specific date (5 levels deep)
+ * Used to verify life events with GOD-TIER precision
+ */
 export declare function getDashaForDate(periods: DashaPeriod[], eventDate: Date): DashaAtDate | null;
 /**
  * Check if a dasha supports a particular event type
@@ -49,7 +62,7 @@ export declare function dashaSupportsEvent(dasha: DashaAtDate, eventCategory: st
     reason: string;
 };
 /**
- * Format dasha sequence for Kimi K2 analysis
+ * Format dasha sequence for AI K2 analysis
  */
 export declare function formatDashaSequence(periods: DashaPeriod[]): string;
 /**

@@ -1,5 +1,5 @@
-import { TimeOffsetConfig } from './time-offset-manager';
-import { LifeEvent } from './types';
+import { TimeOffsetConfig } from './time-offset-manager.js';
+import { LifeEvent } from './types.js';
 export interface SecondsPrecisionInput {
     sessionId: string;
     dateOfBirth: string;
@@ -13,6 +13,9 @@ export interface SecondsPrecisionInput {
         height?: 'short' | 'medium' | 'tall';
         build?: 'slim' | 'medium' | 'heavy';
         complexion?: 'fair' | 'medium' | 'dark';
+        hairType?: 'straight' | 'curly' | 'wavy' | 'thin' | 'thick';
+        prakriti?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha';
+        noseType?: 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
         appearance?: string;
     };
     spouseData?: {
@@ -35,6 +38,11 @@ export interface SecondsPrecisionResult {
     methodsUsed: string[];
     processingTimeMs: number;
     analysisResult: string;
+}
+export interface TransitSyncResult {
+    score: number;
+    hits: string[];
+    details: Record<string, string>;
 }
 export declare function processSecondsPrecisionBTR(input: SecondsPrecisionInput): Promise<SecondsPrecisionResult>;
 export default processSecondsPrecisionBTR;

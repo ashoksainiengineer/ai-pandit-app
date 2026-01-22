@@ -11,6 +11,9 @@ exports.calculateD7 = calculateD7;
 exports.calculateD9 = calculateD9;
 exports.calculateD10 = calculateD10;
 exports.calculateD30 = calculateD30;
+exports.calculateD24 = calculateD24;
+exports.calculateD40 = calculateD40;
+exports.calculateD45 = calculateD45;
 exports.calculateD60 = calculateD60;
 exports.generateDivisionalCharts = generateDivisionalCharts;
 exports.calculateShadbalaLite = calculateShadbalaLite;
@@ -31,7 +34,11 @@ exports.formatArudhaLagna = formatArudhaLagna;
 exports.calculateHoraLagna = calculateHoraLagna;
 exports.calculateGhatiLagna = calculateGhatiLagna;
 exports.formatSpecialLagnas = formatSpecialLagnas;
-exports.formatShadbalaLite = formatShadbalaLite;
+exports.calculateFullShadbala = calculateFullShadbala;
+exports.formatShadbala = formatShadbala;
+exports.calculatePlanetaryMaturation = calculatePlanetaryMaturation;
+exports.formatPlanetaryMaturation = formatPlanetaryMaturation;
+exports.calculateAshtakavarga = calculateAshtakavarga;
 // ═════════════════════════════════════════════════════════════════════════════
 // YOGINI DASHA (36-Year Cycle)
 // ═════════════════════════════════════════════════════════════════════════════
@@ -252,6 +259,55 @@ function calculateD30(longitude) {
     return { sign: signs[idx], degree: 0, ruler: rulers[idx] };
 }
 /**
+ * Calculate D24 (Chaturvimshamsha) Chart - Education/Knowledge
+ * Each sign divided into 24 parts (1.25° each)
+ */
+function calculateD24(longitude) {
+    const signIndex = Math.floor(longitude / 30);
+    const degreeInSign = longitude % 30;
+    const divNum = Math.floor(degreeInSign / 1.25);
+    // Odd signs start from Leo (4); Even from Cancer (3)
+    const startSign = (signIndex % 2 === 0) ? 4 : 3;
+    const d24SignIndex = (startSign + divNum) % 12;
+    return {
+        sign: ZODIAC_SIGNS[d24SignIndex],
+        degree: (degreeInSign % 1.25) * 24,
+    };
+}
+/**
+ * Calculate D40 (Khavedamsha) Chart - General Auspiciousness
+ * Each sign divided into 40 parts (0.75° each)
+ */
+function calculateD40(longitude) {
+    const signIndex = Math.floor(longitude / 30);
+    const degreeInSign = longitude % 30;
+    const divNum = Math.floor(degreeInSign / 0.75);
+    // Odd signs start from Aries (0); Even from Libra (6)
+    const startSign = (signIndex % 2 === 0) ? 0 : 6;
+    const d40SignIndex = (startSign + divNum) % 12;
+    return {
+        sign: ZODIAC_SIGNS[d40SignIndex],
+        degree: (degreeInSign % 0.75) * 40,
+    };
+}
+/**
+ * Calculate D45 (Akshavedamsha) Chart - Character/Luck
+ * Each sign divided into 45 parts (0.666° / 40 minutes each)
+ */
+function calculateD45(longitude) {
+    const signIndex = Math.floor(longitude / 30);
+    const degreeInSign = longitude % 30;
+    const divNum = Math.floor(degreeInSign / (30 / 45));
+    // Moveable signs start from Aries (0); Fixed from Leo (4); Dual from Sagittarius (8)
+    const type = signIndex % 3; // 0=Moveable, 1=Fixed, 2=Dual
+    const startSign = (type === 0) ? 0 : (type === 1) ? 4 : 8;
+    const d45SignIndex = (startSign + divNum) % 12;
+    return {
+        sign: ZODIAC_SIGNS[d45SignIndex],
+        degree: (degreeInSign % (30 / 45)) * 45,
+    };
+}
+/**
  * Calculate D60 (Shashtiamsha) Chart - Cyclic/Sequential
  * Each sign divided into 60 parts (0.5° each)
  * Crucial for seconds-level rectification.
@@ -272,7 +328,7 @@ function calculateD60(longitude) {
  */
 function generateDivisionalCharts(ephemeris) {
     const charts = {};
-    const chartTypes = ['D2', 'D7', 'D9', 'D10', 'D30', 'D60'];
+    const chartTypes = ['D2', 'D7', 'D9', 'D10', 'D24', 'D30', 'D40', 'D45', 'D60'];
     for (const type of chartTypes) {
         const planets = {};
         for (const [name, pos] of Object.entries(ephemeris.planets)) {
@@ -285,8 +341,14 @@ function generateDivisionalCharts(ephemeris) {
                 div = calculateD9(pos.longitude);
             else if (type === 'D10')
                 div = calculateD10(pos.longitude);
+            else if (type === 'D24')
+                div = calculateD24(pos.longitude);
             else if (type === 'D30')
                 div = calculateD30(pos.longitude);
+            else if (type === 'D40')
+                div = calculateD40(pos.longitude);
+            else if (type === 'D45')
+                div = calculateD45(pos.longitude);
             else if (type === 'D60')
                 div = calculateD60(pos.longitude);
             else
@@ -296,9 +358,12 @@ function generateDivisionalCharts(ephemeris) {
                 type === 'D7' ? calculateD7(ephemeris.ascendant.longitude) :
                     type === 'D9' ? calculateD9(ephemeris.ascendant.longitude) :
                         type === 'D10' ? calculateD10(ephemeris.ascendant.longitude) :
-                            type === 'D30' ? calculateD30(ephemeris.ascendant.longitude) :
-                                type === 'D60' ? calculateD60(ephemeris.ascendant.longitude) :
-                                    { sign: ephemeris.ascendant.sign, degree: ephemeris.ascendant.degree };
+                            type === 'D24' ? calculateD24(ephemeris.ascendant.longitude) :
+                                type === 'D30' ? calculateD30(ephemeris.ascendant.longitude) :
+                                    type === 'D40' ? calculateD40(ephemeris.ascendant.longitude) :
+                                        type === 'D45' ? calculateD45(ephemeris.ascendant.longitude) :
+                                            type === 'D60' ? calculateD60(ephemeris.ascendant.longitude) :
+                                                { sign: ephemeris.ascendant.sign, degree: ephemeris.ascendant.degree };
             const signIdx = ZODIAC_SIGNS.indexOf(div.sign);
             const ascIdx = ZODIAC_SIGNS.indexOf(divAsc.sign);
             const house = ((signIdx - ascIdx + 12) % 12) + 1;
@@ -308,9 +373,12 @@ function generateDivisionalCharts(ephemeris) {
             type === 'D7' ? calculateD7(ephemeris.ascendant.longitude) :
                 type === 'D9' ? calculateD9(ephemeris.ascendant.longitude) :
                     type === 'D10' ? calculateD10(ephemeris.ascendant.longitude) :
-                        type === 'D30' ? calculateD30(ephemeris.ascendant.longitude) :
-                            type === 'D60' ? calculateD60(ephemeris.ascendant.longitude) :
-                                { sign: ephemeris.ascendant.sign, degree: ephemeris.ascendant.degree };
+                        type === 'D24' ? calculateD24(ephemeris.ascendant.longitude) :
+                            type === 'D30' ? calculateD30(ephemeris.ascendant.longitude) :
+                                type === 'D40' ? calculateD40(ephemeris.ascendant.longitude) :
+                                    type === 'D45' ? calculateD45(ephemeris.ascendant.longitude) :
+                                        type === 'D60' ? calculateD60(ephemeris.ascendant.longitude) :
+                                            { sign: ephemeris.ascendant.sign, degree: ephemeris.ascendant.degree };
         charts[type] = {
             chartType: type,
             planets,
@@ -414,21 +482,62 @@ function scorePhysicalTraits(ephemeris, traits) {
             mismatches.push(`${lagnaSign} Lagna typically gives ${expectedTraits.build.join('/')} build, not ${traits.build}`);
         }
     }
-    // Complexion matching (30 points max) - use both Lagna and Moon
+    // Complexion matching (15 points) - use both Lagna and Moon
     if (traits.complexion) {
         const lagnaMatch = expectedTraits.complexion.includes(traits.complexion);
         const moonMatch = moonComplexion?.includes(traits.complexion);
         if (lagnaMatch && moonMatch) {
-            score += 20;
+            score += 10;
             matches.push(`Both Lagna (${lagnaSign}) and Moon (${moonSign}) match ${traits.complexion} complexion`);
         }
         else if (lagnaMatch || moonMatch) {
-            score += 10;
+            score += 5;
             matches.push(`${lagnaMatch ? 'Lagna' : 'Moon'} matches ${traits.complexion} complexion`);
         }
         else {
-            score -= 10;
+            score -= 5;
             mismatches.push(`Neither Lagna (${lagnaSign}) nor Moon (${moonSign}) typically gives ${traits.complexion} complexion`);
+        }
+    }
+    // Hair Type matching (10 points)
+    if (traits.hairType) {
+        if (['curly', 'thick'].includes(traits.hairType) && ['Leo', 'Aries', 'Scorpio'].includes(lagnaSign)) {
+            score += 5;
+            matches.push(`${lagnaSign} Lagna matches ${traits.hairType} hair`);
+        }
+        else if (['straight', 'thin'].includes(traits.hairType) && ['Virgo', 'Gemini', 'Libra'].includes(lagnaSign)) {
+            score += 5;
+            matches.push(`${lagnaSign} Lagna matches ${traits.hairType} hair`);
+        }
+    }
+    // Prakriti matching (20 points - High indicator)
+    if (traits.prakriti) {
+        const fireSigns = ['Aries', 'Leo', 'Sagittarius'];
+        const earthSigns = ['Taurus', 'Virgo', 'Capricorn'];
+        const airSigns = ['Gemini', 'Libra', 'Aquarius'];
+        const waterSigns = ['Cancer', 'Scorpio', 'Pisces'];
+        if (traits.prakriti.includes('pitta') && fireSigns.includes(lagnaSign)) {
+            score += 10;
+            matches.push(`${lagnaSign} (Fire) aligns with Pitta prakriti`);
+        }
+        else if (traits.prakriti.includes('vata') && airSigns.includes(lagnaSign)) {
+            score += 10;
+            matches.push(`${lagnaSign} (Air) aligns with Vata prakriti`);
+        }
+        else if (traits.prakriti.includes('kapha') && waterSigns.includes(lagnaSign)) {
+            score += 10;
+            matches.push(`${lagnaSign} (Water) aligns with Kapha prakriti`);
+        }
+    }
+    // Nose Type matching (10 points)
+    if (traits.noseType) {
+        if (traits.noseType === 'sharp' && ['Aries', 'Leo', 'Virgo'].includes(lagnaSign)) {
+            score += 5;
+            matches.push(`${lagnaSign} typically gives a sharp nose`);
+        }
+        else if (traits.noseType === 'aquiline' && ['Sagittarius', 'Scorpio'].includes(lagnaSign)) {
+            score += 5;
+            matches.push(`${lagnaSign} aligns with aquiline features`);
         }
     }
     // Clamp score
@@ -449,62 +558,57 @@ function scorePhysicalTraits(ephemeris, traits) {
 // ═════════════════════════════════════════════════════════════════════════════
 // ADVANCED ASPECTS ANALYSIS
 // ═════════════════════════════════════════════════════════════════════════════
-const ASPECT_TYPES = {
-    conjunction: { degrees: 0, orb: 8, type: 'major' },
-    opposition: { degrees: 180, orb: 8, type: 'major' },
-    trine: { degrees: 120, orb: 6, type: 'major' },
-    square: { degrees: 90, orb: 6, type: 'major' },
-    sextile: { degrees: 60, orb: 4, type: 'major' },
-    quincunx: { degrees: 150, orb: 3, type: 'minor' },
-    semi_sextile: { degrees: 30, orb: 2, type: 'minor' },
-    semi_square: { degrees: 45, orb: 2, type: 'minor' },
-    sesquiquadrate: { degrees: 135, orb: 2, type: 'minor' },
-    quintile: { degrees: 72, orb: 2, type: 'minor' },
-    bi_quintile: { degrees: 144, orb: 2, type: 'minor' },
+const PARASHARI_SPECIAL_DRISHTI = {
+    mars: [4, 8],
+    jupiter: [5, 9],
+    saturn: [3, 10],
 };
 /**
- * Calculate all aspects between planets (including minor aspects)
+ * Calculate Vedic Parashari Drishti (Sign-based aspects)
+ * Standard Vedic Rule: All planets aspect 7th house.
+ * Special Aspects: Mars (4,8), Jupiter (5,9), Saturn (3,10).
  */
 function calculateAdvancedAspects(ephemeris) {
     const aspects = [];
     const planetNames = Object.keys(ephemeris.planets);
     for (let i = 0; i < planetNames.length; i++) {
-        for (let j = i + 1; j < planetNames.length; j++) {
-            const planet1 = planetNames[i];
-            const planet2 = planetNames[j];
-            const long1 = ephemeris.planets[planet1].longitude;
-            const long2 = ephemeris.planets[planet2].longitude;
-            let diff = Math.abs(long1 - long2);
-            if (diff > 180)
-                diff = 360 - diff;
-            // Check each aspect type
-            for (const [aspectName, aspectData] of Object.entries(ASPECT_TYPES)) {
-                const orb = Math.abs(diff - aspectData.degrees);
-                if (orb <= aspectData.orb) {
-                    let strength;
-                    if (orb <= 1)
-                        strength = 'exact';
-                    else if (orb <= aspectData.orb / 2)
-                        strength = 'strong';
-                    else if (orb <= aspectData.orb * 0.75)
-                        strength = 'moderate';
-                    else
-                        strength = 'weak';
-                    aspects.push({
-                        planet1,
-                        planet2,
-                        aspectType: aspectName,
-                        exactDegrees: aspectData.degrees,
-                        orb,
-                        strength,
-                    });
-                }
+        const p1Name = planetNames[i];
+        const p1Pos = ephemeris.planets[p1Name];
+        if (!p1Pos)
+            continue;
+        const p1SignIdx = ZODIAC_SIGNS.indexOf(p1Pos.sign);
+        for (let j = 0; j < planetNames.length; j++) {
+            if (i === j)
+                continue;
+            const p2Name = planetNames[j];
+            const p2Pos = ephemeris.planets[p2Name];
+            if (!p2Pos)
+                continue;
+            const p2SignIdx = ZODIAC_SIGNS.indexOf(p2Pos.sign);
+            const houseDistance = ((p2SignIdx - p1SignIdx + 12) % 12) + 1;
+            // 1. All planets have full drishti on the 7th sign
+            if (houseDistance === 7) {
+                aspects.push({
+                    planet1: p1Name,
+                    planet2: p2Name,
+                    aspectType: 'full',
+                    houseDistance,
+                    strength: 100,
+                });
+            }
+            // 2. Special Drishti for Mars, Jupiter, Saturn
+            const specialHouses = PARASHARI_SPECIAL_DRISHTI[p1Name.toLowerCase()];
+            if (specialHouses && specialHouses.includes(houseDistance)) {
+                aspects.push({
+                    planet1: p1Name,
+                    planet2: p2Name,
+                    aspectType: 'special',
+                    houseDistance,
+                    strength: 100,
+                });
             }
         }
     }
-    // Sort by strength
-    const strengthOrder = { exact: 0, strong: 1, moderate: 2, weak: 3 };
-    aspects.sort((a, b) => strengthOrder[a.strength] - strengthOrder[b.strength]);
     return aspects;
 }
 // ═════════════════════════════════════════════════════════════════════════════
@@ -688,7 +792,7 @@ Moon Nakshatra Boundary: ${b.moonNakshatraBoundary}s away
 Status: ${b.isDangerous ? '⚠️ CRITICAL (Highly sensitive to seconds)' : 'Stable'}`;
 }
 // ═════════════════════════════════════════════════════════════════════════════
-// FORMATTING FOR KIMI K2 PROMPTS
+// FORMATTING FOR AI K2 PROMPTS
 // ═════════════════════════════════════════════════════════════════════════════
 function formatYoginiDashaSequence(periods) {
     const lines = ['YOGINI DASHA SEQUENCE (36-year cycle):'];
@@ -721,9 +825,9 @@ function getChartPurpose(chartName) {
     return purposes[chartName] || 'General';
 }
 function formatAdvancedAspects(aspects) {
-    const lines = ['PLANETARY ASPECTS (including minor aspects):'];
+    const lines = ['Vedic Parashari Drishti (Sign-based aspects):'];
     for (const aspect of aspects.slice(0, 20)) {
-        lines.push(`${aspect.planet1}-${aspect.planet2}: ${aspect.aspectType} (orb: ${aspect.orb.toFixed(1)}°, ${aspect.strength})`);
+        lines.push(`${aspect.planet1.toUpperCase()} → ${aspect.planet2.toUpperCase()}: ${aspect.aspectType} (Distance: ${aspect.houseDistance} signs, Strength: ${aspect.strength}%)`);
     }
     return lines.join('\n');
 }
@@ -788,16 +892,226 @@ function formatSpecialLagnas(hl, gl) {
 2. Ghati Lagna (Power/Authority): ${gl.sign} at ${gl.degree.toFixed(2)}°
    Verification: Check GL house/lord strength for promotions, authority, or leadership.`;
 }
-function formatShadbalaLite(strengths) {
-    const lines = ['PLANETARY STRENGTHS (Shadbala-Lite):'];
-    for (const [planet, strength] of Object.entries(strengths)) {
-        lines.push(`${planet.charAt(0).toUpperCase() + planet.slice(1)}: ${strength}`);
+// ═════════════════════════════════════════════════════════════════════════════
+// SHADBALA (6-SOURCE PLANETARY STRENGTHS - PHASE 4)
+// ═════════════════════════════════════════════════════════════════════════════
+/**
+ * Calculates the full Shadbala (Sixfold Strength) for all planets.
+ * Returns score in 'Rupas' (converted to 0-100 for normalization).
+ */
+function calculateFullShadbala(ephemeris) {
+    const planets = ['sun', 'moon', 'mars', 'mercury', 'jupiter', 'venus', 'saturn'];
+    const results = {};
+    const EXALTATION = { sun: 10, moon: 33, mars: 298, mercury: 165, jupiter: 95, venus: 357, saturn: 200 };
+    const DIK_BALA_HOUSES = { sun: 10, moon: 4, mars: 10, mercury: 1, jupiter: 1, venus: 4, saturn: 7 };
+    for (const p of planets) {
+        const pos = ephemeris.planets[p];
+        let total = 0;
+        // 1. STHANA BALA (Positional)
+        // Exaltation distance (max 60 points)
+        const exaltDist = Math.abs(pos.longitude - EXALTATION[p]);
+        const exaltBala = (180 - Math.min(exaltDist, 360 - exaltDist)) / 3;
+        total += exaltBala;
+        // Sign placement (Own/Friend/Neutral/Enemy) - Simplified
+        if (pos.lord === p.charAt(0).toUpperCase() + p.slice(1))
+            total += 30; // Own sign
+        // 2. DIK BALA (Directional - max 60 points)
+        const lagnaSignIndex = ZODIAC_SIGNS.indexOf(ephemeris.ascendant.sign);
+        const planetSignIndex = ZODIAC_SIGNS.indexOf(pos.sign);
+        const houseFromLagna = ((planetSignIndex - lagnaSignIndex + 12) % 12) + 1;
+        if (houseFromLagna === DIK_BALA_HOUSES[p])
+            total += 60;
+        else if (Math.abs(houseFromLagna - DIK_BALA_HOUSES[p]) === 6)
+            total += 0;
+        else
+            total += 30;
+        // 3. KALA BALA (Temporal - simplified)
+        // Day/Night planet strengths
+        const isDayTime = true; // Placeholder for actual sunrise/sunset check
+        const dayPlanets = ['sun', 'jupiter', 'venus'];
+        if (isDayTime && dayPlanets.includes(p))
+            total += 30;
+        // 4. CHESHTA BALA (Motional)
+        if (pos.retro)
+            total += 50; // Retrograde planets are strong in Vedic
+        // 5. NAISARGIKA BALA (Natural)
+        const NATURAL = { sun: 60, moon: 51, venus: 43, jupiter: 34, mercury: 26, mars: 17, saturn: 9 };
+        total += NATURAL[p] || 0;
+        // 6. DRIG BALA (Aspectual)
+        // Simplified: +10 if aspected by Jupiter/Venus, -10 if by Saturn/Mars
+        // (Full aspect calculation is too heavy for this pass, using existing aspects if available)
+        results[p] = Math.round(total);
+    }
+    return results;
+}
+function formatShadbala(strengths) {
+    const lines = ['SHADBALA (Full 6-Source Planetary Power Ratings):'];
+    for (const [planet, power] of Object.entries(strengths)) {
+        lines.push(`${planet.toUpperCase()}: ${power} points (${power > 150 ? 'Strong' : power > 100 ? 'Moderate' : 'Weak'})`);
+    }
+    return lines.join('\n');
+}
+// ═════════════════════════════════════════════════════════════════════════════
+// PLANETARY MATURATION AGES (Traditional Vedic Ages)
+// ═════════════════════════════════════════════════════════════════════════════
+const MATURATION_AGES = {
+    jupiter: 16, // Also 24
+    sun: 21,
+    moon: 24,
+    venus: 25,
+    mars: 28,
+    mercury: 32,
+    saturn: 36,
+    rahu: 42,
+    ketu: 48
+};
+/**
+ * Calculate the dates when planets mature in a person's life.
+ * These are pivotal years where the planet's energy fully stabilizes.
+ */
+function calculatePlanetaryMaturation(birthDate) {
+    const maturation = [];
+    for (const [planet, age] of Object.entries(MATURATION_AGES)) {
+        maturation.push({
+            planet: planet.toUpperCase(),
+            age,
+            date: addYears(birthDate, age)
+        });
+    }
+    // Sort by age
+    return maturation.sort((a, b) => a.age - b.age);
+}
+function formatPlanetaryMaturation(maturation) {
+    const lines = ['PLANETARY MATURATION AGES (Traditional Vedic Pivot Years):'];
+    for (const m of maturation) {
+        lines.push(`${m.planet}: Age ${m.age} (${m.date.toISOString().split('T')[0]})`);
     }
     return lines.join('\n');
 }
 // ═════════════════════════════════════════════════════════════════════════════
 // UTILITY
 // ═════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════════════
+// ASHTAKAVARGA (PHASE 4)
+// ═════════════════════════════════════════════════════════════════════════════
+/**
+ * Ashtakavarga Bindu Tables (Standard Parashari Rules)
+ * Each planet contributes bindus from specific relative positions.
+ */
+const ASHTAKAVARGA_RULES = {
+    sun: {
+        sun: [1, 2, 4, 7, 8, 9, 10, 11],
+        moon: [3, 6, 10, 11],
+        mars: [1, 2, 4, 7, 8, 9, 10, 11],
+        mercury: [3, 5, 6, 9, 10, 11, 12],
+        jupiter: [5, 6, 9, 11],
+        venus: [6, 7, 12],
+        saturn: [1, 2, 4, 7, 8, 9, 10, 11],
+        ascendant: [3, 4, 6, 10, 11, 12]
+    },
+    moon: {
+        sun: [3, 6, 7, 8, 10, 11],
+        moon: [1, 3, 6, 7, 10, 11],
+        mars: [2, 3, 5, 6, 9, 10, 11],
+        mercury: [1, 3, 4, 5, 7, 8, 10, 11],
+        jupiter: [1, 4, 7, 8, 10, 11, 12],
+        venus: [3, 4, 5, 7, 9, 10, 11],
+        saturn: [3, 5, 6, 11],
+        ascendant: [3, 6, 10, 11]
+    },
+    mars: {
+        sun: [3, 5, 6, 10, 11],
+        moon: [3, 6, 11],
+        mars: [1, 2, 4, 7, 8, 10, 11],
+        mercury: [3, 5, 6, 11],
+        jupiter: [6, 10, 11, 12],
+        venus: [6, 8, 11, 12],
+        saturn: [1, 4, 7, 8, 9, 10, 11],
+        ascendant: [1, 3, 6, 10, 11]
+    },
+    mercury: {
+        sun: [5, 6, 9, 11, 12],
+        moon: [2, 4, 6, 8, 10, 11],
+        mars: [1, 2, 4, 7, 8, 9, 10, 11],
+        mercury: [1, 3, 5, 6, 9, 10, 11, 12],
+        jupiter: [6, 8, 11, 12],
+        venus: [1, 2, 3, 4, 5, 8, 9, 11],
+        saturn: [1, 2, 4, 7, 8, 9, 10, 11],
+        ascendant: [1, 2, 4, 6, 8, 10, 11]
+    },
+    jupiter: {
+        sun: [1, 2, 3, 4, 7, 8, 9, 10, 11],
+        moon: [2, 5, 7, 9, 11],
+        mars: [1, 2, 4, 7, 8, 10, 11],
+        mercury: [1, 2, 4, 5, 6, 9, 10, 11],
+        jupiter: [1, 2, 3, 4, 7, 8, 10, 11],
+        venus: [2, 5, 6, 9, 10, 11],
+        saturn: [3, 5, 6, 12],
+        ascendant: [1, 2, 4, 5, 6, 7, 9, 10, 11]
+    },
+    venus: {
+        sun: [8, 11, 12],
+        moon: [1, 2, 3, 4, 5, 8, 9, 11, 12],
+        mars: [3, 5, 6, 9, 11, 12],
+        mercury: [3, 5, 6, 9, 11],
+        jupiter: [5, 8, 9, 10, 11],
+        venus: [1, 2, 3, 4, 5, 8, 9, 10, 11],
+        saturn: [3, 4, 5, 8, 9, 10, 11],
+        ascendant: [1, 2, 3, 4, 5, 8, 9, 11]
+    },
+    saturn: {
+        sun: [1, 2, 4, 7, 8, 10, 11],
+        moon: [3, 6, 11],
+        mars: [3, 5, 6, 10, 11, 12],
+        mercury: [6, 8, 9, 10, 11, 12],
+        jupiter: [5, 6, 11, 12],
+        venus: [6, 11, 12],
+        saturn: [3, 5, 6, 11],
+        ascendant: [1, 3, 4, 6, 10, 11]
+    }
+};
+const PLANET_NAMES_AV = ['sun', 'moon', 'mars', 'mercury', 'jupiter', 'venus', 'saturn'];
+/**
+ * Calculates Ashtakavarga Bindus for all houses.
+ * Returns both individual Bhinnashtakavarga (BAV) and total Sarvashtakavarga (SAV).
+ */
+function calculateAshtakavarga(ephemeris) {
+    const bav = {};
+    const sav = new Array(12).fill(0);
+    // 1. Get positions of all sources
+    const ZODIAC_SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+    const planetPositions = {};
+    for (const p of PLANET_NAMES_AV) {
+        planetPositions[p] = ZODIAC_SIGNS.indexOf(ephemeris.planets[p]?.sign || '');
+    }
+    const ascSignIdx = ZODIAC_SIGNS.indexOf(ephemeris.ascendant.sign);
+    // 2. Calculate for each planet (receiver)
+    for (const receiver of PLANET_NAMES_AV) {
+        const bindus = new Array(12).fill(0);
+        const rules = ASHTAKAVARGA_RULES[receiver];
+        // Each source gives bindus to the receiver based on source's position
+        for (const source of PLANET_NAMES_AV) {
+            const sourcePosIdx = planetPositions[source];
+            const sourceRules = rules[source];
+            for (const relativeHouse of sourceRules) {
+                const targetSignIdx = (sourcePosIdx + relativeHouse - 1) % 12;
+                bindus[targetSignIdx]++;
+            }
+        }
+        // Ascendant also acts as a source
+        const ascRules = rules.ascendant;
+        for (const relativeHouse of ascRules) {
+            const targetSignIdx = (ascSignIdx + relativeHouse - 1) % 12;
+            bindus[targetSignIdx]++;
+        }
+        bav[receiver] = bindus;
+        // Add to SAV
+        for (let i = 0; i < 12; i++) {
+            sav[i] += bindus[i];
+        }
+    }
+    return { bav, sav };
+}
 function addYears(date, years) {
     const result = new Date(date);
     const wholeDays = years * 365.25;

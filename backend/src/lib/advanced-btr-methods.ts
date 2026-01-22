@@ -991,7 +991,11 @@ function getChartPurpose(chartName: string): string {
         D7: 'Children/Education',
         D9: 'Marriage/Dharma',
         D10: 'Career/Authority',
+        D24: 'Knowledge/Education',
         D30: 'Acute Events/Misfortune',
+        D40: 'Auspiciousness/Success',
+        D45: 'Character/General Luck',
+        D60: 'GOD-TIER Precision/Past Life',
     };
     return purposes[chartName] || 'General';
 }

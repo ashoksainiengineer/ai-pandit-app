@@ -1,19 +1,23 @@
-import { EphemerisData } from './types';
+import { EphemerisData } from './types.js';
 export interface ShuddhiScore {
     passed: boolean;
     score: number;
     details: string;
 }
 /**
- * Approximate Sunrise (Simple Vedic method)
- * Can be replaced with exact Swiss Eph rise/set later
+ * Scientific Sunrise Approximation (Vedic Standard)
+ * Accounts for Latitude and Longitude to refine Tatwa Shuddhi.
  */
-export declare function getApproxSunrise(jd: number, timezone: string): number;
+export declare function getApproxSunrise(jd: number, latitude: number, longitude: number, timezone: number | string): number;
 /**
- * Tatwa Shuddhi Calculation
- * Checks if the birth time falls within the correct Tatwa according to sex and weekday.
+ * Scientific Sunset Approximation
  */
-export declare function calculateTatwaShuddhi(birthJd: number, sunriseJd: number, gender?: 'male' | 'female'): ShuddhiScore;
+export declare function getApproxSunset(jd: number, latitude: number, longitude: number, timezone: number | string): number;
+/**
+ * Tatwa Shuddhi Calculation (God-Tier Dinamaana Scale)
+ * Checks if the birth time falls within the correct Tatwa.
+ */
+export declare function calculateTatwaShuddhi(birthJd: number, sunriseJd: number, sunsetJd: number, gender?: 'male' | 'female'): ShuddhiScore;
 /**
  * Kunda Shuddhi Calculation
  * Lagna Longitude * 81 / 360 -> Remainder should align with Moon's Nakshatra

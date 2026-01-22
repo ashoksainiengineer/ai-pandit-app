@@ -1,4 +1,4 @@
-import { EphemerisData } from './types';
+import { EphemerisData } from './types.js';
 /**
  * Initializes the Swiss Ephemeris WASM module (Prolaxu version)
  * This must be called (and awaited) at server start.

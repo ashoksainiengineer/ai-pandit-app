@@ -11,7 +11,7 @@ const drizzle_orm_1 = require("drizzle-orm");
 const logger_js_1 = require("../lib/logger.js");
 const time_offset_manager_js_1 = require("../lib/time-offset-manager.js");
 const candidate_analyzer_js_1 = __importDefault(require("../lib/candidate-analyzer.js"));
-const kimi_k2_thinking_client_js_1 = require("../lib/kimi-k2-thinking-client.js");
+const ai_thinking_client_js_1 = require("../lib/ai-thinking-client.js");
 const router = (0, express_1.Router)();
 /**
  * POST /api/calculate - Perform birth time rectification
@@ -81,11 +81,11 @@ router.post('/', auth_js_1.authMiddleware, async (req, res) => {
             allCandidates: rankedCandidates.allCandidates.length,
             sessionId,
         });
-        // Deep analysis with Kimi K2
-        const kimiResults = await (0, kimi_k2_thinking_client_js_1.analyzeTopCandidatesWithKimi)(rankedCandidates.topCandidates, lifeEvents);
-        logger_js_1.logger.info('Kimi K2 analysis complete', {
-            topTime: kimiResults.topRecommendation.time,
-            topScore: kimiResults.topRecommendation.score,
+        // Deep analysis with AI
+        const aiResults = await (0, ai_thinking_client_js_1.analyzeTopCandidatesWithAI)(rankedCandidates.topCandidates, lifeEvents);
+        logger_js_1.logger.info('AI deep analysis complete', {
+            topTime: aiResults.topRecommendation.time,
+            topScore: aiResults.topRecommendation.score,
             sessionId,
         });
         // Save results to database
@@ -93,12 +93,12 @@ router.post('/', auth_js_1.authMiddleware, async (req, res) => {
         await drizzle_js_1.db
             .update(schema_js_1.sessions)
             .set({
-            rectifiedTime: kimiResults.topRecommendation.time,
-            accuracy: kimiResults.topRecommendation.score,
-            confidence: kimiResults.topRecommendation.confidence,
+            rectifiedTime: aiResults.topRecommendation.time,
+            accuracy: aiResults.topRecommendation.score,
+            confidence: aiResults.topRecommendation.confidence,
             analysisResult: JSON.stringify({
-                topRecommendation: kimiResults.topRecommendation,
-                alternativeOptions: kimiResults.alternativeOptions,
+                topRecommendation: aiResults.topRecommendation,
+                alternativeOptions: aiResults.alternativeOptions,
                 allCandidates: rankedCandidates.allCandidates.map((c) => ({
                     time: c.time,
                     offsetDescription: c.offsetDescription,
@@ -106,8 +106,8 @@ router.post('/', auth_js_1.authMiddleware, async (req, res) => {
                     eventMatches: c.eventMatches,
                 })),
                 totalCandidatesAnalyzed: rankedCandidates.totalAnalyzed,
-                totalCandidatesWithKimi: kimiResults.candidates.length,
-                processingTime: kimiResults.processingTime,
+                totalCandidatesWithAI: aiResults.candidates.length,
+                processingTime: aiResults.processingTime,
             }),
             status: 'complete',
             updatedAt: updateNow,
@@ -120,19 +120,19 @@ router.post('/', auth_js_1.authMiddleware, async (req, res) => {
             success: true,
             data: {
                 sessionId,
-                rectifiedTime: kimiResults.topRecommendation.time,
-                accuracy: kimiResults.topRecommendation.score,
-                confidence: kimiResults.topRecommendation.confidence,
+                rectifiedTime: aiResults.topRecommendation.time,
+                accuracy: aiResults.topRecommendation.score,
+                confidence: aiResults.topRecommendation.confidence,
                 topRecommendation: {
-                    time: kimiResults.topRecommendation.time,
-                    offsetMinutes: kimiResults.topRecommendation.offsetMinutes,
-                    offsetDescription: kimiResults.topRecommendation.offsetDescription,
-                    score: kimiResults.topRecommendation.score,
-                    confidence: kimiResults.topRecommendation.confidence,
-                    analysis: kimiResults.topRecommendation.analysis.substring(0, 2000),
-                    recommendation: kimiResults.topRecommendation.recommendation,
+                    time: aiResults.topRecommendation.time,
+                    offsetMinutes: aiResults.topRecommendation.offsetMinutes,
+                    offsetDescription: aiResults.topRecommendation.offsetDescription,
+                    score: aiResults.topRecommendation.score,
+                    confidence: aiResults.topRecommendation.confidence,
+                    analysis: aiResults.topRecommendation.analysis.substring(0, 2000),
+                    recommendation: aiResults.topRecommendation.recommendation,
                 },
-                alternativeOptions: kimiResults.alternativeOptions.slice(0, 4).map((c) => ({
+                alternativeOptions: aiResults.alternativeOptions.slice(0, 4).map((c) => ({
                     time: c.time,
                     offsetMinutes: c.offsetMinutes,
                     offsetDescription: c.offsetDescription,
@@ -142,7 +142,7 @@ router.post('/', auth_js_1.authMiddleware, async (req, res) => {
                 statistics: {
                     totalCandidatesGenerated: candidates.length,
                     topCandidatesAnalyzed: rankedCandidates.topCandidates.length,
-                    deepAnalysisCount: kimiResults.candidates.length,
+                    deepAnalysisCount: aiResults.candidates.length,
                     allCandidateScores: rankedCandidates.allCandidates.map((c) => ({
                         time: c.time,
                         quickScore: c.quickScore,

@@ -1,4 +1,4 @@
-import { LifeEvent, PhysicalTraits, BTRInput, BTROutput } from './types';
+import { LifeEvent, PhysicalTraits, BTRInput, BTROutput } from './types.js';
 type TimeUncertainty = '±15 minutes' | '±30 minutes' | '±1 hour' | '±2 hours' | '±3 hours' | '±4 hours';
 export declare function generateCandidates(timeEstimate: string, timeUncertainty: TimeUncertainty): string[];
 export declare function quickFilterCandidates(candidates: string[], birthDate: string, latitude: number, longitude: number, timezone: string, lifeEvents: LifeEvent[], physicalTraits?: PhysicalTraits): Promise<Array<{

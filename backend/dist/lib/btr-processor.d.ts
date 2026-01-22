@@ -1,5 +1,5 @@
-import { TimeOffsetConfig } from './time-offset-manager';
-import { LifeEvent } from './types';
+import { TimeOffsetConfig } from './time-offset-manager.js';
+import { LifeEvent } from './types.js';
 export interface ProcessInput {
     sessionId: string;
     dateOfBirth: string;
@@ -30,7 +30,7 @@ export interface CandidateScore {
 }
 /**
  * Main processing function - called by queue manager
- * Optimized for memory efficiency on 512MB RAM
+ * Optimized for high-performance scale
  */
 export declare function processAnalysis(input: ProcessInput): Promise<ProcessResult>;
 export default processAnalysis;

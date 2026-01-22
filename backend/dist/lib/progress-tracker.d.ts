@@ -20,6 +20,17 @@ export interface AIThinkingData {
     chunks: string[];
     fullText: string;
 }
+export interface AIContextData {
+    stage: number;
+    candidateTime: string;
+    planetaryInfo: {
+        ascendant: string;
+        sun: string;
+        moon: string;
+    };
+    dasha: string;
+    divCharts?: string;
+}
 export interface ProgressData {
     currentStep: number;
     totalSteps: number;
@@ -27,8 +38,11 @@ export interface ProgressData {
     steps: ProgressStep[];
     lastUpdate: string;
     liveMessage?: string;
+    startedAt?: string;
     candidateScores: CandidateScore[];
     lastAIThinking?: AIThinkingData;
+    aiContext?: AIContextData;
+    stageHistory?: Record<number, string>;
 }
 export declare const ANALYSIS_STEPS: Omit<ProgressStep, 'status'>[];
 export declare class ProgressTracker {
@@ -36,6 +50,7 @@ export declare class ProgressTracker {
     private sessionId;
     private progress;
     private candidateBuffers;
+    private lastPulseTime;
     constructor(sessionId: string);
     /**
      * Get active in-memory instance
@@ -53,6 +68,10 @@ export declare class ProgressTracker {
      */
     updateAIThinking(text: string, stage: number, candidateTime?: string): Promise<void>;
     /**
+     * Update AI Context (Ground Truth Display)
+     */
+    updateAIContext(context: AIContextData): Promise<void>;
+    /**
      * Heartbeat to keep session alive in DB
      * Called automatically during progress updates but can be called manually
      */
@@ -65,6 +84,10 @@ export declare class ProgressTracker {
      * Update current step with live message
      */
     updateMessage(message: string, details?: string[]): Promise<void>;
+    /**
+     * Update percentage manually
+     */
+    updatePercentage(percentage: number): Promise<void>;
     /**
      * Complete a step - PERSISTENT FLUSH
      * This is where we save AI thinking to DB as it's a major milestone

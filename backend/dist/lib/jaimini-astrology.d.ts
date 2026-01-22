@@ -1,4 +1,4 @@
-import { EphemerisData } from './types';
+import { EphemerisData } from './types.js';
 export interface CharaKaraka {
     planet: string;
     karakaName: string;
@@ -105,4 +105,18 @@ export declare function charaDashaSupportsEvent(dasha: CharaDashaPeriod, eventCa
     reason: string;
     strength: number;
 };
+/**
+ * Calculates Bhrigu Bindu - The midpoint between Moon and Rahu.
+ * Also calculates the Destiny Axis (midpoint of Moon and Ketu).
+ */
+export declare function calculateBhriguBindu(ephemeris: EphemerisData): {
+    bhriguBindu: number;
+    destinyAxis: number;
+    sign: string;
+    degree: number;
+};
+export declare function formatBhriguBindu(data: {
+    sign: string;
+    degree: number;
+}): string;
 //# sourceMappingURL=jaimini-astrology.d.ts.map

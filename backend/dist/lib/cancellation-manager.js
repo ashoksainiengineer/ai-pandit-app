@@ -10,10 +10,10 @@ exports.cleanupController = cleanupController;
 exports.isSessionCancelled = isSessionCancelled;
 exports.throwIfCancelled = throwIfCancelled;
 exports.isCancellationError = isCancellationError;
-const drizzle_1 = require("../database/drizzle");
-const schema_1 = require("../database/schema");
+const drizzle_js_1 = require("../database/drizzle.js");
+const schema_js_1 = require("../database/schema.js");
 const drizzle_orm_1 = require("drizzle-orm");
-const logger_1 = require("./logger");
+const logger_js_1 = require("./logger.js");
 // ═════════════════════════════════════════════════════════════════════════════
 // CANCELLATION MANAGER
 // ═════════════════════════════════════════════════════════════════════════════
@@ -28,7 +28,7 @@ function createAbortController(sessionId) {
     activeControllers.delete(sessionId);
     const controller = new AbortController();
     activeControllers.set(sessionId, controller);
-    logger_1.logger.info('AbortController created', { sessionId });
+    logger_js_1.logger.info('AbortController created', { sessionId });
     return controller;
 }
 /**
@@ -45,7 +45,7 @@ function abortSession(sessionId) {
     if (controller) {
         controller.abort();
         activeControllers.delete(sessionId);
-        logger_1.logger.info('Session aborted', { sessionId });
+        logger_js_1.logger.info('Session aborted', { sessionId });
         return true;
     }
     return false;
@@ -62,12 +62,12 @@ function cleanupController(sessionId) {
  */
 async function isSessionCancelled(sessionId) {
     try {
-        const result = await drizzle_1.db.select({
-            status: schema_1.sessions.status,
-            errorMessage: schema_1.sessions.errorMessage
+        const result = await drizzle_js_1.db.select({
+            status: schema_js_1.sessions.status,
+            errorMessage: schema_js_1.sessions.errorMessage
         })
-            .from(schema_1.sessions)
-            .where((0, drizzle_orm_1.eq)(schema_1.sessions.id, sessionId))
+            .from(schema_js_1.sessions)
+            .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, sessionId))
             .limit(1);
         if (result.length === 0)
             return true; // Session not found = treat as cancelled
@@ -82,7 +82,7 @@ async function isSessionCancelled(sessionId) {
         return false;
     }
     catch (error) {
-        logger_1.logger.error('Failed to check session status', { sessionId, error });
+        logger_js_1.logger.error('Failed to check session status', { sessionId, error });
         return false;
     }
 }

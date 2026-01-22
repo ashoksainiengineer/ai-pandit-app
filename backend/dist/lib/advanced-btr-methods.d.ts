@@ -1,4 +1,4 @@
-import { EphemerisData } from './types';
+import { EphemerisData } from './types.js';
 export interface YoginiDashaPeriod {
     name: string;
     planet: string;
@@ -27,10 +27,9 @@ export interface PhysicalTraitsScore {
 export interface AspectData {
     planet1: string;
     planet2: string;
-    aspectType: string;
-    exactDegrees: number;
-    orb: number;
-    strength: 'exact' | 'strong' | 'moderate' | 'weak';
+    aspectType: 'full' | 'special';
+    houseDistance: number;
+    strength: number;
 }
 export interface ArudhaLagna {
     sign: string;
@@ -111,6 +110,30 @@ export declare function calculateD30(longitude: number): {
     ruler: string;
 };
 /**
+ * Calculate D24 (Chaturvimshamsha) Chart - Education/Knowledge
+ * Each sign divided into 24 parts (1.25° each)
+ */
+export declare function calculateD24(longitude: number): {
+    sign: string;
+    degree: number;
+};
+/**
+ * Calculate D40 (Khavedamsha) Chart - General Auspiciousness
+ * Each sign divided into 40 parts (0.75° each)
+ */
+export declare function calculateD40(longitude: number): {
+    sign: string;
+    degree: number;
+};
+/**
+ * Calculate D45 (Akshavedamsha) Chart - Character/Luck
+ * Each sign divided into 45 parts (0.666° / 40 minutes each)
+ */
+export declare function calculateD45(longitude: number): {
+    sign: string;
+    degree: number;
+};
+/**
  * Calculate D60 (Shashtiamsha) Chart - Cyclic/Sequential
  * Each sign divided into 60 parts (0.5° each)
  * Crucial for seconds-level rectification.
@@ -132,6 +155,9 @@ interface PhysicalTraits {
     height?: 'short' | 'medium' | 'tall';
     build?: 'slim' | 'medium' | 'heavy';
     complexion?: 'fair' | 'medium' | 'dark';
+    hairType?: 'straight' | 'curly' | 'wavy' | 'thin' | 'thick';
+    prakriti?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha';
+    noseType?: 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
     appearance?: string;
 }
 /**
@@ -140,7 +166,9 @@ interface PhysicalTraits {
  */
 export declare function scorePhysicalTraits(ephemeris: EphemerisData, traits: PhysicalTraits): PhysicalTraitsScore;
 /**
- * Calculate all aspects between planets (including minor aspects)
+ * Calculate Vedic Parashari Drishti (Sign-based aspects)
+ * Standard Vedic Rule: All planets aspect 7th house.
+ * Special Aspects: Mars (4,8), Jupiter (5,9), Saturn (3,10).
  */
 export declare function calculateAdvancedAspects(ephemeris: EphemerisData): AspectData[];
 /**
@@ -202,6 +230,33 @@ export declare function calculateHoraLagna(sunriseJd: number, birthJd: number, a
  */
 export declare function calculateGhatiLagna(sunriseJd: number, birthJd: number, ascendantLongitude: number): SpecialLagna;
 export declare function formatSpecialLagnas(hl: SpecialLagna, gl: SpecialLagna): string;
-export declare function formatShadbalaLite(strengths: Record<string, string>): string;
+/**
+ * Calculates the full Shadbala (Sixfold Strength) for all planets.
+ * Returns score in 'Rupas' (converted to 0-100 for normalization).
+ */
+export declare function calculateFullShadbala(ephemeris: EphemerisData): Record<string, number>;
+export declare function formatShadbala(strengths: Record<string, number>): string;
+/**
+ * Calculate the dates when planets mature in a person's life.
+ * These are pivotal years where the planet's energy fully stabilizes.
+ */
+export declare function calculatePlanetaryMaturation(birthDate: Date): Array<{
+    planet: string;
+    age: number;
+    date: Date;
+}>;
+export declare function formatPlanetaryMaturation(maturation: Array<{
+    planet: string;
+    age: number;
+    date: Date;
+}>): string;
+/**
+ * Calculates Ashtakavarga Bindus for all houses.
+ * Returns both individual Bhinnashtakavarga (BAV) and total Sarvashtakavarga (SAV).
+ */
+export declare function calculateAshtakavarga(ephemeris: EphemerisData): {
+    bav: Record<string, number[]>;
+    sav: number[];
+};
 export {};
 //# sourceMappingURL=advanced-btr-methods.d.ts.map

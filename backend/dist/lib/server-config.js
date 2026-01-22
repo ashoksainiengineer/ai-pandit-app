@@ -2,16 +2,16 @@
 // lib/server-config.ts
 // Server configuration for AI models and database
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.kimiClient = exports.serverConfig = void 0;
+exports.aiClient = exports.serverConfig = void 0;
 exports.serverConfig = {
     // AI Configuration
-    kimi: {
-        baseUrl: process.env.ANTHROPIC_BASE_URL || process.env.KIMI_BASE_URL || 'https://api.moonshot.cn/v1',
-        apiKey: process.env.ANTHROPIC_API_KEY || process.env.KIMI_API_KEY || '',
-        model: process.env.MOONSHOT_MODEL || process.env.KIMI_MODEL || 'moonshot-v1-auto',
-        maxTokens: parseInt(process.env.KIMI_MAX_TOKENS || '4000'),
-        temperature: parseFloat(process.env.KIMI_TEMPERATURE || '0.3'),
-        thinkingBudget: parseInt(process.env.KIMI_THINKING_BUDGET || '8000'),
+    ai: {
+        baseUrl: process.env.AI_BASE_URL || process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com',
+        apiKey: process.env.AI_API_KEY || process.env.DEEPSEEK_API_KEY || '',
+        model: process.env.AI_MODEL || process.env.DEEPSEEK_MODEL || 'deepseek-reasoner',
+        maxTokens: parseInt(process.env.AI_MAX_TOKENS || '32000'),
+        temperature: parseFloat(process.env.AI_TEMPERATURE || '0.1'),
+        thinkingBudget: parseInt(process.env.AI_THINKING_BUDGET || '32000'),
     },
     // Database
     database: {
@@ -23,11 +23,11 @@ exports.serverConfig = {
     timeout: 30000,
 };
 // Database client - will be imported from drizzle
-// Kimi client (simplified for now)
-exports.kimiClient = {
+// AI client (simplified for now)
+exports.aiClient = {
     messages: {
         create: async (options) => {
-            // This would be the actual Kimi API call
+            // This would be the actual AI API call
             // For now, return a mock response
             return {
                 content: [

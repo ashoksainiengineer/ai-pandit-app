@@ -6,7 +6,7 @@
 import { db } from '../database/drizzle.js';
 import { sessions } from '../database/schema.js';
 import { eq } from 'drizzle-orm';
-import { emitProgress, emitComplete, emitError, emitCandidateScore, emitAIContext } from './session-events.js';
+import { emitProgress, emitComplete, emitError, emitCandidateScore, emitAIContext, emitEstimatedTime } from './session-events.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -63,6 +63,8 @@ export interface ProgressData {
     lastAIThinking?: AIThinkingData;
     aiContext?: AIContextData;
     stageHistory?: Record<number, string>; // 🏛️ Persistent reasoning history per stage
+    calculationLogs?: Array<{ candidateTime: string; log: string }>; // ⚡ Persistent Swiss Eph logs
+    estimatedTimeRemaining?: number; // ⏱️ In seconds
 }
 
 
@@ -122,6 +124,8 @@ export class ProgressTracker {
             candidateScores: [],
             lastAIThinking: undefined,
             stageHistory: {},
+            calculationLogs: [],
+            estimatedTimeRemaining: 0,
         };
     }
 
@@ -176,6 +180,32 @@ export class ProgressTracker {
             this.lastPulseTime = now;
             this.pulse().catch(err => console.error('Heartbeat pulse failed:', err));
         }
+    }
+
+    /**
+     * Add calculation log - PERSISTENT
+     */
+    async addCalculationLog(candidateTime: string, log: string): Promise<void> {
+        if (!this.progress.calculationLogs) this.progress.calculationLogs = [];
+        this.progress.calculationLogs.push({ candidateTime, log });
+
+        // Limit log size (Memory Protection)
+        if (this.progress.calculationLogs.length > 500) {
+            this.progress.calculationLogs = this.progress.calculationLogs.slice(-500);
+        }
+
+        // We emit the individual log via the existing event system (handled by the caller or specialized method)
+        // This method primarily ensures the log is in the state and will be saved to DB
+        await this.saveProgress();
+    }
+
+    /**
+     * Update ETA
+     */
+    async updateETA(seconds: number): Promise<void> {
+        this.progress.estimatedTimeRemaining = seconds;
+        emitEstimatedTime(this.sessionId, seconds);
+        await this.saveProgress();
     }
 
     /**

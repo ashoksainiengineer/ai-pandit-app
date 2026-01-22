@@ -1,5 +1,5 @@
-import { TimeOffsetConfig } from './time-offset-manager';
-import { LifeEvent } from './types';
+import { TimeOffsetConfig } from './time-offset-manager.js';
+import { LifeEvent } from './types.js';
 export interface ComprehensiveProcessInput {
     sessionId: string;
     dateOfBirth: string;

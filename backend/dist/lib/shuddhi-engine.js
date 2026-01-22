@@ -4,49 +4,100 @@
 // Used for candidate filtering and probability scoring
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getApproxSunrise = getApproxSunrise;
+exports.getApproxSunset = getApproxSunset;
 exports.calculateTatwaShuddhi = calculateTatwaShuddhi;
 exports.calculateKundaShuddhi = calculateKundaShuddhi;
 exports.calculateVarnadaLagna = calculateVarnadaLagna;
-const vedic_astrology_engine_1 = require("./vedic-astrology-engine");
+const vedic_astrology_engine_js_1 = require("./vedic-astrology-engine.js");
 const TATWAS = ['Earth', 'Water', 'Fire', 'Air', 'Ether'];
 const TATWA_DURATIONS_MIN = [6, 12, 18, 24, 30]; // Traditional Ghatika relative parts (simplified to minutes for 24 min total cycle)
 // Actual Tatwa duration in a 90-minute cycle (Traditional: 1.5 hours per cycle)
 // Earth: 6 min, Water: 12 min, Fire: 18 min, Air: 24 min, Ether: 30 min (Total 90 mins)
 /**
- * Approximate Sunrise (Simple Vedic method)
- * Can be replaced with exact Swiss Eph rise/set later
+ * Scientific Sunrise Approximation (Vedic Standard)
+ * Accounts for Latitude and Longitude to refine Tatwa Shuddhi.
  */
-function getApproxSunrise(jd, timezone) {
-    // Standard 6:00 AM local time as baseline
-    // 0.5 JD is 12:00 UTC, so 0.25 is 6:00 UTC.
-    // We adjust for timezone.
-    const date = new Date();
-    const offset = date.getTimezoneOffset(); // minutes
-    return Math.floor(jd) + 0.5 + (6 / 24) - (offset / (24 * 60));
+function getApproxSunrise(jd, latitude, longitude, timezone) {
+    const tzOffset = typeof timezone === 'number' ? timezone : parseFloat(String(timezone)) || 5.5;
+    // Standard formula for sunrise approximation:
+    // 1. Find Julian Day at midnight local time
+    const jdMidnight = Math.floor(jd - (tzOffset / 24)) + 0.5 + (tzOffset / 24);
+    // 2. Adjust for longitude (4 minutes per degree)
+    // Longitude correction: 6:00 AM + (82.5 - longitude) * 4 minutes (for IST)
+    // General: 6:00 AM - (longitude - (tzOffset * 15)) * (4/60/24)
+    const longCorrection = (longitude - (tzOffset * 15)) * (4 / (60 * 24));
+    // 3. Approximate Equation of Time and Declination (Simplified)
+    // This adds another level of "God-Tier" precision for different months
+    const n = Math.floor(jd - 2451545.0); // Days since Jan 1, 2000
+    const L = (280.460 + 0.9856474 * n) % 360;
+    const g = (357.528 + 0.9856003 * n) % 360;
+    const delta = 23.439 * Math.sin((L + 1.915 * Math.sin(g * Math.PI / 180)) * Math.PI / 180);
+    // 4. Calculate Hour Angle (H) at sunrise (alt = -0.833)
+    const phi = latitude * Math.PI / 180;
+    const d = delta * Math.PI / 180;
+    const cosH = (Math.sin(-0.833 * Math.PI / 180) - Math.sin(phi) * Math.sin(d)) / (Math.cos(phi) * Math.cos(d));
+    let H = 0;
+    if (cosH < -1)
+        H = 180; // Perpetual day
+    else if (cosH > 1)
+        H = 0; // Perpetual night
+    else
+        H = Math.acos(cosH) * 180 / Math.PI;
+    // Sunrise in JD = Midnight + (12 - H/15)/24 - longCorrection
+    return jdMidnight + (12 - H / 15) / 24 - (longitude - (tzOffset * 15)) / 360;
 }
 /**
- * Tatwa Shuddhi Calculation
- * Checks if the birth time falls within the correct Tatwa according to sex and weekday.
+ * Scientific Sunset Approximation
  */
-function calculateTatwaShuddhi(birthJd, sunriseJd, gender = 'male') {
-    // Minutes since sunrise
-    const diffMinutes = (birthJd - sunriseJd) * 24 * 60;
-    const cycleMinutes = 90; // Standard cycle
+function getApproxSunset(jd, latitude, longitude, timezone) {
+    const tzOffset = typeof timezone === 'number' ? timezone : parseFloat(String(timezone)) || 5.5;
+    const jdMidnight = Math.floor(jd - (tzOffset / 24)) + 0.5 + (tzOffset / 24);
+    const n = Math.floor(jd - 2451545.0);
+    const L = (280.460 + 0.9856474 * n) % 360;
+    const g = (357.528 + 0.9856003 * n) % 360;
+    const delta = 23.439 * Math.sin((L + 1.915 * Math.sin(g * Math.PI / 180)) * Math.PI / 180);
+    const phi = latitude * Math.PI / 180;
+    const d = delta * Math.PI / 180;
+    const cosH = (Math.sin(-0.833 * Math.PI / 180) - Math.sin(phi) * Math.sin(d)) / (Math.cos(phi) * Math.cos(d));
+    let H = 0;
+    if (cosH < -1)
+        H = 180;
+    else if (cosH > 1)
+        H = 0;
+    else
+        H = Math.acos(cosH) * 180 / Math.PI;
+    // Sunset in JD = Midnight + (12 + H/15)/24 - longCorrection
+    return jdMidnight + (12 + H / 15) / 24 - (longitude - (tzOffset * 15)) / 360;
+}
+/**
+ * Tatwa Shuddhi Calculation (God-Tier Dinamaana Scale)
+ * Checks if the birth time falls within the correct Tatwa.
+ */
+function calculateTatwaShuddhi(birthJd, sunriseJd, sunsetJd, gender = 'male') {
+    const isDayTime = birthJd >= sunriseJd && birthJd <= sunsetJd;
+    // Day length or Night length in minutes
+    const totalMinutes = isDayTime
+        ? (sunsetJd - sunriseJd) * 24 * 60
+        : (24 * 60) - ((sunsetJd - sunriseJd) * 24 * 60);
+    const startTime = isDayTime ? sunriseJd : sunsetJd;
+    const diffMinutes = (birthJd - startTime) * 24 * 60;
+    // 8 Tatwa cycles in a day (48 minutes each in a standard 12h day)
+    // Dynamic cycle minutes = totalMinutes / 8
+    const cycleMinutes = totalMinutes / 8;
     const minutesInCycle = diffMinutes % cycleMinutes;
+    // Scale the 6:12:18:24:30 ratios to the dynamic cycle
+    const ratioSum = 90; // The sum of [6, 12, 18, 24, 30]
+    const scaledDurations = TATWA_DURATIONS_MIN.map(d => (d / ratioSum) * cycleMinutes);
     let cumulative = 0;
     let tatwaIndex = -1;
-    for (let i = 0; i < TATWA_DURATIONS_MIN.length; i++) {
-        cumulative += TATWA_DURATIONS_MIN[i];
+    for (let i = 0; i < scaledDurations.length; i++) {
+        cumulative += scaledDurations[i];
         if (minutesInCycle <= cumulative) {
             tatwaIndex = i;
             break;
         }
     }
-    const currentTatwa = TATWAS[tatwaIndex];
-    // Simplifed Shuddhi Rule: 
-    // Males: Prefers Fire/Air/Ether for dynamic charts, Earth/Water for stable.
-    // Females: Prefers Water/Earth for receptive, Fire/Air for dynamic.
-    // Higher score if the Tatwa alignment matches traditional gender-element synergies.
+    const currentTatwa = TATWAS[tatwaIndex] || 'Ether';
     let score = 50;
     if (gender === 'male' && ['Fire', 'Air', 'Ether'].includes(currentTatwa))
         score = 85;
@@ -55,7 +106,7 @@ function calculateTatwaShuddhi(birthJd, sunriseJd, gender = 'male') {
     return {
         passed: score >= 50,
         score,
-        details: `Tatwa: ${currentTatwa} (${minutesInCycle.toFixed(1)} mins into 90m cycle)`
+        details: `Tatwa: ${currentTatwa} (${isDayTime ? 'Day' : 'Night'}, Scaled Cycle: ${cycleMinutes.toFixed(1)}m)`
     };
 }
 /**
@@ -66,8 +117,8 @@ function calculateKundaShuddhi(lagnaLongitude, moonLongitude) {
     // 1. Multiply Lagna by 81
     const kundaLong = (lagnaLongitude * 81) % 360;
     // 2. Get Nakshatra of Kunda and Moon
-    const kundaNak = (0, vedic_astrology_engine_1.getNakshatraForLongitude)(kundaLong);
-    const moonNak = (0, vedic_astrology_engine_1.getNakshatraForLongitude)(moonLongitude);
+    const kundaNak = (0, vedic_astrology_engine_js_1.getNakshatraForLongitude)(kundaLong);
+    const moonNak = (0, vedic_astrology_engine_js_1.getNakshatraForLongitude)(moonLongitude);
     // 3. Check for alignment (Same Nakshatra, or Trines: +9, +18)
     const diff = Math.abs(kundaNak.number - moonNak.number);
     const isAligned = diff === 0 || diff === 9 || diff === 18;

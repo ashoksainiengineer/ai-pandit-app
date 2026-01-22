@@ -14,13 +14,13 @@ export interface BirthData {
     timezone: number;
     gender: 'male' | 'female' | 'other';
 }
-export type EventCategory = 'education' | 'career' | 'marriage' | 'children' | 'family' | 'health' | 'financial' | 'travel' | 'spiritual' | 'other';
+export type EventCategory = 'education' | 'career' | 'marriage' | 'children' | 'family' | 'health' | 'financial' | 'travel' | 'spiritual' | 'legal' | 'public_life' | 'karmic_events' | 'identity_shifts' | 'other';
 export declare const EVENT_TYPES: Record<EventCategory, string[]>;
 export interface LifeEvent {
     id: string;
     category: EventCategory;
     eventType: string;
-    datePrecision: 'exact_date_time' | 'exact_date' | 'month_year' | 'month_range' | 'year_range';
+    datePrecision: 'exact_date_time' | 'exact_date' | 'date_range' | 'month_year' | 'month_range' | 'year_range';
     eventDate: string;
     endDate?: string;
     eventTime?: string;
@@ -41,6 +41,9 @@ export interface PhysicalTraits {
     faceShape: 'round' | 'oval' | 'square' | 'long' | 'heart' | 'pear';
     eyeColor: string;
     hairColor: string;
+    hairType?: 'straight' | 'curly' | 'wavy' | 'thin' | 'thick';
+    prakriti?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha';
+    noseType?: 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
     specialFeatures?: string;
     overallDescription?: string;
 }
@@ -52,7 +55,7 @@ export interface RectificationSession {
     lifeEvents: LifeEvent[];
     rectifiedTime?: string;
     accuracy?: number;
-    confidence?: 'high' | 'medium' | 'low';
+    confidence?: 'High' | 'Medium' | 'Low';
     analysisResult?: any;
     createdAt: Date;
     updatedAt: Date;
@@ -93,10 +96,10 @@ export interface HousePosition {
     degree: number;
     cusp: number;
 }
-export interface AIAnalysisResult {
+export interface SimpleAIAnalysisResult {
     rectifiedTime: string;
     accuracy: number;
-    confidence: 'high' | 'medium' | 'low';
+    confidence: 'High' | 'Medium' | 'Low';
     reasoning: string;
     alternativeTimes: Array<{
         time: string;
@@ -132,7 +135,7 @@ export interface CandidateAnalysis {
     ephemerisData: EphemerisData;
     quickScore: number;
     eventMatches: number;
-    shouldAnalyzeWithKimi: boolean;
+    shouldAnalyzeWithAI: boolean;
     reason: string;
 }
 export interface RankedCandidates {
@@ -140,7 +143,7 @@ export interface RankedCandidates {
     allCandidates: CandidateAnalysis[];
     totalAnalyzed: number;
 }
-export interface KimiAnalysisResult {
+export interface AIAnalysisResult {
     time: string;
     offsetMinutes: number;
     offsetDescription: string;
@@ -158,15 +161,15 @@ export interface KimiAnalysisResult {
     transitAnalysis: string;
 }
 export interface TopCandidatesAnalysis {
-    candidates: KimiAnalysisResult[];
-    topRecommendation: KimiAnalysisResult;
-    alternativeOptions: KimiAnalysisResult[];
+    candidates: AIAnalysisResult[];
+    topRecommendation: AIAnalysisResult;
+    alternativeOptions: AIAnalysisResult[];
     processingTime: number;
 }
 export interface BTROutput {
     rectifiedTime: string;
     accuracy: number;
-    confidence: 'high' | 'medium' | 'low';
+    confidence: 'High' | 'Medium' | 'Low';
     processingTime: number;
     analysis: {
         eventAnalysis: Array<{
@@ -229,5 +232,63 @@ export interface BoundaryWarning {
     message: string;
     distanceSeconds: number;
     severity: 'low' | 'medium' | 'high';
+}
+/**
+ * 🏆 GOD-TIER ARCHIVE STRUCTURE
+ *
+ * This is the ultimate, compressed JSON record of the entire BTR journey.
+ * Optimized for Turso storage while preserving 100% of the reasoning and technical proof.
+ */
+export interface MasterAnalysisArchive {
+    version: string;
+    sessionId: string;
+    generatedAt: string;
+    birthContext: {
+        name: string;
+        originalTime: string;
+        location: string;
+        offsetScan: string;
+    };
+    finalResult: {
+        time: string;
+        accuracy: number;
+        confidence: string;
+        marginOfError: number;
+        methodsUsed: string[];
+    };
+    reasoning: {
+        discovery: string;
+        refinement: string;
+        precision: string;
+        summary: string;
+    };
+    technicalProof: {
+        ephemeris: EphemerisData;
+        boundarySafety: {
+            nakshatra: {
+                distance: number;
+                warning?: string;
+            };
+            lagna: {
+                distance: number;
+                warning?: string;
+            };
+            dasha: {
+                distance: number;
+                warning?: string;
+            };
+        };
+        methodologyBreakdown: {
+            [key: string]: {
+                score: number;
+                verdict: string;
+            };
+        };
+    };
+    alternatives: Array<{
+        time: string;
+        score: number;
+        reason: string;
+    }>;
 }
 //# sourceMappingURL=types.d.ts.map

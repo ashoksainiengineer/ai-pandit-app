@@ -105,6 +105,7 @@ export interface StreamState {
     url?: string;
     readyState?: number;
     lastError?: string | null;
+    estimatedTimeRemaining?: number; // ⏱️ In seconds
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -133,6 +134,7 @@ export function useStreamProgress(
         stageHistory: new Map(),
         analyzedCount: 0,
         totalCandidates: 0,
+        estimatedTimeRemaining: 0,
     });
 
     const [connectionState, setConnectionState] = useState<{
@@ -570,8 +572,16 @@ export function useStreamProgress(
                         // 🏛️ Hydrate stageHistory on initial sync
                         stageHistory: eventData.progress.stageHistory ? new Map(Object.entries(eventData.progress.stageHistory).map(([k, v]) => [parseInt(k), v as string])) : prev.stageHistory,
                         startedAt: eventData.progress.startedAt,
+                        estimatedTimeRemaining: eventData.progress.estimatedTimeRemaining || prev.estimatedTimeRemaining,
                     }));
                 }
+                break;
+
+            case 'estimated_time':
+                setState(prev => ({
+                    ...prev,
+                    estimatedTimeRemaining: eventData.seconds
+                }));
                 break;
         }
     }, []);

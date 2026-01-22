@@ -84,6 +84,11 @@ export interface StageStatsEvent {
     description: string;
 }
 
+export interface EstimatedTimeEvent {
+    type: 'estimated_time';
+    seconds: number;
+}
+
 export type SessionEvent =
     | ProgressEvent
     | AIThinkingEvent
@@ -93,7 +98,8 @@ export type SessionEvent =
     | ErrorEvent
     | AIContextEvent
     | CalculationLogEvent
-    | StageStatsEvent;
+    | StageStatsEvent
+    | EstimatedTimeEvent;
 
 // ═════════════════════════════════════════════════════════════════════════════
 // GLOBAL SESSION EVENT EMITTER
@@ -400,5 +406,15 @@ export function emitStageStats(
         stage,
         candidateCount,
         description
+    });
+}
+
+export function emitEstimatedTime(
+    sessionId: string,
+    seconds: number
+): void {
+    sessionEvents.emit(sessionId, {
+        type: 'estimated_time',
+        seconds
     });
 }
