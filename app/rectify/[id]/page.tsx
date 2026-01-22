@@ -293,7 +293,10 @@ export default function ProgressPage() {
         startedAt, // ⏱️ Absolute session start time
         displayedCandidate,
         metadata: sessionMetadata,
-        estimatedTimeRemaining // ⏱️ Extract ETA
+        estimatedTimeRemaining, // ⏱️ Extract ETA
+        readyState, // 📡 Added for diagnostics
+        url: connectionUrl, // 📡 Added for diagnostics
+        lastError // 📡 Added for diagnostics
     } = useStreamProgress(
         sessionId,
         process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080', // Direct backend connection for local dev from cloud frontend
