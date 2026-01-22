@@ -5,16 +5,14 @@ import { Client } from '@libsql/client';
 
 export const serverConfig = {
   // AI Configuration
-  AI: {
-    baseUrl: process.env.ANTHROPIC_BASE_URL || process.env.AI_BASE_URL || 'https://api.AI.cn/v1',
-    apiKey: process.env.ANTHROPIC_API_KEY || process.env.AI_API_KEY || '',
-    model: process.env.AI_MODEL || process.env.AI_MODEL || 'AI-v1-auto',
-    maxTokens: parseInt(process.env.AI_MAX_TOKENS || '4000'),
-    temperature: parseFloat(process.env.AI_TEMPERATURE || '0.3'),
-    thinkingBudget: parseInt(process.env.AI_THINKING_BUDGET || '8000'),
+  ai: {
+    baseUrl: process.env.AI_BASE_URL || process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com',
+    apiKey: process.env.AI_API_KEY || process.env.DEEPSEEK_API_KEY || '',
+    model: process.env.AI_MODEL || process.env.DEEPSEEK_MODEL || 'deepseek-reasoner',
+    maxTokens: parseInt(process.env.AI_MAX_TOKENS || '32000'),
+    temperature: parseFloat(process.env.AI_TEMPERATURE || '0.1'),
+    thinkingBudget: parseInt(process.env.AI_THINKING_BUDGET || '32000'),
   },
-
-  // Database
   database: {
     url: process.env.DATABASE_URL || 'file:./dev.db',
     authToken: process.env.DATABASE_AUTH_TOKEN,
@@ -28,7 +26,7 @@ export const serverConfig = {
 // Database client - will be imported from drizzle
 
 // AI client (simplified for now)
-export const AIClient = {
+export const aiClient = {
   messages: {
     create: async (options: any) => {
       // This would be the actual AI API call

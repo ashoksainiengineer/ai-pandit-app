@@ -4,7 +4,7 @@
 // Production AI Thinking API Client
 // Optimized for maximum accuracy in birth time rectification
 
-import { logger } from './logger.js';
+import { logger } from './logger';
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -190,7 +190,7 @@ export async function callAI(
 // STREAMING API CALL FUNCTION (for real-time AI thinking)
 // ═════════════════════════════════════════════════════════════════════════════
 
-import { emitAIThinking } from './session-events.js';
+import { emitAIThinking } from './session-events';
 
 /**
  * Call AI with streaming enabled

@@ -3,11 +3,11 @@
 // lib/ai-thinking-client.ts (UPDATED)
 // Enhanced for analyzing top candidates with AI Thinking
 
-import { aiClient, serverConfig } from './server-config.js';
-import { generateAstrologicalReport } from './astrological-data-processor.js';
-import { CandidateAnalysis } from './types.js';
-import { EphemerisData, LifeEvent } from './types.js';
-import { logger } from './logger.js';
+import { aiClient, serverConfig } from './server-config';
+import { generateAstrologicalReport } from './astrological-data-processor';
+import { CandidateAnalysis } from './types';
+import { EphemerisData, LifeEvent } from './types';
+import { logger } from './logger';
 
 // ═════════════════════════════════════════════════════════════════════════
 // TYPE DEFINITIONS
