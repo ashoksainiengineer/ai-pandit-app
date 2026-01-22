@@ -9,16 +9,16 @@ interface AnalysisPipelineTrackerProps {
 }
 
 const STAGE_CONFIG = [
-    { id: 1, label: 'GRID INITIALIZATION', type: 'calc' },
-    { id: 2, label: 'NEURAL SCREENING (L1)', type: 'ai' },
-    { id: 3, label: 'GRID PRECISION (30s)', type: 'calc' },
-    { id: 4, label: 'TOURNAMENT DYNAMICS (L2)', type: 'ai' },
-    { id: 5, label: 'BOUNDARY COLLISION SCAN', type: 'calc' },
-    { id: 6, label: 'MICRO-GRID SYNC (6s)', type: 'calc' },
-    { id: 7, label: 'GRAND FINALS (L3)', type: 'ai' },
-    { id: 8, label: 'TRANSIT SYNCHRONIZATION', type: 'calc' },
-    { id: 9, label: 'VEDIC SHUDDHI AUDIT', type: 'calc' },
-    { id: 10, label: 'ARCHIVE SEALING', type: 'ai' },
+    { id: 1, label: 'Grid Initialization', type: 'calc' },
+    { id: 2, label: 'Neural Screening (L1)', type: 'ai' },
+    { id: 3, label: 'Grid Precision (30s)', type: 'calc' },
+    { id: 4, label: 'Tournament Dynamics (L2)', type: 'ai' },
+    { id: 5, label: 'Boundary Collision Scan', type: 'calc' },
+    { id: 6, label: 'Micro-Grid Sync (6s)', type: 'calc' },
+    { id: 7, label: 'Grand Finals (L3)', type: 'ai' },
+    { id: 8, label: 'Transit Synchronization', type: 'calc' },
+    { id: 9, label: 'Vedic Shuddhi Audit', type: 'calc' },
+    { id: 10, label: 'Archive Sealing', type: 'ai' },
 ];
 
 const ScanLine = () => (

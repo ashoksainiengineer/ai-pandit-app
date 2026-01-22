@@ -572,29 +572,67 @@ export default function ProgressPage() {
                 {/* Main Progress Display - Unified Container */}
                 <div className="glass-card p-6 border border-[#D4AF37]/30 mb-8">
                     <div className="flex flex-col md:flex-row gap-6 items-center">
-                        {/* Circle Progress - Compact */}
-                        <div className="flex-shrink-0">
-                            <div className="relative w-40 h-40">
-                                <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                                    <circle cx="50" cy="50" r="42" fill="none" stroke="#2A3442" strokeWidth="8" />
-                                    <circle
+                        {/* Vedic Pulse Progress - Ultra High Fidelity */}
+                        <div className="flex-shrink-0 relative group">
+                            <div className="absolute inset-0 bg-[#D4AF37]/5 rounded-full blur-3xl group-hover:bg-[#D4AF37]/10 transition-colors" />
+                            <div className="relative w-44 h-44">
+                                <svg className="w-full h-full -rotate-90 drop-shadow-[0_0_10px_rgba(212,175,55,0.15)]" viewBox="0 0 100 100">
+                                    {/* Outer Track */}
+                                    <circle cx="50" cy="50" r="46" fill="none" stroke="#2A3442" strokeWidth="1" strokeDasharray="2 4" className="opacity-30" />
+
+                                    {/* Main Track */}
+                                    <circle cx="50" cy="50" r="42" fill="none" stroke="#1A2433" strokeWidth="6" />
+
+                                    {/* Progress Fill */}
+                                    <motion.circle
                                         cx="50" cy="50" r="42" fill="none"
-                                        stroke="url(#goldGradient)" strokeWidth="8" strokeLinecap="round"
-                                        strokeDasharray={`${(progress?.percentage || 0) * 2.64} 264`}
-                                        className="transition-all duration-700 ease-out"
+                                        stroke="url(#vedicGradient)" strokeWidth="6" strokeLinecap="round"
+                                        initial={{ strokeDasharray: "0 264" }}
+                                        animate={{ strokeDasharray: `${(progress?.percentage || 0) * 2.64} 264` }}
+                                        transition={{ duration: 1.5, ease: "circOut" }}
                                     />
+
+                                    {/* Scanning Pulse Dot */}
+                                    {isConnected && !isComplete && (
+                                        <motion.circle
+                                            cx="50" cy="50" r="42" fill="none"
+                                            stroke="#D4AF37" strokeWidth="2"
+                                            strokeDasharray="1 263"
+                                            animate={{ rotate: 360 }}
+                                            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                                        />
+                                    )}
+
                                     <defs>
-                                        <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <linearGradient id="vedicGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                                             <stop offset="0%" stopColor="#D4AF37" />
-                                            <stop offset="100%" stopColor="#E8C54D" />
+                                            <stop offset="50%" stopColor="#F5D061" />
+                                            <stop offset="100%" stopColor="#D4AF37" />
                                         </linearGradient>
                                     </defs>
                                 </svg>
+
+                                {/* Center Content */}
                                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                                    <div className="text-4xl font-bold text-[#D4AF37]">
-                                        {progress?.percentage || 0}%
+                                    <motion.div
+                                        initial={{ scale: 0.9, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        className="text-4xl font-black text-[#D4AF37] tracking-tighter"
+                                    >
+                                        {progress?.percentage || 0}
+                                        <span className="text-base ml-0.5 opacity-70">%</span>
+                                    </motion.div>
+                                    <div className="text-[9px] text-[#8C7F72] font-black uppercase tracking-[0.2em] mt-1">
+                                        SYNCING_SOUL
                                     </div>
-                                    <div className="text-[10px] text-[#8C7F72] uppercase tracking-wider">Complete</div>
+                                </div>
+
+                                {/* Orbiting Stats */}
+                                <div className="absolute -top-2 -right-2 bg-[#1A2433] border border-[#D4AF37]/20 rounded-lg px-2 py-1 flex items-center gap-1.5 shadow-xl">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="text-[10px] font-mono text-emerald-400 font-bold">
+                                        {progress?.currentStep === 10 ? '99.9%' : (64 + (progress?.percentage || 0) * 0.3).toFixed(1)}%
+                                    </span>
                                 </div>
                             </div>
                         </div>
