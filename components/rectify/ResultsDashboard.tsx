@@ -1,7 +1,7 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { Download, CheckCircle, Clock, FileText, Share2, Award, Zap, Compass, ShieldCheck } from 'lucide-react';
 import { VedicShuddhiRadar } from './VedicShuddhiRadar';
 import { PlanetaryVitals } from './PlanetaryVitals';
@@ -67,10 +67,11 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ sessionId, d
     };
 
     const generatePDF = async () => {
-        // (Keep existing PDF generation logic, but enable the commented out section)
-        // I will leave the PDF logic largely as is for brevity in this edit, focusing on UI
         setIsGenerating(true);
         try {
+            const { jsPDF } = await import('jspdf');
+            const { default: autoTable } = await import('jspdf-autotable');
+
             const doc = new jsPDF();
             const pageWidth = doc.internal.pageSize.getWidth();
             // --- HEADER ---
