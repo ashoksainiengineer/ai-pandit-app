@@ -697,10 +697,6 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
             const moonSidereal = ephemeris.planets.moon.longitude;
             const dashaPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
 
-            // ⚡ SLOW DOWN for visual effect (Matrix Mode)
-            // Stage 1 is extremely fast, this makes the logs visible to the user
-            await new Promise(resolve => setTimeout(resolve, 30));
-
             // ⚡ EMIT REAL-TIME CALCULATION LOG
             emitCalculationLog(input.sessionId, {
                 candidateTime: candidate.time,
@@ -757,9 +753,6 @@ async function stage1CoarseGrid(input: SecondsPrecisionInput): Promise<StageCand
             const tatwa = calculateTatwaShuddhi(jd, sunrise, sunset, 'male');
 
             // Weight Shuddhi into the score
-            // ⚡ SLOW DOWN for visual effect (Matrix Mode)
-            await new Promise(r => setTimeout(r, 20));
-
             // 🔱 GOD-TIER SCORING LOGIC (Divine Discrimination)
             // Instead of flat 50, we calculate a "Pranic Distance" score.
             // Candidates closer to the provided tentative time get a higher baseline.
@@ -1144,9 +1137,6 @@ async function stage6MicroGrid(
                 dasha: "Sub-Second Micro Correlation",
                 divCharts: "D60 Shashtiamsha"
             });
-
-            // ⚡ SLOW DOWN for visual effect (Micro-Grid Scan)
-            await new Promise(resolve => setTimeout(resolve, 15));
 
             // ⚡ EMIT REAL-TIME CALCULATION LOG
             emitCalculationLog(input.sessionId, {
@@ -1771,7 +1761,7 @@ async function stage5AILevel2(
 
     // ⚔️ THE TOURNAMENT: PARALLEL BATCH PROCESSING
     const BATCH_SIZE = 10;
-    const CONCURRENCY = 3; // Respect AI API RPS limits
+    const CONCURRENCY = 2; // Reduced from 3 for HF Free Tier (2 vCPU) stability
     const tournamentResults: any[] = [];
 
     // Create Batches

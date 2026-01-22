@@ -2,6 +2,7 @@
 // Global EventEmitter for real-time session progress streaming
 
 import { EventEmitter } from 'events';
+import crypto from 'crypto';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // SESSION EVENT TYPES
@@ -381,7 +382,6 @@ export function emitCalculationLog(
     sessionId: string,
     data: Omit<CalculationLogEvent, 'type' | 'logId'>
 ): void {
-    const crypto = require('crypto');
     sessionEvents.emit(sessionId, {
         type: 'calculation_log',
         logId: crypto.randomUUID(),
