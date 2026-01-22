@@ -12,6 +12,7 @@ export default function ResultsPage() {
 
     const [resultData, setResultData] = useState<any>(null);
     const [birthData, setBirthData] = useState<any>(null);
+    const [reasoningLogs, setReasoningLogs] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     // Hydrate from localStorage first for speed
@@ -21,6 +22,7 @@ export default function ResultsPage() {
         // 1. Try Local Storage (Fastest)
         const stored = localStorage.getItem(`rectification_result_${id}`);
         const storedBirthData = localStorage.getItem(`birthData_${id}`);
+        const storedLogs = localStorage.getItem(`reasoningLogs_${id}`);
 
         if (stored) {
             try {
@@ -38,6 +40,14 @@ export default function ResultsPage() {
             }
         }
 
+        if (storedLogs) {
+            try {
+                setReasoningLogs(JSON.parse(storedLogs));
+            } catch (e) {
+                console.error("Failed to parse stored logs", e);
+            }
+        }
+
         // 2. Fetch from API if not in local storage (for shared links or manual refresh)
         const fetchFromServer = async () => {
             try {
@@ -50,10 +60,14 @@ export default function ResultsPage() {
                     if (session.analysisResult) {
                         setResultData(session.analysisResult);
                         setBirthData(session.birthData);
+                        setReasoningLogs(session.reasoningLogs); // Set logs
 
                         // Persist back to localStorage for future speed
                         localStorage.setItem(`rectification_result_${id}`, JSON.stringify(session.analysisResult));
                         localStorage.setItem(`birthData_${id}`, JSON.stringify(session.birthData));
+                        if (session.reasoningLogs) {
+                            localStorage.setItem(`reasoningLogs_${id}`, JSON.stringify(session.reasoningLogs));
+                        }
                     }
                 }
             } catch (err) {
@@ -98,6 +112,7 @@ export default function ResultsPage() {
             sessionId={id}
             data={resultData}
             birthData={birthData}
+            reasoningLogs={reasoningLogs}
         />
     );
 }

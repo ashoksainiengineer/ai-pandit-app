@@ -19,9 +19,10 @@ interface ResultsDashboardProps {
     sessionId: string;
     data: FinalResult;
     birthData: any;
+    reasoningLogs?: any;
 }
 
-export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ sessionId, data, birthData }) => {
+export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ sessionId, data, birthData, reasoningLogs }) => {
     const [isGenerating, setIsGenerating] = useState(false);
     const [activeTab, setActiveTab] = useState<'summary' | 'audit' | 'logs'>('summary');
     const [analysisDetails, setAnalysisDetails] = useState<any>(null);
@@ -403,9 +404,10 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ sessionId, d
                                         <br />
                                         {`// MODE: GOD TIER REASONING`}
                                     </div>
-                                    {analysisDetails?.aiAnalysis ? (
+                                    {reasoningLogs || analysisDetails?.aiAnalysis ? (
                                         <div className="whitespace-pre-wrap leading-relaxed opacity-90">
-                                            {analysisDetails.aiAnalysis}
+                                            {typeof reasoningLogs === 'string' ? reasoningLogs : JSON.stringify(reasoningLogs, null, 2)}
+                                            {!reasoningLogs && analysisDetails?.aiAnalysis}
                                         </div>
                                     ) : (
                                         <div className="text-center text-[#3A4452] italic mt-20">

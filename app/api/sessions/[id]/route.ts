@@ -75,6 +75,7 @@ export async function GET(request: NextRequest, { params }: SessionParams) {
                 confidence: s.confidence,
                 error: s.errorMessage,
                 createdAt: s.createdAt,
+                reasoningLogs: s.reasoningLogs ? JSON.parse(s.reasoningLogs) : null,
             },
         });
 
