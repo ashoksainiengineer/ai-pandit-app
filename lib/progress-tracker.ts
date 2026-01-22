@@ -3,8 +3,8 @@
 // Updates database with current step, message, and percentage
 // Also emits SSE events for real-time streaming
 
-import { db } from '../database/drizzle.js';
-import { sessions } from '../database/schema.js';
+import { db } from '../database/drizzle';
+import { sessions } from '../database/schema';
 import { eq } from 'drizzle-orm';
 import { emitProgress, emitComplete, emitError, emitCandidateScore, emitAIContext } from './session-events';
 

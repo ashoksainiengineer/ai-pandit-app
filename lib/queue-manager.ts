@@ -2,8 +2,8 @@
 // Efficient queue system for high-performance AI backend
 // Design: Process multiple requests concurrently based on system capacity
 
-import { db } from '../database/drizzle.js';
-import { sessions } from '../database/schema.js';
+import { db } from '../database/drizzle';
+import { sessions } from '../database/schema';
 import { eq, and, or, desc, asc, lt } from 'drizzle-orm';
 import { logger } from './logger';
 import { decryptData } from './crypto';

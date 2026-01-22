@@ -1,8 +1,8 @@
 // backend/src/lib/cancellation-manager.ts
 // Manages AbortControllers for session cancellation
 
-import { db } from '../database/drizzle.js';
-import { sessions } from '../database/schema.js';
+import { db } from '../database/drizzle';
+import { sessions } from '../database/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from './logger';
 
