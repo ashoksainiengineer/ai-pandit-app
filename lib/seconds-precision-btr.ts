@@ -103,7 +103,12 @@ export interface SecondsPrecisionInput {
         hairType?: 'straight' | 'curly' | 'wavy' | 'thin' | 'thick';
         prakriti?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha';
         noseType?: 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
+        eyeShape?: 'almond' | 'round' | 'deep_set' | 'hooded' | 'wide';
+        foreheadHeight?: 'high' | 'broad' | 'narrow' | 'rounded';
+        jawLine?: 'strong' | 'defined' | 'soft' | 'pointed' | 'round';
+        shoulderWidth?: 'broad' | 'average' | 'narrow' | 'sloping';
         appearance?: string;
+        specialFeatures?: string;
     };
     spouseData?: {
         dateOfBirth: string;
@@ -589,7 +594,8 @@ export async function processSecondsPrecisionBTR(
             reasoning: reasoningArchive,
             technicalProof: {
                 ephemeris: verificationResult.ephemeris,
-                methodologyBreakdown: verificationResult.methodBreakdown
+                methodologyBreakdown: verificationResult.methodBreakdown,
+                physicalAnalysis: verificationResult.physicalAnalysis
             },
             alternatives: stage7.results.slice(1, 4).map((c: any) => ({
                 time: c.time,
@@ -1197,6 +1203,7 @@ async function stage8Verification(
     ashtakavarga: any;
     bhriguBindu: any;
     transitSync: TransitSyncResult;
+    physicalAnalysis?: string;
 }> {
     const birthDate = new Date(input.dateOfBirth);
     const scores: Record<string, number> = {};
@@ -1294,9 +1301,11 @@ async function stage8Verification(
     scores['divisionalCharts'] = Math.min(100, divScore);
 
     // Method 5: Physical Traits (10%)
+    let physicalAnalysis: string | undefined;
     if (input.physicalTraits) {
         const traitResult = scorePhysicalTraits(ephemeris, input.physicalTraits);
         scores['physicalTraits'] = traitResult.score;
+        physicalAnalysis = formatPhysicalTraitsAnalysis(traitResult, input.physicalTraits);
     } else {
         scores['physicalTraits'] = 50;
     }
@@ -1431,7 +1440,8 @@ async function stage8Verification(
         tatwa,
         ashtakavarga,
         bhriguBindu,
-        transitSync
+        transitSync,
+        physicalAnalysis
     };
 }
 

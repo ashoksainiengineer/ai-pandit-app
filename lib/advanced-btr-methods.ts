@@ -506,7 +506,12 @@ interface PhysicalTraits {
     hairType?: 'straight' | 'curly' | 'wavy' | 'thin' | 'thick';
     prakriti?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha';
     noseType?: 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
+    eyeShape?: 'almond' | 'round' | 'deep_set' | 'hooded' | 'wide';
+    foreheadHeight?: 'high' | 'broad' | 'narrow' | 'rounded';
+    jawLine?: 'strong' | 'defined' | 'soft' | 'pointed' | 'round';
+    shoulderWidth?: 'broad' | 'average' | 'narrow' | 'sloping';
     appearance?: string;
+    specialFeatures?: string;
 }
 
 // Sign-based physical characteristics (Vedic astrology)
@@ -563,29 +568,29 @@ export function scorePhysicalTraits(
         return { score: 50, matches: [], mismatches: [], recommendation: 'Unable to determine traits for this ascendant' };
     }
 
-    // Height matching (30 points max)
+    // Height matching (20 points max)
     if (traits.height) {
         if (expectedTraits.height.includes(traits.height)) {
-            score += 15;
+            score += 10;
             matches.push(`${lagnaSign} Lagna matches ${traits.height} height`);
         } else {
-            score -= 10;
+            score -= 5;
             mismatches.push(`${lagnaSign} Lagna typically gives ${expectedTraits.height.join('/')} height, not ${traits.height}`);
         }
     }
 
-    // Build matching (30 points max)
+    // Build matching (20 points max)
     if (traits.build) {
         if (expectedTraits.build.includes(traits.build)) {
-            score += 15;
+            score += 10;
             matches.push(`${lagnaSign} Lagna matches ${traits.build} build`);
         } else {
-            score -= 10;
+            score -= 5;
             mismatches.push(`${lagnaSign} Lagna typically gives ${expectedTraits.build.join('/')} build, not ${traits.build}`);
         }
     }
 
-    // Complexion matching (15 points) - use both Lagna and Moon
+    // Complexion matching (10 points)
     if (traits.complexion) {
         const lagnaMatch = expectedTraits.complexion.includes(traits.complexion);
         const moonMatch = moonComplexion?.includes(traits.complexion);
@@ -602,7 +607,56 @@ export function scorePhysicalTraits(
         }
     }
 
-    // Hair Type matching (10 points)
+    // --- GOD TIER SAMUDRIKA SHASTRA SCORING ---
+
+    // Eye Shape (10 points)
+    if (traits.eyeShape) {
+        const venusSigns = ['Taurus', 'Libra', 'Pisces']; // Almond
+        const moonJupiterSigns = ['Cancer', 'Pisces', 'Sagittarius', 'Leo']; // Round/Large
+        const saturnMarsSigns = ['Capricorn', 'Aquarius', 'Scorpio', 'Aries']; // Deep/Hooded
+
+        if (traits.eyeShape === 'almond' && venusSigns.includes(lagnaSign)) {
+            score += 10;
+            matches.push(`${lagnaSign} (Venus/Jupiter) matches Almond eyes`);
+        } else if (traits.eyeShape === 'round' && moonJupiterSigns.includes(lagnaSign)) {
+            score += 10;
+            matches.push(`${lagnaSign} (Moon/Jupiter) matches Round/Large eyes`);
+        } else if ((traits.eyeShape === 'deep_set' || traits.eyeShape === 'hooded') && saturnMarsSigns.includes(lagnaSign)) {
+            score += 10;
+            matches.push(`${lagnaSign} (Saturn/Mars) matches Deep/Hooded eyes`);
+        }
+    }
+
+    // Forehead (10 points)
+    if (traits.foreheadHeight) {
+        const fireAirSigns = ['Aries', 'Leo', 'Sagittarius', 'Gemini', 'Libra', 'Aquarius']; // High/Broad
+        const earthWaterSigns = ['Taurus', 'Virgo', 'Capricorn', 'Cancer', 'Scorpio', 'Pisces']; // Narrow/Rounded
+
+        if (traits.foreheadHeight === 'high' && fireAirSigns.includes(lagnaSign)) {
+            score += 10;
+            matches.push(`${lagnaSign} (Fire/Air) matches High/Broad forehead`);
+        } else if (traits.foreheadHeight === 'narrow' && earthWaterSigns.includes(lagnaSign)) {
+            score += 10;
+            matches.push(`${lagnaSign} (Earth/Water) matches compact/narrow forehead`);
+        }
+    }
+
+    // Jawline (10 points)
+    if (traits.jawLine) {
+        const marsSaturn = ['Aries', 'Scorpio', 'Capricorn', 'Aquarius', 'Leo']; // Strong/Square
+        const venupMercury = ['Taurus', 'Libra', 'Gemini', 'Virgo']; // Defined/Pointed
+        const moonJupiter = ['Cancer', 'Pisces', 'Sagittarius']; // Soft/Round
+
+        if (traits.jawLine === 'strong' && marsSaturn.includes(lagnaSign)) {
+            score += 10;
+            matches.push(`${lagnaSign} (Mars/Saturn) matches Strong jawline`);
+        } else if (traits.jawLine === 'round' && moonJupiter.includes(lagnaSign)) {
+            score += 10;
+            matches.push(`${lagnaSign} (Moon/Jupiter) matches Soft jawline`);
+        }
+    }
+
+    // Hair Type matching (5 points)
     if (traits.hairType) {
         if (['curly', 'thick'].includes(traits.hairType) && ['Leo', 'Aries', 'Scorpio'].includes(lagnaSign)) {
             score += 5;
@@ -613,7 +667,7 @@ export function scorePhysicalTraits(
         }
     }
 
-    // Prakriti matching (20 points - High indicator)
+    // Prakriti matching (15 points)
     if (traits.prakriti) {
         const fireSigns = ['Aries', 'Leo', 'Sagittarius'];
         const earthSigns = ['Taurus', 'Virgo', 'Capricorn'];
@@ -621,18 +675,18 @@ export function scorePhysicalTraits(
         const waterSigns = ['Cancer', 'Scorpio', 'Pisces'];
 
         if (traits.prakriti.includes('pitta') && fireSigns.includes(lagnaSign)) {
-            score += 10;
+            score += 15;
             matches.push(`${lagnaSign} (Fire) aligns with Pitta prakriti`);
         } else if (traits.prakriti.includes('vata') && airSigns.includes(lagnaSign)) {
-            score += 10;
+            score += 15;
             matches.push(`${lagnaSign} (Air) aligns with Vata prakriti`);
         } else if (traits.prakriti.includes('kapha') && waterSigns.includes(lagnaSign)) {
-            score += 10;
+            score += 15;
             matches.push(`${lagnaSign} (Water) aligns with Kapha prakriti`);
         }
     }
 
-    // Nose Type matching (10 points)
+    // Nose Type matching (5 points)
     if (traits.noseType) {
         if (traits.noseType === 'sharp' && ['Aries', 'Leo', 'Virgo'].includes(lagnaSign)) {
             score += 5;
@@ -1004,18 +1058,33 @@ export function formatAdvancedAspects(aspects: AspectData[]): string {
     return lines.join('\n');
 }
 
-export function formatPhysicalTraitsAnalysis(analysis: PhysicalTraitsScore): string {
+export function formatPhysicalTraitsAnalysis(analysis: PhysicalTraitsScore, traits?: PhysicalTraits): string {
     const lines = [
         'PHYSICAL TRAITS ANALYSIS:',
         `Score: ${analysis.score}/100`,
         `Recommendation: ${analysis.recommendation}`,
         '',
-        'Matches:',
-        ...analysis.matches.map(m => `✓ ${m}`),
-        '',
-        'Mismatches:',
-        ...analysis.mismatches.map(m => `✗ ${m}`),
+        'User Provided Traits:',
     ];
+
+    if (traits) {
+        if (traits.eyeShape) lines.push(`- Eye Shape: ${traits.eyeShape}`);
+        if (traits.foreheadHeight) lines.push(`- Forehead: ${traits.foreheadHeight}`);
+        if (traits.jawLine) lines.push(`- Jawline: ${traits.jawLine}`);
+        if (traits.shoulderWidth) lines.push(`- Shoulders: ${traits.shoulderWidth}`);
+        if (traits.prakriti) lines.push(`- Prakriti: ${traits.prakriti}`);
+        if (traits.hairType) lines.push(`- Hair: ${traits.hairType}`);
+        if (traits.specialFeatures) lines.push(`- Marks: ${traits.specialFeatures}`);
+        if (traits.appearance) lines.push(`- Old Description: ${traits.appearance}`);
+        lines.push('');
+    }
+
+    lines.push('Matches:');
+    lines.push(...analysis.matches.map(m => `✓ ${m}`));
+    lines.push('');
+    lines.push('Mismatches:');
+    lines.push(...analysis.mismatches.map(m => `✗ ${m}`));
+
     return lines.join('\n');
 }
 

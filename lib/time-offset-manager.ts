@@ -90,13 +90,22 @@ export function generateCandidateTimes(
     if (offsetConfig.customMinutes !== undefined) {
       // Custom offset specified
       offsetMinutes = offsetConfig.customMinutes;
-      interval = Math.max(1, Math.floor(offsetMinutes / 20)); // Auto-calculate interval
+      // Dynamic interval: Aim for ~40-60 candidates total
+      // e.g., 120 min offset -> 240 min range -> interval 4 mins -> 60 candidates
+      interval = Math.max(1, Math.floor(offsetMinutes / 20));
       description = `±${offsetMinutes} minutes (custom)`;
     } else if (offsetConfig.preset) {
       // Preset offset selected
       const preset = OFFSET_PRESETS[offsetConfig.preset];
       offsetMinutes = preset.minutes;
-      interval = preset.interval;
+
+      // FORCE DYNAMIC INTERVAL for larger offsets to ensure deep scan
+      if (offsetMinutes >= 60) {
+        interval = Math.max(1, Math.floor(offsetMinutes / 24)); // e.g. 120/24 = 5 min interval
+      } else {
+        interval = preset.interval;
+      }
+
       description = preset.label;
     } else {
       throw new Error('No offset configuration provided');

@@ -27,20 +27,17 @@ interface UnifiedAIPanelProps {
 }
 
 
-// Utility to strip thinking tags and internal markers from reasoning text
 const cleanReasoningText = (text: string) => {
     if (!text) return '';
 
-    // Aggressive pattern to strip <thought>, [STAGE], or any XML-like opening/closing tags
-    // Also handles partial opening tags like <tho... to prevent flicker
+    // Strip tags but KEEP the content inside for transparency
     return text
-        .replace(/<thought>[\s\S]*?<\/thought>/g, '') // Complete thought blocks
-        .replace(/<thought[\s\S]*$/g, '')              // Partial opening thought tag
-        .replace(/<[\w\s="']+>|<\/[\w\s]+>/g, '')      // Any other complete tags
-        .replace(/\[STAGE START\][\s\S]*?━+[\r\n]*/g, '') // Internal stage markers
+        .replace(/<\/?thought>/g, '')      // Remove <thought> and </thought> tags
+        .replace(/<\/?think>/g, '')        // Remove <think> and </think> tags (DeepSeek R1 variant)
+        .replace(/\[STAGE \w+\]/g, '')     // Remove [STAGE START] markers
         .replace(/═+[\r\n]*🎯 SWITCHING TO:[\s\S]*?═+[\r\n]*/g, '') // Switch markers
-        .replace(/[*#`]/g, '')                        // Remove Markdown noise (*, #, `)
-        .replace(/(\r\n|\n|\r){3,}/g, '\n\n')         // Collapse excessive newlines
+        .replace(/[*#`]/g, '')             // Remove Markdown noise (*, #, `)
+        .replace(/(\r\n|\n|\r){3,}/g, '\n\n') // Collapse excessive newlines
         .trim();
 };
 
@@ -155,6 +152,7 @@ export function UnifiedAIPanel({
                                 >
                                     <ScrollableContent content={content || ''} isThinking={isCurrent && isActive} />
 
+
                                     {/* Stats Footer for this stage */}
                                     {isCurrent && (analyzedCount !== undefined || thinking?.candidateTime) && (
                                         <div className="px-4 py-2 bg-[#0F1419] border-t border-[#3A4452]/50 flex items-center gap-4 text-xs">
@@ -166,6 +164,55 @@ export function UnifiedAIPanel({
                                             )}
                                         </div>
                                     )}
+
+                                    {/* 📊 LEVEL-SPECIFIC LIVE TABLE */}
+                                    {candidateScores && candidateScores.some(c => c.stage === stageConfig.id) && (
+                                        <div className="border-t border-[#3A4452]/50">
+                                            <div className="px-4 py-2 bg-[#1A1F2E]/80 text-[10px] uppercase font-bold text-[#8C7F72] tracking-wider flex justify-between">
+                                                <span>Live Candidates (Level {stageConfig.level})</span>
+                                                <span>{candidateScores.filter(c => c.stage === stageConfig.id).length} Entries</span>
+                                            </div>
+                                            <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
+                                                <table className="w-full text-xs border-collapse">
+                                                    <thead className="bg-[#0F1419]/50 sticky top-0 backdrop-blur-sm z-10">
+                                                        <tr className="text-[#6B7280]">
+                                                            <th className="px-4 py-2 text-left">Time</th>
+                                                            <th className="px-4 py-2 text-center">Score</th>
+                                                            <th className="px-4 py-2 text-right">Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {candidateScores
+                                                            .filter(c => c.stage === stageConfig.id)
+                                                            .sort((a, b) => b.score - a.score)
+                                                            .slice(0, 50) // Limit rows for performance
+                                                            .map((candidate, idx) => (
+                                                                <tr key={`${candidate.time}-${idx}`} className="border-t border-[#3A4452]/30 hover:bg-[#D4AF37]/5 transition-colors">
+                                                                    <td className="px-4 py-2 font-mono text-[#F5F0EB]">{candidate.time}</td>
+                                                                    <td className="px-4 py-2 text-center">
+                                                                        <div className="flex items-center justify-center gap-2">
+                                                                            <div className="w-16 bg-[#3A4452] rounded-full h-1 overflow-hidden">
+                                                                                <div
+                                                                                    className={`h-full ${candidate.score >= 80 ? 'bg-emerald-500' : candidate.score >= 60 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                                                                                    style={{ width: `${candidate.score}%` }}
+                                                                                />
+                                                                            </div>
+                                                                            <span className="font-mono">{candidate.score}</span>
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="px-4 py-2 text-right">
+                                                                        <span className={`text-[9px] ${candidate.score >= 70 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                                            {candidate.score >= 70 ? 'PASS' : 'DROP'}
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    )}
+
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -209,67 +256,6 @@ export function UnifiedAIPanel({
                 />
             )}
 
-            {/* Live Score Table */}
-            {
-                candidateScores && candidateScores.length > 0 && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="rounded-xl border border-[#3A4452] bg-[#1A1F2E]/90 overflow-hidden"
-                    >
-                        <div className="p-3 border-b border-[#3A4452] flex items-center justify-between">
-                            <h4 className="text-sm font-semibold text-[#F5F0EB]">Live Analysis Results</h4>
-                            <span className="text-[10px] px-2 py-1 rounded-full bg-[#D4AF37]/20 text-[#D4AF37]">
-                                {candidateScores.length} Analyzed
-                            </span>
-                        </div>
-                        <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
-                            <table className="w-full text-xs border-collapse">
-                                <thead className="bg-[#0F1419]/80 sticky top-0 z-10 backdrop-blur-sm">
-                                    <tr className="text-[#8C7F72] uppercase tracking-wider">
-                                        <th className="px-4 py-3 text-left w-16">Rank</th>
-                                        <th className="px-4 py-3 text-left w-32">Birth Time</th>
-                                        <th className="px-4 py-3 text-center">Match Score</th>
-                                        <th className="px-4 py-3 text-right w-24">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {candidateScores
-                                        .sort((a, b) => b.score - a.score)
-                                        .map((candidate, idx) => (
-                                            <tr key={`${candidate.time}-${idx}`} className="border-t border-[#3A4452]/50 hover:bg-[#D4AF37]/5 transition-colors group">
-                                                <td className="px-4 py-2.5 font-bold text-[#D4AF37]">#{idx + 1}</td>
-                                                <td className="px-4 py-2.5 font-mono text-[#F5F0EB]">{candidate.time}</td>
-                                                <td className="px-4 py-2.5 text-center">
-                                                    <div className="flex items-center justify-center gap-3">
-                                                        <div className="w-24 bg-[#3A4452] rounded-full h-1.5 overflow-hidden">
-                                                            <motion.div
-                                                                initial={{ width: 0 }}
-                                                                animate={{ width: `${candidate.score}%` }}
-                                                                className={`h-full transition-all duration-1000 ${candidate.score >= 80 ? 'bg-emerald-500' :
-                                                                    candidate.score >= 60 ? 'bg-amber-500' : 'bg-rose-500'
-                                                                    }`}
-                                                            />
-                                                        </div>
-                                                        <span className="font-mono min-w-[2ch] whitespace-nowrap">{candidate.score}</span>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-2.5 text-right">
-                                                    <span className={`px-2 py-1 rounded text-[9px] font-bold tracking-tighter ${candidate.score >= 70
-                                                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                                                        }`}>
-                                                        {candidate.score >= 70 ? 'VALID' : 'REJECT'}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </motion.div>
-                )
-            }
         </div >
     );
 }
