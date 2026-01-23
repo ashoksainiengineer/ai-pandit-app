@@ -695,7 +695,7 @@ async function stage2AILevel1(
 ): Promise<{ results: StageCandidate[]; reasoning: string }> {
     const results: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
-    const BATCH_SIZE = 3; // Reduced for HF Free Tier (2 vCPU) stability
+    const BATCH_SIZE = 2; // Reduced for HF Free Tier (2 vCPU) stability
 
     logger.info(`Starting Stage 2 parallel processing for ${candidates.length} candidates`);
     emitStageStats(input.sessionId, 2, candidates.length, "AI Level 1 Screening");
@@ -1667,7 +1667,7 @@ async function stage5AILevel2(
     logger.info(`Phase 9: Dynamic Tournament initialized. Qualified Gladiators: ${qualifiedCandidates.length} (from Pool of ${candidates.length})`);
 
     // ⚔️ THE TOURNAMENT: PARALLEL BATCH PROCESSING
-    const BATCH_SIZE = 10;
+    const BATCH_SIZE = 5; // Reduced from 10 for HF stability
     const CONCURRENCY = 2; // Reduced from 3 for HF Free Tier (2 vCPU) stability
     const tournamentResults: any[] = [];
 
@@ -1776,7 +1776,7 @@ async function stage7AILevel3(
     logger.info(`Phase 9: Stage 7 Grand Finals - ${batch.length} Finalists entering...`);
 
     // ⚔️ GRAND FINALS: PARALLEL PROCESSING
-    const BATCH_SIZE = 5;
+    const BATCH_SIZE = 4; // Reduced from 5 for deeper context vs memory limit
     const CONCURRENCY = 2; // Micro-precision requires more focus, lower concurrency
     const finalResults: any[] = [];
 

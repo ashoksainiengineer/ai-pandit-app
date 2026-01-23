@@ -412,24 +412,35 @@ export class ProgressTracker {
      */
     private async saveProgress(includeThinking: boolean = false): Promise<void> {
         try {
-            // 🛡️ [TURSO OPTIMIZED] Data Minimization
-            // We only keep the active reasoning in MAJOR flushes (includeThinking=true)
-            const dbProgress = { ...this.progress };
-            if (!includeThinking) {
-                // Remove transient fields for heartbeat/minor updates
-                delete dbProgress.lastAIThinking;
-
-                // Keep stageHistory BUT limit size if not a major flush
-                // Actually, stageHistory should always stay in DB once snapshotted
+            // 🚀 GOD-TIER OPTIMIZATION: Throttled DB Writes
+            // On HF Free Tier, Turso DB round-trips are expensive.
+            // We only flush if:
+            // 1. It's a major flush (includeThinking = true)
+            // 2. 10 seconds have passed since last write
+            if (!includeThinking && Date.now() - this.lastPulseTime < 10000) {
+                return; // Skip minor update to save IO
             }
 
-            // 💾 Size Limit Check: Truncate if too huge (Turso fallback)
+            this.lastPulseTime = Date.now();
+
+            // 🛡️ [TURSO OPTIMIZED] Data Minimization
+            const dbProgress = { ...this.progress };
+
+            // Limit thinking history to save space
+            if (!includeThinking) {
+                delete dbProgress.lastAIThinking;
+            }
+
             let progressJson = JSON.stringify(dbProgress);
-            if (progressJson.length > 90000) {
-                // If still too big even with optimization, truncate thinking logs
-                if (dbProgress.lastAIThinking) {
-                    dbProgress.lastAIThinking.fullText = dbProgress.lastAIThinking.fullText.slice(-20000);
-                    dbProgress.lastAIThinking.chunks = [];
+
+            // 💾 Size Limit Check: Truncate if too huge (Turso fallback)
+            if (progressJson.length > 95000) {
+                if (dbProgress.calculationLogs && dbProgress.calculationLogs.length > 50) {
+                    dbProgress.calculationLogs = dbProgress.calculationLogs.slice(-50);
+                    progressJson = JSON.stringify(dbProgress);
+                }
+                if (progressJson.length > 95000 && dbProgress.lastAIThinking) {
+                    dbProgress.lastAIThinking.fullText = dbProgress.lastAIThinking.fullText.slice(-10000);
                     progressJson = JSON.stringify(dbProgress);
                 }
             }

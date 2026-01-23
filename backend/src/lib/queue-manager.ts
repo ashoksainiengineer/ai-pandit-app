@@ -21,12 +21,12 @@ import { emitComplete } from './session-events.js';
 // ═════════════════════════════════════════════════════════════════════════════
 
 const QUEUE_CONFIG = {
-  maxConcurrent: parseInt(process.env.MAX_CONCURRENT_SESSIONS || '3'), // Process N sessions concurrently
-  pollIntervalMs: 2000,
-  maxQueueSize: 1000,
+  maxConcurrent: parseInt(process.env.MAX_CONCURRENT_SESSIONS || '2'), // Process N sessions concurrently (Lowered for HF)
+  pollIntervalMs: 3000,
+  maxQueueSize: 500,
   staleTimeoutMs: 30 * 60 * 1000, // 30 mins
   baseAnalysisTime: 240,        // 4 Mins for God-Tier analysis (1 user)
-  contentionMultiplier: 0.2,    // Lower per-user overhead due to parallel AI batching
+  contentionMultiplier: 0.3,    // Moderate per-user overhead
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -411,9 +411,20 @@ async function processQueue(): Promise<void> {
       // Check for stale processing requests (crashed mid-process)
       await cleanupStaleRequests();
 
+      // 🚀 GOD-TIER: Dynamic Pressure Throttling
+      const memory = process.memoryUsage();
+      const heapUsedPercent = (memory.heapUsed / memory.heapTotal);
+      let effectiveMaxConcurrent = QUEUE_CONFIG.maxConcurrent;
+
+      // If RAM is tight (>85% of heap), reduce concurrency to 1 to prevent OOM
+      if (heapUsedPercent > 0.85) {
+        logger.warn(`[PRESSURE] High RAM usage (${(heapUsedPercent * 100).toFixed(1)}%), restricting concurrency to 1`);
+        effectiveMaxConcurrent = 1;
+      }
+
       // Check concurrent limit
-      if (activeProcessingIds.size >= QUEUE_CONFIG.maxConcurrent) {
-        // High frequency logging for wait state - only log if queue not empty to avoid noise
+      if (activeProcessingIds.size >= effectiveMaxConcurrent) {
+        // High frequency logging for wait state
         const queuedCount = await getQueuedCount();
         if (queuedCount > activeProcessingIds.size) {
           logger.debug('Queue blocked: all slots full', {

@@ -89,15 +89,18 @@ import { initSwissEph } from './lib/ephemeris.js';
 // =============================================================================
 async function bootstrap() {
     try {
-        console.log('⏳ Initializing Swiss Ephemeris engine...');
-        await initSwissEph();
-
         app.listen(PORT, () => {
             console.log(`🚀 AI Pandit BTR Engine running on port ${PORT}`);
             console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
             console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
 
-            // Start processing queue on startup
+            // 1. ASYNC Warming Up (Non-blocking)
+            console.log('⏳ Initializing Swiss Ephemeris engine in background...');
+            initSwissEph().catch(err => {
+                console.error('❌ Async Swiss Eph Initialization Failed:', err);
+            });
+
+            // 2. Start processing queue on startup
             console.log('🔄 Starting queue processor...');
             cleanupZombiesOnStartup().then(() => {
                 startQueueProcessor();

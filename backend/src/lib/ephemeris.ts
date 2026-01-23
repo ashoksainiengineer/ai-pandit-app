@@ -14,6 +14,8 @@ import { EphemerisData, PlanetPosition, HousePosition } from './types.js';
 let swe: any = null;
 let useSwissEph = false;
 let isInitialized = false;
+let isInitializing = false;
+let initPromise: Promise<boolean> | null = null;
 
 /**
  * Initializes the Swiss Ephemeris WASM module (Prolaxu version)
@@ -21,59 +23,77 @@ let isInitialized = false;
  */
 export async function initSwissEph(): Promise<boolean> {
   if (isInitialized) return useSwissEph;
+  if (isInitializing) return initPromise!;
 
-  try {
-    // 1. Dynamic import of the ESM wrapper class from swisseph-wasm
-    const { default: SwissEph } = await import('swisseph-wasm');
+  isInitializing = true;
+  initPromise = (async () => {
+    try {
+      console.log('🔭 [EPHEMERIS] WASM init started...');
+      // 1. Dynamic import of the ESM wrapper class from swisseph-wasm
+      const { default: SwissEph } = await import('swisseph-wasm');
 
-    // 2. Instantiate and initialize the module
-    const instance = new SwissEph();
-    await instance.initSwissEph();
+      // 2. Instantiate and initialize the module
+      const instance = new SwissEph();
+      await instance.initSwissEph();
 
-    // 3. Create a synchronous adapter to match the native 'swisseph' package API
-    // We use library methods for higher accuracy and better object shapes
-    swe = {
-      ...instance, // Spread constants and other methods
-      swe_set_sid_mode: (mode: number, t0: number, ayT0: number) => (instance as any).set_sid_mode(mode, t0, ayT0),
-      swe_get_ayanamsa_ut: (jd: number) => (instance as any).get_ayanamsa_ut(jd),
-      swe_calc_ut: (jd: number, ipl: number, flags: number) => {
-        // Use the built-in calc method which returns a clean object
-        const res = (instance as any).calc(jd, ipl, flags);
-        return {
-          longitude: res.longitude,
-          latitude: res.latitude,
-          distance: res.distance,
-          longitudeSpeed: res.longitudeSpeed,
-          latitudeSpeed: res.latitudeSpeed,
-          distanceSpeed: res.distanceSpeed
-        };
-      },
-      swe_houses: (jd: number, lat: number, lon: number, hsys: string) => {
-        // Use the built-in houses method
-        const res = (instance as any).houses(jd, lat, lon, hsys);
-        return {
-          house: Array.from(res.cusps as any),
-          ascendant: (res.ascmc as any)[0],
-          mc: (res.ascmc as any)[1]
-        };
-      },
-      // Expose astronomical julday
-      swe_julday: (y: number, m: number, d: number, h: number) => instance.julday(y, m, d, h)
-    };
+      // 3. Create a synchronous adapter to match the native 'swisseph' package API
+      swe = {
+        ...instance,
+        swe_set_sid_mode: (mode: number, t0: number, ayT0: number) => (instance as any).set_sid_mode(mode, t0, ayT0),
+        swe_get_ayanamsa_ut: (jd: number) => (instance as any).get_ayanamsa_ut(jd),
+        swe_calc_ut: (jd: number, ipl: number, flags: number) => {
+          const res = (instance as any).calc(jd, ipl, flags);
+          return {
+            longitude: res.longitude,
+            latitude: res.latitude,
+            distance: res.distance,
+            longitudeSpeed: res.longitudeSpeed,
+            latitudeSpeed: res.latitudeSpeed,
+            distanceSpeed: res.distanceSpeed
+          };
+        },
+        swe_houses: (jd: number, lat: number, lon: number, hsys: string) => {
+          const res = (instance as any).houses(jd, lat, lon, hsys);
+          return {
+            house: Array.from(res.cusps as any),
+            ascendant: (res.ascmc as any)[0],
+            mc: (res.ascmc as any)[1]
+          };
+        },
+        swe_julday: (y: number, m: number, d: number, h: number) => instance.julday(y, m, d, h)
+      };
 
-    useSwissEph = true;
-    console.log('✅ Swiss Ephemeris WASM (Prolaxu) initialized (using bundled data)');
-  } catch (error) {
-    console.warn('⚠️ Swiss Ephemeris WASM failed to load - Falling back to algorithmic', error);
-    useSwissEph = false;
-  }
+      useSwissEph = true;
+      console.log('✅ [EPHEMERIS] Swiss Ephemeris WASM initialized successfully');
+    } catch (error) {
+      console.warn('⚠️ [EPHEMERIS] Swiss Ephemeris WASM failed - Fallback to algorithmic', error);
+      useSwissEph = false;
+    } finally {
+      isInitialized = true;
+      isInitializing = false;
+    }
+    return useSwissEph;
+  })();
 
-  isInitialized = true;
-  return useSwissEph;
+  return initPromise;
 }
 
 function getSwissEphStatus(): boolean {
   return isInitialized && useSwissEph;
+}
+
+/**
+ * Critical Helper: Block briefly if initializing
+ */
+async function ensureInit(): Promise<boolean> {
+  if (isInitialized) return useSwissEph;
+  if (isInitializing && initPromise) {
+    console.log('⏳ [EPHEMERIS] Calculation requested while warming up, waiting 5s...');
+    // Wait up to 10s for the existing init to finish
+    const timeout = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 10000));
+    return Promise.race([initPromise, timeout]);
+  }
+  return false;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -297,6 +317,9 @@ export async function calculateEphemeris(
 
   const tz = typeof timezone === 'number' ? timezone : parseFloat(String(timezone)) || 5.5;
   const utcDate = convertToUTC(birthDate, birthTime, tz);
+
+  // Ensure initialization is synchronized (God-Tier Rehydration)
+  await ensureInit();
 
   // Use pre-initialized Swiss Ephemeris status
   const highPrecision = getSwissEphStatus();
