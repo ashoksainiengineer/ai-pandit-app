@@ -25,9 +25,9 @@ interface CandidateLevelTablesProps {
 }
 
 const STAGES = [
-    { id: 2, name: 'Coarse Scan', level: 1, icon: Target, color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30' },
-    { id: 5, name: '30s Refinement', level: 2, icon: TrendingUp, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
-    { id: 7, name: '6s Grand Finals', level: 3, icon: Trophy, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
+    { id: 1, name: 'Discovery (1m)', level: 1, icon: Target, color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30' },
+    { id: 2, name: 'Convergence (30s)', level: 2, icon: TrendingUp, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
+    { id: 3, name: 'Micro-Audit (6s)', level: 3, icon: Trophy, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
 ];
 
 export function CandidateLevelTables({ candidateScores, currentStage }: CandidateLevelTablesProps) {

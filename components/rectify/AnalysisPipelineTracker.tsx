@@ -4,22 +4,10 @@ import { StageStat } from '@/lib/use-stream-progress';
 
 interface AnalysisPipelineTrackerProps {
     stats: StageStat[];
-    currentStage: number; // 0-9 index
+    allSteps: Array<{ id: string; name: string; icon?: string }>;
+    currentStage: number; // 0-based index
     isConnected: boolean;
 }
-
-const STAGE_CONFIG = [
-    { id: 1, label: 'Grid Initialization', type: 'calc' },
-    { id: 2, label: 'Neural Screening (L1)', type: 'ai' },
-    { id: 3, label: 'Grid Precision (30s)', type: 'calc' },
-    { id: 4, label: 'Tournament Dynamics (L2)', type: 'ai' },
-    { id: 5, label: 'Boundary Collision Scan', type: 'calc' },
-    { id: 6, label: 'Micro-Grid Sync (6s)', type: 'calc' },
-    { id: 7, label: 'Grand Finals (L3)', type: 'ai' },
-    { id: 8, label: 'Transit Synchronization', type: 'calc' },
-    { id: 9, label: 'Vedic Shuddhi Audit', type: 'calc' },
-    { id: 10, label: 'Archive Sealing', type: 'ai' },
-];
 
 const ScanLine = () => (
     <motion.div
@@ -30,14 +18,15 @@ const ScanLine = () => (
     />
 );
 
-export const AnalysisPipelineTracker: React.FC<AnalysisPipelineTrackerProps> = ({ stats, currentStage, isConnected }) => {
+export const AnalysisPipelineTracker: React.FC<AnalysisPipelineTrackerProps> = ({ stats, allSteps, currentStage, isConnected }) => {
     const [load, setLoad] = useState(72.4);
 
     // 💓 Neural Load Logic (Responsive to Stage)
     useEffect(() => {
         const interval = setInterval(() => {
             setLoad(prev => {
-                const isAIStage = STAGE_CONFIG.find(s => s.id === currentStage)?.type === 'ai';
+                const step = allSteps[currentStage];
+                const isAIStage = step?.id === 'discovery' || step?.id === 'seal';
                 const baseLoad = isAIStage ? 85 : currentStage > 0 ? 45 : 12;
                 const jitter = (Math.random() - 0.5) * 10;
                 const next = Math.max(10, Math.min(99, baseLoad + jitter));
@@ -45,12 +34,12 @@ export const AnalysisPipelineTracker: React.FC<AnalysisPipelineTrackerProps> = (
             });
         }, 1200);
         return () => clearInterval(interval);
-    }, [currentStage]);
+    }, [currentStage, allSteps]);
 
-    // Find active stats for display
     const activeStat = stats[stats.length - 1];
     const candidateCount = activeStat?.candidateCount || 0;
-    const isAIStage = STAGE_CONFIG.find(s => s.id === currentStage)?.type === 'ai';
+    const currentStep = allSteps[currentStage];
+    const isAIStage = currentStep?.id === 'discovery' || currentStep?.id === 'seal';
 
     return (
         <div className="w-full bg-[#0F1419] border-t border-[#3A4452] p-4 font-mono text-xs overflow-hidden relative">
@@ -83,8 +72,8 @@ export const AnalysisPipelineTracker: React.FC<AnalysisPipelineTrackerProps> = (
                         </div>
                         <div className="text-right">
                             <div className="text-[#8C7F72] text-[8px] uppercase tracking-[0.2em]">Compute Pool</div>
-                            <div className={`${currentStage > 0 ? 'text-[#D4AF37]' : 'text-[#8C7F72]'} font-bold whitespace-nowrap overflow-hidden max-w-[120px]`}>
-                                {currentStage > 0 ? (STAGE_CONFIG.find(s => s.id === currentStage)?.type === 'ai' ? 'R1-REASONER-V1' : 'SWISS-EPHEM-V2') : 'IDLE'}
+                            <div className={`${currentStage >= 0 ? 'text-[#D4AF37]' : 'text-[#8C7F72]'} font-bold whitespace-nowrap overflow-hidden max-w-[120px]`}>
+                                {currentStage >= 0 ? (isAIStage ? 'R1-REASONER-V1' : 'SWISS-EPHEM-V2') : 'IDLE'}
                             </div>
                         </div>
                     </div>
@@ -92,13 +81,14 @@ export const AnalysisPipelineTracker: React.FC<AnalysisPipelineTrackerProps> = (
 
                 {/* Pipeline Blocks */}
                 <div className="relative flex items-center justify-between gap-1 overflow-x-auto pb-4 pt-2 scrollbar-none">
-                    {STAGE_CONFIG.map((stage, idx) => {
-                        const isPast = currentStage > stage.id;
-                        const isActive = currentStage === stage.id;
-                        const stat = stats.find(s => s.stage === stage.id);
+                    {allSteps.map((stage, idx) => {
+                        const isPast = currentStage > idx;
+                        const isActive = currentStage === idx;
+                        const stat = stats.find(s => s.stage === idx);
+                        const isAI = stage.id === 'discovery' || stage.id === 'seal';
 
                         return (
-                            <div key={stage.id} className="flex-1 min-w-[90px] relative">
+                            <div key={stage.id} className="flex-1 min-w-[120px] relative">
                                 <motion.div
                                     initial={false}
                                     animate={{
@@ -112,9 +102,9 @@ export const AnalysisPipelineTracker: React.FC<AnalysisPipelineTrackerProps> = (
 
                                     <div className="flex justify-between items-center mb-1">
                                         <span className={`text-[8px] font-bold ${isActive ? 'text-[#D4AF37]' : 'text-[#8C7F72]'}`}>
-                                            CH-{stage.id.toString().padStart(2, '0')}
+                                            PH-{(idx + 1).toString().padStart(2, '0')}
                                         </span>
-                                        {stage.type === 'ai' && (
+                                        {isAI && (
                                             <span className={`text-[7px] px-1 rounded-full ${isActive ? 'bg-purple-500 text-white animate-pulse' : 'bg-purple-900/30 text-purple-400'}`}>
                                                 AI
                                             </span>
@@ -122,7 +112,7 @@ export const AnalysisPipelineTracker: React.FC<AnalysisPipelineTrackerProps> = (
                                     </div>
 
                                     <div className={`text-[9px] font-black uppercase tracking-tighter truncate ${isActive ? 'text-[#F5F0EB]' : 'text-[#8C7F72]'}`}>
-                                        {stage.label}
+                                        {stage.name}
                                     </div>
 
                                     <div className="mt-1 h-3 flex items-center justify-between">

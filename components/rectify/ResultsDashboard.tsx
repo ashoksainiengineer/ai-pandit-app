@@ -12,7 +12,7 @@ interface FinalResult {
     accuracy: number;
     confidence: string;
     marginOfError: number;
-    analysisResult: string; // JSON string with full details
+    analysisResult: any; // JSON object or string with full details
     stagesCompleted: number;
 }
 
@@ -32,9 +32,10 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ sessionId, d
     useEffect(() => {
         try {
             if (data.analysisResult) {
-                const parsed = JSON.parse(data.analysisResult);
+                const parsed = typeof data.analysisResult === 'string'
+                    ? JSON.parse(data.analysisResult)
+                    : data.analysisResult;
                 setAnalysisDetails(parsed);
-                // Also parsing stage history if available
                 console.log("Parsed Analysis Details:", parsed);
             }
         } catch (e) {
@@ -297,8 +298,10 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ sessionId, d
                     {/* Technical Metrics Grid */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="bg-[#151a21] border border-[#3A4452] rounded-xl p-4 hover:border-[#D4AF37]/50 transition-colors">
-                            <div className="text-[#8C7F72] text-[10px] uppercase font-mono mb-1">Process Stages</div>
-                            <div className="text-xl font-bold font-mono text-white">10 / 10</div>
+                            <div className="text-[#8C7F72] text-[10px] uppercase font-mono mb-1">Process Phases</div>
+                            <div className="text-xl font-bold font-mono text-white">
+                                {data.stagesCompleted || 5} / 5
+                            </div>
                         </div>
                         <div className="bg-[#151a21] border border-[#3A4452] rounded-xl p-4 hover:border-[#D4AF37]/50 transition-colors">
                             <div className="text-[#8C7F72] text-[10px] uppercase font-mono mb-1">Grid Resolution</div>
@@ -366,10 +369,10 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ sessionId, d
                                     </h3>
                                     <p className="text-[#8C7F72] leading-relaxed">
                                         The rectification engine has successfully converged on a final birth time of <strong className="text-[#F5F0EB]">{data.rectifiedTime}</strong>.
-                                        This time was selected from an initial pool of over <strong>{(analysisDetails?.stageHistory?.stage1Count || 100)} candidates</strong>, narrowing down to <strong>{analysisDetails?.stageHistory?.timelineCount || 5} parallel timelines</strong>, and finally verified via a rigorous 10-stage elimination process.
+                                        This time was selected after rigorous narrative reasoning and temporal convergence, verified via a 5-phase Nirayana protocol.
                                     </p>
                                     <div className="my-6 p-4 bg-[#D4AF37]/5 border-l-2 border-[#D4AF37] text-sm text-[#F5F0EB] font-serif italic">
-                                        &quot;{analysisDetails?.reasoning?.summary || analysisDetails?.summary || "The logical convergence of Dasha patterns (Vimshottari/Yogini) and Divisional Chart markers (D9/D10) strongly favors this specific second."}&quot;
+                                        &quot;{analysisDetails?.summary || "The logical convergence of Dasha patterns and Divisional Chart markers strongly favors this specific second."}&quot;
                                     </div>
                                     <h4 className="font-bold text-[#F5F0EB] mt-6 mb-2 text-sm uppercase tracking-wider">Confirmation Factors:</h4>
                                     <ul className="space-y-2 text-[#8C7F72] text-[13px]">

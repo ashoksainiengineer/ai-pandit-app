@@ -92,16 +92,28 @@ export interface PhysicalTraits {
 export interface RectificationSession {
   id: string;
   userId: string;
-  birthData: BirthData;
-  physicalTraits?: PhysicalTraits;
-  lifeEvents: LifeEvent[]; // Update usage to new interface
+  clerkId: string;
+  fullName: string;
+  dateOfBirth: string;
+  tentativeTime: string;
+  birthPlace: string;
+  latitude: number;
+  longitude: number;
+  timezone: string | number;
+  gender?: string;
+  physicalTraits?: any;
+  lifeEvents: any;
+  offsetConfig?: any;
   rectifiedTime?: string;
   accuracy?: number;
-  confidence?: 'High' | 'Medium' | 'Low';
+  confidence?: string;
   analysisResult?: any;
-  createdAt: Date;
-  updatedAt: Date;
+  progressData?: string;
   status: 'pending' | 'processing' | 'complete' | 'failed';
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
 }
 
 export interface PlanetPosition {
@@ -267,6 +279,7 @@ export interface SecondsPrecisionInput {
     longitude: number;
     timezone: string | number;
   };
+  abortSignal?: AbortSignal;
 }
 
 export interface SecondsPrecisionResult {
@@ -274,12 +287,13 @@ export interface SecondsPrecisionResult {
   accuracy: number;            // 0-100
   confidence: string;          // "High" | "Medium" | "Low"
   precisionLevel: 'seconds';
-  marginOfError: number;       // ±X seconds (3-5)
-  stagesCompleted: number;     // 1-10
+  marginOfError: number;       // ±X seconds
+  stagesCompleted: number;
   boundaryWarnings: string[];
   methodsUsed: string[];
   processingTimeMs: number;
-  analysisResult: string;
+  analysisResult: any;        // Enriched JSON for dashboard
+  narrativeManifest?: any;    // 🔱 God-Tier Narrative Context
 }
 
 export interface BoundarySafetyResult {

@@ -112,6 +112,7 @@ export interface StreamState {
     readyState?: number;
     lastError?: string | null;
     estimatedTimeRemaining?: number; // ⏱️ In seconds
+    allSteps: Array<{ id: string; name: string; icon?: string }>; // 🔱 Dynamic Pipeline Config
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -141,6 +142,13 @@ export function useStreamProgress(
         analyzedCount: 0,
         totalCandidates: 0,
         estimatedTimeRemaining: 0,
+        allSteps: [ // Fallback 5-phase protocol
+            { id: 'prana', name: 'Prana Mapping' },
+            { id: 'discovery', name: 'Discovery Tournament' },
+            { id: 'convergence', name: 'Temporal Convergence' },
+            { id: 'audit', name: 'Micro-Audit (D60)' },
+            { id: 'seal', name: 'God-Tier Lock' }
+        ]
     });
 
     const [connectionState, setConnectionState] = useState<{
@@ -256,6 +264,7 @@ export function useStreamProgress(
                     // 📋 Capture session metadata for Blueprint display
                     metadata: data.metadata || prev.metadata,
                     startedAt: progressData.startedAt || prev.startedAt,
+                    allSteps: progressData.steps || prev.allSteps,
                 };
 
                 // 🧠 Hydrate allCandidates Map for UI Display
@@ -581,6 +590,7 @@ export function useStreamProgress(
                         stageHistory: eventData.progress.stageHistory ? new Map(Object.entries(eventData.progress.stageHistory).map(([k, v]) => [parseInt(k), v as string])) : prev.stageHistory,
                         startedAt: eventData.progress.startedAt,
                         estimatedTimeRemaining: eventData.progress.estimatedTimeRemaining || prev.estimatedTimeRemaining,
+                        allSteps: eventData.progress.steps || prev.allSteps,
                     }));
                 }
                 break;

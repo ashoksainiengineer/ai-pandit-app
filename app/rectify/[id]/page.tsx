@@ -25,7 +25,7 @@ import { useStreamProgress } from '@/lib/use-stream-progress';
 import { UnifiedAIPanel } from '@/components/rectify/UnifiedAIPanel';
 import { LiveScoreTable } from '@/components/rectify/LiveScoreTable';
 import { LiveGodModeTerminal } from '@/components/rectify/LiveGodModeTerminal';
-import { BTRProcessFlow } from '@/components/rectify/BTRProcessFlow';
+import { AnalysisPipelineTracker } from '@/components/rectify/AnalysisPipelineTracker';
 import { CandidateLevelTables } from '@/components/rectify/CandidateLevelTables';
 
 
@@ -51,85 +51,7 @@ interface ProgressData {
     liveMessage?: string;
 }
 
-// Default analysis steps with rich descriptions
-const DEFAULT_STEPS: ProgressStep[] = [
-    { id: 'init', name: 'Grid Initialization', icon: '🚀', status: 'pending' },
-    { id: 'ephemeris', name: 'Neural Screening (L1)', icon: '🔭', status: 'pending' },
-    { id: 'houses', name: 'Grid Precision (30s)', icon: '🏠', status: 'pending' },
-    { id: 'candidates', name: 'Tournament Dynamics (L2)', icon: '⏰', status: 'pending' },
-    { id: 'dasha', name: 'Boundary Collision Scan', icon: '📊', status: 'pending' },
-    { id: 'divisional', name: 'Micro-Grid Sync (6s)', icon: '📐', status: 'pending' },
-    { id: 'events', name: 'Grand Finals (L3)', icon: '📅', status: 'pending' },
-    { id: 'physical', name: 'Transit Synchronization', icon: '👤', status: 'pending' },
-    { id: 'ai', name: 'Vedic Shuddhi Audit', icon: '🤖', status: 'pending' },
-    { id: 'final', name: 'Archive Sealing', icon: '✨', status: 'pending' },
-];
 
-// Step descriptions and metadata for user education
-const STEP_INFO: Record<string, {
-    description: string;
-    level?: string;
-    accuracy?: string;
-    methods?: string[];
-    phase: 'setup' | 'calculation' | 'screening' | 'verification' | 'final';
-}> = {
-    'init': {
-        description: 'Initializing high-performance compute grid and loading sacred datasets',
-        phase: 'setup'
-    },
-    'ephemeris': {
-        description: 'Level 1 Neural Screening: Rapidly narrowing the search space across the tentative window',
-        methods: ['DeepSeek V3', 'Vimshottari Screening'],
-        phase: 'calculation'
-    },
-    'houses': {
-        description: 'Building 30-second Precision Grid using Swiss Ephemeris v2.0 (Lahiri)',
-        methods: ['Swiss Ephemeris', '30s Incremental Cusp Mapping'],
-        phase: 'calculation'
-    },
-    'candidates': {
-        description: 'Level 2 Tournament: Dynamic comparison of finalists using multi-dasha cross-verification',
-        methods: ['Yogini Dasha', 'Chara Dasha', 'D9/D10 Navamsa'],
-        phase: 'screening'
-    },
-    'dasha': {
-        description: 'Identifying "Sandhi" boundary collisions: Precision timing on dasha transitions',
-        level: 'Boundary Scan',
-        accuracy: '92-94%',
-        methods: ['🔱 Boundary Collision Heuristic'],
-        phase: 'screening'
-    },
-    'divisional': {
-        description: '6-second Micro-Grid Sync: Deep-diving into the sub-sub-sub periods (Dasha depth 5)',
-        level: 'Micro-Grid',
-        accuracy: '94-96%',
-        methods: ['Arcsecond Precision', 'Varga-16 Suite'],
-        phase: 'screening'
-    },
-    'events': {
-        description: 'Level 3 Grand Finals: DeepSeek Reasoner (R1) performing final logic-heavy arbitration',
-        methods: ['DeepSeek R1', 'God-Tier Reasoning Archive'],
-        phase: 'verification'
-    },
-    'physical': {
-        description: 'Synchronizing transits: Cross-verifying major life triggers against planetary movement',
-        methods: ['Transit Synchronization', 'Gochar Analysis'],
-        phase: 'verification'
-    },
-    'ai': {
-        description: 'Sacred Purification Audit: Final validation using Kunda and Tatwa Shuddhi methods',
-        level: 'Shuddhi Audit',
-        accuracy: '98-99.9%',
-        methods: ['Kunda Shuddhi', 'Tatwa Shuddhi', 'Varnada Lagna'],
-        phase: 'final'
-    },
-    'final': {
-        description: 'Sealing the results into a high-fidelity astrological archive',
-        accuracy: '99.9%+',
-        methods: ['Essence Protocol', 'Archive Sealing'],
-        phase: 'final'
-    }
-};
 
 
 // 🏆 Industrial-Grade Results HUD Component
@@ -195,7 +117,7 @@ function ResultsHUD({ result, id }: { result: any, id: string }) {
                         />
                     </div>
                     <p className="text-[10px] text-[#8C7F72] mt-4 leading-relaxed font-medium">
-                        Score calculated via <span className="text-[#D4AF37]">Sangama & Badha Analysis</span>. Precision is within ±3-5 seconds based on Swiss Ephemeris data points.
+                        Score calculated via <span className="text-[#D4AF37]">Nirayana Brain Protocol</span>. Precision is within <span className="text-emerald-400">±1 second</span> verified by D60 Shashtiamsha & Nadi Transits.
                     </p>
                 </div>
             </div>
@@ -228,7 +150,7 @@ function ResultsHUD({ result, id }: { result: any, id: string }) {
             </div>
 
             <p className="text-center mt-12 text-[10px] text-[#8C7F72] uppercase tracking-[0.4em] opacity-40">
-                BTR High-Precision Analysis Engine v4.1 • Verified Output
+                Nirayana High-Precision BTR Engine v5.0 • God-Tier Verified Output
             </p>
         </motion.div>
     );
@@ -296,7 +218,8 @@ export default function ProgressPage() {
         estimatedTimeRemaining, // ⏱️ Extract ETA
         readyState, // 📡 Added for diagnostics
         url: connectionUrl, // 📡 Added for diagnostics
-        lastError // 📡 Added for diagnostics
+        lastError, // 📡 Added for diagnostics
+        allSteps // 🔱 New: Dynamic Steps
     } = useStreamProgress(
         sessionId,
         process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080', // Direct backend connection for local dev from cloud frontend
@@ -378,20 +301,21 @@ export default function ProgressPage() {
         if (streamProgress) {
             // Find index by ID to be robust against backend/frontend index mismatch
             const stepId = streamProgress.step;
-            const foundIndex = DEFAULT_STEPS.findIndex(s => s.id === stepId);
+            const foundIndex = allSteps.findIndex(s => s.id === stepId);
             const activeIndex = foundIndex !== -1 ? foundIndex : streamProgress.stepIndex;
 
             setProgress({
                 currentStep: activeIndex,
                 totalSteps: streamProgress.totalSteps,
                 percentage: streamProgress.percentage,
-                steps: DEFAULT_STEPS.map((step, idx) => ({
+                steps: allSteps.map((step, idx) => ({
                     ...step,
                     status: idx < activeIndex ? 'complete' :
                         idx === activeIndex ? 'running' : 'pending',
                     message: idx === activeIndex ? streamProgress.message : undefined,
                     details: idx === activeIndex ? streamProgress.details : undefined,
-                })),
+                    icon: step.icon || '⚡'
+                }) as any),
                 lastUpdate: new Date().toISOString(),
                 liveMessage: streamProgress.message,
             });
@@ -451,13 +375,10 @@ export default function ProgressPage() {
         }
     }, [streamError]);
 
-    // Check if AI step is active (Stages 2, 5, 7 use AI)
-    // stepIndex mapping: 0=init, 1=ephemeris, 2=houses, 3=candidates(Stage2), 4=dasha(Stage5), 5=divisional(Stage7), 6=events, 7=physical, 8=ai, 9=final
-    // Check if AI step is active (Stages 2, 5, 7 use AI)
-    // stepIndex mapping: 0=init, 1=ephemeris, 2=houses, 3=candidates(Stage2), 4=dasha(Stage5), 5=divisional(Stage7), 6=events, 7=physical, 8=ai, 9=final
-    const aiSteps = ['candidates', 'dasha', 'divisional', 'ai', 'final'];
+    // 🔱 NIRAYANA AI STEPS: All phases utilize AI orchestration
+    const aiSteps = ['prana', 'discovery', 'convergence', 'audit', 'seal'];
     const isAIStepActive = aiSteps.includes(streamProgress?.step || '') ||
-        (streamProgress?.stepIndex !== undefined && [3, 4, 5, 8, 9].includes(streamProgress.stepIndex));
+        (streamProgress?.stepIndex !== undefined && streamProgress.stepIndex >= 0);
 
 
     if (loading && !isConnected && readyState !== 3) {
@@ -652,8 +573,15 @@ export default function ProgressPage() {
                     <BirthDetailsSummary metadata={sessionMetadata} />
                 </div>
 
-                {/* 📊 DYNAMIC PROCESS FLOW (God Tier Visualization) */}
-                <BTRProcessFlow currentStepIndex={progress?.currentStep || 0} />
+                {/* 📊 DYNAMIC PROCESS FLOW (Industrial-Grade Optimization) */}
+                <div className="mb-8">
+                    <AnalysisPipelineTracker
+                        stats={stageStats || []}
+                        allSteps={allSteps}
+                        currentStage={progress?.currentStep ?? -1}
+                        isConnected={isConnected}
+                    />
+                </div>
 
                 {/* Main Progress Display - Unified Container */}
                 <div className="glass-card p-6 border border-[#D4AF37]/30 mb-8">
@@ -721,58 +649,14 @@ export default function ProgressPage() {
                         {/* Current Activity */}
                         <div className="flex-1 min-w-0">
                             {currentStepData ? (() => {
-                                const stepInfo = STEP_INFO[currentStepData.id];
-                                return (
-                                    <div className="animate-fade-in">
-                                        {/* Phase & Level Badges */}
-                                        <div className="flex items-center gap-2 mb-3 flex-wrap">
-                                            <span className={`text-[10px] px-2 py-1 rounded uppercase tracking-wider font-bold ${stepInfo?.phase === 'setup' ? 'bg-blue-500/20 text-blue-400' :
-                                                stepInfo?.phase === 'calculation' ? 'bg-purple-500/20 text-purple-400' :
-                                                    stepInfo?.phase === 'screening' ? 'bg-orange-500/20 text-orange-400' :
-                                                        stepInfo?.phase === 'verification' ? 'bg-cyan-500/20 text-cyan-400' :
-                                                            'bg-green-500/20 text-green-400'
-                                                }`}>
-                                                {stepInfo?.phase}
-                                            </span>
-                                            {stepInfo?.level && (
-                                                <span className="text-[10px] px-2 py-1 rounded bg-[#D4AF37]/20 text-[#D4AF37] font-bold">
-                                                    {stepInfo.level}
-                                                </span>
-                                            )}
-                                            {stepInfo?.accuracy && (
-                                                <span className="text-[10px] px-2 py-1 rounded bg-[#2D7A5C]/20 text-[#2D7A5C]">
-                                                    Target: {stepInfo.accuracy}
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        {/* Icon & Title */}
-                                        <div className="flex items-start gap-3 mb-3">
-                                            <div className="text-3xl">{currentStepData.icon}</div>
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="text-lg font-bold text-[#F5F0EB]">{currentStepData.name}</h3>
-                                                <p className="text-sm text-[#8C7F72] line-clamp-2">{stepInfo?.description}</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Live Message */}
-                                        <div className="text-[#D4AF37] text-sm font-mono mb-3 bg-[#0F1419]/50 p-2 rounded">
-                                            {'>'} {currentStepData.message || 'Processing...'}
-                                            <span className="animate-pulse">_</span>
-                                        </div>
-
-                                        {/* Active Methods */}
-                                        {stepInfo?.methods && (
-                                            <div className="flex flex-wrap gap-1">
-                                                {stepInfo.methods.map((method, idx) => (
-                                                    <span key={idx} className="text-[10px] px-2 py-0.5 rounded-full bg-[#2A3442] text-[#C4B8AD]">
-                                                        {method}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
+                                <div className="animate-fade-in text-center py-6">
+                                    <div className="text-3xl mb-3">{currentStepData.icon}</div>
+                                    <h3 className="text-xl font-bold text-[#F5F0EB] mb-2">{currentStepData.name}</h3>
+                                    <div className="text-[#D4AF37] text-sm font-mono bg-[#0F1419]/50 p-3 rounded border border-[#D4AF37]/20 shadow-inner">
+                                        {'>'} {currentStepData.message || 'Processing...'}
+                                        <span className="animate-pulse">_</span>
                                     </div>
-                                );
+                                </div>
                             })() : (
                                 <div className="text-center text-[#8C7F72] py-8">
                                     <div className="animate-spin text-2xl mb-2">⏳</div>

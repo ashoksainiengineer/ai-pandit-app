@@ -68,18 +68,13 @@ export interface ProgressData {
 }
 
 
-// Define all analysis steps
+// 🔱 NIRAYANA PROTOCOL STEPS (5-Phase God-Tier Structure)
 export const ANALYSIS_STEPS: Omit<ProgressStep, 'status'>[] = [
-    { id: 'init', name: 'Initializing Analysis', icon: '🚀' },
-    { id: 'ephemeris', name: 'Calculating Planetary Positions', icon: '🔭' },
-    { id: 'houses', name: 'Determining House Cusps', icon: '🏠' },
-    { id: 'candidates', name: 'Generating Candidate Times', icon: '⏰' },
-    { id: 'dasha', name: 'Analyzing Vimshottari Dasha', icon: '📊' },
-    { id: 'divisional', name: 'Processing Divisional Charts', icon: '📐' },
-    { id: 'events', name: 'Correlating Life Events', icon: '📅' },
-    { id: 'physical', name: 'Matching Physical Traits', icon: '👤' },
-    { id: 'ai', name: 'AI Cross-Verification', icon: '🤖' },
-    { id: 'final', name: 'Finalizing Results', icon: '✨' },
+    { id: 'prana', name: 'Phase 1: Prana Mapping', icon: '🧠' },
+    { id: 'discovery', name: 'Phase 2: Discovery Tournament', icon: '⚔️' },
+    { id: 'convergence', name: 'Phase 3: Temporal Convergence', icon: '♐' },
+    { id: 'audit', name: 'Phase 4: Micro-Audit (D60)', icon: '📐' },
+    { id: 'seal', name: 'Phase 5: God-Tier Lock', icon: '🔱' },
 ];
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -255,7 +250,7 @@ export class ProgressTracker {
         this.progress.liveMessage = message;
 
         // ⏱️ Initialize global session start time on first step
-        if (stepId === 'init' && !this.progress.startedAt) {
+        if (stepId === 'prana' && !this.progress.startedAt) {
             this.progress.startedAt = this.progress.steps[stepIndex].startedAt;
         }
 
