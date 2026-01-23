@@ -100,7 +100,18 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
             }
 
             // 🧠 Send cached Thinking Buffer
-            const thinkingBuffer = sessionEvents.getThinkingBuffer(sessionId);
+            let thinkingBuffer = sessionEvents.getThinkingBuffer(sessionId);
+
+            // 🔄 FALLBACK: If memory buffer is empty (e.g. server restart), check DB-cached progress
+            if (!thinkingBuffer && currentProgress?.lastAIThinking) {
+                console.log(`[SSE] 🔄 Thinking buffer missing in memory, using DB fallback for ${sessionId}`);
+                thinkingBuffer = {
+                    stage: currentProgress.lastAIThinking.stage,
+                    text: currentProgress.lastAIThinking.fullText,
+                    candidateTime: currentProgress.lastAIThinking.candidateTime
+                };
+            }
+
             if (thinkingBuffer) {
                 sendEvent(res, {
                     type: 'ai_thinking',

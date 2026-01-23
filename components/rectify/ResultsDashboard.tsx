@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Download, CheckCircle, Clock, FileText, Share2, Award, Zap, Compass, ShieldCheck } from 'lucide-react';
 import { VedicShuddhiRadar } from './VedicShuddhiRadar';
@@ -217,26 +218,43 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ sessionId, d
 
     return (
         <div className="bg-[#0F1419] min-h-screen text-[#F5F0EB] font-sans">
-            {/* Header */}
-            <div className="bg-[#151a21] border-b border-[#3A4452] p-6 shadow-lg">
-                <div className="max-w-7xl mx-auto flex justify-between items-center">
-                    <div>
-                        <h1 className="text-2xl font-bold text-[#D4AF37] flex items-center gap-2">
-                            <Award className="w-8 h-8" />
-                            Analysis Report
-                        </h1>
-                        <p className="text-[#8C7F72] text-sm font-mono mt-1">ID: {sessionId}</p>
+            {/* Navigation */}
+            <nav className="sticky top-0 z-50 bg-[#0F1419]/90 backdrop-blur-xl border-b border-[#D4AF37]/10">
+                <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-8">
+                        <Link href="/" className="flex items-center gap-3 group">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4AF37] to-[#F5D061] flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.3)] group-hover:scale-110 transition-transform">
+                                <span className="text-2xl drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">🕉️</span>
+                            </div>
+                            <span className="font-bold text-xl text-[#D4AF37] tracking-tight">AI Pandit</span>
+                        </Link>
+
+                        <div className="hidden md:flex items-center gap-6">
+                            <Link href="/dashboard" className="text-sm font-medium text-[#C4B8AD] hover:text-[#D4AF37] transition-colors">
+                                Dashboard
+                            </Link>
+                            <Link href="/rectify" className="text-sm font-medium text-[#C4B8AD] hover:text-[#D4AF37] transition-colors">
+                                New Analysis
+                            </Link>
+                        </div>
                     </div>
-                    <button
-                        onClick={generatePDF}
-                        disabled={isGenerating}
-                        className="bg-[#D4AF37] hover:bg-[#b5952f] text-[#0F1419] px-6 py-3 rounded-lg font-bold flex items-center gap-2 transition-all disabled:opacity-50"
-                    >
-                        {isGenerating ? <div className="animate-spin rounded-full h-5 w-5 border-2 border-[#0F1419]" /> : <Download className="w-5 h-5" />}
-                        Download PDF
-                    </button>
+
+                    <div className="flex items-center gap-4">
+                        <div className="hidden sm:block text-right mr-4 border-r border-[#3A4452] pr-4">
+                            <div className="text-[10px] text-[#8C7F72] uppercase tracking-widest leading-none mb-1">Session ID</div>
+                            <div className="text-xs font-mono text-[#D4AF37]">{sessionId.slice(0, 8)}...</div>
+                        </div>
+                        <button
+                            onClick={generatePDF}
+                            disabled={isGenerating}
+                            className="bg-gradient-to-r from-[#D4AF37] to-[#C9A961] hover:opacity-90 text-[#0F1419] px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all shadow-lg shadow-[#D4AF37]/10 disabled:opacity-50"
+                        >
+                            {isGenerating ? <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#0F1419]" /> : <Download className="w-4 h-4" />}
+                            <span className="hidden xs:inline">Report PDF</span>
+                        </button>
+                    </div>
                 </div>
-            </div>
+            </nav>
 
             {/* Main Content */}
             <div className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 mt-4">
