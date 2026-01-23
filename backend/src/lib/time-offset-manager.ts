@@ -83,23 +83,19 @@ export function generateCandidateTimes(
     // ─────────────────────────────────────────────────────────────────────
 
     let offsetMinutes: number;
-    let interval: number;
-    let description: string;
-
     if (offsetConfig.customMinutes !== undefined) {
-      // Custom offset specified
       offsetMinutes = offsetConfig.customMinutes;
-      interval = 0.5; // Fixed 30-second interval for all custom ranges
-      description = `±${offsetMinutes} minutes (custom)`;
     } else if (offsetConfig.preset) {
-      // Preset offset selected
       const preset = OFFSET_PRESETS[offsetConfig.preset];
       offsetMinutes = preset.minutes;
-      interval = 0.5; // Fixed 30-second interval for all presets (High Precision Stage 1)
-      description = preset.label;
     } else {
       throw new Error('No offset configuration provided');
     }
+
+    const interval = 0.5; // 🔱 ZERO COMPROMISE: Strict 30-second interval for maximum precision
+    const description = offsetConfig.customMinutes !== undefined
+      ? `±${offsetMinutes} min (30s Precision Grid)`
+      : `${OFFSET_PRESETS[offsetConfig.preset!].label} (30s Precision Grid)`;
 
     logger.info('Offset configuration', {
       offsetMinutes,

@@ -87,6 +87,22 @@ const ZODIAC_SIGNS = [
     'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
 ];
 
+// 🚀 GOD-TIER DYNAMIC STABILITY (Optimized for 16GB RAM)
+// Dynamically adjusts delay based on real-time RAM pressure.
+// With 16GB, we can fly at full speed until we hit significant usage.
+function getAdaptiveDelay() {
+    if (typeof process === 'undefined') return 5;
+    const { heapUsed } = process.memoryUsage();
+    const mbUsed = heapUsed / 1024 / 1024;
+
+    if (mbUsed > 12000) return 400; // Critical: 12GB+ usage (Safety first)
+    if (mbUsed > 8000) return 100;  // High: 8GB+ (Moderate cooling)
+    if (mbUsed > 4000) return 20;   // Medium: 4GB+ (Subtle breathe)
+    return 0; // 🏎️ RACING ZONE: Under 4GB, full throttle
+}
+
+const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
+
 export interface SecondsPrecisionInput {
     sessionId: string;
     dateOfBirth: string;
@@ -172,8 +188,9 @@ function pruneCandidate(c: StageCandidate, force: boolean = false): StageCandida
         };
     }
 
-    // If score is low or force is true, strip the heavy weight
-    if (force || (c.score && c.score < 85)) {
+    // 🔱 16GB OPTIMIZATION: Relaxed pruning.
+    // We only strip ephemeris if score is very low (< 65) or explicitly forced.
+    if (force || (c.score && c.score < 65)) {
         return {
             time: c.time,
             score: c.score,
@@ -452,6 +469,10 @@ export async function processSecondsPrecisionBTR(
         // STAGE 4: FINE GRID (30s)
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
+
+        // 🐢 COOLDOWN: Let RAM settle after Stage 2/3 AI reasoning
+        await sleep(300);
+
         await progress.updateETA(75);
         const stage4Candidates = await stage4FineGrid(convergence.bestTime, input, progress);
         stagesCompleted = 4;
@@ -477,6 +498,8 @@ export async function processSecondsPrecisionBTR(
         const allMicroCandidates: any[] = [];
         const seenTimes = new Set<string>();
         for (const contender of topContenders) {
+            // 🐢 INTER-CONTENDER COOLDOWN
+            await sleep(200);
             const microData = await stage6MicroGrid(contender.time, input, progress);
             microData.forEach(c => {
                 if (!seenTimes.has(c.time)) {
@@ -507,6 +530,10 @@ export async function processSecondsPrecisionBTR(
         // STAGE 8: 15-METHOD VERIFICATION
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
+
+        // 🐢 COOLDOWN: Prepare RAM for the most intensive verification block
+        await sleep(300);
+
         await progress.updateETA(10);
         await progress.startStep('physical', 'Final physiological and structural audit...');
         const verificationResult = await stage8Verification(stage7.results[0].time, input, eventTransits, progress);
@@ -572,6 +599,15 @@ export async function processSecondsPrecisionBTR(
                     tatwa: verificationResult.tatwa
                 },
                 breakdown: verificationResult.methodBreakdown
+            },
+            alternatives: sortedCandidates.slice(1, 11).map(c => ({
+                time: c.time,
+                score: c.score,
+                offsetMinutes: c.offsetMinutes
+            })),
+            stageHistory: {
+                stage1Count: stage1Candidates.length,
+                timelineCount: stage6Candidates.length
             }
         };
 
@@ -608,126 +644,133 @@ async function stage1CoarseGrid(
     const scored: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
 
-    // Process SEQUENTIALLY for RAM efficiency
-    emitStageStats(input.sessionId, 1, candidates.length, "Coarse Grid Calculation");
+    // 🚀 GOD-TIER CONCURRENCY (v2CPU / 16GB)
+    // We process in batches of 10 to maximize CPU usage without event-loop lag.
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+        const batch = candidates.slice(i, i + BATCH_SIZE);
 
-    // 🧠 Early feedback for Reasoning HUD
-    emitAIThinking(input.sessionId, `[ENGINE] Starting Coarse Grid Scan: Initializing mathematical convergence for ${candidates.length} candidates. Matrix calculations active...\n`, 1);
+        await Promise.all(batch.map(async (candidate) => {
+            // 🛑 Check for cancellation
+            await throwIfCancelled(input.sessionId, input.abortSignal);
 
-    for (const candidate of candidates) {
-        // 🛑 Check for cancellation inside the loop
-        await throwIfCancelled(input.sessionId, input.abortSignal);
-        try {
-            const ephemeris = await calculateEphemeris(
-                input.dateOfBirth,
-                candidate.time,
-                input.latitude,
-                input.longitude,
-                input.timezone
-            );
+            // 🐢 RAM-AWARE DYNAMIC THROTTLING
+            await sleep(getAdaptiveDelay());
 
-            const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
-            const moonSidereal = ephemeris.planets.moon.longitude;
-            const dashaPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
+            try {
+                const ephemeris = await calculateEphemeris(
+                    input.dateOfBirth,
+                    candidate.time,
+                    input.latitude,
+                    input.longitude,
+                    input.timezone
+                );
 
-            // ⚡ PERSISTENT CALCULATION LOG (Restored Visibility)
-            await progress.addCalculationLog(candidate.time,
-                `Asc: ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}° | Mo: ${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(2)}° | Dasha: ${dashaPeriods[0].lord}/${dashaPeriods[0].subPeriods[0].lord}`
-            );
+                const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
+                const moonSidereal = ephemeris.planets.moon.longitude;
+                const dashaPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
 
-            // 🔱 STRUCTURAL LOG for the Nirayana Engine HUD
-            emitCalculationLog(input.sessionId, {
-                candidateTime: candidate.time,
-                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(2)}°`,
-                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(2)}°`,
-                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
-                dashaObj: `${dashaPeriods[0].lord}/${dashaPeriods[0].subPeriods[0].lord}`
-            });
-
-            // 🔮 Emit engine context for JSON HUD
-            emitAIContext(input.sessionId, {
-                stage: 1,
-                candidateTime: candidate.time,
-                planetaryInfo: {
-                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
-                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
-                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
-                },
-                dasha: `${dashaPeriods[0].lord}/${dashaPeriods[0].subPeriods[0].lord}`,
-                divCharts: "Vedic Shuddhi Scan"
-            });
-
-            let dashaScore = 0;
-            let eventMatches = 0;
-
-            // 1. Dasha-Event Correlation (Primary Driver)
-            for (const event of input.lifeEvents) {
-                const eventDate = new Date(event.eventDate);
-                const dasha = getDashaForDate(dashaPeriods, eventDate);
-                if (dasha) {
-                    const correlation = dashaSupportsEvent(
-                        {
-                            mahadasha: dasha.mahadasha,
-                            antardasha: dasha.antardasha,
-                            pratyantardasha: dasha.pratyantardasha,
-                            mahadashaStart: dasha.mahadashaStart,
-                            mahadashaEnd: dasha.mahadashaEnd,
-                            antardashaStart: dasha.antardashaStart,
-                            antardashaEnd: dasha.antardashaEnd
-                        } as any,
-                        event.category,
-                        event.eventType
+                if (batch.indexOf(candidate) === 0) {
+                    // ⚡ PERSISTENT CALCULATION LOG (Throttled for Stage 1)
+                    await progress.addCalculationLog(candidate.time,
+                        `Asc: ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}° | Mo: ${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(2)}° | Dasha: ${dashaPeriods[0].lord}/${dashaPeriods[0].subPeriods[0].lord}`
                     );
-                    if (correlation.supports) {
-                        eventMatches++;
-                        dashaScore += correlation.strength;
+
+                    // 🔱 STRUCTURAL LOG for the Nirayana Engine HUD
+                    emitCalculationLog(input.sessionId, {
+                        candidateTime: candidate.time,
+                        sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(2)}°`,
+                        moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(2)}°`,
+                        ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
+                        dashaObj: `${dashaPeriods[0].lord}/${dashaPeriods[0].subPeriods[0].lord}`
+                    });
+
+                    // 🔮 Emit engine context for JSON HUD
+                    emitAIContext(input.sessionId, {
+                        stage: 1,
+                        candidateTime: candidate.time,
+                        planetaryInfo: {
+                            sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
+                            moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
+                            ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
+                        },
+                        dasha: `${dashaPeriods[0].lord}/${dashaPeriods[0].subPeriods[0].lord}`,
+                        divCharts: "Vedic Shuddhi Scan"
+                    });
+                }
+
+                let dashaScore = 0;
+                let eventMatches = 0;
+
+                // 1. Dasha-Event Correlation (Primary Driver)
+                for (const event of input.lifeEvents) {
+                    const eventDate = new Date(event.eventDate);
+                    const dasha = getDashaForDate(dashaPeriods, eventDate);
+                    if (dasha) {
+                        const correlation = dashaSupportsEvent(
+                            {
+                                mahadasha: dasha.mahadasha,
+                                antardasha: dasha.antardasha,
+                                pratyantardasha: dasha.pratyantardasha,
+                                mahadashaStart: dasha.mahadashaStart,
+                                mahadashaEnd: dasha.mahadashaEnd,
+                                antardashaStart: dasha.antardashaStart,
+                                antardashaEnd: dasha.antardashaEnd
+                            } as any,
+                            event.category,
+                            event.eventType
+                        );
+                        if (correlation.supports) {
+                            eventMatches++;
+                            dashaScore += correlation.strength;
+                        }
                     }
                 }
+
+                // Normalize dasha score to 0-50 range
+                const normalizedDashaScore = input.lifeEvents.length > 0
+                    ? (dashaScore / (input.lifeEvents.length * 10)) * 50
+                    : 25;
+
+                // 🔱 VEDIC SHUDDHI FILTERING (Candidate Pruning)
+                const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
+                const sunrise = getApproxSunrise(jd, input.latitude, input.longitude, input.timezone);
+                const sunset = getApproxSunset(jd, input.latitude, input.longitude, input.timezone);
+                const tatwa = calculateTatwaShuddhi(jd, sunrise, sunset, 'male');
+
+                // 🔱 GOD-TIER SCORING LOGIC (Divine Discrimination)
+                // Proximity Score (0-20 points)
+                const maxOffset = Math.max(Math.abs(input.offsetConfig.customMinutes || 30), 1);
+                const proximityScore = Math.max(0, (1 - (Math.abs(candidate.offsetMinutes) / maxOffset)) * 20);
+
+                // Shuddhi Score (0-10 points)
+                const shuddhiScore = (kunda.score + tatwa.score) / 20; // Max 10 if both are 100
+
+                // Cosmic Noise (0-5 points)
+                const cosmicNoise = (Math.sin(jd * 1000) + 1) * 2.5;
+
+                // Cumulative Score: Dasha(50) + Proximity(20) + Shuddhi(10) + Static(15) + Noise(5) = 100
+                const finalScore = 15 + normalizedDashaScore + proximityScore + shuddhiScore + cosmicNoise;
+
+                scored.push(pruneCandidate({
+                    ...candidate,
+                    score: Math.min(99, Math.max(10, finalScore)), // Clamp between 10-99
+                    ephemeris: {
+                        planets: ephemeris.planets,
+                        ascendant: ephemeris.ascendant,
+                        houses: ephemeris.houses
+                    },
+                    methodScores: {
+                        kundaShuddhi: kunda.score,
+                        tatwaShuddhi: tatwa.score,
+                        dashaCorrelation: Math.round(normalizedDashaScore * 2) // Shown as 0-100 for UI
+                    }
+                }));
+            } catch (error) {
+                logger.error(`Stage 1 failed for ${candidate.time}`, error);
             }
-
-            // Normalize dasha score to 0-50 range
-            const normalizedDashaScore = input.lifeEvents.length > 0
-                ? (dashaScore / (input.lifeEvents.length * 10)) * 50
-                : 25;
-
-            // 🔱 VEDIC SHUDDHI FILTERING (Candidate Pruning)
-            const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
-            const sunrise = getApproxSunrise(jd, input.latitude, input.longitude, input.timezone);
-            const sunset = getApproxSunset(jd, input.latitude, input.longitude, input.timezone);
-            const tatwa = calculateTatwaShuddhi(jd, sunrise, sunset, 'male');
-
-            // 🔱 GOD-TIER SCORING LOGIC (Divine Discrimination)
-            // Proximity Score (0-20 points)
-            const maxOffset = Math.max(Math.abs(input.offsetConfig.customMinutes || 30), 1);
-            const proximityScore = Math.max(0, (1 - (Math.abs(candidate.offsetMinutes) / maxOffset)) * 20);
-
-            // Shuddhi Score (0-10 points)
-            const shuddhiScore = (kunda.score + tatwa.score) / 20; // Max 10 if both are 100
-
-            // Cosmic Noise (0-5 points)
-            const cosmicNoise = (Math.sin(jd * 1000) + 1) * 2.5;
-
-            // Cumulative Score: Dasha(50) + Proximity(20) + Shuddhi(10) + Static(15) + Noise(5) = 100
-            const finalScore = 15 + normalizedDashaScore + proximityScore + shuddhiScore + cosmicNoise;
-
-            scored.push(pruneCandidate({
-                ...candidate,
-                score: Math.min(99, Math.max(10, finalScore)), // Clamp between 10-99
-                ephemeris: {
-                    planets: ephemeris.planets,
-                    ascendant: ephemeris.ascendant,
-                    houses: ephemeris.houses
-                },
-                methodScores: {
-                    kundaShuddhi: kunda.score,
-                    tatwaShuddhi: tatwa.score,
-                    dashaCorrelation: Math.round(normalizedDashaScore * 2) // Shown as 0-100 for UI
-                }
-            }));
-        } catch (error) {
-            logger.error(`Stage 1 failed for ${candidate.time}`, error);
-        }
-    }
+        })); // Close map
+    } // Close for loop
 
     // 🚀 GOD-TIER MEMORY PRUNING
     const prunedResults = scored.map(c => pruneCandidate(c));
@@ -745,7 +788,7 @@ async function stage2AILevel1(
 ): Promise<{ results: StageCandidate[]; reasoning: string }> {
     const results: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
-    const BATCH_SIZE = 2; // Reduced for HF Free Tier (2 vCPU) stability
+    const BATCH_SIZE = 4; // Optimized for 2 vCPU / 16GB stability
 
     logger.info(`Starting Stage 2 parallel processing for ${candidates.length} candidates`);
     emitStageStats(input.sessionId, 2, candidates.length, "AI Level 1 Screening");
@@ -935,116 +978,125 @@ async function stage4FineGrid(
     const scored: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
 
-    for (const candidate of candidates) {
-        // 🛑 Check for cancellation
-        await throwIfCancelled(input.sessionId, input.abortSignal);
-        try {
-            const ephemeris = await calculateEphemeris(
-                input.dateOfBirth,
-                candidate.time,
-                input.latitude,
-                input.longitude,
-                input.timezone
-            );
+    // 🚀 GOD-TIER CONCURRENCY
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+        const batch = candidates.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async (candidate) => {
+            // 🛑 Check for cancellation
+            await throwIfCancelled(input.sessionId, input.abortSignal);
 
-            const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
-            const moonSidereal = ephemeris.planets.moon.longitude;
+            // 🐢 RAM-AWARE DYNAMIC THROTTLING
+            await sleep(getAdaptiveDelay());
 
-            // 🔮 Emit engine context for JSON HUD
-            emitAIContext(input.sessionId, {
-                stage: 4,
-                candidateTime: candidate.time,
-                planetaryInfo: {
-                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
-                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
-                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
-                },
-                dasha: "Fine Correlation Scan",
-                divCharts: "D9 Navamsha Audit"
-            });
+            try {
+                const ephemeris = await calculateEphemeris(
+                    input.dateOfBirth,
+                    candidate.time,
+                    input.latitude,
+                    input.longitude,
+                    input.timezone
+                );
 
-            // ⚡ PERSISTENT CALCULATION LOG
-            await progress.addCalculationLog(candidate.time,
-                `Fine Grid [30s]: Correlating ${input.lifeEvents.length} events against ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
-            );
-            const vimPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
-            const yogPeriods = calculateYoginiDasha(moonSidereal, birthDate);
-            const charaPeriods = calculateCharaDasha(ephemeris, birthDate);
+                const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
+                const moonSidereal = ephemeris.planets.moon.longitude;
 
-            // 🔱 STRUCTURAL LOG for the Nirayana Engine HUD
-            emitCalculationLog(input.sessionId, {
-                candidateTime: candidate.time,
-                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(2)}°`,
-                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(2)}°`,
-                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
-                dashaObj: `${vimPeriods[0].lord}/${vimPeriods[0].subPeriods[0].lord}`
-            });
+                // 🔮 Emit engine context for JSON HUD
+                emitAIContext(input.sessionId, {
+                    stage: 4,
+                    candidateTime: candidate.time,
+                    planetaryInfo: {
+                        sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
+                        moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
+                        ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
+                    },
+                    dasha: "Fine Correlation Scan",
+                    divCharts: "D9 Navamsha Audit"
+                });
 
-            let score = 0;
-            let methodMatches = 0;
+                // ⚡ PERSISTENT CALCULATION LOG
+                await progress.addCalculationLog(candidate.time,
+                    `Fine Grid [30s]: Correlating ${input.lifeEvents.length} events against ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
+                );
+                const vimPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
+                const yogPeriods = calculateYoginiDasha(moonSidereal, birthDate);
+                const charaPeriods = calculateCharaDasha(ephemeris, birthDate);
 
-            for (const event of input.lifeEvents) {
-                const eventDate = new Date(event.eventDate);
+                // 🔱 STRUCTURAL LOG for the Nirayana Engine HUD
+                emitCalculationLog(input.sessionId, {
+                    candidateTime: candidate.time,
+                    sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(2)}°`,
+                    moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(2)}°`,
+                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
+                    dashaObj: `${vimPeriods[0].lord}/${vimPeriods[0].subPeriods[0].lord}`
+                });
 
-                // Vimshottari check
-                const vimDasha = getDashaForDate(vimPeriods, eventDate);
-                if (vimDasha) {
-                    const vimMatch = dashaSupportsEvent(vimDasha, event.category, event.eventType);
-                    if (vimMatch.supports) {
-                        score += 25;
-                        methodMatches++;
+                let score = 0;
+                let methodMatches = 0;
+
+                for (const event of input.lifeEvents) {
+                    const eventDate = new Date(event.eventDate);
+
+                    // Vimshottari check
+                    const vimDasha = getDashaForDate(vimPeriods, eventDate);
+                    if (vimDasha) {
+                        const vimMatch = dashaSupportsEvent(vimDasha, event.category, event.eventType);
+                        if (vimMatch.supports) {
+                            score += 25;
+                            methodMatches++;
+                        }
+                    }
+
+                    // Yogini check
+                    const yogDasha = getYoginiDashaForDate(yogPeriods, eventDate);
+                    if (yogDasha) {
+                        const yogMatch = yoginiSupportsEvent(yogDasha, event.category, event.eventType);
+                        if (yogMatch.supports) {
+                            score += 15;
+                            methodMatches++;
+                        }
+                    }
+
+                    // Chara check
+                    const charDasha = getCharaDashaForDate(charaPeriods, eventDate);
+                    if (charDasha) {
+                        const charMatch = charaDashaSupportsEvent(charDasha, event.category, ephemeris);
+                        if (charMatch.supports) {
+                            score += 15;
+                            methodMatches++;
+                        }
                     }
                 }
 
-                // Yogini check
-                const yogDasha = getYoginiDashaForDate(yogPeriods, eventDate);
-                if (yogDasha) {
-                    const yogMatch = yoginiSupportsEvent(yogDasha, event.category, event.eventType);
-                    if (yogMatch.supports) {
-                        score += 15;
-                        methodMatches++;
-                    }
-                }
+                // 🔱 VEDIC SHUDDHI FILTERING
+                const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
+                const tzNum = typeof input.timezone === 'number' ? input.timezone : parseFloat(String(input.timezone)) || 5.5;
+                const sunrise = getApproxSunrise(jd, input.latitude, input.longitude, tzNum);
+                const sunset = getApproxSunset(jd, input.latitude, input.longitude, tzNum);
+                const tatwa = calculateTatwaShuddhi(jd, sunrise, sunset, 'male');
 
-                // Chara check
-                const charDasha = getCharaDashaForDate(charaPeriods, eventDate);
-                if (charDasha) {
-                    const charMatch = charaDashaSupportsEvent(charDasha, event.category, ephemeris);
-                    if (charMatch.supports) {
-                        score += 15;
-                        methodMatches++;
+                if (kunda.passed) score += 10;
+                if (tatwa.passed) score += 5;
+
+                // Normalize
+                const maxPossible = input.lifeEvents.length * 55 + 15;
+                score = Math.round((score / maxPossible) * 100);
+
+                scored.push({
+                    time: candidate.time,
+                    score,
+                    ephemeris, // 🔱 Preserved for final report
+                    offsetMinutes: candidate.offsetMinutes,
+                    methodScores: {
+                        kundaShuddhi: kunda.score,
+                        tatwaShuddhi: tatwa.score,
                     }
-                }
+                });
+            } catch (error) {
+                logger.error(`Stage 4 failed for ${candidate.time}`, error);
             }
-
-            // 🔱 VEDIC SHUDDHI FILTERING
-            const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
-            const tzNum = typeof input.timezone === 'number' ? input.timezone : parseFloat(String(input.timezone)) || 5.5;
-            const sunrise = getApproxSunrise(jd, input.latitude, input.longitude, tzNum);
-            const sunset = getApproxSunset(jd, input.latitude, input.longitude, tzNum);
-            const tatwa = calculateTatwaShuddhi(jd, sunrise, sunset, 'male');
-
-            if (kunda.passed) score += 10;
-            if (tatwa.passed) score += 5;
-
-            // Normalize
-            const maxPossible = input.lifeEvents.length * 55 + 15;
-            score = Math.round((score / maxPossible) * 100);
-
-            scored.push({
-                time: candidate.time,
-                score,
-                ephemeris, // 🔱 Preserved for final report
-                offsetMinutes: candidate.offsetMinutes,
-                methodScores: {
-                    kundaShuddhi: kunda.score,
-                    tatwaShuddhi: tatwa.score,
-                }
-            });
-        } catch (error) {
-            logger.error(`Stage 4 failed for ${candidate.time}`, error);
-        }
-    }
+        })); // Close map
+    } // Close for loop
 
     scored.sort((a, b) => b.score - a.score);
     return scored;
@@ -1070,123 +1122,132 @@ async function stage6MicroGrid(
     const scored: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
 
-    for (const candidate of candidates) {
-        // 🛑 Check for cancellation inside the loop
-        await throwIfCancelled(input.sessionId, input.abortSignal);
-        try {
-            const ephemeris = await calculateEphemeris(
-                input.dateOfBirth,
-                candidate.time,
-                input.latitude,
-                input.longitude,
-                input.timezone
-            );
+    // 🚀 GOD-TIER CONCURRENCY
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
+        const batch = candidates.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async (candidate) => {
+            // 🛑 Check for cancellation inside the loop
+            await throwIfCancelled(input.sessionId, input.abortSignal);
 
-            const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
-            const moonSidereal = ephemeris.planets.moon.longitude;
+            // 🐢 RAM-AWARE DYNAMIC THROTTLING
+            await sleep(getAdaptiveDelay());
 
-            // 🔮 Emit engine context for JSON HUD
-            emitAIContext(input.sessionId, {
-                stage: 6,
-                candidateTime: candidate.time,
-                planetaryInfo: {
-                    sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
-                    moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
-                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
-                },
-                dasha: "Sub-Second Micro Correlation",
-                divCharts: "D60 Shashtiamsha"
-            });
+            try {
+                const ephemeris = await calculateEphemeris(
+                    input.dateOfBirth,
+                    candidate.time,
+                    input.latitude,
+                    input.longitude,
+                    input.timezone
+                );
 
-            // ⚡ PERSISTENT CALCULATION LOG
-            await progress.addCalculationLog(candidate.time,
-                `Micro-Grid Sync [6s]: Asc transition to ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
-            );
+                const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
+                const moonSidereal = ephemeris.planets.moon.longitude;
 
-            // Comprehensive scoring at seconds level
-            const vimPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
-            const yogPeriods = calculateYoginiDasha(moonSidereal, birthDate);
-            const charaPeriods = calculateCharaDasha(ephemeris, birthDate);
-            const divisionalCharts = generateDivisionalCharts(ephemeris);
+                // 🔮 Emit engine context for JSON HUD
+                emitAIContext(input.sessionId, {
+                    stage: 6,
+                    candidateTime: candidate.time,
+                    planetaryInfo: {
+                        sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
+                        moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
+                        ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
+                    },
+                    dasha: "Sub-Second Micro Correlation",
+                    divCharts: "D60 Shashtiamsha"
+                });
 
-            // 🔱 STRUCTURAL LOG for the Nirayana Engine HUD
-            emitCalculationLog(input.sessionId, {
-                candidateTime: candidate.time,
-                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(2)}°`,
-                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(2)}°`,
-                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
-                dashaObj: `${vimPeriods[0].lord}/${vimPeriods[0].subPeriods[0].lord}`
-            });
+                // ⚡ PERSISTENT CALCULATION LOG
+                await progress.addCalculationLog(candidate.time,
+                    `Micro-Grid Sync [6s]: Asc transition to ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
+                );
 
-            let score = 0;
+                // Comprehensive scoring at seconds level
+                const vimPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
+                const yogPeriods = calculateYoginiDasha(moonSidereal, birthDate);
+                const charaPeriods = calculateCharaDasha(ephemeris, birthDate);
+                const divisionalCharts = generateDivisionalCharts(ephemeris);
 
-            for (const event of input.lifeEvents) {
-                const eventDate = new Date(event.eventDate);
+                // 🔱 STRUCTURAL LOG for the Nirayana Engine HUD
+                emitCalculationLog(input.sessionId, {
+                    candidateTime: candidate.time,
+                    sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(2)}°`,
+                    moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(2)}°`,
+                    ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
+                    dashaObj: `${vimPeriods[0].lord}/${vimPeriods[0].subPeriods[0].lord}`
+                });
 
-                // All dasha systems
-                const vimDasha = getDashaForDate(vimPeriods, eventDate);
-                const yogDasha = getYoginiDashaForDate(yogPeriods, eventDate);
-                const charDasha = getCharaDashaForDate(charaPeriods, eventDate);
+                let score = 0;
 
-                if (vimDasha && dashaSupportsEvent(vimDasha, event.category, event.eventType).supports) {
-                    score += 20;
-                }
-                if (yogDasha && yoginiSupportsEvent(yogDasha, event.category, event.eventType).supports) {
-                    score += 10;
-                }
-                if (charDasha && charaDashaSupportsEvent(charDasha, event.category, ephemeris).supports) {
-                    score += 10;
-                }
+                for (const event of input.lifeEvents) {
+                    const eventDate = new Date(event.eventDate);
 
-                // Divisional chart bonus
-                if (event.category === 'marriage' && divisionalCharts['D9']) {
-                    const venusD9 = divisionalCharts['D9'].planets.venus;
-                    if (venusD9 && ['Taurus', 'Libra', 'Pisces'].includes(venusD9.sign)) {
-                        score += 5;
+                    // All dasha systems
+                    const vimDasha = getDashaForDate(vimPeriods, eventDate);
+                    const yogDasha = getYoginiDashaForDate(yogPeriods, eventDate);
+                    const charDasha = getCharaDashaForDate(charaPeriods, eventDate);
+
+                    if (vimDasha && dashaSupportsEvent(vimDasha, event.category, event.eventType).supports) {
+                        score += 20;
+                    }
+                    if (yogDasha && yoginiSupportsEvent(yogDasha, event.category, event.eventType).supports) {
+                        score += 10;
+                    }
+                    if (charDasha && charaDashaSupportsEvent(charDasha, event.category, ephemeris).supports) {
+                        score += 10;
+                    }
+
+                    // Divisional chart bonus
+                    if (event.category === 'marriage' && divisionalCharts['D9']) {
+                        const venusD9 = divisionalCharts['D9'].planets.venus;
+                        if (venusD9 && ['Taurus', 'Libra', 'Pisces'].includes(venusD9.sign)) {
+                            score += 5;
+                        }
+                    }
+                    if (event.category === 'career' && divisionalCharts['D10']) {
+                        const sunD10 = divisionalCharts['D10'].planets.sun;
+                        if (sunD10 && ['Leo', 'Aries'].includes(sunD10.sign)) {
+                            score += 5;
+                        }
                     }
                 }
-                if (event.category === 'career' && divisionalCharts['D10']) {
-                    const sunD10 = divisionalCharts['D10'].planets.sun;
-                    if (sunD10 && ['Leo', 'Aries'].includes(sunD10.sign)) {
-                        score += 5;
+
+                // Physical traits
+                if (input.physicalTraits) {
+                    const traitScore = scorePhysicalTraits(ephemeris, input.physicalTraits);
+                    score += traitScore.score * 0.1;
+                }
+
+                // 🔱 VEDIC SHUDDHI FILTERING
+                const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
+                const tzNum = typeof input.timezone === 'number' ? input.timezone : parseFloat(String(input.timezone)) || 5.5;
+                const sunrise = getApproxSunrise(jd, input.latitude, input.longitude, tzNum);
+                const sunset = getApproxSunset(jd, input.latitude, input.longitude, tzNum);
+                const tatwa = calculateTatwaShuddhi(jd, sunrise, sunset, 'male');
+
+                if (kunda.passed) score += 10;
+                if (tatwa.passed) score += 5;
+
+                // Normalize
+                const maxPossible = input.lifeEvents.length * 50 + 10 + 15;
+                score = Math.round((score / maxPossible) * 100);
+
+                scored.push({
+                    time: candidate.time,
+                    score,
+                    ephemeris, // 🔱 Preserved for final report
+                    offsetMinutes: candidate.offsetMinutes,
+                    methodScores: {
+                        kundaShuddhi: kunda.score,
+                        tatwaShuddhi: tatwa.score,
                     }
-                }
+                });
+            } catch (error) {
+                logger.error(`Stage 6 failed for ${candidate.time}`, error);
             }
-
-            // Physical traits
-            if (input.physicalTraits) {
-                const traitScore = scorePhysicalTraits(ephemeris, input.physicalTraits);
-                score += traitScore.score * 0.1;
-            }
-
-            // 🔱 VEDIC SHUDDHI FILTERING
-            const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
-            const tzNum = typeof input.timezone === 'number' ? input.timezone : parseFloat(String(input.timezone)) || 5.5;
-            const sunrise = getApproxSunrise(jd, input.latitude, input.longitude, tzNum);
-            const sunset = getApproxSunset(jd, input.latitude, input.longitude, tzNum);
-            const tatwa = calculateTatwaShuddhi(jd, sunrise, sunset, 'male');
-
-            if (kunda.passed) score += 10;
-            if (tatwa.passed) score += 5;
-
-            // Normalize
-            const maxPossible = input.lifeEvents.length * 50 + 10 + 15;
-            score = Math.round((score / maxPossible) * 100);
-
-            scored.push({
-                time: candidate.time,
-                score,
-                ephemeris, // 🔱 Preserved for final report
-                offsetMinutes: candidate.offsetMinutes,
-                methodScores: {
-                    kundaShuddhi: kunda.score,
-                    tatwaShuddhi: tatwa.score,
-                }
-            });
-        } catch (error) {
-            logger.error(`Stage 6 failed for ${candidate.time}`, error);
-        }
-    }
+        })); // Close map
+    } // Close for loop
 
     // 🚀 GOD-TIER MEMORY PRUNING
     const prunedResults = scored.map(c => pruneCandidate(c));
@@ -1755,9 +1816,9 @@ async function stage5AILevel2(
 
     logger.info(`Phase 9: Dynamic Tournament initialized. Qualified Gladiators: ${qualifiedCandidates.length} (from Pool of ${candidates.length})`);
 
-    // ⚔️ THE TOURNAMENT: PARALLEL BATCH PROCESSING
-    const BATCH_SIZE = 5; // Reduced from 10 for HF stability
-    const CONCURRENCY = 2; // Reduced from 3 for HF Free Tier (2 vCPU) stability
+    // ⚔️ THE TOURNAMENT: PARALLEL BATCH PROCESSING (Optimized for 16GB / 2vCPU)
+    const BATCH_SIZE = 8;
+    const CONCURRENCY = 3;
     const tournamentResults: any[] = [];
 
     // Create Batches
@@ -1864,9 +1925,9 @@ async function stage7AILevel3(
 
     logger.info(`Phase 9: Stage 7 Grand Finals - ${batch.length} Finalists entering...`);
 
-    // ⚔️ GRAND FINALS: PARALLEL PROCESSING
-    const BATCH_SIZE = 4; // Reduced from 5 for deeper context vs memory limit
-    const CONCURRENCY = 2; // Micro-precision requires more focus, lower concurrency
+    // ⚔️ GRAND FINALS: PARALLEL PROCESSING (Optimized for 16GB / 2vCPU)
+    const BATCH_SIZE = 8;
+    const CONCURRENCY = 3;
     const finalResults: any[] = [];
 
     // Create Batches

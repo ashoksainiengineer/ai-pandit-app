@@ -120,11 +120,11 @@ export function LiveGodModeTerminal({
                             <Target className="w-3.5 h-3.5 text-orange-500" />
                             <span className="text-orange-500 font-black uppercase tracking-widest text-[10px]">L1_COARSE_SCAN</span>
                         </div>
-                        <span className="text-[#3A4452] font-bold text-[9px]">{level1Candidates.length} NODES</span>
+                        <span className="text-[#3A4452] font-bold text-[9px]">{level1Candidates.length} NODES (Showing Top 128)</span>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
                         <div className="grid grid-cols-8 gap-2">
-                            {level1Candidates.map((c, i) => (
+                            {level1Candidates.slice(0, 128).map((c, i) => (
                                 <motion.button
                                     key={`${c.time}-${i}`}
                                     initial={{ opacity: 0, scale: 0.5 }}
@@ -141,7 +141,7 @@ export function LiveGodModeTerminal({
                                     {c.time === selectedCandidate && <div className="absolute inset-0 rounded-full animate-ping bg-white/30" />}
                                 </motion.button>
                             ))}
-                            {Array.from({ length: Math.max(0, 120 - level1Candidates.length) }).map((_, i) => (
+                            {Array.from({ length: Math.max(0, 128 - Math.min(128, level1Candidates.length)) }).map((_, i) => (
                                 <div key={`empty-${i}`} className="aspect-square bg-[#1A2433]/10 rounded-full" />
                             ))}
                         </div>
@@ -155,7 +155,7 @@ export function LiveGodModeTerminal({
                             <Filter className="w-3.5 h-3.5 text-blue-500" />
                             <span className="text-blue-500 font-black uppercase tracking-widest text-[10px]">L2_FINE_TILES</span>
                         </div>
-                        <span className="text-[#3A4452] font-bold text-[9px]">{level2Candidates.length} SECTORS</span>
+                        <span className="text-[#3A4452] font-bold text-[9px]">{level2Candidates.length} SECTORS (Showing Top 30)</span>
                     </div>
                     <div className="flex-1 overflow-y-auto p-3 custom-scrollbar">
                         {level2Candidates.length === 0 ? (
@@ -165,7 +165,7 @@ export function LiveGodModeTerminal({
                             </div>
                         ) : (
                             <div className="grid grid-cols-2 gap-2">
-                                {level2Candidates.sort((a, b) => b.score - a.score).map((c) => (
+                                {level2Candidates.sort((a, b) => b.score - a.score).slice(0, 30).map((c) => (
                                     <motion.div
                                         key={c.time}
                                         initial={{ opacity: 0, x: -10 }}
@@ -221,8 +221,8 @@ export function LiveGodModeTerminal({
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: idx * 0.1 }}
                                         className={`p-4 rounded-xl border-2 relative group overflow-hidden ${idx === 0
-                                                ? 'bg-[#D4AF37]/5 border-[#D4AF37] shadow-[0_0_30px_rgba(212,175,55,0.15)]'
-                                                : 'bg-[#0A0F14] border-[#1A2433]'
+                                            ? 'bg-[#D4AF37]/5 border-[#D4AF37] shadow-[0_0_30px_rgba(212,175,55,0.15)]'
+                                            : 'bg-[#0A0F14] border-[#1A2433]'
                                             }`}
                                     >
                                         <div className="flex justify-between items-center mb-4">
@@ -289,8 +289,8 @@ export function LiveGodModeTerminal({
                                         [{new Date().toLocaleTimeString('en-GB', { hour12: false })}]
                                     </span>
                                     <span className={`font-black uppercase tracking-tighter w-20 shrink-0 ${log.log.includes('Coarse') || log.log.includes('Minute') ? 'text-orange-500' :
-                                            log.log.includes('Fine') || log.log.includes('30s') ? 'text-blue-500' :
-                                                'text-[#D4AF37]'
+                                        log.log.includes('Fine') || log.log.includes('30s') ? 'text-blue-500' :
+                                            'text-[#D4AF37]'
                                         }`}>
                                         {log.candidateTime === 'Global' ? 'SYS_AUDIT' : log.candidateTime}
                                     </span>

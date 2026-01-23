@@ -88,28 +88,18 @@ export function generateCandidateTimes(
     let description: string;
 
     if (offsetConfig.customMinutes !== undefined) {
-      // Custom offset specified
       offsetMinutes = offsetConfig.customMinutes;
-      // Dynamic interval: Aim for ~40-60 candidates total
-      // e.g., 120 min offset -> 240 min range -> interval 4 mins -> 60 candidates
-      interval = Math.max(1, Math.floor(offsetMinutes / 20));
-      description = `±${offsetMinutes} minutes (custom)`;
     } else if (offsetConfig.preset) {
-      // Preset offset selected
       const preset = OFFSET_PRESETS[offsetConfig.preset];
       offsetMinutes = preset.minutes;
-
-      // FORCE DENSE INTERVAL for better coverage of timing errors
-      if (offsetMinutes >= 60) {
-        interval = Math.max(1, Math.floor(offsetMinutes / 60)); // e.g. 1 min for 1h, 2 min for 2h
-      } else {
-        interval = Math.min(preset.interval, 2); // Even for 30min, check every 2 minutes
-      }
-
-      description = preset.label;
     } else {
       throw new Error('No offset configuration provided');
     }
+
+    interval = 0.5; // 🔱 ZERO COMPROMISE: Strict 30-second interval for all ranges
+    description = offsetConfig.customMinutes !== undefined
+      ? `±${offsetMinutes} min (30s Precision Grid)`
+      : `${OFFSET_PRESETS[offsetConfig.preset!].label} (30s Precision Grid)`;
 
     logger.info('Offset configuration', {
       offsetMinutes,
