@@ -185,6 +185,16 @@ export function UnifiedAIPanel({
                         )}
                     </div>
                 )}
+
+                {/* 📊 LIVE CALCULATION STREAM (RESTORATION) */}
+                {calculationLogs && (
+                    <div className="border-t border-[#3A4452]/30">
+                        <LiveCalculationPanel
+                            logs={calculationLogs}
+                            isAnalyzing={isActive}
+                        />
+                    </div>
+                )}
             </motion.div>
         );
     }

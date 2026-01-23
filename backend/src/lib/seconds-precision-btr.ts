@@ -76,7 +76,7 @@ import { logger } from './logger.js';
 import { ProgressTracker } from './progress-tracker.js';
 import { LifeEvent, EphemerisData } from './types.js';
 import { throwIfCancelled, isCancellationError } from './cancellation-manager.js';
-import { emitCandidateScore, emitAIContext, emitCalculationLog, emitStageStats } from './session-events.js';
+import { emitCandidateScore, emitAIContext, emitCalculationLog, emitStageStats, emitAIThinking } from './session-events.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -571,6 +571,9 @@ async function stage1CoarseGrid(
     // Process SEQUENTIALLY for RAM efficiency
     emitStageStats(input.sessionId, 1, candidates.length, "Coarse Grid Calculation");
 
+    // 🧠 Early feedback for Reasoning HUD
+    emitAIThinking(input.sessionId, `[ENGINE] Starting Coarse Grid Scan: Initializing mathematical convergence for ${candidates.length} candidates. Matrix calculations active...\n`, 1);
+
     for (const candidate of candidates) {
         // 🛑 Check for cancellation inside the loop
         await throwIfCancelled(input.sessionId, input.abortSignal);
@@ -883,6 +886,8 @@ async function stage4FineGrid(
     const birthDate = new Date(input.dateOfBirth);
 
     for (const candidateTime of candidates) {
+        // 🛑 Check for cancellation
+        await throwIfCancelled(input.sessionId, input.abortSignal);
         try {
             const ephemeris = await calculateEphemeris(
                 input.dateOfBirth,
@@ -1469,6 +1474,9 @@ async function stage10SpouseVerification(
     );
 
     let score = 50;
+
+    // 🛑 Check for cancellation
+    await throwIfCancelled(input.sessionId, input.abortSignal);
 
     // Check Venus-Venus aspects
     const userVenus = userEphemeris.planets.venus.longitude;

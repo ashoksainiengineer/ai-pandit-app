@@ -48,22 +48,37 @@ export default function ResultsPage() {
             }
         }
 
-        // 2. Fetch from API if not in local storage (for shared links or manual refresh)
+        // 2. Fetch from API if not in local storage or if local storage is just skeletal (no analysisResult)
         const fetchFromServer = async () => {
             try {
-                console.log('📡 [Results] Local data missing. Hydrating from API...');
+                console.log('📡 [Results] Local data missing or skeletal. Hydrating from API...');
                 const res = await fetch(`/api/sessions/${id}`);
                 const data = await res.json();
 
                 if (data.success && data.data) {
                     const session = data.data;
                     if (session.analysisResult) {
-                        setResultData(session.analysisResult);
+                        try {
+                            const parsedDetails = typeof session.analysisResult === 'string'
+                                ? JSON.parse(session.analysisResult)
+                                : session.analysisResult;
+
+                            setResultData({
+                                ...session,
+                                analysisResult: session.analysisResult
+                            });
+                        } catch (e) {
+                            setResultData(session);
+                        }
+
                         setBirthData(session.birthData);
-                        setReasoningLogs(session.reasoningLogs); // Set logs
+                        setReasoningLogs(session.reasoningLogs);
 
                         // Persist back to localStorage for future speed
-                        localStorage.setItem(`rectification_result_${id}`, JSON.stringify(session.analysisResult));
+                        localStorage.setItem(`rectification_result_${id}`, JSON.stringify({
+                            ...session,
+                            analysisResult: session.analysisResult
+                        }));
                         localStorage.setItem(`birthData_${id}`, JSON.stringify(session.birthData));
                         if (session.reasoningLogs) {
                             localStorage.setItem(`reasoningLogs_${id}`, JSON.stringify(session.reasoningLogs));
@@ -77,7 +92,9 @@ export default function ResultsPage() {
             }
         };
 
-        if (!stored || !storedBirthData) {
+        const isSkeletal = stored && !JSON.parse(stored).analysisResult;
+
+        if (!stored || !storedBirthData || isSkeletal) {
             fetchFromServer();
         } else {
             setLoading(false);

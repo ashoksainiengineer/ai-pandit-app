@@ -50,7 +50,7 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
         console.error(`[SSE] Error checking session status for ${sessionId}:`, error);
     }
 
-    console.log(`[SSE] Incoming headers: ${JSON.stringify(req.headers)}`);
+    // console.log(`[SSE] Incoming headers: ${JSON.stringify(req.headers)}`);
 
     // Set SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
@@ -85,6 +85,16 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
         try {
             console.log(`[SSE] Fetching initial progress for ${sessionId}`);
             const currentProgress = await getSessionProgress(sessionId);
+
+            // 🚀 IMMEDIATE FEEDBACK: If this is a fresh connection and no progress yet, send a warmup hint
+            if (!currentProgress || currentProgress.currentStep === 0) {
+                sendEvent(res, {
+                    type: 'ai_thinking',
+                    chunk: "[SYSTEM] Initializing God-Tier Rectification Engine... Establishing mathematical grid connection.\n",
+                    stage: 1
+                });
+            }
+
             if (currentProgress) {
                 console.log(`[SSE] Sending initial state for ${sessionId}`);
                 sendEvent(res, {

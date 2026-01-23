@@ -73,6 +73,7 @@ export async function GET(request: NextRequest, { params }: SessionParams) {
                 rectifiedTime: s.rectifiedTime,
                 accuracy: s.accuracy,
                 confidence: s.confidence,
+                analysisResult: s.analysisResult ? JSON.parse(s.analysisResult) : null,
                 error: s.errorMessage,
                 createdAt: s.createdAt,
                 reasoningLogs: s.reasoningLogs ? JSON.parse(s.reasoningLogs) : null,

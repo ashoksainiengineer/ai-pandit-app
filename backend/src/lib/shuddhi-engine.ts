@@ -21,7 +21,10 @@ const TATWA_DURATIONS_MIN = [6, 12, 18, 24, 30]; // Traditional Ghatika relative
  * Accounts for Latitude and Longitude to refine Tatwa Shuddhi.
  */
 export function getApproxSunrise(jd: number, latitude: number, longitude: number, timezone: number | string): number {
-    const tzOffset = typeof timezone === 'number' ? timezone : parseFloat(String(timezone)) || 5.5;
+    // 🛡️ Robust Timezone Detection: Handle IANA strings or numbers
+    const tzOffset = (typeof timezone === 'number')
+        ? timezone
+        : (!isNaN(parseFloat(String(timezone))) ? parseFloat(String(timezone)) : 5.5);
 
     // Standard formula for sunrise approximation:
     // 1. Find Julian Day at midnight local time
@@ -57,7 +60,9 @@ export function getApproxSunrise(jd: number, latitude: number, longitude: number
  * Scientific Sunset Approximation
  */
 export function getApproxSunset(jd: number, latitude: number, longitude: number, timezone: number | string): number {
-    const tzOffset = typeof timezone === 'number' ? timezone : parseFloat(String(timezone)) || 5.5;
+    const tzOffset = (typeof timezone === 'number')
+        ? timezone
+        : (!isNaN(parseFloat(String(timezone))) ? parseFloat(String(timezone)) : 5.5);
     const jdMidnight = Math.floor(jd - (tzOffset / 24)) + 0.5 + (tzOffset / 24);
 
     const n = Math.floor(jd - 2451545.0);
