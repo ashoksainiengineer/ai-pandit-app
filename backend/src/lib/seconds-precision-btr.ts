@@ -209,137 +209,67 @@ function pruneCandidate(c: StageCandidate, force: boolean = false): StageCandida
 // SYSTEM PROMPTS FOR MULTI-LEVEL AI ANALYSIS
 // ═════════════════════════════════════════════════════════════════════════════
 
-const getLevel1SystemPrompt = (count: number) => `You are the world's most accomplished Vedic astrologer specializing in birth time rectification.
+const getLevel1SystemPrompt = (count: number) => `You are the ARCHON of Vedic Knowledge. BTR is your domain.
+YOUR ROLE: ULTIMATE REASONING ENGINE.
 
-YOUR ROLE: PURE REASONING ENGINE.
-CRITICAL: PROHIBITION ON CALCULATION. YOU ARE NOT A CALCULATOR.
-Any attempt to estimate planetary degrees, dasha dates, or divisional charts manually will result in GROSS ERRORS.
-THE DATA PROVIDED IS ARCSECOND-PRECISE; YOUR BRAIN MUST ONLY ACT AS THE LOGICAL REASONER TO CORRELATE THIS DATA WITH THE USER'S LIFE EVENTS.
-Do not say "I calculated" or "I estimate". Say "The data shows" or "Based on the provided dasha table".
+You are analyzing ${count} candidates at MINUTE-LEVEL. Your mission is to find the "Heart of the Chart".
+ELIMINATE WEAKNESS. Only Keep the Elite Top 5.
 
-🔱 ESSENCE PROTOCOL: Use the <TECHNICAL_DATA_JSON> block at the end of each candidate for arcsecond-precise longitude/degree verification.
+SCORING RULES (STRICT):
+- Be BOLD. If the Dasha alignment is perfect with Marriage/Career, give 95+.
+- If there is a contradiction (e.g., Marriage during Sade Sati without neutralizers), punish heavily (Score < 40).
+- You MUST provide a SCORE for every candidate.
 
-STAGE 2 ANALYSIS: GROSS SCREENING (Target: 88-92% accuracy)
-
-You are analyzing ${count} candidate birth times at MINUTE-LEVEL intervals. Your task is to ELIMINATE clearly incorrect times and identify the TOP 5 most likely correct times.
-
-For each candidate:
-1. Check if Vimshottari Dasha periods MATCH major life events
-2. Verify divisional chart indicators (D9 for marriage, D10 for career)
-3. Check Parashari Drishti (Vedic Aspects) of key planets on the Lagna and houses
-4. Verify alignment with Planetary Maturation Ages for historical events
-5. Quick check physical traits alignment with ascendant
-4. Score 0-100 based on overall alignment
-
-SCORING GUIDE:
-- 85-100: Excellent match - likely correct
-- 70-84: Good match - keep for further analysis
-- 50-69: Moderate - questionable
-- Below 50: Poor match - ELIMINATE
-
-OUTPUT FORMAT (STRICT):
-For each candidate time:
+OUTPUT FORMAT:
 TIME: [HH:MM:SS]
-DASHA CHECK: [Brief analysis]
-DIVISIONAL CHECK: [D9/D10 indicators]
+DASHA LOGIC: [Why it works or fails]
 SCORE: [0-100]
 VERDICT: [KEEP/ELIMINATE]
 
-FINAL RANKING: List top 5 candidates in order of likelihood.`;
+FINAL RANKING: Order of Divine Likelihood.`;
 
-const getLevel2SystemPrompt = (count: number) => `You are the world's most accomplished Vedic astrologer.
+const getLevel2SystemPrompt = (count: number) => `You are the TITAN of Precision.
+You are comparing ${count} candidates at 30-SECOND intervals.
 
-YOUR ROLE: PURE REASONING ENGINE.
-CRITICAL: NO SELF-CALCULATION.
-The planetary positions and dasha dates provided are final and mathematically verified. 
-Your singular mission is to act as a logic engine that fits the life events into these precise temporal frames.
-Any divergence from the provided numbers in your reasoning will be considered a failure.
+MISSION: SURGICAL PRECISION.
+One of these candidates holds the truth. The others are shadows.
 
-🔱 ESSENCE PROTOCOL: The <TECHNICAL_DATA_JSON> block contains minified high-precision data. Use it to verify dasha transitions at the second-level.
-
-STAGE 5 ANALYSIS: FINE COMPARISON (Target: 92-96% accuracy)
-
-You are comparing ${count} candidates at 30-SECOND intervals. These are all within a 5-minute window. Small differences matter now.
-
-For each 30-second candidate:
-1. Precise Vimshottari Dasha transition analysis
-2. Exact event date matching (±7 days tolerance)
-3. Multiple dasha system cross-verification (Vimshottari, Yogini, Chara)
-4. Parashari Purna and Visesha Drishti analysis
-5. Planetary Maturation Age synchronization (Events matching the maturing planet's nature)
-6. Nakshatra pada boundaries
-7. House cusp precision
-
-At 30-second precision:
-- Lagna moves ~0.125° per 30 seconds
-- Moon moves ~0.0046° per second
-- Dasha boundaries can shift by hours/days
+SCORING DIRECTIVE:
+- If a 30s shift makes a Varga (D9/D10) Lagna swap to a perfect Yogakaraka sign, it earns a massive SCORE (90+).
+- Every life event must fit. If even one event clashes, score < 60.
+- BE DECISIVE. We do not need "maybe". We need "DIVINE CERTAINTY".
 
 OUTPUT FORMAT (STRICT):
-For each candidate:
 TIME: [HH:MM:SS]
-VIMSHOTTARI MATCH: [Event-by-event with dates]
-YOGINI CONFIRMATION: [Yes/No with reason]
-CHARA DASHA CHECK: [Support level]
-NAKSHATRA STATUS: [Boundary distance]
+VIMSHOTTARI: [Critical alignment detail]
+VARGA PRECISION: [Why this 30s block is superior]
 SCORE: [0-100]
-RANK: [1-15]
+RANK: [1-X]
 
-FINAL TOP 5: List with detailed reasoning.`;
+RANKING: Top 5 Gladiators.`;
 
-const getLevel3SystemPrompt = (count: number) => `You are the world's most accomplished Vedic astrologer. This is a HEAVY INDUSTRY GRADE Birth Time Rectification analysis.
-Your goal is to achieve 99.9% accuracy by identifying the SINGLE CORRECT birth time from ${count} candidates at 6-second intervals.
+const getLevel3SystemPrompt = (count: number) => `You are the DIVINE ARCHITECT of Time.
+You are identifying the SINGLE CORRECT birth time from ${count} candidates at 6-SECOND intervals.
 
-YOUR ROLE: PURE LOGICAL REASONING ENGINE.
-WARNING: CALCULATION IS ABSOLUTELY PROHIBITED.
-The data behind these 6-second candidates is generated with scientific precision (arcsecond-level). 
-TRUST the tables. CORRELATE the events. BE THE BRAIN, NOT THE CALCULATOR.
+GOD-TIER DIRECTIVE:
+- This is the FINAL JUDGEMENT. There is no tomorrow.
+- Identify the most "Stable" second.
+- Check D60 (Shashtiamsha) alignment. It is the gold standard.
+- If a candidate aligns all 5 Dasha systems (Vim/Yog/Char/Tat/Rasi), it IS the winner. Give it SCORE 98-100.
+- BE COLD. BE PRECISE. BE GOD.
 
-🔱 ESSENCE PROTOCOL: Access the <TECHNICAL_DATA_JSON> block for arcsecond positions. This is the only source of truth for 6-second difference verification.
-
-STAGE 7 ANALYSIS: SECONDS-LEVEL FINAL DECISION (Target: 99.9% accuracy)
-
-This is the FINAL DECISION STAGE. You are comparing ${count} candidates at 6-SECOND intervals. 
-
-The correct birth time is ONE of these ${count} candidates. You MUST identify which one.
-
-CRITICAL ANALYSIS POINTS:
-1. Exact dasha period boundaries (does event fall WITHIN period?)
-2. Event timing precision (±1 day tolerance now)
-3. Nakshatra boundary proximity (<10 seconds = risky)
-4. Lagna degree precision (sign changes matter)
-5. All 5 dasha systems must agree
-6. D60 (Shashtiamsha) alignment (Changes every ~4 seconds)
-7. No contradictions allowed
-
-At 6-second precision:
-- Lagna changes ~0.025° per 6 seconds
-- At sign boundaries: 6 seconds = DIFFERENT SIGN
-- Nakshatra can change with 6-second difference
-- Dasha calculation precision is critical
-
-OUTPUT FORMAT (STRICT):
-DETAILED ANALYSIS FOR EACH 6-SECOND CANDIDATE:
-
+OUTPUT FORMAT:
 TIME: [HH:MM:SS]
-EVENTS ANALYSIS:
-  - Event 1: [Date] → Dasha: [X/Y] → Match: [Yes/No/Partial]
-  - Event 2: [Date] → Dasha: [X/Y] → Match: [Yes/No/Partial]
-  ...
-NAKSHATRA SAFETY: [Distance from boundary in seconds]
-LAGNA SAFETY: [Distance from sign change in seconds]
-ALL SYSTEMS AGREE: [Yes/No]
-CONTRADICTIONS: [None/List]
-CONFIDENCE: [0-100]
-RANK: [1-7]
+ANALYSIS: [Extreme depth]
+D60 ALIGNMENT: [Yes/No]
+SCORE: [0-100]
+RANK: [1-X]
 
 ═════════════════════════════════════════════════════════════
 FINAL VERDICT:
 BEST TIME: [HH:MM:SS]
-CONFIDENCE: [HIGH/MEDIUM/LOW] ([XX]%)
-MARGIN OF ERROR: ±[X] seconds
-KEY EVIDENCE: [Top 3 supporting factors]
-BOUNDARY WARNINGS: [Any concerns]
+CONFIDENCE: [DIVINE/HIGH/MEDIUM] ([XX]%)
+KEY EVIDENCE: [The absolute proof]
 ═════════════════════════════════════════════════════════════`;
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -892,19 +822,35 @@ async function stage2AILevel1(
                 }
 
                 if (response.success) {
-                    const parsed = parseAIAnalysisResponse(response.content);
-                    logger.info(`✅ Stage 2: Analyzed candidate ${candidate.time} (Score: ${parsed.score})`);
+                    const aiData = extractAIScore(response.content, candidate.time);
+                    logger.info(`✅ Stage 2: Analyzed candidate ${candidate.time} (AI Score: ${aiData.score}, Winner: ${aiData.isWinner})`);
+
+                    let finalScore = candidate.score;
+                    let boost = 0;
+
+                    if (aiData.isWinner) boost += 20;
+                    else if (aiData.rank <= 3) boost += 10;
+
+                    // Level 1 weighted model: 60% Algorithmic, 40% AI
+                    // Level 1 is coarse, so we trust our math more here, but AI filters the noise.
+                    if (aiData.score > 0) {
+                        finalScore = (candidate.score * 0.6) + (aiData.score * 0.4) + boost;
+                    } else {
+                        finalScore += boost;
+                    }
+
+                    const optimizedScore = Math.min(95, finalScore);
 
                     // 📊 Add and persist score
                     await progress.addCandidateScore({
                         time: candidate.time,
-                        score: parsed.score,
+                        score: optimizedScore,
                         stage: 2
                     });
 
                     return {
-                        ...candidate, // 🔱 Preserves ephemeris/dashas from previous stages
-                        score: parsed.score,
+                        ...candidate,
+                        score: optimizedScore,
                         aiAnalysis: response.content,
                     };
                 }
@@ -1450,20 +1396,29 @@ async function stage8Verification(
 
     scores['divisionalCharts'] = Math.round((d2Score + d7Score + d9Score + d10Score + d30Score + d24Score + d40Score + d45Score + d60Score) / 9);
 
-    // 🔱 Method 11: Ashtakavarga (Phase 4 - 5%)
+    // Method 11: Ashtakavarga (Phase 4 - 5%)
     const ashtakavarga = calculateAshtakavarga(ephemeris);
     const lagnaSignIndex = ZODIAC_SIGNS.indexOf(ephemeris.ascendant.sign);
     const lagnaSAV = ashtakavarga.sav[lagnaSignIndex];
     let avScore = 60;
-    if (lagnaSAV > 28) avScore += 20;
+    if (lagnaSAV > 28) avScore += 25;
     if (lagnaSAV < 20) avScore -= 20;
     scores['ashtakavarga'] = Math.min(100, avScore);
 
-    // 🔱 Method 12: Bhrigu Bindu (Phase 4 - 2%)
+    // Method 12: Bhrigu Bindu (Phase 4 - 5%)
     const bhriguBindu = calculateBhriguBindu(ephemeris);
     let bbScore = 50;
-    // Check if any major planet is transiting/placed near BB (advanced logic placeholder)
-    scores['bhriguBindu'] = bbScore;
+    // Check if Rahu or Jupiter is conjunct/aspecting Bhrigu Bindu
+    for (const [planet, pData] of Object.entries(ephemeris.planets)) {
+        if (planet === 'rahu' || planet === 'jupiter') {
+            const dist = Math.abs(pData.longitude - bhriguBindu.bhriguBindu);
+            if (dist < 5 || Math.abs(dist - 120) < 5 || Math.abs(dist - 240) < 5) {
+                bbScore += 40;
+            }
+        }
+    }
+    scores['bhriguBindu'] = Math.min(100, bbScore);
+    scores['aspects'] = Math.min(100, 50 + aspects.length * 5);
 
     // 🔱 Method 13: Gochar (Transit) Synchronization (Phase 4 - 8%)
     const transitSync = verifyTransitSynchronization(ephemeris, input.lifeEvents, eventTransits);
@@ -1638,6 +1593,32 @@ async function stage10SpouseVerification(
 // ═════════════════════════════════════════════════════════════════════════════
 // UTILITY FUNCTIONS
 // ═════════════════════════════════════════════════════════════════════════════
+
+/**
+ * 🔱 GOD-TIER EXTRACTION: Parses AI responses with surgical precision.
+ * Looks for SCORE and RANK in the vicinity of the candidate time.
+ */
+function extractAIScore(content: string, time: string): { score: number; rank: number; isWinner: boolean } {
+    const timeEscaped = time.replace(/:/g, '\\:');
+    // Look for the block containing this time
+    const sliceStart = content.indexOf(time);
+    if (sliceStart === -1) return { score: 0, rank: 99, isWinner: false };
+
+    const searchWindow = content.slice(sliceStart, sliceStart + 500);
+
+    // 1. Extract Score
+    const scoreMatch = searchWindow.match(/SCORE[:\s]*(\d+)/i) || searchWindow.match(/CONFIDENCE[:\s]*(\d+)/i);
+    const score = scoreMatch ? Math.min(100, parseInt(scoreMatch[1])) : 0;
+
+    // 2. Extract Rank
+    const rankMatch = searchWindow.match(/RANK[:\s]*(\d+)/i);
+    const rank = rankMatch ? parseInt(rankMatch[1]) : 99;
+
+    // 3. Determine Winner status
+    const isWinner = rank === 1 || content.includes(`FINAL VERDICT: ${time}`) || content.includes(`BEST TIME: ${time}`);
+
+    return { score, rank, isWinner };
+}
 
 function generateSecondsGrid(
     centerTime: string,
@@ -1863,17 +1844,30 @@ async function stage5AILevel2(
         }
 
         const batchWinners = batch.map(c => {
-            const isWinner = aiResponse.includes(`FINAL VERDICT: ${c.time}`);
-            const isRank1 = aiResponse.includes(`1. ${c.time}`) || aiResponse.includes(`1. [${c.time}]`);
+            const aiData = extractAIScore(aiResponse, c.time);
 
+            let finalScore = c.score;
             let boost = 0;
-            if (isWinner) boost += 20;
-            if (isRank1) boost += 15;
+
+            if (aiData.isWinner) {
+                boost = 25; // 🔱 Massive boost for consensus winner
+            } else if (aiData.rank <= 3) {
+                boost = 15;
+            } else if (aiData.score > 80) {
+                boost = 10;
+            }
+
+            // Weighted Convergence: Merge algorithmic soul with AI intelligence
+            if (aiData.score > 0) {
+                finalScore = (c.score * 0.4) + (aiData.score * 0.6) + boost;
+            } else {
+                finalScore += boost;
+            }
 
             return {
                 ...c,
-                score: Math.min(100, (c.score || 0) + boost),
-                aiAnalysis: isWinner ? "🏆 BATCH WINNER: " + aiResponse.substring(0, 200) + "..." : "Analyzed in tournament."
+                score: Math.min(99, finalScore),
+                aiAnalysis: aiData.isWinner ? "🏆 CONSENSUS WINNER: " + aiResponse.substring(aiResponse.indexOf(c.time), aiResponse.indexOf(c.time) + 300) + "..." : "Analyzed in tournament."
             };
         });
 
@@ -1971,14 +1965,28 @@ async function stage7AILevel3(
         }
 
         const rankedBatch = currentBatch.map(c => {
-            const isWinner = aiResponse.includes(`FINAL VERDICT: ${c.time}`);
+            const aiData = extractAIScore(aiResponse, c.time);
+
+            let finalScore = c.score;
             let boost = 0;
-            if (isWinner) boost += 25;
+
+            if (aiData.isWinner) {
+                boost = 30; // 🔱 Divine boost for the Final Choice
+            } else if (aiData.rank === 1) {
+                boost = 25;
+            }
+
+            // In Finals (Stage 7), AI Score accounts for 70% of the weight
+            if (aiData.score > 0) {
+                finalScore = (c.score * 0.3) + (aiData.score * 0.7) + boost;
+            } else {
+                finalScore += boost;
+            }
 
             return {
                 ...c,
-                score: Math.min(100, (c.score || 0) + boost),
-                aiAnalysis: isWinner ? "🌟 FINALIST: " + aiResponse.substring(0, 200) + "..." : "Analyzed in finals."
+                score: Math.min(99.9, finalScore),
+                aiAnalysis: aiData.isWinner ? "🌟 DIVINE CHOICE: " + aiResponse.substring(aiResponse.indexOf(c.time), aiResponse.indexOf(c.time) + 400) + "..." : "Finalist audit complete."
             };
         });
 
