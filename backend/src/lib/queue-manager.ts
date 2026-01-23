@@ -414,11 +414,15 @@ async function processQueue(): Promise<void> {
       // 🚀 GOD-TIER: Dynamic Pressure Throttling
       const memory = process.memoryUsage();
       const heapUsedPercent = (memory.heapUsed / memory.heapTotal);
+      const heapUsedGB = memory.heapUsed / 1024 / 1024 / 1024;
       let effectiveMaxConcurrent = QUEUE_CONFIG.maxConcurrent;
 
-      // If RAM is tight (>85% of heap), reduce concurrency to 1 to prevent OOM
-      if (heapUsedPercent > 0.85) {
-        logger.warn(`[PRESSURE] High RAM usage (${(heapUsedPercent * 100).toFixed(1)}%), restricting concurrency to 1`);
+      // Only trigger pressure restriction if:
+      // 1. Percentage is high (>85%) AND
+      // 2. Absolute heap usage is significant (>4GB)
+      // This prevents false positives when the total heap is small (idle state).
+      if (heapUsedPercent > 0.85 && heapUsedGB > 4) {
+        logger.warn(`[PRESSURE] Genuine RAM Pressure (${(heapUsedPercent * 100).toFixed(1)}%, ${heapUsedGB.toFixed(2)}GB), restricting concurrency to 1`);
         effectiveMaxConcurrent = 1;
       }
 
