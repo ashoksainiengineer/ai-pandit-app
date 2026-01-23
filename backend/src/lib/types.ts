@@ -142,6 +142,16 @@ export interface HousePosition {
   cusp: number;
 }
 
+/**
+ * 🤏 Minified Ephemeris for HUD/Table display
+ * Keeps RAM low while providing visibility.
+ */
+export interface MinifiedEphemeris {
+  sun: string;       // e.g. "Aries 12.42"
+  moon: string;
+  ascendant: string;
+}
+
 export interface SimpleAIAnalysisResult {
   rectifiedTime: string;
   accuracy: number;

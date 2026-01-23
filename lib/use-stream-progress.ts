@@ -42,6 +42,12 @@ export interface CandidateScore {
     score: number;
     stage: number;
     rank?: number;
+    offsetMinutes?: number;
+    minifiedEph?: {
+        sun: string;
+        moon: string;
+        ascendant: string;
+    };
 }
 
 export interface StageStat {
@@ -466,6 +472,8 @@ export function useStreamProgress(
                             score: eventData.score,
                             stage: eventData.stage,
                             rank: eventData.rank,
+                            offsetMinutes: eventData.offsetMinutes,
+                            minifiedEph: eventData.minifiedEph
                         },
                     ];
 

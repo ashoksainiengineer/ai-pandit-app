@@ -132,8 +132,14 @@ interface StageCandidate {
     time: string;
     score: number;
     ephemeris?: EphemerisData;
+    minifiedEph?: { // Added for visibility vs RAM balance
+        sun: string;
+        moon: string;
+        ascendant: string;
+    };
     aiAnalysis?: string;
     methodScores?: Record<string, number>;
+    offsetMinutes: number; // Added for tracking
 }
 
 interface ConvergenceResult {
@@ -154,9 +160,18 @@ export interface TransitSyncResult {
 
 /**
  * Prunes heavy objects from a candidate to save RAM.
- * Only keeps ephemeris for the absolute winners of a stage.
+ * 🔱 GOD-TIER REFINEMENT: Keeps a minified snapshot for visibility.
  */
 function pruneCandidate(c: StageCandidate, force: boolean = false): StageCandidate {
+    // 🛠️ Generate Minified Snapshot if full ephemeris exists
+    if (c.ephemeris && !c.minifiedEph) {
+        c.minifiedEph = {
+            sun: `${c.ephemeris.planets.sun.sign} ${c.ephemeris.planets.sun.degree.toFixed(2)}°`,
+            moon: `${c.ephemeris.planets.moon.sign} ${c.ephemeris.planets.moon.degree.toFixed(2)}°`,
+            ascendant: `${c.ephemeris.ascendant.sign} ${c.ephemeris.ascendant.degree.toFixed(2)}°`
+        };
+    }
+
     // If score is low or force is true, strip the heavy weight
     if (force || (c.score && c.score < 85)) {
         return {
@@ -164,7 +179,9 @@ function pruneCandidate(c: StageCandidate, force: boolean = false): StageCandida
             score: c.score,
             methodScores: c.methodScores,
             aiAnalysis: c.aiAnalysis,
-            // ✂️ Stripping Ephemeris: Saves ~10KB per object
+            offsetMinutes: c.offsetMinutes,
+            minifiedEph: c.minifiedEph,
+            // ✂️ Stripping Full Ephemeris: Saves ~10KB per object
             ephemeris: undefined
         };
     }
@@ -613,10 +630,19 @@ async function stage1CoarseGrid(
             const moonSidereal = ephemeris.planets.moon.longitude;
             const dashaPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
 
-            // ⚡ PERSISTENT CALCULATION LOG
+            // ⚡ PERSISTENT CALCULATION LOG (Restored Visibility)
             await progress.addCalculationLog(candidate.time,
                 `Asc: ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}° | Mo: ${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(2)}° | Dasha: ${dashaPeriods[0].lord}/${dashaPeriods[0].subPeriods[0].lord}`
             );
+
+            // 🔱 STRUCTURAL LOG for the Nirayana Engine HUD
+            emitCalculationLog(input.sessionId, {
+                candidateTime: candidate.time,
+                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(2)}°`,
+                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(2)}°`,
+                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
+                dashaObj: `${dashaPeriods[0].lord}/${dashaPeriods[0].subPeriods[0].lord}`
+            });
 
             // 🔮 Emit engine context for JSON HUD
             emitAIContext(input.sessionId, {
@@ -904,30 +930,30 @@ async function stage4FineGrid(
     input: SecondsPrecisionInput,
     progress: ProgressTracker
 ): Promise<StageCandidate[]> {
-    const candidates = generateSecondsGrid(centerTime, 300, 30); // ±5 min, 30-sec steps
+    const candidates = generateSecondsGrid(centerTime, 300, 30, input.tentativeTime); // ±5 min, 30-sec steps
     emitStageStats(input.sessionId, 4, candidates.length, "Fine Grid (30s) Correlation");
     const scored: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
 
-    for (const candidateTime of candidates) {
+    for (const candidate of candidates) {
         // 🛑 Check for cancellation
         await throwIfCancelled(input.sessionId, input.abortSignal);
         try {
             const ephemeris = await calculateEphemeris(
                 input.dateOfBirth,
-                candidateTime,
+                candidate.time,
                 input.latitude,
                 input.longitude,
                 input.timezone
             );
 
-            const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidateTime, input.timezone));
+            const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
             const moonSidereal = ephemeris.planets.moon.longitude;
 
             // 🔮 Emit engine context for JSON HUD
             emitAIContext(input.sessionId, {
                 stage: 4,
-                candidateTime: candidateTime,
+                candidateTime: candidate.time,
                 planetaryInfo: {
                     sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
                     moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
@@ -938,12 +964,21 @@ async function stage4FineGrid(
             });
 
             // ⚡ PERSISTENT CALCULATION LOG
-            await progress.addCalculationLog(candidateTime,
+            await progress.addCalculationLog(candidate.time,
                 `Fine Grid [30s]: Correlating ${input.lifeEvents.length} events against ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`
             );
             const vimPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
             const yogPeriods = calculateYoginiDasha(moonSidereal, birthDate);
             const charaPeriods = calculateCharaDasha(ephemeris, birthDate);
+
+            // 🔱 STRUCTURAL LOG for the Nirayana Engine HUD
+            emitCalculationLog(input.sessionId, {
+                candidateTime: candidate.time,
+                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(2)}°`,
+                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(2)}°`,
+                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
+                dashaObj: `${vimPeriods[0].lord}/${vimPeriods[0].subPeriods[0].lord}`
+            });
 
             let score = 0;
             let methodMatches = 0;
@@ -997,16 +1032,17 @@ async function stage4FineGrid(
             score = Math.round((score / maxPossible) * 100);
 
             scored.push({
-                time: candidateTime,
+                time: candidate.time,
                 score,
                 ephemeris, // 🔱 Preserved for final report
+                offsetMinutes: candidate.offsetMinutes,
                 methodScores: {
                     kundaShuddhi: kunda.score,
                     tatwaShuddhi: tatwa.score,
                 }
             });
         } catch (error) {
-            logger.error(`Stage 4 failed for ${candidateTime}`, error);
+            logger.error(`Stage 4 failed for ${candidate.time}`, error);
         }
     }
 
@@ -1029,30 +1065,30 @@ async function stage6MicroGrid(
     input: SecondsPrecisionInput,
     progress: ProgressTracker
 ): Promise<StageCandidate[]> {
-    const candidates = generateSecondsGrid(centerTime, 60, 6); // ±1 min, 6-sec steps
+    const candidates = generateSecondsGrid(centerTime, 60, 6, input.tentativeTime); // ±1 min, 6-sec steps
     emitStageStats(input.sessionId, 6, candidates.length, "Micro Grid Calculation");
     const scored: StageCandidate[] = [];
     const birthDate = new Date(input.dateOfBirth);
 
-    for (const candidateTime of candidates) {
+    for (const candidate of candidates) {
         // 🛑 Check for cancellation inside the loop
         await throwIfCancelled(input.sessionId, input.abortSignal);
         try {
             const ephemeris = await calculateEphemeris(
                 input.dateOfBirth,
-                candidateTime,
+                candidate.time,
                 input.latitude,
                 input.longitude,
                 input.timezone
             );
 
-            const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidateTime, input.timezone));
+            const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
             const moonSidereal = ephemeris.planets.moon.longitude;
 
             // 🔮 Emit engine context for JSON HUD
             emitAIContext(input.sessionId, {
                 stage: 6,
-                candidateTime: candidateTime,
+                candidateTime: candidate.time,
                 planetaryInfo: {
                     sun: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(4)}°`,
                     moon: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(4)}°`,
@@ -1063,7 +1099,7 @@ async function stage6MicroGrid(
             });
 
             // ⚡ PERSISTENT CALCULATION LOG
-            await progress.addCalculationLog(candidateTime,
+            await progress.addCalculationLog(candidate.time,
                 `Micro-Grid Sync [6s]: Asc transition to ${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
             );
 
@@ -1072,6 +1108,15 @@ async function stage6MicroGrid(
             const yogPeriods = calculateYoginiDasha(moonSidereal, birthDate);
             const charaPeriods = calculateCharaDasha(ephemeris, birthDate);
             const divisionalCharts = generateDivisionalCharts(ephemeris);
+
+            // 🔱 STRUCTURAL LOG for the Nirayana Engine HUD
+            emitCalculationLog(input.sessionId, {
+                candidateTime: candidate.time,
+                sunPos: `${ephemeris.planets.sun.sign} ${ephemeris.planets.sun.degree.toFixed(2)}°`,
+                moonPos: `${ephemeris.planets.moon.sign} ${ephemeris.planets.moon.degree.toFixed(2)}°`,
+                ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(2)}°`,
+                dashaObj: `${vimPeriods[0].lord}/${vimPeriods[0].subPeriods[0].lord}`
+            });
 
             let score = 0;
 
@@ -1129,16 +1174,17 @@ async function stage6MicroGrid(
             score = Math.round((score / maxPossible) * 100);
 
             scored.push({
-                time: candidateTime,
+                time: candidate.time,
                 score,
                 ephemeris, // 🔱 Preserved for final report
+                offsetMinutes: candidate.offsetMinutes,
                 methodScores: {
                     kundaShuddhi: kunda.score,
                     tatwaShuddhi: tatwa.score,
                 }
             });
         } catch (error) {
-            logger.error(`Stage 6 failed for ${candidateTime}`, error);
+            logger.error(`Stage 6 failed for ${candidate.time}`, error);
         }
     }
 
@@ -1532,11 +1578,19 @@ async function stage10SpouseVerification(
 // UTILITY FUNCTIONS
 // ═════════════════════════════════════════════════════════════════════════════
 
-function generateSecondsGrid(centerTime: string, windowSeconds: number, intervalSeconds: number): string[] {
+function generateSecondsGrid(
+    centerTime: string,
+    windowSeconds: number,
+    intervalSeconds: number,
+    originalTime: string
+): { time: string; offsetMinutes: number }[] {
     const [h, m, s] = centerTime.split(':').map(Number);
     const centerTotalSeconds = h * 3600 + m * 60 + (s || 0);
 
-    const candidates: string[] = [];
+    const [oh, om, os] = originalTime.split(':').map(Number);
+    const originalTotalSeconds = oh * 3600 + om * 60 + (os || 0);
+
+    const candidates: { time: string; offsetMinutes: number }[] = [];
 
     for (let offset = -windowSeconds; offset <= windowSeconds; offset += intervalSeconds) {
         let totalSeconds = centerTotalSeconds + offset;
@@ -1549,9 +1603,19 @@ function generateSecondsGrid(centerTime: string, windowSeconds: number, interval
         const mins = Math.floor((totalSeconds % 3600) / 60);
         const secs = totalSeconds % 60;
 
-        candidates.push(
-            `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
-        );
+        const timeString = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+        // Calculate offset from original time in minutes
+        const diffSeconds = totalSeconds - originalTotalSeconds;
+        // Handle wraparound for diff too
+        let wrappedDiff = diffSeconds;
+        if (wrappedDiff > 43200) wrappedDiff -= 86400;
+        if (wrappedDiff < -43200) wrappedDiff += 86400;
+
+        candidates.push({
+            time: timeString,
+            offsetMinutes: wrappedDiff / 60
+        });
     }
 
     return candidates;

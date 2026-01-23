@@ -22,7 +22,18 @@ interface UnifiedAIPanelProps {
     stage?: number;
     analyzedCount?: number;
     totalCandidates?: number;
-    candidateScores?: Array<{ time: string; score: number; stage: number; rank?: number }>;
+    candidateScores?: Array<{
+        time: string;
+        score: number;
+        stage: number;
+        rank?: number;
+        offsetMinutes?: number;
+        minifiedEph?: {
+            sun: string;
+            moon: string;
+            ascendant: string;
+        };
+    }>;
     calculationLogs?: CalculationLog[];
     unifiedMode?: boolean; // 🌊 Unified stream mode
 }
@@ -306,21 +317,49 @@ export function UnifiedAIPanel({
                                                             .slice(0, 50) // Limit rows for performance
                                                             .map((candidate, idx) => (
                                                                 <tr key={`${candidate.time}-${idx}`} className="border-t border-[#3A4452]/30 hover:bg-[#D4AF37]/5 transition-colors">
-                                                                    <td className="px-4 py-2 font-mono text-[#F5F0EB]">{candidate.time}</td>
+                                                                    <td className="px-4 py-2 font-mono text-[#F5F0EB]">
+                                                                        <div className="flex flex-col">
+                                                                            <span>{candidate.time}</span>
+                                                                            {candidate.offsetMinutes !== undefined && (
+                                                                                <span className="text-[8px] text-[#8C7F72]">
+                                                                                    {candidate.offsetMinutes >= 0 ? '+' : ''}{candidate.offsetMinutes.toFixed(1)}m
+                                                                                </span>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
+                                                                    <td className="px-4 py-2">
+                                                                        <div className="flex flex-col gap-0.5 text-[8px] font-mono text-[#D4AF37]/60">
+                                                                            {candidate.minifiedEph ? (
+                                                                                <>
+                                                                                    <div className="flex justify-between">
+                                                                                        <span>S:</span><span className="text-emerald-400/70">{candidate.minifiedEph.sun}</span>
+                                                                                    </div>
+                                                                                    <div className="flex justify-between">
+                                                                                        <span>M:</span><span className="text-emerald-400/70">{candidate.minifiedEph.moon}</span>
+                                                                                    </div>
+                                                                                    <div className="flex justify-between">
+                                                                                        <span>A:</span><span className="text-emerald-400/70">{candidate.minifiedEph.ascendant}</span>
+                                                                                    </div>
+                                                                                </>
+                                                                            ) : (
+                                                                                <span className="opacity-30 italic">Calc...</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </td>
                                                                     <td className="px-4 py-2 text-center">
                                                                         <div className="flex items-center justify-center gap-2">
-                                                                            <div className="w-16 bg-[#3A4452] rounded-full h-1 overflow-hidden">
+                                                                            <div className="w-12 bg-[#3A4452] rounded-full h-1 overflow-hidden">
                                                                                 <div
                                                                                     className={`h-full ${candidate.score >= 80 ? 'bg-emerald-500' : candidate.score >= 60 ? 'bg-amber-500' : 'bg-rose-500'}`}
                                                                                     style={{ width: `${candidate.score}%` }}
                                                                                 />
                                                                             </div>
-                                                                            <span className="font-mono">{candidate.score}</span>
+                                                                            <span className="font-mono">{Math.round(candidate.score)}%</span>
                                                                         </div>
                                                                     </td>
                                                                     <td className="px-4 py-2 text-right">
-                                                                        <span className={`text-[9px] ${candidate.score >= 70 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                                                            {candidate.score >= 70 ? 'PASS' : 'DROP'}
+                                                                        <span className={`text-[9px] font-bold ${candidate.score >= 70 ? 'text-emerald-400' : 'text-rose-400/50'}`}>
+                                                                            {candidate.score >= 70 ? 'PASS' : 'SCR'}
                                                                         </span>
                                                                     </td>
                                                                 </tr>

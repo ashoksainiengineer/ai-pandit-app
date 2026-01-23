@@ -11,6 +11,12 @@ interface CandidateScore {
     score: number;
     stage: number;
     rank?: number;
+    offsetMinutes?: number;
+    minifiedEph?: {
+        sun: string;
+        moon: string;
+        ascendant: string;
+    };
 }
 
 interface CandidateLevelTablesProps {
@@ -80,11 +86,40 @@ export function CandidateLevelTables({ candidateScores, currentStage }: Candidat
                                         {results.map((c, idx) => (
                                             <tr key={`${c.time}-${idx}`} className="group hover:bg-[#D4AF37]/5 transition-all duration-300">
                                                 <td className="px-4 py-3 font-mono text-[#F5F0EB] font-bold text-sm tracking-tighter">
-                                                    {c.time}
+                                                    <div className="flex flex-col">
+                                                        <span>{c.time}</span>
+                                                        {c.offsetMinutes !== undefined && (
+                                                            <span className="text-[9px] text-[#8C7F72]">
+                                                                {c.offsetMinutes >= 0 ? '+' : ''}{c.offsetMinutes.toFixed(1)}m
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex flex-col gap-1 text-[9px] font-mono text-[#8C7F72]">
+                                                        {c.minifiedEph ? (
+                                                            <>
+                                                                <div className="flex justify-between gap-2">
+                                                                    <span className="text-[#D4AF37]/70 uppercase">Sun</span>
+                                                                    <span className="text-emerald-400/80">{c.minifiedEph.sun}</span>
+                                                                </div>
+                                                                <div className="flex justify-between gap-2">
+                                                                    <span className="text-[#D4AF37]/70 uppercase">Moon</span>
+                                                                    <span className="text-emerald-400/80">{c.minifiedEph.moon}</span>
+                                                                </div>
+                                                                <div className="flex justify-between gap-2">
+                                                                    <span className="text-[#D4AF37]/70 uppercase">Asc</span>
+                                                                    <span className="text-emerald-400/80">{c.minifiedEph.ascendant}</span>
+                                                                </div>
+                                                            </>
+                                                        ) : (
+                                                            <span className="italic opacity-50">Calculating...</span>
+                                                        )}
+                                                    </div>
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center justify-center gap-3">
-                                                        <div className="w-24 bg-[#1A2433] rounded-full h-1.5 overflow-hidden">
+                                                        <div className="w-20 bg-[#1A2433] rounded-full h-1.5 overflow-hidden">
                                                             <motion.div
                                                                 initial={{ width: 0 }}
                                                                 animate={{ width: `${c.score}%` }}
@@ -102,7 +137,7 @@ export function CandidateLevelTables({ candidateScores, currentStage }: Candidat
                                                         <span className={`text-[9px] font-bold uppercase ${c.score >= 70 ? 'text-emerald-500' : 'text-rose-500/50'}`}>
                                                             {c.score >= 70 ? 'Optimal' : 'Scrutiny'}
                                                         </span>
-                                                        <div className={`w-2 h-2 rounded-full ${c.score >= 70 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-rose-500/20'} animate-pulse`} />
+                                                        <div className={`w-1.5 h-1.5 rounded-full ${c.score >= 70 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-rose-500/20'} animate-pulse`} />
                                                     </div>
                                                 </td>
                                             </tr>
