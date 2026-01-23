@@ -1283,7 +1283,7 @@ function verifyTransitSynchronization(
 // CONTEXTUAL & CONFIDENCE UTILITIES
 // ═════════════════════════════════════════════════════════════════════════════
 
-function calculateContextualBonus(description: string, mahadasha: string, ephemeris: EphemerisData): { score: number; reasoning: string } {
+export function calculateContextualBonus(description: string, mahadasha: string, ephemeris: EphemerisData): { score: number; reasoning: string } {
     const text = (description || '').toLowerCase();
     const lord = (mahadasha || '').toLowerCase();
     let score = 0;

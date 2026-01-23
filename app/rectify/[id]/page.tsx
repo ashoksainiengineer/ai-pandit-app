@@ -648,7 +648,7 @@ export default function ProgressPage() {
 
                         {/* Current Activity */}
                         <div className="flex-1 min-w-0">
-                            {currentStepData ? (() => {
+                            {currentStepData ? (() => (
                                 <div className="animate-fade-in text-center py-6">
                                     <div className="text-3xl mb-3">{currentStepData.icon}</div>
                                     <h3 className="text-xl font-bold text-[#F5F0EB] mb-2">{currentStepData.name}</h3>
@@ -657,7 +657,7 @@ export default function ProgressPage() {
                                         <span className="animate-pulse">_</span>
                                     </div>
                                 </div>
-                            })() : (
+                            ))() : (
                                 <div className="text-center text-[#8C7F72] py-8">
                                     <div className="animate-spin text-2xl mb-2">⏳</div>
                                     Waiting for processor...
@@ -722,109 +722,7 @@ export default function ProgressPage() {
                     <ResultsHUD result={result} id={sessionId} />
                 )}
 
-                {/* Steps Timeline (Hide on complete) */}
-                {!isComplete && (
-                    <>
-                        {/* Steps Timeline */}
-                        <div className="glass-card p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="font-semibold text-[#8C7F72] uppercase tracking-wider text-sm">Analysis Pipeline</h3>
-                                <div className="flex gap-2">
-                                    <span className="text-[10px] px-2 py-1 rounded bg-purple-500/20 text-purple-400">Calculation</span>
-                                    <span className="text-[10px] px-2 py-1 rounded bg-orange-500/20 text-orange-400">Screening</span>
-                                    <span className="text-[10px] px-2 py-1 rounded bg-green-500/20 text-green-400">Final</span>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                {progress?.steps.map((step, idx) => {
-                                    const isActive = idx === progress.currentStep;
-                                    const isPast = idx < progress.currentStep || step.status === 'complete';
-                                    const stepInfo = STEP_INFO[step.id];
 
-                                    const prevStep = idx > 0 ? progress.steps[idx - 1] : null;
-                                    const prevPhase = prevStep ? STEP_INFO[prevStep.id]?.phase : null;
-                                    const showPhaseSeparator = stepInfo?.phase !== prevPhase && idx > 0;
-
-                                    return (
-                                        <div key={step.id}>
-                                            {showPhaseSeparator && (
-                                                <div className="border-t border-dashed border-[#3A4452] my-4 relative">
-                                                    <span className={`absolute -top-2 left-4 text-[10px] px-2 py-0.5 rounded uppercase ${stepInfo?.phase === 'screening' ? 'bg-orange-500/20 text-orange-400' :
-                                                        stepInfo?.phase === 'verification' ? 'bg-cyan-500/20 text-cyan-400' :
-                                                            stepInfo?.phase === 'final' ? 'bg-green-500/20 text-green-400' : ''
-                                                        }`}>
-                                                        {stepInfo?.phase === 'screening' ? '🎯 AI Analysis Phases' :
-                                                            stepInfo?.phase === 'verification' ? '✅ Verification' :
-                                                                stepInfo?.phase === 'final' ? '🏁 Final Stage' : ''}
-                                                    </span>
-                                                </div>
-                                            )}
-
-                                            <div
-                                                className={`p-4 rounded-lg transition-all duration-500 ${step.status === 'error' ? 'bg-red-500/10 border border-red-500/30' :
-                                                    isActive ? 'bg-[#D4AF37]/10 border border-[#D4AF37]/30 scale-[1.01]' :
-                                                        isPast ? 'bg-[#2D7A5C]/5 border border-[#2D7A5C]/20' :
-                                                            'opacity-40 bg-[#2A3442]/20'
-                                                    }`}
-                                            >
-                                                <div className="flex items-start gap-4">
-                                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold transition-colors flex-shrink-0 ${isPast ? 'bg-[#2D7A5C] text-[#F5F0EB]' :
-                                                        isActive ? 'bg-[#D4AF37] text-[#0F1419] animate-pulse' :
-                                                            'bg-[#2A3442] text-[#8C7F72]'
-                                                        }`}>
-                                                        {isPast ? '✓' : step.icon}
-                                                    </div>
-
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex justify-between items-start mb-1">
-                                                            <div>
-                                                                <span className={`font-semibold ${isActive ? 'text-[#F5F0EB]' : isPast ? 'text-[#2D7A5C]' : 'text-[#8C7F72]'}`}>
-                                                                    {step.name}
-                                                                </span>
-                                                                {stepInfo?.level && (
-                                                                    <span className="ml-2 text-[10px] px-2 py-0.5 rounded bg-[#D4AF37]/20 text-[#D4AF37]">
-                                                                        {stepInfo.level.split(':')[0]}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <div className="flex gap-2">
-                                                                {stepInfo?.accuracy && (
-                                                                    <span className="text-[10px] px-2 py-0.5 rounded bg-[#2D7A5C]/20 text-[#2D7A5C]">
-                                                                        {stepInfo.accuracy}
-                                                                    </span>
-                                                                )}
-                                                                {isActive && (
-                                                                    <span className="text-[10px] bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 rounded animate-pulse">
-                                                                        PROCESSING
-                                                                    </span>
-                                                                )}
-                                                                {isPast && (
-                                                                    <span className="text-[10px] bg-[#2D7A5C]/20 text-[#2D7A5C] px-2 py-0.5 rounded">
-                                                                        COMPLETE
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-
-                                                        {(isActive || isPast) && stepInfo?.description && (
-                                                            <p className="text-xs text-[#8C7F72] mb-1">{stepInfo.description}</p>
-                                                        )}
-
-                                                        {isActive && currentStepData?.message && (
-                                                            <div className="text-xs text-[#D4AF37] font-mono mt-1">
-                                                                {'>'} {currentStepData.message}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </>
-                )}
             </div>
         </main >
     );
