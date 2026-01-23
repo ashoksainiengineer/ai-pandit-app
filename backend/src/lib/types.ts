@@ -345,8 +345,9 @@ export interface MasterAnalysisArchive {
       dasha: { distance: number; warning?: string };
     };
     methodologyBreakdown: {
-      [key: string]: { score: number; verdict: string };
+      [key: string]: { score: number; verdict: string; details?: string };
     };
+    contextualCorrelation?: number; // 🔱 Global narrative match score
   };
 
   // 5. Alternate Paths (Top 3 runners up)

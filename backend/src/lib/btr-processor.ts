@@ -21,6 +21,7 @@ import {
     parseAIAnalysisResponse,
 } from './ai-client.js';
 import { generateCandidateTimes, TimeOffsetConfig } from './time-offset-manager.js';
+import { calculateContextualBonus } from './seconds-precision-btr.js';
 import { logger } from './logger.js';
 import { LifeEvent, EphemerisData } from './types.js';
 
@@ -210,6 +211,10 @@ async function quickFilterCandidates(
                         eventMatches++;
                         dashaScore += correlation.strength;
                     }
+
+                    // 🔱 Contextual Alignment
+                    const context = calculateContextualBonus(event.description || '', dasha.mahadasha, ephemeris);
+                    dashaScore += context.score;
                 }
             }
 

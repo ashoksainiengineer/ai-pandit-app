@@ -59,6 +59,7 @@ export interface AIContextEvent {
     };
     dasha: string;
     divCharts?: string;
+    contextHits?: string[]; // 🔱 Narrative keyword matches
 }
 
 export interface CalculationLogEvent {

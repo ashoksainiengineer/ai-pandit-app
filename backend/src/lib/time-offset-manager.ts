@@ -92,10 +92,14 @@ export function generateCandidateTimes(
       throw new Error('No offset configuration provided');
     }
 
-    const interval = 0.5; // 🔱 ZERO COMPROMISE: Strict 30-second interval for maximum precision
+    // 🔱 GOD-MODE ADAPTIVE DENSITY
+    // Small windows (<= 120 min) get 30s precision grid from the start.
+    // Large windows (> 120 min) get 1m coarse grid for global discovery efficiency.
+    const interval = offsetMinutes <= 120 ? 0.5 : 1.0;
+
     const description = offsetConfig.customMinutes !== undefined
-      ? `±${offsetMinutes} min (30s Precision Grid)`
-      : `${OFFSET_PRESETS[offsetConfig.preset!].label} (30s Precision Grid)`;
+      ? `±${offsetMinutes} min (${interval * 60}s Grid)`
+      : `${OFFSET_PRESETS[offsetConfig.preset!].label} (${interval * 60}s Grid)`;
 
     logger.info('Offset configuration', {
       offsetMinutes,

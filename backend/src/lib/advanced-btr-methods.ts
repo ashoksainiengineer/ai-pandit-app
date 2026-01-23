@@ -164,7 +164,7 @@ export function yoginiSupportsEvent(
     yogini: YoginiDashaPeriod,
     eventCategory: string,
     eventType: string
-): { supports: boolean; reason: string } {
+): { supports: boolean; strength: number; reason: string } {
     const category = eventCategory.toLowerCase();
     const type = eventType.toLowerCase();
 
@@ -186,6 +186,7 @@ export function yoginiSupportsEvent(
         if (category.includes(event) || type.includes(event)) {
             return {
                 supports: true,
+                strength: 10,
                 reason: `${yogini.name} (${yogini.planet}) Yogini Dasha supports ${event} events`,
             };
         }
@@ -193,6 +194,7 @@ export function yoginiSupportsEvent(
 
     return {
         supports: false,
+        strength: 0,
         reason: `${yogini.name} (${yogini.planet}) Yogini Dasha has no direct correlation`,
     };
 }

@@ -437,6 +437,8 @@ YOUR APPROACH TO BIRTH TIME RECTIFICATION:
    - Nakshatra pada (quarter) affects personality traits
    - Verify nakshatra matches described characteristics
 
+🔱 NARRATIVE PRIMACY: The user's story and event descriptions are the ULTIMATE SOURCE OF TRUTH. If a mathematical candidate aligns with the user's narrative (e.g., descriptions of 'job loss' or 'health issues'), it must be prioritized over raw planetary scores. Align the specific planetary themes (e.g., Mars for surgery, Jupiter for wealth) with the user's qualitative descriptions.
+
 SCORING METHODOLOGY:
 - Score each candidate time from 0-100
 - 90-100: Exceptional match - almost certainly correct

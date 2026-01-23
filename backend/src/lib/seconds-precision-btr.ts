@@ -147,6 +147,7 @@ export interface SecondsPrecisionResult {
 interface StageCandidate {
     time: string;
     score: number;
+    isSandhi?: boolean; // 🔱 Added for Edge Protection
     ephemeris?: EphemerisData;
     minifiedEph?: { // Added for visibility vs RAM balance
         sun: string;
@@ -216,6 +217,7 @@ You are analyzing ${count} candidates at MINUTE-LEVEL. Your mission is to find t
 ELIMINATE WEAKNESS. Only Keep the Elite Top 5.
 
 SCORING RULES (STRICT):
+- NARRATIVE PRIMACY: If a user's description (e.g., 'Surgery', 'Government Job') strongly aligns with a candidate's chart, prioritize it. User narrative is the ultimate truth.
 - Be BOLD. If the Dasha alignment is perfect with Marriage/Career, give 95+.
 - If there is a contradiction (e.g., Marriage during Sade Sati without neutralizers), punish heavily (Score < 40).
 - You MUST provide a SCORE for every candidate.
@@ -235,8 +237,9 @@ MISSION: SURGICAL PRECISION.
 One of these candidates holds the truth. The others are shadows.
 
 SCORING DIRECTIVE:
+- NARRATIVE PRIMACY: Deeply analyze the text descriptions provided by the user. If a user mentions a 'crush' or 'mental health' at a specific time, look for planetary signatures (Moon-Rahu, Venus-Ketu/Mars) that match that narrative perfectly.
 - If a 30s shift makes a Varga (D9/D10) Lagna swap to a perfect Yogakaraka sign, it earns a massive SCORE (90+).
-- Every life event must fit. If even one event clashes, score < 60.
+- Every life event must fit. If even one event clashes with the user's story or category, score < 60.
 - BE DECISIVE. We do not need "maybe". We need "DIVINE CERTAINTY".
 
 OUTPUT FORMAT (STRICT):
@@ -252,10 +255,11 @@ const getLevel3SystemPrompt = (count: number) => `You are the DIVINE ARCHITECT o
 You are identifying the SINGLE CORRECT birth time from ${count} candidates at 6-SECOND intervals.
 
 GOD-TIER DIRECTIVE:
+- NARRATIVE SUPREMACY: At this 6-second level, the "Soul's Story" must be perfectly reflected in the D60 and D9 charts.
 - This is the FINAL JUDGEMENT. There is no tomorrow.
 - Identify the most "Stable" second.
-- Check D60 (Shashtiamsha) alignment. It is the gold standard.
-- If a candidate aligns all 5 Dasha systems (Vim/Yog/Char/Tat/Rasi), it IS the winner. Give it SCORE 98-100.
+- Check D60 (Shashtiamsha) alignment. It is the gold standard for micro-btr.
+- If a candidate aligns all 5 Dasha systems (Vim/Yog/Char/Tat/Rasi) and fits the user description perfectly, it IS the winner. Give it SCORE 98-100.
 - BE COLD. BE PRECISE. BE GOD.
 
 OUTPUT FORMAT:
@@ -388,32 +392,42 @@ export async function processSecondsPrecisionBTR(
         await progress.completeStep('candidates', [`Top 15 candidates selected`]);
 
         // ═══════════════════════════════════════════════════════════════════════
-        // STAGE 3: CONVERGENCE
+        // STAGE 3: CONVERGENCE & MULTI-PEAK SELECTION
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(80);
-        const convergence = stage3Convergence(stage2.results, input.sessionId);
+
+        // 🔱 GOD-TIER: Select Top 3 Diverse islands for Level 2 Tournament
+        // This prevents the engine from collapsing too early on a single peak.
+        const level2Finalists = pickDiverseCandidates(stage2.results, 3);
         stagesCompleted = 3;
 
         // ═══════════════════════════════════════════════════════════════════════
-        // STAGE 4: FINE GRID (30s)
+        // STAGE 4: MULTI-PEAK FINE GRID (30s)
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
 
-        // 🐢 COOLDOWN: Let RAM settle after Stage 2/3 AI reasoning
+        // 🐢 COOLDOWN: Let RAM settle after Stage 2 AI reasoning
         await sleep(300);
 
         await progress.updateETA(75);
-        const stage4Candidates = await stage4FineGrid(convergence.bestTime, input, progress);
+        await progress.updateMessage(`Launching Multi-Peak Tournament across ${level2Finalists.length} zones...`);
+
+        const allStage4Candidates: any[] = [];
+        for (const island of level2Finalists) {
+            const islandCandidates = await stage4FineGrid(island.time, input, progress);
+            allStage4Candidates.push(...islandCandidates);
+        }
+
         stagesCompleted = 4;
 
         // ═══════════════════════════════════════════════════════════════════════
-        // STAGE 5: AI LEVEL 2
+        // STAGE 5: AI LEVEL 2 (Tournament of Peaks)
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(70);
-        await progress.startStep('dasha', 'Analyzing Vimshottari & Yogini periods...');
-        const stage5 = await stage5AILevel2(stage4Candidates, input, progress);
+        await progress.startStep('dasha', 'Analyzing multi-peak convergence across all systems...');
+        const stage5 = await stage5AILevel2(allStage4Candidates, input, progress);
         reasoningArchive.refinement = stage5.reasoning;
         stagesCompleted = 5;
         methodsUsed.push('AI Level 2 (40K thinking)', 'Yogini Dasha', 'Chara Dasha');
@@ -528,6 +542,10 @@ export async function processSecondsPrecisionBTR(
                     kunda: verificationResult.kunda,
                     tatwa: verificationResult.tatwa
                 },
+                context: {
+                    score: verificationResult.contextScore,
+                    hits: verificationResult.contextHits
+                },
                 breakdown: verificationResult.methodBreakdown
             },
             alternatives: sortedCandidates.slice(1, 11).map(c => ({
@@ -566,6 +584,53 @@ export async function processSecondsPrecisionBTR(
 // STAGE 1: COARSE GRID
 // ═════════════════════════════════════════════════════════════════════════════
 
+/**
+ * 🔱 God-Mode Keyword Heuristic Engine (Level 1)
+ * Bridges the gap between raw math and user narrative without expensive AI calls.
+ * Maps description keywords to planetary themes.
+ */
+export function calculateContextualBonus(description: string, dashaLord: string, ephemeris: EphemerisData): { score: number; hits: string[] } {
+    if (!description || !dashaLord) return { score: 0, hits: [] };
+    const text = description.toLowerCase();
+    let score = 0;
+    const hits: string[] = [];
+
+    const keywords = {
+        career: ['job', 'work', 'office', 'promotion', 'salary', 'career', 'iocl', 'iit', 'iim', 'govt', 'government', 'selection', 'company', 'interview', 'upsc', 'ssc', 'gate', 'bank', 'officer', 'business', 'startup', 'joining'],
+        health: ['surgery', 'operation', 'accident', 'injury', 'bleeding', 'hospital', 'disease', 'illness', 'recovery', 'health', 'mental', 'doctor', 'treatment', 'medical', 'pain', 'fracture'],
+        property: ['house', 'property', 'land', 'car', 'vehicle', 'buying', 'shifting', 'home', 'moving', 'flat', 'construction', 'plot', 'real estate', 'registry'],
+        relationship: ['marriage', 'love', 'breakup', 'relationship', 'girlfriend', 'boyfriend', 'spouse', 'crush', 'married', 'wedding', 'engagement', 'proposal', 'divorce', 'separation'],
+        education: ['exam', 'gate', 'study', 'college', 'school', 'marks', 'admission', 'results', 'graduation', 'masters', 'iit', 'iim', 'phd', 'degree', 'passed', 'topped']
+    };
+
+    // Mapping lords to themes
+    const themes: Record<string, string[]> = {
+        'Sun': ['career', 'govt', 'health'],
+        'Moon': ['health', 'relationship', 'property'],
+        'Mars': ['health', 'property', 'career'],
+        'Mercury': ['education', 'career'],
+        'Jupiter': ['education', 'marriage', 'career', 'children'],
+        'Venus': ['relationship', 'marriage', 'property', 'career'],
+        'Saturn': ['career', 'health', 'property'],
+        'Rahu': ['health', 'property', 'career'],
+        'Ketu': ['health', 'spiritual']
+    };
+
+    const activeThemes = themes[dashaLord] || [];
+    for (const theme of activeThemes) {
+        const themeKeywords = keywords[theme as keyof typeof keywords] || [];
+        for (const k of themeKeywords) {
+            if (text.includes(k)) {
+                score += 5;
+                hits.push(`${dashaLord} ➮ ${k}`);
+                break; // Only one hit per theme per event to avoid artificial inflation
+            }
+        }
+    }
+
+    return { score, hits };
+}
+
 async function stage1CoarseGrid(
     input: SecondsPrecisionInput,
     progress: ProgressTracker
@@ -599,6 +664,12 @@ async function stage1CoarseGrid(
                 const jd = calculateJulianDay(convertToUTC(input.dateOfBirth, candidate.time, input.timezone));
                 const moonSidereal = ephemeris.planets.moon.longitude;
                 const dashaPeriods = calculateVimshottariDasha(moonSidereal, birthDate);
+                const yoginiPeriods = calculateYoginiDasha(moonSidereal, birthDate);
+
+                let dashaScore = 0;
+                let yoginiScore = 0;
+                let contextualAccumulator = 0;
+                const contextHits: string[] = [];
 
                 if (batch.indexOf(candidate) === 0) {
                     // ⚡ PERSISTENT CALCULATION LOG (Throttled for Stage 1)
@@ -625,16 +696,17 @@ async function stage1CoarseGrid(
                             ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
                         },
                         dasha: `${dashaPeriods[0].lord}/${dashaPeriods[0].subPeriods[0].lord}`,
-                        divCharts: "Vedic Shuddhi Scan"
+                        divCharts: "Vedic Shuddhi Scan",
+                        contextHits: contextHits.slice(0, 5) // Send some hits for transparency
                     });
                 }
 
-                let dashaScore = 0;
-                let eventMatches = 0;
 
-                // 1. Dasha-Event Correlation (Primary Driver)
+                // 1. Dasha-Event Correlation (Vimshottari + Yogini) + Contextual Heuristics
                 for (const event of input.lifeEvents) {
                     const eventDate = new Date(event.eventDate);
+
+                    // Vimshottari
                     const dasha = getDashaForDate(dashaPeriods, eventDate);
                     if (dasha) {
                         const correlation = dashaSupportsEvent(
@@ -651,16 +723,37 @@ async function stage1CoarseGrid(
                             event.eventType
                         );
                         if (correlation.supports) {
-                            eventMatches++;
                             dashaScore += correlation.strength;
+                        }
+
+                        // 🔱 Contextual Integration: Scan description for keyword-planet alignment
+                        const context = calculateContextualBonus(event.description || '', dasha.mahadasha, ephemeris);
+                        contextualAccumulator += context.score;
+                        if (context.hits.length > 0) {
+                            contextHits.push(...context.hits);
+                        }
+                    }
+
+                    // Yogini
+                    const yogini = getYoginiDashaForDate(yoginiPeriods, eventDate);
+                    if (yogini) {
+                        const yoginiCorrelation = yoginiSupportsEvent(yogini, event.category, event.eventType);
+                        if (yoginiCorrelation.supports) {
+                            yoginiScore += yoginiCorrelation.strength;
                         }
                     }
                 }
 
-                // Normalize dasha score to 0-50 range
-                const normalizedDashaScore = input.lifeEvents.length > 0
-                    ? (dashaScore / (input.lifeEvents.length * 10)) * 50
-                    : 25;
+                // Normalize scores with GOD-MODE WEIGHTS
+                const normalizedVimScore = input.lifeEvents.length > 0
+                    ? (dashaScore / (input.lifeEvents.length * 10)) * 35 // Max 35 points
+                    : 17.5;
+
+                const normalizedYogScore = input.lifeEvents.length > 0
+                    ? (yoginiScore / (input.lifeEvents.length * 10)) * 20 // Max 20 points
+                    : 10;
+
+                const normalizedContextScore = Math.min(15, contextualAccumulator); // Max 15 points
 
                 // 🔱 VEDIC SHUDDHI FILTERING (Candidate Pruning)
                 const kunda = calculateKundaShuddhi(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
@@ -669,21 +762,24 @@ async function stage1CoarseGrid(
                 const tatwa = calculateTatwaShuddhi(jd, sunrise, sunset, 'male');
 
                 // 🔱 GOD-TIER SCORING LOGIC (Divine Discrimination)
-                // Proximity Score (0-20 points)
-                const maxOffset = Math.max(Math.abs(input.offsetConfig.customMinutes || 30), 1);
-                const proximityScore = Math.max(0, (1 - (Math.abs(candidate.offsetMinutes) / maxOffset)) * 20);
+                // Proximity Score (REMOVED for Global Scan Diversity)
+                const proximityScore = 0;
 
-                // Shuddhi Score (0-10 points)
-                const shuddhiScore = (kunda.score + tatwa.score) / 20; // Max 10 if both are 100
+                // Shuddhi Score (0-15 points)
+                const shuddhiScore = (kunda.score + tatwa.score) / 13.33;
 
                 // Cosmic Noise (0-5 points)
                 const cosmicNoise = (Math.sin(jd * 1000) + 1) * 2.5;
 
-                // Cumulative Score: Dasha(50) + Proximity(20) + Shuddhi(10) + Static(15) + Noise(5) = 100
-                const finalScore = 15 + normalizedDashaScore + proximityScore + shuddhiScore + cosmicNoise;
+                // Cumulative Score: Vim(35) + Yogini(20) + Context(15) + Shuddhi(15) + Static(10) + Noise(5) = 100
+                const finalScore = 10 + normalizedVimScore + normalizedYogScore + normalizedContextScore + shuddhiScore + cosmicNoise;
+
+                // 🔱 SANDHI DETECTION (Edge Protection)
+                const isSandhi = ephemeris.ascendant.degree < 0.5 || ephemeris.ascendant.degree > 29.5;
 
                 scored.push(pruneCandidate({
                     ...candidate,
+                    isSandhi,
                     score: Math.min(99, Math.max(10, finalScore)), // Clamp between 10-99
                     ephemeris: {
                         planets: ephemeris.planets,
@@ -693,18 +789,67 @@ async function stage1CoarseGrid(
                     methodScores: {
                         kundaShuddhi: kunda.score,
                         tatwaShuddhi: tatwa.score,
-                        dashaCorrelation: Math.round(normalizedDashaScore * 2) // Shown as 0-100 for UI
+                        dashaCorrelation: Math.round(normalizedVimScore * 2.85), // Scaled to 100
+                        yoginiCorrelation: Math.round(normalizedYogScore * 5), // Scaled to 100
+                        contextualCorrelation: Math.round(normalizedContextScore * 6.66) // Scaled to 100
                     }
                 }));
             } catch (error) {
                 logger.error(`Stage 1 failed for ${candidate.time}`, error);
             }
-        })); // Close map
+        })); // Close Promise.all batch map
     } // Close for loop
 
-    // 🚀 GOD-TIER MEMORY PRUNING
+    // 🚀 GOD-TIER GLOBAL DIVERSITY SELECTION
+    // We pick the best candidates from across the window to avoid "clumping" bias.
     const prunedResults = scored.map(c => pruneCandidate(c));
-    return prunedResults.sort((a, b) => b.score - a.score);
+    return pickDiverseCandidates(prunedResults.sort((a, b) => b.score - a.score), 15);
+}
+
+/**
+ * 🔱 Global Diversity Picker
+ * Prevents "clumping" around the tentative time by forcing representation 
+ * from different time buckets across the search window.
+ */
+function pickDiverseCandidates(all: StageCandidate[], limit: number): StageCandidate[] {
+    if (all.length <= limit) return all;
+
+    const selected: StageCandidate[] = [];
+    const seenLagnas = new Set<string>();
+
+    // 🔱 Rule 1: Prioritize High-Score Sandhi (Edge) or Context-Rich Candidates
+    // If a birth time is near a sign boundary OR matches the user's narrative perfectly, we MUST let AI evaluate it.
+    for (const c of all) {
+        const hasContextBonus = (c.methodScores?.contextualCorrelation || 0) > 70;
+        if ((c.isSandhi || hasContextBonus) && c.score > 70 && selected.length < limit) {
+            selected.push(c);
+        }
+    }
+
+    // 🔱 Rule 2: Lagna-Aware Diversity (The "Soul Type" Filter)
+    // Ensures at least one candidate from every unique Lagna sign found in the window.
+    for (const c of all) {
+        const lagna = c.minifiedEph?.ascendant.split(' ')[0] || 'Unknown';
+        if (!seenLagnas.has(lagna) && selected.length < limit) {
+            if (!selected.some(s => s.time === c.time)) {
+                selected.push(c);
+                seenLagnas.add(lagna);
+            }
+        }
+    }
+
+    // 🔱 Rule 3: Density Fill
+    // Fill remaining slots with next best candidates overall.
+    if (selected.length < limit) {
+        for (const c of all) {
+            if (selected.length >= limit) break;
+            if (!selected.some(s => s.time === c.time)) {
+                selected.push(c);
+            }
+        }
+    }
+
+    return selected.sort((a, b) => b.score - a.score);
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1220,6 +1365,8 @@ async function stage8Verification(
     arudha: ArudhaLagna;
     kunda: any;
     tatwa: any;
+    contextScore: number;
+    contextHits: string[];
     ashtakavarga: any;
     bhriguBindu: any;
     transitSync: TransitSyncResult;
@@ -1253,7 +1400,8 @@ async function stage8Verification(
             ascendant: `${ephemeris.ascendant.sign} ${ephemeris.ascendant.degree.toFixed(4)}°`
         },
         dasha: "15-Method System Convergence",
-        divCharts: "Full Divisional Synthesis"
+        divCharts: "Full Divisional Synthesis",
+        contextHits: [] // Will be populated if hits occur below
     });
 
     // Method 1: Vimshottari Dasha (15%)
@@ -1275,6 +1423,19 @@ async function stage8Verification(
         }
     }
     scores['vimshottari'] = Math.round(vimScore);
+
+    // 🔱 Method 1.1: Contextual Narrative Match
+    let contextScoreAccumulator = 0;
+    const finalContextHits: string[] = [];
+    for (const event of input.lifeEvents) {
+        const dasha = getDashaForDate(vimPeriods, new Date(event.eventDate));
+        if (dasha) {
+            const context = calculateContextualBonus(event.description || '', dasha.mahadasha, ephemeris);
+            contextScoreAccumulator += context.score;
+            finalContextHits.push(...context.hits);
+        }
+    }
+    scores['contextualCorrelation'] = Math.min(100, (contextScoreAccumulator / (input.lifeEvents.length || 1)) * 10);
 
     // Method 2: Yogini Dasha (8%)
     const yogPeriods = calculateYoginiDasha(moonSidereal, birthDate);
@@ -1441,16 +1602,17 @@ async function stage8Verification(
 
     const totalScore = Math.round(
         (
-            scores['vimshottari'] * 0.15 +
+            scores['vimshottari'] * 0.14 +
             scores['yogini'] * 0.07 +
-            scores['charaDasha'] * 0.15 +
+            scores['charaDasha'] * 0.14 +
             scores['rasiDasha'] * 0.05 +
             scores['tatwaDasha'] * 0.03 +
-            scores['divisionalCharts'] * 0.25 +
+            scores['divisionalCharts'] * 0.23 +
             scores['physicalTraits'] * 0.10 +
-            scores['aspects'] * 0.10 +
+            scores['aspects'] * 0.08 +
             scores['jaiminiAspects'] * 0.05 +
-            scores['arudhaLagna'] * 0.05
+            scores['arudhaLagna'] * 0.05 +
+            (scores['contextualCorrelation'] || 0) * 0.06
         ) + sangamaBonus + badhaPenalty
     );
 
@@ -1470,6 +1632,8 @@ async function stage8Verification(
         arudha,
         kunda,
         tatwa,
+        contextScore: scores['contextualCorrelation'] || 0,
+        contextHits: finalContextHits,
         ashtakavarga,
         bhriguBindu,
         transitSync
@@ -2081,10 +2245,21 @@ function buildLevel1Prompt(
     // Format D9 & D10 for context
     const d9Asc = divCharts.D9.ascendant;
     const d10Asc = divCharts.D10.ascendant;
+    const contextMatches = input.lifeEvents.filter(e => {
+        const eventDate = new Date(e.eventDate);
+        const dasha = getDashaForDate(dashas, eventDate);
+        return dasha && calculateContextualBonus(e.description || '', dasha.mahadasha, ephemeris).score > 0;
+    });
+
+    const contextSummary = contextMatches.length > 0
+        ? `🔱 NARRATIVE ALIGNMENT: The user's story for [${contextMatches.map(m => m.eventType).join(', ')}] fits this chart's planetary dasha periods better than other candidates.`
+        : `🔱 NARRATIVE ALIGNMENT: Weak or generic context match for this time offset.`;
+
     const divChartSummary = `
 DIVISIONAL CHARTS (CALCULATED):
 D9 (Navamsa) Ascendant: ${d9Asc.sign} ${d9Asc.degree.toFixed(4)}°
 D10 (Dasamsa) Ascendant: ${d10Asc.sign} ${d10Asc.degree.toFixed(4)}°
+${contextSummary}
     `.trim();
 
 
