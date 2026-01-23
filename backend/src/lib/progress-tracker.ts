@@ -157,16 +157,23 @@ export class ProgressTracker {
 
         // 🏛️ Real-time memory sync for stage history
         if (!this.progress.stageHistory) this.progress.stageHistory = {};
-        this.progress.stageHistory[stage] = updatedLog;
 
-        // 3. Optional: Add to chunks if we want structured logs (but keep it simple for robustness)
-        // If we switch candidates, we reset the chunks in the view model naturally above
-        // For pure streaming, fullText is the source of truth.
+        // 🔥 GOD-TIER MEMORY PROTECTION: Cap thinking and stage history
+        // On HF, we cannot afford to keep 50KB strings in multiple maps.
+        const MEMORY_LIMIT = 5000;
 
-        // Truncate individual log if too long (Memory Protection)
-        if (updatedLog.length > 50000) {
-            this.candidateLogs.set(candidateTime, updatedLog.slice(-50000));
-            this.progress.lastAIThinking.fullText = this.candidateLogs.get(candidateTime)!;
+        const truncatedLog = updatedLog.length > MEMORY_LIMIT ? updatedLog.slice(-MEMORY_LIMIT) : updatedLog;
+        this.candidateLogs.set(candidateTime, truncatedLog);
+        this.progress.stageHistory[stage] = truncatedLog;
+
+        if (this.progress.lastAIThinking) {
+            this.progress.lastAIThinking.fullText = truncatedLog;
+        }
+
+        // Keep stageHistory lean - remove very old stages if memory is tight
+        const stages = Object.keys(this.progress.stageHistory).map(Number).sort((a, b) => a - b);
+        if (stages.length > 5) {
+            delete this.progress.stageHistory[stages[0]]; // Remove oldest stage
         }
 
         // ❌ NO DB SAVE - Pure Stream as requested

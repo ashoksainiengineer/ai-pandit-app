@@ -313,12 +313,13 @@ function parseAIResponse(
     offsetDescription: candidate.offsetDescription,
     score,
     confidence,
-    analysis,
-    thinking: thinking.substring(0, 3000),
+    // ✂️ TRUNCATION: Save RAM/DB Space
+    analysis: analysis.substring(0, 5000),
+    thinking: thinking.substring(0, 5000),
     eventMatches: [], // Would be parsed from analysis
-    recommendation,
-    dashaAnalysis: extractSection(analysis, 'DASHA|VIMSHOTTARI'),
-    transitAnalysis: extractSection(analysis, 'TRANSIT'),
+    recommendation: recommendation.length > 500 ? recommendation.substring(0, 500) : recommendation,
+    dashaAnalysis: extractSection(analysis, 'DASHA|VIMSHOTTARI').substring(0, 2000),
+    transitAnalysis: extractSection(analysis, 'TRANSIT').substring(0, 2000),
   };
 }
 

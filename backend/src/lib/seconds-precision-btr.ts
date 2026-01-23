@@ -149,6 +149,29 @@ export interface TransitSyncResult {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// MEMORY MANAGEMENT: GOD-TIER PRUNING 🔱
+// ═════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Prunes heavy objects from a candidate to save RAM.
+ * Only keeps ephemeris for the absolute winners of a stage.
+ */
+function pruneCandidate(c: StageCandidate, force: boolean = false): StageCandidate {
+    // If score is low or force is true, strip the heavy weight
+    if (force || (c.score && c.score < 85)) {
+        return {
+            time: c.time,
+            score: c.score,
+            methodScores: c.methodScores,
+            aiAnalysis: c.aiAnalysis,
+            // ✂️ Stripping Ephemeris: Saves ~10KB per object
+            ephemeris: undefined
+        };
+    }
+    return c;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 // SYSTEM PROMPTS FOR MULTI-LEVEL AI ANALYSIS
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -661,7 +684,7 @@ async function stage1CoarseGrid(
             // Cumulative Score: Dasha(50) + Proximity(20) + Shuddhi(10) + Static(15) + Noise(5) = 100
             const finalScore = 15 + normalizedDashaScore + proximityScore + shuddhiScore + cosmicNoise;
 
-            scored.push({
+            scored.push(pruneCandidate({
                 ...candidate,
                 score: Math.min(99, Math.max(10, finalScore)), // Clamp between 10-99
                 ephemeris: {
@@ -674,14 +697,15 @@ async function stage1CoarseGrid(
                     tatwaShuddhi: tatwa.score,
                     dashaCorrelation: Math.round(normalizedDashaScore * 2) // Shown as 0-100 for UI
                 }
-            });
+            }));
         } catch (error) {
             logger.error(`Stage 1 failed for ${candidate.time}`, error);
         }
     }
 
-    scored.sort((a, b) => b.score - a.score);
-    return scored;
+    // 🚀 GOD-TIER MEMORY PRUNING
+    const prunedResults = scored.map(c => pruneCandidate(c));
+    return prunedResults.sort((a, b) => b.score - a.score);
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1118,8 +1142,9 @@ async function stage6MicroGrid(
         }
     }
 
-    scored.sort((a, b) => b.score - a.score);
-    return scored;
+    // 🚀 GOD-TIER MEMORY PRUNING
+    const prunedResults = scored.map(c => pruneCandidate(c));
+    return prunedResults.sort((a, b) => b.score - a.score);
 }
 
 

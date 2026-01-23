@@ -540,8 +540,16 @@ async function processSessionAsync(sessionId: string): Promise<void> {
     }
   } catch (error) {
     logger.error('Async worker error', error);
-    // Ensure we clean up the slot if catastrophic failure
+  } finally {
+    // 🛡️ Ensure slot is ALWAYS released
     activeProcessingIds.delete(sessionId);
+
+    // 🚀 GOD-TIER MEMORY RECOVERY
+    // Manually trigger Garbage Collection if --expose-gc is enabled
+    if ((global as any).gc) {
+      logger.info('[MEMORY] Triggering manual GC after session recovery');
+      (global as any).gc();
+    }
   }
 }
 
