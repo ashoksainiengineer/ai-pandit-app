@@ -245,7 +245,7 @@ function formatLifeEventForAI(event: LifeEvent): string {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// 🔱 BATCH AI PROMPT (Anti-Middle-Bias)
+// 🔱 STAGE 2: BATCH COARSE ELIMINATION (Dasha-Event Matching)
 // ═════════════════════════════════════════════════════════════════════════════
 
 function getBatchPrompt(
@@ -257,48 +257,50 @@ function getBatchPrompt(
     survivorsNeeded: number
 ): string {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
-    const traitsText = traits ? JSON.stringify(traits) : 'Not provided';
 
-    return `🔱 BATCH ${batchNumber}/${totalBatches} - EQUAL ATTENTION REQUIRED 🔱
+    // Shuffle candidate order to prevent position bias
+    const shuffledCandidates = [...candidates].sort(() => Math.random() - 0.5);
 
-⚠️ CRITICAL: Analyze ALL ${candidates.length} candidates with EQUAL focus.
-Do NOT favor earlier or later candidates. Every candidate deserves thorough analysis.
+    return `BIRTH TIME RECTIFICATION - STAGE 2 (Batch ${batchNumber}/${totalBatches})
+
+TASK: Score ${candidates.length} candidate times based on Dasha-Event correlation.
+
+═══════════════════════════════════════════════════════════════════════════════
+EQUAL TREATMENT RULE:
+- Correct birth time can be ANY candidate (first, middle, or last)
+- Score purely based on astrological evidence
+- No position bias - analyze each independently
+═══════════════════════════════════════════════════════════════════════════════
 
 LIFE EVENTS TO VERIFY:
 ${eventsText}
 
-PHYSICAL TRAITS:
-${traitsText}
+${traits ? `PHYSICAL TRAITS: ${JSON.stringify(traits)}` : ''}
 
-CANDIDATES DATA:
-${candidates.map((c, i) => `
-═══ CANDIDATE ${i + 1}: ${c.time} ═══
-Lagna: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
-Moon: ${c.planets.moon.sign} ${c.planets.moon.degree} (${c.moonNakshatra})
-Sun: ${c.planets.sun.sign} ${c.planets.sun.degree}
-${c.d9Lagna ? `D9 Navamsha: ${c.d9Lagna}` : ''}
-${c.d10Lagna ? `D10 Dasamsha: ${c.d10Lagna}` : ''}
-VIMSHOTTARI DASHA:
-${c.vimshottariDasha.map(d => `  ${d.maha}/${d.antar}/${d.pratyantar}: ${d.startEnd}`).join('\n')}
-${c.yoginiDasha ? `YOGINI: ${c.yoginiDasha.map(d => d.lord).join(' → ')}` : ''}
-${c.charaDasha ? `CHARA: ${c.charaDasha.map(d => d.sign).join(' → ')}` : ''}
-`).join('\n')}
+CANDIDATES:
+${shuffledCandidates.map((c, i) => `
+[${c.time}]
+• Lagna: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
+• Moon: ${c.planets.moon.sign} ${c.planets.moon.degree} (${c.moonNakshatra})
+• Vimshottari: ${c.vimshottariDasha.map(d => `${d.maha}/${d.antar}: ${d.startEnd}`).join(' | ')}
+`).join('')}
 
-YOUR TASK:
-1. For EACH candidate, verify if dasha lords support each life event
-2. Check Lagna compatibility with physical traits
-3. Look for dasha-event timing contradictions → disqualify
-4. Score each candidate 0-100
+SCORING CRITERIA:
+1. Does Vimshottari dasha lord match event nature? (+25 each event matched)
+2. Does Antardasha timing align with event date? (+15 per alignment)
+3. Lagna sign matches physical traits? (+10)
+4. Clear contradiction = 0 score for that candidate
 
-OUTPUT FORMAT (for EACH candidate):
-CANDIDATE: [HH:MM:SS]
-EVENT MATCH: [Brief analysis]
-SCORE: [0-100]
-VERDICT: KEEP or ELIMINATE
+OUTPUT (for each candidate, one line):
+[TIME] | SCORE: [0-100] | VERDICT: [KEEP/ELIMINATE] | REASON: [brief]
 
-FINAL: Select TOP ${survivorsNeeded} candidates from this batch with highest scores.
+FINAL LINE:
 TOP_SURVIVORS: [time1], [time2]${survivorsNeeded > 2 ? ', [time3]' : ''}`;
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 🔱 STAGE 4: DEEP MULTI-DASHA VERIFICATION
+// ═════════════════════════════════════════════════════════════════════════════
 
 function getDeepAnalysisPrompt(
     candidates: CandidateDataPackage[],
@@ -307,42 +309,49 @@ function getDeepAnalysisPrompt(
 ): string {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
 
-    return `🔱 DEEP MULTI-DASHA ANALYSIS - ${candidates.length} Candidates 🔱
+    return `BIRTH TIME RECTIFICATION - STAGE 4 (Deep Multi-Dasha Analysis)
+
+TASK: Cross-verify ${candidates.length} candidates using multiple dasha systems.
+
+═══════════════════════════════════════════════════════════════════════════════
+VERIFICATION PRINCIPLE:
+- TRUE birth time should show consistency across Vimshottari, Yogini, and Chara
+- Divisional charts (D9, D10) must support life event themes
+- Any system showing contradiction = reduce score significantly
+═══════════════════════════════════════════════════════════════════════════════
 
 LIFE EVENTS:
 ${eventsText}
 
-CANDIDATES WITH FULL DATA:
-${candidates.map((c, i) => `
-═══ CANDIDATE ${i + 1}: ${c.time} ═══
-LAGNA: ${c.ascendant.sign} ${c.ascendant.degree}
-D9: ${c.d9Lagna || 'N/A'} | D10: ${c.d10Lagna || 'N/A'} | D60: ${c.d60Sign || 'N/A'}
+CANDIDATES WITH MULTI-DASHA DATA:
+${candidates.map(c => `
+[${c.time}]
+┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree}
+├ D9 (Marriage): ${c.d9Lagna || 'N/A'}
+├ D10 (Career): ${c.d10Lagna || 'N/A'}
+├ D60 (Karma): ${c.d60Sign || 'N/A'}
+├ VIMSHOTTARI: ${c.vimshottariDasha.map(d => `${d.maha}/${d.antar}`).join(' → ')}
+├ YOGINI: ${c.yoginiDasha?.map(d => d.lord).join(' → ') || 'N/A'}
+└ CHARA: ${c.charaDasha?.map(d => d.sign).join(' → ') || 'N/A'}
+${c.transitData ? `  TRANSITS: ${Object.entries(c.transitData).slice(0, 2).map(([date, t]: [string, any]) =>
+        `${date}: Sat=${t.saturn}, Jup=${t.jupiter}`).join(' | ')}` : ''}`).join('\n')}
 
-VIMSHOTTARI: ${c.vimshottariDasha.map(d => `${d.maha}/${d.antar}`).join(' → ')}
-YOGINI: ${c.yoginiDasha?.map(d => d.lord).join(' → ') || 'N/A'}
-CHARA: ${c.charaDasha?.map(d => d.sign).join(' → ') || 'N/A'}
+SCORING:
+- All 3 dasha systems agree on event timing: +30
+- D9 supports marriage events / D10 supports career: +20
+- Transit Saturn/Jupiter confirm major events: +15
+- Contradiction in any system: -25
 
-TRANSIT DATA:
-${c.transitData ? Object.entries(c.transitData).map(([date, t]: [string, any]) =>
-        `  ${date}: Sat=${t.saturn}, Jup=${t.jupiter}, Rahu=${t.rahu}`
-    ).join('\n') : 'Not available'}
-`).join('\n')}
+OUTPUT (for each candidate):
+[TIME] | MULTI-DASHA: [AGREE/PARTIAL/CONFLICT] | D-CHARTS: [SUPPORT/WEAK/FAIL] | SCORE: [0-100]
 
-YOUR MISSION:
-1. Cross-verify ALL events against ALL dasha systems
-2. D9 for marriage → D10 for career
-3. Check transit support on event dates
-4. ELIMINATE any with contradictions
-
-OUTPUT FORMAT:
-For each candidate:
-CANDIDATE: [time]
-MULTI-DASHA: [Agreement level]
-DIVISIONAL: [D9/D10/D60 support]
-SCORE: [0-100]
-
-TOP_SURVIVORS: [ranked list of top 3 times]`;
+FINAL:
+TOP_SURVIVORS: [time1], [time2], [time3]`;
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// 🔱 STAGE 6: FINAL SECONDS-LEVEL PRECISION
+// ═════════════════════════════════════════════════════════════════════════════
 
 function getFinalPrecisionPrompt(
     candidates: CandidateDataPackage[],
@@ -350,46 +359,50 @@ function getFinalPrecisionPrompt(
 ): string {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
 
-    return `🔱 FINAL PRECISION JUDGEMENT 🔱
+    return `BIRTH TIME RECTIFICATION - FINAL STAGE (Seconds Precision)
 
-You are determining THE ONE correct birth time from ${candidates.length} finalists.
+TASK: Select THE SINGLE BEST birth time from ${candidates.length} finalists.
 
-LIFE EVENTS:
+═══════════════════════════════════════════════════════════════════════════════
+PRECISION FACTORS:
+- D60 (Shashtiamsha) changes every 2 minutes → critical for seconds precision
+- Lagna degree near 0° or 30° = higher uncertainty
+- All evidence must converge on ONE time
+═══════════════════════════════════════════════════════════════════════════════
+
+LIFE EVENTS FOR FINAL CHECK:
 ${eventsText}
 
-FINAL CANDIDATES:
+FINALIST CANDIDATES:
 ${candidates.map((c, i) => `
-═══ CANDIDATE ${i + 1}: ${c.time} ═══
-LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
-D60: ${c.d60Sign || 'N/A'} ← SECONDS-LEVEL
-D9: ${c.d9Lagna} | D10: ${c.d10Lagna}
+#${i + 1} [${c.time}]
+┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
+├ D60: ${c.d60Sign || 'N/A'} ← SECONDS-LEVEL INDICATOR
+├ D9: ${c.d9Lagna} | D10: ${c.d10Lagna}
+├ VIMSHOTTARI: ${c.vimshottariDasha.map(d => `${d.maha}/${d.antar}`).join(' → ')}
+├ YOGINI: ${c.yoginiDasha?.map(d => d.lord).join(' → ') || 'N/A'}
+└ BOUNDARY RISK: ${parseFloat(c.ascendant.degree) < 2 || parseFloat(c.ascendant.degree) > 28 ? 'HIGH (near sign boundary)' : 'LOW'}`).join('\n')}
 
-ALL DASHAS:
-• Vimshottari: ${c.vimshottariDasha.map(d => `${d.maha}/${d.antar}`).join(' → ')}
-• Yogini: ${c.yoginiDasha?.map(d => d.lord).join(' → ') || 'N/A'}
-• Chara: ${c.charaDasha?.map(d => d.sign).join(' → ') || 'N/A'}
+FINAL SELECTION CRITERIA:
+1. Strongest overall dasha-event correlation
+2. D60 stability (not changing within ±30 seconds)
+3. No boundary risks in Lagna
+4. Multi-dasha consensus across all systems
 
-Boundary Check: Lagna at ${c.ascendant.degree}
-`).join('\n')}
-
-FINAL JUDGEMENT REQUIRED:
-1. Which time has the STRONGEST overall evidence?
-2. Any boundary risks (degrees near 0° or 30°)?
-3. Multi-dasha consensus?
-
-OUTPUT FORMAT:
-═════════════════════════════════════════════════════════════
-FINAL VERDICT:
-BEST TIME: [HH:MM:SS]
+═══════════════════════════════════════════════════════════════════════════════
+FINAL VERDICT (required format):
+BEST_TIME: [HH:MM:SS]
 ACCURACY: [0-100]%
 CONFIDENCE: [HIGH/MEDIUM/LOW]
-MARGIN OF ERROR: ±[X] seconds
+MARGIN_OF_ERROR: ±[seconds] seconds
 
-TOP 3 EVIDENCE POINTS:
-1. [Primary reason]
-2. [Supporting evidence]
-3. [Confirmation factor]
-═════════════════════════════════════════════════════════════`;
+EVIDENCE:
+1. [Primary reason for selection]
+2. [Secondary supporting factor]
+3. [Additional confirmation]
+
+RUNNER_UP: [second best time] (for reference)
+═══════════════════════════════════════════════════════════════════════════════`;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
