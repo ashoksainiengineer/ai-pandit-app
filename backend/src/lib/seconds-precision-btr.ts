@@ -277,15 +277,35 @@ function formatLifeEventForAI(event: LifeEvent): string {
             }
             break;
         case 'month_year':
+            // Truncate "2025-05-01" to "2025-05"
+            timeStr = eventDate.split('-').slice(0, 2).join('-');
             nuance = '(Month-Level)';
             break;
         case 'month_range':
-            if (endDate) timeStr = `${eventDate} to ${endDate}`;
+            if (endDate) {
+                const s = eventDate.split('-').slice(0, 2).join('-');
+                const e = endDate.split('-').slice(0, 2).join('-');
+                timeStr = `${s} to ${e}`;
+            }
             nuance = '(Month Range)';
             break;
         case 'year_range':
+            // Truncate "2025-05-01" to "2025"
+            const yStart = eventDate.split('-')[0];
+            if (endDate) {
+                const yEnd = endDate.split('-')[0];
+                timeStr = `${yStart} to ${yEnd}`;
+            } else {
+                timeStr = yStart; // Single year case
+            }
+            nuance = '(Year-Level)';
+            break;
+        case 'date_range':
             if (endDate) timeStr = `${eventDate} to ${endDate}`;
-            nuance = '(Year Range)';
+            nuance = '(Date Range)';
+            break;
+        case 'exact_date':
+            nuance = '(Exact Date)';
             break;
     }
 
@@ -366,9 +386,12 @@ TOP_SURVIVORS: [comma-separated list of ${survivorsNeeded} best times]`;
 function getDeepAnalysisPrompt(
     candidates: CandidateDataPackage[],
     events: LifeEvent[],
-    traits: any
+    traits: any,
+    spouseData: any
 ): string {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
+    const traitsText = traits ? JSON.stringify(traits, null, 2) : 'N/A';
+    const spouseText = spouseData ? JSON.stringify(spouseData, null, 2) : 'N/A';
 
     return `BIRTH TIME RECTIFICATION - STAGE 4 (Deep Multi-Dasha Analysis)
 
@@ -386,6 +409,10 @@ VERIFICATION PRINCIPLE:
 - Divisional charts (D9, D10) must support life event themes
 - Contradiction in any system = reduce score
 
+USER CONTEXT:
+PHYSICAL TRAITS: ${traitsText}
+SPOUSE DATA: ${spouseText}
+
 LIFE EVENTS:
 ${eventsText}
 
@@ -393,14 +420,14 @@ CANDIDATES WITH MULTI-DASHA DATA:
 ${candidates.map(c => `
 [${c.time}]
 ┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree}
-├ D9 (Marriage): ${c.d9Lagna || 'N/A'}
-├ D10 (Career): ${c.d10Lagna || 'N/A'}
+├ D9 (Navamsa): Osc=${c.d9Lagna} | Planets=${c.d9Chart ? Object.entries(c.d9Chart.planets).map(([k, v]) => `${k.substr(0, 2).toUpperCase()}=${v}`).join(' ') : 'N/A'}
+├ D10 (Dasamsa): Asc=${c.d10Lagna} | Planets=${c.d10Chart ? Object.entries(c.d10Chart.planets).map(([k, v]) => `${k.substr(0, 2).toUpperCase()}=${v}`).join(' ') : 'N/A'}
 ├ D60 (Karma): ${c.d60Sign || 'N/A'}
-├ VIMSHOTTARI: ${c.vimshottariDasha.map(d => `${d.maha}/${d.antar}`).join(' → ')}
-├ YOGINI: ${c.yoginiDasha?.map(d => d.lord).join(' → ') || 'N/A'}
-└ CHARA: ${c.charaDasha?.map(d => d.sign).join(' → ') || 'N/A'}
-${c.transitData ? `  TRANSITS: ${Object.entries(c.transitData).slice(0, 2).map(([date, t]: [string, any]) =>
-        `${date}: Sat=${t.saturn}, Jup=${t.jupiter}`).join(' | ')}` : ''}`).join('\n')}
+├ VIMSHOTTARI: ${c.vimshottariDasha.map(d => `${d.maha}/${d.antar} [${d.startEnd}]`).join(' → ')}
+├ YOGINI: ${c.yoginiDasha?.map(d => `${d.lord} [${d.startEnd}]`).join(' → ') || 'N/A'}
+├ CHARA: ${c.charaDasha?.map(d => `${d.sign} [${d.startEnd}]`).join(' → ') || 'N/A'}
+${c.transitData ? `  TRANSITS: ${Object.entries(c.transitData).slice(0, 5).map(([date, t]: [string, any]) =>
+        `[${date}]: Sa=${t.saturn}, Ju=${t.jupiter}, Ra=${t.rahu}`).join(' | ')}` : ''}`).join('\n')}
 
 SCORING:
 - All 3 dasha systems agree on event timing: +30
@@ -421,9 +448,13 @@ TOP_SURVIVORS: [time1], [time2], [time3]`;
 
 function getFinalPrecisionPrompt(
     candidates: CandidateDataPackage[],
-    events: LifeEvent[]
+    events: LifeEvent[],
+    traits: any,
+    spouseData: any
 ): string {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
+    const traitsText = traits ? JSON.stringify(traits, null, 2) : 'N/A';
+    const spouseText = spouseData ? JSON.stringify(spouseData, null, 2) : 'N/A';
 
     return `BIRTH TIME RECTIFICATION - FINAL STAGE (Seconds Precision)
 
@@ -436,12 +467,11 @@ function getFinalPrecisionPrompt(
 
 TASK: Select THE SINGLE BEST birth time from ${candidates.length} finalists.
 
-PRECISION FACTORS:
-- D60 (Shashtiamsha) changes every 2 minutes → critical for seconds
-- Lagna degree near 0° or 30° = higher uncertainty
-- All evidence must converge on ONE time
+USER CONTEXT:
+Traits: ${traitsText}
+Spouse: ${spouseText}
 
-LIFE EVENTS FOR FINAL CHECK:
+LIFE EVENTS:
 ${eventsText}
 
 FINALIST CANDIDATES:
@@ -449,9 +479,11 @@ ${candidates.map((c, i) => `
 #${i + 1} [${c.time}]
 ┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
 ├ D60: ${c.d60Sign || 'N/A'} ← SECONDS-LEVEL INDICATOR
-├ D9: ${c.d9Lagna} | D10: ${c.d10Lagna}
-├ VIMSHOTTARI: ${c.vimshottariDasha.map(d => `${d.maha}/${d.antar}`).join(' → ')}
-├ YOGINI: ${c.yoginiDasha?.map(d => d.lord).join(' → ') || 'N/A'}
+├ D9: Asc=${c.d9Lagna} | Planets=${c.d9Chart ? Object.entries(c.d9Chart.planets).map(([k, v]) => `${k.substr(0, 2).toUpperCase()}=${v}`).join(' ') : 'N/A'}
+├ D10: Asc=${c.d10Lagna} | Planets=${c.d10Chart ? Object.entries(c.d10Chart.planets).map(([k, v]) => `${k.substr(0, 2).toUpperCase()}=${v}`).join(' ') : 'N/A'}
+├ VIMSHOTTARI: ${c.vimshottariDasha.map(d => `${d.maha}/${d.antar} [${d.startEnd}]`).join(' → ')}
+├ YOGINI: ${c.yoginiDasha?.map(d => `${d.lord} [${d.startEnd}]`).join(' → ') || 'N/A'}
+├ CHARA: ${c.charaDasha?.map(d => `${d.sign} [${d.startEnd}]`).join(' → ') || 'N/A'}
 └ BOUNDARY RISK: ${parseFloat(c.ascendant.degree) < 2 || parseFloat(c.ascendant.degree) > 28 ? 'HIGH (near sign boundary)' : 'LOW'}`).join('\n')}
 
 FINAL SELECTION CRITERIA:
@@ -770,7 +802,7 @@ async function stage4DeepAnalysis(
         const batchSurvivors: CandidateDataPackage[] = [];
 
         for (let i = 0; i < batches.length; i++) {
-            const prompt = getDeepAnalysisPrompt(batches[i], input.lifeEvents, input.physicalTraits);
+            const prompt = getDeepAnalysisPrompt(batches[i], input.lifeEvents, input.physicalTraits, input.spouseData);
 
             const response = await callAIWithStream(
                 input.sessionId,
@@ -794,13 +826,12 @@ async function stage4DeepAnalysis(
                 if (survivor) batchSurvivors.push(survivor);
             }
         }
-
         currentCandidates = batchSurvivors;
     }
 
     // Final deep analysis on remaining candidates
     if (currentCandidates.length > 3) {
-        const prompt = getDeepAnalysisPrompt(currentCandidates, input.lifeEvents, input.physicalTraits);
+        const prompt = getDeepAnalysisPrompt(currentCandidates, input.lifeEvents, input.physicalTraits, input.spouseData);
 
         const response = await callAIWithStream(
             input.sessionId,
@@ -897,7 +928,7 @@ async function stage6FinalPrecision(
         const batchWinners: CandidateDataPackage[] = [];
 
         for (const batch of batches) {
-            const prompt = getFinalPrecisionPrompt(batch, input.lifeEvents);
+            const prompt = getFinalPrecisionPrompt(batch, input.lifeEvents, input.physicalTraits, input.spouseData);
             const response = await callAIWithStream(
                 input.sessionId,
                 6,
@@ -924,7 +955,7 @@ async function stage6FinalPrecision(
     }
 
     // Final judgement
-    const prompt = getFinalPrecisionPrompt(finalists, input.lifeEvents);
+    const prompt = getFinalPrecisionPrompt(finalists, input.lifeEvents, input.physicalTraits, input.spouseData);
     const response = await callAIWithStream(
         input.sessionId,
         6,
