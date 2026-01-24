@@ -52,14 +52,19 @@ export interface AIContextEvent {
     type: 'ai_context';
     stage: number;
     candidateTime: string;
-    planetaryInfo: {
+    planetaryInfo?: {
         sun: string;
         moon: string;
         ascendant: string;
     };
-    dasha: string;
+    dasha?: string;
     divCharts?: string;
     contextHits?: string[]; // 🔱 Narrative keyword matches
+    // 🔱 v7.0 Batch Tournament fields
+    round?: number;
+    batch?: number;
+    totalBatches?: number;
+    candidatesInBatch?: number;
 }
 
 export interface CalculationLogEvent {

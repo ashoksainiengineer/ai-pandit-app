@@ -41,14 +41,18 @@ export interface AIContextEvent {
     type: 'ai_context';
     stage: number;
     candidateTime: string;
-    planetaryInfo: {
+    planetaryInfo?: {
         sun: string;
         moon: string;
         ascendant: string;
     };
-    dasha: string;
+    dasha?: string;
     divCharts?: string;
     contextHits?: string[];
+    round?: number;
+    batch?: number;
+    totalBatches?: number;
+    candidatesInBatch?: number;
 }
 export interface CalculationLogEvent {
     type: 'calculation_log';

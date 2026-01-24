@@ -10,15 +10,15 @@ const drizzle_js_1 = require("../database/drizzle.js");
 const schema_js_1 = require("../database/schema.js");
 const drizzle_orm_1 = require("drizzle-orm");
 const session_events_js_1 = require("./session-events.js");
-// 🔱 GOD-TIER BTR v6.0 STEPS (6-Stage Pipeline)
+// 🔱 GOD-TIER BTR v7.0 STEPS (6-Stage Batch Tournament Pipeline)
 exports.ANALYSIS_STEPS = [
     { id: 'init', name: 'Initializing', icon: '🚀' },
-    { id: 'grid', name: 'Stage 1: Adaptive Grid Generation', icon: '📊' },
-    { id: 'coarse', name: 'Stage 2: AI Coarse Elimination', icon: '🧠' },
-    { id: 'fine', name: 'Stage 3: Fine Grid Expansion', icon: '🔬' },
-    { id: 'deep', name: 'Stage 4: AI Deep Analysis', icon: '⚔️' },
-    { id: 'micro', name: 'Stage 5: Micro Grid + D60', icon: '📐' },
-    { id: 'final', name: 'Stage 6: AI Final Precision', icon: '🔱' },
+    { id: 'grid', name: 'Stage 1: Exhaustive Data Generation', icon: '📊' },
+    { id: 'coarse', name: 'Stage 2: Batch Tournament', icon: '🏆' },
+    { id: 'fine', name: 'Stage 3: Refinement Grid', icon: '🔬' },
+    { id: 'deep', name: 'Stage 4: Deep Multi-Dasha Analysis', icon: '⚔️' },
+    { id: 'micro', name: 'Stage 5: Micro Precision Grid', icon: '📐' },
+    { id: 'final', name: 'Stage 6: Final Precision', icon: '🔱' },
 ];
 // ═════════════════════════════════════════════════════════════════════════════
 // PROGRESS TRACKER CLASS

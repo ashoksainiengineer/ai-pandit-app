@@ -4,7 +4,7 @@
 // Premium unified AI analysis panel with DeepSeek-style collapsible thinking
 // Enhanced with Candidate Tabs for switching between analyzed candidates
 
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AIContextData } from '@/lib/use-stream-progress';
 import { ChevronDown, ChevronUp, Brain, Zap, Clock, Activity, Users, Radio } from 'lucide-react';
@@ -488,73 +488,122 @@ export function UnifiedAIPanel({
     );
 }
 
-// Sub-component for auto-scrolling
+// Sub-component for auto-scrolling - ROBUST SMOOTH SCROLL
 function ScrollableContent({ content, isThinking, candidateTime }: { content: string; isThinking: boolean; candidateTime?: string }) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-    const scrollAnchorRef = useRef<HTMLDivElement>(null);
-    const lastContentLengthRef = useRef(0);
+    const scrollRafRef = useRef<number | null>(null);
+    const lastScrollTimeRef = useRef(0);
+    const isUserScrollingRef = useRef(false);
 
-    const scrollToEnd = (forceWindowScroll = false) => {
-        if (!shouldAutoScroll) return;
+    // 🔱 ROBUST SMOOTH SCROLL - Debounced RAF-based
+    const smoothScrollToBottom = useCallback(() => {
+        if (!shouldAutoScroll || isUserScrollingRef.current) return;
 
-        // Internal container scroll
-        if (scrollAnchorRef.current) {
-            scrollAnchorRef.current.scrollIntoView({ behavior: 'instant', block: 'end' });
+        const now = Date.now();
+        // Debounce: min 50ms between scrolls
+        if (now - lastScrollTimeRef.current < 50) return;
+
+        // Cancel any pending scroll
+        if (scrollRafRef.current) {
+            cancelAnimationFrame(scrollRafRef.current);
         }
 
-        // Viewport synchronization
-        if (isThinking || forceWindowScroll) {
-            const el = scrollRef.current;
-            if (el) {
-                const rect = el.getBoundingClientRect();
-                const viewportHeight = window.innerHeight;
-                if (rect.bottom > viewportHeight - 100) {
-                    window.scrollBy({ top: rect.bottom - (viewportHeight - 100), behavior: 'auto' });
+        scrollRafRef.current = requestAnimationFrame(() => {
+            const container = scrollRef.current;
+            if (!container) return;
+
+            // Calculate target scroll position
+            const targetScroll = container.scrollHeight - container.clientHeight;
+            const currentScroll = container.scrollTop;
+            const distance = targetScroll - currentScroll;
+
+            // Only scroll if there's meaningful distance
+            if (distance > 2) {
+                // Smooth scroll with easing (move 40% of distance per frame)
+                const step = Math.max(distance * 0.4, 5);
+                container.scrollTop = currentScroll + step;
+                lastScrollTimeRef.current = now;
+
+                // Continue if not at bottom
+                if (container.scrollTop < targetScroll - 2) {
+                    scrollRafRef.current = requestAnimationFrame(() => smoothScrollToBottom());
                 }
             }
-        }
-    };
+        });
+    }, [shouldAutoScroll]);
 
-    // Use ResizeObserver for content growth
+    // Trigger scroll when content changes
     useEffect(() => {
-        if (!scrollRef.current) return;
+        if (isThinking && shouldAutoScroll) {
+            smoothScrollToBottom();
+        }
+    }, [content.length, isThinking, shouldAutoScroll, smoothScrollToBottom]);
 
-        const el = scrollRef.current;
-        const observer = new ResizeObserver(() => {
-            requestAnimationFrame(() => scrollToEnd());
+    // MutationObserver for DOM changes
+    useEffect(() => {
+        const container = scrollRef.current;
+        if (!container) return;
+
+        const observer = new MutationObserver(() => {
+            if (shouldAutoScroll && isThinking) {
+                smoothScrollToBottom();
+            }
         });
 
-        const contentEl = el.firstElementChild;
-        if (contentEl) observer.observe(contentEl);
-
-        // Immediate scroll on significant changes
-        if (content.length !== lastContentLengthRef.current) {
-            scrollToEnd(true);
-            lastContentLengthRef.current = content.length;
-        }
+        observer.observe(container, {
+            childList: true,
+            subtree: true,
+            characterData: true,
+        });
 
         return () => observer.disconnect();
-    }, [shouldAutoScroll, content.length, isThinking]);
+    }, [shouldAutoScroll, isThinking, smoothScrollToBottom]);
 
-    const handleScroll = () => {
+    // Detect user scroll intent
+    const handleScroll = useCallback(() => {
         if (!scrollRef.current) return;
 
         const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-        const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 15;
+        const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
 
-        if (isAtBottom) {
+        // If within 30px of bottom, enable auto-scroll
+        if (distanceFromBottom < 30) {
             setShouldAutoScroll(true);
+            isUserScrollingRef.current = false;
         } else {
+            // User scrolled up - disable auto-scroll temporarily
             setShouldAutoScroll(false);
+            isUserScrollingRef.current = true;
+
+            // Re-enable after 2 seconds of no interaction
+            setTimeout(() => {
+                isUserScrollingRef.current = false;
+            }, 2000);
         }
-    };
+    }, []);
+
+    // Cleanup RAF on unmount
+    useEffect(() => {
+        return () => {
+            if (scrollRafRef.current) {
+                cancelAnimationFrame(scrollRafRef.current);
+            }
+        };
+    }, []);
+
+    // Resume auto-scroll handler
+    const handleResumeAutoScroll = useCallback(() => {
+        setShouldAutoScroll(true);
+        isUserScrollingRef.current = false;
+        smoothScrollToBottom();
+    }, [smoothScrollToBottom]);
 
     return (
         <div
             ref={scrollRef}
             onScroll={handleScroll}
-            className="p-4 bg-[#0F1419]/50 font-mono text-sm text-[#D1D5DB] leading-relaxed max-h-[400px] overflow-y-auto custom-scrollbar relative"
+            className="p-4 bg-[#0F1419]/50 font-mono text-sm text-[#D1D5DB] leading-relaxed max-h-[400px] overflow-y-auto custom-scrollbar relative scroll-smooth"
         >
             {/* Candidate header if viewing specific candidate */}
             {candidateTime && (
@@ -579,8 +628,6 @@ function ScrollableContent({ content, isThinking, candidateTime }: { content: st
                     {isThinking && (
                         <span className="inline-block w-2 h-4 bg-[#D4AF37] ml-1 animate-pulse align-text-bottom shadow-[0_0_5px_#D4AF37]" />
                     )}
-                    {/* Anchor for sticky scroll */}
-                    <div ref={scrollAnchorRef} className="h-px w-full" />
                 </div>
             ) : (
                 <div className="text-[#6B7280] italic flex items-center gap-2">
@@ -589,14 +636,15 @@ function ScrollableContent({ content, isThinking, candidateTime }: { content: st
                 </div>
             )}
 
-            {/* Scroll Nudge Button */}
+            {/* Scroll Nudge Button - shows when user scrolled up */}
             {!shouldAutoScroll && content && (
                 <button
-                    onClick={() => setShouldAutoScroll(true)}
-                    className="absolute bottom-4 right-4 bg-[#D4AF37]/20 hover:bg-[#D4AF37]/40 text-[#D4AF37] p-1 rounded-full border border-[#D4AF37]/30 transition-all animate-bounce"
-                    title="Scroll to bottom"
+                    onClick={handleResumeAutoScroll}
+                    className="absolute bottom-4 right-4 bg-[#D4AF37]/20 hover:bg-[#D4AF37]/40 text-[#D4AF37] px-3 py-1.5 rounded-lg border border-[#D4AF37]/30 transition-all flex items-center gap-2 text-xs font-medium shadow-lg backdrop-blur"
+                    title="Resume auto-scroll"
                 >
                     <ChevronDown className="w-4 h-4" />
+                    Follow
                 </button>
             )}
         </div>

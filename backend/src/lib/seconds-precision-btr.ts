@@ -1,8 +1,7 @@
 // lib/seconds-precision-btr.ts
-// 🔱 GOD-TIER BTR v6.0: AI-First Birth Time Rectification
-// Swiss Eph = Calculator (Numerical Data Only)
-// DeepSeek Reasoner = Brain (All Analysis & Decisions)
-// Zero Mathematical Scoring - All decisions via AI reasoning
+// 🔱 GOD-TIER BTR v7.0: Batch-Based Tournament System
+// Research-backed: Max 10 candidates per AI call (Lost in the Middle mitigation)
+// Swiss Eph = Calculator (Data Only) | DeepSeek AI = Brain (All Decisions)
 
 import { calculateEphemeris, calculateJulianDay, convertToUTC } from './ephemeris.js';
 import {
@@ -22,24 +21,6 @@ import {
     calculateArudhaLagna,
     calculatePanchanga,
     calculateBoundarySafety,
-    formatYoginiDashaSequence,
-    formatDivisionalCharts,
-    formatAdvancedAspects,
-    formatPhysicalTraitsAnalysis,
-    formatArudhaLagna,
-    formatPanchanga,
-    formatBoundarySafety,
-    calculateFullShadbala,
-    formatShadbala,
-    calculateHoraLagna,
-    calculateGhatiLagna,
-    formatSpecialLagnas,
-    calculatePlanetaryMaturation,
-    formatPlanetaryMaturation,
-    DivisionalChart,
-    AspectData,
-    ArudhaLagna,
-    calculateAshtakavarga,
     calculateD9,
     calculateD10,
     calculateD60
@@ -48,33 +29,22 @@ import {
     calculateCharaKarakas,
     calculateCharaDasha,
     getCharaDashaForDate,
-    charaDashaSupportsEvent,
-    calculateRasiDasha,
-    calculateTatwaDasha,
-    getTatwaForDate,
-    calculateJaiminiAspects,
-    formatCharaKarakas,
-    formatCharaDasha,
-    formatRasiDasha,
-    formatTatwaDasha,
-    formatJaiminiAspects,
-    calculateBhriguBindu,
-    formatBhriguBindu
 } from './jaimini-astrology.js';
 import {
     callAI,
     callAIWithStream,
     parseAIAnalysisResponse,
-    executeAIInParallel,
 } from './ai-client.js';
 import {
-    calculateTatwaShuddhi,
-    calculateKundaShuddhi,
-    calculateVarnadaLagna,
-    getApproxSunrise,
-    getApproxSunset,
-} from './shuddhi-engine.js';
-import { generateCandidateTimes, getAdaptiveInterval, TimeOffsetConfig } from './time-offset-manager.js';
+    generateCandidateTimes,
+    generateRefinementGrid,
+    splitIntoBatches,
+    MAX_BATCH_SIZE,
+    SURVIVORS_PER_BATCH,
+    getDynamicBatchSize,
+    getDynamicSurvivors,
+    TimeOffsetConfig
+} from './time-offset-manager.js';
 import { logger } from './logger.js';
 import { ProgressTracker, ANALYSIS_STEPS } from './progress-tracker.js';
 import { LifeEvent, EphemerisData, SecondsPrecisionInput, SecondsPrecisionResult } from './types.js';
@@ -90,17 +60,6 @@ const ZODIAC_SIGNS = [
     'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
 ];
 
-interface StageCandidate {
-    time: string;
-    offsetMinutes: number;
-    ephemeris?: EphemerisData;
-    dashaTable?: string;
-    divCharts?: any;
-    aiScore?: number;
-    aiReason?: string;
-    methodScores?: Record<string, number>;
-}
-
 interface CandidateDataPackage {
     time: string;
     offsetMinutes: number;
@@ -114,6 +73,8 @@ interface CandidateDataPackage {
     d10Lagna?: string;
     d60Sign?: string;
     transitData?: Record<string, any>;
+    aiScore?: number;
+    aiVerdict?: string;
 }
 
 interface StageResult {
@@ -121,8 +82,15 @@ interface StageResult {
     stageName: string;
     candidatesIn: number;
     candidatesOut: number;
-    topCandidates: StageCandidate[];
+    batchCount?: number;
     aiReasoning?: string;
+}
+
+interface TournamentRound {
+    roundNumber: number;
+    batchesProcessed: number;
+    candidatesIn: number;
+    candidatesOut: number;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -130,12 +98,6 @@ interface StageResult {
 // ═════════════════════════════════════════════════════════════════════════════
 
 const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
-
-function addSeconds(time: string, seconds: number): string {
-    const [h, m, s] = time.split(':').map(Number);
-    const date = new Date(2000, 0, 1, h, m, s + seconds);
-    return date.toTimeString().split(' ')[0];
-}
 
 function formatTimeHHMMSS(time: string): string {
     const parts = time.split(':');
@@ -170,7 +132,7 @@ async function buildCandidateDataPackage(
         const nakshatra = getNakshatraForLongitude(data.longitude);
         planets[name] = {
             sign: data.sign,
-            degree: (data.longitude % 30).toFixed(2) + '°',
+            degree: (data.longitude % 30).toFixed(4) + '°',
             nakshatra: nakshatra.name
         };
     }
@@ -192,7 +154,7 @@ async function buildCandidateDataPackage(
         planets,
         ascendant: {
             sign: ephemeris.ascendant.sign,
-            degree: (ephemeris.ascendant.longitude % 30).toFixed(2) + '°',
+            degree: (ephemeris.ascendant.longitude % 30).toFixed(4) + '°',
             nakshatra: ascNakshatra.name
         },
         moonNakshatra: planets.moon.nakshatra,
@@ -283,14 +245,24 @@ function formatLifeEventForAI(event: LifeEvent): string {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// AI PROMPTS (DeepSeek Reasoner Only)
+// 🔱 BATCH AI PROMPT (Anti-Middle-Bias)
 // ═════════════════════════════════════════════════════════════════════════════
 
-function getStage2Prompt(candidates: CandidateDataPackage[], events: LifeEvent[], traits: any): string {
+function getBatchPrompt(
+    candidates: CandidateDataPackage[],
+    events: LifeEvent[],
+    traits: any,
+    batchNumber: number,
+    totalBatches: number,
+    survivorsNeeded: number
+): string {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
     const traitsText = traits ? JSON.stringify(traits) : 'Not provided';
 
-    return `You are the SUPREME VEDIC ASTROLOGER analyzing ${candidates.length} birth time candidates.
+    return `🔱 BATCH ${batchNumber}/${totalBatches} - EQUAL ATTENTION REQUIRED 🔱
+
+⚠️ CRITICAL: Analyze ALL ${candidates.length} candidates with EQUAL focus.
+Do NOT favor earlier or later candidates. Every candidate deserves thorough analysis.
 
 LIFE EVENTS TO VERIFY:
 ${eventsText}
@@ -304,46 +276,38 @@ ${candidates.map((c, i) => `
 Lagna: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
 Moon: ${c.planets.moon.sign} ${c.planets.moon.degree} (${c.moonNakshatra})
 Sun: ${c.planets.sun.sign} ${c.planets.sun.degree}
-VIMSHOTTARI DASHA SEQUENCE:
+${c.d9Lagna ? `D9 Navamsha: ${c.d9Lagna}` : ''}
+${c.d10Lagna ? `D10 Dasamsha: ${c.d10Lagna}` : ''}
+VIMSHOTTARI DASHA:
 ${c.vimshottariDasha.map(d => `  ${d.maha}/${d.antar}/${d.pratyantar}: ${d.startEnd}`).join('\n')}
+${c.yoginiDasha ? `YOGINI: ${c.yoginiDasha.map(d => d.lord).join(' → ')}` : ''}
+${c.charaDasha ? `CHARA: ${c.charaDasha.map(d => d.sign).join(' → ')}` : ''}
 `).join('\n')}
 
 YOUR TASK:
-1. For EACH life event, check which candidates have DASHA LORDS that correlate with the event type:
-   - Marriage/Love → Venus, Jupiter, 7th lord
-   - Career/Promotion → Saturn, Sun, 10th lord, Mercury
-   - Health Issues → 6th/8th lords, Mars, Ketu
-   - Education → Mercury, Jupiter, 5th lord
-   - Children → Jupiter, 5th lord
-   - Financial → 2nd/11th lords, Jupiter
+1. For EACH candidate, verify if dasha lords support each life event
+2. Check Lagna compatibility with physical traits
+3. Look for dasha-event timing contradictions → disqualify
+4. Score each candidate 0-100
 
-2. ELIMINATE candidates where major events CANNOT fit the dasha periods.
-
-3. If physical traits provided, check Lagna compatibility:
-   - Aries/Scorpio: Athletic, sharp features
-   - Taurus/Libra: Pleasant, medium build
-   - Gemini/Virgo: Slim, youthful
-   - Cancer: Round face, emotional
-   - Leo: Regal bearing, broad shoulders
-   - Capricorn: Thin, serious
-   - Aquarius: Unique features
-   - Pisces: Soft features, dreamy eyes
-
-OUTPUT FORMAT (STRICT - Must include for EACH candidate):
+OUTPUT FORMAT (for EACH candidate):
 CANDIDATE: [HH:MM:SS]
-EVENT ANALYSIS: [Which events fit, which don't]
-DASHA ALIGNMENT: [Good/Poor/Mixed]
-LAGNA FIT: [If traits provided]
-VERDICT: KEEP or ELIMINATE
+EVENT MATCH: [Brief analysis]
 SCORE: [0-100]
+VERDICT: KEEP or ELIMINATE
 
-FINAL RANKING: List top 15 candidates in order of likelihood.`;
+FINAL: Select TOP ${survivorsNeeded} candidates from this batch with highest scores.
+TOP_SURVIVORS: [time1], [time2]${survivorsNeeded > 2 ? ', [time3]' : ''}`;
 }
 
-function getStage4Prompt(candidates: CandidateDataPackage[], events: LifeEvent[], traits: any): string {
+function getDeepAnalysisPrompt(
+    candidates: CandidateDataPackage[],
+    events: LifeEvent[],
+    traits: any
+): string {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
 
-    return `You are performing DEEP ANALYSIS of ${candidates.length} candidates at 30-second precision.
+    return `🔱 DEEP MULTI-DASHA ANALYSIS - ${candidates.length} Candidates 🔱
 
 LIFE EVENTS:
 ${eventsText}
@@ -352,121 +316,108 @@ CANDIDATES WITH FULL DATA:
 ${candidates.map((c, i) => `
 ═══ CANDIDATE ${i + 1}: ${c.time} ═══
 LAGNA: ${c.ascendant.sign} ${c.ascendant.degree}
-D9 NAVAMSHA LAGNA: ${c.d9Lagna || 'N/A'}
-D10 DASAMSHA LAGNA: ${c.d10Lagna || 'N/A'}
+D9: ${c.d9Lagna || 'N/A'} | D10: ${c.d10Lagna || 'N/A'} | D60: ${c.d60Sign || 'N/A'}
 
 VIMSHOTTARI: ${c.vimshottariDasha.map(d => `${d.maha}/${d.antar}`).join(' → ')}
 YOGINI: ${c.yoginiDasha?.map(d => d.lord).join(' → ') || 'N/A'}
 CHARA: ${c.charaDasha?.map(d => d.sign).join(' → ') || 'N/A'}
 
-TRANSIT DATA ON EVENT DATES:
+TRANSIT DATA:
 ${c.transitData ? Object.entries(c.transitData).map(([date, t]: [string, any]) =>
         `  ${date}: Sat=${t.saturn}, Jup=${t.jupiter}, Rahu=${t.rahu}`
     ).join('\n') : 'Not available'}
 `).join('\n')}
 
-YOUR TASK:
-1. Cross-verify ALL events against MULTIPLE dasha systems (Vimshottari + Yogini + Chara)
-2. Check D9 for marriage/relationship events
-3. Check D10 for career events
-4. Verify transits on event dates support the natal chart
-5. ELIMINATE any candidate with contradictions
+YOUR MISSION:
+1. Cross-verify ALL events against ALL dasha systems
+2. D9 for marriage → D10 for career
+3. Check transit support on event dates
+4. ELIMINATE any with contradictions
 
 OUTPUT FORMAT:
-CANDIDATE: [HH:MM:SS]
-MULTI-DASHA VERIFICATION: [All 3 systems agree? Conflicts?]
-DIVISIONAL CHART SUPPORT: [D9/D10 analysis]
-TRANSIT CONFIRMATION: [Do transits on event days aspect natal positions?]
-VERDICT: STRONG/MODERATE/WEAK
+For each candidate:
+CANDIDATE: [time]
+MULTI-DASHA: [Agreement level]
+DIVISIONAL: [D9/D10/D60 support]
 SCORE: [0-100]
 
-FINAL RANKING: Top 7 candidates ordered by evidence strength.`;
+TOP_SURVIVORS: [ranked list of top 3 times]`;
 }
 
-function getStage6Prompt(candidates: CandidateDataPackage[], events: LifeEvent[], traits: any): string {
+function getFinalPrecisionPrompt(
+    candidates: CandidateDataPackage[],
+    events: LifeEvent[]
+): string {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
 
-    return `🔱 FINAL PRECISION ANALYSIS - 6-SECOND RESOLUTION 🔱
+    return `🔱 FINAL PRECISION JUDGEMENT 🔱
 
-You are determining the SINGLE CORRECT birth time from ${candidates.length} candidates.
+You are determining THE ONE correct birth time from ${candidates.length} finalists.
 
 LIFE EVENTS:
 ${eventsText}
 
-MICRO-PRECISION CANDIDATES:
+FINAL CANDIDATES:
 ${candidates.map((c, i) => `
 ═══ CANDIDATE ${i + 1}: ${c.time} ═══
 LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
-D60 SHASHTIAMSHA: ${c.d60Sign || 'N/A'} ← CRUCIAL for 6-second precision
+D60: ${c.d60Sign || 'N/A'} ← SECONDS-LEVEL
 D9: ${c.d9Lagna} | D10: ${c.d10Lagna}
 
-ALL DASHA SYSTEMS:
+ALL DASHAS:
 • Vimshottari: ${c.vimshottariDasha.map(d => `${d.maha}/${d.antar}`).join(' → ')}
 • Yogini: ${c.yoginiDasha?.map(d => d.lord).join(' → ') || 'N/A'}
 • Chara: ${c.charaDasha?.map(d => d.sign).join(' → ') || 'N/A'}
 
-BOUNDARY CHECK:
-• Lagna Degree: ${c.ascendant.degree} (Near 0° or 30° = RISKY)
-• Moon Nakshatra: ${c.moonNakshatra}
+Boundary Check: Lagna at ${c.ascendant.degree}
 `).join('\n')}
 
-YOUR MISSION:
-1. At 6-second precision, D60 changes sign every 0.5° - verify alignment
-2. Check ALL 5 dasha systems agree on major events
-3. Verify NO contradictions exist
-4. Check boundary safety (transitions within 30 seconds = risky)
-
-CONTRADICTIONS = INSTANT ELIMINATION
+FINAL JUDGEMENT REQUIRED:
+1. Which time has the STRONGEST overall evidence?
+2. Any boundary risks (degrees near 0° or 30°)?
+3. Multi-dasha consensus?
 
 OUTPUT FORMAT:
 ═════════════════════════════════════════════════════════════
 FINAL VERDICT:
 BEST TIME: [HH:MM:SS]
 ACCURACY: [0-100]%
-CONFIDENCE: [HIGH/MEDIUM] 
+CONFIDENCE: [HIGH/MEDIUM/LOW]
 MARGIN OF ERROR: ±[X] seconds
+
 TOP 3 EVIDENCE POINTS:
-1. [Why this time is correct]
-2. [Supporting dasha alignment]
-3. [Divisional chart confirmation]
-
-BOUNDARY WARNINGS: [Any nakshatra/lagna transitions within 30 seconds]
-═════════════════════════════════════════════════════════════
-
-Also provide RANKING for all candidates with brief reasoning.`;
+1. [Primary reason]
+2. [Supporting evidence]
+3. [Confirmation factor]
+═════════════════════════════════════════════════════════════`;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// AI SCORE EXTRACTOR
+// AI SCORE EXTRACTORS
 // ═════════════════════════════════════════════════════════════════════════════
 
-function extractCandidateScores(aiContent: string, candidateTimes: string[]): Map<string, { score: number; verdict: string }> {
-    const scores = new Map<string, { score: number; verdict: string }>();
-
-    for (const time of candidateTimes) {
-        // Find the block for this candidate
-        const timePattern = new RegExp(`CANDIDATE[:\\s]*${time.replace(/:/g, '[:\\s]?')}`, 'i');
-        const match = aiContent.match(timePattern);
-
-        if (match) {
-            const startIdx = match.index || 0;
-            const searchWindow = aiContent.slice(startIdx, startIdx + 800);
-
-            // Extract score
-            const scoreMatch = searchWindow.match(/SCORE[:\s]*(\d+)/i);
-            const score = scoreMatch ? Math.min(100, parseInt(scoreMatch[1])) : 50;
-
-            // Extract verdict
-            const verdictMatch = searchWindow.match(/VERDICT[:\s]*(KEEP|ELIMINATE|STRONG|MODERATE|WEAK)/i);
-            const verdict = verdictMatch ? verdictMatch[1].toUpperCase() : 'UNKNOWN';
-
-            scores.set(time, { score, verdict });
-        } else {
-            scores.set(time, { score: 50, verdict: 'UNKNOWN' });
+function extractBatchSurvivors(aiContent: string, candidateTimes: string[], neededCount: number): string[] {
+    // Try to extract from TOP_SURVIVORS line
+    const survivorMatch = aiContent.match(/TOP_SURVIVORS?[:\s]*([^\n]+)/i);
+    if (survivorMatch) {
+        const times = survivorMatch[1].match(/\d{2}:\d{2}:\d{2}/g) || [];
+        if (times.length >= neededCount) {
+            return times.slice(0, neededCount);
         }
     }
 
-    return scores;
+    // Fallback: Extract scores and pick top N
+    const scores: { time: string; score: number }[] = [];
+
+    for (const time of candidateTimes) {
+        const timePattern = new RegExp(`CANDIDATE[:\\s]*${time.replace(/:/g, '[:\\s]?')}[\\s\\S]{0,300}SCORE[:\\s]*(\\d+)`, 'i');
+        const match = aiContent.match(timePattern);
+        const score = match ? parseInt(match[1]) : 50;
+        scores.push({ time, score });
+    }
+
+    scores.sort((a, b) => b.score - a.score);
+    return scores.slice(0, neededCount).map(s => s.time);
 }
 
 function extractFinalVerdict(aiContent: string): { time: string; accuracy: number; confidence: string; margin: number } | null {
@@ -487,14 +438,14 @@ function extractFinalVerdict(aiContent: string): { time: string; accuracy: numbe
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// STAGE 1: ADAPTIVE GRID GENERATION (DATA ONLY)
+// STAGE 1: EXHAUSTIVE DATA GENERATION
 // ═════════════════════════════════════════════════════════════════════════════
 
-async function stage1DataGeneration(
+async function stage1ExhaustiveDataGeneration(
     input: SecondsPrecisionInput,
     progress: ProgressTracker
 ): Promise<{ candidates: CandidateDataPackage[]; stageResult: StageResult }> {
-    await progress.startStep('grid', 'Stage 1: Generating adaptive candidate grid...');
+    await progress.startStep('grid', 'Stage 1: Generating ALL candidate data...');
 
     const rawCandidates = generateCandidateTimes(input.tentativeTime, input.offsetConfig);
     const candidates: CandidateDataPackage[] = [];
@@ -502,329 +453,418 @@ async function stage1DataGeneration(
     const total = rawCandidates.length;
     let processed = 0;
 
+    logger.info('🔱 Stage 1: Generating Swiss Eph data for ALL candidates', { total });
+
     for (const raw of rawCandidates) {
         const pkg = await buildCandidateDataPackage(raw.time, raw.offsetMinutes, input, false);
         candidates.push(pkg);
 
         processed++;
+
+        // Log EVERY calculation (user requested)
+        emitCalculationLog(input.sessionId, {
+            candidateTime: raw.time,
+            sunPos: pkg.planets.sun.sign,
+            moonPos: pkg.planets.moon.sign,
+            ascendant: pkg.ascendant.sign,
+            dashaObj: pkg.vimshottariDasha[0]?.maha || 'N/A'
+        });
+
         if (processed % 10 === 0) {
-            await progress.updateMessage(`Calculating ephemeris: ${processed}/${total}`);
-            emitCalculationLog(input.sessionId, {
-                candidateTime: raw.time,
-                sunPos: pkg.planets.sun.sign,
-                moonPos: pkg.planets.moon.sign,
-                ascendant: pkg.ascendant.sign,
-                dashaObj: pkg.vimshottariDasha[0]?.maha || 'N/A'
-            });
+            await progress.updateMessage(`Ephemeris: ${processed}/${total}`);
         }
 
-        // Small breathing room for GC
+        // GC breathing room
         if (processed % 20 === 0) await sleep(5);
     }
 
-    await progress.completeStep('grid', [`Generated ${candidates.length} candidates with Swiss Eph data`]);
+    await progress.completeStep('grid', [`Generated ${candidates.length} candidates`]);
 
     return {
         candidates,
         stageResult: {
             stageNumber: 1,
-            stageName: 'Adaptive Grid Generation',
+            stageName: 'Exhaustive Data Generation',
             candidatesIn: total,
-            candidatesOut: candidates.length,
-            topCandidates: []
+            candidatesOut: candidates.length
         }
     };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// STAGE 2: AI COARSE ELIMINATION (AI REASONING)
+// STAGE 2: BATCH TOURNAMENT (Dynamic batch size based on offset)
 // ═════════════════════════════════════════════════════════════════════════════
 
-async function stage2AICoarseElimination(
+async function stage2BatchTournament(
     input: SecondsPrecisionInput,
     candidates: CandidateDataPackage[],
     progress: ProgressTracker
-): Promise<{ candidates: CandidateDataPackage[]; stageResult: StageResult; aiReasoning: string }> {
-    await progress.startStep('coarse', 'Stage 2: AI analyzing candidates...');
+): Promise<{ survivors: CandidateDataPackage[]; stageResult: StageResult; rounds: TournamentRound[] }> {
+    await progress.startStep('coarse', 'Stage 2: Batch Tournament...');
 
-    const prompt = getStage2Prompt(candidates, input.lifeEvents, input.physicalTraits);
+    const rounds: TournamentRound[] = [];
+    let currentCandidates = [...candidates];
+    let roundNumber = 0;
 
-    // Emit AI context for frontend
-    await progress.updateAIContext({
-        stage: 2,
-        candidateTime: 'Batch Analysis',
-        planetaryInfo: {
-            sun: 'Analyzing all',
-            moon: 'Analyzing all',
-            ascendant: 'Analyzing all'
-        },
-        dasha: 'Multi-candidate comparison',
-        groundTruth: {
-            totalCandidates: candidates.length,
-            lifeEvents: input.lifeEvents.length
-        }
+    // 🔱 Get offset from config for dynamic batch sizing
+    const offsetMinutes = input.offsetConfig.customMinutes ||
+        (input.offsetConfig.preset === '30min' ? 30 :
+            input.offsetConfig.preset === '1hour' ? 60 :
+                input.offsetConfig.preset === '2hours' ? 120 :
+                    input.offsetConfig.preset === '4hours' ? 240 :
+                        input.offsetConfig.preset === '6hours' ? 360 :
+                            input.offsetConfig.preset === '12hours' ? 720 : 60);
+
+    // 🔱 Dynamic batch size based on offset
+    const batchSize = getDynamicBatchSize(candidates.length, offsetMinutes);
+    const survivorsPerBatch = getDynamicSurvivors(batchSize);
+
+    logger.info('🔱 Stage 2: Starting batch tournament', {
+        totalCandidates: currentCandidates.length,
+        offsetMinutes,
+        batchSize, // Dynamic!
+        survivorsPerBatch
     });
 
-    const response = await callAIWithStream(input.sessionId, 2,
-        'You are the SUPREME VEDIC ASTROLOGER. All analysis decisions are made by you. No mathematical scoring.',
-        prompt,
-        {
-            model: 'deepseek-reasoner',
-            candidateTime: 'Coarse Elimination',
-            progressTracker: progress
+    // Continue tournament until we have batchSize or fewer candidates
+    while (currentCandidates.length > batchSize) {
+        roundNumber++;
+        const batches = splitIntoBatches(currentCandidates, batchSize);
+        const roundSurvivors: CandidateDataPackage[] = [];
+
+        await progress.updateMessage(`Round ${roundNumber}: ${batches.length} batches of ${batchSize}`);
+
+        for (let i = 0; i < batches.length; i++) {
+            const batch = batches[i];
+
+            // Emit AI context
+            emitAIContext(input.sessionId, {
+                stage: 2,
+                candidateTime: `Batch ${i + 1}/${batches.length}`,
+                round: roundNumber,
+                batch: i + 1,
+                totalBatches: batches.length,
+                candidatesInBatch: batch.length
+            });
+
+            const prompt = getBatchPrompt(
+                batch,
+                input.lifeEvents,
+                input.physicalTraits,
+                i + 1,
+                batches.length,
+                survivorsPerBatch
+            );
+
+            const response = await callAIWithStream(
+                input.sessionId,
+                2,
+                'You are the SUPREME VEDIC ASTROLOGER. Analyze ALL candidates with EQUAL attention.',
+                prompt,
+                {
+                    model: 'deepseek-reasoner',
+                    candidateTime: `Batch ${i + 1}/${batches.length}`,
+                    progressTracker: progress
+                }
+            );
+
+            const aiContent = response.success ? (response.content || response.thinking || '') : '';
+            const survivorTimes = extractBatchSurvivors(aiContent, batch.map(c => c.time), survivorsPerBatch);
+
+            // Find and add survivors
+            for (const time of survivorTimes) {
+                const survivor = batch.find(c => c.time === time);
+                if (survivor) {
+                    roundSurvivors.push(survivor);
+                    emitCandidateScore(input.sessionId, time, 80, 2);
+                }
+            }
+
+            // Check for cancellation
+            await throwIfCancelled(input.sessionId, input.abortSignal);
         }
-    );
 
-    const aiContent = response.success ? (response.content || response.thinking || '') : '';
-    const scores = extractCandidateScores(aiContent, candidates.map(c => c.time));
+        rounds.push({
+            roundNumber,
+            batchesProcessed: batches.length,
+            candidatesIn: currentCandidates.length,
+            candidatesOut: roundSurvivors.length
+        });
 
-    // Filter and sort by AI scores
-    const scoredCandidates = candidates
-        .map(c => ({
-            ...c,
-            aiScore: scores.get(c.time)?.score || 50,
-            aiVerdict: scores.get(c.time)?.verdict || 'UNKNOWN'
-        }))
-        .filter(c => c.aiVerdict !== 'ELIMINATE' && c.aiScore >= 40)
-        .sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0))
-        .slice(0, 15);
+        logger.info(`🔱 Round ${roundNumber} complete`, {
+            candidatesIn: currentCandidates.length,
+            candidatesOut: roundSurvivors.length
+        });
 
-    // Emit scores to frontend
-    for (const c of scoredCandidates.slice(0, 10)) {
-        emitCandidateScore(input.sessionId, c.time, c.aiScore || 50, 2);
+        currentCandidates = roundSurvivors;
     }
 
-    await progress.completeStep('coarse', [`AI selected top ${scoredCandidates.length} candidates`]);
+    await progress.completeStep('coarse', [`Tournament complete: ${currentCandidates.length} survivors`]);
 
     return {
-        candidates: scoredCandidates,
+        survivors: currentCandidates,
         stageResult: {
             stageNumber: 2,
-            stageName: 'AI Coarse Elimination',
+            stageName: 'Batch Tournament',
             candidatesIn: candidates.length,
-            candidatesOut: scoredCandidates.length,
-            topCandidates: scoredCandidates.map(c => ({ time: c.time, offsetMinutes: c.offsetMinutes, aiScore: c.aiScore }))
+            candidatesOut: currentCandidates.length,
+            batchCount: rounds.reduce((sum, r) => sum + r.batchesProcessed, 0)
         },
-        aiReasoning: aiContent
+        rounds
     };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// STAGE 3: FINE GRID EXPANSION (DATA ONLY)
+// STAGE 3: REFINEMENT GRID (Expand around survivors)
 // ═════════════════════════════════════════════════════════════════════════════
 
-async function stage3FineGridExpansion(
+async function stage3RefinementGrid(
     input: SecondsPrecisionInput,
-    topCandidates: CandidateDataPackage[],
+    survivors: CandidateDataPackage[],
     progress: ProgressTracker
 ): Promise<{ candidates: CandidateDataPackage[]; stageResult: StageResult }> {
-    await progress.startStep('fine', 'Stage 3: Generating fine grid (30-sec intervals)...');
+    await progress.startStep('fine', 'Stage 3: Generating refinement grid...');
 
-    const expandedCandidates: CandidateDataPackage[] = [];
-    const seenTimes = new Set<string>();
+    const refinedCandidates: CandidateDataPackage[] = [];
 
-    // Expand ±3 minutes around each of top 15 at 30-second intervals
-    for (const center of topCandidates.slice(0, 15)) {
-        const offsets = [-180, -150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150, 180]; // seconds
+    // Generate ±5 min grid at 1-min interval around each survivor
+    for (const survivor of survivors) {
+        const fineGrid = generateRefinementGrid(survivor.time, 5, 60); // ±5 min @ 1 min
 
-        for (const offsetSec of offsets) {
-            const time = addSeconds(center.time, offsetSec);
-            if (seenTimes.has(time)) continue;
-            seenTimes.add(time);
+        for (const gridPoint of fineGrid) {
+            // Check if already exists
+            if (!refinedCandidates.some(c => c.time === gridPoint.time)) {
+                const pkg = await buildCandidateDataPackage(
+                    gridPoint.time,
+                    gridPoint.offsetMinutes,
+                    input,
+                    true // Include full data for deep analysis
+                );
+                refinedCandidates.push(pkg);
 
-            const pkg = await buildCandidateDataPackage(
-                time,
-                center.offsetMinutes + (offsetSec / 60),
-                input,
-                true // Include full data for deep analysis
-            );
-            expandedCandidates.push(pkg);
+                emitCalculationLog(input.sessionId, {
+                    candidateTime: gridPoint.time,
+                    sunPos: pkg.planets.sun.sign,
+                    moonPos: pkg.planets.moon.sign,
+                    ascendant: pkg.ascendant.sign,
+                    dashaObj: pkg.vimshottariDasha[0]?.maha || 'N/A'
+                });
+            }
         }
     }
 
-    await progress.updateMessage(`Generated ${expandedCandidates.length} fine-grid candidates`);
-    await progress.completeStep('fine', [`Expanded to ${expandedCandidates.length} candidates at 30-sec precision`]);
+    await progress.completeStep('fine', [`Refined grid: ${refinedCandidates.length} candidates`]);
 
     return {
-        candidates: expandedCandidates,
+        candidates: refinedCandidates,
         stageResult: {
             stageNumber: 3,
-            stageName: 'Fine Grid Expansion',
-            candidatesIn: topCandidates.length,
-            candidatesOut: expandedCandidates.length,
-            topCandidates: []
+            stageName: 'Refinement Grid',
+            candidatesIn: survivors.length,
+            candidatesOut: refinedCandidates.length
         }
     };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// STAGE 4: AI DEEP ANALYSIS (AI REASONING)
+// STAGE 4: DEEP ANALYSIS (Multi-dasha verification)
 // ═════════════════════════════════════════════════════════════════════════════
 
-async function stage4AIDeepAnalysis(
+async function stage4DeepAnalysis(
     input: SecondsPrecisionInput,
     candidates: CandidateDataPackage[],
     progress: ProgressTracker
-): Promise<{ candidates: CandidateDataPackage[]; stageResult: StageResult; aiReasoning: string }> {
-    await progress.startStep('deep', 'Stage 4: AI deep multi-system analysis...');
+): Promise<{ survivors: CandidateDataPackage[]; stageResult: StageResult; aiReasoning: string }> {
+    await progress.startStep('deep', 'Stage 4: Deep multi-dasha analysis...');
 
-    const prompt = getStage4Prompt(candidates, input.lifeEvents, input.physicalTraits);
+    // Run another tournament round if needed
+    let currentCandidates = [...candidates];
+    let allReasoning = '';
 
-    await progress.updateAIContext({
-        stage: 4,
-        candidateTime: 'Deep Analysis',
-        planetaryInfo: {
-            sun: 'Multi-system',
-            moon: 'Multi-system',
-            ascendant: 'D9/D10'
-        },
-        dasha: 'Vim + Yog + Chara',
-        divCharts: 'D9, D10, Transit verification',
-        groundTruth: {
-            totalCandidates: candidates.length
+    while (currentCandidates.length > MAX_BATCH_SIZE) {
+        const batches = splitIntoBatches(currentCandidates, MAX_BATCH_SIZE);
+        const batchSurvivors: CandidateDataPackage[] = [];
+
+        for (let i = 0; i < batches.length; i++) {
+            const prompt = getDeepAnalysisPrompt(batches[i], input.lifeEvents, input.physicalTraits);
+
+            const response = await callAIWithStream(
+                input.sessionId,
+                4,
+                'You are performing DEEP astrological verification.',
+                prompt,
+                {
+                    model: 'deepseek-reasoner',
+                    candidateTime: `Deep ${i + 1}/${batches.length}`,
+                    progressTracker: progress
+                }
+            );
+
+            const aiContent = response.success ? (response.content || response.thinking || '') : '';
+            allReasoning += aiContent + '\n\n';
+
+            const survivorTimes = extractBatchSurvivors(aiContent, batches[i].map(c => c.time), 3);
+
+            for (const time of survivorTimes) {
+                const survivor = batches[i].find(c => c.time === time);
+                if (survivor) batchSurvivors.push(survivor);
+            }
         }
-    });
 
-    const response = await callAIWithStream(input.sessionId, 4,
-        'You are the TITAN of Precision. Cross-verify all dasha systems. No mathematical scoring.',
-        prompt,
-        {
-            model: 'deepseek-reasoner',
-            candidateTime: 'Deep Analysis',
-            progressTracker: progress
-        }
-    );
-
-    const aiContent = response.success ? (response.content || response.thinking || '') : '';
-    const scores = extractCandidateScores(aiContent, candidates.map(c => c.time));
-
-    const scoredCandidates = candidates
-        .map(c => ({
-            ...c,
-            aiScore: scores.get(c.time)?.score || 50,
-            aiVerdict: scores.get(c.time)?.verdict || 'UNKNOWN'
-        }))
-        .filter(c => c.aiVerdict !== 'WEAK' && c.aiScore >= 60)
-        .sort((a, b) => (b.aiScore || 0) - (a.aiScore || 0))
-        .slice(0, 7);
-
-    for (const c of scoredCandidates) {
-        emitCandidateScore(input.sessionId, c.time, c.aiScore || 50, 4);
+        currentCandidates = batchSurvivors;
     }
 
-    await progress.completeStep('deep', [`AI refined to top ${scoredCandidates.length} candidates`]);
+    // Final deep analysis on remaining candidates
+    if (currentCandidates.length > 3) {
+        const prompt = getDeepAnalysisPrompt(currentCandidates, input.lifeEvents, input.physicalTraits);
+
+        const response = await callAIWithStream(
+            input.sessionId,
+            4,
+            'You are performing FINAL deep verification.',
+            prompt,
+            {
+                model: 'deepseek-reasoner',
+                candidateTime: 'Deep Final',
+                progressTracker: progress
+            }
+        );
+
+        const aiContent = response.success ? (response.content || response.thinking || '') : '';
+        allReasoning += aiContent;
+
+        const survivorTimes = extractBatchSurvivors(aiContent, currentCandidates.map(c => c.time), 7);
+        currentCandidates = currentCandidates.filter(c => survivorTimes.includes(c.time));
+    }
+
+    await progress.completeStep('deep', [`Deep analysis: ${currentCandidates.length} survivors`]);
 
     return {
-        candidates: scoredCandidates,
+        survivors: currentCandidates.slice(0, 7),
         stageResult: {
             stageNumber: 4,
-            stageName: 'AI Deep Analysis',
+            stageName: 'Deep Multi-Dasha Analysis',
             candidatesIn: candidates.length,
-            candidatesOut: scoredCandidates.length,
-            topCandidates: scoredCandidates.map(c => ({ time: c.time, offsetMinutes: c.offsetMinutes, aiScore: c.aiScore }))
+            candidatesOut: Math.min(currentCandidates.length, 7)
         },
-        aiReasoning: aiContent
+        aiReasoning: allReasoning
     };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// STAGE 5: MICRO GRID + D60 (DATA ONLY)
+// STAGE 5: MICRO GRID (6-second precision)
 // ═════════════════════════════════════════════════════════════════════════════
 
 async function stage5MicroGrid(
     input: SecondsPrecisionInput,
-    topCandidates: CandidateDataPackage[],
+    survivors: CandidateDataPackage[],
     progress: ProgressTracker
 ): Promise<{ candidates: CandidateDataPackage[]; stageResult: StageResult }> {
-    await progress.startStep('micro', 'Stage 5: Generating micro grid (6-sec intervals)...');
+    await progress.startStep('micro', 'Stage 5: Micro-precision grid...');
 
     const microCandidates: CandidateDataPackage[] = [];
-    const seenTimes = new Set<string>();
 
-    // Expand ±30 seconds around top 7 at 6-second intervals
-    for (const center of topCandidates.slice(0, 7)) {
-        const offsets = [-30, -24, -18, -12, -6, 0, 6, 12, 18, 24, 30]; // seconds
+    // Generate ±30 sec grid at 6-sec interval around top 3
+    for (const survivor of survivors.slice(0, 3)) {
+        const microGrid = generateRefinementGrid(survivor.time, 0.5, 6); // ±30 sec @ 6 sec
 
-        for (const offsetSec of offsets) {
-            const time = addSeconds(center.time, offsetSec);
-            if (seenTimes.has(time)) continue;
-            seenTimes.add(time);
-
-            const pkg = await buildCandidateDataPackage(
-                time,
-                center.offsetMinutes + (offsetSec / 60),
-                input,
-                true
-            );
-            microCandidates.push(pkg);
+        for (const gridPoint of microGrid) {
+            if (!microCandidates.some(c => c.time === gridPoint.time)) {
+                const pkg = await buildCandidateDataPackage(
+                    gridPoint.time,
+                    gridPoint.offsetMinutes,
+                    input,
+                    true
+                );
+                microCandidates.push(pkg);
+            }
         }
     }
 
-    await progress.completeStep('micro', [`Generated ${microCandidates.length} micro-precision candidates`]);
+    await progress.completeStep('micro', [`Micro grid: ${microCandidates.length} candidates`]);
 
     return {
         candidates: microCandidates,
         stageResult: {
             stageNumber: 5,
-            stageName: 'Micro Grid + D60',
-            candidatesIn: topCandidates.length,
-            candidatesOut: microCandidates.length,
-            topCandidates: []
+            stageName: 'Micro Precision Grid',
+            candidatesIn: survivors.length,
+            candidatesOut: microCandidates.length
         }
     };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// STAGE 6: AI FINAL PRECISION (AI REASONING - CRITICAL)
+// STAGE 6: FINAL PRECISION JUDGEMENT
 // ═════════════════════════════════════════════════════════════════════════════
 
-async function stage6AIFinalPrecision(
+async function stage6FinalPrecision(
     input: SecondsPrecisionInput,
     candidates: CandidateDataPackage[],
     progress: ProgressTracker
 ): Promise<{ finalTime: string; accuracy: number; confidence: string; margin: number; aiReasoning: string; stageResult: StageResult }> {
-    await progress.startStep('final', 'Stage 6: AI FINAL PRECISION ANALYSIS...');
+    await progress.startStep('final', 'Stage 6: Final precision judgement...');
 
-    const prompt = getStage6Prompt(candidates, input.lifeEvents, input.physicalTraits);
+    // If too many, run one more batch round
+    let finalists = [...candidates];
 
-    await progress.updateAIContext({
-        stage: 6,
-        candidateTime: 'FINAL',
-        planetaryInfo: {
-            sun: 'All verified',
-            moon: 'All verified',
-            ascendant: 'D60 checked'
-        },
-        dasha: 'All 5 systems',
-        divCharts: 'D9, D10, D60',
-        groundTruth: {
-            totalCandidates: candidates.length,
-            precision: '6 seconds'
+    while (finalists.length > MAX_BATCH_SIZE) {
+        const batches = splitIntoBatches(finalists, MAX_BATCH_SIZE);
+        const batchWinners: CandidateDataPackage[] = [];
+
+        for (const batch of batches) {
+            const prompt = getFinalPrecisionPrompt(batch, input.lifeEvents);
+            const response = await callAIWithStream(
+                input.sessionId,
+                6,
+                'FINAL JUDGEMENT. Pick THE ONE.',
+                prompt,
+                {
+                    model: 'deepseek-reasoner',
+                    candidateTime: 'FINAL',
+                    progressTracker: progress
+                }
+            );
+
+            const aiContent = response.success ? (response.content || response.thinking || '') : '';
+            const verdict = extractFinalVerdict(aiContent);
+            if (verdict) {
+                const winner = batch.find(c => c.time === verdict.time);
+                if (winner) batchWinners.push(winner);
+            } else if (batch.length > 0) {
+                batchWinners.push(batch[0]);
+            }
         }
-    });
 
-    const response = await callAIWithStream(input.sessionId, 6,
-        'You are the DIVINE ARCHITECT of Time. This is the FINAL JUDGEMENT. Be GOD-TIER PRECISE.',
+        finalists = batchWinners;
+    }
+
+    // Final judgement
+    const prompt = getFinalPrecisionPrompt(finalists, input.lifeEvents);
+    const response = await callAIWithStream(
+        input.sessionId,
+        6,
+        'You are the DIVINE ARCHITECT of Time. FINAL JUDGEMENT.',
         prompt,
         {
             model: 'deepseek-reasoner',
-            candidateTime: 'FINAL PRECISION',
+            candidateTime: 'FINAL VERDICT',
             progressTracker: progress,
-            timeoutMs: 120000 // 2 min timeout for final stage
+            timeoutMs: 120000
         }
     );
 
     const aiContent = response.success ? (response.content || response.thinking || '') : '';
     const verdict = extractFinalVerdict(aiContent);
 
-    const finalTime = verdict?.time || candidates[0]?.time || input.tentativeTime;
+    const finalTime = verdict?.time || finalists[0]?.time || input.tentativeTime;
     const accuracy = verdict?.accuracy || 85;
     const confidence = verdict?.confidence || 'MEDIUM';
     const margin = verdict?.margin || 5;
 
     emitCandidateScore(input.sessionId, finalTime, accuracy, 6);
 
-    await progress.completeStep('final', [`FINAL TIME: ${finalTime} (${confidence} confidence)`]);
+    await progress.completeStep('final', [`FINAL: ${finalTime} (${confidence})`]);
 
     return {
         finalTime,
@@ -834,10 +874,9 @@ async function stage6AIFinalPrecision(
         aiReasoning: aiContent,
         stageResult: {
             stageNumber: 6,
-            stageName: 'AI Final Precision',
+            stageName: 'Final Precision',
             candidatesIn: candidates.length,
             candidatesOut: 1,
-            topCandidates: [{ time: finalTime, offsetMinutes: 0, aiScore: accuracy }],
             aiReasoning: aiContent
         }
     };
@@ -855,65 +894,67 @@ export async function processSecondsPrecisionBTR(
     const stageHistory: Record<number, StageResult> = {};
 
     try {
-        await progress.updateETA(600); // 10 minutes estimate
-        await progress.startStep('init', '🔱 Initializing God-Tier BTR v6.0...');
+        await progress.updateETA(600);
+        await progress.startStep('init', '🔱 Initializing God-Tier BTR v7.0 (Batch Tournament)...');
 
-        logger.info('Starting GOD-TIER AI-FIRST BTR v6.0', {
+        logger.info('🔱 Starting GOD-TIER BTR v7.0 (10-Candidate Batches)', {
             sessionId: input.sessionId,
             dateOfBirth: input.dateOfBirth,
-            offsetConfig: input.offsetConfig
+            offsetConfig: input.offsetConfig,
+            maxBatchSize: MAX_BATCH_SIZE
         });
 
         // ═══════════════════════════════════════════════════════════════════════
-        // STAGE 1: ADAPTIVE GRID GENERATION (DATA ONLY)
+        // STAGE 1: EXHAUSTIVE DATA GENERATION
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
-        const stage1 = await stage1DataGeneration(input, progress);
+        const stage1 = await stage1ExhaustiveDataGeneration(input, progress);
         stageHistory[1] = stage1.stageResult;
         emitStageStats(input.sessionId, 1, stage1.stageResult.candidatesOut, `Generated ${stage1.stageResult.candidatesOut} candidates`);
 
         // ═══════════════════════════════════════════════════════════════════════
-        // STAGE 2: AI COARSE ELIMINATION
+        // STAGE 2: BATCH TOURNAMENT
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(480);
-        const stage2 = await stage2AICoarseElimination(input, stage1.candidates, progress);
+        const stage2 = await stage2BatchTournament(input, stage1.candidates, progress);
         stageHistory[2] = stage2.stageResult;
-        emitStageStats(input.sessionId, 2, stage2.stageResult.candidatesOut, `AI selected top ${stage2.stageResult.candidatesOut} candidates`);
+        emitStageStats(input.sessionId, 2, stage2.stageResult.candidatesOut,
+            `Tournament: ${stage2.rounds.length} rounds, ${stage2.survivors.length} survivors`);
 
         // ═══════════════════════════════════════════════════════════════════════
-        // STAGE 3: FINE GRID EXPANSION (DATA ONLY)
+        // STAGE 3: REFINEMENT GRID
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(360);
-        const stage3 = await stage3FineGridExpansion(input, stage2.candidates, progress);
+        const stage3 = await stage3RefinementGrid(input, stage2.survivors, progress);
         stageHistory[3] = stage3.stageResult;
-        emitStageStats(input.sessionId, 3, stage3.stageResult.candidatesOut, `Expanded to ${stage3.stageResult.candidatesOut} candidates`);
+        emitStageStats(input.sessionId, 3, stage3.stageResult.candidatesOut, `Refined to ${stage3.stageResult.candidatesOut}`);
 
         // ═══════════════════════════════════════════════════════════════════════
-        // STAGE 4: AI DEEP ANALYSIS
+        // STAGE 4: DEEP ANALYSIS
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(240);
-        const stage4 = await stage4AIDeepAnalysis(input, stage3.candidates, progress);
+        const stage4 = await stage4DeepAnalysis(input, stage3.candidates, progress);
         stageHistory[4] = stage4.stageResult;
-        emitStageStats(input.sessionId, 4, stage4.stageResult.candidatesOut, `AI refined to top ${stage4.stageResult.candidatesOut} candidates`);
+        emitStageStats(input.sessionId, 4, stage4.stageResult.candidatesOut, `Deep: ${stage4.survivors.length} survivors`);
 
         // ═══════════════════════════════════════════════════════════════════════
-        // STAGE 5: MICRO GRID + D60 (DATA ONLY)
+        // STAGE 5: MICRO GRID
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(120);
-        const stage5 = await stage5MicroGrid(input, stage4.candidates, progress);
+        const stage5 = await stage5MicroGrid(input, stage4.survivors, progress);
         stageHistory[5] = stage5.stageResult;
-        emitStageStats(input.sessionId, 5, stage5.stageResult.candidatesOut, `Micro grid with ${stage5.stageResult.candidatesOut} candidates`);
+        emitStageStats(input.sessionId, 5, stage5.stageResult.candidatesOut, `Micro: ${stage5.candidates.length}`);
 
         // ═══════════════════════════════════════════════════════════════════════
-        // STAGE 6: AI FINAL PRECISION
+        // STAGE 6: FINAL PRECISION
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(60);
-        const stage6 = await stage6AIFinalPrecision(input, stage5.candidates, progress);
+        const stage6 = await stage6FinalPrecision(input, stage5.candidates, progress);
         stageHistory[6] = stage6.stageResult;
         emitStageStats(input.sessionId, 6, 1, 'FINAL TIME DETERMINED');
 
@@ -942,7 +983,7 @@ export async function processSecondsPrecisionBTR(
                 margin: stage6.margin
             },
             reasoning: {
-                stage2: stage2.aiReasoning.slice(0, 500),
+                stage2: 'Batch tournament completed',
                 stage4: stage4.aiReasoning.slice(0, 500),
                 stage6: stage6.aiReasoning.slice(0, 1000)
             },
@@ -952,9 +993,10 @@ export async function processSecondsPrecisionBTR(
                 boundary
             },
             stageHistory,
-            alternatives: stage4.candidates.slice(1, 4).map(c => ({
+            tournamentRounds: stage2.rounds,
+            alternatives: stage4.survivors.slice(1, 4).map(c => ({
                 time: c.time,
-                score: (c as any).aiScore || 70,
+                score: 70,
                 reason: 'Runner-up from Stage 4'
             }))
         };
@@ -973,7 +1015,7 @@ export async function processSecondsPrecisionBTR(
         };
 
     } catch (error) {
-        logger.error('GOD-TIER BTR v6.0 FAILED', error);
+        logger.error('GOD-TIER BTR v7.0 FAILED', error);
         if (isCancellationError(error)) {
             throw error;
         }
@@ -984,20 +1026,7 @@ export async function processSecondsPrecisionBTR(
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// CONFIDENCE HELPERS
+// EXPORTS
 // ═════════════════════════════════════════════════════════════════════════════
 
-function getConfidenceLevel(score: number): string {
-    if (score >= 95) return 'HIGH';
-    if (score >= 80) return 'MEDIUM';
-    return 'LOW';
-}
-
-function getMarginOfError(score: number): number {
-    if (score >= 95) return 3;
-    if (score >= 85) return 5;
-    if (score >= 75) return 8;
-    return 10;
-}
-
-export default processSecondsPrecisionBTR;
+export { MAX_BATCH_SIZE, SURVIVORS_PER_BATCH };

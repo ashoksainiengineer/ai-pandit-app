@@ -32,6 +32,37 @@ interface ResultsDashboardProps {
     reasoningLogs?: any;
 }
 
+// 🧹 Clean AI summary text - extract meaningful verdict
+function cleanSummary(rawSummary: string | undefined): string {
+    if (!rawSummary) return '';
+
+    // If it's already a clean short summary, use it
+    if (rawSummary.length < 200 && !rawSummary.includes('FINAL VERDICT:')) {
+        return rawSummary;
+    }
+
+    // Try to extract a clean verdict line
+    const verdictMatch = rawSummary.match(/(?:VERDICT|RECOMMENDATION|CONCLUSION)[:\s]*([^\n]{10,150})/i);
+    if (verdictMatch) {
+        return verdictMatch[1].trim();
+    }
+
+    // Try to find a meaningful sentence
+    const sentences = rawSummary.split(/[.!]/).filter(s => s.trim().length > 20);
+    if (sentences.length > 0) {
+        const cleanSentence = sentences[0]
+            .replace(/FINAL VERDICT:|BEST TIME:|ACCURACY:/gi, '')
+            .replace(/\[.*?\]/g, '')
+            .trim();
+        if (cleanSentence.length > 20 && cleanSentence.length < 200) {
+            return cleanSentence;
+        }
+    }
+
+    // Fallback to default
+    return 'The logical convergence of Dasha patterns and Divisional Chart markers strongly favors this specific time.';
+}
+
 // 🏗️ Stage Journey Funnel Component
 function StageJourneyFunnel({ stageHistory }: { stageHistory?: any }) {
     const stages = [
@@ -658,7 +689,7 @@ export const ResultsDashboard: React.FC<ResultsDashboardProps> = ({ sessionId, d
                                                 This time was selected after rigorous AI reasoning and multi-stage verification.
                                             </p>
                                             <div className="my-6 p-4 bg-[#D4AF37]/5 border-l-2 border-[#D4AF37] text-sm text-[#F5F0EB] font-serif italic">
-                                                &quot;{analysisDetails?.summary || "The logical convergence of Dasha patterns and Divisional Chart markers strongly favors this specific second."}&quot;
+                                                &quot;{cleanSummary(analysisDetails?.summary) || "The logical convergence of Dasha patterns and Divisional Chart markers strongly favors this specific second."}&quot;
                                             </div>
                                             <h4 className="font-bold text-[#F5F0EB] mt-6 mb-2 text-sm uppercase tracking-wider">Confirmation Factors:</h4>
                                             <ul className="space-y-2 text-[#8C7F72] text-[13px]">

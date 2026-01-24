@@ -29,7 +29,7 @@ const QUEUE_CONFIG = {
     maxConcurrent: parseInt(process.env.MAX_CONCURRENT_SESSIONS || '2'), // Process N sessions concurrently (Lowered for HF)
     pollIntervalMs: 3000,
     maxQueueSize: 500,
-    staleTimeoutMs: 30 * 60 * 1000, // 30 mins
+    staleTimeoutMs: 2 * 60 * 60 * 1000, // 🔱 2 HOURS - for long God-Tier analyses (was 30 min)
     baseAnalysisTime: 240, // 4 Mins for God-Tier analysis (1 user)
     contentionMultiplier: 0.3, // Moderate per-user overhead
 };
