@@ -201,7 +201,7 @@ function emitEphemeris(sessionId, candidateTime, ascendant, moonSign, moonNaksha
         moonNakshatra,
     });
 }
-function emitCandidateScore(sessionId, time, score, stage, rank) {
+function emitCandidateScore(sessionId, time, score, stage, rank, minifiedEph) {
     console.log(`⚡ Emit Candidate Score: ${sessionId} | ${time} | ${score}`);
     exports.sessionEvents.emit(sessionId, {
         type: 'candidate_score_v2',
@@ -209,6 +209,7 @@ function emitCandidateScore(sessionId, time, score, stage, rank) {
         score,
         stage,
         rank,
+        minifiedEph,
     });
 }
 function emitComplete(sessionId, rectifiedTime, accuracy, confidence) {

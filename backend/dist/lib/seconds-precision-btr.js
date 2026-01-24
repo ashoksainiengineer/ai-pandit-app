@@ -152,39 +152,48 @@ function getBatchPrompt(candidates, events, traits, batchNumber, totalBatches, s
     const shuffledCandidates = [...candidates].sort(() => Math.random() - 0.5);
     return `BIRTH TIME RECTIFICATION - STAGE 2 (Batch ${batchNumber}/${totalBatches})
 
-TASK: Score ${candidates.length} candidate times based on Dasha-Event correlation.
+════════════════════════════════════════════════════════════════════════════════
+⚠️ CRITICAL RULES:
+1. DO NOT calculate any planetary positions, dashas, or dates yourself
+2. USE ONLY the pre-calculated data provided below
+3. Your job is to COMPARE and SCORE, not to compute
+4. All astrological data is already calculated by Swiss Ephemeris
+════════════════════════════════════════════════════════════════════════════════
 
-═══════════════════════════════════════════════════════════════════════════════
-EQUAL TREATMENT RULE:
-- Correct birth time can be ANY candidate (first, middle, or last)
-- Score purely based on astrological evidence
-- No position bias - analyze each independently
-═══════════════════════════════════════════════════════════════════════════════
+TASK: Score ${candidates.length} candidates based on Dasha-Event correlation.
 
-LIFE EVENTS TO VERIFY:
+LIFE EVENTS:
 ${eventsText}
+${traits ? `\nPHYSICAL TRAITS: ${JSON.stringify(traits)}` : ''}
 
-${traits ? `PHYSICAL TRAITS: ${JSON.stringify(traits)}` : ''}
+CANDIDATES WITH PRE-CALCULATED DATA:
+${shuffledCandidates.map(c => `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CANDIDATE: ${c.time}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
+MOON: ${c.planets.moon.sign} ${c.planets.moon.degree} (${c.moonNakshatra})
+SUN: ${c.planets.sun.sign} ${c.planets.sun.degree}
+${c.d9Lagna ? `D9 NAVAMSHA LAGNA: ${c.d9Lagna}` : ''}
+${c.d10Lagna ? `D10 DASAMSHA LAGNA: ${c.d10Lagna}` : ''}
 
-CANDIDATES:
-${shuffledCandidates.map((c, i) => `
-[${c.time}]
-• Lagna: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
-• Moon: ${c.planets.moon.sign} ${c.planets.moon.degree} (${c.moonNakshatra})
-• Vimshottari: ${c.vimshottariDasha.map(d => `${d.maha}/${d.antar}: ${d.startEnd}`).join(' | ')}
+VIMSHOTTARI DASHA PERIODS:
+${c.vimshottariDasha.map(d => `  • ${d.maha}/${d.antar}/${d.pratyantar}: ${d.startEnd}`).join('\n')}
+${c.yoginiDasha ? `\nYOGINI DASHA: ${c.yoginiDasha.map(d => `${d.lord} (${d.startEnd})`).join(' → ')}` : ''}
+${c.charaDasha ? `\nCHARA DASHA: ${c.charaDasha.map(d => `${d.sign} (${d.startEnd})`).join(' → ')}` : ''}
 `).join('')}
 
-SCORING CRITERIA:
-1. Does Vimshottari dasha lord match event nature? (+25 each event matched)
-2. Does Antardasha timing align with event date? (+15 per alignment)
-3. Lagna sign matches physical traits? (+10)
-4. Clear contradiction = 0 score for that candidate
+SCORING (use provided data only):
++25: Vimshottari dasha lord matches event type (marriage during Venus, career during Saturn/Sun)
++15: Antardasha timing overlaps with event date
++10: Lagna sign matches physical traits
+-50: Clear timing contradiction (event outside dasha period)
 
-OUTPUT (for each candidate, one line):
-[TIME] | SCORE: [0-100] | VERDICT: [KEEP/ELIMINATE] | REASON: [brief]
+OUTPUT FORMAT (one line per candidate):
+[TIME] | SCORE: [0-100] | VERDICT: KEEP/ELIMINATE | REASON: [1-2 words]
 
-FINAL LINE:
-TOP_SURVIVORS: [time1], [time2]${survivorsNeeded > 2 ? ', [time3]' : ''}`;
+FINAL LINE (required):
+TOP_SURVIVORS: [comma-separated list of ${survivorsNeeded} best times]`;
 }
 // ═════════════════════════════════════════════════════════════════════════════
 // 🔱 STAGE 4: DEEP MULTI-DASHA VERIFICATION
@@ -193,14 +202,19 @@ function getDeepAnalysisPrompt(candidates, events, traits) {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
     return `BIRTH TIME RECTIFICATION - STAGE 4 (Deep Multi-Dasha Analysis)
 
+════════════════════════════════════════════════════════════════════════════════
+⚠️ CRITICAL RULES:
+1. DO NOT calculate any positions, dates, or dashas yourself
+2. USE ONLY the pre-calculated data below - all computed by Swiss Ephemeris
+3. COMPARE the provided data against life events - do not invent data
+════════════════════════════════════════════════════════════════════════════════
+
 TASK: Cross-verify ${candidates.length} candidates using multiple dasha systems.
 
-═══════════════════════════════════════════════════════════════════════════════
 VERIFICATION PRINCIPLE:
-- TRUE birth time should show consistency across Vimshottari, Yogini, and Chara
+- TRUE birth time shows consistency across Vimshottari, Yogini, and Chara
 - Divisional charts (D9, D10) must support life event themes
-- Any system showing contradiction = reduce score significantly
-═══════════════════════════════════════════════════════════════════════════════
+- Contradiction in any system = reduce score
 
 LIFE EVENTS:
 ${eventsText}
@@ -236,14 +250,19 @@ function getFinalPrecisionPrompt(candidates, events) {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
     return `BIRTH TIME RECTIFICATION - FINAL STAGE (Seconds Precision)
 
+════════════════════════════════════════════════════════════════════════════════
+⚠️ CRITICAL RULES:
+1. DO NOT calculate anything yourself - all data is pre-computed
+2. USE ONLY the D60, Lagna, and dasha data provided below
+3. Your job is to SELECT the best candidate, not to compute
+════════════════════════════════════════════════════════════════════════════════
+
 TASK: Select THE SINGLE BEST birth time from ${candidates.length} finalists.
 
-═══════════════════════════════════════════════════════════════════════════════
 PRECISION FACTORS:
-- D60 (Shashtiamsha) changes every 2 minutes → critical for seconds precision
+- D60 (Shashtiamsha) changes every 2 minutes → critical for seconds
 - Lagna degree near 0° or 30° = higher uncertainty
 - All evidence must converge on ONE time
-═══════════════════════════════════════════════════════════════════════════════
 
 LIFE EVENTS FOR FINAL CHECK:
 ${eventsText}
@@ -334,9 +353,9 @@ async function stage1ExhaustiveDataGeneration(input, progress) {
         // Log EVERY calculation (user requested)
         (0, session_events_js_1.emitCalculationLog)(input.sessionId, {
             candidateTime: raw.time,
-            sunPos: pkg.planets.sun.sign,
-            moonPos: pkg.planets.moon.sign,
-            ascendant: pkg.ascendant.sign,
+            sunPos: `${pkg.planets.sun.sign} ${pkg.planets.sun.degree}`,
+            moonPos: `${pkg.planets.moon.sign} ${pkg.planets.moon.degree}`,
+            ascendant: `${pkg.ascendant.sign} ${pkg.ascendant.degree}`,
             dashaObj: pkg.vimshottariDasha[0]?.maha || 'N/A'
         });
         if (processed % 10 === 0) {
@@ -460,9 +479,9 @@ async function stage3RefinementGrid(input, survivors, progress) {
                 refinedCandidates.push(pkg);
                 (0, session_events_js_1.emitCalculationLog)(input.sessionId, {
                     candidateTime: gridPoint.time,
-                    sunPos: pkg.planets.sun.sign,
-                    moonPos: pkg.planets.moon.sign,
-                    ascendant: pkg.ascendant.sign,
+                    sunPos: `${pkg.planets.sun.sign} ${pkg.planets.sun.degree}`,
+                    moonPos: `${pkg.planets.moon.sign} ${pkg.planets.moon.degree}`,
+                    ascendant: `${pkg.ascendant.sign} ${pkg.ascendant.degree}`,
                     dashaObj: pkg.vimshottariDasha[0]?.maha || 'N/A'
                 });
             }

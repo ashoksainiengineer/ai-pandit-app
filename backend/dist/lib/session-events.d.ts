@@ -30,6 +30,11 @@ export interface CandidateScoreEvent {
     score: number;
     stage: number;
     rank?: number;
+    minifiedEph?: {
+        sun: string;
+        moon: string;
+        ascendant: string;
+    };
 }
 export interface CompleteEvent {
     type: 'complete';
@@ -142,7 +147,11 @@ export declare function emitEphemeris(sessionId: string, candidateTime: string, 
     sign: string;
     degree: number;
 }, moonSign: string, moonNakshatra: string): void;
-export declare function emitCandidateScore(sessionId: string, time: string, score: number, stage: number, rank?: number): void;
+export declare function emitCandidateScore(sessionId: string, time: string, score: number, stage: number, rank?: number, minifiedEph?: {
+    sun: string;
+    moon: string;
+    ascendant: string;
+}): void;
 export declare function emitComplete(sessionId: string, rectifiedTime: string, accuracy: number, confidence: string): void;
 export declare function emitError(sessionId: string, message: string, stage?: string): void;
 export declare function emitAIContext(sessionId: string, data: Omit<AIContextEvent, 'type'>): void;

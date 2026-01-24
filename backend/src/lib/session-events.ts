@@ -39,6 +39,7 @@ export interface CandidateScoreEvent {
     score: number;
     stage: number;
     rank?: number;
+    minifiedEph?: { sun: string; moon: string; ascendant: string };
 }
 
 export interface CompleteEvent {
@@ -338,7 +339,8 @@ export function emitCandidateScore(
     time: string,
     score: number,
     stage: number,
-    rank?: number
+    rank?: number,
+    minifiedEph?: { sun: string; moon: string; ascendant: string }
 ): void {
     console.log(`⚡ Emit Candidate Score: ${sessionId} | ${time} | ${score}`);
     sessionEvents.emit(sessionId, {
@@ -347,6 +349,7 @@ export function emitCandidateScore(
         score,
         stage,
         rank,
+        minifiedEph,
     });
 }
 
