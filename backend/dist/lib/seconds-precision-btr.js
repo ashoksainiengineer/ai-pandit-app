@@ -52,14 +52,34 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
             nakshatra: nakshatra.name
         };
     }
-    // Build Vimshottari Dasha table
+    // Build Vimshottari Dasha table (Flattened to Antardasha level)
     const vimDashas = (0, vedic_astrology_engine_js_1.calculateVimshottariDasha)(moonLong, birthDate);
-    const vimshottariDasha = vimDashas.slice(0, 3).map(d => ({
-        maha: d.lord,
-        antar: d.subPeriods?.[0]?.lord || 'N/A',
-        pratyantar: d.subPeriods?.[0]?.subPeriods?.[0]?.lord || 'N/A',
-        startEnd: `${d.startDate.toISOString().split('T')[0]} to ${d.endDate.toISOString().split('T')[0]}`
-    }));
+    // Determine relevant date range (Birth to Present/Max Event + 1 Year buffer)
+    const eventDates = input.lifeEvents.map(e => new Date(e.eventDate).getTime());
+    const now = Date.now();
+    const minDate = Math.min(...eventDates, now) - (365 * 24 * 60 * 60 * 1000); // 1 year before first event
+    // Cap at current date + 1 year (no future dashas needed unless events are in future)
+    const maxEventDate = Math.max(...eventDates, now);
+    const maxDate = maxEventDate + (365 * 24 * 60 * 60 * 1000); // 1 year buffer
+    const vimshottariDasha = [];
+    for (const maha of vimDashas) {
+        if (!maha.subPeriods)
+            continue;
+        for (const antar of maha.subPeriods) {
+            const start = antar.startDate.getTime();
+            const end = antar.endDate.getTime();
+            // Include if overlaps with event range
+            // (Start <= Max AND End >= Min)
+            if (start <= maxDate && end >= minDate) {
+                vimshottariDasha.push({
+                    maha: maha.lord,
+                    antar: antar.lord,
+                    pratyantar: '*', // Denotes full Antardasha coverage
+                    startEnd: `${antar.startDate.toISOString().split('T')[0]} to ${antar.endDate.toISOString().split('T')[0]}`
+                });
+            }
+        }
+    }
     const ascNakshatra = (0, vedic_astrology_engine_js_1.getNakshatraForLongitude)(ephemeris.ascendant.longitude);
     const pkg = {
         time,
@@ -75,35 +95,58 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
     };
     // Include extended data for later stages
     if (includeFullData) {
+        // 1. Yogini Dasha - Filtered by Timeline
         const yogDashas = (0, advanced_btr_methods_js_1.calculateYoginiDasha)(moonLong, birthDate);
-        pkg.yoginiDasha = yogDashas.slice(0, 3).map(d => ({
+        pkg.yoginiDasha = yogDashas.filter(d => {
+            const start = d.startDate.getTime();
+            const end = d.endDate.getTime();
+            return start <= maxDate && end >= minDate;
+        }).map(d => ({
             lord: d.name,
             startEnd: `${d.startDate.toISOString().split('T')[0]} to ${d.endDate.toISOString().split('T')[0]}`
         }));
+        // 2. Chara Dasha - Filtered by Timeline
         const charDashas = (0, jaimini_astrology_js_1.calculateCharaDasha)(ephemeris, birthDate);
-        pkg.charaDasha = charDashas.slice(0, 3).map(d => ({
+        pkg.charaDasha = charDashas.filter(d => {
+            const start = d.startDate.getTime();
+            const end = d.endDate.getTime();
+            return start <= maxDate && end >= minDate;
+        }).map(d => ({
             sign: d.sign,
             startEnd: `${d.startDate.toISOString().split('T')[0]} to ${d.endDate.toISOString().split('T')[0]}`
         }));
-        const d9 = (0, advanced_btr_methods_js_1.calculateD9)(ephemeris.ascendant.longitude);
-        const d10 = (0, advanced_btr_methods_js_1.calculateD10)(ephemeris.ascendant.longitude);
+        // 3. Divisional Charts - Full Planetary Matrix
+        const d9Planets = {};
+        const d10Planets = {};
+        // Calculate Ascendant D9/D10
+        const d9Asc = (0, advanced_btr_methods_js_1.calculateD9)(ephemeris.ascendant.longitude);
+        const d10Asc = (0, advanced_btr_methods_js_1.calculateD10)(ephemeris.ascendant.longitude);
+        // Calculate Planets D9/D10
+        for (const [name, p] of Object.entries(ephemeris.planets)) {
+            d9Planets[name] = (0, advanced_btr_methods_js_1.calculateD9)(p.longitude).sign;
+            d10Planets[name] = (0, advanced_btr_methods_js_1.calculateD10)(p.longitude).sign;
+        }
+        // Store full D9/D10 objects (God-Tier Detail)
         const d60 = (0, advanced_btr_methods_js_1.calculateD60)(ephemeris.ascendant.longitude);
-        pkg.d9Lagna = d9.sign;
-        pkg.d10Lagna = d10.sign;
+        pkg.d9Lagna = d9Asc.sign; // Backward compat
+        pkg.d10Lagna = d10Asc.sign; // Backward compat
         pkg.d60Sign = d60.sign;
-        // Build transit data for each life event
+        pkg.d9Chart = { ascendant: d9Asc.sign, planets: d9Planets };
+        pkg.d10Chart = { ascendant: d10Asc.sign, planets: d10Planets };
+        // 4. Transit Data - Enhanced with Retro
         pkg.transitData = {};
         for (const event of input.lifeEvents) {
             try {
                 const eventEph = await (0, ephemeris_js_1.calculateEphemeris)(event.eventDate, event.eventTime || '12:00:00', input.latitude, input.longitude, input.timezone);
                 pkg.transitData[event.eventDate] = {
-                    saturn: eventEph.planets.saturn.sign,
-                    jupiter: eventEph.planets.jupiter.sign,
-                    rahu: eventEph.planets.rahu.sign
+                    saturn: `${eventEph.planets.saturn.sign}${eventEph.planets.saturn.retro ? ' (R)' : ''}`,
+                    jupiter: `${eventEph.planets.jupiter.sign}${eventEph.planets.jupiter.retro ? ' (R)' : ''}`,
+                    rahu: `${eventEph.planets.rahu.sign}${eventEph.planets.rahu.retro ? ' (R)' : ''}`,
+                    ketu: `${eventEph.planets.ketu.sign}${eventEph.planets.ketu.retro ? ' (R)' : ''}`
                 };
             }
             catch {
-                // Skip if transit calc fails
+                // Skip
             }
         }
     }
