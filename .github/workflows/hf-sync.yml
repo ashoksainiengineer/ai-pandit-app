@@ -31,6 +31,7 @@ jobs:
           git lfs install
           git lfs track "*.se1"
           git lfs track "*.wasm"
+          git lfs track "*.png"
           git config user.email "actions@github.com"
           git config user.name "GitHub Actions"
           git checkout -b main
