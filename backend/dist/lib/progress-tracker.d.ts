@@ -30,6 +30,7 @@ export interface AIContextData {
     };
     dasha: string;
     divCharts?: string;
+    groundTruth?: any;
 }
 export interface ProgressData {
     currentStep: number;
@@ -43,6 +44,11 @@ export interface ProgressData {
     lastAIThinking?: AIThinkingData;
     aiContext?: AIContextData;
     stageHistory?: Record<number, string>;
+    calculationLogs?: Array<{
+        candidateTime: string;
+        log: string;
+    }>;
+    estimatedTimeRemaining?: number;
 }
 export declare const ANALYSIS_STEPS: Omit<ProgressStep, 'status'>[];
 export declare class ProgressTracker {
@@ -67,6 +73,14 @@ export declare class ProgressTracker {
      * Prevents interleaving of parallel candidate streams
      */
     updateAIThinking(text: string, stage: number, candidateTime?: string): Promise<void>;
+    /**
+     * Add calculation log - PERSISTENT
+     */
+    addCalculationLog(candidateTime: string, log: string): Promise<void>;
+    /**
+     * Update ETA
+     */
+    updateETA(seconds: number): Promise<void>;
     /**
      * Update AI Context (Ground Truth Display)
      */

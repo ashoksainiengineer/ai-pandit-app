@@ -478,6 +478,25 @@ export declare const sessions: import("drizzle-orm/sqlite-core").SQLiteTableWith
         }, {}, {
             length: number | undefined;
         }>;
+        reasoningLogs: import("drizzle-orm/sqlite-core").SQLiteColumn<{
+            name: "reasoningLogs";
+            tableName: "sessions";
+            dataType: "string";
+            columnType: "SQLiteText";
+            data: string;
+            driverParam: string;
+            notNull: false;
+            hasDefault: false;
+            isPrimaryKey: false;
+            isAutoincrement: false;
+            hasRuntimeDefault: false;
+            enumValues: [string, ...string[]];
+            baseColumn: never;
+            identity: undefined;
+            generated: undefined;
+        }, {}, {
+            length: number | undefined;
+        }>;
         status: import("drizzle-orm/sqlite-core").SQLiteColumn<{
             name: "status";
             tableName: "sessions";

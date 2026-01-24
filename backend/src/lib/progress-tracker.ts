@@ -69,13 +69,15 @@ export interface ProgressData {
 }
 
 
-// 🔱 NIRAYANA PROTOCOL STEPS (5-Phase God-Tier Structure)
+// 🔱 GOD-TIER BTR v6.0 STEPS (6-Stage Pipeline)
 export const ANALYSIS_STEPS: Omit<ProgressStep, 'status'>[] = [
-    { id: 'prana', name: 'Phase 1: Prana Mapping', icon: '🧠' },
-    { id: 'discovery', name: 'Phase 2: Discovery Tournament', icon: '⚔️' },
-    { id: 'convergence', name: 'Phase 3: Temporal Convergence', icon: '♐' },
-    { id: 'audit', name: 'Phase 4: Micro-Audit (D60)', icon: '📐' },
-    { id: 'seal', name: 'Phase 5: God-Tier Lock', icon: '🔱' },
+    { id: 'init', name: 'Initializing', icon: '🚀' },
+    { id: 'grid', name: 'Stage 1: Adaptive Grid Generation', icon: '📊' },
+    { id: 'coarse', name: 'Stage 2: AI Coarse Elimination', icon: '🧠' },
+    { id: 'fine', name: 'Stage 3: Fine Grid Expansion', icon: '🔬' },
+    { id: 'deep', name: 'Stage 4: AI Deep Analysis', icon: '⚔️' },
+    { id: 'micro', name: 'Stage 5: Micro Grid + D60', icon: '📐' },
+    { id: 'final', name: 'Stage 6: AI Final Precision', icon: '🔱' },
 ];
 
 // ═════════════════════════════════════════════════════════════════════════════

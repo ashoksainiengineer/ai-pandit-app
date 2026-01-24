@@ -10,18 +10,15 @@ const drizzle_js_1 = require("../database/drizzle.js");
 const schema_js_1 = require("../database/schema.js");
 const drizzle_orm_1 = require("drizzle-orm");
 const session_events_js_1 = require("./session-events.js");
-// Define all analysis steps
+// 🔱 GOD-TIER BTR v6.0 STEPS (6-Stage Pipeline)
 exports.ANALYSIS_STEPS = [
-    { id: 'init', name: 'Initializing Analysis', icon: '🚀' },
-    { id: 'ephemeris', name: 'Calculating Planetary Positions', icon: '🔭' },
-    { id: 'houses', name: 'Determining House Cusps', icon: '🏠' },
-    { id: 'candidates', name: 'Generating Candidate Times', icon: '⏰' },
-    { id: 'dasha', name: 'Analyzing Vimshottari Dasha', icon: '📊' },
-    { id: 'divisional', name: 'Processing Divisional Charts', icon: '📐' },
-    { id: 'events', name: 'Correlating Life Events', icon: '📅' },
-    { id: 'physical', name: 'Matching Physical Traits', icon: '👤' },
-    { id: 'ai', name: 'AI Cross-Verification', icon: '🤖' },
-    { id: 'final', name: 'Finalizing Results', icon: '✨' },
+    { id: 'init', name: 'Initializing', icon: '🚀' },
+    { id: 'grid', name: 'Stage 1: Adaptive Grid Generation', icon: '📊' },
+    { id: 'coarse', name: 'Stage 2: AI Coarse Elimination', icon: '🧠' },
+    { id: 'fine', name: 'Stage 3: Fine Grid Expansion', icon: '🔬' },
+    { id: 'deep', name: 'Stage 4: AI Deep Analysis', icon: '⚔️' },
+    { id: 'micro', name: 'Stage 5: Micro Grid + D60', icon: '📐' },
+    { id: 'final', name: 'Stage 6: AI Final Precision', icon: '🔱' },
 ];
 // ═════════════════════════════════════════════════════════════════════════════
 // PROGRESS TRACKER CLASS
@@ -58,6 +55,8 @@ class ProgressTracker {
             candidateScores: [],
             lastAIThinking: undefined,
             stageHistory: {},
+            calculationLogs: [],
+            estimatedTimeRemaining: 0,
         };
     }
     /**
@@ -85,14 +84,19 @@ class ProgressTracker {
         // 🏛️ Real-time memory sync for stage history
         if (!this.progress.stageHistory)
             this.progress.stageHistory = {};
-        this.progress.stageHistory[stage] = updatedLog;
-        // 3. Optional: Add to chunks if we want structured logs (but keep it simple for robustness)
-        // If we switch candidates, we reset the chunks in the view model naturally above
-        // For pure streaming, fullText is the source of truth.
-        // Truncate individual log if too long (Memory Protection)
-        if (updatedLog.length > 50000) {
-            this.candidateLogs.set(candidateTime, updatedLog.slice(-50000));
-            this.progress.lastAIThinking.fullText = this.candidateLogs.get(candidateTime);
+        // 🔥 GOD-TIER MEMORY PROTECTION: Cap thinking and stage history
+        // On HF, we cannot afford to keep 50KB strings in multiple maps.
+        const MEMORY_LIMIT = 5000;
+        const truncatedLog = updatedLog.length > MEMORY_LIMIT ? updatedLog.slice(-MEMORY_LIMIT) : updatedLog;
+        this.candidateLogs.set(candidateTime, truncatedLog);
+        this.progress.stageHistory[stage] = truncatedLog;
+        if (this.progress.lastAIThinking) {
+            this.progress.lastAIThinking.fullText = truncatedLog;
+        }
+        // Keep stageHistory lean - remove very old stages if memory is tight
+        const stages = Object.keys(this.progress.stageHistory).map(Number).sort((a, b) => a - b);
+        if (stages.length > 5) {
+            delete this.progress.stageHistory[stages[0]]; // Remove oldest stage
         }
         // ❌ NO DB SAVE - Pure Stream as requested
         // BUT update lastActive for GC
@@ -104,6 +108,29 @@ class ProgressTracker {
             this.lastPulseTime = now;
             this.pulse().catch(err => console.error('Heartbeat pulse failed:', err));
         }
+    }
+    /**
+     * Add calculation log - PERSISTENT
+     */
+    async addCalculationLog(candidateTime, log) {
+        if (!this.progress.calculationLogs)
+            this.progress.calculationLogs = [];
+        this.progress.calculationLogs.push({ candidateTime, log });
+        // Limit log size (Memory Protection)
+        if (this.progress.calculationLogs.length > 500) {
+            this.progress.calculationLogs = this.progress.calculationLogs.slice(-500);
+        }
+        // We emit the individual log via the existing event system (handled by the caller or specialized method)
+        // This method primarily ensures the log is in the state and will be saved to DB
+        await this.saveProgress();
+    }
+    /**
+     * Update ETA
+     */
+    async updateETA(seconds) {
+        this.progress.estimatedTimeRemaining = seconds;
+        (0, session_events_js_1.emitEstimatedTime)(this.sessionId, seconds);
+        await this.saveProgress();
     }
     /**
      * Update AI Context (Ground Truth Display)
@@ -140,7 +167,7 @@ class ProgressTracker {
         this.progress.lastUpdate = new Date().toISOString();
         this.progress.liveMessage = message;
         // ⏱️ Initialize global session start time on first step
-        if (stepId === 'init' && !this.progress.startedAt) {
+        if (stepId === 'prana' && !this.progress.startedAt) {
             this.progress.startedAt = this.progress.steps[stepIndex].startedAt;
         }
         await this.saveProgress();
@@ -247,22 +274,30 @@ class ProgressTracker {
      */
     async saveProgress(includeThinking = false) {
         try {
-            // 🛡️ [TURSO OPTIMIZED] Data Minimization
-            // We only keep the active reasoning in MAJOR flushes (includeThinking=true)
-            const dbProgress = { ...this.progress };
-            if (!includeThinking) {
-                // Remove transient fields for heartbeat/minor updates
-                delete dbProgress.lastAIThinking;
-                // Keep stageHistory BUT limit size if not a major flush
-                // Actually, stageHistory should always stay in DB once snapshotted
+            // 🚀 GOD-TIER OPTIMIZATION: Throttled DB Writes
+            // On HF Free Tier, Turso DB round-trips are expensive.
+            // We only flush if:
+            // 1. It's a major flush (includeThinking = true)
+            // 2. 10 seconds have passed since last write
+            if (!includeThinking && Date.now() - this.lastPulseTime < 10000) {
+                return; // Skip minor update to save IO
             }
-            // 💾 Size Limit Check: Truncate if too huge (Turso fallback)
+            this.lastPulseTime = Date.now();
+            // 🛡️ [TURSO OPTIMIZED] Data Minimization
+            const dbProgress = { ...this.progress };
+            // Limit thinking history to save space
+            if (!includeThinking) {
+                delete dbProgress.lastAIThinking;
+            }
             let progressJson = JSON.stringify(dbProgress);
-            if (progressJson.length > 90000) {
-                // If still too big even with optimization, truncate thinking logs
-                if (dbProgress.lastAIThinking) {
-                    dbProgress.lastAIThinking.fullText = dbProgress.lastAIThinking.fullText.slice(-20000);
-                    dbProgress.lastAIThinking.chunks = [];
+            // 💾 Size Limit Check: Truncate if too huge (Turso fallback)
+            if (progressJson.length > 95000) {
+                if (dbProgress.calculationLogs && dbProgress.calculationLogs.length > 50) {
+                    dbProgress.calculationLogs = dbProgress.calculationLogs.slice(-50);
+                    progressJson = JSON.stringify(dbProgress);
+                }
+                if (progressJson.length > 95000 && dbProgress.lastAIThinking) {
+                    dbProgress.lastAIThinking.fullText = dbProgress.lastAIThinking.fullText.slice(-10000);
                     progressJson = JSON.stringify(dbProgress);
                 }
             }

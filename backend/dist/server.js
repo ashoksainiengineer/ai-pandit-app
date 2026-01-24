@@ -46,7 +46,7 @@ app.use(express_1.default.json({ limit: '10mb' }));
 app.use(express_1.default.urlencoded({ extended: true }));
 // Request logging
 app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Headers: ${JSON.stringify(req.headers)}`);
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
     next();
 });
 // =============================================================================
@@ -83,13 +83,16 @@ const ephemeris_js_1 = require("./lib/ephemeris.js");
 // =============================================================================
 async function bootstrap() {
     try {
-        console.log('⏳ Initializing Swiss Ephemeris engine...');
-        await (0, ephemeris_js_1.initSwissEph)();
         app.listen(PORT, () => {
             console.log(`🚀 AI Pandit BTR Engine running on port ${PORT}`);
             console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
             console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-            // Start processing queue on startup
+            // 1. ASYNC Warming Up (Non-blocking)
+            console.log('⏳ Initializing Swiss Ephemeris engine in background...');
+            (0, ephemeris_js_1.initSwissEph)().catch(err => {
+                console.error('❌ Async Swiss Eph Initialization Failed:', err);
+            });
+            // 2. Start processing queue on startup
             console.log('🔄 Starting queue processor...');
             (0, queue_manager_js_1.cleanupZombiesOnStartup)().then(() => {
                 (0, queue_manager_js_1.startQueueProcessor)();
@@ -103,4 +106,5 @@ async function bootstrap() {
 }
 bootstrap();
 exports.default = app;
+// 🔱 GOD-TIER STABILITY PATCH V2: Finalised & Verified
 //# sourceMappingURL=server.js.map

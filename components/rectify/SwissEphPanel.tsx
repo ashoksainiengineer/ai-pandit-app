@@ -1,0 +1,270 @@
+'use client';
+
+// components/rectify/SwissEphPanel.tsx
+// Collapsible Swiss Ephemeris data panel showing planetary positions, houses, and dasha
+
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronDown, ChevronUp, Orbit, Star, Home, Sparkles } from 'lucide-react';
+
+interface PlanetData {
+    sign: string;
+    degree: number | string;
+    nakshatra: string;
+    isExalted?: boolean;
+    isDebilitated?: boolean;
+    isRetrograde?: boolean;
+}
+
+interface SwissEphPanelProps {
+    candidateTime: string;
+    planets?: {
+        sun?: PlanetData;
+        moon?: PlanetData;
+        mercury?: PlanetData;
+        venus?: PlanetData;
+        mars?: PlanetData;
+        jupiter?: PlanetData;
+        saturn?: PlanetData;
+        rahu?: PlanetData;
+        ketu?: PlanetData;
+    };
+    ascendant?: {
+        sign: string;
+        degree: number | string;
+        nakshatra: string;
+    };
+    houses?: Array<{
+        number: number;
+        sign: string;
+        cusp?: number;
+    }>;
+    dasha?: string;
+    // Simplified data from minifiedEph
+    minifiedEph?: {
+        sun: string;
+        moon: string;
+        ascendant: string;
+    };
+    defaultExpanded?: boolean;
+}
+
+const PLANET_SYMBOLS: Record<string, { symbol: string; color: string }> = {
+    sun: { symbol: '☉', color: 'text-orange-400' },
+    moon: { symbol: '☽', color: 'text-blue-300' },
+    mercury: { symbol: '☿', color: 'text-emerald-400' },
+    venus: { symbol: '♀', color: 'text-pink-400' },
+    mars: { symbol: '♂', color: 'text-red-400' },
+    jupiter: { symbol: '♃', color: 'text-yellow-400' },
+    saturn: { symbol: '♄', color: 'text-indigo-400' },
+    rahu: { symbol: '☊', color: 'text-purple-400' },
+    ketu: { symbol: '☋', color: 'text-gray-400' },
+};
+
+const formatDegree = (deg: number | string): string => {
+    if (typeof deg === 'string') return deg;
+    const degrees = Math.floor(deg);
+    const minutes = Math.floor((deg - degrees) * 60);
+    const seconds = Math.floor(((deg - degrees) * 60 - minutes) * 60);
+    return `${degrees}°${minutes}'${seconds}"`;
+};
+
+export function SwissEphPanel({
+    candidateTime,
+    planets,
+    ascendant,
+    houses,
+    dasha,
+    minifiedEph,
+    defaultExpanded = false
+}: SwissEphPanelProps) {
+    const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+
+    // Check if we have any data to show
+    const hasData = planets || ascendant || minifiedEph;
+
+    if (!hasData) return null;
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl border border-[#2A3442] bg-[#1A1F2E]/80 overflow-hidden"
+        >
+            {/* Header */}
+            <button
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-[#2A3442]/30 transition-colors"
+            >
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                        <Orbit className="w-4 h-4 text-white" />
+                    </div>
+                    <div className="text-left">
+                        <h4 className="text-sm font-bold text-[#F5F0EB]">Swiss Ephemeris Data</h4>
+                        <p className="text-[10px] text-[#8C7F72] font-mono">Candidate: {candidateTime}</p>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    {minifiedEph && !isExpanded && (
+                        <div className="hidden sm:flex items-center gap-3 text-[10px] font-mono text-[#8C7F72]">
+                            <span className="text-orange-400">☉ {minifiedEph.sun}</span>
+                            <span className="text-blue-300">☽ {minifiedEph.moon}</span>
+                        </div>
+                    )}
+                    {isExpanded ? (
+                        <ChevronUp className="w-4 h-4 text-[#8C7F72]" />
+                    ) : (
+                        <ChevronDown className="w-4 h-4 text-[#8C7F72]" />
+                    )}
+                </div>
+            </button>
+
+            {/* Content */}
+            <AnimatePresence>
+                {isExpanded && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="border-t border-[#3A4452]/50"
+                    >
+                        <div className="p-4 space-y-4">
+                            {/* Ascendant */}
+                            {(ascendant || minifiedEph?.ascendant) && (
+                                <div className="bg-[#0F1419]/50 rounded-lg p-3 border border-[#D4AF37]/30">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Star className="w-4 h-4 text-[#D4AF37]" />
+                                        <span className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold">Ascendant (Lagna)</span>
+                                    </div>
+                                    <div className="text-lg font-bold text-[#D4AF37] font-mono">
+                                        {ascendant ? (
+                                            <span>{ascendant.sign} {formatDegree(ascendant.degree)} ({ascendant.nakshatra})</span>
+                                        ) : (
+                                            <span>↑ {minifiedEph?.ascendant}</span>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Planets Grid */}
+                            {planets ? (
+                                <div className="grid grid-cols-3 gap-2">
+                                    {Object.entries(planets).map(([key, data]) => {
+                                        if (!data) return null;
+                                        const config = PLANET_SYMBOLS[key] || { symbol: '?', color: 'text-white' };
+
+                                        return (
+                                            <div
+                                                key={key}
+                                                className="bg-[#0F1419]/50 rounded-lg p-2.5 border border-[#3A4452] hover:border-[#D4AF37]/30 transition-colors"
+                                            >
+                                                <div className="flex items-center gap-1.5 mb-1">
+                                                    <span className={`text-lg ${config.color}`}>{config.symbol}</span>
+                                                    <span className="text-[10px] text-[#8C7F72] uppercase font-bold">{key}</span>
+                                                    {data.isRetrograde && <span className="text-[8px] text-red-400">R</span>}
+                                                </div>
+                                                <div className="text-xs font-mono text-[#F5F0EB]">
+                                                    {data.sign} {formatDegree(data.degree)}
+                                                </div>
+                                                <div className="text-[10px] text-[#8C7F72]">
+                                                    {data.nakshatra}
+                                                    {data.isExalted && <span className="ml-1 text-emerald-400">⭐</span>}
+                                                    {data.isDebilitated && <span className="ml-1 text-red-400">↓</span>}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : minifiedEph && (
+                                <div className="grid grid-cols-3 gap-2">
+                                    <div className="bg-[#0F1419]/50 rounded-lg p-2.5 border border-[#3A4452]">
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            <span className="text-lg text-orange-400">☉</span>
+                                            <span className="text-[10px] text-[#8C7F72] uppercase font-bold">Sun</span>
+                                        </div>
+                                        <div className="text-xs font-mono text-[#F5F0EB]">{minifiedEph.sun}</div>
+                                    </div>
+                                    <div className="bg-[#0F1419]/50 rounded-lg p-2.5 border border-[#3A4452]">
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            <span className="text-lg text-blue-300">☽</span>
+                                            <span className="text-[10px] text-[#8C7F72] uppercase font-bold">Moon</span>
+                                        </div>
+                                        <div className="text-xs font-mono text-[#F5F0EB]">{minifiedEph.moon}</div>
+                                    </div>
+                                    <div className="bg-[#0F1419]/50 rounded-lg p-2.5 border border-[#3A4452]">
+                                        <div className="flex items-center gap-1.5 mb-1">
+                                            <span className="text-lg text-[#D4AF37]">↑</span>
+                                            <span className="text-[10px] text-[#8C7F72] uppercase font-bold">Asc</span>
+                                        </div>
+                                        <div className="text-xs font-mono text-[#F5F0EB]">{minifiedEph.ascendant}</div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Houses */}
+                            {houses && houses.length > 0 && (
+                                <div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Home className="w-4 h-4 text-[#8C7F72]" />
+                                        <span className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold">Houses</span>
+                                    </div>
+                                    <div className="grid grid-cols-6 gap-1.5">
+                                        {houses.map((house) => (
+                                            <div
+                                                key={house.number}
+                                                className="bg-[#0F1419]/50 rounded p-1.5 text-center border border-[#3A4452]"
+                                            >
+                                                <div className="text-[9px] text-[#8C7F72]">{house.number}H</div>
+                                                <div className="text-[10px] font-mono text-[#F5F0EB]">{house.sign}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Dasha */}
+                            {dasha && (
+                                <div className="bg-[#0F1419]/50 rounded-lg p-3 border border-emerald-500/30">
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Sparkles className="w-4 h-4 text-emerald-400" />
+                                        <span className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold">Active Dasha</span>
+                                    </div>
+                                    <div className="text-sm font-mono text-emerald-400">{dasha}</div>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </motion.div>
+    );
+}
+
+// Compact version for inline display in tables
+export function SwissEphMini({ sun, moon, ascendant }: { sun?: string; moon?: string; ascendant?: string }) {
+    return (
+        <div className="flex flex-col gap-0.5 text-[9px] font-mono">
+            {sun && (
+                <div className="flex items-center gap-1">
+                    <span className="text-orange-400">☉</span>
+                    <span className="text-[#C4B8AD]">{sun}</span>
+                </div>
+            )}
+            {moon && (
+                <div className="flex items-center gap-1">
+                    <span className="text-blue-300">☽</span>
+                    <span className="text-[#C4B8AD]">{moon}</span>
+                </div>
+            )}
+            {ascendant && (
+                <div className="flex items-center gap-1">
+                    <span className="text-[#D4AF37]">↑</span>
+                    <span className="text-[#C4B8AD]">{ascendant}</span>
+                </div>
+            )}
+        </div>
+    );
+}

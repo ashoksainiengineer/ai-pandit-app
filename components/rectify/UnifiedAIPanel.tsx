@@ -2,26 +2,34 @@
 
 // components/rectify/UnifiedAIPanel.tsx
 // Premium unified AI analysis panel with DeepSeek-style collapsible thinking
+// Enhanced with Candidate Tabs for switching between analyzed candidates
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AIContextData } from '@/lib/use-stream-progress';
-import { ChevronDown, ChevronUp, Brain, Zap, Clock, Activity } from 'lucide-react';
+import { ChevronDown, ChevronUp, Brain, Zap, Clock, Activity, Users, Radio } from 'lucide-react';
 import { Typewriter } from '@/components/ui/Typewriter';
 import { LiveCalculationPanel, CalculationLog } from './LiveCalculationPanel';
 
+interface AIThinking {
+    stage: number;
+    candidateTime?: string;
+    chunks?: string[];
+    fullText: string;
+}
+
 interface UnifiedAIPanelProps {
-    thinking: {
-        stage: number;
-        candidateTime?: string;
-        fullText: string;
-    } | null;
+    thinking: AIThinking | null;
     stageHistory?: Map<number, string>;
     context: AIContextData | null;
     isActive: boolean;
     stage?: number;
     analyzedCount?: number;
     totalCandidates?: number;
+    // 🆕 All candidates map for tab switching
+    allCandidates?: Map<string, AIThinking>;
+    displayedCandidate?: string | null;
+    onSelectCandidate?: (time: string) => void;
     candidateScores?: Array<{
         time: string;
         score: number;
@@ -42,31 +50,62 @@ interface UnifiedAIPanelProps {
 const cleanReasoningText = (text: string) => {
     if (!text) return '';
 
-    // Strip tags but KEEP the content inside for transparency
-    return text
+    // 1. Remove XML-style tags but keep content
+    let cleaned = text
         .replace(/<\/?thought>/g, '')
         .replace(/<\/?think>/g, '')
+        .replace(/<\/?reasoning>/g, '')
+        .replace(/<\/?analysis>/g, '');
+
+    // 2. Remove internal markers and separators
+    cleaned = cleaned
         .replace(/\[STAGE \w+\]/g, '')
         .replace(/═+[\r\n]*🎯 SWITCHING TO:[\s\S]*?═+[\r\n]*/g, '')
-        .replace(/--- LEVEL \d: [\s\S]*? ---\n/g, '') // Remove internal separators to rebuild them
-        .replace(/(\r\n|\n|\r){3,}/g, '\n\n')
-        .trim();
+        .replace(/--- LEVEL \d: [\s\S]*? ---\n/g, '');
+
+    // 3. Clean up garbage characters and Unicode issues
+    cleaned = cleaned
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '') // Control chars
+        .replace(/\u200B/g, '') // Zero-width space
+        .replace(/\uFEFF/g, '') // BOM
+        .replace(/[\u2028\u2029]/g, '\n'); // Line/paragraph separators
+
+    // 4. Normalize whitespace
+    cleaned = cleaned
+        .replace(/(\r\n|\r)/g, '\n') // Normalize line endings
+        .replace(/\n{4,}/g, '\n\n\n') // Max 3 consecutive newlines
+        .replace(/[ \t]+$/gm, '') // Trailing whitespace per line
+        .replace(/^[ \t]+/gm, (match) => match.length > 8 ? '  ' : match); // Limit indent
+
+    // 5. Add visual structure indicators for common patterns
+    cleaned = cleaned
+        .replace(/^(\d+\.\s)/gm, '▸ $1') // Numbered lists
+        .replace(/^(•|\*|-) /gm, '◦ '); // Bullet points
+
+    return cleaned.trim();
 };
 
 const formatStructuredSections = (text: string) => {
-    // Basic pattern matching for common AI headers to make them pop
+    // Enhanced pattern matching for AI headers
     return text.split('\n').map((line, i) => {
-        if (/^(DASHA CHECK|DIVISIONAL CHECK|TRANSIT ANALYSIS|VERDICT|FINAL RANKING|PLANETARY ANALYSIS|EVENT CORRELATION|PHYSICAL AUDIT):/i.test(line)) {
-            const [label, ...rest] = line.split(':');
-            return (
-                <div key={i} className="mt-4 mb-2 first:mt-0">
-                    <span className="text-[#D4AF37] font-black uppercase text-[10px] tracking-widest bg-[#D4AF37]/10 px-2 py-0.5 rounded border border-[#D4AF37]/20">
-                        {label}
-                    </span>
-                    <p className="mt-1 text-[#F5F0EB]">{rest.join(':').trim()}</p>
-                </div>
-            );
+        // Major section headers
+        if (/^(DASHA|DIVISIONAL|TRANSIT|PLANETARY|EVENT|VERDICT|FINAL|PHYSICAL|BOUNDARY|LAGNA|NAKSHATRA|D9|D10|D60)/i.test(line)) {
+            const colonIdx = line.indexOf(':');
+            if (colonIdx > 0) {
+                const label = line.slice(0, colonIdx).toUpperCase();
+                const rest = line.slice(colonIdx + 1).trim();
+                return (
+                    <div key={i} className="mt-4 mb-2 first:mt-0">
+                        <span className="text-[#D4AF37] font-black uppercase text-[10px] tracking-widest bg-[#D4AF37]/10 px-2 py-0.5 rounded border border-[#D4AF37]/20">
+                            {label}
+                        </span>
+                        <p className="mt-1 text-[#F5F0EB]">{rest}</p>
+                    </div>
+                );
+            }
         }
+
+        // Time candidate headers
         if (/^TIME: \d{2}:\d{2}:\d{2}/i.test(line)) {
             return (
                 <div key={i} className="mt-6 mb-3 border-l-2 border-emerald-500 pl-3">
@@ -74,6 +113,27 @@ const formatStructuredSections = (text: string) => {
                 </div>
             );
         }
+
+        // Score lines
+        if (/^(SCORE|RATING|CONFIDENCE):/i.test(line)) {
+            return (
+                <div key={i} className="my-2 p-2 bg-[#D4AF37]/5 rounded border-l-2 border-[#D4AF37]">
+                    <span className="text-[#D4AF37] font-bold font-mono text-sm">{line}</span>
+                </div>
+            );
+        }
+
+        // Bullet points with checkmarks
+        if (/^[▸◦•\-\*] /.test(line)) {
+            return (
+                <div key={i} className="mb-1 pl-2 text-[#C4B8AD]">
+                    <span className="text-emerald-400 mr-1">▹</span>
+                    {line.replace(/^[▸◦•\-\*] /, '')}
+                </div>
+            );
+        }
+
+        // Regular lines
         return <div key={i} className="mb-1">{line}</div>;
     });
 };
@@ -86,6 +146,9 @@ export function UnifiedAIPanel({
     stage,
     analyzedCount,
     totalCandidates,
+    allCandidates,
+    displayedCandidate,
+    onSelectCandidate,
     candidateScores,
     calculationLogs,
     unifiedMode
@@ -95,6 +158,29 @@ export function UnifiedAIPanel({
 
     // Auto-expand the current stage, others can be toggled
     const [expandedStages, setExpandedStages] = useState<number[]>([currentStage]);
+
+    // Local state for displayed candidate if not controlled externally
+    const [localDisplayedCandidate, setLocalDisplayedCandidate] = useState<string | null>(null);
+
+    // Effective displayed candidate
+    const effectiveDisplayedCandidate = displayedCandidate || localDisplayedCandidate;
+
+    // Get all active candidate times from allCandidates map
+    const candidateTabs = useMemo(() => {
+        if (!allCandidates || allCandidates.size === 0) {
+            return thinking?.candidateTime ? [thinking.candidateTime] : [];
+        }
+        return Array.from(allCandidates.keys());
+    }, [allCandidates, thinking?.candidateTime]);
+
+    // Handle candidate tab click
+    const handleCandidateClick = (time: string) => {
+        if (onSelectCandidate) {
+            onSelectCandidate(time);
+        } else {
+            setLocalDisplayedCandidate(time);
+        }
+    };
 
     // Update expanded stages when current stage changes
     useEffect(() => {
@@ -111,33 +197,43 @@ export function UnifiedAIPanel({
         );
     };
 
-    const thinkingSeconds = 0; // Simplified for loop view (or track per stage if needed, but global is complex)
-    // Actually, we can just show "Processing" for the active one.
-
     const STAGES = [
-        { id: 2, name: 'Neural Screening', level: 1, color: 'orange', accuracy: '80-88%' },
-        { id: 5, name: 'Tournament Dynamics', level: 2, color: 'blue', accuracy: '90-95%' },
-        { id: 7, name: 'Grand Finals (R1)', level: 3, color: 'purple', accuracy: '98-99.9%' },
+        { id: 2, name: 'Coarse Elimination', level: 1, color: 'orange', accuracy: '60 → 15' },
+        { id: 4, name: 'Deep Analysis', level: 2, color: 'blue', accuracy: '100 → 7' },
+        { id: 6, name: 'Final Precision', level: 3, color: 'purple', accuracy: '77 → 1' },
     ];
 
     if (unifiedMode) {
-        // 🌊 GOD-TIER UNIFIED MODE: Single continuous stream
+        // 🌊 GOD-TIER UNIFIED MODE: Single continuous stream with candidate tabs
         const currentStageConfig = STAGES.find(s => s.id === currentStage) || STAGES[0];
 
-        // Accumulate all historic text into one blob or just show the active one?
-        // User wants "SAARE LEVELS KA REASONING EK HI CONTAINER ME"
-        // So we concatenate history + current thinking
+        // Get content for displayed candidate
+        const getDisplayedContent = () => {
+            if (allCandidates && effectiveDisplayedCandidate) {
+                const candidateData = allCandidates.get(effectiveDisplayedCandidate);
+                if (candidateData) return candidateData.fullText;
+            }
+            return thinking?.fullText || '';
+        };
+
+        // Accumulate all historic text with candidate-specific content
         let unifiedContent = '';
         STAGES.forEach(s => {
             const hist = stageHistory?.get(s.id);
             if (hist) {
-                unifiedContent += `\n--- LEVEL ${s.level}: ${s.name} ---\n${hist}\n`;
-            } else if (s.id === currentStage && thinking?.fullText) {
-                unifiedContent += `\n--- LEVEL ${s.level}: ${s.name} [ACTIVE] ---\n${thinking.fullText}`;
+                unifiedContent += `\n--- STAGE ${s.id}: ${s.name} ---\n${hist}\n`;
+            } else if (s.id === currentStage) {
+                const currentContent = getDisplayedContent();
+                if (currentContent) {
+                    unifiedContent += `\n--- STAGE ${s.id}: ${s.name} [ACTIVE] ---\n${currentContent}`;
+                }
             }
         });
 
-        const activeContent = cleanReasoningText(unifiedContent || '');
+        const activeContent = cleanReasoningText(unifiedContent || getDisplayedContent());
+
+        // Check if current candidate is streaming
+        const isStreaming = (time: string) => thinking?.candidateTime === time && isActive;
 
         return (
             <motion.div
@@ -157,24 +253,77 @@ export function UnifiedAIPanel({
                         </div>
                         <div>
                             <h3 className="font-bold text-base text-[#D4AF37]">
-                                Reasoning Engine: {currentStageConfig.name}
+                                🧠 AI Reasoning: Stage {currentStage}
                             </h3>
                             <div className="flex items-center gap-2 text-[10px] text-[#8C7F72] font-mono">
                                 <Activity className="w-3 h-3 text-emerald-500" />
-                                {isActive ? 'LIVE_NEURAL_STREAM' : 'VOD_REASONING_ARCHIVE'}
+                                {isActive ? 'LIVE_STREAM' : 'ARCHIVE'} • {currentStageConfig.accuracy} candidates
                             </div>
                         </div>
                     </div>
 
                     {isActive && (
                         <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#8B5CF6]/20 border border-[#8B5CF6]/30">
-                            <span className="text-[10px] font-medium text-[#8B5CF6] uppercase tracking-wider">Processing Level {currentStageConfig.level}</span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                            <span className="text-[10px] font-medium text-[#8B5CF6] uppercase tracking-wider">THINKING</span>
                         </div>
                     )}
                 </div>
 
-                {/* Single Scroller */}
-                <ScrollableContent content={activeContent} isThinking={isActive} />
+                {/* 🆕 CANDIDATE TABS BAR */}
+                {candidateTabs.length > 0 && (
+                    <div className="px-4 py-2 bg-[#0F1419] border-b border-[#3A4452]/50">
+                        <div className="flex items-center gap-2 mb-2">
+                            <Users className="w-3.5 h-3.5 text-[#8C7F72]" />
+                            <span className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold">
+                                Active Candidates ({candidateTabs.length})
+                            </span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 overflow-x-auto custom-scrollbar pb-1">
+                            {candidateTabs.slice(0, 10).map((time) => {
+                                const isSelected = effectiveDisplayedCandidate === time;
+                                const isLive = isStreaming(time);
+
+                                return (
+                                    <button
+                                        key={time}
+                                        onClick={() => handleCandidateClick(time)}
+                                        className={`
+                                            px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all relative
+                                            ${isSelected
+                                                ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/50 shadow-[0_0_10px_rgba(212,175,55,0.2)]'
+                                                : 'bg-[#1A2433] text-[#8C7F72] border border-[#3A4452] hover:border-[#D4AF37]/30 hover:text-[#C4B8AD]'
+                                            }
+                                        `}
+                                    >
+                                        {isLive && (
+                                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+                                            </span>
+                                        )}
+                                        <span className="flex items-center gap-1.5">
+                                            {isLive && <Radio className="w-3 h-3 text-red-400" />}
+                                            {time}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                            {candidateTabs.length > 10 && (
+                                <span className="px-2 py-1.5 text-[10px] text-[#8C7F72]">
+                                    +{candidateTabs.length - 10} more
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Content for Selected Candidate */}
+                <ScrollableContent
+                    content={activeContent}
+                    isThinking={isActive}
+                    candidateTime={effectiveDisplayedCandidate || thinking?.candidateTime}
+                />
 
                 {/* Calculation Stats Strip */}
                 {calculationLogs && calculationLogs.length > 0 && (
@@ -182,16 +331,16 @@ export function UnifiedAIPanel({
                         <div className="flex items-center gap-4 text-[#8C7F72]">
                             <div className="flex items-center gap-1">
                                 <Zap className="w-3 h-3 text-[#D4AF37]" />
-                                Engine OPS: 1.42 T/s
+                                Swiss Eph Calculations: {calculationLogs.length}
                             </div>
                             <div className="flex items-center gap-1">
                                 <Clock className="w-3 h-3" />
-                                Latency: 42ms
+                                Latency: ~42ms
                             </div>
                         </div>
-                        {thinking?.candidateTime && (
-                            <div className="text-[#D4AF37] font-bold">
-                                FOCUS: {thinking.candidateTime}
+                        {effectiveDisplayedCandidate && (
+                            <div className="text-[#D4AF37] font-bold font-mono">
+                                VIEWING: {effectiveDisplayedCandidate}
                             </div>
                         )}
                     </div>
@@ -250,10 +399,10 @@ export function UnifiedAIPanel({
                                 </div>
                                 <div className="text-left">
                                     <h3 className={`font-bold text-base ${isCurrent ? 'text-[#D4AF37]' : 'text-[#F5F0EB]'}`}>
-                                        Level {stageConfig.level}: {stageConfig.name}
+                                        Stage {stageConfig.id}: {stageConfig.name}
                                     </h3>
                                     <p className="text-xs text-[#8C7F72]">
-                                        Target Accuracy: {stageConfig.accuracy}
+                                        Candidates: {stageConfig.accuracy}
                                     </p>
                                 </div>
                             </div>
@@ -281,7 +430,6 @@ export function UnifiedAIPanel({
                                 >
                                     <ScrollableContent content={content || ''} isThinking={isCurrent && isActive} />
 
-
                                     {/* Stats Footer for this stage */}
                                     {isCurrent && (analyzedCount !== undefined || thinking?.candidateTime) && (
                                         <div className="px-4 py-2 bg-[#0F1419] border-t border-[#3A4452]/50 flex items-center gap-4 text-xs">
@@ -293,83 +441,6 @@ export function UnifiedAIPanel({
                                             )}
                                         </div>
                                     )}
-
-                                    {/* 📊 LEVEL-SPECIFIC LIVE TABLE */}
-                                    {candidateScores && candidateScores.some(c => c.stage === stageConfig.id) && (
-                                        <div className="border-t border-[#3A4452]/50">
-                                            <div className="px-4 py-2 bg-[#1A1F2E]/80 text-[10px] uppercase font-bold text-[#8C7F72] tracking-wider flex justify-between">
-                                                <span>Live Candidates (Level {stageConfig.level})</span>
-                                                <span>{candidateScores.filter(c => c.stage === stageConfig.id).length} Entries</span>
-                                            </div>
-                                            <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
-                                                <table className="w-full text-xs border-collapse">
-                                                    <thead className="bg-[#0F1419]/50 sticky top-0 backdrop-blur-sm z-10">
-                                                        <tr className="text-[#6B7280]">
-                                                            <th className="px-4 py-2 text-left">Time</th>
-                                                            <th className="px-4 py-2 text-center">Score</th>
-                                                            <th className="px-4 py-2 text-right">Status</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        {candidateScores
-                                                            .filter(c => c.stage === stageConfig.id)
-                                                            .sort((a, b) => b.score - a.score)
-                                                            .slice(0, 50) // Limit rows for performance
-                                                            .map((candidate, idx) => (
-                                                                <tr key={`${candidate.time}-${idx}`} className="border-t border-[#3A4452]/30 hover:bg-[#D4AF37]/5 transition-colors">
-                                                                    <td className="px-4 py-2 font-mono text-[#F5F0EB]">
-                                                                        <div className="flex flex-col">
-                                                                            <span>{candidate.time}</span>
-                                                                            {candidate.offsetMinutes !== undefined && (
-                                                                                <span className="text-[8px] text-[#8C7F72]">
-                                                                                    {candidate.offsetMinutes >= 0 ? '+' : ''}{candidate.offsetMinutes.toFixed(1)}m
-                                                                                </span>
-                                                                            )}
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-4 py-2">
-                                                                        <div className="flex flex-col gap-0.5 text-[8px] font-mono text-[#D4AF37]/60">
-                                                                            {candidate.minifiedEph ? (
-                                                                                <>
-                                                                                    <div className="flex justify-between">
-                                                                                        <span>S:</span><span className="text-emerald-400/70">{candidate.minifiedEph.sun}</span>
-                                                                                    </div>
-                                                                                    <div className="flex justify-between">
-                                                                                        <span>M:</span><span className="text-emerald-400/70">{candidate.minifiedEph.moon}</span>
-                                                                                    </div>
-                                                                                    <div className="flex justify-between">
-                                                                                        <span>A:</span><span className="text-emerald-400/70">{candidate.minifiedEph.ascendant}</span>
-                                                                                    </div>
-                                                                                </>
-                                                                            ) : (
-                                                                                <span className="opacity-30 italic">Calc...</span>
-                                                                            )}
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-4 py-2 text-center">
-                                                                        <div className="flex items-center justify-center gap-2">
-                                                                            <div className="w-12 bg-[#3A4452] rounded-full h-1 overflow-hidden">
-                                                                                <div
-                                                                                    className={`h-full ${candidate.score >= 80 ? 'bg-emerald-500' : candidate.score >= 60 ? 'bg-amber-500' : 'bg-rose-500'}`}
-                                                                                    style={{ width: `${candidate.score}%` }}
-                                                                                />
-                                                                            </div>
-                                                                            <span className="font-mono">{Math.round(candidate.score)}%</span>
-                                                                        </div>
-                                                                    </td>
-                                                                    <td className="px-4 py-2 text-right">
-                                                                        <span className={`text-[9px] font-bold ${candidate.score >= 70 ? 'text-emerald-400' : 'text-rose-400/50'}`}>
-                                                                            {candidate.score >= 70 ? 'PASS' : 'SCR'}
-                                                                        </span>
-                                                                    </td>
-                                                                </tr>
-                                                            ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    )}
-
                                 </motion.div>
                             )}
                         </AnimatePresence>
@@ -418,7 +489,7 @@ export function UnifiedAIPanel({
 }
 
 // Sub-component for auto-scrolling
-function ScrollableContent({ content, isThinking }: { content: string; isThinking: boolean }) {
+function ScrollableContent({ content, isThinking, candidateTime }: { content: string; isThinking: boolean; candidateTime?: string }) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
     const scrollAnchorRef = useRef<HTMLDivElement>(null);
@@ -432,14 +503,12 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
             scrollAnchorRef.current.scrollIntoView({ behavior: 'instant', block: 'end' });
         }
 
-        // Viewport synchronization: If the typing area is getting close to the bottom of the screen,
-        // we should scroll the window to keep it visible.
+        // Viewport synchronization
         if (isThinking || forceWindowScroll) {
             const el = scrollRef.current;
             if (el) {
                 const rect = el.getBoundingClientRect();
                 const viewportHeight = window.innerHeight;
-                // If the bottom of our container is below the viewport or very close to it (100px buffer)
                 if (rect.bottom > viewportHeight - 100) {
                     window.scrollBy({ top: rect.bottom - (viewportHeight - 100), behavior: 'auto' });
                 }
@@ -453,14 +522,13 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
 
         const el = scrollRef.current;
         const observer = new ResizeObserver(() => {
-            // Use requestAnimationFrame for smoother scrolling sync
             requestAnimationFrame(() => scrollToEnd());
         });
 
         const contentEl = el.firstElementChild;
         if (contentEl) observer.observe(contentEl);
 
-        // Immediate scroll on significant changes (Zero-Tolerance)
+        // Immediate scroll on significant changes
         if (content.length !== lastContentLengthRef.current) {
             scrollToEnd(true);
             lastContentLengthRef.current = content.length;
@@ -473,13 +541,11 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
         if (!scrollRef.current) return;
 
         const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-        // Strict bottom detection - 15px buffer for various browser scaling
         const isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) < 15;
 
         if (isAtBottom) {
             setShouldAutoScroll(true);
         } else {
-            // Only disable if the user explicitly scrolls up
             setShouldAutoScroll(false);
         }
     };
@@ -490,14 +556,22 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
             onScroll={handleScroll}
             className="p-4 bg-[#0F1419]/50 font-mono text-sm text-[#D1D5DB] leading-relaxed max-h-[400px] overflow-y-auto custom-scrollbar relative"
         >
+            {/* Candidate header if viewing specific candidate */}
+            {candidateTime && (
+                <div className="mb-3 pb-2 border-b border-[#3A4452]">
+                    <div className="flex items-center gap-2 text-[#D4AF37]">
+                        <Clock className="w-4 h-4" />
+                        <span className="font-bold">Candidate: {candidateTime}</span>
+                    </div>
+                </div>
+            )}
+
             {content ? (
                 <div className="break-words border-l-2 border-[#D4AF37]/30 pl-4 py-1 relative">
                     {isThinking ? (
                         <Typewriter
                             content={content}
                             speed={5}
-                        // Custom renderer for typewriter (or wrap it after it's done)
-                        // For simplicity, we just render it formatted if NOT thinking
                         />
                     ) : (
                         <div className="whitespace-pre-wrap">{formatStructuredSections(content)}</div>
@@ -515,7 +589,7 @@ function ScrollableContent({ content, isThinking }: { content: string; isThinkin
                 </div>
             )}
 
-            {/* Scroll Nudge Button (Optional: if user scrolled up, show a "Down" indicator) */}
+            {/* Scroll Nudge Button */}
             {!shouldAutoScroll && content && (
                 <button
                     onClick={() => setShouldAutoScroll(true)}

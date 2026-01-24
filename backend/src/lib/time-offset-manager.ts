@@ -7,7 +7,7 @@ import { logger } from './logger.js';
 // TYPE DEFINITIONS
 // ═════════════════════════════════════════════════════════════════════════
 
-export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours' | 'seconds-30' | 'seconds-6';
+export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours' | '6hours' | '12hours' | 'seconds-30' | 'seconds-6';
 
 export interface TimeOffsetConfig {
   preset?: OffsetPreset;
@@ -35,17 +35,27 @@ const OFFSET_PRESETS: Record<OffsetPreset, { label: string; minutes: number; int
   '1hour': {
     label: '±1 hour',
     minutes: 60,
-    interval: 0.5,
+    interval: 1,
   },
   '2hours': {
     label: '±2 hours',
     minutes: 120,
-    interval: 0.5,
+    interval: 2,
   },
   '4hours': {
     label: '±4 hours',
     minutes: 240,
-    interval: 0.5,
+    interval: 4,
+  },
+  '6hours': {
+    label: '±6 hours',
+    minutes: 360,
+    interval: 6,
+  },
+  '12hours': {
+    label: '±12 hours',
+    minutes: 720,
+    interval: 12,
   },
   'seconds-30': {
     label: '±5 minutes (30-sec intervals)',
@@ -55,10 +65,36 @@ const OFFSET_PRESETS: Record<OffsetPreset, { label: string; minutes: number; int
   'seconds-6': {
     label: '±1 minute (6-sec intervals)',
     minutes: 1,
-    interval: 0.1,      // Keep 6s for the micro-scan preset if used elsewhere
+    interval: 0.1,
     intervalSeconds: 6,
   },
 };
+
+// ═════════════════════════════════════════════════════════════════════════
+// 🔱 GOD-TIER ADAPTIVE INTERVAL FUNCTION
+// ═════════════════════════════════════════════════════════════════════════
+
+/**
+ * Calculate adaptive interval to maintain ~60 candidates for any offset range.
+ * This ensures consistent processing time regardless of offset size.
+ * 
+ * @param offsetMinutes - Total offset range in minutes
+ * @returns Interval in minutes
+ */
+export function getAdaptiveInterval(offsetMinutes: number): number {
+  // Target: ~60 candidates total (30 each side + center)
+  // Formula: interval = (offsetMinutes * 2) / 60 ≈ offsetMinutes / 30
+
+  if (offsetMinutes <= 30) return 0.5;      // 30sec for ±30min (60 candidates)
+  if (offsetMinutes <= 60) return 1;        // 1min for ±1hr (60 candidates)
+  if (offsetMinutes <= 120) return 2;       // 2min for ±2hr (60 candidates)
+  if (offsetMinutes <= 240) return 4;       // 4min for ±4hr (60 candidates)
+  if (offsetMinutes <= 360) return 6;       // 6min for ±6hr (60 candidates)
+  if (offsetMinutes <= 720) return 12;      // 12min for ±12hr (60 candidates)
+
+  // For anything beyond 12hr, scale proportionally
+  return Math.ceil(offsetMinutes / 30);
+}
 
 // ═════════════════════════════════════════════════════════════════════════
 // MAIN FUNCTION: Generate Candidate Times
@@ -92,19 +128,19 @@ export function generateCandidateTimes(
       throw new Error('No offset configuration provided');
     }
 
-    // 🔱 GOD-MODE ADAPTIVE DENSITY
-    // Small windows (<= 120 min) get 30s precision grid from the start.
-    // Large windows (> 120 min) get 1m coarse grid for global discovery efficiency.
-    const interval = offsetMinutes <= 120 ? 0.5 : 1.0;
+    // 🔱 GOD-TIER ADAPTIVE GRID
+    // Use adaptive interval to maintain ~60 candidates for any offset
+    const interval = getAdaptiveInterval(offsetMinutes);
 
     const description = offsetConfig.customMinutes !== undefined
-      ? `±${offsetMinutes} min (${interval * 60}s Grid)`
-      : `${OFFSET_PRESETS[offsetConfig.preset!].label} (${interval * 60}s Grid)`;
+      ? `±${offsetMinutes} min (${interval >= 1 ? interval + 'min' : (interval * 60) + 's'} Grid)`
+      : `${OFFSET_PRESETS[offsetConfig.preset!].label} (${interval >= 1 ? interval + 'min' : (interval * 60) + 's'} Grid)`;
 
     logger.info('Offset configuration', {
       offsetMinutes,
       interval,
       description,
+      expectedCandidates: Math.ceil(offsetMinutes / interval) * 2 + 1,
     });
 
     // ─────────────────────────────────────────────────────────────────────

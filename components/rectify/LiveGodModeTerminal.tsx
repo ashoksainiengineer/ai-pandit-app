@@ -50,9 +50,9 @@ export function LiveGodModeTerminal({
         }
     }, [calculationLogs]);
 
-    const level1Candidates = useMemo(() => candidateScores.filter(c => c.stage <= 2), [candidateScores]);
-    const level2Candidates = useMemo(() => candidateScores.filter(c => c.stage >= 4 && c.stage < 6), [candidateScores]);
-    const level3Candidates = useMemo(() => candidateScores.filter(c => c.stage >= 6), [candidateScores]);
+    const level1Candidates = useMemo(() => candidateScores.filter(c => c.stage === 2), [candidateScores]);
+    const level2Candidates = useMemo(() => candidateScores.filter(c => c.stage === 4), [candidateScores]);
+    const level3Candidates = useMemo(() => candidateScores.filter(c => c.stage === 6), [candidateScores]);
 
     const displayedLogs = selectedCandidate
         ? calculationLogs.filter(l => l.candidateTime === selectedCandidate)

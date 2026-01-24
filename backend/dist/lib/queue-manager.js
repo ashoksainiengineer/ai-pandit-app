@@ -21,16 +21,17 @@ const logger_js_1 = require("./logger.js");
 const crypto_js_1 = require("./crypto.js");
 const cancellation_manager_js_1 = require("./cancellation-manager.js");
 const session_events_js_1 = require("./session-events.js");
+const progress_tracker_js_1 = require("./progress-tracker.js");
 // ═════════════════════════════════════════════════════════════════════════════
 // QUEUE CONFIGURATION
 // ═════════════════════════════════════════════════════════════════════════════
 const QUEUE_CONFIG = {
-    maxConcurrent: parseInt(process.env.MAX_CONCURRENT_SESSIONS || '3'), // Process N sessions concurrently
-    pollIntervalMs: 2000,
-    maxQueueSize: 1000,
+    maxConcurrent: parseInt(process.env.MAX_CONCURRENT_SESSIONS || '2'), // Process N sessions concurrently (Lowered for HF)
+    pollIntervalMs: 3000,
+    maxQueueSize: 500,
     staleTimeoutMs: 30 * 60 * 1000, // 30 mins
     baseAnalysisTime: 240, // 4 Mins for God-Tier analysis (1 user)
-    contentionMultiplier: 0.2, // Lower per-user overhead due to parallel AI batching
+    contentionMultiplier: 0.3, // Moderate per-user overhead
 };
 // ═════════════════════════════════════════════════════════════════════════════
 // IN-MEMORY STATE (minimal - just tracking current jobs)
@@ -318,9 +319,22 @@ async function processQueue() {
         try {
             // Check for stale processing requests (crashed mid-process)
             await cleanupStaleRequests();
+            // 🚀 GOD-TIER: Dynamic Pressure Throttling
+            const memory = process.memoryUsage();
+            const heapUsedPercent = (memory.heapUsed / memory.heapTotal);
+            const heapUsedGB = memory.heapUsed / 1024 / 1024 / 1024;
+            let effectiveMaxConcurrent = QUEUE_CONFIG.maxConcurrent;
+            // Only trigger pressure restriction if:
+            // 1. Percentage is high (>85%) AND
+            // 2. Absolute heap usage is significant (>4GB)
+            // This prevents false positives when the total heap is small (idle state).
+            if (heapUsedPercent > 0.85 && heapUsedGB > 4) {
+                logger_js_1.logger.warn(`[PRESSURE] Genuine RAM Pressure (${(heapUsedPercent * 100).toFixed(1)}%, ${heapUsedGB.toFixed(2)}GB), restricting concurrency to 1`);
+                effectiveMaxConcurrent = 1;
+            }
             // Check concurrent limit
-            if (activeProcessingIds.size >= QUEUE_CONFIG.maxConcurrent) {
-                // High frequency logging for wait state - only log if queue not empty to avoid noise
+            if (activeProcessingIds.size >= effectiveMaxConcurrent) {
+                // High frequency logging for wait state
                 const queuedCount = await getQueuedCount();
                 if (queuedCount > activeProcessingIds.size) {
                     logger_js_1.logger.debug('Queue blocked: all slots full', {
@@ -388,23 +402,24 @@ async function processSessionAsync(sessionId) {
                 abortSignal: abortController.signal, // 🛑 Pass abort signal
             });
             // ✂️ SPLIT REASONING LOGS (Database Optimization)
-            // Extract the heavy reasoning text from the main JSON blob to store efficiently
+            // Capture the persistent stage history from the ProgressTracker
             let reasoningLogs = null;
-            let optimizedAnalysis = result.analysisResult;
+            let optimizedAnalysisStr = "";
             try {
-                const params = JSON.parse(result.analysisResult);
-                if (params.reasoning) {
-                    reasoningLogs = JSON.stringify(params.reasoning);
-                    delete params.reasoning; // Remove from main blob
-                    optimizedAnalysis = JSON.stringify(params);
+                const tracker = progress_tracker_js_1.ProgressTracker.getInstance(sessionId);
+                if (tracker) {
+                    const history = tracker.getProgress().stageHistory;
+                    reasoningLogs = JSON.stringify(history);
                 }
+                optimizedAnalysisStr = JSON.stringify(result.analysisResult);
             }
             catch (e) {
-                logger_js_1.logger.warn('Failed to split reasoning logs', e);
+                logger_js_1.logger.warn('Failed to serialize analysis result', e);
+                optimizedAnalysisStr = JSON.stringify({ error: "Serialization failed" });
             }
             await markAsComplete(sessionId, {
                 ...result,
-                analysisResult: optimizedAnalysis,
+                analysisResult: optimizedAnalysisStr,
                 reasoningLogs
             });
             (0, cancellation_manager_js_1.cleanupController)(sessionId); // Cleanup on success
@@ -425,8 +440,16 @@ async function processSessionAsync(sessionId) {
     }
     catch (error) {
         logger_js_1.logger.error('Async worker error', error);
-        // Ensure we clean up the slot if catastrophic failure
+    }
+    finally {
+        // 🛡️ Ensure slot is ALWAYS released
         activeProcessingIds.delete(sessionId);
+        // 🚀 GOD-TIER MEMORY RECOVERY
+        // Manually trigger Garbage Collection if --expose-gc is enabled
+        if (global.gc) {
+            logger_js_1.logger.info('[MEMORY] Triggering manual GC after session recovery');
+            global.gc();
+        }
     }
 }
 /**

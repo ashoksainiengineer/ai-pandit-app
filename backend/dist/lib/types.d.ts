@@ -1,4 +1,4 @@
-export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours' | 'seconds-30' | 'seconds-6';
+export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours' | '6hours' | '12hours' | 'seconds-30' | 'seconds-6';
 export interface TimeOffsetConfig {
     preset?: OffsetPreset;
     customMinutes?: number;
@@ -50,16 +50,28 @@ export interface PhysicalTraits {
 export interface RectificationSession {
     id: string;
     userId: string;
-    birthData: BirthData;
-    physicalTraits?: PhysicalTraits;
-    lifeEvents: LifeEvent[];
+    clerkId: string;
+    fullName: string;
+    dateOfBirth: string;
+    tentativeTime: string;
+    birthPlace: string;
+    latitude: number;
+    longitude: number;
+    timezone: string | number;
+    gender?: string;
+    physicalTraits?: any;
+    lifeEvents: any;
+    offsetConfig?: any;
     rectifiedTime?: string;
     accuracy?: number;
-    confidence?: 'High' | 'Medium' | 'Low';
+    confidence?: string;
     analysisResult?: any;
-    createdAt: Date;
-    updatedAt: Date;
+    progressData?: string;
     status: 'pending' | 'processing' | 'complete' | 'failed';
+    errorMessage?: string;
+    createdAt: string;
+    updatedAt: string;
+    completedAt?: string;
 }
 export interface PlanetPosition {
     sign: string;
@@ -95,6 +107,15 @@ export interface HousePosition {
     sign: string;
     degree: number;
     cusp: number;
+}
+/**
+ * 🤏 Minified Ephemeris for HUD/Table display
+ * Keeps RAM low while providing visibility.
+ */
+export interface MinifiedEphemeris {
+    sun: string;
+    moon: string;
+    ascendant: string;
 }
 export interface SimpleAIAnalysisResult {
     rectifiedTime: string;
@@ -205,6 +226,7 @@ export interface SecondsPrecisionInput {
         longitude: number;
         timezone: string | number;
     };
+    abortSignal?: AbortSignal;
 }
 export interface SecondsPrecisionResult {
     rectifiedTime: string;
@@ -216,7 +238,8 @@ export interface SecondsPrecisionResult {
     boundaryWarnings: string[];
     methodsUsed: string[];
     processingTimeMs: number;
-    analysisResult: string;
+    analysisResult: any;
+    narrativeManifest?: any;
 }
 export interface BoundarySafetyResult {
     isSafe: boolean;
@@ -282,8 +305,10 @@ export interface MasterAnalysisArchive {
             [key: string]: {
                 score: number;
                 verdict: string;
+                details?: string;
             };
         };
+        contextualCorrelation?: number;
     };
     alternatives: Array<{
         time: string;

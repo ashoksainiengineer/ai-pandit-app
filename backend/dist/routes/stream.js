@@ -44,7 +44,7 @@ router.get('/:sessionId', async (req, res) => {
     catch (error) {
         console.error(`[SSE] Error checking session status for ${sessionId}:`, error);
     }
-    console.log(`[SSE] Incoming headers: ${JSON.stringify(req.headers)}`);
+    // console.log(`[SSE] Incoming headers: ${JSON.stringify(req.headers)}`);
     // Set SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache, no-transform, no-store, must-revalidate, private');
@@ -73,6 +73,14 @@ router.get('/:sessionId', async (req, res) => {
         try {
             console.log(`[SSE] Fetching initial progress for ${sessionId}`);
             const currentProgress = await (0, progress_tracker_js_1.getSessionProgress)(sessionId);
+            // 🚀 IMMEDIATE FEEDBACK: If this is a fresh connection and no progress yet, send a warmup hint
+            if (!currentProgress || currentProgress.currentStep === 0) {
+                sendEvent(res, {
+                    type: 'ai_thinking',
+                    chunk: "[SYSTEM] Initializing God-Tier Rectification Engine... Establishing mathematical grid connection.\n",
+                    stage: 1
+                });
+            }
             if (currentProgress) {
                 console.log(`[SSE] Sending initial state for ${sessionId}`);
                 sendEvent(res, {
@@ -86,7 +94,16 @@ router.get('/:sessionId', async (req, res) => {
                 sendEvent(res, lastContext);
             }
             // 🧠 Send cached Thinking Buffer
-            const thinkingBuffer = session_events_js_1.sessionEvents.getThinkingBuffer(sessionId);
+            let thinkingBuffer = session_events_js_1.sessionEvents.getThinkingBuffer(sessionId);
+            // 🔄 FALLBACK: If memory buffer is empty (e.g. server restart), check DB-cached progress
+            if (!thinkingBuffer && currentProgress?.lastAIThinking) {
+                console.log(`[SSE] 🔄 Thinking buffer missing in memory, using DB fallback for ${sessionId}`);
+                thinkingBuffer = {
+                    stage: currentProgress.lastAIThinking.stage,
+                    text: currentProgress.lastAIThinking.fullText,
+                    candidateTime: currentProgress.lastAIThinking.candidateTime
+                };
+            }
             if (thinkingBuffer) {
                 sendEvent(res, {
                     type: 'ai_thinking',

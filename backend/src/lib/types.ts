@@ -1,4 +1,4 @@
-export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours' | 'seconds-30' | 'seconds-6';
+export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours' | '6hours' | '12hours' | 'seconds-30' | 'seconds-6';
 
 export interface TimeOffsetConfig {
   preset?: OffsetPreset;

@@ -27,6 +27,7 @@ import { LiveScoreTable } from '@/components/rectify/LiveScoreTable';
 import { LiveGodModeTerminal } from '@/components/rectify/LiveGodModeTerminal';
 import { AnalysisPipelineTracker } from '@/components/rectify/AnalysisPipelineTracker';
 import { CandidateLevelTables } from '@/components/rectify/CandidateLevelTables';
+import { CandidateComparisonView } from '@/components/rectify/CandidateComparisonView';
 
 
 
@@ -211,6 +212,7 @@ export default function ProgressPage() {
         stageStats, // ⚡ New: Stage Stats
         analyzedCount,
         totalCandidates, // 📊 Added for UI summary
+        allCandidates, // 🆕 For candidate tabs
         result,
         startedAt, // ⏱️ Absolute session start time
         displayedCandidate,
@@ -689,6 +691,8 @@ export default function ProgressPage() {
                                 stage={aiStage}
                                 analyzedCount={analyzedCount}
                                 totalCandidates={totalCandidates}
+                                allCandidates={allCandidates}
+                                displayedCandidate={displayedCandidate}
                                 candidateScores={candidateScores}
                                 calculationLogs={calculationLogs}
                                 unifiedMode={true} // 🌊 Set unified mode
@@ -703,6 +707,15 @@ export default function ProgressPage() {
                         <CandidateLevelTables
                             candidateScores={candidateScores || []}
                             currentStage={progress?.currentStep || 0}
+                        />
+                    </div>
+                )}
+
+                {/* ⚖️ CANDIDATE COMPARISON VIEW */}
+                {!isComplete && (candidateScores?.length ?? 0) >= 2 && (
+                    <div className="mb-8">
+                        <CandidateComparisonView
+                            candidates={candidateScores || []}
                         />
                     </div>
                 )}

@@ -140,12 +140,14 @@ function yoginiSupportsEvent(yogini, eventCategory, eventType) {
         if (category.includes(event) || type.includes(event)) {
             return {
                 supports: true,
+                strength: 10,
                 reason: `${yogini.name} (${yogini.planet}) Yogini Dasha supports ${event} events`,
             };
         }
     }
     return {
         supports: false,
+        strength: 0,
         reason: `${yogini.name} (${yogini.planet}) Yogini Dasha has no direct correlation`,
     };
 }
@@ -820,7 +822,11 @@ function getChartPurpose(chartName) {
         D7: 'Children/Education',
         D9: 'Marriage/Dharma',
         D10: 'Career/Authority',
+        D24: 'Knowledge/Education',
         D30: 'Acute Events/Misfortune',
+        D40: 'Auspiciousness/Success',
+        D45: 'Character/General Luck',
+        D60: 'GOD-TIER Precision/Past Life',
     };
     return purposes[chartName] || 'General';
 }

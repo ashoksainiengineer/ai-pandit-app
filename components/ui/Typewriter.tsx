@@ -1,73 +1,133 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+// components/ui/Typewriter.tsx
+// Enhanced Typewriter effect for AI thinking tokens with smooth animation
+
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface TypewriterProps {
     content: string;
-    speed?: number; // ms per char
+    speed?: number; // ms per char (base speed)
     onComplete?: () => void;
+    className?: string;
 }
 
-export function Typewriter({ content, speed = 10, onComplete }: TypewriterProps) {
+export function Typewriter({ content, speed = 8, onComplete, className = '' }: TypewriterProps) {
     const [displayedText, setDisplayedText] = useState('');
     const indexRef = useRef(0);
-    const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const frameRef = useRef<number | null>(null);
+    const lastTimeRef = useRef(0);
 
-    // Reset if content changes SIGNIFICANTLY (e.g. new stage), but usually we append
-    // This handling is tricky if content is appended. We want to continue from current index.
+    // Calculate adaptive speed based on content length lag
+    const getCharsToAppend = useCallback((lag: number): number => {
+        // Smooth adaptive chunking - larger lag = more chars at once
+        if (lag > 1000) return 80;  // Very far behind - catch up fast
+        if (lag > 500) return 40;
+        if (lag > 200) return 20;
+        if (lag > 100) return 10;
+        if (lag > 50) return 5;
+        if (lag > 20) return 3;
+        return 1;  // Normal typing speed
+    }, []);
 
     useEffect(() => {
-        // If content is shorter than displayed (reset), reset index
+        // If content shortened (reset case), reset display
         if (content.length < displayedText.length) {
             setDisplayedText('');
             indexRef.current = 0;
         }
 
-        const animate = () => {
+        const animate = (timestamp: number) => {
+            // Throttle updates for smooth performance
+            const elapsed = timestamp - lastTimeRef.current;
+            const minInterval = speed;
+
+            if (elapsed < minInterval) {
+                frameRef.current = requestAnimationFrame(animate);
+                return;
+            }
+
+            lastTimeRef.current = timestamp;
+
             if (indexRef.current < content.length) {
                 const lag = content.length - indexRef.current;
+                const charsToAppend = getCharsToAppend(lag);
 
-                // Adaptive chunking: Speed up significantly if we are far behind
-                // but keep it subtle for small updates for that "thinking" feel
-                let charsToAppend = 1;
-                if (lag > 500) charsToAppend = 40;
-                else if (lag > 200) charsToAppend = 15;
-                else if (lag > 100) charsToAppend = 8;
-                else if (lag > 20) charsToAppend = 3;
+                // Get next chunk of text
+                const nextChunk = content.substring(
+                    indexRef.current,
+                    Math.min(indexRef.current + charsToAppend, content.length)
+                );
 
-                const nextChunk = content.substring(indexRef.current, indexRef.current + charsToAppend);
-                setDisplayedText((prev) => prev + nextChunk);
-                indexRef.current += charsToAppend;
+                // Append smoothly
+                setDisplayedText(prev => prev + nextChunk);
+                indexRef.current += nextChunk.length;
 
-                // Organic jitter: Add a tiny random delay for realism
-                const jitter = Math.random() * 5;
-                const nextDelay = lag > 50 ? 0 : speed + jitter;
-
-                timeoutRef.current = setTimeout(animate, nextDelay);
+                // Continue animation
+                frameRef.current = requestAnimationFrame(animate);
             } else {
+                // Animation complete
                 if (onComplete) onComplete();
             }
         };
 
-        // Start animation if not running
-        if (!timeoutRef.current && indexRef.current < content.length) {
-            animate();
+        // Start animation if we have content to show
+        if (indexRef.current < content.length && !frameRef.current) {
+            frameRef.current = requestAnimationFrame(animate);
         }
 
         return () => {
-            if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current);
-                timeoutRef.current = null;
+            if (frameRef.current) {
+                cancelAnimationFrame(frameRef.current);
+                frameRef.current = null;
             }
         };
-    }, [content, speed, onComplete, displayedText.length]);
+    }, [content, speed, onComplete, getCharsToAppend, displayedText.length]);
 
     // Cleanup on unmount
     useEffect(() => {
         return () => {
-            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+            if (frameRef.current) {
+                cancelAnimationFrame(frameRef.current);
+            }
         };
     }, []);
 
-    return <span className="whitespace-pre-wrap">{displayedText}</span>;
+    return (
+        <span className={`whitespace-pre-wrap ${className}`}>
+            {displayedText}
+        </span>
+    );
+}
+
+// Simplified variant for minimal overhead
+export function TypewriterLite({ text, delay = 5 }: { text: string; delay?: number }) {
+    const [displayed, setDisplayed] = useState('');
+    const indexRef = useRef(0);
+
+    useEffect(() => {
+        if (text.length <= displayed.length) return;
+
+        const timer = setInterval(() => {
+            if (indexRef.current < text.length) {
+                const lag = text.length - indexRef.current;
+                const chunk = lag > 100 ? 20 : lag > 50 ? 5 : 1;
+                setDisplayed(prev => prev + text.substring(indexRef.current, indexRef.current + chunk));
+                indexRef.current += chunk;
+            } else {
+                clearInterval(timer);
+            }
+        }, delay);
+
+        return () => clearInterval(timer);
+    }, [text, delay, displayed.length]);
+
+    useEffect(() => {
+        if (text.length < displayed.length) {
+            setDisplayed('');
+            indexRef.current = 0;
+        }
+    }, [text, displayed.length]);
+
+    return <span className="whitespace-pre-wrap">{displayed}</span>;
 }

@@ -33,6 +33,7 @@ exports.sessions = (0, sqlite_core_1.sqliteTable)('sessions', {
     confidence: (0, sqlite_core_1.text)('confidence'),
     analysisResult: (0, sqlite_core_1.text)('analysisResult'),
     progressData: (0, sqlite_core_1.text)('progressData'), // Real-time progress for polling
+    reasoningLogs: (0, sqlite_core_1.text)('reasoningLogs'), // Internal AI logs
     status: (0, sqlite_core_1.text)('status').default('pending'),
     errorMessage: (0, sqlite_core_1.text)('errorMessage'),
     createdAt: (0, sqlite_core_1.text)('createdAt').default('CURRENT_TIMESTAMP'),

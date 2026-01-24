@@ -66,6 +66,7 @@ export declare function getYoginiDashaForDate(periods: YoginiDashaPeriod[], even
  */
 export declare function yoginiSupportsEvent(yogini: YoginiDashaPeriod, eventCategory: string, eventType: string): {
     supports: boolean;
+    strength: number;
     reason: string;
 };
 /**

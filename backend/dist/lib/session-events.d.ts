@@ -48,6 +48,7 @@ export interface AIContextEvent {
     };
     dasha: string;
     divCharts?: string;
+    contextHits?: string[];
 }
 export interface CalculationLogEvent {
     type: 'calculation_log';
@@ -69,7 +70,11 @@ export interface StageStatsEvent {
     candidateCount: number;
     description: string;
 }
-export type SessionEvent = ProgressEvent | AIThinkingEvent | EphemerisEvent | CandidateScoreEvent | CompleteEvent | ErrorEvent | AIContextEvent | CalculationLogEvent | StageStatsEvent;
+export interface EstimatedTimeEvent {
+    type: 'estimated_time';
+    seconds: number;
+}
+export type SessionEvent = ProgressEvent | AIThinkingEvent | EphemerisEvent | CandidateScoreEvent | CompleteEvent | ErrorEvent | AIContextEvent | CalculationLogEvent | StageStatsEvent | EstimatedTimeEvent;
 declare class SessionEventManager {
     private emitters;
     private lastContexts;
@@ -139,5 +144,6 @@ export declare function emitError(sessionId: string, message: string, stage?: st
 export declare function emitAIContext(sessionId: string, data: Omit<AIContextEvent, 'type'>): void;
 export declare function emitCalculationLog(sessionId: string, data: Omit<CalculationLogEvent, 'type' | 'logId'>): void;
 export declare function emitStageStats(sessionId: string, stage: number, candidateCount: number, description: string): void;
+export declare function emitEstimatedTime(sessionId: string, seconds: number): void;
 export {};
 //# sourceMappingURL=session-events.d.ts.map

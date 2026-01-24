@@ -15,6 +15,7 @@ exports.emitError = emitError;
 exports.emitAIContext = emitAIContext;
 exports.emitCalculationLog = emitCalculationLog;
 exports.emitStageStats = emitStageStats;
+exports.emitEstimatedTime = emitEstimatedTime;
 const events_1 = require("events");
 const crypto_1 = __importDefault(require("crypto"));
 // ═════════════════════════════════════════════════════════════════════════════
@@ -247,6 +248,12 @@ function emitStageStats(sessionId, stage, candidateCount, description) {
         stage,
         candidateCount,
         description
+    });
+}
+function emitEstimatedTime(sessionId, seconds) {
+    exports.sessionEvents.emit(sessionId, {
+        type: 'estimated_time',
+        seconds
     });
 }
 //# sourceMappingURL=session-events.js.map
