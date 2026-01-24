@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Terminal, Cpu, Crosshair, Filter, Activity, Lock, ChevronRight, Zap, Target, Gauge } from 'lucide-react';
+import { Terminal, Cpu, Crosshair, Filter, Activity, Lock, ChevronRight, Zap, Target, Gauge, Database } from 'lucide-react';
+import { AIContextData } from '@/lib/use-stream-progress';
 
 interface Candidate {
     time: string;
@@ -17,13 +18,15 @@ interface LiveGodModeTerminalProps {
     calculationLogs: Array<{ candidateTime: string; log: string }>;
     currentStage: number;
     isConnected: boolean;
+    aiContext: AIContextData | null;
 }
 
 export function LiveGodModeTerminal({
     candidateScores,
     calculationLogs,
     currentStage,
-    isConnected
+    isConnected,
+    aiContext
 }: LiveGodModeTerminalProps) {
     const [selectedCandidate, setSelectedCandidate] = useState<string | null>(null);
     const [opsPerSec, setOpsPerSec] = useState(1.42);
@@ -148,15 +151,44 @@ export function LiveGodModeTerminal({
                     </div>
                 </div>
 
-                {/* L2: FINE GRID (TILES) */}
-                <div className="lg:col-span-4 border-r border-[#1A2433] flex flex-col bg-[#05080A]">
+                {/* L2: FINE GRID (TILES) & GROUND TRUTH OVERLAY */}
+                <div className="lg:col-span-4 border-r border-[#1A2433] flex flex-col bg-[#05080A] relative group">
                     <div className="p-3 border-b border-[#1A2433] bg-[#0A0F14]/80 flex justify-between items-center">
                         <div className="flex items-center gap-2">
                             <Filter className="w-3.5 h-3.5 text-blue-500" />
                             <span className="text-blue-500 font-black uppercase tracking-widest text-[10px]">L2_FINE_TILES</span>
                         </div>
-                        <span className="text-[#3A4452] font-bold text-[9px]">{level2Candidates.length} SECTORS (Showing Top 30)</span>
+                        <span className="text-[#3A4452] font-bold text-[9px]">{level2Candidates.length} SECTORS</span>
                     </div>
+
+                    {/* 🔱 GROUND TRUTH OVERLAY (TRANS-PANEL) */}
+                    <AnimatePresence>
+                        {aiContext?.groundTruth && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-x-2 bottom-2 z-30 p-2 bg-[#0A0F14] border border-[#D4AF37]/30 rounded-lg shadow-2xl overflow-hidden"
+                            >
+                                <div className="flex items-center justify-between mb-2 px-1">
+                                    <div className="flex items-center gap-1.5">
+                                        <Cpu className="w-2.5 h-2.5 text-[#D4AF37] animate-pulse" />
+                                        <span className="text-[8px] text-[#D4AF37] font-black uppercase tracking-widest">Ground_Truth_Payload</span>
+                                    </div>
+                                    <span className="text-[7px] text-[#3A4452] font-bold uppercase">Format: JSON_ARC</span>
+                                </div>
+                                <div className="bg-black/60 p-2 rounded border border-white/5 max-h-[100px] overflow-y-auto custom-scrollbar">
+                                    <pre className="text-[9px] text-emerald-400/80 leading-tight whitespace-pre-wrap font-mono">
+                                        {JSON.stringify(aiContext.groundTruth, null, 2)}
+                                    </pre>
+                                </div>
+                                <div className="absolute top-0 right-0 p-1 opacity-20">
+                                    <Activity className="w-10 h-10 text-[#D4AF37]" />
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
                     <div className="flex-1 overflow-y-auto p-3 custom-scrollbar">
                         {level2Candidates.length === 0 ? (
                             <div className="h-full flex flex-col items-center justify-center opacity-20">

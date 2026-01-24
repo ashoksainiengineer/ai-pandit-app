@@ -35,6 +35,7 @@ export interface AIContextData {
     };
     dasha: string;
     divCharts?: string;
+    groundTruth?: any; // 🔱 The exact "format" sent to the AI
 }
 
 export interface CandidateScore {

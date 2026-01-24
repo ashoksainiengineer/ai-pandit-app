@@ -168,6 +168,9 @@ function pruneCandidate(c: StageCandidate, force: boolean = false): StageCandida
     const mbUsed = typeof process !== 'undefined' ? process.memoryUsage().heapUsed / 1024 / 1024 : 0;
 
     if (force || mbUsed > 12000) {
+        // 🔱 NIRAYANA SACRIFICE: Only prune if candidate is NOT a top-tier contender (score < 80)
+        if (c.score >= 80 && !force) return c;
+
         return {
             ...c,
             // ✂️ Stripping Full Ephemeris: Saves ~10KB per object
@@ -327,6 +330,18 @@ OUTPUT FORMAT (JSON):
     const userPrompt = `LIFE EVENTS:\n${input.lifeEvents.map(formatLifeEventForAI).join('\n\n')}
 PHYSICAL TRAITS: ${JSON.stringify(input.physicalTraits)}`;
 
+    // 🔱 GROUND TRUTH TRANSPARENCY: Emit Phase 1 Context
+    await progress.updateAIContext({
+        stage: 1,
+        candidateTime: 'Narrative',
+        planetaryInfo: { sun: 'N/A', moon: 'N/A', ascendant: 'N/A' },
+        dasha: 'N/A',
+        groundTruth: {
+            lifeEvents: input.lifeEvents.map(e => ({ type: e.eventType, category: e.category, date: e.eventDate })),
+            traits: input.physicalTraits
+        }
+    });
+
     const response = await callAI(systemPrompt, userPrompt, {
         temperature: 0.1,
         model: 'deepseek-reasoner'
@@ -386,6 +401,26 @@ async function phase2MassDiscovery(
 
     const tasks = batches.map((batch, idx) => async () => {
         const prompt = buildDiscoveryBatchPrompt(batch, input, manifest);
+        // 🔱 GROUND TRUTH TRANSPARENCY: Emit Batch Context (Sample 1)
+        if (idx === 0 && batch[0]) {
+            const first = batch[0];
+            const dasha = calculateVimshottariDasha(first.ephemeris.planets.moon.longitude, new Date(input.dateOfBirth));
+            await progress.updateAIContext({
+                stage: 2,
+                candidateTime: first.time,
+                planetaryInfo: {
+                    sun: `${first.ephemeris.planets.sun.sign} ${first.ephemeris.planets.sun.degree.toFixed(2)}°`,
+                    moon: `${first.ephemeris.planets.moon.sign} ${first.ephemeris.planets.moon.degree.toFixed(2)}°`,
+                    ascendant: `${first.ephemeris.ascendant.sign} ${first.ephemeris.ascendant.degree.toFixed(2)}°`
+                },
+                dasha: dasha[0] ? `${dasha[0].lord}/${dasha[0].subPeriods[0]?.lord || 'N/A'}` : 'N/A',
+                groundTruth: {
+                    planets: minifyPlanets(first.ephemeris.planets),
+                    dashas: minifyDashas(dasha.slice(0, 2), 2)
+                }
+            });
+        }
+
         return await callAIWithStream(input.sessionId, 2, getLevel1SystemPrompt(batch.length), prompt, {
             model: 'deepseek-reasoner',
             candidateTime: `Discovery Batch ${idx + 1}`,
@@ -473,6 +508,31 @@ async function phase3ConvergenceTournament(
 
     const tasks = batches.map((batch, idx) => async () => {
         const prompt = buildConvergenceBatchPrompt(batch, input, manifest);
+        // 🔱 GROUND TRUTH TRANSPARENCY: Emit Batch Context (Sample 1)
+        if (idx === 0 && batch[0]) {
+            const first = batch[0];
+            const dasha = calculateVimshottariDasha(first.ephemeris.planets.moon.longitude, new Date(input.dateOfBirth));
+            const d9 = calculateD9(first.ephemeris.ascendant.longitude);
+            const d10 = calculateD10(first.ephemeris.ascendant.longitude);
+
+            await progress.updateAIContext({
+                stage: 3,
+                candidateTime: first.time,
+                planetaryInfo: {
+                    sun: `${first.ephemeris.planets.sun.sign} ${first.ephemeris.planets.sun.degree.toFixed(2)}°`,
+                    moon: `${first.ephemeris.planets.moon.sign} ${first.ephemeris.planets.moon.degree.toFixed(2)}°`,
+                    ascendant: `${first.ephemeris.ascendant.sign} ${first.ephemeris.ascendant.degree.toFixed(2)}°`
+                },
+                dasha: dasha[0] ? `${dasha[0].lord}/${dasha[0].subPeriods[0]?.lord || 'N/A'}` : 'N/A',
+                divCharts: `D9: ${d9.sign} | D10: ${d10.sign}`,
+                groundTruth: {
+                    planets: minifyPlanets(first.ephemeris.planets),
+                    dashas: minifyDashas(dasha.slice(0, 3), 2),
+                    varga: { D9: d9.sign, D10: d10.sign }
+                }
+            });
+        }
+
         return await callAIWithStream(input.sessionId, 3, getLevel2SystemPrompt(batch.length), prompt, {
             model: 'deepseek-reasoner',
             candidateTime: `Convergence Batch ${idx + 1}`,
@@ -499,12 +559,25 @@ async function phase3ConvergenceTournament(
     return finalCandidates.sort((a, b) => b.score - a.score).slice(0, 10).map(c => pruneCandidate(c));
 }
 
-function buildConvergenceBatchPrompt(batch: any[], input: any, manifest: any): string {
+function buildConvergenceBatchPrompt(batch: StageCandidate[], input: SecondsPrecisionInput, manifest: any): string {
     return `You are performing TEMPORAL CONVERGENCE using the PRANA MANIFEST.
 MANIFEST: ${JSON.stringify(manifest)}
 
 Analyze these 30-second candidates. Look for the "Golden Lock" where multiple dasha systems align with the narrative.
-${batch.map((c, i) => `\n### C${i + 1} [${c.time}]\nNavamsha D9 Lagna: ${calculateD9(c.ephemeris.ascendant.longitude).sign}\nDasamsha D10 Lagna: ${calculateD10(c.ephemeris.ascendant.longitude).sign}`).join('')}
+${batch.map((c, i) => {
+        if (!c.ephemeris) return `\n### C${i + 1} [${c.time}]\n[ERROR: Missing Technical Data]`;
+        const d9 = calculateD9(c.ephemeris.ascendant.longitude);
+        const d10 = calculateD10(c.ephemeris.ascendant.longitude);
+        const moonLong = c.ephemeris.planets.moon.longitude;
+        const dashas = calculateVimshottariDasha(moonLong, new Date(input.dateOfBirth));
+
+        return `\n### C${i + 1} [${c.time}]
+Lagna: ${c.ephemeris.ascendant.sign} ${c.ephemeris.ascendant.degree.toFixed(2)}°
+D9 Lagna: ${d9.sign} | D10 Lagna: ${d10.sign}
+PLANETS: ${JSON.stringify(minifyPlanets(c.ephemeris.planets))}
+DASHAS: ${JSON.stringify(minifyDashas(dashas.slice(0, 3), 2))}
+        `;
+    }).join('')}
 
 OUTPUT FORMAT:
 TIME: [HH:MM:SS]
@@ -555,6 +628,31 @@ async function phase4MicroAudit(
 
     const tasks = batches.map((batch, idx) => async () => {
         const prompt = buildMicroBatchPrompt(batch, input, manifest);
+        // 🔱 GROUND TRUTH TRANSPARENCY: Emit Batch Context (Sample 1)
+        if (idx === 0 && batch[0]) {
+            const first = batch[0];
+            const d60 = calculateD60(first.ephemeris.ascendant.longitude);
+            const moonLong = first.ephemeris.planets.moon.longitude;
+            const dashas = calculateVimshottariDasha(moonLong, new Date(input.dateOfBirth));
+
+            await progress.updateAIContext({
+                stage: 4,
+                candidateTime: first.time,
+                planetaryInfo: {
+                    sun: `${first.ephemeris.planets.sun.sign} ${first.ephemeris.planets.sun.degree.toFixed(2)}°`,
+                    moon: `${first.ephemeris.planets.moon.sign} ${first.ephemeris.planets.moon.degree.toFixed(2)}°`,
+                    ascendant: `${first.ephemeris.ascendant.sign} ${first.ephemeris.ascendant.degree.toFixed(2)}°`
+                },
+                dasha: dashas[0] ? `${dashas[0].lord}/${dashas[0].subPeriods[0]?.lord || 'N/A'}` : 'N/A',
+                divCharts: `D60: ${d60.sign}`,
+                groundTruth: {
+                    d60: d60.sign,
+                    cusp: ((first.ephemeris.ascendant.longitude * 60) % 30).toFixed(2),
+                    dashas: minifyDashas(dashas.slice(0, 3), 2)
+                }
+            });
+        }
+
         return await callAIWithStream(input.sessionId, 4, getLevel3SystemPrompt(batch.length), prompt, {
             model: 'deepseek-reasoner',
             candidateTime: `Micro Audit Batch ${idx + 1}`,
@@ -581,14 +679,22 @@ async function phase4MicroAudit(
     return finalCandidates.sort((a, b) => b.score - a.score).slice(0, 5).map(c => pruneCandidate(c));
 }
 
-function buildMicroBatchPrompt(batch: any[], input: any, manifest: any): string {
+function buildMicroBatchPrompt(batch: StageCandidate[], input: SecondsPrecisionInput, manifest: any): string {
     return `You are performing the FINAL MICRO-AUDIT using the PRANA MANIFEST.
 MANIFEST: ${JSON.stringify(manifest)}
 
 Analyze these 6-second candidates. Focus on D60 (Shashtiamsha) stability and micro-dasha transitions.
 ${batch.map((c, i) => {
+        if (!c.ephemeris) return `\n### C${i + 1} [${c.time}]\n[ERROR: Missing Technical Data]`;
         const d60 = calculateD60(c.ephemeris.ascendant.longitude);
-        return `\n### C${i + 1} [${c.time}]\nD60 Sign: ${d60.sign}`;
+        const moonLong = c.ephemeris.planets.moon.longitude;
+        const dashas = calculateVimshottariDasha(moonLong, new Date(input.dateOfBirth));
+
+        return `\n### C${i + 1} [${c.time}]
+D60 Sign: ${d60.sign} (Cusp: ${((c.ephemeris.ascendant.longitude * 60) % 30).toFixed(2)}°)
+Lagna: ${c.ephemeris.ascendant.sign} ${c.ephemeris.ascendant.degree.toFixed(2)}°
+VIMSHOTTARI: ${JSON.stringify(minifyDashas(dashas.slice(0, 3), 2))}
+        `;
     }).join('')}
 
 OUTPUT FORMAT:
@@ -678,12 +784,21 @@ MANIFEST: ${JSON.stringify(manifest)}`;
     return audited.sort((a, b) => b.score - a.score);
 }
 
-function buildDiscoveryBatchPrompt(batch: any[], input: any, manifest: any): string {
+function buildDiscoveryBatchPrompt(batch: StageCandidate[], input: SecondsPrecisionInput, manifest: any): string {
     return `You are analyzing a batch of candidates using the PRANA MANIFEST blueprint.
 MANIFEST: ${JSON.stringify(manifest)}
 
 Analyze each candidate and provide a score 0-100 based on NARRATIVE RESONANCE.
-${batch.map((c, i) => `\n### C${i + 1} [${c.time}]\nLagna: ${c.ephemeris.ascendant.sign} ${c.ephemeris.ascendant.degree.toFixed(2)}°`).join('')}
+${batch.map((c, i) => {
+        if (!c.ephemeris) return `\n### C${i + 1} [${c.time}]\n[ERROR: Missing Technical Data]`;
+        const moonLong = c.ephemeris.planets.moon.longitude;
+        const dashas = calculateVimshottariDasha(moonLong, new Date(input.dateOfBirth));
+        return `\n### C${i + 1} [${c.time}]
+Lagna: ${c.ephemeris.ascendant.sign} ${c.ephemeris.ascendant.degree.toFixed(2)}°
+PLANETS: ${JSON.stringify(minifyPlanets(c.ephemeris.planets))}
+DASHAS (Top Levels): ${JSON.stringify(minifyDashas(dashas.slice(0, 2), 2))}
+        `;
+    }).join('')}
 
 OUTPUT FORMAT:
 TIME: [HH:MM:SS]
@@ -763,8 +878,16 @@ export async function processSecondsPrecisionBTR(
 
         const best = containers.phase5GodTier[0] || containers.phase4MicroAudit[0] || containers.phase3Convergence[0] || containers.phase2Discovery[0];
 
-        if (!best || !best.ephemeris) {
-            throw new Error("Critical Failure: Rectification engine could not resolve a stable birth time with high technical integrity.");
+        if (!best) {
+            throw new Error("Critical Failure: Rectification engine could not resolve a stable birth time.");
+        }
+
+        // 🔱 GOD-TIER RECOVERY: Recalculate ephemeris if it was pruned (safety first)
+        if (!best.ephemeris) {
+            best.ephemeris = await calculateEphemeris(input.dateOfBirth, best.time, input.latitude, input.longitude, input.timezone);
+        }
+        if (!best.divCharts) {
+            best.divCharts = generateDivisionalCharts(best.ephemeris);
         }
 
         await progress.updateMessage('Rectification Complete. Finalizing Divine Result.');

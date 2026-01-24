@@ -38,6 +38,7 @@ export const sessions = sqliteTable(
     confidence: text('confidence'),
     analysisResult: text('analysisResult'),
     progressData: text('progressData'), // Real-time progress for polling
+    reasoningLogs: text('reasoningLogs'), // Internal AI logs
     status: text('status').default('pending'),
     errorMessage: text('errorMessage'),
     createdAt: text('createdAt').default('CURRENT_TIMESTAMP'),

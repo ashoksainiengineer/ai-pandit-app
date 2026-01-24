@@ -714,6 +714,7 @@ export default function ProgressPage() {
                         calculationLogs={calculationLogs || []}
                         currentStage={progress?.currentStep || 0}
                         isConnected={isConnected}
+                        aiContext={aiContext}
                     />
                 </div>
 

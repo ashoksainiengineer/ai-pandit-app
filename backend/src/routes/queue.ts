@@ -194,6 +194,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
                     accuracy: session[0].accuracy,
                     confidence: session[0].confidence,
                     analysisResult,
+                    reasoningLogs: session[0].reasoningLogs ? JSON.parse(session[0].reasoningLogs) : null,
                 },
             });
             return;

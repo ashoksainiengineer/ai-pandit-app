@@ -14,6 +14,7 @@ import {
   isCancellationError
 } from './cancellation-manager.js';
 import { emitComplete } from './session-events.js';
+import { ProgressTracker } from './progress-tracker.js';
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -508,24 +509,26 @@ async function processSessionAsync(sessionId: string): Promise<void> {
       });
 
       // ✂️ SPLIT REASONING LOGS (Database Optimization)
-      // Extract the heavy reasoning text from the main JSON blob to store efficiently
+      // Capture the persistent stage history from the ProgressTracker
       let reasoningLogs: string | null = null;
-      let optimizedAnalysis = result.analysisResult;
+      let optimizedAnalysisStr = "";
 
       try {
-        const params = JSON.parse(result.analysisResult);
-        if (params.reasoning) {
-          reasoningLogs = JSON.stringify(params.reasoning);
-          delete params.reasoning; // Remove from main blob
-          optimizedAnalysis = JSON.stringify(params);
+        const tracker = ProgressTracker.getInstance(sessionId);
+        if (tracker) {
+          const history = tracker.getProgress().stageHistory;
+          reasoningLogs = JSON.stringify(history);
         }
+
+        optimizedAnalysisStr = JSON.stringify(result.analysisResult);
       } catch (e) {
-        logger.warn('Failed to split reasoning logs', e);
+        logger.warn('Failed to serialize analysis result', e);
+        optimizedAnalysisStr = JSON.stringify({ error: "Serialization failed" });
       }
 
       await markAsComplete(sessionId, {
         ...result,
-        analysisResult: optimizedAnalysis,
+        analysisResult: optimizedAnalysisStr,
         reasoningLogs
       });
 
