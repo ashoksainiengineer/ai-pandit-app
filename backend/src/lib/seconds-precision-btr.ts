@@ -719,7 +719,7 @@ async function stage2BatchTournament(
                 'You are the SUPREME VEDIC ASTROLOGER. Analyze ALL candidates with EQUAL attention.',
                 prompt,
                 {
-                    model: 'deepseek-reasoner',
+                    model: 'deepseek/deepseek-v3.2',
                     candidateTime: `Batch ${i + 1}/${batches.length}`,
                     progressTracker: progress
                 }
@@ -1253,7 +1253,7 @@ export async function processSecondsPrecisionBTR(
             marginOfError: stage6.margin,
             stagesCompleted: 6,
             boundaryWarnings: boundary.isDangerous ? ['Near boundary transition'] : [],
-            methodsUsed: ['DeepSeek Reasoner', 'Swiss Ephemeris', 'Vimshottari', 'Yogini', 'Chara', 'D9', 'D10', 'D60'],
+            methodsUsed: ['DeepSeek v3.2 (Reasoning Mode)', 'Swiss Ephemeris', 'Vimshottari', 'Yogini', 'Chara', 'D9', 'D10', 'D60'],
             processingTimeMs: Date.now() - startTime,
             analysisResult: enrichedResult
         };
