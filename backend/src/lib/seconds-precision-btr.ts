@@ -864,7 +864,7 @@ async function stage4DeepAnalysis(
                 'You are performing DEEP astrological verification.',
                 prompt,
                 {
-                    model: 'deepseek-reasoner',
+                    model: 'deepseek/deepseek-v3.2', // User enforced preference
                     candidateTime: `Deep ${i + 1}/${batches.length}`,
                     progressTracker: progress
                 }
@@ -914,7 +914,7 @@ async function stage4DeepAnalysis(
             'You are performing FINAL deep verification.',
             prompt,
             {
-                model: 'deepseek-reasoner',
+                model: 'deepseek/deepseek-v3.2',
                 candidateTime: 'Deep Final',
                 progressTracker: progress
             }
@@ -1034,7 +1034,7 @@ async function stage6FinalPrecision(
                 'FINAL JUDGEMENT. Pick THE ONE.',
                 prompt,
                 {
-                    model: 'deepseek-reasoner',
+                    model: 'deepseek/deepseek-v3.2',
                     candidateTime: 'FINAL',
                     progressTracker: progress
                 }
@@ -1082,7 +1082,7 @@ async function stage6FinalPrecision(
         'You are the DIVINE ARCHITECT of Time. FINAL JUDGEMENT.',
         prompt,
         {
-            model: 'deepseek-reasoner',
+            model: 'deepseek/deepseek-v3.2',
             candidateTime: 'FINAL VERDICT',
             progressTracker: progress,
             timeoutMs: 120000

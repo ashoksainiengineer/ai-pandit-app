@@ -66,9 +66,19 @@ export const LiveCalculationPanel: React.FC<LiveCalculationPanelProps> = ({ logs
                 </div>
             </div>
 
+            {/* TABLE HEADER */}
+            <div className="grid grid-cols-[12%_18%_18%_18%_24%_10%] px-4 py-1.5 bg-[#0F1419]/80 text-[8px] font-black tracking-widest text-emerald-500/30 uppercase border-b border-emerald-500/5">
+                <span>TIME (+IST)</span>
+                <span>SUN LONG</span>
+                <span>MOON LONG</span>
+                <span>ASCENDANT</span>
+                <span>VIMSHOTTARI</span>
+                <span className="text-right">STATUS</span>
+            </div>
+
             <div
                 ref={scrollRef}
-                className="h-40 overflow-y-auto p-4 font-mono text-[9px] md:text-[10px] space-y-1 scrollbar-thin scrollbar-thumb-emerald-900/50 scrollbar-track-transparent bg-[#0F1419]"
+                className="h-40 overflow-y-auto font-mono text-[9px] md:text-[10px] space-y-0.5 scrollbar-thin scrollbar-thumb-emerald-900/50 scrollbar-track-transparent bg-[#0F1419]"
             >
                 <AnimatePresence initial={false}>
                     {displayedLogs.map((log, idx) => (
@@ -76,20 +86,18 @@ export const LiveCalculationPanel: React.FC<LiveCalculationPanelProps> = ({ logs
                             key={log.candidateTime + idx}
                             initial={{ opacity: 0, x: -5 }}
                             animate={{ opacity: 1, x: 0 }}
-                            className="flex items-center gap-4 text-emerald-100/40 hover:bg-emerald-500/5 py-0.5 px-2 rounded group transition-colors"
+                            className="grid grid-cols-[12%_18%_18%_18%_24%_10%] items-center px-4 py-0.5 hover:bg-emerald-500/5 transition-colors border-b border-emerald-500/[0.02]"
                         >
-                            <span className="w-16 flex-shrink-0 text-emerald-500 font-bold opacity-100">{log.candidateTime}</span>
-                            <span className="flex-1 truncate group-hover:text-emerald-300 transition-colors">
-                                <span className="text-emerald-500/40">SUN</span>:{log.sunPos}
-                                <span className="text-emerald-500/40 ml-2">MOON</span>:{log.moonPos}
-                                <span className="text-emerald-500/40 ml-2">ASC</span>:<span className="text-cyan-400 font-bold">{log.ascendant}</span>
-                                {log.dashaObj && <span className="text-amber-500/60 ml-2">D:{log.dashaObj}</span>}
-                            </span>
-                            <span className="text-[8px] text-emerald-500/20 font-mono">SCN_OK</span>
+                            <span className="text-emerald-500 font-bold opacity-100">{log.candidateTime}</span>
+                            <span className="text-emerald-500/70 truncate pr-2">{log.sunPos}</span>
+                            <span className="text-emerald-500/70 truncate pr-2">{log.moonPos}</span>
+                            <span className="text-cyan-400 font-bold truncate pr-2">{log.ascendant}</span>
+                            <span className="text-amber-500/60 truncate pr-2">{log.dashaObj || '-'}</span>
+                            <span className="text-[8px] text-emerald-500/20 text-right">SCN_OK</span>
                         </motion.div>
                     ))}
                     {isAnalyzing && logs.length === 0 && (
-                        <div className="flex items-center justify-center h-full text-emerald-500/30 text-xs animate-pulse uppercase tracking-widest font-black">
+                        <div className="flex items-center justify-center h-full text-emerald-500/30 text-xs animate-pulse uppercase tracking-widest font-black p-4">
                             <Compass className="w-4 h-4 mr-2 animate-spin-slow" />
                             Syncing Astral Coordinates...
                         </div>

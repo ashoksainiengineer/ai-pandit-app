@@ -222,94 +222,58 @@ function LevelSection({
                         transition={{ duration: 0.2 }}
                         className="overflow-hidden"
                     >
-                        <div className="px-4 pb-4 pt-1">
-                            {showAsDots ? (
-                                /* Dot Grid for many candidates */
-                                <div className="flex flex-wrap gap-1.5">
-                                    {candidates.slice(0, 60).map((c) => (
-                                        <div
-                                            key={c.time}
-                                            className={`w-3 h-3 rounded-full transition-all ${c.time === currentCandidate
-                                                    ? 'bg-[#D4AF37] ring-2 ring-[#D4AF37] ring-offset-1 ring-offset-[#0F1419] animate-pulse'
-                                                    : c.score > 70
-                                                        ? 'bg-emerald-500'
-                                                        : c.score > 40
-                                                            ? 'bg-orange-500/50'
-                                                            : 'bg-[#2A3442]'
-                                                }`}
-                                            title={`${c.time}: ${c.score}%`}
-                                        />
-                                    ))}
-                                    {candidates.length > 60 && (
-                                        <span className="text-xs text-[#8C7F72]">+{candidates.length - 60}</span>
-                                    )}
-                                </div>
-                            ) : isFinal ? (
-                                /* Final candidates with details */
-                                <div className="space-y-2">
-                                    {candidates.slice(0, 5).map((c, idx) => (
-                                        <div
-                                            key={c.time}
-                                            className={`p-3 rounded-lg border ${idx === 0
-                                                    ? 'bg-[#D4AF37]/10 border-[#D4AF37]/50'
-                                                    : 'bg-[#1A2433]/50 border-[#2A3442]'
-                                                } ${c.time === currentCandidate ? 'ring-2 ring-[#D4AF37]' : ''}`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-3">
-                                                    <span className={`text-lg font-bold ${idx === 0 ? 'text-[#D4AF37]' : 'text-[#8C7F72]'}`}>
-                                                        #{idx + 1}
-                                                    </span>
-                                                    <div>
-                                                        <div className="text-lg font-bold text-[#F5F0EB] font-mono">{c.time}</div>
-                                                        {c.time === currentCandidate && (
-                                                            <span className="text-xs text-[#D4AF37] animate-pulse">Analyzing...</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className={`text-xl font-black ${idx === 0 ? 'text-[#D4AF37]' : 'text-[#F5F0EB]'}`}>
-                                                        {c.score}%
-                                                    </div>
-                                                    <div className="text-xs text-[#8C7F72]">Score</div>
-                                                </div>
-                                            </div>
+                        {/* Table Header */}
+                        <div className={`grid grid-cols-[15%_35%_25%_25%] px-4 py-2 border-b border-[#2A3442] bg-[#0F1419]/50 text-[10px] font-bold uppercase tracking-wider ${colors.text} opacity-70`}>
+                            <span>Rank</span>
+                            <span>Time</span>
+                            <span>Score</span>
+                            <span className="text-right">Status</span>
+                        </div>
+
+                        {/* Scrollable Table Body */}
+                        <div className="max-h-60 overflow-y-auto custom-scrollbar bg-[#0F1419]/30">
+                            {candidates.map((c, idx) => (
+                                <div
+                                    key={c.time}
+                                    className={`
+                                        grid grid-cols-[15%_35%_25%_25%] px-4 py-2 border-b border-[#2A3442]/50 items-center text-xs transition-colors
+                                        ${c.time === currentCandidate ? 'bg-[#D4AF37]/10' : 'hover:bg-[#1A2433]/50'}
+                                    `}
+                                >
+                                    <span className={`font-mono ${idx < 3 ? 'text-[#D4AF37] font-bold' : 'text-[#8C7F72]'}`}>
+                                        #{idx + 1}
+                                    </span>
+                                    <span className={`font-mono font-bold ${c.time === currentCandidate ? 'text-[#D4AF37]' : 'text-[#F5F0EB]'}`}>
+                                        {c.time}
+                                    </span>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-12 h-1.5 bg-[#2A3442] rounded-full overflow-hidden">
+                                            <div
+                                                style={{ width: `${c.score}%` }}
+                                                className={`h-full rounded-full ${c.score > 80 ? 'bg-emerald-500' :
+                                                        c.score > 50 ? 'bg-orange-500' : 'bg-red-500'
+                                                    }`}
+                                            />
                                         </div>
-                                    ))}
+                                        <span className="text-[10px]">{c.score}%</span>
+                                    </div>
+                                    <div className="text-right">
+                                        {c.time === currentCandidate ? (
+                                            <span className="text-[10px] text-[#D4AF37] font-bold animate-pulse">ANALYZING</span>
+                                        ) : c.reasoning ? (
+                                            <span className="text-[10px] text-emerald-500/70">VERIFIED</span>
+                                        ) : (
+                                            <span className="text-[10px] text-[#8C7F72]">WAITING</span>
+                                        )}
+                                    </div>
                                 </div>
-                            ) : (
-                                /* Grid view for medium count */
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                    {candidates.slice(0, 12).map((c) => (
-                                        <div
-                                            key={c.time}
-                                            className={`p-2 rounded-lg border ${c.time === currentCandidate
-                                                    ? 'bg-[#D4AF37]/10 border-[#D4AF37]/50 ring-1 ring-[#D4AF37]'
-                                                    : 'bg-[#1A2433]/50 border-[#2A3442]'
-                                                }`}
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm font-mono text-[#F5F0EB]">{c.time}</span>
-                                                <span className={`text-sm font-bold ${c.score > 70 ? 'text-emerald-400' :
-                                                        c.score > 50 ? 'text-orange-400' : 'text-[#8C7F72]'
-                                                    }`}>
-                                                    {c.score}%
-                                                </span>
-                                            </div>
-                                            {c.time === currentCandidate && (
-                                                <div className="mt-1 text-[10px] text-[#D4AF37] animate-pulse">
-                                                    Analyzing...
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                    {candidates.length > 12 && (
-                                        <div className="p-2 flex items-center justify-center text-xs text-[#8C7F72]">
-                                            +{candidates.length - 12} more
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                            ))}
+                        </div>
+
+                        {/* Footer Summary */}
+                        <div className="px-4 py-2 bg-[#0F1419] border-t border-[#2A3442] text-[10px] text-[#8C7F72] flex justify-between">
+                            <span>Showing {candidates.length} candidates</span>
+                            <span>Top Score: {Math.max(...candidates.map(c => c.score))}%</span>
                         </div>
                     </motion.div>
                 )}
@@ -318,8 +282,8 @@ function LevelSection({
             {/* Empty state */}
             {isExpanded && candidates.length === 0 && (
                 <div className="px-4 pb-4 pt-1">
-                    <div className="text-center py-6 text-[#8C7F72] text-sm">
-                        Waiting for candidates...
+                    <div className="text-center py-6 text-[#8C7F72] text-sm italic">
+                        Waiting for candidate data stream...
                     </div>
                 </div>
             )}
