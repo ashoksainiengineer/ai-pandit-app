@@ -638,3 +638,114 @@ export function getNakshatraForLongitude(siderealLongitude: number): {
     };
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+// VEDIC HELPERS (GOD-TIER DATA PREP)
+// ═════════════════════════════════════════════════════════════════════════════
+
+const ZODIAC_SIGNS = [
+    'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
+    'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+];
+
+const PLANET_RULERSHIPS: Record<string, string> = {
+    'Aries': 'Mars',
+    'Taurus': 'Venus',
+    'Gemini': 'Mercury',
+    'Cancer': 'Moon',
+    'Leo': 'Sun',
+    'Virgo': 'Mercury',
+    'Libra': 'Venus',
+    'Scorpio': 'Mars',
+    'Sagittarius': 'Jupiter',
+    'Capricorn': 'Saturn',
+    'Aquarius': 'Saturn',
+    'Pisces': 'Jupiter'
+};
+
+const EXALTATION_SIGNS: Record<string, string> = {
+    'Sun': 'Aries',
+    'Moon': 'Taurus',
+    'Mars': 'Capricorn',
+    'Mercury': 'Virgo',
+    'Jupiter': 'Cancer',
+    'Venus': 'Pisces',
+    'Saturn': 'Libra',
+    'Rahu': 'Taurus',
+    'Ketu': 'Scorpio'
+};
+
+const DEBILITATION_SIGNS: Record<string, string> = {
+    'Sun': 'Libra',
+    'Moon': 'Scorpio',
+    'Mars': 'Cancer',
+    'Mercury': 'Pisces',
+    'Jupiter': 'Capricorn',
+    'Venus': 'Virgo',
+    'Saturn': 'Aries',
+    'Rahu': 'Scorpio',
+    'Ketu': 'Taurus'
+};
+
+/**
+ * Calculate Vedic House System (Whole Sign)
+ * @param ascSign Ascendant Sign Name
+ * @param planetSign Planet Sign Name
+ * @returns House Number (1-12)
+ */
+export function calculateHouse(ascSign: string, planetSign: string): number {
+    const ascIdx = ZODIAC_SIGNS.indexOf(ascSign);
+    const pltIdx = ZODIAC_SIGNS.indexOf(planetSign);
+    if (ascIdx === -1 || pltIdx === -1) return 0;
+
+    let house = (pltIdx - ascIdx) + 1;
+    if (house <= 0) house += 12;
+    return house;
+}
+
+/**
+ * Get the Lord of a specific house number for a given Ascendant
+ */
+export function getHouseLord(ascSign: string, houseNum: number): string {
+    const ascIdx = ZODIAC_SIGNS.indexOf(ascSign);
+    // Target sign index = (ascIndex + houseNum - 1) % 12
+    const targetIdx = (ascIdx + houseNum - 1) % 12;
+    const sign = ZODIAC_SIGNS[targetIdx];
+    return PLANET_RULERSHIPS[sign];
+}
+
+/**
+ * Calculate Planetary Dignity
+ */
+export function getDignity(planet: string, sign: string): 'Exalted' | 'Debilitated' | 'Own Sign' | 'Friendly' | 'Enemy' | 'Neutral' {
+    if (EXALTATION_SIGNS[planet] === sign) return 'Exalted';
+    if (DEBILITATION_SIGNS[planet] === sign) return 'Debilitated';
+    if (PLANET_RULERSHIPS[sign] === planet) return 'Own Sign';
+
+    // Simplified Friend/Enemy logic (could be more complex natural + temporal)
+    // For now, return Neutral/Friendly based on simple groups
+    // Deva Group: Sun, Moon, Mars, Jupiter
+    // Asura Group: Venus, Saturn, Mercury(mixed), Rahu, Ketu
+    const devas = ['Sun', 'Moon', 'Mars', 'Jupiter'];
+    const asuras = ['Venus', 'Saturn', 'Rahu', 'Ketu'];
+    const neutral = ['Mercury'];
+
+    const ruler = PLANET_RULERSHIPS[sign];
+
+    if (devas.includes(planet) && devas.includes(ruler)) return 'Friendly';
+    if (asuras.includes(planet) && asuras.includes(ruler)) return 'Friendly';
+    if (devas.includes(planet) && asuras.includes(ruler)) return 'Enemy';
+    if (asuras.includes(planet) && devas.includes(ruler)) return 'Enemy';
+
+    return 'Neutral';
+}
+
+/**
+ * Get map of all house lords for a chart
+ */
+export function getAllHouseLords(ascSign: string): Record<number, string> {
+    const lords: Record<number, string> = {};
+    for (let i = 1; i <= 12; i++) {
+        lords[i] = getHouseLord(ascSign, i);
+    }
+    return lords;
+}

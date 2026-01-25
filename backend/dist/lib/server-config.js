@@ -6,9 +6,9 @@ exports.aiClient = exports.serverConfig = void 0;
 exports.serverConfig = {
     // AI Configuration
     ai: {
-        baseUrl: process.env.AI_BASE_URL || process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com',
-        apiKey: process.env.AI_API_KEY || process.env.DEEPSEEK_API_KEY || '',
-        model: process.env.AI_MODEL || process.env.DEEPSEEK_MODEL || 'deepseek-reasoner',
+        baseUrl: process.env.AI_BASE_URL || 'https://openrouter.ai/api/v1',
+        apiKey: process.env.AI_API_KEY || '',
+        model: process.env.AI_MODEL || 'deepseek/deepseek-v3.2',
         maxTokens: parseInt(process.env.AI_MAX_TOKENS || '32000'),
         temperature: parseFloat(process.env.AI_TEMPERATURE || '0.1'),
         thinkingBudget: parseInt(process.env.AI_THINKING_BUDGET || '32000'),

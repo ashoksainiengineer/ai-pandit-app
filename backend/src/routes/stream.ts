@@ -137,6 +137,13 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
                 console.log(`[SSE] Replaying ${calcLogs.length} calc logs for ${sessionId}`);
                 calcLogs.forEach(log => sendEvent(res, log));
             }
+
+            // 📊 Send cached Candidate Scores (Persistence/Sync)
+            const scoreHistory = sessionEvents.getCandidateScoreBuffer(sessionId);
+            if (scoreHistory && scoreHistory.length > 0) {
+                console.log(`[SSE] Replaying ${scoreHistory.length} candidate scores for ${sessionId}`);
+                scoreHistory.forEach(score => sendEvent(res, score));
+            }
         } catch (error) {
             console.error(`[SSE] Error in initial async sync for ${sessionId}:`, error);
         }

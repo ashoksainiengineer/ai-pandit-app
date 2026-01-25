@@ -27,8 +27,8 @@ export interface CandidateTime {
 // CONSTANTS - RESEARCH-BACKED (Dynamic)
 // ═════════════════════════════════════════════════════════════════════════
 
-// Absolute max candidates per AI call (research: 10 for optimal attention)
-export const MAX_BATCH_SIZE = 10;
+// Absolute max candidates per AI call (OpenRouter supports higher concurrency)
+export const MAX_BATCH_SIZE = 15;
 
 // Survivors per batch for tournament progression
 export const SURVIVORS_PER_BATCH = 2;

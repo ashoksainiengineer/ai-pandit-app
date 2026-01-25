@@ -89,6 +89,7 @@ declare class SessionEventManager {
     private lastContexts;
     private thinkingBuffers;
     private calculationLogBuffers;
+    private candidateScoreBuffers;
     private lastActive;
     constructor();
     /**
@@ -127,6 +128,14 @@ declare class SessionEventManager {
      * Append to calculation log buffer (Keep last 50)
      */
     appendToCalculationBuffer(sessionId: string, log: CalculationLogEvent): void;
+    /**
+     * Append to candidate score buffer (Persistence for Sync)
+     */
+    appendToCandidateScoreBuffer(sessionId: string, scoreEvent: CandidateScoreEvent): void;
+    /**
+     * Get all candidate scores for sync
+     */
+    getCandidateScoreBuffer(sessionId: string): CandidateScoreEvent[] | undefined;
     /**
      * Get recent calculation logs
      */

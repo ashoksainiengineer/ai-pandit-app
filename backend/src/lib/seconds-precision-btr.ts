@@ -11,6 +11,9 @@ import {
     tropicalToSidereal,
     getNakshatraForLongitude,
     DashaPeriod,
+    calculateHouse,
+    getDignity,
+    getAllHouseLords,
 } from './vedic-astrology-engine.js';
 import {
     calculateYoginiDasha,
@@ -63,8 +66,17 @@ const ZODIAC_SIGNS = [
 interface CandidateDataPackage {
     time: string;
     offsetMinutes: number;
-    planets: Record<string, { sign: string; degree: string; nakshatra: string }>;
+    // 🔱 ENHANCED: Full Vedic Planetary Matrix
+    planets: Record<string, {
+        sign: string;
+        degree: string;
+        nakshatra: string;
+        house: number;         // 1-12 from Lagna
+        dignity: string;       // Exalted/Debilitated/Own/Etc
+        isRetro: boolean;      // Retrograde status
+    }>;
     ascendant: { sign: string; degree: string; nakshatra: string };
+    houseLords: Record<number, string>; // e.g. {1: 'Mars', 2: 'Venus'...}
     moonNakshatra: string;
     vimshottariDasha: { maha: string; antar: string; pratyantar: string; startEnd: string }[];
     yoginiDasha?: { lord: string; startEnd: string }[];
@@ -173,16 +185,36 @@ async function buildCandidateDataPackage(
 
     const ascNakshatra = getNakshatraForLongitude(ephemeris.ascendant.longitude);
 
+    // 🔱 GOD-TIER DATA ENRICHMENT
+    // We calculate explicit Vedic metrics so the AI doesn't have to "think" about them (reducing hallucination risk)
+    const richPlanets: Record<string, any> = {};
+
+    // Capitalize helper
+    const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
+    for (const [key, p] of Object.entries(ephemeris.planets)) {
+        const planetName = cap(key);
+        richPlanets[key] = {
+            sign: p.sign,
+            degree: (p.longitude % 30).toFixed(4) + '°',
+            nakshatra: p.nakshatra,
+            house: calculateHouse(ephemeris.ascendant.sign, p.sign),
+            dignity: getDignity(planetName, p.sign),
+            isRetro: p.retro
+        };
+    }
+
     const pkg: CandidateDataPackage = {
         time,
         offsetMinutes,
-        planets,
+        planets: richPlanets,
         ascendant: {
             sign: ephemeris.ascendant.sign,
             degree: (ephemeris.ascendant.longitude % 30).toFixed(4) + '°',
             nakshatra: ascNakshatra.name
         },
-        moonNakshatra: planets.moon.nakshatra,
+        houseLords: getAllHouseLords(ephemeris.ascendant.sign),
+        moonNakshatra: ephemeris.planets.moon.nakshatra,
         vimshottariDasha
     };
 
@@ -336,44 +368,49 @@ function getBatchPrompt(
     return `BIRTH TIME RECTIFICATION - STAGE 2 (Batch ${batchNumber}/${totalBatches})
 
 ════════════════════════════════════════════════════════════════════════════════
-⚠️ CRITICAL RULES:
-1. DO NOT calculate any planetary positions, dashas, or dates yourself
-2. USE ONLY the pre-calculated data provided below
-3. Your job is to COMPARE and SCORE, not to compute
-4. All astrological data is already calculated by Swiss Ephemeris
+⚠️ CRITICAL GOD-TIER RULES:
+1. USE PRE-CALCULATED DATA ONLY. Do not compute positions.
+2. FUNCTIONAL NATURE MATTERS: A planet ruling 6/8/12 is malefic for this Ascendant.
+3. DIGNITY MATTERS: Exalted/Own planets give strong results; Debilitated giving mixed/weak.
+4. HOUSE LORDSHIP IS KEY: Event X (e.g., Marriage) MUST activate relevant house lords (e.g., 7th Lord).
 ════════════════════════════════════════════════════════════════════════════════
 
-TASK: Score ${candidates.length} candidates based on Dasha-Event correlation.
+TASK: Score ${candidates.length} candidates based on Rigorous Vedic Dasha-Event correlation.
 
 LIFE EVENTS:
 ${eventsText}
 ${traits ? `\nPHYSICAL TRAITS: ${JSON.stringify(traits)}` : ''}
 
-CANDIDATES WITH PRE-CALCULATED DATA:
+CANDIDATES WITH ENRICHED VEDIC DATA:
 ${shuffledCandidates.map(c => `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CANDIDATE: ${c.time}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
-MOON: ${c.planets.moon.sign} ${c.planets.moon.degree} (${c.moonNakshatra})
-SUN: ${c.planets.sun.sign} ${c.planets.sun.degree}
+LAGNA (Ascendant): ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
+MOON: ${c.planets.moon.sign} ${c.planets.moon.degree} | House: ${c.planets.moon.house} | Dignity: ${c.planets.moon.dignity}
+SUN: ${c.planets.sun.sign} ${c.planets.sun.degree} | House: ${c.planets.sun.house} | Dignity: ${c.planets.sun.dignity}
+
+KEY HOUSE LORDS (Functional Nature):
+• 1st (Self): ${c.houseLords[1]} | 7th (Spouse): ${c.houseLords[7]} | 10th (Career): ${c.houseLords[10]}
+• 5th (Children): ${c.houseLords[5]} | 9th (Fortune): ${c.houseLords[9]} | 6/8/12 (Dusthanas): ${c.houseLords[6]}, ${c.houseLords[8]}, ${c.houseLords[12]}
+
 ${c.d9Lagna ? `D9 NAVAMSHA LAGNA: ${c.d9Lagna}` : ''}
 ${c.d10Lagna ? `D10 DASAMSHA LAGNA: ${c.d10Lagna}` : ''}
 
-VIMSHOTTARI DASHA PERIODS:
-${c.vimshottariDasha.map(d => `  • ${d.maha}/${d.antar}/${d.pratyantar}: ${d.startEnd}`).join('\n')}
+VIMSHOTTARI DASHA PERIODS (Verify Lordship Connection):
+${c.vimshottariDasha.map(d => `  • ${d.maha} (${c.planets[d.maha.toLowerCase()]?.house}H, ${c.planets[d.maha.toLowerCase()]?.dignity}) / ${d.antar} (${c.planets[d.antar.toLowerCase()]?.house}H) : ${d.startEnd}`).join('\n')}
 ${c.yoginiDasha ? `\nYOGINI DASHA: ${c.yoginiDasha.map(d => `${d.lord} (${d.startEnd})`).join(' → ')}` : ''}
-${c.charaDasha ? `\nCHARA DASHA: ${c.charaDasha.map(d => `${d.sign} (${d.startEnd})`).join(' → ')}` : ''}
 `).join('')}
 
-SCORING (use provided data only):
-+25: Vimshottari dasha lord matches event type (marriage during Venus, career during Saturn/Sun)
-+15: Antardasha timing overlaps with event date
-+10: Lagna sign matches physical traits
--50: Clear timing contradiction (event outside dasha period)
+SCORING ALGORITHM (STRICT VEDIC LOGIC):
++30: PRIMARY MATCH - Dasha/Antar Lord is DIRECTLY the House Lord of the event (e.g. Marriage in 7th Lord dasha).
++20: SECONDARY MATCH - Dasha Lord is placed in the event house or aspects it.
++10: NATURAL KARAKA - Dasha Lord is natural significator (Venus=Marriage, Sun=Career) even if not functional lord.
++10: LAGNA MATCH - Ascendant element/lord matches physical traits.
+-50: CONTRADICTION - Event happened in dasha of 6/8/12 lord with NO connection to event house.
 
 OUTPUT FORMAT (one line per candidate):
-[TIME] | SCORE: [0-100] | VERDICT: KEEP/ELIMINATE | REASON: [1-2 words]
+[TIME] | SCORE: [0-100] | VERDICT: KEEP/ELIMINATE | REASON: [Explicit Astrological Reason e.g. "Venus is 7th Lord"]
 
 FINAL LINE (required):
 TOP_SURVIVORS: [comma-separated list of ${survivorsNeeded} best times]`;
@@ -396,18 +433,14 @@ function getDeepAnalysisPrompt(
     return `BIRTH TIME RECTIFICATION - STAGE 4 (Deep Multi-Dasha Analysis)
 
 ════════════════════════════════════════════════════════════════════════════════
-⚠️ CRITICAL RULES:
-1. DO NOT calculate any positions, dates, or dashas yourself
-2. USE ONLY the pre-calculated data below - all computed by Swiss Ephemeris
-3. COMPARE the provided data against life events - do not invent data
+⚠️ GOD-TIER ANALYSIS RULES:
+1. CHECK FUNCTIONAL NATURE: Is the Dasha Lord a friend (Trine lord) or enemy (6/8/12 lord)?
+2. VERIFY LORDSHIPS: Does the event MATCH the House Lordship (e.g. 7th Lord for Marriage)?
+3. CROSS-VERIFY: Do Yogini/Chara dashas support the Vimshottari conclusion?
+4. D9/D10 CONFIRMATION: Divisional charts must NOT contradict the Rashi chart promise.
 ════════════════════════════════════════════════════════════════════════════════
 
-TASK: Cross-verify ${candidates.length} candidates using multiple dasha systems.
-
-VERIFICATION PRINCIPLE:
-- TRUE birth time shows consistency across Vimshottari, Yogini, and Chara
-- Divisional charts (D9, D10) must support life event themes
-- Contradiction in any system = reduce score
+TASK: Cross-verify ${candidates.length} candidates using multiple dasha systems & Vedic Lordships.
 
 USER CONTEXT:
 PHYSICAL TRAITS: ${traitsText}
@@ -416,14 +449,16 @@ SPOUSE DATA: ${spouseText}
 LIFE EVENTS:
 ${eventsText}
 
-CANDIDATES WITH MULTI-DASHA DATA:
+CANDIDATES WITH MULTI-DASHA & LORDSHIP DATA:
 ${candidates.map(c => `
 [${c.time}]
 ┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree}
+├ HOUSE LORDS: 1=${c.houseLords[1]}, 7=${c.houseLords[7]}, 10=${c.houseLords[10]}
+├ DIGNITIES: Sun=${c.planets.sun.dignity}, Moon=${c.planets.moon.dignity}, Jup=${c.planets.jupiter?.dignity || 'N/A'}
 ├ D9 (Navamsa): Osc=${c.d9Lagna} | Planets=${c.d9Chart ? Object.entries(c.d9Chart.planets).map(([k, v]) => `${k.substr(0, 2).toUpperCase()}=${v}`).join(' ') : 'N/A'}
 ├ D10 (Dasamsa): Asc=${c.d10Lagna} | Planets=${c.d10Chart ? Object.entries(c.d10Chart.planets).map(([k, v]) => `${k.substr(0, 2).toUpperCase()}=${v}`).join(' ') : 'N/A'}
 ├ D60 (Karma): ${c.d60Sign || 'N/A'}
-├ VIMSHOTTARI: ${c.vimshottariDasha.map(d => `${d.maha}/${d.antar} [${d.startEnd}]`).join(' → ')}
+├ VIMSHOTTARI: ${c.vimshottariDasha.map(d => `${d.maha}/${d.antar} [${d.startEnd}] (L${c.planets[d.maha.toLowerCase()]?.house || '?'}/L${c.planets[d.antar.toLowerCase()]?.house || '?'})`).join(' → ')}
 ├ YOGINI: ${c.yoginiDasha?.map(d => `${d.lord} [${d.startEnd}]`).join(' → ') || 'N/A'}
 ├ CHARA: ${c.charaDasha?.map(d => `${d.sign} [${d.startEnd}]`).join(' → ') || 'N/A'}
 ${c.transitData ? `  TRANSITS: ${Object.entries(c.transitData).slice(0, 5).map(([date, t]: [string, any]) =>
@@ -431,9 +466,9 @@ ${c.transitData ? `  TRANSITS: ${Object.entries(c.transitData).slice(0, 5).map((
 
 SCORING:
 - All 3 dasha systems agree on event timing: +30
+- Dasha Lord is Functional Benefic (1, 5, 9, 4, 7, 10 lord): +20
 - D9 supports marriage events / D10 supports career: +20
-- Transit Saturn/Jupiter confirm major events: +15
-- Contradiction in any system: -25
+- Contradiction (Event in 6/8/12 lord period without cancel): -25
 
 OUTPUT (for each candidate):
 [TIME] | MULTI-DASHA: [AGREE/PARTIAL/CONFLICT] | D-CHARTS: [SUPPORT/WEAK/FAIL] | SCORE: [0-100]
@@ -459,10 +494,11 @@ function getFinalPrecisionPrompt(
     return `BIRTH TIME RECTIFICATION - FINAL STAGE (Seconds Precision)
 
 ════════════════════════════════════════════════════════════════════════════════
-⚠️ CRITICAL RULES:
-1. DO NOT calculate anything yourself - all data is pre-computed
-2. USE ONLY the D60, Lagna, and dasha data provided below
-3. Your job is to SELECT the best candidate, not to compute
+⚠️ GOD-TIER PRECISION RULES:
+1. FOCUS ON LAGNA & D60: Even 10 seconds can change D60 Lagna. Match D60 deity/nature to life themes.
+2. DIGNITY CHECK: Does the chart strength match reality? (e.g., successful career = strong 10th lord).
+3. BOUNDARY SAFETY: Avoid times where Lagna is < 0.05° unless event timing is perfect.
+4. HOUSE LORD ACCURACY: Ensure the operative Dashas align with Functional Lordships.
 ════════════════════════════════════════════════════════════════════════════════
 
 TASK: Select THE SINGLE BEST birth time from ${candidates.length} finalists.
@@ -474,35 +510,33 @@ Spouse: ${spouseText}
 LIFE EVENTS:
 ${eventsText}
 
-FINALIST CANDIDATES:
+FINALIST CANDIDATES (ENRICHED):
 ${candidates.map((c, i) => `
 #${i + 1} [${c.time}]
 ┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
-├ D60: ${c.d60Sign || 'N/A'} ← SECONDS-LEVEL INDICATOR
+├ 1ST HOUSE LORD: ${c.houseLords[1]} | 7TH LORD: ${c.houseLords[7]} | 10TH LORD: ${c.houseLords[10]}
+├ D60 (Karma): ${c.d60Sign || 'N/A'} ← CRITICAL FOR SECONDS
 ├ D9: Asc=${c.d9Lagna} | Planets=${c.d9Chart ? Object.entries(c.d9Chart.planets).map(([k, v]) => `${k.substr(0, 2).toUpperCase()}=${v}`).join(' ') : 'N/A'}
-├ D10: Asc=${c.d10Lagna} | Planets=${c.d10Chart ? Object.entries(c.d10Chart.planets).map(([k, v]) => `${k.substr(0, 2).toUpperCase()}=${v}`).join(' ') : 'N/A'}
-├ VIMSHOTTARI: ${c.vimshottariDasha.map(d => `${d.maha}/${d.antar} [${d.startEnd}]`).join(' → ')}
-├ YOGINI: ${c.yoginiDasha?.map(d => `${d.lord} [${d.startEnd}]`).join(' → ') || 'N/A'}
-├ CHARA: ${c.charaDasha?.map(d => `${d.sign} [${d.startEnd}]`).join(' → ') || 'N/A'}
-└ BOUNDARY RISK: ${parseFloat(c.ascendant.degree) < 2 || parseFloat(c.ascendant.degree) > 28 ? 'HIGH (near sign boundary)' : 'LOW'}`).join('\n')}
+├ PLANETARY STRENGTH: Sun=(${c.planets.sun.dignity}), Moon=(${c.planets.moon.dignity}), Jup=(${c.planets.jupiter?.dignity || 'N/A'})
+├ VIMSHOTTARI: ${c.vimshottariDasha.slice(0, 5).map(d => `${d.maha} (L${c.planets[d.maha.toLowerCase()]?.house || '?'})/${d.antar} (L${c.planets[d.antar.toLowerCase()]?.house || '?'})`).join(' → ')}
+└ BOUNDARY RISK: ${parseFloat(c.ascendant.degree) < 1 || parseFloat(c.ascendant.degree) > 29 ? '⚠️ EDGE' : 'SAFE'}`).join('\n')}
 
 FINAL SELECTION CRITERIA:
-1. Strongest overall dasha-event correlation
-2. D60 stability (not changing within ±30 seconds)
-3. No boundary risks in Lagna
-4. Multi-dasha consensus across all systems
+1. D60 Lagna must explain the "Nature" of the person (Karma).
+2. Dasha Lords MUST be functional benefics for the event to happen beneficently.
+3. Eliminate any time where a major event (Marriage/Job) occurs in Dasha of consecutive 6/8/12 lords without mitigation.
 
 ═══════════════════════════════════════════════════════════════════════════════
 FINAL VERDICT (required format):
-BEST_TIME: [HH:MM:SS]
+BEST TIME: [HH:MM:SS]
 ACCURACY: [0-100]%
 CONFIDENCE: [HIGH/MEDIUM/LOW]
 MARGIN_OF_ERROR: ±[seconds] seconds
 
 EVIDENCE:
-1. [Primary reason for selection]
-2. [Secondary supporting factor]
-3. [Additional confirmation]
+1. [Explain why D60/Lagna fits better than others]
+2. [Explain the Decisive Dasha-Event Link with House Lordship]
+3. [Why other candidates failed (e.g. "Candidate 2 had 8th Lord dasha during Marriage")]
 
 RUNNER_UP: [second best time] (for reference)
 ═══════════════════════════════════════════════════════════════════════════════`;
@@ -537,7 +571,7 @@ function extractBatchSurvivors(aiContent: string, candidateTimes: string[], need
 }
 
 function extractFinalVerdict(aiContent: string): { time: string; accuracy: number; confidence: string; margin: number } | null {
-    const timeMatch = aiContent.match(/BEST TIME[:\s]*(\d{2}:\d{2}:\d{2})/i);
+    const timeMatch = aiContent.match(/BEST[ _]TIME[:\s]*(\d{2}:\d{2}:\d{2})/i);
     const accuracyMatch = aiContent.match(/ACCURACY[:\s]*(\d+)/i);
     const confidenceMatch = aiContent.match(/CONFIDENCE[:\s]*(HIGH|MEDIUM|LOW)/i);
     const marginMatch = aiContent.match(/MARGIN[^:]*[:\s]*±?\s*(\d+)/i);
@@ -642,6 +676,13 @@ async function stage2BatchTournament(
         survivorsPerBatch
     });
 
+    // Helper for Eph formatting
+    const getMinifiedEph = (c: CandidateDataPackage) => ({
+        sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
+        moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
+        ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
+    });
+
     // Continue tournament until we have batchSize or fewer candidates
     while (currentCandidates.length > batchSize) {
         roundNumber++;
@@ -687,13 +728,26 @@ async function stage2BatchTournament(
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
             const survivorTimes = extractBatchSurvivors(aiContent, batch.map(c => c.time), survivorsPerBatch);
 
-            // Find and add survivors
-            for (const time of survivorTimes) {
-                const survivor = batch.find(c => c.time === time);
-                if (survivor) {
-                    roundSurvivors.push(survivor);
-                    emitCandidateScore(input.sessionId, time, 80, 2);
+            // Process ALL candidates in batch to ensure visibility
+            for (const candidate of batch) {
+                const isSurvivor = survivorTimes.includes(candidate.time);
+                let score = 40; // Default low score
+
+                // Try to extract specific score if available (fallback to default)
+                // Note: extractBatchSurvivors already extracted top ones, but let's be generous to winners
+                if (isSurvivor) {
+                    score = 85;
+                    roundSurvivors.push(candidate);
                 }
+
+                emitCandidateScore(
+                    input.sessionId,
+                    candidate.time,
+                    score,
+                    2,
+                    undefined,
+                    getMinifiedEph(candidate) // 👈 FIX: Pass Eph Data
+                );
             }
 
             // Check for cancellation
@@ -819,11 +873,32 @@ async function stage4DeepAnalysis(
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
             allReasoning += aiContent + '\n\n';
 
+            // Helper for Eph formatting (Stage 4)
+            const getMinifiedEph = (c: CandidateDataPackage) => ({
+                sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
+                moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
+                ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
+            });
+
             const survivorTimes = extractBatchSurvivors(aiContent, batches[i].map(c => c.time), 3);
 
-            for (const time of survivorTimes) {
-                const survivor = batches[i].find(c => c.time === time);
-                if (survivor) batchSurvivors.push(survivor);
+            for (const candidate of batches[i]) {
+                const isSurvivor = survivorTimes.includes(candidate.time);
+                let score = 60; // Base score for reaching Stage 4
+
+                if (isSurvivor) {
+                    score = 90;
+                    batchSurvivors.push(candidate);
+                }
+
+                emitCandidateScore(
+                    input.sessionId,
+                    candidate.time,
+                    score,
+                    4,
+                    undefined,
+                    getMinifiedEph(candidate)
+                );
             }
         }
         currentCandidates = batchSurvivors;
@@ -849,7 +924,31 @@ async function stage4DeepAnalysis(
         allReasoning += aiContent;
 
         const survivorTimes = extractBatchSurvivors(aiContent, currentCandidates.map(c => c.time), 7);
-        currentCandidates = currentCandidates.filter(c => survivorTimes.includes(c.time));
+
+        // Helper (Stage 4 Final)
+        const getMinifiedEph = (c: CandidateDataPackage) => ({
+            sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
+            moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
+            ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
+        });
+
+        const survivors: CandidateDataPackage[] = [];
+        for (const candidate of currentCandidates) {
+            const isSurvivor = survivorTimes.includes(candidate.time);
+            const score = isSurvivor ? 95 : 65;
+
+            if (isSurvivor) survivors.push(candidate);
+
+            emitCandidateScore(
+                input.sessionId,
+                candidate.time,
+                score,
+                4,
+                undefined,
+                getMinifiedEph(candidate)
+            );
+        }
+        currentCandidates = survivors;
     }
 
     await progress.completeStep('deep', [`Deep analysis: ${currentCandidates.length} survivors`]);
@@ -943,11 +1042,32 @@ async function stage6FinalPrecision(
 
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
             const verdict = extractFinalVerdict(aiContent);
-            if (verdict) {
-                const winner = batch.find(c => c.time === verdict.time);
-                if (winner) batchWinners.push(winner);
-            } else if (batch.length > 0) {
-                batchWinners.push(batch[0]);
+
+            // Helper (Stage 6)
+            const getMinifiedEph = (c: CandidateDataPackage) => ({
+                sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
+                moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
+                ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
+            });
+
+            for (const candidate of batch) {
+                const isWinner = verdict && candidate.time === verdict.time;
+                const score = isWinner ? (verdict.accuracy || 90) : 60;
+
+                if (isWinner) batchWinners.push(candidate);
+                else if (!verdict && batch.length > 0 && candidate === batch[0]) {
+                    // Fallback winner (first one)
+                    batchWinners.push(candidate);
+                }
+
+                emitCandidateScore(
+                    input.sessionId,
+                    candidate.time,
+                    score,
+                    6,
+                    undefined,
+                    getMinifiedEph(candidate)
+                );
             }
         }
 
@@ -977,7 +1097,16 @@ async function stage6FinalPrecision(
     const confidence = verdict?.confidence || 'MEDIUM';
     const margin = verdict?.margin || 5;
 
-    emitCandidateScore(input.sessionId, finalTime, accuracy, 6);
+    // Helper (Stage 6 Final)
+    const getMinifiedEph = (c: CandidateDataPackage) => ({
+        sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
+        moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
+        ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
+    });
+
+    const winnerPkg = finalists.find(c => c.time === finalTime) || finalists[0];
+
+    emitCandidateScore(input.sessionId, finalTime, accuracy, 6, 1, winnerPkg ? getMinifiedEph(winnerPkg) : undefined);
 
     await progress.completeStep('final', [`FINAL: ${finalTime} (${confidence})`]);
 

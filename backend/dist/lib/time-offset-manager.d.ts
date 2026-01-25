@@ -10,7 +10,7 @@ export interface CandidateTime {
     offsetDescription: string;
     batchIndex?: number;
 }
-export declare const MAX_BATCH_SIZE = 10;
+export declare const MAX_BATCH_SIZE = 15;
 export declare const SURVIVORS_PER_BATCH = 2;
 /**
  * 🔱 DYNAMIC BATCH SIZE - Based on offset range

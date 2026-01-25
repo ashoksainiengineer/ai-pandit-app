@@ -84,4 +84,23 @@ export declare function getNakshatraForLongitude(siderealLongitude: number): {
     pada: number;
     number: number;
 };
+/**
+ * Calculate Vedic House System (Whole Sign)
+ * @param ascSign Ascendant Sign Name
+ * @param planetSign Planet Sign Name
+ * @returns House Number (1-12)
+ */
+export declare function calculateHouse(ascSign: string, planetSign: string): number;
+/**
+ * Get the Lord of a specific house number for a given Ascendant
+ */
+export declare function getHouseLord(ascSign: string, houseNum: number): string;
+/**
+ * Calculate Planetary Dignity
+ */
+export declare function getDignity(planet: string, sign: string): 'Exalted' | 'Debilitated' | 'Own Sign' | 'Friendly' | 'Enemy' | 'Neutral';
+/**
+ * Get map of all house lords for a chart
+ */
+export declare function getAllHouseLords(ascSign: string): Record<number, string>;
 //# sourceMappingURL=vedic-astrology-engine.d.ts.map

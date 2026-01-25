@@ -262,61 +262,72 @@ export function UnifiedAIPanel({
                         </div>
                     </div>
 
-                    {isActive && (
-                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#8B5CF6]/20 border border-[#8B5CF6]/30">
-                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                            <span className="text-[10px] font-medium text-[#8B5CF6] uppercase tracking-wider">THINKING</span>
-                        </div>
-                    )}
-                </div>
+                    <div className="flex items-center gap-3">
+                        {thinking?.candidateTime && isActive && (
+                            <div className="flex items-center gap-2 px-3 py-1 bg-[#D4AF37]/10 rounded-lg border border-[#D4AF37]/30 shadow-sm animate-pulse">
+                                <span className="text-xs text-[#8C7F72] uppercase font-bold tracking-wider">Analyzing:</span>
+                                <span className="text-sm font-mono font-black text-[#D4AF37]">{thinking.candidateTime}</span>
+                            </div>
+                        )}
+
+                        {isActive && (
+                            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#8B5CF6]/20 border border-[#8B5CF6]/30">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                                <span className="text-[10px] font-medium text-[#8B5CF6] uppercase tracking-wider">THINKING</span>
+                            </div>
+                        )}
+                    </div>
+                </div >
 
                 {/* 🆕 CANDIDATE TABS BAR */}
-                {candidateTabs.length > 0 && (
-                    <div className="px-4 py-2 bg-[#0F1419] border-b border-[#3A4452]/50">
-                        <div className="flex items-center gap-2 mb-2">
-                            <Users className="w-3.5 h-3.5 text-[#8C7F72]" />
-                            <span className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold">
-                                Active Candidates ({candidateTabs.length})
-                            </span>
-                        </div>
-                        <div className="flex flex-wrap gap-1.5 overflow-x-auto custom-scrollbar pb-1">
-                            {candidateTabs.slice(0, 10).map((time) => {
-                                const isSelected = effectiveDisplayedCandidate === time;
-                                const isLive = isStreaming(time);
+                {
+                    candidateTabs.length > 0 && (
+                        <div className="px-4 py-2 bg-[#0F1419] border-b border-[#3A4452]/50">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Users className="w-3.5 h-3.5 text-[#8C7F72]" />
+                                <span className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold">
+                                    Active Candidates ({candidateTabs.length})
+                                </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 overflow-x-auto custom-scrollbar pb-1">
+                                {candidateTabs.slice(0, 10).map((time) => {
+                                    const isSelected = effectiveDisplayedCandidate === time;
+                                    const isLive = isStreaming(time);
 
-                                return (
-                                    <button
-                                        key={time}
-                                        onClick={() => handleCandidateClick(time)}
-                                        className={`
+                                    return (
+                                        <button
+                                            key={time}
+                                            onClick={() => handleCandidateClick(time)}
+                                            className={`
                                             px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all relative
                                             ${isSelected
-                                                ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/50 shadow-[0_0_10px_rgba(212,175,55,0.2)]'
-                                                : 'bg-[#1A2433] text-[#8C7F72] border border-[#3A4452] hover:border-[#D4AF37]/30 hover:text-[#C4B8AD]'
-                                            }
+                                                    ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/50 shadow-[0_0_10px_rgba(212,175,55,0.2)]'
+                                                    : 'bg-[#1A2433] text-[#8C7F72] border border-[#3A4452] hover:border-[#D4AF37]/30 hover:text-[#C4B8AD]'
+                                                }
                                         `}
-                                    >
-                                        {isLive && (
-                                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+                                        >
+                                            {isLive && (
+                                                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+                                                </span>
+                                            )}
+                                            <span className="flex items-center gap-1.5">
+                                                {isLive && <Radio className="w-3 h-3 text-red-400" />}
+                                                {time}
                                             </span>
-                                        )}
-                                        <span className="flex items-center gap-1.5">
-                                            {isLive && <Radio className="w-3 h-3 text-red-400" />}
-                                            {time}
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                            {candidateTabs.length > 10 && (
-                                <span className="px-2 py-1.5 text-[10px] text-[#8C7F72]">
-                                    +{candidateTabs.length - 10} more
-                                </span>
-                            )}
+                                        </button>
+                                    );
+                                })}
+                                {candidateTabs.length > 10 && (
+                                    <span className="px-2 py-1.5 text-[10px] text-[#8C7F72]">
+                                        +{candidateTabs.length - 10} more
+                                    </span>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )
+                }
 
                 {/* Content for Selected Candidate */}
                 <ScrollableContent
@@ -326,36 +337,40 @@ export function UnifiedAIPanel({
                 />
 
                 {/* Calculation Stats Strip */}
-                {calculationLogs && calculationLogs.length > 0 && (
-                    <div className="px-4 py-2 bg-[#0F1419] border-t border-[#3A4452]/50 flex items-center justify-between text-[10px]">
-                        <div className="flex items-center gap-4 text-[#8C7F72]">
-                            <div className="flex items-center gap-1">
-                                <Zap className="w-3 h-3 text-[#D4AF37]" />
-                                Swiss Eph Calculations: {calculationLogs.length}
+                {
+                    calculationLogs && calculationLogs.length > 0 && (
+                        <div className="px-4 py-2 bg-[#0F1419] border-t border-[#3A4452]/50 flex items-center justify-between text-[10px]">
+                            <div className="flex items-center gap-4 text-[#8C7F72]">
+                                <div className="flex items-center gap-1">
+                                    <Zap className="w-3 h-3 text-[#D4AF37]" />
+                                    Swiss Eph Calculations: {calculationLogs.length}
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    Latency: ~42ms
+                                </div>
                             </div>
-                            <div className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                Latency: ~42ms
-                            </div>
+                            {effectiveDisplayedCandidate && (
+                                <div className="text-[#D4AF37] font-bold font-mono">
+                                    VIEWING: {effectiveDisplayedCandidate}
+                                </div>
+                            )}
                         </div>
-                        {effectiveDisplayedCandidate && (
-                            <div className="text-[#D4AF37] font-bold font-mono">
-                                VIEWING: {effectiveDisplayedCandidate}
-                            </div>
-                        )}
-                    </div>
-                )}
+                    )
+                }
 
                 {/* 📊 LIVE CALCULATION STREAM (RESTORATION) */}
-                {calculationLogs && (
-                    <div className="border-t border-[#3A4452]/30">
-                        <LiveCalculationPanel
-                            logs={calculationLogs}
-                            isAnalyzing={isActive}
-                        />
-                    </div>
-                )}
-            </motion.div>
+                {
+                    calculationLogs && (
+                        <div className="border-t border-[#3A4452]/30">
+                            <LiveCalculationPanel
+                                logs={calculationLogs}
+                                isAnalyzing={isActive}
+                            />
+                        </div>
+                    )
+                }
+            </motion.div >
         );
     }
 

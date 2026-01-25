@@ -18,8 +18,8 @@ const logger_js_1 = require("./logger.js");
 // ═════════════════════════════════════════════════════════════════════════
 // CONSTANTS - RESEARCH-BACKED (Dynamic)
 // ═════════════════════════════════════════════════════════════════════════
-// Absolute max candidates per AI call (research: 10 for optimal attention)
-exports.MAX_BATCH_SIZE = 10;
+// Absolute max candidates per AI call (OpenRouter supports higher concurrency)
+exports.MAX_BATCH_SIZE = 15;
 // Survivors per batch for tournament progression
 exports.SURVIVORS_PER_BATCH = 2;
 /**

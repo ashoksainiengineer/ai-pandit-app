@@ -12,16 +12,16 @@ import { logger } from './logger.js';
 // ═════════════════════════════════════════════════════════════════════════════
 
 const AI_CONFIG = {
-    // AI Model and connection settings
-    baseUrl: process.env.AI_BASE_URL || process.env.DEEPSEEK_BASE_URL || process.env.ANTHROPIC_BASE_URL || process.env.AI_BASE_URL || 'https://api.deepseek.com',
-    apiKey: process.env.AI_API_KEY || process.env.DEEPSEEK_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.AI_API_KEY || '',
-    model: process.env.AI_MODEL || process.env.DEEPSEEK_MODEL || process.env.AI_MODEL || process.env.AI_MODEL || 'deepseek-reasoner', // V3 with CoT reasoning
-    maxTokens: 32000,      // DeepSeek reasoner supports up to 64K
-    thinkingBudget: 32000, // Extended thinking for highest accuracy
-    temperature: 0.1,      // Note: ignored by deepseek-reasoner
+    // OpenRouter AI Configuration
+    baseUrl: process.env.AI_BASE_URL || 'https://openrouter.ai/api/v1',
+    apiKey: process.env.AI_API_KEY || '',
+    model: process.env.AI_MODEL || 'deepseek/deepseek-v3.2',
+    maxTokens: 65536,      // 64K Output (Safe limit near 66K max)
+    thinkingBudget: 49152, // 48K Thinking Budget (75% of output)
+    temperature: 0.1,
     retryAttempts: 3,
     retryDelayMs: 2000,
-    timeoutMs: 300000,     // 5 minutes timeout (DeepSeek Reasoner can be slow)
+    timeoutMs: 300000,
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -98,6 +98,12 @@ export async function callAI(
                 ],
                 max_tokens: config.maxTokens,
                 stream: false,
+
+                // 🚀 OPENROUTER OPTIMIZATION
+                provider: {
+                    order: ["Google Vertex", "Together", "DeepInfra"],
+                    allow_fallbacks: true
+                }
             };
 
             // DeepSeek Reasoner doesn't support temperature - only add for non-reasoner models
@@ -110,11 +116,24 @@ export async function callAI(
                 requestBody.use_search = false; // Disable search for faster response
             }
 
-            const response = await fetch(`${AI_CONFIG.baseUrl}/v1/chat/completions`, {
+            // Detect OpenRouter or DeepSeek V3 models that support reasoning
+            const isOpenRouter = AI_CONFIG.baseUrl.includes('openrouter');
+            const isV3Model = config.model.includes('v3') || config.model.includes('terminus');
+
+            // Add reasoning parameter for OpenRouter V3 models
+            if (isOpenRouter && isV3Model) {
+                requestBody.include_reasoning = true;
+            }
+
+            const response = await fetch(`${AI_CONFIG.baseUrl}/chat/completions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${AI_CONFIG.apiKey}`,
+                    ...(isOpenRouter && {
+                        'HTTP-Referer': 'https://aipandit.com',
+                        'X-Title': 'AI Pandit BTR',
+                    }),
                 },
                 body: JSON.stringify(requestBody),
                 signal: controller.signal,
@@ -145,7 +164,10 @@ export async function callAI(
             let content = message.content || '';
 
             // Some models return thinking in a special format
-            if (message.reasoning_content) {
+            // OpenRouter standardizes on 'reasoning', DeepSeek native uses 'reasoning_content'
+            if (message.reasoning) {
+                thinking = message.reasoning;
+            } else if (message.reasoning_content) {
                 thinking = message.reasoning_content;
             }
 
@@ -268,17 +290,38 @@ export async function callAIWithStream(
                 ],
                 max_tokens: config.maxTokens,
                 stream: true, // Enable streaming
+
+                // 🚀 OPENROUTER OPTIMIZATION: Max Speed & Quality
+                // Prioritize Google Vertex for highest TPS and lowest latency
+                provider: {
+                    order: ["Google Vertex", "Together", "DeepInfra"], // Best providers first
+                    allow_fallbacks: true,
+                    data_collection: "deny" // Privacy
+                }
             };
 
             if (!isReasoningModel) {
                 requestBody.temperature = config.temperature;
             }
 
-            const response = await fetch(`${AI_CONFIG.baseUrl}/v1/chat/completions`, {
+            // Detect OpenRouter or DeepSeek V3 models that support reasoning
+            const isOpenRouter = AI_CONFIG.baseUrl.includes('openrouter');
+            const isV3Model = config.model.includes('v3') || config.model.includes('terminus');
+
+            // Add reasoning parameter for OpenRouter V3 models
+            if (isOpenRouter && isV3Model) {
+                requestBody.include_reasoning = true;
+            }
+
+            const response = await fetch(`${AI_CONFIG.baseUrl}/chat/completions`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${AI_CONFIG.apiKey}`,
                     'Content-Type': 'application/json',
+                    ...(isOpenRouter && {
+                        'HTTP-Referer': 'https://aipandit.com',
+                        'X-Title': 'AI Pandit BTR',
+                    }),
                 },
                 body: JSON.stringify(requestBody),
                 signal: controller.signal,
@@ -321,18 +364,20 @@ export async function callAIWithStream(
                         const parsed = JSON.parse(data);
                         const delta = parsed.choices?.[0]?.delta;
 
-                        if (delta?.reasoning_content) {
-                            // DeepSeek Reasoner's thinking tokens
-                            fullThinking += delta.reasoning_content;
-                            emitAIThinking(sessionId, delta.reasoning_content, stage, options?.candidateTime);
+                        const reasoningChunk = delta?.reasoning || delta?.reasoning_content;
+
+                        if (reasoningChunk) {
+                            // DeepSeek/OpenRouter thinking tokens
+                            fullThinking += reasoningChunk;
+                            emitAIThinking(sessionId, reasoningChunk, stage, options?.candidateTime);
 
                             // 💾 Persist for Polling Fallback
                             if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
-                                options.progressTracker.updateAIThinking(delta.reasoning_content, stage, options?.candidateTime).catch(() => { });
+                                options.progressTracker.updateAIThinking(reasoningChunk, stage, options?.candidateTime).catch(() => { });
                             }
 
                             // 💓 Heartbeat every ~100 tokens
-                            if (fullThinking.length % 500 < delta.reasoning_content.length) {
+                            if (fullThinking.length % 500 < reasoningChunk.length) {
                                 options?.onToken?.(fullThinking, true);
                             }
                         } else if (delta?.content) {

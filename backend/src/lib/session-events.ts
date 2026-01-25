@@ -119,6 +119,8 @@ class SessionEventManager {
     private thinkingBuffers: Map<string, { stage: number; text: string; candidateTime?: string }> = new Map();
     // 🧮 Store recent calculation logs for immediate UI feedback on connect (Circular Buffer-ish)
     private calculationLogBuffers: Map<string, CalculationLogEvent[]> = new Map();
+    // 📊 Store ALL candidate scores for session history replay (Persistence)
+    private candidateScoreBuffers: Map<string, CandidateScoreEvent[]> = new Map();
     // ⏱️ Track last activity for garbage collection
     private lastActive: Map<string, number> = new Map();
 
@@ -155,6 +157,9 @@ class SessionEventManager {
         if (event.type === 'calculation_log') {
             this.appendToCalculationBuffer(sessionId, event);
         }
+        if (event.type === 'candidate_score_v2' || event.type === 'candidate_score') {
+            this.appendToCandidateScoreBuffer(sessionId, event);
+        }
     }
 
     /**
@@ -170,6 +175,7 @@ class SessionEventManager {
         this.lastContexts.delete(sessionId);
         this.thinkingBuffers.delete(sessionId);
         this.calculationLogBuffers.delete(sessionId);
+        this.candidateScoreBuffers.delete(sessionId);
         this.lastActive.delete(sessionId);
     }
 
@@ -214,7 +220,7 @@ class SessionEventManager {
     getThinkingBuffer(sessionId: string): { stage: number; text: string; candidateTime?: string } | undefined {
         this.touch(sessionId);
         const buffer = this.thinkingBuffers.get(sessionId);
-        console.log(`📖 Reading Thinking Buffer: ${sessionId?.slice(0, 8)} | Found=${!!buffer} | Len=${buffer?.text?.length}`);
+        // console.log(`📖 Reading Thinking Buffer: ${sessionId?.slice(0, 8)} | Found=${!!buffer} | Len=${buffer?.text?.length}`);
         return buffer;
     }
 
@@ -232,6 +238,38 @@ class SessionEventManager {
         if (buffer.length > 50) {
             buffer.shift();
         }
+    }
+
+    /**
+     * Append to candidate score buffer (Persistence for Sync)
+     */
+    appendToCandidateScoreBuffer(sessionId: string, scoreEvent: CandidateScoreEvent): void {
+        this.touch(sessionId);
+        if (!this.candidateScoreBuffers.has(sessionId)) {
+            this.candidateScoreBuffers.set(sessionId, []);
+        }
+        const buffer = this.candidateScoreBuffers.get(sessionId)!;
+
+        // Remove existing score for same time (Update implicitly) or append?
+        // Actually, we want to keep history if it moves stages? 
+        // No, current state usually suffices. Frontend filters by time.
+        // Let's just push. Frontend handles dedupe.
+
+        // Optional: Replace if existing to keep buffer small?
+        const existingIdx = buffer.findIndex(c => c.time === scoreEvent.time);
+        if (existingIdx >= 0) {
+            buffer[existingIdx] = scoreEvent; // Update in place
+        } else {
+            buffer.push(scoreEvent);
+        }
+    }
+
+    /**
+     * Get all candidate scores for sync
+     */
+    getCandidateScoreBuffer(sessionId: string): CandidateScoreEvent[] | undefined {
+        this.touch(sessionId);
+        return this.candidateScoreBuffers.get(sessionId);
     }
 
     /**
