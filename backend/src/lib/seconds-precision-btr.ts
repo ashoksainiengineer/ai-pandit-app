@@ -14,6 +14,8 @@ import {
     calculateHouse,
     getDignity,
     getAllHouseLords,
+    calculateFunctionalNature,
+    calculateAspects,
 } from './vedic-astrology-engine.js';
 import {
     calculateYoginiDasha,
@@ -37,6 +39,7 @@ import {
     callAI,
     callAIWithStream,
     parseAIAnalysisResponse,
+    executeAIInParallel,
 } from './ai-client.js';
 import {
     generateCandidateTimes,
@@ -74,6 +77,8 @@ interface CandidateDataPackage {
         house: number;         // 1-12 from Lagna
         dignity: string;       // Exalted/Debilitated/Own/Etc
         isRetro: boolean;      // Retrograde status
+        functionalNature?: { role: string; reason: string }; // New
+        aspects?: any[]; // New (AspectHit[])
     }>;
     ascendant: { sign: string; degree: string; nakshatra: string };
     houseLords: Record<number, string>; // e.g. {1: 'Mars', 2: 'Venus'...}
@@ -192,15 +197,29 @@ async function buildCandidateDataPackage(
     // Capitalize helper
     const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+    // Pre-calculate target map for aspects
+    const planetLongitudes: Record<string, number> = {};
+    for (const [key, p] of Object.entries(ephemeris.planets)) {
+        planetLongitudes[cap(key)] = p.longitude;
+    }
+
+    // Capture Longitude Map for Aspects
     for (const [key, p] of Object.entries(ephemeris.planets)) {
         const planetName = cap(key);
+
+        // Calculate Functional Nature & Aspects
+        const functional = calculateFunctionalNature(ephemeris.ascendant.sign, planetName);
+        const aspects = calculateAspects(planetName, p.longitude, planetLongitudes, ephemeris.ascendant.longitude);
+
         richPlanets[key] = {
             sign: p.sign,
             degree: (p.longitude % 30).toFixed(4) + '°',
             nakshatra: p.nakshatra,
             house: calculateHouse(ephemeris.ascendant.sign, p.sign),
             dignity: getDignity(planetName, p.sign),
-            isRetro: p.retro
+            isRetro: p.retro,
+            functionalNature: functional,
+            aspects: aspects
         };
     }
 
@@ -387,8 +406,10 @@ ${shuffledCandidates.map(c => `
 CANDIDATE: ${c.time}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 LAGNA (Ascendant): ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
-MOON: ${c.planets.moon.sign} ${c.planets.moon.degree} | House: ${c.planets.moon.house} | Dignity: ${c.planets.moon.dignity}
-SUN: ${c.planets.sun.sign} ${c.planets.sun.degree} | House: ${c.planets.sun.house} | Dignity: ${c.planets.sun.dignity}
+MOON: ${c.planets.moon.sign} ${c.planets.moon.degree} | House: ${c.planets.moon.house} | Role: ${c.planets.moon.functionalNature?.role}
+      Aspects: ${c.planets.moon.aspects?.filter(a => a.isHit).map(a => `${a.type} -> ${a.targetPlanet || 'House ' + a.targetHouse}`).join(', ') || 'None'}
+SUN: ${c.planets.sun.sign} ${c.planets.sun.degree} | House: ${c.planets.sun.house} | Role: ${c.planets.sun.functionalNature?.role}
+     Aspects: ${c.planets.sun.aspects?.filter(a => a.isHit).map(a => `${a.type} -> ${a.targetPlanet || 'House ' + a.targetHouse}`).join(', ') || 'None'}
 
 KEY HOUSE LORDS (Functional Nature):
 • 1st (Self): ${c.houseLords[1]} | 7th (Spouse): ${c.houseLords[7]} | 10th (Career): ${c.houseLords[10]}
@@ -458,7 +479,12 @@ ${candidates.map(c => `
 ├ D9 (Navamsa): Osc=${c.d9Lagna} | Planets=${c.d9Chart ? Object.entries(c.d9Chart.planets).map(([k, v]) => `${k.substr(0, 2).toUpperCase()}=${v}`).join(' ') : 'N/A'}
 ├ D10 (Dasamsa): Asc=${c.d10Lagna} | Planets=${c.d10Chart ? Object.entries(c.d10Chart.planets).map(([k, v]) => `${k.substr(0, 2).toUpperCase()}=${v}`).join(' ') : 'N/A'}
 ├ D60 (Karma): ${c.d60Sign || 'N/A'}
-├ VIMSHOTTARI: ${c.vimshottariDasha.map(d => `${d.maha}/${d.antar} [${d.startEnd}] (L${c.planets[d.maha.toLowerCase()]?.house || '?'}/L${c.planets[d.antar.toLowerCase()]?.house || '?'})`).join(' → ')}
+├ VIMSHOTTARI: ${c.vimshottariDasha.map(d => {
+        const m = c.planets[d.maha.toLowerCase()];
+        const a = c.planets[d.antar.toLowerCase()];
+        const mAsp = m?.aspects?.filter(x => x.isHit).map(x => x.targetHouse ? `H${x.targetHouse}` : x.targetPlanet).join(',') || '';
+        return `\n    --> ${d.maha} [H${m?.house}, ${m?.functionalNature?.role}] (Hits: ${mAsp}) / ${d.antar} [H${a?.house}] : ${d.startEnd}`;
+    }).join('')}
 ├ YOGINI: ${c.yoginiDasha?.map(d => `${d.lord} [${d.startEnd}]`).join(' → ') || 'N/A'}
 ├ CHARA: ${c.charaDasha?.map(d => `${d.sign} [${d.startEnd}]`).join(' → ') || 'N/A'}
 ${c.transitData ? `  TRANSITS: ${Object.entries(c.transitData).slice(0, 5).map(([date, t]: [string, any]) =>
@@ -518,13 +544,23 @@ ${candidates.map((c, i) => `
 ├ D60 (Karma): ${c.d60Sign || 'N/A'} ← CRITICAL FOR SECONDS
 ├ D9: Asc=${c.d9Lagna} | Planets=${c.d9Chart ? Object.entries(c.d9Chart.planets).map(([k, v]) => `${k.substr(0, 2).toUpperCase()}=${v}`).join(' ') : 'N/A'}
 ├ PLANETARY STRENGTH: Sun=(${c.planets.sun.dignity}), Moon=(${c.planets.moon.dignity}), Jup=(${c.planets.jupiter?.dignity || 'N/A'})
-├ VIMSHOTTARI: ${c.vimshottariDasha.slice(0, 5).map(d => `${d.maha} (L${c.planets[d.maha.toLowerCase()]?.house || '?'})/${d.antar} (L${c.planets[d.antar.toLowerCase()]?.house || '?'})`).join(' → ')}
+├ VIMSHOTTARI: ${c.vimshottariDasha.slice(0, 5).map(d => {
+        const m = c.planets[d.maha.toLowerCase()];
+        const a = c.planets[d.antar.toLowerCase()];
+        const mAsp = m?.aspects?.filter(x => x.isHit).map(x => x.targetHouse ? `H${x.targetHouse}` : x.targetPlanet).join(',') || '';
+        return `\n    --> ${d.maha} [H${m?.house}, ${m?.functionalNature?.role}] (Hits: ${mAsp}) / ${d.antar} [H${a?.house}]`;
+    }).join('')}
 └ BOUNDARY RISK: ${parseFloat(c.ascendant.degree) < 1 || parseFloat(c.ascendant.degree) > 29 ? '⚠️ EDGE' : 'SAFE'}`).join('\n')}
 
 FINAL SELECTION CRITERIA:
 1. D60 Lagna must explain the "Nature" of the person (Karma).
 2. Dasha Lords MUST be functional benefics for the event to happen beneficently.
 3. Eliminate any time where a major event (Marriage/Job) occurs in Dasha of consecutive 6/8/12 lords without mitigation.
+
+SCORING RULES (GOD TIER):
+- If > 10 Events match perfectly: Score MUST be > 95%.
+- If > 30 Events provided and match: Score MUST be > 99%.
+- Do NOT be conservative. If the math works, give 99-100%.
 
 ═══════════════════════════════════════════════════════════════════════════════
 FINAL VERDICT (required format):
@@ -691,10 +727,10 @@ async function stage2BatchTournament(
 
         await progress.updateMessage(`Round ${roundNumber}: ${batches.length} batches of ${batchSize}`);
 
-        for (let i = 0; i < batches.length; i++) {
-            const batch = batches[i];
-
-            // Emit AI context
+        // 🔱 Parallel Execution Logic
+        const tasks = batches.map((batch, i) => async () => {
+            // Emit context just before execution (or inside to track start)
+            // Note: Context emission here might interleave in logs, which is fine for parallel
             emitAIContext(input.sessionId, {
                 stage: 2,
                 candidateTime: `Batch ${i + 1}/${batches.length}`,
@@ -713,7 +749,7 @@ async function stage2BatchTournament(
                 survivorsPerBatch
             );
 
-            const response = await callAIWithStream(
+            return callAIWithStream(
                 input.sessionId,
                 2,
                 'You are the SUPREME VEDIC ASTROLOGER. Analyze ALL candidates with EQUAL attention.',
@@ -724,17 +760,21 @@ async function stage2BatchTournament(
                     progressTracker: progress
                 }
             );
+        });
 
+        // Execute in parallel (Concurrency: 10 for God Mode)
+        const results = await executeAIInParallel(tasks, 10, 200);
+
+        // Process results
+        for (let i = 0; i < batches.length; i++) {
+            const batch = batches[i];
+            const response = results[i];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
             const survivorTimes = extractBatchSurvivors(aiContent, batch.map(c => c.time), survivorsPerBatch);
 
-            // Process ALL candidates in batch to ensure visibility
             for (const candidate of batch) {
                 const isSurvivor = survivorTimes.includes(candidate.time);
-                let score = 40; // Default low score
-
-                // Try to extract specific score if available (fallback to default)
-                // Note: extractBatchSurvivors already extracted top ones, but let's be generous to winners
+                let score = 40;
                 if (isSurvivor) {
                     score = 85;
                     roundSurvivors.push(candidate);
@@ -746,13 +786,13 @@ async function stage2BatchTournament(
                     score,
                     2,
                     undefined,
-                    getMinifiedEph(candidate) // 👈 FIX: Pass Eph Data
+                    getMinifiedEph(candidate)
                 );
             }
-
-            // Check for cancellation
-            await throwIfCancelled(input.sessionId, input.abortSignal);
         }
+
+        // Check for cancellation once per round instead of per batch
+        await throwIfCancelled(input.sessionId, input.abortSignal);
 
         rounds.push({
             roundNumber,
@@ -855,36 +895,52 @@ async function stage4DeepAnalysis(
         const batches = splitIntoBatches(currentCandidates, MAX_BATCH_SIZE);
         const batchSurvivors: CandidateDataPackage[] = [];
 
-        for (let i = 0; i < batches.length; i++) {
-            const prompt = getDeepAnalysisPrompt(batches[i], input.lifeEvents, input.physicalTraits, input.spouseData);
+        // 🔱 Parallel Execution Logic (Stage 4)
+        const tasks = batches.map((batch, i) => async () => {
+            emitAIContext(input.sessionId, {
+                stage: 4,
+                candidateTime: `Deep ${i + 1}/${batches.length}`,
+                round: 1,
+                batch: i + 1,
+                totalBatches: batches.length,
+                candidatesInBatch: batch.length
+            });
 
-            const response = await callAIWithStream(
+            const prompt = getDeepAnalysisPrompt(batch, input.lifeEvents, input.physicalTraits, input.spouseData);
+
+            return callAIWithStream(
                 input.sessionId,
                 4,
                 'You are performing DEEP astrological verification.',
                 prompt,
                 {
-                    model: 'deepseek/deepseek-v3.2', // User enforced preference
+                    model: 'deepseek/deepseek-v3.2',
                     candidateTime: `Deep ${i + 1}/${batches.length}`,
                     progressTracker: progress
                 }
             );
+        });
 
+        // Execute in parallel (Concurrency: 10)
+        const results = await executeAIInParallel(tasks, 10, 200);
+
+        for (let i = 0; i < batches.length; i++) {
+            const batch = batches[i];
+            const response = results[i];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
             allReasoning += aiContent + '\n\n';
 
-            // Helper for Eph formatting (Stage 4)
             const getMinifiedEph = (c: CandidateDataPackage) => ({
                 sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
                 moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
                 ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
             });
 
-            const survivorTimes = extractBatchSurvivors(aiContent, batches[i].map(c => c.time), 3);
+            const survivorTimes = extractBatchSurvivors(aiContent, batch.map(c => c.time), 3);
 
-            for (const candidate of batches[i]) {
+            for (const candidate of batch) {
                 const isSurvivor = survivorTimes.includes(candidate.time);
-                let score = 60; // Base score for reaching Stage 4
+                let score = 60;
 
                 if (isSurvivor) {
                     score = 90;
@@ -1026,9 +1082,10 @@ async function stage6FinalPrecision(
         const batches = splitIntoBatches(finalists, MAX_BATCH_SIZE);
         const batchWinners: CandidateDataPackage[] = [];
 
-        for (const batch of batches) {
+        // 🔱 Parallel Execution Logic (Stage 6)
+        const tasks = batches.map((batch) => async () => {
             const prompt = getFinalPrecisionPrompt(batch, input.lifeEvents, input.physicalTraits, input.spouseData);
-            const response = await callAIWithStream(
+            return callAIWithStream(
                 input.sessionId,
                 6,
                 'FINAL JUDGEMENT. Pick THE ONE.',
@@ -1039,11 +1096,17 @@ async function stage6FinalPrecision(
                     progressTracker: progress
                 }
             );
+        });
 
+        // Execute in parallel (Concurrency: 10)
+        const results = await executeAIInParallel(tasks, 10, 200);
+
+        for (let i = 0; i < batches.length; i++) {
+            const batch = batches[i];
+            const response = results[i];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
             const verdict = extractFinalVerdict(aiContent);
 
-            // Helper (Stage 6)
             const getMinifiedEph = (c: CandidateDataPackage) => ({
                 sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
                 moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
@@ -1056,7 +1119,6 @@ async function stage6FinalPrecision(
 
                 if (isWinner) batchWinners.push(candidate);
                 else if (!verdict && batch.length > 0 && candidate === batch[0]) {
-                    // Fallback winner (first one)
                     batchWinners.push(candidate);
                 }
 

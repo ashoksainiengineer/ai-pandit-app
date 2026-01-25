@@ -749,3 +749,125 @@ export function getAllHouseLords(ascSign: string): Record<number, string> {
     }
     return lords;
 }
+// ═════════════════════════════════════════════════════════════════════════════
+// GOD-TIER DATA ENRICHMENT ALGORITHMS
+// ═════════════════════════════════════════════════════════════════════════════
+
+// 1. FUNCTIONAL NATURE ALGORITHM
+export function calculateFunctionalNature(ascSign: string, planet: string): {
+    role: 'Benefic' | 'Malefic' | 'Neutral';
+    reason: string;
+} {
+    if (planet === 'Rahu' || planet === 'Ketu') return { role: 'Malefic', reason: 'Natural Malefic' };
+
+    const ascIdx = ZODIAC_SIGNS.indexOf(ascSign);
+
+    // Calculate lordship houses
+    const housesRuled: number[] = [];
+    for (let h = 1; h <= 12; h++) {
+        const lord = getHouseLord(ascSign, h);
+        if (lord === planet) housesRuled.push(h);
+    }
+
+    // Rule 1: Trine Lords (1, 5, 9) are ALWAYS Benefic
+    if (housesRuled.some(h => [1, 5, 9].includes(h))) {
+        return { role: 'Benefic', reason: `Rules Trine House (${housesRuled.filter(h => [1, 5, 9].includes(h)).join(',')})` };
+    }
+
+    // Rule 2: Lords of 6, 8, 12 are Malefic (unless they are also L1, which is covered above)
+    if (housesRuled.some(h => [6, 8, 12].includes(h))) {
+        return { role: 'Malefic', reason: `Rules Dusthana House (${housesRuled.filter(h => [6, 8, 12].includes(h)).join(',')})` };
+    }
+
+    // Rule 3: Lords of 3, 11 are Malefic (Upachaya)
+    if (housesRuled.some(h => [3, 11].includes(h))) {
+        return { role: 'Malefic', reason: 'Rules Upachaya House (3/11) - Functional Malefic' };
+    }
+
+    // Rule 4: Kendra Lords (4, 7, 10)
+    // Neutral logic for simplified output, or context dependent. 
+    // We default to Neutral if no other rule hit.
+    return { role: 'Neutral', reason: 'Rules Kendra House (4/7/10) without Trine/Dusthana lordship' };
+}
+
+// 2. GEOMETRIC ASPECT ENGINE
+export interface AspectHit {
+    targetPlanet?: string;
+    targetHouse?: number;
+    type: string;
+    orb: number;
+    isHit: boolean;
+}
+
+export function calculateAspects(
+    sourcePlanet: string,
+    sourceLong: number,
+    targetMap: Record<string, number>, // planet -> longitude
+    ascendantLong: number
+): AspectHit[] {
+    const hits: AspectHit[] = [];
+
+    // Standard Vedic Aspects + Special Rules
+    let aspectsToCheck = [180]; // All look at 7th (180 deg)
+
+    if (sourcePlanet === 'Mars') aspectsToCheck.push(90, 210); // 4th (90), 8th (210)
+    if (sourcePlanet === 'Jupiter') aspectsToCheck.push(120, 240); // 5th (120), 9th (240)
+    if (sourcePlanet === 'Saturn') aspectsToCheck.push(60, 270); // 3rd (60), 10th (270)
+
+    const ORB_LIMIT = 6; // 6 degrees strict orb
+
+    // Check aspects to other planets
+    for (const [tName, tLong] of Object.entries(targetMap)) {
+        if (tName === sourcePlanet) continue;
+
+        // Calculate forward distance
+        let diff = (tLong - sourceLong + 360) % 360;
+
+        for (const aspectAngle of aspectsToCheck) {
+            const orb = Math.abs(diff - aspectAngle);
+            if (orb <= ORB_LIMIT) {
+                hits.push({
+                    targetPlanet: tName,
+                    type: `${getAspectName(aspectAngle)} (${aspectAngle}°)`,
+                    orb: parseFloat(orb.toFixed(2)),
+                    isHit: true
+                });
+            }
+        }
+    }
+
+    // Check aspect to Houses (e.g. 7th House)
+    // Simplified: Check aspect to Ascendant (Lagna) + Angle
+    // If planet is at 180 from Lagna, it aspects 1st House.
+    // If planet casts 180 aspect, and planet is in 1st house, it looks at 7th.
+    // Better: We calculate House Cusps relative to Ascendant.
+    // House 1 Cusp = AscLong. House 7 Cusp = AscLong + 180.
+
+    // Let's implement Aspect to 7th House (Marriage) specifically as it's critical
+    const SeventhCusp = (ascendantLong + 180) % 360;
+    let dist7 = (SeventhCusp - sourceLong + 360) % 360;
+
+    for (const aspectAngle of aspectsToCheck) {
+        if (Math.abs(dist7 - aspectAngle) <= ORB_LIMIT) {
+            hits.push({
+                targetHouse: 7,
+                type: `${getAspectName(aspectAngle)} to 7th House`,
+                orb: parseFloat(Math.abs(dist7 - aspectAngle).toFixed(2)),
+                isHit: true
+            });
+        }
+    }
+
+    return hits;
+}
+
+function getAspectName(angle: number): string {
+    if (angle === 180) return '7th Aspect (Opposition)';
+    if (angle === 90) return '4th Aspect (Square)';
+    if (angle === 210) return '8th Aspect (Quincunx)';
+    if (angle === 120) return '5th Aspect (Trine)';
+    if (angle === 240) return '9th Aspect (Trine)';
+    if (angle === 60) return '3rd Aspect (Sextile)';
+    if (angle === 270) return '10th Aspect (Square)';
+    return 'Aspect';
+} 

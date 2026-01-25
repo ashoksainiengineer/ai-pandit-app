@@ -10,6 +10,7 @@ import { AIContextData } from '@/lib/use-stream-progress';
 import { ChevronDown, ChevronUp, Brain, Zap, Clock, Activity, Users, Radio } from 'lucide-react';
 import { Typewriter } from '@/components/ui/Typewriter';
 import { LiveCalculationPanel, CalculationLog } from './LiveCalculationPanel';
+import { BTRProcessFlow } from './BTRProcessFlow';
 
 interface AIThinking {
     stage: number;
@@ -201,7 +202,16 @@ export function UnifiedAIPanel({
         { id: 2, name: 'Coarse Elimination', level: 1, color: 'orange', accuracy: '60 → 15' },
         { id: 4, name: 'Deep Analysis', level: 2, color: 'blue', accuracy: '100 → 7' },
         { id: 6, name: 'Final Precision', level: 3, color: 'purple', accuracy: '77 → 1' },
+        { id: 6, name: 'Final Precision', level: 3, color: 'purple', accuracy: '77 → 1' },
     ];
+
+    // 🌊 Dynamic Batch Count for Flow Chart
+    const batchCount = useMemo(() => {
+        if (currentStage === 2 && totalCandidates) {
+            return Math.ceil(totalCandidates / 15);
+        }
+        return undefined;
+    }, [currentStage, totalCandidates]);
 
     if (unifiedMode) {
         // 🌊 GOD-TIER UNIFIED MODE: Single continuous stream with candidate tabs
@@ -278,6 +288,15 @@ export function UnifiedAIPanel({
                         )}
                     </div>
                 </div >
+
+                {/* 🌊 PROCESS FLOW CHART */}
+                <div className="bg-[#151a25] border-b border-[#3A4452]/50">
+                    <BTRProcessFlow
+                        currentStage={currentStage}
+                        totalCandidates={totalCandidates}
+                        batchCount={batchCount}
+                    />
+                </div>
 
                 {/* 🆕 CANDIDATE TABS BAR */}
                 {

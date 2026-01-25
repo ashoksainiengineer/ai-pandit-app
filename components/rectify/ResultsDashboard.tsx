@@ -192,36 +192,14 @@ function EventMatchGrid({ events, analysisDetails }: { events?: any[]; analysisD
     const eventMatches = analysisDetails?.eventMatches || events || [];
 
     if (!eventMatches.length) {
-        // Generate sample event matches if not available
-        const sampleEvents = [
-            { event: 'Career Start', dasha: 'Sun MD / Mercury AD', match: true },
-            { event: 'Marriage', dasha: 'Venus MD / Jupiter AD', match: true },
-            { event: 'First Child', dasha: 'Jupiter MD / Moon AD', match: true },
-            { event: 'Property Purchase', dasha: 'Mars MD / Saturn AD', match: false },
-        ];
         return (
             <div className="bg-[#151a21] border border-[#3A4452] rounded-xl p-6">
                 <h4 className="text-[#F5F0EB] font-bold mb-4 flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-[#D4AF37]" />
                     Event Correlation Audit
                 </h4>
-                <div className="space-y-2">
-                    {sampleEvents.map((evt, idx) => (
-                        <div key={idx} className="flex items-center justify-between p-3 bg-[#0F1419] rounded-lg border border-[#3A4452]/50">
-                            <div className="flex items-center gap-3">
-                                <div className={`w-6 h-6 rounded-full flex items-center justify-center ${evt.match ? 'bg-emerald-500/20' : 'bg-amber-500/20'}`}>
-                                    {evt.match ? <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> : <Activity className="w-3.5 h-3.5 text-amber-400" />}
-                                </div>
-                                <span className="text-sm text-[#F5F0EB]">{evt.event}</span>
-                            </div>
-                            <div className="text-right">
-                                <div className="text-xs font-mono text-[#D4AF37]">{evt.dasha}</div>
-                                <div className={`text-[9px] uppercase tracking-wider ${evt.match ? 'text-emerald-400' : 'text-amber-400'}`}>
-                                    {evt.match ? 'Strong Match' : 'Partial'}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
+                <div className="text-center text-[#8C7F72] text-sm italic py-4">
+                    No event correlations available yet.
                 </div>
             </div>
         );

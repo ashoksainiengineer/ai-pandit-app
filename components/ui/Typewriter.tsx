@@ -12,7 +12,7 @@ interface TypewriterProps {
     className?: string;
 }
 
-export function Typewriter({ content, speed = 8, onComplete, className = '' }: TypewriterProps) {
+export function Typewriter({ content, speed = 5, onComplete, className = '' }: TypewriterProps) {
     const [displayedText, setDisplayedText] = useState('');
     const indexRef = useRef(0);
     const frameRef = useRef<number | null>(null);
@@ -20,14 +20,15 @@ export function Typewriter({ content, speed = 8, onComplete, className = '' }: T
 
     // Calculate adaptive speed based on content length lag
     const getCharsToAppend = useCallback((lag: number): number => {
-        // Smooth adaptive chunking - larger lag = more chars at once
-        if (lag > 1000) return 80;  // Very far behind - catch up fast
-        if (lag > 500) return 40;
-        if (lag > 200) return 20;
-        if (lag > 100) return 10;
-        if (lag > 50) return 5;
-        if (lag > 20) return 3;
-        return 1;  // Normal typing speed
+        // ⚡ Fast-Fluid Mode:
+        // User wants MAX throughput (matching OpenRouter) but NO dumps.
+        // Strategy: Catch up to the stream head within ~20-30 frames (0.5s max lag).
+
+        if (lag > 2000) return Math.ceil(lag / 10); // Ultra-fast catchup for huge dumps
+        if (lag > 500) return Math.ceil(lag / 20);  // proportional catchup (finishes in ~20 ticks)
+        if (lag > 100) return 5;                    // Fast typing
+        if (lag > 20) return 2;                     // Brisk typing
+        return 1;                                   // Normal precision
     }, []);
 
     useEffect(() => {

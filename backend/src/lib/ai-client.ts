@@ -18,7 +18,7 @@ const AI_CONFIG = {
     model: process.env.AI_MODEL || 'deepseek/deepseek-v3.2',
     maxTokens: 65536,      // 64K Output (Safe limit near 66K max)
     thinkingBudget: 49152, // 48K Thinking Budget (75% of output)
-    temperature: 0.1,
+    temperature: 0,
     retryAttempts: 3,
     retryDelayMs: 2000,
     timeoutMs: 300000,
