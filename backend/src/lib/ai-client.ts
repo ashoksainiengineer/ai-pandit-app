@@ -15,7 +15,7 @@ const AI_CONFIG = {
     // OpenRouter AI Configuration
     baseUrl: process.env.AI_BASE_URL || 'https://openrouter.ai/api/v1',
     apiKey: process.env.AI_API_KEY || '',
-    model: process.env.AI_MODEL || 'deepseek/deepseek-v3.2',
+    model: process.env.AI_MODEL || 'deepseek/deepseek-r1',
     maxTokens: 65536,      // 64K Output (Safe limit near 66K max)
     thinkingBudget: 49152, // 48K Thinking Budget (75% of output)
     temperature: 0,
@@ -410,6 +410,13 @@ export async function callAIWithStream(
             if (!fullThinking && !fullContent) {
                 // If completely empty, treat as failure and retry
                 throw new Error('Empty response from AI provider');
+            }
+
+            // 🛡️ SECURITY: Strip <think> tags if they leaked into content (DeepSeek R1 common issue)
+            const thinkMatch = fullContent.match(/<think>([\s\S]*?)<\/think>/i);
+            if (thinkMatch) {
+                fullThinking += "\n" + thinkMatch[1];
+                fullContent = fullContent.replace(/<think>[\s\S]*?<\/think>/i, '').trim();
             }
 
             return {

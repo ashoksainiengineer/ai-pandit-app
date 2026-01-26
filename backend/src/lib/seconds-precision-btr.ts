@@ -755,7 +755,7 @@ async function stage2BatchTournament(
                 'You are the SUPREME VEDIC ASTROLOGER. Analyze ALL candidates with EQUAL attention.',
                 prompt,
                 {
-                    model: 'deepseek/deepseek-v3.2',
+                    // model: 'deepseek/deepseek-r1', // Use env default
                     candidateTime: `Batch ${i + 1}/${batches.length}`,
                     progressTracker: progress
                 }
@@ -763,7 +763,7 @@ async function stage2BatchTournament(
         });
 
         // Execute in parallel (Concurrency: 10 for God Mode)
-        const results = await executeAIInParallel(tasks, 10, 200);
+        const results = await executeAIInParallel(tasks, 25, 100);
 
         // Process results
         for (let i = 0; i < batches.length; i++) {
@@ -914,7 +914,7 @@ async function stage4DeepAnalysis(
                 'You are performing DEEP astrological verification.',
                 prompt,
                 {
-                    model: 'deepseek/deepseek-v3.2',
+                    // model: 'deepseek/deepseek-r1', // Use env default
                     candidateTime: `Deep ${i + 1}/${batches.length}`,
                     progressTracker: progress
                 }
@@ -922,7 +922,7 @@ async function stage4DeepAnalysis(
         });
 
         // Execute in parallel (Concurrency: 10)
-        const results = await executeAIInParallel(tasks, 10, 200);
+        const results = await executeAIInParallel(tasks, 25, 100);
 
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i];
@@ -970,7 +970,7 @@ async function stage4DeepAnalysis(
             'You are performing FINAL deep verification.',
             prompt,
             {
-                model: 'deepseek/deepseek-v3.2',
+                model: 'deepseek/deepseek-r1',
                 candidateTime: 'Deep Final',
                 progressTracker: progress
             }
