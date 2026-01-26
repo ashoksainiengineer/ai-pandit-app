@@ -672,7 +672,7 @@ export default function ProgressPage() {
 
 
                 {/* Unified AI Analysis Panel (Unified Continuous Stream) */}
-                {(isAIStepActive || aiThinking || (calculationLogs?.length ?? 0) > 0) && !isComplete && (() => {
+                {!isComplete && (() => {
                     let aiStage = 2;
                     if (streamProgress) {
                         if (streamProgress.stepIndex === 4) aiStage = 2;
@@ -701,11 +701,20 @@ export default function ProgressPage() {
                 })()}
 
                 {/* 📊 DECOUPLED CANDIDATE TABLES (Level by Level) */}
-                {!isComplete && (candidateScores?.length ?? 0) > 0 && (
+                {!isComplete && (
                     <div className="mb-8">
                         <CandidateLevelTables
                             candidateScores={candidateScores || []}
                             currentStage={progress?.currentStep || 0}
+                        />
+                    </div>
+                )}
+
+                {/* 🏆 VEDIC ANALYSIS RESULTS (Trophy View) */}
+                {!isComplete && (
+                    <div className="mb-8">
+                        <LiveScoreTable
+                            scores={candidateScores || []}
                         />
                     </div>
                 )}

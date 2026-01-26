@@ -120,11 +120,13 @@ export interface PlanetPosition {
   sign: string;
   degree: number;
   longitude: number;
+  latitude: number;   // Ecliptic Latitude
   nakshatra: string;
   nakshatraPada?: number; // 1-4, for sub-nakshatra precision
   lord: string;
   retro: boolean;
   speed: number;       // degrees per day
+  longitudeSpeed?: number; // Raw speed from Swiss Eph
   distance: number;    // distance from Earth/Sun
   isCombust: boolean;
   dignity: string;     // Exalted, Own, Friend, etc.

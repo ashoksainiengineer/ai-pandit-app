@@ -15,8 +15,8 @@ export function LiveScoreTable({ scores, className = '' }: LiveScoreTableProps) 
     return (
         <div className={`mt-6 overflow-hidden rounded-xl border border-white/10 bg-black/20 backdrop-blur-sm ${className}`}>
             <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-3">
-                <h3 className="text-sm font-medium text-white/90">
-                    Live Analysis Results
+                <h3 className="text-[10px] font-black text-emerald-400 tracking-[0.2em] uppercase">
+                    VEDIC ASTROLOGICAL DATA TABLE
                 </h3>
                 <span className="rounded-full bg-purple-500/20 px-2 py-0.5 text-xs font-medium text-purple-300">
                     {scores.length} Analyzed

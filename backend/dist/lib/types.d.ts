@@ -77,11 +77,13 @@ export interface PlanetPosition {
     sign: string;
     degree: number;
     longitude: number;
+    latitude: number;
     nakshatra: string;
     nakshatraPada?: number;
     lord: string;
     retro: boolean;
     speed: number;
+    longitudeSpeed?: number;
     distance: number;
     isCombust: boolean;
     dignity: string;

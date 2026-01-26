@@ -137,4 +137,13 @@ export interface DoubleTransitResult {
  * Powerful Vedic rule for event manifestation.
  */
 export declare function verifyDoubleTransit(transitEphemeris: EphemerisData, birthAscSign: string, targetHouse: number): DoubleTransitResult;
+export declare function calculateArudhas(ephemeris: EphemerisData): Record<string, string>;
+export interface PanchangaData {
+    tithi: string;
+    vara: string;
+    nakshatra: string;
+    yoga: string;
+    karana: string;
+}
+export declare function calculatePanchanga(jd: number, sunLong: number, moonLong: number): PanchangaData;
 //# sourceMappingURL=vedic-astrology-engine.d.ts.map

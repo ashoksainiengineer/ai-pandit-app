@@ -368,9 +368,11 @@ async function calculateEphemeris(birthDate, birthTime, latitude, longitude, tim
             const name = planetNames[i].charAt(0).toUpperCase() + planetNames[i].slice(1);
             planets[planetNames[i]] = {
                 sign, degree: lng % 30, longitude: lng,
+                latitude: result.latitude,
                 nakshatra: getNakshatra(lng), nakshatraPada: getNakshatraPada(lng),
                 lord: getLord(sign), retro: result.longitudeSpeed < 0,
                 speed: result.longitudeSpeed,
+                longitudeSpeed: result.longitudeSpeed,
                 distance: result.distance,
                 isCombust: isCombust(name, lng, sunLng),
                 dignity: getDignity(name, sign),
@@ -382,9 +384,11 @@ async function calculateEphemeris(birthDate, birthTime, latitude, longitude, tim
         const ketuSign = getZodiacSign(ketuLng);
         planets.ketu = {
             sign: ketuSign, degree: ketuLng % 30, longitude: ketuLng,
+            latitude: -planets.rahu.latitude, // Ketu is opposite node
             nakshatra: getNakshatra(ketuLng), nakshatraPada: getNakshatraPada(ketuLng),
             lord: getLord(ketuSign), retro: true,
             speed: planets.rahu.speed, // Ketu speed matches Rahu
+            longitudeSpeed: planets.rahu.longitudeSpeed,
             distance: planets.rahu.distance,
             isCombust: false,
             dignity: getDignity('Ketu', ketuSign),
@@ -435,6 +439,7 @@ async function calculateEphemeris(birthDate, birthTime, latitude, longitude, tim
         const sunSign = getZodiacSign(sunLng);
         planets.sun = {
             sign: sunSign, degree: sunLng % 30, longitude: sunLng,
+            latitude: 0, // Sun always 0
             nakshatra: getNakshatra(sunLng), nakshatraPada: getNakshatraPada(sunLng),
             lord: getLord(sunSign), retro: false,
             speed: 1.0, distance: 1.0, isCombust: false, dignity: getDignity('Sun', sunSign), house: 0
@@ -442,6 +447,7 @@ async function calculateEphemeris(birthDate, birthTime, latitude, longitude, tim
         const moonSign = getZodiacSign(moonLng);
         planets.moon = {
             sign: moonSign, degree: moonLng % 30, longitude: moonLng,
+            latitude: 0, // Simplified for algo mode
             nakshatra: getNakshatra(moonLng), nakshatraPada: getNakshatraPada(moonLng),
             lord: getLord(moonSign), retro: false,
             speed: 13.2, distance: 1.0, isCombust: false, dignity: getDignity('Moon', moonSign), house: 0
@@ -453,6 +459,7 @@ async function calculateEphemeris(birthDate, birthTime, latitude, longitude, tim
             const planetName = name.charAt(0).toUpperCase() + name.slice(1);
             planets[name] = {
                 sign, degree: lng % 30, longitude: lng,
+                latitude: 0, // Simplified for algo mode
                 nakshatra: getNakshatra(lng), nakshatraPada: getNakshatraPada(lng),
                 lord: getLord(sign), retro: speed < 0,
                 speed,
@@ -467,6 +474,7 @@ async function calculateEphemeris(birthDate, birthTime, latitude, longitude, tim
         const ketuSign = getZodiacSign(ketuLng);
         planets.ketu = {
             sign: ketuSign, degree: ketuLng % 30, longitude: ketuLng,
+            latitude: 0,
             nakshatra: getNakshatra(ketuLng), nakshatraPada: getNakshatraPada(ketuLng),
             lord: getLord(ketuSign), retro: true,
             speed: planets.rahu.speed,

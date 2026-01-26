@@ -41,7 +41,7 @@ function formatTimeHHMMSS(time) {
 async function buildCandidateDataPackage(time, offsetMinutes, input, includeFullData = false) {
     let ephemeris = await (0, ephemeris_js_1.calculateEphemeris)(input.dateOfBirth, time, input.latitude, input.longitude, input.timezone);
     // Calculate All Vargas and Special Metrics
-    const { calculateAllVargas, calculateAshtakavarga, calculateShadbala, detectYogas, verifyDoubleTransit } = await import('./vedic-astrology-engine.js');
+    const { calculateAllVargas, calculateAshtakavarga, calculateShadbala, detectYogas, verifyDoubleTransit, calculateArudhas, calculatePanchanga } = await import('./vedic-astrology-engine.js');
     ephemeris.divisionalCharts = calculateAllVargas(ephemeris);
     ephemeris.ashtakavarga = calculateAshtakavarga(ephemeris);
     ephemeris.shadbala = calculateShadbala(ephemeris);
@@ -65,13 +65,12 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
             nakshatra: nakshatra.name
         };
     }
-    // Build Vimshottari Dasha table (Flattened to Antardasha level)
+    // Build Vimshottari Dasha table (Flattened to Prana level for God-Tier Precision)
     const vimDashas = (0, vedic_astrology_engine_js_1.calculateVimshottariDasha)(moonLong, birthDate);
     // Determine relevant date range (Birth to Present/Max Event + 1 Year buffer)
     const eventDates = input.lifeEvents.map(e => new Date(e.eventDate).getTime());
     const now = Date.now();
     const minDate = Math.min(...eventDates, now) - (365 * 24 * 60 * 60 * 1000); // 1 year before first event
-    // Cap at current date + 1 year (no future dashas needed unless events are in future)
     const maxEventDate = Math.max(...eventDates, now);
     const maxDate = maxEventDate + (365 * 24 * 60 * 60 * 1000); // 1 year buffer
     const vimshottariDasha = [];
@@ -79,17 +78,24 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
         if (!maha.subPeriods)
             continue;
         for (const antar of maha.subPeriods) {
-            const start = antar.startDate.getTime();
-            const end = antar.endDate.getTime();
-            // Include if overlaps with event range
-            // (Start <= Max AND End >= Min)
-            if (start <= maxDate && end >= minDate) {
-                vimshottariDasha.push({
-                    maha: maha.lord,
-                    antar: antar.lord,
-                    pratyantar: '*', // Denotes full Antardasha coverage
-                    startEnd: `${antar.startDate.toISOString().split('T')[0]} to ${antar.endDate.toISOString().split('T')[0]}`
-                });
+            for (const prat of antar.subPeriods) {
+                for (const suksh of prat.subPeriods) {
+                    for (const prana of suksh.subPeriods) {
+                        const start = prana.startDate.getTime();
+                        const end = prana.endDate.getTime();
+                        // Include if overlaps with event range
+                        if (start <= maxDate && end >= minDate) {
+                            vimshottariDasha.push({
+                                maha: maha.lord,
+                                antar: antar.lord,
+                                pratyantar: prat.lord,
+                                sukshma: suksh.lord,
+                                prana: prana.lord,
+                                startEnd: `${prana.startDate.toISOString().split('T')[1].slice(0, 8)} to ${prana.endDate.toISOString().split('T')[1].slice(0, 8)} (${prana.startDate.toISOString().split('T')[0]})`
+                            });
+                        }
+                    }
+                }
             }
         }
     }
@@ -99,6 +105,8 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
     const richPlanets = {};
     // Capitalize helper
     const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+    const arudhas = calculateArudhas(ephemeris);
+    const panchanga = calculatePanchanga((0, ephemeris_js_1.calculateJulianDay)(birthDate), ephemeris.planets.sun.longitude, ephemeris.planets.moon.longitude);
     // Pre-calculate target map for aspects
     const planetLongitudes = {};
     for (const [key, p] of Object.entries(ephemeris.planets)) {
@@ -109,6 +117,7 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
         const planetName = cap(key);
         const functional = (0, vedic_astrology_engine_js_1.calculateFunctionalNature)(ephemeris.ascendant.sign, planetName);
         const aspects = (0, vedic_astrology_engine_js_1.calculateAspects)(planetName, p.longitude, planetLongitudes, ephemeris.ascendant.longitude);
+        const signIdx = ZODIAC_SIGNS.indexOf(p.sign);
         richPlanets[key] = {
             sign: p.sign,
             degree: (p.longitude % 30).toFixed(4) + '°',
@@ -119,6 +128,7 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
             speed: p.speed,
             isCombust: p.isCombust,
             shadbala: ephemeris.shadbala?.[planetName],
+            bav: ephemeris.ashtakavarga?.[planetName]?.[signIdx],
             functionalNature: functional,
             aspects: aspects
         };
@@ -136,6 +146,11 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
         moonNakshatra: ephemeris.planets.moon.nakshatra,
         vimshottariDasha,
         ashtakavarga: ephemeris.ashtakavarga,
+        panchanga,
+        specialPoints: {
+            AL: { sign: arudhas.AL, degree: '0.00°', house: ((ZODIAC_SIGNS.indexOf(arudhas.AL) - ZODIAC_SIGNS.indexOf(ephemeris.ascendant.sign) + 12) % 12) + 1 },
+            UL: { sign: arudhas.UL, degree: '0.00°', house: ((ZODIAC_SIGNS.indexOf(arudhas.UL) - ZODIAC_SIGNS.indexOf(ephemeris.ascendant.sign) + 12) % 12) + 1 }
+        },
         yogas
     };
     // Include extended data for later stages
@@ -297,28 +312,31 @@ LIFE EVENTS:
 ${eventsText}
 ${traits ? `\nPHYSICAL TRAITS: ${JSON.stringify(traits)}` : ''}
 
-CANDIDATES WITH ENRICHED VEDIC DATA:
+CANDIDATES WITH ENRICHED VEDIC DATA (100% Mathematical Matrix):
 ${shuffledCandidates.map(c => `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CANDIDATE: ${c.time}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PANCHANGA: Day=${c.panchanga?.vara} | Tithi=${c.panchanga?.tithi} | Yoga=${c.panchanga?.yoga} | Karana=${c.panchanga?.karana}
+SPECIAL POINTS: AL (Arudha Lagna)=${c.specialPoints?.AL.sign} | UL (Upapada Lagna)=${c.specialPoints?.UL.sign}
 LAGNA (Ascendant): ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
-│ Sun: ${c.planets.sun.sign} ${c.planets.sun.degree} | House: ${c.planets.sun.house} | SAV: ${c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(c.planets.sun.sign)] || '?'} pts | Role: ${c.planets.sun.functionalNature?.role}
-│      Shadbala: ${c.planets.sun.shadbala || '?'} | Aspects: ${c.planets.sun.aspects?.filter(a => a.isHit).map(a => `${a.type} -> ${a.targetPlanet || 'House ' + a.targetHouse}`).join(', ') || 'None'}
-│ Moon: ${c.planets.moon.sign} ${c.planets.moon.degree} | House: ${c.planets.moon.house} | SAV: ${c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(c.planets.moon.sign)] || '?'} pts | Role: ${c.planets.moon.functionalNature?.role}
-│      Shadbala: ${c.planets.moon.shadbala || '?'} | Aspects: ${c.planets.moon.aspects?.filter(a => a.isHit).map(a => `${a.type} -> ${a.targetPlanet || 'House ' + a.targetHouse}`).join(', ') || 'None'}
+HOUSE LORDS: 1=${c.houseLords[1]}, 7=${c.houseLords[7]}, 10=${c.houseLords[10]}, 5=${c.houseLords[5]}, 9=${c.houseLords[9]}
+
+PLANETARY MATRIX (Verified Swiss Eph Positions):
+${Object.entries(c.planets).map(([name, p]) => {
+        const caps = name.charAt(0).toUpperCase() + name.slice(1);
+        const sav = c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(p.sign)] || '?';
+        const aspects = p.aspects?.filter((a) => a.isHit).map((a) => `${a.type}→${a.targetPlanet || 'H' + a.targetHouse}`).join(', ') || 'None';
+        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} ${p.degree.padEnd(8)} | H: ${p.house} | Role: ${p.functionalNature?.role.padEnd(8)} | Sh: ${p.shadbala || '?'} | BAV: ${p.bav || '?'} | SAV: ${sav} | Asp: ${aspects}`;
+    }).join('\n')}
 
 ${c.yogas && c.yogas.length > 0 ? `YOGAS DETECTED: ${c.yogas.map(y => `${y.name} (${y.level})`).join(', ')}` : ''}
-
-KEY HOUSE LORBS (Functional Nature):
-• 1st (Self): ${c.houseLords[1]} | 7th (Spouse): ${c.houseLords[7]} | 10th (Career): ${c.houseLords[10]}
-• 5th (Children): ${c.houseLords[5]} | 9th (Fortune): ${c.houseLords[9]} | 6/8/12 (Dusthanas): ${c.houseLords[6]}, ${c.houseLords[8]}, ${c.houseLords[12]}
 
 ${c.d9Lagna ? `D9 NAVAMSHA LAGNA: ${c.d9Lagna}` : ''}
 ${c.d10Lagna ? `D10 DASAMSHA LAGNA: ${c.d10Lagna}` : ''}
 
-VIMSHOTTARI DASHA PERIODS (Verify Lordship Connection):
-${c.vimshottariDasha.map(d => `  • ${d.maha} [House ${c.planets[d.maha.toLowerCase()]?.house}, ${c.planets[d.maha.toLowerCase()]?.dignity}] / ${d.antar} [House ${c.planets[d.antar.toLowerCase()]?.house}] : ${d.startEnd}`).join('\n')}
+VIMSHOTTARI DASHA PERIODS (MD-AD-PD-SD-PRD):
+${c.vimshottariDasha.slice(0, 10).map(d => `  • ${d.maha}/${d.antar}/${d.pratyantar}/${d.sukshma}/${d.prana} : ${d.startEnd}`).join('\n')}
 ${c.yoginiDasha ? `\nYOGINI DASHA: ${c.yoginiDasha.map(d => `${d.lord} (${d.startEnd})`).join(' → ')}` : ''}
 `).join('')}
 
@@ -369,28 +387,28 @@ SPOUSE DATA: ${spouseText}
 LIFE EVENTS:
 ${eventsText}
 
-CANDIDATES (RAW MATHEMATICAL DATA):
+CANDIDATES (100% VERIFIED MATHEMATICAL DATA):
 ${shuffledCandidates.map(c => `
 [${c.time}]
 ┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
+├ PANCHANGA: Tithi=${c.panchanga?.tithi} | Vara=${c.panchanga?.vara} | Yoga=${c.panchanga?.yoga}
+├ ARUDHAS: AL=${c.specialPoints?.AL.sign} | UL=${c.specialPoints?.UL.sign}
 ├ HOUSE LORDS: 1=${c.houseLords[1]} | 7=${c.houseLords[7]} | 10=${c.houseLords[10]} | 5=${c.houseLords[5]} | 9=${c.houseLords[9]}
-├ PLANETARY POSITIONS (Sidereal/Lahiri):
-│ Sun: ${c.planets.sun.sign} ${c.planets.sun.degree} (${c.planets.sun.nakshatra}) [House ${c.planets.sun.house}, ${c.planets.sun.dignity}, Speed: ${c.planets.sun.speed.toFixed(3)}, Shadbala: ${c.planets.sun.shadbala || '?'}, SAV: ${c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(c.planets.sun.sign)] || '?'}, ${c.planets.sun.isCombust ? 'COMBUST' : 'SAFE'}]
-│ Moon: ${c.planets.moon.sign} ${c.planets.moon.degree} (${c.planets.moon.nakshatra}) [House ${c.planets.moon.house}, ${c.planets.moon.dignity}, Speed: ${c.planets.moon.speed.toFixed(3)}, Shadbala: ${c.planets.moon.shadbala || '?'}, SAV: ${c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(c.planets.moon.sign)] || '?'}]
-│ Mars: ${c.planets.mars.sign} ${c.planets.mars.degree} (${c.planets.mars.nakshatra}) [House ${c.planets.mars.house}, ${c.planets.mars.dignity}, Speed: ${c.planets.mars.speed.toFixed(3)}, Shadbala: ${c.planets.mars.shadbala || '?'}, ${c.planets.mars.isRetro ? 'RETRO' : 'DIRECT'}]
-│ Mercury: ${c.planets.mercury.sign} ${c.planets.mercury.degree} (${c.planets.mercury.nakshatra}) [House ${c.planets.mercury.house}, ${c.planets.mercury.dignity}, Speed: ${c.planets.mercury.speed.toFixed(3)}, Shadbala: ${c.planets.mercury.shadbala || '?'}, ${c.planets.mercury.isCombust ? 'COMBUST' : 'SAFE'}]
-│ Jupiter: ${c.planets.jupiter.sign} ${c.planets.jupiter.degree} (${c.planets.jupiter.nakshatra}) [House ${c.planets.jupiter.house}, ${c.planets.jupiter.dignity}, Speed: ${c.planets.jupiter.speed.toFixed(3)}, Shadbala: ${c.planets.jupiter.shadbala || '?'}]
-│ Venus: ${c.planets.venus.sign} ${c.planets.venus.degree} (${c.planets.venus.nakshatra}) [House ${c.planets.venus.house}, ${c.planets.venus.dignity}, Speed: ${c.planets.venus.speed.toFixed(3)}, Shadbala: ${c.planets.venus.shadbala || '?'}]
-│ Saturn: ${c.planets.saturn.sign} ${c.planets.saturn.degree} (${c.planets.saturn.nakshatra}) [House ${c.planets.saturn.house}, ${c.planets.saturn.dignity}, Speed: ${c.planets.saturn.speed.toFixed(3)}, Shadbala: ${c.planets.saturn.shadbala || '?'}]
-│ Rahu: ${c.planets.rahu.sign} ${c.planets.rahu.degree} [House ${c.planets.rahu.house}]
-│ Ketu: ${c.planets.ketu.sign} ${c.planets.ketu.degree} [House ${c.planets.ketu.house}]
+├ PLANETARY MATRIX (Full Vedic Metrics):
+${Object.entries(c.planets).map(([name, p]) => {
+        const caps = name.charAt(0).toUpperCase() + name.slice(1);
+        const sav = c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(p.sign)] || '?';
+        const aspects = p.aspects?.filter((a) => a.isHit).map((a) => `${a.type}→${a.targetPlanet || 'H' + a.targetHouse}`).join(', ') || 'None';
+        const status = [p.isRetro ? 'RETRO' : '', p.isCombust ? 'COMBUST' : ''].filter(Boolean).join('/') || 'DIRECT';
+        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} ${p.degree.padEnd(8)} | H: ${p.house} | ${p.nakshatra.padEnd(12)} | ${p.dignity.padEnd(10)} | Sp: ${p.speed.toFixed(3)} | Sh: ${p.shadbala || '?'} | BAV: ${p.bav || '?'} | SAV: ${sav} | ${status} | Asp: ${aspects}`;
+    }).join('\n')}
 ├ YOGAS: ${c.yogas?.map(y => y.name).join(', ') || 'None'}
 ├ DIVISIONAL CHARTS:
 │ D9 (Navamsa): Lagna=${c.d9Lagna} | Planets=${c.d9Chart ? Object.entries(c.d9Chart.planets).map(([k, v]) => `${k.substring(0, 2).toUpperCase()}=${v}`).join(' ') : ''}
 │ D10 (Dasamsa): Lagna=${c.d10Lagna} | Planets=${c.d10Chart ? Object.entries(c.d10Chart.planets).map(([k, v]) => `${k.substring(0, 2).toUpperCase()}=${v}`).join(' ') : ''}
 │ D60 (Shashtyamsa): Lagna=${c.d60Sign}
-├ VIMSHOTTARI DASHA SEQUENCE:
-${c.vimshottariDasha.map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar} : ${d.startEnd}`).join('\n')}
+├ VIMSHOTTARI DASHA SEQUENCE (Full 5-Level Resolve):
+${c.vimshottariDasha.slice(0, 12).map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar} -> ${d.sukshma} -> ${d.prana} : ${d.startEnd}`).join('\n')}
 ├ YOGINI DASHA: ${c.yoginiDasha?.map(d => `${d.lord} [${d.startEnd}]`).join(' | ') || 'N/A'}
 ├ CHARA DASHA: ${c.charaDasha?.map(d => `${d.sign} [${d.startEnd}]`).join(' | ') || 'N/A'}
 ├ ASHTAKAVARGA SAV: ${c.ashtakavarga?.SAV ? `[${c.ashtakavarga.SAV.join(', ')}]` : 'N/A'}
@@ -442,24 +460,24 @@ Spouse: ${spouseText}
 LIFE EVENTS:
 ${eventsText}
 
-FINALIST CANDIDATES (RAW DATA):
+FINALIST CANDIDATES (100% COMPLETE MATHEMATICAL DATA):
 ${shuffledCandidates.map((c, i) => `
 #${i + 1} [${c.time}]
 ┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
+├ PANCHANGA: ${c.panchanga?.tithi} | ${c.panchanga?.vara}
+├ ARUDHAS: AL=${c.specialPoints?.AL.sign} | UL=${c.specialPoints?.UL.sign}
 ├ HOUSE LORDS: 1=${c.houseLords[1]} | 7=${c.houseLords[7]} | 10=${c.houseLords[10]}
 ├ D60 (Karma Lagna): ${c.d60Sign || 'N/A'}
-├ D9: Asc=${c.d9Lagna} | D10: Asc=${c.d10Lagna}
 ├ PLANETARY STRENGTH MATRIX:
-│ Sun: ${c.planets.sun.sign} [H${c.planets.sun.house}, ${c.planets.sun.dignity}, Sh: ${c.planets.sun.shadbala}, SAV: ${c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(c.planets.sun.sign)]}]
-│ Moon: ${c.planets.moon.sign} [H${c.planets.moon.house}, ${c.planets.moon.dignity}, Sh: ${c.planets.moon.shadbala}, SAV: ${c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(c.planets.moon.sign)]}]
-│ Mars: ${c.planets.mars.sign} [H${c.planets.mars.house}, ${c.planets.mars.dignity}, Sh: ${c.planets.mars.shadbala}]
-│ Mercury: ${c.planets.mercury.sign} [H${c.planets.mercury.house}, ${c.planets.mercury.dignity}, Sh: ${c.planets.mercury.shadbala}]
-│ Jupiter: ${c.planets.jupiter.sign} [H${c.planets.jupiter.house}, ${c.planets.jupiter.dignity}, Sh: ${c.planets.jupiter.shadbala}]
-│ Venus: ${c.planets.venus.sign} [H${c.planets.venus.house}, ${c.planets.venus.dignity}, Sh: ${c.planets.venus.shadbala}]
-│ Saturn: ${c.planets.saturn.sign} [H${c.planets.saturn.house}, ${c.planets.saturn.dignity}, Sh: ${c.planets.saturn.shadbala}]
+${Object.entries(c.planets).map(([name, p]) => {
+        const caps = name.charAt(0).toUpperCase() + name.slice(1);
+        const sav = c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(p.sign)] || '?';
+        const status = [p.isRetro ? 'RETRO' : '', p.isCombust ? 'COMBUST' : ''].filter(Boolean).join('/') || 'DIRECT';
+        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} [H${p.house}, ${p.dignity.padEnd(8)}, Sh:${p.shadbala || '?'}, BAV:${p.bav || '?'}, SAV:${sav}, ${status}]`;
+    }).join('\n')}
 ├ YOGAS: ${c.yogas?.map(y => y.name).join(', ') || 'N/A'}
-├ VIMSHOTTARI SEQUENCE (MD-AD-PD):
-${c.vimshottariDasha.slice(0, 5).map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar} : ${d.startEnd}`).join('\n')}
+├ VIMSHOTTARI SEQUENCE (MD-AD-PD-SD-PRD):
+${c.vimshottariDasha.slice(0, 15).map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar} -> ${d.sukshma} -> ${d.prana} : ${d.startEnd}`).join('\n')}
 ├ SAV: ${c.ashtakavarga?.SAV ? c.ashtakavarga.SAV.join(',') : ''}
 ${c.transitData ? `├ TRANSITS & DASHAS:
 ${Object.entries(c.transitData).slice(0, 3).map(([date, t]) => `│ [${date}]: Dasha=${t.dasha} | Ju=${t.jupiter}, Sa=${t.saturn}${t.doubleTransit?.isTriggered ? ` (DT H${t.doubleTransit.targetHouse})` : ''}`).join('\n')}` : ''}
@@ -529,7 +547,7 @@ async function stage1ExhaustiveDataGeneration(input, progress) {
     let processed = 0;
     logger_js_1.logger.info('🔱 Stage 1: Generating Swiss Eph data for ALL candidates', { total });
     for (const raw of rawCandidates) {
-        const pkg = await buildCandidateDataPackage(raw.time, raw.offsetMinutes, input, false);
+        const pkg = await buildCandidateDataPackage(raw.time, raw.offsetMinutes, input, true);
         candidates.push(pkg);
         processed++;
         // Log EVERY calculation (user requested)

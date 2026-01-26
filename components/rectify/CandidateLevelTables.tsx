@@ -83,7 +83,7 @@ export function CandidateLevelTables({ candidateScores, currentStage, onSelectCa
         <div className="flex flex-col gap-6">
             {STAGES.map((stage) => {
                 const settings = stageSettings[stage.id];
-                const rawResults = candidateScores.filter(c => c.stage === stage.id);
+                const rawResults = candidateScores.filter(c => c.stage >= stage.id);
 
                 // Sort results
                 const sortedResults = useMemo(() => {

@@ -55,6 +55,12 @@ const DASHA_SEQUENCE = [
     'Rahu', 'Jupiter', 'Saturn', 'Mercury'
 ];
 
+const NAKSHATRA_NAMES = [
+    'Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashirsha', 'Ardra', 'Punarvasu', 'Pushya', 'Ashlesha',
+    'Magha', 'Purva Phalguni', 'Uttara Phalguni', 'Hasta', 'Chitra', 'Swati', 'Vishakha', 'Anuradha', 'Jyeshtha',
+    'Mula', 'Purva Ashadha', 'Uttara Ashadha', 'Shravana', 'Dhanishtha', 'Shatabhisha', 'Purva Bhadrapada', 'Uttara Bhadrapada', 'Revati'
+];
+
 // Nakshatra span in degrees
 const NAKSHATRA_SPAN = 360 / 27; // 13.333...°
 
@@ -864,6 +870,7 @@ function calculateVargaPosition(v: number, longitude: number, name: string): Pla
         sign: targetSign,
         degree: targetLong % 30,
         longitude: targetLong,
+        latitude: 0, // Varga latitude is not standardized
         nakshatra: '', // Not needed for divisional charts usually
         lord: PLANET_RULERSHIPS[targetSign],
         retro: false, // Inherited from D1
@@ -1189,4 +1196,85 @@ export function verifyDoubleTransit(
         jupiterConnection: juIsConnected ? juReason : 'None',
         targetHouse
     };
+}
+
+const ZODIAC_SIGNS_LIST = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+
+export function calculateArudhas(ephemeris: EphemerisData): Record<string, string> {
+    const ascSign = ephemeris.ascendant.sign;
+    const ascSignIdx = ZODIAC_SIGNS_LIST.indexOf(ascSign);
+
+    // 1. Arudha Lagna (AL)
+    const l1 = ephemeris.houses[0].lord;
+    const l1Pos = ephemeris.planets[l1.toLowerCase() as keyof typeof ephemeris.planets].sign;
+    const l1Idx = ZODIAC_SIGNS_LIST.indexOf(l1Pos);
+    const alIdx = (l1Idx + (l1Idx - ascSignIdx + 12) % 12) % 12;
+
+    // 2. Upapada Lagna (UL - Arudha of 12th House)
+    const h12Lord = ephemeris.houses[11].lord;
+    const l12Pos = ephemeris.planets[h12Lord.toLowerCase() as keyof typeof ephemeris.planets].sign;
+    const l12Idx = ZODIAC_SIGNS_LIST.indexOf(l12Pos);
+    // Distance from 12th house (ascSignIdx + 11) to its lord
+    const dist12 = (l12Idx - (ascSignIdx + 11) % 12 + 12) % 12;
+    const ulIdx = (l12Idx + dist12) % 12;
+
+    return {
+        AL: ZODIAC_SIGNS_LIST[alIdx],
+        UL: ZODIAC_SIGNS_LIST[ulIdx]
+    };
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PANCHANGA ENGINE (The 5 Limbs of Time)
+// ═════════════════════════════════════════════════════════════════════════════
+
+export interface PanchangaData {
+    tithi: string;
+    vara: string;
+    nakshatra: string;
+    yoga: string;
+    karana: string;
+}
+
+const TITHIS = [
+    'Prathama', 'Dwitiya', 'Tritiya', 'Chaturthi', 'Panchami', 'Shashti', 'Saptami', 'Ashtami',
+    'Navami', 'Dashami', 'Ekadashi', 'Dwadashi', 'Trayodashi', 'Chaturdashi', 'Purnima',
+    'Prathama', 'Dwitiya', 'Tritiya', 'Chaturthi', 'Panchami', 'Shashti', 'Saptami', 'Ashtami',
+    'Navami', 'Dashami', 'Ekadashi', 'Dwadashi', 'Trayodashi', 'Chaturdashi', 'Amavasya'
+];
+
+const YOGAS = [
+    'Vishkumbha', 'Preeti', 'Ayushman', 'Saubhagya', 'Shobhana', 'Atiganda', 'Sukarma', 'Dhriti',
+    'Shoola', 'Ganda', 'Vriddhi', 'Dhruva', 'Vyaghata', 'Harshana', 'Vajra', 'Siddhi',
+    'Vyatipata', 'Variyan', 'Parigha', 'Shiva', 'Siddha', 'Sadhya', 'Shubha', 'Shukla',
+    'Brahma', 'Indra', 'Vaidhriti'
+];
+
+const VARAS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+export function calculatePanchanga(jd: number, sunLong: number, moonLong: number): PanchangaData {
+    // 1. Vara (Day of week)
+    const vara = VARAS[Math.floor(jd + 1.5) % 7];
+
+    // 2. Tithi (Moon - Sun)
+    let tithiDiff = (moonLong - sunLong + 360) % 360;
+    const tithiNum = Math.floor(tithiDiff / 12) + 1;
+    const paksha = tithiNum <= 15 ? 'Shukla' : 'Krishna';
+    const tithiName = `${paksha} ${TITHIS[(tithiNum - 1) % 30]}`;
+
+    // 3. Nakshatra
+    const nakIndex = Math.floor(moonLong / (360 / 27));
+    const nakshatra = NAKSHATRA_NAMES[nakIndex % 27];
+
+    // 4. Yoga (Moon + Sun)
+    let yogaSum = (moonLong + sunLong) % 360;
+    const yogaNum = Math.floor(yogaSum / (360 / 27)) + 1;
+    const yoga = YOGAS[(yogaNum - 1) % 27];
+
+    // 5. Karana (Half of Tithi)
+    const karanaNum = Math.floor(tithiDiff / 6) + 1;
+    // (Simplified karana name logic)
+    const karana = `Karana #${karanaNum}`;
+
+    return { tithi: tithiName, vara, nakshatra, yoga, karana };
 }
