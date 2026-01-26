@@ -24,6 +24,9 @@ let useSwissEph = false;
 let isInitialized = false;
 let isInitializing = false;
 let initPromise = null;
+// Calculation Cache (LRU-like simple Map)
+const EPH_CACHE = new Map();
+const MAX_CACHE_SIZE = 1000;
 /**
  * Initializes the Swiss Ephemeris WASM module (Prolaxu version)
  * This must be called (and awaited) at server start.
@@ -123,8 +126,50 @@ const getLord = (sign) => {
         default: return 'Unknown';
     }
 };
+const getDignity = (planet, sign) => {
+    const exaltation = {
+        'Sun': 'Aries', 'Moon': 'Taurus', 'Mars': 'Capricorn', 'Mercury': 'Virgo',
+        'Jupiter': 'Cancer', 'Venus': 'Pisces', 'Saturn': 'Libra', 'Rahu': 'Taurus', 'Ketu': 'Scorpio'
+    };
+    const debilitation = {
+        'Sun': 'Libra', 'Moon': 'Scorpio', 'Mars': 'Cancer', 'Mercury': 'Pisces',
+        'Jupiter': 'Capricorn', 'Venus': 'Virgo', 'Saturn': 'Aries', 'Rahu': 'Scorpio', 'Ketu': 'Taurus'
+    };
+    const ownSign = {
+        'Sun': ['Leo'], 'Moon': ['Cancer'], 'Mars': ['Aries', 'Scorpio'],
+        'Mercury': ['Gemini', 'Virgo'], 'Jupiter': ['Sagittarius', 'Pisces'],
+        'Venus': ['Taurus', 'Libra'], 'Saturn': ['Capricorn', 'Aquarius'],
+        'Rahu': ['Virgo'], 'Ketu': ['Pisces']
+    };
+    if (exaltation[planet] === sign)
+        return 'Exalted';
+    if (debilitation[planet] === sign)
+        return 'Debilitated';
+    if (ownSign[planet]?.includes(sign))
+        return 'Own Sign';
+    // Friendly/Enemy groups
+    const devas = ['Sun', 'Moon', 'Mars', 'Jupiter'];
+    const asuras = ['Venus', 'Saturn', 'Mercury', 'Rahu', 'Ketu'];
+    const ruler = getLord(sign);
+    if (devas.includes(planet) && devas.includes(ruler))
+        return 'Friendly';
+    if (asuras.includes(planet) && asuras.includes(ruler))
+        return 'Friendly';
+    if (devas.includes(planet) && asuras.includes(ruler))
+        return 'Enemy';
+    if (asuras.includes(planet) && devas.includes(ruler))
+        return 'Enemy';
+    return 'Neutral';
+};
+const isCombust = (planet, long, sunLong) => {
+    if (planet === 'Sun' || planet === 'Moon' || planet === 'Rahu' || planet === 'Ketu')
+        return false;
+    const diff = Math.abs(long - sunLong);
+    const orb = (planet === 'Mercury') ? 12 : (planet === 'Venus') ? 10 : (planet === 'Mars') ? 17 : (planet === 'Jupiter') ? 11 : 15;
+    return diff < orb || diff > (360 - orb);
+};
 // Swiss Ephemeris Planet IDs
-const SE = { SUN: 0, MOON: 1, MERCURY: 2, VENUS: 3, MARS: 4, JUPITER: 5, SATURN: 6, MEAN_NODE: 10 };
+const SE = { SUN: 0, MOON: 1, MERCURY: 2, VENUS: 3, MARS: 4, JUPITER: 5, SATURN: 6, MEAN_NODE: 10, TRUE_NODE: 11 };
 const SEFLG_SIDEREAL = 64 * 1024;
 const SEFLG_SPEED = 256;
 const SE_SIDM_LAHIRI = 1;
@@ -234,40 +279,44 @@ function calcMoon(jd) {
     return ((L - getAyanamsaAlgo(jd)) % 360 + 360) % 360;
 }
 function calcPlanet(jd, planet) {
+    const lon1 = calcPlanetLongitude(jd, planet);
+    const lon2 = calcPlanetLongitude(jd + 0.1, planet); // Small delta for speed
+    let diff = lon2 - lon1;
+    if (diff > 180)
+        diff -= 360;
+    if (diff < -180)
+        diff += 360;
+    const speed = diff * 10; // degrees per day
+    return { longitude: lon1, speed };
+}
+function calcPlanetLongitude(jd, planet) {
     const T = (jd - 2451545.0) / 36525;
     const ayanamsa = getAyanamsaAlgo(jd);
-    // Mean elements + first-order perturbations
-    let L, speed;
+    // Mean elements + first-order perturbations (L0)
+    let L;
     switch (planet) {
         case 'mercury':
             L = 252.250906 + 149472.6746358 * T - 0.00000535 * T * T;
-            speed = 4.09; // degrees/day average
             break;
         case 'venus':
             L = 181.979801 + 58517.8156748 * T + 0.00000165 * T * T;
-            speed = 1.60;
             break;
         case 'mars':
             L = 355.433275 + 19140.2993313 * T + 0.00000261 * T * T;
-            speed = 0.524;
             break;
         case 'jupiter':
             L = 34.351484 + 3034.9056746 * T - 0.00008501 * T * T;
-            speed = 0.083;
             break;
         case 'saturn':
             L = 50.077471 + 1222.1137943 * T + 0.00021004 * T * T;
-            speed = 0.033;
             break;
         case 'rahu':
             L = 125.044555 - 1934.1361849 * T + 0.0020762 * T * T;
-            speed = -0.053; // Retrograde
             break;
         default:
             L = 0;
-            speed = 0;
     }
-    return { longitude: ((L - ayanamsa) % 360 + 360) % 360, speed };
+    return ((L - ayanamsa) % 360 + 360) % 360;
 }
 function calcAscendant(jd, lat, lon) {
     const T = (jd - 2451545.0) / 36525;
@@ -284,6 +333,10 @@ function calcAscendant(jd, lat, lon) {
 // All calculations done sequentially, results discarded after use
 // ═══════════════════════════════════════════════════════════════════════════
 async function calculateEphemeris(birthDate, birthTime, latitude, longitude, timezone) {
+    // Cache check
+    const cacheKey = `${birthDate}_${birthTime}_${latitude.toFixed(4)}_${longitude.toFixed(4)}`;
+    if (EPH_CACHE.has(cacheKey))
+        return EPH_CACHE.get(cacheKey);
     // Validate
     if (latitude < -90 || latitude > 90)
         throw new Error('Invalid latitude');
@@ -306,15 +359,22 @@ async function calculateEphemeris(birthDate, birthTime, latitude, longitude, tim
         // ══════ SWISS EPHEMERIS MODE ══════
         // Memory-mapped data access - very low RAM usage
         swe.swe_set_sid_mode(SE_SIDM_LAHIRI, 0, 0);
-        const seIds = [SE.SUN, SE.MOON, SE.MERCURY, SE.VENUS, SE.MARS, SE.JUPITER, SE.SATURN, SE.MEAN_NODE];
+        const seIds = [SE.SUN, SE.MOON, SE.MERCURY, SE.VENUS, SE.MARS, SE.JUPITER, SE.SATURN, SE.TRUE_NODE];
+        const sunLng = swe.swe_calc_ut(jd, SE.SUN, SEFLG_SIDEREAL | SEFLG_SPEED).longitude;
         for (let i = 0; i < planetNames.length; i++) {
             const result = swe.swe_calc_ut(jd, seIds[i], SEFLG_SIDEREAL | SEFLG_SPEED);
             const lng = result.longitude;
             const sign = getZodiacSign(lng);
+            const name = planetNames[i].charAt(0).toUpperCase() + planetNames[i].slice(1);
             planets[planetNames[i]] = {
                 sign, degree: lng % 30, longitude: lng,
                 nakshatra: getNakshatra(lng), nakshatraPada: getNakshatraPada(lng),
-                lord: getLord(sign), retro: result.longitudeSpeed < 0
+                lord: getLord(sign), retro: result.longitudeSpeed < 0,
+                speed: result.longitudeSpeed,
+                distance: result.distance,
+                isCombust: isCombust(name, lng, sunLng),
+                dignity: getDignity(name, sign),
+                house: 0 // Will be set after ascendant is calculated
             };
         }
         // Ketu
@@ -323,7 +383,12 @@ async function calculateEphemeris(birthDate, birthTime, latitude, longitude, tim
         planets.ketu = {
             sign: ketuSign, degree: ketuLng % 30, longitude: ketuLng,
             nakshatra: getNakshatra(ketuLng), nakshatraPada: getNakshatraPada(ketuLng),
-            lord: getLord(ketuSign), retro: true
+            lord: getLord(ketuSign), retro: true,
+            speed: planets.rahu.speed, // Ketu speed matches Rahu
+            distance: planets.rahu.distance,
+            isCombust: false,
+            dignity: getDignity('Ketu', ketuSign),
+            house: 0
         };
         // Houses from Swiss Ephemeris (Whole Sign)
         const houses = swe.swe_houses(jd, latitude, longitude, 'W');
@@ -342,7 +407,20 @@ async function calculateEphemeris(birthDate, birthTime, latitude, longitude, tim
             let cusp = houses.house[i] - ayanamsa;
             if (cusp < 0)
                 cusp += 360;
-            houseList.push({ houseNumber: i, sign: getZodiacSign(cusp), degree: cusp % 30, cusp });
+            const sign = getZodiacSign(cusp);
+            houseList.push({
+                houseNumber: i,
+                sign,
+                degree: cusp % 30,
+                cusp,
+                lord: getLord(sign)
+            });
+        }
+        // Update house for planets
+        const ascSignIdx = ZODIAC_SIGNS.indexOf(ascendant.sign);
+        for (const p of Object.values(planets)) {
+            const pSignIdx = ZODIAC_SIGNS.indexOf(p.sign);
+            p.house = ((pSignIdx - ascSignIdx + 12) % 12) + 1;
         }
         return { planets: planets, ascendant, houses: houseList };
     }
@@ -355,19 +433,48 @@ async function calculateEphemeris(birthDate, birthTime, latitude, longitude, tim
         const moonLng = calcMoon(jd);
         [['sun', sunLng, 1], ['moon', moonLng, 13]];
         const sunSign = getZodiacSign(sunLng);
-        planets.sun = { sign: sunSign, degree: sunLng % 30, longitude: sunLng, nakshatra: getNakshatra(sunLng), nakshatraPada: getNakshatraPada(sunLng), lord: getLord(sunSign), retro: false };
+        planets.sun = {
+            sign: sunSign, degree: sunLng % 30, longitude: sunLng,
+            nakshatra: getNakshatra(sunLng), nakshatraPada: getNakshatraPada(sunLng),
+            lord: getLord(sunSign), retro: false,
+            speed: 1.0, distance: 1.0, isCombust: false, dignity: getDignity('Sun', sunSign), house: 0
+        };
         const moonSign = getZodiacSign(moonLng);
-        planets.moon = { sign: moonSign, degree: moonLng % 30, longitude: moonLng, nakshatra: getNakshatra(moonLng), nakshatraPada: getNakshatraPada(moonLng), lord: getLord(moonSign), retro: false };
+        planets.moon = {
+            sign: moonSign, degree: moonLng % 30, longitude: moonLng,
+            nakshatra: getNakshatra(moonLng), nakshatraPada: getNakshatraPada(moonLng),
+            lord: getLord(moonSign), retro: false,
+            speed: 13.2, distance: 1.0, isCombust: false, dignity: getDignity('Moon', moonSign), house: 0
+        };
         // Other planets
         for (const name of ['mercury', 'venus', 'mars', 'jupiter', 'saturn', 'rahu']) {
             const { longitude: lng, speed } = calcPlanet(jd, name);
             const sign = getZodiacSign(lng);
-            planets[name] = { sign, degree: lng % 30, longitude: lng, nakshatra: getNakshatra(lng), nakshatraPada: getNakshatraPada(lng), lord: getLord(sign), retro: speed < 0 };
+            const planetName = name.charAt(0).toUpperCase() + name.slice(1);
+            planets[name] = {
+                sign, degree: lng % 30, longitude: lng,
+                nakshatra: getNakshatra(lng), nakshatraPada: getNakshatraPada(lng),
+                lord: getLord(sign), retro: speed < 0,
+                speed,
+                distance: 1.0, // Placeholder for algo mode
+                isCombust: isCombust(planetName, lng, sunLng),
+                dignity: getDignity(planetName, sign),
+                house: 0
+            };
         }
         // Ketu
         const ketuLng = (planets.rahu.longitude + 180) % 360;
         const ketuSign = getZodiacSign(ketuLng);
-        planets.ketu = { sign: ketuSign, degree: ketuLng % 30, longitude: ketuLng, nakshatra: getNakshatra(ketuLng), nakshatraPada: getNakshatraPada(ketuLng), lord: getLord(ketuSign), retro: true };
+        planets.ketu = {
+            sign: ketuSign, degree: ketuLng % 30, longitude: ketuLng,
+            nakshatra: getNakshatra(ketuLng), nakshatraPada: getNakshatraPada(ketuLng),
+            lord: getLord(ketuSign), retro: true,
+            speed: planets.rahu.speed,
+            distance: 1.0,
+            isCombust: false,
+            dignity: getDignity('Ketu', ketuSign),
+            house: 0
+        };
         // Ascendant
         const ascLng = calcAscendant(jd, latitude, longitude);
         const ascSign = getZodiacSign(ascLng);
@@ -381,9 +488,28 @@ async function calculateEphemeris(birthDate, birthTime, latitude, longitude, tim
             const sign = ZODIAC_SIGNS[houseSignIndex];
             // Whole Sign cusp is defined as 0° of the sign
             const cusp = houseSignIndex * 30;
-            houseList.push({ houseNumber: i + 1, sign, degree: 0, cusp });
+            houseList.push({
+                houseNumber: i + 1,
+                sign,
+                degree: 0,
+                cusp,
+                lord: getLord(sign)
+            });
         }
-        return { planets: planets, ascendant, houses: houseList };
+        // Update house for planets
+        for (const p of Object.values(planets)) {
+            const pSignIdx = ZODIAC_SIGNS.indexOf(p.sign);
+            p.house = ((pSignIdx - ascSignIndex + 12) % 12) + 1;
+        }
+        const result = { planets: planets, ascendant, houses: houseList };
+        // Save to cache
+        if (EPH_CACHE.size >= MAX_CACHE_SIZE) {
+            const firstKey = EPH_CACHE.keys().next().value;
+            if (firstKey !== undefined)
+                EPH_CACHE.delete(firstKey);
+        }
+        EPH_CACHE.set(cacheKey, result);
+        return result;
     }
 }
 // ═══════════════════════════════════════════════════════════════════════════

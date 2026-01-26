@@ -383,10 +383,10 @@ export async function callAIWithStream(
                         if (chunkToProcess) {
                             emitBuffer += chunkToProcess;
 
-                            // 🚀 THROTTLE: Emit only if buffer > 50 chars or > 100ms elapsed
-                            // This prevents SSE/DB flooding with 25 concurrent streams
+                            // 🚀 THROTTLE: Emit only if buffer > 20 chars or > 20ms elapsed
+                            // Minimal safety buffer for smoother stream
                             const now = Date.now();
-                            if (emitBuffer.length > 50 || (now - lastEmitTime > 100)) {
+                            if (emitBuffer.length > 20 || (now - lastEmitTime > 20)) {
                                 emitAIThinking(sessionId, emitBuffer, stage, options?.candidateTime);
 
                                 if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
@@ -522,16 +522,17 @@ For each candidate time, provide:
 5. FINAL VERDICT: [Is this the correct birth time? Yes/No/Maybe]
 
 
-5. INPUT DATA SCHEMA (How to read the provided data):
-   - "Venus [House 7, Benefic]": Venus is in 7th House and is a Functional Benefic for this Ascendant.
-   - "(Hits: Mars, H4)": Venus casts a geometric aspect on Mars and the 4th House Cusp.
-   - "Lagna: Libra (Swati)": Ascendant is in Libra sign, Swati Nakshatra.
+5. INPUT DATA SCHEMA (Raw Vedic Data):
+   - "LAGNA": Ascendant Sign and Degree.
+   - "PLANETARY POSITIONS": Sidereal/Lahiri longitudes.
+   - "DIVISIONAL CHARTS": D9/D10/D60 raw sign placements.
+   - "VIMSHOTTARI": Dates of Dasha/Antardasha.
 
 IMPORTANT:
-- RELY 100% ON PROVIDED DATA. Do not attempt to recalculate positions.
-- The "Functional Nature" (Benefic/Malefic/Neutral) is pre-calculated based on specific Lagna Lordship rules. Trust it.
-- Focus purely on the "Forensic Match" between the Event Nature and the Dasha Lord's functional role.
-- Physical traits can help narrow down ascendant sign.`;
+- YOU MUST CALCULATE FUNCTIONAL NATURE (Benefic/Malefic) yourself based on Lagna.
+- YOU MUST DETERMINE ASPECTS (Drishti) yourself from Longitudes.
+- FOCUS on D60 (Shashtyamsa) for the final seconds-level precision.
+- Do not expect pre-calculated "hits" or "scores". Use your specific knowledge.`;
 
 /**
  * Build comprehensive prompt for candidate analysis

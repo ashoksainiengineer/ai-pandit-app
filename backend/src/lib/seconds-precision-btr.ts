@@ -77,6 +77,9 @@ interface CandidateDataPackage {
         house: number;         // 1-12 from Lagna
         dignity: string;       // Exalted/Debilitated/Own/Etc
         isRetro: boolean;      // Retrograde status
+        speed: number;
+        isCombust: boolean;
+        shadbala?: number;
         functionalNature?: { role: string; reason: string }; // New
         aspects?: any[]; // New (AspectHit[])
     }>;
@@ -91,6 +94,9 @@ interface CandidateDataPackage {
     d60Sign?: string;
     d9Chart?: { ascendant: string; planets: Record<string, string> };
     d10Chart?: { ascendant: string; planets: Record<string, string> };
+    ashtakavarga?: Record<string, number[]>;
+    yogas?: any[];
+    doubleTransitAnalysis?: Record<string, any>;
     transitData?: Record<string, any>;
     aiScore?: number;
     aiVerdict?: string;
@@ -134,13 +140,20 @@ async function buildCandidateDataPackage(
     input: SecondsPrecisionInput,
     includeFullData: boolean = false
 ): Promise<CandidateDataPackage> {
-    const ephemeris = await calculateEphemeris(
+    let ephemeris = await calculateEphemeris(
         input.dateOfBirth,
         time,
         input.latitude,
         input.longitude,
         input.timezone
     );
+
+    // Calculate All Vargas and Special Metrics
+    const { calculateAllVargas, calculateAshtakavarga, calculateShadbala, detectYogas, verifyDoubleTransit } = await import('./vedic-astrology-engine.js');
+    ephemeris.divisionalCharts = calculateAllVargas(ephemeris);
+    ephemeris.ashtakavarga = calculateAshtakavarga(ephemeris);
+    ephemeris.shadbala = calculateShadbala(ephemeris);
+    const yogas = detectYogas(ephemeris);
 
     const moonLong = ephemeris.planets.moon.longitude;
     const birthDate = new Date(input.dateOfBirth);
@@ -216,7 +229,6 @@ async function buildCandidateDataPackage(
     for (const [key, p] of Object.entries(ephemeris.planets)) {
         const planetName = cap(key);
 
-        // Calculate Functional Nature & Aspects
         const functional = calculateFunctionalNature(ephemeris.ascendant.sign, planetName);
         const aspects = calculateAspects(planetName, p.longitude, planetLongitudes, ephemeris.ascendant.longitude);
 
@@ -224,9 +236,12 @@ async function buildCandidateDataPackage(
             sign: p.sign,
             degree: (p.longitude % 30).toFixed(4) + '°',
             nakshatra: p.nakshatra,
-            house: calculateHouse(ephemeris.ascendant.sign, p.sign),
-            dignity: getDignity(planetName, p.sign),
+            house: p.house || calculateHouse(ephemeris.ascendant.sign, p.sign),
+            dignity: p.dignity || getDignity(planetName, p.sign),
             isRetro: p.retro,
+            speed: p.speed,
+            isCombust: p.isCombust,
+            shadbala: ephemeris.shadbala?.[planetName],
             functionalNature: functional,
             aspects: aspects
         };
@@ -243,7 +258,9 @@ async function buildCandidateDataPackage(
         },
         houseLords: getAllHouseLords(ephemeris.ascendant.sign),
         moonNakshatra: ephemeris.planets.moon.nakshatra,
-        vimshottariDasha
+        vimshottariDasha,
+        ashtakavarga: ephemeris.ashtakavarga,
+        yogas
     };
 
     // Include extended data for later stages
@@ -270,29 +287,28 @@ async function buildCandidateDataPackage(
             startEnd: `${d.startDate.toISOString().split('T')[0]} to ${d.endDate.toISOString().split('T')[0]}`
         }));
 
-        // 3. Divisional Charts - Full Planetary Matrix
-        const d9Planets: Record<string, string> = {};
-        const d10Planets: Record<string, string> = {};
+        // 3. Divisional Charts - Full Planetary Matrix (D2-D60)
+        const vargas = ephemeris.divisionalCharts || {};
 
-        // Calculate Ascendant D9/D10
-        const d9Asc = calculateD9(ephemeris.ascendant.longitude);
-        const d10Asc = calculateD10(ephemeris.ascendant.longitude);
+        pkg.d9Lagna = vargas.D9?.ascendant.sign;
+        pkg.d10Lagna = vargas.D10?.ascendant.sign;
+        pkg.d60Sign = vargas.D60?.ascendant.sign;
 
-        // Calculate Planets D9/D10
-        for (const [name, p] of Object.entries(ephemeris.planets)) {
-            d9Planets[name] = calculateD9(p.longitude).sign;
-            d10Planets[name] = calculateD10(p.longitude).sign;
+        if (vargas.D9) {
+            const d9Planets: Record<string, string> = {};
+            for (const [name, p] of Object.entries(vargas.D9.planets)) {
+                d9Planets[name] = p.sign;
+            }
+            pkg.d9Chart = { ascendant: vargas.D9.ascendant.sign, planets: d9Planets };
         }
 
-        // Store full D9/D10 objects (God-Tier Detail)
-        const d60 = calculateD60(ephemeris.ascendant.longitude);
-
-        pkg.d9Lagna = d9Asc.sign; // Backward compat
-        pkg.d10Lagna = d10Asc.sign; // Backward compat
-        pkg.d60Sign = d60.sign;
-
-        pkg.d9Chart = { ascendant: d9Asc.sign, planets: d9Planets };
-        pkg.d10Chart = { ascendant: d10Asc.sign, planets: d10Planets };
+        if (vargas.D10) {
+            const d10Planets: Record<string, string> = {};
+            for (const [name, p] of Object.entries(vargas.D10.planets)) {
+                d10Planets[name] = p.sign;
+            }
+            pkg.d10Chart = { ascendant: vargas.D10.ascendant.sign, planets: d10Planets };
+        }
 
         // 4. Transit Data - Enhanced with Retro
         pkg.transitData = {};
@@ -305,11 +321,28 @@ async function buildCandidateDataPackage(
                     input.longitude,
                     input.timezone
                 );
+
+                // 🔱 GOD-TIER: Dasha Hierarchy at Event Moment (MH -> AD -> PD -> SD -> PD)
+                const dashaAtEvent = getDashaForDate(vimDashas, new Date(event.eventDate));
+                const dashaSequence = dashaAtEvent ?
+                    `${dashaAtEvent.mahadasha}-${dashaAtEvent.antardasha}-${dashaAtEvent.pratyantardasha}-${dashaAtEvent.sukshmadasha}-${dashaAtEvent.pranadasha}` :
+                    'Unknown';
+
+                // Double Transit Check for relevant categories
+                let dtResult: any = null;
+                if (event.category === 'marriage') {
+                    dtResult = verifyDoubleTransit(eventEph, ephemeris.ascendant.sign, 7);
+                } else if (event.category === 'career') {
+                    dtResult = verifyDoubleTransit(eventEph, ephemeris.ascendant.sign, 10);
+                }
+
                 pkg.transitData[event.eventDate] = {
+                    dasha: dashaSequence,
                     saturn: `${eventEph.planets.saturn.sign}${eventEph.planets.saturn.retro ? ' (R)' : ''}`,
                     jupiter: `${eventEph.planets.jupiter.sign}${eventEph.planets.jupiter.retro ? ' (R)' : ''}`,
                     rahu: `${eventEph.planets.rahu.sign}${eventEph.planets.rahu.retro ? ' (R)' : ''}`,
-                    ketu: `${eventEph.planets.ketu.sign}${eventEph.planets.ketu.retro ? ' (R)' : ''}`
+                    ketu: `${eventEph.planets.ketu.sign}${eventEph.planets.ketu.retro ? ' (R)' : ''}`,
+                    doubleTransit: dtResult
                 };
             } catch {
                 // Skip
@@ -390,10 +423,17 @@ function getBatchPrompt(
 ): string {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
 
-    // Shuffle candidate order to prevent position bias
+    // 🔱 ANTI-BIAS PROTOCOL: Shuffle candidate order in every batch to prevent positional bias
     const shuffledCandidates = [...candidates].sort(() => Math.random() - 0.5);
 
     return `BIRTH TIME RECTIFICATION - STAGE 2 (Batch ${batchNumber}/${totalBatches})
+
+════════════════════════════════════════════════════════════════════════════════
+⚖️ ANTI-BIAS PROTOCOL:
+1. TOTAL NEUTRALITY: Treat all provided times as equally likely candidates.
+2. ZERO TENTATIVE BIAS: Do not favor times just because they are closer to the "original" time.
+3. DATA-DRIVEN SCORE: Your score must reflect mathematical alignment only.
+════════════════════════════════════════════════════════════════════════════════
 
 ════════════════════════════════════════════════════════════════════════════════
 ⚠️ CRITICAL GOD-TIER RULES:
@@ -415,12 +455,14 @@ ${shuffledCandidates.map(c => `
 CANDIDATE: ${c.time}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 LAGNA (Ascendant): ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
-MOON: ${c.planets.moon.sign} ${c.planets.moon.degree} | House: ${c.planets.moon.house} | Role: ${c.planets.moon.functionalNature?.role}
-      Aspects: ${c.planets.moon.aspects?.filter(a => a.isHit).map(a => `${a.type} -> ${a.targetPlanet || 'House ' + a.targetHouse}`).join(', ') || 'None'}
-SUN: ${c.planets.sun.sign} ${c.planets.sun.degree} | House: ${c.planets.sun.house} | Role: ${c.planets.sun.functionalNature?.role}
-     Aspects: ${c.planets.sun.aspects?.filter(a => a.isHit).map(a => `${a.type} -> ${a.targetPlanet || 'House ' + a.targetHouse}`).join(', ') || 'None'}
+│ Sun: ${c.planets.sun.sign} ${c.planets.sun.degree} | House: ${c.planets.sun.house} | SAV: ${c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(c.planets.sun.sign)] || '?'} pts | Role: ${c.planets.sun.functionalNature?.role}
+│      Shadbala: ${c.planets.sun.shadbala || '?'} | Aspects: ${c.planets.sun.aspects?.filter(a => a.isHit).map(a => `${a.type} -> ${a.targetPlanet || 'House ' + a.targetHouse}`).join(', ') || 'None'}
+│ Moon: ${c.planets.moon.sign} ${c.planets.moon.degree} | House: ${c.planets.moon.house} | SAV: ${c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(c.planets.moon.sign)] || '?'} pts | Role: ${c.planets.moon.functionalNature?.role}
+│      Shadbala: ${c.planets.moon.shadbala || '?'} | Aspects: ${c.planets.moon.aspects?.filter(a => a.isHit).map(a => `${a.type} -> ${a.targetPlanet || 'House ' + a.targetHouse}`).join(', ') || 'None'}
 
-KEY HOUSE LORDS (Functional Nature):
+${c.yogas && c.yogas.length > 0 ? `YOGAS DETECTED: ${c.yogas.map(y => `${y.name} (${y.level})`).join(', ')}` : ''}
+
+KEY HOUSE LORBS (Functional Nature):
 • 1st (Self): ${c.houseLords[1]} | 7th (Spouse): ${c.houseLords[7]} | 10th (Career): ${c.houseLords[10]}
 • 5th (Children): ${c.houseLords[5]} | 9th (Fortune): ${c.houseLords[9]} | 6/8/12 (Dusthanas): ${c.houseLords[6]}, ${c.houseLords[8]}, ${c.houseLords[12]}
 
@@ -435,6 +477,7 @@ ${c.yoginiDasha ? `\nYOGINI DASHA: ${c.yoginiDasha.map(d => `${d.lord} (${d.star
 SCORING ALGORITHM (STRICT VEDIC LOGIC):
 +30: PRIMARY MATCH - Dasha/Antar Lord is DIRECTLY the House Lord of the event (e.g. Marriage in 7th Lord dasha).
 +20: SECONDARY MATCH - Dasha Lord is placed in the event house or aspects it.
++15: STRENGTH PROOF - Event dasha lord has high Shadbala (>120) or high SAV points (>28) in event house.
 +10: NATURAL KARAKA - Dasha Lord is natural significator (Venus=Marriage, Sun=Career) even if not functional lord.
 +10: LAGNA MATCH - Ascendant element/lord matches physical traits.
 -50: CONTRADICTION - Event happened in dasha of 6/8/12 lord with NO connection to event house.
@@ -446,10 +489,6 @@ FINAL LINE (required):
 TOP_SURVIVORS: [comma-separated list of ${survivorsNeeded} best times]`;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// 🔱 STAGE 4: DEEP MULTI-DASHA VERIFICATION
-// ═════════════════════════════════════════════════════════════════════════════
-
 function getDeepAnalysisPrompt(
     candidates: CandidateDataPackage[],
     events: LifeEvent[],
@@ -460,17 +499,28 @@ function getDeepAnalysisPrompt(
     const traitsText = traits ? JSON.stringify(traits, null, 2) : 'N/A';
     const spouseText = spouseData ? JSON.stringify(spouseData, null, 2) : 'N/A';
 
+    // 🔱 ANTI-BIAS PROTOCOL: Shuffle to prevent positional bias
+    const filteredCandidates = candidates.filter(c => c.time);
+    const shuffledCandidates = [...filteredCandidates].sort(() => Math.random() - 0.5);
+
     return `BIRTH TIME RECTIFICATION - STAGE 4 (Deep Multi-Dasha Analysis)
 
 ════════════════════════════════════════════════════════════════════════════════
-⚠️ GOD-TIER ANALYSIS RULES:
-1. CHECK FUNCTIONAL NATURE: Is the Dasha Lord a friend (Trine lord) or enemy (6/8/12 lord)?
-2. VERIFY LORDSHIPS: Does the event MATCH the House Lordship (e.g. 7th Lord for Marriage)?
-3. CROSS-VERIFY: Do Yogini/Chara dashas support the Vimshottari conclusion?
-4. D9/D10 CONFIRMATION: Divisional charts must NOT contradict the Rashi chart promise.
+⚖️ ANTI-BIAS PROTOCOLS:
+1. BLIND EVALUATION: Treat ALL candidates as equally probable. 
+2. ZERO TENTATIVE BIAS: Do not favor times closest to the "original" tentative time.
+3. DATA-ONLY VERDICT: If candidates are technically equal, say so. Do not guess.
 ════════════════════════════════════════════════════════════════════════════════
 
-TASK: Cross-verify ${candidates.length} candidates using multiple dasha systems & Vedic Lordships.
+════════════════════════════════════════════════════════════════════════════════
+⚠️ ANALYSIS RULES (PURE VEDIC ASTROLOGY):
+1. RELY ONLY ON THE PROVIDED MATHEMATICAL DATA. Do not hallucinate planetary positions.
+2. CALCULATE RELATIONSHIPS YOURSELF: Determine Functional Malefics/Benefics based on Lagna.
+3. USE DIVISIONAL CHARTS: Verify D9/D10/D60 promises.
+4. CORRELATE DASHAS: Match Dasha Lords (and their House ownerships) to life events.
+════════════════════════════════════════════════════════════════════════════════
+
+TASK: Cross-verify ${shuffledCandidates.length} candidates using Dasha systems & Vedic Mathematics.
 
 USER CONTEXT:
 PHYSICAL TRAITS: ${traitsText}
@@ -479,34 +529,42 @@ SPOUSE DATA: ${spouseText}
 LIFE EVENTS:
 ${eventsText}
 
-CANDIDATES WITH MULTI-DASHA & LORDSHIP DATA:
-${candidates.map(c => `
+CANDIDATES (RAW MATHEMATICAL DATA):
+${shuffledCandidates.map(c => `
 [${c.time}]
-┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree}
-├ HOUSE LORDS: 1=${c.houseLords[1]}, 7=${c.houseLords[7]}, 10=${c.houseLords[10]}
-├ DIGNITIES: Sun=${c.planets.sun.dignity}, Moon=${c.planets.moon.dignity}, Jup=${c.planets.jupiter?.dignity || 'N/A'}
-├ D9 (Navamsa): Osc=${c.d9Lagna} | Planets=${c.d9Chart ? Object.entries(c.d9Chart.planets).map(([k, v]) => `${k.substr(0, 2).toUpperCase()}=${v}`).join(' ') : 'N/A'}
-├ D10 (Dasamsa): Asc=${c.d10Lagna} | Planets=${c.d10Chart ? Object.entries(c.d10Chart.planets).map(([k, v]) => `${k.substr(0, 2).toUpperCase()}=${v}`).join(' ') : 'N/A'}
-├ D60 (Karma): ${c.d60Sign || 'N/A'}
-├ VIMSHOTTARI: ${c.vimshottariDasha.map(d => {
-        const m = c.planets[d.maha.toLowerCase()];
-        const a = c.planets[d.antar.toLowerCase()];
-        const mAsp = m?.aspects?.filter(x => x.isHit).map(x => x.targetHouse ? `House ${x.targetHouse}` : x.targetPlanet).join(',') || '';
-        return `\n    --> ${d.maha} [House ${m?.house}, ${m?.functionalNature?.role}] (Hits: ${mAsp}) / ${d.antar} [House ${a?.house}] : ${d.startEnd}`;
-    }).join('')}
-├ YOGINI: ${c.yoginiDasha?.map(d => `${d.lord} [${d.startEnd}]`).join(' → ') || 'N/A'}
-├ CHARA: ${c.charaDasha?.map(d => `${d.sign} [${d.startEnd}]`).join(' → ') || 'N/A'}
-${c.transitData ? `  TRANSITS: ${Object.entries(c.transitData).slice(0, 5).map(([date, t]: [string, any]) =>
-        `[${date}]: Sa=${t.saturn}, Ju=${t.jupiter}, Ra=${t.rahu}`).join(' | ')}` : ''}`).join('\n')}
+┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
+├ HOUSE LORDS: 1=${c.houseLords[1]} | 7=${c.houseLords[7]} | 10=${c.houseLords[10]} | 5=${c.houseLords[5]} | 9=${c.houseLords[9]}
+├ PLANETARY POSITIONS (Sidereal/Lahiri):
+│ Sun: ${c.planets.sun.sign} ${c.planets.sun.degree} (${c.planets.sun.nakshatra}) [House ${c.planets.sun.house}, ${c.planets.sun.dignity}, Speed: ${c.planets.sun.speed.toFixed(3)}, Shadbala: ${c.planets.sun.shadbala || '?'}, SAV: ${c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(c.planets.sun.sign)] || '?'}, ${c.planets.sun.isCombust ? 'COMBUST' : 'SAFE'}]
+│ Moon: ${c.planets.moon.sign} ${c.planets.moon.degree} (${c.planets.moon.nakshatra}) [House ${c.planets.moon.house}, ${c.planets.moon.dignity}, Speed: ${c.planets.moon.speed.toFixed(3)}, Shadbala: ${c.planets.moon.shadbala || '?'}, SAV: ${c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(c.planets.moon.sign)] || '?'}]
+│ Mars: ${c.planets.mars.sign} ${c.planets.mars.degree} (${c.planets.mars.nakshatra}) [House ${c.planets.mars.house}, ${c.planets.mars.dignity}, Speed: ${c.planets.mars.speed.toFixed(3)}, Shadbala: ${c.planets.mars.shadbala || '?'}, ${c.planets.mars.isRetro ? 'RETRO' : 'DIRECT'}]
+│ Mercury: ${c.planets.mercury.sign} ${c.planets.mercury.degree} (${c.planets.mercury.nakshatra}) [House ${c.planets.mercury.house}, ${c.planets.mercury.dignity}, Speed: ${c.planets.mercury.speed.toFixed(3)}, Shadbala: ${c.planets.mercury.shadbala || '?'}, ${c.planets.mercury.isCombust ? 'COMBUST' : 'SAFE'}]
+│ Jupiter: ${c.planets.jupiter.sign} ${c.planets.jupiter.degree} (${c.planets.jupiter.nakshatra}) [House ${c.planets.jupiter.house}, ${c.planets.jupiter.dignity}, Speed: ${c.planets.jupiter.speed.toFixed(3)}, Shadbala: ${c.planets.jupiter.shadbala || '?'}]
+│ Venus: ${c.planets.venus.sign} ${c.planets.venus.degree} (${c.planets.venus.nakshatra}) [House ${c.planets.venus.house}, ${c.planets.venus.dignity}, Speed: ${c.planets.venus.speed.toFixed(3)}, Shadbala: ${c.planets.venus.shadbala || '?'}]
+│ Saturn: ${c.planets.saturn.sign} ${c.planets.saturn.degree} (${c.planets.saturn.nakshatra}) [House ${c.planets.saturn.house}, ${c.planets.saturn.dignity}, Speed: ${c.planets.saturn.speed.toFixed(3)}, Shadbala: ${c.planets.saturn.shadbala || '?'}]
+│ Rahu: ${c.planets.rahu.sign} ${c.planets.rahu.degree} [House ${c.planets.rahu.house}]
+│ Ketu: ${c.planets.ketu.sign} ${c.planets.ketu.degree} [House ${c.planets.ketu.house}]
+├ YOGAS: ${c.yogas?.map(y => y.name).join(', ') || 'None'}
+├ DIVISIONAL CHARTS:
+│ D9 (Navamsa): Lagna=${c.d9Lagna} | Planets=${c.d9Chart ? Object.entries(c.d9Chart.planets).map(([k, v]) => `${k.substring(0, 2).toUpperCase()}=${v}`).join(' ') : ''}
+│ D10 (Dasamsa): Lagna=${c.d10Lagna} | Planets=${c.d10Chart ? Object.entries(c.d10Chart.planets).map(([k, v]) => `${k.substring(0, 2).toUpperCase()}=${v}`).join(' ') : ''}
+│ D60 (Shashtyamsa): Lagna=${c.d60Sign}
+├ VIMSHOTTARI DASHA SEQUENCE:
+${c.vimshottariDasha.map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar} : ${d.startEnd}`).join('\n')}
+├ YOGINI DASHA: ${c.yoginiDasha?.map(d => `${d.lord} [${d.startEnd}]`).join(' | ') || 'N/A'}
+├ CHARA DASHA: ${c.charaDasha?.map(d => `${d.sign} [${d.startEnd}]`).join(' | ') || 'N/A'}
+├ ASHTAKAVARGA SAV: ${c.ashtakavarga?.SAV ? `[${c.ashtakavarga.SAV.join(', ')}]` : 'N/A'}
+${c.transitData ? `├ TRANSITS ON EVENTS:
+${Object.entries(c.transitData).slice(0, 5).map(([date, t]: [string, any]) =>
+        `│ [${date}]: Dasha=${t.dasha} | Sa=${t.saturn}, Ju=${t.jupiter}${t.doubleTransit?.isTriggered ? ` | 🔱 DT H${t.doubleTransit.targetHouse}` : ''}`).join('\n')}` : ''}
+└──────────────────────────────────────────────────────────────`).join('\n')}
 
 SCORING:
-- All 3 dasha systems agree on event timing: +30
-- Dasha Lord is Functional Benefic (1, 5, 9, 4, 7, 10 lord): +20
-- D9 supports marriage events / D10 supports career: +20
-- Contradiction (Event in 6/8/12 lord period without cancel): -25
+- Rate 0-100 based on how well the Dasha Lords + Divisional Charts explain the Events.
+- Strict correlation required.
 
 OUTPUT (for each candidate):
-[TIME] | MULTI-DASHA: [AGREE/PARTIAL/CONFLICT] | D-CHARTS: [SUPPORT/WEAK/FAIL] | SCORE: [0-100]
+[TIME] | REASONING: [Brief 1-liner] | VERDICT: [KEEP/DROP] | SCORE: [0-100]
 
 FINAL:
 TOP_SURVIVORS: [time1], [time2], [time3]`;
@@ -526,17 +584,26 @@ function getFinalPrecisionPrompt(
     const traitsText = traits ? JSON.stringify(traits, null, 2) : 'N/A';
     const spouseText = spouseData ? JSON.stringify(spouseData, null, 2) : 'N/A';
 
+    // 🔱 ANTI-BIAS PROTOCOL: Final shuffling
+    const shuffledCandidates = [...candidates].sort(() => Math.random() - 0.5);
+
     return `BIRTH TIME RECTIFICATION - FINAL STAGE (Seconds Precision)
 
 ════════════════════════════════════════════════════════════════════════════════
-⚠️ GOD-TIER PRECISION RULES:
-1. FOCUS ON LAGNA & D60: Even 10 seconds can change D60 Lagna. Match D60 deity/nature to life themes.
-2. DIGNITY CHECK: Does the chart strength match reality? (e.g., successful career = strong 10th lord).
-3. BOUNDARY SAFETY: Avoid times where Lagna is < 0.05° unless event timing is perfect.
-4. HOUSE LORD ACCURACY: Ensure the operative Dashas align with Functional Lordships.
+⚖️ ANTI-BIAS & OBJECTIVITY RULES:
+1. TOTAL NEUTRALITY: You are a cold, mathematical evaluator.
+2. NO POSITIONAL BIAS: Candidate #1 is NOT more likely than Candidate #N.
+3. MANDATORY PROOF: Every point in SCORE must be backed by a Technical Proof (e.g. D60 Lagna).
 ════════════════════════════════════════════════════════════════════════════════
 
-TASK: Select THE SINGLE BEST birth time from ${candidates.length} finalists.
+════════════════════════════════════════════════════════════════════════════════
+⚠️ GOD-TIER PRECISION RULES:
+1. FOCUS ON D60 (SHASHTYAMSA): Even 10 seconds can change D60 Lagna.
+2. VERIFY PRANADASHAS: Use Vimshottari logic down to the finest level.
+3. RAW DATA ONLY: Calculate your own aspects and functional nature.
+════════════════════════════════════════════════════════════════════════════════
+
+TASK: Select THE SINGLE BEST birth time from ${shuffledCandidates.length} finalists.
 
 USER CONTEXT:
 Traits: ${traitsText}
@@ -545,45 +612,43 @@ Spouse: ${spouseText}
 LIFE EVENTS:
 ${eventsText}
 
-FINALIST CANDIDATES (ENRICHED):
-${candidates.map((c, i) => `
+FINALIST CANDIDATES (RAW DATA):
+${shuffledCandidates.map((c, i) => `
 #${i + 1} [${c.time}]
 ┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
-├ 1ST HOUSE LORD: ${c.houseLords[1]} | 7TH LORD: ${c.houseLords[7]} | 10TH LORD: ${c.houseLords[10]}
-├ D60 (Karma): ${c.d60Sign || 'N/A'} ← CRITICAL FOR SECONDS
-├ D9: Asc=${c.d9Lagna} | Planets=${c.d9Chart ? Object.entries(c.d9Chart.planets).map(([k, v]) => `${k.substr(0, 2).toUpperCase()}=${v}`).join(' ') : 'N/A'}
-├ PLANETARY STRENGTH: Sun=(${c.planets.sun.dignity}), Moon=(${c.planets.moon.dignity}), Jup=(${c.planets.jupiter?.dignity || 'N/A'})
-├ VIMSHOTTARI: ${c.vimshottariDasha.slice(0, 5).map(d => {
-        const m = c.planets[d.maha.toLowerCase()];
-        const a = c.planets[d.antar.toLowerCase()];
-        const mAsp = m?.aspects?.filter(x => x.isHit).map(x => x.targetHouse ? `House ${x.targetHouse}` : x.targetPlanet).join(',') || '';
-        return `\n    --> ${d.maha} [House ${m?.house}, ${m?.functionalNature?.role}] (Hits: ${mAsp}) / ${d.antar} [House ${a?.house}]`;
-    }).join('')}
-└ BOUNDARY RISK: ${parseFloat(c.ascendant.degree) < 1 || parseFloat(c.ascendant.degree) > 29 ? '⚠️ EDGE' : 'SAFE'}`).join('\n')}
+├ HOUSE LORDS: 1=${c.houseLords[1]} | 7=${c.houseLords[7]} | 10=${c.houseLords[10]}
+├ D60 (Karma Lagna): ${c.d60Sign || 'N/A'}
+├ D9: Asc=${c.d9Lagna} | D10: Asc=${c.d10Lagna}
+├ PLANETARY STRENGTH MATRIX:
+│ Sun: ${c.planets.sun.sign} [H${c.planets.sun.house}, ${c.planets.sun.dignity}, Sh: ${c.planets.sun.shadbala}, SAV: ${c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(c.planets.sun.sign)]}]
+│ Moon: ${c.planets.moon.sign} [H${c.planets.moon.house}, ${c.planets.moon.dignity}, Sh: ${c.planets.moon.shadbala}, SAV: ${c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(c.planets.moon.sign)]}]
+│ Mars: ${c.planets.mars.sign} [H${c.planets.mars.house}, ${c.planets.mars.dignity}, Sh: ${c.planets.mars.shadbala}]
+│ Mercury: ${c.planets.mercury.sign} [H${c.planets.mercury.house}, ${c.planets.mercury.dignity}, Sh: ${c.planets.mercury.shadbala}]
+│ Jupiter: ${c.planets.jupiter.sign} [H${c.planets.jupiter.house}, ${c.planets.jupiter.dignity}, Sh: ${c.planets.jupiter.shadbala}]
+│ Venus: ${c.planets.venus.sign} [H${c.planets.venus.house}, ${c.planets.venus.dignity}, Sh: ${c.planets.venus.shadbala}]
+│ Saturn: ${c.planets.saturn.sign} [H${c.planets.saturn.house}, ${c.planets.saturn.dignity}, Sh: ${c.planets.saturn.shadbala}]
+├ YOGAS: ${c.yogas?.map(y => y.name).join(', ') || 'N/A'}
+├ VIMSHOTTARI SEQUENCE (MD-AD-PD):
+${c.vimshottariDasha.slice(0, 5).map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar} : ${d.startEnd}`).join('\n')}
+├ SAV: ${c.ashtakavarga?.SAV ? c.ashtakavarga.SAV.join(',') : ''}
+${c.transitData ? `├ TRANSITS & DASHAS:
+${Object.entries(c.transitData).slice(0, 3).map(([date, t]: [string, any]) =>
+        `│ [${date}]: Dasha=${t.dasha} | Ju=${t.jupiter}, Sa=${t.saturn}${t.doubleTransit?.isTriggered ? ` (DT H${t.doubleTransit.targetHouse})` : ''}`).join('\n')}` : ''}
+└ BOUNDARY CHECK: ${parseFloat(c.ascendant.degree) < 1 || parseFloat(c.ascendant.degree) > 29 ? '⚠️ EDGE' : 'SAFE'}`).join('\n')}
 
-FINAL SELECTION CRITERIA:
-1. D60 Lagna must explain the "Nature" of the person (Karma).
-2. Dasha Lords MUST be functional benefics for the event to happen beneficently.
-3. Eliminate any time where a major event (Marriage/Job) occurs in Dasha of consecutive 6/8/12 lords without mitigation.
-
-SCORING RULES (GOD TIER):
-- If > 10 Events match perfectly: Score MUST be > 95%.
-- If > 30 Events provided and match: Score MUST be > 99%.
-- Do NOT be conservative. If the math works, give 99-100%.
-
-═══════════════════════════════════════════════════════════════════════════════
 FINAL VERDICT (required format):
 BEST TIME: [HH:MM:SS]
+REASONING: [Explicitly cite D60 Lagna, Dasha Connection, and Shadbala/SAV proof. No generic text.]
+CONFIDENCE: [0-100]
 ACCURACY: [0-100]%
 CONFIDENCE: [HIGH/MEDIUM/LOW]
 MARGIN_OF_ERROR: ±[seconds] seconds
 
 EVIDENCE:
-1. [Explain why D60/Lagna fits better than others]
-2. [Explain the Decisive Dasha-Event Link with House Lordship]
-3. [Why other candidates failed (e.g. "Candidate 2 had 8th Lord dasha during Marriage")]
+1. [D60 Justification]
+2. [Event-Dasha Link]
 
-RUNNER_UP: [second best time] (for reference)
+RUNNER_UP: [second best time]
 ═══════════════════════════════════════════════════════════════════════════════`;
 }
 
@@ -979,7 +1044,6 @@ async function stage4DeepAnalysis(
             'You are performing FINAL deep verification.',
             prompt,
             {
-                model: 'deepseek/deepseek-r1',
                 candidateTime: 'Deep Final',
                 progressTracker: progress
             }
@@ -1100,7 +1164,6 @@ async function stage6FinalPrecision(
                 'FINAL JUDGEMENT. Pick THE ONE.',
                 prompt,
                 {
-                    model: 'deepseek/deepseek-v3.2',
                     candidateTime: 'FINAL',
                     progressTracker: progress
                 }

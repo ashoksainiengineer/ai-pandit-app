@@ -750,8 +750,138 @@ export function getAllHouseLords(ascSign: string): Record<number, string> {
     return lords;
 }
 // ═════════════════════════════════════════════════════════════════════════════
-// GOD-TIER DATA ENRICHMENT ALGORITHMS
+// DIVISIONAL CHARTS (VARGAS) - Phase 2
 // ═════════════════════════════════════════════════════════════════════════════
+
+import { DivisionalChart, EphemerisData, PlanetPosition } from './types.js';
+
+export function calculateAllVargas(ephemeris: EphemerisData): Record<string, DivisionalChart> {
+    const vargas: Record<string, DivisionalChart> = {};
+    const divisions = [2, 3, 4, 7, 9, 10, 12, 16, 20, 24, 27, 30, 40, 45, 60];
+
+    for (const v of divisions) {
+        vargas[`D${v}`] = calculateVarga(v, ephemeris);
+    }
+
+    return vargas;
+}
+
+function calculateVarga(v: number, ephemeris: EphemerisData): DivisionalChart {
+    const planets: Record<string, PlanetPosition> = {};
+    const planetNames = Object.keys(ephemeris.planets);
+
+    for (const name of planetNames) {
+        const p = ephemeris.planets[name as keyof typeof ephemeris.planets];
+        planets[name] = calculateVargaPosition(v, p.longitude, name);
+    }
+
+    const asc = calculateVargaPosition(v, ephemeris.ascendant.longitude, 'Ascendant');
+
+    return {
+        id: `D${v}`,
+        planets,
+        ascendant: {
+            sign: asc.sign,
+            degree: asc.degree,
+            longitude: asc.longitude
+        }
+    };
+}
+
+function calculateVargaPosition(v: number, longitude: number, name: string): PlanetPosition {
+    const siderealLong = longitude % 360;
+    const signIndex = Math.floor(siderealLong / 30);
+    const signDegree = siderealLong % 30;
+    const isOdd = signIndex % 2 === 0;
+
+    let targetSignIndex = 0;
+    const divisionSize = 30 / v;
+    const division = Math.floor(signDegree / divisionSize);
+
+    switch (v) {
+        case 2: // Hora
+            if (isOdd) targetSignIndex = (signDegree < 15) ? 4 : 3; // Sun (Leo) / Moon (Cancer)
+            else targetSignIndex = (signDegree < 15) ? 3 : 4;
+            break;
+        case 3: // Drekkana
+            targetSignIndex = (signIndex + (division * 4)) % 12;
+            break;
+        case 4: // Chaturthamsa
+            targetSignIndex = (signIndex + (division * 3)) % 12;
+            break;
+        case 7: // Saptamsa
+            if (isOdd) targetSignIndex = (signIndex + division) % 12;
+            else targetSignIndex = (signIndex + 6 + division) % 12;
+            break;
+        case 9: // Navamsa (Most Critical)
+            const navBase = [0, 8, 4][signIndex % 3]; // Aries, Sagittarius, Leo start points
+            targetSignIndex = (navBase + division) % 12;
+            break;
+        case 10: // Dasamsa
+            if (isOdd) targetSignIndex = (signIndex + division) % 12;
+            else targetSignIndex = (signIndex + 8 + division) % 12;
+            break;
+        case 12: // Dwadasamsa
+            targetSignIndex = (signIndex + division) % 12;
+            break;
+        case 16: // Shodashamsa
+            const shBase = [0, 3, 7][signIndex % 3];
+            targetSignIndex = (shBase + division) % 12;
+            break;
+        case 20: // Vimsamsa
+            const viBase = isOdd ? 0 : (signIndex % 3 === 1 ? 8 : 4);
+            targetSignIndex = (viBase + division) % 12;
+            break;
+        case 24: // Chaturvimshamsa
+            targetSignIndex = (isOdd ? 4 + division : 3 + division) % 12;
+            break;
+        case 30: // Trimsamsa
+            if (isOdd) {
+                if (signDegree < 5) targetSignIndex = 0; // Mars
+                else if (signDegree < 10) targetSignIndex = 9; // Saturn
+                else if (signDegree < 18) targetSignIndex = 8; // Jupiter
+                else if (signDegree < 25) targetSignIndex = 5; // Mercury
+                else targetSignIndex = 1; // Venus
+            } else {
+                if (signDegree < 5) targetSignIndex = 1; // Venus
+                else if (signDegree < 12) targetSignIndex = 5; // Mercury
+                else if (signDegree < 20) targetSignIndex = 8; // Jupiter
+                else if (signDegree < 25) targetSignIndex = 9; // Saturn
+                else targetSignIndex = 0; // Mars
+            }
+            break;
+        case 60: // Shashtyamsa (Most Critical for Seconds)
+            targetSignIndex = (signIndex + division) % 12;
+            break;
+        default:
+            targetSignIndex = (signIndex + division) % 12;
+    }
+
+    const targetSign = ZODIAC_SIGNS[targetSignIndex % 12];
+    const targetLong = (targetSignIndex * 30) + (signDegree * v % 30);
+
+    return {
+        sign: targetSign,
+        degree: targetLong % 30,
+        longitude: targetLong,
+        nakshatra: '', // Not needed for divisional charts usually
+        lord: PLANET_RULERSHIPS[targetSign],
+        retro: false, // Inherited from D1
+        speed: 0,
+        distance: 0,
+        isCombust: false,
+        dignity: '',
+        house: 0
+    };
+}
+// 2. GEOMETRIC ASPECT ENGINE
+export interface AspectHit {
+    targetPlanet?: string;
+    targetHouse?: number;
+    type: string;
+    orb: number;
+    isHit: boolean;
+}
 
 // 1. FUNCTIONAL NATURE ALGORITHM
 export function calculateFunctionalNature(ascSign: string, planet: string): {
@@ -759,8 +889,6 @@ export function calculateFunctionalNature(ascSign: string, planet: string): {
     reason: string;
 } {
     if (planet === 'Rahu' || planet === 'Ketu') return { role: 'Malefic', reason: 'Natural Malefic' };
-
-    const ascIdx = ZODIAC_SIGNS.indexOf(ascSign);
 
     // Calculate lordship houses
     const housesRuled: number[] = [];
@@ -788,15 +916,6 @@ export function calculateFunctionalNature(ascSign: string, planet: string): {
     // Neutral logic for simplified output, or context dependent. 
     // We default to Neutral if no other rule hit.
     return { role: 'Neutral', reason: 'Rules Kendra House (4/7/10) without Trine/Dusthana lordship' };
-}
-
-// 2. GEOMETRIC ASPECT ENGINE
-export interface AspectHit {
-    targetPlanet?: string;
-    targetHouse?: number;
-    type: string;
-    orb: number;
-    isHit: boolean;
 }
 
 export function calculateAspects(
@@ -870,4 +989,204 @@ function getAspectName(angle: number): string {
     if (angle === 60) return '3rd Aspect (Sextile)';
     if (angle === 270) return '10th Aspect (Square)';
     return 'Aspect';
-} 
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ASHTAKAVARGA (Point-Based Scoring)
+// ═════════════════════════════════════════════════════════════════════════════
+
+export function calculateAshtakavarga(ephemeris: EphemerisData): Record<string, number[]> {
+    const planets = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'];
+    const results: Record<string, number[]> = {};
+
+    for (const p of planets) {
+        results[p] = calculateBinnashtakavarga(p, ephemeris);
+    }
+
+    // Sarvashtakavarga (Sum of all)
+    const SAV = new Array(12).fill(0);
+    for (const p of planets) {
+        for (let i = 0; i < 12; i++) SAV[i] += results[p][i];
+    }
+    results['SAV'] = SAV;
+
+    return results;
+}
+
+function calculateBinnashtakavarga(planet: string, ephemeris: EphemerisData): number[] {
+    const points = new Array(12).fill(0);
+
+    const planetLongs: Record<string, number> = {};
+    for (const [name, p] of Object.entries(ephemeris.planets)) {
+        planetLongs[name.charAt(0).toUpperCase() + name.slice(1)] = p.longitude;
+    }
+    planetLongs['Lagna'] = ephemeris.ascendant.longitude;
+
+    const sign = (long: number) => Math.floor(long / 30);
+
+    const checkRule = (source: string, houses: number[]) => {
+        const sSign = sign(planetLongs[source]);
+        for (const h of houses) {
+            points[(sSign + h - 1) % 12]++;
+        }
+    };
+
+    if (planet === 'Sun') {
+        checkRule('Sun', [1, 2, 4, 7, 8, 9, 10, 11]);
+        checkRule('Moon', [3, 6, 10, 11]);
+        checkRule('Mars', [1, 2, 4, 7, 8, 9, 10, 11]);
+    } else if (planet === 'Moon') {
+        checkRule('Sun', [3, 6, 7, 8, 10, 11]);
+        checkRule('Moon', [1, 3, 6, 7, 10, 11]);
+        checkRule('Jupiter', [1, 4, 7, 8, 10, 11, 12]);
+    } else {
+        checkRule(planet, [1, 3, 6, 10, 11]);
+    }
+
+    return points;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// SHADBALA (Six-Fold Strength)
+// ═════════════════════════════════════════════════════════════════════════════
+
+export function calculateShadbala(ephemeris: EphemerisData): Record<string, number> {
+    const planetNames = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn'];
+    const totalBala: Record<string, number> = {};
+
+    for (const name of planetNames) {
+        const p = ephemeris.planets[name as keyof typeof ephemeris.planets];
+        const pName = name.charAt(0).toUpperCase() + name.slice(1);
+
+        let sthana = 60;
+        if (p.dignity === 'Exalted') sthana += 60;
+        if (p.dignity === 'Debilitated') sthana -= 40;
+        if (p.dignity === 'Own Sign') sthana += 30;
+
+        let dig = 0;
+        const h = p.house;
+        if ((pName === 'Jupiter' || pName === 'Mercury') && h === 1) dig = 60;
+        if ((pName === 'Moon' || pName === 'Venus') && h === 4) dig = 60;
+        if (pName === 'Saturn' && h === 7) dig = 60;
+        if ((pName === 'Sun' || pName === 'Mars') && h === 10) dig = 60;
+
+        let cheshta = p.retro ? 60 : 30;
+
+        const natural: Record<string, number> = {
+            'Sun': 60, 'Moon': 51, 'Venus': 43, 'Jupiter': 34, 'Mercury': 26, 'Mars': 17, 'Saturn': 9
+        };
+
+        totalBala[pName] = sthana + dig + cheshta + (natural[pName] || 0);
+    }
+
+    return totalBala;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// YOGA DETECTION (Pattern Recognition)
+// ═════════════════════════════════════════════════════════════════════════════
+
+export interface YogaMatch {
+    name: string;
+    description: string;
+    level: 'Mahayoga' | 'Dhanayoga' | 'Rajayoga' | 'Aristhayoga';
+}
+
+export function detectYogas(ephemeris: EphemerisData): YogaMatch[] {
+    const yogas: YogaMatch[] = [];
+    const p = ephemeris.planets;
+
+    // 1. Gaja Kesari Yoga (Jupiter in 1, 4, 7, 10 from Moon)
+    const jupFromMoon = ((p.jupiter.house - p.moon.house + 12) % 12) + 1;
+    if ([1, 4, 7, 10].includes(jupFromMoon)) {
+        yogas.push({
+            name: 'Gaja Kesari Yoga',
+            description: 'Jupiter in Kendra from Moon. Wealth, intelligence, and lasting fame.',
+            level: 'Mahayoga'
+        });
+    }
+
+    // 2. Adhi Yoga (Benefics in 6, 7, 8 from Moon)
+    const beneficsList = ['mercury', 'jupiter', 'venus'] as const;
+    let adhiCount = 0;
+    for (const b of beneficsList) {
+        const bHouse = p[b].house;
+        const bFromMoon = ((bHouse - p.moon.house + 12) % 12) + 1;
+        if ([6, 7, 8].includes(bFromMoon)) adhiCount++;
+    }
+    if (adhiCount >= 2) {
+        yogas.push({
+            name: 'Chandradhi Yoga',
+            description: 'Benefics in 6/7/8 from Moon. Superior status and leadership.',
+            level: 'Rajayoga'
+        });
+    }
+
+    // 3. Pancha Mahapurusha Yogas (Mars, Mercury, Jupiter, Venus, Saturn in Kendra and Own/Exaltation)
+    const mahapurusha = [
+        { key: 'mars', name: 'Ruchaka Yoga', desc: 'Courage, leadership, property.' },
+        { key: 'mercury', name: 'Bhadra Yoga', desc: 'Intelligence, business acumen.' },
+        { key: 'jupiter', name: 'Hamsa Yoga', desc: 'Wisdom, purity, high status.' },
+        { key: 'venus', name: 'Malavya Yoga', desc: 'Luxury, arts, charming personality.' },
+        { key: 'saturn', name: 'Sasha Yoga', desc: 'Authority, discipline, long-term success.' }
+    ] as const;
+
+    for (const m of mahapurusha) {
+        const plt = p[m.key];
+        if ([1, 4, 7, 10].includes(plt.house)) {
+            if (plt.dignity === 'Exalted' || plt.dignity === 'Own Sign') {
+                yogas.push({
+                    name: m.name,
+                    description: m.desc,
+                    level: 'Mahayoga'
+                });
+            }
+        }
+    }
+
+    return yogas;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// TRANSIT VERIFICATION (Double Transit Logic)
+// ═════════════════════════════════════════════════════════════════════════════
+
+export interface DoubleTransitResult {
+    isTriggered: boolean;
+    saturnConnection: string;
+    jupiterConnection: string;
+    targetHouse: number;
+}
+
+/**
+ * Double Transit Verification: Jupiter AND Saturn both influencing a house.
+ * Powerful Vedic rule for event manifestation.
+ */
+export function verifyDoubleTransit(
+    transitEphemeris: EphemerisData,
+    birthAscSign: string,
+    targetHouse: number
+): DoubleTransitResult {
+    const p = transitEphemeris.planets;
+    const saLong = p.saturn.longitude;
+    const juLong = p.jupiter.longitude;
+    const targetHouseSign = ZODIAC_SIGNS[(ZODIAC_SIGNS.indexOf(birthAscSign) + targetHouse - 1) % 12];
+    const targetHouseLong = (ZODIAC_SIGNS.indexOf(targetHouseSign) * 30) + 15; // Midpoint for aspect checking
+
+    // Saturn Aspects: 1st (conjunction), 3rd, 7th, 10th
+    const saAspects = calculateAspects('Saturn', saLong, { "Target": targetHouseLong }, 0); // Birth asc relative doesn't matter for pure sign aspect
+    const saIsConnected = p.saturn.sign === targetHouseSign || saAspects.length > 0;
+    const saReason = p.saturn.sign === targetHouseSign ? 'Occupation' : saAspects.map(a => a.type).join(', ');
+
+    // Jupiter Aspects: 1st, 5th, 7th, 9th
+    const juAspects = calculateAspects('Jupiter', juLong, { "Target": targetHouseLong }, 0);
+    const juIsConnected = p.jupiter.sign === targetHouseSign || juAspects.length > 0;
+    const juReason = p.jupiter.sign === targetHouseSign ? 'Occupation' : juAspects.map(a => a.type).join(', ');
+
+    return {
+        isTriggered: saIsConnected && juIsConnected,
+        saturnConnection: saIsConnected ? saReason : 'None',
+        jupiterConnection: juIsConnected ? juReason : 'None',
+        targetHouse
+    };
+}

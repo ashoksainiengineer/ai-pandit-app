@@ -289,64 +289,61 @@ export function UnifiedAIPanel({
                     </div>
                 </div >
 
-                {/* 🌊 PROCESS FLOW CHART */}
-                <div className="bg-[#151a25] border-b border-[#3A4452]/50">
+                {/* 🌊 PROCESS FLOW CHART REMOVED AS PER REQUEST */}
+                {/* <div className="bg-[#151a25] border-b border-[#3A4452]/50">
                     <BTRProcessFlow
                         currentStage={currentStage}
                         totalCandidates={totalCandidates}
                         batchCount={batchCount}
                     />
-                </div>
+                </div> */}
 
-                {/* 🆕 CANDIDATE TABS BAR */}
-                {
-                    candidateTabs.length > 0 && (
-                        <div className="px-4 py-2 bg-[#0F1419] border-b border-[#3A4452]/50">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Users className="w-3.5 h-3.5 text-[#8C7F72]" />
-                                <span className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold">
-                                    Active Candidates ({candidateTabs.length})
-                                </span>
-                            </div>
-                            <div className="flex flex-wrap gap-1.5 overflow-x-auto custom-scrollbar pb-1">
-                                {candidateTabs.slice(0, 10).map((time) => {
-                                    const isSelected = effectiveDisplayedCandidate === time;
-                                    const isLive = isStreaming(time);
+                {/* 🆕 CANDIDATE TABS BAR (ALWAYS VISIBLE) */}
+                <div className="px-4 py-2 bg-[#0F1419] border-b border-[#3A4452]/50">
+                    <div className="flex items-center gap-2 mb-2">
+                        <Users className="w-3.5 h-3.5 text-[#8C7F72]" />
+                        <span className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold">
+                            Active Candidates ({candidateTabs.length})
+                        </span>
+                    </div>
+                    {candidateTabs.length > 0 ? (
+                        <div className="flex flex-wrap gap-2 pb-1 max-h-[150px] overflow-y-auto custom-scrollbar">
+                            {candidateTabs.map((time) => {
+                                const isSelected = effectiveDisplayedCandidate === time;
+                                const isLive = isStreaming(time);
 
-                                    return (
-                                        <button
-                                            key={time}
-                                            onClick={() => handleCandidateClick(time)}
-                                            className={`
+                                return (
+                                    <button
+                                        key={time}
+                                        onClick={() => handleCandidateClick(time)}
+                                        className={`
                                             px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all relative
                                             ${isSelected
-                                                    ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/50 shadow-[0_0_10px_rgba(212,175,55,0.2)]'
-                                                    : 'bg-[#1A2433] text-[#8C7F72] border border-[#3A4452] hover:border-[#D4AF37]/30 hover:text-[#C4B8AD]'
-                                                }
+                                                ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/50 shadow-[0_0_10px_rgba(212,175,55,0.2)]'
+                                                : 'bg-[#1A2433] text-[#8C7F72] border border-[#3A4452] hover:border-[#D4AF37]/30 hover:text-[#C4B8AD]'
+                                            }
                                         `}
-                                        >
-                                            {isLive && (
-                                                <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
-                                                </span>
-                                            )}
-                                            <span className="flex items-center gap-1.5">
-                                                {isLive && <Radio className="w-3 h-3 text-red-400" />}
-                                                {time}
+                                    >
+                                        {isLive && (
+                                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
                                             </span>
-                                        </button>
-                                    );
-                                })}
-                                {candidateTabs.length > 10 && (
-                                    <span className="px-2 py-1.5 text-[10px] text-[#8C7F72]">
-                                        +{candidateTabs.length - 10} more
-                                    </span>
-                                )}
-                            </div>
+                                        )}
+                                        <span className="flex items-center gap-1.5">
+                                            {isLive && <Radio className="w-3 h-3 text-red-400" />}
+                                            {time}
+                                        </span>
+                                    </button>
+                                );
+                            })}
                         </div>
-                    )
-                }
+                    ) : (
+                        <div className="h-10 flex items-center justify-center text-[#3A4452] text-xs italic border border-dashed border-[#3A4452]/50 rounded-lg">
+                            Waiting for candidates...
+                        </div>
+                    )}
+                </div>
 
                 {/* Content for Selected Candidate */}
                 <ScrollableContent
@@ -654,7 +651,7 @@ function ScrollableContent({ content, isThinking, candidateTime }: { content: st
                     {isThinking ? (
                         <Typewriter
                             content={content}
-                            speed={5}
+                            speed={1}
                         />
                     ) : (
                         <div className="whitespace-pre-wrap">{formatStructuredSections(content)}</div>

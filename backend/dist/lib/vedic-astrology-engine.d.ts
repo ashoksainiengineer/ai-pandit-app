@@ -103,4 +103,38 @@ export declare function getDignity(planet: string, sign: string): 'Exalted' | 'D
  * Get map of all house lords for a chart
  */
 export declare function getAllHouseLords(ascSign: string): Record<number, string>;
+import { DivisionalChart, EphemerisData } from './types.js';
+export declare function calculateAllVargas(ephemeris: EphemerisData): Record<string, DivisionalChart>;
+export interface AspectHit {
+    targetPlanet?: string;
+    targetHouse?: number;
+    type: string;
+    orb: number;
+    isHit: boolean;
+}
+export declare function calculateFunctionalNature(ascSign: string, planet: string): {
+    role: 'Benefic' | 'Malefic' | 'Neutral';
+    reason: string;
+};
+export declare function calculateAspects(sourcePlanet: string, sourceLong: number, targetMap: Record<string, number>, // planet -> longitude
+ascendantLong: number): AspectHit[];
+export declare function calculateAshtakavarga(ephemeris: EphemerisData): Record<string, number[]>;
+export declare function calculateShadbala(ephemeris: EphemerisData): Record<string, number>;
+export interface YogaMatch {
+    name: string;
+    description: string;
+    level: 'Mahayoga' | 'Dhanayoga' | 'Rajayoga' | 'Aristhayoga';
+}
+export declare function detectYogas(ephemeris: EphemerisData): YogaMatch[];
+export interface DoubleTransitResult {
+    isTriggered: boolean;
+    saturnConnection: string;
+    jupiterConnection: string;
+    targetHouse: number;
+}
+/**
+ * Double Transit Verification: Jupiter AND Saturn both influencing a house.
+ * Powerful Vedic rule for event manifestation.
+ */
+export declare function verifyDoubleTransit(transitEphemeris: EphemerisData, birthAscSign: string, targetHouse: number): DoubleTransitResult;
 //# sourceMappingURL=vedic-astrology-engine.d.ts.map

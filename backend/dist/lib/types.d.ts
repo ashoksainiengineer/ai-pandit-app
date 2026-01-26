@@ -81,6 +81,11 @@ export interface PlanetPosition {
     nakshatraPada?: number;
     lord: string;
     retro: boolean;
+    speed: number;
+    distance: number;
+    isCombust: boolean;
+    dignity: string;
+    house: number;
 }
 export interface EphemerisData {
     planets: {
@@ -99,14 +104,30 @@ export interface EphemerisData {
         degree: number;
         nakshatra: string;
         longitude: number;
+        subLord?: string;
     };
     houses: HousePosition[];
+    divisionalCharts?: Record<string, DivisionalChart>;
+    ashtakavarga?: any;
+    shadbala?: Record<string, number>;
+    kpCusps?: number[];
+}
+export interface DivisionalChart {
+    id: string;
+    planets: Record<string, PlanetPosition>;
+    ascendant: {
+        sign: string;
+        degree: number;
+        longitude: number;
+    };
 }
 export interface HousePosition {
     houseNumber: number;
     sign: string;
     degree: number;
     cusp: number;
+    lord: string;
+    subLord?: string;
 }
 /**
  * 🤏 Minified Ephemeris for HUD/Table display

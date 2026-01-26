@@ -124,6 +124,11 @@ export interface PlanetPosition {
   nakshatraPada?: number; // 1-4, for sub-nakshatra precision
   lord: string;
   retro: boolean;
+  speed: number;       // degrees per day
+  distance: number;    // distance from Earth/Sun
+  isCombust: boolean;
+  dignity: string;     // Exalted, Own, Friend, etc.
+  house: number;       // Whole sign house
 }
 
 export interface EphemerisData {
@@ -143,8 +148,23 @@ export interface EphemerisData {
     degree: number;
     nakshatra: string;
     longitude: number;
+    subLord?: string;
   };
   houses: HousePosition[];
+  divisionalCharts?: Record<string, DivisionalChart>;
+  ashtakavarga?: any; // To be defined
+  shadbala?: Record<string, number>;
+  kpCusps?: number[];
+}
+
+export interface DivisionalChart {
+  id: string; // D1, D9, D60, etc.
+  planets: Record<string, PlanetPosition>;
+  ascendant: {
+    sign: string;
+    degree: number;
+    longitude: number;
+  };
 }
 
 export interface HousePosition {
@@ -152,6 +172,8 @@ export interface HousePosition {
   sign: string;
   degree: number;
   cusp: number;
+  lord: string;
+  subLord?: string;
 }
 
 /**

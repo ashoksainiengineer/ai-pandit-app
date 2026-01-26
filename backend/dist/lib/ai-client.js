@@ -19,10 +19,10 @@ const AI_CONFIG = {
     // OpenRouter AI Configuration
     baseUrl: process.env.AI_BASE_URL || 'https://openrouter.ai/api/v1',
     apiKey: process.env.AI_API_KEY || '',
-    model: process.env.AI_MODEL || 'deepseek/deepseek-v3.2',
+    model: process.env.AI_MODEL || 'deepseek/deepseek-r1',
     maxTokens: 65536, // 64K Output (Safe limit near 66K max)
     thinkingBudget: 49152, // 48K Thinking Budget (75% of output)
-    temperature: 0.1,
+    temperature: 0,
     retryAttempts: 3,
     retryDelayMs: 2000,
     timeoutMs: 300000,
@@ -265,6 +265,8 @@ async function callAIWithStream(sessionId, stage, systemPrompt, userPrompt, opti
             let fullContent = '';
             let fullThinking = '';
             let buffer = '';
+            let emitBuffer = '';
+            let lastEmitTime = Date.now();
             while (true) {
                 const { done, value } = await reader.read();
                 if (done)
@@ -282,36 +284,46 @@ async function callAIWithStream(sessionId, stage, systemPrompt, userPrompt, opti
                         const parsed = JSON.parse(data);
                         const delta = parsed.choices?.[0]?.delta;
                         const reasoningChunk = delta?.reasoning || delta?.reasoning_content;
+                        let chunkToProcess = '';
+                        let isReasoning = false;
                         if (reasoningChunk) {
-                            // DeepSeek/OpenRouter thinking tokens
                             fullThinking += reasoningChunk;
-                            (0, session_events_js_1.emitAIThinking)(sessionId, reasoningChunk, stage, options?.candidateTime);
-                            // 💾 Persist for Polling Fallback
-                            if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
-                                options.progressTracker.updateAIThinking(reasoningChunk, stage, options?.candidateTime).catch(() => { });
-                            }
-                            // 💓 Heartbeat every ~100 tokens
-                            if (fullThinking.length % 500 < reasoningChunk.length) {
-                                options?.onToken?.(fullThinking, true);
-                            }
+                            chunkToProcess = reasoningChunk;
+                            isReasoning = true;
                         }
                         else if (delta?.content) {
-                            // Fallback: Emit content as "thinking" for non-reasoning models
                             fullContent += delta.content;
-                            (0, session_events_js_1.emitAIThinking)(sessionId, delta.content, stage, options?.candidateTime);
-                            // 💾 Persist for Polling Fallback
-                            if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
-                                options.progressTracker.updateAIThinking(delta.content, stage, options?.candidateTime).catch(() => { });
+                            chunkToProcess = delta.content;
+                        }
+                        if (chunkToProcess) {
+                            emitBuffer += chunkToProcess;
+                            // 🚀 THROTTLE: Emit only if buffer > 20 chars or > 20ms elapsed
+                            // Minimal safety buffer for smoother stream
+                            const now = Date.now();
+                            if (emitBuffer.length > 20 || (now - lastEmitTime > 20)) {
+                                (0, session_events_js_1.emitAIThinking)(sessionId, emitBuffer, stage, options?.candidateTime);
+                                if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
+                                    options.progressTracker.updateAIThinking(emitBuffer, stage, options?.candidateTime).catch(() => { });
+                                }
+                                emitBuffer = '';
+                                lastEmitTime = now;
                             }
-                            // 💓 Heartbeat every ~100 tokens
-                            if (fullContent.length % 500 < delta.content.length) {
-                                options?.onToken?.(fullContent, false);
+                            // Heartbeat logic
+                            if ((isReasoning ? fullThinking.length : fullContent.length) % 500 < chunkToProcess.length) {
+                                options?.onToken?.(isReasoning ? fullThinking : fullContent, isReasoning);
                             }
                         }
                     }
                     catch {
-                        // Ignore parse errors for incomplete chunks
+                        // Ignore parse errors
                     }
+                }
+            }
+            // Flush remaining buffer
+            if (emitBuffer) {
+                (0, session_events_js_1.emitAIThinking)(sessionId, emitBuffer, stage, options?.candidateTime);
+                if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
+                    options.progressTracker.updateAIThinking(emitBuffer, stage, options?.candidateTime).catch(() => { });
                 }
             }
             logger_js_1.logger.info('Streaming AI complete', {
@@ -322,6 +334,12 @@ async function callAIWithStream(sessionId, stage, systemPrompt, userPrompt, opti
             if (!fullThinking && !fullContent) {
                 // If completely empty, treat as failure and retry
                 throw new Error('Empty response from AI provider');
+            }
+            // 🛡️ SECURITY: Strip <think> tags if they leaked into content (DeepSeek R1 common issue)
+            const thinkMatch = fullContent.match(/<think>([\s\S]*?)<\/think>/i);
+            if (thinkMatch) {
+                fullThinking += "\n" + thinkMatch[1];
+                fullContent = fullContent.replace(/<think>[\s\S]*?<\/think>/i, '').trim();
             }
             return {
                 success: true,
@@ -406,12 +424,18 @@ For each candidate time, provide:
 4. CONFIDENCE SCORE: [0-100 with detailed justification]
 5. FINAL VERDICT: [Is this the correct birth time? Yes/No/Maybe]
 
+
+5. INPUT DATA SCHEMA (Raw Vedic Data):
+   - "LAGNA": Ascendant Sign and Degree.
+   - "PLANETARY POSITIONS": Sidereal/Lahiri longitudes.
+   - "DIVISIONAL CHARTS": D9/D10/D60 raw sign placements.
+   - "VIMSHOTTARI": Dates of Dasha/Antardasha.
+
 IMPORTANT:
-- Be extremely precise in calculations
-- Show your reasoning step by step
-- Consider that birth times recorded in India are often rounded to nearest 5-15 minutes
-- The tentative time is usually close - focus on ±30 minutes first
-- Physical traits can help narrow down ascendant sign`;
+- YOU MUST CALCULATE FUNCTIONAL NATURE (Benefic/Malefic) yourself based on Lagna.
+- YOU MUST DETERMINE ASPECTS (Drishti) yourself from Longitudes.
+- FOCUS on D60 (Shashtyamsa) for the final seconds-level precision.
+- Do not expect pre-calculated "hits" or "scores". Use your specific knowledge.`;
 /**
  * Build comprehensive prompt for candidate analysis
  */
