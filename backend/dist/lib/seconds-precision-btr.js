@@ -46,6 +46,26 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
     ephemeris.ashtakavarga = calculateAshtakavarga(ephemeris);
     ephemeris.shadbala = calculateShadbala(ephemeris);
     const yogas = detectYogas(ephemeris);
+    // 🔱 Spouse Synastry Calculation
+    let spouseMatch = undefined;
+    if (input.spouseData && input.spouseData.dateOfBirth) {
+        try {
+            const spouseEph = await (0, ephemeris_js_1.calculateEphemeris)(input.spouseData.dateOfBirth, input.spouseData.birthTime || '12:00:00', input.spouseData.latitude || 0, input.spouseData.longitude || 0, input.spouseData.timezone || 0);
+            const spouseLagna = spouseEph.ascendant.sign;
+            const targetHouseSign = ephemeris.houses[6]?.sign; // 7th House Sign (0-indexed house 6)
+            const lagnaMatch = spouseLagna === targetHouseSign;
+            const moonSignMatch = spouseEph.planets.moon.sign === ephemeris.planets.moon.sign;
+            spouseMatch = {
+                lagnaMatch,
+                moonMatch: moonSignMatch,
+                score: lagnaMatch ? 90 : (moonSignMatch ? 60 : 40),
+                reason: lagnaMatch ? `Spouse Lagna (${spouseLagna}) matches Candidate 7th House!` : (moonSignMatch ? `Moon signs match!` : 'No direct synastry link')
+            };
+        }
+        catch (e) {
+            logger_js_1.logger.warn('Spouse data calculation failed', e);
+        }
+    }
     const moonLong = ephemeris.planets.moon.longitude;
     const birthDate = new Date(input.dateOfBirth);
     // Build planet positions
@@ -189,7 +209,8 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
             UL: { sign: arudhas.UL, degree: '0.00°', house: ((ZODIAC_SIGNS.indexOf(arudhas.UL) - ZODIAC_SIGNS.indexOf(ephemeris.ascendant.sign) + 12) % 12) + 1 },
             BB: { sign: (0, jaimini_astrology_js_1.calculateBhriguBindu)(ephemeris).sign, degree: (0, jaimini_astrology_js_1.calculateBhriguBindu)(ephemeris).degree.toFixed(2) + '°', house: 0 }
         },
-        yogas
+        yogas,
+        spouseMatch
     };
     // Include extended data for later stages
     if (includeFullData) {
@@ -301,26 +322,37 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
                 // Skip
             }
         }
-        // 🦾 5. Lifecycle Chronicle: Track major Saturn/Jupiter shifts (1999 to Present)
+        // 🦾 5. Lifecycle Chronicle: Track Sign Ingress (Sign Changes) for Saturn/Jupiter
         const lifecycleShifts = [];
-        const checkYears = [];
         const startYear = birthDate.getFullYear();
         const endYear = new Date().getFullYear();
-        for (let y = startYear; y <= endYear; y++)
-            checkYears.push(y);
-        for (const year of checkYears) {
-            try {
-                const checkDate = `${year}-06-15`; // Mid-year check
-                const ephAtYear = await (0, ephemeris_js_1.calculateEphemeris)(checkDate, '12:00:00', input.latitude, input.longitude, input.timezone);
-                const dasha = (0, vedic_astrology_engine_js_1.getDashaForDate)(vimDashas, new Date(checkDate));
-                const dashaStr = dasha ? `${dasha.mahadasha}-${dasha.antardasha}` : 'N/A';
-                lifecycleShifts.push({
-                    date: checkDate,
-                    event: `Saturn in ${ephAtYear.planets.saturn.sign} | Jupiter in ${ephAtYear.planets.jupiter.sign}`,
-                    dasha: dashaStr
-                });
+        let lastSaturnSign = '';
+        let lastJupiterSign = '';
+        // Optimized sampling: Every 4 months (Catching all sign changes)
+        for (let year = startYear; year <= endYear; year++) {
+            for (let month of [1, 5, 9]) {
+                try {
+                    const checkDateForCycle = `${year}-${String(month).padStart(2, '0')}-01`;
+                    const ephShift = await (0, ephemeris_js_1.calculateEphemeris)(checkDateForCycle, '12:00:00', input.latitude, input.longitude, input.timezone);
+                    const currentSatSign = ephShift.planets.saturn.sign;
+                    const currentJupSign = ephShift.planets.jupiter.sign;
+                    if (currentSatSign !== lastSaturnSign || currentJupSign !== lastJupiterSign) {
+                        const dashaCycle = (0, vedic_astrology_engine_js_1.getDashaForDate)(vimDashas, new Date(checkDateForCycle));
+                        lifecycleShifts.push({
+                            date: checkDateForCycle,
+                            event: `TRANSIT INGRESS: Saturn in ${currentSatSign} | Jupiter in ${currentJupSign}`,
+                            dasha: dashaCycle ? `${dashaCycle.mahadasha}-${dashaCycle.antardasha}` : 'N/A'
+                        });
+                        lastSaturnSign = currentSatSign;
+                        lastJupiterSign = currentJupSign;
+                    }
+                }
+                catch { }
+                if (lifecycleShifts.length > 50)
+                    break; // Hard cap for prompt safety
             }
-            catch { }
+            if (lifecycleShifts.length > 50)
+                break;
         }
         pkg.lifecycleShifts = lifecycleShifts;
     }
@@ -451,6 +483,10 @@ ${c.vimsopakaBala ? `├ VIM SOPAKA BALA (Total Shodashvarga Strength - 0-20):
 │ ${Object.entries(c.vimsopakaBala).map(([n, s]) => `${n}:${s}`).join(' | ')}` : ''}
 ${c.chalitDiscrepancies?.length ? `├ BHAVA CHALIT DISCREPANCIES:
 ${c.chalitDiscrepancies.map((d) => `│ ${d.planet}: Rashi-H${d.rasiHouse} ↔ Chalit-H${d.chalitHouse}`).join('\n')}` : ''}
+${c.spouseMatch ? `├ SPOUSE SYNASTRY MATCH:
+│ ${c.spouseMatch.reason} (Synastry Score: ${c.spouseMatch.score})` : ''}
+${c.lifecycleShifts?.length ? `├ LIFECYCLE CHRONOLOGY (Major Sign Ingresses):
+${c.lifecycleShifts.slice(0, 15).map(s => `│ [${s.date}]: ${s.event}`).join('\n')}` : ''}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `).join('')}
 
@@ -540,6 +576,10 @@ ${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:
 │ Vargottama: ${c.vedicSignals.vargottama?.join(', ') || 'None'}
 │ Pushkar: ${c.vedicSignals.pushkar?.join(', ') || 'None'}
 │ Parivartana: ${c.vedicSignals.parivartana?.map((ex) => `L${ex.houses[0]}↔L${ex.houses[1]}`).join(', ') || 'None'}` : ''}
+${c.spouseMatch ? `├ SPOUSE SYNASTRY CORRELATION:
+│ ${c.spouseMatch.reason}` : ''}
+${c.lifecycleShifts?.length ? `├ LIFECYCLE CHRONOLOGY (SATURN/JUPITER INGRESS):
+${c.lifecycleShifts.map(s => `│ [${s.date}]: ${s.event} (Dasha: ${s.dasha})`).join('\n')}` : ''}
 └──────────────────────────────────────────────────────────────`).join('\n')}
 
 SCORING:
@@ -619,11 +659,15 @@ ${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:
 ${currentTransits ? `├ PRESENT DAY ANCHOR (2026 Transits):
 │ [Dasha Now]: ${currentTransits.dashaAtNow}
 │ [Planets Now]: Ju=${currentTransits.jupiter}, Sa=${currentTransits.saturn}, Ra=${currentTransits.rahu}` : ''}
+${c.spouseMatch ? `├ FINAL SPOUSE SYNASTRY PROOF:
+│ ${c.spouseMatch.reason} | Multiplier: ${c.spouseMatch.lagnaMatch ? 'HIGH' : 'LOW'}` : ''}
+${c.lifecycleShifts?.length ? `├ FINAL CHRONOLOGY VERIFICATION:
+${c.lifecycleShifts.map(s => `│ [${s.date}]: ${s.event}`).join('\n')}` : ''}
 └ BOUNDARY CHECK: ${parseFloat(c.ascendant.degree) < 1 || parseFloat(c.ascendant.degree) > 29 ? '⚠️ EDGE' : 'SAFE'}`).join('\n')}
 
 FINAL VERDICT (required format):
 BEST TIME: [HH:MM:SS]
-REASONING: [Explicitly cite D60 Lagna, Dasha Connection, and Shadbala/SAV proof. No generic text.]
+REASONING: [Explicitly cite D60 Lagna, Dasha Connection, Synastry Match (if any), and Lifecycle Chronology. No generic text.]
 CONFIDENCE: [0-100]
 ACCURACY: [0-100]%
 CONFIDENCE: [HIGH/MEDIUM/LOW]
@@ -695,15 +739,15 @@ function extractFinalVerdict(aiContent) {
 async function stage1ExhaustiveDataGeneration(input, progress) {
     await progress.startStep('grid', 'Stage 1: Generating ALL candidate data...');
     const rawCandidates = (0, time_offset_manager_js_1.generateCandidateTimes)(input.tentativeTime, input.offsetConfig);
-    const candidates = [];
     const total = rawCandidates.length;
     let processed = 0;
-    logger_js_1.logger.info('🔱 Stage 1: Generating Swiss Eph data for ALL candidates', { total });
+    logger_js_1.logger.info('🔱 Stage 1: Initializing metadata for candidates', { total });
     for (const raw of rawCandidates) {
-        const pkg = await buildCandidateDataPackage(raw.time, raw.offsetMinutes, input, true);
-        candidates.push(pkg);
+        // We build the package once to ensure the calculation log is sent, 
+        // but we DO NOT keep it in memory.
+        const pkg = await buildCandidateDataPackage(raw.time, raw.offsetMinutes, input, false);
         processed++;
-        // Log EVERY calculation (user requested)
+        // Log EVERY calculation (user requested) but with lightweight data
         (0, session_events_js_1.emitCalculationLog)(input.sessionId, {
             candidateTime: raw.time,
             sunPos: `${pkg.planets.sun.sign} ${pkg.planets.sun.degree}`,
@@ -716,16 +760,16 @@ async function stage1ExhaustiveDataGeneration(input, progress) {
         }
         // GC breathing room (Gentle Mode for Free Tier)
         if (processed % 5 === 0)
-            await sleep(20);
+            await sleep(10);
     }
-    await progress.completeStep('grid', [`Generated ${candidates.length} candidates`]);
+    await progress.completeStep('grid', [`Initialized ${rawCandidates.length} paths`]);
     return {
-        candidates,
+        candidates: rawCandidates,
         stageResult: {
             stageNumber: 1,
             stageName: 'Exhaustive Data Generation',
             candidatesIn: total,
-            candidatesOut: candidates.length
+            candidatesOut: rawCandidates.length
         }
     };
 }
@@ -766,39 +810,32 @@ async function stage2BatchTournament(input, candidates, progress) {
         const batches = (0, time_offset_manager_js_1.splitIntoBatches)(currentCandidates, batchSize);
         const roundSurvivors = [];
         await progress.updateMessage(`Round ${roundNumber}: ${batches.length} batches of ${batchSize}`);
-        // 🔱 Parallel Execution Logic
-        const tasks = batches.map((batch, i) => async () => {
-            // Emit context just before execution (or inside to track start)
-            // Note: Context emission here might interleave in logs, which is fine for parallel
-            (0, session_events_js_1.emitAIContext)(input.sessionId, {
-                stage: 2,
-                candidateTime: `Batch ${i + 1}/${batches.length}`,
-                round: roundNumber,
-                batch: i + 1,
-                totalBatches: batches.length,
-                candidatesInBatch: batch.length
-            });
-            const prompt = getBatchPrompt(batch, input.lifeEvents, input.physicalTraits, i + 1, batches.length, survivorsPerBatch);
-            return (0, ai_client_js_1.callAIWithStream)(input.sessionId, 2, 'You are the SUPREME VEDIC ASTROLOGER. Analyze ALL candidates with EQUAL attention.', prompt, {
-                // model: 'deepseek/deepseek-r1', // Use env default
+        // Execute in parallel
+        const batchDataMap = new Map();
+        const tasks = batches.map((batchTimes, i) => async () => {
+            const batchEnriched = await Promise.all(batchTimes.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, true)));
+            batchDataMap.set(i, batchEnriched);
+            return (0, ai_client_js_1.callAIWithStream)(input.sessionId, 2, 'You are the SUPREME VEDIC ASTROLOGER. Analyze ALL candidates with EQUAL attention.', getBatchPrompt(batchEnriched, input.lifeEvents, input.physicalTraits, i + 1, batches.length, survivorsPerBatch), {
                 candidateTime: `Batch ${i + 1}/${batches.length}`,
                 progressTracker: progress
             });
         });
-        // Execute in parallel (Max IO Concurrency)
         const results = await (0, ai_client_js_1.executeAIInParallel)(tasks, 20, 100);
         // Process results
         for (let i = 0; i < batches.length; i++) {
-            const batch = batches[i];
+            const batchTimes = batches[i];
             const response = results[i];
+            const fullBatchData = batchDataMap.get(i) || [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
-            const survivorTimes = extractBatchSurvivors(aiContent, batch.map(c => c.time), survivorsPerBatch);
-            for (const candidate of batch) {
+            const survivorTimes = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), survivorsPerBatch);
+            for (let j = 0; j < fullBatchData.length; j++) {
+                const candidate = fullBatchData[j];
+                const originalTimeInfo = batchTimes[j];
                 const isSurvivor = survivorTimes.includes(candidate.time);
                 let score = 40;
                 if (isSurvivor) {
                     score = 85;
-                    roundSurvivors.push(candidate);
+                    roundSurvivors.push(originalTimeInfo);
                 }
                 (0, session_events_js_1.emitCandidateScore)(input.sessionId, candidate.time, score, 2, undefined, getMinifiedEph(candidate));
             }
@@ -844,20 +881,11 @@ async function stage3RefinementGrid(input, survivors, progress) {
         for (const gridPoint of fineGrid) {
             // Check if already exists
             if (!refinedCandidates.some(c => c.time === gridPoint.time)) {
-                const pkg = await buildCandidateDataPackage(gridPoint.time, gridPoint.offsetMinutes, input, true // Include full data for deep analysis
-                );
-                refinedCandidates.push(pkg);
-                (0, session_events_js_1.emitCalculationLog)(input.sessionId, {
-                    candidateTime: gridPoint.time,
-                    sunPos: `${pkg.planets.sun.sign} ${pkg.planets.sun.degree}`,
-                    moonPos: `${pkg.planets.moon.sign} ${pkg.planets.moon.degree}`,
-                    ascendant: `${pkg.ascendant.sign} ${pkg.ascendant.degree}`,
-                    dashaObj: pkg.vimshottariDasha[0]?.maha || 'N/A'
-                });
+                refinedCandidates.push(gridPoint);
             }
         }
     }
-    await progress.completeStep('fine', [`Refined grid: ${refinedCandidates.length} candidates`]);
+    await progress.completeStep('fine', [`Generated refinement grid: ${refinedCandidates.length} points`]);
     return {
         candidates: refinedCandidates,
         stageResult: {
@@ -872,49 +900,53 @@ async function stage3RefinementGrid(input, survivors, progress) {
 // STAGE 4: DEEP ANALYSIS (Multi-dasha verification)
 // ═════════════════════════════════════════════════════════════════════════════
 async function stage4DeepAnalysis(input, candidates, progress) {
-    await progress.startStep('deep', 'Stage 4: Deep multi-dasha analysis...');
-    // Run another tournament round if needed
+    await progress.startStep('deep', 'Stage 4: Deep analysis tournament...');
     let currentCandidates = [...candidates];
     let allReasoning = '';
-    while (currentCandidates.length > time_offset_manager_js_1.MAX_BATCH_SIZE) {
-        const batches = (0, time_offset_manager_js_1.splitIntoBatches)(currentCandidates, time_offset_manager_js_1.MAX_BATCH_SIZE);
+    const batchSize = time_offset_manager_js_1.MAX_BATCH_SIZE;
+    const survivorsPerBatch = time_offset_manager_js_1.SURVIVORS_PER_BATCH; // Assuming a default or defined constant
+    // Helper for Eph formatting
+    const getMinifiedEph = (c) => ({
+        sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
+        moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
+        ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
+    });
+    while (currentCandidates.length > batchSize) {
+        const batches = (0, time_offset_manager_js_1.splitIntoBatches)(currentCandidates, batchSize);
         const batchSurvivors = [];
+        const batchDataMap = new Map();
         // 🔱 Parallel Execution Logic (Stage 4)
-        const tasks = batches.map((batch, i) => async () => {
+        const tasks = batches.map((batchTimes, i) => async () => {
+            const batchEnriched = await Promise.all(batchTimes.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, true)));
+            batchDataMap.set(i, batchEnriched);
             (0, session_events_js_1.emitAIContext)(input.sessionId, {
                 stage: 4,
-                candidateTime: `Deep ${i + 1}/${batches.length}`,
-                round: 1,
+                candidateTime: `Deep Batch ${i + 1}/${batches.length}`,
                 batch: i + 1,
                 totalBatches: batches.length,
-                candidatesInBatch: batch.length
+                candidatesInBatch: batchEnriched.length
             });
-            const prompt = getDeepAnalysisPrompt(batch, input.lifeEvents, input.physicalTraits, input.spouseData);
-            return (0, ai_client_js_1.callAIWithStream)(input.sessionId, 4, 'You are performing DEEP astrological verification.', prompt, {
-                // model: 'deepseek/deepseek-r1', // Use env default
+            return (0, ai_client_js_1.callAIWithStream)(input.sessionId, 4, 'You are the GOD-TIER VEDIC ANALYST. Perform deep multi-dasha verification.', getDeepAnalysisPrompt(batchEnriched, input.lifeEvents, input.physicalTraits, input.spouseData), {
                 candidateTime: `Deep ${i + 1}/${batches.length}`,
                 progressTracker: progress
             });
         });
-        // Execute in parallel (Max IO Concurrency)
         const results = await (0, ai_client_js_1.executeAIInParallel)(tasks, 20, 100);
         for (let i = 0; i < batches.length; i++) {
-            const batch = batches[i];
+            const batchTimes = batches[i];
             const response = results[i];
+            const fullBatchData = batchDataMap.get(i) || [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
             allReasoning += aiContent + '\n\n';
-            const getMinifiedEph = (c) => ({
-                sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
-                moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
-                ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
-            });
-            const survivorTimes = extractBatchSurvivors(aiContent, batch.map(c => c.time), 3);
-            for (const candidate of batch) {
+            const survivorTimes = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), survivorsPerBatch);
+            for (let j = 0; j < fullBatchData.length; j++) {
+                const candidate = fullBatchData[j];
+                const originalTimeInfo = batchTimes[j];
                 const isSurvivor = survivorTimes.includes(candidate.time);
                 let score = 60;
                 if (isSurvivor) {
                     score = 90;
-                    batchSurvivors.push(candidate);
+                    batchSurvivors.push(originalTimeInfo);
                 }
                 (0, session_events_js_1.emitCandidateScore)(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEph(candidate));
             }
@@ -922,8 +954,10 @@ async function stage4DeepAnalysis(input, candidates, progress) {
         currentCandidates = batchSurvivors;
     }
     // Final deep analysis on remaining candidates
-    if (currentCandidates.length > 3) {
-        const prompt = getDeepAnalysisPrompt(currentCandidates, input.lifeEvents, input.physicalTraits, input.spouseData);
+    if (currentCandidates.length > 0) { // Changed from > 3 to > 0 to handle small remaining batches
+        // JIT Enrichment for the final batch
+        const finalBatchData = await Promise.all(currentCandidates.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, true)));
+        const prompt = getDeepAnalysisPrompt(finalBatchData, input.lifeEvents, input.physicalTraits, input.spouseData);
         const response = await (0, ai_client_js_1.callAIWithStream)(input.sessionId, 4, 'You are performing FINAL deep verification.', prompt, {
             candidateTime: 'Deep Final',
             progressTracker: progress
@@ -931,18 +965,14 @@ async function stage4DeepAnalysis(input, candidates, progress) {
         const aiContent = response.success ? (response.content || response.thinking || '') : '';
         allReasoning += aiContent;
         const survivorTimes = extractBatchSurvivors(aiContent, currentCandidates.map(c => c.time), 7);
-        // Helper (Stage 4 Final)
-        const getMinifiedEph = (c) => ({
-            sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
-            moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
-            ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
-        });
         const survivors = [];
-        for (const candidate of currentCandidates) {
+        for (let j = 0; j < finalBatchData.length; j++) {
+            const candidate = finalBatchData[j];
+            const originalTimeInfo = currentCandidates[j];
             const isSurvivor = survivorTimes.includes(candidate.time);
             const score = isSurvivor ? 95 : 65;
             if (isSurvivor)
-                survivors.push(candidate);
+                survivors.push(originalTimeInfo);
             (0, session_events_js_1.emitCandidateScore)(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEph(candidate));
         }
         currentCandidates = survivors;
@@ -966,17 +996,16 @@ async function stage4DeepAnalysis(input, candidates, progress) {
 async function stage5MicroGrid(input, survivors, progress) {
     await progress.startStep('micro', 'Stage 5: Micro-precision grid...');
     const microCandidates = [];
-    // Generate ±30 sec grid at 6-sec interval around top 3
+    // Generate ±30 sec grid at 6-sec interval around top 3 survivors
     for (const survivor of survivors.slice(0, 3)) {
         const microGrid = (0, time_offset_manager_js_1.generateRefinementGrid)(survivor.time, 0.5, 6); // ±30 sec @ 6 sec
         for (const gridPoint of microGrid) {
             if (!microCandidates.some(c => c.time === gridPoint.time)) {
-                const pkg = await buildCandidateDataPackage(gridPoint.time, gridPoint.offsetMinutes, input, true);
-                microCandidates.push(pkg);
+                microCandidates.push(gridPoint);
             }
         }
     }
-    await progress.completeStep('micro', [`Micro grid: ${microCandidates.length} candidates`]);
+    await progress.completeStep('micro', [`Generated micro grid: ${microCandidates.length} candidates`]);
     return {
         candidates: microCandidates,
         stageResult: {
@@ -991,11 +1020,9 @@ async function stage5MicroGrid(input, survivors, progress) {
 // STAGE 6: FINAL PRECISION JUDGEMENT
 // ═════════════════════════════════════════════════════════════════════════════
 async function stage6FinalPrecision(input, candidates, progress) {
-    // 🦾 CALCULATE PRESENT-DAY ANCHOR (Current System Time)
-    const now = new Date(); // Use system time (Jan 2026 as per user context)
+    const now = new Date();
     const currentEph = await (0, ephemeris_js_1.calculateEphemeris)(now.toISOString().split('T')[0], now.toTimeString().split(' ')[0], input.latitude, input.longitude, input.timezone);
     const getPresentTransitData = (c) => {
-        // Use rawVimshottari (DashaPeriod[]) instead of minified to satisfy getDashaForDate type
         const dashaAtNow = (0, vedic_astrology_engine_js_1.getDashaForDate)(c.rawVimshottari, now);
         return {
             dashaAtNow: dashaAtNow ? `${dashaAtNow.mahadasha}-${dashaAtNow.antardasha}-${dashaAtNow.pratyantardasha}` : 'Unknown',
@@ -1008,21 +1035,22 @@ async function stage6FinalPrecision(input, candidates, progress) {
     while (finalists.length > time_offset_manager_js_1.MAX_BATCH_SIZE) {
         const batches = (0, time_offset_manager_js_1.splitIntoBatches)(finalists, time_offset_manager_js_1.MAX_BATCH_SIZE);
         const batchWinners = [];
-        // 🔱 Parallel Execution Logic (Stage 6)
-        const tasks = batches.map((batch) => async () => {
-            // Pick first candidate for transit reference (they all share same 'now' positions)
-            const presentAnchor = getPresentTransitData(batch[0]);
-            const prompt = getFinalPrecisionPrompt(batch, input.lifeEvents, input.physicalTraits, input.spouseData, presentAnchor);
-            return (0, ai_client_js_1.callAIWithStream)(input.sessionId, 6, 'FINAL JUDGEMENT. Pick THE ONE.', prompt, {
+        const batchDataMap = new Map();
+        const tasks = batches.map((batchTimes, i) => async () => {
+            const batchEnriched = await Promise.all(batchTimes.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, true)));
+            batchDataMap.set(i, batchEnriched);
+            const presentAnchor = getPresentTransitData(batchEnriched[0]);
+            return (0, ai_client_js_1.callAIWithStream)(input.sessionId, 6, 'FINAL JUDGEMENT. Pick THE ONE.', getFinalPrecisionPrompt(batchEnriched, input.lifeEvents, input.physicalTraits, input.spouseData, presentAnchor), {
                 candidateTime: 'FINAL',
                 progressTracker: progress
             });
         });
-        // Execute in parallel (Concurrency: 10)
+        // Execute in parallel
         const results = await (0, ai_client_js_1.executeAIInParallel)(tasks, 10, 200);
         for (let i = 0; i < batches.length; i++) {
-            const batch = batches[i];
+            const batchTimes = batches[i];
             const response = results[i];
+            const fullBatchData = batchDataMap.get(i) || [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
             const verdict = extractFinalVerdict(aiContent);
             const getMinifiedEph = (c) => ({
@@ -1030,13 +1058,16 @@ async function stage6FinalPrecision(input, candidates, progress) {
                 moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
                 ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
             });
-            for (const candidate of batch) {
+            for (let j = 0; j < fullBatchData.length; j++) {
+                const candidate = fullBatchData[j];
+                const originalTimeInfo = batchTimes[j];
                 const isWinner = verdict && candidate.time === verdict.time;
                 const score = isWinner ? (verdict.accuracy || 90) : 60;
-                if (isWinner)
-                    batchWinners.push(candidate);
-                else if (!verdict && batch.length > 0 && candidate === batch[0]) {
-                    batchWinners.push(candidate);
+                if (isWinner) {
+                    batchWinners.push(originalTimeInfo);
+                }
+                else if (!verdict && fullBatchData.length > 0 && candidate === fullBatchData[0]) {
+                    batchWinners.push(originalTimeInfo);
                 }
                 (0, session_events_js_1.emitCandidateScore)(input.sessionId, candidate.time, score, 6, undefined, getMinifiedEph(candidate));
             }
@@ -1044,8 +1075,9 @@ async function stage6FinalPrecision(input, candidates, progress) {
         finalists = batchWinners;
     }
     // Final judgement
-    const finalAnchor = getPresentTransitData(finalists[0]);
-    const prompt = getFinalPrecisionPrompt(finalists, input.lifeEvents, input.physicalTraits, input.spouseData, finalAnchor);
+    const finalBatch = await Promise.all(finalists.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, true)));
+    const finalAnchor = getPresentTransitData(finalBatch[0]);
+    const prompt = getFinalPrecisionPrompt(finalBatch, input.lifeEvents, input.physicalTraits, input.spouseData, finalAnchor);
     const response = await (0, ai_client_js_1.callAIWithStream)(input.sessionId, 6, 'You are the DIVINE ARCHITECT of Time. FINAL JUDGEMENT.', prompt, {
         model: 'deepseek/deepseek-v3.2',
         candidateTime: 'FINAL VERDICT',
@@ -1054,7 +1086,7 @@ async function stage6FinalPrecision(input, candidates, progress) {
     });
     const aiContent = response.success ? (response.content || response.thinking || '') : '';
     const verdict = extractFinalVerdict(aiContent);
-    const finalTime = verdict?.time || finalists[0]?.time || input.tentativeTime;
+    const finalTime = verdict?.time || finalBatch[0]?.time || input.tentativeTime;
     const accuracy = verdict?.accuracy || 85;
     const confidence = verdict?.confidence || 'MEDIUM';
     const margin = verdict?.margin || 5;
@@ -1064,7 +1096,7 @@ async function stage6FinalPrecision(input, candidates, progress) {
         moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
         ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
     });
-    const winnerPkg = finalists.find(c => c.time === finalTime) || finalists[0];
+    const winnerPkg = finalBatch.find(c => c.time === finalTime) || finalBatch[0];
     (0, session_events_js_1.emitCandidateScore)(input.sessionId, finalTime, accuracy, 6, 1, winnerPkg ? getMinifiedEph(winnerPkg) : undefined);
     await progress.completeStep('final', [`FINAL: ${finalTime} (${confidence})`]);
     return {
@@ -1153,7 +1185,8 @@ async function processSecondsPrecisionBTR(input) {
         const divCharts = (0, advanced_btr_methods_js_1.generateDivisionalCharts)(finalEphemeris);
         const boundary = (0, advanced_btr_methods_js_1.calculateBoundarySafety)(finalEphemeris);
         await progress.complete();
-        const winnerPkg = stage5.candidates.find(c => c.time === stage6.finalTime) || stage5.candidates[0];
+        // FINAL JIT: Enrich the winner package for the final report
+        const winnerPkg = await buildCandidateDataPackage(stage6.finalTime, 0, input, true);
         const enrichedResult = {
             summary: stage6.aiReasoning.slice(0, 5000),
             finalCandidate: {

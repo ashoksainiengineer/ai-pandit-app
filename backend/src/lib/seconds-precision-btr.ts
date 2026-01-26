@@ -53,6 +53,7 @@ import {
     executeAIInParallel,
 } from './ai-client.js';
 import {
+    CandidateTime,
     generateCandidateTimes,
     generateRefinementGrid,
     splitIntoBatches,
@@ -60,7 +61,6 @@ import {
     SURVIVORS_PER_BATCH,
     getDynamicBatchSize,
     getDynamicSurvivors,
-    TimeOffsetConfig
 } from './time-offset-manager.js';
 import { logger } from './logger.js';
 import { ProgressTracker, ANALYSIS_STEPS } from './progress-tracker.js';
@@ -137,6 +137,12 @@ interface CandidateDataPackage {
     vimsopakaBala?: Record<string, number>; // 🔱 Total Vigour (0-20)
     chalitDiscrepancies?: any[]; // 🔱 House-sign border flags
     ishtaKashtaPhala?: Record<string, { ishta: number; kashta: number }>; // 🔱 Benefic Fruit
+    spouseMatch?: {
+        lagnaMatch: boolean;
+        moonMatch: boolean;
+        score: number;
+        reason: string;
+    };
 }
 
 interface StageResult {
@@ -199,6 +205,34 @@ async function buildCandidateDataPackage(
     ephemeris.ashtakavarga = calculateAshtakavarga(ephemeris);
     ephemeris.shadbala = calculateShadbala(ephemeris);
     const yogas = detectYogas(ephemeris);
+
+    // 🔱 Spouse Synastry Calculation
+    let spouseMatch: any = undefined;
+    if (input.spouseData && input.spouseData.dateOfBirth) {
+        try {
+            const spouseEph = await calculateEphemeris(
+                input.spouseData.dateOfBirth,
+                input.spouseData.birthTime || '12:00:00',
+                input.spouseData.latitude || 0,
+                input.spouseData.longitude || 0,
+                input.spouseData.timezone || 0
+            );
+            const spouseLagna = spouseEph.ascendant.sign;
+            const targetHouseSign = ephemeris.houses[6]?.sign; // 7th House Sign (0-indexed house 6)
+
+            const lagnaMatch = spouseLagna === targetHouseSign;
+            const moonSignMatch = spouseEph.planets.moon.sign === ephemeris.planets.moon.sign;
+
+            spouseMatch = {
+                lagnaMatch,
+                moonMatch: moonSignMatch,
+                score: lagnaMatch ? 90 : (moonSignMatch ? 60 : 40),
+                reason: lagnaMatch ? `Spouse Lagna (${spouseLagna}) matches Candidate 7th House!` : (moonSignMatch ? `Moon signs match!` : 'No direct synastry link')
+            };
+        } catch (e) {
+            logger.warn('Spouse data calculation failed', e);
+        }
+    }
 
     const moonLong = ephemeris.planets.moon.longitude;
     const birthDate = new Date(input.dateOfBirth);
@@ -359,7 +393,8 @@ async function buildCandidateDataPackage(
             UL: { sign: arudhas.UL, degree: '0.00°', house: ((ZODIAC_SIGNS.indexOf(arudhas.UL) - ZODIAC_SIGNS.indexOf(ephemeris.ascendant.sign) + 12) % 12) + 1 },
             BB: { sign: calculateBhriguBindu(ephemeris).sign, degree: calculateBhriguBindu(ephemeris).degree.toFixed(2) + '°', house: 0 }
         },
-        yogas
+        yogas,
+        spouseMatch
     };
 
     // Include extended data for later stages
@@ -491,26 +526,37 @@ async function buildCandidateDataPackage(
             }
         }
 
-        // 🦾 5. Lifecycle Chronicle: Track major Saturn/Jupiter shifts (1999 to Present)
+        // 🦾 5. Lifecycle Chronicle: Track Sign Ingress (Sign Changes) for Saturn/Jupiter
         const lifecycleShifts: any[] = [];
-        const checkYears: number[] = [];
         const startYear = birthDate.getFullYear();
         const endYear = new Date().getFullYear();
-        for (let y = startYear; y <= endYear; y++) checkYears.push(y);
 
-        for (const year of checkYears) {
-            try {
-                const checkDate = `${year}-06-15`; // Mid-year check
-                const ephAtYear = await calculateEphemeris(checkDate, '12:00:00', input.latitude, input.longitude, input.timezone);
-                const dasha = getDashaForDate(vimDashas, new Date(checkDate));
-                const dashaStr = dasha ? `${dasha.mahadasha}-${dasha.antardasha}` : 'N/A';
+        let lastSaturnSign = '';
+        let lastJupiterSign = '';
 
-                lifecycleShifts.push({
-                    date: checkDate,
-                    event: `Saturn in ${ephAtYear.planets.saturn.sign} | Jupiter in ${ephAtYear.planets.jupiter.sign}`,
-                    dasha: dashaStr
-                });
-            } catch { }
+        // Optimized sampling: Every 4 months (Catching all sign changes)
+        for (let year = startYear; year <= endYear; year++) {
+            for (let month of [1, 5, 9]) {
+                try {
+                    const checkDateForCycle = `${year}-${String(month).padStart(2, '0')}-01`;
+                    const ephShift = await calculateEphemeris(checkDateForCycle, '12:00:00', input.latitude, input.longitude, input.timezone);
+                    const currentSatSign = ephShift.planets.saturn.sign;
+                    const currentJupSign = ephShift.planets.jupiter.sign;
+
+                    if (currentSatSign !== lastSaturnSign || currentJupSign !== lastJupiterSign) {
+                        const dashaCycle = getDashaForDate(vimDashas, new Date(checkDateForCycle));
+                        lifecycleShifts.push({
+                            date: checkDateForCycle,
+                            event: `TRANSIT INGRESS: Saturn in ${currentSatSign} | Jupiter in ${currentJupSign}`,
+                            dasha: dashaCycle ? `${dashaCycle.mahadasha}-${dashaCycle.antardasha}` : 'N/A'
+                        });
+                        lastSaturnSign = currentSatSign;
+                        lastJupiterSign = currentJupSign;
+                    }
+                } catch { }
+                if (lifecycleShifts.length > 50) break; // Hard cap for prompt safety
+            }
+            if (lifecycleShifts.length > 50) break;
         }
         pkg.lifecycleShifts = lifecycleShifts;
     }
@@ -656,6 +702,10 @@ ${c.vimsopakaBala ? `├ VIM SOPAKA BALA (Total Shodashvarga Strength - 0-20):
 │ ${Object.entries(c.vimsopakaBala).map(([n, s]) => `${n}:${s}`).join(' | ')}` : ''}
 ${c.chalitDiscrepancies?.length ? `├ BHAVA CHALIT DISCREPANCIES:
 ${c.chalitDiscrepancies.map((d: any) => `│ ${d.planet}: Rashi-H${d.rasiHouse} ↔ Chalit-H${d.chalitHouse}`).join('\n')}` : ''}
+${c.spouseMatch ? `├ SPOUSE SYNASTRY MATCH:
+│ ${c.spouseMatch.reason} (Synastry Score: ${c.spouseMatch.score})` : ''}
+${c.lifecycleShifts?.length ? `├ LIFECYCLE CHRONOLOGY (Major Sign Ingresses):
+${c.lifecycleShifts.slice(0, 15).map(s => `│ [${s.date}]: ${s.event}`).join('\n')}` : ''}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `).join('')}
 
@@ -754,6 +804,10 @@ ${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:
 │ Vargottama: ${c.vedicSignals.vargottama?.join(', ') || 'None'}
 │ Pushkar: ${c.vedicSignals.pushkar?.join(', ') || 'None'}
 │ Parivartana: ${c.vedicSignals.parivartana?.map((ex: any) => `L${ex.houses[0]}↔L${ex.houses[1]}`).join(', ') || 'None'}` : ''}
+${c.spouseMatch ? `├ SPOUSE SYNASTRY CORRELATION:
+│ ${c.spouseMatch.reason}` : ''}
+${c.lifecycleShifts?.length ? `├ LIFECYCLE CHRONOLOGY (SATURN/JUPITER INGRESS):
+${c.lifecycleShifts.map(s => `│ [${s.date}]: ${s.event} (Dasha: ${s.dasha})`).join('\n')}` : ''}
 └──────────────────────────────────────────────────────────────`).join('\n')}
 
 SCORING:
@@ -843,11 +897,15 @@ ${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:
 ${currentTransits ? `├ PRESENT DAY ANCHOR (2026 Transits):
 │ [Dasha Now]: ${currentTransits.dashaAtNow}
 │ [Planets Now]: Ju=${currentTransits.jupiter}, Sa=${currentTransits.saturn}, Ra=${currentTransits.rahu}` : ''}
+${c.spouseMatch ? `├ FINAL SPOUSE SYNASTRY PROOF:
+│ ${c.spouseMatch.reason} | Multiplier: ${c.spouseMatch.lagnaMatch ? 'HIGH' : 'LOW'}` : ''}
+${c.lifecycleShifts?.length ? `├ FINAL CHRONOLOGY VERIFICATION:
+${c.lifecycleShifts.map(s => `│ [${s.date}]: ${s.event}`).join('\n')}` : ''}
 └ BOUNDARY CHECK: ${parseFloat(c.ascendant.degree) < 1 || parseFloat(c.ascendant.degree) > 29 ? '⚠️ EDGE' : 'SAFE'}`).join('\n')}
 
 FINAL VERDICT (required format):
 BEST TIME: [HH:MM:SS]
-REASONING: [Explicitly cite D60 Lagna, Dasha Connection, and Shadbala/SAV proof. No generic text.]
+REASONING: [Explicitly cite D60 Lagna, Dasha Connection, Synastry Match (if any), and Lifecycle Chronology. No generic text.]
 CONFIDENCE: [0-100]
 ACCURACY: [0-100]%
 CONFIDENCE: [HIGH/MEDIUM/LOW]
@@ -930,24 +988,24 @@ function extractFinalVerdict(aiContent: string): { time: string; accuracy: numbe
 async function stage1ExhaustiveDataGeneration(
     input: SecondsPrecisionInput,
     progress: ProgressTracker
-): Promise<{ candidates: CandidateDataPackage[]; stageResult: StageResult }> {
+): Promise<{ candidates: CandidateTime[]; stageResult: StageResult }> {
     await progress.startStep('grid', 'Stage 1: Generating ALL candidate data...');
 
     const rawCandidates = generateCandidateTimes(input.tentativeTime, input.offsetConfig);
-    const candidates: CandidateDataPackage[] = [];
 
     const total = rawCandidates.length;
     let processed = 0;
 
-    logger.info('🔱 Stage 1: Generating Swiss Eph data for ALL candidates', { total });
+    logger.info('🔱 Stage 1: Initializing metadata for candidates', { total });
 
     for (const raw of rawCandidates) {
-        const pkg = await buildCandidateDataPackage(raw.time, raw.offsetMinutes, input, true);
-        candidates.push(pkg);
+        // We build the package once to ensure the calculation log is sent, 
+        // but we DO NOT keep it in memory.
+        const pkg = await buildCandidateDataPackage(raw.time, raw.offsetMinutes, input, false);
 
         processed++;
 
-        // Log EVERY calculation (user requested)
+        // Log EVERY calculation (user requested) but with lightweight data
         emitCalculationLog(input.sessionId, {
             candidateTime: raw.time,
             sunPos: `${pkg.planets.sun.sign} ${pkg.planets.sun.degree}`,
@@ -961,18 +1019,18 @@ async function stage1ExhaustiveDataGeneration(
         }
 
         // GC breathing room (Gentle Mode for Free Tier)
-        if (processed % 5 === 0) await sleep(20);
+        if (processed % 5 === 0) await sleep(10);
     }
 
-    await progress.completeStep('grid', [`Generated ${candidates.length} candidates`]);
+    await progress.completeStep('grid', [`Initialized ${rawCandidates.length} paths`]);
 
     return {
-        candidates,
+        candidates: rawCandidates,
         stageResult: {
             stageNumber: 1,
             stageName: 'Exhaustive Data Generation',
             candidatesIn: total,
-            candidatesOut: candidates.length
+            candidatesOut: rawCandidates.length
         }
     };
 }
@@ -983,9 +1041,9 @@ async function stage1ExhaustiveDataGeneration(
 
 async function stage2BatchTournament(
     input: SecondsPrecisionInput,
-    candidates: CandidateDataPackage[],
+    candidates: CandidateTime[],
     progress: ProgressTracker
-): Promise<{ survivors: CandidateDataPackage[]; stageResult: StageResult; rounds: TournamentRound[] }> {
+): Promise<{ survivors: CandidateTime[]; stageResult: StageResult; rounds: TournamentRound[] }> {
     await progress.startStep('coarse', 'Stage 2: Batch Tournament...');
 
     const rounds: TournamentRound[] = [];
@@ -1023,71 +1081,48 @@ async function stage2BatchTournament(
     while (currentCandidates.length > batchSize) {
         roundNumber++;
         const batches = splitIntoBatches(currentCandidates, batchSize);
-        const roundSurvivors: CandidateDataPackage[] = [];
+        const roundSurvivors: CandidateTime[] = [];
 
         await progress.updateMessage(`Round ${roundNumber}: ${batches.length} batches of ${batchSize}`);
 
-        // 🔱 Parallel Execution Logic
-        const tasks = batches.map((batch, i) => async () => {
-            // Emit context just before execution (or inside to track start)
-            // Note: Context emission here might interleave in logs, which is fine for parallel
-            emitAIContext(input.sessionId, {
-                stage: 2,
-                candidateTime: `Batch ${i + 1}/${batches.length}`,
-                round: roundNumber,
-                batch: i + 1,
-                totalBatches: batches.length,
-                candidatesInBatch: batch.length
-            });
-
-            const prompt = getBatchPrompt(
-                batch,
-                input.lifeEvents,
-                input.physicalTraits,
-                i + 1,
-                batches.length,
-                survivorsPerBatch
-            );
-
+        // Execute in parallel
+        const batchDataMap = new Map<number, CandidateDataPackage[]>();
+        const tasks = batches.map((batchTimes, i) => async () => {
+            const batchEnriched = await Promise.all(batchTimes.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, true)));
+            batchDataMap.set(i, batchEnriched);
             return callAIWithStream(
                 input.sessionId,
                 2,
                 'You are the SUPREME VEDIC ASTROLOGER. Analyze ALL candidates with EQUAL attention.',
-                prompt,
+                getBatchPrompt(batchEnriched, input.lifeEvents, input.physicalTraits, i + 1, batches.length, survivorsPerBatch),
                 {
-                    // model: 'deepseek/deepseek-r1', // Use env default
                     candidateTime: `Batch ${i + 1}/${batches.length}`,
                     progressTracker: progress
                 }
             );
         });
 
-        // Execute in parallel (Max IO Concurrency)
         const results = await executeAIInParallel(tasks, 20, 100);
 
         // Process results
         for (let i = 0; i < batches.length; i++) {
-            const batch = batches[i];
+            const batchTimes = batches[i];
             const response = results[i];
+            const fullBatchData = batchDataMap.get(i) || [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
-            const survivorTimes = extractBatchSurvivors(aiContent, batch.map(c => c.time), survivorsPerBatch);
+            const survivorTimes = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), survivorsPerBatch);
 
-            for (const candidate of batch) {
+            for (let j = 0; j < fullBatchData.length; j++) {
+                const candidate = fullBatchData[j];
+                const originalTimeInfo = batchTimes[j];
                 const isSurvivor = survivorTimes.includes(candidate.time);
                 let score = 40;
                 if (isSurvivor) {
                     score = 85;
-                    roundSurvivors.push(candidate);
+                    roundSurvivors.push(originalTimeInfo);
                 }
 
-                emitCandidateScore(
-                    input.sessionId,
-                    candidate.time,
-                    score,
-                    2,
-                    undefined,
-                    getMinifiedEph(candidate)
-                );
+                emitCandidateScore(input.sessionId, candidate.time, score, 2, undefined, getMinifiedEph(candidate));
             }
         }
 
@@ -1132,12 +1167,12 @@ async function stage2BatchTournament(
 
 async function stage3RefinementGrid(
     input: SecondsPrecisionInput,
-    survivors: CandidateDataPackage[],
+    survivors: CandidateTime[],
     progress: ProgressTracker
-): Promise<{ candidates: CandidateDataPackage[]; stageResult: StageResult }> {
+): Promise<{ candidates: CandidateTime[]; stageResult: StageResult }> {
     await progress.startStep('fine', 'Stage 3: Generating refinement grid...');
 
-    const refinedCandidates: CandidateDataPackage[] = [];
+    const refinedCandidates: CandidateTime[] = [];
 
     // Generate ±5 min grid at 1-min interval around each survivor
     for (const survivor of survivors) {
@@ -1146,26 +1181,12 @@ async function stage3RefinementGrid(
         for (const gridPoint of fineGrid) {
             // Check if already exists
             if (!refinedCandidates.some(c => c.time === gridPoint.time)) {
-                const pkg = await buildCandidateDataPackage(
-                    gridPoint.time,
-                    gridPoint.offsetMinutes,
-                    input,
-                    true // Include full data for deep analysis
-                );
-                refinedCandidates.push(pkg);
-
-                emitCalculationLog(input.sessionId, {
-                    candidateTime: gridPoint.time,
-                    sunPos: `${pkg.planets.sun.sign} ${pkg.planets.sun.degree}`,
-                    moonPos: `${pkg.planets.moon.sign} ${pkg.planets.moon.degree}`,
-                    ascendant: `${pkg.ascendant.sign} ${pkg.ascendant.degree}`,
-                    dashaObj: pkg.vimshottariDasha[0]?.maha || 'N/A'
-                });
+                refinedCandidates.push(gridPoint);
             }
         }
     }
 
-    await progress.completeStep('fine', [`Refined grid: ${refinedCandidates.length} candidates`]);
+    await progress.completeStep('fine', [`Generated refinement grid: ${refinedCandidates.length} points`]);
 
     return {
         candidates: refinedCandidates,
@@ -1184,87 +1205,88 @@ async function stage3RefinementGrid(
 
 async function stage4DeepAnalysis(
     input: SecondsPrecisionInput,
-    candidates: CandidateDataPackage[],
+    candidates: CandidateTime[],
     progress: ProgressTracker
-): Promise<{ survivors: CandidateDataPackage[]; stageResult: StageResult; aiReasoning: string }> {
-    await progress.startStep('deep', 'Stage 4: Deep multi-dasha analysis...');
+): Promise<{ survivors: CandidateTime[]; stageResult: StageResult; aiReasoning: string }> {
+    await progress.startStep('deep', 'Stage 4: Deep analysis tournament...');
 
-    // Run another tournament round if needed
     let currentCandidates = [...candidates];
     let allReasoning = '';
 
-    while (currentCandidates.length > MAX_BATCH_SIZE) {
-        const batches = splitIntoBatches(currentCandidates, MAX_BATCH_SIZE);
-        const batchSurvivors: CandidateDataPackage[] = [];
+    const batchSize = MAX_BATCH_SIZE;
+    const survivorsPerBatch = SURVIVORS_PER_BATCH; // Assuming a default or defined constant
+
+    // Helper for Eph formatting
+    const getMinifiedEph = (c: CandidateDataPackage) => ({
+        sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
+        moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
+        ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
+    });
+
+    while (currentCandidates.length > batchSize) {
+        const batches = splitIntoBatches(currentCandidates, batchSize);
+        const batchSurvivors: CandidateTime[] = [];
+        const batchDataMap = new Map<number, CandidateDataPackage[]>();
 
         // 🔱 Parallel Execution Logic (Stage 4)
-        const tasks = batches.map((batch, i) => async () => {
+        const tasks = batches.map((batchTimes, i) => async () => {
+            const batchEnriched = await Promise.all(batchTimes.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, true)));
+            batchDataMap.set(i, batchEnriched);
+
             emitAIContext(input.sessionId, {
                 stage: 4,
-                candidateTime: `Deep ${i + 1}/${batches.length}`,
-                round: 1,
+                candidateTime: `Deep Batch ${i + 1}/${batches.length}`,
                 batch: i + 1,
                 totalBatches: batches.length,
-                candidatesInBatch: batch.length
+                candidatesInBatch: batchEnriched.length
             });
-
-            const prompt = getDeepAnalysisPrompt(batch, input.lifeEvents, input.physicalTraits, input.spouseData);
 
             return callAIWithStream(
                 input.sessionId,
                 4,
-                'You are performing DEEP astrological verification.',
-                prompt,
+                'You are the GOD-TIER VEDIC ANALYST. Perform deep multi-dasha verification.',
+                getDeepAnalysisPrompt(batchEnriched, input.lifeEvents, input.physicalTraits, input.spouseData),
                 {
-                    // model: 'deepseek/deepseek-r1', // Use env default
                     candidateTime: `Deep ${i + 1}/${batches.length}`,
                     progressTracker: progress
                 }
             );
         });
 
-        // Execute in parallel (Max IO Concurrency)
         const results = await executeAIInParallel(tasks, 20, 100);
 
         for (let i = 0; i < batches.length; i++) {
-            const batch = batches[i];
+            const batchTimes = batches[i];
             const response = results[i];
+            const fullBatchData = batchDataMap.get(i) || [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
             allReasoning += aiContent + '\n\n';
 
-            const getMinifiedEph = (c: CandidateDataPackage) => ({
-                sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
-                moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
-                ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
-            });
+            const survivorTimes = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), survivorsPerBatch);
 
-            const survivorTimes = extractBatchSurvivors(aiContent, batch.map(c => c.time), 3);
-
-            for (const candidate of batch) {
+            for (let j = 0; j < fullBatchData.length; j++) {
+                const candidate = fullBatchData[j];
+                const originalTimeInfo = batchTimes[j];
                 const isSurvivor = survivorTimes.includes(candidate.time);
                 let score = 60;
 
                 if (isSurvivor) {
                     score = 90;
-                    batchSurvivors.push(candidate);
+                    batchSurvivors.push(originalTimeInfo);
                 }
 
-                emitCandidateScore(
-                    input.sessionId,
-                    candidate.time,
-                    score,
-                    4,
-                    undefined,
-                    getMinifiedEph(candidate)
-                );
+                emitCandidateScore(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEph(candidate));
             }
         }
         currentCandidates = batchSurvivors;
     }
 
     // Final deep analysis on remaining candidates
-    if (currentCandidates.length > 3) {
-        const prompt = getDeepAnalysisPrompt(currentCandidates, input.lifeEvents, input.physicalTraits, input.spouseData);
+    if (currentCandidates.length > 0) { // Changed from > 3 to > 0 to handle small remaining batches
+        // JIT Enrichment for the final batch
+        const finalBatchData = await Promise.all(currentCandidates.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, true)));
+
+        const prompt = getDeepAnalysisPrompt(finalBatchData, input.lifeEvents, input.physicalTraits, input.spouseData);
 
         const response = await callAIWithStream(
             input.sessionId,
@@ -1282,28 +1304,16 @@ async function stage4DeepAnalysis(
 
         const survivorTimes = extractBatchSurvivors(aiContent, currentCandidates.map(c => c.time), 7);
 
-        // Helper (Stage 4 Final)
-        const getMinifiedEph = (c: CandidateDataPackage) => ({
-            sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
-            moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
-            ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
-        });
-
-        const survivors: CandidateDataPackage[] = [];
-        for (const candidate of currentCandidates) {
+        const survivors: CandidateTime[] = [];
+        for (let j = 0; j < finalBatchData.length; j++) {
+            const candidate = finalBatchData[j];
+            const originalTimeInfo = currentCandidates[j];
             const isSurvivor = survivorTimes.includes(candidate.time);
             const score = isSurvivor ? 95 : 65;
 
-            if (isSurvivor) survivors.push(candidate);
+            if (isSurvivor) survivors.push(originalTimeInfo);
 
-            emitCandidateScore(
-                input.sessionId,
-                candidate.time,
-                score,
-                4,
-                undefined,
-                getMinifiedEph(candidate)
-            );
+            emitCandidateScore(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEph(candidate));
         }
         currentCandidates = survivors;
     }
@@ -1329,31 +1339,25 @@ async function stage4DeepAnalysis(
 
 async function stage5MicroGrid(
     input: SecondsPrecisionInput,
-    survivors: CandidateDataPackage[],
+    survivors: CandidateTime[],
     progress: ProgressTracker
-): Promise<{ candidates: CandidateDataPackage[]; stageResult: StageResult }> {
+): Promise<{ candidates: CandidateTime[]; stageResult: StageResult }> {
     await progress.startStep('micro', 'Stage 5: Micro-precision grid...');
 
-    const microCandidates: CandidateDataPackage[] = [];
+    const microCandidates: CandidateTime[] = [];
 
-    // Generate ±30 sec grid at 6-sec interval around top 3
+    // Generate ±30 sec grid at 6-sec interval around top 3 survivors
     for (const survivor of survivors.slice(0, 3)) {
         const microGrid = generateRefinementGrid(survivor.time, 0.5, 6); // ±30 sec @ 6 sec
 
         for (const gridPoint of microGrid) {
             if (!microCandidates.some(c => c.time === gridPoint.time)) {
-                const pkg = await buildCandidateDataPackage(
-                    gridPoint.time,
-                    gridPoint.offsetMinutes,
-                    input,
-                    true
-                );
-                microCandidates.push(pkg);
+                microCandidates.push(gridPoint);
             }
         }
     }
 
-    await progress.completeStep('micro', [`Micro grid: ${microCandidates.length} candidates`]);
+    await progress.completeStep('micro', [`Generated micro grid: ${microCandidates.length} candidates`]);
 
     return {
         candidates: microCandidates,
@@ -1372,11 +1376,10 @@ async function stage5MicroGrid(
 
 async function stage6FinalPrecision(
     input: SecondsPrecisionInput,
-    candidates: CandidateDataPackage[],
+    candidates: CandidateTime[],
     progress: ProgressTracker
 ): Promise<{ finalTime: string; accuracy: number; confidence: string; margin: number; aiReasoning: string; thinking?: string; stageResult: StageResult }> {
-    // 🦾 CALCULATE PRESENT-DAY ANCHOR (Current System Time)
-    const now = new Date(); // Use system time (Jan 2026 as per user context)
+    const now = new Date();
     const currentEph = await calculateEphemeris(
         now.toISOString().split('T')[0],
         now.toTimeString().split(' ')[0],
@@ -1386,7 +1389,6 @@ async function stage6FinalPrecision(
     );
 
     const getPresentTransitData = (c: CandidateDataPackage) => {
-        // Use rawVimshottari (DashaPeriod[]) instead of minified to satisfy getDashaForDate type
         const dashaAtNow = getDashaForDate(c.rawVimshottari as any, now);
         return {
             dashaAtNow: dashaAtNow ? `${dashaAtNow.mahadasha}-${dashaAtNow.antardasha}-${dashaAtNow.pratyantardasha}` : 'Unknown',
@@ -1400,18 +1402,19 @@ async function stage6FinalPrecision(
 
     while (finalists.length > MAX_BATCH_SIZE) {
         const batches = splitIntoBatches(finalists, MAX_BATCH_SIZE);
-        const batchWinners: CandidateDataPackage[] = [];
+        const batchWinners: CandidateTime[] = [];
+        const batchDataMap = new Map<number, CandidateDataPackage[]>();
 
-        // 🔱 Parallel Execution Logic (Stage 6)
-        const tasks = batches.map((batch) => async () => {
-            // Pick first candidate for transit reference (they all share same 'now' positions)
-            const presentAnchor = getPresentTransitData(batch[0]);
-            const prompt = getFinalPrecisionPrompt(batch, input.lifeEvents, input.physicalTraits, input.spouseData, presentAnchor);
+        const tasks = batches.map((batchTimes, i) => async () => {
+            const batchEnriched = await Promise.all(batchTimes.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, true)));
+            batchDataMap.set(i, batchEnriched);
+            const presentAnchor = getPresentTransitData(batchEnriched[0]);
+
             return callAIWithStream(
                 input.sessionId,
                 6,
                 'FINAL JUDGEMENT. Pick THE ONE.',
-                prompt,
+                getFinalPrecisionPrompt(batchEnriched, input.lifeEvents, input.physicalTraits, input.spouseData, presentAnchor),
                 {
                     candidateTime: 'FINAL',
                     progressTracker: progress
@@ -1419,12 +1422,13 @@ async function stage6FinalPrecision(
             );
         });
 
-        // Execute in parallel (Concurrency: 10)
+        // Execute in parallel
         const results = await executeAIInParallel(tasks, 10, 200);
 
         for (let i = 0; i < batches.length; i++) {
-            const batch = batches[i];
+            const batchTimes = batches[i];
             const response = results[i];
+            const fullBatchData = batchDataMap.get(i) || [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
             const verdict = extractFinalVerdict(aiContent);
 
@@ -1434,23 +1438,19 @@ async function stage6FinalPrecision(
                 ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
             });
 
-            for (const candidate of batch) {
+            for (let j = 0; j < fullBatchData.length; j++) {
+                const candidate = fullBatchData[j];
+                const originalTimeInfo = batchTimes[j];
                 const isWinner = verdict && candidate.time === verdict.time;
                 const score = isWinner ? (verdict.accuracy || 90) : 60;
 
-                if (isWinner) batchWinners.push(candidate);
-                else if (!verdict && batch.length > 0 && candidate === batch[0]) {
-                    batchWinners.push(candidate);
+                if (isWinner) {
+                    batchWinners.push(originalTimeInfo);
+                } else if (!verdict && fullBatchData.length > 0 && candidate === fullBatchData[0]) {
+                    batchWinners.push(originalTimeInfo);
                 }
 
-                emitCandidateScore(
-                    input.sessionId,
-                    candidate.time,
-                    score,
-                    6,
-                    undefined,
-                    getMinifiedEph(candidate)
-                );
+                emitCandidateScore(input.sessionId, candidate.time, score, 6, undefined, getMinifiedEph(candidate));
             }
         }
 
@@ -1458,8 +1458,9 @@ async function stage6FinalPrecision(
     }
 
     // Final judgement
-    const finalAnchor = getPresentTransitData(finalists[0]);
-    const prompt = getFinalPrecisionPrompt(finalists, input.lifeEvents, input.physicalTraits, input.spouseData, finalAnchor);
+    const finalBatch = await Promise.all(finalists.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, true)));
+    const finalAnchor = getPresentTransitData(finalBatch[0]);
+    const prompt = getFinalPrecisionPrompt(finalBatch, input.lifeEvents, input.physicalTraits, input.spouseData, finalAnchor);
     const response = await callAIWithStream(
         input.sessionId,
         6,
@@ -1476,7 +1477,7 @@ async function stage6FinalPrecision(
     const aiContent = response.success ? (response.content || response.thinking || '') : '';
     const verdict = extractFinalVerdict(aiContent);
 
-    const finalTime = verdict?.time || finalists[0]?.time || input.tentativeTime;
+    const finalTime = verdict?.time || finalBatch[0]?.time || input.tentativeTime;
     const accuracy = verdict?.accuracy || 85;
     const confidence = verdict?.confidence || 'MEDIUM';
     const margin = verdict?.margin || 5;
@@ -1488,7 +1489,7 @@ async function stage6FinalPrecision(
         ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
     });
 
-    const winnerPkg = finalists.find(c => c.time === finalTime) || finalists[0];
+    const winnerPkg = finalBatch.find(c => c.time === finalTime) || finalBatch[0];
 
     emitCandidateScore(input.sessionId, finalTime, accuracy, 6, 1, winnerPkg ? getMinifiedEph(winnerPkg) : undefined);
 
@@ -1602,7 +1603,8 @@ export async function processSecondsPrecisionBTR(
         const boundary = calculateBoundarySafety(finalEphemeris);
 
         await progress.complete();
-        const winnerPkg = stage5.candidates.find(c => c.time === stage6.finalTime) || stage5.candidates[0];
+        // FINAL JIT: Enrich the winner package for the final report
+        const winnerPkg = await buildCandidateDataPackage(stage6.finalTime, 0, input, true);
 
         const enrichedResult = {
             summary: stage6.aiReasoning.slice(0, 5000),
