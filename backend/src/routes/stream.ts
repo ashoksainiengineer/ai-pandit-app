@@ -195,7 +195,7 @@ function sendEvent(res: Response, data: any): void {
     try {
         // Debug outgoing AI thinking events
         if (data.type === 'ai_thinking') {
-            console.log('🧠 SSE ai_thinking:', data.candidateTime, 'chunk:', data.chunk?.length, 'chars');
+            console.log('🧠 SSE ai_thinking:', data.candidateTime || '[General]', 'chunk:', data.chunk?.length, 'chars');
         }
         if (data.type === 'candidate_score') console.log('📊 Sending Candidate Score:', data);
 
