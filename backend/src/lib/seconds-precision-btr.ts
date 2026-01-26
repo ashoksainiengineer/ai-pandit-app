@@ -669,8 +669,8 @@ async function stage1ExhaustiveDataGeneration(
             await progress.updateMessage(`Ephemeris: ${processed}/${total}`);
         }
 
-        // GC breathing room
-        if (processed % 20 === 0) await sleep(5);
+        // GC breathing room (Gentle Mode for Free Tier)
+        if (processed % 5 === 0) await sleep(20);
     }
 
     await progress.completeStep('grid', [`Generated ${candidates.length} candidates`]);
@@ -771,8 +771,8 @@ async function stage2BatchTournament(
             );
         });
 
-        // Execute in parallel (Concurrency: 10 for God Mode)
-        const results = await executeAIInParallel(tasks, 25, 100);
+        // Execute in parallel (Max IO Concurrency)
+        const results = await executeAIInParallel(tasks, 20, 100);
 
         // Process results
         for (let i = 0; i < batches.length; i++) {
@@ -930,8 +930,8 @@ async function stage4DeepAnalysis(
             );
         });
 
-        // Execute in parallel (Concurrency: 10)
-        const results = await executeAIInParallel(tasks, 25, 100);
+        // Execute in parallel (Max IO Concurrency)
+        const results = await executeAIInParallel(tasks, 20, 100);
 
         for (let i = 0; i < batches.length; i++) {
             const batch = batches[i];
