@@ -157,8 +157,8 @@ export class ProgressTracker {
         if (!this.progress.stageHistory) this.progress.stageHistory = {};
 
         // 🔥 GOD-TIER MEMORY PROTECTION: Cap thinking and stage history
-        // On HF, we cannot afford to keep 50KB strings in multiple maps.
-        const MEMORY_LIMIT = 5000;
+        // Increased for Deep Results Archive (100KB per stage)
+        const MEMORY_LIMIT = 100000;
 
         const truncatedLog = updatedLog.length > MEMORY_LIMIT ? updatedLog.slice(-MEMORY_LIMIT) : updatedLog;
         this.candidateLogs.set(candidateTime, truncatedLog);
@@ -170,7 +170,7 @@ export class ProgressTracker {
 
         // Keep stageHistory lean - remove very old stages if memory is tight
         const stages = Object.keys(this.progress.stageHistory).map(Number).sort((a, b) => a - b);
-        if (stages.length > 5) {
+        if (stages.length > 10) {
             delete this.progress.stageHistory[stages[0]]; // Remove oldest stage
         }
 
@@ -377,13 +377,16 @@ export class ProgressTracker {
         this.progress.liveMessage = 'Analysis complete!';
         this.progress.lastUpdate = new Date().toISOString();
 
-        // Mark any remaining steps as complete
-        this.progress.steps.forEach(step => {
-            if (step.status !== 'complete' && step.status !== 'error') {
-                step.status = 'complete';
-                step.completedAt = new Date().toISOString();
-            }
-        });
+        // 🛡️ [PRUNING] ONLY FINAL CANDIDATE DATA REMAINS
+        // Remove reasoning for all intermediate stages except the final verdict (Stage 6)
+        if (this.progress.stageHistory) {
+            const finalReasoning = this.progress.stageHistory[6];
+            this.progress.stageHistory = { 6: finalReasoning || "Final verdict determined." };
+        }
+
+        // Clear out bulky calculation logs and multiple candidate scores
+        // We only need the history of what happened, not every single bit of intermediate data.
+        this.progress.calculationLogs = [];
 
         await this.saveProgress(true); // Final flush
 
@@ -438,14 +441,15 @@ export class ProgressTracker {
 
             let progressJson = JSON.stringify(dbProgress);
 
-            // 💾 Size Limit Check: Truncate if too huge (Turso fallback)
-            if (progressJson.length > 95000) {
-                if (dbProgress.calculationLogs && dbProgress.calculationLogs.length > 50) {
-                    dbProgress.calculationLogs = dbProgress.calculationLogs.slice(-50);
+            // 💾 Size Limit Check: Truncate if too huge (Increased for deep archive)
+            const MAX_DB_SIZE = 500000;
+            if (progressJson.length > MAX_DB_SIZE) {
+                if (dbProgress.calculationLogs && dbProgress.calculationLogs.length > 100) {
+                    dbProgress.calculationLogs = dbProgress.calculationLogs.slice(-100);
                     progressJson = JSON.stringify(dbProgress);
                 }
-                if (progressJson.length > 95000 && dbProgress.lastAIThinking) {
-                    dbProgress.lastAIThinking.fullText = dbProgress.lastAIThinking.fullText.slice(-10000);
+                if (progressJson.length > MAX_DB_SIZE && dbProgress.lastAIThinking) {
+                    dbProgress.lastAIThinking.fullText = dbProgress.lastAIThinking.fullText.slice(-50000);
                     progressJson = JSON.stringify(dbProgress);
                 }
             }

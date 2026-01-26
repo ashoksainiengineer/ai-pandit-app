@@ -1278,3 +1278,211 @@ export function calculatePanchanga(jd: number, sunLong: number, moonLong: number
 
     return { tithi: tithiName, vara, nakshatra, yoga, karana };
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// AVASHTA ENGINE (Planetary States)
+// ═════════════════════════════════════════════════════════════════════════════
+
+export type BaladiAvastha = 'Bala' | 'Kumara' | 'Yuva' | 'Vriddha' | 'Mritya';
+
+/**
+ * Calculate Baladi Avastha (Infant to Dead) based on degrees and sign oddity.
+ */
+export function calculateBaladiAvastha(longitude: number): BaladiAvastha {
+    const degree = longitude % 30;
+    const signIdx = Math.floor(longitude / 30);
+    const isOdd = signIdx % 2 === 0; // Aries (0), Gemini (2), etc.
+
+    let stateIdx: number;
+    if (isOdd) {
+        stateIdx = Math.floor(degree / 6);
+    } else {
+        stateIdx = 4 - Math.floor(degree / 6);
+    }
+
+    const states: BaladiAvastha[] = ['Bala', 'Kumara', 'Yuva', 'Vriddha', 'Mritya'];
+    return states[stateIdx];
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// D60 DEITY MAPPING (THE 60 SHASHTIAMSHA DEITIES)
+// ═════════════════════════════════════════════════════════════════════════════
+
+const D60_DEITIES = [
+    'Ghora', 'Rakshasa', 'Deva', 'Kubera', 'Yaksha', 'Kinnara', 'Bhrashta', 'Kulaghna',
+    'Garala', 'Vahni', 'Maya', 'Purishaka', 'Apampati', 'Marutwan', 'Kaala', 'Sarpa',
+    'Amrita', 'Indu', 'Mridu', 'Komala', 'Heramba', 'Brahma', 'Vishnu', 'Maheshwara',
+    'Deva', 'Ardra', 'Kalinasaka', 'Kshitishwara', 'Kamalakara', 'Gulika', 'Mrityu', 'Kaala',
+    'Davagni', 'Ghora', 'Adhama', 'Kantaka', 'Sudha', 'Amrita', 'Purnachandra', 'Vishadagdha',
+    'Kulanasaka', 'Vamshakshaya', 'Utpata', 'Kaalarupa', 'Saumya', 'Komala', 'Sheetala', 'Damshtrakarala',
+    'Indumukha', 'Pravina', 'Kalagni', 'Dandayudha', 'Nirmala', 'Saumya', 'Krura', 'Atisheetala',
+    'Amrita', 'Payodhi', 'Bhramana', 'Chandrarekha'
+];
+
+/**
+ * Get D60 Deity based on 0.5 degree division.
+ */
+export function getD60Deity(longitude: number): string {
+    const degreeInSign = longitude % 30;
+    const index = Math.floor(degreeInSign / 0.5);
+    const signIdx = Math.floor(longitude / 30);
+    const isOdd = signIdx % 2 === 0;
+
+    if (isOdd) {
+        return D60_DEITIES[index % 60];
+    } else {
+        // Reverse order for even signs as per classical rules
+        return D60_DEITIES[59 - (index % 60)];
+    }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// VIM SOPAKA BALA (The 20-Point Shodashvarga Strength)
+// ═════════════════════════════════════════════════════════════════════════════
+
+const VIM_WEIGHTS: Record<string, number> = {
+    D1: 3.5, D2: 1.0, D3: 1.0, D4: 0.5, D7: 0.5, D9: 3.0, D10: 0.5, D12: 0.5,
+    D16: 2.0, D20: 0.5, D24: 0.5, D27: 0.5, D30: 1.0, D40: 0.5, D45: 0.5, D60: 4.0
+};
+
+/**
+ * Calculate Vimsopaka Bala - The ultimate strength across all 16 divisional charts
+ */
+export function calculateVimsopakaBala(ephemeris: EphemerisData): Record<string, number> {
+    const planets = ['sun', 'moon', 'mars', 'mercury', 'jupiter', 'venus', 'saturn'];
+    const scores: Record<string, number> = {};
+    const vargas = ephemeris.divisionalCharts || {};
+
+    for (const p of planets) {
+        let total = 0;
+        for (const [vName, weight] of Object.entries(VIM_WEIGHTS)) {
+            const chartPlanets = vName === 'D1' ? ephemeris.planets : vargas[vName]?.planets;
+            if (chartPlanets) {
+                const planetPos = chartPlanets[p as keyof typeof chartPlanets];
+                if (planetPos) {
+                    // Simplified Sthana score: Own/Exalt = 20, Friend = 15, Neutral = 10, Enemy = 5, Debil = 0
+                    const dignity = getDignity(p.charAt(0).toUpperCase() + p.slice(1), planetPos.sign);
+                    let base = 10; // Default Neutral
+                    if (dignity === 'Exalted') base = 20;
+                    else if (dignity === 'Own Sign') base = 18;
+                    else if (dignity === 'Friendly') base = 15;
+                    else if (dignity === 'Enemy') base = 5;
+                    else if (dignity === 'Debilitated') base = 2;
+
+                    total += (base / 20) * weight;
+                }
+            }
+        }
+        scores[p.charAt(0).toUpperCase() + p.slice(1)] = parseFloat(total.toFixed(2));
+    }
+    return scores;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// BHAVA CHALIT (Cusp-Based House System)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Detect Bhava Chalit Discrepancy (When planet sign-house differs from cusp-house)
+ */
+export function detectBhavaChalitDiscrepancy(ephemeris: EphemerisData): { planet: string; rasiHouse: number; chalitHouse: number }[] {
+    const discrepancies: { planet: string; rasiHouse: number; chalitHouse: number }[] = [];
+    const ascLong = ephemeris.ascendant.longitude;
+
+    // Simplistic Mid-Point House System (Cusp-to-Cusp)
+    for (const [name, p] of Object.entries(ephemeris.planets)) {
+        const rasiHouse = p.house;
+        // Calculate Chalit House: (CurrentLong - AscLong + 360) % 360 / 30
+        let chalitHouse = Math.floor(((p.longitude - ascLong + 360) % 360) / 30) + 1;
+
+        if (rasiHouse !== chalitHouse) {
+            discrepancies.push({ planet: name.toUpperCase(), rasiHouse, chalitHouse });
+        }
+    }
+    return discrepancies;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PANCHADHA SAMBANDHA (5-Fold Relationship)
+// ═════════════════════════════════════════════════════════════════════════════
+
+export type Sambandha = 'Atimitra' | 'Mitra' | 'Sama' | 'Shatru' | 'Atishatru';
+
+const NATURAL_FRIENDS: Record<string, string[]> = {
+    Sun: ['Moon', 'Mars', 'Jupiter'],
+    Moon: ['Sun', 'Mercury'],
+    Mars: ['Sun', 'Moon', 'Jupiter'],
+    Mercury: ['Sun', 'Venus'],
+    Jupiter: ['Sun', 'Moon', 'Mars'],
+    Venus: ['Mercury', 'Saturn'],
+    Saturn: ['Mercury', 'Venus']
+};
+
+const NATURAL_ENEMIES: Record<string, string[]> = {
+    Sun: ['Venus', 'Saturn'],
+    Moon: [],
+    Mars: ['Mercury'],
+    Mercury: ['Moon'],
+    Jupiter: ['Mercury', 'Venus'],
+    Venus: ['Sun', 'Moon'],
+    Saturn: ['Sun', 'Moon', 'Mars']
+};
+
+/**
+ * Calculate Panchadha Sambandha (Natural + Temporal)
+ */
+export function calculatePanchadhaSambandha(planet: string, other: string, ephemeris: EphemerisData): Sambandha {
+    if (planet === other) return 'Mitra'; // Self is neutral/friend
+
+    // 1. Natural Relationship (Naisargika)
+    let natural = 0; // 0=Sama, 1=Mitra, -1=Shatru
+    if (NATURAL_FRIENDS[planet]?.includes(other)) natural = 1;
+    else if (NATURAL_ENEMIES[planet]?.includes(other)) natural = -1;
+
+    // 2. Temporal Relationship (Tatkalika)
+    // Friends: 2, 3, 4, 10, 11, 12 from planet
+    const p1 = ephemeris.planets[planet.toLowerCase() as keyof typeof ephemeris.planets];
+    const p2 = ephemeris.planets[other.toLowerCase() as keyof typeof ephemeris.planets];
+    if (!p1 || !p2) return 'Sama';
+
+    const dist = ((p2.house - p1.house + 12) % 12) + 1;
+    let temporal = ([2, 3, 4, 10, 11, 12].includes(dist)) ? 1 : -1;
+
+    // 3. Composite (Panchadha)
+    const combined = natural + temporal;
+    if (combined === 2) return 'Atimitra';
+    if (combined === 1) return 'Mitra';
+    if (combined === 0) return 'Sama';
+    if (combined === -1) return 'Shatru';
+    return 'Atishatru';
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ISHTA / KASHTA PHALA (Benefic/Malefic Results)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Calculate Ishta Phala - Benefic fruit of a planet (0-60 points)
+ */
+export function calculateIshtaKashtaPhala(planet: string, ephemeris: EphemerisData): { ishta: number; kashta: number } {
+    const p = ephemeris.planets[planet.toLowerCase() as keyof typeof ephemeris.planets];
+    if (!p) return { ishta: 0, kashta: 0 };
+
+    // 1. Uchcha Bala (Exaltation strength)
+    const exalt = EXALTATION_DEGREES[planet as keyof typeof EXALTATION_DEGREES] || 0;
+    const diff = Math.min(Math.abs(p.longitude - exalt), 180);
+    const ucchBala = ((180 - diff) / 180) * 60;
+
+    // 2. Cheshta Bala (Speed/Retrograde)
+    // Simplified: Retrograde = high cheshta for malefic, etc.
+    const cheshtaBala = p.retro ? 60 : 30;
+
+    const ishta = Math.sqrt(ucchBala * cheshtaBala);
+    const kashta = 60 - ishta;
+
+    return { ishta: parseFloat(ishta.toFixed(2)), kashta: parseFloat(kashta.toFixed(2)) };
+}
+
+const EXALTATION_DEGREES: Record<string, number> = {
+    Sun: 10, Moon: 33, Mars: 298, Mercury: 165, Jupiter: 95, Venus: 357, Saturn: 200
+};

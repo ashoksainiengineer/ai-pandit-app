@@ -146,4 +146,37 @@ export interface PanchangaData {
     karana: string;
 }
 export declare function calculatePanchanga(jd: number, sunLong: number, moonLong: number): PanchangaData;
+export type BaladiAvastha = 'Bala' | 'Kumara' | 'Yuva' | 'Vriddha' | 'Mritya';
+/**
+ * Calculate Baladi Avastha (Infant to Dead) based on degrees and sign oddity.
+ */
+export declare function calculateBaladiAvastha(longitude: number): BaladiAvastha;
+/**
+ * Get D60 Deity based on 0.5 degree division.
+ */
+export declare function getD60Deity(longitude: number): string;
+/**
+ * Calculate Vimsopaka Bala - The ultimate strength across all 16 divisional charts
+ */
+export declare function calculateVimsopakaBala(ephemeris: EphemerisData): Record<string, number>;
+/**
+ * Detect Bhava Chalit Discrepancy (When planet sign-house differs from cusp-house)
+ */
+export declare function detectBhavaChalitDiscrepancy(ephemeris: EphemerisData): {
+    planet: string;
+    rasiHouse: number;
+    chalitHouse: number;
+}[];
+export type Sambandha = 'Atimitra' | 'Mitra' | 'Sama' | 'Shatru' | 'Atishatru';
+/**
+ * Calculate Panchadha Sambandha (Natural + Temporal)
+ */
+export declare function calculatePanchadhaSambandha(planet: string, other: string, ephemeris: EphemerisData): Sambandha;
+/**
+ * Calculate Ishta Phala - Benefic fruit of a planet (0-60 points)
+ */
+export declare function calculateIshtaKashtaPhala(planet: string, ephemeris: EphemerisData): {
+    ishta: number;
+    kashta: number;
+};
 //# sourceMappingURL=vedic-astrology-engine.d.ts.map

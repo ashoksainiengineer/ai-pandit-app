@@ -39,6 +39,9 @@ exports.formatShadbala = formatShadbala;
 exports.calculatePlanetaryMaturation = calculatePlanetaryMaturation;
 exports.formatPlanetaryMaturation = formatPlanetaryMaturation;
 exports.calculateAshtakavarga = calculateAshtakavarga;
+exports.detectVargottama = detectVargottama;
+exports.detectParivartana = detectParivartana;
+exports.detectPushkarNavamsa = detectPushkarNavamsa;
 // ═════════════════════════════════════════════════════════════════════════════
 // YOGINI DASHA (36-Year Cycle)
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1125,4 +1128,87 @@ function addYears(date, years) {
     return result;
 }
 // All functions are exported inline (export function ...)
+/**
+ * Detect Vargottama planets (Same sign in D1 and D9)
+ */
+function detectVargottama(ephemeris) {
+    const vargottama = [];
+    const d9 = calculateD9; // helper
+    for (const [name, pos] of Object.entries(ephemeris.planets)) {
+        const d9Pos = d9(pos.longitude);
+        if (d9Pos.sign === pos.sign) {
+            vargottama.push(name.toUpperCase());
+        }
+    }
+    return vargottama;
+}
+/**
+ * Detect Parivartana Yoga (Exchange of House Lords)
+ */
+function detectParivartana(ephemeris) {
+    const SIGN_LORDS = {
+        Aries: 'Mars', Taurus: 'Venus', Gemini: 'Mercury', Cancer: 'Moon',
+        Leo: 'Sun', Virgo: 'Mercury', Libra: 'Venus', Scorpio: 'Mars',
+        Sagittarius: 'Jupiter', Capricorn: 'Saturn', Aquarius: 'Saturn', Pisces: 'Jupiter',
+    };
+    const ZODIAC_SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+    const exchanges = [];
+    const planets = Object.entries(ephemeris.planets);
+    // Get lords and where they are placed
+    const lordPlacements = {}; // House Number -> Occupied by Lord of House X
+    const lagnaSignIdx = ZODIAC_SIGNS.indexOf(ephemeris.ascendant.sign);
+    for (let h = 1; h <= 12; h++) {
+        const signIdx = (lagnaSignIdx + h - 1) % 12;
+        const sign = ZODIAC_SIGNS[signIdx];
+        const planetInHouse = planets.find(([_, p]) => p.house === h)?.[0];
+        if (planetInHouse) {
+            const planetLordOfSign = SIGN_LORDS[ephemeris.planets[planetInHouse].sign];
+            // This is complex, simplify: Check if Lord of H1 is in H2 and Lord of H2 in H1
+        }
+    }
+    // Simplified standard exchange check
+    const houses = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+    for (let i = 0; i < houses.length; i++) {
+        for (let j = i + 1; j < houses.length; j++) {
+            const h1 = houses[i];
+            const h2 = houses[j];
+            const lord1 = getLordOfHouse(h1, ephemeris.ascendant.sign);
+            const lord2 = getLordOfHouse(h2, ephemeris.ascendant.sign);
+            const pos1 = ephemeris.planets[lord1.toLowerCase()];
+            const pos2 = ephemeris.planets[lord2.toLowerCase()];
+            if (pos1 && pos2 && pos1.house === h2 && pos2.house === h1) {
+                exchanges.push({ houses: [h1, h2], planets: [lord1, lord2] });
+            }
+        }
+    }
+    return exchanges;
+}
+function getLordOfHouse(h, lagnaSign) {
+    const SIGN_LORDS = {
+        Aries: 'Mars', Taurus: 'Venus', Gemini: 'Mercury', Cancer: 'Moon',
+        Leo: 'Sun', Virgo: 'Mercury', Libra: 'Venus', Scorpio: 'Mars',
+        Sagittarius: 'Jupiter', Capricorn: 'Saturn', Aquarius: 'Saturn', Pisces: 'Jupiter',
+    };
+    const ZODIAC_SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+    const lagnaSignIdx = ZODIAC_SIGNS.indexOf(lagnaSign);
+    const houseSignIdx = (lagnaSignIdx + h - 1) % 12;
+    return SIGN_LORDS[ZODIAC_SIGNS[houseSignIdx]];
+}
+/**
+ * Detect Pushkar Navamsa (Highly auspicious degrees in Navamsa)
+ */
+function detectPushkarNavamsa(ephemeris) {
+    const pushkar = [];
+    const ZODIAC_SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+    // Pushkar Navamsa signs: Taurus, Virgo, Libra, Sagittarius, Capricorn, Pisces (specifically signs 2, 6, 7, 9, 10, 12)
+    const pushkarSigns = ['Taurus', 'Virgo', 'Libra', 'Sagittarius', 'Capricorn', 'Pisces'];
+    for (const [name, pos] of Object.entries(ephemeris.planets)) {
+        const d9 = calculateD9(pos.longitude);
+        if (pushkarSigns.includes(d9.sign)) {
+            // Further refinement: each sign has specific pushkar quarters. Simplified check.
+            pushkar.push(name.toUpperCase());
+        }
+    }
+    return pushkar;
+}
 //# sourceMappingURL=advanced-btr-methods.js.map

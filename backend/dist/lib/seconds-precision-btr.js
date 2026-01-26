@@ -78,13 +78,19 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
         if (!maha.subPeriods)
             continue;
         for (const antar of maha.subPeriods) {
+            // Include AD level for the entire life (Birth to Present)
+            // This ensures a complete high-level timeline
+            const isLatest = antar.endDate.getTime() >= now;
             for (const prat of antar.subPeriods) {
-                for (const suksh of prat.subPeriods) {
-                    for (const prana of suksh.subPeriods) {
-                        const start = prana.startDate.getTime();
-                        const end = prana.endDate.getTime();
-                        // Include if overlaps with event range
-                        if (start <= maxDate && end >= minDate) {
+                // For Pratyantars, we only include the full chain if it's within a 1-year buffer of ANY event 
+                // OR if it's the current/future period (Active Anchor). 
+                // Providing 27 years of Pratyantars (thousands of entries) would crash the AI window.
+                const start = prat.startDate.getTime();
+                const end = prat.endDate.getTime();
+                const fitsEvent = start <= maxDate && end >= minDate;
+                if (fitsEvent || isLatest) {
+                    for (const suksh of prat.subPeriods) {
+                        for (const prana of suksh.subPeriods) {
                             vimshottariDasha.push({
                                 maha: maha.lord,
                                 antar: antar.lord,
@@ -95,6 +101,17 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
                             });
                         }
                     }
+                }
+                else if (prat.endDate.getTime() < now) {
+                    // Fallback abbreviated entry for historical context without bloat
+                    vimshottariDasha.push({
+                        maha: maha.lord,
+                        antar: antar.lord,
+                        pratyantar: prat.lord,
+                        sukshma: '-',
+                        prana: '-',
+                        startEnd: `[Historical Period] ${prat.startDate.toISOString().split('T')[0]} to ${prat.endDate.toISOString().split('T')[0]}`
+                    });
                 }
             }
         }
@@ -130,12 +147,22 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
             shadbala: ephemeris.shadbala?.[planetName],
             bav: ephemeris.ashtakavarga?.[planetName]?.[signIdx],
             functionalNature: functional,
-            aspects: aspects
+            aspects: aspects,
+            avastha: (0, vedic_astrology_engine_js_1.calculateBaladiAvastha)(p.longitude),
+            d60Deity: (0, vedic_astrology_engine_js_1.getD60Deity)(p.longitude),
+            compoundDignity: (0, vedic_astrology_engine_js_1.calculatePanchadhaSambandha)(planetName, cap(ephemeris.houses[signIdx]?.lord || ''), ephemeris)
         };
     }
     const pkg = {
         time,
         offsetMinutes,
+        rawVimshottari: vimDashas, // 🔱 Store raw for internal lookup in Stage 6
+        vedicSignals: {
+            vargottama: (0, advanced_btr_methods_js_1.detectVargottama)(ephemeris),
+            parivartana: (0, advanced_btr_methods_js_1.detectParivartana)(ephemeris),
+            pushkar: (0, advanced_btr_methods_js_1.detectPushkarNavamsa)(ephemeris),
+            charaKarakas: (0, jaimini_astrology_js_1.calculateCharaKarakas)(ephemeris)
+        },
         planets: richPlanets,
         ascendant: {
             sign: ephemeris.ascendant.sign,
@@ -147,9 +174,20 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
         vimshottariDasha,
         ashtakavarga: ephemeris.ashtakavarga,
         panchanga,
+        lifecycleShifts: [], // To be populated
+        vimsopakaBala: (0, vedic_astrology_engine_js_1.calculateVimsopakaBala)(ephemeris),
+        chalitDiscrepancies: (0, vedic_astrology_engine_js_1.detectBhavaChalitDiscrepancy)(ephemeris),
+        ishtaKashtaPhala: (() => {
+            const res = {};
+            ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'].forEach(p => {
+                res[p] = (0, vedic_astrology_engine_js_1.calculateIshtaKashtaPhala)(p, ephemeris);
+            });
+            return res;
+        })(),
         specialPoints: {
             AL: { sign: arudhas.AL, degree: '0.00°', house: ((ZODIAC_SIGNS.indexOf(arudhas.AL) - ZODIAC_SIGNS.indexOf(ephemeris.ascendant.sign) + 12) % 12) + 1 },
-            UL: { sign: arudhas.UL, degree: '0.00°', house: ((ZODIAC_SIGNS.indexOf(arudhas.UL) - ZODIAC_SIGNS.indexOf(ephemeris.ascendant.sign) + 12) % 12) + 1 }
+            UL: { sign: arudhas.UL, degree: '0.00°', house: ((ZODIAC_SIGNS.indexOf(arudhas.UL) - ZODIAC_SIGNS.indexOf(ephemeris.ascendant.sign) + 12) % 12) + 1 },
+            BB: { sign: (0, jaimini_astrology_js_1.calculateBhriguBindu)(ephemeris).sign, degree: (0, jaimini_astrology_js_1.calculateBhriguBindu)(ephemeris).degree.toFixed(2) + '°', house: 0 }
         },
         yogas
     };
@@ -204,16 +242,54 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
                 const dashaSequence = dashaAtEvent ?
                     `${dashaAtEvent.mahadasha}-${dashaAtEvent.antardasha}-${dashaAtEvent.pratyantardasha}-${dashaAtEvent.sukshmadasha}-${dashaAtEvent.pranadasha}` :
                     'Unknown';
-                // Double Transit Check for relevant categories
-                let dtResult = null;
-                if (event.category === 'marriage') {
-                    dtResult = verifyDoubleTransit(eventEph, ephemeris.ascendant.sign, 7);
+                // 🔱 DEEP SYNTHESIS: Event-Specific Astrological Signature
+                const eventSignatures = [];
+                // 1. Dasha-Varga Synergy
+                if (dashaAtEvent) {
+                    const lclLord = dashaAtEvent.mahadasha.toLowerCase();
+                    if (event.category === 'career' || event.category === 'education') {
+                        const d10Pos = ephemeris.divisionalCharts?.D10?.planets[lclLord];
+                        if (d10Pos && [1, 5, 9, 10].includes(d10Pos.house)) {
+                            eventSignatures.push(`Dasha Lord ${dashaAtEvent.mahadasha} is STRONG in D10 (H${d10Pos.house})`);
+                        }
+                    }
+                    else if (event.category === 'marriage') {
+                        const d9Pos = ephemeris.divisionalCharts?.D9?.planets[lclLord];
+                        if (d9Pos && [1, 5, 7, 9].includes(d9Pos.house)) {
+                            eventSignatures.push(`Dasha Lord ${dashaAtEvent.mahadasha} is STRONG in D9 (H${d9Pos.house})`);
+                        }
+                    }
                 }
-                else if (event.category === 'career') {
-                    dtResult = verifyDoubleTransit(eventEph, ephemeris.ascendant.sign, 10);
+                // 2. Multi-House Double Transit
+                const houseMap = {
+                    marriage: 7, career: 10, education: 4, family: 2, children: 5, health: 6, travel: 9
+                };
+                const targetHouse = houseMap[event.category] || 1;
+                const importVE = await import('./vedic-astrology-engine.js');
+                const dtResult = importVE.verifyDoubleTransit(eventEph, ephemeris.ascendant.sign, targetHouse);
+                if (dtResult.isTriggered) {
+                    eventSignatures.push(`🔱 DOUBLE TRANSIT active in H${targetHouse}`);
                 }
+                // 3. Jaimini Karaka Correlation
+                const karakas = pkg.vedicSignals.charaKarakas;
+                if (karakas) {
+                    const ak = karakas.find((k) => k.karakaName === 'Atmakaraka')?.planet;
+                    const amk = karakas.find((k) => k.karakaName === 'Amatyakaraka')?.planet;
+                    const dk = karakas.find((k) => k.karakaName === 'Darakaraka')?.planet;
+                    if (event.category === 'marriage' && (dashaAtEvent?.mahadasha === dk || dashaAtEvent?.antardasha === dk)) {
+                        eventSignatures.push(`Jaimini: Darakaraka ${dk} (Spouse) is active`);
+                    }
+                    if (event.category === 'career' && (dashaAtEvent?.mahadasha === amk || dashaAtEvent?.antardasha === amk)) {
+                        eventSignatures.push(`Jaimini: Amatyakaraka ${amk} (Career) is active`);
+                    }
+                }
+                // 4. Kakshya Precision (The 'Quantum' Filter)
+                const jupKakshya = calculateKakshya(eventEph.planets.jupiter.longitude);
+                const satKakshya = calculateKakshya(eventEph.planets.saturn.longitude);
+                eventSignatures.push(`Quantum: Ju in ${jupKakshya} Kakshya | Sa in ${satKakshya} Kakshya`);
                 pkg.transitData[event.eventDate] = {
                     dasha: dashaSequence,
+                    signatures: eventSignatures,
                     saturn: `${eventEph.planets.saturn.sign}${eventEph.planets.saturn.retro ? ' (R)' : ''}`,
                     jupiter: `${eventEph.planets.jupiter.sign}${eventEph.planets.jupiter.retro ? ' (R)' : ''}`,
                     rahu: `${eventEph.planets.rahu.sign}${eventEph.planets.rahu.retro ? ' (R)' : ''}`,
@@ -225,6 +301,28 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
                 // Skip
             }
         }
+        // 🦾 5. Lifecycle Chronicle: Track major Saturn/Jupiter shifts (1999 to Present)
+        const lifecycleShifts = [];
+        const checkYears = [];
+        const startYear = birthDate.getFullYear();
+        const endYear = new Date().getFullYear();
+        for (let y = startYear; y <= endYear; y++)
+            checkYears.push(y);
+        for (const year of checkYears) {
+            try {
+                const checkDate = `${year}-06-15`; // Mid-year check
+                const ephAtYear = await (0, ephemeris_js_1.calculateEphemeris)(checkDate, '12:00:00', input.latitude, input.longitude, input.timezone);
+                const dasha = (0, vedic_astrology_engine_js_1.getDashaForDate)(vimDashas, new Date(checkDate));
+                const dashaStr = dasha ? `${dasha.mahadasha}-${dasha.antardasha}` : 'N/A';
+                lifecycleShifts.push({
+                    date: checkDate,
+                    event: `Saturn in ${ephAtYear.planets.saturn.sign} | Jupiter in ${ephAtYear.planets.jupiter.sign}`,
+                    dasha: dashaStr
+                });
+            }
+            catch { }
+        }
+        pkg.lifecycleShifts = lifecycleShifts;
     }
     return pkg;
 }
@@ -327,7 +425,11 @@ ${Object.entries(c.planets).map(([name, p]) => {
         const caps = name.charAt(0).toUpperCase() + name.slice(1);
         const sav = c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(p.sign)] || '?';
         const aspects = p.aspects?.filter((a) => a.isHit).map((a) => `${a.type}→${a.targetPlanet || 'H' + a.targetHouse}`).join(', ') || 'None';
-        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} ${p.degree.padEnd(8)} | H: ${p.house} | Role: ${p.functionalNature?.role.padEnd(8)} | Sh: ${p.shadbala || '?'} | BAV: ${p.bav || '?'} | SAV: ${sav} | Asp: ${aspects}`;
+        const avastha = p.avastha || 'Unknown';
+        const deity = p.d60Deity || 'Unknown';
+        const ikp = c.ishtaKashtaPhala?.[caps] ? `${c.ishtaKashtaPhala[caps].ishta}/${c.ishtaKashtaPhala[caps].kashta}` : '?';
+        const sambandha = p.compoundDignity || 'Sama';
+        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${p.house} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${p.shadbala || '?'} | SAV:${sav} | ${aspects}`;
     }).join('\n')}
 
 ${c.yogas && c.yogas.length > 0 ? `YOGAS DETECTED: ${c.yogas.map(y => `${y.name} (${y.level})`).join(', ')}` : ''}
@@ -335,9 +437,21 @@ ${c.yogas && c.yogas.length > 0 ? `YOGAS DETECTED: ${c.yogas.map(y => `${y.name}
 ${c.d9Lagna ? `D9 NAVAMSHA LAGNA: ${c.d9Lagna}` : ''}
 ${c.d10Lagna ? `D10 DASAMSHA LAGNA: ${c.d10Lagna}` : ''}
 
-VIMSHOTTARI DASHA PERIODS (MD-AD-PD-SD-PRD):
-${c.vimshottariDasha.slice(0, 10).map(d => `  • ${d.maha}/${d.antar}/${d.pratyantar}/${d.sukshma}/${d.prana} : ${d.startEnd}`).join('\n')}
-${c.yoginiDasha ? `\nYOGINI DASHA: ${c.yoginiDasha.map(d => `${d.lord} (${d.startEnd})`).join(' → ')}` : ''}
+VIMSHOTTARI DASHA PERIODS (MD-AD-PD):
+${c.vimshottariDasha.slice(0, 100).map(d => `  • ${d.maha}/${d.antar}/${d.pratyantar} : ${d.startEnd}`).join('\n')}
+${c.yoginiDasha ? `\nYOGINI DASHA: ${c.yoginiDasha.slice(0, 20).map(d => `${d.lord} (${d.startEnd})`).join(' → ')}` : ''}
+
+${c.transitData ? `TRANSITS & DASHAS ON EVENTS:
+${Object.entries(c.transitData).map(([date, t]) => `│ [${date}]: Dasha=${t.dasha} | ${t.signatures?.join(', ') || 'Regular Period'}`).join('\n')}` : ''}
+${c.vedicSignals ? `VEDIC HIGH-SIGNALS:
+│ Vargottama: ${c.vedicSignals.vargottama?.join(', ') || 'None'}
+│ Pushkar: ${c.vedicSignals.pushkar?.join(', ') || 'None'}
+│ Parivartana: ${c.vedicSignals.parivartana?.map((ex) => `L${ex.houses[0]}↔L${ex.houses[1]}`).join(', ') || 'None'}` : ''}
+${c.vimsopakaBala ? `├ VIM SOPAKA BALA (Total Shodashvarga Strength - 0-20):
+│ ${Object.entries(c.vimsopakaBala).map(([n, s]) => `${n}:${s}`).join(' | ')}` : ''}
+${c.chalitDiscrepancies?.length ? `├ BHAVA CHALIT DISCREPANCIES:
+${c.chalitDiscrepancies.map((d) => `│ ${d.planet}: Rashi-H${d.rasiHouse} ↔ Chalit-H${d.chalitHouse}`).join('\n')}` : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `).join('')}
 
 SCORING ALGORITHM (STRICT VEDIC LOGIC):
@@ -346,6 +460,8 @@ SCORING ALGORITHM (STRICT VEDIC LOGIC):
 +15: STRENGTH PROOF - Event dasha lord has high Shadbala (>120) or high SAV points (>28) in event house.
 +10: NATURAL KARAKA - Dasha Lord is natural significator (Venus=Marriage, Sun=Career) even if not functional lord.
 +10: LAGNA MATCH - Ascendant element/lord matches physical traits.
++15: AVASTHA PRECISION - If planet is in 'Yuva' (Youth) or 'Kumara' (Adolescent) avastha, results are 100% manifest. If 'Mritya' (Dead), results are blocked.
++20: D60 DEITY FLAVOR - Match event narrative to D60 Deity (e.g. 'Amrita' for recovery, 'Ghora' for sudden accident).
 -50: CONTRADICTION - Event happened in dasha of 6/8/12 lord with NO connection to event house.
 
 OUTPUT FORMAT (one line per candidate):
@@ -374,8 +490,9 @@ function getDeepAnalysisPrompt(candidates, events, traits, spouseData) {
 ⚠️ ANALYSIS RULES (PURE VEDIC ASTROLOGY):
 1. RELY ONLY ON THE PROVIDED MATHEMATICAL DATA. Do not hallucinate planetary positions.
 2. NARRATIVE PRIMACY: Qualitative experiences (SITUATIONAL NARRATIVE) outrank generic scoring. Match the flavor of the experience (e.g. "intense struggle" vs "smooth success") to the specific planetary dignity and aspects provided.
-3. USE DIVISIONAL CHARTS: Verify D9/D10/D60 promises.
 4. CORRELATE DASHAS: Match Dasha Lords (and their House ownerships) to life events.
+5. HIGH-SIGNALS: Vargottama and Pushkar planets are 2-3x more potent in delivering results. Parivartana (Exchange) links two houses indissolubly.
+6. EVENT SIGNATURES: Use the pre-calculated signatures (D10 strength, Double Transit) to confirm "VIGOUR".
 ════════════════════════════════════════════════════════════════════════════════
 
 TASK: Cross-verify ${shuffledCandidates.length} candidates using Dasha systems & Vedic Mathematics.
@@ -399,21 +516,30 @@ ${Object.entries(c.planets).map(([name, p]) => {
         const caps = name.charAt(0).toUpperCase() + name.slice(1);
         const sav = c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(p.sign)] || '?';
         const aspects = p.aspects?.filter((a) => a.isHit).map((a) => `${a.type}→${a.targetPlanet || 'H' + a.targetHouse}`).join(', ') || 'None';
-        const status = [p.isRetro ? 'RETRO' : '', p.isCombust ? 'COMBUST' : ''].filter(Boolean).join('/') || 'DIRECT';
-        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} ${p.degree.padEnd(8)} | H: ${p.house} | ${p.nakshatra.padEnd(12)} | ${p.dignity.padEnd(10)} | Sp: ${p.speed.toFixed(3)} | Sh: ${p.shadbala || '?'} | BAV: ${p.bav || '?'} | SAV: ${sav} | ${status} | Asp: ${aspects}`;
+        const avastha = p.avastha || 'Unknown';
+        const deity = p.d60Deity || 'Unknown';
+        const ikp = c.ishtaKashtaPhala?.[caps] ? `${c.ishtaKashtaPhala[caps].ishta}/${c.ishtaKashtaPhala[caps].kashta}` : '?';
+        const sambandha = p.compoundDignity || 'Sama';
+        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${p.house} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${p.shadbala || '?'} | SAV:${sav} | ${aspects}`;
     }).join('\n')}
 ├ YOGAS: ${c.yogas?.map(y => y.name).join(', ') || 'None'}
 ├ DIVISIONAL CHARTS:
 │ D9 (Navamsa): Lagna=${c.d9Lagna} | Planets=${c.d9Chart ? Object.entries(c.d9Chart.planets).map(([k, v]) => `${k.substring(0, 2).toUpperCase()}=${v}`).join(' ') : ''}
 │ D10 (Dasamsa): Lagna=${c.d10Lagna} | Planets=${c.d10Chart ? Object.entries(c.d10Chart.planets).map(([k, v]) => `${k.substring(0, 2).toUpperCase()}=${v}`).join(' ') : ''}
 │ D60 (Shashtyamsa): Lagna=${c.d60Sign}
-├ VIMSHOTTARI DASHA SEQUENCE (Full 5-Level Resolve):
-${c.vimshottariDasha.slice(0, 12).map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar} -> ${d.sukshma} -> ${d.prana} : ${d.startEnd}`).join('\n')}
-├ YOGINI DASHA: ${c.yoginiDasha?.map(d => `${d.lord} [${d.startEnd}]`).join(' | ') || 'N/A'}
+├ VIMSHOTTARI DASHA SEQUENCE (Full Lifecycle, 1999-2026):
+${c.vimshottariDasha.map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar}${d.sukshma !== '-' ? ` -> ${d.sukshma}` : ''} : ${d.startEnd}`).join('\n')}
+├ MAJOR LIFECYCLE SHIFTS (Saturn/Jupiter Chronology):
+${c.lifecycleShifts?.map(s => `│ [${s.date}]: ${s.event} (Dasha: ${s.dasha})`).join('\n') || 'N/A'}
+├ YOGINI DASHA (Full): ${c.yoginiDasha?.map(d => `${d.lord} [${d.startEnd}]`).join(' | ') || 'N/A'}
 ├ CHARA DASHA: ${c.charaDasha?.map(d => `${d.sign} [${d.startEnd}]`).join(' | ') || 'N/A'}
 ├ ASHTAKAVARGA SAV: ${c.ashtakavarga?.SAV ? `[${c.ashtakavarga.SAV.join(', ')}]` : 'N/A'}
-${c.transitData ? `├ TRANSITS ON EVENTS:
-${Object.entries(c.transitData).slice(0, 5).map(([date, t]) => `│ [${date}]: Dasha=${t.dasha} | Sa=${t.saturn}, Ju=${t.jupiter}${t.doubleTransit?.isTriggered ? ` | 🔱 DT H${t.doubleTransit.targetHouse}` : ''}`).join('\n')}` : ''}
+${c.transitData ? `├ TRANSITS & DASHAS ON ALL EVENTS:
+${Object.entries(c.transitData).map(([date, t]) => `│ [${date}]: Dasha=${t.dasha} | ${t.signatures?.join(', ') || 'Regular Period'}`).join('\n')}` : ''}
+${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:
+│ Vargottama: ${c.vedicSignals.vargottama?.join(', ') || 'None'}
+│ Pushkar: ${c.vedicSignals.pushkar?.join(', ') || 'None'}
+│ Parivartana: ${c.vedicSignals.parivartana?.map((ex) => `L${ex.houses[0]}↔L${ex.houses[1]}`).join(', ') || 'None'}` : ''}
 └──────────────────────────────────────────────────────────────`).join('\n')}
 
 SCORING:
@@ -429,7 +555,8 @@ TOP_SURVIVORS: [time1], [time2], [time3]`;
 // ═════════════════════════════════════════════════════════════════════════════
 // 🔱 STAGE 6: FINAL SECONDS-LEVEL PRECISION
 // ═════════════════════════════════════════════════════════════════════════════
-function getFinalPrecisionPrompt(candidates, events, traits, spouseData) {
+function getFinalPrecisionPrompt(candidates, events, traits, spouseData, currentTransits // 🔱 Present-day anchor
+) {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
     const traitsText = traits ? JSON.stringify(traits, null, 2) : 'N/A';
     const spouseText = spouseData ? JSON.stringify(spouseData, null, 2) : 'N/A';
@@ -472,15 +599,26 @@ ${shuffledCandidates.map((c, i) => `
 ${Object.entries(c.planets).map(([name, p]) => {
         const caps = name.charAt(0).toUpperCase() + name.slice(1);
         const sav = c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(p.sign)] || '?';
-        const status = [p.isRetro ? 'RETRO' : '', p.isCombust ? 'COMBUST' : ''].filter(Boolean).join('/') || 'DIRECT';
-        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} [H${p.house}, ${p.dignity.padEnd(8)}, Sh:${p.shadbala || '?'}, BAV:${p.bav || '?'}, SAV:${sav}, ${status}]`;
+        const avastha = p.avastha || 'Unknown';
+        const deity = p.d60Deity || 'Unknown';
+        const ikp = c.ishtaKashtaPhala?.[caps] ? `${c.ishtaKashtaPhala[caps].ishta}/${c.ishtaKashtaPhala[caps].kashta}` : '?';
+        const sambandha = p.compoundDignity || 'Sama';
+        const aspects = p.aspects?.filter((a) => a.isHit).map((a) => `${a.type}`).join(', ') || 'None';
+        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} [H${p.house}, ${avastha}, ${deity}, I/K:${ikp}, ${sambandha}, Sh:${p.shadbala || '?'}, SAV:${sav}] | Asp: ${aspects}`;
     }).join('\n')}
 ├ YOGAS: ${c.yogas?.map(y => y.name).join(', ') || 'N/A'}
-├ VIMSHOTTARI SEQUENCE (MD-AD-PD-SD-PRD):
-${c.vimshottariDasha.slice(0, 15).map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar} -> ${d.sukshma} -> ${d.prana} : ${d.startEnd}`).join('\n')}
-├ SAV: ${c.ashtakavarga?.SAV ? c.ashtakavarga.SAV.join(',') : ''}
-${c.transitData ? `├ TRANSITS & DASHAS:
-${Object.entries(c.transitData).slice(0, 3).map(([date, t]) => `│ [${date}]: Dasha=${t.dasha} | Ju=${t.jupiter}, Sa=${t.saturn}${t.doubleTransit?.isTriggered ? ` (DT H${t.doubleTransit.targetHouse})` : ''}`).join('\n')}` : ''}
+├ HIGHER DIVISIONALS: D9=${c.d9Lagna} | D10=${c.d10Lagna} | D60=${c.d60Sign}
+├ VIMSHOTTARI SEQUENCE (Full Lifecycle):
+${c.vimshottariDasha.map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar}${d.sukshma !== '-' ? ` -> ${d.sukshma}` : ''} : ${d.startEnd}`).join('\n')}
+${c.transitData ? `├ TRANSITS & DASHAS ON ALL EVENTS:
+${Object.entries(c.transitData).map(([date, t]) => `│ [${date}]: Dasha=${t.dasha} | ${t.signatures?.join(', ') || 'Regular Period'}`).join('\n')}` : ''}
+${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:
+│ Vargottama: ${c.vedicSignals.vargottama?.join(', ') || 'None'}
+│ Pushkar: ${c.vedicSignals.pushkar?.join(', ') || 'None'}
+│ Parivartana: ${c.vedicSignals.parivartana?.map((ex) => `L${ex.houses[0]}↔L${ex.houses[1]}`).join(', ') || 'None'}` : ''}
+${currentTransits ? `├ PRESENT DAY ANCHOR (2026 Transits):
+│ [Dasha Now]: ${currentTransits.dashaAtNow}
+│ [Planets Now]: Ju=${currentTransits.jupiter}, Sa=${currentTransits.saturn}, Ra=${currentTransits.rahu}` : ''}
 └ BOUNDARY CHECK: ${parseFloat(c.ascendant.degree) < 1 || parseFloat(c.ascendant.degree) > 29 ? '⚠️ EDGE' : 'SAFE'}`).join('\n')}
 
 FINAL VERDICT (required format):
@@ -522,17 +660,32 @@ function extractBatchSurvivors(aiContent, candidateTimes, neededCount) {
     return scores.slice(0, neededCount).map(s => s.time);
 }
 function extractFinalVerdict(aiContent) {
-    const timeMatch = aiContent.match(/BEST[ _]TIME[:\s]*(\d{2}:\d{2}:\d{2})/i);
-    const accuracyMatch = aiContent.match(/ACCURACY[:\s]*(\d+)/i);
+    // 🧠 Robust Regex: Handles "BEST TIME: 12:30:45", "BEST_TIME: [12:30:45]", etc.
+    const timeMatch = aiContent.match(/(?:BEST[ _]TIME|RECTIFIED[ _]TIME)[:\s]*\[?(\d{2}:\d{2}:\d{2})\]?/i);
+    const accuracyMatch = aiContent.match(/(?:ACCURACY|CONFIDENCE[ _]SCORE)[:\s]*(\d+)/i);
     const confidenceMatch = aiContent.match(/CONFIDENCE[:\s]*(HIGH|MEDIUM|LOW)/i);
-    const marginMatch = aiContent.match(/MARGIN[^:]*[:\s]*±?\s*(\d+)/i);
+    const marginMatch = aiContent.match(/(?:MARGIN|ERROR|PRECISION)[^:]*[:\s]*±?\s*(\d+)/i);
     if (timeMatch) {
         return {
             time: timeMatch[1],
             accuracy: accuracyMatch ? parseInt(accuracyMatch[1]) : 85,
-            confidence: confidenceMatch ? confidenceMatch[1] : 'MEDIUM',
+            confidence: confidenceMatch ? confidenceMatch[1].toUpperCase() : 'MEDIUM',
             margin: marginMatch ? parseInt(marginMatch[1]) : 5
         };
+    }
+    // 🕵️ Deep Search Fallback: Look for any time string occurring after a "Verdict" keyword
+    const verdictKeywordIndex = aiContent.toLowerCase().lastIndexOf('verdict');
+    if (verdictKeywordIndex !== -1) {
+        const afterVerdict = aiContent.substring(verdictKeywordIndex);
+        const fallbackTimeMatch = afterVerdict.match(/(\d{2}:\d{2}:\d{2})/);
+        if (fallbackTimeMatch) {
+            return {
+                time: fallbackTimeMatch[1],
+                accuracy: 75,
+                confidence: 'MEDIUM',
+                margin: 10
+            };
+        }
     }
     return null;
 }
@@ -664,6 +817,8 @@ async function stage2BatchTournament(input, candidates, progress) {
         });
         currentCandidates = roundSurvivors;
     }
+    // 🔱 Flush Reasoning: Wait for stream stabilization
+    await new Promise(resolve => setTimeout(resolve, 2000));
     await progress.completeStep('coarse', [`Tournament complete: ${currentCandidates.length} survivors`]);
     return {
         survivors: currentCandidates,
@@ -792,6 +947,7 @@ async function stage4DeepAnalysis(input, candidates, progress) {
         }
         currentCandidates = survivors;
     }
+    await new Promise(resolve => setTimeout(resolve, 2000));
     await progress.completeStep('deep', [`Deep analysis: ${currentCandidates.length} survivors`]);
     return {
         survivors: currentCandidates.slice(0, 7),
@@ -835,15 +991,28 @@ async function stage5MicroGrid(input, survivors, progress) {
 // STAGE 6: FINAL PRECISION JUDGEMENT
 // ═════════════════════════════════════════════════════════════════════════════
 async function stage6FinalPrecision(input, candidates, progress) {
-    await progress.startStep('final', 'Stage 6: Final precision judgement...');
-    // If too many, run one more batch round
+    // 🦾 CALCULATE PRESENT-DAY ANCHOR (Current System Time)
+    const now = new Date(); // Use system time (Jan 2026 as per user context)
+    const currentEph = await (0, ephemeris_js_1.calculateEphemeris)(now.toISOString().split('T')[0], now.toTimeString().split(' ')[0], input.latitude, input.longitude, input.timezone);
+    const getPresentTransitData = (c) => {
+        // Use rawVimshottari (DashaPeriod[]) instead of minified to satisfy getDashaForDate type
+        const dashaAtNow = (0, vedic_astrology_engine_js_1.getDashaForDate)(c.rawVimshottari, now);
+        return {
+            dashaAtNow: dashaAtNow ? `${dashaAtNow.mahadasha}-${dashaAtNow.antardasha}-${dashaAtNow.pratyantardasha}` : 'Unknown',
+            jupiter: `${currentEph.planets.jupiter.sign}${currentEph.planets.jupiter.retro ? ' (R)' : ''}`,
+            saturn: `${currentEph.planets.saturn.sign}${currentEph.planets.saturn.retro ? ' (R)' : ''}`,
+            rahu: `${currentEph.planets.rahu.sign}${currentEph.planets.rahu.retro ? ' (R)' : ''}`,
+        };
+    };
     let finalists = [...candidates];
     while (finalists.length > time_offset_manager_js_1.MAX_BATCH_SIZE) {
         const batches = (0, time_offset_manager_js_1.splitIntoBatches)(finalists, time_offset_manager_js_1.MAX_BATCH_SIZE);
         const batchWinners = [];
         // 🔱 Parallel Execution Logic (Stage 6)
         const tasks = batches.map((batch) => async () => {
-            const prompt = getFinalPrecisionPrompt(batch, input.lifeEvents, input.physicalTraits, input.spouseData);
+            // Pick first candidate for transit reference (they all share same 'now' positions)
+            const presentAnchor = getPresentTransitData(batch[0]);
+            const prompt = getFinalPrecisionPrompt(batch, input.lifeEvents, input.physicalTraits, input.spouseData, presentAnchor);
             return (0, ai_client_js_1.callAIWithStream)(input.sessionId, 6, 'FINAL JUDGEMENT. Pick THE ONE.', prompt, {
                 candidateTime: 'FINAL',
                 progressTracker: progress
@@ -875,7 +1044,8 @@ async function stage6FinalPrecision(input, candidates, progress) {
         finalists = batchWinners;
     }
     // Final judgement
-    const prompt = getFinalPrecisionPrompt(finalists, input.lifeEvents, input.physicalTraits, input.spouseData);
+    const finalAnchor = getPresentTransitData(finalists[0]);
+    const prompt = getFinalPrecisionPrompt(finalists, input.lifeEvents, input.physicalTraits, input.spouseData, finalAnchor);
     const response = await (0, ai_client_js_1.callAIWithStream)(input.sessionId, 6, 'You are the DIVINE ARCHITECT of Time. FINAL JUDGEMENT.', prompt, {
         model: 'deepseek/deepseek-v3.2',
         candidateTime: 'FINAL VERDICT',
@@ -903,6 +1073,7 @@ async function stage6FinalPrecision(input, candidates, progress) {
         confidence,
         margin,
         aiReasoning: aiContent,
+        thinking: response.thinking, // 🧠 Explicitly return thinking tokens
         stageResult: {
             stageNumber: 6,
             stageName: 'Final Precision',
@@ -982,31 +1153,42 @@ async function processSecondsPrecisionBTR(input) {
         const divCharts = (0, advanced_btr_methods_js_1.generateDivisionalCharts)(finalEphemeris);
         const boundary = (0, advanced_btr_methods_js_1.calculateBoundarySafety)(finalEphemeris);
         await progress.complete();
+        const winnerPkg = stage5.candidates.find(c => c.time === stage6.finalTime) || stage5.candidates[0];
         const enrichedResult = {
-            summary: stage6.aiReasoning.slice(0, 2000),
+            summary: stage6.aiReasoning.slice(0, 5000),
             finalCandidate: {
                 time: stage6.finalTime,
                 score: stage6.accuracy,
                 confidence: stage6.confidence,
-                margin: stage6.margin
-            },
-            reasoning: {
-                stage2: 'Batch tournament completed',
-                stage4: stage4.aiReasoning.slice(0, 500),
-                stage6: stage6.aiReasoning.slice(0, 1000)
+                margin: stage6.margin,
+                thinking: stage6.thinking,
+                vimsopakaBala: winnerPkg?.vimsopakaBala,
+                ishtaKashtaPhala: winnerPkg?.ishtaKashtaPhala,
+                chalitDiscrepancies: winnerPkg?.chalitDiscrepancies
             },
             technicalProof: {
                 ephemeris: finalEphemeris,
                 divCharts,
-                boundary
+                boundary,
+                d60Deity: winnerPkg?.planets?.sun?.d60Deity, // Sample from sun
+                vimsopakaAvg: winnerPkg?.vimsopakaBala ? Object.values(winnerPkg.vimsopakaBala).reduce((a, b) => a + b, 0) / 7 : 0
             },
-            stageHistory,
-            tournamentRounds: stage2.rounds,
-            alternatives: stage4.survivors.slice(1, 4).map(c => ({
-                time: c.time,
-                score: 70,
-                reason: 'Runner-up from Stage 4'
-            }))
+            godTierData: {
+                ephemeris: finalEphemeris,
+                divCharts,
+                boundarySafety: boundary,
+                dasha: stage6.aiReasoning.match(/DASHA[:\s]*([^\n]+)/i)?.[1] || 'Final decision context',
+                precisionMetrics: {
+                    vimsopaka: winnerPkg?.vimsopakaBala,
+                    avasthaMap: Object.fromEntries(Object.entries(winnerPkg?.planets || {}).map(([k, p]) => [k, p.avastha])),
+                    deityMap: Object.fromEntries(Object.entries(winnerPkg?.planets || {}).map(([k, p]) => [k, p.d60Deity])),
+                    sambandhaMap: Object.fromEntries(Object.entries(winnerPkg?.planets || {}).map(([k, p]) => [k, p.compoundDignity]))
+                }
+            },
+            stageHistory: Object.fromEntries(Object.entries(stageHistory).map(([k, v]) => [k, {
+                    candidatesIn: v.candidatesIn,
+                    candidatesOut: v.candidatesOut
+                }]))
         };
         return {
             rectifiedTime: stage6.finalTime,
@@ -1030,5 +1212,16 @@ async function processSecondsPrecisionBTR(input) {
         await progress.errorStep(currentStepId, error instanceof Error ? error.message : String(error));
         throw error;
     }
+}
+/**
+ * Calculate Kakshya (8 sub-divisions of a sign, 3°45' each)
+ * Order: Saturn, Jupiter, Mars, Sun, Venus, Mercury, Moon, Ascendant
+ */
+function calculateKakshya(longitude) {
+    const degreeInSign = longitude % 30;
+    const kakshyaSize = 30 / 8; // 3.75 degrees
+    const kakshyaNum = Math.floor(degreeInSign / kakshyaSize);
+    const KAKSHYA_ORDER = ['Saturn', 'Jupiter', 'Mars', 'Sun', 'Venus', 'Mercury', 'Moon', 'Ascendant'];
+    return KAKSHYA_ORDER[kakshyaNum] || 'Unknown';
 }
 //# sourceMappingURL=seconds-precision-btr.js.map

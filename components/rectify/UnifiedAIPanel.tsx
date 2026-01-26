@@ -298,43 +298,62 @@ export function UnifiedAIPanel({
                     />
                 </div> */}
 
-                {/* 🆕 CANDIDATE TABS BAR (ALWAYS VISIBLE) */}
+                {/* 🆕 CANDIDATE TABS BAR (GROUPED BY STAGE) */}
                 <div className="px-4 py-2 bg-[#0F1419] border-b border-[#3A4452]/50">
                     <div className="flex items-center gap-2 mb-2">
                         <Users className="w-3.5 h-3.5 text-[#8C7F72]" />
                         <span className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold">
-                            Active Candidates ({candidateTabs.length})
+                            Active Candidates Matrix ({candidateTabs.length})
                         </span>
                     </div>
                     {candidateTabs.length > 0 ? (
-                        <div className="flex flex-wrap gap-2 pb-1 max-h-[150px] overflow-y-auto custom-scrollbar">
-                            {candidateTabs.map((time) => {
-                                const isSelected = effectiveDisplayedCandidate === time;
-                                const isLive = isStreaming(time);
+                        <div className="space-y-3 pb-1 max-h-[250px] overflow-y-auto custom-scrollbar">
+                            {[2, 4, 6].map(sId => {
+                                const stageCandidates = Array.from(allCandidates.values()).filter(c => sId === 2 ? c.stage <= 2 : c.stage === sId);
+                                if (stageCandidates.length === 0) return null;
 
                                 return (
-                                    <button
-                                        key={time}
-                                        onClick={() => handleCandidateClick(time)}
-                                        className={`
-                                            px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all relative
-                                            ${isSelected
-                                                ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/50 shadow-[0_0_10px_rgba(212,175,55,0.2)]'
-                                                : 'bg-[#1A2433] text-[#8C7F72] border border-[#3A4452] hover:border-[#D4AF37]/30 hover:text-[#C4B8AD]'
-                                            }
-                                        `}
-                                    >
-                                        {isLive && (
-                                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+                                    <div key={sId} className="space-y-1.5">
+                                        <div className="flex items-center gap-2 opacity-60">
+                                            <div className="h-[1px] flex-1 bg-[#3A4452]" />
+                                            <span className="text-[9px] font-bold uppercase tracking-tighter text-[#8C7F72]">
+                                                {sId === 2 ? 'Discovery' : sId === 4 ? 'Deep Verification' : 'Final Selection'}
                                             </span>
-                                        )}
-                                        <span className="flex items-center gap-1.5">
-                                            {isLive && <Radio className="w-3 h-3 text-red-400" />}
-                                            {time}
-                                        </span>
-                                    </button>
+                                            <div className="h-[1px] flex-1 bg-[#3A4452]" />
+                                        </div>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {stageCandidates.map((cData) => {
+                                                const time = cData.candidateTime || 'unknown';
+                                                const isSelected = effectiveDisplayedCandidate === time;
+                                                const isLive = thinking?.candidateTime === time && isActive;
+
+                                                return (
+                                                    <button
+                                                        key={time}
+                                                        onClick={() => handleCandidateClick(time)}
+                                                        className={`
+                                                            px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all relative
+                                                            ${isSelected
+                                                                ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/50 shadow-[0_0_10px_rgba(212,175,55,0.2)]'
+                                                                : 'bg-[#1A2433] text-[#8C7F72] border border-[#3A4452] hover:border-[#D4AF37]/30 hover:text-[#C4B8AD]'
+                                                            }
+                                                        `}
+                                                    >
+                                                        {isLive && (
+                                                            <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+                                                            </span>
+                                                        )}
+                                                        <span className="flex items-center gap-1">
+                                                            {isLive && <Radio className="w-2.5 h-2.5 text-red-400" />}
+                                                            {time}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
                                 );
                             })}
                         </div>

@@ -52,6 +52,18 @@ export interface SecondaryProgression {
     }>;
     progressedAspects: AspectData[];
 }
+export interface VedicSignal {
+    vargottamaPlanets: string[];
+    pushkarNavamsas: string[];
+    parivartanas: {
+        signs: [string, string];
+        planets: [string, string];
+        houses: [number, number];
+    }[];
+    yogaKaraka?: string;
+    badhakaLord?: string;
+    isDashaLordStrongInVarga: Record<string, boolean>;
+}
 /**
  * Calculate Yogini Dasha sequence from birth
  * Complements Vimshottari Dasha for cross-verification
@@ -259,5 +271,17 @@ export declare function calculateAshtakavarga(ephemeris: EphemerisData): {
     bav: Record<string, number[]>;
     sav: number[];
 };
+/**
+ * Detect Vargottama planets (Same sign in D1 and D9)
+ */
+export declare function detectVargottama(ephemeris: EphemerisData): string[];
+/**
+ * Detect Parivartana Yoga (Exchange of House Lords)
+ */
+export declare function detectParivartana(ephemeris: EphemerisData): any[];
+/**
+ * Detect Pushkar Navamsa (Highly auspicious degrees in Navamsa)
+ */
+export declare function detectPushkarNavamsa(ephemeris: EphemerisData): string[];
 export {};
 //# sourceMappingURL=advanced-btr-methods.d.ts.map

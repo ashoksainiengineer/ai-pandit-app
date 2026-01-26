@@ -239,7 +239,7 @@ function FormattedAIReasoning({ reasoningLogs, analysisDetails }: { reasoningLog
 
     const rawText = typeof reasoningLogs === 'string'
         ? reasoningLogs
-        : reasoningLogs?.finalThinking || analysisDetails?.aiAnalysis || '';
+        : analysisDetails?.finalCandidate?.thinking || reasoningLogs?.finalThinking || analysisDetails?.aiAnalysis || '';
 
     if (!rawText) {
         return (
