@@ -347,6 +347,9 @@ export async function callAIWithStream(
             let fullThinking = '';
             let buffer = '';
 
+            let emitBuffer = '';
+            let lastEmitTime = Date.now();
+
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
@@ -365,39 +368,51 @@ export async function callAIWithStream(
                         const delta = parsed.choices?.[0]?.delta;
 
                         const reasoningChunk = delta?.reasoning || delta?.reasoning_content;
+                        let chunkToProcess = '';
+                        let isReasoning = false;
 
                         if (reasoningChunk) {
-                            // DeepSeek/OpenRouter thinking tokens
                             fullThinking += reasoningChunk;
-                            emitAIThinking(sessionId, reasoningChunk, stage, options?.candidateTime);
-
-                            // 💾 Persist for Polling Fallback
-                            if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
-                                options.progressTracker.updateAIThinking(reasoningChunk, stage, options?.candidateTime).catch(() => { });
-                            }
-
-                            // 💓 Heartbeat every ~100 tokens
-                            if (fullThinking.length % 500 < reasoningChunk.length) {
-                                options?.onToken?.(fullThinking, true);
-                            }
+                            chunkToProcess = reasoningChunk;
+                            isReasoning = true;
                         } else if (delta?.content) {
-                            // Fallback: Emit content as "thinking" for non-reasoning models
                             fullContent += delta.content;
-                            emitAIThinking(sessionId, delta.content, stage, options?.candidateTime);
+                            chunkToProcess = delta.content;
+                        }
 
-                            // 💾 Persist for Polling Fallback
-                            if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
-                                options.progressTracker.updateAIThinking(delta.content, stage, options?.candidateTime).catch(() => { });
+                        if (chunkToProcess) {
+                            emitBuffer += chunkToProcess;
+
+                            // 🚀 THROTTLE: Emit only if buffer > 50 chars or > 100ms elapsed
+                            // This prevents SSE/DB flooding with 25 concurrent streams
+                            const now = Date.now();
+                            if (emitBuffer.length > 50 || (now - lastEmitTime > 100)) {
+                                emitAIThinking(sessionId, emitBuffer, stage, options?.candidateTime);
+
+                                if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
+                                    options.progressTracker.updateAIThinking(emitBuffer, stage, options?.candidateTime).catch(() => { });
+                                }
+
+                                emitBuffer = '';
+                                lastEmitTime = now;
                             }
 
-                            // 💓 Heartbeat every ~100 tokens
-                            if (fullContent.length % 500 < delta.content.length) {
-                                options?.onToken?.(fullContent, false);
+                            // Heartbeat logic
+                            if ((isReasoning ? fullThinking.length : fullContent.length) % 500 < chunkToProcess.length) {
+                                options?.onToken?.(isReasoning ? fullThinking : fullContent, isReasoning);
                             }
                         }
                     } catch {
-                        // Ignore parse errors for incomplete chunks
+                        // Ignore parse errors
                     }
+                }
+            }
+
+            // Flush remaining buffer
+            if (emitBuffer) {
+                emitAIThinking(sessionId, emitBuffer, stage, options?.candidateTime);
+                if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
+                    options.progressTracker.updateAIThinking(emitBuffer, stage, options?.candidateTime).catch(() => { });
                 }
             }
 
@@ -506,12 +521,17 @@ For each candidate time, provide:
 4. CONFIDENCE SCORE: [0-100 with detailed justification]
 5. FINAL VERDICT: [Is this the correct birth time? Yes/No/Maybe]
 
+
+5. INPUT DATA SCHEMA (How to read the provided data):
+   - "Venus [House 7, Benefic]": Venus is in 7th House and is a Functional Benefic for this Ascendant.
+   - "(Hits: Mars, H4)": Venus casts a geometric aspect on Mars and the 4th House Cusp.
+   - "Lagna: Libra (Swati)": Ascendant is in Libra sign, Swati Nakshatra.
+
 IMPORTANT:
-- Be extremely precise in calculations
-- Show your reasoning step by step
-- Consider that birth times recorded in India are often rounded to nearest 5-15 minutes
-- The tentative time is usually close - focus on ±30 minutes first
-- Physical traits can help narrow down ascendant sign`;
+- RELY 100% ON PROVIDED DATA. Do not attempt to recalculate positions.
+- The "Functional Nature" (Benefic/Malefic/Neutral) is pre-calculated based on specific Lagna Lordship rules. Trust it.
+- Focus purely on the "Forensic Match" between the Event Nature and the Dasha Lord's functional role.
+- Physical traits can help narrow down ascendant sign.`;
 
 /**
  * Build comprehensive prompt for candidate analysis

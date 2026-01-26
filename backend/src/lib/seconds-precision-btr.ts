@@ -147,6 +147,15 @@ async function buildCandidateDataPackage(
 
     // Build planet positions
     const planets: Record<string, { sign: string; degree: string; nakshatra: string }> = {};
+
+    // Helper for DMS
+    function toDMS(decimal: number): string {
+        const d = Math.floor(decimal);
+        const m = Math.floor((decimal - d) * 60);
+        const s = Math.round(((decimal - d) * 60 - m) * 60);
+        return `${d}° ${m.toString().padStart(2, '0')}' ${s.toString().padStart(2, '0')}"`;
+    }
+
     for (const [name, data] of Object.entries(ephemeris.planets)) {
         const nakshatra = getNakshatraForLongitude(data.longitude);
         planets[name] = {
@@ -419,7 +428,7 @@ ${c.d9Lagna ? `D9 NAVAMSHA LAGNA: ${c.d9Lagna}` : ''}
 ${c.d10Lagna ? `D10 DASAMSHA LAGNA: ${c.d10Lagna}` : ''}
 
 VIMSHOTTARI DASHA PERIODS (Verify Lordship Connection):
-${c.vimshottariDasha.map(d => `  • ${d.maha} (${c.planets[d.maha.toLowerCase()]?.house}H, ${c.planets[d.maha.toLowerCase()]?.dignity}) / ${d.antar} (${c.planets[d.antar.toLowerCase()]?.house}H) : ${d.startEnd}`).join('\n')}
+${c.vimshottariDasha.map(d => `  • ${d.maha} [House ${c.planets[d.maha.toLowerCase()]?.house}, ${c.planets[d.maha.toLowerCase()]?.dignity}] / ${d.antar} [House ${c.planets[d.antar.toLowerCase()]?.house}] : ${d.startEnd}`).join('\n')}
 ${c.yoginiDasha ? `\nYOGINI DASHA: ${c.yoginiDasha.map(d => `${d.lord} (${d.startEnd})`).join(' → ')}` : ''}
 `).join('')}
 
@@ -482,8 +491,8 @@ ${candidates.map(c => `
 ├ VIMSHOTTARI: ${c.vimshottariDasha.map(d => {
         const m = c.planets[d.maha.toLowerCase()];
         const a = c.planets[d.antar.toLowerCase()];
-        const mAsp = m?.aspects?.filter(x => x.isHit).map(x => x.targetHouse ? `H${x.targetHouse}` : x.targetPlanet).join(',') || '';
-        return `\n    --> ${d.maha} [H${m?.house}, ${m?.functionalNature?.role}] (Hits: ${mAsp}) / ${d.antar} [H${a?.house}] : ${d.startEnd}`;
+        const mAsp = m?.aspects?.filter(x => x.isHit).map(x => x.targetHouse ? `House ${x.targetHouse}` : x.targetPlanet).join(',') || '';
+        return `\n    --> ${d.maha} [House ${m?.house}, ${m?.functionalNature?.role}] (Hits: ${mAsp}) / ${d.antar} [House ${a?.house}] : ${d.startEnd}`;
     }).join('')}
 ├ YOGINI: ${c.yoginiDasha?.map(d => `${d.lord} [${d.startEnd}]`).join(' → ') || 'N/A'}
 ├ CHARA: ${c.charaDasha?.map(d => `${d.sign} [${d.startEnd}]`).join(' → ') || 'N/A'}
@@ -547,8 +556,8 @@ ${candidates.map((c, i) => `
 ├ VIMSHOTTARI: ${c.vimshottariDasha.slice(0, 5).map(d => {
         const m = c.planets[d.maha.toLowerCase()];
         const a = c.planets[d.antar.toLowerCase()];
-        const mAsp = m?.aspects?.filter(x => x.isHit).map(x => x.targetHouse ? `H${x.targetHouse}` : x.targetPlanet).join(',') || '';
-        return `\n    --> ${d.maha} [H${m?.house}, ${m?.functionalNature?.role}] (Hits: ${mAsp}) / ${d.antar} [H${a?.house}]`;
+        const mAsp = m?.aspects?.filter(x => x.isHit).map(x => x.targetHouse ? `House ${x.targetHouse}` : x.targetPlanet).join(',') || '';
+        return `\n    --> ${d.maha} [House ${m?.house}, ${m?.functionalNature?.role}] (Hits: ${mAsp}) / ${d.antar} [House ${a?.house}]`;
     }).join('')}
 └ BOUNDARY RISK: ${parseFloat(c.ascendant.degree) < 1 || parseFloat(c.ascendant.degree) > 29 ? '⚠️ EDGE' : 'SAFE'}`).join('\n')}
 
