@@ -24,7 +24,6 @@ import {
 import { useStreamProgress } from '@/lib/use-stream-progress';
 import { UnifiedAIPanel } from '@/components/rectify/UnifiedAIPanel';
 import { LiveScoreTable } from '@/components/rectify/LiveScoreTable';
-import { LiveGodModeTerminal } from '@/components/rectify/LiveGodModeTerminal';
 import { AnalysisPipelineTracker } from '@/components/rectify/AnalysisPipelineTracker';
 import { CandidateLevelTables } from '@/components/rectify/CandidateLevelTables';
 import { CandidateComparisonView } from '@/components/rectify/CandidateComparisonView';
@@ -720,16 +719,6 @@ export default function ProgressPage() {
                     </div>
                 )}
 
-                {/* 🔱 LIVE GOD MODE TERMINAL */}
-                <div className="mb-8 animate-fade-in-up">
-                    <LiveGodModeTerminal
-                        candidateScores={candidateScores}
-                        calculationLogs={calculationLogs || []}
-                        currentStage={progress?.currentStep || 0}
-                        isConnected={isConnected}
-                        aiContext={aiContext}
-                    />
-                </div>
 
                 {/* 🏁 Results HUD */}
                 {isComplete && result && (

@@ -529,7 +529,7 @@ export function useStreamProgress(
                                 log: `Processed ${eventData.candidateTime}`,   // Default console log
                                 level: 1 as 1 | 2 | 3 // Explicit cast to satisfy union type
                             }
-                        ].slice(-100) // Keep last 100 logs
+                        ] // 🔱 GOD MODE: NO LIMITS.
                     };
                 });
                 break;

@@ -234,10 +234,7 @@ class SessionEventManager {
         }
         const buffer = this.calculationLogBuffers.get(sessionId)!;
         buffer.push(log);
-        // Keep last 50 logs to prevent memory leak but ensure context
-        if (buffer.length > 50) {
-            buffer.shift();
-        }
+        // 🔱 GOD MODE: NO LIMITS. We keep every single candidate log for the entire session.
     }
 
     /**

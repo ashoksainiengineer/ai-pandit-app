@@ -358,10 +358,11 @@ async function buildCandidateDataPackage(
 // ═════════════════════════════════════════════════════════════════════════════
 
 function formatLifeEventForAI(event: LifeEvent): string {
-    const { eventType, category, eventDate, eventTime, endDate, datePrecision, description } = event;
+    const { eventType, category, eventDate, eventTime, endDate, datePrecision, description, importance } = event;
     let timeStr = eventDate;
     let nuance = '';
 
+    // ... (logic for timeStr remains same) ...
     switch (datePrecision) {
         case 'exact_date_time':
             if (eventTime) {
@@ -370,7 +371,6 @@ function formatLifeEventForAI(event: LifeEvent): string {
             }
             break;
         case 'month_year':
-            // Truncate "2025-05-01" to "2025-05"
             timeStr = eventDate.split('-').slice(0, 2).join('-');
             nuance = '(Month-Level)';
             break;
@@ -383,13 +383,12 @@ function formatLifeEventForAI(event: LifeEvent): string {
             nuance = '(Month Range)';
             break;
         case 'year_range':
-            // Truncate "2025-05-01" to "2025"
             const yStart = eventDate.split('-')[0];
             if (endDate) {
                 const yEnd = endDate.split('-')[0];
                 timeStr = `${yStart} to ${yEnd}`;
             } else {
-                timeStr = yStart; // Single year case
+                timeStr = yStart;
             }
             nuance = '(Year-Level)';
             break;
@@ -402,9 +401,9 @@ function formatLifeEventForAI(event: LifeEvent): string {
             break;
     }
 
-    let base = `• ${eventType} (${category}) on ${timeStr} ${nuance}`;
+    let base = `• [${importance?.toUpperCase() || 'MEDIUM'} IMPORTANCE] ${eventType} (${category})\n  Date: ${timeStr} ${nuance}`;
     if (description) {
-        base += `\n  Context: "${description}"`;
+        base += `\n  SITUATIONAL NARRATIVE & EXPERIENCE: "${description}"`;
     }
     return base;
 }
@@ -433,6 +432,7 @@ function getBatchPrompt(
 1. TOTAL NEUTRALITY: Treat all provided times as equally likely candidates.
 2. ZERO TENTATIVE BIAS: Do not favor times just because they are closer to the "original" time.
 3. DATA-DRIVEN SCORE: Your score must reflect mathematical alignment only.
+4. NARRATIVE PRIMACY: The user's "SITUATIONAL NARRATIVE" is the ultimate source of truth. If a user describes a "sudden, shocking loss," prioritize candidates where Rahu/Ketu/8th house are activated in that dasha, even if raw scores are lower.
 ════════════════════════════════════════════════════════════════════════════════
 
 ════════════════════════════════════════════════════════════════════════════════
@@ -515,7 +515,7 @@ function getDeepAnalysisPrompt(
 ════════════════════════════════════════════════════════════════════════════════
 ⚠️ ANALYSIS RULES (PURE VEDIC ASTROLOGY):
 1. RELY ONLY ON THE PROVIDED MATHEMATICAL DATA. Do not hallucinate planetary positions.
-2. CALCULATE RELATIONSHIPS YOURSELF: Determine Functional Malefics/Benefics based on Lagna.
+2. NARRATIVE PRIMACY: Qualitative experiences (SITUATIONAL NARRATIVE) outrank generic scoring. Match the flavor of the experience (e.g. "intense struggle" vs "smooth success") to the specific planetary dignity and aspects provided.
 3. USE DIVISIONAL CHARTS: Verify D9/D10/D60 promises.
 4. CORRELATE DASHAS: Match Dasha Lords (and their House ownerships) to life events.
 ════════════════════════════════════════════════════════════════════════════════
@@ -599,8 +599,8 @@ function getFinalPrecisionPrompt(
 ════════════════════════════════════════════════════════════════════════════════
 ⚠️ GOD-TIER PRECISION RULES:
 1. FOCUS ON D60 (SHASHTYAMSA): Even 10 seconds can change D60 Lagna.
-2. VERIFY PRANADASHAS: Use Vimshottari logic down to the finest level.
-3. RAW DATA ONLY: Calculate your own aspects and functional nature.
+2. NARRATIVE SYNC: The rectified time MUST explain the "NARRATIVE EXPERIENCE" describing the flavor of the life event (e.g. "sudden surgery" implies Mars/Ketu in 8th or 6th).
+3. VERIFY PRANADASHAS: Use Vimshottari logic down to the finest level.
 ════════════════════════════════════════════════════════════════════════════════
 
 TASK: Select THE SINGLE BEST birth time from ${shuffledCandidates.length} finalists.

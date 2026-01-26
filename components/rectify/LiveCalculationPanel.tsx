@@ -25,9 +25,9 @@ export const LiveCalculationPanel: React.FC<LiveCalculationPanelProps> = ({ logs
     const scrollRef = useRef<HTMLDivElement>(null);
     const [displayedLogs, setDisplayedLogs] = useState<CalculationLog[]>([]);
 
-    // Limit displayed logs to last 50 to prevent memory issues
+    // 🔱 GOD MODE: Remove limits to store ALL candidates logged
     useEffect(() => {
-        setDisplayedLogs(logs.slice(-50));
+        setDisplayedLogs(logs);
     }, [logs]);
 
     // Auto-scroll logging
@@ -53,7 +53,7 @@ export const LiveCalculationPanel: React.FC<LiveCalculationPanelProps> = ({ logs
                         className="w-1.5 h-1.5 rounded-full bg-emerald-400"
                     />
                     <span className="text-[10px] font-black text-emerald-400 tracking-[0.2em] uppercase">
-                        NIRAYANA PRECISION ENGINE
+                        SWISS EPH VEDIC ASTROLOGICAL DATA
                     </span>
                 </div>
                 <div className="flex items-center gap-4">
