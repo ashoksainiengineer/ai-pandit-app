@@ -26,7 +26,7 @@ let isInitializing = false;
 let initPromise = null;
 // Calculation Cache (LRU-like simple Map)
 const EPH_CACHE = new Map();
-const MAX_CACHE_SIZE = 1000;
+const MAX_CACHE_SIZE = 300;
 /**
  * Initializes the Swiss Ephemeris WASM module (Prolaxu version)
  * This must be called (and awaited) at server start.

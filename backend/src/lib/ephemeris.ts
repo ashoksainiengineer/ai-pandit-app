@@ -19,7 +19,7 @@ let initPromise: Promise<boolean> | null = null;
 
 // Calculation Cache (LRU-like simple Map)
 const EPH_CACHE = new Map<string, EphemerisData>();
-const MAX_CACHE_SIZE = 1000;
+const MAX_CACHE_SIZE = 300;
 
 /**
  * Initializes the Swiss Ephemeris WASM module (Prolaxu version)

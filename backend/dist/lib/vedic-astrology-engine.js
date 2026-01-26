@@ -114,7 +114,8 @@ function tropicalToSidereal(tropicalLongitude, julianDay) {
  * This is THE most important calculation for birth time rectification
  */
 function calculateVimshottariDasha(moonLongitude, // Sidereal longitude of Moon
-birthDate) {
+birthDate, maxLevel = 5 // Allow engine-level throttling for memory safety
+) {
     // Step 1: Determine birth nakshatra
     const nakshatraIndex = Math.floor(moonLongitude / NAKSHATRA_SPAN);
     const birthNakshatra = nakshatraIndex;
@@ -137,8 +138,7 @@ birthDate) {
         startDate: new Date(currentDate),
         endDate: firstEndDate,
         durationYears: remainingYears,
-        subPeriods: calculateSubDashas(birthNakshatraLord, currentDate, firstEndDate, 5, // GOD-TIER: 5 levels deep
-        positionInNakshatra),
+        subPeriods: calculateSubDashas(birthNakshatraLord, currentDate, firstEndDate, maxLevel, positionInNakshatra),
     });
     currentDate = firstEndDate;
     dashaIndex = (dashaIndex + 1) % 9;
@@ -157,7 +157,7 @@ birthDate) {
                 startDate: new Date(currentDate),
                 endDate,
                 durationYears: years,
-                subPeriods: calculateSubDashas(lord, currentDate, endDate, 5, 0),
+                subPeriods: calculateSubDashas(lord, currentDate, endDate, maxLevel, 0),
             });
             currentDate = endDate;
             dashaIndex = (dashaIndex + 1) % 9;

@@ -43,7 +43,7 @@ export declare function tropicalToSidereal(tropicalLongitude: number, julianDay:
  * This is THE most important calculation for birth time rectification
  */
 export declare function calculateVimshottariDasha(moonLongitude: number, // Sidereal longitude of Moon
-birthDate: Date): DashaPeriod[];
+birthDate: Date, maxLevel?: number): DashaPeriod[];
 /**
  * Get Dasha active on a specific date
  * Used to verify life events

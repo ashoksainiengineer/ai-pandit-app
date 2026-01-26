@@ -135,7 +135,8 @@ export function tropicalToSidereal(
  */
 export function calculateVimshottariDasha(
     moonLongitude: number, // Sidereal longitude of Moon
-    birthDate: Date
+    birthDate: Date,
+    maxLevel: number = 5 // Allow engine-level throttling for memory safety
 ): DashaPeriod[] {
     // Step 1: Determine birth nakshatra
     const nakshatraIndex = Math.floor(moonLongitude / NAKSHATRA_SPAN);
@@ -168,7 +169,7 @@ export function calculateVimshottariDasha(
             birthNakshatraLord,
             currentDate,
             firstEndDate,
-            5, // GOD-TIER: 5 levels deep
+            maxLevel,
             positionInNakshatra
         ),
     });
@@ -191,7 +192,7 @@ export function calculateVimshottariDasha(
                 startDate: new Date(currentDate),
                 endDate,
                 durationYears: years,
-                subPeriods: calculateSubDashas(lord, currentDate, endDate, 5, 0),
+                subPeriods: calculateSubDashas(lord, currentDate, endDate, maxLevel, 0),
             });
 
             currentDate = endDate;

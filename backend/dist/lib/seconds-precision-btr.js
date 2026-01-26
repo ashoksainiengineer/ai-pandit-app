@@ -38,7 +38,8 @@ function formatTimeHHMMSS(time) {
 // ═════════════════════════════════════════════════════════════════════════════
 // DATA PACKAGE BUILDER (Swiss Eph → Pure JSON)
 // ═════════════════════════════════════════════════════════════════════════════
-async function buildCandidateDataPackage(time, offsetMinutes, input, includeFullData = false) {
+async function buildCandidateDataPackage(time, offsetMinutes, input, options = { includeFullData: false, dashaDepth: 3 }) {
+    const { includeFullData = false, dashaDepth = 3, pranaWindowDays = 3, lifecycleShifts = [] } = options;
     let ephemeris = await (0, ephemeris_js_1.calculateEphemeris)(input.dateOfBirth, time, input.latitude, input.longitude, input.timezone);
     // Calculate All Vargas and Special Metrics
     const { calculateAllVargas, calculateAshtakavarga, calculateShadbala, detectYogas, verifyDoubleTransit, calculateArudhas, calculatePanchanga } = await import('./vedic-astrology-engine.js');
@@ -85,53 +86,65 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
             nakshatra: nakshatra.name
         };
     }
-    // Build Vimshottari Dasha table (Flattened to Prana level for God-Tier Precision)
-    const vimDashas = (0, vedic_astrology_engine_js_1.calculateVimshottariDasha)(moonLong, birthDate);
-    // Determine relevant date range (Birth to Present/Max Event + 1 Year buffer)
+    // Build Vimshottari Dasha table (Memory-Optimized Pruning at SOURCE)
+    const vimDashas = (0, vedic_astrology_engine_js_1.calculateVimshottariDasha)(moonLong, birthDate, dashaDepth);
     const eventDates = input.lifeEvents.map(e => new Date(e.eventDate).getTime());
     const now = Date.now();
-    const minDate = Math.min(...eventDates, now) - (365 * 24 * 60 * 60 * 1000); // 1 year before first event
-    const maxEventDate = Math.max(...eventDates, now);
-    const maxDate = maxEventDate + (365 * 24 * 60 * 60 * 1000); // 1 year buffer
+    const dayMs = 24 * 60 * 60 * 1000;
+    const pruningWindowMs = pranaWindowDays * dayMs;
     const vimshottariDasha = [];
     for (const maha of vimDashas) {
-        if (!maha.subPeriods)
+        if (!maha.subPeriods || dashaDepth < 1)
             continue;
         for (const antar of maha.subPeriods) {
-            // Include AD level for the entire life (Birth to Present)
-            // This ensures a complete high-level timeline
-            const isLatest = antar.endDate.getTime() >= now;
+            if (!antar.subPeriods || dashaDepth < 2)
+                continue;
             for (const prat of antar.subPeriods) {
-                // For Pratyantars, we only include the full chain if it's within a 1-year buffer of ANY event 
-                // OR if it's the current/future period (Active Anchor). 
-                // Providing 27 years of Pratyantars (thousands of entries) would crash the AI window.
-                const start = prat.startDate.getTime();
-                const end = prat.endDate.getTime();
-                const fitsEvent = start <= maxDate && end >= minDate;
-                if (fitsEvent || isLatest) {
+                const pratStart = prat.startDate.getTime();
+                const pratEnd = prat.endDate.getTime();
+                // Always include Level 3 (Pratyantar) for chronology
+                if (dashaDepth === 3) {
+                    vimshottariDasha.push({
+                        maha: maha.lord, antar: antar.lord, pratyantar: prat.lord,
+                        sukshma: '-', prana: '-',
+                        startEnd: `${prat.startDate.toISOString().split('T')[0]} to ${prat.endDate.toISOString().split('T')[0]}`
+                    });
+                    continue;
+                }
+                if (dashaDepth >= 4 && prat.subPeriods) {
                     for (const suksh of prat.subPeriods) {
-                        for (const prana of suksh.subPeriods) {
+                        const sukshStart = suksh.startDate.getTime();
+                        const sukshEnd = suksh.endDate.getTime();
+                        if (dashaDepth === 4) {
                             vimshottariDasha.push({
-                                maha: maha.lord,
-                                antar: antar.lord,
-                                pratyantar: prat.lord,
-                                sukshma: suksh.lord,
-                                prana: prana.lord,
-                                startEnd: `${prana.startDate.toISOString().split('T')[1].slice(0, 8)} to ${prana.endDate.toISOString().split('T')[1].slice(0, 8)} (${prana.startDate.toISOString().split('T')[0]})`
+                                maha: maha.lord, antar: antar.lord, pratyantar: prat.lord, sukshma: suksh.lord,
+                                prana: '-',
+                                startEnd: `${suksh.startDate.toISOString().split('T')[0]}`
                             });
+                            continue;
+                        }
+                        if (dashaDepth >= 5 && suksh.subPeriods) {
+                            // Stage 6 Special: Only Level 5 (Prana) for windows around events
+                            const isNearEvent = eventDates.some(ed => ed >= sukshStart - pruningWindowMs && ed <= sukshEnd + pruningWindowMs);
+                            if (isNearEvent) {
+                                for (const prana of suksh.subPeriods) {
+                                    vimshottariDasha.push({
+                                        maha: maha.lord, antar: antar.lord, pratyantar: prat.lord,
+                                        sukshma: suksh.lord, prana: prana.lord,
+                                        startEnd: `${prana.startDate.toISOString().split('T')[1].slice(0, 5)} to ${prana.endDate.toISOString().split('T')[1].slice(0, 5)} (${prana.startDate.toISOString().split('T')[0]})`
+                                    });
+                                }
+                            }
+                            else {
+                                // Substituted Level 4 for non-event windows
+                                vimshottariDasha.push({
+                                    maha: maha.lord, antar: antar.lord, pratyantar: prat.lord, sukshma: suksh.lord,
+                                    prana: '-',
+                                    startEnd: `${suksh.startDate.toISOString().split('T')[0]}`
+                                });
+                            }
                         }
                     }
-                }
-                else if (prat.endDate.getTime() < now) {
-                    // Fallback abbreviated entry for historical context without bloat
-                    vimshottariDasha.push({
-                        maha: maha.lord,
-                        antar: antar.lord,
-                        pratyantar: prat.lord,
-                        sukshma: '-',
-                        prana: '-',
-                        startEnd: `[Historical Period] ${prat.startDate.toISOString().split('T')[0]} to ${prat.endDate.toISOString().split('T')[0]}`
-                    });
                 }
             }
         }
@@ -194,7 +207,7 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
         vimshottariDasha,
         ashtakavarga: ephemeris.ashtakavarga,
         panchanga,
-        lifecycleShifts: [], // To be populated
+        lifecycleShifts,
         vimsopakaBala: (0, vedic_astrology_engine_js_1.calculateVimsopakaBala)(ephemeris),
         chalitDiscrepancies: (0, vedic_astrology_engine_js_1.detectBhavaChalitDiscrepancy)(ephemeris),
         ishtaKashtaPhala: (() => {
@@ -214,6 +227,9 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
     };
     // Include extended data for later stages
     if (includeFullData) {
+        // Determine relevant date range for Yogini/Chara (1 year buffer)
+        const minDate = Math.min(...eventDates, now) - (365 * dayMs);
+        const maxDate = Math.max(...eventDates, now) + (365 * dayMs);
         // 1. Yogini Dasha - Filtered by Timeline
         const yogDashas = (0, advanced_btr_methods_js_1.calculateYoginiDasha)(moonLong, birthDate);
         pkg.yoginiDasha = yogDashas.filter(d => {
@@ -322,39 +338,7 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, includeFull
                 // Skip
             }
         }
-        // 🦾 5. Lifecycle Chronicle: Track Sign Ingress (Sign Changes) for Saturn/Jupiter
-        const lifecycleShifts = [];
-        const startYear = birthDate.getFullYear();
-        const endYear = new Date().getFullYear();
-        let lastSaturnSign = '';
-        let lastJupiterSign = '';
-        // Optimized sampling: Every 4 months (Catching all sign changes)
-        for (let year = startYear; year <= endYear; year++) {
-            for (let month of [1, 5, 9]) {
-                try {
-                    const checkDateForCycle = `${year}-${String(month).padStart(2, '0')}-01`;
-                    const ephShift = await (0, ephemeris_js_1.calculateEphemeris)(checkDateForCycle, '12:00:00', input.latitude, input.longitude, input.timezone);
-                    const currentSatSign = ephShift.planets.saturn.sign;
-                    const currentJupSign = ephShift.planets.jupiter.sign;
-                    if (currentSatSign !== lastSaturnSign || currentJupSign !== lastJupiterSign) {
-                        const dashaCycle = (0, vedic_astrology_engine_js_1.getDashaForDate)(vimDashas, new Date(checkDateForCycle));
-                        lifecycleShifts.push({
-                            date: checkDateForCycle,
-                            event: `TRANSIT INGRESS: Saturn in ${currentSatSign} | Jupiter in ${currentJupSign}`,
-                            dasha: dashaCycle ? `${dashaCycle.mahadasha}-${dashaCycle.antardasha}` : 'N/A'
-                        });
-                        lastSaturnSign = currentSatSign;
-                        lastJupiterSign = currentJupSign;
-                    }
-                }
-                catch { }
-                if (lifecycleShifts.length > 50)
-                    break; // Hard cap for prompt safety
-            }
-            if (lifecycleShifts.length > 50)
-                break;
-        }
-        pkg.lifecycleShifts = lifecycleShifts;
+        // 🦾 5. Lifecycle Logic removed from here - moved to process level cache
     }
     return pkg;
 }
@@ -745,7 +729,7 @@ async function stage1ExhaustiveDataGeneration(input, progress) {
     for (const raw of rawCandidates) {
         // We build the package once to ensure the calculation log is sent, 
         // but we DO NOT keep it in memory.
-        const pkg = await buildCandidateDataPackage(raw.time, raw.offsetMinutes, input, false);
+        const pkg = await buildCandidateDataPackage(raw.time, raw.offsetMinutes, input, { includeFullData: false, dashaDepth: 2 });
         processed++;
         // Log EVERY calculation (user requested) but with lightweight data
         (0, session_events_js_1.emitCalculationLog)(input.sessionId, {
@@ -776,7 +760,7 @@ async function stage1ExhaustiveDataGeneration(input, progress) {
 // ═════════════════════════════════════════════════════════════════════════════
 // STAGE 2: BATCH TOURNAMENT (Dynamic batch size based on offset)
 // ═════════════════════════════════════════════════════════════════════════════
-async function stage2BatchTournament(input, candidates, progress) {
+async function stage2BatchTournament(input, candidates, progress, globalLifecycle = []) {
     await progress.startStep('coarse', 'Stage 2: Batch Tournament...');
     const rounds = [];
     let currentCandidates = [...candidates];
@@ -813,14 +797,14 @@ async function stage2BatchTournament(input, candidates, progress) {
         // Execute in parallel
         const batchDataMap = new Map();
         const tasks = batches.map((batchTimes, i) => async () => {
-            const batchEnriched = await Promise.all(batchTimes.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, true)));
+            const batchEnriched = await Promise.all(batchTimes.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, { includeFullData: true, dashaDepth: 2, lifecycleShifts: globalLifecycle })));
             batchDataMap.set(i, batchEnriched);
             return (0, ai_client_js_1.callAIWithStream)(input.sessionId, 2, 'You are the SUPREME VEDIC ASTROLOGER. Analyze ALL candidates with EQUAL attention.', getBatchPrompt(batchEnriched, input.lifeEvents, input.physicalTraits, i + 1, batches.length, survivorsPerBatch), {
                 candidateTime: `Batch ${i + 1}/${batches.length}`,
                 progressTracker: progress
             });
         });
-        const results = await (0, ai_client_js_1.executeAIInParallel)(tasks, 20, 100);
+        const results = await (0, ai_client_js_1.executeAIInParallel)(tasks, 10, 100);
         // Process results
         for (let i = 0; i < batches.length; i++) {
             const batchTimes = batches[i];
@@ -840,8 +824,9 @@ async function stage2BatchTournament(input, candidates, progress) {
                 (0, session_events_js_1.emitCandidateScore)(input.sessionId, candidate.time, score, 2, undefined, getMinifiedEph(candidate));
             }
         }
-        // Check for cancellation once per round instead of per batch
+        // Check for cancellation and cleanup
         await (0, cancellation_manager_js_1.throwIfCancelled)(input.sessionId, input.abortSignal);
+        (0, ephemeris_js_1.cleanup)(); // Hint GC to clear processed objects
         rounds.push({
             roundNumber,
             batchesProcessed: batches.length,
@@ -876,7 +861,7 @@ async function stage3RefinementGrid(input, survivors, progress) {
     await progress.startStep('fine', 'Stage 3: Generating refinement grid...');
     const refinedCandidates = [];
     // Generate ±5 min grid at 1-min interval around each survivor
-    for (const survivor of survivors) {
+    for (const survivor of survivors.slice(0, 3)) {
         const fineGrid = (0, time_offset_manager_js_1.generateRefinementGrid)(survivor.time, 5, 60); // ±5 min @ 1 min
         for (const gridPoint of fineGrid) {
             // Check if already exists
@@ -899,7 +884,7 @@ async function stage3RefinementGrid(input, survivors, progress) {
 // ═════════════════════════════════════════════════════════════════════════════
 // STAGE 4: DEEP ANALYSIS (Multi-dasha verification)
 // ═════════════════════════════════════════════════════════════════════════════
-async function stage4DeepAnalysis(input, candidates, progress) {
+async function stage4DeepAnalysis(input, candidates, progress, globalLifecycle = []) {
     await progress.startStep('deep', 'Stage 4: Deep analysis tournament...');
     let currentCandidates = [...candidates];
     let allReasoning = '';
@@ -917,7 +902,7 @@ async function stage4DeepAnalysis(input, candidates, progress) {
         const batchDataMap = new Map();
         // 🔱 Parallel Execution Logic (Stage 4)
         const tasks = batches.map((batchTimes, i) => async () => {
-            const batchEnriched = await Promise.all(batchTimes.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, true)));
+            const batchEnriched = await Promise.all(batchTimes.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, { includeFullData: true, dashaDepth: 3, lifecycleShifts: globalLifecycle })));
             batchDataMap.set(i, batchEnriched);
             (0, session_events_js_1.emitAIContext)(input.sessionId, {
                 stage: 4,
@@ -931,7 +916,7 @@ async function stage4DeepAnalysis(input, candidates, progress) {
                 progressTracker: progress
             });
         });
-        const results = await (0, ai_client_js_1.executeAIInParallel)(tasks, 20, 100);
+        const results = await (0, ai_client_js_1.executeAIInParallel)(tasks, 10, 100);
         for (let i = 0; i < batches.length; i++) {
             const batchTimes = batches[i];
             const response = results[i];
@@ -956,7 +941,7 @@ async function stage4DeepAnalysis(input, candidates, progress) {
     // Final deep analysis on remaining candidates
     if (currentCandidates.length > 0) { // Changed from > 3 to > 0 to handle small remaining batches
         // JIT Enrichment for the final batch
-        const finalBatchData = await Promise.all(currentCandidates.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, true)));
+        const finalBatchData = await Promise.all(currentCandidates.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, { includeFullData: true, dashaDepth: 3, lifecycleShifts: globalLifecycle })));
         const prompt = getDeepAnalysisPrompt(finalBatchData, input.lifeEvents, input.physicalTraits, input.spouseData);
         const response = await (0, ai_client_js_1.callAIWithStream)(input.sessionId, 4, 'You are performing FINAL deep verification.', prompt, {
             candidateTime: 'Deep Final',
@@ -1019,7 +1004,7 @@ async function stage5MicroGrid(input, survivors, progress) {
 // ═════════════════════════════════════════════════════════════════════════════
 // STAGE 6: FINAL PRECISION JUDGEMENT
 // ═════════════════════════════════════════════════════════════════════════════
-async function stage6FinalPrecision(input, candidates, progress) {
+async function stage6FinalPrecision(input, candidates, progress, globalLifecycle = []) {
     const now = new Date();
     const currentEph = await (0, ephemeris_js_1.calculateEphemeris)(now.toISOString().split('T')[0], now.toTimeString().split(' ')[0], input.latitude, input.longitude, input.timezone);
     const getPresentTransitData = (c) => {
@@ -1037,7 +1022,7 @@ async function stage6FinalPrecision(input, candidates, progress) {
         const batchWinners = [];
         const batchDataMap = new Map();
         const tasks = batches.map((batchTimes, i) => async () => {
-            const batchEnriched = await Promise.all(batchTimes.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, true)));
+            const batchEnriched = await Promise.all(batchTimes.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, { includeFullData: true, dashaDepth: 5, pranaWindowDays: 3, lifecycleShifts: globalLifecycle })));
             batchDataMap.set(i, batchEnriched);
             const presentAnchor = getPresentTransitData(batchEnriched[0]);
             return (0, ai_client_js_1.callAIWithStream)(input.sessionId, 6, 'FINAL JUDGEMENT. Pick THE ONE.', getFinalPrecisionPrompt(batchEnriched, input.lifeEvents, input.physicalTraits, input.spouseData, presentAnchor), {
@@ -1045,7 +1030,7 @@ async function stage6FinalPrecision(input, candidates, progress) {
                 progressTracker: progress
             });
         });
-        // Execute in parallel
+        // Execute in parallel (Concurrency: 10)
         const results = await (0, ai_client_js_1.executeAIInParallel)(tasks, 10, 200);
         for (let i = 0; i < batches.length; i++) {
             const batchTimes = batches[i];
@@ -1075,7 +1060,7 @@ async function stage6FinalPrecision(input, candidates, progress) {
         finalists = batchWinners;
     }
     // Final judgement
-    const finalBatch = await Promise.all(finalists.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, true)));
+    const finalBatch = await Promise.all(finalists.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, { includeFullData: true, dashaDepth: 5, pranaWindowDays: 5, lifecycleShifts: globalLifecycle })));
     const finalAnchor = getPresentTransitData(finalBatch[0]);
     const prompt = getFinalPrecisionPrompt(finalBatch, input.lifeEvents, input.physicalTraits, input.spouseData, finalAnchor);
     const response = await (0, ai_client_js_1.callAIWithStream)(input.sessionId, 6, 'You are the DIVINE ARCHITECT of Time. FINAL JUDGEMENT.', prompt, {
@@ -1125,11 +1110,47 @@ async function processSecondsPrecisionBTR(input) {
     try {
         await progress.updateETA(600);
         await progress.startStep('init', '🔱 Initializing God-Tier BTR v7.0 (Batch Tournament)...');
-        logger_js_1.logger.info('🔱 Starting GOD-TIER BTR v7.0 (10-Candidate Batches)', {
+        // 🦾 Pre-calculate Global Lifecycle Shifts (Sign Ingresses) to share across candidates
+        const globalLifecycle = [];
+        try {
+            const birthDate = new Date(input.dateOfBirth);
+            const startYear = birthDate.getFullYear();
+            const endYear = new Date().getFullYear();
+            let lastSaturnSign = '';
+            let lastJupiterSign = '';
+            // Temporary dasha for ingress calculation (using tentative time)
+            const baseEph = await (0, ephemeris_js_1.calculateEphemeris)(input.dateOfBirth, input.tentativeTime, input.latitude, input.longitude, input.timezone);
+            const baseDashas = (0, vedic_astrology_engine_js_1.calculateVimshottariDasha)(baseEph.planets.moon.longitude, birthDate);
+            for (let y = startYear; y <= endYear; y++) {
+                for (let m of [1, 5, 9]) {
+                    const checkDateForCycle = `${y}-${String(m).padStart(2, '0')}-01`;
+                    const ephShift = await (0, ephemeris_js_1.calculateEphemeris)(checkDateForCycle, '12:00:00', input.latitude, input.longitude, input.timezone);
+                    const currentSatSign = ephShift.planets.saturn.sign;
+                    const currentJupSign = ephShift.planets.jupiter.sign;
+                    if (currentSatSign !== lastSaturnSign || currentJupSign !== lastJupiterSign) {
+                        const dashaCycle = (0, vedic_astrology_engine_js_1.getDashaForDate)(baseDashas, new Date(checkDateForCycle));
+                        globalLifecycle.push({
+                            date: checkDateForCycle,
+                            event: `TRANSIT INGRESS: Saturn in ${currentSatSign} | Jupiter in ${currentJupSign}`,
+                            dasha: dashaCycle ? `${dashaCycle.mahadasha}-${dashaCycle.antardasha}` : 'N/A'
+                        });
+                        lastSaturnSign = currentSatSign;
+                        lastJupiterSign = currentJupSign;
+                    }
+                    if (globalLifecycle.length > 50)
+                        break;
+                }
+                if (globalLifecycle.length > 50)
+                    break;
+            }
+        }
+        catch (e) {
+            logger_js_1.logger.warn('Global lifecycle calculation failed', e);
+        }
+        logger_js_1.logger.info('🔱 Starting GOD-TIER BTR v7.0 (Batch Tournament)', {
             sessionId: input.sessionId,
             dateOfBirth: input.dateOfBirth,
-            offsetConfig: input.offsetConfig,
-            maxBatchSize: time_offset_manager_js_1.MAX_BATCH_SIZE
+            globalLifecycleItems: globalLifecycle.length
         });
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 1: EXHAUSTIVE DATA GENERATION
@@ -1143,7 +1164,7 @@ async function processSecondsPrecisionBTR(input) {
         // ═══════════════════════════════════════════════════════════════════════
         await (0, cancellation_manager_js_1.throwIfCancelled)(input.sessionId, input.abortSignal);
         await progress.updateETA(480);
-        const stage2 = await stage2BatchTournament(input, stage1.candidates, progress);
+        const stage2 = await stage2BatchTournament(input, stage1.candidates, progress, globalLifecycle);
         stageHistory[2] = stage2.stageResult;
         (0, session_events_js_1.emitStageStats)(input.sessionId, 2, stage2.stageResult.candidatesOut, `Tournament: ${stage2.rounds.length} rounds, ${stage2.survivors.length} survivors`);
         // ═══════════════════════════════════════════════════════════════════════
@@ -1159,7 +1180,7 @@ async function processSecondsPrecisionBTR(input) {
         // ═══════════════════════════════════════════════════════════════════════
         await (0, cancellation_manager_js_1.throwIfCancelled)(input.sessionId, input.abortSignal);
         await progress.updateETA(240);
-        const stage4 = await stage4DeepAnalysis(input, stage3.candidates, progress);
+        const stage4 = await stage4DeepAnalysis(input, stage3.candidates, progress, globalLifecycle);
         stageHistory[4] = stage4.stageResult;
         (0, session_events_js_1.emitStageStats)(input.sessionId, 4, stage4.stageResult.candidatesOut, `Deep: ${stage4.survivors.length} survivors`);
         // ═══════════════════════════════════════════════════════════════════════
@@ -1175,7 +1196,7 @@ async function processSecondsPrecisionBTR(input) {
         // ═══════════════════════════════════════════════════════════════════════
         await (0, cancellation_manager_js_1.throwIfCancelled)(input.sessionId, input.abortSignal);
         await progress.updateETA(60);
-        const stage6 = await stage6FinalPrecision(input, stage5.candidates, progress);
+        const stage6 = await stage6FinalPrecision(input, stage5.candidates, progress, globalLifecycle);
         stageHistory[6] = stage6.stageResult;
         (0, session_events_js_1.emitStageStats)(input.sessionId, 6, 1, 'FINAL TIME DETERMINED');
         // ═══════════════════════════════════════════════════════════════════════
@@ -1186,7 +1207,7 @@ async function processSecondsPrecisionBTR(input) {
         const boundary = (0, advanced_btr_methods_js_1.calculateBoundarySafety)(finalEphemeris);
         await progress.complete();
         // FINAL JIT: Enrich the winner package for the final report
-        const winnerPkg = await buildCandidateDataPackage(stage6.finalTime, 0, input, true);
+        const winnerPkg = await buildCandidateDataPackage(stage6.finalTime, 0, input, { includeFullData: true, dashaDepth: 5, pranaWindowDays: 7 });
         const enrichedResult = {
             summary: stage6.aiReasoning.slice(0, 5000),
             finalCandidate: {
