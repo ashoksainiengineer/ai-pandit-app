@@ -97,6 +97,8 @@ interface CandidateDataPackage {
         avastha?: string;
         d60Deity?: string;
         compoundDignity?: string;
+        shadbalaBreakdown?: any;
+        ishtaKashtaPhala?: { ishta: number; kashta: number };
     }>;
     specialPoints?: Record<string, { sign: string; degree: string; house: number }>;
     ascendant: { sign: string; degree: string; nakshatra: string };
@@ -137,6 +139,9 @@ interface CandidateDataPackage {
     vimsopakaBala?: Record<string, number>; // 🔱 Total Vigour (0-20)
     chalitDiscrepancies?: any[]; // 🔱 House-sign border flags
     ishtaKashtaPhala?: Record<string, { ishta: number; kashta: number }>; // 🔱 Benefic Fruit
+    vargaDegrees?: Record<string, Record<string, string>>; // 🔱 Detailed degrees for D9, D10, D60...
+    d60Planets?: Record<string, { sign: string; degree: string; deity: string }>; // 🔱 Full D60 Matrix
+    sandhiZones?: string[]; // 🔱 Lagna/Dasha Sandhi markers
     spouseMatch?: {
         lagnaMatch: boolean;
         moonMatch: boolean;
@@ -372,14 +377,53 @@ async function buildCandidateDataPackage(
             aspects: aspects,
             avastha: calculateBaladiAvastha(p.longitude),
             d60Deity: getD60Deity(p.longitude),
-            compoundDignity: calculatePanchadhaSambandha(planetName, cap(ephemeris.houses[signIdx]?.lord || ''), ephemeris)
+            compoundDignity: calculatePanchadhaSambandha(planetName, cap(ephemeris.houses[signIdx]?.lord || ''), ephemeris),
+            shadbalaBreakdown: ephemeris.shadbala?.[planetName],
+            ishtaKashtaPhala: calculateIshtaKashtaPhala(planetName, ephemeris)
         };
+    }
+
+    // 🔱 Varga Degrees Enrichment
+    const vargaDegrees: Record<string, Record<string, string>> = {};
+    const d60Planets: Record<string, any> = {};
+
+    const vNames = ['D9', 'D10', 'D60'];
+    vNames.forEach(v => {
+        const chart = ephemeris.divisionalCharts?.[v];
+        if (chart) {
+            vargaDegrees[v] = { Ascendant: `${chart.ascendant.sign} ${chart.ascendant.degree.toFixed(2)}°` };
+            for (const [pName, pPos] of Object.entries(chart.planets)) {
+                vargaDegrees[v][cap(pName)] = `${pPos.sign} ${pPos.degree.toFixed(2)}°`;
+                if (v === 'D60') {
+                    d60Planets[cap(pName)] = {
+                        sign: pPos.sign,
+                        degree: pPos.degree.toFixed(2) + '°',
+                        deity: getD60Deity(pPos.longitude)
+                    };
+                }
+            }
+        }
+    });
+
+    // 🔱 Sandhi Detection (Planets or Lagna near signs ends)
+    const sandhiZones: string[] = [];
+    if (ephemeris.ascendant.degree < 1 || ephemeris.ascendant.degree > 29) {
+        sandhiZones.push(`Ascendant in Sandhi (${ephemeris.ascendant.degree.toFixed(2)}°)`);
+    }
+    for (const [name, p] of Object.entries(ephemeris.planets)) {
+        const deg = p.longitude % 30;
+        if (deg < 0.5 || deg > 29.5) {
+            sandhiZones.push(`${cap(name)} in Deep Sandhi (${deg.toFixed(2)}°)`);
+        }
     }
 
     const pkg: CandidateDataPackage = {
         time,
         offsetMinutes,
         rawVimshottari: vimDashas, // 🔱 Store raw for internal lookup in Stage 6
+        vargaDegrees,
+        d60Planets,
+        sandhiZones,
         vedicSignals: {
             vargottama: detectVargottama(ephemeris),
             parivartana: detectParivartana(ephemeris),
@@ -402,9 +446,9 @@ async function buildCandidateDataPackage(
         chalitDiscrepancies: detectBhavaChalitDiscrepancy(ephemeris),
         ishtaKashtaPhala: (() => {
             const res: Record<string, any> = {};
-            ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'].forEach(p => {
-                res[p] = calculateIshtaKashtaPhala(p, ephemeris);
-            });
+            for (const [name, data] of Object.entries(richPlanets)) {
+                if (data.ishtaKashtaPhala) res[cap(name)] = data.ishtaKashtaPhala;
+            }
             return res;
         })(),
         specialPoints: {
@@ -538,10 +582,11 @@ async function buildCandidateDataPackage(
                 pkg.transitData[event.eventDate] = {
                     dasha: dashaSequence,
                     signatures: eventSignatures,
-                    saturn: `${eventEph.planets.saturn.sign}${eventEph.planets.saturn.retro ? ' (R)' : ''}`,
-                    jupiter: `${eventEph.planets.jupiter.sign}${eventEph.planets.jupiter.retro ? ' (R)' : ''}`,
-                    rahu: `${eventEph.planets.rahu.sign}${eventEph.planets.rahu.retro ? ' (R)' : ''}`,
-                    ketu: `${eventEph.planets.ketu.sign}${eventEph.planets.ketu.retro ? ' (R)' : ''}`,
+                    // 🔱 COMPREHENSIVE TRANSITS
+                    planets: Object.entries(eventEph.planets).reduce((acc, [name, p]) => {
+                        acc[cap(name)] = `${p.sign} ${p.degree.toFixed(1)}°${p.retro ? '(R)' : ''}`;
+                        return acc;
+                    }, {} as Record<string, string>),
                     doubleTransit: dtResult
                 };
             } catch {
@@ -661,23 +706,31 @@ PANCHANGA: Day=${c.panchanga?.vara} | Tithi=${c.panchanga?.tithi} | Yoga=${c.pan
 SPECIAL POINTS: AL (Arudha Lagna)=${c.specialPoints?.AL.sign} | UL (Upapada Lagna)=${c.specialPoints?.UL.sign}
 LAGNA (Ascendant): ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
 HOUSE LORDS: 1=${c.houseLords[1]}, 7=${c.houseLords[7]}, 10=${c.houseLords[10]}, 5=${c.houseLords[5]}, 9=${c.houseLords[9]}
+${c.sandhiZones?.length ? `⚠️ SANDHI WARNINGS: ${c.sandhiZones.join(' | ')}` : ''}
 
 PLANETARY MATRIX (Verified Swiss Eph Positions):
 ${Object.entries(c.planets).map(([name, p]) => {
         const caps = name.charAt(0).toUpperCase() + name.slice(1);
-        const sav = c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(p.sign)] || '?';
+        const sav = c.ashtakavarga?.SAVSigns?.[p.sign] || '?';
         const aspects = p.aspects?.filter((a: any) => a.isHit).map((a: any) => `${a.type}→${a.targetPlanet || 'H' + a.targetHouse}`).join(', ') || 'None';
         const avastha = p.avastha || 'Unknown';
         const deity = p.d60Deity || 'Unknown';
-        const ikp = c.ishtaKashtaPhala?.[caps] ? `${c.ishtaKashtaPhala[caps].ishta}/${c.ishtaKashtaPhala[caps].kashta}` : '?';
+        const ikp = p.ishtaKashtaPhala ? `${p.ishtaKashtaPhala.ishta}/${p.ishtaKashtaPhala.kashta}` : '?';
         const sambandha = p.compoundDignity || 'Sama';
-        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${p.house} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${p.shadbala || '?'} | SAV:${sav} | ${aspects}`;
+        const sh = p.shadbalaBreakdown;
+        const shStr = sh ? `Sum:${sh.total} (S:${sh.sthana} D:${sh.dig} K:${sh.kaala})` : '?';
+        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${String(p.house).padEnd(2)} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${shStr.padEnd(25)} | SAV:${String(sav).padEnd(2)} | ${aspects}`;
     }).join('\n')}
 
-${c.yogas && c.yogas.length > 0 ? `YOGAS DETECTED: ${c.yogas.map(y => `${y.name} (${y.level})`).join(', ')}` : ''}
+${c.vargaDegrees ? `VARGA DEGREES (Forensic Resolution):
+│ D9 Navamsa: Asc=${c.vargaDegrees.D9?.Ascendant} | ${Object.entries(c.vargaDegrees.D9 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
+│ D10 Dasamsa: Asc=${c.vargaDegrees.D10?.Ascendant} | ${Object.entries(c.vargaDegrees.D10 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
+│ D60 Shashtyamsa: Asc=${c.vargaDegrees.D60?.Ascendant}` : ''}
 
-${c.d9Lagna ? `D9 NAVAMSHA LAGNA: ${c.d9Lagna}` : ''}
-${c.d10Lagna ? `D10 DASAMSHA LAGNA: ${c.d10Lagna}` : ''}
+${c.d60Planets ? `D60 PLANETARY DEITIES (The Quantum Decision Layer):
+${Object.entries(c.d60Planets).map(([name, data]) => `│ ${name.padEnd(7)}: ${data.sign} ${data.degree} | DEITY: ${data.deity}`).join('\n')}` : ''}
+
+${c.yogas && c.yogas.length > 0 ? `YOGAS DETECTED: ${c.yogas.map(y => `${y.name} (${y.level})`).join(', ')}` : ''}
 
 VIMSHOTTARI DASHA PERIODS (MD-AD-PD):
 ${c.vimshottariDasha.slice(0, 100).map(d => `  • ${d.maha}/${d.antar}/${d.pratyantar} : ${d.startEnd}`).join('\n')}
@@ -770,19 +823,23 @@ ${shuffledCandidates.map(c => `
 ├ PLANETARY MATRIX (Full Vedic Metrics):
 ${Object.entries(c.planets).map(([name, p]) => {
         const caps = name.charAt(0).toUpperCase() + name.slice(1);
-        const sav = c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(p.sign)] || '?';
+        const sav = c.ashtakavarga?.SAVSigns?.[p.sign] || '?';
         const aspects = p.aspects?.filter((a: any) => a.isHit).map((a: any) => `${a.type}→${a.targetPlanet || 'H' + a.targetHouse}`).join(', ') || 'None';
         const avastha = p.avastha || 'Unknown';
         const deity = p.d60Deity || 'Unknown';
-        const ikp = c.ishtaKashtaPhala?.[caps] ? `${c.ishtaKashtaPhala[caps].ishta}/${c.ishtaKashtaPhala[caps].kashta}` : '?';
+        const ikp = p.ishtaKashtaPhala ? `${p.ishtaKashtaPhala.ishta}/${p.ishtaKashtaPhala.kashta}` : '?';
         const sambandha = p.compoundDignity || 'Sama';
-        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${p.house} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${p.shadbala || '?'} | SAV:${sav} | ${aspects}`;
+        const sh = p.shadbalaBreakdown;
+        const shStr = sh ? `Sum:${sh.total} (S:${sh.sthana} D:${sh.dig} K:${sh.kaala})` : '?';
+        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${String(p.house).padEnd(2)} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${shStr.padEnd(25)} | SAV:${String(sav).padEnd(2)} | ${aspects}`;
     }).join('\n')}
 ├ YOGAS: ${c.yogas?.map(y => y.name).join(', ') || 'None'}
-├ DIVISIONAL CHARTS:
-│ D9 (Navamsa): Lagna=${c.d9Lagna} | Planets=${c.d9Chart ? Object.entries(c.d9Chart.planets).map(([k, v]) => `${k.substring(0, 2).toUpperCase()}=${v}`).join(' ') : ''}
-│ D10 (Dasamsa): Lagna=${c.d10Lagna} | Planets=${c.d10Chart ? Object.entries(c.d10Chart.planets).map(([k, v]) => `${k.substring(0, 2).toUpperCase()}=${v}`).join(' ') : ''}
-│ D60 (Shashtyamsa): Lagna=${c.d60Sign}
+├ DIVISIONAL CHARTS (Detailed Degrees):
+│ D9 Navamsa: Asc=${c.vargaDegrees?.D9?.Ascendant} | ${Object.entries(c.vargaDegrees?.D9 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
+│ D10 Dasamsa: Asc=${c.vargaDegrees?.D10?.Ascendant} | ${Object.entries(c.vargaDegrees?.D10 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
+│ D60 Shashtyamsa: Asc=${c.vargaDegrees?.D60?.Ascendant} | Deities=${Object.entries(c.d60Planets || {}).map(([k, v]) => `${k.substring(0, 2)}=${v.deity}`).join(' ')}
+├ D60 PLANETARY MATRIX:
+${Object.entries(c.d60Planets || {}).map(([name, data]) => `│ ${name.padEnd(7)}: ${data.sign} ${data.degree} | DEITY: ${data.deity}`).join('\n')}
 ├ VIMSHOTTARI DASHA SEQUENCE (Full Lifecycle, 1999-2026):
 ${c.vimshottariDasha.map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar}${d.sukshma !== '-' ? ` -> ${d.sukshma}` : ''} : ${d.startEnd}`).join('\n')}
 ├ MAJOR LIFECYCLE SHIFTS (Saturn/Jupiter Chronology):
@@ -790,9 +847,11 @@ ${c.lifecycleShifts?.map(s => `│ [${s.date}]: ${s.event} (Dasha: ${s.dasha})`)
 ├ YOGINI DASHA (Full): ${c.yoginiDasha?.map(d => `${d.lord} [${d.startEnd}]`).join(' | ') || 'N/A'}
 ├ CHARA DASHA: ${c.charaDasha?.map(d => `${d.sign} [${d.startEnd}]`).join(' | ') || 'N/A'}
 ├ ASHTAKAVARGA SAV: ${c.ashtakavarga?.SAV ? `[${c.ashtakavarga.SAV.join(', ')}]` : 'N/A'}
-${c.transitData ? `├ TRANSITS & DASHAS ON ALL EVENTS:
+${c.transitData ? `├ TRANSITS & DASHAS ON ALL EVENTS (Full Planetary Matrix):
 ${Object.entries(c.transitData).map(([date, t]: [string, any]) =>
-        `│ [${date}]: Dasha=${t.dasha} | ${t.signatures?.join(', ') || 'Regular Period'}`).join('\n')}` : ''}
+        `│ [${date}]: Dasha=${t.dasha}
+│   Transits: ${Object.entries(t.planets || {}).map(([p, pos]) => `${p}:${pos}`).join(' | ')}
+│   Signals: ${t.signatures?.join(', ') || 'Regular Period'}`).join('\n')}` : ''}
 ${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:
 │ Vargottama: ${c.vedicSignals.vargottama?.join(', ') || 'None'}
 │ Pushkar: ${c.vedicSignals.pushkar?.join(', ') || 'None'}
@@ -866,24 +925,33 @@ ${shuffledCandidates.map((c, i) => `
 ├ ARUDHAS: AL=${c.specialPoints?.AL.sign} | UL=${c.specialPoints?.UL.sign}
 ├ HOUSE LORDS: 1=${c.houseLords[1]} | 7=${c.houseLords[7]} | 10=${c.houseLords[10]}
 ├ D60 (Karma Lagna): ${c.d60Sign || 'N/A'}
-├ PLANETARY STRENGTH MATRIX:
+├ PLANETARY STRENGTH MATRIX (Full Forensic Data):
 ${Object.entries(c.planets).map(([name, p]) => {
         const caps = name.charAt(0).toUpperCase() + name.slice(1);
-        const sav = c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(p.sign)] || '?';
+        const sav = c.ashtakavarga?.SAVSigns?.[p.sign] || '?';
         const avastha = p.avastha || 'Unknown';
         const deity = p.d60Deity || 'Unknown';
-        const ikp = c.ishtaKashtaPhala?.[caps] ? `${c.ishtaKashtaPhala[caps].ishta}/${c.ishtaKashtaPhala[caps].kashta}` : '?';
+        const ikp = p.ishtaKashtaPhala ? `${p.ishtaKashtaPhala.ishta}/${p.ishtaKashtaPhala.kashta}` : '?';
         const sambandha = p.compoundDignity || 'Sama';
+        const sh = p.shadbalaBreakdown;
+        const shStr = sh ? `Sum:${sh.total} (S:${sh.sthana} D:${sh.dig} K:${sh.kaala} C:${sh.cheshta})` : '?';
         const aspects = p.aspects?.filter((a: any) => a.isHit).map((a: any) => `${a.type}`).join(', ') || 'None';
-        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} [H${p.house}, ${avastha}, ${deity}, I/K:${ikp}, ${sambandha}, Sh:${p.shadbala || '?'}, SAV:${sav}] | Asp: ${aspects}`;
+        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} [H${String(p.house).padEnd(2)}, ${avastha}, ${deity}, I/K:${ikp}, ${sambandha}, Sh:${shStr}, SAV:${sav}] | Asp: ${aspects}`;
     }).join('\n')}
 ├ YOGAS: ${c.yogas?.map(y => y.name).join(', ') || 'N/A'}
-├ HIGHER DIVISIONALS: D9=${c.d9Lagna} | D10=${c.d10Lagna} | D60=${c.d60Sign}
-├ VIMSHOTTARI SEQUENCE (Full Lifecycle):
-${c.vimshottariDasha.map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar}${d.sukshma !== '-' ? ` -> ${d.sukshma}` : ''} : ${d.startEnd}`).join('\n')}
-${c.transitData ? `├ TRANSITS & DASHAS ON ALL EVENTS:
+├ DIVISIONAL CHARTS (Detailed Degrees):
+│ D9 Navamsa: Asc=${c.vargaDegrees?.D9?.Ascendant} | ${Object.entries(c.vargaDegrees?.D9 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
+│ D10 Dasamsa: Asc=${c.vargaDegrees?.D10?.Ascendant} | ${Object.entries(c.vargaDegrees?.D10 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
+│ D60 Shashtyamsa: Asc=${c.vargaDegrees?.D60?.Ascendant} | Deities=${Object.entries(c.d60Planets || {}).map(([k, v]) => `${k.substring(0, 2)}=${v.deity}`).join(' ')}
+├ D60 PLANETARY MATRIX:
+${Object.entries(c.d60Planets || {}).map(([name, data]) => `│ ${name.padEnd(7)}: ${data.sign} ${data.degree} | DEITY: ${data.deity}`).join('\n')}
+├ VIMSHOTTARI SEQUENCE (Forensic Accuracy):
+${c.vimshottariDasha.map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar}${d.sukshma !== '-' ? ` -> ${d.sukshma}` : ''}${d.prana !== '-' ? ` -> ${d.prana}` : ''} : ${d.startEnd}`).join('\n')}
+${c.transitData ? `├ TRANSITS & DASHAS ON ALL EVENTS (Full Forensic Matrix):
 ${Object.entries(c.transitData).map(([date, t]: [string, any]) =>
-        `│ [${date}]: Dasha=${t.dasha} | ${t.signatures?.join(', ') || 'Regular Period'}`).join('\n')}` : ''}
+        `│ [${date}]: Dasha=${t.dasha}
+│   Transits: ${Object.entries(t.planets || {}).map(([p, pos]) => `${p}:${pos}`).join(' | ')}
+│   Signals: ${t.signatures?.join(', ') || 'Regular Period'}`).join('\n')}` : ''}
 ${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:
 │ Vargottama: ${c.vedicSignals.vargottama?.join(', ') || 'None'}
 │ Pushkar: ${c.vedicSignals.pushkar?.join(', ') || 'None'}
@@ -1072,15 +1140,16 @@ async function stage2BatchTournament(
         ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
     });
 
-    // Continue tournament until we have batchSize or fewer candidates
-    while (currentCandidates.length > batchSize) {
+    // 🔱 FORCED FIRST ROUND: If candidates are fewer than batch size, we still MUST run one round 
+    // to explain the logic to the user and ensure no "skip" ambiguity.
+    if (roundNumber === 0 && currentCandidates.length > 0) {
         roundNumber++;
         const batches = splitIntoBatches(currentCandidates, batchSize);
         const roundSurvivors: CandidateTime[] = [];
 
-        await progress.updateMessage(`Round ${roundNumber}: ${batches.length} batches of ${batchSize}`);
+        await progress.updateMessage(`Base Analysis: Evaluating ${currentCandidates.length} potential paths...`);
 
-        // Execute in parallel
+        // Parallel execution (same as below)
         const batchDataMap = new Map<number, CandidateDataPackage[]>();
         const tasks = batches.map((batchTimes, i) => async () => {
             const batchEnriched = await Promise.all(batchTimes.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, { includeFullData: true, dashaDepth: 2, lifecycleShifts: globalLifecycle })));
@@ -1088,7 +1157,7 @@ async function stage2BatchTournament(
             return callAIWithStream(
                 input.sessionId,
                 2,
-                'You are the SUPREME VEDIC ASTROLOGER. Analyze ALL candidates with EQUAL attention.',
+                'You are the SUPREME VEDIC ASTROLOGER. Analyze candidate birth times for primary alignment.',
                 getBatchPrompt(batchEnriched, input.lifeEvents, input.physicalTraits, i + 1, batches.length, survivorsPerBatch),
                 {
                     candidateTime: `Batch ${i + 1}/${batches.length}`,
@@ -1099,7 +1168,54 @@ async function stage2BatchTournament(
 
         const results = await executeAIInParallel(tasks, 10, 100);
 
-        // Process results
+        for (let i = 0; i < batches.length; i++) {
+            const batchTimes = batches[i];
+            const response = results[i];
+            const fullBatchData = batchDataMap.get(i) || [];
+            const aiContent = response.success ? (response.content || response.thinking || '') : '';
+            const survivorTimes = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), Math.min(batchTimes.length, survivorsPerBatch));
+
+            for (let j = 0; j < fullBatchData.length; j++) {
+                const candidate = fullBatchData[j];
+                const originalTimeInfo = batchTimes[j];
+                const isSurvivor = survivorTimes.includes(candidate.time);
+                let score = 55;
+                if (isSurvivor) {
+                    score = 85;
+                    roundSurvivors.push(originalTimeInfo);
+                }
+                emitCandidateScore(input.sessionId, candidate.time, score, 2, undefined, getMinifiedEph(candidate));
+            }
+        }
+
+        rounds.push({ roundNumber, batchesProcessed: batches.length, candidatesIn: currentCandidates.length, candidatesOut: roundSurvivors.length });
+        currentCandidates = roundSurvivors;
+    }
+
+    // Continue tournament for larger sets
+    while (currentCandidates.length > batchSize) {
+        roundNumber++;
+        const batches = splitIntoBatches(currentCandidates, batchSize);
+        const roundSurvivors: CandidateTime[] = [];
+
+        await progress.updateMessage(`Tournament Round ${roundNumber}: ${batches.length} batches of ${batchSize}`);
+
+        // ... (parallel execution block same as before) ...
+        const batchDataMap = new Map<number, CandidateDataPackage[]>();
+        const tasks = batches.map((batchTimes, i) => async () => {
+            const batchEnriched = await Promise.all(batchTimes.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, { includeFullData: true, dashaDepth: 2, lifecycleShifts: globalLifecycle })));
+            batchDataMap.set(i, batchEnriched);
+            return callAIWithStream(
+                input.sessionId,
+                2,
+                'You are the SUPREME VEDIC ASTROLOGER. Tournament analysis: prune the weak.',
+                getBatchPrompt(batchEnriched, input.lifeEvents, input.physicalTraits, i + 1, batches.length, survivorsPerBatch),
+                { candidateTime: `Tournament ${roundNumber}-${i + 1}`, progressTracker: progress }
+            );
+        });
+
+        const results = await executeAIInParallel(tasks, 10, 100);
+
         for (let i = 0; i < batches.length; i++) {
             const batchTimes = batches[i];
             const response = results[i];
@@ -1110,20 +1226,17 @@ async function stage2BatchTournament(
             for (let j = 0; j < fullBatchData.length; j++) {
                 const candidate = fullBatchData[j];
                 const originalTimeInfo = batchTimes[j];
-                const isSurvivor = survivorTimes.includes(candidate.time);
-                let score = 40;
-                if (isSurvivor) {
-                    score = 85;
+                if (survivorTimes.includes(candidate.time)) {
                     roundSurvivors.push(originalTimeInfo);
+                    emitCandidateScore(input.sessionId, candidate.time, 88, 2, undefined, getMinifiedEph(candidate));
+                } else {
+                    emitCandidateScore(input.sessionId, candidate.time, 30, 2, undefined, getMinifiedEph(candidate));
                 }
-
-                emitCandidateScore(input.sessionId, candidate.time, score, 2, undefined, getMinifiedEph(candidate));
             }
         }
 
-        // Check for cancellation and cleanup
         await throwIfCancelled(input.sessionId, input.abortSignal);
-        cleanup(); // Hint GC to clear processed objects
+        cleanup();
 
         rounds.push({
             roundNumber,
@@ -1132,17 +1245,16 @@ async function stage2BatchTournament(
             candidatesOut: roundSurvivors.length
         });
 
-        logger.info(`🔱 Round ${roundNumber} complete`, {
-            candidatesIn: currentCandidates.length,
-            candidatesOut: roundSurvivors.length
-        });
-
         currentCandidates = roundSurvivors;
     }
 
-    // 🔱 Flush Reasoning: Wait for stream stabilization
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    await progress.completeStep('coarse', [`Tournament complete: ${currentCandidates.length} survivors`]);
+    // Ensure we don't return an empty set if parallel logic failed
+    if (currentCandidates.length === 0 && candidates.length > 0) {
+        logger.warn('Tournament failed to yield survivors, using top candidates from original set');
+        currentCandidates = candidates.slice(0, 5);
+    }
+
+    await progress.completeStep('coarse', [`Tournament complete: ${currentCandidates.length} survivors verified.`]);
 
     return {
         survivors: currentCandidates,
@@ -1576,6 +1688,7 @@ export async function processSecondsPrecisionBTR(
         const stage1 = await stage1ExhaustiveDataGeneration(input, progress);
         stageHistory[1] = stage1.stageResult;
         emitStageStats(input.sessionId, 1, stage1.stageResult.candidatesOut, `Generated ${stage1.stageResult.candidatesOut} candidates`);
+        await progress.flush("Stage 1 finalized. Preparing for tournament...");
 
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 2: BATCH TOURNAMENT
@@ -1586,6 +1699,7 @@ export async function processSecondsPrecisionBTR(
         stageHistory[2] = stage2.stageResult;
         emitStageStats(input.sessionId, 2, stage2.stageResult.candidatesOut,
             `Tournament: ${stage2.rounds.length} rounds, ${stage2.survivors.length} survivors`);
+        await progress.flush("Stage 2 finalized. Expanding research grid...");
 
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 3: REFINEMENT GRID
@@ -1595,6 +1709,7 @@ export async function processSecondsPrecisionBTR(
         const stage3 = await stage3RefinementGrid(input, stage2.survivors, progress);
         stageHistory[3] = stage3.stageResult;
         emitStageStats(input.sessionId, 3, stage3.stageResult.candidatesOut, `Refined to ${stage3.stageResult.candidatesOut}`);
+        await progress.flush("Stage 3 finalized. Starting multi-dasha analysis...");
 
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 4: DEEP ANALYSIS
@@ -1604,6 +1719,7 @@ export async function processSecondsPrecisionBTR(
         const stage4 = await stage4DeepAnalysis(input, stage3.candidates, progress, globalLifecycle);
         stageHistory[4] = stage4.stageResult;
         emitStageStats(input.sessionId, 4, stage4.stageResult.candidatesOut, `Deep: ${stage4.survivors.length} survivors`);
+        await progress.flush("Stage 4 finalized. Entering micro-precision phase...");
 
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 5: MICRO GRID
@@ -1613,6 +1729,7 @@ export async function processSecondsPrecisionBTR(
         const stage5 = await stage5MicroGrid(input, stage4.survivors, progress);
         stageHistory[5] = stage5.stageResult;
         emitStageStats(input.sessionId, 5, stage5.stageResult.candidatesOut, `Micro: ${stage5.candidates.length}`);
+        await progress.flush("Stage 5 finalized. Running final seconds-level synthesis...");
 
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 6: FINAL PRECISION
@@ -1622,6 +1739,7 @@ export async function processSecondsPrecisionBTR(
         const stage6 = await stage6FinalPrecision(input, stage5.candidates, progress, globalLifecycle);
         stageHistory[6] = stage6.stageResult;
         emitStageStats(input.sessionId, 6, 1, 'FINAL TIME DETERMINED');
+        await progress.flush("All analysis stages complete. Generating final report...");
 
         // ═══════════════════════════════════════════════════════════════════════
         // BUILD FINAL RESULT

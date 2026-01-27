@@ -6,7 +6,7 @@
 import { db } from '../database/drizzle.js';
 import { sessions } from '../database/schema.js';
 import { eq } from 'drizzle-orm';
-import { emitProgress, emitComplete, emitError, emitCandidateScore, emitAIContext, emitEstimatedTime } from './session-events.js';
+import { emitProgress, emitComplete, emitError, emitCandidateScore, emitAIContext, emitEstimatedTime, emitAIThinking } from './session-events.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -211,6 +211,31 @@ export class ProgressTracker {
         this.progress.estimatedTimeRemaining = seconds;
         emitEstimatedTime(this.sessionId, seconds);
         await this.saveProgress();
+    }
+
+    /**
+     * Explicitly flush all buffers and add a mandatory stabilization pause.
+     * Ensures all async thinking streams are fully transmitted before next stage.
+     */
+    async flush(message: string = "Stabilizing reasoning streams..."): Promise<void> {
+        // 1. Emit final thinking buffer if any
+        if (this.candidateBuffers.size > 0) {
+            for (const [ct, buf] of this.candidateBuffers.entries()) {
+                if (buf) emitAIThinking(this.sessionId, buf, this.progress.currentStep, ct);
+            }
+            this.candidateBuffers.clear();
+        }
+
+        // 2. Clear thinking display to prevent "zombie" text from previous stage
+        this.progress.lastAIThinking = undefined;
+
+        // 3. Update message and wait
+        await this.updateMessage(message);
+
+        // 4. Mandatory cooling period for SSE consistency
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
+        await this.saveProgress(true);
     }
 
     /**

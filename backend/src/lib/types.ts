@@ -116,6 +116,15 @@ export interface RectificationSession {
   completedAt?: string;
 }
 
+export interface ShadbalaBreakdown {
+  sthana: number;
+  dig: number;
+  kaala: number;
+  cheshta: number;
+  naisargika: number;
+  total: number;
+}
+
 export interface PlanetPosition {
   sign: string;
   degree: number;
@@ -155,7 +164,7 @@ export interface EphemerisData {
   houses: HousePosition[];
   divisionalCharts?: Record<string, DivisionalChart>;
   ashtakavarga?: any; // To be defined
-  shadbala?: Record<string, number>;
+  shadbala?: Record<string, ShadbalaBreakdown>;
   kpCusps?: number[];
 }
 

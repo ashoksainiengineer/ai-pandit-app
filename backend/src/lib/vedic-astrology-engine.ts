@@ -1018,6 +1018,13 @@ export function calculateAshtakavarga(ephemeris: EphemerisData): Record<string, 
     }
     results['SAV'] = SAV;
 
+    // Sign Mapping for SAV (Aries=0, etc)
+    const SAVMap: Record<string, number> = {};
+    ZODIAC_SIGNS.forEach((sign, i) => {
+        SAVMap[sign] = SAV[i];
+    });
+    results['SAVSigns'] = SAVMap as any;
+
     return results;
 }
 
@@ -1058,36 +1065,69 @@ function calculateBinnashtakavarga(planet: string, ephemeris: EphemerisData): nu
 // SHADBALA (Six-Fold Strength)
 // ═════════════════════════════════════════════════════════════════════════════
 
-export function calculateShadbala(ephemeris: EphemerisData): Record<string, number> {
+export interface ShadbalaBreakdown {
+    sthana: number;
+    dig: number;
+    kaala: number;
+    cheshta: number;
+    naisargika: number;
+    total: number;
+}
+
+export function calculateShadbala(ephemeris: EphemerisData): Record<string, ShadbalaBreakdown> {
     const planetNames = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn'];
-    const totalBala: Record<string, number> = {};
+    const results: Record<string, ShadbalaBreakdown> = {};
 
     for (const name of planetNames) {
         const p = ephemeris.planets[name as keyof typeof ephemeris.planets];
         const pName = name.charAt(0).toUpperCase() + name.slice(1);
 
+        // 1. Sthana Bala (Simplified)
         let sthana = 60;
         if (p.dignity === 'Exalted') sthana += 60;
         if (p.dignity === 'Debilitated') sthana -= 40;
         if (p.dignity === 'Own Sign') sthana += 30;
 
+        // 2. Dig Bala (Directional)
         let dig = 0;
         const h = p.house;
         if ((pName === 'Jupiter' || pName === 'Mercury') && h === 1) dig = 60;
-        if ((pName === 'Moon' || pName === 'Venus') && h === 4) dig = 60;
-        if (pName === 'Saturn' && h === 7) dig = 60;
-        if ((pName === 'Sun' || pName === 'Mars') && h === 10) dig = 60;
+        else if ((pName === 'Moon' || pName === 'Venus') && h === 4) dig = 60;
+        else if (pName === 'Saturn' && h === 7) dig = 60;
+        else if ((pName === 'Sun' || pName === 'Mars') && h === 10) dig = 60;
+        else dig = 20; // Base directional strength
 
-        let cheshta = p.retro ? 60 : 30;
+        // 3. Kaala Bala (Temporal - Simplified)
+        // Night births favor Moon, Mars, Saturn. Day births favor Sun, Jupiter, Venus.
+        // We estimate if it's day/night based on Sun's house (Houses 7-12 are day)
+        const isDay = ephemeris.planets.sun.house >= 7;
+        let kaala = 30;
+        const dayPlanets = ['Sun', 'Jupiter', 'Venus'];
+        const nightPlanets = ['Moon', 'Mars', 'Saturn'];
+        if (isDay && dayPlanets.includes(pName)) kaala += 20;
+        if (!isDay && nightPlanets.includes(pName)) kaala += 20;
 
+        // 4. Cheshta Bala (Motility)
+        const cheshta = p.retro ? 60 : 30;
+
+        // 5. Naisargika Bala (Natural)
         const natural: Record<string, number> = {
             'Sun': 60, 'Moon': 51, 'Venus': 43, 'Jupiter': 34, 'Mercury': 26, 'Mars': 17, 'Saturn': 9
         };
 
-        totalBala[pName] = sthana + dig + cheshta + (natural[pName] || 0);
+        const total = sthana + dig + kaala + cheshta + (natural[pName] || 0);
+
+        results[pName] = {
+            sthana,
+            dig,
+            kaala,
+            cheshta,
+            naisargika: natural[pName] || 0,
+            total
+        };
     }
 
-    return totalBala;
+    return results;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -1151,6 +1191,53 @@ export function detectYogas(ephemeris: EphemerisData): YogaMatch[] {
             }
         }
     }
+
+    // 4. Budha-Aditya Yoga (Sun + Mercury in same sign)
+    if (p.sun.sign === p.mercury.sign) {
+        yogas.push({
+            name: 'Budha-Aditya Yoga',
+            description: 'Sun and Mercury in same sign. High intelligence, professional success.',
+            level: 'Mahayoga'
+        });
+    }
+
+    // 5. Lakshmi Yoga (L9 lord in Kendra/Trine and L1 is strong)
+    const l1Lord = getHouseLord(ephemeris.ascendant.sign, 1);
+    const l9Lord = getHouseLord(ephemeris.ascendant.sign, 9);
+
+    const l9Plt = p[l9Lord.toLowerCase() as keyof typeof p];
+    const l1Plt = p[l1Lord.toLowerCase() as keyof typeof p];
+
+    if (l9Plt && [1, 4, 7, 10, 5, 9].includes(l9Plt.house) && l1Plt && l1Plt.dignity !== 'Debilitated') {
+        yogas.push({
+            name: 'Lakshmi Yoga',
+            description: 'Strong 9th lord in Kendra/Trine and healthy Ascendant lord. Wealth and prosperity.',
+            level: 'Dhanayoga'
+        });
+    }
+
+    // 6. Chandra-Mangala Yoga (Moon + Mars together or in opposition)
+    const moonMarsDist = ((p.mars.house - p.moon.house + 12) % 12) + 1;
+    if ([1, 7].includes(moonMarsDist)) {
+        yogas.push({
+            name: 'Chandra-Mangala Yoga',
+            description: 'Moon and Mars relationship. Persistence, financial acumen.',
+            level: 'Dhanayoga'
+        });
+    }
+
+    // 7. Vipareeta Raja Yoga (L6/8/12 in 6/8/12)
+    const dusthanaLords = [6, 8, 12].map(h => getHouseLord(ephemeris.ascendant.sign, h));
+    dusthanaLords.forEach(lord => {
+        const lName = lord.toLowerCase() as keyof typeof p;
+        if (p[lName] && [6, 8, 12].includes(p[lName].house)) {
+            yogas.push({
+                name: 'Vipareeta Raja Yoga',
+                description: `Dusthana lord ${lord} in Dusthana. Sudden success through obstacles.`,
+                level: 'Rajayoga'
+            });
+        }
+    });
 
     return yogas;
 }
