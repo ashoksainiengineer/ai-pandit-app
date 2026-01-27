@@ -1,0 +1,181 @@
+/**
+ * 🔱 AI-Pandit BTR Engine Server
+ * ===============================
+ * Production-grade Express server with comprehensive middleware stack.
+ * Version 3.0.0 - Refactored with new infrastructure
+ */
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import dotenv from 'dotenv';
+// Load environment variables first (before config import)
+dotenv.config();
+// Configuration (validates on import)
+import { config, serverConfig } from './config/index.js';
+// Utilities
+import { logger } from './utils/logger.js';
+// Middleware
+import { requestIdMiddleware, requestContextMiddleware, performanceMiddleware } from './middleware/request-id.js';
+import { errorHandlerMiddleware, notFoundHandler, setupUncaughtExceptionHandlers } from './middleware/error-handler-new.js';
+import { defaultRateLimiter, calculateRateLimiter } from './middleware/rate-limit.js';
+// Routes
+import { routes } from './routes/index.js';
+import healthRoutes from './routes/health.js';
+// Services
+import { startQueueProcessor, cleanupZombiesOnStartup } from './lib/queue-manager.js';
+import { initSwissEph } from './lib/ephemeris.js';
+// ═════════════════════════════════════════════════════════════════════════════
+// APPLICATION SETUP
+// ═════════════════════════════════════════════════════════════════════════════
+const app = express();
+// ═════════════════════════════════════════════════════════════════════════════
+// SECURITY MIDDLEWARE
+// ═════════════════════════════════════════════════════════════════════════════
+app.use(helmet({
+    contentSecurityPolicy: false, // API-only service
+    crossOriginEmbedderPolicy: false,
+    hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+    },
+}));
+// CORS with strict origin validation
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    process.env.FRONTEND_URL,
+    process.env.VERCEL_URL,
+].filter((origin) => Boolean(origin));
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin) || serverConfig.isDevelopment) {
+            callback(null, true);
+        }
+        else {
+            logger.warn('CORS blocked origin', { origin });
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'X-Request-Id',
+        'X-Clerk-Auth-Status',
+        'X-Clerk-Auth-Reason',
+    ],
+    exposedHeaders: ['X-Request-Id', 'X-Response-Time'],
+    maxAge: 86400,
+}));
+// ═════════════════════════════════════════════════════════════════════════════
+// REQUEST PROCESSING MIDDLEWARE
+// ═════════════════════════════════════════════════════════════════════════════
+// Body parsing with limits
+app.use(express.json({
+    limit: '5mb',
+    verify: (req, _res, buf) => {
+        req.rawBody = buf;
+    },
+}));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+// Request ID and tracing
+app.use(requestIdMiddleware());
+app.use(requestContextMiddleware());
+app.use(performanceMiddleware());
+// Rate limiting
+app.use(defaultRateLimiter);
+app.use('/api/calculate', calculateRateLimiter);
+// ═════════════════════════════════════════════════════════════════════════════
+// HEALTH ENDPOINTS (Must be before API routes for HF Spaces)
+// ═════════════════════════════════════════════════════════════════════════════
+app.use('/health', healthRoutes);
+// Legacy root endpoint for backward compatibility
+app.get('/', (req, res) => {
+    res.json({
+        status: 'healthy',
+        service: 'AI Pandit BTR Engine',
+        version: '3.0.0',
+        timestamp: new Date().toISOString(),
+        environment: serverConfig.env,
+        uptime: process.uptime(),
+        requestId: req.requestId,
+    });
+});
+// ═════════════════════════════════════════════════════════════════════════════
+// API ROUTES
+// ═════════════════════════════════════════════════════════════════════════════
+app.use('/api', routes);
+// ═════════════════════════════════════════════════════════════════════════════
+// ERROR HANDLING (Must be last)
+// ═════════════════════════════════════════════════════════════════════════════
+app.use(notFoundHandler());
+app.use(errorHandlerMiddleware());
+// ═════════════════════════════════════════════════════════════════════════════
+// SERVER STARTUP
+// ═════════════════════════════════════════════════════════════════════════════
+let swissEphReady = false;
+let queueStarted = false;
+async function bootstrap() {
+    try {
+        logger.info('🚀 AI Pandit BTR Engine v3.0.0 Starting...');
+        logger.info('📍 Environment', {
+            env: serverConfig.env,
+            port: serverConfig.port,
+            nodeVersion: process.version,
+        });
+        // Log configuration (sanitized)
+        logger.info('⚙️ Configuration loaded', {
+            maxConcurrent: config.queue.maxConcurrent,
+            aiModel: config.ai.model,
+            enableGodTier: config.features.enableGodTierEnhancement,
+        });
+        // Start HTTP server
+        const server = app.listen(serverConfig.port, '0.0.0.0', () => {
+            logger.info('✅ Server listening', { port: serverConfig.port });
+        });
+        // Graceful shutdown
+        const gracefulShutdown = (signal) => {
+            logger.info('📥 Graceful shutdown initiated', { signal });
+            server.close(() => {
+                logger.info('✅ HTTP server closed');
+                process.exit(0);
+            });
+            // Force shutdown after timeout
+            setTimeout(() => {
+                logger.error('❌ Forced shutdown after timeout');
+                process.exit(1);
+            }, 30000);
+        };
+        process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+        process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+        // Initialize Swiss Ephemeris (non-blocking)
+        logger.info('🔭 Initializing Swiss Ephemeris...');
+        initSwissEph()
+            .then((ready) => {
+            swissEphReady = ready;
+            logger.info('✅ Swiss Ephemeris ready', { ready });
+        })
+            .catch((err) => {
+            logger.error('❌ Swiss Ephemeris init failed', err);
+        });
+        // Cleanup and start queue
+        logger.info('🧹 Cleaning up zombie sessions...');
+        await cleanupZombiesOnStartup();
+        logger.info('🔄 Starting queue processor...');
+        startQueueProcessor();
+        queueStarted = true;
+        logger.info('✨ AI Pandit BTR Engine fully operational');
+    }
+    catch (err) {
+        logger.error('❌ Fatal bootstrap error', err);
+        process.exit(1);
+    }
+}
+// Setup global error handlers
+setupUncaughtExceptionHandlers();
+// Start the server
+bootstrap();
+export default app;
+//# sourceMappingURL=server-new.js.map

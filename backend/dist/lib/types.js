@@ -1,7 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.EVENT_TYPES = void 0;
-exports.EVENT_TYPES = {
+export const EVENT_TYPES = {
     education: ['School admission', 'College admission', 'Graduation', 'Higher studies'],
     career: ['Job start', 'Job change', 'Promotion', 'Business start'],
     marriage: ['Engagement', 'Wedding', 'Divorce'],

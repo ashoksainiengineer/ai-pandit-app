@@ -1,19 +1,16 @@
-"use strict";
 // Server-side only
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.analyzeTopCandidatesWithAI = analyzeTopCandidatesWithAI;
 // lib/ai-thinking-client.ts (UPDATED)
 // Enhanced for analyzing top candidates with AI Thinking
-const server_config_js_1 = require("./server-config.js");
-const astrological_data_processor_js_1 = require("./astrological-data-processor.js");
-const logger_js_1 = require("./logger.js");
+import { aiClient, serverConfig } from './server-config.js';
+import { generateAstrologicalReport } from './astrological-data-processor.js';
+import { logger } from './logger.js';
 // ═════════════════════════════════════════════════════════════════════════
 // MAIN: Analyze Top Candidates with AI
 // ═════════════════════════════════════════════════════════════════════════
-async function analyzeTopCandidatesWithAI(topCandidates, lifeEvents) {
+export async function analyzeTopCandidatesWithAI(topCandidates, lifeEvents) {
     const startTime = Date.now();
     try {
-        logger_js_1.logger.info('Starting AI analysis of top candidates', {
+        logger.info('Starting AI analysis of top candidates', {
             candidateCount: topCandidates.length,
         });
         const aiResults = [];
@@ -22,12 +19,12 @@ async function analyzeTopCandidatesWithAI(topCandidates, lifeEvents) {
         // ─────────────────────────────────────────────────────────────────────
         for (const candidate of topCandidates) {
             try {
-                logger_js_1.logger.info('Analyzing candidate with AI', {
+                logger.info('Analyzing candidate with AI', {
                     time: candidate.time,
                     quickScore: candidate.quickScore,
                 });
                 // Generate astrological report
-                const astrologicalReport = await (0, astrological_data_processor_js_1.generateAstrologicalReport)(candidate.ephemerisData, lifeEvents);
+                const astrologicalReport = await generateAstrologicalReport(candidate.ephemerisData, lifeEvents);
                 // Build AI prompt
                 const aiPrompt = buildAIPromptForCandidate(candidate, astrologicalReport, lifeEvents);
                 // Call AI
@@ -35,14 +32,14 @@ async function analyzeTopCandidatesWithAI(topCandidates, lifeEvents) {
                 // Parse response
                 const result = parseAIResponse(aiResponse, candidate);
                 aiResults.push(result);
-                logger_js_1.logger.info('AI analysis complete', {
+                logger.info('AI analysis complete', {
                     time: candidate.time,
                     score: result.score,
                     confidence: result.confidence,
                 });
             }
             catch (error) {
-                logger_js_1.logger.error(`AI analysis failed for ${candidate.time}`, error);
+                logger.error(`AI analysis failed for ${candidate.time}`, error);
                 // Continue with next candidate
             }
         }
@@ -53,7 +50,7 @@ async function analyzeTopCandidatesWithAI(topCandidates, lifeEvents) {
         const topRecommendation = aiResults[0];
         const alternativeOptions = aiResults.slice(1);
         const processingTime = Date.now() - startTime;
-        logger_js_1.logger.info('Top candidates analysis complete', {
+        logger.info('Top candidates analysis complete', {
             topTime: topRecommendation.time,
             topScore: topRecommendation.score,
             processingTime,
@@ -66,7 +63,7 @@ async function analyzeTopCandidatesWithAI(topCandidates, lifeEvents) {
         };
     }
     catch (error) {
-        logger_js_1.logger.error('Top candidates AI analysis failed', error);
+        logger.error('Top candidates AI analysis failed', error);
         throw error;
     }
 }
@@ -154,13 +151,13 @@ KEY CONCERNS: [What doesn't match]
 // CALL: AI with Thinking Mode
 // ═════════════════════════════════════════════════════════════════════════
 async function callAI(prompt) {
-    return await server_config_js_1.aiClient.messages.create({
-        model: server_config_js_1.serverConfig.ai.model,
-        max_tokens: server_config_js_1.serverConfig.ai.maxTokens,
-        temperature: server_config_js_1.serverConfig.ai.temperature,
+    return await aiClient.messages.create({
+        model: serverConfig.ai.model,
+        max_tokens: serverConfig.ai.maxTokens,
+        temperature: serverConfig.ai.temperature,
         thinking: {
             type: 'enabled',
-            budget_tokens: server_config_js_1.serverConfig.ai.thinkingBudget,
+            budget_tokens: serverConfig.ai.thinkingBudget,
         },
         system: buildAstrologicalSystemPrompt(),
         messages: [
@@ -252,5 +249,5 @@ function extractSection(text, sectionName) {
     const match = text.match(regex);
     return match ? match[1].trim() : '';
 }
-exports.default = analyzeTopCandidatesWithAI;
+export default analyzeTopCandidatesWithAI;
 //# sourceMappingURL=ai-thinking-client.js.map

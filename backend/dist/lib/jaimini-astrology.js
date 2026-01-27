@@ -1,25 +1,6 @@
-"use strict";
 // lib/jaimini-astrology.ts
 // Jaimini Astrology System Methods
 // Includes: Chara Dasha, Chara Karakas, Jaimini Aspects
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.calculateCharaKarakas = calculateCharaKarakas;
-exports.calculateCharaDasha = calculateCharaDasha;
-exports.getCharaDashaForDate = getCharaDashaForDate;
-exports.calculateJaiminiAspects = calculateJaiminiAspects;
-exports.calculateRasiDasha = calculateRasiDasha;
-exports.calculateTatwaDasha = calculateTatwaDasha;
-exports.getTatwaForDate = getTatwaForDate;
-exports.calculateTithiPravesha = calculateTithiPravesha;
-exports.getTithiPraveshaForYear = getTithiPraveshaForYear;
-exports.formatCharaKarakas = formatCharaKarakas;
-exports.formatCharaDasha = formatCharaDasha;
-exports.formatRasiDasha = formatRasiDasha;
-exports.formatTatwaDasha = formatTatwaDasha;
-exports.formatJaiminiAspects = formatJaiminiAspects;
-exports.charaDashaSupportsEvent = charaDashaSupportsEvent;
-exports.calculateBhriguBindu = calculateBhriguBindu;
-exports.formatBhriguBindu = formatBhriguBindu;
 // ═════════════════════════════════════════════════════════════════════════════
 // JAIMINI SYSTEM CONSTANTS
 // ═════════════════════════════════════════════════════════════════════════════
@@ -43,7 +24,7 @@ const JAIMINI_PLANETS = ['sun', 'moon', 'mars', 'mercury', 'jupiter', 'venus', '
  * Calculate Chara Karakas - Variable significators based on planetary degrees
  * This is THE foundation of Jaimini astrology
  */
-function calculateCharaKarakas(ephemeris) {
+export function calculateCharaKarakas(ephemeris) {
     // Get degrees for each planet (only degree within sign matters)
     const planetDegrees = JAIMINI_PLANETS.map(planet => ({
         planet,
@@ -70,7 +51,7 @@ function calculateCharaKarakas(ephemeris) {
  * - If lord is in same sign, duration = 12 years
  * - Exception adjustments for certain signs
  */
-function calculateCharaDasha(ephemeris, birthDate) {
+export function calculateCharaDasha(ephemeris, birthDate) {
     const lagnaSign = ephemeris.ascendant.sign;
     const lagnaIndex = ZODIAC_SIGNS.indexOf(lagnaSign);
     // Determine if starting from Lagna or 7th
@@ -125,7 +106,7 @@ function calculateCharaDashaDuration(sign, signIndex, ephemeris) {
 /**
  * Get Chara Dasha active on a date
  */
-function getCharaDashaForDate(periods, eventDate) {
+export function getCharaDashaForDate(periods, eventDate) {
     for (const period of periods) {
         if (eventDate >= period.startDate && eventDate <= period.endDate) {
             return period;
@@ -141,7 +122,7 @@ function getCharaDashaForDate(periods, eventDate) {
  * - Fixed signs aspect Movable signs except adjacent
  * - Dual signs aspect each other
  */
-function calculateJaiminiAspects(ephemeris) {
+export function calculateJaiminiAspects(ephemeris) {
     const aspects = [];
     // Group signs by modality
     const movable = [0, 3, 6, 9]; // Aries, Cancer, Libra, Capricorn
@@ -209,7 +190,7 @@ function calculateJaiminiAspects(ephemeris) {
  * Each sign gets a fixed 9-year period
  * Starting from Lagna
  */
-function calculateRasiDasha(ephemeris, birthDate) {
+export function calculateRasiDasha(ephemeris, birthDate) {
     const lagnaSign = ephemeris.ascendant.sign;
     const lagnaIndex = ZODIAC_SIGNS.indexOf(lagnaSign);
     const periods = [];
@@ -242,7 +223,7 @@ const TATWA_SEQUENCE = [
  * 60-year cycle based on 5 elements
  * Useful for health and body-related events
  */
-function calculateTatwaDasha(moonLongitude, birthDate) {
+export function calculateTatwaDasha(moonLongitude, birthDate) {
     // Starting Tatwa based on Moon's nakshatra
     const NAKSHATRA_SPAN = 360 / 27;
     const nakshatraIndex = Math.floor(moonLongitude / NAKSHATRA_SPAN);
@@ -272,7 +253,7 @@ function calculateTatwaDasha(moonLongitude, birthDate) {
 /**
  * Get Tatwa Dasha for a date
  */
-function getTatwaForDate(periods, eventDate) {
+export function getTatwaForDate(periods, eventDate) {
     for (const period of periods) {
         if (eventDate >= period.startDate && eventDate <= period.endDate) {
             return period;
@@ -284,7 +265,7 @@ function getTatwaForDate(periods, eventDate) {
  * Calculate Solar Return dates for each year of life
  * Shows annual themes and important periods
  */
-function calculateTithiPravesha(sunLongitude, birthDate, yearsToCalculate = 100) {
+export function calculateTithiPravesha(sunLongitude, birthDate, yearsToCalculate = 100) {
     const returns = [];
     const birthYear = birthDate.getFullYear();
     for (let i = 0; i <= yearsToCalculate; i++) {
@@ -328,20 +309,20 @@ function getAnnualThemes(age) {
 /**
  * Get Tithi Pravesha for a specific year
  */
-function getTithiPraveshaForYear(returns, year) {
+export function getTithiPraveshaForYear(returns, year) {
     return returns.find(r => r.year === year) || null;
 }
 // ═════════════════════════════════════════════════════════════════════════════
 // FORMATTING FOR AI K2 PROMPTS
 // ═════════════════════════════════════════════════════════════════════════════
-function formatCharaKarakas(karakas) {
+export function formatCharaKarakas(karakas) {
     const lines = ['CHARA KARAKAS (Jaimini Significators):'];
     for (const k of karakas) {
         lines.push(`${k.karakaName} (${k.planet.toUpperCase()}): ${k.sign} ${k.degree.toFixed(1)}°`);
     }
     return lines.join('\n');
 }
-function formatCharaDasha(periods) {
+export function formatCharaDasha(periods) {
     const lines = ['CHARA DASHA (Jaimini Sign-Based Periods):'];
     for (const p of periods.slice(0, 12)) {
         const start = p.startDate.toISOString().split('T')[0];
@@ -350,7 +331,7 @@ function formatCharaDasha(periods) {
     }
     return lines.join('\n');
 }
-function formatRasiDasha(periods) {
+export function formatRasiDasha(periods) {
     const lines = ['RASI DASHA (Sign Progression - 9 years each):'];
     for (const p of periods.slice(0, 12)) {
         const start = p.startDate.toISOString().split('T')[0];
@@ -359,7 +340,7 @@ function formatRasiDasha(periods) {
     }
     return lines.join('\n');
 }
-function formatTatwaDasha(periods) {
+export function formatTatwaDasha(periods) {
     const lines = ['TATWA DASHA (Elemental Periods - Health/Body):'];
     for (const p of periods.slice(0, 10)) {
         const start = p.startDate.toISOString().split('T')[0];
@@ -368,7 +349,7 @@ function formatTatwaDasha(periods) {
     }
     return lines.join('\n');
 }
-function formatJaiminiAspects(aspects) {
+export function formatJaiminiAspects(aspects) {
     const lines = ['JAIMINI (RASI) ASPECTS:'];
     for (const a of aspects.slice(0, 15)) {
         lines.push(`${a.fromSign} → ${a.toSign}: ${a.aspectingPlanets.join(', ') || 'none'} aspecting ${a.affectedPlanets.join(', ') || 'none'}`);
@@ -390,7 +371,7 @@ function addYears(date, years) {
 /**
  * Check if Chara Dasha sign supports an event
  */
-function charaDashaSupportsEvent(dasha, eventCategory, ephemeris) {
+export function charaDashaSupportsEvent(dasha, eventCategory, ephemeris) {
     const category = eventCategory.toLowerCase();
     // Get planets in this sign
     const planetsInSign = [];
@@ -449,7 +430,7 @@ function charaDashaSupportsEvent(dasha, eventCategory, ephemeris) {
  * Calculates Bhrigu Bindu - The midpoint between Moon and Rahu.
  * Also calculates the Destiny Axis (midpoint of Moon and Ketu).
  */
-function calculateBhriguBindu(ephemeris) {
+export function calculateBhriguBindu(ephemeris) {
     const moon = ephemeris.planets.moon.longitude;
     const rahu = ephemeris.planets.rahu.longitude;
     const ketu = ephemeris.planets.ketu.longitude;
@@ -479,7 +460,7 @@ function calculateBhriguBindu(ephemeris) {
         degree: bb % 30
     };
 }
-function formatBhriguBindu(data) {
+export function formatBhriguBindu(data) {
     return `BHRIGU BINDU (Destiny Point): ${data.sign} ${data.degree.toFixed(2)}°`;
 }
 //# sourceMappingURL=jaimini-astrology.js.map

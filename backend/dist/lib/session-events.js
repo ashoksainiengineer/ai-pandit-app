@@ -1,23 +1,7 @@
-"use strict";
 // backend/src/lib/session-events.ts
 // Global EventEmitter for real-time session progress streaming
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.sessionEvents = void 0;
-exports.emitProgress = emitProgress;
-exports.emitAIThinking = emitAIThinking;
-exports.emitEphemeris = emitEphemeris;
-exports.emitCandidateScore = emitCandidateScore;
-exports.emitComplete = emitComplete;
-exports.emitError = emitError;
-exports.emitAIContext = emitAIContext;
-exports.emitCalculationLog = emitCalculationLog;
-exports.emitStageStats = emitStageStats;
-exports.emitEstimatedTime = emitEstimatedTime;
-const events_1 = require("events");
-const crypto_1 = __importDefault(require("crypto"));
+import { EventEmitter } from 'events';
+import crypto from 'crypto';
 // ═════════════════════════════════════════════════════════════════════════════
 // GLOBAL SESSION EVENT EMITTER
 // ═════════════════════════════════════════════════════════════════════════════
@@ -42,7 +26,7 @@ class SessionEventManager {
     getEmitter(sessionId) {
         this.touch(sessionId);
         if (!this.emitters.has(sessionId)) {
-            const emitter = new events_1.EventEmitter();
+            const emitter = new EventEmitter();
             emitter.setMaxListeners(10); // Allow multiple SSE connections
             this.emitters.set(sessionId, emitter);
         }
@@ -198,12 +182,12 @@ class SessionEventManager {
     }
 }
 // Global singleton
-exports.sessionEvents = new SessionEventManager();
+export const sessionEvents = new SessionEventManager();
 // ═════════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
 // ═════════════════════════════════════════════════════════════════════════════
-function emitProgress(sessionId, step, stepIndex, totalSteps, message, details) {
-    exports.sessionEvents.emit(sessionId, {
+export function emitProgress(sessionId, step, stepIndex, totalSteps, message, details) {
+    sessionEvents.emit(sessionId, {
         type: 'progress',
         step,
         stepIndex,
@@ -213,19 +197,19 @@ function emitProgress(sessionId, step, stepIndex, totalSteps, message, details) 
         details,
     });
 }
-function emitAIThinking(sessionId, chunk, stage, candidateTime) {
+export function emitAIThinking(sessionId, chunk, stage, candidateTime) {
     // console.log('🔥 emitAIThinking called:', { sessionId: sessionId?.slice(0, 8), stage, chunkLen: chunk?.length, candidateTime });
     // 🧠 Store content for reconnects
-    exports.sessionEvents.appendToThinkingBuffer(sessionId, stage, chunk, candidateTime);
-    exports.sessionEvents.emit(sessionId, {
+    sessionEvents.appendToThinkingBuffer(sessionId, stage, chunk, candidateTime);
+    sessionEvents.emit(sessionId, {
         type: 'ai_thinking',
         chunk,
         stage,
         candidateTime,
     });
 }
-function emitEphemeris(sessionId, candidateTime, ascendant, moonSign, moonNakshatra) {
-    exports.sessionEvents.emit(sessionId, {
+export function emitEphemeris(sessionId, candidateTime, ascendant, moonSign, moonNakshatra) {
+    sessionEvents.emit(sessionId, {
         type: 'ephemeris',
         candidateTime,
         ascendant,
@@ -233,9 +217,9 @@ function emitEphemeris(sessionId, candidateTime, ascendant, moonSign, moonNaksha
         moonNakshatra,
     });
 }
-function emitCandidateScore(sessionId, time, score, stage, rank, minifiedEph) {
+export function emitCandidateScore(sessionId, time, score, stage, rank, minifiedEph) {
     console.log(`⚡ Emit Candidate Score: ${sessionId} | ${time} | ${score}`);
-    exports.sessionEvents.emit(sessionId, {
+    sessionEvents.emit(sessionId, {
         type: 'candidate_score_v2',
         time,
         score,
@@ -244,47 +228,47 @@ function emitCandidateScore(sessionId, time, score, stage, rank, minifiedEph) {
         minifiedEph,
     });
 }
-function emitComplete(sessionId, rectifiedTime, accuracy, confidence) {
+export function emitComplete(sessionId, rectifiedTime, accuracy, confidence) {
     console.log('🎉 emitComplete CALLED:', { sessionId: sessionId?.slice(0, 8), rectifiedTime, accuracy, confidence });
-    exports.sessionEvents.emit(sessionId, {
+    sessionEvents.emit(sessionId, {
         type: 'complete',
         rectifiedTime,
         accuracy,
         confidence,
     });
     // Cleanup after a delay to allow final event delivery
-    setTimeout(() => exports.sessionEvents.cleanup(sessionId), 5000);
+    setTimeout(() => sessionEvents.cleanup(sessionId), 5000);
 }
-function emitError(sessionId, message, stage) {
-    exports.sessionEvents.emit(sessionId, {
+export function emitError(sessionId, message, stage) {
+    sessionEvents.emit(sessionId, {
         type: 'error',
         message,
         stage,
     });
 }
-function emitAIContext(sessionId, data) {
-    exports.sessionEvents.emit(sessionId, {
+export function emitAIContext(sessionId, data) {
+    sessionEvents.emit(sessionId, {
         type: 'ai_context',
         ...data
     });
 }
-function emitCalculationLog(sessionId, data) {
-    exports.sessionEvents.emit(sessionId, {
+export function emitCalculationLog(sessionId, data) {
+    sessionEvents.emit(sessionId, {
         type: 'calculation_log',
-        logId: crypto_1.default.randomUUID(),
+        logId: crypto.randomUUID(),
         ...data
     });
 }
-function emitStageStats(sessionId, stage, candidateCount, description) {
-    exports.sessionEvents.emit(sessionId, {
+export function emitStageStats(sessionId, stage, candidateCount, description) {
+    sessionEvents.emit(sessionId, {
         type: 'stage_stats',
         stage,
         candidateCount,
         description
     });
 }
-function emitEstimatedTime(sessionId, seconds) {
-    exports.sessionEvents.emit(sessionId, {
+export function emitEstimatedTime(sessionId, seconds) {
+    sessionEvents.emit(sessionId, {
         type: 'estimated_time',
         seconds
     });

@@ -1,14 +1,7 @@
-"use strict";
 // lib/shuddhi-engine.ts
 // Vedic Shuddhi (Purification) Subsystem
 // Used for candidate filtering and probability scoring
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.getApproxSunrise = getApproxSunrise;
-exports.getApproxSunset = getApproxSunset;
-exports.calculateTatwaShuddhi = calculateTatwaShuddhi;
-exports.calculateKundaShuddhi = calculateKundaShuddhi;
-exports.calculateVarnadaLagna = calculateVarnadaLagna;
-const vedic_astrology_engine_js_1 = require("./vedic-astrology-engine.js");
+import { getNakshatraForLongitude } from './vedic-astrology-engine.js';
 const TATWAS = ['Earth', 'Water', 'Fire', 'Air', 'Ether'];
 const TATWA_DURATIONS_MIN = [6, 12, 18, 24, 30]; // Traditional Ghatika relative parts (simplified to minutes for 24 min total cycle)
 // Actual Tatwa duration in a 90-minute cycle (Traditional: 1.5 hours per cycle)
@@ -17,7 +10,7 @@ const TATWA_DURATIONS_MIN = [6, 12, 18, 24, 30]; // Traditional Ghatika relative
  * Scientific Sunrise Approximation (Vedic Standard)
  * Accounts for Latitude and Longitude to refine Tatwa Shuddhi.
  */
-function getApproxSunrise(jd, latitude, longitude, timezone) {
+export function getApproxSunrise(jd, latitude, longitude, timezone) {
     // 🛡️ Robust Timezone Detection: Handle IANA strings or numbers
     const tzOffset = (typeof timezone === 'number')
         ? timezone
@@ -52,7 +45,7 @@ function getApproxSunrise(jd, latitude, longitude, timezone) {
 /**
  * Scientific Sunset Approximation
  */
-function getApproxSunset(jd, latitude, longitude, timezone) {
+export function getApproxSunset(jd, latitude, longitude, timezone) {
     const tzOffset = (typeof timezone === 'number')
         ? timezone
         : (!isNaN(parseFloat(String(timezone))) ? parseFloat(String(timezone)) : 5.5);
@@ -78,7 +71,7 @@ function getApproxSunset(jd, latitude, longitude, timezone) {
  * Tatwa Shuddhi Calculation (God-Tier Dinamaana Scale)
  * Checks if the birth time falls within the correct Tatwa.
  */
-function calculateTatwaShuddhi(birthJd, sunriseJd, sunsetJd, gender = 'male') {
+export function calculateTatwaShuddhi(birthJd, sunriseJd, sunsetJd, gender = 'male') {
     const isDayTime = birthJd >= sunriseJd && birthJd <= sunsetJd;
     // Day length or Night length in minutes
     const totalMinutes = isDayTime
@@ -118,12 +111,12 @@ function calculateTatwaShuddhi(birthJd, sunriseJd, sunsetJd, gender = 'male') {
  * Kunda Shuddhi Calculation
  * Lagna Longitude * 81 / 360 -> Remainder should align with Moon's Nakshatra
  */
-function calculateKundaShuddhi(lagnaLongitude, moonLongitude) {
+export function calculateKundaShuddhi(lagnaLongitude, moonLongitude) {
     // 1. Multiply Lagna by 81
     const kundaLong = (lagnaLongitude * 81) % 360;
     // 2. Get Nakshatra of Kunda and Moon
-    const kundaNak = (0, vedic_astrology_engine_js_1.getNakshatraForLongitude)(kundaLong);
-    const moonNak = (0, vedic_astrology_engine_js_1.getNakshatraForLongitude)(moonLongitude);
+    const kundaNak = getNakshatraForLongitude(kundaLong);
+    const moonNak = getNakshatraForLongitude(moonLongitude);
     // 3. Check for alignment (Same Nakshatra, or Trines: +9, +18)
     const diff = Math.abs(kundaNak.number - moonNak.number);
     const isAligned = diff === 0 || diff === 9 || diff === 18;
@@ -137,7 +130,7 @@ function calculateKundaShuddhi(lagnaLongitude, moonLongitude) {
  * Varnada Lagna Calculation
  * Used for social status / professional inclination filtering
  */
-function calculateVarnadaLagna(ephemeris) {
+export function calculateVarnadaLagna(ephemeris) {
     // Simplified Varnada based on Rasi/Lagna lord relationship
     // Brahmins (Knowledge), Kshatriyas (Power), Vaishyas (Commerce), Shudras (Service)
     const sign = ephemeris.ascendant.sign;

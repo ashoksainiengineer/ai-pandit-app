@@ -1,8 +1,5 @@
-"use strict";
 // lib/timezones.ts - Timezone definitions
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.timezones = void 0;
-exports.timezones = [
+export const timezones = [
     { value: 'UTC', label: 'UTC (GMT+0:00)', offset: 0 },
     { value: 'IST', label: 'IST (GMT+5:30)', offset: 5.5 },
     { value: 'EST', label: 'EST (GMT-5:00)', offset: -5 },

@@ -1,10 +1,4 @@
-export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours' | '6hours' | '12hours' | 'seconds-30' | 'seconds-6' | 'custom';
-
-export interface TimeOffsetConfig {
-  preset?: OffsetPreset;
-  customMinutes?: number;
-  description: string;
-}
+// Frontend-shared types
 
 export interface BirthData {
   fullName: string;
@@ -14,405 +8,81 @@ export interface BirthData {
   latitude: number;
   longitude: number;
   timezone: number;
-  gender: 'male' | 'female' | 'other';
+  gender: string;
 }
-
-export interface SpouseData {
-  dateOfBirth: string;
-  birthTime: string;
-  birthPlace?: string;
-  latitude: number;
-  longitude: number;
-  timezone: string | number;
-}
-
-
-
-export type EventCategory =
-  | 'education'
-  | 'career'
-  | 'marriage'
-  | 'children'
-  | 'family'
-  | 'health'
-  | 'financial'
-  | 'travel'
-  | 'spiritual'
-  | 'legal'
-  | 'public_life'
-  | 'karmic_events'
-  | 'identity_shifts'
-  | 'other';
-
-export const EVENT_TYPES: Record<EventCategory, string[]> = {
-  education: ['School admission', 'College admission', 'Graduation', 'Higher studies'],
-  career: ['Job start', 'Job change', 'Promotion', 'Business start'],
-  marriage: ['Engagement', 'Wedding', 'Divorce'],
-  children: ['Pregnancy', 'Birth', 'Adoption'],
-  family: ['Parent death', 'Sibling birth', 'Family event'],
-  health: ['Major illness', 'Surgery', 'Recovery', 'Accident'],
-  financial: ['Money gain', 'Property purchase', 'Business deal'],
-  travel: ['Long journey', 'Relocation', 'International travel'],
-  spiritual: ['Spiritual awakening', 'Meditation retreat', 'Religious event'],
-  legal: ['Court case started', 'Legal win', 'Court verdict'],
-  public_life: ['Award', 'Fame spike', 'Public recognition'],
-  karmic_events: ['Sudden windfall', 'Natural disaster', 'Pet loss'],
-  identity_shifts: ['Weight transform', 'Nickname change', 'Appearance shift'],
-  other: ['Custom event'],
-};
 
 export interface LifeEvent {
-  id: string;
-  category: EventCategory;
+  id?: string;
+  category: string;
   eventType: string;
-  // Flexible Date Fields - Supporting 5 precision modes
-  datePrecision: 'exact_date_time' | 'exact_date' | 'date_range' | 'month_year' | 'month_range' | 'year_range';
-  eventDate: string; // YYYY-MM-DD or YYYY-MM or YYYY
-  endDate?: string; // For ranges
-  eventTime?: string; // HH:MM for exact dates
-
+  eventDate: string;
   description: string;
-  importance: 'low' | 'medium' | 'high' | 'critical';
-
-  // UI helpers
+  importance?: 'high' | 'medium' | 'low' | 'critical';
+  eventTime?: string;
+  datePrecision?: 'exact' | 'approximate' | 'range' | 'month_year' | 'exact_date' | 'exact_date_time' | 'exact_date_range' | 'year_range' | 'month_range';
+  endDate?: string;
   icon?: string;
-  color?: string;
-  ageAtEvent?: number;
-}
-
-export interface ForensicPhysicalTraits {
-  facialStructure: {
-    forehead: 'broad' | 'narrow' | 'average' | 'sloping';
-    eyeShape: 'deep_set' | 'prominent' | 'almond' | 'round' | 'small';
-    noseType: 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
-    teethAlignment: 'perfect' | 'crooked' | 'gap' | 'large' | 'small';
-    voicePitch: 'deep' | 'high' | 'medium' | 'soft' | 'raspy';
-  };
-  skinHair: {
-    texture: 'dry' | 'oily' | 'combination' | 'sensitive';
-    hairType: 'straight' | 'curly' | 'wavy' | 'thin' | 'thick' | 'bald';
-    complexion: 'very_fair' | 'fair' | 'medium' | 'dark' | 'very_dark';
-    marks: string[];
-  };
-  build: 'slim' | 'medium' | 'athletic' | 'heavy' | 'very_heavy';
-  height: { cm: number; feet: number; inches: number };
-}
-
-export interface PsychographicDNA {
-  speechStyle: 'fast_loud' | 'measured_soft' | 'argumentative' | 'concise' | 'talkative';
-  decisionMaking: 'impulsive' | 'deliberate' | 'indecisive' | 'intuitive';
-  stressResponse: 'aggressive' | 'withdrawn' | 'anxious' | 'calm';
-  sleepCycle: 'night_owl' | 'early_bird' | 'irregular' | 'deep_sleeper';
-  temperament: 'short_tempered' | 'patient' | 'jovial' | 'melancholic' | 'optimistic';
-}
-
-export interface BiologicalMarkers {
-  prakriti: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha';
-  sensitivity: {
-    heat: 'high' | 'medium' | 'low';
-    cold: 'high' | 'medium' | 'low';
-  };
-  recurringHealthIssues: string[];
-}
-
-export interface FamilyNarrativeMatrix {
-  siblingPosition: 'eldest' | 'middle' | 'youngest' | 'only_child';
-  brotherCount: number;
-  sisterCount: number;
-  fatherStatusAtBirth: 'struggling' | 'stable' | 'prosperous' | 'highly_distinguished';
-  motherHealthAtBirth: 'excellent' | 'normal' | 'weak' | 'complicated';
-  firstChildInfo?: {
-    gender: 'male' | 'female';
-    yearOfBirth: number;
-  };
-}
-
-export interface ForensicTraits {
-  physical: ForensicPhysicalTraits;
-  psychographic: PsychographicDNA;
-  biological: BiologicalMarkers;
-  family: FamilyNarrativeMatrix;
+  isCustom?: boolean;
 }
 
 export interface PhysicalTraits {
-  height?: {
-    cm: number;
-    feet: number;
-    inches: number;
-  };
-  build: 'slim' | 'medium' | 'athletic' | 'heavy' | 'very_heavy';
-  complexion: 'very_fair' | 'fair' | 'medium' | 'dark' | 'very_dark';
-  faceShape: 'round' | 'oval' | 'square' | 'long' | 'heart' | 'pear';
-  eyeColor: string;
-  hairColor: string;
-  hairType?: 'straight' | 'curly' | 'wavy' | 'thin' | 'thick';
-  prakriti?: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha';
-  noseType?: 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
-  eyeShape?: 'almond' | 'round' | 'deep_set' | 'hooded' | 'wide';
-  foreheadHeight?: 'high' | 'broad' | 'narrow' | 'rounded';
-  jawLine?: 'strong' | 'defined' | 'soft' | 'pointed' | 'round';
-  chinType?: 'cleft' | 'pointed' | 'round' | 'square';
-  shoulderWidth?: 'broad' | 'average' | 'narrow' | 'sloping';
-  fingerLength?: 'long' | 'short' | 'average' | 'tapered';
-  specialFeatures?: string;
-  overallDescription?: string;
+  height?: string | { cm: number; feet: number; inches: number };
+  build?: string;
+  complexion?: string;
+  hairColor?: string;
+  eyeColor?: string;
+  distinguishingMarks?: string;
+  [key: string]: any;
 }
 
-export interface RectificationSession {
+export interface ForensicTraits {
+  faceShape?: string;
+  foreheadType?: string;
+  eyebrowShape?: string;
+  eyeShape?: string;
+  noseShape?: string;
+  lipShape?: string;
+  chinType?: string;
+  [key: string]: any;
+}
+
+export interface SpouseData {
+  name?: string;
+  dateOfBirth?: string;
+  birthPlace?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours' | '6hours' | '12hours' | 'custom';
+
+export interface TimeOffsetConfig {
+  preset?: OffsetPreset;
+  customMinutes?: number;
+  description?: string;
+}
+
+export interface Session {
   id: string;
   userId: string;
-  birthData: BirthData;
-  physicalTraits?: PhysicalTraits;
-  lifeEvents: LifeEvent[]; // Update usage to new interface
-  rectifiedTime?: string;
-  accuracy?: number;
-  confidence?: 'High' | 'Medium' | 'Low';
-  analysisResult?: any;
-  createdAt: Date;
-  updatedAt: Date;
   status: 'pending' | 'processing' | 'complete' | 'failed';
-}
-
-export interface PlanetPosition {
-  sign: string;
-  degree: number;
-  longitude: number;
-  nakshatra: string;
-  nakshatraPada?: number; // 1-4, for sub-nakshatra precision
-  lord: string;
-  retro: boolean;
-}
-
-export interface EphemerisData {
-  planets: {
-    sun: PlanetPosition;
-    moon: PlanetPosition;
-    mercury: PlanetPosition;
-    venus: PlanetPosition;
-    mars: PlanetPosition;
-    jupiter: PlanetPosition;
-    saturn: PlanetPosition;
-    rahu: PlanetPosition;
-    ketu: PlanetPosition;
-  };
-  ascendant: {
-    sign: string;
-    degree: number;
-    nakshatra: string;
-    longitude: number;
-  };
-  houses: HousePosition[];
-}
-
-export interface HousePosition {
-  houseNumber: number;
-  sign: string;
-  degree: number;
-  cusp: number;
-}
-
-export interface SimpleAIAnalysisResult {
-  rectifiedTime: string;
-  accuracy: number;
-  confidence: 'High' | 'Medium' | 'Low';
-  reasoning: string;
-  alternativeTimes: Array<{ time: string; score: number }>;
-  eventAnalysis: Array<{
-    eventDate: string;
-    expectedPlanets: string[];
-    actualPlanets: string[];
-    matchScore: number;
-  }>;
-}
-
-export interface BTRInput {
-  birthDate: string;
-  timeEstimate: string;
-  offsetConfig: TimeOffsetConfig;
-  lifeEvents: LifeEvent[];
-  latitude: number;
-  longitude: number;
-  timezone: number;
-  physicalTraits?: PhysicalTraits;
-}
-
-export interface CandidateTime {
-  time: string; // HH:MM:SS format
-  offsetMinutes: number; // Positive or negative from tentative time
-  offsetDescription: string; // e.g., "+15 minutes", "-45 minutes"
-  priority: number; // Higher = analyze first
-}
-
-export interface CandidateAnalysis {
-  time: string;
-  offsetMinutes: number;
-  offsetDescription: string;
-  ephemerisData: EphemerisData;
-  quickScore: number; // Quick pre-analysis score
-  eventMatches: number; // How many events match
-  shouldAnalyzeWithAI: boolean; // Is this worth analyzing with AI?
-  reason: string; // Why is this ranked this way
-}
-
-export interface RankedCandidates {
-  topCandidates: CandidateAnalysis[]; // Top 5 candidates for deep analysis
-  allCandidates: CandidateAnalysis[]; // All candidates sorted by score
-  totalAnalyzed: number;
-}
-
-export interface AIAnalysisResult {
-  time: string;
-  offsetMinutes: number;
-  offsetDescription: string;
-  score: number; // 0-100 confidence
-  confidence: 'High' | 'Medium' | 'Low'; // Confidence level
-  analysis: string; // Detailed analysis from AI
-  thinking: string; // AI's thinking process (truncated)
-  eventMatches: {
-    eventType: string;
-    matches: boolean;
-    reason: string;
-  }[];
-  recommendation: string; // Should this be the rectified time?
-  dashaAnalysis: string; // Which dasha during events
-  transitAnalysis: string; // Transit verification
-}
-
-export interface TopCandidatesAnalysis {
-  candidates: AIAnalysisResult[];
-  topRecommendation: AIAnalysisResult; // #1 choice
-  alternativeOptions: AIAnalysisResult[]; // Backup options
-  processingTime: number;
-}
-
-export interface BTROutput {
-  rectifiedTime: string;
-  accuracy: number;
-  confidence: 'High' | 'Medium' | 'Low';
-  processingTime: number;
-  analysis: {
-    eventAnalysis: Array<{
-      eventDate: string;
-      expectedPlanets: string[];
-      actualPlanets: string[];
-      matchScore: number;
-    }>;
-    alternativeTimes: Array<{ time: string; score: number }>;
-    weakPoints: string[];
-    recommendations: string[];
-  };
-  thinking?: string;
-  ephemeris?: EphemerisData;
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
-// SECONDS-PRECISION BTR TYPES
-// ═════════════════════════════════════════════════════════════════════════════
-
-export interface SecondsPrecisionInput {
-  sessionId: string;
+  fullName: string;
   dateOfBirth: string;
   tentativeTime: string;
+  birthPlace: string;
   latitude: number;
   longitude: number;
-  timezone: string | number;
-  lifeEvents: LifeEvent[];
-  offsetConfig: TimeOffsetConfig;
-  physicalTraits?: PhysicalTraits;
-  forensicTraits: ForensicTraits;
-  spouseData?: {
-    dateOfBirth: string;
-    birthTime: string;
-    latitude: number;
-    longitude: number;
-    timezone: string | number;
-  };
+  rectifiedTime?: string;
+  accuracy?: number;
+  confidence?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface SecondsPrecisionResult {
-  rectifiedTime: string;       // HH:MM:SS format
-  accuracy: number;            // 0-100
-  confidence: string;          // "High" | "Medium" | "Low"
-  precisionLevel: 'seconds';
-  marginOfError: number;       // ±X seconds (3-5)
-  stagesCompleted: number;     // 1-10
-  boundaryWarnings: string[];
-  methodsUsed: string[];
-  processingTimeMs: number;
-  analysisResult: string;
-}
-
-export interface BoundarySafetyResult {
-  isSafe: boolean;
-  warnings: BoundaryWarning[];
-  nakshatraDistance: number;
-  lagnaDistance: number;
-  houseDistance: number;
-  overallRisk: 'low' | 'medium' | 'high';
-  recommendations: string[];
-}
-
-export interface BoundaryWarning {
-  type: 'nakshatra' | 'lagna' | 'house' | 'dasha';
-  message: string;
-  distanceSeconds: number;
-  severity: 'low' | 'medium' | 'high';
-}
-
-/**
- * 🏆 GOD-TIER ARCHIVE STRUCTURE
- * 
- * This is the ultimate, compressed JSON record of the entire BTR journey.
- * Optimized for Turso storage while preserving 100% of the reasoning and technical proof.
- */
-export interface MasterAnalysisArchive {
-  version: string;       // e.g., "1.0.0"
-  sessionId: string;
-  generatedAt: string;
-
-  // 1. Input Context (Minimal)
-  birthContext: {
-    name: string;
-    originalTime: string;
-    location: string;
-    offsetScan: string;
-  };
-
-  // 2. Final Rectification Result
-  finalResult: {
-    time: string;
-    accuracy: number;
-    confidence: string;
-    marginOfError: number;
-    methodsUsed: string[];
-  };
-
-  // 3. The "Brain" (Consolidated Reasoning)
-  // We store the pure cleaned text here.
-  reasoning: {
-    discovery: string;    // Stage 2 (Coarse narrowing)
-    refinement: string;   // Stage 5 (Method-by-method depth)
-    precision: string;    // Stage 7 (Final second validation)
-    summary: string;      // Final verdict
-  };
-
-  // 4. Technical Proof (The "God-Data")
-  technicalProof: {
-    ephemeris: EphemerisData;
-    boundarySafety: {
-      nakshatra: { distance: number; warning?: string };
-      lagna: { distance: number; warning?: string };
-      dasha: { distance: number; warning?: string };
-    };
-    methodologyBreakdown: {
-      [key: string]: { score: number; verdict: string };
-    };
-  };
-
-  // 5. Alternate Paths (Top 3 runners up)
-  alternatives: Array<{
-    time: string;
-    score: number;
-    reason: string;
-  }>;
+export interface AnalysisResult {
+  rectifiedTime: string;
+  accuracy: number;
+  confidence: string;
+  candidates: any[];
+  analysis: any;
 }

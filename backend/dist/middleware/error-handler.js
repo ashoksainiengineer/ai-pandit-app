@@ -1,23 +1,45 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.errorHandler = errorHandler;
-function errorHandler(err, req, res, next) {
-    console.error('Error:', err);
-    // Handle known error types
-    if (err.name === 'UnauthorizedError') {
-        res.status(401).json({ error: 'Unauthorized', message: err.message });
+import { logger } from '../lib/logger.js';
+export function errorHandler(err, req, res, next) {
+    const requestId = req.id || 'unknown';
+    logger.error('Request error', {
+        requestId,
+        error: err.message,
+        stack: err.stack,
+        path: req.path,
+        method: req.method,
+    });
+    // Handle specific error types
+    if (err.name === 'UnauthorizedError' || err.message?.includes('unauthorized')) {
+        res.status(401).json({
+            error: 'Unauthorized',
+            message: err.message,
+            requestId
+        });
         return;
     }
-    if (err.name === 'ValidationError') {
-        res.status(400).json({ error: 'Validation Error', message: err.message });
+    if (err.name === 'ValidationError' || err.message?.includes('validation')) {
+        res.status(400).json({
+            error: 'Validation Error',
+            message: err.message,
+            requestId
+        });
         return;
     }
-    // Default error response
-    res.status(500).json({
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+        res.status(409).json({
+            error: 'Conflict',
+            message: 'Resource already exists',
+            requestId
+        });
+        return;
+    }
+    // Default: don't leak error details in production
+    const isDev = process.env.NODE_ENV !== 'production';
+    res.status(err.statusCode || 500).json({
         error: 'Internal Server Error',
-        message: process.env.NODE_ENV === 'production'
-            ? 'An unexpected error occurred'
-            : err.message,
+        message: isDev ? err.message : 'An unexpected error occurred',
+        ...(isDev && { stack: err.stack }),
+        requestId,
     });
 }
 //# sourceMappingURL=error-handler.js.map

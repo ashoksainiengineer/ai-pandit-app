@@ -1,7 +1,7 @@
 
 import 'dotenv/config';
-import { db } from './database/drizzle';
-import { sessions } from './database/schema';
+import { db } from './database/drizzle.js';
+import { sessions } from './database/schema.js';
 import { eq } from 'drizzle-orm';
 
 async function checkSession() {

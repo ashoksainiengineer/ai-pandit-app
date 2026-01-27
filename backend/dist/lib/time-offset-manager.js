@@ -1,27 +1,14 @@
-"use strict";
 // lib/time-offset-manager.ts
 // 🔱 GOD-TIER Time Offset Manager with Batch Support
 // Research-backed: Max 10 candidates per AI batch for optimal attention
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.SURVIVORS_PER_BATCH = exports.MAX_BATCH_SIZE = void 0;
-exports.getDynamicBatchSize = getDynamicBatchSize;
-exports.getDynamicSurvivors = getDynamicSurvivors;
-exports.getAdaptiveInterval = getAdaptiveInterval;
-exports.getExpectedCandidateCount = getExpectedCandidateCount;
-exports.generateCandidateTimes = generateCandidateTimes;
-exports.splitIntoBatches = splitIntoBatches;
-exports.generateRefinementGrid = generateRefinementGrid;
-exports.getOffsetConfigDescription = getOffsetConfigDescription;
-exports.validateOffsetConfig = validateOffsetConfig;
-exports.calculateTournamentStructure = calculateTournamentStructure;
-const logger_js_1 = require("./logger.js");
+import { logger } from './logger.js';
 // ═════════════════════════════════════════════════════════════════════════
 // CONSTANTS - RESEARCH-BACKED (Dynamic)
 // ═════════════════════════════════════════════════════════════════════════
 // Absolute max candidates per AI call (OpenRouter supports higher concurrency)
-exports.MAX_BATCH_SIZE = 15;
+export const MAX_BATCH_SIZE = 15;
 // Survivors per batch for tournament progression
-exports.SURVIVORS_PER_BATCH = 2;
+export const SURVIVORS_PER_BATCH = 2;
 /**
  * 🔱 DYNAMIC BATCH SIZE - Based on offset range
  * Smaller offsets → Smaller batches (more focused AI attention)
@@ -31,7 +18,7 @@ exports.SURVIVORS_PER_BATCH = 2;
  * @param offsetMinutes The offset range in minutes
  * @returns Optimal batch size (5-10)
  */
-function getDynamicBatchSize(totalCandidates, offsetMinutes) {
+export function getDynamicBatchSize(totalCandidates, offsetMinutes) {
     // For very small offsets (±5-15 min) → 5 candidates per batch
     // AI can deeply analyze each one
     if (offsetMinutes <= 15)
@@ -49,13 +36,13 @@ function getDynamicBatchSize(totalCandidates, offsetMinutes) {
     if (offsetMinutes <= 360)
         return 9;
     // For very large offsets (±12 hours+) → 10 candidates (max)
-    return exports.MAX_BATCH_SIZE;
+    return MAX_BATCH_SIZE;
 }
 /**
  * Get dynamic survivors count based on batch size
  * More survivors for smaller batches to maintain tournament quality
  */
-function getDynamicSurvivors(batchSize) {
+export function getDynamicSurvivors(batchSize) {
     // For batch of 5-6 → 2 survivors (40% survive)
     if (batchSize <= 6)
         return 2;
@@ -123,7 +110,7 @@ const OFFSET_PRESETS = {
 //
 // For smaller offsets: FINER grid (more candidates for precision)
 // For larger offsets: COARSER grid aligned with Lagna boundaries
-function getAdaptiveInterval(offsetMinutes) {
+export function getAdaptiveInterval(offsetMinutes) {
     // ═══════════════════════════════════════════════════════════════════════
     // VEDIC PRINCIPLE: Smaller offsets need FINER precision
     // ═══════════════════════════════════════════════════════════════════════
@@ -167,17 +154,17 @@ function getAdaptiveInterval(offsetMinutes) {
  * 🔱 Get expected candidate count for a given offset
  * Useful for UI and progress estimation
  */
-function getExpectedCandidateCount(offsetMinutes) {
+export function getExpectedCandidateCount(offsetMinutes) {
     const interval = getAdaptiveInterval(offsetMinutes);
     return Math.ceil((offsetMinutes * 2) / interval) + 1;
 }
 // ═════════════════════════════════════════════════════════════════════════
 // MAIN FUNCTION: Generate Candidate Times (CHRONOLOGICAL ORDER)
 // ═════════════════════════════════════════════════════════════════════════
-function generateCandidateTimes(tentativeTime, // HH:MM:SS
+export function generateCandidateTimes(tentativeTime, // HH:MM:SS
 offsetConfig) {
     try {
-        logger_js_1.logger.info('🔱 Generating candidates (chronological order)', { tentativeTime, offsetConfig });
+        logger.info('🔱 Generating candidates (chronological order)', { tentativeTime, offsetConfig });
         // ─────────────────────────────────────────────────────────────────────
         // Parse tentative time
         // ─────────────────────────────────────────────────────────────────────
@@ -203,12 +190,12 @@ offsetConfig) {
             ? `±${offsetMinutes} min (${interval >= 1 ? interval + 'min' : (interval * 60) + 's'} Grid)`
             : `${OFFSET_PRESETS[offsetConfig.preset].label} (${interval >= 1 ? interval + 'min' : (interval * 60) + 's'} Grid)`;
         const expectedCandidates = Math.ceil(offsetMinutes / interval) * 2 + 1;
-        logger_js_1.logger.info('Offset configuration', {
+        logger.info('Offset configuration', {
             offsetMinutes,
             interval,
             description,
             expectedCandidates,
-            expectedBatches: Math.ceil(expectedCandidates / exports.MAX_BATCH_SIZE),
+            expectedBatches: Math.ceil(expectedCandidates / MAX_BATCH_SIZE),
         });
         // ─────────────────────────────────────────────────────────────────────
         // Generate candidates in CHRONOLOGICAL ORDER (earliest → latest)
@@ -232,7 +219,7 @@ offsetConfig) {
             // Re-sort chronologically
             candidates.sort((a, b) => a.offsetMinutes - b.offsetMinutes);
         }
-        logger_js_1.logger.info('🔱 Generated candidates (chronological, no priority)', {
+        logger.info('🔱 Generated candidates (chronological, no priority)', {
             count: candidates.length,
             offsetRange: `±${offsetMinutes} minutes`,
             interval: `${interval} minutes`,
@@ -242,21 +229,21 @@ offsetConfig) {
         return candidates;
     }
     catch (error) {
-        logger_js_1.logger.error('Candidate time generation failed', error);
+        logger.error('Candidate time generation failed', error);
         throw error;
     }
 }
 // ═════════════════════════════════════════════════════════════════════════
 // 🔱 BATCH SPLITTER - Research-backed 10-candidate batches
 // ═════════════════════════════════════════════════════════════════════════
-function splitIntoBatches(candidates, batchSize = exports.MAX_BATCH_SIZE) {
+export function splitIntoBatches(candidates, batchSize = MAX_BATCH_SIZE) {
     const batches = [];
     // Shuffle before splitting to randomize positions (anti-middle-bias)
     const shuffled = [...candidates].sort(() => Math.random() - 0.5);
     for (let i = 0; i < shuffled.length; i += batchSize) {
         batches.push(shuffled.slice(i, i + batchSize));
     }
-    logger_js_1.logger.info('🔱 Split into batches', {
+    logger.info('🔱 Split into batches', {
         totalCandidates: candidates.length,
         batchCount: batches.length,
         batchSize,
@@ -266,7 +253,7 @@ function splitIntoBatches(candidates, batchSize = exports.MAX_BATCH_SIZE) {
 // ═════════════════════════════════════════════════════════════════════════
 // 🔱 REFINEMENT GRID - Generate finer grid around survivors
 // ═════════════════════════════════════════════════════════════════════════
-function generateRefinementGrid(centerTime, rangeMinutes, intervalSeconds) {
+export function generateRefinementGrid(centerTime, rangeMinutes, intervalSeconds) {
     const candidates = [];
     const [hours, minutes, seconds] = centerTime.split(':').map(Number);
     const baseSeconds = hours * 3600 + minutes * 60 + seconds;
@@ -337,7 +324,7 @@ function convertMinutesToTime(totalMinutes, originalTime, offsetFromBase) {
 // ═════════════════════════════════════════════════════════════════════════
 // HELPER: Get Configuration Description
 // ═════════════════════════════════════════════════════════════════════════
-function getOffsetConfigDescription(config) {
+export function getOffsetConfigDescription(config) {
     if (config.customMinutes !== undefined) {
         return `Custom: ±${config.customMinutes} minutes`;
     }
@@ -349,7 +336,7 @@ function getOffsetConfigDescription(config) {
 // ═════════════════════════════════════════════════════════════════════════
 // HELPER: Validate Offset Config
 // ═════════════════════════════════════════════════════════════════════════
-function validateOffsetConfig(config) {
+export function validateOffsetConfig(config) {
     if (!config.preset && config.customMinutes === undefined) {
         return {
             valid: false,
@@ -375,14 +362,14 @@ function validateOffsetConfig(config) {
 // ═════════════════════════════════════════════════════════════════════════
 // Calculate Tournament Rounds
 // ═════════════════════════════════════════════════════════════════════════
-function calculateTournamentStructure(totalCandidates) {
+export function calculateTournamentStructure(totalCandidates) {
     const batchesPerRound = [];
     const survivorsPerRound = [];
     let remaining = totalCandidates;
     let round = 0;
-    while (remaining > exports.MAX_BATCH_SIZE) {
-        const batches = Math.ceil(remaining / exports.MAX_BATCH_SIZE);
-        const survivors = batches * exports.SURVIVORS_PER_BATCH;
+    while (remaining > MAX_BATCH_SIZE) {
+        const batches = Math.ceil(remaining / MAX_BATCH_SIZE);
+        const survivors = batches * SURVIVORS_PER_BATCH;
         batchesPerRound.push(batches);
         survivorsPerRound.push(survivors);
         remaining = survivors;
@@ -397,5 +384,5 @@ function calculateTournamentStructure(totalCandidates) {
         survivorsPerRound,
     };
 }
-exports.default = generateCandidateTimes;
+export default generateCandidateTimes;
 //# sourceMappingURL=time-offset-manager.js.map

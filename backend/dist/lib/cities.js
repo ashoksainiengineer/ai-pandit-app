@@ -1,8 +1,5 @@
-"use strict";
 // lib/cities.ts - Stub for city search functionality
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.searchCities = searchCities;
-async function searchCities(query) {
+export async function searchCities(query) {
     // Stub implementation - return some sample cities
     const cities = [
         { name: 'Mumbai', latitude: 19.0760, longitude: 72.8777, state: 'Maharashtra', country: 'India' },

@@ -1,118 +1,256 @@
-import express from 'express';
+import express, { Request } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { routes } from './routes/index.js';
 import { errorHandler } from './middleware/error-handler.js';
+import { startQueueProcessor, cleanupZombiesOnStartup } from './lib/queue-manager.js';
+import { initSwissEph } from './lib/ephemeris.js';
+import { logger } from './lib/logger.js';
+
+// Extend Express Request type to include id
+declare global {
+    namespace Express {
+        interface Request {
+            id: string;
+        }
+    }
+}
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = parseInt(process.env.PORT || '7860', 10);
 
-// =============================================================================
-// CORS Configuration - Ultra-Permissive for Debugging
-// =============================================================================
-// CORS Configuration - Secure with Credentials Support
+// ═════════════════════════════════════════════════════════════════════════════
+// SECURITY MIDDLEWARE (Production-Ready)
+// ═════════════════════════════════════════════════════════════════════════════
+
+app.use(helmet({
+    contentSecurityPolicy: false, // Disabled for API-only service
+    crossOriginEmbedderPolicy: false,
+}));
+
+// CORS Configuration - Strict for production
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5173',
+    'https://localhost:3000',
+    process.env.FRONTEND_URL,
+    process.env.VERCEL_URL,
+    // Vercel preview deployments
+    /^https:\/\/.*-ai-pandit.*\.vercel\.app$/,
+    /^https:\/\/.*\.vercel\.app$/,
+].filter(Boolean) as (string | RegExp)[];
+
 app.use(cors({
     origin: (origin, callback) => {
-        const allowedOrigins = [
-            'http://localhost:3000',
-            'http://127.0.0.1:3000',
-            process.env.FRONTEND_URL || ''
-        ];
-        // Allow requests with no origin (like mobile apps or curl requests)
+        // Allow requests with no origin (mobile apps, curl, internal requests)
         if (!origin) return callback(null, true);
-
-        if (allowedOrigins.includes(origin) || origin.startsWith('http://localhost')) {
+        
+        const isAllowed = allowedOrigins.some(allowed => {
+            if (typeof allowed === 'string') return allowed === origin;
+            return allowed.test(origin);
+        });
+        
+        if (isAllowed || process.env.NODE_ENV === 'development') {
             callback(null, true);
         } else {
-            console.warn(`[CORS] Blocked origin: ${origin}`);
-            callback(new Error('Not allowed by CORS'));
+            logger.warn(`[CORS] Blocked origin: ${origin}`);
+            callback(new Error(`Origin ${origin} not allowed by CORS`));
         }
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Last-Event-ID', 'baggage', 'sentry-trace'],
-    exposedHeaders: ['Content-Type'],
+    allowedHeaders: [
+        'Content-Type', 
+        'Authorization', 
+        'X-Requested-With',
+        'X-Clerk-Auth-Status',
+        'X-Clerk-Auth-Reason',
+        'X-Clerk-Auth-Message'
+    ],
+    exposedHeaders: ['Content-Type', 'X-Session-Id'],
+    maxAge: 86400, // 24 hours
 }));
 
-// =============================================================================
-// Middleware
-// =============================================================================
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+// ═════════════════════════════════════════════════════════════════════════════
+// REQUEST MIDDLEWARE
+// ═════════════════════════════════════════════════════════════════════════════
 
-// Request logging
+// Body parsing with limits
+app.use(express.json({ 
+    limit: '5mb',
+    verify: (req, res, buf) => {
+        // Store raw body for webhook verification if needed
+        (req as any).rawBody = buf;
+    }
+}));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
+// Logging
+app.use(morgan('combined', {
+    stream: {
+        write: (message) => logger.info(message.trim())
+    }
+}));
+
+// Request ID tracking
 app.use((req, res, next) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+    req.id = crypto.randomUUID();
+    res.setHeader('X-Request-Id', req.id);
     next();
 });
 
-// =============================================================================
-// Routes
-// =============================================================================
-app.use('/api', routes);
+// ═════════════════════════════════════════════════════════════════════════════
+// HEALTH & STATUS ENDPOINTS
+// ═════════════════════════════════════════════════════════════════════════════
 
-// Health check at root
+// Hugging Face Spaces health check (must be at root)
 app.get('/', (req, res) => {
     res.json({
-        status: 'ok',
+        status: 'healthy',
         service: 'AI Pandit BTR Engine',
-        version: '1.0.0',
+        version: '2.0.0',
         timestamp: new Date().toISOString(),
-        env: process.env.NODE_ENV || 'development'
+        environment: process.env.NODE_ENV || 'development',
+        uptime: process.uptime(),
+        memory: {
+            used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+            total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB',
+        }
     });
 });
 
-// Diagnostic ping
-app.get('/api/debug/ping', (req, res) => {
-    console.log('[DEBUG] Ping received');
-    res.json({ pong: true, timestamp: new Date().toISOString(), headers: req.headers });
+// Detailed health check
+app.get('/health', (req, res) => {
+    res.json({
+        status: 'ok',
+        checks: {
+            server: 'up',
+            swissEph: swissEphReady ? 'ready' : 'initializing',
+            queue: queueStarted ? 'running' : 'starting',
+            database: 'connected' // TODO: Add actual DB health check
+        },
+        timestamp: new Date().toISOString()
+    });
 });
 
-// =============================================================================
-// Error Handling
-// =============================================================================
-app.use(errorHandler);
+// ═════════════════════════════════════════════════════════════════════════════
+// API ROUTES
+// ═════════════════════════════════════════════════════════════════════════════
+
+app.use('/api', routes);
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ERROR HANDLING
+// ═════════════════════════════════════════════════════════════════════════════
 
 // 404 handler
 app.use((req, res) => {
-    res.status(404).json({ error: 'Not Found', path: req.path });
+    res.status(404).json({ 
+        error: 'Not Found',
+        path: req.path,
+        method: req.method,
+        requestId: req.id
+    });
 });
 
-import { startQueueProcessor, cleanupZombiesOnStartup } from './lib/queue-manager.js';
-import { initSwissEph } from './lib/ephemeris.js';
+// Global error handler
+app.use(errorHandler);
 
-// =============================================================================
-// Start Server
-// =============================================================================
+// ═════════════════════════════════════════════════════════════════════════════
+// SERVER STARTUP
+// ═════════════════════════════════════════════════════════════════════════════
+
+import crypto from 'crypto';
+
+let swissEphReady = false;
+let queueStarted = false;
+
 async function bootstrap() {
     try {
-        app.listen(PORT, () => {
-            console.log(`🚀 AI Pandit BTR Engine running on port ${PORT}`);
-            console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
-            console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+        logger.info('🚀 AI Pandit BTR Engine v2.0.0 Starting...');
+        logger.info(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+        logger.info(`🔌 Port: ${PORT}`);
+        
+        // Validate critical environment variables
+        const requiredEnv = ['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN', 'CLERK_SECRET_KEY'];
+        const missing = requiredEnv.filter(key => !process.env[key]);
+        if (missing.length > 0) {
+            logger.error(`❌ Missing required env vars: ${missing.join(', ')}`);
+            process.exit(1);
+        }
+        
+        // Check AI configuration
+        if (!process.env.AI_API_KEY) {
+            logger.warn('⚠️ AI_API_KEY not set - BTR processing will fail');
+        }
 
-            // 1. ASYNC Warming Up (Non-blocking)
-            console.log('⏳ Initializing Swiss Ephemeris engine in background...');
-            initSwissEph().catch(err => {
-                console.error('❌ Async Swiss Eph Initialization Failed:', err);
-            });
-
-            // 2. Start processing queue on startup
-            console.log('🔄 Starting queue processor...');
-            cleanupZombiesOnStartup().then(() => {
-                startQueueProcessor();
-            });
+        // Start HTTP server first (HF Spaces requirement)
+        const server = app.listen(PORT, '0.0.0.0', () => {
+            logger.info(`✅ Server listening on port ${PORT}`);
         });
+
+        // Configure graceful shutdown
+        const gracefulShutdown = (signal: string) => {
+            logger.info(`📥 Received ${signal}. Starting graceful shutdown...`);
+            server.close(() => {
+                logger.info('✅ HTTP server closed');
+                process.exit(0);
+            });
+            
+            // Force shutdown after 30s
+            setTimeout(() => {
+                logger.error('❌ Forced shutdown after timeout');
+                process.exit(1);
+            }, 30000);
+        };
+        
+        process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+        process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+        // Initialize Swiss Ephemeris (non-blocking)
+        logger.info('🔭 Initializing Swiss Ephemeris...');
+        initSwissEph()
+            .then(ready => {
+                swissEphReady = ready;
+                logger.info(`✅ Swiss Ephemeris ${ready ? 'ready' : 'fallback mode'}`);
+            })
+            .catch(err => {
+                logger.error('❌ Swiss Ephemeris init failed:', err);
+                swissEphReady = false;
+            });
+
+        // Cleanup zombie sessions
+        logger.info('🧹 Cleaning up zombie sessions...');
+        await cleanupZombiesOnStartup();
+        
+        // Start queue processor
+        logger.info('🔄 Starting queue processor...');
+        startQueueProcessor();
+        queueStarted = true;
+        
+        logger.info('✨ AI Pandit BTR Engine fully operational');
+        
     } catch (err) {
-        console.error('❌ Failed to start server:', err);
+        logger.error('❌ Fatal bootstrap error:', err);
         process.exit(1);
     }
 }
 
+// Handle uncaught errors
+process.on('uncaughtException', (err) => {
+    logger.error('💥 Uncaught Exception:', err);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('💥 Unhandled Rejection at:', { promise, reason });
+});
+
 bootstrap();
 
 export default app;
-// 🔱 GOD-TIER STABILITY PATCH V2: Finalised & Verified

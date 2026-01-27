@@ -67,6 +67,12 @@ import { ProgressTracker, ANALYSIS_STEPS } from './progress-tracker.js';
 import { LifeEvent, EphemerisData, SecondsPrecisionInput, SecondsPrecisionResult, ForensicTraits } from './types.js';
 import { throwIfCancelled, isCancellationError } from './cancellation-manager.js';
 import { emitCandidateScore, emitAIContext, emitCalculationLog, emitStageStats, emitAIThinking } from './session-events.js';
+import {
+  enhanceCandidateWithGodTierData,
+  generateGodTierAIPrompt,
+  CandidateWithGodTierData,
+  GodTierEnhancement
+} from './btr-god-tier-integrator.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -1548,7 +1554,7 @@ async function stage5MicroGrid(
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// STAGE 6: FINAL PRECISION JUDGEMENT
+// STAGE 6: FINAL PRECISION JUDGEMENT (with God-Tier Integration)
 // ═════════════════════════════════════════════════════════════════════════════
 
 async function stage6FinalPrecision(
@@ -1577,7 +1583,57 @@ async function stage6FinalPrecision(
         };
     };
 
+    // 🔱 GOD-TIER ENHANCEMENT: Enhance finalists with KP and Consensus data
+    let godTierEnhancedCandidates: Array<CandidateWithGodTierData & { time: string; offsetMinutes: number }> = [];
+    
+    for (const candidate of candidates.slice(0, 7)) {
+        try {
+            // Build base candidate data
+            const pkg = await buildCandidateDataPackage(candidate.time, candidate.offsetMinutes, input, {
+                includeFullData: true,
+                dashaDepth: 3,
+                pranaWindowDays: 3,
+                lifecycleShifts: globalLifecycle
+            });
+            
+            // Create base candidate structure for God-Tier enhancement
+            const baseCandidate: CandidateWithGodTierData = {
+                time: candidate.time,
+                offsetMinutes: candidate.offsetMinutes,
+                ephemeris: pkg,
+                dasha: pkg.vimshottariDasha,
+                vargas: {
+                    D9: pkg.d9Chart,
+                    D10: pkg.d10Chart,
+                    D60: pkg.d60Sign
+                },
+                kpData: {}
+            };
+            
+            // Apply God-Tier enhancement
+            const enhanced = enhanceCandidateWithGodTierData(
+                baseCandidate,
+                input.lifeEvents,
+                input.forensicTraits,
+                input.tentativeTime
+            );
+            
+            godTierEnhancedCandidates.push({
+                ...enhanced,
+                time: candidate.time,
+                offsetMinutes: candidate.offsetMinutes
+            });
+        } catch (error) {
+            logger.warn(`Failed to enhance candidate ${candidate.time} with God-Tier data`, error);
+        }
+    }
+    
+    // Use enhanced candidates if available, otherwise fall back to original
     let finalists = [...candidates];
+    
+    // Log God-Tier status
+    const godTierCount = godTierEnhancedCandidates.filter(c => c.godTier?.isGodTier).length;
+    logger.info(`🔱 Stage 6: ${godTierCount}/${godTierEnhancedCandidates.length} candidates achieved God-Tier status`);
 
     while (finalists.length > MAX_BATCH_SIZE) {
         const batches = splitIntoBatches(finalists, MAX_BATCH_SIZE);
@@ -1636,10 +1692,20 @@ async function stage6FinalPrecision(
         finalists = batchWinners;
     }
 
-    // Final judgement
+    // Final judgement with God-Tier prompt enhancement
     const finalBatch = await Promise.all(finalists.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, { includeFullData: true, dashaDepth: 5, pranaWindowDays: 5, lifecycleShifts: globalLifecycle })));
     const finalAnchor = getPresentTransitData(finalBatch[0]);
-    const prompt = getFinalPrecisionPrompt(finalBatch, input.lifeEvents, forensicTraits, input.spouseData, finalAnchor);
+    let prompt = getFinalPrecisionPrompt(finalBatch, input.lifeEvents, forensicTraits, input.spouseData, finalAnchor);
+    
+    // 🔱 GOD-TIER: Enhance prompt with consensus scores if available
+    const winnerEnhanced = godTierEnhancedCandidates.find(c => c.time === finalBatch[0]?.time);
+    if (winnerEnhanced?.godTier) {
+        prompt = generateGodTierAIPrompt(winnerEnhanced, prompt);
+        logger.info('🔱 God-Tier AI prompt enhancement applied', {
+            consensus: winnerEnhanced.godTier.consensus.overallConsensus,
+            confidenceLevel: winnerEnhanced.godTier.consensus.confidenceLevel
+        });
+    }
     const response = await callAIWithStream(
         input.sessionId,
         6,

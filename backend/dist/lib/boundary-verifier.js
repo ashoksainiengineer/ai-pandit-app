@@ -1,13 +1,7 @@
-"use strict";
 // lib/boundary-verifier.ts
 // Boundary Safety Verification for Seconds-Level BTR
 // Checks nakshatra, lagna, dasha, and house boundaries
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.verifyBoundarySafety = verifyBoundarySafety;
-exports.isTimeSafeFromBoundaries = isTimeSafeFromBoundaries;
-exports.getSuggestedAlternatives = getSuggestedAlternatives;
-exports.formatBoundarySafetyResult = formatBoundarySafetyResult;
-const vedic_astrology_engine_js_1 = require("./vedic-astrology-engine.js");
+import { tropicalToSidereal, getNakshatraForLongitude } from './vedic-astrology-engine.js';
 // ═════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═════════════════════════════════════════════════════════════════════════════
@@ -32,13 +26,13 @@ const SIGN_SPAN = 30; // degrees
  * Comprehensive boundary safety verification
  * At seconds-level precision, tiny differences matter
  */
-function verifyBoundarySafety(ephemeris, julianDay) {
+export function verifyBoundarySafety(ephemeris, julianDay) {
     const warnings = [];
     const recommendations = [];
     // ─────────────────────────────────────────────────────────────────────────
     // 1. NAKSHATRA BOUNDARY CHECK
     // ─────────────────────────────────────────────────────────────────────────
-    const moonSidereal = (0, vedic_astrology_engine_js_1.tropicalToSidereal)(ephemeris.planets.moon.longitude, julianDay);
+    const moonSidereal = tropicalToSidereal(ephemeris.planets.moon.longitude, julianDay);
     const positionInNakshatra = moonSidereal % NAKSHATRA_SPAN;
     const distanceToNextNakshatra = NAKSHATRA_SPAN - positionInNakshatra;
     const distanceToPrevNakshatra = positionInNakshatra;
@@ -47,7 +41,7 @@ function verifyBoundarySafety(ephemeris, julianDay) {
     const secsToPrevNakshatra = distanceToPrevNakshatra / RATES.moon;
     const nakshatraDistance = Math.min(secsToNextNakshatra, secsToPrevNakshatra);
     if (nakshatraDistance < SAFETY_THRESHOLDS.nakshatra) {
-        const currentNakshatra = (0, vedic_astrology_engine_js_1.getNakshatraForLongitude)(moonSidereal);
+        const currentNakshatra = getNakshatraForLongitude(moonSidereal);
         warnings.push({
             type: 'nakshatra',
             message: `Moon is ${nakshatraDistance.toFixed(1)} seconds from nakshatra boundary (current: ${currentNakshatra.name})`,
@@ -151,14 +145,14 @@ function getPrevSign(currentSign) {
  * Quick check if a time is near any boundary
  * Returns true if safe distance from all boundaries
  */
-function isTimeSafeFromBoundaries(ephemeris, julianDay) {
+export function isTimeSafeFromBoundaries(ephemeris, julianDay) {
     const result = verifyBoundarySafety(ephemeris, julianDay);
     return result.isSafe;
 }
 /**
  * Get suggested alternative times if current is near boundary
  */
-function getSuggestedAlternatives(currentTime, warnings) {
+export function getSuggestedAlternatives(currentTime, warnings) {
     const suggestions = [];
     const [h, m, s] = currentTime.split(':').map(Number);
     const totalSeconds = h * 3600 + m * 60 + (s || 0);
@@ -178,7 +172,7 @@ function getSuggestedAlternatives(currentTime, warnings) {
 /**
  * Format boundary result for display
  */
-function formatBoundarySafetyResult(result) {
+export function formatBoundarySafetyResult(result) {
     const lines = ['BOUNDARY SAFETY ANALYSIS:'];
     lines.push(`Overall Risk: ${result.overallRisk.toUpperCase()}`);
     lines.push(`Safe: ${result.isSafe ? 'YES' : 'NO'}`);
@@ -203,5 +197,5 @@ function formatBoundarySafetyResult(result) {
     }
     return lines.join('\n');
 }
-exports.default = verifyBoundarySafety;
+export default verifyBoundarySafety;
 //# sourceMappingURL=boundary-verifier.js.map

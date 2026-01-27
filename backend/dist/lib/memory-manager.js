@@ -1,21 +1,12 @@
-"use strict";
 // ═══════════════════════════════════════════════════════════════════════════
 // RESOURCE MANAGER - Optimized for Scalable AI Infrastructure
 // Monitors and manages memory usage during BTR calculations
 // ═══════════════════════════════════════════════════════════════════════════
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMemoryStats = getMemoryStats;
-exports.logMemory = logMemory;
-exports.checkMemory = checkMemory;
-exports.triggerGC = triggerGC;
-exports.withMemoryCheck = withMemoryCheck;
-exports.withConcurrencyLimit = withConcurrencyLimit;
-exports.getActiveCalculations = getActiveCalculations;
 const MB = 1024 * 1024;
 const MAX_HEAP = 1024 * MB; // 1GB - High-Performance AI baseline
 const WARNING_THRESHOLD = 0.80; // 80% of max heap
 const CRITICAL_THRESHOLD = 0.95; // 95% of max heap
-function getMemoryStats() {
+export function getMemoryStats() {
     const mem = process.memoryUsage();
     return {
         heapUsed: mem.heapUsed,
@@ -25,7 +16,7 @@ function getMemoryStats() {
         percentUsed: mem.heapUsed / MAX_HEAP
     };
 }
-function logMemory(label) {
+export function logMemory(label) {
     const stats = getMemoryStats();
     const heapMB = (stats.heapUsed / MB).toFixed(1);
     const percent = (stats.percentUsed * 100).toFixed(1);
@@ -39,17 +30,17 @@ function logMemory(label) {
         console.log(`🟢 Memory [${label}]: ${heapMB}MB (${percent}%)`);
     }
 }
-function checkMemory() {
+export function checkMemory() {
     const stats = getMemoryStats();
     return stats.percentUsed < CRITICAL_THRESHOLD;
 }
-function triggerGC() {
+export function triggerGC() {
     if (global.gc) {
         global.gc();
         console.log('🧹 Garbage collection triggered');
     }
 }
-async function withMemoryCheck(label, fn) {
+export async function withMemoryCheck(label, fn) {
     logMemory(`Before ${label}`);
     if (!checkMemory()) {
         triggerGC();
@@ -68,7 +59,7 @@ async function withMemoryCheck(label, fn) {
 // Queue resource management
 let activeCalculations = 0;
 const MAX_CONCURRENT = 4; // Scaled for high-performance infrastructure
-async function withConcurrencyLimit(fn) {
+export async function withConcurrencyLimit(fn) {
     while (activeCalculations >= MAX_CONCURRENT) {
         await new Promise(resolve => setTimeout(resolve, 1000));
     }
@@ -80,7 +71,7 @@ async function withConcurrencyLimit(fn) {
         activeCalculations--;
     }
 }
-function getActiveCalculations() {
+export function getActiveCalculations() {
     return activeCalculations;
 }
 //# sourceMappingURL=memory-manager.js.map

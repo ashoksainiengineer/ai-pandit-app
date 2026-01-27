@@ -1,16 +1,14 @@
-"use strict";
 // backend/src/routes/stream.ts
 // Server-Sent Events endpoint for real-time BTR progress streaming
 // Deployment Trigger: SSE Status Check & Terminal State Handling
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const drizzle_js_1 = require("../database/drizzle.js");
-const schema_js_1 = require("../database/schema.js");
-const drizzle_orm_1 = require("drizzle-orm");
-const session_events_js_1 = require("../lib/session-events.js");
-const progress_tracker_js_1 = require("../lib/progress-tracker.js");
-const logger_js_1 = require("../lib/logger.js");
-const router = (0, express_1.Router)();
+import { Router } from 'express';
+import { db } from '../database/drizzle.js';
+import { sessions } from '../database/schema.js';
+import { eq } from 'drizzle-orm';
+import { sessionEvents } from '../lib/session-events.js';
+import { getSessionProgress } from '../lib/progress-tracker.js';
+import { logger } from '../lib/logger.js';
+const router = Router();
 /**
  * GET /api/stream/:sessionId
  * Server-Sent Events endpoint for real-time progress updates
@@ -25,9 +23,9 @@ router.get('/:sessionId', async (req, res) => {
     // 🛡️ SECURITY & STATUS CHECK: Fetch session status first
     let currentStatus = 'pending';
     try {
-        const session = await drizzle_js_1.db.select({ status: schema_js_1.sessions.status })
-            .from(schema_js_1.sessions)
-            .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, sessionId))
+        const session = await db.select({ status: sessions.status })
+            .from(sessions)
+            .where(eq(sessions.id, sessionId))
             .limit(1);
         if (session.length === 0) {
             res.status(404).json({ error: 'Session not found' });
@@ -72,7 +70,7 @@ router.get('/:sessionId', async (req, res) => {
     (async () => {
         try {
             console.log(`[SSE] Fetching initial progress for ${sessionId}`);
-            const currentProgress = await (0, progress_tracker_js_1.getSessionProgress)(sessionId);
+            const currentProgress = await getSessionProgress(sessionId);
             // 🚀 IMMEDIATE FEEDBACK: If this is a fresh connection and no progress yet, send a warmup hint
             if (!currentProgress || currentProgress.currentStep === 0) {
                 sendEvent(res, {
@@ -89,12 +87,12 @@ router.get('/:sessionId', async (req, res) => {
                 });
             }
             // 🔮 Send cached AI Context if exists
-            const lastContext = session_events_js_1.sessionEvents.getLastContext(sessionId);
+            const lastContext = sessionEvents.getLastContext(sessionId);
             if (lastContext) {
                 sendEvent(res, lastContext);
             }
             // 🧠 Send cached Thinking Buffer
-            let thinkingBuffer = session_events_js_1.sessionEvents.getThinkingBuffer(sessionId);
+            let thinkingBuffer = sessionEvents.getThinkingBuffer(sessionId);
             // 🔄 FALLBACK: If memory buffer is empty (e.g. server restart), check DB-cached progress
             if (!thinkingBuffer && currentProgress?.lastAIThinking) {
                 console.log(`[SSE] 🔄 Thinking buffer missing in memory, using DB fallback for ${sessionId}`);
@@ -113,13 +111,13 @@ router.get('/:sessionId', async (req, res) => {
                 });
             }
             // 🧮 Send cached Calculation Logs (Immediate "Matrix" Effect)
-            const calcLogs = session_events_js_1.sessionEvents.getCalculationBuffer(sessionId);
+            const calcLogs = sessionEvents.getCalculationBuffer(sessionId);
             if (calcLogs && calcLogs.length > 0) {
                 console.log(`[SSE] Replaying ${calcLogs.length} calc logs for ${sessionId}`);
                 calcLogs.forEach(log => sendEvent(res, log));
             }
             // 📊 Send cached Candidate Scores (Persistence/Sync)
-            const scoreHistory = session_events_js_1.sessionEvents.getCandidateScoreBuffer(sessionId);
+            const scoreHistory = sessionEvents.getCandidateScoreBuffer(sessionId);
             if (scoreHistory && scoreHistory.length > 0) {
                 console.log(`[SSE] Replaying ${scoreHistory.length} candidate scores for ${sessionId}`);
                 scoreHistory.forEach(score => sendEvent(res, score));
@@ -130,7 +128,7 @@ router.get('/:sessionId', async (req, res) => {
         }
     })();
     // Get emitter for this session
-    const emitter = session_events_js_1.sessionEvents.getEmitter(sessionId);
+    const emitter = sessionEvents.getEmitter(sessionId);
     // Event handler
     const eventHandler = (event) => {
         sendEvent(res, event);
@@ -151,12 +149,12 @@ router.get('/:sessionId', async (req, res) => {
     }, 15000);
     // Cleanup on disconnect
     req.on('close', () => {
-        logger_js_1.logger.info('SSE connection closed', { sessionId });
+        logger.info('SSE connection closed', { sessionId });
         emitter.off('event', eventHandler);
         clearInterval(pingInterval);
     });
     req.on('error', (error) => {
-        logger_js_1.logger.error('SSE connection error', { sessionId, error });
+        logger.error('SSE connection error', { sessionId, error });
         emitter.off('event', eventHandler);
         clearInterval(pingInterval);
     });
@@ -183,5 +181,5 @@ function sendEvent(res, data) {
         console.error('Failed to send SSE event:', error);
     }
 }
-exports.default = router;
+export default router;
 //# sourceMappingURL=stream.js.map

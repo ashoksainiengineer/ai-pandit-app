@@ -1,9 +1,6 @@
-"use strict";
 // lib/server-config.ts
 // Server configuration for AI models and database
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.aiClient = exports.serverConfig = void 0;
-exports.serverConfig = {
+export const serverConfig = {
     // AI Configuration
     ai: {
         baseUrl: process.env.AI_BASE_URL || 'https://openrouter.ai/api/v1',
@@ -24,7 +21,7 @@ exports.serverConfig = {
 };
 // Database client - will be imported from drizzle
 // AI client (simplified for now)
-exports.aiClient = {
+export const aiClient = {
     messages: {
         create: async (options) => {
             // This would be the actual AI API call

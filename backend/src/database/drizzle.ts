@@ -4,7 +4,7 @@
 import 'dotenv/config'; // Load env vars immediately
 import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
-import * as schema from './schema';
+import * as schema from './schema.js';
 
 // Turso connection from environment variables
 const DATABASE_URL = process.env.TURSO_DATABASE_URL;

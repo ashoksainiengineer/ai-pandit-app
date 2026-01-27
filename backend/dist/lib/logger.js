@@ -1,9 +1,6 @@
-"use strict";
 // lib/logger.ts
 // Simple logger for the application
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.logger = void 0;
-exports.logger = {
+export const logger = {
     debug: (message, data) => {
         if (data)
             console.debug(`[DEBUG] ${message}`, data);

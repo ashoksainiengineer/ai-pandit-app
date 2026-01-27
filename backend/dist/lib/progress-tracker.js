@@ -1,17 +1,13 @@
-"use strict";
 // lib/progress-tracker.ts
 // Real-time progress tracking for BTR analysis
 // Updates database with current step, message, and percentage
 // Also emits SSE events for real-time streaming
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ProgressTracker = exports.ANALYSIS_STEPS = void 0;
-exports.getSessionProgress = getSessionProgress;
-const drizzle_js_1 = require("../database/drizzle.js");
-const schema_js_1 = require("../database/schema.js");
-const drizzle_orm_1 = require("drizzle-orm");
-const session_events_js_1 = require("./session-events.js");
+import { db } from '../database/drizzle.js';
+import { sessions } from '../database/schema.js';
+import { eq } from 'drizzle-orm';
+import { emitProgress, emitError, emitCandidateScore, emitAIContext, emitEstimatedTime, emitAIThinking } from './session-events.js';
 // 🔱 GOD-TIER BTR v7.0 STEPS (6-Stage Batch Tournament Pipeline)
-exports.ANALYSIS_STEPS = [
+export const ANALYSIS_STEPS = [
     { id: 'init', name: 'Initializing', icon: '🚀' },
     { id: 'grid', name: 'Stage 1: Exhaustive Data Generation', icon: '📊' },
     { id: 'coarse', name: 'Stage 2: Batch Tournament', icon: '🏆' },
@@ -23,7 +19,7 @@ exports.ANALYSIS_STEPS = [
 // ═════════════════════════════════════════════════════════════════════════════
 // PROGRESS TRACKER CLASS
 // ═════════════════════════════════════════════════════════════════════════════
-class ProgressTracker {
+export class ProgressTracker {
     // 🚀 STATIC REGISTRY FOR FAST POLLING (No DB Hits)
     static activeInstances = new Map();
     sessionId;
@@ -45,9 +41,9 @@ class ProgressTracker {
     initProgress() {
         return {
             currentStep: 0,
-            totalSteps: exports.ANALYSIS_STEPS.length,
+            totalSteps: ANALYSIS_STEPS.length,
             percentage: 0,
-            steps: exports.ANALYSIS_STEPS.map(step => ({
+            steps: ANALYSIS_STEPS.map(step => ({
                 ...step,
                 status: 'pending',
             })),
@@ -129,7 +125,7 @@ class ProgressTracker {
      */
     async updateETA(seconds) {
         this.progress.estimatedTimeRemaining = seconds;
-        (0, session_events_js_1.emitEstimatedTime)(this.sessionId, seconds);
+        emitEstimatedTime(this.sessionId, seconds);
         await this.saveProgress();
     }
     /**
@@ -141,7 +137,7 @@ class ProgressTracker {
         if (this.candidateBuffers.size > 0) {
             for (const [ct, buf] of this.candidateBuffers.entries()) {
                 if (buf)
-                    (0, session_events_js_1.emitAIThinking)(this.sessionId, buf, this.progress.currentStep, ct);
+                    emitAIThinking(this.sessionId, buf, this.progress.currentStep, ct);
             }
             this.candidateBuffers.clear();
         }
@@ -160,7 +156,7 @@ class ProgressTracker {
         this.progress.aiContext = context;
         this.progress.lastUpdate = new Date().toISOString();
         // Emit Real-Time Event for Frontend
-        (0, session_events_js_1.emitAIContext)(this.sessionId, context);
+        emitAIContext(this.sessionId, context);
         // We don't necessarily need to save to DB for every context switch if it's high freq,
         // but for batch sample it's low freq enough.
         await this.saveProgress(false);
@@ -193,7 +189,7 @@ class ProgressTracker {
         }
         await this.saveProgress();
         // Emit SSE event for real-time streaming
-        (0, session_events_js_1.emitProgress)(this.sessionId, stepId, stepIndex, this.progress.totalSteps, message || `Starting ${this.progress.steps[stepIndex].name}`, undefined);
+        emitProgress(this.sessionId, stepId, stepIndex, this.progress.totalSteps, message || `Starting ${this.progress.steps[stepIndex].name}`, undefined);
     }
     /**
      * Update current step with live message
@@ -210,7 +206,7 @@ class ProgressTracker {
         this.progress.lastUpdate = new Date().toISOString();
         await this.saveProgress();
         // Emit SSE event for real-time streaming
-        (0, session_events_js_1.emitProgress)(this.sessionId, this.progress.steps[currentIndex]?.id || 'unknown', currentIndex, this.progress.totalSteps, message, details);
+        emitProgress(this.sessionId, this.progress.steps[currentIndex]?.id || 'unknown', currentIndex, this.progress.totalSteps, message, details);
     }
     /**
      * Update percentage manually
@@ -220,7 +216,7 @@ class ProgressTracker {
         this.progress.lastUpdate = new Date().toISOString();
         await this.saveProgress();
         // Emit update
-        (0, session_events_js_1.emitProgress)(this.sessionId, this.progress.steps[this.progress.currentStep]?.id || 'unknown', this.progress.currentStep, this.progress.totalSteps, this.progress.liveMessage || '', undefined);
+        emitProgress(this.sessionId, this.progress.steps[this.progress.currentStep]?.id || 'unknown', this.progress.currentStep, this.progress.totalSteps, this.progress.liveMessage || '', undefined);
     }
     /**
      * Complete a step - PERSISTENT FLUSH
@@ -242,7 +238,7 @@ class ProgressTracker {
         // 🛡️ PERSISTENT FLUSH: Save thinking to DB on stage completion
         await this.saveProgress(true);
         // Emit SSE event for real-time streaming
-        (0, session_events_js_1.emitProgress)(this.sessionId, stepId, stepIndex, this.progress.totalSteps, `Completed ${this.progress.steps[stepIndex].name}`, details);
+        emitProgress(this.sessionId, stepId, stepIndex, this.progress.totalSteps, `Completed ${this.progress.steps[stepIndex].name}`, details);
     }
     /**
      * Mark step as error
@@ -256,7 +252,7 @@ class ProgressTracker {
         this.progress.lastUpdate = new Date().toISOString();
         await this.saveProgress(true); // Save state on error
         // Emit SSE error event
-        (0, session_events_js_1.emitError)(this.sessionId, error, stepId);
+        emitError(this.sessionId, error, stepId);
         // Allow some time for error to be read before cleanup?
         // Actually, we should probably keep failed sessions in memory for a bit too.
     }
@@ -288,7 +284,7 @@ class ProgressTracker {
     async addCandidateScore(score) {
         this.progress.candidateScores.push(score);
         // Emit event directly
-        (0, session_events_js_1.emitCandidateScore)(this.sessionId, score.time, score.score, score.stage, score.rank);
+        emitCandidateScore(this.sessionId, score.time, score.score, score.stage, score.rank);
         await this.saveProgress();
     }
     /**
@@ -325,12 +321,12 @@ class ProgressTracker {
                     progressJson = JSON.stringify(dbProgress);
                 }
             }
-            await drizzle_js_1.db.update(schema_js_1.sessions)
+            await db.update(sessions)
                 .set({
                 progressData: progressJson,
                 updatedAt: new Date().toISOString(),
             })
-                .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, this.sessionId));
+                .where(eq(sessions.id, this.sessionId));
         }
         catch (error) {
             console.error('Failed to save progress:', error);
@@ -343,7 +339,6 @@ class ProgressTracker {
         return this.progress;
     }
 }
-exports.ProgressTracker = ProgressTracker;
 // ═════════════════════════════════════════════════════════════════════════════
 // STATIC HELPER FUNCTIONS
 // ═════════════════════════════════════════════════════════════════════════════
@@ -351,7 +346,7 @@ exports.ProgressTracker = ProgressTracker;
  * Get progress for a session
  * 🚀 PRIORITIZES IN-MEMORY STATE FOR STREAMING
  */
-async function getSessionProgress(sessionId) {
+export async function getSessionProgress(sessionId) {
     // 1. Check In-Memory (Real-time)
     const activeInstance = ProgressTracker.getInstance(sessionId);
     if (activeInstance) {
@@ -359,9 +354,9 @@ async function getSessionProgress(sessionId) {
     }
     // 2. Fallback to Database (Persistence)
     try {
-        const result = await drizzle_js_1.db.select({ progressData: schema_js_1.sessions.progressData })
-            .from(schema_js_1.sessions)
-            .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, sessionId))
+        const result = await db.select({ progressData: sessions.progressData })
+            .from(sessions)
+            .where(eq(sessions.id, sessionId))
             .limit(1);
         if (result.length === 0 || !result[0].progressData) {
             return null;

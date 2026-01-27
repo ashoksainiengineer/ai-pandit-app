@@ -1,9 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-require("dotenv/config");
-const drizzle_1 = require("./database/drizzle");
-const schema_1 = require("./database/schema");
-const drizzle_orm_1 = require("drizzle-orm");
+import 'dotenv/config';
+import { db } from './database/drizzle.js';
+import { sessions } from './database/schema.js';
+import { eq } from 'drizzle-orm';
 async function checkSession() {
     const sessionId = process.argv[2];
     if (!sessionId) {
@@ -11,7 +9,7 @@ async function checkSession() {
         process.exit(1);
     }
     console.log(`Checking session ${sessionId}...`);
-    const result = await drizzle_1.db.select().from(schema_1.sessions).where((0, drizzle_orm_1.eq)(schema_1.sessions.id, sessionId));
+    const result = await db.select().from(sessions).where(eq(sessions.id, sessionId));
     if (result.length === 0) {
         console.log('Session not found');
     }

@@ -1,13 +1,6 @@
-"use strict";
 // lib/testimonials.ts
 // Authentic testimonials from satisfied users
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TESTIMONIALS = void 0;
-exports.getTestimonialsByRating = getTestimonialsByRating;
-exports.getRandomTestimonials = getRandomTestimonials;
-exports.getAverageRating = getAverageRating;
-exports.getTotalTestimonials = getTotalTestimonials;
-exports.TESTIMONIALS = [
+export const TESTIMONIALS = [
     {
         id: 'gaurav-verma',
         name: 'Gaurav Verma',
@@ -186,19 +179,19 @@ I now recommend AI Pandit to my fellow students for their own chart rectificatio
     }
 ];
 // Helper functions
-function getTestimonialsByRating(minRating = 5) {
-    return exports.TESTIMONIALS.filter(t => t.rating >= minRating);
+export function getTestimonialsByRating(minRating = 5) {
+    return TESTIMONIALS.filter(t => t.rating >= minRating);
 }
-function getRandomTestimonials(count = 3) {
-    const shuffled = [...exports.TESTIMONIALS].sort(() => 0.5 - Math.random());
-    return shuffled.slice(0, Math.min(count, exports.TESTIMONIALS.length));
+export function getRandomTestimonials(count = 3) {
+    const shuffled = [...TESTIMONIALS].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, Math.min(count, TESTIMONIALS.length));
 }
-function getAverageRating() {
-    const total = exports.TESTIMONIALS.reduce((sum, t) => sum + t.rating, 0);
-    return Math.round((total / exports.TESTIMONIALS.length) * 10) / 10;
+export function getAverageRating() {
+    const total = TESTIMONIALS.reduce((sum, t) => sum + t.rating, 0);
+    return Math.round((total / TESTIMONIALS.length) * 10) / 10;
 }
-function getTotalTestimonials() {
-    return exports.TESTIMONIALS.length;
+export function getTotalTestimonials() {
+    return TESTIMONIALS.length;
 }
-exports.default = exports.TESTIMONIALS;
+export default TESTIMONIALS;
 //# sourceMappingURL=testimonials.js.map

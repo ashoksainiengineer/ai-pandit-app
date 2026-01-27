@@ -1,3 +1,6 @@
+/**
+ * Users table - synced from Clerk authentication
+ */
 export declare const users: import("drizzle-orm/sqlite-core").SQLiteTableWithColumns<{
     name: "users";
     schema: undefined;
@@ -119,6 +122,9 @@ export declare const users: import("drizzle-orm/sqlite-core").SQLiteTableWithCol
     };
     dialect: "sqlite";
 }>;
+/**
+ * Sessions table - birth time rectification analysis sessions
+ */
 export declare const sessions: import("drizzle-orm/sqlite-core").SQLiteTableWithColumns<{
     name: "sessions";
     schema: undefined;
@@ -614,6 +620,9 @@ export declare const sessions: import("drizzle-orm/sqlite-core").SQLiteTableWith
     };
     dialect: "sqlite";
 }>;
+/**
+ * Calculations table - cache of ephemeris calculations
+ */
 export declare const calculations: import("drizzle-orm/sqlite-core").SQLiteTableWithColumns<{
     name: "calculations";
     schema: undefined;
@@ -803,6 +812,9 @@ export declare const calculations: import("drizzle-orm/sqlite-core").SQLiteTable
     };
     dialect: "sqlite";
 }>;
+/**
+ * Payments table - payment tracking
+ */
 export declare const payments: import("drizzle-orm/sqlite-core").SQLiteTableWithColumns<{
     name: "payments";
     schema: undefined;
@@ -979,4 +991,9 @@ export declare const payments: import("drizzle-orm/sqlite-core").SQLiteTableWith
     };
     dialect: "sqlite";
 }>;
+type User = typeof users.$inferSelect;
+type Session = typeof sessions.$inferSelect;
+type Calculation = typeof calculations.$inferSelect;
+type Payment = typeof payments.$inferSelect;
+export type { User, Session, Calculation, Payment };
 //# sourceMappingURL=schema.d.ts.map

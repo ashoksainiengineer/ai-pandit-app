@@ -1,15 +1,12 @@
-"use strict";
 // Server-side only
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.analyzeAndFilterCandidates = analyzeAndFilterCandidates;
-const ephemeris_js_1 = require("./ephemeris.js");
-const logger_js_1 = require("./logger.js");
+import { calculateEphemeris } from './ephemeris.js';
+import { logger } from './logger.js';
 // ═════════════════════════════════════════════════════════════════════════
 // QUICK FILTERING RULES (Before AI K2 analysis)
 // ═════════════════════════════════════════════════════════════════════════
-async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, longitude, timezone, lifeEvents) {
+export async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, longitude, timezone, lifeEvents) {
     try {
-        logger_js_1.logger.info('Starting candidate analysis and filtering', {
+        logger.info('Starting candidate analysis and filtering', {
             totalCandidates: candidates.length,
             dateOfBirth,
         });
@@ -21,7 +18,7 @@ async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, lon
             try {
                 // Convert timezone number to string for ephemeris calculation
                 const timezoneString = getTimezoneString(timezone);
-                const ephemerisData = await (0, ephemeris_js_1.calculateEphemeris)(dateOfBirth, candidate.time, latitude, longitude, timezoneString);
+                const ephemerisData = await calculateEphemeris(dateOfBirth, candidate.time, latitude, longitude, timezoneString);
                 // Quick scoring without full AI analysis
                 const { quickScore, eventMatches, reason } = performQuickAnalysis(ephemerisData, lifeEvents);
                 analyzedCandidates.push({
@@ -34,14 +31,14 @@ async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, lon
                     shouldAnalyzeWithAI: quickScore >= 40, // Only analyze promising candidates
                     reason,
                 });
-                logger_js_1.logger.debug('Candidate quick analysis complete', {
+                logger.debug('Candidate quick analysis complete', {
                     time: candidate.time,
                     quickScore,
                     eventMatches,
                 });
             }
             catch (error) {
-                logger_js_1.logger.error(`Quick analysis failed for ${candidate.time}`, error);
+                logger.error(`Quick analysis failed for ${candidate.time}`, error);
             }
         }
         // ─────────────────────────────────────────────────────────────────────
@@ -54,7 +51,7 @@ async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, lon
         const topCandidates = analyzedCandidates
             .filter((c) => c.shouldAnalyzeWithAI)
             .slice(0, 5); // Top 5 candidates
-        logger_js_1.logger.info('Candidate filtering complete', {
+        logger.info('Candidate filtering complete', {
             totalCandidates: analyzedCandidates.length,
             topCandidatesForAI: topCandidates.length,
             topScores: topCandidates.map((c) => ({
@@ -69,7 +66,7 @@ async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, lon
         };
     }
     catch (error) {
-        logger_js_1.logger.error('Candidate analysis failed', error);
+        logger.error('Candidate analysis failed', error);
         throw error;
     }
 }
@@ -233,5 +230,5 @@ function getTimezoneString(timezone) {
         return 'America/Los_Angeles';
     return 'UTC';
 }
-exports.default = analyzeAndFilterCandidates;
+export default analyzeAndFilterCandidates;
 //# sourceMappingURL=candidate-analyzer.js.map

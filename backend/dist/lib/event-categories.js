@@ -1,13 +1,7 @@
-"use strict";
 // lib/event-categories.ts
 // Smart event categories to help users remember life events easily
 // Users just see category → see common events → click to add
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.EVENT_CATEGORIES = void 0;
-exports.getCategoryById = getCategoryById;
-exports.getAllEventTemplates = getAllEventTemplates;
-exports.templateToLifeEvent = templateToLifeEvent;
-exports.EVENT_CATEGORIES = [
+export const EVENT_CATEGORIES = [
     {
         id: 'marriage',
         icon: '💍',
@@ -182,15 +176,15 @@ exports.EVENT_CATEGORIES = [
     },
 ];
 // Helper to get category by ID
-function getCategoryById(id) {
-    return exports.EVENT_CATEGORIES.find(cat => cat.id === id);
+export function getCategoryById(id) {
+    return EVENT_CATEGORIES.find(cat => cat.id === id);
 }
 // Helper to get all events flat list
-function getAllEventTemplates() {
-    return exports.EVENT_CATEGORIES.flatMap(cat => cat.events.map(event => ({ ...event, categoryId: cat.id })));
+export function getAllEventTemplates() {
+    return EVENT_CATEGORIES.flatMap(cat => cat.events.map(event => ({ ...event, categoryId: cat.id })));
 }
 // Helper for form submission - convert template to LifeEvent format
-function templateToLifeEvent(template, categoryId, eventDate, description) {
+export function templateToLifeEvent(template, categoryId, eventDate, description) {
     const category = getCategoryById(categoryId);
     return {
         id: `${template.id}_${Date.now()}`,
@@ -204,5 +198,5 @@ function templateToLifeEvent(template, categoryId, eventDate, description) {
         color: category?.color || '#D4AF37',
     };
 }
-exports.default = exports.EVENT_CATEGORIES;
+export default EVENT_CATEGORIES;
 //# sourceMappingURL=event-categories.js.map

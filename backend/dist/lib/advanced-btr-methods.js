@@ -1,47 +1,6 @@
-"use strict";
 // lib/advanced-btr-methods.ts
 // Advanced Vedic Astrology Methods for 99%+ BTR Accuracy
 // Includes: Yogini Dasha, Divisional Charts, Physical Traits, Advanced Aspects, Arudha Lagna
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.calculateYoginiDasha = calculateYoginiDasha;
-exports.getYoginiDashaForDate = getYoginiDashaForDate;
-exports.yoginiSupportsEvent = yoginiSupportsEvent;
-exports.calculateD2 = calculateD2;
-exports.calculateD7 = calculateD7;
-exports.calculateD9 = calculateD9;
-exports.calculateD10 = calculateD10;
-exports.calculateD30 = calculateD30;
-exports.calculateD24 = calculateD24;
-exports.calculateD40 = calculateD40;
-exports.calculateD45 = calculateD45;
-exports.calculateD60 = calculateD60;
-exports.generateDivisionalCharts = generateDivisionalCharts;
-exports.calculateShadbalaLite = calculateShadbalaLite;
-exports.scorePhysicalTraits = scorePhysicalTraits;
-exports.calculateAdvancedAspects = calculateAdvancedAspects;
-exports.calculateArudhaLagna = calculateArudhaLagna;
-exports.calculateSecondaryProgression = calculateSecondaryProgression;
-exports.getProgressedDate = getProgressedDate;
-exports.calculatePanchanga = calculatePanchanga;
-exports.calculateBoundarySafety = calculateBoundarySafety;
-exports.formatPanchanga = formatPanchanga;
-exports.formatBoundarySafety = formatBoundarySafety;
-exports.formatYoginiDashaSequence = formatYoginiDashaSequence;
-exports.formatDivisionalCharts = formatDivisionalCharts;
-exports.formatAdvancedAspects = formatAdvancedAspects;
-exports.formatPhysicalTraitsAnalysis = formatPhysicalTraitsAnalysis;
-exports.formatArudhaLagna = formatArudhaLagna;
-exports.calculateHoraLagna = calculateHoraLagna;
-exports.calculateGhatiLagna = calculateGhatiLagna;
-exports.formatSpecialLagnas = formatSpecialLagnas;
-exports.calculateFullShadbala = calculateFullShadbala;
-exports.formatShadbala = formatShadbala;
-exports.calculatePlanetaryMaturation = calculatePlanetaryMaturation;
-exports.formatPlanetaryMaturation = formatPlanetaryMaturation;
-exports.calculateAshtakavarga = calculateAshtakavarga;
-exports.detectVargottama = detectVargottama;
-exports.detectParivartana = detectParivartana;
-exports.detectPushkarNavamsa = detectPushkarNavamsa;
 // ═════════════════════════════════════════════════════════════════════════════
 // YOGINI DASHA (36-Year Cycle)
 // ═════════════════════════════════════════════════════════════════════════════
@@ -68,7 +27,7 @@ const NAKSHATRA_TO_YOGINI = {
  * Calculate Yogini Dasha sequence from birth
  * Complements Vimshottari Dasha for cross-verification
  */
-function calculateYoginiDasha(moonLongitude, birthDate) {
+export function calculateYoginiDasha(moonLongitude, birthDate) {
     const NAKSHATRA_SPAN = 360 / 27;
     const nakshatraIndex = Math.floor(moonLongitude / NAKSHATRA_SPAN);
     const positionInNakshatra = (moonLongitude % NAKSHATRA_SPAN) / NAKSHATRA_SPAN;
@@ -113,7 +72,7 @@ function calculateYoginiDasha(moonLongitude, birthDate) {
 /**
  * Get Yogini Dasha active on a specific date
  */
-function getYoginiDashaForDate(periods, eventDate) {
+export function getYoginiDashaForDate(periods, eventDate) {
     for (const period of periods) {
         if (eventDate >= period.startDate && eventDate <= period.endDate) {
             return period;
@@ -124,7 +83,7 @@ function getYoginiDashaForDate(periods, eventDate) {
 /**
  * Check if Yogini Dasha supports an event type
  */
-function yoginiSupportsEvent(yogini, eventCategory, eventType) {
+export function yoginiSupportsEvent(yogini, eventCategory, eventType) {
     const category = eventCategory.toLowerCase();
     const type = eventType.toLowerCase();
     // Yogini-event correlations
@@ -165,7 +124,7 @@ const ZODIAC_SIGNS = [
  * Calculate D2 (Hora) Chart - Wealth/Health
  * Each sign divided into 2 parts (15° each)
  */
-function calculateD2(longitude) {
+export function calculateD2(longitude) {
     const signIndex = Math.floor(longitude / 30);
     const degreeInSign = longitude % 30;
     // Odd signs (Aries=0, Gemini=2, etc.): First half = Sun (Leo), Second half = Moon (Cancer)
@@ -188,7 +147,7 @@ function calculateD2(longitude) {
  * Calculate D7 (Saptamsha) Chart - Children/Education
  * Each sign divided into 7 parts (~4.286° each)
  */
-function calculateD7(longitude) {
+export function calculateD7(longitude) {
     const signIndex = Math.floor(longitude / 30);
     const degreeInSign = longitude % 30;
     const saptamshaSpan = 30 / 7;
@@ -206,7 +165,7 @@ function calculateD7(longitude) {
  * Calculate D9 (Navamsha) Chart - Marriage/Dharma
  * Each sign divided into 9 parts (3.333° each)
  */
-function calculateD9(longitude) {
+export function calculateD9(longitude) {
     const signIndex = Math.floor(longitude / 30);
     const degreeInSign = longitude % 30;
     const navamshaSpan = 30 / 9;
@@ -224,7 +183,7 @@ function calculateD9(longitude) {
  * Calculate D10 (Dasamsha) Chart - Career/Authority
  * Each sign divided into 10 parts (3° each)
  */
-function calculateD10(longitude) {
+export function calculateD10(longitude) {
     const signIndex = Math.floor(longitude / 30);
     const degreeInSign = longitude % 30;
     const dasamshaSpan = 3;
@@ -242,7 +201,7 @@ function calculateD10(longitude) {
  * Calculate D30 (Trimshamsha) Chart - Acute Events/Misfortune
  * Each sign has specific planet rulerships for 5° spans
  */
-function calculateD30(longitude) {
+export function calculateD30(longitude) {
     const signIndex = Math.floor(longitude / 30);
     const degreeInSign = longitude % 30;
     const isOddSign = signIndex % 2 === 0;
@@ -267,7 +226,7 @@ function calculateD30(longitude) {
  * Calculate D24 (Chaturvimshamsha) Chart - Education/Knowledge
  * Each sign divided into 24 parts (1.25° each)
  */
-function calculateD24(longitude) {
+export function calculateD24(longitude) {
     const signIndex = Math.floor(longitude / 30);
     const degreeInSign = longitude % 30;
     const divNum = Math.floor(degreeInSign / 1.25);
@@ -283,7 +242,7 @@ function calculateD24(longitude) {
  * Calculate D40 (Khavedamsha) Chart - General Auspiciousness
  * Each sign divided into 40 parts (0.75° each)
  */
-function calculateD40(longitude) {
+export function calculateD40(longitude) {
     const signIndex = Math.floor(longitude / 30);
     const degreeInSign = longitude % 30;
     const divNum = Math.floor(degreeInSign / 0.75);
@@ -299,7 +258,7 @@ function calculateD40(longitude) {
  * Calculate D45 (Akshavedamsha) Chart - Character/Luck
  * Each sign divided into 45 parts (0.666° / 40 minutes each)
  */
-function calculateD45(longitude) {
+export function calculateD45(longitude) {
     const signIndex = Math.floor(longitude / 30);
     const degreeInSign = longitude % 30;
     const divNum = Math.floor(degreeInSign / (30 / 45));
@@ -317,7 +276,7 @@ function calculateD45(longitude) {
  * Each sign divided into 60 parts (0.5° each)
  * Crucial for seconds-level rectification.
  */
-function calculateD60(longitude) {
+export function calculateD60(longitude) {
     const totalHalfDegrees = Math.floor(longitude / 0.5);
     const signIndex = Math.floor(longitude / 30);
     const halfDegreeInSign = Math.floor((longitude % 30) / 0.5);
@@ -331,7 +290,7 @@ function calculateD60(longitude) {
 /**
  * Generate complete divisional chart for all planets
  */
-function generateDivisionalCharts(ephemeris) {
+export function generateDivisionalCharts(ephemeris) {
     const charts = {};
     const chartTypes = ['D2', 'D7', 'D9', 'D10', 'D24', 'D30', 'D40', 'D45', 'D60'];
     for (const type of chartTypes) {
@@ -396,7 +355,7 @@ function generateDivisionalCharts(ephemeris) {
  * Positional Strength (Shadbala-Lite)
  * Identifies Exaltation, Debilitation, and Moolatrikona.
  */
-function calculateShadbalaLite(ephemeris) {
+export function calculateShadbalaLite(ephemeris) {
     const results = {};
     const strengths = {
         sun: { exalt: 'Aries', debilit: 'Libra', mt: 'Leo' },
@@ -454,7 +413,7 @@ const MOON_COMPLEXION = {
  * Score physical traits match with chart
  * High-impact method: Can eliminate 20-30% of candidates early
  */
-function scorePhysicalTraits(ephemeris, traits) {
+export function scorePhysicalTraits(ephemeris, traits) {
     let score = 50; // Start neutral
     const matches = [];
     const mismatches = [];
@@ -573,7 +532,7 @@ const PARASHARI_SPECIAL_DRISHTI = {
  * Standard Vedic Rule: All planets aspect 7th house.
  * Special Aspects: Mars (4,8), Jupiter (5,9), Saturn (3,10).
  */
-function calculateAdvancedAspects(ephemeris) {
+export function calculateAdvancedAspects(ephemeris) {
     const aspects = [];
     const planetNames = Object.keys(ephemeris.planets);
     for (let i = 0; i < planetNames.length; i++) {
@@ -627,7 +586,7 @@ const SIGN_LORDS = {
 /**
  * Calculate Arudha Lagna (AL) - Shows public image and career success
  */
-function calculateArudhaLagna(ephemeris) {
+export function calculateArudhaLagna(ephemeris) {
     const lagnaSign = ephemeris.ascendant.sign;
     const lagnaLord = SIGN_LORDS[lagnaSign];
     const lagnaLordPosition = ephemeris.planets[lagnaLord]?.longitude || 0;
@@ -692,7 +651,7 @@ function checkDebilitation(planet, sign) {
  * Calculate secondary progressions for a life event
  * 1 day after birth = 1 year of life
  */
-function calculateSecondaryProgression(birthDate, eventDate, ephemerisCalculator) {
+export function calculateSecondaryProgression(birthDate, eventDate, ephemerisCalculator) {
     // Calculate age at event
     const ageInYears = (eventDate.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
     // Progressed date = birth date + (age in days)
@@ -710,7 +669,7 @@ function calculateSecondaryProgression(birthDate, eventDate, ephemerisCalculator
 /**
  * Get progressed date for an event age
  */
-function getProgressedDate(birthDate, eventAge) {
+export function getProgressedDate(birthDate, eventAge) {
     const progressedDate = new Date(birthDate);
     progressedDate.setDate(progressedDate.getDate() + eventAge);
     return progressedDate;
@@ -730,7 +689,7 @@ const YOGA_NAMES = [
 /**
  * Calculate Panchanga elements from Sun and Moon positions
  */
-function calculatePanchanga(ephemeris, birthDate) {
+export function calculatePanchanga(ephemeris, birthDate) {
     const sunLong = ephemeris.planets.sun.longitude;
     const moonLong = ephemeris.planets.moon.longitude;
     // Tithi: (Moon - Sun) / 12
@@ -758,7 +717,7 @@ function calculatePanchanga(ephemeris, birthDate) {
 /**
  * Calculate how close we are to critical sign/nakshatra boundaries in SECONDS
  */
-function calculateBoundarySafety(ephemeris) {
+export function calculateBoundarySafety(ephemeris) {
     const lagnaLong = ephemeris.ascendant.longitude;
     const moonLong = ephemeris.planets.moon.longitude;
     // Sign boundary (every 30 degrees)
@@ -783,14 +742,14 @@ function calculateBoundarySafety(ephemeris) {
 // ═════════════════════════════════════════════════════════════════════════════
 // FORMATTING ENHANCEMENTS
 // ═════════════════════════════════════════════════════════════════════════════
-function formatPanchanga(p) {
+export function formatPanchanga(p) {
     return `PANCHANGA:
 Tithi: ${p.tithi.name} (${p.tithi.percentage.toFixed(1)}% complete)
 Yoga: ${p.yoga.name} (${p.yoga.percentage.toFixed(1)}% complete)
 Karana: ${p.karana.name}
 Weekday: ${p.weekday}`;
 }
-function formatBoundarySafety(b) {
+export function formatBoundarySafety(b) {
     return `BOUNDARY SENSITIVITY:
 Lagna Sign Boundary: ${b.lagnaSignBoundary}s away
 Moon Nakshatra Boundary: ${b.moonNakshatraBoundary}s away
@@ -799,7 +758,7 @@ Status: ${b.isDangerous ? '⚠️ CRITICAL (Highly sensitive to seconds)' : 'Sta
 // ═════════════════════════════════════════════════════════════════════════════
 // FORMATTING FOR AI K2 PROMPTS
 // ═════════════════════════════════════════════════════════════════════════════
-function formatYoginiDashaSequence(periods) {
+export function formatYoginiDashaSequence(periods) {
     const lines = ['YOGINI DASHA SEQUENCE (36-year cycle):'];
     for (const period of periods.slice(0, 15)) {
         const start = period.startDate.toISOString().split('T')[0];
@@ -808,7 +767,7 @@ function formatYoginiDashaSequence(periods) {
     }
     return lines.join('\n');
 }
-function formatDivisionalCharts(charts) {
+export function formatDivisionalCharts(charts) {
     const lines = [];
     for (const [chartName, chart] of Object.entries(charts)) {
         lines.push(`\n${chartName} CHART (${getChartPurpose(chartName)}):`);
@@ -833,14 +792,14 @@ function getChartPurpose(chartName) {
     };
     return purposes[chartName] || 'General';
 }
-function formatAdvancedAspects(aspects) {
+export function formatAdvancedAspects(aspects) {
     const lines = ['Vedic Parashari Drishti (Sign-based aspects):'];
     for (const aspect of aspects.slice(0, 20)) {
         lines.push(`${aspect.planet1.toUpperCase()} → ${aspect.planet2.toUpperCase()}: ${aspect.aspectType} (Distance: ${aspect.houseDistance} signs, Strength: ${aspect.strength}%)`);
     }
     return lines.join('\n');
 }
-function formatPhysicalTraitsAnalysis(analysis) {
+export function formatPhysicalTraitsAnalysis(analysis) {
     const lines = [
         'PHYSICAL TRAITS ANALYSIS:',
         `Score: ${analysis.score}/100`,
@@ -854,7 +813,7 @@ function formatPhysicalTraitsAnalysis(analysis) {
     ];
     return lines.join('\n');
 }
-function formatArudhaLagna(al) {
+export function formatArudhaLagna(al) {
     return `ARUDHA LAGNA (Public Image):
 Sign: ${al.sign}
 Lord: ${al.lord}
@@ -864,7 +823,7 @@ Significance: Shows how person is perceived publicly, career success, material a
 /**
  * Calculate Hora Lagna (HL) - Wealth/Status verification
  */
-function calculateHoraLagna(sunriseJd, birthJd, ascendantLongitude) {
+export function calculateHoraLagna(sunriseJd, birthJd, ascendantLongitude) {
     // Time since sunrise in hours
     const dt = (birthJd - sunriseJd) * 24;
     // HL = Sun (at sunrise) + dt * 30 (approximately, but accurately using BPHS house-based method)
@@ -881,7 +840,7 @@ function calculateHoraLagna(sunriseJd, birthJd, ascendantLongitude) {
 /**
  * Calculate Ghati Lagna (GL) - Power/Authority verification
  */
-function calculateGhatiLagna(sunriseJd, birthJd, ascendantLongitude) {
+export function calculateGhatiLagna(sunriseJd, birthJd, ascendantLongitude) {
     // Time since sunrise in hours
     const dt = (birthJd - sunriseJd) * 24;
     // GL = Asc + (dt * 60)
@@ -894,7 +853,7 @@ function calculateGhatiLagna(sunriseJd, birthJd, ascendantLongitude) {
         degree: glLong % 30
     };
 }
-function formatSpecialLagnas(hl, gl) {
+export function formatSpecialLagnas(hl, gl) {
     return `SPECIAL LAGNAS:
 1. Hora Lagna (Wealth/Status): ${hl.sign} at ${hl.degree.toFixed(2)}°
    Verification: Check HL house placements for major financial gains/losses.
@@ -908,7 +867,7 @@ function formatSpecialLagnas(hl, gl) {
  * Calculates the full Shadbala (Sixfold Strength) for all planets.
  * Returns score in 'Rupas' (converted to 0-100 for normalization).
  */
-function calculateFullShadbala(ephemeris) {
+export function calculateFullShadbala(ephemeris) {
     const planets = ['sun', 'moon', 'mars', 'mercury', 'jupiter', 'venus', 'saturn'];
     const results = {};
     const EXALTATION = { sun: 10, moon: 33, mars: 298, mercury: 165, jupiter: 95, venus: 357, saturn: 200 };
@@ -953,7 +912,7 @@ function calculateFullShadbala(ephemeris) {
     }
     return results;
 }
-function formatShadbala(strengths) {
+export function formatShadbala(strengths) {
     const lines = ['SHADBALA (Full 6-Source Planetary Power Ratings):'];
     for (const [planet, power] of Object.entries(strengths)) {
         lines.push(`${planet.toUpperCase()}: ${power} points (${power > 150 ? 'Strong' : power > 100 ? 'Moderate' : 'Weak'})`);
@@ -978,7 +937,7 @@ const MATURATION_AGES = {
  * Calculate the dates when planets mature in a person's life.
  * These are pivotal years where the planet's energy fully stabilizes.
  */
-function calculatePlanetaryMaturation(birthDate) {
+export function calculatePlanetaryMaturation(birthDate) {
     const maturation = [];
     for (const [planet, age] of Object.entries(MATURATION_AGES)) {
         maturation.push({
@@ -990,7 +949,7 @@ function calculatePlanetaryMaturation(birthDate) {
     // Sort by age
     return maturation.sort((a, b) => a.age - b.age);
 }
-function formatPlanetaryMaturation(maturation) {
+export function formatPlanetaryMaturation(maturation) {
     const lines = ['PLANETARY MATURATION AGES (Traditional Vedic Pivot Years):'];
     for (const m of maturation) {
         lines.push(`${m.planet}: Age ${m.age} (${m.date.toISOString().split('T')[0]})`);
@@ -1084,7 +1043,7 @@ const PLANET_NAMES_AV = ['sun', 'moon', 'mars', 'mercury', 'jupiter', 'venus', '
  * Calculates Ashtakavarga Bindus for all houses.
  * Returns both individual Bhinnashtakavarga (BAV) and total Sarvashtakavarga (SAV).
  */
-function calculateAshtakavarga(ephemeris) {
+export function calculateAshtakavarga(ephemeris) {
     const bav = {};
     const sav = new Array(12).fill(0);
     // 1. Get positions of all sources
@@ -1131,7 +1090,7 @@ function addYears(date, years) {
 /**
  * Detect Vargottama planets (Same sign in D1 and D9)
  */
-function detectVargottama(ephemeris) {
+export function detectVargottama(ephemeris) {
     const vargottama = [];
     const d9 = calculateD9; // helper
     for (const [name, pos] of Object.entries(ephemeris.planets)) {
@@ -1145,7 +1104,7 @@ function detectVargottama(ephemeris) {
 /**
  * Detect Parivartana Yoga (Exchange of House Lords)
  */
-function detectParivartana(ephemeris) {
+export function detectParivartana(ephemeris) {
     const SIGN_LORDS = {
         Aries: 'Mars', Taurus: 'Venus', Gemini: 'Mercury', Cancer: 'Moon',
         Leo: 'Sun', Virgo: 'Mercury', Libra: 'Venus', Scorpio: 'Mars',
@@ -1197,7 +1156,7 @@ function getLordOfHouse(h, lagnaSign) {
 /**
  * Detect Pushkar Navamsa (Highly auspicious degrees in Navamsa)
  */
-function detectPushkarNavamsa(ephemeris) {
+export function detectPushkarNavamsa(ephemeris) {
     const pushkar = [];
     const ZODIAC_SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
     // Pushkar Navamsa signs: Taurus, Virgo, Libra, Sagittarius, Capricorn, Pisces (specifically signs 2, 6, 7, 9, 10, 12)

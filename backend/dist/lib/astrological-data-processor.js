@@ -1,9 +1,6 @@
-"use strict";
 // lib/astrological-data-processor.ts
 // Process ephemeris data and generate astrological reports
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateAstrologicalReport = generateAstrologicalReport;
-function generateAstrologicalReport(ephemerisData, lifeEvents) {
+export function generateAstrologicalReport(ephemerisData, lifeEvents) {
     const natalChart = generateNatalChartReport(ephemerisData);
     const planetaryAnalysis = generatePlanetaryAnalysis(ephemerisData);
     const houseAnalysis = generateHouseAnalysis(ephemerisData);

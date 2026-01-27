@@ -1,37 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.NAKSHATRAS = exports.DASHA_YEARS = void 0;
-exports.calculateLahiriAyanamsa = calculateLahiriAyanamsa;
-exports.tropicalToSidereal = tropicalToSidereal;
-exports.calculateVimshottariDasha = calculateVimshottariDasha;
-exports.getDashaForDate = getDashaForDate;
-exports.dashaSupportsEvent = dashaSupportsEvent;
-exports.formatDashaSequence = formatDashaSequence;
-exports.formatDashaForDate = formatDashaForDate;
-exports.getNakshatraForLongitude = getNakshatraForLongitude;
-exports.calculateHouse = calculateHouse;
-exports.getHouseLord = getHouseLord;
-exports.getDignity = getDignity;
-exports.getAllHouseLords = getAllHouseLords;
-exports.calculateAllVargas = calculateAllVargas;
-exports.calculateFunctionalNature = calculateFunctionalNature;
-exports.calculateAspects = calculateAspects;
-exports.calculateAshtakavarga = calculateAshtakavarga;
-exports.calculateShadbala = calculateShadbala;
-exports.detectYogas = detectYogas;
-exports.verifyDoubleTransit = verifyDoubleTransit;
-exports.calculateArudhas = calculateArudhas;
-exports.calculatePanchanga = calculatePanchanga;
-exports.calculateBaladiAvastha = calculateBaladiAvastha;
-exports.getD60Deity = getD60Deity;
-exports.calculateVimsopakaBala = calculateVimsopakaBala;
-exports.detectBhavaChalitDiscrepancy = detectBhavaChalitDiscrepancy;
-exports.calculatePanchadhaSambandha = calculatePanchadhaSambandha;
-exports.calculateIshtaKashtaPhala = calculateIshtaKashtaPhala;
-const ephemeris_js_1 = require("./ephemeris.js");
+import { getAyanamsa } from './ephemeris.js';
 // ═════════════════════════════════════════════════════════════════════════════
 // Vimshottari Dasha periods (in years)
-exports.DASHA_YEARS = {
+export const DASHA_YEARS = {
     Ketu: 7,
     Venus: 20,
     Sun: 6,
@@ -93,13 +63,13 @@ const NAKSHATRA_SPAN = 360 / 27; // 13.333...°
  * Calculate Lahiri Ayanamsa for a given Julian Day
  * Synchronized with Swiss Ephemeris for God-Tier Precision.
  */
-function calculateLahiriAyanamsa(julianDay) {
-    return (0, ephemeris_js_1.getAyanamsa)(julianDay);
+export function calculateLahiriAyanamsa(julianDay) {
+    return getAyanamsa(julianDay);
 }
 /**
  * Convert tropical longitude to sidereal (Vedic)
  */
-function tropicalToSidereal(tropicalLongitude, julianDay) {
+export function tropicalToSidereal(tropicalLongitude, julianDay) {
     const ayanamsa = calculateLahiriAyanamsa(julianDay);
     let sidereal = tropicalLongitude - ayanamsa;
     if (sidereal < 0)
@@ -113,7 +83,7 @@ function tropicalToSidereal(tropicalLongitude, julianDay) {
  * Calculate complete Vimshottari Dasha sequence from birth
  * This is THE most important calculation for birth time rectification
  */
-function calculateVimshottariDasha(moonLongitude, // Sidereal longitude of Moon
+export function calculateVimshottariDasha(moonLongitude, // Sidereal longitude of Moon
 birthDate, maxLevel = 5 // Allow engine-level throttling for memory safety
 ) {
     // Step 1: Determine birth nakshatra
@@ -123,7 +93,7 @@ birthDate, maxLevel = 5 // Allow engine-level throttling for memory safety
     // Step 2: Calculate position within nakshatra (0 to 1)
     const positionInNakshatra = (moonLongitude % NAKSHATRA_SPAN) / NAKSHATRA_SPAN;
     // Step 3: Calculate elapsed portion of birth dasha
-    const birthDashaYears = exports.DASHA_YEARS[birthNakshatraLord];
+    const birthDashaYears = DASHA_YEARS[birthNakshatraLord];
     const elapsedYears = positionInNakshatra * birthDashaYears;
     const remainingYears = birthDashaYears - elapsedYears;
     // Step 4: Build all dasha periods
@@ -150,7 +120,7 @@ birthDate, maxLevel = 5 // Allow engine-level throttling for memory safety
                 dashaIndex = (dashaIndex + 1) % 9;
                 continue; // Already added birth dasha
             }
-            const years = exports.DASHA_YEARS[lord];
+            const years = DASHA_YEARS[lord];
             const endDate = addYears(currentDate, years);
             periods.push({
                 lord,
@@ -184,7 +154,7 @@ currentLevel = 2) {
     for (let i = 0; i < 9; i++) {
         const index = (startIndex + i) % 9;
         const lord = DASHA_SEQUENCE[index];
-        const lordYears = exports.DASHA_YEARS[lord];
+        const lordYears = DASHA_YEARS[lord];
         // Traditional Rule: Sub-period is proportional to planet's years in 120-year cycle
         const proportion = lordYears / TOTAL_DASHA_YEARS;
         let pDurationMs = totalDurationMs * proportion;
@@ -218,7 +188,7 @@ currentLevel = 2) {
  * Get Dasha active on a specific date (5 levels deep)
  * Used to verify life events with GOD-TIER precision
  */
-function getDashaForDate(periods, eventDate) {
+export function getDashaForDate(periods, eventDate) {
     for (const maha of periods) {
         if (eventDate >= maha.startDate && eventDate <= maha.endDate) {
             // Level 2 (Antar)
@@ -386,7 +356,7 @@ function calculateDashaSandhi(dasha, date) {
 /**
  * Check if a dasha supports a particular event type
  */
-function dashaSupportsEvent(dasha, eventCategory, eventType) {
+export function dashaSupportsEvent(dasha, eventCategory, eventType) {
     const category = eventCategory.toLowerCase();
     const type = eventType.toLowerCase();
     let supports = false;
@@ -440,7 +410,7 @@ function dashaSupportsEvent(dasha, eventCategory, eventType) {
 /**
  * Format dasha sequence for AI K2 analysis
  */
-function formatDashaSequence(periods) {
+export function formatDashaSequence(periods) {
     const lines = ['VIMSHOTTARI DASHA SEQUENCE:'];
     for (const period of periods.slice(0, 12)) { // First 12 mahadashas (~100 years)
         const start = formatDate(period.startDate);
@@ -464,7 +434,7 @@ function formatDashaSequence(periods) {
 /**
  * Format dasha for a specific date
  */
-function formatDashaForDate(periods, date, eventDescription) {
+export function formatDashaForDate(periods, date, eventDescription) {
     const dasha = getDashaForDate(periods, date);
     if (!dasha) {
         return `${formatDate(date)}: Unable to determine dasha (date out of range)`;
@@ -488,7 +458,7 @@ function formatDate(date) {
 // ═════════════════════════════════════════════════════════════════════════════
 // NAKSHATRA UTILITIES
 // ═════════════════════════════════════════════════════════════════════════════
-exports.NAKSHATRAS = [
+export const NAKSHATRAS = [
     { name: 'Ashwini', lord: 'Ketu', deity: 'Ashwini Kumaras', startDegree: 0 },
     { name: 'Bharani', lord: 'Venus', deity: 'Yama', startDegree: 13.333 },
     { name: 'Krittika', lord: 'Sun', deity: 'Agni', startDegree: 26.667 },
@@ -520,9 +490,9 @@ exports.NAKSHATRAS = [
 /**
  * Get nakshatra for a longitude
  */
-function getNakshatraForLongitude(siderealLongitude) {
+export function getNakshatraForLongitude(siderealLongitude) {
     const index = Math.floor(siderealLongitude / NAKSHATRA_SPAN);
-    const nakshatra = exports.NAKSHATRAS[index % 27];
+    const nakshatra = NAKSHATRAS[index % 27];
     // Calculate pada (quarter) - each nakshatra has 4 padas
     const positionInNakshatra = siderealLongitude % NAKSHATRA_SPAN;
     const pada = Math.floor(positionInNakshatra / (NAKSHATRA_SPAN / 4)) + 1;
@@ -582,7 +552,7 @@ const DEBILITATION_SIGNS = {
  * @param planetSign Planet Sign Name
  * @returns House Number (1-12)
  */
-function calculateHouse(ascSign, planetSign) {
+export function calculateHouse(ascSign, planetSign) {
     const ascIdx = ZODIAC_SIGNS.indexOf(ascSign);
     const pltIdx = ZODIAC_SIGNS.indexOf(planetSign);
     if (ascIdx === -1 || pltIdx === -1)
@@ -595,7 +565,7 @@ function calculateHouse(ascSign, planetSign) {
 /**
  * Get the Lord of a specific house number for a given Ascendant
  */
-function getHouseLord(ascSign, houseNum) {
+export function getHouseLord(ascSign, houseNum) {
     const ascIdx = ZODIAC_SIGNS.indexOf(ascSign);
     // Target sign index = (ascIndex + houseNum - 1) % 12
     const targetIdx = (ascIdx + houseNum - 1) % 12;
@@ -605,7 +575,7 @@ function getHouseLord(ascSign, houseNum) {
 /**
  * Calculate Planetary Dignity
  */
-function getDignity(planet, sign) {
+export function getDignity(planet, sign) {
     if (EXALTATION_SIGNS[planet] === sign)
         return 'Exalted';
     if (DEBILITATION_SIGNS[planet] === sign)
@@ -633,14 +603,14 @@ function getDignity(planet, sign) {
 /**
  * Get map of all house lords for a chart
  */
-function getAllHouseLords(ascSign) {
+export function getAllHouseLords(ascSign) {
     const lords = {};
     for (let i = 1; i <= 12; i++) {
         lords[i] = getHouseLord(ascSign, i);
     }
     return lords;
 }
-function calculateAllVargas(ephemeris) {
+export function calculateAllVargas(ephemeris) {
     const vargas = {};
     const divisions = [2, 3, 4, 7, 9, 10, 12, 16, 20, 24, 27, 30, 40, 45, 60];
     for (const v of divisions) {
@@ -767,7 +737,7 @@ function calculateVargaPosition(v, longitude, name) {
     };
 }
 // 1. FUNCTIONAL NATURE ALGORITHM
-function calculateFunctionalNature(ascSign, planet) {
+export function calculateFunctionalNature(ascSign, planet) {
     if (planet === 'Rahu' || planet === 'Ketu')
         return { role: 'Malefic', reason: 'Natural Malefic' };
     // Calculate lordship houses
@@ -794,7 +764,7 @@ function calculateFunctionalNature(ascSign, planet) {
     // We default to Neutral if no other rule hit.
     return { role: 'Neutral', reason: 'Rules Kendra House (4/7/10) without Trine/Dusthana lordship' };
 }
-function calculateAspects(sourcePlanet, sourceLong, targetMap, // planet -> longitude
+export function calculateAspects(sourcePlanet, sourceLong, targetMap, // planet -> longitude
 ascendantLong) {
     const hits = [];
     // Standard Vedic Aspects + Special Rules
@@ -865,7 +835,7 @@ function getAspectName(angle) {
 // ═════════════════════════════════════════════════════════════════════════════
 // ASHTAKAVARGA (Point-Based Scoring)
 // ═════════════════════════════════════════════════════════════════════════════
-function calculateAshtakavarga(ephemeris) {
+export function calculateAshtakavarga(ephemeris) {
     const planets = ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'];
     const results = {};
     for (const p of planets) {
@@ -915,7 +885,7 @@ function calculateBinnashtakavarga(planet, ephemeris) {
     }
     return points;
 }
-function calculateShadbala(ephemeris) {
+export function calculateShadbala(ephemeris) {
     const planetNames = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn'];
     const results = {};
     for (const name of planetNames) {
@@ -971,7 +941,7 @@ function calculateShadbala(ephemeris) {
     }
     return results;
 }
-function detectYogas(ephemeris) {
+export function detectYogas(ephemeris) {
     const yogas = [];
     const p = ephemeris.planets;
     // 1. Gaja Kesari Yoga (Jupiter in 1, 4, 7, 10 from Moon)
@@ -1066,7 +1036,7 @@ function detectYogas(ephemeris) {
  * Double Transit Verification: Jupiter AND Saturn both influencing a house.
  * Powerful Vedic rule for event manifestation.
  */
-function verifyDoubleTransit(transitEphemeris, birthAscSign, targetHouse) {
+export function verifyDoubleTransit(transitEphemeris, birthAscSign, targetHouse) {
     const p = transitEphemeris.planets;
     const saLong = p.saturn.longitude;
     const juLong = p.jupiter.longitude;
@@ -1088,7 +1058,7 @@ function verifyDoubleTransit(transitEphemeris, birthAscSign, targetHouse) {
     };
 }
 const ZODIAC_SIGNS_LIST = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
-function calculateArudhas(ephemeris) {
+export function calculateArudhas(ephemeris) {
     const ascSign = ephemeris.ascendant.sign;
     const ascSignIdx = ZODIAC_SIGNS_LIST.indexOf(ascSign);
     // 1. Arudha Lagna (AL)
@@ -1121,7 +1091,7 @@ const YOGAS = [
     'Brahma', 'Indra', 'Vaidhriti'
 ];
 const VARAS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-function calculatePanchanga(jd, sunLong, moonLong) {
+export function calculatePanchanga(jd, sunLong, moonLong) {
     // 1. Vara (Day of week)
     const vara = VARAS[Math.floor(jd + 1.5) % 7];
     // 2. Tithi (Moon - Sun)
@@ -1145,7 +1115,7 @@ function calculatePanchanga(jd, sunLong, moonLong) {
 /**
  * Calculate Baladi Avastha (Infant to Dead) based on degrees and sign oddity.
  */
-function calculateBaladiAvastha(longitude) {
+export function calculateBaladiAvastha(longitude) {
     const degree = longitude % 30;
     const signIdx = Math.floor(longitude / 30);
     const isOdd = signIdx % 2 === 0; // Aries (0), Gemini (2), etc.
@@ -1175,7 +1145,7 @@ const D60_DEITIES = [
 /**
  * Get D60 Deity based on 0.5 degree division.
  */
-function getD60Deity(longitude) {
+export function getD60Deity(longitude) {
     const degreeInSign = longitude % 30;
     const index = Math.floor(degreeInSign / 0.5);
     const signIdx = Math.floor(longitude / 30);
@@ -1198,7 +1168,7 @@ const VIM_WEIGHTS = {
 /**
  * Calculate Vimsopaka Bala - The ultimate strength across all 16 divisional charts
  */
-function calculateVimsopakaBala(ephemeris) {
+export function calculateVimsopakaBala(ephemeris) {
     const planets = ['sun', 'moon', 'mars', 'mercury', 'jupiter', 'venus', 'saturn'];
     const scores = {};
     const vargas = ephemeris.divisionalCharts || {};
@@ -1236,7 +1206,7 @@ function calculateVimsopakaBala(ephemeris) {
 /**
  * Detect Bhava Chalit Discrepancy (When planet sign-house differs from cusp-house)
  */
-function detectBhavaChalitDiscrepancy(ephemeris) {
+export function detectBhavaChalitDiscrepancy(ephemeris) {
     const discrepancies = [];
     const ascLong = ephemeris.ascendant.longitude;
     // Simplistic Mid-Point House System (Cusp-to-Cusp)
@@ -1271,7 +1241,7 @@ const NATURAL_ENEMIES = {
 /**
  * Calculate Panchadha Sambandha (Natural + Temporal)
  */
-function calculatePanchadhaSambandha(planet, other, ephemeris) {
+export function calculatePanchadhaSambandha(planet, other, ephemeris) {
     if (planet === other)
         return 'Mitra'; // Self is neutral/friend
     // 1. Natural Relationship (Naisargika)
@@ -1306,7 +1276,7 @@ function calculatePanchadhaSambandha(planet, other, ephemeris) {
 /**
  * Calculate Ishta Phala - Benefic fruit of a planet (0-60 points)
  */
-function calculateIshtaKashtaPhala(planet, ephemeris) {
+export function calculateIshtaKashtaPhala(planet, ephemeris) {
     const p = ephemeris.planets[planet.toLowerCase()];
     if (!p)
         return { ishta: 0, kashta: 0 };

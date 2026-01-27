@@ -1,14 +1,8 @@
-"use strict";
 // lib/event-requirements.ts
 // Comprehensive event requirements for 99%+ BTR accuracy
 // Maps each event to Vedic analysis methods and accuracy contribution
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.EVENT_REQUIREMENTS = exports.VEDIC_METHODS = void 0;
-exports.calculateAccuracy = calculateAccuracy;
-exports.getMinimumRequirements = getMinimumRequirements;
-exports.getEventWithMethods = getEventWithMethods;
 // All Vedic methods used in BTR
-exports.VEDIC_METHODS = {
+export const VEDIC_METHODS = {
     VIMSHOTTARI: {
         name: 'Vimshottari Dasha',
         shortName: 'VD',
@@ -85,7 +79,7 @@ exports.VEDIC_METHODS = {
         description: 'Day-for-year progression for life events'
     }
 };
-exports.EVENT_REQUIREMENTS = [
+export const EVENT_REQUIREMENTS = [
     {
         id: 'marriage',
         name: 'Marriage & Relationships',
@@ -102,11 +96,11 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 8,
                 icon: '💒',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.NAVAMSA,
-                    exports.VEDIC_METHODS.CHARA,
-                    exports.VEDIC_METHODS.TRANSIT,
-                    exports.VEDIC_METHODS.YOGINI
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.NAVAMSA,
+                    VEDIC_METHODS.CHARA,
+                    VEDIC_METHODS.TRANSIT,
+                    VEDIC_METHODS.YOGINI
                 ],
                 explanation: 'Marriage timing is one of the strongest rectification markers. It verifies the 7th house lord dasha, Venus/Jupiter periods, and Navamsa activation. Saturn and Jupiter transits to 7th house confirm the exact timing window.'
             },
@@ -117,9 +111,9 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 4,
                 icon: '💍',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.NAVAMSA,
-                    exports.VEDIC_METHODS.TRANSIT
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.NAVAMSA,
+                    VEDIC_METHODS.TRANSIT
                 ],
                 explanation: 'Engagement activates 7th house significations in a preliminary way. Often occurs in Venus or 7th lord sub-period.'
             },
@@ -130,9 +124,9 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 3,
                 icon: '❤️',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.PRATYANTARA,
-                    exports.VEDIC_METHODS.TRANSIT
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.PRATYANTARA,
+                    VEDIC_METHODS.TRANSIT
                 ],
                 explanation: 'The first meeting often occurs in related dasha periods. Venus, 7th lord, or 5th lord periods typically active.'
             },
@@ -143,10 +137,10 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 3,
                 icon: '💔',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.CHARA,
-                    exports.VEDIC_METHODS.TRANSIT,
-                    exports.VEDIC_METHODS.TRIMSAMSA
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.CHARA,
+                    VEDIC_METHODS.TRANSIT,
+                    VEDIC_METHODS.TRIMSAMSA
                 ],
                 explanation: 'Divorce timing verifies 6th lord (separations), Saturn influence on 7th, and D30 chart activation for difficulties.'
             }
@@ -168,11 +162,11 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 7,
                 icon: '🎯',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.DASHAMSA,
-                    exports.VEDIC_METHODS.CHARA,
-                    exports.VEDIC_METHODS.TRANSIT,
-                    exports.VEDIC_METHODS.ARUDHA
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.DASHAMSA,
+                    VEDIC_METHODS.CHARA,
+                    VEDIC_METHODS.TRANSIT,
+                    VEDIC_METHODS.ARUDHA
                 ],
                 explanation: 'First job marks the activation of 10th house in the chart. The Dashamsa (D10) becomes active, and 10th lord dasha/antardasha typically runs. Saturn transit to key houses confirms timing.'
             },
@@ -183,10 +177,10 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 5,
                 icon: '📈',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.DASHAMSA,
-                    exports.VEDIC_METHODS.TRANSIT,
-                    exports.VEDIC_METHODS.ASHTAKAVARGA
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.DASHAMSA,
+                    VEDIC_METHODS.TRANSIT,
+                    VEDIC_METHODS.ASHTAKAVARGA
                 ],
                 explanation: 'Promotions occur when positive dasha lords interact with 10th house. Jupiter/Sun periods often active. High Ashtakavarga in 10th confirms the exact time.'
             },
@@ -197,9 +191,9 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 4,
                 icon: '🔄',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.CHARA,
-                    exports.VEDIC_METHODS.TRANSIT
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.CHARA,
+                    VEDIC_METHODS.TRANSIT
                 ],
                 explanation: 'Job changes often occur in 3rd or 9th lord periods (movement). Rahu periods can also trigger career shifts.'
             },
@@ -210,10 +204,10 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 4,
                 icon: '🏢',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.DASHAMSA,
-                    exports.VEDIC_METHODS.HORA,
-                    exports.VEDIC_METHODS.CHARA
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.DASHAMSA,
+                    VEDIC_METHODS.HORA,
+                    VEDIC_METHODS.CHARA
                 ],
                 explanation: 'Business start activates 7th house (partnership/business) and 10th house. Mercury and Jupiter periods are typically strong.'
             }
@@ -235,9 +229,9 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 5,
                 icon: '🎓',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.TRANSIT,
-                    exports.VEDIC_METHODS.NAKSHATRA
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.TRANSIT,
+                    VEDIC_METHODS.NAKSHATRA
                 ],
                 explanation: 'Graduation timing verifies 4th house (education), 5th house (learning), and 9th house (higher studies). Mercury and Jupiter periods typically active.'
             },
@@ -248,9 +242,9 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 4,
                 icon: '📝',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.PRATYANTARA,
-                    exports.VEDIC_METHODS.TRANSIT
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.PRATYANTARA,
+                    VEDIC_METHODS.TRANSIT
                 ],
                 explanation: 'Board exam results are precise events that help narrow down the birth time using pratyantara dasha level analysis.'
             },
@@ -261,9 +255,9 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 3,
                 icon: '✈️',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.CHARA,
-                    exports.VEDIC_METHODS.TRANSIT
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.CHARA,
+                    VEDIC_METHODS.TRANSIT
                 ],
                 explanation: 'Foreign education activates 9th house (foreign), 12th house (foreign lands), and 4th house (education). Rahu often involved.'
             }
@@ -285,11 +279,11 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 8,
                 icon: '👶',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.SAPTAMSA,
-                    exports.VEDIC_METHODS.YOGINI,
-                    exports.VEDIC_METHODS.TRANSIT,
-                    exports.VEDIC_METHODS.SECONDARY_PROG
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.SAPTAMSA,
+                    VEDIC_METHODS.YOGINI,
+                    VEDIC_METHODS.TRANSIT,
+                    VEDIC_METHODS.SECONDARY_PROG
                 ],
                 explanation: 'First child birth is an extremely powerful rectification marker. The Saptamsa (D7) chart must show the event. 5th lord dasha/antardasha and Jupiter periods are typically active. Jupiter transit to 5th confirms timing.'
             },
@@ -300,9 +294,9 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 5,
                 icon: '👧',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.SAPTAMSA,
-                    exports.VEDIC_METHODS.TRANSIT
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.SAPTAMSA,
+                    VEDIC_METHODS.TRANSIT
                 ],
                 explanation: 'Each subsequent child provides additional verification of 5th house and Saptamsa chart timing.'
             },
@@ -313,8 +307,8 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 2,
                 icon: '🤰',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.SAPTAMSA
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.SAPTAMSA
                 ],
                 explanation: 'Pregnancy timing helps narrow down the 5th house activation period before actual birth.'
             }
@@ -336,10 +330,10 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 5,
                 icon: '🏥',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.TRIMSAMSA,
-                    exports.VEDIC_METHODS.TRANSIT,
-                    exports.VEDIC_METHODS.ASHTAKAVARGA
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.TRIMSAMSA,
+                    VEDIC_METHODS.TRANSIT,
+                    VEDIC_METHODS.ASHTAKAVARGA
                 ],
                 explanation: 'Surgeries verify 8th house (surgery) and 6th house (disease). Trimsamsa (D30) chart must show the timing. Mars periods and 8th lord dashas typically active.'
             },
@@ -350,10 +344,10 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 4,
                 icon: '🚑',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.TRIMSAMSA,
-                    exports.VEDIC_METHODS.TRANSIT,
-                    exports.VEDIC_METHODS.YOGINI
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.TRIMSAMSA,
+                    VEDIC_METHODS.TRANSIT,
+                    VEDIC_METHODS.YOGINI
                 ],
                 explanation: 'Accidents are sudden events that verify Mars, 8th house, and malefic period activation. The D30 chart shows accident prone periods clearly.'
             },
@@ -364,9 +358,9 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 3,
                 icon: '🩺',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.TRIMSAMSA,
-                    exports.VEDIC_METHODS.TRANSIT
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.TRIMSAMSA,
+                    VEDIC_METHODS.TRANSIT
                 ],
                 explanation: 'Illness diagnosis timing verifies 6th house activation and afflicted dasha periods.'
             }
@@ -388,11 +382,11 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 6,
                 icon: '🕯️',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.CHARA,
-                    exports.VEDIC_METHODS.TRANSIT,
-                    exports.VEDIC_METHODS.TRIMSAMSA,
-                    exports.VEDIC_METHODS.YOGINI
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.CHARA,
+                    VEDIC_METHODS.TRANSIT,
+                    VEDIC_METHODS.TRIMSAMSA,
+                    VEDIC_METHODS.YOGINI
                 ],
                 explanation: "Father's death is a powerful marker. It verifies 9th house (father in natural chart) and 10th house (father from Lagna). 9th/10th lord + Saturn periods typically active with Saturn transit to these houses."
             },
@@ -403,11 +397,11 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 6,
                 icon: '🕯️',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.CHARA,
-                    exports.VEDIC_METHODS.TRANSIT,
-                    exports.VEDIC_METHODS.TRIMSAMSA,
-                    exports.VEDIC_METHODS.YOGINI
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.CHARA,
+                    VEDIC_METHODS.TRANSIT,
+                    VEDIC_METHODS.TRIMSAMSA,
+                    VEDIC_METHODS.YOGINI
                 ],
                 explanation: "Mother's death verifies 4th house and Moon. 4th lord + afflicting planet periods typically active with Saturn/Rahu transit."
             },
@@ -418,8 +412,8 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 2,
                 icon: '👫',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.TRANSIT
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.TRANSIT
                 ],
                 explanation: "Events of siblings verify 3rd house and 11th house (elder siblings) activation."
             }
@@ -441,10 +435,10 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 5,
                 icon: '🏠',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.HORA,
-                    exports.VEDIC_METHODS.TRANSIT,
-                    exports.VEDIC_METHODS.CHARA
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.HORA,
+                    VEDIC_METHODS.TRANSIT,
+                    VEDIC_METHODS.CHARA
                 ],
                 explanation: 'Property purchase is a major 4th house event. It verifies 4th lord dasha and Saturn transit. The D2 (Hora) chart shows wealth accumulation timing.'
             },
@@ -455,10 +449,10 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 3,
                 icon: '💵',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.HORA,
-                    exports.VEDIC_METHODS.TRANSIT,
-                    exports.VEDIC_METHODS.ASHTAKAVARGA
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.HORA,
+                    VEDIC_METHODS.TRANSIT,
+                    VEDIC_METHODS.ASHTAKAVARGA
                 ],
                 explanation: 'Financial gains verify 2nd (wealth), 11th (gains), and 9th (luck) houses. Jupiter periods typically active.'
             }
@@ -480,10 +474,10 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 4,
                 icon: '🌍',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.CHARA,
-                    exports.VEDIC_METHODS.TRANSIT,
-                    exports.VEDIC_METHODS.ARUDHA
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.CHARA,
+                    VEDIC_METHODS.TRANSIT,
+                    VEDIC_METHODS.ARUDHA
                 ],
                 explanation: 'Foreign relocation is a major 12th house (foreign) and 9th house (long distance) event. Rahu periods are frequently active.'
             },
@@ -494,9 +488,9 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 2,
                 icon: '🏙️',
                 methods: [
-                    exports.VEDIC_METHODS.VIMSHOTTARI,
-                    exports.VEDIC_METHODS.CHARA,
-                    exports.VEDIC_METHODS.TRANSIT
+                    VEDIC_METHODS.VIMSHOTTARI,
+                    VEDIC_METHODS.CHARA,
+                    VEDIC_METHODS.TRANSIT
                 ],
                 explanation: 'City changes verify 3rd house (short travels) and 4th house (home) activation.'
             }
@@ -518,8 +512,8 @@ exports.EVENT_REQUIREMENTS = [
                 accuracyBoost: 8,
                 icon: '👤',
                 methods: [
-                    exports.VEDIC_METHODS.LAGNA,
-                    exports.VEDIC_METHODS.NAKSHATRA
+                    VEDIC_METHODS.LAGNA,
+                    VEDIC_METHODS.NAKSHATRA
                 ],
                 explanation: 'Height, build, complexion, face shape, and distinguishing features directly correlate with the rising sign. This is the primary method to CONFIRM the Lagna is correct after event-based rectification.'
             }
@@ -527,12 +521,12 @@ exports.EVENT_REQUIREMENTS = [
     }
 ];
 // Calculate total accuracy from provided events
-function calculateAccuracy(categoryEventCounts) {
+export function calculateAccuracy(categoryEventCounts) {
     let totalAccuracy = 60; // Base accuracy from birth details
     const breakdown = [];
     const missingCategories = [];
     const suggestions = [];
-    for (const category of exports.EVENT_REQUIREMENTS) {
+    for (const category of EVENT_REQUIREMENTS) {
         const eventsProvided = categoryEventCounts[category.id] || 0;
         const minimumRequired = category.minimumEvents;
         // Calculate contribution based on events provided
@@ -563,8 +557,8 @@ function calculateAccuracy(categoryEventCounts) {
     };
 }
 // Get minimum requirements summary
-function getMinimumRequirements() {
-    const byCategory = exports.EVENT_REQUIREMENTS
+export function getMinimumRequirements() {
+    const byCategory = EVENT_REQUIREMENTS
         .filter(c => c.minimumEvents > 0)
         .map(c => ({ name: c.name, minimum: c.minimumEvents, icon: c.icon }));
     const totalMinimumEvents = byCategory.reduce((sum, c) => sum + c.minimum, 0);
@@ -575,11 +569,11 @@ function getMinimumRequirements() {
     };
 }
 // Get all events with their method details for UI
-function getEventWithMethods(categoryId, eventType) {
-    const category = exports.EVENT_REQUIREMENTS.find(c => c.id === categoryId);
+export function getEventWithMethods(categoryId, eventType) {
+    const category = EVENT_REQUIREMENTS.find(c => c.id === categoryId);
     if (!category)
         return undefined;
     return category.events.find(e => e.eventType === eventType);
 }
-exports.default = exports.EVENT_REQUIREMENTS;
+export default EVENT_REQUIREMENTS;
 //# sourceMappingURL=event-requirements.js.map

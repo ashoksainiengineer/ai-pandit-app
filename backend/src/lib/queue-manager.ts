@@ -18,16 +18,29 @@ import { ProgressTracker } from './progress-tracker.js';
 
 
 // ═════════════════════════════════════════════════════════════════════════════
-// QUEUE CONFIGURATION
+// QUEUE CONFIGURATION (Optimized for HF Spaces Free Tier: 16GB RAM)
 // ═════════════════════════════════════════════════════════════════════════════
 
 const QUEUE_CONFIG = {
-  maxConcurrent: parseInt(process.env.MAX_CONCURRENT_SESSIONS || '2'), // Process N sessions concurrently (Lowered for HF)
-  pollIntervalMs: 3000,
-  maxQueueSize: 500,
-  staleTimeoutMs: 2 * 60 * 60 * 1000, // 🔱 2 HOURS - for long God-Tier analyses (was 30 min)
-  baseAnalysisTime: 240,        // 4 Mins for God-Tier analysis (1 user)
-  contentionMultiplier: 0.3,    // Moderate per-user overhead
+  // Default 3 concurrent sessions - can handle up to 3 simultaneous BTR analyses
+  // With 16GB RAM, each session gets ~5GB which is sufficient for God-Tier BTR
+  maxConcurrent: parseInt(process.env.MAX_CONCURRENT_SESSIONS || '3'),
+  
+  pollIntervalMs: 2000,         // Faster polling for better responsiveness
+  maxQueueSize: 1000,           // Support more queued requests
+  
+  // 2 hour timeout for complex BTR analyses with multiple life events
+  staleTimeoutMs: 2 * 60 * 60 * 1000,
+  
+  // Base analysis time ~4 minutes per session with DeepSeek R1
+  baseAnalysisTime: 240,
+  
+  // Contention factor - minimal overhead per additional concurrent session
+  contentionMultiplier: 0.25,
+  
+  // Memory thresholds (in GB) for automatic throttling
+  memoryPressureThresholdGB: 10,
+  memoryCriticalThresholdGB: 12,
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -412,19 +425,27 @@ async function processQueue(): Promise<void> {
       // Check for stale processing requests (crashed mid-process)
       await cleanupStaleRequests();
 
-      // 🚀 GOD-TIER: Dynamic Pressure Throttling
+      // 🚀 GOD-TIER: Dynamic Pressure Throttling (HF Spaces Free Tier: 16GB RAM)
       const memory = process.memoryUsage();
       const heapUsedPercent = (memory.heapUsed / memory.heapTotal);
       const heapUsedGB = memory.heapUsed / 1024 / 1024 / 1024;
       let effectiveMaxConcurrent = QUEUE_CONFIG.maxConcurrent;
 
-      // Only trigger pressure restriction if:
-      // 1. Percentage is high (>85%) AND
-      // 2. Absolute heap usage is significant (>4GB)
-      // This prevents false positives when the total heap is small (idle state).
-      if (heapUsedPercent > 0.85 && heapUsedGB > 4) {
-        logger.warn(`[PRESSURE] Genuine RAM Pressure (${(heapUsedPercent * 100).toFixed(1)}%, ${heapUsedGB.toFixed(2)}GB), restricting concurrency to 1`);
+      // Pressure restriction triggers when:
+      // 1. Heap usage > 80% OR heap > 6GB
+      // This ensures stability while utilizing HF Spaces 16GB capacity
+      const MEMORY_THRESHOLD_PERCENT = parseFloat(process.env.MEMORY_THRESHOLD_PERCENT || '80');
+      const GC_THRESHOLD_GB = parseFloat(process.env.GC_THRESHOLD_GB || '6');
+      
+      if (heapUsedPercent > (MEMORY_THRESHOLD_PERCENT / 100) || heapUsedGB > GC_THRESHOLD_GB) {
+        logger.warn(`[PRESSURE] RAM Pressure detected (${(heapUsedPercent * 100).toFixed(1)}%, ${heapUsedGB.toFixed(2)}GB), restricting concurrency from ${effectiveMaxConcurrent} to 1`);
         effectiveMaxConcurrent = 1;
+        
+        // Trigger GC if available
+        if ((global as any).gc) {
+          logger.info('[MEMORY] Triggering manual GC due to pressure');
+          (global as any).gc();
+        }
       }
 
       // Check concurrent limit

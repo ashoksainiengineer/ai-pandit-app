@@ -1,12 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateCandidates = generateCandidates;
-exports.quickFilterCandidates = quickFilterCandidates;
-exports.analyzeWithAI = analyzeWithAI;
-exports.selectBestCandidate = selectBestCandidate;
-exports.processBirthTimeRectification = processBirthTimeRectification;
-const ephemeris_js_1 = require("./ephemeris.js");
-const ai_client_js_1 = require("./ai-client.js");
+import { calculateEphemeris } from './ephemeris.js';
+import { callAI } from './ai-client.js';
 const UNCERTAINTY_MINUTES = {
     '±15 minutes': 15,
     '±30 minutes': 30,
@@ -15,7 +8,7 @@ const UNCERTAINTY_MINUTES = {
     '±3 hours': 180,
     '±4 hours': 240,
 };
-function generateCandidates(timeEstimate, timeUncertainty) {
+export function generateCandidates(timeEstimate, timeUncertainty) {
     const uncertaintyMinutes = UNCERTAINTY_MINUTES[timeUncertainty];
     const [hour, minute] = timeEstimate.split(':').map(Number);
     const totalMinutes = hour * 60 + minute;
@@ -124,11 +117,11 @@ function getHouseForLongitude(planetLong, ascLong) {
         diff += 360;
     return Math.floor(diff / 30) + 1;
 }
-async function quickFilterCandidates(candidates, birthDate, latitude, longitude, timezone, lifeEvents, physicalTraits) {
+export async function quickFilterCandidates(candidates, birthDate, latitude, longitude, timezone, lifeEvents, physicalTraits) {
     const scoredCandidates = [];
     for (const time of candidates) {
         try {
-            const ephemeris = await (0, ephemeris_js_1.calculateEphemeris)(birthDate, time, latitude, longitude, timezone);
+            const ephemeris = await calculateEphemeris(birthDate, time, latitude, longitude, timezone);
             const traitScore = scorePhysicalTraits(ephemeris, physicalTraits);
             const eventScore = scoreLifeEvents(ephemeris, lifeEvents);
             const combinedScore = traitScore * 0.3 + eventScore * 0.7;
@@ -144,7 +137,7 @@ async function quickFilterCandidates(candidates, birthDate, latitude, longitude,
 }
 async function analyzeCandidateWithAI(prompt) {
     try {
-        const response = await (0, ai_client_js_1.callAI)('You are an expert Vedic astrologer analyzing birth time rectification. Return only a JSON object with score (0-100) and thinking (detailed reasoning).', prompt, {
+        const response = await callAI('You are an expert Vedic astrologer analyzing birth time rectification. Return only a JSON object with score (0-100) and thinking (detailed reasoning).', prompt, {
             temperature: 0.3,
             maxTokens: 2000,
         });
@@ -198,13 +191,13 @@ Provide detailed reasoning.
 Return JSON: {"score": number, "thinking": "detailed analysis"}
   `;
 }
-async function analyzeWithAI(filteredCandidates, birthDate, lifeEvents, latitude, longitude, timezone) {
+export async function analyzeWithAI(filteredCandidates, birthDate, lifeEvents, latitude, longitude, timezone) {
     const results = [];
     // Take top 40 for AI analysis
     const topCandidates = filteredCandidates.slice(0, 40);
     for (const candidate of topCandidates) {
         try {
-            const ephemeris = await (0, ephemeris_js_1.calculateEphemeris)(birthDate, candidate.time, latitude, longitude, timezone);
+            const ephemeris = await calculateEphemeris(birthDate, candidate.time, latitude, longitude, timezone);
             const prompt = generateAIPrompt(candidate.time, ephemeris, lifeEvents);
             const aiResult = await analyzeCandidateWithAI(prompt);
             results.push({
@@ -224,7 +217,7 @@ async function analyzeWithAI(filteredCandidates, birthDate, lifeEvents, latitude
     }
     return results.sort((a, b) => b.aiScore - a.aiScore).slice(0, 5);
 }
-function selectBestCandidate(candidates) {
+export function selectBestCandidate(candidates) {
     const best = candidates[0];
     let confidence;
     if (best.aiScore >= 95)
@@ -261,7 +254,7 @@ function selectBestCandidate(candidates) {
         thinking: best.thinking
     };
 }
-async function processBirthTimeRectification(input) {
+export async function processBirthTimeRectification(input) {
     const startTime = Date.now();
     try {
         // Validate inputs

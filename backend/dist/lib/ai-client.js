@@ -1,17 +1,8 @@
-"use strict";
 // Server-side only
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.MASTER_ASTROLOGY_SYSTEM_PROMPT = void 0;
-exports.callAI = callAI;
-exports.callAIWithStream = callAIWithStream;
-exports.buildCandidateAnalysisPrompt = buildCandidateAnalysisPrompt;
-exports.buildRankingPrompt = buildRankingPrompt;
-exports.executeAIInParallel = executeAIInParallel;
-exports.parseAIAnalysisResponse = parseAIAnalysisResponse;
 // lib/ai-client.ts
 // Production AI Thinking API Client
 // Optimized for maximum accuracy in birth time rectification
-const logger_js_1 = require("./logger.js");
+import { logger } from './logger.js';
 // ═════════════════════════════════════════════════════════════════════════════
 // AI CONFIGURATION
 // ═════════════════════════════════════════════════════════════════════════════
@@ -34,7 +25,7 @@ const AI_CONFIG = {
  * Call AI with extended thinking mode
  * This is the core function for all AI analysis
  */
-async function callAI(systemPrompt, userPrompt, options) {
+export async function callAI(systemPrompt, userPrompt, options) {
     const config = {
         temperature: options?.temperature ?? AI_CONFIG.temperature,
         maxTokens: options?.maxTokens ?? AI_CONFIG.maxTokens,
@@ -42,7 +33,7 @@ async function callAI(systemPrompt, userPrompt, options) {
         model: options?.model ?? AI_CONFIG.model,
     };
     if (!AI_CONFIG.apiKey) {
-        logger_js_1.logger.error('AI API_KEY not configured');
+        logger.error('AI API_KEY not configured');
         return {
             success: false,
             content: '',
@@ -52,7 +43,7 @@ async function callAI(systemPrompt, userPrompt, options) {
     let lastError = null;
     for (let attempt = 1; attempt <= AI_CONFIG.retryAttempts; attempt++) {
         try {
-            logger_js_1.logger.info('Calling AI Engine', {
+            logger.info('Calling AI Engine', {
                 attempt,
                 model: config.model,
                 enableThinking: config.enableThinking,
@@ -105,7 +96,7 @@ async function callAI(systemPrompt, userPrompt, options) {
             clearTimeout(timeoutId);
             if (!response.ok) {
                 if (response.status === 429) {
-                    logger_js_1.logger.warn(`AI Rate Limit Hit (429). Waiting 30s before retry ${attempt}/${AI_CONFIG.retryAttempts}...`);
+                    logger.warn(`AI Rate Limit Hit (429). Waiting 30s before retry ${attempt}/${AI_CONFIG.retryAttempts}...`);
                     await sleep(30000); // Wait 30 seconds
                     continue; // Retry loop
                 }
@@ -135,7 +126,7 @@ async function callAI(systemPrompt, userPrompt, options) {
                 thinking = thinkingMatch[1].trim();
                 content = content.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '').trim();
             }
-            logger_js_1.logger.info('AI response received', {
+            logger.info('AI response received', {
                 contentLength: content.length,
                 thinkingLength: thinking.length,
                 tokensUsed: data.usage?.total_tokens,
@@ -149,7 +140,7 @@ async function callAI(systemPrompt, userPrompt, options) {
         }
         catch (error) {
             lastError = error;
-            logger_js_1.logger.error(`AI attempt ${attempt} failed`, error);
+            logger.error(`AI attempt ${attempt} failed`, error);
             if (attempt < AI_CONFIG.retryAttempts) {
                 await sleep(AI_CONFIG.retryDelayMs * attempt);
             }
@@ -164,7 +155,7 @@ async function callAI(systemPrompt, userPrompt, options) {
 // ═════════════════════════════════════════════════════════════════════════════
 // STREAMING API CALL FUNCTION (for real-time AI thinking)
 // ═════════════════════════════════════════════════════════════════════════════
-const session_events_js_1 = require("./session-events.js");
+import { emitAIThinking } from './session-events.js';
 /**
  * Call AI with streaming enabled
  * Emits AI thinking tokens in real-time via SSE
@@ -173,7 +164,7 @@ const session_events_js_1 = require("./session-events.js");
  * @param stage - BTR stage number (2, 5, or 7)
  * @param candidateTime - Optional candidate time being analyzed
  */
-async function callAIWithStream(sessionId, stage, systemPrompt, userPrompt, options) {
+export async function callAIWithStream(sessionId, stage, systemPrompt, userPrompt, options) {
     const config = {
         temperature: options?.temperature ?? AI_CONFIG.temperature,
         maxTokens: options?.maxTokens ?? AI_CONFIG.maxTokens,
@@ -193,7 +184,7 @@ async function callAIWithStream(sessionId, stage, systemPrompt, userPrompt, opti
             // 🚀 Debug: Log function entry
             const entryMsg = `🚀 callAIWithStream ATTEMPT ${attempt}/${AI_CONFIG.retryAttempts}: sessionId=${sessionId?.slice(0, 8)}, stage=${stage}\n`;
             console.log(entryMsg);
-            logger_js_1.logger.info('Calling AI with streaming', {
+            logger.info('Calling AI with streaming', {
                 sessionId,
                 stage,
                 attempt,
@@ -205,7 +196,7 @@ async function callAIWithStream(sessionId, stage, systemPrompt, userPrompt, opti
             const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
             if (options?.abortSignal) {
                 options.abortSignal.addEventListener('abort', () => {
-                    logger_js_1.logger.info('AI call cancelled by user');
+                    logger.info('AI call cancelled by user');
                     controller.abort();
                 });
             }
@@ -301,7 +292,7 @@ async function callAIWithStream(sessionId, stage, systemPrompt, userPrompt, opti
                             // Minimal safety buffer for smoother stream
                             const now = Date.now();
                             if (emitBuffer.length > 20 || (now - lastEmitTime > 20)) {
-                                (0, session_events_js_1.emitAIThinking)(sessionId, emitBuffer, stage, options?.candidateTime);
+                                emitAIThinking(sessionId, emitBuffer, stage, options?.candidateTime);
                                 if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
                                     options.progressTracker.updateAIThinking(emitBuffer, stage, options?.candidateTime).catch(() => { });
                                 }
@@ -321,12 +312,12 @@ async function callAIWithStream(sessionId, stage, systemPrompt, userPrompt, opti
             }
             // Flush remaining buffer
             if (emitBuffer) {
-                (0, session_events_js_1.emitAIThinking)(sessionId, emitBuffer, stage, options?.candidateTime);
+                emitAIThinking(sessionId, emitBuffer, stage, options?.candidateTime);
                 if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
                     options.progressTracker.updateAIThinking(emitBuffer, stage, options?.candidateTime).catch(() => { });
                 }
             }
-            logger_js_1.logger.info('Streaming AI complete', {
+            logger.info('Streaming AI complete', {
                 sessionId,
                 stage,
                 thinkingLength: fullThinking.length,
@@ -349,7 +340,7 @@ async function callAIWithStream(sessionId, stage, systemPrompt, userPrompt, opti
         }
         catch (error) {
             lastError = error instanceof Error ? error : new Error(String(error));
-            logger_js_1.logger.warn(`Streaming attempt ${attempt} failed: ${lastError.message}`);
+            logger.warn(`Streaming attempt ${attempt} failed: ${lastError.message}`);
             // Wait with backoff before retry (except last attempt)
             if (attempt < AI_CONFIG.retryAttempts) {
                 await sleep(AI_CONFIG.retryDelayMs * attempt);
@@ -357,7 +348,7 @@ async function callAIWithStream(sessionId, stage, systemPrompt, userPrompt, opti
         }
     }
     // If all retries failed
-    logger_js_1.logger.error('All Streaming AI attempts failed', lastError);
+    logger.error('All Streaming AI attempts failed', lastError);
     return {
         success: false,
         content: '',
@@ -371,7 +362,7 @@ async function callAIWithStream(sessionId, stage, systemPrompt, userPrompt, opti
  * Master system prompt for Vedic astrology birth time rectification
  * This defines the AI as the world's most expert Vedic astrologer
  */
-exports.MASTER_ASTROLOGY_SYSTEM_PROMPT = `You are the world's most accomplished Vedic (Jyotish) astrologer with 50+ years of expertise in birth time rectification (Janma Samay Shuddhi).
+export const MASTER_ASTROLOGY_SYSTEM_PROMPT = `You are the world's most accomplished Vedic (Jyotish) astrologer with 50+ years of expertise in birth time rectification (Janma Samay Shuddhi).
 
 YOUR CREDENTIALS:
 - Mastery of Brihat Parashara Hora Shastra (BPHS)
@@ -444,7 +435,7 @@ IMPORTANT:
 /**
  * Build comprehensive prompt for candidate analysis
  */
-function buildCandidateAnalysisPrompt(candidateTime, dateOfBirth, planetaryPositions, housePositions, lifeEvents, dashaInfo, physicalTraits) {
+export function buildCandidateAnalysisPrompt(candidateTime, dateOfBirth, planetaryPositions, housePositions, lifeEvents, dashaInfo, physicalTraits) {
     const eventsText = lifeEvents.map((event, i) => `${i + 1}. ${event.eventType.toUpperCase()} (${event.category})
    Date: ${event.eventDate}
    Importance: ${event.importance}
@@ -513,7 +504,7 @@ Be thorough. The person's entire life predictions depend on accurate birth time.
 /**
  * Build prompt for ranking multiple candidates
  */
-function buildRankingPrompt(candidates) {
+export function buildRankingPrompt(candidates) {
     const candidatesText = candidates.map((c, i) => `CANDIDATE #${i + 1}: ${c.time}
 Initial Score: ${c.score}/100
 Analysis Summary: ${c.analysis.substring(0, 500)}...`).join('\n\n---\n\n');
@@ -569,7 +560,7 @@ function sleep(ms) {
  * Execute AI calls in parallel batches with rate-limit awareness
  * This allows high-throughput analysis while staying within API limits
  */
-async function executeAIInParallel(tasks, concurrency = 3, staggerMs = 500) {
+export async function executeAIInParallel(tasks, concurrency = 3, staggerMs = 500) {
     const results = new Array(tasks.length);
     const queue = tasks.map((task, index) => ({ task, index }));
     let activeCount = 0;
@@ -611,7 +602,7 @@ async function executeAIInParallel(tasks, concurrency = 3, staggerMs = 500) {
 /**
  * Parse AI response to extract structured data
  */
-function parseAIAnalysisResponse(content) {
+export function parseAIAnalysisResponse(content) {
     // Extract score
     const scoreMatch = content.match(/(?:FINAL SCORE|CONFIDENCE SCORE|SCORE)[:\s]*(\d+)/i);
     const score = scoreMatch ? Math.min(100, Math.max(0, parseInt(scoreMatch[1]))) : 50;
@@ -648,9 +639,9 @@ function parseAIAnalysisResponse(content) {
         eventMatches,
     };
 }
-exports.default = {
+export default {
     callAI,
-    MASTER_ASTROLOGY_SYSTEM_PROMPT: exports.MASTER_ASTROLOGY_SYSTEM_PROMPT,
+    MASTER_ASTROLOGY_SYSTEM_PROMPT,
     buildCandidateAnalysisPrompt,
     buildRankingPrompt,
     parseAIAnalysisResponse,

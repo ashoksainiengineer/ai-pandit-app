@@ -1,45 +1,9 @@
-"use strict";
 // database/drizzle.ts
 // Turso (libSQL) database connection with Drizzle ORM
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.client = exports.db = void 0;
-require("dotenv/config"); // Load env vars immediately
-const client_1 = require("@libsql/client");
-const libsql_1 = require("drizzle-orm/libsql");
-const schema = __importStar(require("./schema"));
+import 'dotenv/config'; // Load env vars immediately
+import { createClient } from '@libsql/client';
+import { drizzle } from 'drizzle-orm/libsql';
+import * as schema from './schema.js';
 // Turso connection from environment variables
 const DATABASE_URL = process.env.TURSO_DATABASE_URL;
 const DATABASE_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN;
@@ -47,11 +11,12 @@ if (!DATABASE_URL) {
     throw new Error('TURSO_DATABASE_URL environment variable is not set');
 }
 // Create libSQL client
-const client = (0, client_1.createClient)({
+const client = createClient({
     url: DATABASE_URL,
     authToken: DATABASE_AUTH_TOKEN,
 });
-exports.client = client;
 // Create Drizzle ORM instance
-exports.db = (0, libsql_1.drizzle)(client, { schema });
+export const db = drizzle(client, { schema });
+// Export for direct access if needed
+export { client };
 //# sourceMappingURL=drizzle.js.map

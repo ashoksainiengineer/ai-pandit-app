@@ -1,19 +1,7 @@
-"use strict";
 // ═══════════════════════════════════════════════════════════════════════════
 // EPHEMERIS MODULE - High-Precision AI-Enhanced
 // Uses Swiss Ephemeris with minimal memory footprint
 // ═══════════════════════════════════════════════════════════════════════════
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.initSwissEph = initSwissEph;
-exports.getZodiacSign = getZodiacSign;
-exports.getNakshatra = getNakshatra;
-exports.getNakshatraPada = getNakshatraPada;
-exports.convertToUTC = convertToUTC;
-exports.calculateJulianDay = calculateJulianDay;
-exports.calculateEphemeris = calculateEphemeris;
-exports.isHighPrecisionMode = isHighPrecisionMode;
-exports.getAyanamsa = getAyanamsa;
-exports.cleanup = cleanup;
 // ═══════════════════════════════════════════════════════════════════════════
 // MEMORY-EFFICIENT SWISS EPHEMERIS
 // Swiss Ephemeris uses memory-mapped files - minimal RAM impact
@@ -31,7 +19,7 @@ const MAX_CACHE_SIZE = 300;
  * Initializes the Swiss Ephemeris WASM module (Prolaxu version)
  * This must be called (and awaited) at server start.
  */
-async function initSwissEph() {
+export async function initSwissEph() {
     if (isInitialized)
         return useSwissEph;
     if (isInitializing)
@@ -176,13 +164,13 @@ const SE_SIDM_LAHIRI = 1;
 // ═══════════════════════════════════════════════════════════════════════════
 // UTILITY FUNCTIONS (Zero allocation where possible)
 // ═══════════════════════════════════════════════════════════════════════════
-function getZodiacSign(longitude) {
+export function getZodiacSign(longitude) {
     return ZODIAC_SIGNS[Math.floor(((longitude % 360) + 360) % 360 / 30)];
 }
-function getNakshatra(longitude) {
+export function getNakshatra(longitude) {
     return NAKSHATRAS[Math.floor(((longitude % 360) + 360) % 360 / 13.333333333) % 27];
 }
-function getNakshatraPada(longitude) {
+export function getNakshatraPada(longitude) {
     return Math.floor((longitude % 13.333333333) / 3.333333333) + 1;
 }
 /**
@@ -222,7 +210,7 @@ function getTzOffset(dateStr, timeStr, timeZone) {
     }
     return 0;
 }
-function convertToUTC(date, time, timezone) {
+export function convertToUTC(date, time, timezone) {
     const [year, month, day] = date.split('-').map(Number);
     // Robust time parsing
     let hour = 0, minute = 0, second = 0;
@@ -243,7 +231,7 @@ function convertToUTC(date, time, timezone) {
     const offset = typeof timezone === 'string' ? getTzOffset(date, time, timezone) : timezone;
     return new Date(Date.UTC(year, month - 1, day, hour, minute, second) - offset * 3600000);
 }
-function calculateJulianDay(date) {
+export function calculateJulianDay(date) {
     const y = date.getUTCFullYear(), m = date.getUTCMonth() + 1, d = date.getUTCDate();
     const h = date.getUTCHours() + date.getUTCMinutes() / 60 + date.getUTCSeconds() / 3600;
     const a = Math.floor((14 - m) / 12);
@@ -332,7 +320,7 @@ function calcAscendant(jd, lat, lon) {
 // MAIN CALCULATION - Memory-Efficient Pipeline
 // All calculations done sequentially, results discarded after use
 // ═══════════════════════════════════════════════════════════════════════════
-async function calculateEphemeris(birthDate, birthTime, latitude, longitude, timezone) {
+export async function calculateEphemeris(birthDate, birthTime, latitude, longitude, timezone) {
     // Cache check
     const cacheKey = `${birthDate}_${birthTime}_${latitude.toFixed(4)}_${longitude.toFixed(4)}`;
     if (EPH_CACHE.has(cacheKey))
@@ -523,8 +511,8 @@ async function calculateEphemeris(birthDate, birthTime, latitude, longitude, tim
 // ═══════════════════════════════════════════════════════════════════════════
 // EXPORTS
 // ═══════════════════════════════════════════════════════════════════════════
-function isHighPrecisionMode() { return getSwissEphStatus(); }
-function getAyanamsa(jd) {
+export function isHighPrecisionMode() { return getSwissEphStatus(); }
+export function getAyanamsa(jd) {
     if (getSwissEphStatus() && swe) {
         swe.swe_set_sid_mode(SE_SIDM_LAHIRI, 0, 0);
         return swe.swe_get_ayanamsa_ut(jd);
@@ -532,7 +520,7 @@ function getAyanamsa(jd) {
     return getAyanamsaAlgo(jd);
 }
 // Memory cleanup hint for GC
-function cleanup() {
+export function cleanup() {
     if (global.gc)
         global.gc();
 }

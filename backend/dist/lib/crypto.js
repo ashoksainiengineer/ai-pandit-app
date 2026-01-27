@@ -1,16 +1,7 @@
-"use strict";
 // lib/crypto.ts
 // End-to-End encryption utilities for secure data storage
 // Uses AES-256-GCM encryption with key derived from userId + secret
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.encryptData = encryptData;
-exports.decryptData = decryptData;
-exports.encryptObject = encryptObject;
-exports.decryptObject = decryptObject;
-exports.isEncrypted = isEncrypted;
-exports.safeEncrypt = safeEncrypt;
-exports.safeDecrypt = safeDecrypt;
-const crypto_1 = require("crypto");
+import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
 // Get the encryption secret from environment
 const ENCRYPTION_SECRET = process.env.ENCRYPTION_SECRET || 'ai-pandit-default-secret-change-in-production';
 /**
@@ -18,16 +9,16 @@ const ENCRYPTION_SECRET = process.env.ENCRYPTION_SECRET || 'ai-pandit-default-se
  * Key = scrypt(userId + ENCRYPTION_SECRET)
  */
 function deriveKey(userId) {
-    return (0, crypto_1.scryptSync)(userId + ENCRYPTION_SECRET, 'salt', 32);
+    return scryptSync(userId + ENCRYPTION_SECRET, 'salt', 32);
 }
 /**
  * Encrypt data using AES-256-GCM
  * Returns: base64(iv:authTag:encryptedData)
  */
-function encryptData(data, userId) {
+export function encryptData(data, userId) {
     const key = deriveKey(userId);
-    const iv = (0, crypto_1.randomBytes)(16); // Initialization vector
-    const cipher = (0, crypto_1.createCipheriv)('aes-256-gcm', key, iv);
+    const iv = randomBytes(16); // Initialization vector
+    const cipher = createCipheriv('aes-256-gcm', key, iv);
     let encrypted = cipher.update(data, 'utf8', 'base64');
     encrypted += cipher.final('base64');
     const authTag = cipher.getAuthTag();
@@ -38,7 +29,7 @@ function encryptData(data, userId) {
  * Decrypt data using AES-256-GCM
  * Input: base64(iv:authTag:encryptedData)
  */
-function decryptData(encryptedString, userId) {
+export function decryptData(encryptedString, userId) {
     try {
         const key = deriveKey(userId);
         const [ivB64, authTagB64, encryptedData] = encryptedString.split(':');
@@ -47,7 +38,7 @@ function decryptData(encryptedString, userId) {
         }
         const iv = Buffer.from(ivB64, 'base64');
         const authTag = Buffer.from(authTagB64, 'base64');
-        const decipher = (0, crypto_1.createDecipheriv)('aes-256-gcm', key, iv);
+        const decipher = createDecipheriv('aes-256-gcm', key, iv);
         decipher.setAuthTag(authTag);
         let decrypted = decipher.update(encryptedData, 'base64', 'utf8');
         decrypted += decipher.final('utf8');
@@ -61,20 +52,20 @@ function decryptData(encryptedString, userId) {
 /**
  * Encrypt an object (converts to JSON first)
  */
-function encryptObject(obj, userId) {
+export function encryptObject(obj, userId) {
     return encryptData(JSON.stringify(obj), userId);
 }
 /**
  * Decrypt to an object (parses JSON after decryption)
  */
-function decryptObject(encryptedString, userId) {
+export function decryptObject(encryptedString, userId) {
     const decrypted = decryptData(encryptedString, userId);
     return JSON.parse(decrypted);
 }
 /**
  * Check if a string looks like encrypted data
  */
-function isEncrypted(data) {
+export function isEncrypted(data) {
     // Encrypted format: base64:base64:base64
     const parts = data.split(':');
     if (parts.length !== 3)
@@ -91,7 +82,7 @@ function isEncrypted(data) {
 /**
  * Safely encrypt - returns original if encryption fails
  */
-function safeEncrypt(data, userId) {
+export function safeEncrypt(data, userId) {
     try {
         return encryptData(data, userId);
     }
@@ -103,7 +94,7 @@ function safeEncrypt(data, userId) {
 /**
  * Safely decrypt - returns original if decryption fails
  */
-function safeDecrypt(data, userId) {
+export function safeDecrypt(data, userId) {
     try {
         if (!isEncrypted(data)) {
             return data; // Already plain text

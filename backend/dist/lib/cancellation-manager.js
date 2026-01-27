@@ -1,19 +1,9 @@
-"use strict";
 // backend/src/lib/cancellation-manager.ts
 // Manages AbortControllers for session cancellation
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.CancellationError = void 0;
-exports.createAbortController = createAbortController;
-exports.getAbortSignal = getAbortSignal;
-exports.abortSession = abortSession;
-exports.cleanupController = cleanupController;
-exports.isSessionCancelled = isSessionCancelled;
-exports.throwIfCancelled = throwIfCancelled;
-exports.isCancellationError = isCancellationError;
-const drizzle_js_1 = require("../database/drizzle.js");
-const schema_js_1 = require("../database/schema.js");
-const drizzle_orm_1 = require("drizzle-orm");
-const logger_js_1 = require("./logger.js");
+import { db } from '../database/drizzle.js';
+import { sessions } from '../database/schema.js';
+import { eq } from 'drizzle-orm';
+import { logger } from './logger.js';
 // ═════════════════════════════════════════════════════════════════════════════
 // CANCELLATION MANAGER
 // ═════════════════════════════════════════════════════════════════════════════
@@ -22,30 +12,30 @@ const activeControllers = new Map();
 /**
  * Create an AbortController for a session
  */
-function createAbortController(sessionId) {
+export function createAbortController(sessionId) {
     // Clean up any existing controller (don't abort - just replace)
     // Aborting the old one would trigger cancellation checks
     activeControllers.delete(sessionId);
     const controller = new AbortController();
     activeControllers.set(sessionId, controller);
-    logger_js_1.logger.info('AbortController created', { sessionId });
+    logger.info('AbortController created', { sessionId });
     return controller;
 }
 /**
  * Get the AbortSignal for a session
  */
-function getAbortSignal(sessionId) {
+export function getAbortSignal(sessionId) {
     return activeControllers.get(sessionId)?.signal;
 }
 /**
  * Abort a session's processing
  */
-function abortSession(sessionId) {
+export function abortSession(sessionId) {
     const controller = activeControllers.get(sessionId);
     if (controller) {
         controller.abort();
         activeControllers.delete(sessionId);
-        logger_js_1.logger.info('Session aborted', { sessionId });
+        logger.info('Session aborted', { sessionId });
         return true;
     }
     return false;
@@ -53,21 +43,21 @@ function abortSession(sessionId) {
 /**
  * Clean up controller when session completes
  */
-function cleanupController(sessionId) {
+export function cleanupController(sessionId) {
     activeControllers.delete(sessionId);
 }
 /**
  * Check if session is cancelled by user (from database)
  * Only returns true if user explicitly cancelled, not if failed for other reasons
  */
-async function isSessionCancelled(sessionId) {
+export async function isSessionCancelled(sessionId) {
     try {
-        const result = await drizzle_js_1.db.select({
-            status: schema_js_1.sessions.status,
-            errorMessage: schema_js_1.sessions.errorMessage
+        const result = await db.select({
+            status: sessions.status,
+            errorMessage: sessions.errorMessage
         })
-            .from(schema_js_1.sessions)
-            .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, sessionId))
+            .from(sessions)
+            .where(eq(sessions.id, sessionId))
             .limit(1);
         if (result.length === 0)
             return true; // Session not found = treat as cancelled
@@ -82,7 +72,7 @@ async function isSessionCancelled(sessionId) {
         return false;
     }
     catch (error) {
-        logger_js_1.logger.error('Failed to check session status', { sessionId, error });
+        logger.error('Failed to check session status', { sessionId, error });
         return false;
     }
 }
@@ -90,7 +80,7 @@ async function isSessionCancelled(sessionId) {
  * Throw if session is cancelled
  * Use this at checkpoints in long-running operations
  */
-async function throwIfCancelled(sessionId, signal) {
+export async function throwIfCancelled(sessionId, signal) {
     // Check AbortSignal first (immediate)
     if (signal?.aborted) {
         throw new CancellationError('Session cancelled');
@@ -105,17 +95,16 @@ async function throwIfCancelled(sessionId, signal) {
 /**
  * Custom error for cancellation
  */
-class CancellationError extends Error {
+export class CancellationError extends Error {
     constructor(message = 'Operation cancelled') {
         super(message);
         this.name = 'CancellationError';
     }
 }
-exports.CancellationError = CancellationError;
 /**
  * Check if error is a cancellation error
  */
-function isCancellationError(error) {
+export function isCancellationError(error) {
     return error instanceof CancellationError ||
         (error instanceof Error && error.name === 'AbortError');
 }

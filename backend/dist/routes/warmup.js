@@ -1,7 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const router = (0, express_1.Router)();
+import { Router } from 'express';
+const router = Router();
 router.get('/', async (req, res) => {
     const AI_BASE_URL = process.env.ANTHROPIC_BASE_URL;
     if (!AI_BASE_URL) {
@@ -40,5 +38,5 @@ router.get('/', async (req, res) => {
         });
     }
 });
-exports.default = router;
+export default router;
 //# sourceMappingURL=warmup.js.map

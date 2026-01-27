@@ -1,19 +1,17 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const auth_js_1 = require("../middleware/auth.js");
-const drizzle_js_1 = require("../database/drizzle.js");
-const schema_js_1 = require("../database/schema.js");
-const drizzle_orm_1 = require("drizzle-orm");
-const logger_js_1 = require("../lib/logger.js");
-const queue_manager_js_1 = require("../lib/queue-manager.js");
-const time_offset_manager_js_1 = require("../lib/time-offset-manager.js");
-const crypto_js_1 = require("../lib/crypto.js");
-const router = (0, express_1.Router)();
+import { Router } from 'express';
+import { authMiddleware } from '../middleware/auth.js';
+import { db } from '../database/drizzle.js';
+import { sessions } from '../database/schema.js';
+import { eq } from 'drizzle-orm';
+import { logger } from '../lib/logger.js';
+import { addToQueue, getQueueStatus, startQueueProcessor, cancelSession } from '../lib/queue-manager.js';
+import { validateOffsetConfig } from '../lib/time-offset-manager.js';
+import { encryptData } from '../lib/crypto.js';
+const router = Router();
 /**
  * POST /api/queue - Submit new analysis request to queue
  */
-router.post('/', auth_js_1.authMiddleware, async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
     try {
         const userId = req.userId;
         const body = req.body;
@@ -32,7 +30,7 @@ router.post('/', auth_js_1.authMiddleware, async (req, res) => {
             return;
         }
         // Validate offset config
-        const offsetValidation = (0, time_offset_manager_js_1.validateOffsetConfig)(offsetConfig);
+        const offsetValidation = validateOffsetConfig(offsetConfig);
         if (!offsetValidation.valid) {
             res.status(400).json({ success: false, error: offsetValidation.error });
             return;
@@ -71,15 +69,15 @@ router.post('/', auth_js_1.authMiddleware, async (req, res) => {
         // Create session with encrypted data
         const sessionId = crypto.randomUUID();
         const now = new Date().toISOString();
-        const encryptedFullName = (0, crypto_js_1.encryptData)(birthData.fullName, userId);
-        const encryptedLifeEvents = (0, crypto_js_1.encryptData)(JSON.stringify(lifeEvents), userId);
+        const encryptedFullName = encryptData(birthData.fullName, userId);
+        const encryptedLifeEvents = encryptData(JSON.stringify(lifeEvents), userId);
         const encryptedPhysicalTraits = physicalTraits
-            ? (0, crypto_js_1.encryptData)(JSON.stringify(physicalTraits), userId)
+            ? encryptData(JSON.stringify(physicalTraits), userId)
             : null;
         const encryptedForensicTraits = forensicTraits
-            ? (0, crypto_js_1.encryptData)(JSON.stringify(forensicTraits), userId)
+            ? encryptData(JSON.stringify(forensicTraits), userId)
             : null;
-        await drizzle_js_1.db.insert(schema_js_1.sessions).values({
+        await db.insert(sessions).values({
             id: sessionId,
             userId,
             clerkId: userId, // Use userId as clerkId (same for Clerk auth)
@@ -99,19 +97,19 @@ router.post('/', auth_js_1.authMiddleware, async (req, res) => {
             createdAt: now,
             updatedAt: now,
         });
-        logger_js_1.logger.info('Session created', { sessionId, userId });
+        logger.info('Session created', { sessionId, userId });
         // Add to queue
-        const queueResult = await (0, queue_manager_js_1.addToQueue)(sessionId);
+        const queueResult = await addToQueue(sessionId);
         if (!queueResult.success) {
-            await drizzle_js_1.db
-                .update(schema_js_1.sessions)
+            await db
+                .update(sessions)
                 .set({ status: 'failed', errorMessage: queueResult.error })
-                .where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, sessionId));
+                .where(eq(sessions.id, sessionId));
             res.status(503).json({ success: false, error: queueResult.error });
             return;
         }
         // Start queue processor
-        (0, queue_manager_js_1.startQueueProcessor)();
+        startQueueProcessor();
         res.json({
             success: true,
             data: {
@@ -123,14 +121,14 @@ router.post('/', auth_js_1.authMiddleware, async (req, res) => {
         });
     }
     catch (error) {
-        logger_js_1.logger.error('Queue submit error', error);
+        logger.error('Queue submit error', error);
         res.status(500).json({ success: false, error: 'Failed to submit request' });
     }
 });
 /**
  * GET /api/queue - Poll queue status
  */
-router.get('/', auth_js_1.authMiddleware, async (req, res) => {
+router.get('/', authMiddleware, async (req, res) => {
     try {
         const userId = req.userId;
         const sessionId = req.query.sessionId;
@@ -139,7 +137,7 @@ router.get('/', auth_js_1.authMiddleware, async (req, res) => {
             return;
         }
         // Verify session belongs to user
-        const session = await drizzle_js_1.db.select().from(schema_js_1.sessions).where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, sessionId)).limit(1);
+        const session = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
         if (session.length === 0) {
             res.status(404).json({ success: false, error: 'Session not found' });
             return;
@@ -149,7 +147,7 @@ router.get('/', auth_js_1.authMiddleware, async (req, res) => {
             return;
         }
         // Get queue status
-        const queueStatus = await (0, queue_manager_js_1.getQueueStatus)(sessionId);
+        const queueStatus = await getQueueStatus(sessionId);
         if (!queueStatus) {
             res.status(500).json({ success: false, error: 'Failed to get queue status' });
             return;
@@ -195,14 +193,14 @@ router.get('/', auth_js_1.authMiddleware, async (req, res) => {
         });
     }
     catch (error) {
-        logger_js_1.logger.error('Queue poll error', error);
+        logger.error('Queue poll error', error);
         res.status(500).json({ success: false, error: 'Failed to get status' });
     }
 });
 /**
  * POST /api/queue/cancel - Cancel a session
  */
-router.post('/cancel', auth_js_1.authMiddleware, async (req, res) => {
+router.post('/cancel', authMiddleware, async (req, res) => {
     try {
         const userId = req.userId;
         const { sessionId } = req.body;
@@ -211,18 +209,18 @@ router.post('/cancel', auth_js_1.authMiddleware, async (req, res) => {
             return;
         }
         // Verify session belongs to user
-        const session = await drizzle_js_1.db.select().from(schema_js_1.sessions).where((0, drizzle_orm_1.eq)(schema_js_1.sessions.id, sessionId)).limit(1);
+        const session = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
         if (session.length === 0) {
             res.status(404).json({ success: false, error: 'Session not found' });
             return;
         }
         // Verify using clerkId (which matches the auth token), not internal userId
         if (session[0].clerkId !== userId) {
-            logger_js_1.logger.warn(`Cancel unauthorized: Session ${sessionId} owned by ${session[0].clerkId}, requested by ${userId}`);
+            logger.warn(`Cancel unauthorized: Session ${sessionId} owned by ${session[0].clerkId}, requested by ${userId}`);
             res.status(403).json({ success: false, error: 'Unauthorized' });
             return;
         }
-        const success = await (0, queue_manager_js_1.cancelSession)(sessionId);
+        const success = await cancelSession(sessionId);
         if (success) {
             res.json({ success: true, message: 'Session cancelled' });
         }
@@ -231,9 +229,9 @@ router.post('/cancel', auth_js_1.authMiddleware, async (req, res) => {
         }
     }
     catch (error) {
-        logger_js_1.logger.error('Cancel session error', error);
+        logger.error('Cancel session error', error);
         res.status(500).json({ success: false, error: 'Failed to cancel session' });
     }
 });
-exports.default = router;
+export default router;
 //# sourceMappingURL=queue.js.map
