@@ -1,14 +1,17 @@
 // Server-side only
 import { calculateEphemeris } from './ephemeris.js';
 import { logger } from './logger.js';
+import { calculateD60 } from './advanced-btr-methods.js';
 // ═════════════════════════════════════════════════════════════════════════
 // QUICK FILTERING RULES (Before AI K2 analysis)
 // ═════════════════════════════════════════════════════════════════════════
-export async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, longitude, timezone, lifeEvents) {
+export async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitude, longitude, timezone, lifeEvents, tentativeTime // 🔱 SAFETY NET: Pass tentative time for protection
+) {
     try {
         logger.info('Starting candidate analysis and filtering', {
             totalCandidates: candidates.length,
             dateOfBirth,
+            tentativeTime,
         });
         const analyzedCandidates = [];
         // ─────────────────────────────────────────────────────────────────────
@@ -21,6 +24,16 @@ export async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitu
                 const ephemerisData = await calculateEphemeris(dateOfBirth, candidate.time, latitude, longitude, timezoneString);
                 // Quick scoring without full AI analysis
                 const { quickScore, eventMatches, reason } = performQuickAnalysis(ephemerisData, lifeEvents);
+                // 🔱 GOD-TIER: Calculate D60 stability (most sensitive to seconds)
+                const d60Stability = await calculateD60Stability(dateOfBirth, candidate.time, latitude, longitude, timezoneString);
+                // 🔱 SAFETY NET: Protect tentative time and its immediate neighbors
+                const isTentativeOrNeighbor = tentativeTime && (candidate.time === tentativeTime ||
+                    Math.abs(candidate.offsetMinutes) <= 5 // Within ±5 minutes
+                );
+                // 🔱 SAFETY NET: Always include tentative time + D60-unstable candidates
+                const shouldAnalyzeWithAI = quickScore >= 40 || // Good score
+                    isTentativeOrNeighbor || // Protected (tentative ±5min)
+                    !d60Stability.isStable; // D60 changes = high precision needed
                 analyzedCandidates.push({
                     time: candidate.time,
                     offsetMinutes: candidate.offsetMinutes,
@@ -28,13 +41,22 @@ export async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitu
                     ephemerisData,
                     quickScore,
                     eventMatches,
-                    shouldAnalyzeWithAI: quickScore >= 40, // Only analyze promising candidates
+                    shouldAnalyzeWithAI,
                     reason,
+                    // 🔱 Metadata for downstream processing
+                    metadata: {
+                        isTentativeOrNeighbor: Boolean(isTentativeOrNeighbor),
+                        d60Stability,
+                        protected: Boolean(isTentativeOrNeighbor || !d60Stability.isStable),
+                    },
                 });
                 logger.debug('Candidate quick analysis complete', {
                     time: candidate.time,
                     quickScore,
                     eventMatches,
+                    isTentativeOrNeighbor,
+                    d60Stable: d60Stability.isStable,
+                    shouldAnalyzeWithAI,
                 });
             }
             catch (error) {
@@ -42,21 +64,32 @@ export async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitu
             }
         }
         // ─────────────────────────────────────────────────────────────────────
-        // STEP 2: Sort by quick score
+        // STEP 2: Sort by quick score (but protected candidates stay in pool)
         // ─────────────────────────────────────────────────────────────────────
-        analyzedCandidates.sort((a, b) => b.quickScore - a.quickScore);
+        analyzedCandidates.sort((a, b) => {
+            // 🔱 Protected candidates get priority boost
+            const aProtected = a.metadata?.protected ? 1000 : 0;
+            const bProtected = b.metadata?.protected ? 1000 : 0;
+            return (b.quickScore + bProtected) - (a.quickScore + aProtected);
+        });
         // ─────────────────────────────────────────────────────────────────────
         // STEP 3: Select top candidates for AI K2 analysis
+        // 🔱 GOD-TIER: Increased from 5 to 10 to preserve more candidates
         // ─────────────────────────────────────────────────────────────────────
         const topCandidates = analyzedCandidates
             .filter((c) => c.shouldAnalyzeWithAI)
-            .slice(0, 5); // Top 5 candidates
+            .slice(0, 10); // 🔱 Increased from 5 to 10
+        const protectedCount = topCandidates.filter(c => c.metadata?.protected).length;
         logger.info('Candidate filtering complete', {
             totalCandidates: analyzedCandidates.length,
             topCandidatesForAI: topCandidates.length,
+            protectedCandidates: protectedCount,
+            tentativeTimeProtected: tentativeTime ?
+                topCandidates.some(c => c.time === tentativeTime) : false,
             topScores: topCandidates.map((c) => ({
                 time: c.time,
                 quickScore: c.quickScore,
+                protected: c.metadata?.protected,
             })),
         });
         return {
@@ -68,6 +101,48 @@ export async function analyzeAndFilterCandidates(dateOfBirth, candidates, latitu
     catch (error) {
         logger.error('Candidate analysis failed', error);
         throw error;
+    }
+}
+/**
+ * Calculate D60 stability for a candidate time
+ * D60 changes every ~2 minutes (120 seconds) - most sensitive varga
+ * If D60 is near transition, this candidate needs high precision analysis
+ */
+async function calculateD60Stability(dateOfBirth, time, latitude, longitude, timezone) {
+    try {
+        // Calculate ephemeris for this time
+        const ephemeris = await calculateEphemeris(dateOfBirth, time, latitude, longitude, timezone);
+        const ascendantLongitude = ephemeris.ascendant.longitude;
+        const d60Result = calculateD60(ascendantLongitude);
+        // Calculate how far into the D60 segment we are
+        // D60 = 0.5° segments, 60 segments per sign
+        const degreeInSign = ascendantLongitude % 30;
+        const d60SegmentSize = 0.5; // degrees
+        const positionInSegment = degreeInSign % d60SegmentSize;
+        // Distance to next D60 boundary
+        const degreesToChange = d60SegmentSize - positionInSegment;
+        // Approximate conversion: 1° = 240 seconds for Lagna
+        const secondsToChange = degreesToChange * 240;
+        // D60 is "unstable" if within 30 seconds of boundary (high precision needed)
+        const isStable = secondsToChange > 30 && positionInSegment * 240 > 30;
+        const warning = !isStable
+            ? `⚠️ D60 transition in ${secondsToChange.toFixed(1)}s - HIGH PRECISION REQUIRED`
+            : null;
+        return {
+            isStable,
+            d60Lagna: d60Result.sign,
+            secondsToChange: Math.round(secondsToChange),
+            warning,
+        };
+    }
+    catch (error) {
+        logger.warn(`D60 stability check failed for ${time}`, error);
+        return {
+            isStable: true, // Assume stable if calculation fails
+            d60Lagna: 'Unknown',
+            secondsToChange: 60,
+            warning: null,
+        };
     }
 }
 // ═════════════════════════════════════════════════════════════════════════

@@ -242,6 +242,12 @@ export interface CandidateAnalysis {
     eventMatches: number;
     shouldAnalyzeWithAI: boolean;
     reason: string;
+    metadata?: {
+        isTentativeOrNeighbor?: boolean;
+        d60Stability?: any;
+        protected?: boolean;
+        [key: string]: any;
+    };
 }
 export interface RankedCandidates {
     topCandidates: CandidateAnalysis[];

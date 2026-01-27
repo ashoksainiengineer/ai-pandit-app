@@ -37,7 +37,7 @@ const envSchema = z.object({
     // Security
     INTERNAL_API_KEY: z.string().optional(),
     CLERK_SECRET_KEY: z.string().min(1, 'Clerk secret key is required'),
-    CLERK_PUBLISHABLE_KEY: z.string().min(1, 'Clerk publishable key is required'),
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1, 'Clerk publishable key is required'),
     // Feature Flags
     ENABLE_DETAILED_LOGGING: z.string().transform((v) => v === 'true').default('false'),
     ENABLE_GOD_TIER_ENHANCEMENT: z.string().transform((v) => v === 'true').default('true'),
@@ -106,7 +106,7 @@ export const memoryConfig = {
 export const securityConfig = {
     internalApiKey: env.INTERNAL_API_KEY,
     clerkSecretKey: env.CLERK_SECRET_KEY,
-    clerkPublishableKey: env.CLERK_PUBLISHABLE_KEY,
+    clerkPublishableKey: env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
     rateLimitWindowMs: 60000, // 1 minute
     rateLimitMaxRequests: 100,
 };

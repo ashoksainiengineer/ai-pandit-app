@@ -248,7 +248,11 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
                                 groupId="height"
                                 description="Vertical Aspect"
                                 options={HEIGHT_OPTIONS}
-                                value={(physicalTraits.height?.cm || 168) < 162 ? 'short' : (physicalTraits.height?.cm || 168) > 178 ? 'tall' : 'medium'}
+                                value={(() => {
+                                    const height = physicalTraits.height;
+                                    const cm = typeof height === 'object' && height !== null ? height.cm : 168;
+                                    return (cm || 168) < 162 ? 'short' : (cm || 168) > 178 ? 'tall' : 'medium';
+                                })()}
                                 onChange={(val: any) => {
                                     const cm = val === 'short' ? 155 : val === 'tall' ? 180 : 168;
                                     updateTraits({ height: { cm, feet: 5, inches: 6 } });

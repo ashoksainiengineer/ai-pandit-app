@@ -37,8 +37,8 @@ export default function Step4Review({ data, events, traits, forensicTraits, onSu
         // Event quality score
         score += events.filter(e => e.description && e.eventDate).length * 8;
         // Forensic completion bonus
-        if (forensicTraits.physical.skinHair.marks.length > 0) score += 5;
-        if (forensicTraits.family.brotherCount > 0 || forensicTraits.family.sisterCount > 0) score += 5;
+        if (forensicTraits?.physical?.skinHair?.marks?.length > 0) score += 5;
+        if ((forensicTraits?.family?.brotherCount || 0) > 0 || (forensicTraits?.family?.sisterCount || 0) > 0) score += 5;
         return Math.min(99, score);
     };
     const accuracy = calculateAccuracy();

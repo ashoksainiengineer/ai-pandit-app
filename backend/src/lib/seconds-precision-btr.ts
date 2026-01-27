@@ -61,6 +61,7 @@ import {
     SURVIVORS_PER_BATCH,
     getDynamicBatchSize,
     getDynamicSurvivors,
+    injectSafetyNetCandidates, // 🔱 Safety Net
 } from './time-offset-manager.js';
 import { logger } from './logger.js';
 import { ProgressTracker, ANALYSIS_STEPS } from './progress-tracker.js';
@@ -662,6 +663,59 @@ function formatLifeEventForAI(event: LifeEvent): string {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// 🔱 BLIND EVALUATION: Remove tentative time labels to prevent AI bias
+// ═════════════════════════════════════════════════════════════════════════════
+
+interface AnonymizedCandidate {
+    id: string;
+    time: string;
+    originalOffsetDescription: string;
+    data: CandidateDataPackage;
+}
+
+/**
+ * Anonymize candidates for blind AI evaluation
+ * Removes "Tentative", "Safety Net" labels that could bias the AI
+ */
+function anonymizeCandidatesForBlindEvaluation(
+    candidates: CandidateDataPackage[],
+    candidateTimes: CandidateTime[], // Pass the original times with descriptions
+    tentativeTime: string
+): { anonymized: AnonymizedCandidate[]; mapping: Map<string, string> } {
+    const mapping = new Map<string, string>(); // id -> original description
+    
+    const anonymized = candidates.map((candidate, index) => {
+        // Generate neutral ID
+        const id = `C${String(index + 1).padStart(3, '0')}`;
+        
+        // Find the matching candidate time to get original description
+        const matchingTime = candidateTimes.find(ct => ct.time === candidate.time);
+        const originalDesc = matchingTime?.offsetDescription || `Candidate at ${candidate.time}`;
+        
+        // Store original mapping
+        mapping.set(id, originalDesc);
+        
+        return {
+            id,
+            time: candidate.time,
+            originalOffsetDescription: originalDesc,
+            data: candidate,
+        };
+    });
+    
+    // Shuffle to remove any positional bias
+    const shuffled = [...anonymized].sort(() => Math.random() - 0.5);
+    
+    logger.debug('🔱 Blind Evaluation: Candidates anonymized', {
+        total: candidates.length,
+        tentativeTime,
+        mapping: Object.fromEntries(mapping),
+    });
+    
+    return { anonymized: shuffled, mapping };
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 // 🔱 STAGE 2: BATCH COARSE ELIMINATION (Dasha-Event Matching)
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -671,7 +725,8 @@ function getBatchPrompt(
     forensicTraits: ForensicTraits,
     batchNumber: number,
     totalBatches: number,
-    survivorsNeeded: number
+    survivorsNeeded: number,
+    tentativeTime?: string // For blind evaluation
 ): string {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
     const f = forensicTraits;
@@ -1125,15 +1180,25 @@ async function stage1ExhaustiveDataGeneration(
 ): Promise<{ candidates: CandidateTime[]; stageResult: StageResult }> {
     await progress.startStep('grid', 'Stage 1: Generating ALL candidate data...');
 
+    // 🔱 SAFETY NET: Generate raw candidates first
     const rawCandidates = generateCandidateTimes(input.tentativeTime, input.offsetConfig);
+    
+    // 🔱 SAFETY NET: Inject safety net candidates around tentative time
+    // This ensures actual birth time (often close to tentative) NEVER gets eliminated
+    const candidatesWithSafetyNet = injectSafetyNetCandidates(input.tentativeTime, rawCandidates);
 
-    const total = rawCandidates.length;
+    const total = candidatesWithSafetyNet.length;
     let processed = 0;
 
-    logger.info('🔱 Stage 1: Initializing metadata for candidates', { total });
+    logger.info('🔱 Stage 1: Initializing metadata for candidates', {
+        total,
+        rawCandidates: rawCandidates.length,
+        safetyNetAdded: candidatesWithSafetyNet.length - rawCandidates.length,
+        tentativeTime: input.tentativeTime,
+    });
 
-    for (const raw of rawCandidates) {
-        // We build the package once to ensure the calculation log is sent, 
+    for (const raw of candidatesWithSafetyNet) {
+        // We build the package once to ensure the calculation log is sent,
         // but we DO NOT keep it in memory.
         const pkg = await buildCandidateDataPackage(raw.time, raw.offsetMinutes, input, { includeFullData: false, dashaDepth: 2 });
 
@@ -1145,7 +1210,7 @@ async function stage1ExhaustiveDataGeneration(
             sunPos: `${pkg.planets.sun.sign} ${pkg.planets.sun.degree} `,
             moonPos: `${pkg.planets.moon.sign} ${pkg.planets.moon.degree} `,
             ascendant: `${pkg.ascendant.sign} ${pkg.ascendant.degree} `,
-            dashaObj: pkg.vimshottariDasha[0]?.maha || 'N/A'
+            dashaObj: pkg.vimshottariDasha[0]?.maha || 'N/A',
         });
 
         if (processed % 10 === 0) {
@@ -1156,15 +1221,18 @@ async function stage1ExhaustiveDataGeneration(
         if (processed % 5 === 0) await sleep(10);
     }
 
-    await progress.completeStep('grid', [`Initialized ${rawCandidates.length} paths`]);
+    await progress.completeStep('grid', [
+        `Initialized ${candidatesWithSafetyNet.length} paths`,
+        `(${candidatesWithSafetyNet.length - rawCandidates.length} safety net candidates)`,
+    ]);
 
     return {
-        candidates: rawCandidates,
+        candidates: candidatesWithSafetyNet,
         stageResult: {
             stageNumber: 1,
             stageName: 'Exhaustive Data Generation',
             candidatesIn: total,
-            candidatesOut: rawCandidates.length
+            candidatesOut: candidatesWithSafetyNet.length
         }
     };
 }
@@ -1197,7 +1265,11 @@ async function stage2BatchTournament(
 
     // 🔱 Dynamic batch size based on offset
     const batchSize = getDynamicBatchSize(candidates.length, offsetMinutes);
-    const survivorsPerBatch = getDynamicSurvivors(batchSize);
+    
+    // 🔱 GOD-TIER SAFETY: First round keeps more survivors (30% vs 20%)
+    // This prevents actual birth time elimination
+    const isFirstRound = roundNumber === 0;
+    const survivorsPerBatch = getDynamicSurvivors(batchSize, isFirstRound);
 
     logger.info('🔱 Stage 2: Starting batch tournament', {
         totalCandidates: currentCandidates.length,
@@ -1321,13 +1393,48 @@ async function stage2BatchTournament(
         currentCandidates = roundSurvivors;
     }
 
+    // 🔱 GOD-TIER SAFETY: Ensure tentative time and safety net always survive
+    const tentativeTime = input.tentativeTime;
+    const hasTentative = currentCandidates.some(c => c.time === tentativeTime);
+    const hasSafetyNet = currentCandidates.some(c => c.offsetDescription.includes('Safety Net'));
+    
+    if (!hasTentative || !hasSafetyNet) {
+        logger.warn('🔱 Safety Net: Adding missing tentative/safety net candidates back to survivors');
+        
+        // Add tentative time if missing
+        if (!hasTentative) {
+            const tentativeCandidate = candidates.find(c => c.time === tentativeTime);
+            if (tentativeCandidate) {
+                currentCandidates.push(tentativeCandidate);
+                logger.info('🔱 Safety Net: Restored tentative time', { tentativeTime });
+            }
+        }
+        
+        // Add safety net candidates if missing (keep at least 3)
+        const missingSafetyNet = candidates
+            .filter(c => c.offsetDescription.includes('Safety Net'))
+            .filter(c => !currentCandidates.some(survivor => survivor.time === c.time))
+            .slice(0, 3);
+        
+        if (missingSafetyNet.length > 0) {
+            currentCandidates.push(...missingSafetyNet);
+            logger.info('🔱 Safety Net: Restored safety net candidates', {
+                count: missingSafetyNet.length,
+                times: missingSafetyNet.map(c => c.time),
+            });
+        }
+    }
+
     // Ensure we don't return an empty set if parallel logic failed
     if (currentCandidates.length === 0 && candidates.length > 0) {
         logger.warn('Tournament failed to yield survivors, using top candidates from original set');
-        currentCandidates = candidates.slice(0, 5);
+        currentCandidates = candidates.slice(0, 10); // 🔱 Increased from 5 to 10
     }
 
-    await progress.completeStep('coarse', [`Tournament complete: ${currentCandidates.length} survivors verified.`]);
+    await progress.completeStep('coarse', [
+        `Tournament complete: ${currentCandidates.length} survivors verified.`,
+        `(Includes tentative + safety net protection)`,
+    ]);
 
     return {
         survivors: currentCandidates,

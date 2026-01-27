@@ -26,16 +26,61 @@ export interface LifeEvent {
 }
 
 export interface PhysicalTraits {
-  height?: string | { cm: number; feet: number; inches: number };
+  height?: { cm: number; feet: number; inches: number } | string | number;
   build?: string;
   complexion?: string;
   hairColor?: string;
   eyeColor?: string;
   distinguishingMarks?: string;
+  // Additional fields used by Step2PhysicalTraits
+  eyeShape?: string;
+  foreheadHeight?: string;
+  jawLine?: string;
+  prakriti?: string;
+  shoulderWidth?: string;
+  hairType?: string;
+  specialFeatures?: string;
   [key: string]: any;
 }
 
 export interface ForensicTraits {
+  physical?: {
+    facialStructure?: {
+      forehead?: string;
+      eyeShape?: string;
+      noseType?: string;
+      teethAlignment?: string;
+      voicePitch?: string;
+    };
+    skinHair?: {
+      texture?: string;
+      hairType?: string;
+      complexion?: string;
+      marks?: string[];
+    };
+    build?: string;
+    height?: { cm: number; feet: number; inches: number };
+  };
+  psychographic?: {
+    speechStyle?: string;
+    decisionMaking?: string;
+    stressResponse?: string;
+    sleepCycle?: string;
+    temperament?: string;
+  };
+  biological?: {
+    prakriti?: string;
+    sensitivity?: { heat?: string; cold?: string };
+    recurringHealthIssues?: string[];
+  };
+  family?: {
+    siblingPosition?: string;
+    brotherCount?: number;
+    sisterCount?: number;
+    fatherStatusAtBirth?: string;
+    motherHealthAtBirth?: string;
+  };
+  // Legacy fields for backward compatibility
   faceShape?: string;
   foreheadType?: string;
   eyebrowShape?: string;
@@ -49,9 +94,11 @@ export interface ForensicTraits {
 export interface SpouseData {
   name?: string;
   dateOfBirth?: string;
+  birthTime?: string;
   birthPlace?: string;
   latitude?: number;
   longitude?: number;
+  timezone?: number | string;
 }
 
 export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours' | '6hours' | '12hours' | 'custom';

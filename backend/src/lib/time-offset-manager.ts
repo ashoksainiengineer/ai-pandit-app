@@ -31,7 +31,9 @@ export interface CandidateTime {
 export const MAX_BATCH_SIZE = 15;
 
 // Survivors per batch for tournament progression
-export const SURVIVORS_PER_BATCH = 2;
+// 🔱 GOD-TIER SAFETY: Increased from 2 to 5 to prevent actual birth time elimination
+// Research shows: With DeepSeek R1's 64K context, we can analyze more candidates
+export const SURVIVORS_PER_BATCH = 5;
 
 /**
  * 🔱 DYNAMIC BATCH SIZE - Based on offset range
@@ -65,17 +67,29 @@ export function getDynamicBatchSize(totalCandidates: number, offsetMinutes: numb
 
 /**
  * Get dynamic survivors count based on batch size
- * More survivors for smaller batches to maintain tournament quality
+ * 🔱 GOD-TIER SAFETY: More survivors to prevent actual birth time elimination
+ * Research shows: With DeepSeek R1's reasoning, we can safely analyze more candidates
+ *
+ * @param batchSize Current batch size
+ * @param isFirstRound If true, preserves more candidates (safety net for tentative time)
+ * @returns Number of survivors to select
  */
-export function getDynamicSurvivors(batchSize: number): number {
-  // For batch of 5-6 → 2 survivors (40% survive)
-  if (batchSize <= 6) return 2;
+export function getDynamicSurvivors(batchSize: number, isFirstRound: boolean = false): number {
+  // 🔱 SAFETY NET: In first round, always keep at least 30% of candidates
+  // This ensures actual birth time doesn't get eliminated early
+  if (isFirstRound) {
+    return Math.max(5, Math.ceil(batchSize * 0.3));
+  }
 
-  // For batch of 7-8 → 2 survivors (25-28% survive)
-  if (batchSize <= 8) return 2;
+  // For batch of 5-6 → 3 survivors (50% survive)
+  if (batchSize <= 6) return 3;
 
-  // For batch of 9-10 → 2 survivors (20-22% survive)
-  return 2;
+  // For batch of 7-8 → 4 survivors (50% survive)
+  if (batchSize <= 8) return 4;
+
+  // For batch of 9-10 → 5 survivors (50-55% survive)
+  // For batch of 11-15 → 5 survivors (33-45% survive)
+  return Math.min(5, Math.ceil(batchSize * 0.35));
 }
 
 // ═════════════════════════════════════════════════════════════════════════
@@ -302,6 +316,103 @@ export function splitIntoBatches<T>(candidates: T[], batchSize: number = MAX_BAT
   });
 
   return batches;
+}
+
+// ═════════════════════════════════════════════════════════════════════════
+// 🔱 GOD-TIER SAFETY NET - Ensure tentative time never gets eliminated
+// ═════════════════════════════════════════════════════════════════════════
+
+/**
+ * Creates a "safety net" of candidates around the tentative time
+ * This ensures the actual birth time (which is often close to tentative)
+ * NEVER gets eliminated in early stages
+ *
+ * @param tentativeTime The original tentative birth time (HH:MM:SS)
+ * @param allCandidates All generated candidates
+ * @returns Candidates with safety net times guaranteed to be included
+ */
+export function injectSafetyNetCandidates(
+  tentativeTime: string,
+  allCandidates: CandidateTime[]
+): CandidateTime[] {
+  const safetyOffsets = [
+    { min: 0, desc: 'Tentative (Original)' },
+    { min: -1, desc: '-1m Safety Net' },
+    { min: 1, desc: '+1m Safety Net' },
+    { min: -2, desc: '-2m Safety Net' },
+    { min: 2, desc: '+2m Safety Net' },
+    { min: -5, desc: '-5m Safety Net' },
+    { min: 5, desc: '+5m Safety Net' },
+  ];
+
+  const existingTimes = new Set(allCandidates.map(c => c.time));
+  const safetyCandidates: CandidateTime[] = [];
+
+  // Parse tentative time
+  const [h, m, s] = tentativeTime.split(':').map(Number);
+  const baseTotalMinutes = h * 60 + m + s / 60;
+
+  for (const offset of safetyOffsets) {
+    const candidateMinutes = baseTotalMinutes + offset.min;
+    const candidate = convertMinutesToTimeSafetyNet(candidateMinutes, offset.min, offset.desc);
+    
+    // Only add if not already present
+    if (!existingTimes.has(candidate.time)) {
+      safetyCandidates.push(candidate);
+      existingTimes.add(candidate.time);
+    }
+  }
+
+  // Combine and re-sort chronologically
+  const combined = [...safetyCandidates, ...allCandidates];
+  combined.sort((a, b) => a.offsetMinutes - b.offsetMinutes);
+
+  logger.info('🔱 Safety Net Injected', {
+    tentativeTime,
+    safetyCandidatesAdded: safetyCandidates.length,
+    totalCandidates: combined.length,
+    safetyTimes: safetyCandidates.map(c => c.time)
+  });
+
+  return combined;
+}
+
+/**
+ * Helper for safety net time conversion
+ */
+function convertMinutesToTimeSafetyNet(
+  totalMinutes: number,
+  offsetMinutes: number,
+  description: string
+): CandidateTime {
+  // Handle day wraparound
+  let adjustedMinutes = totalMinutes;
+  let dayOffset = 0;
+
+  if (adjustedMinutes < 0) {
+    dayOffset = -1;
+    adjustedMinutes += 24 * 60;
+  } else if (adjustedMinutes >= 24 * 60) {
+    dayOffset = 1;
+    adjustedMinutes -= 24 * 60;
+  }
+
+  const h = Math.floor(adjustedMinutes / 60);
+  const m = Math.floor(adjustedMinutes % 60);
+  const s = Math.round((adjustedMinutes % 1) * 60);
+
+  const timeString = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+
+  let offsetDescription = description;
+  if (dayOffset !== 0) {
+    offsetDescription += ` (${dayOffset > 0 ? 'Next' : 'Previous'} day)`;
+  }
+
+  return {
+    time: timeString,
+    offsetMinutes: Math.round(offsetMinutes),
+    offsetDescription,
+  };
 }
 
 // ═════════════════════════════════════════════════════════════════════════

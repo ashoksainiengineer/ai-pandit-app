@@ -320,6 +320,18 @@ export default function EditSessionPage() {
                             data={birthData}
                             events={lifeEvents}
                             traits={physicalTraits}
+                            forensicTraits={{
+                                physical: {
+                                    facialStructure: {},
+                                    skinHair: { marks: [] },
+                                    height: typeof physicalTraits.height === 'object' && physicalTraits.height !== null
+                                        ? physicalTraits.height as { cm: number; feet: number; inches: number }
+                                        : { cm: 168, feet: 5, inches: 6 }
+                                },
+                                psychographic: {},
+                                biological: { sensitivity: {} },
+                                family: { brotherCount: 0, sisterCount: 0 }
+                            }}
                             onSubmit={handleSubmit}
                             isSubmitting={isSubmitting}
                             onEdit={setStep}

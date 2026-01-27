@@ -297,6 +297,12 @@ export interface CandidateAnalysis {
   eventMatches: number; // How many events match
   shouldAnalyzeWithAI: boolean; // Is this worth analyzing with AI?
   reason: string; // Why is this ranked this way
+  metadata?: { // 🔱 Extended analysis metadata
+    isTentativeOrNeighbor?: boolean;
+    d60Stability?: any;
+    protected?: boolean;
+    [key: string]: any;
+  };
 }
 
 export interface RankedCandidates {

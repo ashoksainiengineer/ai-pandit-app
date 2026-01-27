@@ -4,12 +4,11 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { UserButton, useAuth } from '@clerk/nextjs';
-import { BirthData, LifeEvent, PhysicalTraits, TimeOffsetConfig, SpouseData } from '@/lib/types';
+import { BirthData, LifeEvent, PhysicalTraits, TimeOffsetConfig, SpouseData, ForensicTraits } from '@/lib/types';
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
 import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
 import Step2ForensicTraits from '@/components/rectify/Step2ForensicTraits';
 import Step4Review from '@/components/rectify/Step4Review';
-import { ForensicTraits } from '@/lib/types';
 
 // Initial States
 const initialBirthData: BirthData = {
@@ -37,29 +36,29 @@ const initialPhysicalTraits: PhysicalTraits = {
 
 const initialForensicTraits: ForensicTraits = {
     physical: {
-        facialStructure: { forehead: 'average', eyeShape: 'almond', noseType: 'sharp', teethAlignment: 'perfect', voicePitch: 'medium' },
-        skinHair: { texture: 'combination', hairType: 'straight', complexion: 'medium', marks: [] },
-        build: 'medium',
-        height: { cm: 168, feet: 5, inches: 6 }
+        facialStructure: { forehead: '', eyeShape: '', noseType: '', teethAlignment: '', voicePitch: '' },
+        skinHair: { texture: '', hairType: '', complexion: '', marks: [] },
+        build: '',
+        height: { cm: 0, feet: 0, inches: 0 }
     },
     psychographic: {
-        speechStyle: 'measured_soft',
-        decisionMaking: 'deliberate',
-        stressResponse: 'calm',
-        sleepCycle: 'early_bird',
-        temperament: 'patient'
+        speechStyle: '',
+        decisionMaking: '',
+        stressResponse: '',
+        sleepCycle: '',
+        temperament: ''
     },
     biological: {
-        prakriti: 'pitta',
-        sensitivity: { heat: 'medium', cold: 'medium' },
+        prakriti: '',
+        sensitivity: { heat: '', cold: '' },
         recurringHealthIssues: []
     },
     family: {
-        siblingPosition: 'eldest',
+        siblingPosition: '',
         brotherCount: 0,
         sisterCount: 0,
-        fatherStatusAtBirth: 'stable',
-        motherHealthAtBirth: 'normal'
+        fatherStatusAtBirth: '',
+        motherHealthAtBirth: ''
     }
 };
 
@@ -192,45 +191,74 @@ export default function RectifyPage() {
     };
 
     const validateStep = (currentStep: number) => {
+        const missingFields: string[] = [];
+        
         switch (currentStep) {
             case 1:
-                if (!birthData.fullName) { setError("Full Name is required"); return false; }
-                if (!birthData.dateOfBirth) { setError("Date of Birth is required"); return false; }
-                if (!birthData.tentativeTime) { setError("Birth Time is required"); return false; }
-                if (!birthData.birthPlace) { setError("Birth Place is required"); return false; }
+                if (!birthData.fullName?.trim()) missingFields.push("Full Name");
+                if (!birthData.dateOfBirth) missingFields.push("Date of Birth");
+                if (!birthData.tentativeTime) missingFields.push("Tentative Birth Time");
+                if (!birthData.birthPlace?.trim()) missingFields.push("Birth Place");
+                if (!birthData.gender) missingFields.push("Gender");
+                
+                if (missingFields.length > 0) {
+                    setError(`⚠️ Please complete the following required fields: ${missingFields.join(", ")}`);
+                    return false;
+                }
                 return true;
+                
             case 2:
                 // Forensic traits - MANDATORY for sub-second precision
                 const { physical, psychographic, biological, family } = forensicTraits;
-                if (!physical.facialStructure.forehead || !physical.facialStructure.eyeShape || !physical.facialStructure.voicePitch) {
-                    setError("Please complete all Facial Forensic markers.");
-                    return false;
-                }
-                if (!psychographic.speechStyle || !psychographic.temperament || !psychographic.decisionMaking) {
-                    setError("Please complete all Psychographic DNA markers.");
-                    return false;
-                }
-                if (!biological.prakriti) {
-                    setError("Please select your Ayurvedic Prakriti.");
-                    return false;
-                }
-                if (!family.siblingPosition || !family.fatherStatusAtBirth) {
-                    setError("Please complete the Family Narrative Matrix.");
+                
+                // Physical/Facial markers
+                if (!physical?.facialStructure?.forehead) missingFields.push("Forehead Type (Mukha Tab)");
+                if (!physical?.facialStructure?.eyeShape) missingFields.push("Eye Shape (Mukha Tab)");
+                if (!physical?.facialStructure?.voicePitch) missingFields.push("Voice Texture (Mukha Tab)");
+                
+                // Body Constitution
+                if (!biological?.prakriti) missingFields.push("Body Constitution (Deha Tab)");
+                
+                // Psychographic markers
+                if (!psychographic?.speechStyle) missingFields.push("Speech Style (Vyaktitva Tab)");
+                if (!psychographic?.decisionMaking) missingFields.push("Decision Making Style (Vyaktitva Tab)");
+                if (!psychographic?.temperament) missingFields.push("Temperament (Vyaktitva Tab)");
+                
+                // Family narrative
+                if (!family?.siblingPosition) missingFields.push("Sibling Order (Kula Tab)");
+                if (!family?.fatherStatusAtBirth) missingFields.push("Father's Status at Birth (Kula Tab)");
+                
+                if (missingFields.length > 0) {
+                    setError(`🔱 FORENSIC DNA REQUIRED for God-Tier Precision:\n${missingFields.map(f => `  • ${f}`).join("\n")}\n\nPlease complete all forensic markers. These are essential for sub-second accuracy.`);
                     return false;
                 }
                 return true;
+                
             case 3:
-                if (lifeEvents.length < 5) {
-                    setError("Please add at least 5 life events for 99%+ accuracy. The more events you provide, the more precise your rectification will be.");
+                if (lifeEvents.length < 3) {
+                    setError(`📅 MINIMUM 3 LIFE EVENTS REQUIRED\n\nCurrent: ${lifeEvents.length} event(s)\nRequired: At least 3 events with dates\n\nTip: Add major events like graduation, marriage, career changes, relocations.`);
                     return false;
                 }
-                // Check if events have dates filled
+                
+                // Check for events without proper details
                 const eventsWithoutDates = lifeEvents.filter(e => !e.eventDate);
+                const eventsWithoutCategory = lifeEvents.filter(e => !e.category);
+                const eventsWithoutType = lifeEvents.filter(e => !e.eventType);
+                
                 if (eventsWithoutDates.length > 0) {
-                    setError(`Please fill in dates for all events. ${eventsWithoutDates.length} event(s) missing dates.`);
+                    setError(`⚠️ ${eventsWithoutDates.length} event(s) missing dates. Please add dates to all events.`);
+                    return false;
+                }
+                if (eventsWithoutCategory.length > 0) {
+                    setError(`⚠️ ${eventsWithoutCategory.length} event(s) missing category. Please select a category for each event.`);
+                    return false;
+                }
+                if (eventsWithoutType.length > 0) {
+                    setError(`⚠️ ${eventsWithoutType.length} event(s) missing event type. Please describe each event.`);
                     return false;
                 }
                 return true;
+                
             default:
                 return true;
         }

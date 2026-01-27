@@ -3,6 +3,6 @@ export declare function analyzeAndFilterCandidates(dateOfBirth: string, candidat
     time: string;
     offsetMinutes: number;
     offsetDescription: string;
-}>, latitude: number, longitude: number, timezone: number, lifeEvents: LifeEvent[]): Promise<RankedCandidates>;
+}>, latitude: number, longitude: number, timezone: number, lifeEvents: LifeEvent[], tentativeTime?: string): Promise<RankedCandidates>;
 export default analyzeAndFilterCandidates;
 //# sourceMappingURL=candidate-analyzer.d.ts.map
