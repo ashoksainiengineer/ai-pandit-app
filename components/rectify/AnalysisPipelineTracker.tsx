@@ -7,6 +7,7 @@ interface AnalysisPipelineTrackerProps {
     allSteps: Array<{ id: string; name: string; icon?: string }>;
     currentStage: number; // 0-based index
     isConnected: boolean;
+    isComplete?: boolean; // 🏁 Completion flag
 }
 
 const ScanLine = () => (
@@ -18,11 +19,16 @@ const ScanLine = () => (
     />
 );
 
-export const AnalysisPipelineTracker: React.FC<AnalysisPipelineTrackerProps> = ({ stats, allSteps, currentStage, isConnected }) => {
+export const AnalysisPipelineTracker: React.FC<AnalysisPipelineTrackerProps> = ({ stats, allSteps, currentStage, isConnected, isComplete = false }) => {
     const [load, setLoad] = useState(72.4);
 
     // 💓 Neural Load Logic (Responsive to Stage)
     useEffect(() => {
+        if (isComplete) {
+            setLoad(0); // Load drops to zero on completion
+            return;
+        }
+
         const interval = setInterval(() => {
             setLoad(prev => {
                 const step = allSteps[currentStage];
@@ -34,7 +40,7 @@ export const AnalysisPipelineTracker: React.FC<AnalysisPipelineTrackerProps> = (
             });
         }, 1200);
         return () => clearInterval(interval);
-    }, [currentStage, allSteps]);
+    }, [currentStage, allSteps, isComplete]);
 
     const activeStat = stats[stats.length - 1];
     const candidateCount = activeStat?.candidateCount || 0;
@@ -98,7 +104,7 @@ export const AnalysisPipelineTracker: React.FC<AnalysisPipelineTrackerProps> = (
                                     className={`relative z-10 border p-2 rounded-sm transition-all duration-500
                                     ${isActive ? 'shadow-[0_0_15px_rgba(212,175,55,0.15)] ring-1 ring-[#D4AF37]/20 scale-[1.02]' : 'opacity-60'}`}
                                 >
-                                    {isActive && <ScanLine />}
+                                    {isActive && !isComplete && <ScanLine />}
 
                                     <div className="flex justify-between items-center mb-1">
                                         <span className={`text-[8px] font-bold ${isActive ? 'text-[#D4AF37]' : 'text-[#8C7F72]'}`}>

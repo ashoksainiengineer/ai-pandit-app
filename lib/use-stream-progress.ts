@@ -550,8 +550,10 @@ export function useStreamProgress(
                 break;
 
             case 'complete':
+                console.log('🏆 [Stream] RECEIVED COMPLETE EVENT. LOCKING DOWN STATE.');
                 setState(prev => ({
                     ...prev,
+                    isConnected: false, // Strictly disconnect UI pulses
                     isComplete: true,
                     result: {
                         rectifiedTime: eventData.rectifiedTime,
@@ -646,6 +648,7 @@ export function useStreamProgress(
         let lastActivity = Date.now();
         const activityCheck = setInterval(() => {
             if (state.isComplete) {
+                console.log('Stopping activity check due to completion');
                 clearInterval(activityCheck);
                 return;
             }
@@ -714,6 +717,11 @@ export function useStreamProgress(
 
     // Rotation Effect: Switch displayed candidate every 5 seconds
     useEffect(() => {
+        if (state.isComplete) {
+            if (rotationTimerRef.current) clearInterval(rotationTimerRef.current);
+            return;
+        }
+
         if (rotationTimerRef.current) clearInterval(rotationTimerRef.current);
 
         rotationTimerRef.current = setInterval(() => {
@@ -738,14 +746,19 @@ export function useStreamProgress(
         return () => {
             if (rotationTimerRef.current) clearInterval(rotationTimerRef.current);
         };
-    }, []);
+    }, [state.isComplete]); // Add isComplete dependency to stop rotation
 
-    // Cleanup polling on unmount
+    // Cleanup polling on unmount & on completion
     useEffect(() => {
+        if (state.isComplete && pollingIntervalRef.current) {
+            console.log('🛑 [Poll] Stopping polling due to completion');
+            clearInterval(pollingIntervalRef.current);
+            pollingIntervalRef.current = null;
+        }
         return () => {
             if (pollingIntervalRef.current) clearInterval(pollingIntervalRef.current);
         };
-    }, []);
+    }, [state.isComplete]);
 
     return { ...state, ...connectionState };
 }

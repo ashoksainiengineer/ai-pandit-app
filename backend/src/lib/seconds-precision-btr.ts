@@ -643,6 +643,7 @@ function getBatchPrompt(
 2. FUNCTIONAL NATURE MATTERS: A planet ruling 6/8/12 is malefic for this Ascendant.
 3. DIGNITY MATTERS: Exalted/Own planets give strong results; Debilitated giving mixed/weak.
 4. HOUSE LORDSHIP IS KEY: Event X (e.g., Marriage) MUST activate relevant house lords (e.g., 7th Lord).
+5. 🚨🚨🚨 FORENSIC DATA GAP AUDIT 🚨🚨🚨: After scoring, you MUST provide a detailed list of every methodological metric (e.g., D-Chart degrees, Shadbala, etc.) that was missing but required for 100% precision.
 ════════════════════════════════════════════════════════════════════════════════
 
 TASK: Score ${candidates.length} candidates based on Rigorous Vedic Dasha-Event correlation.
@@ -747,6 +748,7 @@ function getDeepAnalysisPrompt(
 4. CORRELATE DASHAS: Match Dasha Lords (and their House ownerships) to life events.
 5. HIGH-SIGNALS: Vargottama and Pushkar planets are 2-3x more potent in delivering results. Parivartana (Exchange) links two houses indissolubly.
 6. EVENT SIGNATURES: Use the pre-calculated signatures (D10 strength, Double Transit) to confirm "VIGOUR".
+7. ⚡⚡⚡ CRITICAL METHODOLOGICAL AUDIT ⚡⚡⚡: If you cannot perform a specific high-precision technique (e.g., D-60 analysis) because data is missing, YOU MUST IDENTIFY THIS GAP FORENSICALLY. List exactly what's missing.
 ════════════════════════════════════════════════════════════════════════════════
 
 TASK: Cross-verify ${shuffledCandidates.length} candidates using Dasha systems & Vedic Mathematics.
@@ -844,6 +846,7 @@ function getFinalPrecisionPrompt(
 1. FOCUS ON D60 (SHASHTYAMSA): Even 10 seconds can change D60 Lagna.
 2. NARRATIVE SYNC: The rectified time MUST explain the "NARRATIVE EXPERIENCE" describing the flavor of the life event (e.g. "sudden surgery" implies Mars/Ketu in 8th or 6th).
 3. VERIFY PRANADASHAS: Use Vimshottari logic down to the finest level.
+4. 🚨🚨🚨 SECONDS-LEVEL FORENSIC AUDIT 🚨🚨🚨: You MUST list every missing data point required for your logic. If you identify a gap in D-Chart degrees or planetary metrics, EXPOSE IT.
 ════════════════════════════════════════════════════════════════════════════════
 
 TASK: Select THE SINGLE BEST birth time from ${shuffledCandidates.length} finalists.

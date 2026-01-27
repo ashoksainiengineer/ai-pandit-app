@@ -229,8 +229,8 @@ export function CandidateLevelTables({ candidateScores, currentStage, onSelectCa
 
                                                     {/* Key Reason */}
                                                     <td className="px-3 py-2.5 text-[10px] text-[#C4B8AD] max-w-[200px]">
-                                                        <span className="line-clamp-2">
-                                                            {c.reason || (c.score >= 80 ? 'Strong dasha correlation' : c.score >= 60 ? 'Partial event match' : 'Weak correlation')}
+                                                        <span className="line-clamp-2" title={c.reason || 'No detailed reason provided'}>
+                                                            {c.reason || (c.score >= 80 ? 'Strong dasha correlation' : c.score >= 60 ? 'Partial event match' : 'Vedic correlation identified')}
                                                         </span>
                                                     </td>
 

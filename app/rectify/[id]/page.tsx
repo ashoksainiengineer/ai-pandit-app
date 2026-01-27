@@ -161,8 +161,12 @@ function AnalysisTimer({ startTime, startedAt, estimatedTimeRemaining }: { start
     const [elapsed, setElapsed] = useState(0);
 
     useEffect(() => {
-        const start = (startedAt || startTime) ? new Date(startedAt || startTime!).getTime() : Date.now();
+        if (!startedAt && !startTime) return;
+
+        const start = new Date(startedAt || startTime!).getTime();
         const interval = setInterval(() => {
+            // Stop internal clock if time provided is frozen or session is done? 
+            // Better to let the parent control visibility.
             setElapsed(Math.floor((Date.now() - start) / 1000));
         }, 1000);
         return () => clearInterval(interval);
@@ -556,12 +560,14 @@ export default function ProgressPage() {
                         🔮 Rectifying Your Birth Time
                     </h1>
                     <div className="text-[#C4B8AD] min-h-[40px] transition-all duration-300 flex flex-col items-center justify-center gap-3">
-                        <span className="text-sm font-medium tracking-wide">{progress?.liveMessage || 'Initializing analysis...'}</span>
+                        <span className="text-sm font-medium tracking-wide">
+                            {isComplete ? 'Analysis Finalized' : (progress?.liveMessage || 'Initializing analysis...')}
+                        </span>
                         {!isComplete && !cancelled && (
                             <AnalysisTimer
                                 startTime={progress?.steps[0]?.startedAt}
                                 startedAt={startedAt}
-                                estimatedTimeRemaining={estimatedTimeRemaining} // ⏱️ Pass ETA
+                                estimatedTimeRemaining={estimatedTimeRemaining}
                             />
                         )}
                     </div>
@@ -581,6 +587,7 @@ export default function ProgressPage() {
                         allSteps={allSteps}
                         currentStage={progress?.currentStep ?? -1}
                         isConnected={isConnected}
+                        isComplete={isComplete} // 🏁 Pass completion flag
                     />
                 </div>
 
@@ -634,11 +641,11 @@ export default function ProgressPage() {
                                         animate={{ scale: 1, opacity: 1 }}
                                         className="text-5xl font-black text-[#D4AF37] tracking-tighter"
                                     >
-                                        {progress?.percentage || 0}
+                                        {isComplete ? 100 : (progress?.percentage || 0)}
                                         <span className="text-xl ml-0.5 opacity-70">%</span>
                                     </motion.div>
                                     <div className="text-[10px] text-[#8C7F72] font-semibold uppercase tracking-[0.25em] mt-1">
-                                        Progress
+                                        {isComplete ? 'Finalized' : 'Progress'}
                                     </div>
                                 </div>
                             </div>
@@ -654,7 +661,7 @@ export default function ProgressPage() {
                                     <div className="text-3xl mb-3">{currentStepData.icon}</div>
                                     <h3 className="text-xl font-bold text-[#F5F0EB] mb-2">{currentStepData.name}</h3>
                                     <div className="text-[#D4AF37] text-sm font-mono bg-[#0F1419]/50 p-3 rounded border border-[#D4AF37]/20 shadow-inner">
-                                        {'>'} {currentStepData.message || 'Processing...'}
+                                        &gt; {currentStepData.message || 'Processing...'}
                                         <span className="animate-pulse">_</span>
                                     </div>
                                 </div>
@@ -695,6 +702,7 @@ export default function ProgressPage() {
                                 candidateScores={candidateScores}
                                 calculationLogs={calculationLogs}
                                 unifiedMode={true} // 🌊 Set unified mode
+                                isComplete={isComplete} // 🏁 Pass completion flag
                             />
                         </div>
                     );

@@ -45,6 +45,7 @@ interface UnifiedAIPanelProps {
     }>;
     calculationLogs?: CalculationLog[];
     unifiedMode?: boolean; // 🌊 Unified stream mode
+    isComplete?: boolean; // 🏁 Completion flag
 }
 
 
@@ -152,7 +153,8 @@ export function UnifiedAIPanel({
     onSelectCandidate,
     candidateScores,
     calculationLogs,
-    unifiedMode
+    unifiedMode,
+    isComplete = false
 }: UnifiedAIPanelProps) {
     // Current active stage
     const currentStage = thinking?.stage || stage || 2;
@@ -259,7 +261,7 @@ export function UnifiedAIPanel({
                                 'from-purple-500 to-pink-600'
                             } flex items-center justify-center shadow-lg relative`}>
                             <Brain className="w-5 h-5 text-white" />
-                            {isActive && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />}
+                            {isActive && !isComplete && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-ping" />}
                         </div>
                         <div>
                             <h3 className="font-bold text-base text-[#D4AF37]">
@@ -280,7 +282,7 @@ export function UnifiedAIPanel({
                             </div>
                         )}
 
-                        {isActive && (
+                        {isActive && !isComplete && (
                             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-[#8B5CF6]/20 border border-[#8B5CF6]/30">
                                 <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                                 <span className="text-[10px] font-medium text-[#8B5CF6] uppercase tracking-wider">THINKING</span>
@@ -367,7 +369,7 @@ export function UnifiedAIPanel({
                 {/* Content for Selected Candidate */}
                 <ScrollableContent
                     content={activeContent}
-                    isThinking={isActive}
+                    isThinking={isActive && !isComplete}
                     candidateTime={effectiveDisplayedCandidate || thinking?.candidateTime}
                 />
 

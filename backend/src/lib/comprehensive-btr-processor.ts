@@ -754,9 +754,11 @@ YOUR TASK:
 5. Calculate COMBINED CONFIDENCE SCORE (0-100)
 
 6. Provide FINAL VERDICT with detailed reasoning
+7. 🚨🚨🚨 FORENSIC DATA AUDIT 🚨🚨🚨: Explicitly list every methodological metric (e.g., precise Jaimini aspects, Shadbala values, or specific Varga Lagna details) that were mentioned in these instructions but were missing from the candidate's input. Explain how this missing data limits your final certainty.
 
 Remember: Multiple systems agreeing = High confidence
-If 5+ systems agree on event correlation = 95%+ confidence possible`;
+If 5+ systems agree on event correlation = 95%+ confidence possible
+🚨⚡ HIGH-PRECISION DATA AUDIT IS MANDATORY: You MUST state if any required astrological metric was absent for seconds-level accuracy.`;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
