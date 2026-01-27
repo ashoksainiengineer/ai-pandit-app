@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BirthData, PhysicalTraits, LifeEvent, TimeOffsetConfig } from '@/lib/types';
+import { BirthData, PhysicalTraits, LifeEvent, TimeOffsetConfig, ForensicTraits } from '@/lib/types';
 
 interface Step4Props {
     data: BirthData;
     events: LifeEvent[];
     traits: PhysicalTraits;
+    forensicTraits: ForensicTraits;
     onSubmit: () => void;
     isSubmitting: boolean;
     onEdit: (step: number) => void;
@@ -20,7 +21,7 @@ const itemVariants = {
     visible: { opacity: 1, y: 0 }
 };
 
-export default function Step4Review({ data, events, traits, onSubmit, isSubmitting, onEdit, offsetConfig }: Step4Props) {
+export default function Step4Review({ data, events, traits, forensicTraits, onSubmit, isSubmitting, onEdit, offsetConfig }: Step4Props) {
     const [confirmed, setConfirmed] = useState(false);
     const [cooldown, setCooldown] = useState(true);
 
@@ -32,10 +33,13 @@ export default function Step4Review({ data, events, traits, onSubmit, isSubmitti
 
     // Calculate Accuracy
     const calculateAccuracy = () => {
-        let score = 30;
-        // Basic event count score
-        score += events.filter(e => e.description && e.eventDate).length * 10;
-        return Math.min(98, score);
+        let score = 40; // Base forensic score
+        // Event quality score
+        score += events.filter(e => e.description && e.eventDate).length * 8;
+        // Forensic completion bonus
+        if (forensicTraits.physical.skinHair.marks.length > 0) score += 5;
+        if (forensicTraits.family.brotherCount > 0 || forensicTraits.family.sisterCount > 0) score += 5;
+        return Math.min(99, score);
     };
     const accuracy = calculateAccuracy();
 
@@ -130,7 +134,7 @@ export default function Step4Review({ data, events, traits, onSubmit, isSubmitti
                     </div>
                 </motion.div>
 
-                {/* Physical Traits */}
+                {/* Forensic Traits */}
                 <motion.div
                     variants={itemVariants}
                     className="bg-[#241F1C] rounded-xl p-6 border border-[#C4B8AD]/10 relative group"
@@ -142,30 +146,32 @@ export default function Step4Review({ data, events, traits, onSubmit, isSubmitti
                         ✏️ Edit
                     </button>
                     <h3 className="text-lg font-semibold text-[#F5F0EB] mb-4 pb-3 border-b border-[#C4B8AD]/10 flex items-center gap-2">
-                        <span>🧑</span> Physical Traits
+                        <span>🧬</span> Forensic Traits
                     </h3>
-                    <div className="space-y-3 text-sm">
-                        <div className="flex justify-between">
-                            <span className="text-[#8C7F72]">Height</span>
+                    <div className="space-y-4 text-xs">
+                        <div>
+                            <span className="text-[#8C7F72] block uppercase mb-1">Face & Voice</span>
                             <span className="text-[#C4B8AD]">
-                                {traits.height?.cm ? `${traits.height.cm} cm` : 'Not provided'}
+                                {forensicTraits.physical.facialStructure.forehead} forehead, {forensicTraits.physical.facialStructure.eyeShape} eyes, {forensicTraits.physical.facialStructure.voicePitch} voice
                             </span>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-[#8C7F72]">Build</span>
-                            <span className="text-[#C4B8AD] capitalize">{traits.build || 'Not provided'}</span>
+                        <div>
+                            <span className="text-[#8C7F72] block uppercase mb-1">Behavioral DNS</span>
+                            <span className="text-[#C4B8AD]">
+                                {forensicTraits.psychographic.speechStyle.replace('_', ' ')} speech, {forensicTraits.psychographic.temperament} temperament
+                            </span>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-[#8C7F72]">Complexion</span>
-                            <span className="text-[#C4B8AD] capitalize">{traits.complexion?.replace('_', ' ') || 'Not provided'}</span>
+                        <div>
+                            <span className="text-[#8C7F72] block uppercase mb-1">Family Narrative</span>
+                            <span className="text-[#C4B8AD]">
+                                {forensicTraits.family.siblingPosition} child ({forensicTraits.family.brotherCount}B, {forensicTraits.family.sisterCount}S)
+                            </span>
                         </div>
-                        <div className="flex justify-between">
-                            <span className="text-[#8C7F72]">Face Shape</span>
-                            <span className="text-[#C4B8AD] capitalize">{traits.faceShape || 'Not provided'}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-[#8C7F72]">Eye Size</span>
-                            <span className="text-[#C4B8AD] capitalize">{traits.eyeColor || 'Not provided'}</span>
+                        <div>
+                            <span className="text-[#8C7F72] block uppercase mb-1">Biology</span>
+                            <span className="text-[#C4B8AD] uppercase">
+                                {forensicTraits.biological.prakriti} | Heat: {forensicTraits.biological.sensitivity.heat}
+                            </span>
                         </div>
                     </div>
                 </motion.div>

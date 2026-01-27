@@ -64,7 +64,7 @@ import {
 } from './time-offset-manager.js';
 import { logger } from './logger.js';
 import { ProgressTracker, ANALYSIS_STEPS } from './progress-tracker.js';
-import { LifeEvent, EphemerisData, SecondsPrecisionInput, SecondsPrecisionResult } from './types.js';
+import { LifeEvent, EphemerisData, SecondsPrecisionInput, SecondsPrecisionResult, ForensicTraits } from './types.js';
 import { throwIfCancelled, isCancellationError } from './cancellation-manager.js';
 import { emitCandidateScore, emitAIContext, emitCalculationLog, emitStageStats, emitAIThinking } from './session-events.js';
 
@@ -662,12 +662,36 @@ function formatLifeEventForAI(event: LifeEvent): string {
 function getBatchPrompt(
     candidates: CandidateDataPackage[],
     events: LifeEvent[],
-    traits: any,
+    forensicTraits: ForensicTraits,
     batchNumber: number,
     totalBatches: number,
     survivorsNeeded: number
 ): string {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
+    const f = forensicTraits;
+
+    const forensicContext = `
+┌── FORENSIC PHYSICAL DNA (Varga Markers) ──
+│ Facial: ${f.physical.facialStructure.forehead} forehead, ${f.physical.facialStructure.eyeShape} eyes, ${f.physical.facialStructure.noseType} nose, ${f.physical.facialStructure.teethAlignment} teeth, ${f.physical.facialStructure.voicePitch} voice
+│ Hair/Skin: ${f.physical.skinHair.hairType} hair, ${f.physical.skinHair.texture} skin, ${f.physical.skinHair.complexion} complexion
+│ Special Marks: ${f.physical.skinHair.marks.join(', ') || 'None reported'}
+│ Build: ${f.physical.build} (${f.physical.height.feet}'${f.physical.height.inches}")
+
+┌── PSYCHOGRAPHIC DNA (Temperament) ──
+│ Speech: ${f.psychographic.speechStyle} | Decisions: ${f.psychographic.decisionMaking}
+│ Stress: ${f.psychographic.stressResponse} | Sleep: ${f.psychographic.sleepCycle}
+│ Temperament: ${f.psychographic.temperament}
+
+┌── BIOLOGICAL MARKERS (Ayurvedic) ──
+│ Prakriti: ${f.biological.prakriti.toUpperCase()}
+│ Sensitivity: Heat=${f.biological.sensitivity.heat} | Cold=${f.biological.sensitivity.cold}
+│ Health Issues: ${f.biological.recurringHealthIssues.join(', ') || 'None'}
+
+┌── FAMILY NARRATIVE MATRIX ──
+│ Position: ${f.family.siblingPosition} (${f.family.brotherCount} brothers, ${f.family.sisterCount} sisters)
+│ Birth Status: Father status was "${f.family.fatherStatusAtBirth}", Mother health was "${f.family.motherHealthAtBirth}"
+${f.family.firstChildInfo ? `│ First Child: ${f.family.firstChildInfo.gender} born in ${f.family.firstChildInfo.yearOfBirth}` : ''}
+    `;
 
     // 🔱 ANTI-BIAS PROTOCOL: Shuffle candidate order in every batch to prevent positional bias
     const shuffledCandidates = [...candidates].sort(() => Math.random() - 0.5);
@@ -680,6 +704,7 @@ function getBatchPrompt(
 2. ZERO TENTATIVE BIAS: Do not favor times just because they are closer to the "original" time.
 3. DATA-DRIVEN SCORE: Your score must reflect mathematical alignment only.
 4. NARRATIVE PRIMACY: The user's "SITUATIONAL NARRATIVE" is the ultimate source of truth. If a user describes a "sudden, shocking loss," prioritize candidates where Rahu/Ketu/8th house are activated in that dasha, even if raw scores are lower.
+5. FORENSIC CORRELATION: For EACH candidate, verify if their Varga markers (D1, D9, D60) align with the PHYSICAL and PSYCHOGRAPHIC DNA. A "measured_soft" speaker cannot have a Mercury-Mars lagna with heavy Agni influence unless strong Saturn control exists.
 ════════════════════════════════════════════════════════════════════════════════
 
 ════════════════════════════════════════════════════════════════════════════════
@@ -688,16 +713,25 @@ function getBatchPrompt(
 2. FUNCTIONAL NATURE MATTERS: A planet ruling 6/8/12 is malefic for this Ascendant.
 3. DIGNITY MATTERS: Exalted/Own planets give strong results; Debilitated giving mixed/weak.
 4. HOUSE LORDSHIP IS KEY: Event X (e.g., Marriage) MUST activate relevant house lords (e.g., 7th Lord).
-5. 🚨🚨🚨 FORENSIC DATA GAP AUDIT 🚨🚨🚨: After scoring, you MUST provide a detailed list of every methodological metric (e.g., D-Chart degrees, Shadbala, etc.) that was missing but required for 100% precision.
+5. BIO-VEDIC MAPPING: Treat Forensic Traits as "Biological Anchors". If the user is an "eldest" child, the 3rd house (younger siblings) in D1/D9 must reflect this karma (e.g., 3rd lord in 12th or malefic aspect).
+6. 🚨🚨🚨 FORENSIC DATA GAP AUDIT 🚨🚨🚨: At the end of your reasoning, you MUST include a summary box with this EXACT format:
+============================
+  METHODOLOGICAL AUDIT
+----------------------------
+  [Point 1]
+  [Point 2]
+============================
+List every technical metric (e.g. D60 Degrees, Vimsopaka strength) that was missing but required for 100% mathematical certainty.
 ════════════════════════════════════════════════════════════════════════════════
 
-TASK: Score ${candidates.length} candidates based on Rigorous Vedic Dasha-Event correlation.
+    TASK: Rank ${candidates.length} candidates using Bio-Vedic Forensic Mapping and Dasha - Event correlation.
 
 LIFE EVENTS:
 ${eventsText}
-${traits ? `\nPHYSICAL TRAITS: ${JSON.stringify(traits)}` : ''}
 
-CANDIDATES WITH ENRICHED VEDIC DATA (100% Mathematical Matrix):
+${forensicContext}
+
+CANDIDATES WITH ENRICHED VEDIC DATA(100 % Mathematical Matrix):
 ${shuffledCandidates.map(c => `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CANDIDATE: ${c.time}
@@ -752,68 +786,83 @@ ${c.spouseMatch ? `├ SPOUSE SYNASTRY MATCH:
 ${c.lifecycleShifts?.length ? `├ LIFECYCLE CHRONOLOGY (Major Sign Ingresses):
 ${c.lifecycleShifts.slice(0, 15).map(s => `│ [${s.date}]: ${s.event}`).join('\n')}` : ''}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-`).join('')}
+`).join('')
+        }
 
-SCORING ALGORITHM (STRICT VEDIC LOGIC):
-+30: PRIMARY MATCH - Dasha/Antar Lord is DIRECTLY the House Lord of the event (e.g. Marriage in 7th Lord dasha).
-+20: SECONDARY MATCH - Dasha Lord is placed in the event house or aspects it.
-+15: STRENGTH PROOF - Event dasha lord has high Shadbala (>120) or high SAV points (>28) in event house.
-+10: NATURAL KARAKA - Dasha Lord is natural significator (Venus=Marriage, Sun=Career) even if not functional lord.
-+10: LAGNA MATCH - Ascendant element/lord matches physical traits.
-+15: AVASTHA PRECISION - If planet is in 'Yuva' (Youth) or 'Kumara' (Adolescent) avastha, results are 100% manifest. If 'Mritya' (Dead), results are blocked.
-+20: D60 DEITY FLAVOR - Match event narrative to D60 Deity (e.g. 'Amrita' for recovery, 'Ghora' for sudden accident).
--50: CONTRADICTION - Event happened in dasha of 6/8/12 lord with NO connection to event house.
+SCORING ALGORITHM(STRICT VEDIC LOGIC):
+    +30: PRIMARY MATCH - Dasha / Antar Lord is DIRECTLY the House Lord of the event(e.g.Marriage in 7th Lord dasha).
++ 20: SECONDARY MATCH - Dasha Lord is placed in the event house or aspects it.
++ 15: STRENGTH PROOF - Event dasha lord has high Shadbala(> 120) or high SAV points(> 28) in event house.
++ 10: NATURAL KARAKA - Dasha Lord is natural significator(Venus = Marriage, Sun = Career) even if not functional lord.
++ 10: LAGNA MATCH - Ascendant element / lord matches physical traits.
++ 15: AVASTHA PRECISION - If planet is in 'Yuva'(Youth) or 'Kumara'(Adolescent) avastha, results are 100 % manifest.If 'Mritya'(Dead), results are blocked.
++ 20: D60 DEITY FLAVOR - Match event narrative to D60 Deity(e.g. 'Amrita' for recovery, 'Ghora' for sudden accident).
+- 50: CONTRADICTION - Event happened in dasha of 6 / 8 / 12 lord with NO connection to event house.
 
-OUTPUT FORMAT (one line per candidate):
-[TIME] | SCORE: [0-100] | VERDICT: KEEP/ELIMINATE | REASON: [Explicit Astrological Reason e.g. "Venus is 7th Lord"]
+OUTPUT FORMAT(one line per candidate):
+    [TIME] | SCORE: [0 - 100] | VERDICT: KEEP / ELIMINATE | REASON: [Explicit Astrological Reason e.g. "Venus is 7th Lord"]
 
-FINAL LINE (required):
-TOP_SURVIVORS: [comma-separated list of ${survivorsNeeded} best times]`;
+FINAL LINE(required):
+    TOP_SURVIVORS: [comma - separated list of ${survivorsNeeded} best times]`;
 }
 
 function getDeepAnalysisPrompt(
     candidates: CandidateDataPackage[],
     events: LifeEvent[],
-    traits: any,
+    forensicTraits: ForensicTraits,
     spouseData: any
 ): string {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
-    const traitsText = traits ? JSON.stringify(traits, null, 2) : 'N/A';
+    const f = forensicTraits;
     const spouseText = spouseData ? JSON.stringify(spouseData, null, 2) : 'N/A';
 
+    const forensicContext = `
+    [FORENSIC DNA DOSSIER]
+    - PHYSICAL: ${f.physical.facialStructure.forehead} forehead, ${f.physical.facialStructure.eyeShape} eyes, ${f.physical.facialStructure.voicePitch} voice, Marks: ${f.physical.skinHair.marks.join(', ')}
+    - TEMPERAMENT: ${f.psychographic.temperament}, ${f.psychographic.speechStyle} speech, ${f.psychographic.decisionMaking} judgment
+        - FAMILY: ${f.family.siblingPosition} child, ${f.family.brotherCount} B / ${f.family.sisterCount} S, Father at birth: ${f.family.fatherStatusAtBirth}
+    - BIOLOGICAL: ${f.biological.prakriti.toUpperCase()}, Heat sensitivity: ${f.biological.sensitivity.heat}, Chronic: ${f.biological.recurringHealthIssues.join(', ')}
+    `;
     // 🔱 ANTI-BIAS PROTOCOL: Shuffle to prevent positional bias
     const filteredCandidates = candidates.filter(c => c.time);
     const shuffledCandidates = [...filteredCandidates].sort(() => Math.random() - 0.5);
 
-    return `BIRTH TIME RECTIFICATION - STAGE 4 (Deep Multi-Dasha Analysis)
+    return `BIRTH TIME RECTIFICATION - STAGE 4(Deep Multi - Dasha Analysis)
 
 ════════════════════════════════════════════════════════════════════════════════
-⚖️ ANTI-BIAS PROTOCOLS:
-1. BLIND EVALUATION: Treat ALL candidates as equally probable. 
+⚖️ ANTI - BIAS PROTOCOLS:
+    1. BLIND EVALUATION: Treat ALL candidates as equally probable. 
 2. ZERO TENTATIVE BIAS: Do not favor times closest to the "original" tentative time.
-3. DATA-ONLY VERDICT: If candidates are technically equal, say so. Do not guess.
+3. DATA - ONLY VERDICT: If candidates are technically equal, say so.Do not guess.
 ════════════════════════════════════════════════════════════════════════════════
 
-════════════════════════════════════════════════════════════════════════════════
-⚠️ ANALYSIS RULES (PURE VEDIC ASTROLOGY):
-1. RELY ONLY ON THE PROVIDED MATHEMATICAL DATA. Do not hallucinate planetary positions.
-2. NARRATIVE PRIMACY: Qualitative experiences (SITUATIONAL NARRATIVE) outrank generic scoring. Match the flavor of the experience (e.g. "intense struggle" vs "smooth success") to the specific planetary dignity and aspects provided.
-4. CORRELATE DASHAS: Match Dasha Lords (and their House ownerships) to life events.
-5. HIGH-SIGNALS: Vargottama and Pushkar planets are 2-3x more potent in delivering results. Parivartana (Exchange) links two houses indissolubly.
-6. EVENT SIGNATURES: Use the pre-calculated signatures (D10 strength, Double Transit) to confirm "VIGOUR".
-7. ⚡⚡⚡ CRITICAL METHODOLOGICAL AUDIT ⚡⚡⚡: If you cannot perform a specific high-precision technique (e.g., D-60 analysis) because data is missing, YOU MUST IDENTIFY THIS GAP FORENSICALLY. List exactly what's missing.
+⚠️ ANALYSIS RULES(PURE VEDIC ASTROLOGY):
+    1. RELY ONLY ON THE PROVIDED MATHEMATICAL DATA.Do not hallucinate planetary positions.
+2. NARRATIVE PRIMACY: Qualitative experiences(SITUATIONAL NARRATIVE) outrank generic scoring.Match the flavor of the experience(e.g. "intense struggle" vs "smooth success") to the specific planetary dignity and aspects provided.
+3. FORENSIC CORRELATION: For EACH candidate, verify if their Varga markers(D1 Lagna, D60 Deity, Navamsa Lord) align with the PHYSICAL and PSYCHOGRAPHIC data provided.A "measured_soft" speaker cannot have a Mercury - Mars lagna with heavy Agni influence unless strong Saturn control exists.
+4. BIO - VEDIC MAPPING: Treat Forensic Traits as "Biological Anchors". If the user is an "eldest" child, the 3rd house(younger siblings) in D1 / D9 must reflect this karma(e.g., 3rd lord in 12th or malefic aspect).
+6. CORRELATE DASHAS: Match Dasha Lords(and their House ownerships) to life events.
+7. EVENT SIGNATURES: Use the pre - calculated signatures(D10 strength, Double Transit) to confirm "VIGOUR".
+8. ⚡⚡⚡ CRITICAL METHODOLOGICAL AUDIT ⚡⚡⚡: Group all missing technical data into a stylized ASCII box:
+============================
+  METHODOLOGICAL AUDIT
+----------------------------
+  [Metric 1]
+  [Metric 2]
+============================
+This must be the final section of your reasoning.
 ════════════════════════════════════════════════════════════════════════════════
 
-TASK: Cross-verify ${shuffledCandidates.length} candidates using Dasha systems & Vedic Mathematics.
+    TASK: Perform a deep multi - varga forensic audit on ${shuffledCandidates.length} finalists.
 
-USER CONTEXT:
-PHYSICAL TRAITS: ${traitsText}
+USER FORENSIC DATA:
+${forensicContext}
 SPOUSE DATA: ${spouseText}
 
 LIFE EVENTS:
 ${eventsText}
 
-CANDIDATES (100% VERIFIED MATHEMATICAL DATA):
+    CANDIDATES(100 % VERIFIED MATHEMATICAL DATA):
 ${shuffledCandidates.map(c => `
 [${c.time}]
 ┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
@@ -860,17 +909,18 @@ ${c.spouseMatch ? `├ SPOUSE SYNASTRY CORRELATION:
 │ ${c.spouseMatch.reason}` : ''}
 ${c.lifecycleShifts?.length ? `├ LIFECYCLE CHRONOLOGY (SATURN/JUPITER INGRESS):
 ${c.lifecycleShifts.map(s => `│ [${s.date}]: ${s.event} (Dasha: ${s.dasha})`).join('\n')}` : ''}
-└──────────────────────────────────────────────────────────────`).join('\n')}
+└──────────────────────────────────────────────────────────────`).join('\n')
+        }
 
-SCORING:
-- Rate 0-100 based on how well the Dasha Lords + Divisional Charts explain the Events.
+    SCORING:
+    - Rate 0 - 100 based on how well the Dasha Lords + Divisional Charts explain the Events.
 - Strict correlation required.
 
-OUTPUT (for each candidate):
-[TIME] | REASONING: [Brief 1-liner] | VERDICT: [KEEP/DROP] | SCORE: [0-100]
+        OUTPUT(for each candidate):
+            [TIME] | REASONING: [Brief 1 - liner] | VERDICT: [KEEP / DROP] | SCORE: [0 - 100]
 
-FINAL:
-TOP_SURVIVORS: [time1], [time2], [time3]`;
+    FINAL:
+    TOP_SURVIVORS: [time1], [time2], [time3]`;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -880,44 +930,59 @@ TOP_SURVIVORS: [time1], [time2], [time3]`;
 function getFinalPrecisionPrompt(
     candidates: CandidateDataPackage[],
     events: LifeEvent[],
-    traits: any,
+    forensicTraits: ForensicTraits,
     spouseData: any,
     currentTransits?: any // 🔱 Present-day anchor
 ): string {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
-    const traitsText = traits ? JSON.stringify(traits, null, 2) : 'N/A';
+    const f = forensicTraits;
     const spouseText = spouseData ? JSON.stringify(spouseData, null, 2) : 'N/A';
 
+    const forensicDNA = `
+🧬 MANDATORY FORENSIC CORRELATION MATRIX:
+    - Biological: ${f.biological.prakriti.toUpperCase()} | Health: ${f.biological.recurringHealthIssues.join(', ')}
+    - Psychographic: ${f.psychographic.temperament} | Decisions: ${f.psychographic.decisionMaking} | Speech: ${f.psychographic.speechStyle}
+    - Varga Signs: Forehead: ${f.physical.facialStructure.forehead} | Eyes: ${f.physical.facialStructure.eyeShape} | Voice: ${f.physical.facialStructure.voicePitch}
+    - Family Karma: ${f.family.siblingPosition} child | Father Status: ${f.family.fatherStatusAtBirth}
+    `;
     // 🔱 ANTI-BIAS PROTOCOL: Final shuffling
     const shuffledCandidates = [...candidates].sort(() => Math.random() - 0.5);
 
-    return `BIRTH TIME RECTIFICATION - FINAL STAGE (Seconds Precision)
+    return `BIRTH TIME RECTIFICATION - FINAL STAGE(Seconds Precision)
 
 ════════════════════════════════════════════════════════════════════════════════
-⚖️ ANTI-BIAS & OBJECTIVITY RULES:
-1. TOTAL NEUTRALITY: You are a cold, mathematical evaluator.
+⚖️ ANTI - BIAS & OBJECTIVITY RULES:
+    1. TOTAL NEUTRALITY: You are a cold, mathematical evaluator.
 2. NO POSITIONAL BIAS: Candidate #1 is NOT more likely than Candidate #N.
-3. MANDATORY PROOF: Every point in SCORE must be backed by a Technical Proof (e.g. D60 Lagna).
+3. MANDATORY PROOF: Every point in SCORE must be backed by a Technical Proof(e.g.D60 Lagna).
 ════════════════════════════════════════════════════════════════════════════════
 
-════════════════════════════════════════════════════════════════════════════════
-⚠️ GOD-TIER PRECISION RULES:
-1. FOCUS ON D60 (SHASHTYAMSA): Even 10 seconds can change D60 Lagna.
-2. NARRATIVE SYNC: The rectified time MUST explain the "NARRATIVE EXPERIENCE" describing the flavor of the life event (e.g. "sudden surgery" implies Mars/Ketu in 8th or 6th).
+⚠️ GOD - TIER PRECISION RULES:
+    1. FOCUS ON D60(SHASHTYAMSA): Even 10 seconds can change D60 Lagna.
+2. NARRATIVE SYNC: The rectified time MUST explain the "NARRATIVE EXPERIENCE" describing the flavor of the life event(e.g. "sudden surgery" implies Mars / Ketu in 8th or 6th).
 3. VERIFY PRANADASHAS: Use Vimshottari logic down to the finest level.
-4. 🚨🚨🚨 SECONDS-LEVEL FORENSIC AUDIT 🚨🚨🚨: You MUST list every missing data point required for your logic. If you identify a gap in D-Chart degrees or planetary metrics, EXPOSE IT.
+4. BIO - VEDIC IDENTITY LOCK: The chosen time must represent the ONLY logical intersection of the Life Events, Forensic DNA, and Family Karma.A "Pitta" constitution with heat sensitivity MUST have Sun / Mars influence on Lagna or Lagna Lord in D1 / D9.
+5. 🚨🚨🚨 SECONDS-LEVEL FORENSIC AUDIT 🚨🚨🚨: Finalize your analysis with a summary ASCII box:
+============================
+  METHODOLOGICAL AUDIT
+----------------------------
+  [Detail 1]
+  [Detail 2]
+============================
+List specific Varga nuances or high-precision metrics missing for "Absolute God-Tier" 100% precision.
+════════════════════════════════════════════════════════════════════════════════
 ════════════════════════════════════════════════════════════════════════════════
 
-TASK: Select THE SINGLE BEST birth time from ${shuffledCandidates.length} finalists.
+    TASK: Solve the Bio - Vedic Identity Matrix.Select THE SINGLE BEST birth time from ${shuffledCandidates.length} finalists.
 
-USER CONTEXT:
-Traits: ${traitsText}
-Spouse: ${spouseText}
+USER FORENSIC DOSSIER:
+${forensicDNA}
+SPOUSE INFO: ${spouseText}
 
 LIFE EVENTS:
 ${eventsText}
 
-FINALIST CANDIDATES (100% COMPLETE MATHEMATICAL DATA):
+FINALIST CANDIDATES(100 % COMPLETE MATHEMATICAL DATA):
 ${shuffledCandidates.map((c, i) => `
 #${i + 1} [${c.time}]
 ┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
@@ -963,21 +1028,22 @@ ${c.spouseMatch ? `├ FINAL SPOUSE SYNASTRY PROOF:
 │ ${c.spouseMatch.reason} | Multiplier: ${c.spouseMatch.lagnaMatch ? 'HIGH' : 'LOW'}` : ''}
 ${c.lifecycleShifts?.length ? `├ FINAL CHRONOLOGY VERIFICATION:
 ${c.lifecycleShifts.map(s => `│ [${s.date}]: ${s.event}`).join('\n')}` : ''}
-└ BOUNDARY CHECK: ${parseFloat(c.ascendant.degree) < 1 || parseFloat(c.ascendant.degree) > 29 ? '⚠️ EDGE' : 'SAFE'}`).join('\n')}
+└ BOUNDARY CHECK: ${parseFloat(c.ascendant.degree) < 1 || parseFloat(c.ascendant.degree) > 29 ? '⚠️ EDGE' : 'SAFE'}`).join('\n')
+        }
 
-FINAL VERDICT (required format):
-BEST TIME: [HH:MM:SS]
-REASONING: [Explicitly cite D60 Lagna, Dasha Connection, Synastry Match (if any), and Lifecycle Chronology. No generic text.]
-CONFIDENCE: [0-100]
-ACCURACY: [0-100]%
-CONFIDENCE: [HIGH/MEDIUM/LOW]
-MARGIN_OF_ERROR: ±[seconds] seconds
+FINAL VERDICT(required format):
+BEST TIME: [HH: MM: SS]
+    REASONING: [Explicitly cite D60 Lagna, Dasha Connection, Synastry Match(if any), and Lifecycle Chronology.No generic text.]
+    CONFIDENCE: [0 - 100]
+    ACCURACY: [0 - 100] %
+        CONFIDENCE: [HIGH / MEDIUM / LOW]
+    MARGIN_OF_ERROR: ±[seconds] seconds
 
-EVIDENCE:
-1. [D60 Justification]
-2. [Event-Dasha Link]
+    EVIDENCE:
+    1.[D60 Justification]
+    2.[Event - Dasha Link]
 
-RUNNER_UP: [second best time]
+    RUNNER_UP: [second best time]
 ═══════════════════════════════════════════════════════════════════════════════`;
 }
 
@@ -999,7 +1065,7 @@ function extractBatchSurvivors(aiContent: string, candidateTimes: string[], need
     const scores: { time: string; score: number }[] = [];
 
     for (const time of candidateTimes) {
-        const timePattern = new RegExp(`CANDIDATE[:\\s]*${time.replace(/:/g, '[:\\s]?')}[\\s\\S]{0,300}SCORE[:\\s]*(\\d+)`, 'i');
+        const timePattern = new RegExp(`CANDIDATE[: \\s]* ${time.replace(/:/g, '[:\\s]?')} [\\s\\S]{ 0, 300 } SCORE[: \\s]* (\\d +)`, 'i');
         const match = aiContent.match(timePattern);
         const score = match ? parseInt(match[1]) : 50;
         scores.push({ time, score });
@@ -1070,9 +1136,9 @@ async function stage1ExhaustiveDataGeneration(
         // Log EVERY calculation (user requested) but with lightweight data
         emitCalculationLog(input.sessionId, {
             candidateTime: raw.time,
-            sunPos: `${pkg.planets.sun.sign} ${pkg.planets.sun.degree}`,
-            moonPos: `${pkg.planets.moon.sign} ${pkg.planets.moon.degree}`,
-            ascendant: `${pkg.ascendant.sign} ${pkg.ascendant.degree}`,
+            sunPos: `${pkg.planets.sun.sign} ${pkg.planets.sun.degree} `,
+            moonPos: `${pkg.planets.moon.sign} ${pkg.planets.moon.degree} `,
+            ascendant: `${pkg.ascendant.sign} ${pkg.ascendant.degree} `,
             dashaObj: pkg.vimshottariDasha[0]?.maha || 'N/A'
         });
 
@@ -1105,6 +1171,7 @@ async function stage2BatchTournament(
     input: SecondsPrecisionInput,
     candidates: CandidateTime[],
     progress: ProgressTracker,
+    forensicTraits: ForensicTraits,
     globalLifecycle: any[] = []
 ): Promise<{ survivors: CandidateTime[]; stageResult: StageResult; rounds: TournamentRound[] }> {
     await progress.startStep('coarse', 'Stage 2: Batch Tournament...');
@@ -1157,8 +1224,8 @@ async function stage2BatchTournament(
             return callAIWithStream(
                 input.sessionId,
                 2,
-                'You are the SUPREME VEDIC ASTROLOGER. Analyze candidate birth times for primary alignment.',
-                getBatchPrompt(batchEnriched, input.lifeEvents, input.physicalTraits, i + 1, batches.length, survivorsPerBatch),
+                'You are the SUPREME VEDIC ASTROLOGER. Analyze candidate birth times for primary alignment using forensic markers.',
+                getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch),
                 {
                     candidateTime: `Batch ${i + 1}/${batches.length}`,
                     progressTracker: progress
@@ -1208,8 +1275,8 @@ async function stage2BatchTournament(
             return callAIWithStream(
                 input.sessionId,
                 2,
-                'You are the SUPREME VEDIC ASTROLOGER. Tournament analysis: prune the weak.',
-                getBatchPrompt(batchEnriched, input.lifeEvents, input.physicalTraits, i + 1, batches.length, survivorsPerBatch),
+                'You are the SUPREME VEDIC ASTROLOGER. Tournament analysis: prune based on forensic alignment.',
+                getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch),
                 { candidateTime: `Tournament ${roundNumber}-${i + 1}`, progressTracker: progress }
             );
         });
@@ -1315,6 +1382,7 @@ async function stage4DeepAnalysis(
     input: SecondsPrecisionInput,
     candidates: CandidateTime[],
     progress: ProgressTracker,
+    forensicTraits: ForensicTraits,
     globalLifecycle: any[] = []
 ): Promise<{ survivors: CandidateTime[]; stageResult: StageResult; aiReasoning: string }> {
     await progress.startStep('deep', 'Stage 4: Deep analysis tournament...');
@@ -1353,8 +1421,8 @@ async function stage4DeepAnalysis(
             return callAIWithStream(
                 input.sessionId,
                 4,
-                'You are the GOD-TIER VEDIC ANALYST. Perform deep multi-dasha verification.',
-                getDeepAnalysisPrompt(batchEnriched, input.lifeEvents, input.physicalTraits, input.spouseData),
+                'You are the GOD-TIER VEDIC ANALYST. Perform deep forensic multi-dasha verification.',
+                getDeepAnalysisPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData),
                 {
                     candidateTime: `Deep ${i + 1}/${batches.length}`,
                     progressTracker: progress
@@ -1395,7 +1463,7 @@ async function stage4DeepAnalysis(
         // JIT Enrichment for the final batch
         const finalBatchData = await Promise.all(currentCandidates.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, { includeFullData: true, dashaDepth: 3, lifecycleShifts: globalLifecycle })));
 
-        const prompt = getDeepAnalysisPrompt(finalBatchData, input.lifeEvents, input.physicalTraits, input.spouseData);
+        const prompt = getDeepAnalysisPrompt(finalBatchData, input.lifeEvents, forensicTraits, input.spouseData);
 
         const response = await callAIWithStream(
             input.sessionId,
@@ -1487,6 +1555,7 @@ async function stage6FinalPrecision(
     input: SecondsPrecisionInput,
     candidates: CandidateTime[],
     progress: ProgressTracker,
+    forensicTraits: ForensicTraits,
     globalLifecycle: any[] = []
 ): Promise<{ finalTime: string; accuracy: number; confidence: string; margin: number; aiReasoning: string; thinking?: string; stageResult: StageResult }> {
     const now = new Date();
@@ -1523,8 +1592,8 @@ async function stage6FinalPrecision(
             return callAIWithStream(
                 input.sessionId,
                 6,
-                'FINAL JUDGEMENT. Pick THE ONE.',
-                getFinalPrecisionPrompt(batchEnriched, input.lifeEvents, input.physicalTraits, input.spouseData, presentAnchor),
+                'FINAL FORENSIC JUDGEMENT. Pick THE ONE based on bio-Vedic alignment.',
+                getFinalPrecisionPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData, presentAnchor),
                 {
                     candidateTime: 'FINAL',
                     progressTracker: progress
@@ -1570,7 +1639,7 @@ async function stage6FinalPrecision(
     // Final judgement
     const finalBatch = await Promise.all(finalists.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, { includeFullData: true, dashaDepth: 5, pranaWindowDays: 5, lifecycleShifts: globalLifecycle })));
     const finalAnchor = getPresentTransitData(finalBatch[0]);
-    const prompt = getFinalPrecisionPrompt(finalBatch, input.lifeEvents, input.physicalTraits, input.spouseData, finalAnchor);
+    const prompt = getFinalPrecisionPrompt(finalBatch, input.lifeEvents, forensicTraits, input.spouseData, finalAnchor);
     const response = await callAIWithStream(
         input.sessionId,
         6,
@@ -1695,7 +1764,7 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(480);
-        const stage2 = await stage2BatchTournament(input, stage1.candidates, progress, globalLifecycle);
+        const stage2 = await stage2BatchTournament(input, stage1.candidates, progress, input.forensicTraits, globalLifecycle);
         stageHistory[2] = stage2.stageResult;
         emitStageStats(input.sessionId, 2, stage2.stageResult.candidatesOut,
             `Tournament: ${stage2.rounds.length} rounds, ${stage2.survivors.length} survivors`);
@@ -1716,7 +1785,7 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(240);
-        const stage4 = await stage4DeepAnalysis(input, stage3.candidates, progress, globalLifecycle);
+        const stage4 = await stage4DeepAnalysis(input, stage3.candidates, progress, input.forensicTraits, globalLifecycle);
         stageHistory[4] = stage4.stageResult;
         emitStageStats(input.sessionId, 4, stage4.stageResult.candidatesOut, `Deep: ${stage4.survivors.length} survivors`);
         await progress.flush("Stage 4 finalized. Entering micro-precision phase...");
@@ -1736,7 +1805,7 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(60);
-        const stage6 = await stage6FinalPrecision(input, stage5.candidates, progress, globalLifecycle);
+        const stage6 = await stage6FinalPrecision(input, stage5.candidates, progress, input.forensicTraits, globalLifecycle);
         stageHistory[6] = stage6.stageResult;
         emitStageStats(input.sessionId, 6, 1, 'FINAL TIME DETERMINED');
         await progress.flush("All analysis stages complete. Generating final report...");

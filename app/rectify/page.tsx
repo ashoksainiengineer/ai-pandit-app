@@ -7,8 +7,9 @@ import { UserButton, useAuth } from '@clerk/nextjs';
 import { BirthData, LifeEvent, PhysicalTraits, TimeOffsetConfig } from '@/lib/types';
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
 import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
-import Step2PhysicalTraits from '@/components/rectify/Step2PhysicalTraits';
+import Step2ForensicTraits from '@/components/rectify/Step2ForensicTraits';
 import Step4Review from '@/components/rectify/Step4Review';
+import { ForensicTraits } from '@/lib/types';
 
 // Initial States
 const initialBirthData: BirthData = {
@@ -34,12 +35,41 @@ const initialPhysicalTraits: PhysicalTraits = {
     noseType: 'sharp'
 };
 
+const initialForensicTraits: ForensicTraits = {
+    physical: {
+        facialStructure: { forehead: 'average', eyeShape: 'almond', noseType: 'sharp', teethAlignment: 'perfect', voicePitch: 'medium' },
+        skinHair: { texture: 'combination', hairType: 'straight', complexion: 'medium', marks: [] },
+        build: 'medium',
+        height: { cm: 168, feet: 5, inches: 6 }
+    },
+    psychographic: {
+        speechStyle: 'measured_soft',
+        decisionMaking: 'deliberate',
+        stressResponse: 'calm',
+        sleepCycle: 'early_bird',
+        temperament: 'patient'
+    },
+    biological: {
+        prakriti: 'pitta',
+        sensitivity: { heat: 'medium', cold: 'medium' },
+        recurringHealthIssues: []
+    },
+    family: {
+        siblingPosition: 'eldest',
+        brotherCount: 0,
+        sisterCount: 0,
+        fatherStatusAtBirth: 'stable',
+        motherHealthAtBirth: 'normal'
+    }
+};
+
 export default function RectifyPage() {
     const router = useRouter();
     const [step, setStep] = useState(1);
     const [birthData, setBirthData] = useState<BirthData>(initialBirthData);
     const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>([]);
     const [physicalTraits, setPhysicalTraits] = useState<PhysicalTraits>(initialPhysicalTraits);
+    const [forensicTraits, setForensicTraits] = useState<ForensicTraits>(initialForensicTraits);
     const [offsetConfig, setOffsetConfig] = useState<TimeOffsetConfig>({ preset: '1hour', customMinutes: 60, description: '±1 hour' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -63,6 +93,7 @@ export default function RectifyPage() {
                     birthData,
                     lifeEvents,
                     physicalTraits,
+                    forensicTraits,
                     offsetConfig, // Use state
                     sessionId: draftSessionId,
                 }),
@@ -101,6 +132,7 @@ export default function RectifyPage() {
                 if (parsed.birthData) setBirthData(parsed.birthData);
                 if (parsed.lifeEvents) setLifeEvents(parsed.lifeEvents);
                 if (parsed.physicalTraits) setPhysicalTraits(parsed.physicalTraits);
+                if (parsed.forensicTraits) setForensicTraits(parsed.forensicTraits);
                 if (parsed.offsetConfig) setOffsetConfig(parsed.offsetConfig);
                 if (parsed.step) setStep(parsed.step);
             } catch (e) {
@@ -115,6 +147,7 @@ export default function RectifyPage() {
             birthData,
             lifeEvents,
             physicalTraits,
+            forensicTraits,
             offsetConfig,
             step
         };
@@ -145,9 +178,22 @@ export default function RectifyPage() {
                 if (!birthData.birthPlace) { setError("Birth Place is required"); return false; }
                 return true;
             case 2:
-                // Physical traits - optional but check ranges if entered
-                if (physicalTraits.height?.cm && (physicalTraits.height.cm < 50 || physicalTraits.height.cm > 250)) {
-                    setError("Please enter a valid height");
+                // Forensic traits - MANDATORY for sub-second precision
+                const { physical, psychographic, biological, family } = forensicTraits;
+                if (!physical.facialStructure.forehead || !physical.facialStructure.eyeShape || !physical.facialStructure.voicePitch) {
+                    setError("Please complete all Facial Forensic markers.");
+                    return false;
+                }
+                if (!psychographic.speechStyle || !psychographic.temperament || !psychographic.decisionMaking) {
+                    setError("Please complete all Psychographic DNA markers.");
+                    return false;
+                }
+                if (!biological.prakriti) {
+                    setError("Please select your Ayurvedic Prakriti.");
+                    return false;
+                }
+                if (!family.siblingPosition || !family.fatherStatusAtBirth) {
+                    setError("Please complete the Family Narrative Matrix.");
                     return false;
                 }
                 return true;
@@ -200,7 +246,8 @@ export default function RectifyPage() {
                     importance: e.importance
                 })),
                 offsetConfig, // Use state
-                physicalTraits
+                physicalTraits,
+                forensicTraits
             };
 
             const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
@@ -316,9 +363,9 @@ export default function RectifyPage() {
                         />
                     )}
                     {step === 2 && (
-                        <Step2PhysicalTraits
-                            physicalTraits={physicalTraits}
-                            updateTraits={(updates) => setPhysicalTraits(prev => ({ ...prev, ...updates }))}
+                        <Step2ForensicTraits
+                            traits={forensicTraits}
+                            updateTraits={(updates) => setForensicTraits(prev => ({ ...prev, ...updates }))}
                         />
                     )}
                     {step === 3 && (
@@ -333,6 +380,7 @@ export default function RectifyPage() {
                             data={birthData}
                             events={lifeEvents}
                             traits={physicalTraits}
+                            forensicTraits={forensicTraits}
                             onSubmit={handleSubmit}
                             isSubmitting={isSubmitting}
                             onEdit={setStep}

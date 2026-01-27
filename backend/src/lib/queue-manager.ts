@@ -494,6 +494,9 @@ async function processSessionAsync(sessionId: string): Promise<void> {
       const decryptedPhysicalTraits = s.physicalTraits
         ? JSON.parse(decryptData(s.physicalTraits, s.clerkId))
         : undefined;
+      const decryptedForensicTraits = s.forensicTraits
+        ? JSON.parse(decryptData(s.forensicTraits, s.clerkId))
+        : undefined;
 
       const result = await processSecondsPrecisionBTR({
         sessionId: sessionId,
@@ -505,6 +508,7 @@ async function processSessionAsync(sessionId: string): Promise<void> {
         lifeEvents: decryptedLifeEvents,
         offsetConfig: s.offsetConfig ? JSON.parse(s.offsetConfig) : { preset: '1hour' },
         physicalTraits: decryptedPhysicalTraits,
+        forensicTraits: decryptedForensicTraits,
         abortSignal: abortController.signal, // 🛑 Pass abort signal
       });
 

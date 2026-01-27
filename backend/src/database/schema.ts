@@ -31,6 +31,7 @@ export const sessions = sqliteTable(
     timezone: text('timezone').notNull(),
     gender: text('gender'),
     physicalTraits: text('physicalTraits'),
+    forensicTraits: text('forensicTraits'),
     lifeEvents: text('lifeEvents').notNull(),
     offsetConfig: text('offsetConfig'),
     rectifiedTime: text('rectifiedTime'),

@@ -14,11 +14,8 @@ const router = Router();
 interface SubmitRequest {
     birthData: BirthData;
     lifeEvents: LifeEvent[];
-    physicalTraits?: {
-        height?: string;
-        build?: string;
-        complexion?: string;
-    };
+    physicalTraits?: any;
+    forensicTraits: any;
     offsetConfig: TimeOffsetConfig;
 }
 
@@ -29,7 +26,7 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
     try {
         const userId = req.userId!;
         const body: SubmitRequest = req.body;
-        const { birthData, lifeEvents, physicalTraits, offsetConfig } = body;
+        const { birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig } = body;
 
         // Validate input
         if (!birthData) {
@@ -39,6 +36,11 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
 
         if (!lifeEvents || lifeEvents.length < 3) {
             res.status(400).json({ success: false, error: 'At least 3 life events are required' });
+            return;
+        }
+
+        if (!forensicTraits) {
+            res.status(400).json({ success: false, error: 'Forensic Traits are required for high-precision BTR.' });
             return;
         }
 
@@ -92,6 +94,9 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
         const encryptedPhysicalTraits = physicalTraits
             ? encryptData(JSON.stringify(physicalTraits), userId)
             : null;
+        const encryptedForensicTraits = forensicTraits
+            ? encryptData(JSON.stringify(forensicTraits), userId)
+            : null;
 
         await db.insert(sessions).values({
             id: sessionId,
@@ -106,6 +111,7 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
             timezone: birthData.timezone.toString(),
             gender: birthData.gender || 'other',
             physicalTraits: encryptedPhysicalTraits,
+            forensicTraits: encryptedForensicTraits,
             lifeEvents: encryptedLifeEvents,
             offsetConfig: JSON.stringify(offsetConfig),
             status: 'pending',

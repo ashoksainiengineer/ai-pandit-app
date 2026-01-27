@@ -71,6 +71,65 @@ export interface LifeEvent {
   ageAtEvent?: number;
 }
 
+export interface ForensicPhysicalTraits {
+  // 🔱 Facial Forensic (Varga Markers)
+  facialStructure: {
+    forehead: 'broad' | 'narrow' | 'average' | 'sloping';
+    eyeShape: 'deep_set' | 'prominent' | 'almond' | 'round' | 'small';
+    noseType: 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
+    teethAlignment: 'perfect' | 'crooked' | 'gap' | 'large' | 'small';
+    voicePitch: 'deep' | 'high' | 'medium' | 'soft' | 'raspy';
+  };
+
+  // 🔱 Skin & Hair (Saturn/Mercury/Venus signatures)
+  skinHair: {
+    texture: 'dry' | 'oily' | 'combination' | 'sensitive';
+    hairType: 'straight' | 'curly' | 'wavy' | 'thin' | 'thick' | 'bald';
+    complexion: 'very_fair' | 'fair' | 'medium' | 'dark' | 'very_dark';
+    marks: string[]; // e.g., ["Mole on right cheek", "Birthmark on back"]
+  };
+
+  // 🔱 Core Build
+  build: 'slim' | 'medium' | 'athletic' | 'heavy' | 'very_heavy';
+  height: { cm: number; feet: number; inches: number };
+}
+
+export interface PsychographicDNA {
+  speechStyle: 'fast_loud' | 'measured_soft' | 'argumentative' | 'concise' | 'talkative';
+  decisionMaking: 'impulsive' | 'deliberate' | 'indecisive' | 'intuitive';
+  stressResponse: 'aggressive' | 'withdrawn' | 'anxious' | 'calm';
+  sleepCycle: 'night_owl' | 'early_bird' | 'irregular' | 'deep_sleeper';
+  temperament: 'short_tempered' | 'patient' | 'jovial' | 'melancholic' | 'optimistic';
+}
+
+export interface BiologicalMarkers {
+  prakriti: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha';
+  sensitivity: {
+    heat: 'high' | 'medium' | 'low';
+    cold: 'high' | 'medium' | 'low';
+  };
+  recurringHealthIssues: string[]; // e.g., ["Sinus", "Acidity", "Back pain"]
+}
+
+export interface FamilyNarrativeMatrix {
+  siblingPosition: 'eldest' | 'middle' | 'youngest' | 'only_child';
+  brotherCount: number;
+  sisterCount: number;
+  fatherStatusAtBirth: 'struggling' | 'stable' | 'prosperous' | 'highly_distinguished';
+  motherHealthAtBirth: 'excellent' | 'normal' | 'weak' | 'complicated';
+  firstChildInfo?: {
+    gender: 'male' | 'female';
+    yearOfBirth: number;
+  };
+}
+
+export interface ForensicTraits {
+  physical: ForensicPhysicalTraits;
+  psychographic: PsychographicDNA;
+  biological: BiologicalMarkers;
+  family: FamilyNarrativeMatrix;
+}
+
 export interface PhysicalTraits {
   height?: {
     cm: number;
@@ -304,7 +363,8 @@ export interface SecondsPrecisionInput {
   timezone: string | number;
   lifeEvents: LifeEvent[];
   offsetConfig: TimeOffsetConfig;
-  physicalTraits?: PhysicalTraits;
+  physicalTraits?: PhysicalTraits; // Legacy/Basic
+  forensicTraits: ForensicTraits;   // 🔱 MANDATORY: God-Tier Matrix
   spouseData?: {
     dateOfBirth: string;
     birthTime: string;
