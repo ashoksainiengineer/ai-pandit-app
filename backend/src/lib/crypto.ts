@@ -5,7 +5,10 @@
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
 
 // Get the encryption secret from environment
-const ENCRYPTION_SECRET = process.env.ENCRYPTION_SECRET || 'ai-pandit-default-secret-change-in-production';
+// Support both ENCRYPTION_SECRET (Vercel) and ENCRYPTION_SECRET (Hugging Face)
+const ENCRYPTION_SECRET = process.env.ENCRYPTION_SECRET ||
+                          process.env.NEXT_PUBLIC_ENCRYPTION_SECRET ||
+                          'ai-pandit-default-secret-change-in-production';
 
 /**
  * Derive a unique encryption key for each user

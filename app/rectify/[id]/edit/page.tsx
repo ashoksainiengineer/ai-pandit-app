@@ -10,7 +10,7 @@ import { UserButton } from '@clerk/nextjs';
 import { BirthData, LifeEvent, PhysicalTraits } from '@/lib/types';
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
 import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
-import Step2PhysicalTraits from '@/components/rectify/Step2PhysicalTraits';
+import Step2ForensicTraits from '@/components/rectify/Step2ForensicTraits';
 import Step4Review from '@/components/rectify/Step4Review';
 
 const initialPhysicalTraits: PhysicalTraits = {
@@ -304,9 +304,33 @@ export default function EditSessionPage() {
                         />
                     )}
                     {step === 2 && (
-                        <Step2PhysicalTraits
-                            physicalTraits={physicalTraits}
-                            updateTraits={(updates) => setPhysicalTraits(prev => ({ ...prev, ...updates }))}
+                        <Step2ForensicTraits
+                            traits={{
+                                physical: {
+                                    facialStructure: {
+                                        forehead: physicalTraits.foreheadHeight,
+                                        eyeShape: physicalTraits.eyeShape
+                                    },
+                                    skinHair: { marks: [] },
+                                    height: typeof physicalTraits.height === 'object' ? physicalTraits.height : { cm: 168, feet: 5, inches: 6 },
+                                    build: physicalTraits.build
+                                },
+                                biological: { prakriti: physicalTraits.prakriti },
+                                psychographic: {},
+                                family: {}
+                            }}
+                            updateTraits={(updates) => {
+                                // Convert ForensicTraits updates to PhysicalTraits format
+                                if (updates.physical?.facialStructure?.forehead) {
+                                    setPhysicalTraits(prev => ({ ...prev, foreheadHeight: updates.physical?.facialStructure?.forehead }));
+                                }
+                                if (updates.physical?.facialStructure?.eyeShape) {
+                                    setPhysicalTraits(prev => ({ ...prev, eyeShape: updates.physical?.facialStructure?.eyeShape }));
+                                }
+                                if (updates.biological?.prakriti) {
+                                    setPhysicalTraits(prev => ({ ...prev, prakriti: updates.biological?.prakriti }));
+                                }
+                            }}
                         />
                     )}
                     {step === 3 && (

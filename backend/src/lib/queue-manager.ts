@@ -6,7 +6,7 @@ import { db } from '../database/drizzle.js';
 import { sessions } from '../database/schema.js';
 import { eq, and, or, desc, asc, lt } from 'drizzle-orm';
 import { logger } from './logger.js';
-import { decryptData } from './crypto.js';
+import { safeDecrypt, isEncrypted } from './crypto.js';
 import {
   createAbortController,
   abortSession as abortSessionController,
@@ -511,12 +511,15 @@ async function processSessionAsync(sessionId: string): Promise<void> {
     // Process the analysis
     try {
       // 🔐 Decrypt sensitive data using clerkId (encryption key)
-      const decryptedLifeEvents = JSON.parse(decryptData(s.lifeEvents, s.clerkId));
+      // Use safeDecrypt to handle both encrypted and plain text data
+      const lifeEventsData = safeDecrypt(s.lifeEvents, s.clerkId);
+      const decryptedLifeEvents = JSON.parse(lifeEventsData);
+      
       const decryptedPhysicalTraits = s.physicalTraits
-        ? JSON.parse(decryptData(s.physicalTraits, s.clerkId))
+        ? JSON.parse(safeDecrypt(s.physicalTraits, s.clerkId))
         : undefined;
       const decryptedForensicTraits = s.forensicTraits
-        ? JSON.parse(decryptData(s.forensicTraits, s.clerkId))
+        ? JSON.parse(safeDecrypt(s.forensicTraits, s.clerkId))
         : undefined;
 
       const result = await processSecondsPrecisionBTR({
