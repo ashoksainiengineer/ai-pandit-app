@@ -2,19 +2,20 @@
 # AI Pandit - BTR Engine (Hugging Face Backend Only)
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Stage 1: Build
+# Stage 1: Build Backend Only
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy package files
+# Copy root package files (for swisseph-wasm and shared deps)
 COPY package.json package-lock.json* ./
-# Install root dependencies (including swisseph-wasm)
 RUN npm ci --omit=dev --ignore-scripts
 
-# Copy the rest of the source
-COPY . .
+# Copy backend source only (no frontend)
+COPY backend/ ./backend/
+COPY ephe/ ./ephe/
+COPY database/ ./database/
 
-# Build Backend (requires devDeps in backend folder)
+# Build Backend
 RUN cd backend && npm install && npm run build
 
 # Stage 2: Minimal Runtime
