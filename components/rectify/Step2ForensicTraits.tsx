@@ -25,27 +25,39 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
     const [activeHelp, setActiveHelp] = useState<string | null>(null);
 
     const updatePhysical = (updates: any) => {
-        updateTraits({ physical: { ...traits.physical, ...updates } });
+        updateTraits({ physical: { ...(traits?.physical || {}), ...updates } } as any);
     };
 
     const updateFacial = (updates: any) => {
-        updateTraits({ physical: { ...traits.physical, facialStructure: { ...traits.physical.facialStructure, ...updates } } });
+        const physical = traits?.physical || {};
+        updateTraits({
+            physical: {
+                ...physical,
+                facialStructure: { ...((physical as any).facialStructure || {}), ...updates }
+            }
+        } as any);
     };
 
     const updateSkinHair = (updates: any) => {
-        updateTraits({ physical: { ...traits.physical, skinHair: { ...traits.physical.skinHair, ...updates } } });
+        const physical = traits?.physical || {};
+        updateTraits({
+            physical: {
+                ...physical,
+                skinHair: { ...((physical as any).skinHair || {}), ...updates }
+            }
+        } as any);
     };
 
     const updatePsychographic = (updates: any) => {
-        updateTraits({ psychographic: { ...traits.psychographic, ...updates } });
+        updateTraits({ psychographic: { ...(traits?.psychographic || {}), ...updates } } as any);
     };
 
     const updateBiological = (updates: any) => {
-        updateTraits({ biological: { ...traits.biological, ...updates } });
+        updateTraits({ biological: { ...(traits?.biological || {}), ...updates } } as any);
     };
 
     const updateFamily = (updates: any) => {
-        updateTraits({ family: { ...traits.family, ...updates } });
+        updateTraits({ family: { ...(traits?.family || {}), ...updates } } as any);
     };
 
     const TraitSelector = ({ label, icon: Icon, options, value, onChange, groupId, description, grid = 3 }: any) => (
@@ -153,7 +165,7 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                                     { value: 'average', label: 'Average', guide: 'Mixed influences' },
                                     { value: 'sloping', label: 'Sloping', guide: 'Mercury/Mars signature' }
                                 ]}
-                                value={traits.physical.facialStructure.forehead}
+                                value={traits?.physical?.facialStructure?.forehead}
                                 onChange={(val: any) => updateFacial({ forehead: val })}
                             />
                             <TraitSelector
@@ -166,7 +178,7 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                                     { value: 'round', label: 'Round/Large', guide: 'Jupiterian expansiveness' },
                                     { value: 'small', label: 'Small/Piercing', guide: 'Mercurial sharpness' }
                                 ]}
-                                value={traits.physical.facialStructure.eyeShape}
+                                value={traits?.physical?.facialStructure?.eyeShape}
                                 onChange={(val: any) => updateFacial({ eyeShape: val })}
                                 grid={4}
                             />
@@ -180,7 +192,7 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                                     { value: 'soft', label: 'Soft/Melodious', guide: 'Venusian' },
                                     { value: 'raspy', label: 'Raspy/Strong', guide: 'Rahu/Mars' }
                                 ]}
-                                value={traits.physical.facialStructure.voicePitch}
+                                value={traits?.physical?.facialStructure?.voicePitch}
                                 onChange={(val: any) => updateFacial({ voicePitch: val })}
                                 grid={4}
                             />
@@ -199,7 +211,7 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                                     { value: 'vata-pitta', label: 'Vata-Pitta', guide: 'Slim but intense' },
                                     { value: 'pitta-kapha', label: 'Pitta-Kapha', guide: 'Broad and muscular' }
                                 ]}
-                                value={traits.biological.prakriti}
+                                value={traits?.biological?.prakriti}
                                 onChange={(val: any) => updateBiological({ prakriti: val })}
                             />
                             <div className="space-y-4">
@@ -207,7 +219,7 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                                 <textarea
                                     className="w-full h-32 bg-[#151a21] border border-[#3A4452] rounded-xl p-4 text-sm text-[#F5F0EB] outline-none focus:border-[#E8A849]"
                                     placeholder="e.g., Large mole on right cheek, birthmark on shoulder..."
-                                    value={traits.physical.skinHair.marks.join('\n')}
+                                    value={(traits?.physical?.skinHair?.marks || []).join('\n')}
                                     onChange={(e) => updateSkinHair({ marks: e.target.value.split('\n').filter(m => m.trim()) })}
                                 />
                             </div>
@@ -226,7 +238,7 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                                     { value: 'concise', label: 'Concise/Short', guide: 'Ketuan' },
                                     { value: 'talkative', label: 'Highly Talkative', guide: 'Rahu/Mercury' }
                                 ]}
-                                value={traits.psychographic.speechStyle}
+                                value={traits?.psychographic?.speechStyle}
                                 onChange={(val: any) => updatePsychographic({ speechStyle: val })}
                             />
                             <TraitSelector
@@ -238,7 +250,7 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                                     { value: 'indecisive', label: 'Indecisive', guide: 'Lunar shifts' },
                                     { value: 'intuitive', label: 'Purely Intuitive', guide: 'Jupiterian/Neptunian' }
                                 ]}
-                                value={traits.psychographic.decisionMaking}
+                                value={traits?.psychographic?.decisionMaking}
                                 onChange={(val: any) => updatePsychographic({ decisionMaking: val })}
                             />
                         </motion.div>
@@ -255,7 +267,7 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                                     { value: 'youngest', label: 'Youngest', guide: 'Moon/Jupiter influence' },
                                     { value: 'only_child', label: 'Only Child', guide: 'Unique planetary focus' }
                                 ]}
-                                value={traits.family.siblingPosition}
+                                value={traits?.family?.siblingPosition}
                                 onChange={(val: any) => updateFamily({ siblingPosition: val })}
                             />
                             <TraitSelector
@@ -267,7 +279,7 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                                     { value: 'prosperous', label: 'Prosperous', guide: 'Strong 9th/10th' },
                                     { value: 'highly_distinguished', label: 'Highly Distinguished', guide: 'Raja Yoga status' }
                                 ]}
-                                value={traits.family.fatherStatusAtBirth}
+                                value={traits?.family?.fatherStatusAtBirth}
                                 onChange={(val: any) => updateFamily({ fatherStatusAtBirth: val })}
                             />
                         </motion.div>

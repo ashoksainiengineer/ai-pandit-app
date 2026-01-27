@@ -424,6 +424,10 @@ For each candidate time, provide:
 4. CONFIDENCE SCORE: [0-100 with detailed justification]
 5. FINAL VERDICT: [Is this the correct birth time? Yes/No/Maybe]
 
+🚨🚨🚨 MISSING METHODOLOGICAL DATA AUDIT 🚨🚨🚨:
+6. FORENSIC DATA GAP ANALYSIS: [List in EXTREME DETAIL every specific technical metric (e.g., D-60 Lagna Sign, Shadbala of specific planet, Ishta/Kashta ratios, Arudha Lagna calculations) that were mentioned in these instructions but were missing from the input data. Explain how this missing data prevents 99.9% SECONDS-LEVEL PRECISION.]
+════════════════════════════════════════════════════════════════════════════════
+
 
 5. INPUT DATA SCHEMA (Raw Vedic Data):
    - "LAGNA": Ascendant Sign and Degree.
@@ -435,6 +439,7 @@ IMPORTANT:
 - YOU MUST CALCULATE FUNCTIONAL NATURE (Benefic/Malefic) yourself based on Lagna.
 - YOU MUST DETERMINE ASPECTS (Drishti) yourself from Longitudes.
 - FOCUS on D60 (Shashtyamsa) for the final seconds-level precision.
+- ⚡ SECONDS-LEVEL DATA AUDIT: At the end of every analysis, you MUST perform a forensic audit. List any data points that were REQUIRED by your methodology (e.g., D-Chart degrees, Shadbala, Ishta/Kashta, AV scores) but were missing from the provided context. If data is missing, YOU MUST SHOUT IT OUT.
 - Do not expect pre-calculated "hits" or "scores". Use your specific knowledge.`;
 /**
  * Build comprehensive prompt for candidate analysis
@@ -540,6 +545,10 @@ FINAL TASK:
    - MEDIUM (70-89%): This is likely correct but some uncertainty
    - LOW (Below 70%): More information needed
 
+5. 🚨 FORENSIC DATA AUDIT:
+   - Precisely list which CRITICAL technical metrics or divisional chart details (e.g., D-60 planetary degrees, Shadbala breakdown) were missing from the candidates.
+   - STATE CLEARLY: "Without [Data Point], my ranking confidence cannot reach the required 99.9% precision."
+
 OUTPUT FORMAT:
 RANK 1: [Time] - Score: [X]/100 - [Reason]
 RANK 2: [Time] - Score: [X]/100 - [Reason]
@@ -547,7 +556,8 @@ RANK 2: [Time] - Score: [X]/100 - [Reason]
 
 TOP RECOMMENDATION: [Time]
 CONFIDENCE: [HIGH/MEDIUM/LOW]
-KEY EVIDENCE: [List top 3 reasons]`;
+KEY EVIDENCE: [List top 3 reasons]
+🚨 MISSING DATA FOR SECONDS-LEVEL PRECISION: [List forensic data gaps here]`;
 }
 // ═════════════════════════════════════════════════════════════════════════════
 // UTILITY FUNCTIONS

@@ -17,7 +17,7 @@ router.post('/', auth_js_1.authMiddleware, async (req, res) => {
     try {
         const userId = req.userId;
         const body = req.body;
-        const { birthData, lifeEvents, physicalTraits, offsetConfig } = body;
+        const { birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig } = body;
         // Validate input
         if (!birthData) {
             res.status(400).json({ success: false, error: 'Birth data is required' });
@@ -25,6 +25,10 @@ router.post('/', auth_js_1.authMiddleware, async (req, res) => {
         }
         if (!lifeEvents || lifeEvents.length < 3) {
             res.status(400).json({ success: false, error: 'At least 3 life events are required' });
+            return;
+        }
+        if (!forensicTraits) {
+            res.status(400).json({ success: false, error: 'Forensic Traits are required for high-precision BTR.' });
             return;
         }
         // Validate offset config
@@ -72,6 +76,9 @@ router.post('/', auth_js_1.authMiddleware, async (req, res) => {
         const encryptedPhysicalTraits = physicalTraits
             ? (0, crypto_js_1.encryptData)(JSON.stringify(physicalTraits), userId)
             : null;
+        const encryptedForensicTraits = forensicTraits
+            ? (0, crypto_js_1.encryptData)(JSON.stringify(forensicTraits), userId)
+            : null;
         await drizzle_js_1.db.insert(schema_js_1.sessions).values({
             id: sessionId,
             userId,
@@ -85,6 +92,7 @@ router.post('/', auth_js_1.authMiddleware, async (req, res) => {
             timezone: birthData.timezone.toString(),
             gender: birthData.gender || 'other',
             physicalTraits: encryptedPhysicalTraits,
+            forensicTraits: encryptedForensicTraits,
             lifeEvents: encryptedLifeEvents,
             offsetConfig: JSON.stringify(offsetConfig),
             status: 'pending',

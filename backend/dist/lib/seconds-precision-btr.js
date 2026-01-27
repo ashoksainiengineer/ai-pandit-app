@@ -183,13 +183,49 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, options = {
             aspects: aspects,
             avastha: (0, vedic_astrology_engine_js_1.calculateBaladiAvastha)(p.longitude),
             d60Deity: (0, vedic_astrology_engine_js_1.getD60Deity)(p.longitude),
-            compoundDignity: (0, vedic_astrology_engine_js_1.calculatePanchadhaSambandha)(planetName, cap(ephemeris.houses[signIdx]?.lord || ''), ephemeris)
+            compoundDignity: (0, vedic_astrology_engine_js_1.calculatePanchadhaSambandha)(planetName, cap(ephemeris.houses[signIdx]?.lord || ''), ephemeris),
+            shadbalaBreakdown: ephemeris.shadbala?.[planetName],
+            ishtaKashtaPhala: (0, vedic_astrology_engine_js_1.calculateIshtaKashtaPhala)(planetName, ephemeris)
         };
+    }
+    // 🔱 Varga Degrees Enrichment
+    const vargaDegrees = {};
+    const d60Planets = {};
+    const vNames = ['D9', 'D10', 'D60'];
+    vNames.forEach(v => {
+        const chart = ephemeris.divisionalCharts?.[v];
+        if (chart) {
+            vargaDegrees[v] = { Ascendant: `${chart.ascendant.sign} ${chart.ascendant.degree.toFixed(2)}°` };
+            for (const [pName, pPos] of Object.entries(chart.planets)) {
+                vargaDegrees[v][cap(pName)] = `${pPos.sign} ${pPos.degree.toFixed(2)}°`;
+                if (v === 'D60') {
+                    d60Planets[cap(pName)] = {
+                        sign: pPos.sign,
+                        degree: pPos.degree.toFixed(2) + '°',
+                        deity: (0, vedic_astrology_engine_js_1.getD60Deity)(pPos.longitude)
+                    };
+                }
+            }
+        }
+    });
+    // 🔱 Sandhi Detection (Planets or Lagna near signs ends)
+    const sandhiZones = [];
+    if (ephemeris.ascendant.degree < 1 || ephemeris.ascendant.degree > 29) {
+        sandhiZones.push(`Ascendant in Sandhi (${ephemeris.ascendant.degree.toFixed(2)}°)`);
+    }
+    for (const [name, p] of Object.entries(ephemeris.planets)) {
+        const deg = p.longitude % 30;
+        if (deg < 0.5 || deg > 29.5) {
+            sandhiZones.push(`${cap(name)} in Deep Sandhi (${deg.toFixed(2)}°)`);
+        }
     }
     const pkg = {
         time,
         offsetMinutes,
         rawVimshottari: vimDashas, // 🔱 Store raw for internal lookup in Stage 6
+        vargaDegrees,
+        d60Planets,
+        sandhiZones,
         vedicSignals: {
             vargottama: (0, advanced_btr_methods_js_1.detectVargottama)(ephemeris),
             parivartana: (0, advanced_btr_methods_js_1.detectParivartana)(ephemeris),
@@ -212,9 +248,10 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, options = {
         chalitDiscrepancies: (0, vedic_astrology_engine_js_1.detectBhavaChalitDiscrepancy)(ephemeris),
         ishtaKashtaPhala: (() => {
             const res = {};
-            ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'].forEach(p => {
-                res[p] = (0, vedic_astrology_engine_js_1.calculateIshtaKashtaPhala)(p, ephemeris);
-            });
+            for (const [name, data] of Object.entries(richPlanets)) {
+                if (data.ishtaKashtaPhala)
+                    res[cap(name)] = data.ishtaKashtaPhala;
+            }
             return res;
         })(),
         specialPoints: {
@@ -327,10 +364,11 @@ async function buildCandidateDataPackage(time, offsetMinutes, input, options = {
                 pkg.transitData[event.eventDate] = {
                     dasha: dashaSequence,
                     signatures: eventSignatures,
-                    saturn: `${eventEph.planets.saturn.sign}${eventEph.planets.saturn.retro ? ' (R)' : ''}`,
-                    jupiter: `${eventEph.planets.jupiter.sign}${eventEph.planets.jupiter.retro ? ' (R)' : ''}`,
-                    rahu: `${eventEph.planets.rahu.sign}${eventEph.planets.rahu.retro ? ' (R)' : ''}`,
-                    ketu: `${eventEph.planets.ketu.sign}${eventEph.planets.ketu.retro ? ' (R)' : ''}`,
+                    // 🔱 COMPREHENSIVE TRANSITS
+                    planets: Object.entries(eventEph.planets).reduce((acc, [name, p]) => {
+                        acc[cap(name)] = `${p.sign} ${p.degree.toFixed(1)}°${p.retro ? '(R)' : ''}`;
+                        return acc;
+                    }, {}),
                     doubleTransit: dtResult
                 };
             }
@@ -389,7 +427,7 @@ function formatLifeEventForAI(event) {
             nuance = '(Exact Date)';
             break;
     }
-    let base = `• [${importance?.toUpperCase() || 'MEDIUM'} IMPORTANCE] ${eventType} (${category})\n  Date: ${timeStr} ${nuance}`;
+    let base = `• [${importance?.toUpperCase() || 'MEDIUM'} IMPORTANCE] ${eventType}\n  Date: ${timeStr} ${nuance}`;
     if (description) {
         base += `\n  SITUATIONAL NARRATIVE & EXPERIENCE: "${description}"`;
     }
@@ -398,8 +436,31 @@ function formatLifeEventForAI(event) {
 // ═════════════════════════════════════════════════════════════════════════════
 // 🔱 STAGE 2: BATCH COARSE ELIMINATION (Dasha-Event Matching)
 // ═════════════════════════════════════════════════════════════════════════════
-function getBatchPrompt(candidates, events, traits, batchNumber, totalBatches, survivorsNeeded) {
+function getBatchPrompt(candidates, events, forensicTraits, batchNumber, totalBatches, survivorsNeeded) {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
+    const f = forensicTraits;
+    const forensicContext = `
+┌── FORENSIC PHYSICAL DNA (Varga Markers) ──
+│ Facial: ${f.physical.facialStructure.forehead} forehead, ${f.physical.facialStructure.eyeShape} eyes, ${f.physical.facialStructure.noseType} nose, ${f.physical.facialStructure.teethAlignment} teeth, ${f.physical.facialStructure.voicePitch} voice
+│ Hair/Skin: ${f.physical.skinHair.hairType} hair, ${f.physical.skinHair.texture} skin, ${f.physical.skinHair.complexion} complexion
+│ Special Marks: ${f.physical.skinHair.marks.join(', ') || 'None reported'}
+│ Build: ${f.physical.build} (${f.physical.height.feet}'${f.physical.height.inches}")
+
+┌── PSYCHOGRAPHIC DNA (Temperament) ──
+│ Speech: ${f.psychographic.speechStyle} | Decisions: ${f.psychographic.decisionMaking}
+│ Stress: ${f.psychographic.stressResponse} | Sleep: ${f.psychographic.sleepCycle}
+│ Temperament: ${f.psychographic.temperament}
+
+┌── BIOLOGICAL MARKERS (Ayurvedic) ──
+│ Prakriti: ${f.biological.prakriti.toUpperCase()}
+│ Sensitivity: Heat=${f.biological.sensitivity.heat} | Cold=${f.biological.sensitivity.cold}
+│ Health Issues: ${f.biological.recurringHealthIssues.join(', ') || 'None'}
+
+┌── FAMILY NARRATIVE MATRIX ──
+│ Position: ${f.family.siblingPosition} (${f.family.brotherCount} brothers, ${f.family.sisterCount} sisters)
+│ Birth Status: Father status was "${f.family.fatherStatusAtBirth}", Mother health was "${f.family.motherHealthAtBirth}"
+${f.family.firstChildInfo ? `│ First Child: ${f.family.firstChildInfo.gender} born in ${f.family.firstChildInfo.yearOfBirth}` : ''}
+    `;
     // 🔱 ANTI-BIAS PROTOCOL: Shuffle candidate order in every batch to prevent positional bias
     const shuffledCandidates = [...candidates].sort(() => Math.random() - 0.5);
     return `BIRTH TIME RECTIFICATION - STAGE 2 (Batch ${batchNumber}/${totalBatches})
@@ -410,6 +471,7 @@ function getBatchPrompt(candidates, events, traits, batchNumber, totalBatches, s
 2. ZERO TENTATIVE BIAS: Do not favor times just because they are closer to the "original" time.
 3. DATA-DRIVEN SCORE: Your score must reflect mathematical alignment only.
 4. NARRATIVE PRIMACY: The user's "SITUATIONAL NARRATIVE" is the ultimate source of truth. If a user describes a "sudden, shocking loss," prioritize candidates where Rahu/Ketu/8th house are activated in that dasha, even if raw scores are lower.
+5. FORENSIC CORRELATION: For EACH candidate, verify if their Varga markers (D1, D9, D60) align with the PHYSICAL and PSYCHOGRAPHIC DNA. A "measured_soft" speaker cannot have a Mercury-Mars lagna with heavy Agni influence unless strong Saturn control exists.
 ════════════════════════════════════════════════════════════════════════════════
 
 ════════════════════════════════════════════════════════════════════════════════
@@ -418,15 +480,25 @@ function getBatchPrompt(candidates, events, traits, batchNumber, totalBatches, s
 2. FUNCTIONAL NATURE MATTERS: A planet ruling 6/8/12 is malefic for this Ascendant.
 3. DIGNITY MATTERS: Exalted/Own planets give strong results; Debilitated giving mixed/weak.
 4. HOUSE LORDSHIP IS KEY: Event X (e.g., Marriage) MUST activate relevant house lords (e.g., 7th Lord).
+5. BIO-VEDIC MAPPING: Treat Forensic Traits as "Biological Anchors". If the user is an "eldest" child, the 3rd house (younger siblings) in D1/D9 must reflect this karma (e.g., 3rd lord in 12th or malefic aspect).
+6. 🚨🚨🚨 FORENSIC DATA GAP AUDIT 🚨🚨🚨: At the end of your reasoning, you MUST include a summary box with this EXACT format:
+============================
+  METHODOLOGICAL AUDIT
+----------------------------
+  [Point 1]
+  [Point 2]
+============================
+List every technical metric (e.g. D60 Degrees, Vimsopaka strength) that was missing but required for 100% mathematical certainty.
 ════════════════════════════════════════════════════════════════════════════════
 
-TASK: Score ${candidates.length} candidates based on Rigorous Vedic Dasha-Event correlation.
+    TASK: Rank ${candidates.length} candidates using Bio-Vedic Forensic Mapping and Dasha - Event correlation.
 
 LIFE EVENTS:
 ${eventsText}
-${traits ? `\nPHYSICAL TRAITS: ${JSON.stringify(traits)}` : ''}
 
-CANDIDATES WITH ENRICHED VEDIC DATA (100% Mathematical Matrix):
+${forensicContext}
+
+CANDIDATES WITH ENRICHED VEDIC DATA(100 % Mathematical Matrix):
 ${shuffledCandidates.map(c => `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CANDIDATE: ${c.time}
@@ -435,23 +507,31 @@ PANCHANGA: Day=${c.panchanga?.vara} | Tithi=${c.panchanga?.tithi} | Yoga=${c.pan
 SPECIAL POINTS: AL (Arudha Lagna)=${c.specialPoints?.AL.sign} | UL (Upapada Lagna)=${c.specialPoints?.UL.sign}
 LAGNA (Ascendant): ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
 HOUSE LORDS: 1=${c.houseLords[1]}, 7=${c.houseLords[7]}, 10=${c.houseLords[10]}, 5=${c.houseLords[5]}, 9=${c.houseLords[9]}
+${c.sandhiZones?.length ? `⚠️ SANDHI WARNINGS: ${c.sandhiZones.join(' | ')}` : ''}
 
 PLANETARY MATRIX (Verified Swiss Eph Positions):
 ${Object.entries(c.planets).map(([name, p]) => {
         const caps = name.charAt(0).toUpperCase() + name.slice(1);
-        const sav = c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(p.sign)] || '?';
+        const sav = c.ashtakavarga?.SAVSigns?.[p.sign] || '?';
         const aspects = p.aspects?.filter((a) => a.isHit).map((a) => `${a.type}→${a.targetPlanet || 'H' + a.targetHouse}`).join(', ') || 'None';
         const avastha = p.avastha || 'Unknown';
         const deity = p.d60Deity || 'Unknown';
-        const ikp = c.ishtaKashtaPhala?.[caps] ? `${c.ishtaKashtaPhala[caps].ishta}/${c.ishtaKashtaPhala[caps].kashta}` : '?';
+        const ikp = p.ishtaKashtaPhala ? `${p.ishtaKashtaPhala.ishta}/${p.ishtaKashtaPhala.kashta}` : '?';
         const sambandha = p.compoundDignity || 'Sama';
-        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${p.house} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${p.shadbala || '?'} | SAV:${sav} | ${aspects}`;
+        const sh = p.shadbalaBreakdown;
+        const shStr = sh ? `Sum:${sh.total} (S:${sh.sthana} D:${sh.dig} K:${sh.kaala})` : '?';
+        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${String(p.house).padEnd(2)} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${shStr.padEnd(25)} | SAV:${String(sav).padEnd(2)} | ${aspects}`;
     }).join('\n')}
 
-${c.yogas && c.yogas.length > 0 ? `YOGAS DETECTED: ${c.yogas.map(y => `${y.name} (${y.level})`).join(', ')}` : ''}
+${c.vargaDegrees ? `VARGA DEGREES (Forensic Resolution):
+│ D9 Navamsa: Asc=${c.vargaDegrees.D9?.Ascendant} | ${Object.entries(c.vargaDegrees.D9 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
+│ D10 Dasamsa: Asc=${c.vargaDegrees.D10?.Ascendant} | ${Object.entries(c.vargaDegrees.D10 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
+│ D60 Shashtyamsa: Asc=${c.vargaDegrees.D60?.Ascendant}` : ''}
 
-${c.d9Lagna ? `D9 NAVAMSHA LAGNA: ${c.d9Lagna}` : ''}
-${c.d10Lagna ? `D10 DASAMSHA LAGNA: ${c.d10Lagna}` : ''}
+${c.d60Planets ? `D60 PLANETARY DEITIES (The Quantum Decision Layer):
+${Object.entries(c.d60Planets).map(([name, data]) => `│ ${name.padEnd(7)}: ${data.sign} ${data.degree} | DEITY: ${data.deity}`).join('\n')}` : ''}
+
+${c.yogas && c.yogas.length > 0 ? `YOGAS DETECTED: ${c.yogas.map(y => `${y.name} (${y.level})`).join(', ')}` : ''}
 
 VIMSHOTTARI DASHA PERIODS (MD-AD-PD):
 ${c.vimshottariDasha.slice(0, 100).map(d => `  • ${d.maha}/${d.antar}/${d.pratyantar} : ${d.startEnd}`).join('\n')}
@@ -474,57 +554,72 @@ ${c.lifecycleShifts.slice(0, 15).map(s => `│ [${s.date}]: ${s.event}`).join('\
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `).join('')}
 
-SCORING ALGORITHM (STRICT VEDIC LOGIC):
-+30: PRIMARY MATCH - Dasha/Antar Lord is DIRECTLY the House Lord of the event (e.g. Marriage in 7th Lord dasha).
-+20: SECONDARY MATCH - Dasha Lord is placed in the event house or aspects it.
-+15: STRENGTH PROOF - Event dasha lord has high Shadbala (>120) or high SAV points (>28) in event house.
-+10: NATURAL KARAKA - Dasha Lord is natural significator (Venus=Marriage, Sun=Career) even if not functional lord.
-+10: LAGNA MATCH - Ascendant element/lord matches physical traits.
-+15: AVASTHA PRECISION - If planet is in 'Yuva' (Youth) or 'Kumara' (Adolescent) avastha, results are 100% manifest. If 'Mritya' (Dead), results are blocked.
-+20: D60 DEITY FLAVOR - Match event narrative to D60 Deity (e.g. 'Amrita' for recovery, 'Ghora' for sudden accident).
--50: CONTRADICTION - Event happened in dasha of 6/8/12 lord with NO connection to event house.
+SCORING ALGORITHM(STRICT VEDIC LOGIC):
+    +30: PRIMARY MATCH - Dasha / Antar Lord is DIRECTLY the House Lord of the event(e.g.Marriage in 7th Lord dasha).
++ 20: SECONDARY MATCH - Dasha Lord is placed in the event house or aspects it.
++ 15: STRENGTH PROOF - Event dasha lord has high Shadbala(> 120) or high SAV points(> 28) in event house.
++ 10: NATURAL KARAKA - Dasha Lord is natural significator(Venus = Marriage, Sun = Career) even if not functional lord.
++ 10: LAGNA MATCH - Ascendant element / lord matches physical traits.
++ 15: AVASTHA PRECISION - If planet is in 'Yuva'(Youth) or 'Kumara'(Adolescent) avastha, results are 100 % manifest.If 'Mritya'(Dead), results are blocked.
++ 20: D60 DEITY FLAVOR - Match event narrative to D60 Deity(e.g. 'Amrita' for recovery, 'Ghora' for sudden accident).
+- 50: CONTRADICTION - Event happened in dasha of 6 / 8 / 12 lord with NO connection to event house.
 
-OUTPUT FORMAT (one line per candidate):
-[TIME] | SCORE: [0-100] | VERDICT: KEEP/ELIMINATE | REASON: [Explicit Astrological Reason e.g. "Venus is 7th Lord"]
+OUTPUT FORMAT(one line per candidate):
+    [TIME] | SCORE: [0 - 100] | VERDICT: KEEP / ELIMINATE | REASON: [Explicit Astrological Reason e.g. "Venus is 7th Lord"]
 
-FINAL LINE (required):
-TOP_SURVIVORS: [comma-separated list of ${survivorsNeeded} best times]`;
+FINAL LINE(required):
+    TOP_SURVIVORS: [comma - separated list of ${survivorsNeeded} best times]`;
 }
-function getDeepAnalysisPrompt(candidates, events, traits, spouseData) {
+function getDeepAnalysisPrompt(candidates, events, forensicTraits, spouseData) {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
-    const traitsText = traits ? JSON.stringify(traits, null, 2) : 'N/A';
+    const f = forensicTraits;
     const spouseText = spouseData ? JSON.stringify(spouseData, null, 2) : 'N/A';
+    const forensicContext = `
+    [FORENSIC DNA DOSSIER]
+    - PHYSICAL: ${f.physical.facialStructure.forehead} forehead, ${f.physical.facialStructure.eyeShape} eyes, ${f.physical.facialStructure.voicePitch} voice, Marks: ${f.physical.skinHair.marks.join(', ')}
+    - TEMPERAMENT: ${f.psychographic.temperament}, ${f.psychographic.speechStyle} speech, ${f.psychographic.decisionMaking} judgment
+        - FAMILY: ${f.family.siblingPosition} child, ${f.family.brotherCount} B / ${f.family.sisterCount} S, Father at birth: ${f.family.fatherStatusAtBirth}
+    - BIOLOGICAL: ${f.biological.prakriti.toUpperCase()}, Heat sensitivity: ${f.biological.sensitivity.heat}, Chronic: ${f.biological.recurringHealthIssues.join(', ')}
+    `;
     // 🔱 ANTI-BIAS PROTOCOL: Shuffle to prevent positional bias
     const filteredCandidates = candidates.filter(c => c.time);
     const shuffledCandidates = [...filteredCandidates].sort(() => Math.random() - 0.5);
-    return `BIRTH TIME RECTIFICATION - STAGE 4 (Deep Multi-Dasha Analysis)
+    return `BIRTH TIME RECTIFICATION - STAGE 4(Deep Multi - Dasha Analysis)
 
 ════════════════════════════════════════════════════════════════════════════════
-⚖️ ANTI-BIAS PROTOCOLS:
-1. BLIND EVALUATION: Treat ALL candidates as equally probable. 
+⚖️ ANTI - BIAS PROTOCOLS:
+    1. BLIND EVALUATION: Treat ALL candidates as equally probable. 
 2. ZERO TENTATIVE BIAS: Do not favor times closest to the "original" tentative time.
-3. DATA-ONLY VERDICT: If candidates are technically equal, say so. Do not guess.
+3. DATA - ONLY VERDICT: If candidates are technically equal, say so.Do not guess.
 ════════════════════════════════════════════════════════════════════════════════
 
-════════════════════════════════════════════════════════════════════════════════
-⚠️ ANALYSIS RULES (PURE VEDIC ASTROLOGY):
-1. RELY ONLY ON THE PROVIDED MATHEMATICAL DATA. Do not hallucinate planetary positions.
-2. NARRATIVE PRIMACY: Qualitative experiences (SITUATIONAL NARRATIVE) outrank generic scoring. Match the flavor of the experience (e.g. "intense struggle" vs "smooth success") to the specific planetary dignity and aspects provided.
-4. CORRELATE DASHAS: Match Dasha Lords (and their House ownerships) to life events.
-5. HIGH-SIGNALS: Vargottama and Pushkar planets are 2-3x more potent in delivering results. Parivartana (Exchange) links two houses indissolubly.
-6. EVENT SIGNATURES: Use the pre-calculated signatures (D10 strength, Double Transit) to confirm "VIGOUR".
+⚠️ ANALYSIS RULES(PURE VEDIC ASTROLOGY):
+    1. RELY ONLY ON THE PROVIDED MATHEMATICAL DATA.Do not hallucinate planetary positions.
+2. NARRATIVE PRIMACY: Qualitative experiences(SITUATIONAL NARRATIVE) outrank generic scoring.Match the flavor of the experience(e.g. "intense struggle" vs "smooth success") to the specific planetary dignity and aspects provided.
+3. FORENSIC CORRELATION: For EACH candidate, verify if their Varga markers(D1 Lagna, D60 Deity, Navamsa Lord) align with the PHYSICAL and PSYCHOGRAPHIC data provided.A "measured_soft" speaker cannot have a Mercury - Mars lagna with heavy Agni influence unless strong Saturn control exists.
+4. BIO - VEDIC MAPPING: Treat Forensic Traits as "Biological Anchors". If the user is an "eldest" child, the 3rd house(younger siblings) in D1 / D9 must reflect this karma(e.g., 3rd lord in 12th or malefic aspect).
+6. CORRELATE DASHAS: Match Dasha Lords(and their House ownerships) to life events.
+7. EVENT SIGNATURES: Use the pre - calculated signatures(D10 strength, Double Transit) to confirm "VIGOUR".
+8. ⚡⚡⚡ CRITICAL METHODOLOGICAL AUDIT ⚡⚡⚡: Group all missing technical data into a stylized ASCII box:
+============================
+  METHODOLOGICAL AUDIT
+----------------------------
+  [Metric 1]
+  [Metric 2]
+============================
+This must be the final section of your reasoning.
 ════════════════════════════════════════════════════════════════════════════════
 
-TASK: Cross-verify ${shuffledCandidates.length} candidates using Dasha systems & Vedic Mathematics.
+    TASK: Perform a deep multi - varga forensic audit on ${shuffledCandidates.length} finalists.
 
-USER CONTEXT:
-PHYSICAL TRAITS: ${traitsText}
+USER FORENSIC DATA:
+${forensicContext}
 SPOUSE DATA: ${spouseText}
 
 LIFE EVENTS:
 ${eventsText}
 
-CANDIDATES (100% VERIFIED MATHEMATICAL DATA):
+    CANDIDATES(100 % VERIFIED MATHEMATICAL DATA):
 ${shuffledCandidates.map(c => `
 [${c.time}]
 ┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
@@ -534,19 +629,23 @@ ${shuffledCandidates.map(c => `
 ├ PLANETARY MATRIX (Full Vedic Metrics):
 ${Object.entries(c.planets).map(([name, p]) => {
         const caps = name.charAt(0).toUpperCase() + name.slice(1);
-        const sav = c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(p.sign)] || '?';
+        const sav = c.ashtakavarga?.SAVSigns?.[p.sign] || '?';
         const aspects = p.aspects?.filter((a) => a.isHit).map((a) => `${a.type}→${a.targetPlanet || 'H' + a.targetHouse}`).join(', ') || 'None';
         const avastha = p.avastha || 'Unknown';
         const deity = p.d60Deity || 'Unknown';
-        const ikp = c.ishtaKashtaPhala?.[caps] ? `${c.ishtaKashtaPhala[caps].ishta}/${c.ishtaKashtaPhala[caps].kashta}` : '?';
+        const ikp = p.ishtaKashtaPhala ? `${p.ishtaKashtaPhala.ishta}/${p.ishtaKashtaPhala.kashta}` : '?';
         const sambandha = p.compoundDignity || 'Sama';
-        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${p.house} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${p.shadbala || '?'} | SAV:${sav} | ${aspects}`;
+        const sh = p.shadbalaBreakdown;
+        const shStr = sh ? `Sum:${sh.total} (S:${sh.sthana} D:${sh.dig} K:${sh.kaala})` : '?';
+        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${String(p.house).padEnd(2)} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${shStr.padEnd(25)} | SAV:${String(sav).padEnd(2)} | ${aspects}`;
     }).join('\n')}
 ├ YOGAS: ${c.yogas?.map(y => y.name).join(', ') || 'None'}
-├ DIVISIONAL CHARTS:
-│ D9 (Navamsa): Lagna=${c.d9Lagna} | Planets=${c.d9Chart ? Object.entries(c.d9Chart.planets).map(([k, v]) => `${k.substring(0, 2).toUpperCase()}=${v}`).join(' ') : ''}
-│ D10 (Dasamsa): Lagna=${c.d10Lagna} | Planets=${c.d10Chart ? Object.entries(c.d10Chart.planets).map(([k, v]) => `${k.substring(0, 2).toUpperCase()}=${v}`).join(' ') : ''}
-│ D60 (Shashtyamsa): Lagna=${c.d60Sign}
+├ DIVISIONAL CHARTS (Detailed Degrees):
+│ D9 Navamsa: Asc=${c.vargaDegrees?.D9?.Ascendant} | ${Object.entries(c.vargaDegrees?.D9 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
+│ D10 Dasamsa: Asc=${c.vargaDegrees?.D10?.Ascendant} | ${Object.entries(c.vargaDegrees?.D10 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
+│ D60 Shashtyamsa: Asc=${c.vargaDegrees?.D60?.Ascendant} | Deities=${Object.entries(c.d60Planets || {}).map(([k, v]) => `${k.substring(0, 2)}=${v.deity}`).join(' ')}
+├ D60 PLANETARY MATRIX:
+${Object.entries(c.d60Planets || {}).map(([name, data]) => `│ ${name.padEnd(7)}: ${data.sign} ${data.degree} | DEITY: ${data.deity}`).join('\n')}
 ├ VIMSHOTTARI DASHA SEQUENCE (Full Lifecycle, 1999-2026):
 ${c.vimshottariDasha.map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar}${d.sukshma !== '-' ? ` -> ${d.sukshma}` : ''} : ${d.startEnd}`).join('\n')}
 ├ MAJOR LIFECYCLE SHIFTS (Saturn/Jupiter Chronology):
@@ -554,8 +653,10 @@ ${c.lifecycleShifts?.map(s => `│ [${s.date}]: ${s.event} (Dasha: ${s.dasha})`)
 ├ YOGINI DASHA (Full): ${c.yoginiDasha?.map(d => `${d.lord} [${d.startEnd}]`).join(' | ') || 'N/A'}
 ├ CHARA DASHA: ${c.charaDasha?.map(d => `${d.sign} [${d.startEnd}]`).join(' | ') || 'N/A'}
 ├ ASHTAKAVARGA SAV: ${c.ashtakavarga?.SAV ? `[${c.ashtakavarga.SAV.join(', ')}]` : 'N/A'}
-${c.transitData ? `├ TRANSITS & DASHAS ON ALL EVENTS:
-${Object.entries(c.transitData).map(([date, t]) => `│ [${date}]: Dasha=${t.dasha} | ${t.signatures?.join(', ') || 'Regular Period'}`).join('\n')}` : ''}
+${c.transitData ? `├ TRANSITS & DASHAS ON ALL EVENTS (Full Planetary Matrix):
+${Object.entries(c.transitData).map(([date, t]) => `│ [${date}]: Dasha=${t.dasha}
+│   Transits: ${Object.entries(t.planets || {}).map(([p, pos]) => `${p}:${pos}`).join(' | ')}
+│   Signals: ${t.signatures?.join(', ') || 'Regular Period'}`).join('\n')}` : ''}
 ${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:
 │ Vargottama: ${c.vedicSignals.vargottama?.join(', ') || 'None'}
 │ Pushkar: ${c.vedicSignals.pushkar?.join(', ') || 'None'}
@@ -566,52 +667,68 @@ ${c.lifecycleShifts?.length ? `├ LIFECYCLE CHRONOLOGY (SATURN/JUPITER INGRESS)
 ${c.lifecycleShifts.map(s => `│ [${s.date}]: ${s.event} (Dasha: ${s.dasha})`).join('\n')}` : ''}
 └──────────────────────────────────────────────────────────────`).join('\n')}
 
-SCORING:
-- Rate 0-100 based on how well the Dasha Lords + Divisional Charts explain the Events.
+    SCORING:
+    - Rate 0 - 100 based on how well the Dasha Lords + Divisional Charts explain the Events.
 - Strict correlation required.
 
-OUTPUT (for each candidate):
-[TIME] | REASONING: [Brief 1-liner] | VERDICT: [KEEP/DROP] | SCORE: [0-100]
+        OUTPUT(for each candidate):
+            [TIME] | REASONING: [Brief 1 - liner] | VERDICT: [KEEP / DROP] | SCORE: [0 - 100]
 
-FINAL:
-TOP_SURVIVORS: [time1], [time2], [time3]`;
+    FINAL:
+    TOP_SURVIVORS: [time1], [time2], [time3]`;
 }
 // ═════════════════════════════════════════════════════════════════════════════
 // 🔱 STAGE 6: FINAL SECONDS-LEVEL PRECISION
 // ═════════════════════════════════════════════════════════════════════════════
-function getFinalPrecisionPrompt(candidates, events, traits, spouseData, currentTransits // 🔱 Present-day anchor
+function getFinalPrecisionPrompt(candidates, events, forensicTraits, spouseData, currentTransits // 🔱 Present-day anchor
 ) {
     const eventsText = events.map(formatLifeEventForAI).join('\n');
-    const traitsText = traits ? JSON.stringify(traits, null, 2) : 'N/A';
+    const f = forensicTraits;
     const spouseText = spouseData ? JSON.stringify(spouseData, null, 2) : 'N/A';
+    const forensicDNA = `
+🧬 MANDATORY FORENSIC CORRELATION MATRIX:
+    - Biological: ${f.biological.prakriti.toUpperCase()} | Health: ${f.biological.recurringHealthIssues.join(', ')}
+    - Psychographic: ${f.psychographic.temperament} | Decisions: ${f.psychographic.decisionMaking} | Speech: ${f.psychographic.speechStyle}
+    - Varga Signs: Forehead: ${f.physical.facialStructure.forehead} | Eyes: ${f.physical.facialStructure.eyeShape} | Voice: ${f.physical.facialStructure.voicePitch}
+    - Family Karma: ${f.family.siblingPosition} child | Father Status: ${f.family.fatherStatusAtBirth}
+    `;
     // 🔱 ANTI-BIAS PROTOCOL: Final shuffling
     const shuffledCandidates = [...candidates].sort(() => Math.random() - 0.5);
-    return `BIRTH TIME RECTIFICATION - FINAL STAGE (Seconds Precision)
+    return `BIRTH TIME RECTIFICATION - FINAL STAGE(Seconds Precision)
 
 ════════════════════════════════════════════════════════════════════════════════
-⚖️ ANTI-BIAS & OBJECTIVITY RULES:
-1. TOTAL NEUTRALITY: You are a cold, mathematical evaluator.
+⚖️ ANTI - BIAS & OBJECTIVITY RULES:
+    1. TOTAL NEUTRALITY: You are a cold, mathematical evaluator.
 2. NO POSITIONAL BIAS: Candidate #1 is NOT more likely than Candidate #N.
-3. MANDATORY PROOF: Every point in SCORE must be backed by a Technical Proof (e.g. D60 Lagna).
+3. MANDATORY PROOF: Every point in SCORE must be backed by a Technical Proof(e.g.D60 Lagna).
 ════════════════════════════════════════════════════════════════════════════════
 
-════════════════════════════════════════════════════════════════════════════════
-⚠️ GOD-TIER PRECISION RULES:
-1. FOCUS ON D60 (SHASHTYAMSA): Even 10 seconds can change D60 Lagna.
-2. NARRATIVE SYNC: The rectified time MUST explain the "NARRATIVE EXPERIENCE" describing the flavor of the life event (e.g. "sudden surgery" implies Mars/Ketu in 8th or 6th).
+⚠️ GOD - TIER PRECISION RULES:
+    1. FOCUS ON D60(SHASHTYAMSA): Even 10 seconds can change D60 Lagna.
+2. NARRATIVE SYNC: The rectified time MUST explain the "NARRATIVE EXPERIENCE" describing the flavor of the life event(e.g. "sudden surgery" implies Mars / Ketu in 8th or 6th).
 3. VERIFY PRANADASHAS: Use Vimshottari logic down to the finest level.
+4. BIO - VEDIC IDENTITY LOCK: The chosen time must represent the ONLY logical intersection of the Life Events, Forensic DNA, and Family Karma.A "Pitta" constitution with heat sensitivity MUST have Sun / Mars influence on Lagna or Lagna Lord in D1 / D9.
+5. 🚨🚨🚨 SECONDS-LEVEL FORENSIC AUDIT 🚨🚨🚨: Finalize your analysis with a summary ASCII box:
+============================
+  METHODOLOGICAL AUDIT
+----------------------------
+  [Detail 1]
+  [Detail 2]
+============================
+List specific Varga nuances or high-precision metrics missing for "Absolute God-Tier" 100% precision.
+════════════════════════════════════════════════════════════════════════════════
 ════════════════════════════════════════════════════════════════════════════════
 
-TASK: Select THE SINGLE BEST birth time from ${shuffledCandidates.length} finalists.
+    TASK: Solve the Bio - Vedic Identity Matrix.Select THE SINGLE BEST birth time from ${shuffledCandidates.length} finalists.
 
-USER CONTEXT:
-Traits: ${traitsText}
-Spouse: ${spouseText}
+USER FORENSIC DOSSIER:
+${forensicDNA}
+SPOUSE INFO: ${spouseText}
 
 LIFE EVENTS:
 ${eventsText}
 
-FINALIST CANDIDATES (100% COMPLETE MATHEMATICAL DATA):
+FINALIST CANDIDATES(100 % COMPLETE MATHEMATICAL DATA):
 ${shuffledCandidates.map((c, i) => `
 #${i + 1} [${c.time}]
 ┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
@@ -619,23 +736,32 @@ ${shuffledCandidates.map((c, i) => `
 ├ ARUDHAS: AL=${c.specialPoints?.AL.sign} | UL=${c.specialPoints?.UL.sign}
 ├ HOUSE LORDS: 1=${c.houseLords[1]} | 7=${c.houseLords[7]} | 10=${c.houseLords[10]}
 ├ D60 (Karma Lagna): ${c.d60Sign || 'N/A'}
-├ PLANETARY STRENGTH MATRIX:
+├ PLANETARY STRENGTH MATRIX (Full Forensic Data):
 ${Object.entries(c.planets).map(([name, p]) => {
         const caps = name.charAt(0).toUpperCase() + name.slice(1);
-        const sav = c.ashtakavarga?.SAV?.[ZODIAC_SIGNS.indexOf(p.sign)] || '?';
+        const sav = c.ashtakavarga?.SAVSigns?.[p.sign] || '?';
         const avastha = p.avastha || 'Unknown';
         const deity = p.d60Deity || 'Unknown';
-        const ikp = c.ishtaKashtaPhala?.[caps] ? `${c.ishtaKashtaPhala[caps].ishta}/${c.ishtaKashtaPhala[caps].kashta}` : '?';
+        const ikp = p.ishtaKashtaPhala ? `${p.ishtaKashtaPhala.ishta}/${p.ishtaKashtaPhala.kashta}` : '?';
         const sambandha = p.compoundDignity || 'Sama';
+        const sh = p.shadbalaBreakdown;
+        const shStr = sh ? `Sum:${sh.total} (S:${sh.sthana} D:${sh.dig} K:${sh.kaala} C:${sh.cheshta})` : '?';
         const aspects = p.aspects?.filter((a) => a.isHit).map((a) => `${a.type}`).join(', ') || 'None';
-        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} [H${p.house}, ${avastha}, ${deity}, I/K:${ikp}, ${sambandha}, Sh:${p.shadbala || '?'}, SAV:${sav}] | Asp: ${aspects}`;
+        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} [H${String(p.house).padEnd(2)}, ${avastha}, ${deity}, I/K:${ikp}, ${sambandha}, Sh:${shStr}, SAV:${sav}] | Asp: ${aspects}`;
     }).join('\n')}
 ├ YOGAS: ${c.yogas?.map(y => y.name).join(', ') || 'N/A'}
-├ HIGHER DIVISIONALS: D9=${c.d9Lagna} | D10=${c.d10Lagna} | D60=${c.d60Sign}
-├ VIMSHOTTARI SEQUENCE (Full Lifecycle):
-${c.vimshottariDasha.map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar}${d.sukshma !== '-' ? ` -> ${d.sukshma}` : ''} : ${d.startEnd}`).join('\n')}
-${c.transitData ? `├ TRANSITS & DASHAS ON ALL EVENTS:
-${Object.entries(c.transitData).map(([date, t]) => `│ [${date}]: Dasha=${t.dasha} | ${t.signatures?.join(', ') || 'Regular Period'}`).join('\n')}` : ''}
+├ DIVISIONAL CHARTS (Detailed Degrees):
+│ D9 Navamsa: Asc=${c.vargaDegrees?.D9?.Ascendant} | ${Object.entries(c.vargaDegrees?.D9 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
+│ D10 Dasamsa: Asc=${c.vargaDegrees?.D10?.Ascendant} | ${Object.entries(c.vargaDegrees?.D10 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
+│ D60 Shashtyamsa: Asc=${c.vargaDegrees?.D60?.Ascendant} | Deities=${Object.entries(c.d60Planets || {}).map(([k, v]) => `${k.substring(0, 2)}=${v.deity}`).join(' ')}
+├ D60 PLANETARY MATRIX:
+${Object.entries(c.d60Planets || {}).map(([name, data]) => `│ ${name.padEnd(7)}: ${data.sign} ${data.degree} | DEITY: ${data.deity}`).join('\n')}
+├ VIMSHOTTARI SEQUENCE (Forensic Accuracy):
+${c.vimshottariDasha.map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar}${d.sukshma !== '-' ? ` -> ${d.sukshma}` : ''}${d.prana !== '-' ? ` -> ${d.prana}` : ''} : ${d.startEnd}`).join('\n')}
+${c.transitData ? `├ TRANSITS & DASHAS ON ALL EVENTS (Full Forensic Matrix):
+${Object.entries(c.transitData).map(([date, t]) => `│ [${date}]: Dasha=${t.dasha}
+│   Transits: ${Object.entries(t.planets || {}).map(([p, pos]) => `${p}:${pos}`).join(' | ')}
+│   Signals: ${t.signatures?.join(', ') || 'Regular Period'}`).join('\n')}` : ''}
 ${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:
 │ Vargottama: ${c.vedicSignals.vargottama?.join(', ') || 'None'}
 │ Pushkar: ${c.vedicSignals.pushkar?.join(', ') || 'None'}
@@ -649,19 +775,19 @@ ${c.lifecycleShifts?.length ? `├ FINAL CHRONOLOGY VERIFICATION:
 ${c.lifecycleShifts.map(s => `│ [${s.date}]: ${s.event}`).join('\n')}` : ''}
 └ BOUNDARY CHECK: ${parseFloat(c.ascendant.degree) < 1 || parseFloat(c.ascendant.degree) > 29 ? '⚠️ EDGE' : 'SAFE'}`).join('\n')}
 
-FINAL VERDICT (required format):
-BEST TIME: [HH:MM:SS]
-REASONING: [Explicitly cite D60 Lagna, Dasha Connection, Synastry Match (if any), and Lifecycle Chronology. No generic text.]
-CONFIDENCE: [0-100]
-ACCURACY: [0-100]%
-CONFIDENCE: [HIGH/MEDIUM/LOW]
-MARGIN_OF_ERROR: ±[seconds] seconds
+FINAL VERDICT(required format):
+BEST TIME: [HH: MM: SS]
+    REASONING: [Explicitly cite D60 Lagna, Dasha Connection, Synastry Match(if any), and Lifecycle Chronology.No generic text.]
+    CONFIDENCE: [0 - 100]
+    ACCURACY: [0 - 100] %
+        CONFIDENCE: [HIGH / MEDIUM / LOW]
+    MARGIN_OF_ERROR: ±[seconds] seconds
 
-EVIDENCE:
-1. [D60 Justification]
-2. [Event-Dasha Link]
+    EVIDENCE:
+    1.[D60 Justification]
+    2.[Event - Dasha Link]
 
-RUNNER_UP: [second best time]
+    RUNNER_UP: [second best time]
 ═══════════════════════════════════════════════════════════════════════════════`;
 }
 // ═════════════════════════════════════════════════════════════════════════════
@@ -679,7 +805,7 @@ function extractBatchSurvivors(aiContent, candidateTimes, neededCount) {
     // Fallback: Extract scores and pick top N
     const scores = [];
     for (const time of candidateTimes) {
-        const timePattern = new RegExp(`CANDIDATE[:\\s]*${time.replace(/:/g, '[:\\s]?')}[\\s\\S]{0,300}SCORE[:\\s]*(\\d+)`, 'i');
+        const timePattern = new RegExp(`CANDIDATE[: \\s]* ${time.replace(/:/g, '[:\\s]?')} [\\s\\S]{ 0, 300 } SCORE[: \\s]* (\\d +)`, 'i');
         const match = aiContent.match(timePattern);
         const score = match ? parseInt(match[1]) : 50;
         scores.push({ time, score });
@@ -734,9 +860,9 @@ async function stage1ExhaustiveDataGeneration(input, progress) {
         // Log EVERY calculation (user requested) but with lightweight data
         (0, session_events_js_1.emitCalculationLog)(input.sessionId, {
             candidateTime: raw.time,
-            sunPos: `${pkg.planets.sun.sign} ${pkg.planets.sun.degree}`,
-            moonPos: `${pkg.planets.moon.sign} ${pkg.planets.moon.degree}`,
-            ascendant: `${pkg.ascendant.sign} ${pkg.ascendant.degree}`,
+            sunPos: `${pkg.planets.sun.sign} ${pkg.planets.sun.degree} `,
+            moonPos: `${pkg.planets.moon.sign} ${pkg.planets.moon.degree} `,
+            ascendant: `${pkg.ascendant.sign} ${pkg.ascendant.degree} `,
             dashaObj: pkg.vimshottariDasha[0]?.maha || 'N/A'
         });
         if (processed % 10 === 0) {
@@ -760,7 +886,7 @@ async function stage1ExhaustiveDataGeneration(input, progress) {
 // ═════════════════════════════════════════════════════════════════════════════
 // STAGE 2: BATCH TOURNAMENT (Dynamic batch size based on offset)
 // ═════════════════════════════════════════════════════════════════════════════
-async function stage2BatchTournament(input, candidates, progress, globalLifecycle = []) {
+async function stage2BatchTournament(input, candidates, progress, forensicTraits, globalLifecycle = []) {
     await progress.startStep('coarse', 'Stage 2: Batch Tournament...');
     const rounds = [];
     let currentCandidates = [...candidates];
@@ -788,24 +914,59 @@ async function stage2BatchTournament(input, candidates, progress, globalLifecycl
         moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
         ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
     });
-    // Continue tournament until we have batchSize or fewer candidates
-    while (currentCandidates.length > batchSize) {
+    // 🔱 FORCED FIRST ROUND: If candidates are fewer than batch size, we still MUST run one round 
+    // to explain the logic to the user and ensure no "skip" ambiguity.
+    if (roundNumber === 0 && currentCandidates.length > 0) {
         roundNumber++;
         const batches = (0, time_offset_manager_js_1.splitIntoBatches)(currentCandidates, batchSize);
         const roundSurvivors = [];
-        await progress.updateMessage(`Round ${roundNumber}: ${batches.length} batches of ${batchSize}`);
-        // Execute in parallel
+        await progress.updateMessage(`Base Analysis: Evaluating ${currentCandidates.length} potential paths...`);
+        // Parallel execution (same as below)
         const batchDataMap = new Map();
         const tasks = batches.map((batchTimes, i) => async () => {
             const batchEnriched = await Promise.all(batchTimes.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, { includeFullData: true, dashaDepth: 2, lifecycleShifts: globalLifecycle })));
             batchDataMap.set(i, batchEnriched);
-            return (0, ai_client_js_1.callAIWithStream)(input.sessionId, 2, 'You are the SUPREME VEDIC ASTROLOGER. Analyze ALL candidates with EQUAL attention.', getBatchPrompt(batchEnriched, input.lifeEvents, input.physicalTraits, i + 1, batches.length, survivorsPerBatch), {
+            return (0, ai_client_js_1.callAIWithStream)(input.sessionId, 2, 'You are the SUPREME VEDIC ASTROLOGER. Analyze candidate birth times for primary alignment using forensic markers.', getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch), {
                 candidateTime: `Batch ${i + 1}/${batches.length}`,
                 progressTracker: progress
             });
         });
         const results = await (0, ai_client_js_1.executeAIInParallel)(tasks, 10, 100);
-        // Process results
+        for (let i = 0; i < batches.length; i++) {
+            const batchTimes = batches[i];
+            const response = results[i];
+            const fullBatchData = batchDataMap.get(i) || [];
+            const aiContent = response.success ? (response.content || response.thinking || '') : '';
+            const survivorTimes = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), Math.min(batchTimes.length, survivorsPerBatch));
+            for (let j = 0; j < fullBatchData.length; j++) {
+                const candidate = fullBatchData[j];
+                const originalTimeInfo = batchTimes[j];
+                const isSurvivor = survivorTimes.includes(candidate.time);
+                let score = 55;
+                if (isSurvivor) {
+                    score = 85;
+                    roundSurvivors.push(originalTimeInfo);
+                }
+                (0, session_events_js_1.emitCandidateScore)(input.sessionId, candidate.time, score, 2, undefined, getMinifiedEph(candidate));
+            }
+        }
+        rounds.push({ roundNumber, batchesProcessed: batches.length, candidatesIn: currentCandidates.length, candidatesOut: roundSurvivors.length });
+        currentCandidates = roundSurvivors;
+    }
+    // Continue tournament for larger sets
+    while (currentCandidates.length > batchSize) {
+        roundNumber++;
+        const batches = (0, time_offset_manager_js_1.splitIntoBatches)(currentCandidates, batchSize);
+        const roundSurvivors = [];
+        await progress.updateMessage(`Tournament Round ${roundNumber}: ${batches.length} batches of ${batchSize}`);
+        // ... (parallel execution block same as before) ...
+        const batchDataMap = new Map();
+        const tasks = batches.map((batchTimes, i) => async () => {
+            const batchEnriched = await Promise.all(batchTimes.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, { includeFullData: true, dashaDepth: 2, lifecycleShifts: globalLifecycle })));
+            batchDataMap.set(i, batchEnriched);
+            return (0, ai_client_js_1.callAIWithStream)(input.sessionId, 2, 'You are the SUPREME VEDIC ASTROLOGER. Tournament analysis: prune based on forensic alignment.', getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch), { candidateTime: `Tournament ${roundNumber}-${i + 1}`, progressTracker: progress });
+        });
+        const results = await (0, ai_client_js_1.executeAIInParallel)(tasks, 10, 100);
         for (let i = 0; i < batches.length; i++) {
             const batchTimes = batches[i];
             const response = results[i];
@@ -815,33 +976,31 @@ async function stage2BatchTournament(input, candidates, progress, globalLifecycl
             for (let j = 0; j < fullBatchData.length; j++) {
                 const candidate = fullBatchData[j];
                 const originalTimeInfo = batchTimes[j];
-                const isSurvivor = survivorTimes.includes(candidate.time);
-                let score = 40;
-                if (isSurvivor) {
-                    score = 85;
+                if (survivorTimes.includes(candidate.time)) {
                     roundSurvivors.push(originalTimeInfo);
+                    (0, session_events_js_1.emitCandidateScore)(input.sessionId, candidate.time, 88, 2, undefined, getMinifiedEph(candidate));
                 }
-                (0, session_events_js_1.emitCandidateScore)(input.sessionId, candidate.time, score, 2, undefined, getMinifiedEph(candidate));
+                else {
+                    (0, session_events_js_1.emitCandidateScore)(input.sessionId, candidate.time, 30, 2, undefined, getMinifiedEph(candidate));
+                }
             }
         }
-        // Check for cancellation and cleanup
         await (0, cancellation_manager_js_1.throwIfCancelled)(input.sessionId, input.abortSignal);
-        (0, ephemeris_js_1.cleanup)(); // Hint GC to clear processed objects
+        (0, ephemeris_js_1.cleanup)();
         rounds.push({
             roundNumber,
             batchesProcessed: batches.length,
             candidatesIn: currentCandidates.length,
             candidatesOut: roundSurvivors.length
         });
-        logger_js_1.logger.info(`🔱 Round ${roundNumber} complete`, {
-            candidatesIn: currentCandidates.length,
-            candidatesOut: roundSurvivors.length
-        });
         currentCandidates = roundSurvivors;
     }
-    // 🔱 Flush Reasoning: Wait for stream stabilization
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    await progress.completeStep('coarse', [`Tournament complete: ${currentCandidates.length} survivors`]);
+    // Ensure we don't return an empty set if parallel logic failed
+    if (currentCandidates.length === 0 && candidates.length > 0) {
+        logger_js_1.logger.warn('Tournament failed to yield survivors, using top candidates from original set');
+        currentCandidates = candidates.slice(0, 5);
+    }
+    await progress.completeStep('coarse', [`Tournament complete: ${currentCandidates.length} survivors verified.`]);
     return {
         survivors: currentCandidates,
         stageResult: {
@@ -884,7 +1043,7 @@ async function stage3RefinementGrid(input, survivors, progress) {
 // ═════════════════════════════════════════════════════════════════════════════
 // STAGE 4: DEEP ANALYSIS (Multi-dasha verification)
 // ═════════════════════════════════════════════════════════════════════════════
-async function stage4DeepAnalysis(input, candidates, progress, globalLifecycle = []) {
+async function stage4DeepAnalysis(input, candidates, progress, forensicTraits, globalLifecycle = []) {
     await progress.startStep('deep', 'Stage 4: Deep analysis tournament...');
     let currentCandidates = [...candidates];
     let allReasoning = '';
@@ -911,7 +1070,7 @@ async function stage4DeepAnalysis(input, candidates, progress, globalLifecycle =
                 totalBatches: batches.length,
                 candidatesInBatch: batchEnriched.length
             });
-            return (0, ai_client_js_1.callAIWithStream)(input.sessionId, 4, 'You are the GOD-TIER VEDIC ANALYST. Perform deep multi-dasha verification.', getDeepAnalysisPrompt(batchEnriched, input.lifeEvents, input.physicalTraits, input.spouseData), {
+            return (0, ai_client_js_1.callAIWithStream)(input.sessionId, 4, 'You are the GOD-TIER VEDIC ANALYST. Perform deep forensic multi-dasha verification.', getDeepAnalysisPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData), {
                 candidateTime: `Deep ${i + 1}/${batches.length}`,
                 progressTracker: progress
             });
@@ -942,7 +1101,7 @@ async function stage4DeepAnalysis(input, candidates, progress, globalLifecycle =
     if (currentCandidates.length > 0) { // Changed from > 3 to > 0 to handle small remaining batches
         // JIT Enrichment for the final batch
         const finalBatchData = await Promise.all(currentCandidates.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, { includeFullData: true, dashaDepth: 3, lifecycleShifts: globalLifecycle })));
-        const prompt = getDeepAnalysisPrompt(finalBatchData, input.lifeEvents, input.physicalTraits, input.spouseData);
+        const prompt = getDeepAnalysisPrompt(finalBatchData, input.lifeEvents, forensicTraits, input.spouseData);
         const response = await (0, ai_client_js_1.callAIWithStream)(input.sessionId, 4, 'You are performing FINAL deep verification.', prompt, {
             candidateTime: 'Deep Final',
             progressTracker: progress
@@ -1004,7 +1163,7 @@ async function stage5MicroGrid(input, survivors, progress) {
 // ═════════════════════════════════════════════════════════════════════════════
 // STAGE 6: FINAL PRECISION JUDGEMENT
 // ═════════════════════════════════════════════════════════════════════════════
-async function stage6FinalPrecision(input, candidates, progress, globalLifecycle = []) {
+async function stage6FinalPrecision(input, candidates, progress, forensicTraits, globalLifecycle = []) {
     const now = new Date();
     const currentEph = await (0, ephemeris_js_1.calculateEphemeris)(now.toISOString().split('T')[0], now.toTimeString().split(' ')[0], input.latitude, input.longitude, input.timezone);
     const getPresentTransitData = (c) => {
@@ -1025,7 +1184,7 @@ async function stage6FinalPrecision(input, candidates, progress, globalLifecycle
             const batchEnriched = await Promise.all(batchTimes.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, { includeFullData: true, dashaDepth: 5, pranaWindowDays: 3, lifecycleShifts: globalLifecycle })));
             batchDataMap.set(i, batchEnriched);
             const presentAnchor = getPresentTransitData(batchEnriched[0]);
-            return (0, ai_client_js_1.callAIWithStream)(input.sessionId, 6, 'FINAL JUDGEMENT. Pick THE ONE.', getFinalPrecisionPrompt(batchEnriched, input.lifeEvents, input.physicalTraits, input.spouseData, presentAnchor), {
+            return (0, ai_client_js_1.callAIWithStream)(input.sessionId, 6, 'FINAL FORENSIC JUDGEMENT. Pick THE ONE based on bio-Vedic alignment.', getFinalPrecisionPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData, presentAnchor), {
                 candidateTime: 'FINAL',
                 progressTracker: progress
             });
@@ -1062,7 +1221,7 @@ async function stage6FinalPrecision(input, candidates, progress, globalLifecycle
     // Final judgement
     const finalBatch = await Promise.all(finalists.map(ct => buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, { includeFullData: true, dashaDepth: 5, pranaWindowDays: 5, lifecycleShifts: globalLifecycle })));
     const finalAnchor = getPresentTransitData(finalBatch[0]);
-    const prompt = getFinalPrecisionPrompt(finalBatch, input.lifeEvents, input.physicalTraits, input.spouseData, finalAnchor);
+    const prompt = getFinalPrecisionPrompt(finalBatch, input.lifeEvents, forensicTraits, input.spouseData, finalAnchor);
     const response = await (0, ai_client_js_1.callAIWithStream)(input.sessionId, 6, 'You are the DIVINE ARCHITECT of Time. FINAL JUDGEMENT.', prompt, {
         model: 'deepseek/deepseek-v3.2',
         candidateTime: 'FINAL VERDICT',
@@ -1159,14 +1318,16 @@ async function processSecondsPrecisionBTR(input) {
         const stage1 = await stage1ExhaustiveDataGeneration(input, progress);
         stageHistory[1] = stage1.stageResult;
         (0, session_events_js_1.emitStageStats)(input.sessionId, 1, stage1.stageResult.candidatesOut, `Generated ${stage1.stageResult.candidatesOut} candidates`);
+        await progress.flush("Stage 1 finalized. Preparing for tournament...");
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 2: BATCH TOURNAMENT
         // ═══════════════════════════════════════════════════════════════════════
         await (0, cancellation_manager_js_1.throwIfCancelled)(input.sessionId, input.abortSignal);
         await progress.updateETA(480);
-        const stage2 = await stage2BatchTournament(input, stage1.candidates, progress, globalLifecycle);
+        const stage2 = await stage2BatchTournament(input, stage1.candidates, progress, input.forensicTraits, globalLifecycle);
         stageHistory[2] = stage2.stageResult;
         (0, session_events_js_1.emitStageStats)(input.sessionId, 2, stage2.stageResult.candidatesOut, `Tournament: ${stage2.rounds.length} rounds, ${stage2.survivors.length} survivors`);
+        await progress.flush("Stage 2 finalized. Expanding research grid...");
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 3: REFINEMENT GRID
         // ═══════════════════════════════════════════════════════════════════════
@@ -1175,14 +1336,16 @@ async function processSecondsPrecisionBTR(input) {
         const stage3 = await stage3RefinementGrid(input, stage2.survivors, progress);
         stageHistory[3] = stage3.stageResult;
         (0, session_events_js_1.emitStageStats)(input.sessionId, 3, stage3.stageResult.candidatesOut, `Refined to ${stage3.stageResult.candidatesOut}`);
+        await progress.flush("Stage 3 finalized. Starting multi-dasha analysis...");
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 4: DEEP ANALYSIS
         // ═══════════════════════════════════════════════════════════════════════
         await (0, cancellation_manager_js_1.throwIfCancelled)(input.sessionId, input.abortSignal);
         await progress.updateETA(240);
-        const stage4 = await stage4DeepAnalysis(input, stage3.candidates, progress, globalLifecycle);
+        const stage4 = await stage4DeepAnalysis(input, stage3.candidates, progress, input.forensicTraits, globalLifecycle);
         stageHistory[4] = stage4.stageResult;
         (0, session_events_js_1.emitStageStats)(input.sessionId, 4, stage4.stageResult.candidatesOut, `Deep: ${stage4.survivors.length} survivors`);
+        await progress.flush("Stage 4 finalized. Entering micro-precision phase...");
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 5: MICRO GRID
         // ═══════════════════════════════════════════════════════════════════════
@@ -1191,14 +1354,16 @@ async function processSecondsPrecisionBTR(input) {
         const stage5 = await stage5MicroGrid(input, stage4.survivors, progress);
         stageHistory[5] = stage5.stageResult;
         (0, session_events_js_1.emitStageStats)(input.sessionId, 5, stage5.stageResult.candidatesOut, `Micro: ${stage5.candidates.length}`);
+        await progress.flush("Stage 5 finalized. Running final seconds-level synthesis...");
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 6: FINAL PRECISION
         // ═══════════════════════════════════════════════════════════════════════
         await (0, cancellation_manager_js_1.throwIfCancelled)(input.sessionId, input.abortSignal);
         await progress.updateETA(60);
-        const stage6 = await stage6FinalPrecision(input, stage5.candidates, progress, globalLifecycle);
+        const stage6 = await stage6FinalPrecision(input, stage5.candidates, progress, input.forensicTraits, globalLifecycle);
         stageHistory[6] = stage6.stageResult;
         (0, session_events_js_1.emitStageStats)(input.sessionId, 6, 1, 'FINAL TIME DETERMINED');
+        await progress.flush("All analysis stages complete. Generating final report...");
         // ═══════════════════════════════════════════════════════════════════════
         // BUILD FINAL RESULT
         // ═══════════════════════════════════════════════════════════════════════

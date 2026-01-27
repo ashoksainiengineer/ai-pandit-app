@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { UserButton, useAuth } from '@clerk/nextjs';
-import { BirthData, LifeEvent, PhysicalTraits, TimeOffsetConfig } from '@/lib/types';
+import { BirthData, LifeEvent, PhysicalTraits, TimeOffsetConfig, SpouseData } from '@/lib/types';
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
 import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
 import Step2ForensicTraits from '@/components/rectify/Step2ForensicTraits';
@@ -63,6 +63,14 @@ const initialForensicTraits: ForensicTraits = {
     }
 };
 
+const initialSpouseData: SpouseData = {
+    dateOfBirth: '',
+    birthTime: '',
+    latitude: 0,
+    longitude: 0,
+    timezone: 5.5
+};
+
 export default function RectifyPage() {
     const router = useRouter();
     const [step, setStep] = useState(1);
@@ -70,6 +78,7 @@ export default function RectifyPage() {
     const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>([]);
     const [physicalTraits, setPhysicalTraits] = useState<PhysicalTraits>(initialPhysicalTraits);
     const [forensicTraits, setForensicTraits] = useState<ForensicTraits>(initialForensicTraits);
+    const [spouseData, setSpouseData] = useState<SpouseData>(initialSpouseData);
     const [offsetConfig, setOffsetConfig] = useState<TimeOffsetConfig>({ preset: '1hour', customMinutes: 60, description: '±1 hour' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -132,7 +141,19 @@ export default function RectifyPage() {
                 if (parsed.birthData) setBirthData(parsed.birthData);
                 if (parsed.lifeEvents) setLifeEvents(parsed.lifeEvents);
                 if (parsed.physicalTraits) setPhysicalTraits(parsed.physicalTraits);
-                if (parsed.forensicTraits) setForensicTraits(parsed.forensicTraits);
+                if (parsed.forensicTraits) {
+                    // Deep merge with initial state to avoid undefined sub-objects from older drafts
+                    const merged = {
+                        ...initialForensicTraits,
+                        ...parsed.forensicTraits,
+                        physical: { ...initialForensicTraits.physical, ...parsed.forensicTraits.physical },
+                        psychographic: { ...initialForensicTraits.psychographic, ...parsed.forensicTraits.psychographic },
+                        biological: { ...initialForensicTraits.biological, ...parsed.forensicTraits.biological },
+                        family: { ...initialForensicTraits.family, ...parsed.forensicTraits.family }
+                    };
+                    setForensicTraits(merged);
+                }
+                if (parsed.spouseData) setSpouseData(parsed.spouseData);
                 if (parsed.offsetConfig) setOffsetConfig(parsed.offsetConfig);
                 if (parsed.step) setStep(parsed.step);
             } catch (e) {
@@ -149,10 +170,11 @@ export default function RectifyPage() {
             physicalTraits,
             forensicTraits,
             offsetConfig,
-            step
+            step,
+            spouseData
         };
         localStorage.setItem('btr_form_data', JSON.stringify(dataToSave));
-    }, [birthData, lifeEvents, physicalTraits, step]);
+    }, [birthData, lifeEvents, physicalTraits, forensicTraits, spouseData, offsetConfig, step]);
 
     const handleNext = () => {
         if (isSubmitting) return; // Prevent navigation while submitting
@@ -237,17 +259,17 @@ export default function RectifyPage() {
                     gender: birthData.gender
                 },
                 lifeEvents: lifeEvents.map(e => ({
-                    ...e,
-                    // Ensure generic fields needed by backend are present
                     category: e.category,
                     eventType: e.eventType,
+                    datePrecision: e.datePrecision,
                     eventDate: e.eventDate,
+                    endDate: e.endDate,
                     description: e.description,
                     importance: e.importance
                 })),
-                offsetConfig, // Use state
-                physicalTraits,
-                forensicTraits
+                offsetConfig,
+                forensicTraits,
+                spouseData: spouseData.dateOfBirth ? spouseData : undefined
             };
 
             const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
@@ -360,6 +382,8 @@ export default function RectifyPage() {
                             updateData={(updates) => setBirthData(prev => ({ ...prev, ...updates }))}
                             offsetConfig={offsetConfig}
                             updateOffset={setOffsetConfig}
+                            spouseData={spouseData}
+                            updateSpouse={(updates) => setSpouseData(prev => ({ ...prev, ...updates }))}
                         />
                     )}
                     {step === 2 && (

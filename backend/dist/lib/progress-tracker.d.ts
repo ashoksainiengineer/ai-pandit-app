@@ -82,6 +82,11 @@ export declare class ProgressTracker {
      */
     updateETA(seconds: number): Promise<void>;
     /**
+     * Explicitly flush all buffers and add a mandatory stabilization pause.
+     * Ensures all async thinking streams are fully transmitted before next stage.
+     */
+    flush(message?: string): Promise<void>;
+    /**
      * Update AI Context (Ground Truth Display)
      */
     updateAIContext(context: AIContextData): Promise<void>;

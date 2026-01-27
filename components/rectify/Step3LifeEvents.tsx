@@ -234,7 +234,11 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
                                         ) : (
                                             <h2 className="text-xl font-semibold text-[#F5F0EB]">{event.eventType}</h2>
                                         )}
-                                        <span className="text-sm text-[#C4B8AD]">{event.category}</span>
+                                        {!event.isCustom && (
+                                            <span className="text-sm text-[#C4B8AD] block">
+                                                {EVENT_CATEGORIES.find(c => c.id === event.category)?.label || event.category}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="flex gap-3">
@@ -545,7 +549,7 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
                                             }`}
                                     >
                                         <div className="text-xl">{evt.icon}</div>
-                                        <div className="text-[10px] text-[#C4B8AD] mt-1 truncate">{evt.label}</div>
+                                        <div className="text-[10px] text-[#C4B8AD] mt-1 line-clamp-2 leading-tight h-[24px] flex items-center justify-center">{evt.label}</div>
                                         {!added && <div className="text-[9px] text-[#E8A849]">+{evt.boost}%</div>}
                                     </button>
                                 );

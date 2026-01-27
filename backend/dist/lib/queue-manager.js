@@ -389,6 +389,9 @@ async function processSessionAsync(sessionId) {
             const decryptedPhysicalTraits = s.physicalTraits
                 ? JSON.parse((0, crypto_js_1.decryptData)(s.physicalTraits, s.clerkId))
                 : undefined;
+            const decryptedForensicTraits = s.forensicTraits
+                ? JSON.parse((0, crypto_js_1.decryptData)(s.forensicTraits, s.clerkId))
+                : undefined;
             const result = await (0, seconds_precision_btr_js_1.processSecondsPrecisionBTR)({
                 sessionId: sessionId,
                 dateOfBirth: s.dateOfBirth,
@@ -399,6 +402,7 @@ async function processSessionAsync(sessionId) {
                 lifeEvents: decryptedLifeEvents,
                 offsetConfig: s.offsetConfig ? JSON.parse(s.offsetConfig) : { preset: '1hour' },
                 physicalTraits: decryptedPhysicalTraits,
+                forensicTraits: decryptedForensicTraits,
                 abortSignal: abortController.signal, // 🛑 Pass abort signal
             });
             // ✂️ SPLIT REASONING LOGS (Database Optimization)

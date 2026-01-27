@@ -648,7 +648,7 @@ function formatLifeEventForAI(event: LifeEvent): string {
             break;
     }
 
-    let base = `• [${importance?.toUpperCase() || 'MEDIUM'} IMPORTANCE] ${eventType} (${category})\n  Date: ${timeStr} ${nuance}`;
+    let base = `• [${importance?.toUpperCase() || 'MEDIUM'} IMPORTANCE] ${eventType}\n  Date: ${timeStr} ${nuance}`;
     if (description) {
         base += `\n  SITUATIONAL NARRATIVE & EXPERIENCE: "${description}"`;
     }

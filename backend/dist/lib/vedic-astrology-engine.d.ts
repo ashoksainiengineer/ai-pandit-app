@@ -119,7 +119,15 @@ export declare function calculateFunctionalNature(ascSign: string, planet: strin
 export declare function calculateAspects(sourcePlanet: string, sourceLong: number, targetMap: Record<string, number>, // planet -> longitude
 ascendantLong: number): AspectHit[];
 export declare function calculateAshtakavarga(ephemeris: EphemerisData): Record<string, number[]>;
-export declare function calculateShadbala(ephemeris: EphemerisData): Record<string, number>;
+export interface ShadbalaBreakdown {
+    sthana: number;
+    dig: number;
+    kaala: number;
+    cheshta: number;
+    naisargika: number;
+    total: number;
+}
+export declare function calculateShadbala(ephemeris: EphemerisData): Record<string, ShadbalaBreakdown>;
 export interface YogaMatch {
     name: string;
     description: string;

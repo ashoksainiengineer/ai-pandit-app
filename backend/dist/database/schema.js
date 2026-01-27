@@ -26,6 +26,7 @@ exports.sessions = (0, sqlite_core_1.sqliteTable)('sessions', {
     timezone: (0, sqlite_core_1.text)('timezone').notNull(),
     gender: (0, sqlite_core_1.text)('gender'),
     physicalTraits: (0, sqlite_core_1.text)('physicalTraits'),
+    forensicTraits: (0, sqlite_core_1.text)('forensicTraits'),
     lifeEvents: (0, sqlite_core_1.text)('lifeEvents').notNull(),
     offsetConfig: (0, sqlite_core_1.text)('offsetConfig'),
     rectifiedTime: (0, sqlite_core_1.text)('rectifiedTime'),

@@ -30,6 +30,59 @@ export interface LifeEvent {
     color?: string;
     ageAtEvent?: number;
 }
+export interface ForensicPhysicalTraits {
+    facialStructure: {
+        forehead: 'broad' | 'narrow' | 'average' | 'sloping';
+        eyeShape: 'deep_set' | 'prominent' | 'almond' | 'round' | 'small';
+        noseType: 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
+        teethAlignment: 'perfect' | 'crooked' | 'gap' | 'large' | 'small';
+        voicePitch: 'deep' | 'high' | 'medium' | 'soft' | 'raspy';
+    };
+    skinHair: {
+        texture: 'dry' | 'oily' | 'combination' | 'sensitive';
+        hairType: 'straight' | 'curly' | 'wavy' | 'thin' | 'thick' | 'bald';
+        complexion: 'very_fair' | 'fair' | 'medium' | 'dark' | 'very_dark';
+        marks: string[];
+    };
+    build: 'slim' | 'medium' | 'athletic' | 'heavy' | 'very_heavy';
+    height: {
+        cm: number;
+        feet: number;
+        inches: number;
+    };
+}
+export interface PsychographicDNA {
+    speechStyle: 'fast_loud' | 'measured_soft' | 'argumentative' | 'concise' | 'talkative';
+    decisionMaking: 'impulsive' | 'deliberate' | 'indecisive' | 'intuitive';
+    stressResponse: 'aggressive' | 'withdrawn' | 'anxious' | 'calm';
+    sleepCycle: 'night_owl' | 'early_bird' | 'irregular' | 'deep_sleeper';
+    temperament: 'short_tempered' | 'patient' | 'jovial' | 'melancholic' | 'optimistic';
+}
+export interface BiologicalMarkers {
+    prakriti: 'vata' | 'pitta' | 'kapha' | 'vata-pitta' | 'pitta-kapha' | 'vata-kapha';
+    sensitivity: {
+        heat: 'high' | 'medium' | 'low';
+        cold: 'high' | 'medium' | 'low';
+    };
+    recurringHealthIssues: string[];
+}
+export interface FamilyNarrativeMatrix {
+    siblingPosition: 'eldest' | 'middle' | 'youngest' | 'only_child';
+    brotherCount: number;
+    sisterCount: number;
+    fatherStatusAtBirth: 'struggling' | 'stable' | 'prosperous' | 'highly_distinguished';
+    motherHealthAtBirth: 'excellent' | 'normal' | 'weak' | 'complicated';
+    firstChildInfo?: {
+        gender: 'male' | 'female';
+        yearOfBirth: number;
+    };
+}
+export interface ForensicTraits {
+    physical: ForensicPhysicalTraits;
+    psychographic: PsychographicDNA;
+    biological: BiologicalMarkers;
+    family: FamilyNarrativeMatrix;
+}
 export interface PhysicalTraits {
     height?: {
         cm: number;
@@ -73,6 +126,14 @@ export interface RectificationSession {
     updatedAt: string;
     completedAt?: string;
 }
+export interface ShadbalaBreakdown {
+    sthana: number;
+    dig: number;
+    kaala: number;
+    cheshta: number;
+    naisargika: number;
+    total: number;
+}
 export interface PlanetPosition {
     sign: string;
     degree: number;
@@ -111,7 +172,7 @@ export interface EphemerisData {
     houses: HousePosition[];
     divisionalCharts?: Record<string, DivisionalChart>;
     ashtakavarga?: any;
-    shadbala?: Record<string, number>;
+    shadbala?: Record<string, ShadbalaBreakdown>;
     kpCusps?: number[];
 }
 export interface DivisionalChart {
@@ -242,6 +303,7 @@ export interface SecondsPrecisionInput {
     lifeEvents: LifeEvent[];
     offsetConfig: TimeOffsetConfig;
     physicalTraits?: PhysicalTraits;
+    forensicTraits: ForensicTraits;
     spouseData?: {
         dateOfBirth: string;
         birthTime: string;

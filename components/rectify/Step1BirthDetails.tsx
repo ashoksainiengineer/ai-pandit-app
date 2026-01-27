@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { BirthData, TimeOffsetConfig, OffsetPreset } from '@/lib/types';
+import { motion, AnimatePresence } from 'framer-motion';
+import { BirthData, TimeOffsetConfig, OffsetPreset, SpouseData } from '@/lib/types';
 import BirthPlacePicker from './BirthPlacePicker';
 
 interface Step1Props {
@@ -10,6 +10,8 @@ interface Step1Props {
     updateData: (updates: Partial<BirthData>) => void;
     offsetConfig?: TimeOffsetConfig;
     updateOffset?: (config: TimeOffsetConfig) => void;
+    spouseData?: SpouseData;
+    updateSpouse?: (updates: Partial<SpouseData>) => void;
 }
 
 const OFFSET_PRESETS: { value: OffsetPreset; label: string; minutes: number }[] = [
@@ -26,7 +28,9 @@ const itemVariants = {
     visible: { opacity: 1, y: 0 }
 };
 
-export default function Step1BirthDetails({ data, updateData, offsetConfig, updateOffset }: Step1Props) {
+export default function Step1BirthDetails({ data, updateData, offsetConfig, updateOffset, spouseData, updateSpouse }: Step1Props) {
+    const [showSpouse, setShowSpouse] = useState(false);
+
     const [dobParts, setDobParts] = useState({
         day: data.dateOfBirth?.split('-')[2] || '',
         month: data.dateOfBirth?.split('-')[1] || '',
@@ -41,6 +45,48 @@ export default function Step1BirthDetails({ data, updateData, offsetConfig, upda
 
     const [selectedOffset, setSelectedOffset] = useState<OffsetPreset>(offsetConfig?.preset || '1hour');
     const [customOffset, setCustomOffset] = useState<number>(offsetConfig?.customMinutes ?? 0);
+
+    const [spouseDobParts, setSpouseDobParts] = useState({
+        day: spouseData?.dateOfBirth?.split('-')[2] || '',
+        month: spouseData?.dateOfBirth?.split('-')[1] || '',
+        year: spouseData?.dateOfBirth?.split('-')[0] || ''
+    });
+
+    const [spouseTimeParts, setSpouseTimeParts] = useState({
+        hour: '',
+        minute: '',
+        period: 'AM'
+    });
+
+    useEffect(() => {
+        if (spouseData?.birthTime) {
+            const [h, m] = spouseData.birthTime.split(':');
+            let hour = parseInt(h);
+            const period = hour >= 12 ? 'PM' : 'AM';
+            if (hour > 12) hour -= 12;
+            if (hour === 0) hour = 12;
+            setSpouseTimeParts({ hour: hour.toString().padStart(2, '0'), minute: m, period });
+        }
+    }, []);
+
+    const handleSpouseDateChange = (part: 'day' | 'month' | 'year', value: string) => {
+        const newParts = { ...spouseDobParts, [part]: value };
+        setSpouseDobParts(newParts);
+        if (newParts.year && newParts.month && newParts.day) {
+            updateSpouse?.({ dateOfBirth: `${newParts.year}-${newParts.month}-${newParts.day}` });
+        }
+    };
+
+    const handleSpouseTimeChange = (part: 'hour' | 'minute' | 'period', value: string) => {
+        const newParts = { ...spouseTimeParts, [part]: value };
+        setSpouseTimeParts(newParts);
+        if (newParts.hour && newParts.minute) {
+            let hour = parseInt(newParts.hour);
+            if (newParts.period === 'PM' && hour !== 12) hour += 12;
+            if (newParts.period === 'AM' && hour === 12) hour = 0;
+            updateSpouse?.({ birthTime: `${hour.toString().padStart(2, '0')}:${newParts.minute}:00` });
+        }
+    };
 
     useEffect(() => {
         if (data.tentativeTime) {
@@ -324,6 +370,117 @@ export default function Step1BirthDetails({ data, updateData, offsetConfig, upda
                         timezone={data.timezone}
                         onUpdate={(updates) => updateData(updates)}
                     />
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-[#C4B8AD]/10" />
+
+                {/* Spouse Details (Optional) */}
+                <div className="space-y-4">
+                    <button
+                        type="button"
+                        onClick={() => setShowSpouse(!showSpouse)}
+                        className="flex items-center justify-between w-full p-4 bg-[#2A3442]/30 border border-[#D4AF37]/20 rounded-xl hover:bg-[#D4AF37]/5 transition-all text-left"
+                    >
+                        <div className="flex items-center gap-3">
+                            <span className="text-xl">👩‍❤️‍👨</span>
+                            <div>
+                                <h4 className="text-sm font-bold text-[#F5F0EB]">Spouse Details (Optional)</h4>
+                                <p className="text-[10px] text-[#8C7F72] uppercase tracking-wider">Adds +15% precision for relationship-driven sub-charts</p>
+                            </div>
+                        </div>
+                        <span className={`text-[#D4AF37] transition-transform ${showSpouse ? 'rotate-180' : ''}`}>▼</span>
+                    </button>
+
+                    <AnimatePresence>
+                        {showSpouse && (
+                            <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="overflow-hidden space-y-6 pt-2 px-2"
+                            >
+                                <div className="space-y-3">
+                                    <label className="block text-sm font-medium text-[#E8A849]">📅 Spouse Date of Birth</label>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <select
+                                            value={spouseDobParts.day}
+                                            onChange={(e) => handleSpouseDateChange('day', e.target.value)}
+                                            className="h-[52px] px-4 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none"
+                                        >
+                                            <option value="">Day</option>
+                                            {days.map(d => <option key={d} value={d}>{d}</option>)}
+                                        </select>
+                                        <select
+                                            value={spouseDobParts.month}
+                                            onChange={(e) => handleSpouseDateChange('month', e.target.value)}
+                                            className="h-[52px] px-4 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none"
+                                        >
+                                            <option value="">Month</option>
+                                            {months.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
+                                        </select>
+                                        <select
+                                            value={spouseDobParts.year}
+                                            onChange={(e) => handleSpouseDateChange('year', e.target.value)}
+                                            className="h-[52px] px-4 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none"
+                                        >
+                                            <option value="">Year</option>
+                                            {years.map(y => <option key={y} value={y}>{y}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="block text-sm font-medium text-[#E8A849]">🕐 Spouse Birth Time</label>
+                                    <div className="flex items-center gap-3">
+                                        <select
+                                            value={spouseTimeParts.hour}
+                                            onChange={(e) => handleSpouseTimeChange('hour', e.target.value)}
+                                            className="h-[52px] w-24 px-4 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none"
+                                        >
+                                            <option value="">HH</option>
+                                            {hours.map(h => <option key={h} value={h}>{h}</option>)}
+                                        </select>
+                                        <span className="text-2xl text-[#E8A849] font-bold">:</span>
+                                        <select
+                                            value={spouseTimeParts.minute}
+                                            onChange={(e) => handleSpouseTimeChange('minute', e.target.value)}
+                                            className="h-[52px] w-24 px-4 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none"
+                                        >
+                                            <option value="">MM</option>
+                                            {minutes.map(m => <option key={m} value={m}>{m}</option>)}
+                                        </select>
+                                        <div className="flex bg-[#2E2724] rounded-lg overflow-hidden border border-[#C4B8AD]/20">
+                                            {['AM', 'PM'].map((p) => (
+                                                <button
+                                                    key={p}
+                                                    type="button"
+                                                    onClick={() => handleSpouseTimeChange('period', p)}
+                                                    className={`h-[52px] px-5 font-medium transition-all ${spouseTimeParts.period === p
+                                                        ? 'bg-[#E8A849] text-[#1A1614]'
+                                                        : 'text-[#8C7F72] hover:text-[#F5F0EB]'
+                                                        }`}
+                                                >
+                                                    {p}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="block text-sm font-medium text-[#E8A849]">📍 Spouse Birth Place</label>
+                                    <BirthPlacePicker
+                                        birthPlace={spouseData?.birthPlace || ''}
+                                        latitude={spouseData?.latitude || 0}
+                                        longitude={spouseData?.longitude || 0}
+                                        timezone={parseFloat(spouseData?.timezone?.toString() || '5.5')}
+                                        onUpdate={(updates) => updateSpouse?.(updates)}
+                                    />
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 {/* Divider */}

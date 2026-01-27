@@ -152,25 +152,25 @@ export default function Step4Review({ data, events, traits, forensicTraits, onSu
                         <div>
                             <span className="text-[#8C7F72] block uppercase mb-1">Face & Voice</span>
                             <span className="text-[#C4B8AD]">
-                                {forensicTraits.physical.facialStructure.forehead} forehead, {forensicTraits.physical.facialStructure.eyeShape} eyes, {forensicTraits.physical.facialStructure.voicePitch} voice
+                                {forensicTraits?.physical?.facialStructure?.forehead || '...'} forehead, {forensicTraits?.physical?.facialStructure?.eyeShape || '...'} eyes, {forensicTraits?.physical?.facialStructure?.voicePitch || '...'} voice
                             </span>
                         </div>
                         <div>
                             <span className="text-[#8C7F72] block uppercase mb-1">Behavioral DNS</span>
                             <span className="text-[#C4B8AD]">
-                                {forensicTraits.psychographic.speechStyle.replace('_', ' ')} speech, {forensicTraits.psychographic.temperament} temperament
+                                {(forensicTraits?.psychographic?.speechStyle || '...').replace('_', ' ')} speech, {forensicTraits?.psychographic?.temperament || '...'} temperament
                             </span>
                         </div>
                         <div>
                             <span className="text-[#8C7F72] block uppercase mb-1">Family Narrative</span>
                             <span className="text-[#C4B8AD]">
-                                {forensicTraits.family.siblingPosition} child ({forensicTraits.family.brotherCount}B, {forensicTraits.family.sisterCount}S)
+                                {forensicTraits?.family?.siblingPosition || '...'} child ({forensicTraits?.family?.brotherCount || 0}B, {forensicTraits?.family?.sisterCount || 0}S)
                             </span>
                         </div>
                         <div>
                             <span className="text-[#8C7F72] block uppercase mb-1">Biology</span>
                             <span className="text-[#C4B8AD] uppercase">
-                                {forensicTraits.biological.prakriti} | Heat: {forensicTraits.biological.sensitivity.heat}
+                                {forensicTraits?.biological?.prakriti || '...'} | Heat: {forensicTraits?.biological?.sensitivity?.heat || '...'}
                             </span>
                         </div>
                     </div>

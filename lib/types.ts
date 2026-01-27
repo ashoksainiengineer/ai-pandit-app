@@ -1,4 +1,4 @@
-export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours' | '6hours' | '12hours' | 'seconds-30' | 'seconds-6';
+export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours' | '6hours' | '12hours' | 'seconds-30' | 'seconds-6' | 'custom';
 
 export interface TimeOffsetConfig {
   preset?: OffsetPreset;
@@ -15,6 +15,15 @@ export interface BirthData {
   longitude: number;
   timezone: number;
   gender: 'male' | 'female' | 'other';
+}
+
+export interface SpouseData {
+  dateOfBirth: string;
+  birthTime: string;
+  birthPlace?: string;
+  latitude: number;
+  longitude: number;
+  timezone: string | number;
 }
 
 
@@ -57,7 +66,7 @@ export interface LifeEvent {
   category: EventCategory;
   eventType: string;
   // Flexible Date Fields - Supporting 5 precision modes
-  datePrecision: 'exact_date_time' | 'exact_date' | 'month_year' | 'month_range' | 'year_range';
+  datePrecision: 'exact_date_time' | 'exact_date' | 'date_range' | 'month_year' | 'month_range' | 'year_range';
   eventDate: string; // YYYY-MM-DD or YYYY-MM or YYYY
   endDate?: string; // For ranges
   eventTime?: string; // HH:MM for exact dates

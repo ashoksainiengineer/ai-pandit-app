@@ -133,6 +133,27 @@ class ProgressTracker {
         await this.saveProgress();
     }
     /**
+     * Explicitly flush all buffers and add a mandatory stabilization pause.
+     * Ensures all async thinking streams are fully transmitted before next stage.
+     */
+    async flush(message = "Stabilizing reasoning streams...") {
+        // 1. Emit final thinking buffer if any
+        if (this.candidateBuffers.size > 0) {
+            for (const [ct, buf] of this.candidateBuffers.entries()) {
+                if (buf)
+                    (0, session_events_js_1.emitAIThinking)(this.sessionId, buf, this.progress.currentStep, ct);
+            }
+            this.candidateBuffers.clear();
+        }
+        // 2. Clear thinking display to prevent "zombie" text from previous stage
+        this.progress.lastAIThinking = undefined;
+        // 3. Update message and wait
+        await this.updateMessage(message);
+        // 4. Mandatory cooling period for SSE consistency
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        await this.saveProgress(true);
+    }
+    /**
      * Update AI Context (Ground Truth Display)
      */
     async updateAIContext(context) {
