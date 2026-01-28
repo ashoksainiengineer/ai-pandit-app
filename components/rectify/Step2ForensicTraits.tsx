@@ -109,9 +109,15 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                             : 'bg-[#151a21] border-[#3A4452]/40 hover:border-[#E8A849]/50'
                             }`}
                     >
+                        {value === opt.value && (
+                            <div className="absolute top-2 right-2">
+                                <Sparkles className="w-3 h-3 text-[#E8A849] animate-pulse" />
+                            </div>
+                        )}
+                        {opt.emoji && <div className="text-2xl mb-2">{opt.emoji}</div>}
                         <div className="font-bold text-[#F5F0EB] text-sm mb-1">{opt.label}</div>
                         {opt.guide && <div className="text-[10px] text-[#8C7F72] italic leading-tight group-hover:text-[#C4B8AD] transition-colors">
-                            &quot;{opt.guide}&quot;
+                            "{opt.guide}"
                         </div>}
                     </button>
                 ))}
@@ -160,10 +166,10 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                                 label="Forehead (Lalat)"
                                 icon={Brain}
                                 options={[
-                                    { value: 'broad', label: 'Broad/High', guide: 'Sun/Jupiter prominence' },
-                                    { value: 'narrow', label: 'Narrow', guide: 'Saturn influence' },
-                                    { value: 'average', label: 'Average', guide: 'Mixed influences' },
-                                    { value: 'sloping', label: 'Sloping', guide: 'Mercury/Mars signature' }
+                                    { value: 'broad', label: 'Broad/High', emoji: '🧠', guide: 'Wide forehead indicates Sun/Jupiter prominence - leadership qualities, intelligence' },
+                                    { value: 'narrow', label: 'Narrow', emoji: '🤏', guide: 'Narrow forehead shows Saturn influence - focused, practical mindset' },
+                                    { value: 'average', label: 'Average', emoji: '➖', guide: 'Average width suggests mixed planetary influences' },
+                                    { value: 'sloping', label: 'Sloping', emoji: '📐', guide: 'Sloping forehead indicates Mercury/Mars signature - quick thinking' }
                                 ]}
                                 value={traits?.physical?.facialStructure?.forehead}
                                 onChange={(val: any) => updateFacial({ forehead: val })}
@@ -172,11 +178,11 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                                 label="Eyes (Netra)"
                                 icon={Eye}
                                 options={[
-                                    { value: 'deep_set', label: 'Deep Set', guide: 'Saturnine depth' },
-                                    { value: 'prominent', label: 'Prominent/Bulging', guide: 'Mars/Moon intensity' },
-                                    { value: 'almond', label: 'Almond Shape', guide: 'Venusian grace' },
-                                    { value: 'round', label: 'Round/Large', guide: 'Jupiterian expansiveness' },
-                                    { value: 'small', label: 'Small/Piercing', guide: 'Mercurial sharpness' }
+                                    { value: 'deep_set', label: 'Deep Set', emoji: '🕶️', guide: 'Deep set eyes show Saturnine depth - introspective, serious nature' },
+                                    { value: 'prominent', label: 'Prominent', emoji: '👁️', guide: 'Prominent eyes indicate Mars/Moon intensity - emotional expressiveness' },
+                                    { value: 'almond', label: 'Almond', emoji: '🌰', guide: 'Almond shape reveals Venusian grace - artistic, harmonious nature' },
+                                    { value: 'round', label: 'Round/Large', emoji: '😳', guide: 'Round eyes suggest Jupiterian expansiveness - optimistic, open-hearted' },
+                                    { value: 'small', label: 'Small/Piercing', emoji: '🎯', guide: 'Small piercing eyes indicate Mercurial sharpness - analytical, precise' }
                                 ]}
                                 value={traits?.physical?.facialStructure?.eyeShape}
                                 onChange={(val: any) => updateFacial({ eyeShape: val })}
@@ -186,11 +192,11 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                                 label="Voice Texture"
                                 icon={Speech}
                                 options={[
-                                    { value: 'deep', label: 'Deep/Grave', guide: 'Saturn/Jupiter' },
-                                    { value: 'high', label: 'High Pitch', guide: 'Mercury/Mars' },
-                                    { value: 'medium', label: 'Medium', guide: 'Solar/Lunar' },
-                                    { value: 'soft', label: 'Soft/Melodious', guide: 'Venusian' },
-                                    { value: 'raspy', label: 'Raspy/Strong', guide: 'Rahu/Mars' }
+                                    { value: 'deep', label: 'Deep/Grave', emoji: '🎙️', guide: 'Deep voice indicates Saturn/Jupiter influence - authority, wisdom' },
+                                    { value: 'high', label: 'High Pitch', emoji: '🎵', guide: 'High pitch shows Mercury/Mars energy - quick, energetic communication' },
+                                    { value: 'medium', label: 'Medium', emoji: '🗣️', guide: 'Medium voice suggests balanced Solar/Lunar energy' },
+                                    { value: 'soft', label: 'Soft/Melodious', emoji: '🎶', guide: 'Soft voice reveals Venusian beauty - diplomatic, charming' },
+                                    { value: 'raspy', label: 'Raspy/Strong', emoji: '🐯', guide: 'Raspy voice indicates Rahu/Mars power - unconventional strength' }
                                 ]}
                                 value={traits?.physical?.facialStructure?.voicePitch}
                                 onChange={(val: any) => updateFacial({ voicePitch: val })}
@@ -202,14 +208,14 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                     {activeTab === 'deha' && (
                         <motion.div key="deha" className="space-y-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                             <TraitSelector
-                                label="Body Constitution"
+                                label="Body Constitution (Prakriti)"
                                 icon={Activity}
                                 options={[
-                                    { value: 'vata', label: 'Vata (Slim/Dry)', guide: 'Bony, visible joints' },
-                                    { value: 'pitta', label: 'Pitta (Athletic)', guide: 'Medium, muscular' },
-                                    { value: 'kapha', label: 'Kapha (Solid/Slow)', guide: 'Heavy, robust' },
-                                    { value: 'vata-pitta', label: 'Vata-Pitta', guide: 'Slim but intense' },
-                                    { value: 'pitta-kapha', label: 'Pitta-Kapha', guide: 'Broad and muscular' }
+                                    { value: 'vata', label: 'Vata (Slim/Dry)', emoji: '🌬️', guide: 'Air/Space dominant. Bony frame, visible joints, dry skin. Creative, energetic, anxious.' },
+                                    { value: 'pitta', label: 'Pitta (Athletic)', emoji: '🔥', guide: 'Fire/Water dominant. Medium build, muscular, warm body. Ambitious, focused, irritable.' },
+                                    { value: 'kapha', label: 'Kapha (Solid)', emoji: '🌍', guide: 'Earth/Water dominant. Heavy, robust, oily skin. Calm, loyal, sluggish.' },
+                                    { value: 'vata-pitta', label: 'Vata-Pitta', emoji: '💨🔥', guide: 'Air-Fire mix. Slim but intense. Creative drive with sharp intellect.' },
+                                    { value: 'pitta-kapha', label: 'Pitta-Kapha', emoji: '🔥🌍', guide: 'Fire-Earth mix. Broad muscular build. Determined with emotional stability.' }
                                 ]}
                                 value={traits?.biological?.prakriti}
                                 onChange={(val: any) => updateBiological({ prakriti: val })}
@@ -229,26 +235,26 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                     {activeTab === 'vyaktitva' && (
                         <motion.div key="vyaktitva" className="space-y-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                             <TraitSelector
-                                label="Speech Style"
+                                label="Speech Style (Vani)"
                                 icon={Speech}
                                 options={[
-                                    { value: 'fast_loud', label: 'Fast & Loud', guide: 'Mars/Sun' },
-                                    { value: 'measured_soft', label: 'Measured & Soft', guide: 'Saturn/Jupiter' },
-                                    { value: 'argumentative', label: 'Logical/Argumentative', guide: 'Mercury/Mars' },
-                                    { value: 'concise', label: 'Concise/Short', guide: 'Ketuan' },
-                                    { value: 'talkative', label: 'Highly Talkative', guide: 'Rahu/Mercury' }
+                                    { value: 'fast_loud', label: 'Fast & Loud', emoji: '🗣️', guide: 'Mars/Sun dominance. Assertive, commanding, impulsive speaker.' },
+                                    { value: 'measured_soft', label: 'Measured & Soft', emoji: '🧘', guide: 'Saturn/Jupiter influence. Thoughtful, wise, authoritative speech.' },
+                                    { value: 'argumentative', label: 'Logical/Debate', emoji: '⚖️', guide: 'Mercury/Mars sharpness. Analytical, questioning, precise.' },
+                                    { value: 'concise', label: 'Concise/Brief', emoji: '✂️', guide: 'Ketu influence. Minimal words, spiritual detachment in speech.' },
+                                    { value: 'talkative', label: 'Highly Talkative', emoji: '🎭', guide: 'Rahu/Mercury combination. Versatile, clever, sometimes deceptive.' }
                                 ]}
                                 value={traits?.psychographic?.speechStyle}
                                 onChange={(val: any) => updatePsychographic({ speechStyle: val })}
                             />
                             <TraitSelector
-                                label="Decision Making"
+                                label="Decision Making (Nirnaya)"
                                 icon={Zap}
                                 options={[
-                                    { value: 'impulsive', label: 'Impulsive', guide: 'Mars pulse' },
-                                    { value: 'deliberate', label: 'Deliberate/Analytical', guide: 'Saturnian caution' },
-                                    { value: 'indecisive', label: 'Indecisive', guide: 'Lunar shifts' },
-                                    { value: 'intuitive', label: 'Purely Intuitive', guide: 'Jupiterian/Neptunian' }
+                                    { value: 'impulsive', label: 'Impulsive/Fast', emoji: '⚡', guide: 'Mars energy. Quick decisions, action-oriented, sometimes rash.' },
+                                    { value: 'deliberate', label: 'Deliberate/Slow', emoji: '🐢', guide: 'Saturnian caution. Careful analysis, methodical, patient.' },
+                                    { value: 'indecisive', label: 'Indecisive', emoji: '🌊', guide: 'Lunar influence. Emotionally swayed, changeable mind.' },
+                                    { value: 'intuitive', label: 'Intuitive', emoji: '🔮', guide: 'Jupiter/Neptune wisdom. Gut feeling, spiritual guidance.' }
                                 ]}
                                 value={traits?.psychographic?.decisionMaking}
                                 onChange={(val: any) => updatePsychographic({ decisionMaking: val })}
@@ -259,25 +265,25 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                     {activeTab === 'kula' && (
                         <motion.div key="kula" className="space-y-10" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                             <TraitSelector
-                                label="Sibling Order"
+                                label="Sibling Order (Anuj)"
                                 icon={Users}
                                 options={[
-                                    { value: 'eldest', label: 'Eldest', guide: 'Sun/Mars influence' },
-                                    { value: 'middle', label: 'Middle', guide: 'Mercury/Venus influence' },
-                                    { value: 'youngest', label: 'Youngest', guide: 'Moon/Jupiter influence' },
-                                    { value: 'only_child', label: 'Only Child', guide: 'Unique planetary focus' }
+                                    { value: 'eldest', label: 'Eldest', emoji: '👑', guide: 'Sun/Mars influence. Natural leader, responsible, authoritative.' },
+                                    { value: 'middle', label: 'Middle', emoji: '🤝', guide: 'Mercury/Venus influence. Diplomatic, adaptable, peacemaker.' },
+                                    { value: 'youngest', label: 'Youngest', emoji: '👶', guide: 'Moon/Jupiter influence. Nurtured, creative, free-spirited.' },
+                                    { value: 'only_child', label: 'Only Child', emoji: '🌟', guide: 'Unique planetary focus. Self-centered, independent, mature early.' }
                                 ]}
                                 value={traits?.family?.siblingPosition}
                                 onChange={(val: any) => updateFamily({ siblingPosition: val })}
                             />
                             <TraitSelector
-                                label="Father's Status at Birth"
+                                label="Father's Status at Birth (Pitri)"
                                 icon={User}
                                 options={[
-                                    { value: 'struggling', label: 'Struggling', guide: '9th Lord challenges' },
-                                    { value: 'stable', label: 'Stable', guide: 'Standard 9th strength' },
-                                    { value: 'prosperous', label: 'Prosperous', guide: 'Strong 9th/10th' },
-                                    { value: 'highly_distinguished', label: 'Highly Distinguished', guide: 'Raja Yoga status' }
+                                    { value: 'struggling', label: 'Struggling', emoji: '⛰️', guide: '9th Lord challenges. Financial difficulties, health issues for father.' },
+                                    { value: 'stable', label: 'Stable/Middle', emoji: '⚖️', guide: 'Standard 9th strength. Average circumstances, comfortable life.' },
+                                    { value: 'prosperous', label: 'Prosperous', emoji: '💎', guide: 'Strong 9th/10th houses. Wealthy, successful, respected father.' },
+                                    { value: 'highly_distinguished', label: 'Distinguished', emoji: '🏆', guide: 'Raja Yoga in 9th/10th. Very famous, powerful, elite status.' }
                                 ]}
                                 value={traits?.family?.fatherStatusAtBirth}
                                 onChange={(val: any) => updateFamily({ fatherStatusAtBirth: val })}

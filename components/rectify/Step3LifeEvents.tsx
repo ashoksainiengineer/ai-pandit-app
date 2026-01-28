@@ -27,7 +27,6 @@ const BTR_EVENTS = [
     { label: 'Graduation', icon: '🎓', cat: 'education', boost: 6 },
 ];
 
-// Date precision types - 5 options
 // Date precision types - 6 options
 type DateType = 'exact_date_time' | 'exact_date' | 'month_year' | 'month_range' | 'year_range' | 'exact_date_range';
 
@@ -39,6 +38,34 @@ const DATE_OPTIONS = [
     { val: 'month_range', label: 'Month Range', desc: 'MM/YYYY → MM/YYYY' },
     { val: 'year_range', label: 'Year Range', desc: 'YYYY → YYYY' },
 ];
+
+// ═════════════════════════════════════════════════════════════════════════════
+// EVENT IMPORTANCE CONFIGURATION
+// ═════════════════════════════════════════════════════════════════════════════
+
+type ImportanceLevel = 'critical' | 'high' | 'medium' | 'low';
+
+const IMPORTANCE_OPTIONS: { level: ImportanceLevel; label: string; icon: string; desc: string; weight: number }[] = [
+    { level: 'critical', label: 'Life Defining', icon: '⚡', desc: 'Transformed your life completely', weight: 3.0 },
+    { level: 'high', label: 'Major Milestone', icon: '⭐', desc: 'Significant turning point', weight: 2.0 },
+    { level: 'medium', label: 'Important', icon: '●', desc: 'Notable life event', weight: 1.0 },
+    { level: 'low', label: 'Minor', icon: '○', desc: 'Routine occurrence', weight: 0.5 },
+];
+
+/**
+ * Get default importance based on event category
+ * Used as initial value, user can override
+ */
+const getDefaultImportance = (category: string): ImportanceLevel => {
+    const criticalEvents = ['marriage', 'major-surgery', 'career-breakthrough', 'childbirth', 'divorce', 'near-death'];
+    const highEvents = ['education', 'higher-education', 'property-purchase', 'business-start', 'promotion', 'award'];
+    const lowEvents = ['minor-illness', 'short-travel', 'friendship-change', 'hobby-start'];
+
+    if (criticalEvents.includes(category)) return 'critical';
+    if (highEvents.includes(category)) return 'high';
+    if (lowEvents.includes(category)) return 'low';
+    return 'medium';
+};
 
 export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig }: Step3Props) {
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -54,7 +81,7 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
             datePrecision: 'month_year',
             eventDate: '',
             description: '',
-            importance: 'high',
+            importance: getDefaultImportance(category),
             isCustom
         };
         updateEvents([...lifeEvents, newEvent]);
@@ -242,7 +269,15 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
                                     </div>
                                 </div>
                                 <div className="flex gap-3">
-                                    <button onClick={() => setEditingId(null)} className="px-6 py-3 bg-[#5CB57B] text-white font-semibold rounded-lg hover:bg-[#4EA36A] transition-colors">
+                                    <button
+                                        onClick={() => setEditingId(null)}
+                                        disabled={!event.importance || !event.description}
+                                        className={`px-6 py-3 font-semibold rounded-lg transition-colors ${
+                                            event.importance && event.description
+                                                ? 'bg-[#5CB57B] text-white hover:bg-[#4EA36A]'
+                                                : 'bg-[#5CB57B]/30 text-white/50 cursor-not-allowed'
+                                        }`}
+                                    >
                                         ✓ Save Event
                                     </button>
                                     <button onClick={() => deleteEvent(event.id)} className="px-4 py-3 border border-[#D64545] text-[#D64545] rounded-lg hover:bg-[#D64545]/10 transition-colors">
@@ -445,6 +480,44 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
                                             </>
                                         )}
                                     </div>
+                                </div>
+
+                                {/* Event Importance Selector - MANDATORY */}
+                                <div>
+                                    <label className="block text-sm font-medium text-[#E8A849] mb-3">
+                                        ⚡ How significant was this event? <span className="text-[#D64545]">*</span>
+                                    </label>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        {IMPORTANCE_OPTIONS.map((opt) => {
+                                            const isSelected = event.importance === opt.level;
+                                            return (
+                                                <button
+                                                    key={opt.level}
+                                                    onClick={() => updateEvent(event.id, { importance: opt.level })}
+                                                    className={`p-4 rounded-xl text-left transition-all border-2 ${isSelected
+                                                        ? 'bg-[#E8A849]/20 border-[#E8A849]'
+                                                        : 'bg-[#2E2724] border-transparent hover:border-[#E8A849]/30'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className="text-xl">{opt.icon}</span>
+                                                        <span className={`font-semibold text-sm ${isSelected ? 'text-[#F5F0EB]' : 'text-[#C4B8AD]'}`}>
+                                                            {opt.label}
+                                                        </span>
+                                                    </div>
+                                                    <div className={`text-xs ${isSelected ? 'text-[#E8A849]' : 'text-[#8C7F72]'}`}>
+                                                        {opt.desc}
+                                                    </div>
+                                                    <div className="mt-2 text-[10px] text-[#8C7F72]">
+                                                        Weight: {opt.weight}x
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                    {!event.importance && (
+                                        <p className="text-[#D64545] text-xs mt-2">Please select importance level</p>
+                                    )}
                                 </div>
 
                                 {/* Description */}
@@ -652,7 +725,20 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
                             >
                                 <span className="text-3xl">{event.icon}</span>
                                 <div className="flex-1">
-                                    <div className="text-[#F5F0EB] font-medium">{event.eventType}</div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="text-[#F5F0EB] font-medium">{event.eventType}</div>
+                                        {event.importance && (
+                                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                                event.importance === 'critical' ? 'bg-[#D64545]/20 text-[#D64545]' :
+                                                event.importance === 'high' ? 'bg-[#E8A849]/20 text-[#E8A849]' :
+                                                event.importance === 'medium' ? 'bg-[#5CB57B]/20 text-[#5CB57B]' :
+                                                'bg-[#8C7F72]/20 text-[#8C7F72]'
+                                            }`}>
+                                                {IMPORTANCE_OPTIONS.find(i => i.level === event.importance)?.icon} {' '}
+                                                {IMPORTANCE_OPTIONS.find(i => i.level === event.importance)?.label}
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="text-xs text-[#E8A849] mb-1">
                                         {formatEventDate(event)}
                                     </div>

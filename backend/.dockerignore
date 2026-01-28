@@ -1,18 +1,71 @@
+# 🔱 GOD-TIER Docker Ignore for HF Spaces
+# Minimize build context size for faster deployments
+
+# Dependencies (installed in container)
 node_modules
-dist
-.git
-.github
-*.md
-.env
-.env.*
-!.env.example
-*.log
 npm-debug.log*
-.DS_Store
-coverage
-.nyc_output
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+
+# Source control
+.git
+.gitignore
+.gitattributes
+
+# Documentation (not needed in container)
+README.md
+*.md
+.github
+
+# Tests
+test
+tests
+__tests__
 *.test.ts
 *.spec.ts
-__tests__
+
+# Build artifacts (built in container)
+dist
+build
+*.tsbuildinfo
+
+# Environment (secrets injected at runtime)
+.env
+.env.*
+.env.local
+.env.production
+
+# Logs
+logs
+*.log
+
+# IDE
 .vscode
 .idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# Coverage reports
+coverage
+.nyc_output
+
+# Docker files (not needed in context)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Ephemeris files (heavy, copied separately if needed)
+# ephe/*.se1
+
+# Scripts (run locally)
+scripts

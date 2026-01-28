@@ -517,10 +517,29 @@ export default function ProgressPage() {
             <nav className="sticky top-0 z-50 bg-[#0F1419]/90 backdrop-blur-xl border-b border-[#D4AF37]/10">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-3 group">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4AF37] to-[#F5D061] flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.3)] group-hover:scale-110 transition-transform">
-                            <span className="text-2xl drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">🕉️</span>
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#D4AF37] via-[#E8C54D] to-[#F5D061] flex items-center justify-center shadow-[0_0_30px_rgba(212,175,55,0.4)] group-hover:shadow-[0_0_40px_rgba(212,175,55,0.6)] group-hover:scale-110 transition-all duration-300 relative overflow-hidden">
+                            {/* Glow effect */}
+                            <div className="absolute inset-0 bg-gradient-to-tr from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                            {/* Animated border */}
+                            <motion.div
+                                className="absolute inset-0 rounded-2xl border-2 border-white/20"
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+                                style={{ borderStyle: 'dashed' }}
+                            />
+                            {/* Om Symbol */}
+                            <svg
+                                viewBox="0 0 100 100"
+                                className="w-8 h-8 text-[#0F1419] drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] relative z-10"
+                                fill="currentColor"
+                            >
+                                <path d="M50 10 C30 10 15 25 15 45 C15 60 25 70 35 75 L20 90 L30 90 L45 75 C55 78 65 75 70 65 C75 55 70 45 60 45 C50 45 45 55 50 65 L55 60 C55 52 60 50 65 50 C70 50 72 55 70 60 C68 70 55 72 45 68 C35 63 25 55 25 45 C25 30 35 20 50 20 C65 20 75 30 75 45 L85 45 C85 25 70 10 50 10 Z M50 35 C45 35 42 38 42 42 C42 46 45 49 50 49 C55 49 58 46 58 42 C58 38 55 35 50 35 Z"/>
+                            </svg>
                         </div>
-                        <span className="font-bold text-xl text-[#F5F0EB] tracking-tight group-hover:text-[#D4AF37] transition-colors">AI Pandit</span>
+                        <div className="flex flex-col">
+                            <span className="font-bold text-xl text-[#F5F0EB] tracking-tight group-hover:text-[#D4AF37] transition-colors">AI Pandit</span>
+                            <span className="text-[10px] text-[#8C7F72] uppercase tracking-[0.3em]">Nirayana BTR Engine</span>
+                        </div>
                     </Link>
                     <div className="flex items-center gap-4">
                         <Link
