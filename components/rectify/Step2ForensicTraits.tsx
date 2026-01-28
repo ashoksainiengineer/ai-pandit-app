@@ -24,40 +24,75 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
     const [activeTab, setActiveTab] = useState('mukha');
     const [activeHelp, setActiveHelp] = useState<string | null>(null);
 
+    // Ensure traits is never undefined
+    const safeTraits = traits || {};
+
     const updatePhysical = (updates: any) => {
-        updateTraits({ physical: { ...(traits?.physical || {}), ...updates } } as any);
+        const currentPhysical = safeTraits.physical || {};
+        updateTraits({
+            physical: {
+                ...currentPhysical,
+                ...updates
+            }
+        });
     };
 
     const updateFacial = (updates: any) => {
-        const physical = traits?.physical || {};
+        const currentPhysical = safeTraits.physical || {};
+        const currentFacial = currentPhysical.facialStructure || {};
         updateTraits({
             physical: {
-                ...physical,
-                facialStructure: { ...((physical as any).facialStructure || {}), ...updates }
+                ...currentPhysical,
+                facialStructure: {
+                    ...currentFacial,
+                    ...updates
+                }
             }
-        } as any);
+        });
     };
 
     const updateSkinHair = (updates: any) => {
-        const physical = traits?.physical || {};
+        const currentPhysical = safeTraits.physical || {};
+        const currentSkinHair = currentPhysical.skinHair || {};
         updateTraits({
             physical: {
-                ...physical,
-                skinHair: { ...((physical as any).skinHair || {}), ...updates }
+                ...currentPhysical,
+                skinHair: {
+                    ...currentSkinHair,
+                    ...updates
+                }
             }
-        } as any);
+        });
     };
 
     const updatePsychographic = (updates: any) => {
-        updateTraits({ psychographic: { ...(traits?.psychographic || {}), ...updates } } as any);
+        const currentPsych = safeTraits.psychographic || {};
+        updateTraits({
+            psychographic: {
+                ...currentPsych,
+                ...updates
+            }
+        });
     };
 
     const updateBiological = (updates: any) => {
-        updateTraits({ biological: { ...(traits?.biological || {}), ...updates } } as any);
+        const currentBio = safeTraits.biological || {};
+        updateTraits({
+            biological: {
+                ...currentBio,
+                ...updates
+            }
+        });
     };
 
     const updateFamily = (updates: any) => {
-        updateTraits({ family: { ...(traits?.family || {}), ...updates } } as any);
+        const currentFamily = safeTraits.family || {};
+        updateTraits({
+            family: {
+                ...currentFamily,
+                ...updates
+            }
+        });
     };
 
     const TraitSelector = ({ label, icon: Icon, options, value, onChange, groupId, description, grid = 3 }: any) => (

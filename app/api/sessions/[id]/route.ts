@@ -51,6 +51,9 @@ export async function GET(request: NextRequest, { params }: SessionParams) {
         const decryptedPhysicalTraits = s.physicalTraits
             ? JSON.parse(safeDecrypt(s.physicalTraits, clerkId))
             : null;
+        const decryptedForensicTraits = s.forensicTraits
+            ? JSON.parse(safeDecrypt(s.forensicTraits, clerkId))
+            : null;
 
         return NextResponse.json({
             success: true,
@@ -68,6 +71,7 @@ export async function GET(request: NextRequest, { params }: SessionParams) {
                 },
                 lifeEvents: decryptedLifeEvents,
                 physicalTraits: decryptedPhysicalTraits,
+                forensicTraits: decryptedForensicTraits,
                 offsetConfig: s.offsetConfig ? JSON.parse(s.offsetConfig) : null,
                 status: s.status,
                 rectifiedTime: s.rectifiedTime,
@@ -99,7 +103,7 @@ export async function PUT(request: NextRequest, { params }: SessionParams) {
 
         const sessionId = params.id;
         const body = await request.json();
-        const { birthData, lifeEvents, physicalTraits, offsetConfig, isDraft } = body;
+        const { birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig, isDraft } = body;
 
         // Get session to verify ownership
         const session = await db.select()
@@ -121,6 +125,9 @@ export async function PUT(request: NextRequest, { params }: SessionParams) {
         const encryptedPhysicalTraits = physicalTraits
             ? encryptData(JSON.stringify(physicalTraits), clerkId)
             : null;
+        const encryptedForensicTraits = forensicTraits
+            ? encryptData(JSON.stringify(forensicTraits), clerkId)
+            : null;
 
         const now = new Date().toISOString();
 
@@ -135,6 +142,7 @@ export async function PUT(request: NextRequest, { params }: SessionParams) {
             timezone: birthData.timezone.toString(),
             gender: birthData.gender,
             physicalTraits: encryptedPhysicalTraits,
+            forensicTraits: encryptedForensicTraits,
             lifeEvents: encryptedLifeEvents,
             offsetConfig: JSON.stringify(offsetConfig),
             updatedAt: now,

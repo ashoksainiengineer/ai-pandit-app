@@ -34,6 +34,7 @@ export default function EditSessionPage() {
     const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>([]);
     const [physicalTraits, setPhysicalTraits] = useState<PhysicalTraits>(initialPhysicalTraits);
     const [offsetConfig, setOffsetConfig] = useState<any>({ preset: '1hour', customMinutes: 60, description: '±1 hour' });
+    const [forensicTraits, setForensicTraits] = useState<any>(null); // Forensic traits from database
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Auto-save state
@@ -57,6 +58,10 @@ export default function EditSessionPage() {
                 setLifeEvents(data.data.lifeEvents || []);
                 if (data.data.physicalTraits) {
                     setPhysicalTraits(data.data.physicalTraits);
+                }
+                // Load forensic traits from database (new feature support)
+                if (data.data.forensicTraits) {
+                    setForensicTraits(data.data.forensicTraits);
                 }
                 // Load offset config if available, otherwise default
                 if (data.data.offsetConfig) {
@@ -87,6 +92,7 @@ export default function EditSessionPage() {
                         birthData,
                         lifeEvents,
                         physicalTraits,
+                        forensicTraits, // Include forensic traits in auto-save
                         offsetConfig,
                         isDraft: true // Important: Don't reset status
                     })
@@ -164,6 +170,7 @@ export default function EditSessionPage() {
                     birthData,
                     lifeEvents,
                     physicalTraits,
+                    forensicTraits, // Include forensic traits in final save
                     offsetConfig
                     // isDraft undefined -> Resets status
                 })
@@ -305,31 +312,27 @@ export default function EditSessionPage() {
                     )}
                     {step === 2 && (
                         <Step2ForensicTraits
-                            traits={{
+                            traits={forensicTraits || {
                                 physical: {
-                                    facialStructure: {
-                                        forehead: physicalTraits.foreheadHeight,
-                                        eyeShape: physicalTraits.eyeShape
-                                    },
-                                    skinHair: { marks: [] },
-                                    height: typeof physicalTraits.height === 'object' ? physicalTraits.height : { cm: 168, feet: 5, inches: 6 },
-                                    build: physicalTraits.build
+                                    facialStructure: { forehead: '', eyeShape: '', noseType: '', teethAlignment: '', voicePitch: '' },
+                                    skinHair: { texture: '', hairType: '', complexion: '', marks: [] },
+                                    build: '',
+                                    height: { cm: 0, feet: 0, inches: 0 }
                                 },
-                                biological: { prakriti: physicalTraits.prakriti },
-                                psychographic: {},
-                                family: {}
+                                psychographic: { speechStyle: '', decisionMaking: '', stressResponse: '', sleepCycle: '', temperament: '' },
+                                biological: { prakriti: '', sensitivity: { heat: '', cold: '' }, recurringHealthIssues: [] },
+                                family: { siblingPosition: '', brotherCount: 0, sisterCount: 0, fatherStatusAtBirth: '', motherHealthAtBirth: '' }
                             }}
                             updateTraits={(updates) => {
-                                // Convert ForensicTraits updates to PhysicalTraits format
-                                if (updates.physical?.facialStructure?.forehead) {
-                                    setPhysicalTraits(prev => ({ ...prev, foreheadHeight: updates.physical?.facialStructure?.forehead }));
-                                }
-                                if (updates.physical?.facialStructure?.eyeShape) {
-                                    setPhysicalTraits(prev => ({ ...prev, eyeShape: updates.physical?.facialStructure?.eyeShape }));
-                                }
-                                if (updates.biological?.prakriti) {
-                                    setPhysicalTraits(prev => ({ ...prev, prakriti: updates.biological?.prakriti }));
-                                }
+                                setForensicTraits(prev => {
+                                    const current = prev || {
+                                        physical: { facialStructure: {}, skinHair: {}, build: '', height: { cm: 0, feet: 0, inches: 0 } },
+                                        psychographic: {},
+                                        biological: {},
+                                        family: {}
+                                    };
+                                    return { ...current, ...updates };
+                                });
                             }}
                         />
                     )}
