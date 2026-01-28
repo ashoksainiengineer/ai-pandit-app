@@ -15,6 +15,7 @@ import {
 } from './cancellation-manager.js';
 import { emitComplete } from './session-events.js';
 import { ProgressTracker } from './progress-tracker.js';
+import { config } from '../config/index.js';
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -24,23 +25,23 @@ import { ProgressTracker } from './progress-tracker.js';
 const QUEUE_CONFIG = {
   // Default 3 concurrent sessions - can handle up to 3 simultaneous BTR analyses
   // With 16GB RAM, each session gets ~5GB which is sufficient for God-Tier BTR
-  maxConcurrent: parseInt(process.env.MAX_CONCURRENT_SESSIONS || '3'),
+  maxConcurrent: config.queue.maxConcurrent,
   
-  pollIntervalMs: 2000,         // Faster polling for better responsiveness
-  maxQueueSize: 1000,           // Support more queued requests
+  pollIntervalMs: config.queue.pollIntervalMs,
+  maxQueueSize: config.queue.maxSize,
   
   // 2 hour timeout for complex BTR analyses with multiple life events
-  staleTimeoutMs: 2 * 60 * 60 * 1000,
+  staleTimeoutMs: config.queue.staleTimeoutMs,
   
   // Base analysis time ~4 minutes per session with DeepSeek R1
-  baseAnalysisTime: 240,
+  baseAnalysisTime: config.queue.baseAnalysisTime,
   
   // Contention factor - minimal overhead per additional concurrent session
-  contentionMultiplier: 0.25,
+  contentionMultiplier: config.queue.contentionMultiplier,
   
   // Memory thresholds (in GB) for automatic throttling
-  memoryPressureThresholdGB: 10,
-  memoryCriticalThresholdGB: 12,
+  memoryPressureThresholdGB: config.memory.pressureThresholdGB,
+  memoryCriticalThresholdGB: config.memory.criticalThresholdGB,
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -433,11 +434,11 @@ async function processQueue(): Promise<void> {
       let effectiveMaxConcurrent = QUEUE_CONFIG.maxConcurrent;
 
       // Pressure restriction triggers when:
-      // RSS > 10GB (actual system memory pressure)
-      // OR heapUsed > 8GB (Node.js heap getting full)
+      // RSS > threshold (actual system memory pressure)
+      // OR heapUsed > threshold (Node.js heap getting full)
       // This ensures stability while utilizing HF Spaces 16GB capacity
-      const RSS_THRESHOLD_GB = parseFloat(process.env.RSS_THRESHOLD_GB || '10');
-      const HEAP_THRESHOLD_GB = parseFloat(process.env.HEAP_THRESHOLD_GB || '8');
+      const RSS_THRESHOLD_GB = config.memory.gcThresholdGB;
+      const HEAP_THRESHOLD_GB = config.memory.thresholdPercent / 10; // Convert percentage to GB approximation
       
       // Only log memory stats every 10 iterations to reduce noise
       if (Math.random() < 0.1) {
@@ -525,6 +526,18 @@ async function processSessionAsync(sessionId: string): Promise<void> {
 
     // Process the analysis
     try {
+      // 🔐 DIAGNOSTIC: Log what we're trying to decrypt
+      logger.info('🔍 DIAGNOSTIC: Attempting to decrypt session data', {
+        sessionId,
+        clerkIdFromSession: s.clerkId?.slice(0, 8),
+        clerkIdLength: s.clerkId?.length,
+        lifeEventsLength: s.lifeEvents?.length,
+        lifeEventsPrefix: s.lifeEvents?.substring(0, 50),
+        isLifeEventsEncrypted: s.lifeEvents ? isEncrypted(s.lifeEvents) : false,
+        physicalTraitsLength: s.physicalTraits?.length,
+        forensicTraitsLength: s.forensicTraits?.length,
+      });
+      
       // 🔐 Decrypt sensitive data using clerkId (encryption key)
       const lifeEventsData = safeDecrypt(s.lifeEvents, s.clerkId);
       if (!lifeEventsData) {

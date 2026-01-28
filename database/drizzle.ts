@@ -5,11 +5,11 @@ import { createClient } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import * as schema from './schema';
 
-// Turso connection from environment variables
-const DATABASE_URL = process.env.TURSO_DATABASE_URL;
-const DATABASE_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN;
+// Hardcoded Turso connection for local development
+const DATABASE_URL = 'libsql://ai-pandit-ashoksainiengineer.aws-ap-south-1.turso.io';
+const DATABASE_AUTH_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3Njg0NTA3NDQsImlkIjoiMmNiMzEzZDctODBiZC00YmQ0LWFlYjctYmIxNDM1MGRmZWQ1IiwicmlkIjoiNmU0MzE1YTQtODIwMC00ZDlhLTg1YTItNGVkZTMyYzUyYzNlIn0.DflPLPc8OFnwuivqmFi6RXD-lzghUvyXS2EoZHlqXg00qCRp-1ayoNsW5q1nNLnkjrvizn1JXJfM4Bom95Y0Bw';
 
-if (!DATABASE_URL && process.env.NODE_ENV === 'production') {
+if (!DATABASE_URL) {
   console.warn('⚠️ TURSO_DATABASE_URL environment variable is not set');
 }
 

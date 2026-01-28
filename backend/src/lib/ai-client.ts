@@ -5,6 +5,7 @@
 // Optimized for maximum accuracy in birth time rectification
 
 import { logger } from './logger.js';
+import { config } from '../config/index.js';
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -13,15 +14,15 @@ import { logger } from './logger.js';
 
 const AI_CONFIG = {
     // OpenRouter AI Configuration
-    baseUrl: process.env.AI_BASE_URL || 'https://openrouter.ai/api/v1',
-    apiKey: process.env.AI_API_KEY || '',
-    model: process.env.AI_MODEL || 'deepseek/deepseek-r1',
-    maxTokens: 65536,      // 64K Output (Safe limit near 66K max)
-    thinkingBudget: 49152, // 48K Thinking Budget (75% of output)
-    temperature: 0,
-    retryAttempts: 3,
-    retryDelayMs: 2000,
-    timeoutMs: 300000,
+    baseUrl: config.ai.baseUrl,
+    apiKey: config.ai.apiKey,
+    model: config.ai.model,
+    maxTokens: config.ai.maxTokens,
+    thinkingBudget: config.ai.thinkingBudget,
+    temperature: config.ai.temperature,
+    retryAttempts: config.ai.retryAttempts,
+    retryDelayMs: config.ai.retryDelayMs,
+    timeoutMs: config.ai.timeoutMs,
 };
 
 // ═════════════════════════════════════════════════════════════════════════════

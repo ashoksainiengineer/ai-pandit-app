@@ -5,6 +5,7 @@ import { sessions, users } from '@/database/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '@/lib/logger';
 import { addToQueue, getQueueStatus, startQueueProcessor } from '@/lib/queue-manager';
+import { env } from '@/lib/config';
 import { validateOffsetConfig, TimeOffsetConfig } from '@/lib/time-offset-manager';
 import { BirthData, LifeEvent } from '@/lib/types';
 import { encryptData, decryptData } from '@/lib/crypto';
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
 
         // Backend URL (Leapcell or Local)
-        const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+        const BACKEND_URL = env.api.backendUrl;
 
         logger.info('Proxying BTR request to backend', { backendUrl: BACKEND_URL, userId });
 

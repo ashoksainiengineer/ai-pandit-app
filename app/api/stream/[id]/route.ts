@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/database/drizzle';
 import { sessions } from '@/database/schema';
 import { eq } from 'drizzle-orm';
+import { env } from '@/lib/config';
 
 // Use Node.js runtime (not Edge) for better SSE support in development
 export const dynamic = 'force-dynamic';
@@ -58,7 +59,7 @@ export async function GET(
     }
 
     const token = await getToken();
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
+    const backendUrl = env.api.backendUrl;
     const streamUrl = `${backendUrl}/api/stream/${sessionId}`;
 
     console.log(`SSE Proxy: User ${userId} connecting to`, streamUrl);

@@ -18,7 +18,7 @@ const envSchema = z.object({
   
   // Turso Database
   TURSO_DATABASE_URL: z.string().min(1, 'TURSO_DATABASE_URL is required'),
-  TURSO_AUTH_TOKEN: z.string().min(1, 'TURSO_AUTH_TOKEN is required'),
+  TURSO_AUTH_TOKEN: z.string().optional(), // Optional for local SQLite (file:)
   
   // Clerk Authentication
   CLERK_SECRET_KEY: z.string().min(1, 'CLERK_SECRET_KEY is required'),

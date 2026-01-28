@@ -89,6 +89,12 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
         const sessionId = crypto.randomUUID();
         const now = new Date().toISOString();
 
+        // 🔍 DIAGNOSTIC: Log encryption key info
+        logger.info('🔍 DIAGNOSTIC: Encrypting session data', {
+            userIdPrefix: userId.slice(0, 8),
+            userIdLength: userId.length,
+        });
+
         const encryptedFullName = encryptData(birthData.fullName, userId);
         const encryptedLifeEvents = encryptData(JSON.stringify(lifeEvents), userId);
         const encryptedPhysicalTraits = physicalTraits

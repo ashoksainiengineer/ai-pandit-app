@@ -4,6 +4,8 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '../../../database/drizzle';
 import { sessions } from '../../../database/schema';
 import { eq } from 'drizzle-orm';
+import { encryptData } from '@/lib/crypto';
+import { env } from '@/lib/config';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // SIMPLE LOGGER (avoids import issues)
@@ -152,11 +154,23 @@ export async function POST(request: NextRequest): Promise<NextResponse<Calculate
     const sessionId = crypto.randomUUID();
     const now = new Date().toISOString();
 
+    // Encrypt sensitive data using the same method as backend
+    const encryptedLifeEvents = encryptData(JSON.stringify(lifeEvents), userId);
+    const encryptedPhysicalTraits = physicalTraits
+      ? encryptData(JSON.stringify(physicalTraits), userId)
+      : null;
+    const encryptedForensicTraits = forensicTraits
+      ? encryptData(JSON.stringify(forensicTraits), userId)
+      : null;
+
+    // Encrypt fullName as well
+    const encryptedFullName = encryptData(birthData.fullName, userId);
+
     await db.insert(sessions).values({
       id: sessionId,
       userId,
       clerkId: userId,
-      fullName: birthData.fullName,
+      fullName: encryptedFullName,
       dateOfBirth: birthData.dateOfBirth,
       tentativeTime: birthData.tentativeTime,
       birthPlace: birthData.birthPlace,
@@ -164,9 +178,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<Calculate
       longitude: birthData.longitude,
       timezone: birthData.timezone.toString(),
       gender: birthData.gender,
-      physicalTraits: physicalTraits ? JSON.stringify(physicalTraits) : null,
-      forensicTraits: forensicTraits ? JSON.stringify(forensicTraits) : null,
-      lifeEvents: JSON.stringify(lifeEvents),
+      physicalTraits: encryptedPhysicalTraits,
+      forensicTraits: encryptedForensicTraits,
+      lifeEvents: encryptedLifeEvents,
       offsetConfig: JSON.stringify(offsetConfig),
       status: 'pending',
       createdAt: now,
@@ -179,12 +193,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<Calculate
     // 5. FORWARD TO BACKEND QUEUE
     // ─────────────────────────────────────────────────────────────────────
     
-    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3001';
+    const backendUrl = env.api.backendUrl;
     const queueResponse = await fetch(`${backendUrl}/api/queue`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.INTERNAL_API_KEY || ''}`,
+        'Authorization': `Bearer ${env.api.internalApiKey || ''}`,
       },
       body: JSON.stringify({ sessionId }),
     });

@@ -81,10 +81,14 @@ export async function GET(request: NextRequest, { params }: SessionParams) {
 
         console.log('[GET /api/sessions/:id] Starting decryption...');
         
+        // Use stored clerkId for decryption (not current auth clerkId, as user may have changed accounts)
+        const storedClerkId = s.clerkId;
+        console.log('[GET /api/sessions/:id] Using stored clerkId for decryption:', storedClerkId);
+        
         // Decrypt sensitive fields
         let decryptedFullName: string;
         try {
-            decryptedFullName = safeDecrypt(s.fullName, clerkId);
+            decryptedFullName = safeDecrypt(s.fullName, storedClerkId);
             console.log('[GET /api/sessions/:id] Decrypted fullName successfully');
         } catch (e) {
             console.error('[GET /api/sessions/:id] Failed to decrypt fullName:', e);
@@ -94,9 +98,11 @@ export async function GET(request: NextRequest, { params }: SessionParams) {
         let decryptedLifeEvents: any[] = [];
         try {
             if (s.lifeEvents) {
-                const decrypted = safeDecrypt(s.lifeEvents, clerkId);
+                console.log('[GET /api/sessions/:id] Raw lifeEvents:', s.lifeEvents.substring(0, 50));
+                const decrypted = safeDecrypt(s.lifeEvents, storedClerkId);
+                console.log('[GET /api/sessions/:id] Decrypted lifeEvents:', decrypted.substring(0, 100));
                 decryptedLifeEvents = JSON.parse(decrypted);
-                console.log('[GET /api/sessions/:id] Decrypted lifeEvents successfully');
+                console.log('[GET /api/sessions/:id] Decrypted lifeEvents successfully, count:', decryptedLifeEvents.length);
             }
         } catch (e) {
             console.error('[GET /api/sessions/:id] Failed to decrypt/parse lifeEvents:', e);
@@ -106,7 +112,7 @@ export async function GET(request: NextRequest, { params }: SessionParams) {
         let decryptedPhysicalTraits: any = null;
         try {
             if (s.physicalTraits) {
-                const decrypted = safeDecrypt(s.physicalTraits, clerkId);
+                const decrypted = safeDecrypt(s.physicalTraits, storedClerkId);
                 decryptedPhysicalTraits = JSON.parse(decrypted);
                 console.log('[GET /api/sessions/:id] Decrypted physicalTraits successfully');
             }
@@ -118,7 +124,7 @@ export async function GET(request: NextRequest, { params }: SessionParams) {
         let decryptedForensicTraits: any = null;
         try {
             if (s.forensicTraits) {
-                const decrypted = safeDecrypt(s.forensicTraits, clerkId);
+                const decrypted = safeDecrypt(s.forensicTraits, storedClerkId);
                 decryptedForensicTraits = JSON.parse(decrypted);
                 console.log('[GET /api/sessions/:id] Decrypted forensicTraits successfully');
             }

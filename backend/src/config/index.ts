@@ -19,7 +19,7 @@ const envSchema = z.object({
   
   // Database Configuration (Turso)
   TURSO_DATABASE_URL: z.string().min(1, 'Turso database URL is required'),
-  TURSO_AUTH_TOKEN: z.string().min(1, 'Turso auth token is required'),
+  TURSO_AUTH_TOKEN: z.string().optional(), // Optional for local SQLite (file:)
   
   // AI Configuration (OpenRouter)
   AI_API_KEY: z.string().min(1, 'AI API key is required'),

@@ -1,772 +1,529 @@
+/**
+ * Step3LifeEvents - Life Events Collection Form
+ * User-friendly event management with timeline visualization
+ */
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BirthData, LifeEvent, TimeOffsetConfig } from '@/lib/types';
-import EVENT_CATEGORIES, { EventCategory, EventTemplate } from '@/lib/event-categories';
+import { LifeEvent, TimeOffsetConfig } from '@/lib/types';
+import EVENT_CATEGORIES from '@/lib/event-categories';
+import { FormCard } from '@/components/ui/form/FormCard';
+import { FormField } from '@/components/ui/form/FormField';
 
 interface Step3Props {
-    lifeEvents: LifeEvent[];
-    updateEvents: (events: LifeEvent[]) => void;
-    offsetConfig?: TimeOffsetConfig;
+  lifeEvents: LifeEvent[];
+  updateEvents: (events: LifeEvent[]) => void;
+  offsetConfig?: TimeOffsetConfig;
 }
 
-// High-impact BTR events
-const BTR_EVENTS = [
-    { label: 'Marriage', icon: '💍', cat: 'marriage', boost: 10 },
-    { label: 'First Child', icon: '👶', cat: 'children', boost: 10 },
-    { label: 'Parent Death', icon: '🕯️', cat: 'family', boost: 9 },
-    { label: 'First Job', icon: '💼', cat: 'career', boost: 8 },
-    { label: 'Surgery/Accident', icon: '🏥', cat: 'health', boost: 8 },
-    { label: 'Property Purchase', icon: '🏠', cat: 'financial', boost: 7 },
-    { label: 'Foreign Move', icon: '✈️', cat: 'travel', boost: 7 },
-    { label: 'Legal Victory', icon: '⚖️', cat: 'legal', boost: 7 },
-    { label: 'Guru Diksha', icon: '🕉️', cat: 'spiritual', boost: 8 },
-    { label: 'Sudden Windfall', icon: '🌊', cat: 'karmic_events', boost: 7 },
-    { label: 'Identity Shift', icon: '👤', cat: 'identity_shifts', boost: 6 },
-    { label: 'Graduation', icon: '🎓', cat: 'education', boost: 6 },
-];
-
-// Date precision types - 6 options
-type DateType = 'exact_date_time' | 'exact_date' | 'month_year' | 'month_range' | 'year_range' | 'exact_date_range';
-
-const DATE_OPTIONS = [
-    { val: 'exact_date_time', label: 'Exact Date & Time', desc: 'DD/MM/YYYY HH:MM' },
-    { val: 'exact_date', label: 'Exact Date', desc: 'DD/MM/YYYY' },
-    { val: 'exact_date_range', label: 'Date Range', desc: 'DD/MM/YYYY → DD/MM/YYYY' },
-    { val: 'month_year', label: 'Month & Year', desc: 'MM/YYYY' },
-    { val: 'month_range', label: 'Month Range', desc: 'MM/YYYY → MM/YYYY' },
-    { val: 'year_range', label: 'Year Range', desc: 'YYYY → YYYY' },
-];
-
-// ═════════════════════════════════════════════════════════════════════════════
-// EVENT IMPORTANCE CONFIGURATION
-// ═════════════════════════════════════════════════════════════════════════════
-
+type DatePrecision = 'exact_date_time' | 'exact_date' | 'exact_date_range' | 'month_year' | 'month_range' | 'year_range';
 type ImportanceLevel = 'critical' | 'high' | 'medium' | 'low';
 
-const IMPORTANCE_OPTIONS: { level: ImportanceLevel; label: string; icon: string; desc: string; weight: number }[] = [
-    { level: 'critical', label: 'Life Defining', icon: '⚡', desc: 'Transformed your life completely', weight: 3.0 },
-    { level: 'high', label: 'Major Milestone', icon: '⭐', desc: 'Significant turning point', weight: 2.0 },
-    { level: 'medium', label: 'Important', icon: '●', desc: 'Notable life event', weight: 1.0 },
-    { level: 'low', label: 'Minor', icon: '○', desc: 'Routine occurrence', weight: 0.5 },
+const DATE_OPTIONS = [
+  { value: 'exact_date_time' as DatePrecision, label: 'Exact Date & Time', desc: 'DD/MM/YYYY HH:MM' },
+  { value: 'exact_date' as DatePrecision, label: 'Exact Date', desc: 'DD/MM/YYYY' },
+  { value: 'exact_date_range' as DatePrecision, label: 'Date Range', desc: 'DD/MM → DD/MM' },
+  { value: 'month_year' as DatePrecision, label: 'Month & Year', desc: 'MM/YYYY' },
+  { value: 'month_range' as DatePrecision, label: 'Month Range', desc: 'MM/YYYY → MM/YYYY' },
+  { value: 'year_range' as DatePrecision, label: 'Year Range', desc: 'YYYY → YYYY' },
 ];
 
-/**
- * Get default importance based on event category
- * Used as initial value, user can override
- */
-const getDefaultImportance = (category: string): ImportanceLevel => {
-    const criticalEvents = ['marriage', 'major-surgery', 'career-breakthrough', 'childbirth', 'divorce', 'near-death'];
-    const highEvents = ['education', 'higher-education', 'property-purchase', 'business-start', 'promotion', 'award'];
-    const lowEvents = ['minor-illness', 'short-travel', 'friendship-change', 'hobby-start'];
+const IMPORTANCE_OPTIONS: { level: ImportanceLevel; label: string; icon: string; desc: string; weight: number }[] = [
+  { level: 'critical', label: 'Life Defining', icon: '⚡', desc: 'Transformed your life completely', weight: 3.0 },
+  { level: 'high', label: 'Major Milestone', icon: '⭐', desc: 'Significant turning point', weight: 2.0 },
+  { level: 'medium', label: 'Important', icon: '●', desc: 'Notable life event', weight: 1.0 },
+  { level: 'low', label: 'Minor', icon: '○', desc: 'Routine occurrence', weight: 0.5 },
+];
 
-    if (criticalEvents.includes(category)) return 'critical';
-    if (highEvents.includes(category)) return 'high';
-    if (lowEvents.includes(category)) return 'low';
-    return 'medium';
-};
+const BTR_EVENTS = [
+  { label: 'Marriage', icon: '💍', cat: 'marriage', boost: 10 },
+  { label: 'First Child', icon: '👶', cat: 'children', boost: 10 },
+  { label: 'Parent Death', icon: '🕯️', cat: 'family', boost: 9 },
+  { label: 'First Job', icon: '💼', cat: 'career', boost: 8 },
+  { label: 'Surgery/Accident', icon: '🏥', cat: 'health', boost: 8 },
+  { label: 'Property Purchase', icon: '🏠', cat: 'financial', boost: 7 },
+  { label: 'Foreign Move', icon: '✈️', cat: 'travel', boost: 7 },
+  { label: 'Legal Victory', icon: '⚖️', cat: 'legal', boost: 7 },
+  { label: 'Guru Diksha', icon: '🕉️', cat: 'spiritual', boost: 8 },
+  { label: 'Sudden Windfall', icon: '🌊', cat: 'karmic_events', boost: 7 },
+];
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const CURRENT_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: 80 }, (_, i) => (CURRENT_YEAR - i).toString());
+const DAYS = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'));
+const HOURS = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
 
 export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig }: Step3Props) {
-    const [editingId, setEditingId] = useState<string | null>(null);
-    const [selectedCat, setSelectedCat] = useState<EventCategory | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [selectedCat, setSelectedCat] = useState<string | null>(null);
 
-    // Add new event
-    const addEvent = (label: string, icon: string, category: string, isCustom: boolean = false) => {
-        const newEvent: LifeEvent = {
-            id: `evt_${Date.now()}`,
-            category: category as any,
-            eventType: label,
-            icon: icon,
-            datePrecision: 'month_year',
-            eventDate: '',
-            description: '',
-            importance: getDefaultImportance(category),
-            isCustom
-        };
-        updateEvents([...lifeEvents, newEvent]);
-        setEditingId(newEvent.id);
-        setSelectedCat(null);
+  // Calculate accuracy score
+  const accuracy = useMemo(() => {
+    let score = 30;
+    score += lifeEvents.filter(e => e.description && e.eventDate).length * 8;
+    return Math.min(98, Math.round(score));
+  }, [lifeEvents]);
+
+  // Get target event count based on offset
+  const targetEvents = useMemo(() => {
+    if (offsetConfig?.preset === '30min') return 4;
+    if (offsetConfig?.preset === '1hour') return 6;
+    if (offsetConfig?.preset === '2hours') return 8;
+    return 12;
+  }, [offsetConfig]);
+
+  // Add new event
+  const addEvent = useCallback((label: string, icon: string, category: string, isCustom = false) => {
+    const newEvent: LifeEvent = {
+      id: `evt_${Date.now()}`,
+      category: category as any,
+      eventType: label,
+      icon,
+      datePrecision: 'month_year',
+      eventDate: '',
+      description: '',
+      importance: 'medium',
+      isCustom
     };
+    updateEvents([...lifeEvents, newEvent]);
+    setEditingId(newEvent.id);
+    setSelectedCat(null);
+  }, [lifeEvents, updateEvents]);
 
-    const updateEvent = (id: string, updates: Partial<LifeEvent>) => {
-        updateEvents(lifeEvents.map(e => e.id === id ? { ...e, ...updates } : e));
-    };
+  // Update event
+  const updateEvent = useCallback((id: string, updates: Partial<LifeEvent>) => {
+    updateEvents(lifeEvents.map(e => e.id === id ? { ...e, ...updates } : e));
+  }, [lifeEvents, updateEvents]);
 
-    const deleteEvent = (id: string) => {
-        updateEvents(lifeEvents.filter(e => e.id !== id));
-        setEditingId(null);
-    };
+  // Delete event
+  const deleteEvent = useCallback((id: string) => {
+    updateEvents(lifeEvents.filter(e => e.id !== id));
+    setEditingId(null);
+  }, [lifeEvents, updateEvents]);
 
-    const currentYear = new Date().getFullYear();
-    const years = Array.from({ length: 80 }, (_, i) => currentYear - i);
-    const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const days = Array.from({ length: 31 }, (_, i) => i + 1);
-    const hours = Array.from({ length: 12 }, (_, i) => i + 1);
+  // Format event date for display
+  const formatEventDate = useCallback((e: LifeEvent) => {
+    if (!e.eventDate) return 'No date';
+    const [y, m, d] = e.eventDate.split('-');
+    const mon = m ? MONTHS[parseInt(m) - 1]?.slice(0, 3) : '';
 
+    if (e.datePrecision === 'month_year' && mon) return `${mon} ${y}`;
+    if ((e.datePrecision === 'exact_date' || e.datePrecision === 'exact_date_time') && mon && d) {
+      return `${d} ${mon} ${y}`;
+    }
+    if (e.datePrecision?.includes('range') && e.endDate) {
+      return `${y} → ${e.endDate.split('-')[0]}`;
+    }
+    return y;
+  }, []);
 
-    // Calculate Accuracy Score based on diversity and depth of events
-    const calculateAccuracy = () => {
-        // Base score just for reaching this step
-        let score = 30;
-
-        // Weights for different categories (High impact > Medium > Low)
-        const catWeights: Record<string, number> = {
-            marriage: 15,      // High importance for rectification
-            children: 15,      // High importance
-            karmic_events: 15, // Sudden luck/loss/accidents (Rahu/Ketu/Bhrigu)
-            identity_shifts: 12, // Physical change (1st house/Asc)
-            family_events: 12, // Death/Birth of family often critical
-            health: 12,
-            career: 12,
-            public_life: 10,  // Fame/Awards (10th house)
-            spiritual: 10,    // Guru Diksha/Initiation
-            education: 10,
-            legal: 8,         // Legal wins/cases (6th house)
-            financial: 8,
-            travel: 6,
-            other: 5
-        };
-
-        // Track usage per category for diminishing returns
-        const catUsage: Record<string, number> = {};
-
-        const validEvents = lifeEvents.filter(e => e.description && e.eventDate);
-
-        validEvents.forEach(evt => {
-            const cat = evt.category;
-            const weight = catWeights[cat] || 5;
-
-            // Increment usage count
-            catUsage[cat] = (catUsage[cat] || 0) + 1;
-            const count = catUsage[cat];
-
-            // Diminishing returns logic
-            if (count === 1) {
-                score += weight; // 1st event: 100% value
-            } else if (count === 2) {
-                score += weight * 0.4; // 2nd event: 40% value
-            } else if (count === 3) {
-                score += weight * 0.1; // 3rd event: 10% value
-            }
-            // 4th+ event adds 0 to score
-        });
-
-        return Math.min(98, Math.round(score));
-    };
-
-    const accuracy = calculateAccuracy();
-
-    // Sort events chronologically so timeline makes sense
-    const sortedEvents = [...lifeEvents].sort((a, b) => {
-        // Events with no date go to end, or we filters them? 
-        // User wants timeline, so date is key. 
-        if (!a.eventDate) return 1;
-        if (!b.eventDate) return -1;
-        return a.eventDate.localeCompare(b.eventDate);
+  // Sort events chronologically
+  const sortedEvents = useMemo(() => {
+    return [...lifeEvents].sort((a, b) => {
+      if (!a.eventDate) return 1;
+      if (!b.eventDate) return -1;
+      return a.eventDate.localeCompare(b.eventDate);
     });
+  }, [lifeEvents]);
 
-    const formatEventDate = (e: LifeEvent) => {
-        if (!e.eventDate) return 'No date';
-        const [y, m, d] = e.eventDate.split('-');
-        const mn = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const mon = m ? mn[parseInt(m) - 1] : '';
+  // Check if event is added
+  const isAdded = useCallback((label: string) => {
+    return lifeEvents.some(e => e.eventType === label);
+  }, [lifeEvents]);
 
-        if (e.datePrecision === 'month_year' && mon) return `${mon} ${y}`;
-        if ((e.datePrecision === 'exact_date' || e.datePrecision === 'exact_date_time') && mon && d) return `${d} ${mon} ${y}`;
+  const editingEvent = editingId ? lifeEvents.find(e => e.id === editingId) : null;
 
-        if (e.datePrecision === 'exact_date_range' && e.endDate) {
-            const [ey, em, ed] = e.endDate.split('-');
-            const emon = em ? mn[parseInt(em) - 1] : '';
-            return `${d} ${mon} ${y} → ${ed} ${emon} ${ey}`;
-        }
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-start justify-between flex-wrap gap-4">
+        <div>
+          <p className="text-sm text-[#E8A849] font-medium tracking-widest mb-2">STEP 3 OF 4</p>
+          <h1 className="text-3xl font-bold text-[#F5F0EB]">Life Events</h1>
+          <p className="text-[#C4B8AD] mt-2 text-sm">
+            Add significant events to correlate with planetary transits
+          </p>
+        </div>
+        <div className="flex gap-4 items-center">
+          <div className="text-right p-3 rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/5">
+            <div className={`text-sm font-bold ${accuracy > 80 ? 'text-emerald-500' : accuracy > 50 ? 'text-[#E8A849]' : 'text-[#D64545]'}`}>
+              {accuracy > 80 ? '🔒 Pinned' : accuracy > 50 ? '⚡ Calibrating' : '🔍 Searching'}
+            </div>
+            <div className="text-[10px] text-[#8C7F72] mt-1">
+              {lifeEvents.length} of {targetEvents} Target
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-4xl font-bold text-[#E8A849]">{accuracy}%</div>
+            <div className="text-xs text-[#8C7F72]">Accuracy</div>
+          </div>
+        </div>
+      </div>
 
-        if (e.endDate) return `${y} → ${e.endDate}`;
-        return y;
-    };
-
-    const isAdded = (label: string) => lifeEvents.some(e => e.eventType === label);
-
-    return (
-        <div className="space-y-8">
-            {/* ══════════════════════════════════════════════════════════════ */}
-            {/* HEADER */}
-            {/* ══════════════════════════════════════════════════════════════ */}
-            <div className="flex items-start justify-between">
-                <div className="flex-1">
-                    <p className="text-sm text-[#E8A849] font-medium tracking-widest mb-2">STEP 3 OF 4</p>
-                    <h1 className="text-3xl font-bold text-[#F5F0EB]">Life Events</h1>
-                    <p className="text-[#C4B8AD] mt-2 text-sm leading-relaxed max-w-md">
-                        Add significant events to correlate with planetary transits.
-                        {offsetConfig?.preset === '30min' && " Aim for 3-5 precise events."}
-                        {offsetConfig?.preset === '1hour' && " Aim for 5-7 diverse events."}
-                        {offsetConfig?.preset === '2hours' && " Aim for 7-10 events + Physical traits."}
-                        {(offsetConfig?.preset === '4hours' || (offsetConfig?.customMinutes && offsetConfig.customMinutes > 120)) &&
-                            " Required: 10+ major life-altering events to navigate this large window."}
-                    </p>
+      {/* Event Editor */}
+      <AnimatePresence mode="wait">
+        {editingEvent && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="bg-[#241F1C] border-2 border-[#E8A849] rounded-xl overflow-hidden"
+          >
+            {/* Editor Header */}
+            <div className="bg-[#E8A849]/10 px-6 py-4 flex items-center justify-between border-b border-[#E8A849]/20">
+              <div className="flex items-center gap-4">
+                <span className="text-4xl">{editingEvent.icon}</span>
+                <div>
+                  {editingEvent.isCustom ? (
+                    <input
+                      type="text"
+                      value={editingEvent.eventType}
+                      onChange={(e) => updateEvent(editingEvent.id, { eventType: e.target.value })}
+                      className="bg-transparent text-xl font-semibold text-[#F5F0EB] border-b border-[#E8A849]/50 focus:border-[#E8A849] outline-none w-full min-w-[200px]"
+                      placeholder="Enter Event Name"
+                    />
+                  ) : (
+                    <h2 className="text-xl font-semibold text-[#F5F0EB]">{editingEvent.eventType}</h2>
+                  )}
                 </div>
-                <div className="flex gap-8 items-start">
-                    <div className="text-right p-3 rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/5 min-w-[150px]">
-                        <div className="text-xs text-[#8C7F72] uppercase tracking-wider mb-1">Vedic Status</div>
-                        <div className={`text-sm font-bold ${accuracy > 80 ? 'text-emerald-500' : accuracy > 50 ? 'text-[#E8A849]' : 'text-[#D64545]'}`}>
-                            {accuracy > 80 ? '🔒 Pinned' : accuracy > 50 ? '⚡ Calibrating' : '🔍 Searching'}
-                        </div>
-                        <div className="text-[10px] text-[#8C7F72] mt-1">
-                            {lifeEvents.length} of {
-                                offsetConfig?.preset === '30min' ? 4 :
-                                    offsetConfig?.preset === '1hour' ? 6 :
-                                        offsetConfig?.preset === '2hours' ? 8 : 12
-                            } Target
-                        </div>
-                    </div>
-                    <div className="text-right">
-                        <div className="text-4xl font-bold text-[#E8A849]">{accuracy}%</div>
-                        <div className="text-xs text-[#8C7F72]">Accuracy Potential</div>
-                    </div>
-                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setEditingId(null)}
+                  disabled={!editingEvent.description}
+                  className={`px-4 py-2 font-semibold rounded-lg transition-colors ${
+                    editingEvent.description
+                      ? 'bg-[#5CB57B] text-white hover:bg-[#4EA36A]'
+                      : 'bg-[#5CB57B]/30 text-white/50 cursor-not-allowed'
+                  }`}
+                >
+                  ✓ Save
+                </button>
+                <button
+                  onClick={() => deleteEvent(editingEvent.id)}
+                  className="px-4 py-2 border border-[#D64545] text-[#D64545] rounded-lg hover:bg-[#D64545]/10"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
 
-            {/* ══════════════════════════════════════════════════════════════ */}
-            {/* EVENT EDITOR (when editing) */}
-            {/* ══════════════════════════════════════════════════════════════ */}
-            <AnimatePresence mode="wait">
-                {editingId && (() => {
-                    const event = lifeEvents.find(e => e.id === editingId);
-                    if (!event) return null;
+            {/* Editor Body */}
+            <div className="p-6 space-y-6">
+              {/* Date Precision */}
+              <FormField label="When did this happen?">
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                  {DATE_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={() => updateEvent(editingEvent.id, { datePrecision: opt.value })}
+                      className={`py-3 px-2 rounded-lg text-center transition-all border-2 ${
+                        editingEvent.datePrecision === opt.value
+                          ? 'bg-[#E8A849]/20 border-[#E8A849] text-[#F5F0EB]'
+                          : 'bg-[#2E2724] border-transparent text-[#C4B8AD] hover:border-[#E8A849]/30'
+                      }`}
+                    >
+                      <div className="font-medium text-xs">{opt.label}</div>
+                      <div className="text-[10px] mt-1 opacity-60">{opt.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </FormField>
 
-                    const [y, m, d] = (event.eventDate || '').split('-');
-                    const dateType = (event.datePrecision || 'month_year') as DateType;
+              {/* Date Fields */}
+              <DateInput
+                precision={editingEvent.datePrecision as DatePrecision}
+                event={editingEvent}
+                onUpdate={(updates) => updateEvent(editingEvent.id, updates)}
+              />
 
+              {/* Importance */}
+              <FormField label="How significant was this event?" required>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {IMPORTANCE_OPTIONS.map((opt) => {
+                    const isSelected = editingEvent.importance === opt.level;
                     return (
-                        <motion.div
-                            initial={{ opacity: 0, y: -20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            className="bg-[#241F1C] border-2 border-[#E8A849] rounded-xl overflow-hidden"
-                        >
-                            {/* Header */}
-                            <div className="bg-[#E8A849]/10 px-8 py-5 flex items-center justify-between border-b border-[#E8A849]/20">
-                                <div className="flex items-center gap-5">
-                                    <span className="text-5xl">{event.icon}</span>
-                                    <div>
-                                        {event.isCustom ? (
-                                            <input
-                                                type="text"
-                                                autoFocus
-                                                value={event.eventType}
-                                                onChange={(e) => updateEvent(event.id, { eventType: e.target.value })}
-                                                className="bg-transparent text-xl font-semibold text-[#F5F0EB] border-b border-[#E8A849]/50 focus:border-[#E8A849] outline-none w-full min-w-[200px]"
-                                                placeholder="Enter Event Name"
-                                            />
-                                        ) : (
-                                            <h2 className="text-xl font-semibold text-[#F5F0EB]">{event.eventType}</h2>
-                                        )}
-                                        {!event.isCustom && (
-                                            <span className="text-sm text-[#C4B8AD] block">
-                                                {EVENT_CATEGORIES.find(c => c.id === event.category)?.label || event.category}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="flex gap-3">
-                                    <button
-                                        onClick={() => setEditingId(null)}
-                                        disabled={!event.importance || !event.description}
-                                        className={`px-6 py-3 font-semibold rounded-lg transition-colors ${
-                                            event.importance && event.description
-                                                ? 'bg-[#5CB57B] text-white hover:bg-[#4EA36A]'
-                                                : 'bg-[#5CB57B]/30 text-white/50 cursor-not-allowed'
-                                        }`}
-                                    >
-                                        ✓ Save Event
-                                    </button>
-                                    <button onClick={() => deleteEvent(event.id)} className="px-4 py-3 border border-[#D64545] text-[#D64545] rounded-lg hover:bg-[#D64545]/10 transition-colors">
-                                        Delete
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="p-8 space-y-8">
-                                {/* Date Type Selector - 5 Options */}
-                                <div>
-                                    <label className="block text-sm font-medium text-[#E8A849] mb-4">📅 When did this happen?</label>
-                                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-5">
-                                        {DATE_OPTIONS.map(opt => (
-                                            <button
-                                                key={opt.val}
-                                                onClick={() => updateEvent(event.id, { datePrecision: opt.val as any })}
-                                                className={`py-3 px-2 rounded-lg text-center transition-all border-2 ${dateType === opt.val
-                                                    ? 'bg-[#E8A849]/20 border-[#E8A849] text-[#F5F0EB]'
-                                                    : 'bg-[#2E2724] border-transparent text-[#C4B8AD] hover:border-[#E8A849]/30'
-                                                    }`}
-                                            >
-                                                <div className="font-medium text-xs">{opt.label}</div>
-                                                <div className="text-[10px] mt-1 opacity-60">{opt.desc}</div>
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    {/* Dynamic Date Fields */}
-                                    <div className="flex gap-4 items-center flex-wrap bg-[#2E2724] p-5 rounded-lg">
-                                        {/* Exact Date & Time */}
-                                        {dateType === 'exact_date_time' && (
-                                            <>
-                                                <select value={d || ''} onChange={(e) => updateEvent(event.id, { eventDate: `${y || currentYear}-${m || '01'}-${e.target.value.padStart(2, '0')}` })}
-                                                    className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none">
-                                                    <option value="">Day</option>
-                                                    {days.map(day => <option key={day} value={day.toString().padStart(2, '0')}>{day}</option>)}
-                                                </select>
-                                                <select value={m || ''} onChange={(e) => updateEvent(event.id, { eventDate: `${y || currentYear}-${e.target.value}-${d || '01'}` })}
-                                                    className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none flex-1 min-w-[120px]">
-                                                    <option value="">Month</option>
-                                                    {months.map((mon, i) => <option key={mon} value={(i + 1).toString().padStart(2, '0')}>{mon}</option>)}
-                                                </select>
-                                                <select value={y || ''} onChange={(e) => updateEvent(event.id, { eventDate: `${e.target.value}-${m || '01'}-${d || '01'}` })}
-                                                    className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none min-w-[100px]">
-                                                    <option value="">Year</option>
-                                                    {years.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-                                                </select>
-                                                <span className="text-[#8C7F72]">at</span>
-                                                <select className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none w-20">
-                                                    <option value="">HH</option>
-                                                    {hours.map(h => <option key={h} value={h}>{h}</option>)}
-                                                </select>
-                                                <span className="text-[#E8A849]">:</span>
-                                                <select className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none w-20">
-                                                    <option value="">MM</option>
-                                                    <option value="00">00</option><option value="15">15</option><option value="30">30</option><option value="45">45</option>
-                                                </select>
-                                                <select className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none">
-                                                    <option>AM</option><option>PM</option>
-                                                </select>
-                                            </>
-                                        )}
-
-                                        {/* Exact Date */}
-                                        {dateType === 'exact_date' && (
-                                            <>
-                                                <select value={d || ''} onChange={(e) => updateEvent(event.id, { eventDate: `${y || currentYear}-${m || '01'}-${e.target.value.padStart(2, '0')}` })}
-                                                    className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none">
-                                                    <option value="">Day</option>
-                                                    {days.map(day => <option key={day} value={day.toString().padStart(2, '0')}>{day}</option>)}
-                                                </select>
-                                                <select value={m || ''} onChange={(e) => updateEvent(event.id, { eventDate: `${y || currentYear}-${e.target.value}-${d || '01'}` })}
-                                                    className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none flex-1">
-                                                    <option value="">Month</option>
-                                                    {months.map((mon, i) => <option key={mon} value={(i + 1).toString().padStart(2, '0')}>{mon}</option>)}
-                                                </select>
-                                                <select value={y || ''} onChange={(e) => updateEvent(event.id, { eventDate: `${e.target.value}-${m || '01'}-${d || '01'}` })}
-                                                    className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none">
-                                                    <option value="">Year</option>
-                                                    {years.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-                                                </select>
-                                            </>
-                                        )}
-
-                                        {/* Exact Date Range */}
-                                        {dateType === 'exact_date_range' && (
-                                            <div className="flex flex-col gap-3 w-full">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-[#8C7F72] w-10">From:</span>
-                                                    <select value={d || ''} onChange={(e) => updateEvent(event.id, { eventDate: `${y || currentYear}-${m || '01'}-${e.target.value.padStart(2, '0')}` })}
-                                                        className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none">
-                                                        <option value="">Day</option>
-                                                        {days.map(day => <option key={day} value={day.toString().padStart(2, '0')}>{day}</option>)}
-                                                    </select>
-                                                    <select value={m || ''} onChange={(e) => updateEvent(event.id, { eventDate: `${y || currentYear}-${e.target.value}-${d || '01'}` })}
-                                                        className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none flex-1">
-                                                        <option value="">Month</option>
-                                                        {months.map((mon, i) => <option key={mon} value={(i + 1).toString().padStart(2, '0')}>{mon}</option>)}
-                                                    </select>
-                                                    <select value={y || ''} onChange={(e) => updateEvent(event.id, { eventDate: `${e.target.value}-${m || '01'}-${d || '01'}` })}
-                                                        className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none w-24">
-                                                        <option value="">Year</option>
-                                                        {years.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-                                                    </select>
-                                                </div>
-
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-[#8C7F72] w-10">To:</span>
-                                                    {(() => {
-                                                        const [ey, em, ed] = (event.endDate || '').split('-');
-                                                        return (
-                                                            <>
-                                                                <select value={ed || ''} onChange={(e) => updateEvent(event.id, { endDate: `${ey || currentYear}-${em || '01'}-${e.target.value.padStart(2, '0')}` })}
-                                                                    className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none">
-                                                                    <option value="">Day</option>
-                                                                    {days.map(day => <option key={day} value={day.toString().padStart(2, '0')}>{day}</option>)}
-                                                                </select>
-                                                                <select value={em || ''} onChange={(e) => updateEvent(event.id, { endDate: `${ey || currentYear}-${e.target.value}-${ed || '01'}` })}
-                                                                    className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none flex-1">
-                                                                    <option value="">Month</option>
-                                                                    {months.map((mon, i) => <option key={mon} value={(i + 1).toString().padStart(2, '0')}>{mon}</option>)}
-                                                                </select>
-                                                                <select value={ey || ''} onChange={(e) => updateEvent(event.id, { endDate: `${e.target.value}-${em || '01'}-${ed || '01'}` })}
-                                                                    className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none w-24">
-                                                                    <option value="">Year</option>
-                                                                    {years.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-                                                                </select>
-                                                            </>
-                                                        );
-                                                    })()}
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Month & Year */}
-                                        {dateType === 'month_year' && (
-                                            <>
-                                                <select value={m || ''} onChange={(e) => updateEvent(event.id, { eventDate: `${y || currentYear}-${e.target.value}-01` })}
-                                                    className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none flex-1">
-                                                    <option value="">Select Month</option>
-                                                    {months.map((mon, i) => <option key={mon} value={(i + 1).toString().padStart(2, '0')}>{mon}</option>)}
-                                                </select>
-                                                <select value={y || ''} onChange={(e) => updateEvent(event.id, { eventDate: `${e.target.value}-${m || '01'}-01` })}
-                                                    className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none">
-                                                    <option value="">Select Year</option>
-                                                    {years.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-                                                </select>
-                                            </>
-                                        )}
-
-                                        {/* Month Range */}
-                                        {dateType === 'month_range' && (
-                                            <>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-[#8C7F72]">From:</span>
-                                                    <select value={m || ''} onChange={(e) => updateEvent(event.id, { eventDate: `${y || currentYear}-${e.target.value}-01` })}
-                                                        className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none">
-                                                        <option value="">Month</option>
-                                                        {months.map((mon, i) => <option key={mon} value={(i + 1).toString().padStart(2, '0')}>{mon.slice(0, 3)}</option>)}
-                                                    </select>
-                                                    <select value={y || ''} onChange={(e) => updateEvent(event.id, { eventDate: `${e.target.value}-${m || '01'}-01` })}
-                                                        className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none">
-                                                        <option value="">Year</option>
-                                                        {years.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-                                                    </select>
-                                                </div>
-                                                <span className="text-[#E8A849] text-xl font-bold">→</span>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-[#8C7F72]">To:</span>
-                                                    <select className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none">
-                                                        <option value="">Month</option>
-                                                        {months.map((mon, i) => <option key={mon} value={(i + 1).toString().padStart(2, '0')}>{mon.slice(0, 3)}</option>)}
-                                                    </select>
-                                                    <select value={event.endDate || ''} onChange={(e) => updateEvent(event.id, { endDate: e.target.value })}
-                                                        className="h-[48px] px-3 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none">
-                                                        <option value="">Year</option>
-                                                        {years.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-                                                    </select>
-                                                </div>
-                                            </>
-                                        )}
-
-                                        {/* Year Range */}
-                                        {dateType === 'year_range' && (
-                                            <>
-                                                <span className="text-sm text-[#8C7F72]">From:</span>
-                                                <select value={y || ''} onChange={(e) => updateEvent(event.id, { eventDate: e.target.value })}
-                                                    className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none">
-                                                    <option value="">Start Year</option>
-                                                    {years.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-                                                </select>
-                                                <span className="text-[#E8A849] text-xl font-bold">→</span>
-                                                <span className="text-sm text-[#8C7F72]">To:</span>
-                                                <select value={event.endDate || ''} onChange={(e) => updateEvent(event.id, { endDate: e.target.value })}
-                                                    className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none">
-                                                    <option value="">End Year</option>
-                                                    {years.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-                                                </select>
-                                            </>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Event Importance Selector - MANDATORY */}
-                                <div>
-                                    <label className="block text-sm font-medium text-[#E8A849] mb-3">
-                                        ⚡ How significant was this event? <span className="text-[#D64545]">*</span>
-                                    </label>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                        {IMPORTANCE_OPTIONS.map((opt) => {
-                                            const isSelected = event.importance === opt.level;
-                                            return (
-                                                <button
-                                                    key={opt.level}
-                                                    onClick={() => updateEvent(event.id, { importance: opt.level })}
-                                                    className={`p-4 rounded-xl text-left transition-all border-2 ${isSelected
-                                                        ? 'bg-[#E8A849]/20 border-[#E8A849]'
-                                                        : 'bg-[#2E2724] border-transparent hover:border-[#E8A849]/30'
-                                                        }`}
-                                                >
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        <span className="text-xl">{opt.icon}</span>
-                                                        <span className={`font-semibold text-sm ${isSelected ? 'text-[#F5F0EB]' : 'text-[#C4B8AD]'}`}>
-                                                            {opt.label}
-                                                        </span>
-                                                    </div>
-                                                    <div className={`text-xs ${isSelected ? 'text-[#E8A849]' : 'text-[#8C7F72]'}`}>
-                                                        {opt.desc}
-                                                    </div>
-                                                    <div className="mt-2 text-[10px] text-[#8C7F72]">
-                                                        Weight: {opt.weight}x
-                                                    </div>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                    {!event.importance && (
-                                        <p className="text-[#D64545] text-xs mt-2">Please select importance level</p>
-                                    )}
-                                </div>
-
-                                {/* Description */}
-                                <div>
-                                    <label className="block text-sm font-medium text-[#E8A849] mb-3">
-                                        📝 Describe your experience <span className="text-[#D64545]">*</span>
-                                    </label>
-                                    <textarea
-                                        value={event.description || ''}
-                                        onChange={(e) => updateEvent(event.id, { description: e.target.value })}
-                                        placeholder="What happened? How did you feel? Any memorable circumstances..."
-                                        className={`w-full h-[100px] p-5 bg-[#2E2724] border rounded-lg text-[#F5F0EB] placeholder-[#8C7F72] resize-none focus:ring-2 outline-none transition-all ${event.description ? 'border-[#5CB57B]/50' : 'border-[#D64545]/50'
-                                            }`}
-                                    />
-                                    <div className="flex items-center gap-2 mt-3 text-xs text-[#5CB57B]">
-                                        <span>🔒</span><span>End-to-end encrypted</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
+                      <button
+                        key={opt.level}
+                        onClick={() => updateEvent(editingEvent.id, { importance: opt.level })}
+                        className={`p-4 rounded-xl text-left transition-all border-2 ${
+                          isSelected
+                            ? 'bg-[#E8A849]/20 border-[#E8A849]'
+                            : 'bg-[#2E2724] border-transparent hover:border-[#E8A849]/30'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-xl">{opt.icon}</span>
+                          <span className={`font-semibold text-sm ${isSelected ? 'text-[#F5F0EB]' : 'text-[#C4B8AD]'}`}>
+                            {opt.label}
+                          </span>
+                        </div>
+                        <div className={`text-xs ${isSelected ? 'text-[#E8A849]' : 'text-[#8C7F72]'}`}>
+                          {opt.desc}
+                        </div>
+                      </button>
                     );
-                })()}
-            </AnimatePresence>
-
-            {/* ══════════════════════════════════════════════════════════════ */}
-            {/* ADD EVENTS CONTAINER (Categories on TOP, BTR below) */}
-            {/* ══════════════════════════════════════════════════════════════ */}
-            {!editingId && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-[#241F1C] rounded-xl border border-[#C4B8AD]/10 overflow-hidden">
-                    {/* Categories Header */}
-                    <div className="px-6 py-4 border-b border-[#C4B8AD]/10">
-                        <h3 className="text-sm font-semibold text-[#F5F0EB]">📂 Browse Categories</h3>
-                    </div>
-
-                    {/* Category Buttons */}
-                    <div className="p-5 border-b border-[#C4B8AD]/10">
-                        <div className="flex flex-wrap gap-2">
-                            {EVENT_CATEGORIES.map(cat => (
-                                <button
-                                    key={cat.id}
-                                    onClick={() => setSelectedCat(selectedCat?.id === cat.id ? null : cat)}
-                                    className={`px-4 py-2 rounded-lg text-sm transition-all ${selectedCat?.id === cat.id
-                                        ? 'bg-[#E8A849] text-[#1A1614] font-medium'
-                                        : 'bg-[#2E2724] text-[#C4B8AD] hover:bg-[#3A3330]'
-                                        }`}
-                                >
-                                    {cat.icon} {cat.label}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* Sub-categories */}
-                        <AnimatePresence>
-                            {selectedCat && (
-                                <motion.div
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: 'auto' }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    className="mt-4 p-4 bg-[#2E2724] rounded-lg"
-                                >
-                                    <p className="text-xs text-[#8C7F72] mb-3">{selectedCat.icon} {selectedCat.label} events:</p>
-                                    <div className="flex flex-wrap gap-2">
-                                        {selectedCat.events.map(evt => (
-                                            <button
-                                                key={evt.id}
-                                                onClick={() => addEvent(evt.label, selectedCat.icon, selectedCat.id)}
-                                                className="px-3 py-2 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-sm text-[#C4B8AD] hover:border-[#E8A849]/50 hover:text-[#F5F0EB] transition-all"
-                                            >
-                                                + {evt.label}
-                                            </button>
-                                        ))}
-                                        {/* Custom Event Button */}
-                                        <button
-                                            onClick={() => addEvent("Custom Event", selectedCat.icon, selectedCat.id, true)}
-                                            className="px-3 py-2 bg-[#2E2724] border border-[#E8A849] border-dashed rounded-lg text-sm text-[#E8A849] hover:bg-[#E8A849]/10 transition-all font-medium"
-                                        >
-                                            + Custom Event
-                                        </button>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
-
-                    {/* High Impact Events (smaller, same container) */}
-                    <div className="p-5">
-                        <h4 className="text-xs font-semibold text-[#E8A849] mb-3 flex items-center gap-2">
-                            <span>🎯</span> High-Impact Events
-                            <span className="text-[#8C7F72] font-normal">(recommended for accuracy)</span>
-                        </h4>
-                        <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
-                            {BTR_EVENTS.map((evt, i) => {
-                                const added = isAdded(evt.label);
-                                return (
-                                    <button
-                                        key={i}
-                                        onClick={() => !added && addEvent(evt.label, evt.icon, evt.cat)}
-                                        disabled={added}
-                                        className={`p-3 rounded-lg text-center transition-all border ${added
-                                            ? 'bg-[#5CB57B]/10 border-[#5CB57B]/30 cursor-default'
-                                            : 'bg-[#2E2724] border-transparent hover:border-[#E8A849]/30'
-                                            }`}
-                                    >
-                                        <div className="text-xl">{evt.icon}</div>
-                                        <div className="text-[10px] text-[#C4B8AD] mt-1 line-clamp-2 leading-tight h-[24px] flex items-center justify-center">{evt.label}</div>
-                                        {!added && <div className="text-[9px] text-[#E8A849]">+{evt.boost}%</div>}
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </motion.div>
-            )}
-
-            {/* ══════════════════════════════════════════════════════════════ */}
-            {/* DIVINE GUIDANCE (Persuasion Engine) */}
-            {/* ══════════════════════════════════════════════════════════════ */}
-            {!editingId && (
-                <div className="relative group">
-                    <div className="absolute -inset-0.5 bg-gradient-to-r from-[#D4AF37]/0 via-[#D4AF37]/20 to-[#D4AF37]/0 rounded-2xl blur opacity-30 group-hover:opacity-60 transition duration-1000"></div>
-                    <div className="relative bg-[#1A1614] border border-[#D4AF37]/30 rounded-2xl p-6 overflow-hidden">
-                        <div className="flex items-start gap-6">
-                            <div className="w-16 h-16 rounded-full bg-[#D4AF37]/10 flex items-center justify-center flex-shrink-0 border border-[#D4AF37]/20 shadow-[0_0_20px_rgba(212,175,55,0.1)]">
-                                <span className="text-3xl">🧘‍♂️</span>
-                            </div>
-                            <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <h3 className="text-[#E8A849] font-black uppercase tracking-[0.2em] text-xs">Divine Guidance</h3>
-                                    <div className="h-[1px] flex-1 bg-gradient-to-r from-[#D4AF37]/30 to-transparent"></div>
-                                </div>
-
-                                <div className="space-y-4">
-                                    {accuracy < 50 ? (
-                                        <>
-                                            <p className="text-[#F5F0EB] text-lg font-bold leading-tight">
-                                                “Your life’s tapestry is still thin. The planets need more anchors to calculate your true destiny.”
-                                            </p>
-                                            <p className="text-[#8C7F72] text-sm italic">
-                                                With only {lifeEvents.length} events, the rectification engine remains in a fog. To achieve sub-10s precision, we require at least {
-                                                    offsetConfig?.preset === '30min' ? '4' : '8'
-                                                } diverse significant milestones. Poor data leads to blurred results.
-                                            </p>
-                                        </>
-                                    ) : accuracy < 85 ? (
-                                        <>
-                                            <p className="text-[#F5F0EB] text-lg font-bold leading-tight">
-                                                “The alignment is forming, but the nodes remain restless. Diversify your story.”
-                                            </p>
-                                            <p className="text-[#8C7F72] text-sm italic">
-                                                You have provided good volume, but lacks variety. Have you experienced any sudden <span className="text-[#E8A849]">Karmic Twists</span> (accidents/scams) or <span className="text-[#E8A849]">Identity Shifts</span> (weight change/name change)? Adding these will lock your Ascendant degree.
-                                            </p>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <p className="text-[#5CB57B] text-lg font-bold leading-tight">
-                                                “The Karma is converging. Your timeline is now a solid pillar for rectification.”
-                                            </p>
-                                            <p className="text-[#8C7F72] text-sm italic">
-                                                Excellent detail. You have provided a wide range of house-triggers (Bhavas). The precision will be exceptional.
-                                            </p>
-                                        </>
-                                    )}
-
-                                    {/* Categorical Suggestions */}
-                                    <div className="flex flex-wrap gap-2 mt-4">
-                                        {!lifeEvents.some(e => e.category === 'marriage') && (
-                                            <button onClick={() => setSelectedCat(EVENT_CATEGORIES.find(c => c.id === 'marriage') || null)} className="px-3 py-1.5 rounded-full bg-[#E8A849]/5 border border-[#E8A849]/20 text-[10px] text-[#E8A849] hover:bg-[#E8A849]/10 transition-all font-bold tracking-widest uppercase">
-                                                + Relationship History
-                                            </button>
-                                        )}
-                                        {!lifeEvents.some(e => e.category === 'karmic_events') && (
-                                            <button onClick={() => setSelectedCat(EVENT_CATEGORIES.find(c => c.id === 'karmic_events') || null)} className="px-3 py-1.5 rounded-full bg-[#E8A849]/5 border border-[#E8A849]/20 text-[10px] text-[#E8A849] hover:bg-[#E8A849]/10 transition-all font-bold tracking-widest uppercase">
-                                                + Sudden Accidents/Luck
-                                            </button>
-                                        )}
-                                        {!lifeEvents.some(e => e.category === 'identity_shifts') && (
-                                            <button onClick={() => setSelectedCat(EVENT_CATEGORIES.find(c => c.id === 'identity_shifts') || null)} className="px-3 py-1.5 rounded-full bg-[#E8A849]/5 border border-[#E8A849]/20 text-[10px] text-[#E8A849] hover:bg-[#E8A849]/10 transition-all font-bold tracking-widest uppercase">
-                                                + Physical Transformations
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                  })}
                 </div>
-            )}
+              </FormField>
 
-            {/* ══════════════════════════════════════════════════════════════ */}
-            {/* TIMELINE */}
-            {/* ══════════════════════════════════════════════════════════════ */}
-            {lifeEvents.length > 0 && (
-                <div className="bg-[#241F1C] rounded-xl border border-[#C4B8AD]/10">
-                    <div className="px-6 py-4 border-b border-[#C4B8AD]/10 flex justify-between">
-                        <h3 className="text-sm font-semibold text-[#F5F0EB]">📜 Your Journey Timeline</h3>
-                        <span className="text-xs text-[#8C7F72]">{lifeEvents.length} events added</span>
-                    </div>
-                    <div className="divide-y divide-[#C4B8AD]/10">
-                        {sortedEvents.map((event) => (
-                            <motion.div
-                                key={event.id}
-                                onClick={() => setEditingId(event.id)}
-                                className="flex items-center gap-5 p-5 cursor-pointer hover:bg-[#2E2724] transition-colors"
-                                whileHover={{ x: 4 }}
-                            >
-                                <span className="text-3xl">{event.icon}</span>
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                        <div className="text-[#F5F0EB] font-medium">{event.eventType}</div>
-                                        {event.importance && (
-                                            <span className={`text-xs px-2 py-0.5 rounded-full ${
-                                                event.importance === 'critical' ? 'bg-[#D64545]/20 text-[#D64545]' :
-                                                event.importance === 'high' ? 'bg-[#E8A849]/20 text-[#E8A849]' :
-                                                event.importance === 'medium' ? 'bg-[#5CB57B]/20 text-[#5CB57B]' :
-                                                'bg-[#8C7F72]/20 text-[#8C7F72]'
-                                            }`}>
-                                                {IMPORTANCE_OPTIONS.find(i => i.level === event.importance)?.icon} {' '}
-                                                {IMPORTANCE_OPTIONS.find(i => i.level === event.importance)?.label}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="text-xs text-[#E8A849] mb-1">
-                                        {formatEventDate(event)}
-                                    </div>
-                                    {event.description && (
-                                        <p className="text-sm text-[#C4B8AD] line-clamp-2 leading-relaxed">
-                                            {event.description}
-                                        </p>
-                                    )}
-                                </div>
-                                {!event.description ? (
-                                    <span className="px-3 py-1 bg-[#D64545]/10 border border-[#D64545]/30 text-[#D64545] text-xs rounded-full">Add details</span>
-                                ) : (
-                                    <span className="text-[#5CB57B] text-lg">✓</span>
-                                )}
-                            </motion.div>
-                        ))}
-                    </div>
+              {/* Description */}
+              <FormField label="Describe your experience" required>
+                <textarea
+                  value={editingEvent.description || ''}
+                  onChange={(e) => updateEvent(editingEvent.id, { description: e.target.value })}
+                  placeholder="What happened? How did you feel? Any memorable circumstances..."
+                  className={`w-full h-[100px] p-4 bg-[#2E2724] border rounded-lg text-[#F5F0EB] placeholder-[#8C7F72] resize-none focus:ring-2 outline-none transition-all ${
+                    editingEvent.description ? 'border-[#5CB57B]/50' : 'border-[#D64545]/50'
+                  }`}
+                />
+                <div className="flex items-center gap-2 mt-2 text-xs text-[#5CB57B]">
+                  <span>🔒</span><span>End-to-end encrypted</span>
                 </div>
-            )}
+              </FormField>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            {/* Empty State */}
-            {lifeEvents.length === 0 && !editingId && (
-                <div className="bg-[#241F1C] rounded-xl border border-[#C4B8AD]/10 p-12 text-center">
-                    <div className="text-6xl mb-4">📅</div>
-                    <h3 className="text-xl font-semibold text-[#F5F0EB] mb-2">Your timeline starts here</h3>
-                    <p className="text-[#8C7F72]">Select a category above to add your first event</p>
+      {/* Add Events Section */}
+      {!editingId && (
+        <FormCard>
+          {/* Category Tabs */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {EVENT_CATEGORIES.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCat(selectedCat === cat.id ? null : cat.id)}
+                className={`px-4 py-2 rounded-lg text-sm transition-all ${
+                  selectedCat === cat.id
+                    ? 'bg-[#E8A849] text-[#1A1614] font-medium'
+                    : 'bg-[#2E2724] text-[#C4B8AD] hover:bg-[#3A3330]'
+                }`}
+              >
+                {cat.icon} {cat.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Category Events */}
+          <AnimatePresence>
+            {selectedCat && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mb-6 p-4 bg-[#2E2724] rounded-lg"
+              >
+                <p className="text-xs text-[#8C7F72] mb-3">
+                  {EVENT_CATEGORIES.find(c => c.id === selectedCat)?.icon} Events:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {EVENT_CATEGORIES.find(c => c.id === selectedCat)?.events.map(evt => (
+                    <button
+                      key={evt.id}
+                      onClick={() => addEvent(evt.label, EVENT_CATEGORIES.find(c => c.id === selectedCat)?.icon || '📅', selectedCat)}
+                      className="px-3 py-2 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-sm text-[#C4B8AD] hover:border-[#E8A849]/50 hover:text-[#F5F0EB] transition-all"
+                    >
+                      + {evt.label}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => addEvent("Custom Event", EVENT_CATEGORIES.find(c => c.id === selectedCat)?.icon || '📅', selectedCat, true)}
+                    className="px-3 py-2 bg-[#2E2724] border border-[#E8A849] border-dashed rounded-lg text-sm text-[#E8A849] hover:bg-[#E8A849]/10 font-medium"
+                  >
+                    + Custom
+                  </button>
                 </div>
+              </motion.div>
             )}
+          </AnimatePresence>
+
+          {/* High-Impact Events */}
+          <div>
+            <h4 className="text-xs font-semibold text-[#E8A849] mb-3 flex items-center gap-2">
+              <span>🎯</span> High-Impact Events
+              <span className="text-[#8C7F72] font-normal">(recommended for accuracy)</span>
+            </h4>
+            <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+              {BTR_EVENTS.map((evt, i) => {
+                const added = isAdded(evt.label);
+                return (
+                  <button
+                    key={i}
+                    onClick={() => !added && addEvent(evt.label, evt.icon, evt.cat)}
+                    disabled={added}
+                    className={`p-3 rounded-lg text-center transition-all border ${
+                      added
+                        ? 'bg-[#5CB57B]/10 border-[#5CB57B]/30 cursor-default'
+                        : 'bg-[#2E2724] border-transparent hover:border-[#E8A849]/30'
+                    }`}
+                  >
+                    <div className="text-xl">{evt.icon}</div>
+                    <div className="text-[10px] text-[#C4B8AD] mt-1 line-clamp-2 leading-tight h-[24px] flex items-center justify-center">
+                      {evt.label}
+                    </div>
+                    {!added && <div className="text-[9px] text-[#E8A849]">+{evt.boost}%</div>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </FormCard>
+      )}
+
+      {/* Timeline */}
+      {sortedEvents.length > 0 && (
+        <FormCard>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-sm font-semibold text-[#F5F0EB]">📜 Your Journey Timeline</h3>
+            <span className="text-xs text-[#8C7F72]">{sortedEvents.length} events</span>
+          </div>
+          <div className="divide-y divide-[#C4B8AD]/10">
+            {sortedEvents.map((event) => (
+              <motion.div
+                key={event.id}
+                onClick={() => setEditingId(event.id)}
+                className="flex items-center gap-4 p-4 cursor-pointer hover:bg-[#2E2724] transition-colors rounded-lg"
+                whileHover={{ x: 4 }}
+              >
+                <span className="text-2xl">{event.icon}</span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <div className="text-[#F5F0EB] font-medium">{event.eventType}</div>
+                    {event.importance && (
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${
+                        event.importance === 'critical' ? 'bg-[#D64545]/20 text-[#D64545]' :
+                        event.importance === 'high' ? 'bg-[#E8A849]/20 text-[#E8A849]' :
+                        event.importance === 'medium' ? 'bg-[#5CB57B]/20 text-[#5CB57B]' :
+                        'bg-[#8C7F72]/20 text-[#8C7F72]'
+                      }`}>
+                        {IMPORTANCE_OPTIONS.find(i => i.level === event.importance)?.icon}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-[#E8A849]">{formatEventDate(event)}</div>
+                  {event.description && (
+                    <p className="text-sm text-[#C4B8AD] line-clamp-1 mt-1">{event.description}</p>
+                  )}
+                </div>
+                {event.description ? (
+                  <span className="text-[#5CB57B]">✓</span>
+                ) : (
+                  <span className="px-2 py-1 bg-[#D64545]/10 text-[#D64545] text-xs rounded-full">Add details</span>
+                )}
+              </motion.div>
+            ))}
+          </div>
+        </FormCard>
+      )}
+
+      {/* Empty State */}
+      {sortedEvents.length === 0 && !editingId && (
+        <div className="bg-[#241F1C] rounded-xl border border-[#C4B8AD]/10 p-12 text-center">
+          <div className="text-6xl mb-4">📅</div>
+          <h3 className="text-xl font-semibold text-[#F5F0EB] mb-2">Your timeline starts here</h3>
+          <p className="text-[#8C7F72]">Select a category above to add your first event</p>
         </div>
+      )}
+    </div>
+  );
+}
+
+// Date Input Component
+interface DateInputProps {
+  precision: DatePrecision;
+  event: LifeEvent;
+  onUpdate: (updates: Partial<LifeEvent>) => void;
+}
+
+function DateInput({ precision, event, onUpdate }: DateInputProps) {
+  const [y, m, d] = (event.eventDate || '').split('-');
+
+  const handleDateChange = (part: 'y' | 'm' | 'd', value: string) => {
+    const newY = part === 'y' ? value : (y || CURRENT_YEAR.toString());
+    const newM = part === 'm' ? value.padStart(2, '0') : (m || '01');
+    const newD = part === 'd' ? value.padStart(2, '0') : (d || '01');
+    onUpdate({ eventDate: `${newY}-${newM}-${newD}` });
+  };
+
+  if (precision === 'year_range') {
+    return (
+      <div className="flex items-center gap-3 bg-[#2E2724] p-4 rounded-lg">
+        <select
+          value={y || ''}
+          onChange={(e) => onUpdate({ eventDate: e.target.value })}
+          className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none"
+        >
+          <option value="">Start Year</option>
+          {YEARS.map(yr => <option key={yr} value={yr}>{yr}</option>)}
+        </select>
+        <span className="text-[#E8A849] text-xl">→</span>
+        <select
+          value={event.endDate || ''}
+          onChange={(e) => onUpdate({ endDate: e.target.value })}
+          className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none"
+        >
+          <option value="">End Year</option>
+          {YEARS.map(yr => <option key={yr} value={yr}>{yr}</option>)}
+        </select>
+      </div>
     );
+  }
+
+  if (precision === 'month_year') {
+    return (
+      <div className="flex gap-3 bg-[#2E2724] p-4 rounded-lg">
+        <select
+          value={m || ''}
+          onChange={(e) => handleDateChange('m', e.target.value)}
+          className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none flex-1"
+        >
+          <option value="">Month</option>
+          {MONTHS.map((mon, i) => <option key={mon} value={(i + 1).toString()}>{mon}</option>)}
+        </select>
+        <select
+          value={y || ''}
+          onChange={(e) => handleDateChange('y', e.target.value)}
+          className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none"
+        >
+          <option value="">Year</option>
+          {YEARS.map(yr => <option key={yr} value={yr}>{yr}</option>)}
+        </select>
+      </div>
+    );
+  }
+
+  // Default: exact date
+  return (
+    <div className="flex gap-3 bg-[#2E2724] p-4 rounded-lg">
+      <select
+        value={d || ''}
+        onChange={(e) => handleDateChange('d', e.target.value)}
+        className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none"
+      >
+        <option value="">Day</option>
+        {DAYS.map(day => <option key={day} value={day}>{day}</option>)}
+      </select>
+      <select
+        value={m || ''}
+        onChange={(e) => handleDateChange('m', e.target.value)}
+        className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none flex-1"
+      >
+        <option value="">Month</option>
+        {MONTHS.map((mon, i) => <option key={mon} value={(i + 1).toString()}>{mon}</option>)}
+      </select>
+      <select
+        value={y || ''}
+        onChange={(e) => handleDateChange('y', e.target.value)}
+        className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none"
+      >
+        <option value="">Year</option>
+        {YEARS.map(yr => <option key={yr} value={yr}>{yr}</option>)}
+      </select>
+    </div>
+  );
 }
