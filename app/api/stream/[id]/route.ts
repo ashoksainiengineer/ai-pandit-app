@@ -25,8 +25,29 @@ export async function GET(
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // 2. Verify Session Ownership
-    const session = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+    // 2. Verify Session Ownership - handle missing forensicTraits column
+    let session: any[] = [];
+    try {
+        const result = await db.query.sessions.findFirst({
+            where: eq(sessions.id, sessionId)
+        });
+        if (result) {
+            session = [result];
+        }
+    } catch (dbError: any) {
+        if (dbError.message?.includes('forensicTraits') || dbError.message?.includes('no such column')) {
+            console.log('[GET /api/stream/:id] forensicTraits column missing, using fallback query...');
+            const { client } = await import('@/database/drizzle');
+            const rawResult = await client.execute({
+                sql: `SELECT id, userId, clerkId FROM sessions WHERE id = ?`,
+                args: [sessionId]
+            });
+            session = rawResult.rows as any[];
+        } else {
+            throw dbError;
+        }
+    }
+
     if (session.length === 0) {
         return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }

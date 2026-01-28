@@ -20,11 +20,32 @@ async function getUserSessions(clerkId: string) {
             return [];
         }
 
-        // Get their sessions
-        const userSessions = await db.query.sessions.findMany({
-            where: eq(sessions.userId, user.id),
-            orderBy: [desc(sessions.createdAt)],
-        });
+        // Get their sessions - handle missing forensicTraits column gracefully
+        let userSessions: any[] = [];
+        try {
+            const result = await db.query.sessions.findMany({
+                where: eq(sessions.userId, user.id),
+                orderBy: [desc(sessions.createdAt)],
+            });
+            userSessions = result;
+        } catch (dbError: any) {
+            if (dbError.message?.includes('forensicTraits') || dbError.message?.includes('no such column')) {
+                console.log('[Dashboard] forensicTraits column missing, using fallback query...');
+                const { client } = await import('@/database/drizzle');
+                const rawResult = await client.execute({
+                    sql: `SELECT id, userId, clerkId, fullName, dateOfBirth, tentativeTime,
+                          birthPlace, latitude, longitude, timezone, gender, physicalTraits,
+                          lifeEvents, offsetConfig, rectifiedTime, accuracy, confidence,
+                          analysisResult, progressData, reasoningLogs, status, errorMessage,
+                          createdAt, updatedAt, completedAt
+                          FROM sessions WHERE userId = ? ORDER BY createdAt DESC`,
+                    args: [user.id]
+                });
+                userSessions = rawResult.rows as any[];
+            } else {
+                throw dbError;
+            }
+        }
 
         // Decrypt names for display
         return userSessions.map(s => ({
