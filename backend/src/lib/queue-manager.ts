@@ -427,18 +427,25 @@ async function processQueue(): Promise<void> {
 
       // 🚀 GOD-TIER: Dynamic Pressure Throttling (HF Spaces Free Tier: 16GB RAM)
       const memory = process.memoryUsage();
-      const heapUsedPercent = (memory.heapUsed / memory.heapTotal);
       const heapUsedGB = memory.heapUsed / 1024 / 1024 / 1024;
+      const heapTotalGB = memory.heapTotal / 1024 / 1024 / 1024;
+      const rssGB = memory.rss / 1024 / 1024 / 1024;
       let effectiveMaxConcurrent = QUEUE_CONFIG.maxConcurrent;
 
       // Pressure restriction triggers when:
-      // 1. Heap usage > 80% OR heap > 6GB
+      // RSS > 10GB (actual system memory pressure)
+      // OR heapUsed > 8GB (Node.js heap getting full)
       // This ensures stability while utilizing HF Spaces 16GB capacity
-      const MEMORY_THRESHOLD_PERCENT = parseFloat(process.env.MEMORY_THRESHOLD_PERCENT || '80');
-      const GC_THRESHOLD_GB = parseFloat(process.env.GC_THRESHOLD_GB || '6');
+      const RSS_THRESHOLD_GB = parseFloat(process.env.RSS_THRESHOLD_GB || '10');
+      const HEAP_THRESHOLD_GB = parseFloat(process.env.HEAP_THRESHOLD_GB || '8');
       
-      if (heapUsedPercent > (MEMORY_THRESHOLD_PERCENT / 100) || heapUsedGB > GC_THRESHOLD_GB) {
-        logger.warn(`[PRESSURE] RAM Pressure detected (${(heapUsedPercent * 100).toFixed(1)}%, ${heapUsedGB.toFixed(2)}GB), restricting concurrency from ${effectiveMaxConcurrent} to 1`);
+      // Only log memory stats every 10 iterations to reduce noise
+      if (Math.random() < 0.1) {
+        logger.info(`[MEMORY] RSS: ${rssGB.toFixed(2)}GB | Heap: ${heapUsedGB.toFixed(2)}GB / ${heapTotalGB.toFixed(2)}GB | Concurrent: ${activeProcessingIds.size}/${effectiveMaxConcurrent}`);
+      }
+      
+      if (rssGB > RSS_THRESHOLD_GB || heapUsedGB > HEAP_THRESHOLD_GB) {
+        logger.warn(`[PRESSURE] RAM Pressure detected (RSS: ${rssGB.toFixed(2)}GB, Heap: ${heapUsedGB.toFixed(2)}GB), restricting concurrency from ${effectiveMaxConcurrent} to 1`);
         effectiveMaxConcurrent = 1;
         
         // Trigger GC if available
@@ -519,29 +526,33 @@ async function processSessionAsync(sessionId: string): Promise<void> {
     // Process the analysis
     try {
       // 🔐 Decrypt sensitive data using clerkId (encryption key)
-      // Use safeDecrypt to handle both encrypted and plain text data
       const lifeEventsData = safeDecrypt(s.lifeEvents, s.clerkId);
+      if (!lifeEventsData) {
+        throw new Error('Failed to decrypt lifeEvents data');
+      }
       const decryptedLifeEvents = JSON.parse(lifeEventsData);
       
       let decryptedPhysicalTraits: any = undefined;
       if (s.physicalTraits) {
-        try {
-          const decrypted = safeDecrypt(s.physicalTraits, s.clerkId);
-          decryptedPhysicalTraits = JSON.parse(decrypted);
-        } catch (e) {
-          logger.warn('Failed to parse physicalTraits, using undefined', { sessionId, error: e });
-          decryptedPhysicalTraits = undefined;
+        const decrypted = safeDecrypt(s.physicalTraits, s.clerkId);
+        if (decrypted) {
+          try {
+            decryptedPhysicalTraits = JSON.parse(decrypted);
+          } catch (e) {
+            logger.warn('Failed to parse physicalTraits JSON, using undefined', { sessionId, error: e });
+          }
         }
       }
       
       let decryptedForensicTraits: any = undefined;
       if (s.forensicTraits) {
-        try {
-          const decrypted = safeDecrypt(s.forensicTraits, s.clerkId);
-          decryptedForensicTraits = JSON.parse(decrypted);
-        } catch (e) {
-          logger.warn('Failed to parse forensicTraits, using undefined', { sessionId, error: e });
-          decryptedForensicTraits = undefined;
+        const decrypted = safeDecrypt(s.forensicTraits, s.clerkId);
+        if (decrypted) {
+          try {
+            decryptedForensicTraits = JSON.parse(decrypted);
+          } catch (e) {
+            logger.warn('Failed to parse forensicTraits JSON, using undefined', { sessionId, error: e });
+          }
         }
       }
 

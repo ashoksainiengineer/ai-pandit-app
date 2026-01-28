@@ -1,59 +1,95 @@
-# AI-Pandit Backend Dockerfile
-# Optimized for Hugging Face Spaces Free Tier (16GB RAM)
+# ═══════════════════════════════════════════════════════════════════════════════
+# AI-PANDIT BACKEND - PRODUCTION DOCKERFILE
+# Multi-stage build optimized for Hugging Face Spaces Free Tier (16GB RAM)
+# ═══════════════════════════════════════════════════════════════════════════════
 
-FROM node:20-slim
+# ───────────────────────────────────────────────────────────────────────────────
+# STAGE 1: Builder
+# Compiles TypeScript and installs dependencies
+# ───────────────────────────────────────────────────────────────────────────────
+FROM node:20-slim AS builder
 
-# Install system dependencies for Swiss Ephemeris
-RUN apt-get update && apt-get install -y \
+# Install build-time dependencies for native modules
+RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 \
     make \
     g++ \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Create app directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for layer caching
 COPY package*.json ./
 COPY drizzle.config.* ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install all dependencies (including devDependencies for build)
+RUN npm ci
 
-# Copy ephemeris data
-COPY ephe/ ./ephe/
-
-# Copy source code
+# Copy source code and build
 COPY src/ ./src/
 COPY tsconfig.json ./
 
-# Build TypeScript
+# Compile TypeScript to JavaScript
 RUN npm run build
 
-# Remove dev dependencies after build
-RUN npm prune --production
+# ───────────────────────────────────────────────────────────────────────────────
+# STAGE 2: Production
+# Minimal runtime image with only production artifacts
+# ───────────────────────────────────────────────────────────────────────────────
+FROM node:20-slim AS production
 
-# Set environment variables (HF Spaces Free Tier: 16GB RAM)
+# Install runtime-only dependencies (curl for healthchecks)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+WORKDIR /app
+
+# Copy built artifacts from builder stage
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+
+# Copy ephemeris data files (Swiss Ephemeris)
+COPY ephe/ ./ephe/
+
+# ───────────────────────────────────────────────────────────────────────────────
+# ENVIRONMENT CONFIGURATION
+# ───────────────────────────────────────────────────────────────────────────────
+
+# Node.js runtime configuration
 ENV NODE_ENV=production
 ENV PORT=7860
 ENV EPHE_PATH=/app/ephe
 
-# Memory optimization for 16GB RAM
-# Allow Node.js to use up to 8GB heap (leaving room for other processes)
-ENV NODE_OPTIONS="--max-old-space-size=8192"
+# Memory configuration for HF Spaces 16GB RAM
+# 10GB heap leaves 6GB for system, ephemeris data, and concurrent processing
+ENV NODE_OPTIONS="--max-old-space-size=10240"
 
-# Queue configuration
+# Queue processing limits
 ENV MAX_CONCURRENT_SESSIONS=3
-ENV MEMORY_THRESHOLD_PERCENT=80
-ENV GC_THRESHOLD_GB=10
+ENV RSS_THRESHOLD_GB=10
+ENV HEAP_THRESHOLD_GB=8
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:7860/ || exit 1
+# ───────────────────────────────────────────────────────────────────────────────
+# HEALTH CHECK
+# Verifies application is responsive
+# ───────────────────────────────────────────────────────────────────────────────
+HEALTHCHECK \
+    --interval=30s \
+    --timeout=10s \
+    --start-period=40s \
+    --retries=3 \
+    CMD curl -fsS http://localhost:7860/ || exit 1
 
-# Expose port
+# ───────────────────────────────────────────────────────────────────────────────
+# NETWORK CONFIGURATION
+# ───────────────────────────────────────────────────────────────────────────────
 EXPOSE 7860
 
-# Start command with memory optimizations
+# ───────────────────────────────────────────────────────────────────────────────
+# STARTUP COMMAND
+# --expose-gc enables manual garbage collection for memory optimization
+# ───────────────────────────────────────────────────────────────────────────────
 CMD ["node", "--expose-gc", "dist/server.js"]
