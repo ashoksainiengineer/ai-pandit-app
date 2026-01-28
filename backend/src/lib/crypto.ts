@@ -85,17 +85,23 @@ export function decryptObject<T>(encryptedString: string, userId: string): T {
  * Check if a string looks like encrypted data
  */
 export function isEncrypted(data: string): boolean {
+    if (!data || typeof data !== 'string') return false;
+    
+    // Quick check: encrypted data always contains colons
+    if (!data.includes(':')) return false;
+    
     // Encrypted format: base64:base64:base64
     const parts = data.split(':');
     if (parts.length !== 3) return false;
 
-    try {
-        // Check if all parts are valid base64
-        parts.forEach(part => Buffer.from(part, 'base64'));
-        return true;
-    } catch {
-        return false;
+    // Check each part is non-empty and looks like base64
+    const base64Pattern = /^[A-Za-z0-9+/=]+$/;
+    for (const part of parts) {
+        if (!part || part.length < 4) return false;
+        if (!base64Pattern.test(part)) return false;
     }
+    
+    return true;
 }
 
 /**
