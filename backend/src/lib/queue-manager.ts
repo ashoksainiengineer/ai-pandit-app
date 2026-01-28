@@ -504,6 +504,14 @@ async function processSessionAsync(sessionId: string): Promise<void> {
     }
 
     const s = session[0];
+    
+    // Debug logging for forensicTraits issue
+    logger.info('Session data retrieved', {
+      sessionId,
+      hasForensicTraits: !!s.forensicTraits,
+      forensicTraitsPreview: s.forensicTraits ? s.forensicTraits.substring(0, 50) : null,
+      isForensicTraitsEncrypted: s.forensicTraits ? isEncrypted(s.forensicTraits) : false
+    });
 
     // 🛑 Create AbortController for this session
     const abortController = createAbortController(sessionId);
@@ -515,12 +523,27 @@ async function processSessionAsync(sessionId: string): Promise<void> {
       const lifeEventsData = safeDecrypt(s.lifeEvents, s.clerkId);
       const decryptedLifeEvents = JSON.parse(lifeEventsData);
       
-      const decryptedPhysicalTraits = s.physicalTraits
-        ? JSON.parse(safeDecrypt(s.physicalTraits, s.clerkId))
-        : undefined;
-      const decryptedForensicTraits = s.forensicTraits
-        ? JSON.parse(safeDecrypt(s.forensicTraits, s.clerkId))
-        : undefined;
+      let decryptedPhysicalTraits: any = undefined;
+      if (s.physicalTraits) {
+        try {
+          const decrypted = safeDecrypt(s.physicalTraits, s.clerkId);
+          decryptedPhysicalTraits = JSON.parse(decrypted);
+        } catch (e) {
+          logger.warn('Failed to parse physicalTraits, using undefined', { sessionId, error: e });
+          decryptedPhysicalTraits = undefined;
+        }
+      }
+      
+      let decryptedForensicTraits: any = undefined;
+      if (s.forensicTraits) {
+        try {
+          const decrypted = safeDecrypt(s.forensicTraits, s.clerkId);
+          decryptedForensicTraits = JSON.parse(decrypted);
+        } catch (e) {
+          logger.warn('Failed to parse forensicTraits, using undefined', { sessionId, error: e });
+          decryptedForensicTraits = undefined;
+        }
+      }
 
       const result = await processSecondsPrecisionBTR({
         sessionId: sessionId,
