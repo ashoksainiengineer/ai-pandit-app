@@ -16,10 +16,10 @@ export function FormLabel({ children, htmlFor, required, className = '' }: FormL
   return (
     <label
       htmlFor={htmlFor}
-      className={`block text-sm font-medium text-[#E8A849] mb-2 ${className}`}
+      className={`block text-sm font-medium text-[#C4B8AD] mb-2 ${className}`}
     >
       {children}
-      {required && <span className="text-[#D64545] ml-1">*</span>}
+      {required && <span className="text-[#EF4444] ml-1">*</span>}
     </label>
   );
 }

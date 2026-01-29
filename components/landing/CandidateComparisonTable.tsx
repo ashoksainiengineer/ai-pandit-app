@@ -1,7 +1,6 @@
 /**
- * Candidate Comparison Table
+ * Candidate Comparison Table - Light Theme Edition
  * Shows top BTR candidates with scores and ephemeris data
- * Matches the CandidateComparisonView design from rectify page
  */
 
 'use client';
@@ -113,7 +112,6 @@ const candidatesData: CandidateData[] = [
 
 export default function CandidateComparisonTable() {
   const [expandedRows, setExpandedRows] = useState<number[]>([1]);
-  const [selectedCandidates, setSelectedCandidates] = useState<number[]>([1, 2]);
 
   const toggleRow = (rank: number) => {
     setExpandedRows(prev => 
@@ -132,39 +130,39 @@ export default function CandidateComparisonTable() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl border border-[#D4AF37]/30 bg-[#1A1F2E]/80 backdrop-blur-sm overflow-hidden"
+      className="rounded-2xl border border-[#D4A853]/30 bg-white overflow-hidden shadow-sm"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-[#0F1419]/50 border-b border-[#2A3442]">
+      <div className="flex items-center justify-between px-5 py-4 bg-[#FDF8F3] border-b border-[#F0E8DE]">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-            <Scale className="w-4 h-4 text-white" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#6B1F7A] to-[#8B4A9C] flex items-center justify-center">
+            <Scale className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h3 className="text-sm font-bold text-[#F5F0EB]">Candidate Analysis</h3>
-            <p className="text-[10px] text-[#8C7F72] uppercase tracking-wider">Top 4 BTR Results</p>
+            <h3 className="text-sm font-bold text-[#1A1612]">Candidate Analysis</h3>
+            <p className="text-[10px] text-[#7A756F] uppercase tracking-wider">Top 4 BTR Results</p>
           </div>
         </div>
 
         {/* Winner Badge */}
         <div className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider
-          ${scoreDiff > 5 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}
+          ${scoreDiff > 5 ? 'bg-emerald-100 text-emerald-600 border border-emerald-200' : 'bg-amber-100 text-amber-600 border border-amber-200'}`}
         >
           {scoreDiff > 5 ? 'Clear Winner' : 'Close Match'}
         </div>
       </div>
 
       {/* Top 2 Comparison Cards */}
-      <div className="grid grid-cols-2 gap-3 p-4 border-b border-[#2A3442]">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-5 border-b border-[#F0E8DE]">
         {topTwoCandidates.map((candidate) => (
           <motion.div
             key={candidate.rank}
             whileHover={{ scale: 1.01 }}
             className={`
-              bg-[#0F1419]/70 rounded-xl p-4 border transition-all
+              bg-[#FDF8F3] rounded-xl p-5 border transition-all
               ${candidate.isWinner
-                ? 'border-[#D4AF37]/50 shadow-[0_0_15px_rgba(212,175,55,0.15)]'
-                : 'border-[#3A4452]'
+                ? 'border-[#D4A853]/50 shadow-md'
+                : 'border-[#F0E8DE]'
               }
             `}
           >
@@ -172,33 +170,33 @@ export default function CandidateComparisonTable() {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 {candidate.isWinner ? (
-                  <Trophy className="w-5 h-5 text-[#D4AF37]" />
+                  <Trophy className="w-5 h-5 text-[#B8860B]" />
                 ) : (
-                  <Medal className="w-5 h-5 text-[#8C7F72]" />
+                  <Medal className="w-5 h-5 text-[#7A756F]" />
                 )}
-                <span className="text-[10px] text-[#8C7F72] font-bold uppercase">Rank #{candidate.rank}</span>
+                <span className="text-[10px] text-[#7A756F] font-bold uppercase">Rank #{candidate.rank}</span>
               </div>
               {candidate.isWinner && (
-                <span className="text-[8px] bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 rounded-full font-bold uppercase">
+                <span className="text-[8px] bg-[#B8860B]/10 text-[#B8860B] px-2 py-0.5 rounded-full font-bold uppercase">
                   Winner
                 </span>
               )}
             </div>
 
             {/* Time */}
-            <div className="text-2xl font-black text-[#F5F0EB] font-mono mb-2">
+            <div className="text-2xl font-black text-[#1A1612] font-mono mb-2">
               {candidate.time}
             </div>
 
             {/* Score */}
             <div className="mb-3">
               <div className="flex items-center justify-between text-xs mb-1">
-                <span className="text-[#8C7F72]">Confidence Score</span>
-                <span className={`font-bold ${candidate.score >= 90 ? 'text-emerald-400' : candidate.score >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>
+                <span className="text-[#7A756F]">Confidence Score</span>
+                <span className={`font-bold ${candidate.score >= 90 ? 'text-emerald-600' : candidate.score >= 70 ? 'text-amber-600' : 'text-rose-600'}`}>
                   {candidate.score.toFixed(1)}%
                 </span>
               </div>
-              <div className="w-full bg-[#2A3442] rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-[#F0E8DE] rounded-full h-2 overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${candidate.score}%` }}
@@ -209,22 +207,22 @@ export default function CandidateComparisonTable() {
             </div>
 
             {/* Ephemeris Summary */}
-            <div className="space-y-1 text-[10px] font-mono border-t border-[#3A4452] pt-2">
+            <div className="space-y-1 text-[10px] font-mono border-t border-[#F0E8DE] pt-2">
               <div className="flex justify-between">
-                <span className="text-[#8C7F72]">☉ Sun</span>
-                <span className="text-[#C4B8AD]">{candidate.sun}</span>
+                <span className="text-[#7A756F]">☉ Sun</span>
+                <span className="text-[#4A453F]">{candidate.sun}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#8C7F72]">☽ Moon</span>
-                <span className="text-[#C4B8AD]">{candidate.moon}</span>
+                <span className="text-[#7A756F]">☽ Moon</span>
+                <span className="text-[#4A453F]">{candidate.moon}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#8C7F72]">↑ Asc</span>
-                <span className="text-[#C4B8AD]">{candidate.ascendant}</span>
+                <span className="text-[#7A756F]">↑ Asc</span>
+                <span className="text-[#4A453F]">{candidate.ascendant}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-[#8C7F72]">D60</span>
-                <span className="text-[#D4AF37]">{candidate.d60}</span>
+                <span className="text-[#7A756F]">D60</span>
+                <span className="text-[#B8860B]">{candidate.d60}</span>
               </div>
             </div>
 
@@ -232,10 +230,10 @@ export default function CandidateComparisonTable() {
             <div className="mt-3 flex items-center gap-2">
               <div className="flex-1">
                 <div className="flex items-center justify-between text-[9px] mb-0.5">
-                  <span className="text-[#8C7F72]">Event Correlation</span>
-                  <span className="text-[#C4B8AD]">{candidate.eventMatches}/{candidate.totalEvents}</span>
+                  <span className="text-[#7A756F]">Event Correlation</span>
+                  <span className="text-[#4A453F]">{candidate.eventMatches}/{candidate.totalEvents}</span>
                 </div>
-                <div className="w-full bg-[#2A3442] rounded-full h-1 overflow-hidden">
+                <div className="w-full bg-[#F0E8DE] rounded-full h-1 overflow-hidden">
                   <div 
                     className="h-full bg-blue-500 rounded-full"
                     style={{ width: `${(candidate.eventMatches / candidate.totalEvents) * 100}%` }}
@@ -248,8 +246,8 @@ export default function CandidateComparisonTable() {
       </div>
 
       {/* Comparison Details */}
-      <div className="p-4 border-b border-[#2A3442]">
-        <h4 className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold mb-3">Key Differences Analysis</h4>
+      <div className="p-5 border-b border-[#F0E8DE]">
+        <h4 className="text-[10px] text-[#7A756F] uppercase tracking-wider font-bold mb-3">Key Differences Analysis</h4>
         <div className="space-y-2">
           {[
             { label: 'Sun Position', left: winner.sun, right: runnerUp.sun },
@@ -260,15 +258,15 @@ export default function CandidateComparisonTable() {
             const matches = row.left === row.right;
             return (
               <div key={row.label} className="flex items-center gap-3 text-[10px]">
-                <span className="w-24 text-[#8C7F72] font-medium flex-shrink-0">{row.label}</span>
-                <div className="flex-1 flex items-center justify-between gap-2 bg-[#0F1419]/50 rounded-lg px-3 py-2">
-                  <span className="font-mono text-[#C4B8AD]">{row.left}</span>
+                <span className="w-24 text-[#7A756F] font-medium flex-shrink-0">{row.label}</span>
+                <div className="flex-1 flex items-center justify-between gap-2 bg-[#FDF8F3] rounded-lg px-3 py-2">
+                  <span className="font-mono text-[#4A453F]">{row.left}</span>
                   {matches ? (
-                    <Check className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                    <Check className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                   ) : (
-                    <AlertTriangle className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
                   )}
-                  <span className="font-mono text-[#C4B8AD]">{row.right}</span>
+                  <span className="font-mono text-[#4A453F]">{row.right}</span>
                 </div>
               </div>
             );
@@ -280,100 +278,103 @@ export default function CandidateComparisonTable() {
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="bg-[#0F1419]/50 border-b border-[#2A3442]">
-              <th className="px-4 py-2 text-left text-[#8C7F72] font-medium">Rank</th>
-              <th className="px-4 py-2 text-left text-[#8C7F72] font-medium">Time</th>
-              <th className="px-4 py-2 text-left text-[#8C7F72] font-medium">Score</th>
-              <th className="px-4 py-2 text-left text-[#8C7F72] font-medium hidden md:table-cell">Sun</th>
-              <th className="px-4 py-2 text-left text-[#8C7F72] font-medium hidden md:table-cell">Moon</th>
-              <th className="px-4 py-2 text-left text-[#8C7F72] font-medium hidden lg:table-cell">Ascendant</th>
-              <th className="px-4 py-2 text-left text-[#8C7F72] font-medium">Events</th>
-              <th className="px-4 py-2 text-center text-[#8C7F72] font-medium"></th>
+            <tr className="bg-[#FDF8F3] border-b border-[#F0E8DE]">
+              <th className="px-4 py-3 text-left text-[#7A756F] font-medium">Rank</th>
+              <th className="px-4 py-3 text-left text-[#7A756F] font-medium">Time</th>
+              <th className="px-4 py-3 text-left text-[#7A756F] font-medium">Score</th>
+              <th className="px-4 py-3 text-left text-[#7A756F] font-medium hidden md:table-cell">Sun</th>
+              <th className="px-4 py-3 text-left text-[#7A756F] font-medium hidden md:table-cell">Moon</th>
+              <th className="px-4 py-3 text-left text-[#7A756F] font-medium hidden lg:table-cell">Ascendant</th>
+              <th className="px-4 py-3 text-left text-[#7A756F] font-medium">Events</th>
+              <th className="px-4 py-3 text-center text-[#7A756F] font-medium"></th>
             </tr>
           </thead>
           <tbody>
-            {candidatesData.map((candidate, index) => (
-              <>
-                <tr 
-                  key={candidate.rank}
-                  className={`border-b border-[#2A3442]/50 hover:bg-[#2A3442]/20 transition-colors ${
-                    candidate.isWinner ? 'bg-[#D4AF37]/5' : ''
-                  }`}
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      {candidate.isWinner ? (
-                        <Trophy className="w-4 h-4 text-[#D4AF37]" />
-                      ) : (
-                        <span className="text-[#8C7F72] font-mono">#{candidate.rank}</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-[#F5F0EB]">{candidate.time}</td>
-                  <td className="px-4 py-3">
-                    <span className={`font-bold ${candidate.score >= 90 ? 'text-emerald-400' : candidate.score >= 70 ? 'text-amber-400' : 'text-rose-400'}`}>
-                      {candidate.score.toFixed(1)}%
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-[#C4B8AD] hidden md:table-cell">{candidate.sun}</td>
-                  <td className="px-4 py-3 text-[#C4B8AD] hidden md:table-cell">{candidate.moon}</td>
-                  <td className="px-4 py-3 text-[#D4AF37] hidden lg:table-cell">{candidate.ascendant}</td>
-                  <td className="px-4 py-3">
-                    <span className="text-[#C4B8AD]">{candidate.eventMatches}/{candidate.totalEvents}</span>
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    <button
-                      onClick={() => toggleRow(candidate.rank)}
-                      className="p-1 hover:bg-[#2A3442] rounded transition-colors"
-                    >
-                      {expandedRows.includes(candidate.rank) ? (
-                        <ChevronUp className="w-4 h-4 text-[#8C7F72]" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4 text-[#8C7F72]" />
-                      )}
-                    </button>
-                  </td>
-                </tr>
-                {expandedRows.includes(candidate.rank) && (
-                  <tr>
-                    <td colSpan={8} className="px-4 py-3 bg-[#0F1419]/30">
-                      <div className="space-y-2">
-                        <div className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold">AI Analysis Reasons</div>
-                        <ul className="space-y-1">
-                          {candidate.reasons.map((reason, i) => (
-                            <li key={i} className="flex items-start gap-2 text-xs text-[#C4B8AD]">
-                              <span className="text-[#D4AF37] mt-0.5">•</span>
-                              {reason}
-                            </li>
-                          ))}
-                        </ul>
-                        <div className="flex items-center gap-4 mt-3 pt-2 border-t border-[#2A3442]">
-                          <div className="text-[10px]">
-                            <span className="text-[#8C7F72]">Boundary Distance: </span>
-                            <span className="text-[#C4B8AD] font-mono">{candidate.boundaryDistance.toFixed(2)}</span>
-                          </div>
-                          <div className="text-[10px]">
-                            <span className="text-[#8C7F72]">D60: </span>
-                            <span className="text-[#D4AF37]">{candidate.d60}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </>
+            {candidatesData.map((candidate) => (
+              <tr 
+                key={candidate.rank}
+                className={`border-b border-[#F0E8DE] hover:bg-[#FDF8F3] transition-colors ${
+                  candidate.isWinner ? 'bg-[#B8860B]/5' : ''
+                }`}
+              >
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    {candidate.isWinner ? (
+                      <Trophy className="w-4 h-4 text-[#B8860B]" />
+                    ) : (
+                      <span className="text-[#7A756F] font-mono">#{candidate.rank}</span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-4 py-3 font-mono text-[#1A1612]">{candidate.time}</td>
+                <td className="px-4 py-3">
+                  <span className={`font-bold ${candidate.score >= 90 ? 'text-emerald-600' : candidate.score >= 70 ? 'text-amber-600' : 'text-rose-600'}`}>
+                    {candidate.score.toFixed(1)}%
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-[#4A453F] hidden md:table-cell">{candidate.sun}</td>
+                <td className="px-4 py-3 text-[#4A453F] hidden md:table-cell">{candidate.moon}</td>
+                <td className="px-4 py-3 text-[#B8860B] hidden lg:table-cell">{candidate.ascendant}</td>
+                <td className="px-4 py-3">
+                  <span className="text-[#4A453F]">{candidate.eventMatches}/{candidate.totalEvents}</span>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <button
+                    onClick={() => toggleRow(candidate.rank)}
+                    className="p-1 hover:bg-[#F0E8DE] rounded transition-colors"
+                  >
+                    {expandedRows.includes(candidate.rank) ? (
+                      <ChevronUp className="w-4 h-4 text-[#7A756F]" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-[#7A756F]" />
+                    )}
+                  </button>
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>
       </div>
 
+      {/* Expanded Rows Content */}
+      {candidatesData.map((candidate) => (
+        expandedRows.includes(candidate.rank) && (
+          <div 
+            key={`expanded-${candidate.rank}`}
+            className="px-5 py-4 bg-[#FDF8F3] border-b border-[#F0E8DE]"
+          >
+            <div className="space-y-2">
+              <div className="text-[10px] text-[#7A756F] uppercase tracking-wider font-bold">AI Analysis Reasons</div>
+              <ul className="space-y-1">
+                {candidate.reasons.map((reason, i) => (
+                  <li key={`reason-${candidate.rank}-${i}`} className="flex items-start gap-2 text-xs text-[#4A453F]">
+                    <span className="text-[#B8860B] mt-0.5">•</span>
+                    {reason}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex items-center gap-4 mt-3 pt-2 border-t border-[#F0E8DE]">
+                <div className="text-[10px]">
+                  <span className="text-[#7A756F]">Boundary Distance: </span>
+                  <span className="text-[#4A453F] font-mono">{candidate.boundaryDistance.toFixed(2)}</span>
+                </div>
+                <div className="text-[10px]">
+                  <span className="text-[#7A756F]">D60: </span>
+                  <span className="text-[#B8860B]">{candidate.d60}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      ))}
+
       {/* AI Verdict */}
-      <div className="p-4 bg-[#D4AF37]/10 border-t border-[#D4AF37]/30">
+      <div className="p-5 bg-[#B8860B]/10 border-t border-[#D4A853]/30">
         <div className="flex items-start gap-3">
-          <Trophy className="w-5 h-5 text-[#D4AF37] mt-0.5" />
+          <Trophy className="w-5 h-5 text-[#B8860B] mt-0.5" />
           <div>
-            <h4 className="text-sm font-bold text-[#D4AF37] mb-1">AI Comparison Verdict</h4>
-            <p className="text-xs text-[#C4B8AD] leading-relaxed">
+            <h4 className="text-sm font-bold text-[#B8860B] mb-1">AI Comparison Verdict</h4>
+            <p className="text-xs text-[#4A453F] leading-relaxed">
               {winner.time} is preferred
               {scoreDiff > 5
                 ? ` with a significant ${scoreDiff.toFixed(1)}% lead. `

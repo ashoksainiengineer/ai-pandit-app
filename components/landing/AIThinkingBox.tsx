@@ -1,7 +1,6 @@
 /**
- * AI Thinking Box Component
+ * AI Thinking Box Component - Light Theme Edition
  * Matrix-style terminal with real-time streaming analysis
- * INFINITE LOOP - Never stops running
  */
 
 'use client';
@@ -16,10 +15,6 @@ interface LogEntry {
   type: 'info' | 'process' | 'success' | 'calculation' | 'astrology';
   message: string;
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// INFINITE CONTENT - 100+ entries that loops forever
-// ═══════════════════════════════════════════════════════════════════════════════
 
 const analysisSequence = [
   { type: 'info' as const, message: 'Initializing AI Pandit BTR Engine...', delay: 0 },
@@ -101,11 +96,11 @@ const analysisSequence = [
 ];
 
 const typeColors = {
-  info: 'text-[#8C7F72]',
-  process: 'text-[#8B5CF6]',
-  success: 'text-emerald-400',
-  calculation: 'text-amber-400',
-  astrology: 'text-[#D4AF37]',
+  info: 'text-[#7A756F]',
+  process: 'text-[#6B1F7A]',
+  success: 'text-emerald-600',
+  calculation: 'text-[#B8860B]',
+  astrology: 'text-[#4A7C6F]',
 };
 
 const typeIcons = {
@@ -116,13 +111,21 @@ const typeIcons = {
   astrology: Activity,
 };
 
+// Static timestamp to avoid hydration mismatch
+const STATIC_TIME = '15:22:30';
+
 export default function AIThinkingBox() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [cursorVisible, setCursorVisible] = useState(true);
+  const [isClient, setIsClient] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const logIdRef = useRef(0);
   const timeoutsRef = useRef<NodeJS.Timeout[]>([]);
   const isRunningRef = useRef(true);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const clearAllTimeouts = useCallback(() => {
     timeoutsRef.current.forEach(timeout => clearTimeout(timeout));
@@ -138,7 +141,7 @@ export default function AIThinkingBox() {
         
         const newLog: LogEntry = {
           id: logIdRef.current++,
-          timestamp: new Date().toISOString().split('T')[1].split('.')[0],
+          timestamp: STATIC_TIME,
           type: entry.type,
           message: entry.message,
         };
@@ -147,7 +150,7 @@ export default function AIThinkingBox() {
       timeoutsRef.current.push(timeout);
     });
 
-    // Schedule next loop - NO PAUSE
+    // Schedule next loop
     const loopTimeout = setTimeout(() => {
       if (isRunningRef.current) {
         runSequence();
@@ -183,52 +186,48 @@ export default function AIThinkingBox() {
     }
   }, [logs]);
 
+  if (!isClient) {
+    return (
+      <div className="rounded-2xl border border-[#F0E8DE] bg-white overflow-hidden h-80">
+        <div className="h-full flex items-center justify-center">
+          <div className="text-[#7A756F]">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-xl border border-[#8B5CF6]/30 bg-[#1A1F2E]/80 backdrop-blur-sm overflow-hidden"
+        className="rounded-2xl border border-[#F0E8DE] bg-white overflow-hidden shadow-sm"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 bg-[#0F1419]/50 border-b border-[#2A3442]">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#8B5CF6] to-[#6366F1] flex items-center justify-center relative overflow-hidden">
-              <motion.div
-                animate={{ y: [-20, 20] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-0 bg-white/20 h-1 w-full"
-              />
-              <Brain className="w-4 h-4 text-white relative z-10" />
+        <div className="flex items-center justify-between px-5 py-4 bg-[#FDF8F3] border-b border-[#F0E8DE]">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold text-[#1A1612]">AI Pandit BTR Engine</h3>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600 border border-emerald-200 font-semibold">
+                RUNNING
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-[#F5F0EB]">AI Pandit BTR Engine</h3>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-black">
-                  RUNNING
-                </span>
-              </div>
-              <p className="text-[10px] text-[#8C7F72] font-mono">
-                Powered by Hugging Face Space
-              </p>
-            </div>
+            <p className="text-[10px] text-[#7A756F] font-mono">
+              Swiss Ephemeris • Hugging Face Space • DeepSeek R1-0528
+            </p>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-xs text-emerald-400 font-medium tracking-widest">LIVE</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs text-emerald-600 font-medium tracking-widest">LIVE</span>
           </div>
         </div>
 
         {/* Terminal Content */}
         <div 
           ref={scrollRef}
-          className="h-72 overflow-y-auto p-4 font-mono text-xs bg-[#0F1419]/50 scroll-smooth"
-          style={{
-            scrollbarWidth: 'thin',
-            scrollbarColor: '#8B5CF6 #1A1F2E',
-          }}
+          className="h-72 overflow-y-auto p-5 font-mono text-xs bg-[#FFFCF8] scroll-smooth"
         >
-          <pre className="whitespace-pre-wrap break-words text-[#C4B8AD] leading-relaxed">
+          <pre className="whitespace-pre-wrap break-words text-[#4A453F] leading-relaxed">
             {logs.map((log) => {
               const Icon = typeIcons[log.type];
               return (
@@ -238,28 +237,26 @@ export default function AIThinkingBox() {
                   animate={{ opacity: 1, x: 0 }}
                   className="flex items-start gap-2 py-0.5"
                 >
-                  <span className="text-[#2D3A4A] shrink-0">[{log.timestamp}]</span>
+                  <span className="text-[#A8A39D] shrink-0">[{log.timestamp}]</span>
                   <Icon className={`w-3 h-3 mt-0.5 shrink-0 ${typeColors[log.type]}`} />
                   <span className={`${typeColors[log.type]} break-all`}>{log.message}</span>
                 </motion.div>
               );
             })}
             <span
-              className={`inline-block w-2 h-4 bg-[#8B5CF6] ml-0.5 ${cursorVisible ? 'opacity-100' : 'opacity-0'}`}
+              className={`inline-block w-2 h-4 bg-[#6B1F7A] ml-0.5 ${cursorVisible ? 'opacity-100' : 'opacity-0'}`}
               style={{ verticalAlign: 'text-bottom' }}
             />
           </pre>
         </div>
 
-        {/* Status Bar */}
-        <div className="flex items-center justify-between px-4 py-2 bg-[#0F1419]/80 border-t border-[#2A3442] text-xs">
-          <div className="flex items-center gap-4">
-            <span className="text-[#8C7F72]">Process: <span className="text-[#C4B8AD]">BTR_CORE</span></span>
-            <span className="text-[#8C7F72]">PID: <span className="text-[#C4B8AD]">87234</span></span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-[#8C7F72]">Memory: <span className="text-[#C4B8AD]">128MB</span></span>
-            <span className="text-[#8C7F72]">Threads: <span className="text-[#C4B8AD]">16</span></span>
+        {/* Security Badge */}
+        <div className="flex items-center justify-center px-5 py-3 bg-[#FDF8F3] border-t border-[#F0E8DE] text-xs">
+          <div className="flex items-center gap-2 text-[#7A756F]">
+            <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <span>AES-256 End-to-End Encrypted</span>
           </div>
         </div>
       </motion.div>

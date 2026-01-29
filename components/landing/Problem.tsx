@@ -1,6 +1,6 @@
 /**
- * Problem Section - Technical Pain Points
- * Focus on technical superiority and algorithmic precision
+ * Problem Section - Sacred Ivory Edition
+ * Elegant comparison with balanced spacing
  */
 
 'use client';
@@ -13,14 +13,13 @@ import {
   XCircle,
   CheckCircle2,
   Database,
-  Activity,
   Target,
-  Zap,
   Telescope,
   Brain,
   Server,
   Layers,
-  Workflow
+  Workflow,
+  Star
 } from 'lucide-react';
 
 const comparisonPoints = [
@@ -47,7 +46,7 @@ const comparisonPoints = [
       accuracy: '±0.0001° (0.36 arcsec)'
     },
     icon: Target,
-    color: '#8B5CF6'
+    color: '#6B1F7A'
   },
   {
     category: 'Processing Speed',
@@ -72,7 +71,7 @@ const comparisonPoints = [
       accuracy: '<50 minutes'
     },
     icon: Timer,
-    color: '#6366F1'
+    color: '#B8860B'
   },
   {
     category: 'Method Coverage',
@@ -97,7 +96,7 @@ const comparisonPoints = [
       accuracy: '8+ methods'
     },
     icon: GitCompare,
-    color: '#D4AF37'
+    color: '#4A7C6F'
   },
   {
     category: 'Data Processing',
@@ -122,62 +121,77 @@ const comparisonPoints = [
       accuracy: '∞ events'
     },
     icon: Database,
-    color: '#10B981'
+    color: '#C65D3B'
   }
 ];
 
 const technicalSpecs = [
-  { label: 'Ephemeris', value: 'Swiss Ephemeris', icon: Telescope },
-  { label: 'Precision', value: '±0.0001° (0.36 arcsec)', icon: Target },
-  { label: 'AI Model', value: 'DeepSeek R1', icon: Brain },
-  { label: 'Database', value: 'Turso (libSQL)', icon: Database },
-  { label: 'ORM', value: 'Drizzle', icon: Layers },
-  { label: 'Cache', value: 'LRU Cache (1000)', icon: Server },
+  { label: 'Ephemeris', value: 'Swiss Ephemeris', icon: Telescope, color: '#8B4A9C' },
+  { label: 'Precision', value: '±0.0001° (0.36 arcsec)', icon: Target, color: '#B8860B' },
+  { label: 'AI Model', value: 'DeepSeek R1', icon: Brain, color: '#4A7C6F' },
+  { label: 'Database', value: 'Turso (libSQL)', icon: Database, color: '#C65D3B' },
+  { label: 'ORM', value: 'Drizzle', icon: Layers, color: '#6B1F7A' },
+  { label: 'Cache', value: 'LRU Cache (1000)', icon: Server, color: '#D4A853' },
 ];
 
 const backendComponents = [
-  { name: 'Ephemeris Service', purpose: 'Swiss Ephemeris calculations with WASM' },
-  { name: 'BTR Processor', purpose: '6-stage batch tournament pipeline' },
-  { name: 'Session Manager', purpose: 'Real-time SSE event streaming' },
-  { name: 'Progress Tracker', purpose: 'In-memory progress with persistence' },
-  { name: 'Consensus Engine', purpose: 'Multi-method weighted scoring' },
-  { name: 'AI Client', purpose: 'DeepSeek integration' },
+  { name: 'Ephemeris Service', purpose: 'Swiss Ephemeris calculations with WASM', color: '#6B1F7A' },
+  { name: 'BTR Processor', purpose: '6-stage batch tournament pipeline', color: '#B8860B' },
+  { name: 'Session Manager', purpose: 'Real-time SSE event streaming', color: '#4A7C6F' },
+  { name: 'Progress Tracker', purpose: 'In-memory progress with persistence', color: '#C65D3B' },
+  { name: 'Consensus Engine', purpose: 'Multi-method weighted scoring', color: '#4A7C6F' },
+  { name: 'AI Client', purpose: 'DeepSeek integration', color: '#8B4A9C' },
 ];
 
 export default function Problem() {
   return (
-    <section className="py-24 bg-[#0A0F1C]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="relative py-24 lg:py-32 overflow-hidden">
+      {/* Soft Background Elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 right-0 w-[500px] h-[500px] bg-purple-100/30 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 left-0 w-[400px] h-[400px] bg-amber-100/30 rounded-full blur-3xl" />
+      </div>
+
+      <div className="relative max-w-7xl mx-auto px-6 lg:px-8">
+        {/* Section Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-20"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#1A1F2E] border border-[#2A3442] rounded-full text-[#8C7F72] text-sm mb-6">
-            <GitCompare className="w-4 h-4" />
-            Technical Comparison
-          </div>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#F5F0EB] mb-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#F0E8DE] 
+                       rounded-full text-sm mb-8 shadow-sm"
+          >
+            <GitCompare className="w-4 h-4 text-[#6B1F7A]" />
+            <span className="text-[#4A453F]">Technical Comparison</span>
+          </motion.div>
+          
+          <h2 className="font-[family-name:var(--font-cormorant)] text-3xl md:text-4xl lg:text-5xl 
+                         font-semibold text-[#1A1612] mb-6 leading-tight">
             Algorithmic{' '}
-            <span className="bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] bg-clip-text text-transparent">
-              Precision
-            </span>
+            <span className="text-gradient-gold">Precision</span>
             {' '}vs Manual Methods
           </h2>
-          <p className="text-lg text-[#8C7F72] max-w-3xl mx-auto">
+          
+          <p className="text-lg text-[#4A453F] max-w-3xl mx-auto leading-relaxed">
             Why computational Vedic astrology achieves superior results through 
-            systematic algorithmic processing.
+            systematic algorithmic processing aligned with cosmic precision.
           </p>
         </motion.div>
 
+        {/* Technical Specs Grid */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
           viewport={{ once: true }}
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-16"
+          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-20"
         >
           {technicalSpecs.map((spec, index) => {
             const Icon = spec.icon;
@@ -188,26 +202,39 @@ export default function Problem() {
                 whileInView={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.1 }}
                 viewport={{ once: true }}
-                className="p-4 bg-[#1A1F2E]/50 rounded-xl border border-[#2A3442] text-center backdrop-blur-sm"
+                className="group relative p-5 bg-white border border-[#F0E8DE] rounded-2xl 
+                           hover:border-[#D4A853]/30 hover:shadow-lg transition-all duration-300 text-center"
               >
-                <Icon className="w-5 h-5 text-[#D4AF37] mx-auto mb-2" />
-                <div className="text-xs text-[#5A6475] uppercase tracking-wider mb-1">{spec.label}</div>
-                <div className="text-sm font-medium text-[#F5F0EB]">{spec.value}</div>
+                {/* Subtle glow */}
+                <div 
+                  className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                  style={{
+                    background: `radial-gradient(circle at center, ${spec.color}08 0%, transparent 70%)`
+                  }}
+                />
+                
+                <div className="relative">
+                  <Icon className="w-6 h-6 mx-auto mb-3" style={{ color: spec.color }} />
+                  <div className="text-[10px] uppercase tracking-[0.15em] text-[#7A756F] mb-1">{spec.label}</div>
+                  <div className="text-sm font-medium text-[#1A1612]">{spec.value}</div>
+                </div>
               </motion.div>
             );
           })}
         </motion.div>
 
+        {/* Backend Components */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.3 }}
           viewport={{ once: true }}
-          className="mb-16"
+          className="mb-20"
         >
-          <h3 className="text-xl font-semibold text-[#F5F0EB] mb-6 text-center">
-            Backend Architecture Components
+          <h3 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612] mb-8 text-center">
+            Sacred Architecture Components
           </h3>
+          
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {backendComponents.map((comp, index) => (
               <motion.div
@@ -216,19 +243,28 @@ export default function Problem() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
                 viewport={{ once: true }}
-                className="p-4 bg-[#1A1F2E]/30 border border-[#2A3442] rounded-xl"
+                className="group p-5 bg-white border border-[#F0E8DE] rounded-2xl 
+                           hover:border-[#D4A853]/30 transition-all duration-300"
               >
-                <div className="flex items-center gap-3 mb-2">
-                  <Workflow className="w-4 h-4 text-[#8B5CF6]" />
-                  <span className="font-semibold text-[#F5F0EB]">{comp.name}</span>
+                <div className="flex items-center gap-4">
+                  <div 
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{ backgroundColor: `${comp.color}10` }}
+                  >
+                    <Workflow className="w-5 h-5" style={{ color: comp.color }} />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-[#1A1612] block">{comp.name}</span>
+                    <span className="text-sm text-[#7A756F]">{comp.purpose}</span>
+                  </div>
                 </div>
-                <div className="text-sm text-[#8C7F72]">{comp.purpose}</div>
               </motion.div>
             ))}
           </div>
         </motion.div>
 
-        <div className="space-y-8">
+        {/* Comparison Cards */}
+        <div className="space-y-6">
           {comparisonPoints.map((point, index) => {
             const Icon = point.icon;
             return (
@@ -238,58 +274,78 @@ export default function Problem() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
                 viewport={{ once: true }}
-                className="grid md:grid-cols-2 gap-6"
+                className="grid md:grid-cols-2 gap-4"
               >
-                <div className="p-6 bg-[#1A1F2E]/30 border border-[#2A3442] rounded-2xl">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-red-500/10 rounded-lg">
-                      <XCircle className="w-5 h-5 text-red-400" />
+                {/* Manual Method Card */}
+                <div className="p-6 lg:p-8 bg-[#FDF8F3] border border-[#F0E8DE] rounded-2xl">
+                  <div className="flex items-center gap-4 mb-6">
+                    <div className="p-3 bg-red-50 rounded-xl border border-red-100">
+                      <XCircle className="w-6 h-6 text-red-400" />
                     </div>
                     <div>
-                      <div className="text-sm text-[#8C7F72]">{point.category}</div>
-                      <h3 className="text-lg font-semibold text-[#C4B8AD]">{point.manual.title}</h3>
+                      <div className="text-xs uppercase tracking-[0.15em] text-[#7A756F]">{point.category}</div>
+                      <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-[#4A453F]">
+                        {point.manual.title}
+                      </h3>
                     </div>
                   </div>
-                  <ul className="space-y-2 mb-4">
+                  
+                  <ul className="space-y-3 mb-6">
                     {point.manual.issues.map((issue, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-[#8C7F72]">
+                      <li key={i} className="flex items-start gap-3 text-sm text-[#7A756F]">
                         <span className="text-red-400 mt-1">×</span>
                         {issue}
                       </li>
                     ))}
                   </ul>
-                  <div className="pt-4 border-t border-[#2A3442]">
-                    <div className="text-xs text-[#5A6475] uppercase tracking-wider mb-1">Typical Result</div>
-                    <div className="text-red-400 font-mono">{point.manual.accuracy}</div>
+                  
+                  <div className="pt-4 border-t border-[#F0E8DE]">
+                    <div className="text-[10px] uppercase tracking-[0.15em] text-[#A8A39D] mb-1">Typical Result</div>
+                    <div className="text-red-400 font-mono text-lg">{point.manual.accuracy}</div>
                   </div>
                 </div>
 
-                <div className="p-6 bg-[#1A1F2E]/50 border border-[#8B5CF6]/30 rounded-2xl relative overflow-hidden backdrop-blur-sm">
+                {/* AI Method Card */}
+                <div className="relative p-6 lg:p-8 bg-white border-2 border-[#D4A853]/30 rounded-2xl 
+                                overflow-hidden group hover:border-[#D4A853]/50 transition-all duration-300">
+                  {/* Glow effect */}
                   <div 
-                    className="absolute top-0 right-0 w-32 h-32 opacity-10"
-                    style={{ background: `radial-gradient(circle, ${point.color} 0%, transparent 70%)` }}
+                    className="absolute top-0 right-0 w-40 h-40 opacity-10 group-hover:opacity-20 transition-opacity"
+                    style={{
+                      background: `radial-gradient(circle, ${point.color} 0%, transparent 70%)`
+                    }}
                   />
-                  <div className="flex items-center gap-3 mb-4 relative">
-                    <div className="p-2 rounded-lg" style={{ backgroundColor: `${point.color}20` }}>
-                      <Icon className="w-5 h-5" style={{ color: point.color }} />
+                  
+                  <div className="relative">
+                    <div className="flex items-center gap-4 mb-6">
+                      <div 
+                        className="p-3 rounded-xl"
+                        style={{ backgroundColor: `${point.color}10` }}
+                      >
+                        <Icon className="w-6 h-6" style={{ color: point.color }} />
+                      </div>
+                      <div>
+                        <div className="text-xs uppercase tracking-[0.15em] text-[#7A756F]">{point.category}</div>
+                        <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-[#1A1612]">
+                          {point.ai.title}
+                        </h3>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-sm text-[#8C7F72]">{point.category}</div>
-                      <h3 className="text-lg font-semibold text-[#F5F0EB]">{point.ai.title}</h3>
-                    </div>
-                  </div>
-                  <ul className="space-y-2 mb-4 relative">
-                    {point.ai.advantages.map((advantage, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-[#C4B8AD]">
-                        <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: point.color }} />
-                        {advantage}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="pt-4 border-t border-[#2A3442] relative">
-                    <div className="text-xs text-[#5A6475] uppercase tracking-wider mb-1">Achieved Result</div>
-                    <div className="font-mono font-semibold" style={{ color: point.color }}>
-                      {point.ai.accuracy}
+                    
+                    <ul className="space-y-3 mb-6">
+                      {point.ai.advantages.map((advantage, i) => (
+                        <li key={i} className="flex items-start gap-3 text-sm text-[#4A453F]">
+                          <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" style={{ color: point.color }} />
+                          {advantage}
+                        </li>
+                      ))}
+                    </ul>
+                    
+                    <div className="pt-4 border-t border-[#F0E8DE]">
+                      <div className="text-[10px] uppercase tracking-[0.15em] text-[#A8A39D] mb-1">Achieved Result</div>
+                      <div className="font-mono text-lg font-semibold" style={{ color: point.color }}>
+                        {point.ai.accuracy}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -298,20 +354,30 @@ export default function Problem() {
           })}
         </div>
 
+        {/* Bottom CTA */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
           viewport={{ once: true }}
-          className="mt-16 p-8 bg-gradient-to-r from-[#1A1F2E] to-[#0F1419] border border-[#2A3442] rounded-2xl"
+          className="mt-20 p-8 lg:p-12 bg-gradient-to-br from-[#FDF8F3] via-white to-[#FAF5EF] 
+                     border border-[#F0E8DE] rounded-3xl relative overflow-hidden"
         >
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          {/* Decorative elements */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-amber-100/40 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-100/30 rounded-full blur-3xl" />
+          
+          <div className="relative flex flex-col md:flex-row items-center justify-between gap-6">
             <div>
-              <h3 className="text-2xl font-bold text-[#F5F0EB] mb-2">
-                Experience Algorithmic Precision
+              <div className="flex items-center gap-2 mb-3">
+                <Star className="w-5 h-5 text-[#B8860B] fill-[#B8860B]" />
+                <span className="text-xs uppercase tracking-[0.2em] text-[#B8860B]">Begin Your Journey</span>
+              </div>
+              <h3 className="font-[family-name:var(--font-cormorant)] text-2xl lg:text-3xl font-semibold text-[#1A1612] mb-2">
+                Experience Divine Precision
               </h3>
-              <p className="text-[#8C7F72]">
-                Join the technical revolution in Vedic astrology.
+              <p className="text-[#4A453F]">
+                Join the sacred revolution in Vedic astrology through algorithmic mastery.
               </p>
             </div>
           </div>

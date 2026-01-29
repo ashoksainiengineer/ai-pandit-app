@@ -1,7 +1,6 @@
 /**
- * AI Pandit Landing Page - Technical Showcase
- * Engineering-focused design highlighting algorithmic precision
- * Design System: Unified Dark theme #0A0F1C
+ * AI Pandit Landing Page - Celestial Design System
+ * Cosmic aesthetics with sacred Indian heritage
  */
 
 import { Metadata } from 'next';
@@ -9,19 +8,25 @@ import Hero from '@/components/landing/Hero';
 import Problem from '@/components/landing/Problem';
 import Solution from '@/components/landing/Solution';
 import { AccuracyShowcase } from '@/components/landing/AccuracyShowcase';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+import Navbar from '@/components/landing/Navbar';
+import Footer from '@/components/landing/Footer';
 
 export const metadata: Metadata = {
-  title: 'AI Pandit - Birth Time Rectification Engine v4.2',
-  description: 'NASA-grade Swiss Ephemeris calculations fused with DeepSeek AI. Achieve God-Tier precision in birth time rectification through algorithmic Vedic analysis.',
-  keywords: 'birth time rectification, vedic astrology, swiss ephemeris, deepseek ai, algorithmic astrology, btr engine',
+  title: 'AI Pandit | Celestial Birth Time Rectification',
+  description: 'Discover your precise birth time with divine accuracy. AI-powered Vedic astrology with seconds-level precision through celestial algorithmic analysis.',
+  keywords: 'birth time rectification, vedic astrology, jyotish, BTR, accurate birth time, kundli correction, celestial astrology',
+  openGraph: {
+    title: 'AI Pandit | Celestial Birth Time Rectification',
+    description: 'Discover your precise birth time with divine accuracy through AI-powered Vedic astrology.',
+    type: 'website',
+    locale: 'en_US',
+  },
 };
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-[#0A0F1C] text-[#F5F0EB] overflow-x-hidden">
-      <Navbar transparent />
+    <main className="min-h-screen overflow-x-hidden">
+      <Navbar />
       <Hero />
       <Problem />
       <Solution />

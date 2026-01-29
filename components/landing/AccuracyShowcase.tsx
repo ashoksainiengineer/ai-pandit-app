@@ -1,6 +1,6 @@
 /**
- * Accuracy Showcase Section - Technical Metrics
- * Engineering-focused precision metrics and calculation quality
+ * Accuracy Showcase Section - Sacred Ivory Edition
+ * Elegant precision metrics with warm colors
  */
 
 'use client';
@@ -19,7 +19,9 @@ import {
   Database,
   CheckCircle2,
   GitBranch,
-  Zap
+  Zap,
+  Sparkles,
+  Star
 } from 'lucide-react';
 
 const precisionMetrics = [
@@ -29,7 +31,7 @@ const precisionMetrics = [
     precision: '±5-15 min',
     methods: '1-2',
     time: '3-5 days',
-    color: '#71717A',
+    color: '#A8A39D',
   },
   {
     method: 'Basic Software',
@@ -37,7 +39,7 @@ const precisionMetrics = [
     precision: '±2-5 min',
     methods: '3-4',
     time: '1 hour',
-    color: '#3F3F46',
+    color: '#7A756F',
   },
   {
     method: 'AI Pandit BTR',
@@ -45,16 +47,16 @@ const precisionMetrics = [
     precision: '±15 sec',
     methods: '10+',
     time: '20-25 min',
-    color: '#00DC82',
+    color: '#B8860B',
     highlight: true,
   },
 ];
 
 const technicalMetrics = [
-  { label: 'Calculation Precision', value: 99.9, icon: Target, desc: 'IEEE 754 double-precision' },
-  { label: 'Method Consensus', value: 97.3, icon: BarChart3, desc: '10+ validation methods' },
-  { label: 'Event Correlation', value: 98.7, icon: TrendingUp, desc: 'Pattern matching score' },
-  { label: 'Processing Speed', value: 99.5, icon: Zap, desc: 'Sub-second calculations' },
+  { label: 'Calculation Precision', value: 99.9, icon: Target, desc: 'IEEE 754 double-precision', color: '#6B1F7A' },
+  { label: 'Method Consensus', value: 97.3, icon: BarChart3, desc: '10+ validation methods', color: '#B8860B' },
+  { label: 'Event Correlation', value: 98.7, icon: TrendingUp, desc: 'Pattern matching score', color: '#4A7C6F' },
+  { label: 'Processing Speed', value: 99.5, icon: Zap, desc: 'Sub-second calculations', color: '#C65D3B' },
 ];
 
 const systemMetrics = [
@@ -79,13 +81,13 @@ function AnimatedBar({ value, color, delay }: { value: number; color: string; de
   }, [isInView, value, delay]);
 
   return (
-    <div ref={ref} className="h-full bg-zinc-800 rounded-full overflow-hidden">
+    <div ref={ref} className="h-3 bg-[#F0E8DE] rounded-full overflow-hidden">
       <motion.div
         className="h-full rounded-full transition-all duration-1000 ease-out"
         style={{ 
           width: `${width}%`,
           backgroundColor: color,
-          boxShadow: width > 0 ? `0 0 20px ${color}40` : 'none'
+          boxShadow: width > 0 ? `0 0 20px ${color}30` : 'none'
         }}
       />
     </div>
@@ -94,35 +96,49 @@ function AnimatedBar({ value, color, delay }: { value: number; color: string; de
 
 export function AccuracyShowcase() {
   return (
-    <section className="relative py-24 lg:py-32 bg-[#0a0a0b] overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, #27272A 1px, transparent 0)`,
-          backgroundSize: '40px 40px'
-        }} />
+    <section className="relative py-24 lg:py-32 overflow-hidden">
+      {/* Soft Background Elements */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-0 w-[500px] h-[500px] bg-emerald-100/30 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-0 w-[400px] h-[400px] bg-amber-100/30 rounded-full blur-3xl" />
+        
+        {/* Subtle dot pattern */}
+        <div className="absolute inset-0 opacity-[0.015]" 
+          style={{
+            backgroundImage: `radial-gradient(circle at 1px 1px, #B8860B 1px, transparent 0)`,
+            backgroundSize: '40px 40px'
+          }} 
+        />
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="relative max-w-7xl mx-auto px-6 lg:px-8">
         {/* Section Header */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-16"
+          className="text-center mb-20"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-full text-zinc-400 text-sm mb-6">
-            <Terminal className="w-4 h-4" />
-            Precision Metrics
-          </div>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-6">
-            God-Tier{' '}
-            <span className="bg-gradient-to-r from-[#00DC82] to-[#36E4DA] bg-clip-text text-transparent">
-              Precision Engineering
-            </span>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#F0E8DE] 
+                       rounded-full text-sm mb-8 shadow-sm"
+          >
+            <Terminal className="w-4 h-4 text-[#B8860B]" />
+            <span className="text-[#4A453F]">Precision Metrics</span>
+          </motion.div>
+          
+          <h2 className="font-[family-name:var(--font-cormorant)] text-3xl md:text-4xl lg:text-5xl 
+                         font-semibold text-[#1A1612] mb-6 leading-tight">
+            Divine{' '}
+            <span className="text-gradient-gold">Precision</span>
+            {' '}Engineering
           </h2>
-          <p className="text-lg text-zinc-400 max-w-2xl mx-auto">
-            NASA-grade Swiss Ephemeris calculations with IEEE 754 double-precision arithmetic. 
+          
+          <p className="text-lg text-[#4A453F] max-w-3xl mx-auto">
+            Swiss Ephemeris calculations with IEEE 754 double-precision arithmetic. 
             Achieving sub-arcsecond accuracy through algorithmic consensus.
           </p>
         </motion.div>
@@ -133,55 +149,56 @@ export function AccuracyShowcase() {
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8"
+            className="bg-white border border-[#F0E8DE] rounded-3xl p-8 shadow-sm"
           >
-            <div className="flex items-center justify-between mb-8">
-              <h3 className="text-xl font-bold text-white">Accuracy Comparison</h3>
-              <div className="flex items-center gap-2 px-3 py-1 bg-zinc-900 rounded-lg border border-zinc-800">
-                <CheckCircle2 className="w-4 h-4 text-[#00DC82]" />
-                <span className="text-xs text-zinc-400">Validated</span>
+            <div className="flex items-center justify-between mb-10">
+              <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-[#1A1612]">
+                Accuracy Comparison
+              </h3>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-[#FDF8F3] rounded-lg border border-[#F0E8DE]">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <span className="text-xs text-[#7A756F]">Validated</span>
               </div>
             </div>
             
-            <div className="space-y-6">
+            <div className="space-y-8">
               {precisionMetrics.map((item, index) => (
                 <div key={item.method} className="relative">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <span className={`text-sm font-medium ${item.highlight ? 'text-[#00DC82]' : 'text-zinc-300'}`}>
+                      <span className={`text-sm font-medium ${item.highlight ? 'text-[#B8860B]' : 'text-[#4A453F]'}`}>
                         {item.method}
                       </span>
                       {item.highlight && (
-                        <span className="px-2 py-0.5 bg-[#00DC82]/20 text-[#00DC82] text-xs rounded-full">
-                          God-Tier
+                        <span className="px-2 py-0.5 bg-[#B8860B]/10 border border-[#B8860B]/30 
+                                         text-[#B8860B] text-xs rounded-full font-medium">
+                          Divine
                         </span>
                       )}
                     </div>
-                    <span className={`text-lg font-bold ${item.highlight ? 'text-[#00DC82]' : 'text-zinc-400'}`}>
+                    <span className={`text-2xl font-bold ${item.highlight ? 'text-[#B8860B]' : 'text-[#7A756F]'}`}>
                       {item.accuracy}%
                     </span>
                   </div>
                   
-                  <div className="h-3 bg-zinc-800 rounded-full overflow-hidden">
-                    <AnimatedBar 
-                      value={item.accuracy} 
-                      color={item.color} 
-                      delay={index * 200}
-                    />
-                  </div>
+                  <AnimatedBar 
+                    value={item.accuracy} 
+                    color={item.color} 
+                    delay={index * 200}
+                  />
                   
-                  <div className="grid grid-cols-3 gap-4 mt-2 text-xs text-zinc-500">
+                  <div className="grid grid-cols-3 gap-4 mt-3 text-xs">
                     <div>
-                      <span className="text-zinc-600">Precision:</span>
-                      <span className="ml-1 text-zinc-400">{item.precision}</span>
+                      <span className="text-[#A8A39D]">Precision:</span>
+                      <span className="ml-2 text-[#4A453F]">{item.precision}</span>
                     </div>
                     <div>
-                      <span className="text-zinc-600">Methods:</span>
-                      <span className="ml-1 text-zinc-400">{item.methods}</span>
+                      <span className="text-[#A8A39D]">Methods:</span>
+                      <span className="ml-2 text-[#4A453F]">{item.methods}</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-zinc-600">Time:</span>
-                      <span className="ml-1 text-zinc-400">{item.time}</span>
+                      <span className="text-[#A8A39D]">Time:</span>
+                      <span className="ml-2 text-[#4A453F]">{item.time}</span>
                     </div>
                   </div>
                 </div>
@@ -189,16 +206,16 @@ export function AccuracyShowcase() {
             </div>
 
             {/* Technical Specs */}
-            <div className="mt-8 pt-6 border-t border-zinc-800">
-              <div className="text-xs text-zinc-500 uppercase tracking-wider mb-3">Technical Specifications</div>
+            <div className="mt-10 pt-8 border-t border-[#F0E8DE]">
+              <div className="text-[10px] uppercase tracking-[0.15em] text-[#7A756F] mb-4">Technical Specifications</div>
               <div className="grid grid-cols-2 gap-3">
-                {systemMetrics.map((metric, index) => {
+                {systemMetrics.map((metric) => {
                   const Icon = metric.icon;
                   return (
                     <div key={metric.label} className="flex items-center gap-2 text-sm">
-                      <Icon className="w-3 h-3 text-zinc-600" />
-                      <span className="text-zinc-500">{metric.label}:</span>
-                      <span className="text-zinc-300 font-mono">{metric.value}</span>
+                      <Icon className="w-4 h-4 text-[#A8A39D]" />
+                      <span className="text-[#7A756F]">{metric.label}:</span>
+                      <span className="text-[#4A453F] font-mono">{metric.value}</span>
                     </div>
                   );
                 })}
@@ -217,21 +234,30 @@ export function AccuracyShowcase() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="group relative bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 hover:border-[#00DC82]/30 transition-all duration-300"
+                  className="group relative bg-white border border-[#F0E8DE] rounded-2xl p-6 
+                             hover:border-[#D4A853]/30 hover:shadow-lg transition-all duration-300"
                 >
-                  {/* Glow */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#00DC82]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
+                  {/* Glow effect */}
+                  <div 
+                    className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                    style={{
+                      background: `radial-gradient(circle at center, ${metric.color}08 0%, transparent 70%)`
+                    }}
+                  />
                   
                   <div className="relative">
-                    <div className="w-10 h-10 rounded-xl bg-[#00DC82]/10 border border-[#00DC82]/20 flex items-center justify-center mb-4">
-                      <Icon className="w-5 h-5 text-[#00DC82]" />
+                    <div 
+                      className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
+                      style={{ backgroundColor: `${metric.color}10` }}
+                    >
+                      <Icon className="w-6 h-6" style={{ color: metric.color }} />
                     </div>
                     
-                    <div className="text-3xl font-bold text-white mb-1">
+                    <div className="font-mono text-4xl font-bold text-[#1A1612] mb-2">
                       {metric.value}%
                     </div>
-                    <div className="text-sm font-medium text-zinc-300 mb-1">{metric.label}</div>
-                    <div className="text-xs text-zinc-500">{metric.desc}</div>
+                    <div className="text-sm font-medium text-[#4A453F] mb-1">{metric.label}</div>
+                    <div className="text-xs text-[#7A756F]">{metric.desc}</div>
                   </div>
                 </motion.div>
               );
@@ -243,32 +269,37 @@ export function AccuracyShowcase() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: 0.4 }}
-              className="col-span-2 bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6"
+              className="col-span-2 bg-white border border-[#F0E8DE] rounded-2xl p-6"
             >
-              <div className="flex items-center gap-3 mb-4">
-                <Terminal className="w-5 h-5 text-[#00DC82]" />
-                <h4 className="text-sm font-semibold text-white">Calculation Pipeline</h4>
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-2 bg-[#B8860B]/10 rounded-lg border border-[#B8860B]/20">
+                  <Terminal className="w-5 h-5 text-[#B8860B]" />
+                </div>
+                <h4 className="font-[family-name:var(--font-cormorant)] text-sm font-semibold text-[#1A1612]">
+                  Calculation Pipeline
+                </h4>
               </div>
+              
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
-                <div className="p-3 bg-zinc-950 rounded-lg border border-zinc-800">
-                  <div className="text-zinc-500 mb-1">Ephemeris</div>
-                  <div className="text-[#00DC82]">DE440</div>
-                  <div className="text-zinc-600">32MB dataset</div>
+                <div className="p-4 bg-[#FDF8F3] rounded-xl border border-[#F0E8DE]">
+                  <div className="text-[#7A756F] mb-2">Ephemeris</div>
+                  <div className="text-[#B8860B] text-sm mb-1">DE440</div>
+                  <div className="text-[#A8A39D]">32MB dataset</div>
                 </div>
-                <div className="p-3 bg-zinc-950 rounded-lg border border-zinc-800">
-                  <div className="text-zinc-500 mb-1">Precision</div>
-                  <div className="text-[#00DC82]">±0.0001°</div>
-                  <div className="text-zinc-600">0.36 arcseconds</div>
+                <div className="p-4 bg-[#FDF8F3] rounded-xl border border-[#F0E8DE]">
+                  <div className="text-[#7A756F] mb-2">Precision</div>
+                  <div className="text-[#B8860B] text-sm mb-1">±0.0001°</div>
+                  <div className="text-[#A8A39D]">0.36 arcseconds</div>
                 </div>
-                <div className="p-3 bg-zinc-950 rounded-lg border border-zinc-800">
-                  <div className="text-zinc-500 mb-1">Candidates</div>
-                  <div className="text-[#00DC82]">1,440</div>
-                  <div className="text-zinc-600">per analysis</div>
+                <div className="p-4 bg-[#FDF8F3] rounded-xl border border-[#F0E8DE]">
+                  <div className="text-[#7A756F] mb-2">Candidates</div>
+                  <div className="text-[#B8860B] text-sm mb-1">1,440</div>
+                  <div className="text-[#A8A39D]">per analysis</div>
                 </div>
-                <div className="p-3 bg-zinc-950 rounded-lg border border-zinc-800">
-                  <div className="text-zinc-500 mb-1">Confidence</div>
-                  <div className="text-[#00DC82]">97.3%</div>
-                  <div className="text-zinc-600">God-Tier verified</div>
+                <div className="p-4 bg-[#FDF8F3] rounded-xl border border-[#F0E8DE]">
+                  <div className="text-[#7A756F] mb-2">Confidence</div>
+                  <div className="text-[#B8860B] text-sm mb-1">97.3%</div>
+                  <div className="text-[#A8A39D]">Divine verified</div>
                 </div>
               </div>
             </motion.div>
@@ -280,25 +311,35 @@ export function AccuracyShowcase() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="mt-16"
+          className="mt-20 flex justify-center"
         >
-          <div className="inline-flex items-center gap-6 px-6 py-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl">
+          <div className="inline-flex flex-wrap items-center justify-center gap-4 px-8 py-4 
+                          bg-white border border-[#F0E8DE] rounded-2xl shadow-sm">
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-green-400 text-sm font-semibold">System Operational</span>
+              <div className="relative">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                <div className="absolute inset-0 w-2 h-2 bg-emerald-500 rounded-full animate-ping opacity-40" />
+              </div>
+              <span className="text-emerald-600 text-sm font-medium">System Operational</span>
             </div>
-            <div className="h-6 w-px bg-zinc-700" />
-            <div className="flex items-center gap-2 text-sm text-zinc-400">
+            
+            <div className="hidden sm:block h-5 w-px bg-[#F0E8DE]" />
+            
+            <div className="flex items-center gap-2 text-sm text-[#7A756F]">
               <Activity className="w-4 h-4" />
               <span>{'API Latency: <50ms'}</span>
             </div>
-            <div className="h-6 w-px bg-zinc-700" />
-            <div className="flex items-center gap-2 text-sm text-zinc-400">
+            
+            <div className="hidden sm:block h-5 w-px bg-[#F0E8DE]" />
+            
+            <div className="flex items-center gap-2 text-sm text-[#7A756F]">
               <Database className="w-4 h-4" />
               <span>Ephemeris: Synced</span>
             </div>
-            <div className="h-6 w-px bg-zinc-700" />
-            <div className="flex items-center gap-2 text-sm text-zinc-400">
+            
+            <div className="hidden sm:block h-5 w-px bg-[#F0E8DE]" />
+            
+            <div className="flex items-center gap-2 text-sm text-[#7A756F]">
               <Cpu className="w-4 h-4" />
               <span>AI: Connected</span>
             </div>

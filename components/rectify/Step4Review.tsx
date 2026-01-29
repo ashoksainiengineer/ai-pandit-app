@@ -74,14 +74,14 @@ export default function Step4Review({
     >
       {/* Header */}
       <div className="text-center">
-        <p className="text-sm text-[#E8A849] font-medium tracking-widest mb-2">STEP 4 OF 4</p>
+        <p className="text-sm text-[#D4AF37] font-medium tracking-widest mb-2">STEP 4 OF 4</p>
         <h1 className="text-3xl font-bold text-[#F5F0EB] mb-2">Review & Confirm</h1>
         <p className="text-[#C4B8AD]">Verify everything before we begin the analysis</p>
       </div>
 
       {/* Accuracy Banner */}
-      <div className="bg-[#E8A849]/10 border border-[#E8A849]/30 rounded-xl p-5 text-center">
-        <div className="text-4xl font-bold text-[#E8A849] mb-1">{accuracy}%</div>
+      <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-xl p-5 text-center">
+        <div className="text-4xl font-bold text-[#D4AF37] mb-1">{accuracy}%</div>
         <div className="text-sm text-[#C4B8AD]">Expected Accuracy Based on Your Data</div>
       </div>
 
@@ -91,11 +91,11 @@ export default function Step4Review({
         <FormCard className="relative group">
           <button
             onClick={() => onEdit(1)}
-            className="absolute top-4 right-4 text-[#E8A849] opacity-0 group-hover:opacity-100 transition-opacity text-sm hover:underline"
+            className="absolute top-4 right-4 text-[#D4AF37] opacity-0 group-hover:opacity-100 transition-opacity text-sm hover:underline"
           >
             ✏️ Edit
           </button>
-          <h3 className="text-lg font-semibold text-[#F5F0EB] mb-4 pb-3 border-b border-[#C4B8AD]/10 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-[#F5F0EB] mb-4 pb-3 border-b border-[#2A3442] flex items-center gap-2">
             <span>📋</span> Birth Details
           </h3>
           <div className="space-y-3 text-sm">
@@ -109,7 +109,7 @@ export default function Step4Review({
             </div>
             <div className="flex justify-between">
               <span className="text-[#8C7F72]">Tentative Time</span>
-              <span className="text-[#E8A849] font-mono">{data.tentativeTime || 'Not provided'}</span>
+              <span className="text-[#D4AF37] font-mono">{data.tentativeTime || 'Not provided'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-[#8C7F72]">Birth Place</span>
@@ -126,11 +126,11 @@ export default function Step4Review({
         <FormCard className="relative group">
           <button
             onClick={() => onEdit(2)}
-            className="absolute top-4 right-4 text-[#E8A849] opacity-0 group-hover:opacity-100 transition-opacity text-sm hover:underline"
+            className="absolute top-4 right-4 text-[#D4AF37] opacity-0 group-hover:opacity-100 transition-opacity text-sm hover:underline"
           >
             ✏️ Edit
           </button>
-          <h3 className="text-lg font-semibold text-[#F5F0EB] mb-4 pb-3 border-b border-[#C4B8AD]/10 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-[#F5F0EB] mb-4 pb-3 border-b border-[#2A3442] flex items-center gap-2">
             <span>🧬</span> Forensic Traits
           </h3>
           <div className="space-y-4 text-xs">
@@ -167,13 +167,13 @@ export default function Step4Review({
       <FormCard className="relative group">
         <button
           onClick={() => onEdit(3)}
-          className="absolute top-4 right-4 text-[#E8A849] opacity-0 group-hover:opacity-100 transition-opacity text-sm hover:underline"
+          className="absolute top-4 right-4 text-[#D4AF37] opacity-0 group-hover:opacity-100 transition-opacity text-sm hover:underline"
         >
           ✏️ Edit
         </button>
-        <h3 className="text-lg font-semibold text-[#F5F0EB] mb-4 pb-3 border-b border-[#C4B8AD]/10 flex items-center gap-2">
+        <h3 className="text-lg font-semibold text-[#F5F0EB] mb-4 pb-3 border-b border-[#2A3442] flex items-center gap-2">
           <span>📅</span> Life Events
-          <span className="text-[#E8A849] text-sm font-normal">({events.length} events)</span>
+          <span className="text-[#D4AF37] text-sm font-normal">({events.length} events)</span>
         </h3>
 
         {events.length === 0 ? (
@@ -181,12 +181,12 @@ export default function Step4Review({
         ) : (
           <div className="space-y-3 max-h-[300px] overflow-y-auto">
             {events.map((e, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-[#2E2724]">
+              <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-[#0F1419]">
                 <span className="text-xl">{e.icon || '📅'}</span>
                 <div className="flex-1">
                   <div className="flex justify-between items-start">
                     <span className="font-medium text-[#F5F0EB]">{e.eventType}</span>
-                    <span className="text-[#E8A849] text-xs bg-[#E8A849]/10 px-2 py-1 rounded">
+                    <span className="text-[#D4AF37] text-xs bg-[#D4AF37]/10 px-2 py-1 rounded">
                       {e.eventDate?.split('-')[0] || 'No date'}
                     </span>
                   </div>
@@ -194,7 +194,7 @@ export default function Step4Review({
                     <p className="text-[#8C7F72] text-sm mt-1 line-clamp-1 italic">&ldquo;{e.description}&rdquo;</p>
                   )}
                 </div>
-                {e.description ? <span className="text-[#5CB57B]">✓</span> : <span className="text-[#D64545] text-xs">!</span>}
+                {e.description ? <span className="text-[#2D7A5C]">✓</span> : <span className="text-[#EF4444] text-xs">!</span>}
               </div>
             ))}
           </div>
@@ -208,16 +208,16 @@ export default function Step4Review({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="bg-[#D64545]/10 border border-[#D64545]/30 rounded-xl p-5"
+            className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl p-5"
           >
             <div className="flex gap-3">
               <span className="text-2xl">⚠️</span>
               <div>
-                <h4 className="text-[#D64545] font-bold mb-1">Low Accuracy ({accuracy}%)</h4>
+                <h4 className="text-[#EF4444] font-bold mb-1">Low Accuracy ({accuracy}%)</h4>
                 <p className="text-[#C4B8AD] text-sm mb-3">
                   For highest precision (90%+), we recommend adding:
                 </p>
-                <ul className="list-disc list-inside text-sm text-[#E8A849] space-y-1">
+                <ul className="list-disc list-inside text-sm text-[#D4AF37] space-y-1">
                   {missingCategories.map((s, i) => <li key={i}>{s}</li>)}
                 </ul>
               </div>
@@ -227,15 +227,15 @@ export default function Step4Review({
       </AnimatePresence>
 
       {/* Confirmation & Submit */}
-      <div className="pt-6 border-t border-[#C4B8AD]/10">
+      <div className="pt-6 border-t border-[#2A3442]">
         <label className="flex items-start gap-4 cursor-pointer group mb-8">
           <input
             type="checkbox"
             checked={confirmed}
             onChange={(e) => setConfirmed(e.target.checked)}
-            className="mt-1 w-5 h-5 rounded border-[#C4B8AD]/30 bg-[#2E2724] text-[#E8A849] accent-[#E8A849]"
+            className="mt-1 w-5 h-5 rounded border-[#2A3442] bg-[#0F1419] text-[#D4AF37] accent-[#D4AF37]"
           />
-          <span className={`text-sm transition-colors ${confirmed ? 'text-[#F5F0EB]' : 'text-[#C4B8AD] group-hover:text-[#E8A849]'}`}>
+          <span className={`text-sm transition-colors ${confirmed ? 'text-[#F5F0EB]' : 'text-[#C4B8AD] group-hover:text-[#D4AF37]'}`}>
             I confirm that all details provided are accurate to the best of my knowledge.
             I understand that incorrect data will affect the rectification accuracy.
           </span>
@@ -248,8 +248,8 @@ export default function Step4Review({
           whileTap={{ scale: confirmed && !isSubmitting && !cooldown ? 0.98 : 1 }}
           className={`w-full py-4 font-bold rounded-xl text-lg transition-all ${
             !confirmed || cooldown
-              ? 'bg-[#2A3442] text-[#8C7F72] cursor-not-allowed'
-              : 'bg-gradient-to-r from-[#E8A849] to-[#B8860B] text-[#1A1614] hover:shadow-[0_0_30px_rgba(232,168,73,0.3)]'
+              ? 'bg-[#2A3442] text-[#5A6475] cursor-not-allowed'
+              : 'bg-gradient-to-r from-[#D4AF37] to-[#E8C54D] text-[#0A0F1C] hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]'
           }`}
         >
           {isSubmitting ? (
@@ -269,7 +269,7 @@ export default function Step4Review({
           Takes approximately {estimatedMinutes} minutes • AI-Powered Vedic Analysis
         </p>
 
-        <div className="flex items-center justify-center gap-2 text-sm text-[#5CB57B] mt-4">
+        <div className="flex items-center justify-center gap-2 text-sm text-[#2D7A5C] mt-4">
           <span>🔒</span>
           <span>End-to-end encrypted</span>
         </div>

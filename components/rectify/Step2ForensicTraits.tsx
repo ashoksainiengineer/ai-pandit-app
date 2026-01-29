@@ -61,8 +61,8 @@ function TraitGroup({ label, icon: Icon, options, value, onChange, description, 
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-[#E8A849]/10 border border-[#E8A849]/20">
-            <Icon className="w-5 h-5 text-[#E8A849]" />
+          <div className="p-2 rounded-lg bg-[#D4AF37]/10 border border-[#D4AF37]/20">
+            <Icon className="w-5 h-5 text-[#D4AF37]" />
           </div>
           <div>
             <h3 className="text-sm font-black text-[#F5F0EB] uppercase tracking-wide">{label}</h3>
@@ -71,7 +71,7 @@ function TraitGroup({ label, icon: Icon, options, value, onChange, description, 
         </div>
         <button
           onClick={() => setShowHelp(!showHelp)}
-          className={`p-2 rounded-full transition-all ${showHelp ? 'bg-[#E8A849] text-black' : 'hover:bg-white/5 text-[#8C7F72]'}`}
+          className={`p-2 rounded-full transition-all ${showHelp ? 'bg-[#D4AF37] text-[#0A0F1C]' : 'hover:bg-white/5 text-[#8C7F72]'}`}
         >
           <HelpCircle className="w-4 h-4" />
         </button>
@@ -103,13 +103,13 @@ function TraitGroup({ label, icon: Icon, options, value, onChange, description, 
             onClick={() => onChange(opt.value)}
             className={`relative p-4 rounded-xl border text-left transition-all group overflow-hidden ${
               value === opt.value
-                ? 'bg-[#E8A849]/10 border-[#E8A849] shadow-[0_0_20px_rgba(232,168,73,0.1)]'
-                : 'bg-[#2E2724] border-[#C4B8AD]/20 hover:border-[#E8A849]/50'
+                ? 'bg-[#D4AF37]/10 border-[#D4AF37] shadow-[0_0_20px_rgba(212,175,55,0.1)]'
+                : 'bg-[#0F1419] border-[#2A3442] hover:border-[#D4AF37]/50'
             }`}
           >
             {value === opt.value && (
               <div className="absolute top-2 right-2">
-                <span className="text-[#E8A849]">✓</span>
+                <span className="text-[#D4AF37]">✓</span>
               </div>
             )}
             <div className="text-2xl mb-2">{getForensicEmoji(opt.value, gender)}</div>
@@ -235,7 +235,7 @@ export default function Step2ForensicTraits({ traits, updateTraits, gender = 'ot
     <div className="w-full max-w-4xl mx-auto pb-12">
       {/* Header */}
       <div className="mb-8 text-center">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E8A849]/10 border border-[#E8A849]/20 text-[#E8A849] text-xs font-bold uppercase tracking-widest mb-4">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/20 text-[#D4AF37] text-xs font-bold uppercase tracking-widest mb-4">
           <span>STEP 2 OF 4</span>
         </div>
         <h1 className="text-3xl font-black text-[#F5F0EB] mb-2">Forensic Traits Matrix</h1>
@@ -245,7 +245,7 @@ export default function Step2ForensicTraits({ traits, updateTraits, gender = 'ot
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex p-1 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-xl mb-8 sticky top-4 z-20 shadow-xl">
+      <div className="flex p-1 bg-[#0F1419] border border-[#2A3442] rounded-xl mb-8 sticky top-4 z-20 shadow-xl">
         {TABS.map((tab) => {
           const TabIcon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -255,7 +255,7 @@ export default function Step2ForensicTraits({ traits, updateTraits, gender = 'ot
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
                 isActive
-                  ? 'bg-[#E8A849] text-[#1A1614] shadow-lg'
+                  ? 'bg-[#D4AF37] text-[#0A0F1C] shadow-lg'
                   : 'text-[#8C7F72] hover:text-[#F5F0EB] hover:bg-white/5'
               }`}
             >
@@ -336,7 +336,7 @@ export default function Step2ForensicTraits({ traits, updateTraits, gender = 'ot
               <FormCard>
                 <FormField label="Significant Marks/Moles">
                   <textarea
-                    className="w-full h-32 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-xl p-4 text-sm text-[#F5F0EB] outline-none focus:border-[#E8A849] resize-none"
+                    className="w-full h-32 bg-[#0F1419] border border-[#2A3442] rounded-xl p-4 text-sm text-[#F5F0EB] outline-none focus:border-[#D4AF37] resize-none"
                     placeholder="e.g., Large mole on right cheek, birthmark on shoulder..."
                     value={(safeTraits.physical?.skinHair?.marks || []).join('\n')}
                     onChange={(e) => updateSkinHair({ marks: e.target.value.split('\n').filter(m => m.trim()) })}

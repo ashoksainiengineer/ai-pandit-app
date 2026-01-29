@@ -190,7 +190,7 @@ export default function Step1BirthDetails({
     >
       {/* Header */}
       <div className="text-center mb-8">
-        <p className="text-sm text-[#E8A849] font-medium tracking-widest mb-2">STEP 1 OF 4</p>
+        <p className="text-sm text-[#D4AF37] font-medium tracking-widest mb-2">STEP 1 OF 4</p>
         <h1 className="text-3xl font-bold text-[#F5F0EB]">Birth Details</h1>
         <p className="text-[#C4B8AD] mt-2">
           Provide your birth information for accurate time rectification
@@ -206,7 +206,7 @@ export default function Step1BirthDetails({
             value={data.fullName || ''}
             onChange={(e) => updateData({ fullName: e.target.value })}
             placeholder="Enter your full name"
-            className="w-full h-[52px] px-5 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] placeholder-[#8C7F72] focus:border-[#E8A849] focus:ring-2 focus:ring-[#E8A849]/20 outline-none transition-all"
+            className="w-full h-[52px] px-5 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] placeholder-[#5A6475] focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 outline-none transition-all"
           />
         </FormField>
 
@@ -221,7 +221,7 @@ export default function Step1BirthDetails({
             <select
               value={dobParts.day}
               onChange={(e) => handleDateChange('day', e.target.value)}
-              className="h-[52px] px-4 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none"
+              className="h-[52px] px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] focus:border-[#D4AF37] outline-none"
             >
               <option value="">Day</option>
               {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
@@ -229,7 +229,7 @@ export default function Step1BirthDetails({
             <select
               value={dobParts.month}
               onChange={(e) => handleDateChange('month', e.target.value)}
-              className="h-[52px] px-4 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none"
+              className="h-[52px] px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] focus:border-[#D4AF37] outline-none"
             >
               <option value="">Month</option>
               {MONTHS.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
@@ -237,7 +237,7 @@ export default function Step1BirthDetails({
             <select
               value={dobParts.year}
               onChange={(e) => handleDateChange('year', e.target.value)}
-              className="h-[52px] px-4 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none"
+              className="h-[52px] px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] focus:border-[#D4AF37] outline-none"
             >
               <option value="">Year</option>
               {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
@@ -256,21 +256,21 @@ export default function Step1BirthDetails({
             <select
               value={timeParts.hour}
               onChange={(e) => handleTimeChange('hour', e.target.value)}
-              className="h-[52px] w-24 px-4 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none"
+              className="h-[52px] w-24 px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] focus:border-[#D4AF37] outline-none"
             >
               <option value="">HH</option>
               {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
             </select>
-            <span className="text-2xl text-[#E8A849] font-bold">:</span>
+            <span className="text-2xl text-[#D4AF37] font-bold">:</span>
             <select
               value={timeParts.minute}
               onChange={(e) => handleTimeChange('minute', e.target.value)}
-              className="h-[52px] w-24 px-4 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] focus:border-[#E8A849] outline-none"
+              className="h-[52px] w-24 px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] focus:border-[#D4AF37] outline-none"
             >
               <option value="">MM</option>
               {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
-            <div className="flex bg-[#2E2724] rounded-lg overflow-hidden border border-[#C4B8AD]/20">
+            <div className="flex bg-[#0F1419] rounded-lg overflow-hidden border border-[#2A3442]">
               {['AM', 'PM'].map((p) => (
                 <button
                   key={p}
@@ -278,7 +278,7 @@ export default function Step1BirthDetails({
                   onClick={() => handleTimeChange('period', p)}
                   className={`h-[52px] px-5 font-medium transition-all ${
                     timeParts.period === p
-                      ? 'bg-[#E8A849] text-[#1A1614]'
+                      ? 'bg-[#D4AF37] text-[#0A0F1C]'
                       : 'text-[#8C7F72] hover:text-[#F5F0EB]'
                   }`}
                 >
@@ -288,7 +288,7 @@ export default function Step1BirthDetails({
             </div>
           </div>
           {data.timezone !== undefined && (
-            <p className="text-xs text-[#6B9AC4] mt-2">
+            <p className="text-xs text-[#8B5CF6] mt-2">
               🌍 Timezone: UTC{data.timezone >= 0 ? '+' : ''}{data.timezone} (based on Birth Place)
             </p>
           )}
@@ -319,8 +319,8 @@ export default function Step1BirthDetails({
                 onClick={() => updateData({ gender: g.value as any })}
                 className={`p-5 rounded-xl text-center transition-all border-2 ${
                   data.gender === g.value
-                    ? 'bg-[#E8A849]/20 border-[#E8A849]'
-                    : 'bg-[#2E2724] border-transparent hover:border-[#E8A849]/30'
+                    ? 'bg-[#D4AF37]/20 border-[#D4AF37]'
+                    : 'bg-[#0F1419] border-[#2A3442] hover:border-[#D4AF37]/50'
                 }`}
               >
                 <span className="text-3xl">{g.icon}</span>
@@ -333,8 +333,8 @@ export default function Step1BirthDetails({
 
       {/* Time Accuracy Card */}
       <FormCard>
-        <FormField 
-          label="How accurate is this time?" 
+        <FormField
+          label="How accurate is this time?"
           description="Select the time range within which your birth time falls"
         >
           <div className="grid grid-cols-5 gap-3">
@@ -345,8 +345,8 @@ export default function Step1BirthDetails({
                 onClick={() => handleOffsetChange(preset.value)}
                 className={`py-3 px-2 rounded-lg text-sm font-medium transition-all border-2 ${
                   selectedOffset === preset.value
-                    ? 'bg-[#6B9AC4]/20 border-[#6B9AC4] text-[#6B9AC4]'
-                    : 'bg-[#2E2724] border-transparent text-[#C4B8AD] hover:border-[#6B9AC4]/30'
+                    ? 'bg-[#8B5CF6]/20 border-[#8B5CF6] text-[#8B5CF6]'
+                    : 'bg-[#0F1419] border-[#2A3442] text-[#C4B8AD] hover:border-[#8B5CF6]/50'
                 }`}
               >
                 {preset.label}
@@ -371,7 +371,7 @@ export default function Step1BirthDetails({
                   setCustomOffset(val);
                   updateOffset?.({ preset: 'custom', customMinutes: val, description: `±${val} min` });
                 }}
-                className="w-24 h-[44px] px-4 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] text-center focus:border-[#6B9AC4] outline-none"
+                className="w-24 h-[44px] px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] text-center focus:border-[#8B5CF6] outline-none"
               />
               <span className="text-[#C4B8AD] text-sm">minutes</span>
             </motion.div>
@@ -389,7 +389,7 @@ export default function Step1BirthDetails({
             {selectedOffset === '1hour' && "Moderate window. 5-7 events recommended, including family-related dates and career transitions."}
             {selectedOffset === '2hours' && "Significant uncertainty. 7-10 events + physical traits are critical to resolve possible Sign changes."}
             {selectedOffset === '4hours' && "Large window. Requires 10+ events spanning decades + spouse data + detailed physical markers."}
-            {selectedOffset === 'custom' && (customOffset > 240 
+            {selectedOffset === 'custom' && (customOffset > 240
               ? "Extreme uncertainty (Full Day Scan). Full life history (15+ events) + major dates + complete physical profile mandatory."
               : "Custom window. Ensure you provide enough Life Events (5-10) for accurate dasha alignment.")}
           </p>
@@ -417,14 +417,14 @@ export default function Step1BirthDetails({
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
-            className="mt-6 space-y-6 pt-6 border-t border-[#C4B8AD]/10"
+            className="mt-6 space-y-6 pt-6 border-t border-[#2A3442]"
           >
             <FormField label="Spouse Date of Birth">
               <div className="grid grid-cols-3 gap-3">
                 <select
                   value={spouseDobParts.day}
                   onChange={(e) => handleSpouseDateChange('day', e.target.value)}
-                  className="h-[52px] px-4 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none"
+                  className="h-[52px] px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] outline-none focus:border-[#D4AF37]"
                 >
                   <option value="">Day</option>
                   {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
@@ -432,7 +432,7 @@ export default function Step1BirthDetails({
                 <select
                   value={spouseDobParts.month}
                   onChange={(e) => handleSpouseDateChange('month', e.target.value)}
-                  className="h-[52px] px-4 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none"
+                  className="h-[52px] px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] outline-none focus:border-[#D4AF37]"
                 >
                   <option value="">Month</option>
                   {MONTHS.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
@@ -440,7 +440,7 @@ export default function Step1BirthDetails({
                 <select
                   value={spouseDobParts.year}
                   onChange={(e) => handleSpouseDateChange('year', e.target.value)}
-                  className="h-[52px] px-4 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none"
+                  className="h-[52px] px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] outline-none focus:border-[#D4AF37]"
                 >
                   <option value="">Year</option>
                   {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
@@ -453,21 +453,21 @@ export default function Step1BirthDetails({
                 <select
                   value={spouseTimeParts.hour}
                   onChange={(e) => handleSpouseTimeChange('hour', e.target.value)}
-                  className="h-[52px] w-24 px-4 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none"
+                  className="h-[52px] w-24 px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] outline-none focus:border-[#D4AF37]"
                 >
                   <option value="">HH</option>
                   {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
-                <span className="text-2xl text-[#E8A849] font-bold">:</span>
+                <span className="text-2xl text-[#D4AF37] font-bold">:</span>
                 <select
                   value={spouseTimeParts.minute}
                   onChange={(e) => handleSpouseTimeChange('minute', e.target.value)}
-                  className="h-[52px] w-24 px-4 bg-[#2E2724] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none"
+                  className="h-[52px] w-24 px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] outline-none focus:border-[#D4AF37]"
                 >
                   <option value="">MM</option>
                   {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
-                <div className="flex bg-[#2E2724] rounded-lg overflow-hidden border border-[#C4B8AD]/20">
+                <div className="flex bg-[#0F1419] rounded-lg overflow-hidden border border-[#2A3442]">
                   {['AM', 'PM'].map((p) => (
                     <button
                       key={p}
@@ -475,7 +475,7 @@ export default function Step1BirthDetails({
                       onClick={() => handleSpouseTimeChange('period', p)}
                       className={`h-[52px] px-5 font-medium transition-all ${
                         spouseTimeParts.period === p
-                          ? 'bg-[#E8A849] text-[#1A1614]'
+                          ? 'bg-[#D4AF37] text-[#0A0F1C]'
                           : 'text-[#8C7F72] hover:text-[#F5F0EB]'
                       }`}
                     >
@@ -500,7 +500,7 @@ export default function Step1BirthDetails({
       </FormCard>
 
       {/* Security Badge */}
-      <div className="flex items-center justify-center gap-2 text-sm text-[#5CB57B]">
+      <div className="flex items-center justify-center gap-2 text-sm text-[#2D7A5C]">
         <span>🔒</span>
         <span>Your data is end-to-end encrypted</span>
       </div>

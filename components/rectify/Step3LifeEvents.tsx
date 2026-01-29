@@ -141,7 +141,7 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <p className="text-sm text-[#E8A849] font-medium tracking-widest mb-2">STEP 3 OF 4</p>
+          <p className="text-sm text-[#D4AF37] font-medium tracking-widest mb-2">STEP 3 OF 4</p>
           <h1 className="text-3xl font-bold text-[#F5F0EB]">Life Events</h1>
           <p className="text-[#C4B8AD] mt-2 text-sm">
             Add significant events to correlate with planetary transits
@@ -149,7 +149,7 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
         </div>
         <div className="flex gap-4 items-center">
           <div className="text-right p-3 rounded-xl border border-[#D4AF37]/20 bg-[#D4AF37]/5">
-            <div className={`text-sm font-bold ${accuracy > 80 ? 'text-emerald-500' : accuracy > 50 ? 'text-[#E8A849]' : 'text-[#D64545]'}`}>
+            <div className={`text-sm font-bold ${accuracy > 80 ? 'text-[#2D7A5C]' : accuracy > 50 ? 'text-[#D4AF37]' : 'text-[#EF4444]'}`}>
               {accuracy > 80 ? '🔒 Pinned' : accuracy > 50 ? '⚡ Calibrating' : '🔍 Searching'}
             </div>
             <div className="text-[10px] text-[#8C7F72] mt-1">
@@ -157,7 +157,7 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
             </div>
           </div>
           <div className="text-right">
-            <div className="text-4xl font-bold text-[#E8A849]">{accuracy}%</div>
+            <div className="text-4xl font-bold text-[#D4AF37]">{accuracy}%</div>
             <div className="text-xs text-[#8C7F72]">Accuracy</div>
           </div>
         </div>
@@ -170,10 +170,10 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="bg-[#241F1C] border-2 border-[#E8A849] rounded-xl overflow-hidden"
+            className="bg-[#1A1F2E] border-2 border-[#D4AF37] rounded-xl overflow-hidden"
           >
             {/* Editor Header */}
-            <div className="bg-[#E8A849]/10 px-6 py-4 flex items-center justify-between border-b border-[#E8A849]/20">
+            <div className="bg-[#D4AF37]/10 px-6 py-4 flex items-center justify-between border-b border-[#D4AF37]/20">
               <div className="flex items-center gap-4">
                 <span className="text-4xl">{editingEvent.icon}</span>
                 <div>
@@ -182,7 +182,7 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
                       type="text"
                       value={editingEvent.eventType}
                       onChange={(e) => updateEvent(editingEvent.id, { eventType: e.target.value })}
-                      className="bg-transparent text-xl font-semibold text-[#F5F0EB] border-b border-[#E8A849]/50 focus:border-[#E8A849] outline-none w-full min-w-[200px]"
+                      className="bg-transparent text-xl font-semibold text-[#F5F0EB] border-b border-[#D4AF37]/50 focus:border-[#D4AF37] outline-none w-full min-w-[200px]"
                       placeholder="Enter Event Name"
                     />
                   ) : (
@@ -196,15 +196,15 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
                   disabled={!editingEvent.description}
                   className={`px-4 py-2 font-semibold rounded-lg transition-colors ${
                     editingEvent.description
-                      ? 'bg-[#5CB57B] text-white hover:bg-[#4EA36A]'
-                      : 'bg-[#5CB57B]/30 text-white/50 cursor-not-allowed'
+                      ? 'bg-[#2D7A5C] text-white hover:bg-[#3D9A73]'
+                      : 'bg-[#2D7A5C]/30 text-white/50 cursor-not-allowed'
                   }`}
                 >
                   ✓ Save
                 </button>
                 <button
                   onClick={() => deleteEvent(editingEvent.id)}
-                  className="px-4 py-2 border border-[#D64545] text-[#D64545] rounded-lg hover:bg-[#D64545]/10"
+                  className="px-4 py-2 border border-[#EF4444] text-[#EF4444] rounded-lg hover:bg-[#EF4444]/10"
                 >
                   Delete
                 </button>
@@ -222,8 +222,8 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
                       onClick={() => updateEvent(editingEvent.id, { datePrecision: opt.value })}
                       className={`py-3 px-2 rounded-lg text-center transition-all border-2 ${
                         editingEvent.datePrecision === opt.value
-                          ? 'bg-[#E8A849]/20 border-[#E8A849] text-[#F5F0EB]'
-                          : 'bg-[#2E2724] border-transparent text-[#C4B8AD] hover:border-[#E8A849]/30'
+                          ? 'bg-[#D4AF37]/20 border-[#D4AF37] text-[#F5F0EB]'
+                          : 'bg-[#0F1419] border-transparent text-[#C4B8AD] hover:border-[#D4AF37]/50'
                       }`}
                     >
                       <div className="font-medium text-xs">{opt.label}</div>
@@ -251,8 +251,8 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
                         onClick={() => updateEvent(editingEvent.id, { importance: opt.level })}
                         className={`p-4 rounded-xl text-left transition-all border-2 ${
                           isSelected
-                            ? 'bg-[#E8A849]/20 border-[#E8A849]'
-                            : 'bg-[#2E2724] border-transparent hover:border-[#E8A849]/30'
+                            ? 'bg-[#D4AF37]/20 border-[#D4AF37]'
+                            : 'bg-[#0F1419] border-transparent hover:border-[#D4AF37]/50'
                         }`}
                       >
                         <div className="flex items-center gap-2 mb-2">
@@ -261,7 +261,7 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
                             {opt.label}
                           </span>
                         </div>
-                        <div className={`text-xs ${isSelected ? 'text-[#E8A849]' : 'text-[#8C7F72]'}`}>
+                        <div className={`text-xs ${isSelected ? 'text-[#D4AF37]' : 'text-[#8C7F72]'}`}>
                           {opt.desc}
                         </div>
                       </button>
@@ -276,11 +276,11 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
                   value={editingEvent.description || ''}
                   onChange={(e) => updateEvent(editingEvent.id, { description: e.target.value })}
                   placeholder="What happened? How did you feel? Any memorable circumstances..."
-                  className={`w-full h-[100px] p-4 bg-[#2E2724] border rounded-lg text-[#F5F0EB] placeholder-[#8C7F72] resize-none focus:ring-2 outline-none transition-all ${
-                    editingEvent.description ? 'border-[#5CB57B]/50' : 'border-[#D64545]/50'
+                  className={`w-full h-[100px] p-4 bg-[#0F1419] border rounded-lg text-[#F5F0EB] placeholder-[#5A6475] resize-none focus:ring-2 outline-none transition-all ${
+                    editingEvent.description ? 'border-[#2D7A5C]/50' : 'border-[#EF4444]/50'
                   }`}
                 />
-                <div className="flex items-center gap-2 mt-2 text-xs text-[#5CB57B]">
+                <div className="flex items-center gap-2 mt-2 text-xs text-[#2D7A5C]">
                   <span>🔒</span><span>End-to-end encrypted</span>
                 </div>
               </FormField>
@@ -300,8 +300,8 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
                 onClick={() => setSelectedCat(selectedCat === cat.id ? null : cat.id)}
                 className={`px-4 py-2 rounded-lg text-sm transition-all ${
                   selectedCat === cat.id
-                    ? 'bg-[#E8A849] text-[#1A1614] font-medium'
-                    : 'bg-[#2E2724] text-[#C4B8AD] hover:bg-[#3A3330]'
+                    ? 'bg-[#D4AF37] text-[#0A0F1C] font-medium'
+                    : 'bg-[#0F1419] text-[#C4B8AD] hover:bg-[#1A1F2E]'
                 }`}
               >
                 {cat.icon} {cat.label}
@@ -316,7 +316,7 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
-                className="mb-6 p-4 bg-[#2E2724] rounded-lg"
+                className="mb-6 p-4 bg-[#0F1419] rounded-lg"
               >
                 <p className="text-xs text-[#8C7F72] mb-3">
                   {EVENT_CATEGORIES.find(c => c.id === selectedCat)?.icon} Events:
@@ -326,14 +326,14 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
                     <button
                       key={evt.id}
                       onClick={() => addEvent(evt.label, EVENT_CATEGORIES.find(c => c.id === selectedCat)?.icon || '📅', selectedCat)}
-                      className="px-3 py-2 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-sm text-[#C4B8AD] hover:border-[#E8A849]/50 hover:text-[#F5F0EB] transition-all"
+                      className="px-3 py-2 bg-[#1A1F2E] border border-[#2A3442] rounded-lg text-sm text-[#C4B8AD] hover:border-[#D4AF37]/50 hover:text-[#F5F0EB] transition-all"
                     >
                       + {evt.label}
                     </button>
                   ))}
                   <button
                     onClick={() => addEvent("Custom Event", EVENT_CATEGORIES.find(c => c.id === selectedCat)?.icon || '📅', selectedCat, true)}
-                    className="px-3 py-2 bg-[#2E2724] border border-[#E8A849] border-dashed rounded-lg text-sm text-[#E8A849] hover:bg-[#E8A849]/10 font-medium"
+                    className="px-3 py-2 bg-[#0F1419] border border-[#D4AF37] border-dashed rounded-lg text-sm text-[#D4AF37] hover:bg-[#D4AF37]/10 font-medium"
                   >
                     + Custom
                   </button>
@@ -344,7 +344,7 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
 
           {/* High-Impact Events */}
           <div>
-            <h4 className="text-xs font-semibold text-[#E8A849] mb-3 flex items-center gap-2">
+            <h4 className="text-xs font-semibold text-[#D4AF37] mb-3 flex items-center gap-2">
               <span>🎯</span> High-Impact Events
               <span className="text-[#8C7F72] font-normal">(recommended for accuracy)</span>
             </h4>
@@ -358,15 +358,15 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
                     disabled={added}
                     className={`p-3 rounded-lg text-center transition-all border ${
                       added
-                        ? 'bg-[#5CB57B]/10 border-[#5CB57B]/30 cursor-default'
-                        : 'bg-[#2E2724] border-transparent hover:border-[#E8A849]/30'
+                        ? 'bg-[#2D7A5C]/10 border-[#2D7A5C]/30 cursor-default'
+                        : 'bg-[#0F1419] border-transparent hover:border-[#D4AF37]/50'
                     }`}
                   >
                     <div className="text-xl">{evt.icon}</div>
                     <div className="text-[10px] text-[#C4B8AD] mt-1 line-clamp-2 leading-tight h-[24px] flex items-center justify-center">
                       {evt.label}
                     </div>
-                    {!added && <div className="text-[9px] text-[#E8A849]">+{evt.boost}%</div>}
+                    {!added && <div className="text-[9px] text-[#D4AF37]">+{evt.boost}%</div>}
                   </button>
                 );
               })}
@@ -382,12 +382,12 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
             <h3 className="text-sm font-semibold text-[#F5F0EB]">📜 Your Journey Timeline</h3>
             <span className="text-xs text-[#8C7F72]">{sortedEvents.length} events</span>
           </div>
-          <div className="divide-y divide-[#C4B8AD]/10">
+          <div className="divide-y divide-[#2A3442]">
             {sortedEvents.map((event) => (
               <motion.div
                 key={event.id}
                 onClick={() => setEditingId(event.id)}
-                className="flex items-center gap-4 p-4 cursor-pointer hover:bg-[#2E2724] transition-colors rounded-lg"
+                className="flex items-center gap-4 p-4 cursor-pointer hover:bg-[#0F1419] transition-colors rounded-lg"
                 whileHover={{ x: 4 }}
               >
                 <span className="text-2xl">{event.icon}</span>
@@ -396,24 +396,24 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
                     <div className="text-[#F5F0EB] font-medium">{event.eventType}</div>
                     {event.importance && (
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        event.importance === 'critical' ? 'bg-[#D64545]/20 text-[#D64545]' :
-                        event.importance === 'high' ? 'bg-[#E8A849]/20 text-[#E8A849]' :
-                        event.importance === 'medium' ? 'bg-[#5CB57B]/20 text-[#5CB57B]' :
-                        'bg-[#8C7F72]/20 text-[#8C7F72]'
+                        event.importance === 'critical' ? 'bg-[#EF4444]/20 text-[#EF4444]' :
+                        event.importance === 'high' ? 'bg-[#D4AF37]/20 text-[#D4AF37]' :
+                        event.importance === 'medium' ? 'bg-[#2D7A5C]/20 text-[#2D7A5C]' :
+                        'bg-[#5A6475]/20 text-[#5A6475]'
                       }`}>
                         {IMPORTANCE_OPTIONS.find(i => i.level === event.importance)?.icon}
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-[#E8A849]">{formatEventDate(event)}</div>
+                  <div className="text-xs text-[#D4AF37]">{formatEventDate(event)}</div>
                   {event.description && (
                     <p className="text-sm text-[#C4B8AD] line-clamp-1 mt-1">{event.description}</p>
                   )}
                 </div>
                 {event.description ? (
-                  <span className="text-[#5CB57B]">✓</span>
+                  <span className="text-[#2D7A5C]">✓</span>
                 ) : (
-                  <span className="px-2 py-1 bg-[#D64545]/10 text-[#D64545] text-xs rounded-full">Add details</span>
+                  <span className="px-2 py-1 bg-[#EF4444]/10 text-[#EF4444] text-xs rounded-full">Add details</span>
                 )}
               </motion.div>
             ))}
@@ -423,7 +423,7 @@ export default function Step3LifeEvents({ lifeEvents, updateEvents, offsetConfig
 
       {/* Empty State */}
       {sortedEvents.length === 0 && !editingId && (
-        <div className="bg-[#241F1C] rounded-xl border border-[#C4B8AD]/10 p-12 text-center">
+        <div className="bg-[#1A1F2E] rounded-xl border border-[#2A3442] p-12 text-center">
           <div className="text-6xl mb-4">📅</div>
           <h3 className="text-xl font-semibold text-[#F5F0EB] mb-2">Your timeline starts here</h3>
           <p className="text-[#8C7F72]">Select a category above to add your first event</p>
@@ -452,20 +452,20 @@ function DateInput({ precision, event, onUpdate }: DateInputProps) {
 
   if (precision === 'year_range') {
     return (
-      <div className="flex items-center gap-3 bg-[#2E2724] p-4 rounded-lg">
+      <div className="flex items-center gap-3 bg-[#0F1419] p-4 rounded-lg">
         <select
           value={y || ''}
           onChange={(e) => onUpdate({ eventDate: e.target.value })}
-          className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none"
+          className="h-[48px] px-4 bg-[#1A1F2E] border border-[#2A3442] rounded-lg text-[#F5F0EB] outline-none focus:border-[#D4AF37]"
         >
           <option value="">Start Year</option>
           {YEARS.map(yr => <option key={yr} value={yr}>{yr}</option>)}
         </select>
-        <span className="text-[#E8A849] text-xl">→</span>
+        <span className="text-[#D4AF37] text-xl">→</span>
         <select
           value={event.endDate || ''}
           onChange={(e) => onUpdate({ endDate: e.target.value })}
-          className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none"
+          className="h-[48px] px-4 bg-[#1A1F2E] border border-[#2A3442] rounded-lg text-[#F5F0EB] outline-none focus:border-[#D4AF37]"
         >
           <option value="">End Year</option>
           {YEARS.map(yr => <option key={yr} value={yr}>{yr}</option>)}
@@ -476,11 +476,11 @@ function DateInput({ precision, event, onUpdate }: DateInputProps) {
 
   if (precision === 'month_year') {
     return (
-      <div className="flex gap-3 bg-[#2E2724] p-4 rounded-lg">
+      <div className="flex gap-3 bg-[#0F1419] p-4 rounded-lg">
         <select
           value={m || ''}
           onChange={(e) => handleDateChange('m', e.target.value)}
-          className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none flex-1"
+          className="h-[48px] px-4 bg-[#1A1F2E] border border-[#2A3442] rounded-lg text-[#F5F0EB] outline-none flex-1 focus:border-[#D4AF37]"
         >
           <option value="">Month</option>
           {MONTHS.map((mon, i) => <option key={mon} value={(i + 1).toString()}>{mon}</option>)}
@@ -488,7 +488,7 @@ function DateInput({ precision, event, onUpdate }: DateInputProps) {
         <select
           value={y || ''}
           onChange={(e) => handleDateChange('y', e.target.value)}
-          className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none"
+          className="h-[48px] px-4 bg-[#1A1F2E] border border-[#2A3442] rounded-lg text-[#F5F0EB] outline-none focus:border-[#D4AF37]"
         >
           <option value="">Year</option>
           {YEARS.map(yr => <option key={yr} value={yr}>{yr}</option>)}
@@ -499,11 +499,11 @@ function DateInput({ precision, event, onUpdate }: DateInputProps) {
 
   // Default: exact date
   return (
-    <div className="flex gap-3 bg-[#2E2724] p-4 rounded-lg">
+    <div className="flex gap-3 bg-[#0F1419] p-4 rounded-lg">
       <select
         value={d || ''}
         onChange={(e) => handleDateChange('d', e.target.value)}
-        className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none"
+        className="h-[48px] px-4 bg-[#1A1F2E] border border-[#2A3442] rounded-lg text-[#F5F0EB] outline-none focus:border-[#D4AF37]"
       >
         <option value="">Day</option>
         {DAYS.map(day => <option key={day} value={day}>{day}</option>)}
@@ -511,7 +511,7 @@ function DateInput({ precision, event, onUpdate }: DateInputProps) {
       <select
         value={m || ''}
         onChange={(e) => handleDateChange('m', e.target.value)}
-        className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none flex-1"
+        className="h-[48px] px-4 bg-[#1A1F2E] border border-[#2A3442] rounded-lg text-[#F5F0EB] outline-none flex-1 focus:border-[#D4AF37]"
       >
         <option value="">Month</option>
         {MONTHS.map((mon, i) => <option key={mon} value={(i + 1).toString()}>{mon}</option>)}
@@ -519,7 +519,7 @@ function DateInput({ precision, event, onUpdate }: DateInputProps) {
       <select
         value={y || ''}
         onChange={(e) => handleDateChange('y', e.target.value)}
-        className="h-[48px] px-4 bg-[#241F1C] border border-[#C4B8AD]/20 rounded-lg text-[#F5F0EB] outline-none"
+        className="h-[48px] px-4 bg-[#1A1F2E] border border-[#2A3442] rounded-lg text-[#F5F0EB] outline-none focus:border-[#D4AF37]"
       >
         <option value="">Year</option>
         {YEARS.map(yr => <option key={yr} value={yr}>{yr}</option>)}
