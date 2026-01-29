@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
-        const { birthData, lifeEvents, physicalTraits, offsetConfig, sessionId } = body;
+        const { birthData, lifeEvents, physicalTraits, forensicTraits, spouseData, offsetConfig, sessionId } = body;
 
         // Validate minimum data
         if (!birthData || !birthData.fullName) {
@@ -55,6 +55,12 @@ export async function POST(request: NextRequest) {
         const encryptedPhysicalTraits = physicalTraits
             ? encryptData(JSON.stringify(physicalTraits), clerkId)
             : null;
+        const encryptedForensicTraits = forensicTraits
+            ? encryptData(JSON.stringify(forensicTraits), clerkId)
+            : null;
+        const encryptedSpouseData = spouseData
+            ? encryptData(JSON.stringify(spouseData), clerkId)
+            : null;
 
         // If sessionId provided, update existing draft
         if (sessionId) {
@@ -83,6 +89,8 @@ export async function POST(request: NextRequest) {
                     timezone: birthData.timezone?.toString() || '5.5',
                     gender: birthData.gender || 'other',
                     physicalTraits: encryptedPhysicalTraits,
+                    forensicTraits: encryptedForensicTraits,
+                    spouseData: encryptedSpouseData,
                     lifeEvents: encryptedLifeEvents,
                     offsetConfig: offsetConfig ? JSON.stringify(offsetConfig) : null,
                     updatedAt: now,
@@ -112,9 +120,11 @@ export async function POST(request: NextRequest) {
             timezone: birthData.timezone?.toString() || '5.5',
             gender: birthData.gender || 'other',
             physicalTraits: encryptedPhysicalTraits,
+            forensicTraits: encryptedForensicTraits,
+            spouseData: encryptedSpouseData,
             lifeEvents: encryptedLifeEvents,
             offsetConfig: offsetConfig ? JSON.stringify(offsetConfig) : null,
-            status: 'draft', // Special status for drafts
+            status: 'draft',
             createdAt: now,
             updatedAt: now,
         });

@@ -1,23 +1,25 @@
 /**
  * Step2ForensicTraits - Forensic Traits Matrix Form
- * Comprehensive forensic data collection for birth time rectification
+ * Comprehensive forensic data collection with gender-aware emojis
  */
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ForensicTraits } from '@/lib/types';
 import { FormCard } from '@/components/ui/form/FormCard';
 import { FormField } from '@/components/ui/form/FormField';
+import { getForensicEmoji, Gender } from '@/lib/forensic-emojis';
 import {
   Brain, Activity, Speech, Users, User, HelpCircle, Info,
-  ScanFace, Moon, Zap, Ruler
+  ScanFace, Zap
 } from 'lucide-react';
 
 interface Step2Props {
   traits: ForensicTraits;
   updateTraits: (traits: Partial<ForensicTraits>) => void;
+  gender?: Gender;
 }
 
 type TabId = 'mukha' | 'deha' | 'vyaktitva' | 'kula';
@@ -32,7 +34,6 @@ const TABS = [
 interface TraitOption {
   value: string;
   label: string;
-  emoji: string;
   guide: string;
 }
 
@@ -44,9 +45,10 @@ interface TraitGroupProps {
   onChange: (value: string) => void;
   description?: string;
   columns?: 2 | 3 | 4;
+  gender: Gender;
 }
 
-function TraitGroup({ label, icon: Icon, options, value, onChange, description, columns = 3 }: TraitGroupProps) {
+function TraitGroup({ label, icon: Icon, options, value, onChange, description, columns = 3, gender }: TraitGroupProps) {
   const [showHelp, setShowHelp] = useState(false);
 
   const gridCols = {
@@ -110,7 +112,7 @@ function TraitGroup({ label, icon: Icon, options, value, onChange, description, 
                 <span className="text-[#E8A849]">✓</span>
               </div>
             )}
-            <div className="text-2xl mb-2">{opt.emoji}</div>
+            <div className="text-2xl mb-2">{getForensicEmoji(opt.value, gender)}</div>
             <div className="font-bold text-[#F5F0EB] text-sm mb-1">{opt.label}</div>
             <div className="text-[10px] text-[#8C7F72] italic leading-tight group-hover:text-[#C4B8AD] transition-colors">
               &ldquo;{opt.guide}&rdquo;
@@ -122,7 +124,7 @@ function TraitGroup({ label, icon: Icon, options, value, onChange, description, 
   );
 }
 
-export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props) {
+export default function Step2ForensicTraits({ traits, updateTraits, gender = 'other' }: Step2Props) {
   const [activeTab, setActiveTab] = useState<TabId>('mukha');
   const safeTraits = traits || {};
 
@@ -168,65 +170,66 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
     });
   }, [safeTraits.family, updateTraits]);
 
-  const FOREHEAD_OPTIONS: TraitOption[] = [
-    { value: 'broad', label: 'Broad/High', emoji: '🧠', guide: 'Wide forehead indicates Sun/Jupiter prominence - leadership, intelligence' },
-    { value: 'narrow', label: 'Narrow', emoji: '🤏', guide: 'Narrow forehead shows Saturn influence - focused, practical mindset' },
-    { value: 'average', label: 'Average', emoji: '➖', guide: 'Average width suggests mixed planetary influences' },
-    { value: 'sloping', label: 'Sloping', emoji: '📐', guide: 'Sloping forehead indicates Mercury/Mars signature - quick thinking' }
-  ];
+  // Trait options (without emojis - emojis are computed based on gender)
+  const FOREHEAD_OPTIONS: TraitOption[] = useMemo(() => [
+    { value: 'broad', label: 'Broad/High', guide: 'Wide forehead indicates Sun/Jupiter prominence - leadership, intelligence' },
+    { value: 'narrow', label: 'Narrow', guide: 'Narrow forehead shows Saturn influence - focused, practical mindset' },
+    { value: 'average', label: 'Average', guide: 'Average width suggests mixed planetary influences' },
+    { value: 'sloping', label: 'Sloping', guide: 'Sloping forehead indicates Mercury/Mars signature - quick thinking' }
+  ], []);
 
-  const EYE_OPTIONS: TraitOption[] = [
-    { value: 'deep_set', label: 'Deep Set', emoji: '🕶️', guide: 'Deep set eyes show Saturnine depth - introspective, serious nature' },
-    { value: 'prominent', label: 'Prominent', emoji: '👁️', guide: 'Prominent eyes indicate Mars/Moon intensity - emotional expressiveness' },
-    { value: 'almond', label: 'Almond', emoji: '🌰', guide: 'Almond shape reveals Venusian grace - artistic, harmonious nature' },
-    { value: 'round', label: 'Round/Large', emoji: '😳', guide: 'Round eyes suggest Jupiterian expansiveness - optimistic, open-hearted' },
-    { value: 'small', label: 'Small/Piercing', emoji: '🎯', guide: 'Small piercing eyes indicate Mercurial sharpness - analytical, precise' }
-  ];
+  const EYE_OPTIONS: TraitOption[] = useMemo(() => [
+    { value: 'deep_set', label: 'Deep Set', guide: 'Deep set eyes show Saturnine depth - introspective, serious nature' },
+    { value: 'prominent', label: 'Prominent', guide: 'Prominent eyes indicate Mars/Moon intensity - emotional expressiveness' },
+    { value: 'almond', label: 'Almond', guide: 'Almond shape reveals Venusian grace - artistic, harmonious nature' },
+    { value: 'round', label: 'Round/Large', guide: 'Round eyes suggest Jupiterian expansiveness - optimistic, open-hearted' },
+    { value: 'small', label: 'Small/Piercing', guide: 'Small piercing eyes indicate Mercurial sharpness - analytical, precise' }
+  ], []);
 
-  const VOICE_OPTIONS: TraitOption[] = [
-    { value: 'deep', label: 'Deep/Grave', emoji: '🎙️', guide: 'Deep voice indicates Saturn/Jupiter influence - authority, wisdom' },
-    { value: 'high', label: 'High Pitch', emoji: '🎵', guide: 'High pitch shows Mercury/Mars energy - quick, energetic communication' },
-    { value: 'medium', label: 'Medium', emoji: '🗣️', guide: 'Medium voice suggests balanced Solar/Lunar energy' },
-    { value: 'soft', label: 'Soft/Melodious', emoji: '🎶', guide: 'Soft voice reveals Venusian beauty - diplomatic, charming' },
-    { value: 'raspy', label: 'Raspy/Strong', emoji: '🐯', guide: 'Raspy voice indicates Rahu/Mars power - unconventional strength' }
-  ];
+  const VOICE_OPTIONS: TraitOption[] = useMemo(() => [
+    { value: 'deep', label: 'Deep/Grave', guide: 'Deep voice indicates Saturn/Jupiter influence - authority, wisdom' },
+    { value: 'high', label: 'High Pitch', guide: 'High pitch shows Mercury/Mars energy - quick, energetic communication' },
+    { value: 'medium', label: 'Medium', guide: 'Medium voice suggests balanced Solar/Lunar energy' },
+    { value: 'soft', label: 'Soft/Melodious', guide: 'Soft voice reveals Venusian beauty - diplomatic, charming' },
+    { value: 'raspy', label: 'Raspy/Strong', guide: 'Raspy voice indicates Rahu/Mars power - unconventional strength' }
+  ], []);
 
-  const PRAKRITI_OPTIONS: TraitOption[] = [
-    { value: 'vata', label: 'Vata (Slim)', emoji: '🌬️', guide: 'Air/Space dominant. Bony frame, dry skin. Creative, energetic, anxious.' },
-    { value: 'pitta', label: 'Pitta (Athletic)', emoji: '🔥', guide: 'Fire/Water dominant. Medium build, muscular, warm body. Ambitious, focused.' },
-    { value: 'kapha', label: 'Kapha (Solid)', emoji: '🌍', guide: 'Earth/Water dominant. Heavy, robust, oily skin. Calm, loyal, steady.' },
-    { value: 'vata-pitta', label: 'Vata-Pitta', emoji: '💨🔥', guide: 'Air-Fire mix. Slim but intense. Creative drive with sharp intellect.' },
-    { value: 'pitta-kapha', label: 'Pitta-Kapha', emoji: '🔥🌍', guide: 'Fire-Earth mix. Broad muscular build. Determined with emotional stability.' }
-  ];
+  const PRAKRITI_OPTIONS: TraitOption[] = useMemo(() => [
+    { value: 'vata', label: 'Vata (Slim)', guide: 'Air/Space dominant. Bony frame, dry skin. Creative, energetic, anxious.' },
+    { value: 'pitta', label: 'Pitta (Athletic)', guide: 'Fire/Water dominant. Medium build, muscular, warm body. Ambitious, focused.' },
+    { value: 'kapha', label: 'Kapha (Solid)', guide: 'Earth/Water dominant. Heavy, robust, oily skin. Calm, loyal, steady.' },
+    { value: 'vata-pitta', label: 'Vata-Pitta', guide: 'Air-Fire mix. Slim but intense. Creative drive with sharp intellect.' },
+    { value: 'pitta-kapha', label: 'Pitta-Kapha', guide: 'Fire-Earth mix. Broad muscular build. Determined with emotional stability.' }
+  ], []);
 
-  const SPEECH_OPTIONS: TraitOption[] = [
-    { value: 'fast_loud', label: 'Fast & Loud', emoji: '🗣️', guide: 'Mars/Sun dominance. Assertive, commanding, impulsive speaker.' },
-    { value: 'measured_soft', label: 'Measured & Soft', emoji: '🧘', guide: 'Saturn/Jupiter influence. Thoughtful, wise, authoritative speech.' },
-    { value: 'argumentative', label: 'Logical/Debate', emoji: '⚖️', guide: 'Mercury/Mars sharpness. Analytical, questioning, precise.' },
-    { value: 'concise', label: 'Concise/Brief', emoji: '✂️', guide: 'Ketu influence. Minimal words, spiritual detachment in speech.' },
-    { value: 'talkative', label: 'Highly Talkative', emoji: '🎭', guide: 'Rahu/Mercury combination. Versatile, clever, sometimes deceptive.' }
-  ];
+  const SPEECH_OPTIONS: TraitOption[] = useMemo(() => [
+    { value: 'fast_loud', label: 'Fast & Loud', guide: 'Mars/Sun dominance. Assertive, commanding, impulsive speaker.' },
+    { value: 'measured_soft', label: 'Measured & Soft', guide: 'Saturn/Jupiter influence. Thoughtful, wise, authoritative speech.' },
+    { value: 'argumentative', label: 'Logical/Debate', guide: 'Mercury/Mars sharpness. Analytical, questioning, precise.' },
+    { value: 'concise', label: 'Concise/Brief', guide: 'Ketu influence. Minimal words, spiritual detachment in speech.' },
+    { value: 'talkative', label: 'Highly Talkative', guide: 'Rahu/Mercury combination. Versatile, clever, sometimes deceptive.' }
+  ], []);
 
-  const DECISION_OPTIONS: TraitOption[] = [
-    { value: 'impulsive', label: 'Impulsive/Fast', emoji: '⚡', guide: 'Mars energy. Quick decisions, action-oriented, sometimes rash.' },
-    { value: 'deliberate', label: 'Deliberate/Slow', emoji: '🐢', guide: 'Saturnian caution. Careful analysis, methodical, patient.' },
-    { value: 'indecisive', label: 'Indecisive', emoji: '🌊', guide: 'Lunar influence. Emotionally swayed, changeable mind.' },
-    { value: 'intuitive', label: 'Intuitive', emoji: '🔮', guide: 'Jupiter/Neptune wisdom. Gut feeling, spiritual guidance.' }
-  ];
+  const DECISION_OPTIONS: TraitOption[] = useMemo(() => [
+    { value: 'impulsive', label: 'Impulsive/Fast', guide: 'Mars energy. Quick decisions, action-oriented, sometimes rash.' },
+    { value: 'deliberate', label: 'Deliberate/Slow', guide: 'Saturnian caution. Careful analysis, methodical, patient.' },
+    { value: 'indecisive', label: 'Indecisive', guide: 'Lunar influence. Emotionally swayed, changeable mind.' },
+    { value: 'intuitive', label: 'Intuitive', guide: 'Jupiter/Neptune wisdom. Gut feeling, spiritual guidance.' }
+  ], []);
 
-  const SIBLING_OPTIONS: TraitOption[] = [
-    { value: 'eldest', label: 'Eldest', emoji: '👑', guide: 'Sun/Mars influence. Natural leader, responsible, authoritative.' },
-    { value: 'middle', label: 'Middle', emoji: '🤝', guide: 'Mercury/Venus influence. Diplomatic, adaptable, peacemaker.' },
-    { value: 'youngest', label: 'Youngest', emoji: '👶', guide: 'Moon/Jupiter influence. Nurtured, creative, free-spirited.' },
-    { value: 'only_child', label: 'Only Child', emoji: '🌟', guide: 'Unique planetary focus. Self-centered, independent, mature early.' }
-  ];
+  const SIBLING_OPTIONS: TraitOption[] = useMemo(() => [
+    { value: 'eldest', label: 'Eldest', guide: 'Sun/Mars influence. Natural leader, responsible, authoritative.' },
+    { value: 'middle', label: 'Middle', guide: 'Mercury/Venus influence. Diplomatic, adaptable, peacemaker.' },
+    { value: 'youngest', label: 'Youngest', guide: 'Moon/Jupiter influence. Nurtured, creative, free-spirited.' },
+    { value: 'only_child', label: 'Only Child', guide: 'Unique planetary focus. Self-centered, independent, mature early.' }
+  ], []);
 
-  const FATHER_STATUS_OPTIONS: TraitOption[] = [
-    { value: 'struggling', label: 'Struggling', emoji: '⛰️', guide: '9th Lord challenges. Financial difficulties, health issues for father.' },
-    { value: 'stable', label: 'Stable/Middle', emoji: '⚖️', guide: 'Standard 9th strength. Average circumstances, comfortable life.' },
-    { value: 'prosperous', label: 'Prosperous', emoji: '💎', guide: 'Strong 9th/10th houses. Wealthy, successful, respected father.' },
-    { value: 'highly_distinguished', label: 'Distinguished', emoji: '🏆', guide: 'Raja Yoga in 9th/10th. Very famous, powerful, elite status.' }
-  ];
+  const FATHER_STATUS_OPTIONS: TraitOption[] = useMemo(() => [
+    { value: 'struggling', label: 'Struggling', guide: '9th Lord challenges. Financial difficulties, health issues for father.' },
+    { value: 'stable', label: 'Stable/Middle', guide: 'Standard 9th strength. Average circumstances, comfortable life.' },
+    { value: 'prosperous', label: 'Prosperous', guide: 'Strong 9th/10th houses. Wealthy, successful, respected father.' },
+    { value: 'highly_distinguished', label: 'Distinguished', guide: 'Raja Yoga in 9th/10th. Very famous, powerful, elite status.' }
+  ], []);
 
   return (
     <div className="w-full max-w-4xl mx-auto pb-12">
@@ -281,6 +284,7 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                   options={FOREHEAD_OPTIONS}
                   value={safeTraits.physical?.facialStructure?.forehead}
                   onChange={(val) => updateFacial({ forehead: val })}
+                  gender={gender}
                 />
               </FormCard>
 
@@ -292,6 +296,7 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                   value={safeTraits.physical?.facialStructure?.eyeShape}
                   onChange={(val) => updateFacial({ eyeShape: val })}
                   columns={4}
+                  gender={gender}
                 />
               </FormCard>
 
@@ -303,6 +308,7 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                   value={safeTraits.physical?.facialStructure?.voicePitch}
                   onChange={(val) => updateFacial({ voicePitch: val })}
                   columns={4}
+                  gender={gender}
                 />
               </FormCard>
             </motion.div>
@@ -323,6 +329,7 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                   options={PRAKRITI_OPTIONS}
                   value={safeTraits.biological?.prakriti}
                   onChange={(val) => updateBiological({ prakriti: val })}
+                  gender={gender}
                 />
               </FormCard>
 
@@ -354,6 +361,7 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                   options={SPEECH_OPTIONS}
                   value={safeTraits.psychographic?.speechStyle}
                   onChange={(val) => updatePsychographic({ speechStyle: val })}
+                  gender={gender}
                 />
               </FormCard>
 
@@ -364,6 +372,7 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                   options={DECISION_OPTIONS}
                   value={safeTraits.psychographic?.decisionMaking}
                   onChange={(val) => updatePsychographic({ decisionMaking: val })}
+                  gender={gender}
                 />
               </FormCard>
             </motion.div>
@@ -384,6 +393,7 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                   options={SIBLING_OPTIONS}
                   value={safeTraits.family?.siblingPosition}
                   onChange={(val) => updateFamily({ siblingPosition: val })}
+                  gender={gender}
                 />
               </FormCard>
 
@@ -394,6 +404,7 @@ export default function Step2ForensicTraits({ traits, updateTraits }: Step2Props
                   options={FATHER_STATUS_OPTIONS}
                   value={safeTraits.family?.fatherStatusAtBirth}
                   onChange={(val) => updateFamily({ fatherStatusAtBirth: val })}
+                  gender={gender}
                 />
               </FormCard>
             </motion.div>

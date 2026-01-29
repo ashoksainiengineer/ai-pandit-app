@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { UserButton, useAuth } from '@clerk/nextjs';
 import { BirthData, LifeEvent, PhysicalTraits, TimeOffsetConfig, SpouseData, ForensicTraits } from '@/lib/types';
+import { Gender } from '@/lib/forensic-emojis';
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
 import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
 import Step2ForensicTraits from '@/components/rectify/Step2ForensicTraits';
@@ -102,7 +103,8 @@ export default function RectifyPage() {
                     lifeEvents,
                     physicalTraits,
                     forensicTraits,
-                    offsetConfig, // Use state
+                    spouseData: spouseData.dateOfBirth ? spouseData : undefined,
+                    offsetConfig,
                     sessionId: draftSessionId,
                 }),
             });
@@ -418,6 +420,7 @@ export default function RectifyPage() {
                         <Step2ForensicTraits
                             traits={forensicTraits}
                             updateTraits={(updates) => setForensicTraits(prev => ({ ...prev, ...updates }))}
+                            gender={birthData.gender as Gender}
                         />
                     )}
                     {step === 3 && (

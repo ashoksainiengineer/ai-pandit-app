@@ -539,6 +539,10 @@ async function processSessionAsync(sessionId: string): Promise<void> {
       });
       
       // 🔐 Decrypt sensitive data using clerkId (encryption key)
+      // lifeEvents is nullable for drafts, but at processing stage it must exist
+      if (!s.lifeEvents) {
+        throw new Error('lifeEvents data is missing - cannot process without life events');
+      }
       const lifeEventsData = safeDecrypt(s.lifeEvents, s.clerkId);
       if (!lifeEventsData) {
         throw new Error('Failed to decrypt lifeEvents data');

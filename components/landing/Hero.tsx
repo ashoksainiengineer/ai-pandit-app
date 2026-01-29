@@ -1,202 +1,211 @@
 /**
- * Hero Section
- * Ultra-transparent, high-conversion hero with process visualization
- * Leapcell-inspired design with dark theme and green accent
+ * Hero Section - God-Tier Technical Showcase
+ * Ultra-transparent, engineering-focused hero with dark theme
  */
 
 'use client';
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { ArrowRight, Sparkles, Play, ChevronRight } from 'lucide-react';
+import {
+  ArrowRight,
+  Sparkles,
+  Terminal,
+  Cpu,
+  Database,
+  Brain,
+  Activity,
+  Zap,
+  Server,
+  Telescope,
+  Star,
+  TerminalSquare,
+} from 'lucide-react';
+import { Suspense, lazy } from 'react';
+import Image from 'next/image';
 
-const stats = [
-  { value: '97%', label: 'Accuracy' },
-  { value: '20-25', label: 'Minutes' },
-  { value: '10K+', label: 'Customers' },
+const AIThinkingBox = lazy(() => import('./AIThinkingBox'));
+const EphemerisTable = lazy(() => import('./EphemerisTable'));
+const CandidateComparisonTable = lazy(() => import('./CandidateComparisonTable'));
+
+const techBadges = [
+  { name: 'Swiss Ephemeris', icon: Telescope, color: '#8B5CF6' },
+  { name: 'DeepSeek R1', icon: Brain, color: '#6366F1' },
+  { name: 'Turso Database', icon: Database, color: '#D4AF37' },
+  { name: 'Drizzle ORM', icon: Database, color: '#00DC82' },
+  { name: 'Next.js', icon: Server, color: '#F5F0EB' },
+  { name: 'TypeScript', icon: Cpu, color: '#3178C6' },
 ];
 
-const methods = [
-  'Vimshottari Dasha',
-  'Yogini Dasha', 
-  'Chara Dasha',
-  'Kalachakra',
-  'Ashtakavarga',
-  'Shadbala',
-  'Varga Charts',
-  'Transit Analysis',
-  'AI Consensus',
+const godTierStats = [
+  { value: '±15s', label: 'Precision', icon: Activity, desc: 'Arcsecond accuracy' },
+  { value: '96.8%', label: 'Confidence', icon: Star, desc: 'God-Tier verified' },
+  { value: '40-50m', label: 'Processing', icon: Zap, desc: 'Full analysis time' },
 ];
 
 export default function Hero() {
   return (
-    <section className="relative min-h-screen flex items-center bg-[#0a0a0b] overflow-hidden">
-      {/* Background Elements */}
+    <section id="home" className="relative min-h-screen bg-[#0A0F1C] overflow-hidden">
       <div className="absolute inset-0">
-        {/* Radial Glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-b from-[#00DC82]/10 via-[#00DC82]/5 to-transparent rounded-full blur-3xl" />
-        
-        {/* Grid Pattern */}
-        <div className="absolute inset-0 opacity-20" style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, #27272A 1px, transparent 0)`,
-          backgroundSize: '60px 60px'
+        <motion.div
+          className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[800px] bg-gradient-to-b from-[#8B5CF6]/5 via-[#6366F1]/3 to-transparent rounded-full blur-3xl"
+          animate={{ opacity: [0.3, 0.5, 0.3], scale: [1, 1.1, 1] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <div className="absolute inset-0 opacity-[0.03]" style={{
+          backgroundImage: `linear-gradient(to right, #8B5CF6 1px, transparent 1px),
+                           linear-gradient(to bottom, #8B5CF6 1px, transparent 1px)`,
+          backgroundSize: '80px 80px'
         }} />
       </div>
 
       <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-16">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          {/* Left Content */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="flex flex-wrap items-center justify-center gap-3 mb-8"
+        >
+          {techBadges.map((badge, index) => {
+            const Icon = badge.icon;
+            return (
+              <motion.div
+                key={badge.name}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 + index * 0.1 }}
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#1A1F2E]/80 border border-[#2A3442] rounded-full backdrop-blur-sm"
+              >
+                <Icon className="w-3 h-3" style={{ color: badge.color }} />
+                <span className="text-xs font-medium text-[#8C7F72]">{badge.name}</span>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="max-w-3xl mx-auto text-center mb-16"
+        >
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="flex items-center justify-center gap-3 mb-6"
           >
-            {/* Badge */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[#00DC82]/10 border border-[#00DC82]/20 rounded-full text-[#00DC82] text-sm font-medium mb-8"
-            >
-              <Sparkles className="w-4 h-4" />
-              AI + Vedic Astrology Combined
-            </motion.div>
+            <div className="relative w-12 h-12">
+              <Image src="/om-logo.png" alt="AI Pandit OM Logo" fill className="object-contain" priority />
+            </div>
+            <span className="text-2xl font-bold text-[#F5F0EB]">AI Pandit</span>
+          </motion.div>
 
-            {/* Headline */}
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
-              Discover Your{' '}
-              <span className="bg-gradient-to-r from-[#00DC82] to-[#36E4DA] bg-clip-text text-transparent">
-                Exact Birth Time
-              </span>
-              {' '}with 97% Accuracy
-            </h1>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[#1A1F2E] border border-[#8B5CF6]/30 rounded-full text-[#8B5CF6] text-sm font-medium mb-6"
+          >
+            <Sparkles className="w-4 h-4" />
+            Birth Time Rectification Engine
+          </motion.div>
 
-            {/* Subheadline */}
-            <p className="text-lg md:text-xl text-zinc-400 mb-8 max-w-xl leading-relaxed">
-              Our AI analyzes your life events against 9 Vedic validation methods 
-              to calculate your precise birth time. Trusted by 10,000+ Indians.
-            </p>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#F5F0EB] leading-tight mb-6">
+            Engineering{' '}
+            <span className="bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] bg-clip-text text-transparent">
+              Astrological
+            </span>
+            {' '}Precision
+          </h1>
 
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-12">
-              <Link href="/rectify">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="group px-8 py-4 bg-gradient-to-r from-[#00DC82] to-[#36E4DA] text-black font-bold text-lg rounded-xl hover:shadow-[0_0_30px_rgba(0,220,130,0.3)] transition-all duration-300 flex items-center justify-center gap-2"
-                >
-                  Start Analysis - ₹799
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </motion.button>
-              </Link>
+          <p className="text-lg md:text-xl text-[#8C7F72] mb-8 max-w-2xl mx-auto leading-relaxed">
+            NASA-grade Swiss Ephemeris calculations fused with DeepSeek R1-0528.
+            Achieve God-Tier precision in birth time rectification through
+            algorithmic Vedic analysis.
+          </p>
 
+          <div className="flex flex-col sm:flex-row gap-4 mb-10 justify-center">
+            <Link href="/rectify">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="px-8 py-4 bg-zinc-900 border border-zinc-700 text-white font-semibold text-lg rounded-xl hover:border-[#00DC82]/30 hover:bg-zinc-800 transition-all duration-300 flex items-center justify-center gap-2"
+                className="group px-8 py-4 bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] text-white font-bold text-lg rounded-xl hover:shadow-[0_0_40px_rgba(139,92,246,0.4)] transition-all duration-300 flex items-center justify-center gap-2"
               >
-                <Play className="w-5 h-5" />
-                Watch Demo
+                Start Analysis
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </motion.button>
-            </div>
+            </Link>
+          </div>
 
-            {/* Stats */}
-            <div className="flex items-center gap-8">
-              {stats.map((stat, index) => (
+          <div className="grid grid-cols-3 gap-4 mb-10 max-w-xl mx-auto">
+            {godTierStats.map((stat, index) => {
+              const Icon = stat.icon;
+              return (
                 <motion.div
                   key={stat.label}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6 + index * 0.1 }}
+                  className="p-4 bg-[#1A1F2E]/50 border border-[#2A3442] rounded-xl"
                 >
-                  <div className="text-2xl md:text-3xl font-bold text-white">{stat.value}</div>
-                  <div className="text-sm text-zinc-500">{stat.label}</div>
+                  <Icon className="w-5 h-5 text-[#D4AF37] mb-2" />
+                  <div className="text-2xl font-bold text-[#F5F0EB] font-mono">{stat.value}</div>
+                  <div className="text-xs text-[#8C7F72] uppercase tracking-wider">{stat.label}</div>
+                  <div className="text-[10px] text-[#5A6475] mt-1">{stat.desc}</div>
                 </motion.div>
-              ))}
-            </div>
-          </motion.div>
+              );
+            })}
+          </div>
 
-          {/* Right Content - Method Showcase */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="relative"
-          >
-            <div className="relative bg-[#111113] border border-zinc-800 rounded-2xl p-6 lg:p-8">
-              {/* Browser Frame */}
-              <div className="flex items-center gap-2 mb-6 pb-4 border-b border-zinc-800">
-                <div className="w-3 h-3 rounded-full bg-red-500" />
-                <div className="w-3 h-3 rounded-full bg-yellow-500" />
-                <div className="w-3 h-3 rounded-full bg-green-500" />
-                <div className="ml-4 flex-1 bg-zinc-900 rounded-lg px-4 py-1.5 text-xs text-zinc-500">
-                  aipandit.ai/analysis
-                </div>
+          <div className="flex items-center gap-4 text-xs text-[#5A6475] justify-center">
+            <span>aipandit.app</span>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.3 }}
+          className="max-w-5xl mx-auto space-y-8"
+        >
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <TerminalSquare className="w-5 h-5 text-[#8B5CF6]" />
+                <h2 className="text-xl font-bold text-[#F5F0EB]">Live Analysis Engine</h2>
               </div>
-
-              {/* Content */}
-              <div className="space-y-4">
-                <div className="text-sm font-medium text-zinc-400 mb-4">
-                  9 Validation Methods Running...
-                </div>
-
-                {methods.map((method, index) => (
-                  <motion.div
-                    key={method}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.5 + index * 0.1 }}
-                    className="flex items-center gap-3 group"
-                  >
-                    <div className="w-5 h-5 rounded-full bg-[#00DC82]/20 border border-[#00DC82]/30 flex items-center justify-center">
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: 0.8 + index * 0.1 }}
-                        className="w-2 h-2 rounded-full bg-[#00DC82]"
-                      />
-                    </div>
-                    <span className="text-sm text-zinc-300 group-hover:text-white transition-colors">
-                      {method}
-                    </span>
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: '100%' }}
-                      transition={{ delay: 0.8 + index * 0.1, duration: 0.5 }}
-                      className="flex-1 h-px bg-gradient-to-r from-[#00DC82]/30 to-transparent"
-                    />
-                  </motion.div>
-                ))}
-
-                {/* Progress Bar */}
-                <div className="mt-6 pt-4 border-t border-zinc-800">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-zinc-400">Analysis Progress</span>
-                    <span className="text-sm font-semibold text-[#00DC82]">97% Confidence</span>
-                  </div>
-                  <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: '97%' }}
-                      transition={{ delay: 1.5, duration: 1 }}
-                      className="h-full bg-gradient-to-r from-[#00DC82] to-[#36E4DA] rounded-full"
-                    />
-                  </div>
-                </div>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs text-emerald-400 font-medium">ALWAYS RUNNING</span>
               </div>
-
-              {/* Floating Badge */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 2 }}
-                className="absolute -bottom-4 -right-4 bg-gradient-to-r from-[#00DC82] to-[#36E4DA] text-black px-4 py-2 rounded-xl font-semibold text-sm shadow-lg"
-              >
-                ✓ God-Tier Verified
-              </motion.div>
             </div>
-          </motion.div>
-        </div>
+            <p className="text-[#8C7F72] mb-4 text-sm">Powered by Hugging Face Space</p>
+            <Suspense fallback={<div className="h-80 bg-[#1A1F2E] rounded-xl animate-pulse border border-[#2A3442]" />}>
+              <AIThinkingBox />
+            </Suspense>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <Telescope className="w-5 h-5 text-[#D4AF37]" />
+              <h2 className="text-xl font-bold text-[#F5F0EB]">Swiss Ephemeris Precision Data</h2>
+            </div>
+            <Suspense fallback={<div className="h-64 bg-[#1A1F2E] rounded-xl animate-pulse border border-[#2A3442]" />}>
+              <EphemerisTable />
+            </Suspense>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <Brain className="w-5 h-5 text-[#6366F1]" />
+              <h2 className="text-xl font-bold text-[#F5F0EB]">BTR Candidate Analysis</h2>
+            </div>
+            <Suspense fallback={<div className="h-96 bg-[#1A1F2E] rounded-xl animate-pulse border border-[#2A3442]" />}>
+              <CandidateComparisonTable />
+            </Suspense>
+          </div>
+        </motion.div>
       </div>
     </section>
   );
