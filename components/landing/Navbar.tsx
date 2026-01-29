@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 import { UserButton, useUser } from '@clerk/nextjs';
-import Image from 'next/image';
 
 const navLinks = [
   { href: '/rectify', label: 'Start Analysis' },
@@ -17,14 +16,11 @@ export default function Navbar() {
   const { isSignedIn } = useUser();
 
   return (
-    <nav className="fixed top-0 w-full bg-slate-900/95 backdrop-blur-sm border-b border-slate-800 z-50">
+    <nav className="fixed top-0 w-full bg-[#0A0F1C]/95 backdrop-blur-sm border-b border-[#2A3442] z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center space-x-2">
-            <div className="relative w-8 h-8">
-              <Image src="/om-logo.png" alt="AI Pandit" fill className="object-contain" />
-            </div>
-            <span className="text-xl font-bold text-white">AI Pandit</span>
+            <span className="text-2xl">🕉️</span>
           </Link>
 
           <div className="hidden md:flex items-center space-x-8">
@@ -32,7 +28,7 @@ export default function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-gray-300 hover:text-amber-400 transition-colors duration-200"
+                className="text-[#8C7F72] hover:text-[#D4AF37] transition-colors duration-200"
               >
                 {link.label}
               </Link>
@@ -40,13 +36,13 @@ export default function Navbar() {
           </div>
 
           <div className="hidden md:flex items-center space-x-4">
-            <Link href="/rectify">
+            <Link href="/dashboard">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="px-6 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-colors duration-200"
+                className="px-5 py-2 bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] text-white font-semibold rounded-lg transition-colors duration-200 text-sm"
               >
-                Get Started
+                Dashboard
               </motion.button>
             </Link>
             {isSignedIn && <UserButton afterSignOutUrl="/" />}
@@ -56,7 +52,7 @@ export default function Navbar() {
             {isSignedIn && <UserButton afterSignOutUrl="/" />}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="text-gray-300 hover:text-white p-2"
+              className="text-[#8C7F72] hover:text-white p-2"
             >
               {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
@@ -70,7 +66,7 @@ export default function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-slate-800 border-t border-slate-700"
+            className="md:hidden bg-[#1A1F2E] border-t border-[#2A3442]"
           >
             <div className="px-2 pt-2 pb-3 space-y-1">
               {navLinks.map((link, index) => (
@@ -83,7 +79,7 @@ export default function Navbar() {
                   <Link
                     href={link.href}
                     onClick={() => setIsOpen(false)}
-                    className="block px-3 py-2 text-gray-300 hover:text-amber-400 hover:bg-slate-700 rounded-md transition-colors duration-200"
+                    className="block px-3 py-2 text-[#8C7F72] hover:text-[#D4AF37] hover:bg-[#2A3442] rounded-md transition-colors duration-200"
                   >
                     {link.label}
                   </Link>
@@ -94,9 +90,9 @@ export default function Navbar() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: navLinks.length * 0.1 }}
               >
-                <Link href="/rectify" onClick={() => setIsOpen(false)}>
-                  <button className="w-full mt-2 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg transition-colors duration-200">
-                    Get Started
+                <Link href="/dashboard" onClick={() => setIsOpen(false)}>
+                  <button className="w-full mt-2 px-3 py-2 bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] text-white font-semibold rounded-lg transition-colors duration-200">
+                    Dashboard
                   </button>
                 </Link>
               </motion.div>

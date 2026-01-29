@@ -8,22 +8,46 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Custom Vedic Theme Colors
-        'bg-base': '#1A1614',
-        'bg-surface': '#241F1C',
-        'bg-input': '#2E2724',
-        'bg-hover': '#3A3330',
+        // AI Pandit Unified Design System
+        // Background colors
+        'bg-primary': '#0A0F1C',
+        'bg-secondary': '#0F1419',
+        'bg-surface': '#1A1F2E',
+        'bg-elevated': '#242B3D',
+        'bg-input': '#2A3442',
+        'bg-hover': '#3A4555',
+        
+        // Text colors
         'text-primary': '#F5F0EB',
         'text-secondary': '#C4B8AD',
         'text-muted': '#8C7F72',
-        'accent-primary': '#E8A849',
-        'accent-primary-hover': '#F0B85A',
-        'accent-secondary': '#6B9AC4',
-        'color-success': '#5CB57B',
-        'color-warning': '#E8A849',
-        'color-error': '#D64545',
-        'color-info': '#6B9AC4',
-        // Existing colors
+        'text-disabled': '#5A6475',
+        
+        // Accent colors (Primary: Purple #8B5CF6)
+        'accent-primary': '#8B5CF6',
+        'accent-primary-hover': '#7C3AED',
+        'accent-secondary': '#6366F1',
+        
+        // Gold accent colors
+        'accent-gold': '#D4AF37',
+        'accent-gold-light': '#E8C54D',
+        'accent-gold-muted': '#C9A961',
+        
+        // Semantic colors
+        'success': '#2D7A5C',
+        'success-light': '#3D9A73',
+        'warning': '#E8A849',
+        'error': '#EF4444',
+        'error-light': '#F87171',
+        'info': '#6B9AC4',
+        
+        // Border colors
+        'border-default': '#2A3442',
+        'border-hover': '#3A4555',
+        'border-accent': '#8B5CF6',
+        
+        // Legacy Vedic Theme Colors (kept for backward compatibility)
+        'bg-base': '#1A1614',
         gold: {
           50: '#fff9e6',
           100: '#ffeeb3',

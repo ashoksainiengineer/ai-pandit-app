@@ -388,7 +388,7 @@ export default function ProgressPage() {
 
     if (loading && !isConnected && readyState !== 3) {
         return (
-            <main className="min-h-screen bg-[#0F1419] flex items-center justify-center">
+            <main className="min-h-screen bg-[#0A0F1C] flex items-center justify-center">
                 <div className="text-center">
                     <div className="w-16 h-16 border-4 border-[#D4AF37] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
                     <p className="text-[#C4B8AD]">Connecting to analysis engine...</p>
@@ -448,7 +448,7 @@ export default function ProgressPage() {
 
     if (error) {
         return (
-            <main className="min-h-screen bg-[#0F1419] flex items-center justify-center p-6">
+            <main className="min-h-screen bg-[#0A0F1C] flex items-center justify-center p-6">
                 <div className="glass-card max-w-lg w-full p-8 border-red-500/30 text-center relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-500 to-orange-500" />
                     <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -496,12 +496,12 @@ export default function ProgressPage() {
     // Show cancelled state
     if (cancelled) {
         return (
-            <main className="min-h-screen bg-[#0F1419] flex items-center justify-center">
+            <main className="min-h-screen bg-[#0A0F1C] flex items-center justify-center">
                 <div className="text-center max-w-md px-6">
                     <div className="text-6xl mb-4">🛑</div>
                     <h1 className="text-2xl font-bold text-[#F5F0EB] mb-2">Analysis Cancelled</h1>
                     <p className="text-[#C4B8AD] mb-6">Your analysis has been cancelled. Redirecting...</p>
-                    <Link href="/rectify" className="inline-block px-6 py-3 bg-[#D4AF37] text-[#0F1419] rounded-lg font-bold hover:opacity-90 transition-opacity">
+                    <Link href="/rectify" className="inline-block px-6 py-3 bg-gradient-to-r from-[#D4AF37] to-[#E8C54D] text-[#0A0F1C] rounded-lg font-bold hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all">
                         Start New Analysis
                     </Link>
                 </div>
@@ -512,33 +512,17 @@ export default function ProgressPage() {
     const currentStepData = progress?.steps[progress.currentStep] || null;
 
     return (
-        <main className="min-h-screen bg-[#0F1419] text-[#F5F0EB]">
+        <main className="min-h-screen bg-[#0A0F1C] text-[#F5F0EB]">
             {/* Navigation */}
-            <nav className="sticky top-0 z-50 bg-[#0F1419]/90 backdrop-blur-xl border-b border-[#D4AF37]/10">
+            <nav className="sticky top-0 z-50 bg-[#0A0F1C]/95 backdrop-blur-sm border-b border-[#2A3442]">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-3 group">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#D4AF37] via-[#E8C54D] to-[#F5D061] flex items-center justify-center shadow-[0_0_30px_rgba(212,175,55,0.4)] group-hover:shadow-[0_0_40px_rgba(212,175,55,0.6)] group-hover:scale-110 transition-all duration-300 relative overflow-hidden">
-                            {/* Glow effect */}
-                            <div className="absolute inset-0 bg-gradient-to-tr from-white/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                            {/* Animated border */}
-                            <motion.div
-                                className="absolute inset-0 rounded-2xl border-2 border-white/20"
-                                animate={{ rotate: 360 }}
-                                transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                                style={{ borderStyle: 'dashed' }}
-                            />
-                            {/* Om Symbol */}
-                            <svg
-                                viewBox="0 0 100 100"
-                                className="w-8 h-8 text-[#0F1419] drop-shadow-[0_0_8px_rgba(255,255,255,0.3)] relative z-10"
-                                fill="currentColor"
-                            >
-                                <path d="M50 10 C30 10 15 25 15 45 C15 60 25 70 35 75 L20 90 L30 90 L45 75 C55 78 65 75 70 65 C75 55 70 45 60 45 C50 45 45 55 50 65 L55 60 C55 52 60 50 65 50 C70 50 72 55 70 60 C68 70 55 72 45 68 C35 63 25 55 25 45 C25 30 35 20 50 20 C65 20 75 30 75 45 L85 45 C85 25 70 10 50 10 Z M50 35 C45 35 42 38 42 42 C42 46 45 49 50 49 C55 49 58 46 58 42 C58 38 55 35 50 35 Z"/>
-                            </svg>
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4AF37] to-[#E8C54D] flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.3)] group-hover:scale-110 transition-transform">
+                            <span className="text-2xl">🕉️</span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="font-bold text-xl text-[#F5F0EB] tracking-tight group-hover:text-[#D4AF37] transition-colors">AI Pandit</span>
-                            <span className="text-[10px] text-[#8C7F72] uppercase tracking-[0.3em]">Nirayana BTR Engine</span>
+                            <span className="font-bold text-xl bg-gradient-to-r from-[#D4AF37] to-[#E8C54D] bg-clip-text text-transparent">AI Pandit</span>
+                            <span className="text-[10px] text-[#8C7F72] uppercase tracking-[0.3em]">Vedic BTR Engine</span>
                         </div>
                     </Link>
                     <div className="flex items-center gap-4">
@@ -550,16 +534,16 @@ export default function ProgressPage() {
                         </Link>
                     </div>
 
-                    <div className="flex items-center gap-6">
-                        <div className="flex items-center gap-2 text-sm text-[#8C7F72]">
-                            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-yellow-500'} animate-pulse`} />
-                            {isConnected ? 'Live Streaming' : 'Connecting...'}
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 text-xs text-[#8C7F72]">
+                            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#2D7A5C]' : 'bg-[#E8A849]'} animate-pulse`} />
+                            {isConnected ? 'Live' : 'Connecting...'}
                         </div>
                         {!isComplete && !cancelled && (
                             <button
                                 onClick={handleCancelAnalysis}
                                 disabled={isCancelling}
-                                className="px-4 py-2 text-sm font-medium text-red-400 border border-red-400/30 rounded-lg hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                                className="px-3 py-1.5 text-xs font-medium text-[#EF4444] border border-[#EF4444]/30 rounded-lg hover:bg-[#EF4444]/10 transition-colors disabled:opacity-50"
                             >
                                 {isCancelling ? 'Cancelling...' : '✕ Cancel'}
                             </button>
