@@ -1,6 +1,6 @@
 /**
  * StatCard Component
- * Displays a single metric with trend indicator and icon
+ * Sacred Ivory Light Theme - Displays a single metric with trend indicator and icon
  */
 
 'use client';
@@ -24,18 +24,18 @@ interface StatCardProps {
 
 const colorVariants = {
   gold: {
-    bg: 'from-[#D4AF37]/20 to-[#D4AF37]/5',
-    border: 'border-[#D4AF37]/30',
-    iconBg: 'bg-[#D4AF37]/20',
-    text: 'text-[#D4AF37]',
-    glow: 'shadow-[#D4AF37]/10',
+    bg: 'from-[#B8860B]/20 to-[#B8860B]/5',
+    border: 'border-[#B8860B]/30',
+    iconBg: 'bg-[#B8860B]/20',
+    text: 'text-[#B8860B]',
+    glow: 'shadow-[#B8860B]/10',
   },
   purple: {
-    bg: 'from-[#6A0572]/20 to-[#6A0572]/5',
-    border: 'border-[#6A0572]/30',
-    iconBg: 'bg-[#6A0572]/20',
-    text: 'text-[#9D4EDD]',
-    glow: 'shadow-[#6A0572]/10',
+    bg: 'from-[#6B1F7A]/20 to-[#6B1F7A]/5',
+    border: 'border-[#6B1F7A]/30',
+    iconBg: 'bg-[#6B1F7A]/20',
+    text: 'text-[#8B4A9C]',
+    glow: 'shadow-[#6B1F7A]/10',
   },
   green: {
     bg: 'from-[#2D7A5C]/20 to-[#2D7A5C]/5',
@@ -45,18 +45,18 @@ const colorVariants = {
     glow: 'shadow-[#2D7A5C]/10',
   },
   blue: {
-    bg: 'from-[#3B82F6]/20 to-[#3B82F6]/5',
-    border: 'border-[#3B82F6]/30',
-    iconBg: 'bg-[#3B82F6]/20',
-    text: 'text-[#3B82F6]',
-    glow: 'shadow-[#3B82F6]/10',
+    bg: 'from-[#6B9AC4]/20 to-[#6B9AC4]/5',
+    border: 'border-[#6B9AC4]/30',
+    iconBg: 'bg-[#6B9AC4]/20',
+    text: 'text-[#6B9AC4]',
+    glow: 'shadow-[#6B9AC4]/10',
   },
   red: {
-    bg: 'from-[#EF4444]/20 to-[#EF4444]/5',
-    border: 'border-[#EF4444]/30',
-    iconBg: 'bg-[#EF4444]/20',
-    text: 'text-[#EF4444]',
-    glow: 'shadow-[#EF4444]/10',
+    bg: 'from-[#C65D3B]/20 to-[#C65D3B]/5',
+    border: 'border-[#C65D3B]/30',
+    iconBg: 'bg-[#C65D3B]/20',
+    text: 'text-[#C65D3B]',
+    glow: 'shadow-[#C65D3B]/10',
   },
 };
 
@@ -74,11 +74,11 @@ export function StatCard({
 
   if (isLoading) {
     return (
-      <div className={`glass-card p-6 border ${colors.border} animate-pulse`}>
+      <div className={`bg-white border ${colors.border} rounded-2xl p-6 animate-pulse`}>
         <div className="flex items-start justify-between">
           <div className="space-y-2 w-full">
-            <div className="h-4 bg-white/10 rounded w-24" />
-            <div className="h-8 bg-white/10 rounded w-16" />
+            <div className="h-4 bg-[#F5EFE7] rounded w-24" />
+            <div className="h-8 bg-[#F5EFE7] rounded w-16" />
           </div>
           <div className={`w-12 h-12 ${colors.iconBg} rounded-xl`} />
         </div>
@@ -93,10 +93,10 @@ export function StatCard({
       : Minus;
   
   const trendColor = trend && trend.value > 0 
-    ? 'text-green-400' 
+    ? 'text-[#2D7A5C]' 
     : trend && trend.value < 0 
-      ? 'text-red-400' 
-      : 'text-gray-400';
+      ? 'text-[#C65D3B]' 
+      : 'text-[#A8A39D]';
 
   return (
     <motion.div
@@ -119,20 +119,20 @@ export function StatCard({
       <div className="relative p-6">
         <div className="flex items-start justify-between mb-4">
           <div>
-            <p className="text-sm font-medium text-[#8C7F72] uppercase tracking-wider">
+            <p className="text-sm font-medium text-[#7A756F] uppercase tracking-wider">
               {title}
             </p>
             <h3 className={`text-3xl font-bold ${colors.text} mt-1`}>
               {value}
             </h3>
             {subtitle && (
-              <p className="text-xs text-[#C4B8AD] mt-1">{subtitle}</p>
+              <p className="text-xs text-[#A8A39D] mt-1">{subtitle}</p>
             )}
           </div>
           <div className={`
             w-14 h-14 rounded-2xl ${colors.iconBg}
             flex items-center justify-center
-            border border-white/10
+            border border-white
           `}>
             {icon}
           </div>
@@ -144,7 +144,7 @@ export function StatCard({
             <span className={`text-sm font-medium ${trendColor}`}>
               {Math.abs(trend.value)}%
             </span>
-            <span className="text-xs text-[#8C7F72]">{trend.label}</span>
+            <span className="text-xs text-[#7A756F]">{trend.label}</span>
           </div>
         )}
       </div>

@@ -517,9 +517,6 @@ export default function ProgressPage() {
             <nav className="sticky top-0 z-50 bg-[#0A0F1C]/95 backdrop-blur-sm border-b border-[#2A3442]">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-3 group">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4AF37] to-[#E8C54D] flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.3)] group-hover:scale-110 transition-transform">
-                            <span className="text-2xl">🕉️</span>
-                        </div>
                         <div className="flex flex-col">
                             <span className="font-bold text-xl bg-gradient-to-r from-[#D4AF37] to-[#E8C54D] bg-clip-text text-transparent">AI Pandit</span>
                             <span className="text-[10px] text-[#8C7F72] uppercase tracking-[0.3em]">Vedic BTR Engine</span>

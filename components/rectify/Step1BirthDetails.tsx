@@ -1,6 +1,6 @@
 /**
  * Step1BirthDetails - Birth Information Form
- * Uniform, accessible, and user-friendly form for birth details
+ * Sacred Ivory Light Theme - Compact God Tier Design
  */
 
 'use client';
@@ -11,7 +11,6 @@ import { BirthData, TimeOffsetConfig, OffsetPreset, SpouseData } from '@/lib/typ
 import BirthPlacePicker from './BirthPlacePicker';
 import { FormField } from '@/components/ui/form/FormField';
 import { FormCard } from '@/components/ui/form/FormCard';
-import { FormError } from '@/components/ui/form/FormError';
 
 interface Step1Props {
   data: BirthData;
@@ -31,12 +30,12 @@ const OFFSET_PRESETS: { value: OffsetPreset; label: string; minutes: number }[] 
 ];
 
 const MONTHS = [
-  { val: '01', label: 'January' }, { val: '02', label: 'February' },
-  { val: '03', label: 'March' }, { val: '04', label: 'April' },
-  { val: '05', label: 'May' }, { val: '06', label: 'June' },
-  { val: '07', label: 'July' }, { val: '08', label: 'August' },
-  { val: '09', label: 'September' }, { val: '10', label: 'October' },
-  { val: '11', label: 'November' }, { val: '12', label: 'December' }
+  { val: '01', label: 'Jan' }, { val: '02', label: 'Feb' },
+  { val: '03', label: 'Mar' }, { val: '04', label: 'Apr' },
+  { val: '05', label: 'May' }, { val: '06', label: 'Jun' },
+  { val: '07', label: 'Jul' }, { val: '08', label: 'Aug' },
+  { val: '09', label: 'Sep' }, { val: '10', label: 'Oct' },
+  { val: '11', label: 'Nov' }, { val: '12', label: 'Dec' }
 ];
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -56,14 +55,12 @@ export default function Step1BirthDetails({
   const [showSpouse, setShowSpouse] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Date parts state
   const [dobParts, setDobParts] = useState({
     day: data.dateOfBirth?.split('-')[2] || '',
     month: data.dateOfBirth?.split('-')[1] || '',
     year: data.dateOfBirth?.split('-')[0] || ''
   });
 
-  // Time parts state
   const [timeParts, setTimeParts] = useState(() => {
     if (!data.tentativeTime) return { hour: '', minute: '', period: 'AM' as const };
     const [h, m] = data.tentativeTime.split(':');
@@ -74,18 +71,15 @@ export default function Step1BirthDetails({
     return { hour: hour.toString().padStart(2, '0'), minute: m, period };
   });
 
-  // Offset state
   const [selectedOffset, setSelectedOffset] = useState<OffsetPreset>(offsetConfig?.preset || '1hour');
   const [customOffset, setCustomOffset] = useState<number>(offsetConfig?.customMinutes ?? 60);
 
-  // Spouse date parts
   const [spouseDobParts, setSpouseDobParts] = useState({
     day: spouseData?.dateOfBirth?.split('-')[2] || '',
     month: spouseData?.dateOfBirth?.split('-')[1] || '',
     year: spouseData?.dateOfBirth?.split('-')[0] || ''
   });
 
-  // Spouse time parts
   const [spouseTimeParts, setSpouseTimeParts] = useState(() => {
     if (!spouseData?.birthTime) return { hour: '', minute: '', period: 'AM' as const };
     const [h, m] = spouseData.birthTime.split(':');
@@ -96,31 +90,16 @@ export default function Step1BirthDetails({
     return { hour: hour.toString().padStart(2, '0'), minute: m, period };
   });
 
-  // Validate form
   const validate = useCallback(() => {
     const newErrors: Record<string, string> = {};
-
-    if (!data.fullName?.trim()) {
-      newErrors.fullName = 'Full name is required';
-    }
-
-    if (!dobParts.day || !dobParts.month || !dobParts.year) {
-      newErrors.dateOfBirth = 'Complete date of birth is required';
-    }
-
-    if (!timeParts.hour || !timeParts.minute) {
-      newErrors.tentativeTime = 'Approximate birth time is required';
-    }
-
-    if (!data.birthPlace?.trim()) {
-      newErrors.birthPlace = 'Birth place is required';
-    }
-
+    if (!data.fullName?.trim()) newErrors.fullName = 'Full name is required';
+    if (!dobParts.day || !dobParts.month || !dobParts.year) newErrors.dateOfBirth = 'Complete date of birth is required';
+    if (!timeParts.hour || !timeParts.minute) newErrors.tentativeTime = 'Approximate birth time is required';
+    if (!data.birthPlace?.trim()) newErrors.birthPlace = 'Birth place is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }, [data, dobParts, timeParts]);
 
-  // Handle date changes
   const handleDateChange = useCallback((part: 'day' | 'month' | 'year', value: string) => {
     const newParts = { ...dobParts, [part]: value };
     setDobParts(newParts);
@@ -129,7 +108,6 @@ export default function Step1BirthDetails({
     }
   }, [dobParts, updateData]);
 
-  // Handle time changes
   const handleTimeChange = useCallback((part: 'hour' | 'minute' | 'period', value: string) => {
     const newParts = { ...timeParts, [part]: value };
     setTimeParts(newParts);
@@ -141,26 +119,16 @@ export default function Step1BirthDetails({
     }
   }, [timeParts, updateData]);
 
-  // Handle offset change
   const handleOffsetChange = useCallback((preset: OffsetPreset) => {
     setSelectedOffset(preset);
     const presetData = OFFSET_PRESETS.find(p => p.value === preset);
     if (preset !== 'custom' && presetData) {
-      updateOffset?.({ 
-        preset, 
-        customMinutes: presetData.minutes, 
-        description: presetData.label 
-      });
+      updateOffset?.({ preset, customMinutes: presetData.minutes, description: presetData.label });
     } else {
-      updateOffset?.({ 
-        preset: 'custom', 
-        customMinutes: customOffset, 
-        description: `±${customOffset} min` 
-      });
+      updateOffset?.({ preset: 'custom', customMinutes: customOffset, description: `±${customOffset} min` });
     }
   }, [customOffset, updateOffset]);
 
-  // Handle spouse date
   const handleSpouseDateChange = useCallback((part: 'day' | 'month' | 'year', value: string) => {
     const newParts = { ...spouseDobParts, [part]: value };
     setSpouseDobParts(newParts);
@@ -169,7 +137,6 @@ export default function Step1BirthDetails({
     }
   }, [spouseDobParts, updateSpouse]);
 
-  // Handle spouse time
   const handleSpouseTimeChange = useCallback((part: 'hour' | 'minute' | 'period', value: string) => {
     const newParts = { ...spouseTimeParts, [part]: value };
     setSpouseTimeParts(newParts);
@@ -182,62 +149,89 @@ export default function Step1BirthDetails({
   }, [spouseTimeParts, updateSpouse]);
 
   return (
-    <motion.div
-      className="space-y-6"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      {/* Header */}
-      <div className="text-center mb-8">
-        <p className="text-sm text-[#D4AF37] font-medium tracking-widest mb-2">STEP 1 OF 4</p>
-        <h1 className="text-3xl font-bold text-[#F5F0EB]">Birth Details</h1>
-        <p className="text-[#C4B8AD] mt-2">
+    <motion.div className="space-y-6 max-w-3xl mx-auto" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+      {/* Security Badge - Top of Form */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-center gap-2 text-xs text-[#2D7A5C] bg-[#2D7A5C]/5 py-2 px-4 rounded-full border border-[#2D7A5C]/10"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+        <span className="font-medium">🔐 End-to-End Encrypted</span>
+        <span className="text-[#2D7A5C]/60">•</span>
+        <span className="text-[#7A756F]">Nobody can read your data except you</span>
+      </motion.div>
+
+      {/* Header - Centered */}
+      <div className="text-center my-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FDF8F3] to-white border border-[#F0E8DE] rounded-full text-xs mb-6 shadow-sm"
+        >
+          <span className="text-[#B8860B] font-medium tracking-wider">STEP 1 OF 4</span>
+        </motion.div>
+        <motion.h1
+          className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-[#1A1612] leading-tight mb-2"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          Birth <span className="text-gradient-gold">Details</span>
+        </motion.h1>
+        <motion.p
+          className="text-sm text-[#7A756F]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
           Provide your birth information for accurate time rectification
-        </p>
+        </motion.p>
       </div>
 
-      {/* Main Form Card */}
-      <FormCard className="space-y-8">
-        {/* Full Name */}
+      {/* Main Form Card - Compact */}
+      <FormCard className="space-y-5 p-5 md:p-6">
+        {/* Full Name - Compact */}
         <FormField label="Full Name" required error={errors.fullName}>
-          <input
-            type="text"
-            value={data.fullName || ''}
-            onChange={(e) => updateData({ fullName: e.target.value })}
-            placeholder="Enter your full name"
-            className="w-full h-[52px] px-5 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] placeholder-[#5A6475] focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 outline-none transition-all"
+          <input 
+            type="text" 
+            value={data.fullName || ''} 
+            onChange={(e) => updateData({ fullName: e.target.value })} 
+            placeholder="Enter your full name" 
+            className="w-full h-11 px-4 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm placeholder-[#A8A39D] focus:border-[#D4A853] focus:ring-2 focus:ring-[#D4A853]/10 outline-none transition-all" 
           />
         </FormField>
 
-        {/* Date of Birth */}
+        {/* Date of Birth - Compact */}
         <FormField 
           label="Date of Birth" 
           required 
           error={errors.dateOfBirth}
-          description="Select your birth date from the dropdowns"
+          description="Select your birth date"
         >
-          <div className="grid grid-cols-3 gap-3">
-            <select
-              value={dobParts.day}
-              onChange={(e) => handleDateChange('day', e.target.value)}
-              className="h-[52px] px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] focus:border-[#D4AF37] outline-none"
+          <div className="grid grid-cols-3 gap-2">
+            <select 
+              value={dobParts.day} 
+              onChange={(e) => handleDateChange('day', e.target.value)} 
+              className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm focus:border-[#D4A853] outline-none cursor-pointer"
             >
               <option value="">Day</option>
               {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
-            <select
-              value={dobParts.month}
-              onChange={(e) => handleDateChange('month', e.target.value)}
-              className="h-[52px] px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] focus:border-[#D4AF37] outline-none"
+            <select 
+              value={dobParts.month} 
+              onChange={(e) => handleDateChange('month', e.target.value)} 
+              className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm focus:border-[#D4A853] outline-none cursor-pointer"
             >
               <option value="">Month</option>
               {MONTHS.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
             </select>
-            <select
-              value={dobParts.year}
-              onChange={(e) => handleDateChange('year', e.target.value)}
-              className="h-[52px] px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] focus:border-[#D4AF37] outline-none"
+            <select 
+              value={dobParts.year} 
+              onChange={(e) => handleDateChange('year', e.target.value)} 
+              className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm focus:border-[#D4A853] outline-none cursor-pointer"
             >
               <option value="">Year</option>
               {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
@@ -245,202 +239,124 @@ export default function Step1BirthDetails({
           </div>
         </FormField>
 
-        {/* Time of Birth */}
+        {/* Time of Birth - Compact */}
         <FormField 
           label="Approximate Birth Time" 
           required 
           error={errors.tentativeTime}
-          description="Don't worry if it's not exact - that's what we're here to rectify!"
+          description="Don't worry if it's not exact"
         >
-          <div className="flex items-center gap-3 flex-wrap">
-            <select
-              value={timeParts.hour}
-              onChange={(e) => handleTimeChange('hour', e.target.value)}
-              className="h-[52px] w-24 px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] focus:border-[#D4AF37] outline-none"
+          <div className="flex items-center gap-2 flex-wrap">
+            <select 
+              value={timeParts.hour} 
+              onChange={(e) => handleTimeChange('hour', e.target.value)} 
+              className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center focus:border-[#D4A853] outline-none"
             >
               <option value="">HH</option>
               {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
             </select>
-            <span className="text-2xl text-[#D4AF37] font-bold">:</span>
-            <select
-              value={timeParts.minute}
-              onChange={(e) => handleTimeChange('minute', e.target.value)}
-              className="h-[52px] w-24 px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] focus:border-[#D4AF37] outline-none"
+            <span className="text-xl text-[#B8860B]">:</span>
+            <select 
+              value={timeParts.minute} 
+              onChange={(e) => handleTimeChange('minute', e.target.value)} 
+              className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center focus:border-[#D4A853] outline-none"
             >
               <option value="">MM</option>
               {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
-            <div className="flex bg-[#0F1419] rounded-lg overflow-hidden border border-[#2A3442]">
+            <div className="flex bg-white rounded-lg overflow-hidden border border-[#E8E0D5] h-11">
               {['AM', 'PM'].map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => handleTimeChange('period', p)}
-                  className={`h-[52px] px-5 font-medium transition-all ${
-                    timeParts.period === p
-                      ? 'bg-[#D4AF37] text-[#0A0F1C]'
-                      : 'text-[#8C7F72] hover:text-[#F5F0EB]'
-                  }`}
+                <button 
+                  key={p} 
+                  type="button" 
+                  onClick={() => handleTimeChange('period', p)} 
+                  className={`px-4 font-medium text-sm transition-all ${timeParts.period === p ? 'bg-[#B8860B] text-white' : 'text-[#7A756F] hover:text-[#1A1612]'}`}
                 >
                   {p}
                 </button>
               ))}
             </div>
           </div>
-          {data.timezone !== undefined && (
-            <p className="text-xs text-[#8B5CF6] mt-2">
-              🌍 Timezone: UTC{data.timezone >= 0 ? '+' : ''}{data.timezone} (based on Birth Place)
-            </p>
-          )}
         </FormField>
 
         {/* Birth Place */}
-        <FormField label="Birth Place" required error={errors.birthPlace}>
-          <BirthPlacePicker
-            birthPlace={data.birthPlace}
-            latitude={data.latitude}
-            longitude={data.longitude}
-            timezone={data.timezone}
-            onUpdate={(updates) => updateData(updates)}
-          />
-        </FormField>
+        <div className="pt-4 border-t border-[#F0E8DE]">
+          <FormField label="Birth Place" required error={errors.birthPlace}>
+            <BirthPlacePicker
+              birthPlace={data.birthPlace}
+              latitude={data.latitude}
+              longitude={data.longitude}
+              timezone={data.timezone}
+              onUpdate={(updates) => updateData(updates)}
+            />
+          </FormField>
+        </div>
 
-        {/* Gender */}
-        <FormField label="Gender">
-          <div className="grid grid-cols-3 gap-4">
-            {[
-              { value: 'male', label: 'Male', icon: '👨' },
-              { value: 'female', label: 'Female', icon: '👩' },
-              { value: 'other', label: 'Other', icon: '🧑' },
-            ].map((g) => (
-              <button
-                key={g.value}
-                type="button"
-                onClick={() => updateData({ gender: g.value as any })}
-                className={`p-5 rounded-xl text-center transition-all border-2 ${
-                  data.gender === g.value
-                    ? 'bg-[#D4AF37]/20 border-[#D4AF37]'
-                    : 'bg-[#0F1419] border-[#2A3442] hover:border-[#D4AF37]/50'
-                }`}
-              >
-                <span className="text-3xl">{g.icon}</span>
-                <div className="text-sm text-[#F5F0EB] mt-2 font-medium">{g.label}</div>
-              </button>
-            ))}
-          </div>
-        </FormField>
-      </FormCard>
-
-      {/* Time Accuracy Card */}
-      <FormCard>
-        <FormField
-          label="How accurate is this time?"
-          description="Select the time range within which your birth time falls"
-        >
-          <div className="grid grid-cols-5 gap-3">
-            {OFFSET_PRESETS.map((preset) => (
-              <button
-                key={preset.value}
-                type="button"
-                onClick={() => handleOffsetChange(preset.value)}
-                className={`py-3 px-2 rounded-lg text-sm font-medium transition-all border-2 ${
-                  selectedOffset === preset.value
-                    ? 'bg-[#8B5CF6]/20 border-[#8B5CF6] text-[#8B5CF6]'
-                    : 'bg-[#0F1419] border-[#2A3442] text-[#C4B8AD] hover:border-[#8B5CF6]/50'
-                }`}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-
-          {selectedOffset === 'custom' && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="flex items-center gap-3 pt-3"
-            >
-              <span className="text-[#C4B8AD] text-sm">±</span>
-              <input
-                type="number"
-                min="1"
-                max="720"
-                value={customOffset}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value) || 60;
-                  setCustomOffset(val);
-                  updateOffset?.({ preset: 'custom', customMinutes: val, description: `±${val} min` });
-                }}
-                className="w-24 h-[44px] px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] text-center focus:border-[#8B5CF6] outline-none"
-              />
-              <span className="text-[#C4B8AD] text-sm">minutes</span>
-            </motion.div>
-          )}
-        </FormField>
-
-        {/* Guidance Box */}
-        <div className="mt-6 p-4 rounded-xl border border-[#D4AF37]/30 bg-[#D4AF37]/5">
-          <div className="flex items-center gap-2 text-[#D4AF37] mb-2">
-            <span className="text-lg">📜</span>
-            <span className="text-xs font-bold uppercase tracking-widest">Astrological Guidance</span>
-          </div>
-          <p className="text-xs text-[#C4B8AD] leading-relaxed">
-            {selectedOffset === '30min' && "Ideal for high-precision records. 3-4 major life events are typically sufficient for seconds-level locking."}
-            {selectedOffset === '1hour' && "Moderate window. 5-7 events recommended, including family-related dates and career transitions."}
-            {selectedOffset === '2hours' && "Significant uncertainty. 7-10 events + physical traits are critical to resolve possible Sign changes."}
-            {selectedOffset === '4hours' && "Large window. Requires 10+ events spanning decades + spouse data + detailed physical markers."}
-            {selectedOffset === 'custom' && (customOffset > 240
-              ? "Extreme uncertainty (Full Day Scan). Full life history (15+ events) + major dates + complete physical profile mandatory."
-              : "Custom window. Ensure you provide enough Life Events (5-10) for accurate dasha alignment.")}
-          </p>
+        {/* Gender - Compact */}
+        <div className="pt-4 border-t border-[#F0E8DE]">
+          <FormField label="Gender">
+            <div className="grid grid-cols-3 gap-3">
+              {[{ value: 'male', label: 'Male', icon: '👨' }, { value: 'female', label: 'Female', icon: '👩' }, { value: 'other', label: 'Other', icon: '🧑' }].map((g) => (
+                <button 
+                  key={g.value} 
+                  type="button" 
+                  onClick={() => updateData({ gender: g.value as any })} 
+                  className={`p-4 rounded-xl text-center transition-all border ${data.gender === g.value ? 'bg-[#B8860B]/10 border-[#B8860B] shadow-sm' : 'bg-white border-[#E8E0D5] hover:border-[#D4A853]/50'}`}
+                >
+                  <span className="text-2xl mb-1 block">{g.icon}</span>
+                  <div className="text-xs text-[#1A1612] font-medium">{g.label}</div>
+                </button>
+              ))}
+            </div>
+          </FormField>
         </div>
       </FormCard>
 
-      {/* Spouse Details (Optional) */}
-      <FormCard variant="subtle">
-        <button
-          type="button"
-          onClick={() => setShowSpouse(!showSpouse)}
-          className="flex items-center justify-between w-full text-left"
+      {/* Spouse Details - Compact */}
+      <FormCard variant="subtle" className="p-5">
+        <button 
+          type="button" 
+          onClick={() => setShowSpouse(!showSpouse)} 
+          className="flex items-center justify-between w-full text-left group"
         >
           <div className="flex items-center gap-3">
-            <span className="text-xl">👩‍❤️‍👨</span>
+            <div className="w-10 h-10 rounded-lg bg-white border border-[#E8E0D5] flex items-center justify-center text-xl">👩‍❤️‍👨</div>
             <div>
-              <h4 className="text-sm font-bold text-[#F5F0EB]">Spouse Details (Optional)</h4>
-              <p className="text-[10px] text-[#8C7F72] uppercase tracking-wider">Adds +15% precision for relationship-driven sub-charts</p>
+              <h4 className="font-[family-name:var(--font-cormorant)] text-base font-semibold text-[#1A1612]">Spouse Details <span className="text-[#7A756F] font-normal text-xs">(Optional)</span></h4>
+              <p className="text-[10px] text-[#7A756F]">+15% precision boost</p>
             </div>
           </div>
-          <span className={`text-[#D4AF37] transition-transform ${showSpouse ? 'rotate-180' : ''}`}>▼</span>
+          <div className={`w-8 h-8 rounded-full bg-white border border-[#E8E0D5] flex items-center justify-center text-xs transition-all ${showSpouse ? 'rotate-180 bg-[#B8860B] border-[#B8860B] text-white' : 'text-[#B8860B]'}`}>▼</div>
         </button>
 
         {showSpouse && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            className="mt-6 space-y-6 pt-6 border-t border-[#2A3442]"
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }} 
+            animate={{ opacity: 1, height: 'auto' }} 
+            className="mt-4 space-y-4 pt-4 border-t border-[#F0E8DE]"
           >
             <FormField label="Spouse Date of Birth">
-              <div className="grid grid-cols-3 gap-3">
-                <select
-                  value={spouseDobParts.day}
-                  onChange={(e) => handleSpouseDateChange('day', e.target.value)}
-                  className="h-[52px] px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] outline-none focus:border-[#D4AF37]"
+              <div className="grid grid-cols-3 gap-2">
+                <select 
+                  value={spouseDobParts.day} 
+                  onChange={(e) => handleSpouseDateChange('day', e.target.value)} 
+                  className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853]"
                 >
                   <option value="">Day</option>
                   {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
-                <select
-                  value={spouseDobParts.month}
-                  onChange={(e) => handleSpouseDateChange('month', e.target.value)}
-                  className="h-[52px] px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] outline-none focus:border-[#D4AF37]"
+                <select 
+                  value={spouseDobParts.month} 
+                  onChange={(e) => handleSpouseDateChange('month', e.target.value)} 
+                  className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853]"
                 >
                   <option value="">Month</option>
                   {MONTHS.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
                 </select>
-                <select
-                  value={spouseDobParts.year}
-                  onChange={(e) => handleSpouseDateChange('year', e.target.value)}
-                  className="h-[52px] px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] outline-none focus:border-[#D4AF37]"
+                <select 
+                  value={spouseDobParts.year} 
+                  onChange={(e) => handleSpouseDateChange('year', e.target.value)} 
+                  className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853]"
                 >
                   <option value="">Year</option>
                   {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
@@ -449,35 +365,31 @@ export default function Step1BirthDetails({
             </FormField>
 
             <FormField label="Spouse Birth Time">
-              <div className="flex items-center gap-3">
-                <select
-                  value={spouseTimeParts.hour}
-                  onChange={(e) => handleSpouseTimeChange('hour', e.target.value)}
-                  className="h-[52px] w-24 px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] outline-none focus:border-[#D4AF37]"
+              <div className="flex items-center gap-2 flex-wrap">
+                <select 
+                  value={spouseTimeParts.hour} 
+                  onChange={(e) => handleSpouseTimeChange('hour', e.target.value)} 
+                  className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center outline-none focus:border-[#D4A853]"
                 >
                   <option value="">HH</option>
                   {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
-                <span className="text-2xl text-[#D4AF37] font-bold">:</span>
-                <select
-                  value={spouseTimeParts.minute}
-                  onChange={(e) => handleSpouseTimeChange('minute', e.target.value)}
-                  className="h-[52px] w-24 px-4 bg-[#0F1419] border border-[#2A3442] rounded-lg text-[#F5F0EB] outline-none focus:border-[#D4AF37]"
+                <span className="text-xl text-[#B8860B]">:</span>
+                <select 
+                  value={spouseTimeParts.minute} 
+                  onChange={(e) => handleSpouseTimeChange('minute', e.target.value)} 
+                  className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center outline-none focus:border-[#D4A853]"
                 >
                   <option value="">MM</option>
                   {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
-                <div className="flex bg-[#0F1419] rounded-lg overflow-hidden border border-[#2A3442]">
+                <div className="flex bg-white rounded-lg overflow-hidden border border-[#E8E0D5] h-11">
                   {['AM', 'PM'].map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => handleSpouseTimeChange('period', p)}
-                      className={`h-[52px] px-5 font-medium transition-all ${
-                        spouseTimeParts.period === p
-                          ? 'bg-[#D4AF37] text-[#0A0F1C]'
-                          : 'text-[#8C7F72] hover:text-[#F5F0EB]'
-                      }`}
+                    <button 
+                      key={p} 
+                      type="button" 
+                      onClick={() => handleSpouseTimeChange('period', p)} 
+                      className={`px-4 font-medium text-sm transition-all ${spouseTimeParts.period === p ? 'bg-[#B8860B] text-white' : 'text-[#7A756F] hover:text-[#1A1612]'}`}
                     >
                       {p}
                     </button>
@@ -498,12 +410,6 @@ export default function Step1BirthDetails({
           </motion.div>
         )}
       </FormCard>
-
-      {/* Security Badge */}
-      <div className="flex items-center justify-center gap-2 text-sm text-[#2D7A5C]">
-        <span>🔒</span>
-        <span>Your data is end-to-end encrypted</span>
-      </div>
     </motion.div>
   );
 }

@@ -1,6 +1,6 @@
 /**
  * Enhanced Dashboard Page
- * Heavy user experience with analytics, filtering, and advanced features
+ * Sacred Ivory Light Theme - Heavy user experience with analytics, filtering, and advanced features
  */
 
 import { Suspense } from 'react';
@@ -19,23 +19,23 @@ function DashboardSkeleton() {
   return (
     <Layout hideNavbar hideFooter>
       {/* Nav Skeleton */}
-      <nav className="sticky top-0 z-50 bg-[#0A0F1C]/95 backdrop-blur-sm border-b border-[#2A3442]">
+      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-[#F0E8DE]">
         <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="h-10 bg-white/5 rounded-xl animate-pulse w-48" />
+          <div className="h-10 bg-[#F5EFE7] rounded-xl animate-pulse w-48" />
         </div>
       </nav>
 
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Header Skeleton */}
         <div className="mb-12">
-          <div className="h-10 bg-white/5 rounded-xl animate-pulse w-64 mb-4" />
-          <div className="h-5 bg-white/5 rounded-xl animate-pulse w-96" />
+          <div className="h-10 bg-[#F5EFE7] rounded-xl animate-pulse w-64 mb-4" />
+          <div className="h-5 bg-[#F5EFE7] rounded-xl animate-pulse w-96" />
         </div>
 
         {/* Stats Skeleton */}
         <div className="grid md:grid-cols-4 gap-6 mb-12">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-32 bg-white/5 rounded-2xl animate-pulse" />
+            <div key={i} className="h-32 bg-[#F5EFE7] rounded-2xl animate-pulse" />
           ))}
         </div>
 
@@ -43,12 +43,12 @@ function DashboardSkeleton() {
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-4">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-24 bg-white/5 rounded-xl animate-pulse" />
+              <div key={i} className="h-24 bg-[#F5EFE7] rounded-xl animate-pulse" />
             ))}
           </div>
           <div className="space-y-6">
-            <div className="h-64 bg-white/5 rounded-2xl animate-pulse" />
-            <div className="h-48 bg-white/5 rounded-2xl animate-pulse" />
+            <div className="h-64 bg-[#F5EFE7] rounded-2xl animate-pulse" />
+            <div className="h-48 bg-[#F5EFE7] rounded-2xl animate-pulse" />
           </div>
         </div>
       </div>
@@ -127,36 +127,36 @@ export default async function DashboardPage() {
   const user = await currentUser();
 
   if (!user) {
-    return (
-      <Layout>
-        <div className="min-h-[60vh] flex items-center justify-center">
-          <div className="text-center bg-[#1A1F2E] border border-[#2A3442] rounded-2xl p-8 max-w-md">
-            <h1 className="text-2xl font-bold text-[#F5F0EB] mb-4">Please Sign In</h1>
-            <p className="text-[#8C7F72] mb-6">Access your dashboard to view and manage your birth time rectification sessions.</p>
-            <Link
-              href="/sign-in"
-              className="inline-block bg-gradient-to-r from-[#D4AF37] to-[#E8C54D] text-[#0A0F1C] px-6 py-3 rounded-xl font-semibold hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all"
-            >
-              Sign In
-            </Link>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  const userSessions = await getUserSessions(user.id);
-
   return (
-    <Suspense fallback={<DashboardSkeleton />}>
-      <Layout>
-        <div className="pt-8 pb-12">
-          <DashboardClient
-            initialSessions={userSessions}
-            userName={user.firstName || 'User'}
-          />
+    <Layout hideFooter>
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <div className="text-center bg-white border border-[#F0E8DE] rounded-2xl p-8 max-w-md shadow-lg">
+          <h1 className="text-2xl font-bold text-[#1A1612] mb-4 font-[family-name:var(--font-cormorant)]">Please Sign In</h1>
+          <p className="text-[#7A756F] mb-6">Access your dashboard to view and manage your birth time rectification sessions.</p>
+          <Link
+            href="/sign-in"
+            className="inline-block bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white px-6 py-3 rounded-xl font-semibold hover:shadow-[0_0_20px_rgba(184,134,11,0.4)] transition-all"
+          >
+            Sign In
+          </Link>
         </div>
-      </Layout>
-    </Suspense>
+      </div>
+    </Layout>
   );
+}
+
+const userSessions = await getUserSessions(user.id);
+
+return (
+  <Suspense fallback={<DashboardSkeleton />}>
+    <Layout hideFooter>
+      <div className="pt-8 pb-12">
+        <DashboardClient
+          initialSessions={userSessions}
+          userName={user.firstName || 'User'}
+        />
+      </div>
+    </Layout>
+  </Suspense>
+);
 }

@@ -14,9 +14,6 @@ export default function SignUpPage() {
 
             {/* Logo */}
             <Link href="/" className="absolute top-8 left-1/2 -translate-x-1/2 flex items-center gap-3 group z-20">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#D4AF37] to-[#E8C54D] flex items-center justify-center shadow-[0_0_20px_rgba(212,175,55,0.3)] group-hover:scale-110 transition-transform">
-                    <span className="text-2xl">🕉️</span>
-                </div>
                 <span className="font-bold text-xl bg-gradient-to-r from-[#D4AF37] to-[#E8C54D] bg-clip-text text-transparent">
                     AI Pandit
                 </span>

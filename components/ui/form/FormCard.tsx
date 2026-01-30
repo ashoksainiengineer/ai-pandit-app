@@ -1,19 +1,20 @@
 /**
  * FormCard Component
- * Styled container for form sections - Unified Design System
+ * Sacred Ivory Light Theme - God Tier Design
+ * Styled container for form sections with perfect ratios
  */
 
 import { FormCardProps } from './types';
 
 const variants = {
-  default: 'bg-[#1A1F2E] border-[#2A3442]',
-  highlighted: 'bg-[#D4AF37]/5 border-[#D4AF37]/30',
-  subtle: 'bg-[#0F1419] border-transparent',
+  default: 'bg-white border-[#F0E8DE] shadow-sm',
+  highlighted: 'bg-[#FDF8F3] border-[#D4A853]/30 shadow-md',
+  subtle: 'bg-[#FAF5EF] border-transparent',
 };
 
 export function FormCard({ children, className = '', variant = 'default' }: FormCardProps) {
   return (
-    <div className={`rounded-xl p-6 border ${variants[variant]} ${className}`}>
+    <div className={`rounded-2xl p-6 md:p-8 lg:p-10 border ${variants[variant]} ${className}`}>
       {children}
     </div>
   );

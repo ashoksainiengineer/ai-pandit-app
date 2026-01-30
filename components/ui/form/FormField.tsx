@@ -1,6 +1,6 @@
 /**
  * FormField Component
- * Wrapper for form inputs with label and error handling
+ * Sacred Ivory Light Theme - Wrapper for form inputs with label and error handling
  */
 
 import { ReactNode } from 'react';
@@ -20,7 +20,7 @@ export function FormField({
     <div className={`space-y-2 ${className}`}>
       <FormLabel required={required}>{label}</FormLabel>
       {description && (
-        <p className="text-xs text-[#8C7F72] -mt-1 mb-2">{description}</p>
+        <p className="text-xs text-[#7A756F] -mt-1 mb-2">{description}</p>
       )}
       {children}
       <FormError message={error} />

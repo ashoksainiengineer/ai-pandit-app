@@ -118,7 +118,7 @@ export default function InteractiveMap({
     }, [marker, isMapReady, onLocationSelect]);
 
     return (
-        <div className="relative w-full h-72 rounded-xl overflow-hidden border border-[#D4AF37]/20">
+        <div className="relative w-full h-72 md:h-80 rounded-xl overflow-hidden border-2 border-[#EBE2D6] shadow-lg">
             <div ref={mapRef} className="w-full h-full" />
         </div>
     );

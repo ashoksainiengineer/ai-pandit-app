@@ -1,6 +1,6 @@
 /**
  * Birth Time Rectification Page
- * Unified dark theme with consistent design system
+ * Sacred Ivory Light Theme - Consistent with landing page
  */
 
 'use client';
@@ -77,6 +77,7 @@ export default function RectifyPage() {
     const { getToken } = useAuth();
     const [draftSessionId, setDraftSessionId] = useState<string | null>(null);
     const [cloudSaveStatus, setCloudSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(false);
 
     // Save draft to cloud
     const saveDraftToCloud = async () => {
@@ -100,6 +101,8 @@ export default function RectifyPage() {
                 setDraftSessionId(result.sessionId);
                 setCloudSaveStatus('saved');
                 localStorage.setItem('btr_draft_id', result.sessionId);
+                // Reset to idle after 2 seconds
+                setTimeout(() => setCloudSaveStatus('idle'), 2000);
             } else {
                 setCloudSaveStatus('error');
             }
@@ -107,6 +110,17 @@ export default function RectifyPage() {
             setCloudSaveStatus('error');
         }
     };
+
+    // Auto-save effect - runs when form data changes
+    useEffect(() => {
+        if (!isAutoSaveEnabled || !birthData.fullName) return;
+
+        const timer = setTimeout(() => {
+            saveDraftToCloud();
+        }, 1500); // Auto-save 1.5 seconds after last change
+
+        return () => clearTimeout(timer);
+    }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, isAutoSaveEnabled]);
 
     // Load from local storage on mount
     useEffect(() => {
@@ -142,6 +156,8 @@ export default function RectifyPage() {
                 console.error('Failed to restore form data', e);
             }
         }
+        // Enable auto-save after initial load
+        setIsAutoSaveEnabled(true);
     }, []);
 
     // Save to local storage on change
@@ -274,8 +290,8 @@ export default function RectifyPage() {
     const stepEmojis = ['👤', '🪞', '📅', '✅'];
 
     return (
-        <Layout>
-            <div className="pt-24 pb-16">
+        <Layout hideFooter>
+            <div className="pt-28 pb-16">
                 {/* Progress Indicator */}
                 <div className="mb-12">
                     <div className="flex items-start justify-between w-full">
@@ -289,21 +305,21 @@ export default function RectifyPage() {
                                         className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all border-2 ${s < step
                                             ? 'bg-[#2D7A5C] border-[#2D7A5C] text-white'
                                             : s === step
-                                                ? 'bg-[#0A0F1C] border-[#D4AF37] text-[#D4AF37] shadow-[0_0_15px_rgba(212,175,55,0.3)]'
-                                                : 'bg-[#1A1F2E] border-[#2A3442] text-[#5A6475]'
+                                                ? 'bg-white border-[#B8860B] text-[#B8860B] shadow-[0_0_15px_rgba(184,134,11,0.3)]'
+                                                : 'bg-[#F5EFE7] border-[#EBE2D6] text-[#A8A39D]'
                                             }`}
                                     >
                                         {s < step ? '✓' : stepEmojis[s - 1]}
                                     </div>
-                                    <span className={`text-xs mt-2 font-medium whitespace-nowrap ${s === step ? 'text-[#D4AF37]' : 'text-[#5A6475]'}`}>
+                                    <span className={`text-xs mt-2 font-medium whitespace-nowrap ${s === step ? 'text-[#B8860B]' : 'text-[#A8A39D]'}`}>
                                         {stepLabels[s - 1]}
                                     </span>
                                 </button>
 
                                 {s < 4 && (
-                                    <div className="flex-1 mt-5 mx-2 h-0.5 bg-[#2A3442] relative rounded">
+                                    <div className="flex-1 mt-5 mx-2 h-0.5 bg-[#EBE2D6] relative rounded">
                                         <div
-                                            className={`absolute top-0 left-0 h-full bg-[#D4AF37] transition-all duration-500 rounded ${s < step ? 'w-full' : 'w-0'}`}
+                                            className={`absolute top-0 left-0 h-full bg-[#B8860B] transition-all duration-500 rounded ${s < step ? 'w-full' : 'w-0'}`}
                                         />
                                     </div>
                                 )}
@@ -314,7 +330,7 @@ export default function RectifyPage() {
 
                 {/* Error Message */}
                 {error && (
-                    <div className="mb-6 p-4 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl text-[#EF4444]">
+                    <div className="mb-6 p-4 bg-[#C65D3B]/10 border border-[#C65D3B]/30 rounded-xl text-[#C65D3B]">
                         ⚠️ {error}
                     </div>
                 )}
@@ -361,42 +377,51 @@ export default function RectifyPage() {
 
                 {/* Navigation */}
                 {step < 4 && (
-                    <div className="flex justify-between items-center mt-12 pt-6 border-t border-[#2A3442]">
-                        <button
-                            onClick={handleBack}
-                            disabled={step === 1}
-                            className={`px-6 py-3 rounded-xl font-semibold transition-colors ${step === 1
-                                ? 'opacity-0 cursor-default'
-                                : 'border-2 border-[#D4AF37]/50 text-[#D4AF37] hover:bg-[#D4AF37]/10'
-                                }`}
-                        >
-                            ← Back
-                        </button>
-
-                        <button
-                            onClick={saveDraftToCloud}
-                            disabled={cloudSaveStatus === 'saving' || !birthData.fullName}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${cloudSaveStatus === 'saved'
-                                ? 'bg-[#2D7A5C]/20 text-[#2D7A5C] border border-[#2D7A5C]/30'
-                                : cloudSaveStatus === 'saving'
-                                    ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30 animate-pulse'
-                                    : cloudSaveStatus === 'error'
-                                        ? 'bg-[#EF4444]/20 text-[#EF4444] border border-[#EF4444]/30'
-                                        : 'bg-[#1A1F2E] text-[#8C7F72] border border-[#2A3442] hover:border-[#D4AF37]/50'
-                                }`}
-                        >
-                            {cloudSaveStatus === 'saving' ? '💾 Saving...' :
-                                cloudSaveStatus === 'saved' ? '☁️ Saved' :
-                                    cloudSaveStatus === 'error' ? '⚠️ Retry' : '☁️ Save Draft'}
-                        </button>
-
-                        <button
-                            onClick={handleNext}
-                            className="px-8 py-3 bg-gradient-to-r from-[#D4AF37] to-[#E8C54D] text-[#0A0F1C] rounded-xl font-semibold hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all"
-                        >
-                            Next Step →
-                        </button>
-                    </div>
+                    <div className="flex justify-between items-center mt-12 pt-6 border-t border-[#F0E8DE]">
+                            <button
+                                onClick={handleBack}
+                                disabled={step === 1}
+                                className={`px-6 py-3 rounded-xl font-semibold transition-colors ${step === 1
+                                    ? 'opacity-0 cursor-default'
+                                    : 'border-2 border-[#B8860B]/50 text-[#B8860B] hover:bg-[#B8860B]/10'
+                                    }`}
+                            >
+                                ← Back
+                            </button>
+    
+                            {/* Auto-save Status Indicator */}
+                            <div className="flex items-center gap-2 text-sm">
+                                {cloudSaveStatus === 'saving' && (
+                                    <span className="flex items-center gap-1.5 text-[#B8860B] animate-pulse">
+                                        <div className="w-4 h-4 border-2 border-[#B8860B] border-t-transparent rounded-full animate-spin" />
+                                        Saving...
+                                    </span>
+                                )}
+                                {cloudSaveStatus === 'saved' && (
+                                    <span className="flex items-center gap-1.5 text-[#2D7A5C]">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        Auto-saved
+                                    </span>
+                                )}
+                                {cloudSaveStatus === 'error' && (
+                                    <span className="flex items-center gap-1.5 text-[#C65D3B]">
+                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                        Save failed
+                                    </span>
+                                )}
+                            </div>
+    
+                            <button
+                                onClick={handleNext}
+                                className="px-8 py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-semibold hover:shadow-[0_0_20px_rgba(184,134,11,0.4)] transition-all"
+                            >
+                                Next Step →
+                            </button>
+                        </div>
                 )}
             </div>
         </Layout>

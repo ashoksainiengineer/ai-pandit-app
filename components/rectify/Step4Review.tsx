@@ -1,6 +1,6 @@
 /**
  * Step4Review - Final Review & Confirmation
- * Summary of all entered data with submission
+ * Sacred Ivory Light Theme - Compact God Tier Design
  */
 
 'use client';
@@ -9,6 +9,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BirthData, PhysicalTraits, LifeEvent, TimeOffsetConfig, ForensicTraits } from '@/lib/types';
 import { FormCard } from '@/components/ui/form/FormCard';
+import { ArrowRight, CheckCircle, AlertCircle, Sparkles } from 'lucide-react';
 
 interface Step4Props {
   data: BirthData;
@@ -34,13 +35,11 @@ export default function Step4Review({
   const [confirmed, setConfirmed] = useState(false);
   const [cooldown, setCooldown] = useState(true);
 
-  // Prevent accidental double-click submission
   useEffect(() => {
     const timer = setTimeout(() => setCooldown(false), 1000);
     return () => clearTimeout(timer);
   }, []);
 
-  // Calculate accuracy
   const accuracy = (() => {
     let score = 40;
     score += events.filter(e => e.description && e.eventDate).length * 8;
@@ -49,152 +48,119 @@ export default function Step4Review({
     return Math.min(99, score);
   })();
 
-  // Estimate processing time
   const estimatedMinutes = Math.max(2, Math.ceil((offsetConfig?.customMinutes || 60) / 60) + 1);
 
-  // Get missing categories
   const getMissingCategories = () => {
     const categories = new Set(events.map(e => e.category));
     const missing = [];
-    if (!categories.has('career')) missing.push('Career (First Job, Promotion)');
+    if (!categories.has('career')) missing.push('Career events');
     if (!categories.has('marriage')) missing.push('Marriage');
-    if (!categories.has('family')) missing.push('Family Events');
-    if (!categories.has('travel')) missing.push('Major Travel');
-    return missing.slice(0, 3);
+    if (!categories.has('family_events')) missing.push('Family events');
+    return missing.slice(0, 2);
   };
 
   const missingCategories = getMissingCategories();
   const showLowAccuracyWarning = accuracy < 70;
 
   return (
-    <motion.div
-      className="space-y-6"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-    >
-      {/* Header */}
-      <div className="text-center">
-        <p className="text-sm text-[#D4AF37] font-medium tracking-widest mb-2">STEP 4 OF 4</p>
-        <h1 className="text-3xl font-bold text-[#F5F0EB] mb-2">Review & Confirm</h1>
-        <p className="text-[#C4B8AD]">Verify everything before we begin the analysis</p>
+    <motion.div className="space-y-6 max-w-3xl mx-auto" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      {/* Security Badge - Top of Form */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-center justify-center gap-2 text-xs text-[#2D7A5C] bg-[#2D7A5C]/5 py-2.5 px-4 rounded-full border border-[#2D7A5C]/10"
+      >
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+        <span className="font-medium">🔐 End-to-End Encrypted</span>
+        <span className="text-[#2D7A5C]/60">•</span>
+        <span className="text-[#7A756F]">Nobody can read your data except you</span>
+      </motion.div>
+
+      {/* Header - Centered */}
+      <div className="text-center my-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FDF8F3] to-white border border-[#F0E8DE] rounded-full text-xs mb-6 shadow-sm"
+        >
+          <span className="text-[#B8860B] font-medium tracking-wider">STEP 4 OF 4</span>
+        </motion.div>
+        <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-[#1A1612] leading-tight mb-2">
+          Review & <span className="text-gradient-gold">Confirm</span>
+        </motion.h1>
+        <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="text-sm text-[#7A756F]">
+          Verify before AI analysis
+        </motion.p>
       </div>
 
-      {/* Accuracy Banner */}
-      <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-xl p-5 text-center">
-        <div className="text-4xl font-bold text-[#D4AF37] mb-1">{accuracy}%</div>
-        <div className="text-sm text-[#C4B8AD]">Expected Accuracy Based on Your Data</div>
-      </div>
+      {/* Accuracy Banner - Compact */}
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="bg-gradient-to-br from-[#FDF8F3] to-white border border-[#D4A853]/30 rounded-xl p-6 text-center">
+        <div className="font-[family-name:var(--font-cormorant)] text-5xl font-bold text-[#B8860B] mb-1">{accuracy}%</div>
+        <div className="text-[#4A453F] text-sm font-medium">Expected Accuracy</div>
+      </motion.div>
 
-      {/* Review Cards Grid */}
-      <div className="grid md:grid-cols-2 gap-6">
+      {/* Review Cards Grid - Compact */}
+      <div className="grid md:grid-cols-2 gap-4">
         {/* Birth Details */}
-        <FormCard className="relative group">
-          <button
-            onClick={() => onEdit(1)}
-            className="absolute top-4 right-4 text-[#D4AF37] opacity-0 group-hover:opacity-100 transition-opacity text-sm hover:underline"
-          >
-            ✏️ Edit
+        <FormCard className="relative group p-5">
+          <button onClick={() => onEdit(1)} className="absolute top-4 right-4 text-[#B8860B] opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold hover:underline flex items-center gap-1">
+            Edit <ArrowRight className="w-3 h-3" />
           </button>
-          <h3 className="text-lg font-semibold text-[#F5F0EB] mb-4 pb-3 border-b border-[#2A3442] flex items-center gap-2">
+          <h3 className="font-[family-name:var(--font-cormorant)] text-lg font-semibold text-[#1A1612] mb-4 pb-3 border-b border-[#F0E8DE] flex items-center gap-2">
             <span>📋</span> Birth Details
           </h3>
           <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-[#8C7F72]">Name</span>
-              <span className="text-[#F5F0EB] font-medium">{data.fullName || 'Not provided'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[#8C7F72]">Birth Date</span>
-              <span className="text-[#C4B8AD]">{data.dateOfBirth || 'Not provided'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[#8C7F72]">Tentative Time</span>
-              <span className="text-[#D4AF37] font-mono">{data.tentativeTime || 'Not provided'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[#8C7F72]">Birth Place</span>
-              <span className="text-[#C4B8AD] text-right max-w-[200px] truncate">{data.birthPlace || 'Not provided'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-[#8C7F72]">Gender</span>
-              <span className="text-[#C4B8AD] capitalize">{data.gender || 'Not specified'}</span>
-            </div>
+            <div className="flex justify-between items-center"><span className="text-[#7A756F]">Name</span><span className="text-[#1A1612] font-semibold">{data.fullName || '—'}</span></div>
+            <div className="flex justify-between items-center"><span className="text-[#7A756F]">Birth Date</span><span className="text-[#4A453F]">{data.dateOfBirth || '—'}</span></div>
+            <div className="flex justify-between items-center"><span className="text-[#7A756F]">Time</span><span className="text-[#B8860B] font-mono font-semibold">{data.tentativeTime || '—'}</span></div>
+            <div className="flex justify-between items-center"><span className="text-[#7A756F]">Place</span><span className="text-[#4A453F] truncate max-w-[120px]">{data.birthPlace || '—'}</span></div>
+            <div className="flex justify-between items-center"><span className="text-[#7A756F]">Gender</span><span className="text-[#4A453F] capitalize font-medium">{data.gender || '—'}</span></div>
           </div>
         </FormCard>
 
         {/* Forensic Traits */}
-        <FormCard className="relative group">
-          <button
-            onClick={() => onEdit(2)}
-            className="absolute top-4 right-4 text-[#D4AF37] opacity-0 group-hover:opacity-100 transition-opacity text-sm hover:underline"
-          >
-            ✏️ Edit
+        <FormCard className="relative group p-5">
+          <button onClick={() => onEdit(2)} className="absolute top-4 right-4 text-[#B8860B] opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold hover:underline flex items-center gap-1">
+            Edit <ArrowRight className="w-3 h-3" />
           </button>
-          <h3 className="text-lg font-semibold text-[#F5F0EB] mb-4 pb-3 border-b border-[#2A3442] flex items-center gap-2">
-            <span>🧬</span> Forensic Traits
+          <h3 className="font-[family-name:var(--font-cormorant)] text-lg font-semibold text-[#1A1612] mb-4 pb-3 border-b border-[#F0E8DE] flex items-center gap-2">
+            <span>🧬</span> Traits
           </h3>
-          <div className="space-y-4 text-xs">
-            <div>
-              <span className="text-[#8C7F72] block uppercase mb-1">Face & Voice</span>
-              <span className="text-[#C4B8AD]">
-                {forensicTraits?.physical?.facialStructure?.forehead || '...'} forehead,{' '}
-                {forensicTraits?.physical?.facialStructure?.eyeShape || '...'} eyes
-              </span>
-            </div>
-            <div>
-              <span className="text-[#8C7F72] block uppercase mb-1">Behavioral</span>
-              <span className="text-[#C4B8AD]">
-                {(forensicTraits?.psychographic?.speechStyle || '...').replace('_', ' ')} speech
-              </span>
-            </div>
-            <div>
-              <span className="text-[#8C7F72] block uppercase mb-1">Family</span>
-              <span className="text-[#C4B8AD]">
-                {forensicTraits?.family?.siblingPosition || '...'} child
-              </span>
-            </div>
-            <div>
-              <span className="text-[#8C7F72] block uppercase mb-1">Biology</span>
-              <span className="text-[#C4B8AD] uppercase">
-                {forensicTraits?.biological?.prakriti || '...'} constitution
-              </span>
-            </div>
+          <div className="space-y-3 text-xs">
+            <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Face</span><span className="text-[#4A453F]">{forensicTraits?.physical?.facialStructure?.forehead || '—'} forehead, {forensicTraits?.physical?.facialStructure?.eyeShape || '—'} eyes</span></div>
+            <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Speech</span><span className="text-[#4A453F]">{(forensicTraits?.psychographic?.speechStyle || '—').replace('_', ' ')}</span></div>
+            <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Family</span><span className="text-[#4A453F]">{forensicTraits?.family?.siblingPosition || '—'} child</span></div>
+            <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Prakriti</span><span className="text-[#4A453F] uppercase font-medium">{forensicTraits?.biological?.prakriti || '—'}</span></div>
           </div>
         </FormCard>
       </div>
 
       {/* Life Events */}
-      <FormCard className="relative group">
-        <button
-          onClick={() => onEdit(3)}
-          className="absolute top-4 right-4 text-[#D4AF37] opacity-0 group-hover:opacity-100 transition-opacity text-sm hover:underline"
-        >
-          ✏️ Edit
+      <FormCard className="relative group p-5">
+        <button onClick={() => onEdit(3)} className="absolute top-4 right-4 text-[#B8860B] opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold hover:underline flex items-center gap-1">
+          Edit <ArrowRight className="w-3 h-3" />
         </button>
-        <h3 className="text-lg font-semibold text-[#F5F0EB] mb-4 pb-3 border-b border-[#2A3442] flex items-center gap-2">
-          <span>📅</span> Life Events
-          <span className="text-[#D4AF37] text-sm font-normal">({events.length} events)</span>
+        <h3 className="font-[family-name:var(--font-cormorant)] text-lg font-semibold text-[#1A1612] mb-4 pb-3 border-b border-[#F0E8DE] flex items-center gap-2">
+          <span>📅</span> Life Events <span className="text-[#B8860B] text-sm font-normal">({events.length})</span>
         </h3>
 
         {events.length === 0 ? (
-          <p className="text-[#8C7F72] text-center py-4">No events added yet</p>
+          <p className="text-[#7A756F] text-center py-6 text-sm">No events added</p>
         ) : (
-          <div className="space-y-3 max-h-[300px] overflow-y-auto">
+          <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
             {events.map((e, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-[#0F1419]">
+              <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-[#F5EFE7]">
                 <span className="text-xl">{e.icon || '📅'}</span>
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start">
-                    <span className="font-medium text-[#F5F0EB]">{e.eventType}</span>
-                    <span className="text-[#D4AF37] text-xs bg-[#D4AF37]/10 px-2 py-1 rounded">
-                      {e.eventDate?.split('-')[0] || 'No date'}
-                    </span>
+                    <span className="font-semibold text-[#1A1612] text-sm truncate">{e.eventType}</span>
+                    <span className="text-[#B8860B] text-xs font-medium bg-[#B8860B]/10 px-2 py-0.5 rounded-full">{e.eventDate?.split('-')[0] || '—'}</span>
                   </div>
-                  {e.description && (
-                    <p className="text-[#8C7F72] text-sm mt-1 line-clamp-1 italic">&ldquo;{e.description}&rdquo;</p>
-                  )}
+                  {e.description && <p className="text-[#7A756F] text-xs mt-1 line-clamp-1 italic">&ldquo;{e.description}&rdquo;</p>}
                 </div>
-                {e.description ? <span className="text-[#2D7A5C]">✓</span> : <span className="text-[#EF4444] text-xs">!</span>}
+                {e.description ? <span className="text-[#2D7A5C]">✓</span> : <span className="text-[#C65D3B] text-xs">!</span>}
               </div>
             ))}
           </div>
@@ -204,20 +170,13 @@ export default function Step4Review({
       {/* Low Accuracy Warning */}
       <AnimatePresence>
         {showLowAccuracyWarning && !confirmed && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl p-5"
-          >
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="bg-[#C65D3B]/5 border border-[#C65D3B]/30 rounded-xl p-4">
             <div className="flex gap-3">
-              <span className="text-2xl">⚠️</span>
+              <AlertCircle className="w-5 h-5 text-[#C65D3B] shrink-0" />
               <div>
-                <h4 className="text-[#EF4444] font-bold mb-1">Low Accuracy ({accuracy}%)</h4>
-                <p className="text-[#C4B8AD] text-sm mb-3">
-                  For highest precision (90%+), we recommend adding:
-                </p>
-                <ul className="list-disc list-inside text-sm text-[#D4AF37] space-y-1">
+                <h4 className="text-[#C65D3B] font-semibold mb-1 text-sm">Low Accuracy ({accuracy}%)</h4>
+                <p className="text-[#4A453F] text-xs mb-2">For 90%+ accuracy, add:</p>
+                <ul className="list-disc list-inside text-xs text-[#B8860B] space-y-0.5 font-medium">
                   {missingCategories.map((s, i) => <li key={i}>{s}</li>)}
                 </ul>
               </div>
@@ -227,17 +186,11 @@ export default function Step4Review({
       </AnimatePresence>
 
       {/* Confirmation & Submit */}
-      <div className="pt-6 border-t border-[#2A3442]">
-        <label className="flex items-start gap-4 cursor-pointer group mb-8">
-          <input
-            type="checkbox"
-            checked={confirmed}
-            onChange={(e) => setConfirmed(e.target.checked)}
-            className="mt-1 w-5 h-5 rounded border-[#2A3442] bg-[#0F1419] text-[#D4AF37] accent-[#D4AF37]"
-          />
-          <span className={`text-sm transition-colors ${confirmed ? 'text-[#F5F0EB]' : 'text-[#C4B8AD] group-hover:text-[#D4AF37]'}`}>
-            I confirm that all details provided are accurate to the best of my knowledge.
-            I understand that incorrect data will affect the rectification accuracy.
+      <div className="pt-4 border-t border-[#F0E8DE]">
+        <label className="flex items-start gap-3 cursor-pointer group mb-6 p-4 rounded-xl hover:bg-[#F5EFE7] transition-colors">
+          <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} className="mt-0.5 w-5 h-5 rounded border-2 border-[#D4A853] bg-white text-[#B8860B] accent-[#B8860B] cursor-pointer" />
+          <span className={`text-sm leading-relaxed transition-colors ${confirmed ? 'text-[#1A1612]' : 'text-[#4A453F] group-hover:text-[#B8860B]'}`}>
+            I confirm all details are accurate. Incorrect data will affect rectification accuracy.
           </span>
         </label>
 
@@ -246,32 +199,19 @@ export default function Step4Review({
           disabled={isSubmitting || !confirmed || cooldown}
           whileHover={{ scale: confirmed && !isSubmitting && !cooldown ? 1.02 : 1 }}
           whileTap={{ scale: confirmed && !isSubmitting && !cooldown ? 0.98 : 1 }}
-          className={`w-full py-4 font-bold rounded-xl text-lg transition-all ${
-            !confirmed || cooldown
-              ? 'bg-[#2A3442] text-[#5A6475] cursor-not-allowed'
-              : 'bg-gradient-to-r from-[#D4AF37] to-[#E8C54D] text-[#0A0F1C] hover:shadow-[0_0_30px_rgba(212,175,55,0.4)]'
+          className={`w-full py-4 font-bold rounded-xl text-lg transition-all flex items-center justify-center gap-2 ${
+            !confirmed || cooldown ? 'bg-[#F0E8DE] text-[#A8A39D] cursor-not-allowed' : 'bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white shadow-lg shadow-[#B8860B]/20 hover:shadow-xl'
           }`}
         >
-          {isSubmitting ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="animate-spin">⏳</span> Processing...
-            </span>
-          ) : cooldown ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="animate-pulse">⏳</span> Preparing...
-            </span>
-          ) : (
-            `🔮 Start Analysis (≈${estimatedMinutes} mins)`
-          )}
+          {isSubmitting ? <><span className="animate-spin">⏳</span> Processing...</> : cooldown ? <><span className="animate-pulse">⏳</span> Preparing...</> : <><Sparkles className="w-5 h-5" /> Start Analysis (~{estimatedMinutes}m)</>}
         </motion.button>
 
-        <p className="text-center text-xs text-[#8C7F72] mt-4">
-          Takes approximately {estimatedMinutes} minutes • AI-Powered Vedic Analysis
-        </p>
-
-        <div className="flex items-center justify-center gap-2 text-sm text-[#2D7A5C] mt-4">
-          <span>🔒</span>
-          <span>End-to-end encrypted</span>
+        <div className="flex items-center justify-center gap-4 mt-4 text-xs text-[#7A756F]">
+          <span>~{estimatedMinutes} minutes</span>
+          <span>•</span>
+          <span className="flex items-center gap-1"><span>🔐</span> End-to-end encrypted</span>
+          <span>•</span>
+          <span>Nobody except you can access this data</span>
         </div>
       </div>
     </motion.div>

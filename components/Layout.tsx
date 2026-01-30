@@ -1,6 +1,6 @@
 /**
  * AI Pandit - Shared Layout Component
- * Consistent page wrapper with navbar, footer, and max-width container
+ * Sacred Ivory Light Theme - Consistent with landing page
  * 
  * Usage:
  * ```tsx
@@ -38,12 +38,20 @@ export default function Layout({
   transparentNavbar = false,
 }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-[#0A0F1C] text-[#F5F0EB] flex flex-col">
+    <div className="min-h-screen bg-[#FFFCF8] text-[#1A1612] flex flex-col">
+      {/* Sacred Background Pattern */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-[#FFFCF8]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(184,134,11,0.03)_0%,transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(107,31,122,0.03)_0%,transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(74,124,111,0.02)_0%,transparent_60%)]" />
+      </div>
+
       {/* Navigation */}
       {!hideNavbar && <Navbar transparent={transparentNavbar} />}
 
       {/* Main Content */}
-      <main className={`flex-1 ${className}`}>
+      <main className={`flex-1 relative z-10 ${className}`}>
         {fullWidth ? (
           children
         ) : (
@@ -69,10 +77,17 @@ export function CenteredLayout({
   hideFooter = false,
 }: Omit<LayoutProps, 'fullWidth'>) {
   return (
-    <div className="min-h-screen bg-[#0A0F1C] text-[#F5F0EB] flex flex-col">
+    <div className="min-h-screen bg-[#FFFCF8] text-[#1A1612] flex flex-col relative">
+      {/* Sacred Background Pattern */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-[#FFFCF8]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(184,134,11,0.03)_0%,transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(107,31,122,0.03)_0%,transparent_50%)]" />
+      </div>
+
       {!hideNavbar && <Navbar />}
       
-      <main className={`flex-1 flex items-center justify-center p-4 ${className}`}>
+      <main className={`flex-1 flex items-center justify-center p-4 relative z-10 ${className}`}>
         <div className="w-full max-w-md">
           {children}
         </div>
@@ -96,12 +111,19 @@ export function DashboardLayout({
   sidebar?: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#0A0F1C] text-[#F5F0EB] flex flex-col">
+    <div className="min-h-screen bg-[#FFFCF8] text-[#1A1612] flex flex-col relative">
+      {/* Sacred Background Pattern */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 bg-[#FFFCF8]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(184,134,11,0.03)_0%,transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,rgba(107,31,122,0.03)_0%,transparent_50%)]" />
+      </div>
+
       <Navbar />
       
-      <div className="flex-1 flex">
+      <div className="flex-1 flex relative z-10">
         {sidebar && (
-          <aside className="hidden lg:block w-64 border-r border-[#2A3442] bg-[#0F1419]">
+          <aside className="hidden lg:block w-64 border-r border-[#F0E8DE] bg-[#FDF8F3]">
             {sidebar}
           </aside>
         )}

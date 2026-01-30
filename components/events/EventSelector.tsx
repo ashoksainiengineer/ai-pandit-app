@@ -1,0 +1,328 @@
+/**
+ * EventSelector Component
+ * Smart event suggestions with category browsing and search
+ */
+
+'use client';
+
+import React, { useState, useMemo, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Plus, ChevronDown, AlertTriangle } from 'lucide-react';
+import { EventCategory, EventTemplate, EventImportance } from '@/lib/events/types';
+import {
+  filterEvents,
+  searchEvents,
+  getImportanceLabel,
+  getDefaultCategories,
+} from '@/lib/events/utils';
+import { EVENT_CATEGORIES } from '@/lib/events/categories';
+
+interface EventSelectorProps {
+  existingEvents: Array<{ eventType: string }>;
+  onSelectEvent: (event: EventTemplate, categoryId: string) => void;
+  onCreateCustom: (categoryId?: string) => void;
+}
+
+export default function EventSelector({
+  existingEvents,
+  onSelectEvent,
+  onCreateCustom,
+}: EventSelectorProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showSensitive, setShowSensitive] = useState(false);
+  const [importanceFilter, setImportanceFilter] = useState<EventImportance[]>([]);
+
+  // Show all categories without age/gender filtering
+  const filteredCategories = useMemo(() => {
+    let categories = showSensitive
+      ? EVENT_CATEGORIES
+      : getDefaultCategories(EVENT_CATEGORIES);
+
+    // Only filter by importance and search, NOT by age/gender
+    return filterEvents(categories, {
+      importance: importanceFilter.length > 0 ? importanceFilter : undefined,
+      searchQuery: searchQuery || undefined,
+    });
+  }, [importanceFilter, searchQuery, showSensitive]);
+
+  // Search results
+  const searchResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    return searchEvents(EVENT_CATEGORIES, searchQuery);
+  }, [searchQuery]);
+
+  const handleEventClick = useCallback(
+    (event: EventTemplate, categoryId: string) => {
+      onSelectEvent(event, categoryId);
+    },
+    [onSelectEvent]
+  );
+
+  const isEventAdded = useCallback(
+    (eventLabel: string) => {
+      return existingEvents.some(
+        (e) => e.eventType.toLowerCase() === eventLabel.toLowerCase()
+      );
+    },
+    [existingEvents]
+  );
+
+  const toggleImportance = (importance: EventImportance) => {
+    setImportanceFilter((prev) =>
+      prev.includes(importance)
+        ? prev.filter((i) => i !== importance)
+        : [...prev, importance]
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#A8A39D]" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search life events... (e.g., marriage, surgery, school)"
+          className="w-full h-12 pl-12 pr-4 bg-white border border-[#E8E0D5] rounded-xl text-[#1A1612] placeholder-[#A8A39D] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10 outline-none"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A8A39D] hover:text-[#4A453F]"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {/* Search Results */}
+      {searchQuery && searchResults.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          className="bg-white rounded-xl border border-[#E8E0D5] overflow-hidden"
+        >
+          <div className="p-3 bg-[#F5EFE7] border-b border-[#E8E0D5] text-xs text-[#7A756F]">
+            Found {searchResults.length} results for "{searchQuery}"
+          </div>
+          <div className="max-h-64 overflow-y-auto">
+            {searchResults.map((event) => {
+              const added = isEventAdded(event.label);
+              return (
+                <button
+                  key={event.id}
+                  onClick={() => handleEventClick(event, event.categoryId)}
+                  disabled={added}
+                  className={`w-full text-left px-4 py-3 border-b border-[#F0E8DE] last:border-0 transition-colors ${
+                    added
+                      ? 'bg-[#2D7A5C]/5 text-[#2D7A5C]'
+                      : 'hover:bg-[#F5EFE7]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-medium text-[#1A1612]">
+                        {added && <span className="mr-1">✓</span>}
+                        {event.label}
+                      </div>
+                      <div className="text-xs text-[#7A756F]">
+                        {event.categoryLabel} • {getImportanceLabel(event.importance)}
+                      </div>
+                    </div>
+                    {!added && (
+                      <Plus className="w-5 h-5 text-[#B8860B]" />
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Importance Filter */}
+      {!searchQuery && (
+        <div className="flex flex-wrap gap-2">
+          {(['critical', 'high', 'medium', 'low'] as EventImportance[]).map(
+            (importance) => (
+              <button
+                key={importance}
+                onClick={() => toggleImportance(importance)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                  importanceFilter.includes(importance)
+                    ? 'bg-[#B8860B] text-white'
+                    : 'bg-[#F5EFE7] text-[#7A756F] hover:bg-[#E8E0D5]'
+                }`}
+              >
+                {getImportanceLabel(importance)}
+              </button>
+            )
+          )}
+          {importanceFilter.length > 0 && (
+            <button
+              onClick={() => setImportanceFilter([])}
+              className="px-3 py-1.5 text-xs text-[#C65D3B] hover:underline"
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Category Browser */}
+      {!searchQuery && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-[#1A1612]">
+              Browse by Category
+            </h3>
+            <button
+              onClick={() => setShowSensitive(!showSensitive)}
+              className={`text-xs flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors ${
+                showSensitive
+                  ? 'bg-[#DC143C]/10 text-[#DC143C]'
+                  : 'bg-[#F5EFE7] text-[#7A756F] hover:bg-[#E8E0D5]'
+              }`}
+            >
+              <AlertTriangle className="w-3 h-3" />
+              {showSensitive ? 'Hide Sensitive' : 'Show Sensitive'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {filteredCategories.map((category) => (
+              <motion.button
+                key={category.id}
+                onClick={() =>
+                  setSelectedCategory(
+                    selectedCategory === category.id ? null : category.id
+                  )
+                }
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className={`p-4 rounded-xl text-left transition-all border ${
+                  selectedCategory === category.id
+                    ? 'bg-[#B8860B] text-white border-[#B8860B] shadow-md'
+                    : category.isSensitive
+                      ? 'bg-[#DC143C]/5 text-[#4A453F] border-[#DC143C]/20 hover:bg-[#DC143C]/10'
+                      : 'bg-white text-[#4A453F] border-[#E8E0D5] hover:border-[#B8860B]/30 hover:shadow-sm'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <span className="text-2xl">{category.icon}</span>
+                  <span
+                    className={`text-xs px-2 py-0.5 rounded-full ${
+                      selectedCategory === category.id
+                        ? 'bg-white/20'
+                        : 'bg-[#F5EFE7] text-[#7A756F]'
+                    }`}
+                  >
+                    {category.events.length}
+                  </span>
+                </div>
+                <div className="mt-2 font-medium text-sm">{category.label}</div>
+                <div
+                  className={`text-xs mt-1 ${
+                    selectedCategory === category.id
+                      ? 'text-white/80'
+                      : 'text-[#7A756F]'
+                  }`}
+                >
+                  {category.events.slice(0, 3).map((e) => e.label.split(' ')[0]).join(', ')}
+                  {category.events.length > 3 && '...'}
+                </div>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Selected Category Events */}
+      <AnimatePresence>
+        {selectedCategory && !searchQuery && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-white rounded-xl border border-[#E8E0D5] overflow-hidden"
+          >
+            {filteredCategories
+              .filter((cat) => cat.id === selectedCategory)
+              .map((category) => (
+                <div key={category.id}>
+                  <div className="p-4 bg-[#F5EFE7] border-b border-[#E8E0D5] flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{category.icon}</span>
+                      <div>
+                        <div className="font-semibold text-[#1A1612]">
+                          {category.label}
+                        </div>
+                        <div className="text-xs text-[#7A756F]">
+                          {category.description}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedCategory(null)}
+                      className="text-[#7A756F] hover:text-[#4A453F]"
+                    >
+                      <ChevronDown className="w-5 h-5 rotate-180" />
+                    </button>
+                  </div>
+                  <div className="p-4">
+                    <div className="flex flex-wrap gap-2">
+                      {category.events.map((event) => {
+                        const added = isEventAdded(event.label);
+                        return (
+                          <button
+                            key={event.id}
+                            onClick={() => handleEventClick(event, category.id)}
+                            disabled={added}
+                            className={`px-3 py-2 rounded-lg text-sm transition-all ${
+                              added
+                                ? 'bg-[#2D7A5C]/10 text-[#2D7A5C] cursor-default'
+                                : 'bg-[#F5EFE7] text-[#4A453F] hover:bg-[#B8860B]/10 hover:text-[#B8860B] border border-transparent hover:border-[#B8860B]/30'
+                            }`}
+                          >
+                            {added && <span className="mr-1">✓</span>}
+                            {event.label}
+                            <span
+                              className={`ml-2 text-xs ${
+                                added ? 'text-[#2D7A5C]' : 'text-[#A8A39D]'
+                              }`}
+                            >
+                              {event.importance === 'critical' && '⚡'}
+                            </span>
+                          </button>
+                        );
+                      })}
+                      {/* Custom Event Button within Category */}
+                      <button
+                        onClick={() => onCreateCustom(category.id)}
+                        className="px-3 py-2 rounded-lg text-sm bg-white text-[#B8860B] border-2 border-dashed border-[#B8860B]/30 hover:bg-[#B8860B]/5 hover:border-[#B8860B]/50 transition-all flex items-center gap-1"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Custom
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Custom Event Button */}
+      <button
+        onClick={() => onCreateCustom()}
+        className="w-full h-14 border-2 border-dashed border-[#B8860B]/30 rounded-xl text-[#B8860B] font-medium hover:bg-[#B8860B]/5 hover:border-[#B8860B]/50 transition-all flex items-center justify-center gap-2"
+      >
+        <Plus className="w-5 h-5" />
+        Create Custom Event
+      </button>
+    </div>
+  );
+}
