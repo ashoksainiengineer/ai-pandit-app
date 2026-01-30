@@ -35,12 +35,17 @@ export default function Navbar() {
         ? 'bg-white/90 backdrop-blur-xl border-b border-[#F0E8DE] shadow-sm' 
         : 'bg-transparent'
     }`}>
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
-          {/* Brand */}
-          <Link href="/" className="flex items-center gap-3 group">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 sm:h-20">
+          {/* Brand - Always visible with logo icon on mobile */}
+          <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
+            {/* Logo Icon - Visible on all screens */}
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[#B8860B] to-[#D4A853] rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-sm sm:text-lg font-bold">ॐ</span>
+            </div>
+            {/* Text - Hidden on very small screens, visible on sm+ */}
             <div className="hidden sm:block">
-              <span className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612]">
+              <span className="font-[family-name:var(--font-cormorant)] text-xl sm:text-2xl font-semibold text-[#1A1612]">
                 AI Pandit
               </span>
               <span className="block text-[10px] text-[#7A756F] uppercase tracking-[0.2em]">

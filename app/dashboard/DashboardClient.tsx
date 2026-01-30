@@ -64,52 +64,52 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-8">
-      {/* Header */}
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pt-20 sm:pt-24">
+      {/* Header - Mobile Responsive */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8"
       >
         <div>
-          <h1 className="text-3xl font-bold text-[#1A1612] font-[family-name:var(--font-cormorant)]">
-            Welcome back, {userName}
+          <h1 className="text-xl sm:text-3xl font-bold text-[#1A1612] font-[family-name:var(--font-cormorant)]">
+            Welcome, {userName}
           </h1>
-          <p className="text-[#7A756F] mt-1">
-            Manage your birth time rectification sessions
+          <p className="text-sm sm:text-base text-[#7A756F] mt-1">
+            Manage your BTR sessions
           </p>
         </div>
         
         <Link
           href="/rectify"
-          className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-[#B8860B]/20 transition-all"
+          className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-[#B8860B]/20 transition-all text-sm sm:text-base"
         >
-          <Sparkles className="w-5 h-5" />
+          <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
           New Analysis
         </Link>
       </motion.div>
 
-      {/* Stats */}
+      {/* Stats - Mobile Responsive Grid */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="grid grid-cols-3 gap-4 mb-8"
+        className="grid grid-cols-3 gap-3 sm:gap-4 mb-6 sm:mb-8"
       >
         <StatCard
-          icon={<BarChart3 className="w-5 h-5 text-[#B8860B]" />}
+          icon={<BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-[#B8860B]" />}
           value={stats.total}
-          label="Total Sessions"
+          label="Total"
         />
         <StatCard
-          icon={<CheckCircle2 className="w-5 h-5 text-[#2D7A5C]" />}
+          icon={<CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#2D7A5C]" />}
           value={stats.completed}
-          label="Completed"
+          label="Done"
         />
         <StatCard
-          icon={<Activity className="w-5 h-5 text-[#6B9AC4]" />}
+          icon={<Activity className="w-4 h-4 sm:w-5 sm:h-5 text-[#6B9AC4]" />}
           value={`${stats.accuracy}%`}
-          label="Avg Accuracy"
+          label="Accuracy"
         />
       </motion.div>
 
@@ -177,22 +177,23 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
         )}
       </motion.div>
 
-      {/* Pagination */}
+      {/* Pagination - Mobile Responsive */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-8">
+        <div className="flex items-center justify-center gap-1 sm:gap-2 mt-6 sm:mt-8">
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="px-4 py-2 text-sm font-medium text-[#7A756F] hover:text-[#1A1612] disabled:opacity-30 transition-colors"
+            className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-[#7A756F] hover:text-[#1A1612] disabled:opacity-30 transition-colors"
           >
-            Previous
+            <span className="sm:hidden">←</span>
+            <span className="hidden sm:inline">Previous</span>
           </button>
           
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
             <button
               key={page}
               onClick={() => setCurrentPage(page)}
-              className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
+              className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                 currentPage === page
                   ? 'bg-[#B8860B] text-white'
                   : 'text-[#7A756F] hover:bg-[#F5EFE7]'
@@ -205,9 +206,10 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="px-4 py-2 text-sm font-medium text-[#7A756F] hover:text-[#1A1612] disabled:opacity-30 transition-colors"
+            className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-[#7A756F] hover:text-[#1A1612] disabled:opacity-30 transition-colors"
           >
-            Next
+            <span className="sm:hidden">→</span>
+            <span className="hidden sm:inline">Next</span>
           </button>
         </div>
       )}
@@ -215,25 +217,25 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
   );
 }
 
-// Stat Card Component
-function StatCard({ 
-  icon, 
-  value, 
-  label 
-}: { 
-  icon: React.ReactNode; 
-  value: number | string; 
+// Stat Card Component - Mobile Responsive
+function StatCard({
+  icon,
+  value,
+  label
+}: {
+  icon: React.ReactNode;
+  value: number | string;
   label: string;
 }) {
   return (
-    <div className="bg-white border border-[#F0E8DE] rounded-xl p-4">
-      <div className="flex items-center gap-3">
-        <div className="p-2 bg-[#F5EFE7] rounded-lg">
+    <div className="bg-white border border-[#F0E8DE] rounded-xl p-3 sm:p-4">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="p-1.5 sm:p-2 bg-[#F5EFE7] rounded-lg">
           {icon}
         </div>
-        <div>
-          <div className="text-2xl font-bold text-[#1A1612]">{value}</div>
-          <div className="text-sm text-[#7A756F]">{label}</div>
+        <div className="min-w-0">
+          <div className="text-lg sm:text-2xl font-bold text-[#1A1612]">{value}</div>
+          <div className="text-xs sm:text-sm text-[#7A756F] truncate">{label}</div>
         </div>
       </div>
     </div>

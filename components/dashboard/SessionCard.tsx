@@ -234,39 +234,54 @@ export function SessionCard({
     );
   }
 
-  // List View (Default)
+  // List View (Default) - Mobile Responsive with Light Theme
   return (
     <motion.div
       layout
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className={`
-        group relative flex items-center gap-4 p-4 rounded-xl border
-        ${isSelected ? 'bg-[#D4AF37]/10 border-[#D4AF37]' : 'bg-[#0F1419]/50 border-[#D4AF37]/10'}
-        hover:border-[#D4AF37]/30 transition-all
+        group relative flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 rounded-xl border
+        ${isSelected ? 'bg-[#B8860B]/10 border-[#B8860B]' : 'bg-white border-[#F0E8DE]'}
+        hover:border-[#D4A853]/50 hover:shadow-sm transition-all
       `}
     >
-      {/* Selection */}
-      {onSelect && (
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={() => onSelect(session.id)}
-          className="w-5 h-5 rounded border-[#D4AF37]/30 bg-transparent text-[#D4AF37] focus:ring-[#D4AF37]"
-        />
-      )}
+      {/* Mobile Header Row */}
+      <div className="flex items-center gap-3 w-full sm:w-auto">
+        {/* Selection */}
+        {onSelect && (
+          <input
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => onSelect(session.id)}
+            className="w-4 h-4 sm:w-5 sm:h-5 rounded border-[#B8860B]/30 bg-transparent text-[#B8860B] focus:ring-[#B8860B]"
+          />
+        )}
 
-      {/* Status Indicator */}
-      <div className={`w-2 h-2 rounded-full ${status.bgColor.replace('/20', '')}`} />
+        {/* Status Indicator */}
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${status.bgColor.replace('/20', '')}`} />
+
+        {/* Name & Status - Mobile Only */}
+        <div className="flex-1 min-w-0 sm:hidden">
+          <h3 className="font-semibold text-[#1A1612] truncate text-sm">{session.fullName}</h3>
+          <span className={`
+            inline-flex items-center gap-1 text-[10px] font-bold uppercase
+            ${status.textColor}
+          `}>
+            {status.icon}
+            {session.status}
+          </span>
+        </div>
+      </div>
 
       {/* Main Content */}
-      <Link 
+      <Link
         href={`/rectify/${session.id}${session.status === 'complete' ? '/results' : ''}`}
-        className="flex-1 min-w-0 grid grid-cols-12 gap-4 items-center"
+        className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 items-start sm:items-center"
       >
-        {/* Name & Status */}
-        <div className="col-span-3 min-w-0">
-          <h3 className="font-semibold text-[#F5F0EB] truncate">{session.fullName}</h3>
+        {/* Name & Status - Desktop Only */}
+        <div className="hidden sm:block col-span-3 min-w-0">
+          <h3 className="font-semibold text-[#1A1612] truncate">{session.fullName}</h3>
           <span className={`
             inline-flex items-center gap-1 text-xs font-bold uppercase
             ${status.textColor}
@@ -277,76 +292,76 @@ export function SessionCard({
         </div>
 
         {/* Birth Info */}
-        <div className="col-span-2 text-sm text-[#8C7F72]">
+        <div className="col-span-12 sm:col-span-2 text-xs sm:text-sm text-[#7A756F] flex flex-row sm:flex-col gap-2 sm:gap-1">
           <div className="flex items-center gap-1">
-            <Calendar className="w-3.5 h-3.5" />
+            <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             {session.dateOfBirth}
           </div>
-          <div className="flex items-center gap-1 mt-1">
-            <MapPin className="w-3.5 h-3.5" />
+          <div className="flex items-center gap-1">
+            <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             <span className="truncate">{session.birthPlace}</span>
           </div>
         </div>
 
         {/* Rectified Time */}
-        <div className="col-span-2">
+        <div className="col-span-12 sm:col-span-2">
           {session.rectifiedTime ? (
-            <div>
-              <span className="text-[#D4AF37] font-mono font-bold">{session.rectifiedTime}</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[#B8860B] font-mono font-bold text-sm">{session.rectifiedTime}</span>
               {confidence && (
-                <span className="ml-2 text-xs" style={{ color: confidence.color }}>
+                <span className="text-xs" style={{ color: confidence.color }}>
                   {confidence.label}
                 </span>
               )}
             </div>
           ) : (
-            <span className="text-sm text-[#8C7F72]">—</span>
+            <span className="text-xs sm:text-sm text-[#7A756F]">Pending</span>
           )}
         </div>
 
         {/* Confidence Bar */}
-        <div className="col-span-2">
+        <div className="col-span-12 sm:col-span-2">
           {session.accuracy ? (
             <div className="flex items-center gap-2">
-              <div className="flex-1 h-1.5 bg-[#151a21] rounded-full overflow-hidden">
+              <div className="flex-1 h-1.5 bg-[#F0E8DE] rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#D4AF37] to-[#2D7A5C]"
+                  className="h-full rounded-full bg-gradient-to-r from-[#B8860B] to-[#2D7A5C]"
                   style={{ width: `${session.accuracy}%` }}
                 />
               </div>
-              <span className="text-xs text-[#8C7F72]">{session.accuracy}%</span>
+              <span className="text-xs text-[#7A756F]">{session.accuracy}%</span>
             </div>
           ) : (
-            <span className="text-xs text-[#8C7F72]">No accuracy data</span>
+            <span className="text-xs text-[#7A756F]">No accuracy</span>
           )}
         </div>
 
         {/* Date */}
-        <div className="col-span-2 text-sm text-[#8C7F72] text-right">
+        <div className="col-span-12 sm:col-span-2 text-xs sm:text-sm text-[#7A756F] sm:text-right">
           {formattedDate}
         </div>
       </Link>
 
       {/* Actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 sm:gap-2 ml-auto">
         <button
           onClick={handleFavoriteClick}
           className={`
-            p-2 rounded-lg transition-colors
-            ${isFavorite 
-              ? 'text-[#D4AF37]' 
-              : 'text-[#8C7F72] hover:text-[#D4AF37]'
+            p-1.5 sm:p-2 rounded-lg transition-colors
+            ${isFavorite
+              ? 'text-[#B8860B]'
+              : 'text-[#7A756F] hover:text-[#B8860B]'
             }
           `}
         >
-          <Star className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
+          <Star className={`w-4 h-4 sm:w-5 sm:h-5 ${isFavorite ? 'fill-current' : ''}`} />
         </button>
 
         <Link
           href={`/rectify/${session.id}${session.status === 'complete' ? '/results' : ''}`}
-          className="p-2 text-[#8C7F72] hover:text-[#D4AF37] rounded-lg transition-colors"
+          className="p-1.5 sm:p-2 text-[#7A756F] hover:text-[#B8860B] rounded-lg transition-colors"
         >
-          <ExternalLink className="w-5 h-5" />
+          <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5" />
         </Link>
       </div>
     </motion.div>
