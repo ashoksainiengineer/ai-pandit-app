@@ -161,24 +161,24 @@ export default function CustomEventModal({
           onClick={handleClose}
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
         >
-          {/* Modal */}
+          {/* Modal - Perfect Size */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg max-h-[90vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+            className="w-full max-w-md max-h-[85vh] bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
           >
-            {/* Header */}
-            <div className="p-6 border-b border-[#E8E0D5] flex items-center justify-between bg-gradient-to-r from-[#FDF8F3] to-white">
+            {/* Header - Compact */}
+            <div className="p-4 border-b border-[#E8E0D5] flex items-center justify-between bg-gradient-to-r from-[#FDF8F3] to-white">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#B8860B]/10 rounded-xl flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-[#B8860B]" />
+                <div className="w-9 h-9 bg-[#B8860B]/10 rounded-xl flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-[#B8860B]" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-[#1A1612]">Create Custom Event</h2>
+                  <h2 className="font-semibold text-[#1A1612] text-base">Create Custom Event</h2>
                   <p className="text-xs text-[#7A756F]">
-                    Add events not in our standard list
+                    Add custom life events
                   </p>
                 </div>
               </div>
@@ -190,8 +190,8 @@ export default function CustomEventModal({
               </button>
             </div>
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto flex-1">
+            {/* Form - Compact spacing */}
+            <form onSubmit={handleSubmit} className="p-4 space-y-4 overflow-y-auto flex-1">
               {/* Error Display */}
               {error && (
                 <motion.div
@@ -204,8 +204,8 @@ export default function CustomEventModal({
                 </motion.div>
               )}
 
-              {/* Event Name */}
-              <div className="space-y-2">
+              {/* Event Name - Compact */}
+              <div className="space-y-1.5">
                 <label className="text-sm font-medium text-[#1A1612]">
                   Event Name <span className="text-[#C65D3B]">*</span>
                 </label>
@@ -213,17 +213,17 @@ export default function CustomEventModal({
                   type="text"
                   value={eventName}
                   onChange={(e) => setEventName(e.target.value)}
-                  placeholder="e.g., Started Learning Guitar, First Marathon"
-                  className="w-full h-12 px-4 bg-white border border-[#E8E0D5] rounded-xl text-[#1A1612] placeholder-[#A8A39D] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10 outline-none transition-all"
+                  placeholder="e.g., Started Learning Guitar"
+                  className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-[#1A1612] placeholder-[#A8A39D] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10 outline-none transition-all"
                   autoFocus
                 />
                 <p className="text-xs text-[#7A756F]">
-                  Describe the event clearly for accurate BTR analysis
+                  Clear description helps BTR accuracy
                 </p>
               </div>
 
-              {/* Category Selection */}
-              <div className="space-y-2">
+              {/* Category Selection - Compact */}
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-[#1A1612]">
                     Category <span className="text-[#C65D3B]">*</span>
@@ -245,25 +245,25 @@ export default function CustomEventModal({
                 </div>
 
                 {isCreatingCategory ? (
-                  <div className="space-y-3 p-4 bg-[#F5EFE7] rounded-xl">
+                  <div className="space-y-2 p-3 bg-[#F5EFE7] rounded-xl">
                     <input
                       type="text"
                       value={newCategoryName}
                       onChange={(e) => setNewCategoryName(e.target.value)}
-                      placeholder="Category name (e.g., Hobbies, Fitness)"
-                      className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] placeholder-[#A8A39D] focus:border-[#B8860B] outline-none"
+                      placeholder="Category name (e.g., Hobbies)"
+                      className="w-full h-9 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-[#1A1612] placeholder-[#A8A39D] focus:border-[#B8860B] outline-none"
                     />
                     <div>
-                      <label className="text-xs text-[#7A756F] mb-2 block">
+                      <label className="text-xs text-[#7A756F] mb-1.5 block">
                         Choose Icon
                       </label>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-1.5">
                         {emojiOptions.map((emoji) => (
                           <button
                             key={emoji}
                             type="button"
                             onClick={() => setNewCategoryIcon(emoji)}
-                            className={`w-10 h-10 text-xl rounded-lg transition-all ${
+                            className={`w-8 h-8 text-lg rounded-md transition-all ${
                               newCategoryIcon === emoji
                                 ? 'bg-[#B8860B] text-white'
                                 : 'bg-white hover:bg-[#E8E0D5]'
@@ -279,7 +279,7 @@ export default function CustomEventModal({
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="w-full h-12 px-4 bg-white border border-[#E8E0D5] rounded-xl text-[#1A1612] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10 outline-none appearance-none cursor-pointer"
+                    className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-[#1A1612] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10 outline-none appearance-none cursor-pointer"
                   >
                     <option value="">Select a category...</option>
                     {categories.map((category) => (
@@ -291,38 +291,38 @@ export default function CustomEventModal({
                 )}
               </div>
 
-              {/* Importance Selection */}
-              <div className="space-y-3">
+              {/* Importance Selection - Compact */}
+              <div className="space-y-2">
                 <label className="text-sm font-medium text-[#1A1612]">
                   Event Importance <span className="text-[#C65D3B]">*</span>
                 </label>
-                <div className="grid grid-cols-1 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {IMPORTANCE_OPTIONS.map((option) => (
                     <button
                       key={option.value}
                       type="button"
                       onClick={() => setImportance(option.value)}
-                      className={`p-3 rounded-xl text-left transition-all border ${
+                      className={`p-2.5 rounded-lg text-left transition-all border ${
                         importance === option.value
                           ? 'bg-[#B8860B]/10 border-[#B8860B]'
                           : 'bg-white border-[#E8E0D5] hover:border-[#D4A853]/50'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
                         <span
-                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                             importance === option.value
                               ? 'border-[#B8860B] bg-[#B8860B]'
                               : 'border-[#A8A39D]'
                           }`}
                         >
                           {importance === option.value && (
-                            <span className="text-white text-xs">✓</span>
+                            <span className="text-white text-[10px]">✓</span>
                           )}
                         </span>
-                        <div>
+                        <div className="min-w-0">
                           <div
-                            className={`font-medium text-sm ${
+                            className={`font-medium text-xs ${
                               importance === option.value
                                 ? 'text-[#1A1612]'
                                 : 'text-[#4A453F]'
@@ -331,7 +331,7 @@ export default function CustomEventModal({
                             {option.label}
                           </div>
                           <div
-                            className={`text-xs ${
+                            className={`text-[10px] leading-tight ${
                               importance === option.value
                                 ? 'text-[#B8860B]'
                                 : 'text-[#7A756F]'
@@ -346,21 +346,20 @@ export default function CustomEventModal({
                 </div>
               </div>
 
-              {/* Tips */}
-              <div className="p-4 bg-[#2D7A5C]/5 border border-[#2D7A5C]/20 rounded-xl">
+              {/* Tips - Compact */}
+              <div className="p-3 bg-[#2D7A5C]/5 border border-[#2D7A5C]/20 rounded-lg">
                 <p className="text-xs text-[#2D7A5C]">
-                  <strong>💡 Tip:</strong> Critical events (marriage, births, accidents) 
-                  provide the highest BTR accuracy. Be specific with event names.
+                  <strong>💡</strong> Critical events provide highest BTR accuracy
                 </p>
               </div>
             </form>
 
-            {/* Footer */}
-            <div className="p-6 border-t border-[#E8E0D5] bg-[#FDF8F3] flex gap-3">
+            {/* Footer - Compact */}
+            <div className="p-4 border-t border-[#E8E0D5] bg-[#FDF8F3] flex gap-3">
               <button
                 type="button"
                 onClick={handleClose}
-                className="flex-1 h-12 border-2 border-[#E8E0D5] text-[#4A453F] font-medium rounded-xl hover:border-[#B8860B]/30 transition-all"
+                className="flex-1 h-10 border-2 border-[#E8E0D5] text-[#4A453F] font-medium rounded-lg hover:border-[#B8860B]/30 transition-all text-sm"
               >
                 Cancel
               </button>
@@ -372,17 +371,17 @@ export default function CustomEventModal({
                   (!isCreatingCategory && !selectedCategory) ||
                   (isCreatingCategory && !newCategoryName.trim())
                 }
-                className="flex-1 h-12 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white font-medium rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 h-10 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
               >
                 {isSubmitting ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Creating...
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Creating...</span>
                   </>
                 ) : (
                   <>
-                    <Plus className="w-5 h-5" />
-                    Create Event
+                    <Plus className="w-4 h-4" />
+                    <span>Create Event</span>
                   </>
                 )}
               </button>
