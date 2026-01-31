@@ -140,6 +140,13 @@ export const appConfig = {
   isDevelopment: env.NODE_ENV === 'development',
 } as const;
 
+// Timeout configuration for middleware
+export const timeoutsConfig = {
+  requestMs: 300000, // 5 minutes
+  aiMs: 7200000, // 2 hours
+  healthMs: 5000, // 5 seconds
+} as const;
+
 export const memoryConfig = {
   thresholdPercent: env.MEMORY_THRESHOLD_PERCENT,
   gcThresholdGB: env.GC_THRESHOLD_GB,
@@ -221,6 +228,7 @@ export const config = {
   features: featureFlags,
   btr: btrConfig,
   logging: loggingConfig,
+  timeouts: timeoutsConfig,
   // Legacy compatibility
   performance: performanceConfig,
   app: appConfig,
