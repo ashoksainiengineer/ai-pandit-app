@@ -1,93 +1,114 @@
 /**
  * AI Pandit Design System
- * Unified design tokens and constants for consistent theming across the app
+ * Unified design tokens for Sacred Ivory Light Theme
  * 
- * Primary Colors:
- * - Background: #0A0F1C (deep navy)
- * - Surface: #1A1F2E (card backgrounds)
- * - Primary: #8B5CF6 (purple accent)
- * - Gold: #D4AF37 (traditional accent)
- * - Text: #F5F0EB (off-white)
- * - Border: #2A3442 (subtle borders)
+ * Primary Palette:
+ * - Background: #FFFCF8 (Ivory Pure)
+ * - Surface: #FFFFFF (White)
+ * - Primary: #B8860B (Sacred Gold)
+ * - Secondary: #6B1F7A (Plum)
+ * - Text: #1A1612 (Dark)
+ * - Border: #F0E8DE (Pearl)
  */
 
 // ═══════════════════════════════════════════════════════════════════════════
-// COLOR TOKENS
+// COLOR TOKENS - Sacred Ivory Theme
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const colors = {
   // Background colors
   bg: {
-    primary: '#0A0F1C',      // Main page background
-    secondary: '#0F1419',    // Alternative background
-    surface: '#1A1F2E',      // Card/surface backgrounds
-    elevated: '#242B3D',     // Elevated surfaces
-    input: '#2A3442',        // Input field backgrounds
-    hover: '#3A3442',        // Hover states
+    primary: '#FFFCF8',      // Main page background (ivory pure)
+    secondary: '#FDF8F3',    // Warm ivory background
+    tertiary: '#FAF5EF',     // Cream background
+    surface: '#FFFFFF',      // Card/surface backgrounds
+    elevated: '#FDF8F3',     // Elevated surfaces
+    input: '#FFFFFF',        // Input field backgrounds
+    hover: '#F5EFE7',        // Hover states
   },
 
   // Text colors
   text: {
-    primary: '#F5F0EB',      // Main headings and body
-    secondary: '#C4B8AD',    // Secondary text
-    muted: '#8C7F72',        // Muted/helper text
-    disabled: '#5A6475',     // Disabled state
+    primary: '#1A1612',      // Main headings and body
+    secondary: '#4A453F',    // Secondary text
+    muted: '#7A756F',        // Muted/helper text
+    disabled: '#A8A39D',     // Disabled state
+    subtle: '#D0CBC5',       // Very subtle text
   },
 
   // Accent colors
   accent: {
-    primary: '#8B5CF6',      // Primary purple
-    primaryHover: '#7C3AED', // Purple hover
-    secondary: '#6366F1',    // Secondary indigo
-    gold: '#D4AF37',         // Traditional gold
-    goldLight: '#E8C54D',    // Light gold
-    goldMuted: '#C9A961',    // Muted gold
+    primary: '#B8860B',      // Sacred gold
+    primaryHover: '#D4A853', // Gold hover
+    secondary: '#6B1F7A',    // Plum accent
+    tertiary: '#2D7A5C',     // Sage green
+    gold: '#B8860B',         // Traditional gold
+    goldLight: '#D4A853',    // Light gold
+    goldPale: '#F2E4C6',     // Pale gold
   },
 
   // Semantic colors
   semantic: {
-    success: '#2D7A5C',      // Success green
-    successLight: '#3D9A73', // Light success
+    success: '#2D7A5C',      // Success green (sage)
+    successLight: '#D4E5DE', // Light success background
     warning: '#E8A849',      // Warning orange
-    error: '#EF4444',        // Error red
-    errorLight: '#F87171',   // Light error
+    error: '#C65D3B',        // Error terracotta
+    errorLight: '#F4A896',   // Light error
     info: '#6B9AC4',         // Info blue
   },
 
   // Border colors
   border: {
-    default: '#2A3442',      // Default borders
-    hover: '#3A4555',        // Hover borders
-    accent: '#8B5CF6',       // Accent borders
-    gold: 'rgba(212, 175, 55, 0.2)',  // Gold accent
-    goldHover: 'rgba(212, 175, 55, 0.3)',
+    default: '#F0E8DE',      // Default borders (pearl)
+    hover: '#E8E0D5',        // Hover borders
+    accent: '#D4A853',       // Accent borders (gold)
+    gold: 'rgba(184, 134, 11, 0.2)',  // Gold accent
+    goldHover: 'rgba(184, 134, 11, 0.3)',
   },
 
   // Gradients
   gradient: {
-    primary: 'linear-gradient(135deg, #8B5CF6 0%, #6366F1 100%)',
-    gold: 'linear-gradient(135deg, #D4AF37 0%, #C9A961 100%)',
-    cosmic: 'linear-gradient(135deg, #0A0F1C 0%, #1A1F2E 50%, #2A3442 100%)',
-    purple: 'linear-gradient(135deg, #6A0572 0%, #8B5CF6 100%)',
+    gold: 'linear-gradient(135deg, #B8860B 0%, #D4A853 50%, #E5C880 100%)',
+    sunset: 'linear-gradient(135deg, #C65D3B 0%, #E08B6E 50%, #F4A896 100%)',
+    plum: 'linear-gradient(135deg, #4A0E4E 0%, #6B1F7A 50%, #8B4A9C 100%)',
+    sage: 'linear-gradient(135deg, #2D4A3E 0%, #4A7C6F 50%, #8FB3A5 100%)',
+    hero: 'linear-gradient(180deg, #FFFCF8 0%, #FDF8F3 50%, #FAF5EF 100%)',
+    card: 'linear-gradient(145deg, rgba(255, 252, 248, 0.95) 0%, rgba(250, 245, 239, 0.98) 100%)',
   },
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SPACING CONSTANTS (Fibonacci Scale)
+// SPACING CONSTANTS (8px Base with Golden Ratio)
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const spacing = {
   '0': '0px',
-  '1': '4px',
-  '2': '8px',
-  '3': '12px',
-  '4': '16px',
-  '5': '24px',
-  '6': '32px',
-  '7': '48px',
-  '8': '64px',
-  '9': '96px',
-  '10': '128px',
+  '1': '4px',    // 4px
+  '2': '8px',    // 8px
+  '3': '12px',   // 12px
+  '4': '16px',   // 16px
+  '5': '20px',   // 20px
+  '6': '24px',   // 24px
+  '8': '32px',   // 32px
+  '10': '40px',  // 40px
+  '12': '48px',  // 48px
+  '16': '64px',  // 64px
+  '20': '80px',  // 80px
+  '24': '96px',  // 96px
+  // Golden ratio based
+  golden: {
+    '0': '0px',
+    '1': '4px',
+    '2': '8px',
+    '3': '12px',
+    '4': '16px',    // 16
+    '5': '20px',    // 16 * 1.25 = 20
+    '6': '24px',    // 20 * 1.2 = 24
+    '7': '32px',    // 24 * 1.33 = 32
+    '8': '40px',    // 32 * 1.25 = 40
+    '9': '48px',    // 40 * 1.2 = 48
+    '10': '64px',   // 48 * 1.33 = 64
+  },
   // Fibonacci based
   fib: {
     '0': '0px',
@@ -111,9 +132,9 @@ export const spacing = {
 export const typography = {
   fontFamily: {
     sans: ['Inter', 'system-ui', 'sans-serif'],
-    serif: ['Playfair Display', 'Georgia', 'serif'],
+    serif: ['Cormorant Garamond', 'Georgia', 'serif'],
+    display: ['Playfair Display', 'Georgia', 'serif'],
     mono: ['JetBrains Mono', 'monospace'],
-    display: ['Poppins', 'sans-serif'],
   },
 
   sizes: {
@@ -148,12 +169,11 @@ export const typography = {
 
 export const borderRadius = {
   none: '0px',
-  sm: '4px',
-  base: '8px',
-  md: '12px',
-  lg: '16px',
-  xl: '21px',      // Golden ratio
-  '2xl': '24px',
+  sm: '8px',       // 8px
+  base: '12px',    // 12px
+  md: '16px',      // 16px
+  lg: '20px',      // 20px (golden ratio approx)
+  xl: '24px',      // 24px
   full: '9999px',
 } as const;
 
@@ -162,17 +182,53 @@ export const borderRadius = {
 // ═══════════════════════════════════════════════════════════════════════════
 
 export const shadows = {
-  sm: '0 1px 2px rgba(0, 0, 0, 0.3)',
-  base: '0 2px 4px rgba(0, 0, 0, 0.3)',
-  md: '0 4px 6px rgba(0, 0, 0, 0.4)',
-  lg: '0 10px 15px rgba(0, 0, 0, 0.5)',
-  xl: '0 20px 25px rgba(0, 0, 0, 0.5)',
+  sm: '0 1px 2px rgba(26, 22, 18, 0.04)',
+  base: '0 2px 4px rgba(26, 22, 18, 0.06)',
+  md: '0 4px 12px rgba(26, 22, 18, 0.08)',
+  lg: '0 8px 24px rgba(26, 22, 18, 0.1)',
+  xl: '0 16px 48px rgba(26, 22, 18, 0.12)',
   glow: {
-    gold: '0 0 20px rgba(212, 175, 55, 0.3)',
-    purple: '0 0 20px rgba(139, 92, 246, 0.3)',
-    goldStrong: '0 0 34px rgba(212, 175, 55, 0.4)',
-    purpleStrong: '0 0 34px rgba(139, 92, 246, 0.4)',
+    gold: '0 0 20px rgba(184, 134, 11, 0.2)',
+    goldStrong: '0 0 34px rgba(184, 134, 11, 0.3)',
   },
+} as const;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TRANSITIONS
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const transitions = {
+  fast: '150ms ease',
+  base: '250ms ease',
+  slow: '350ms ease',
+} as const;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Z-INDEX SCALE
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const zIndex = {
+  base: 0,
+  dropdown: 10,
+  sticky: 20,
+  fixed: 30,
+  modalBackdrop: 40,
+  modal: 50,
+  popover: 60,
+  tooltip: 70,
+  toast: 80,
+} as const;
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BREAKPOINTS
+// ═══════════════════════════════════════════════════════════════════════════
+
+export const breakpoints = {
+  sm: '640px',
+  md: '768px',
+  lg: '1024px',
+  xl: '1280px',
+  '2xl': '1536px',
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -205,157 +261,132 @@ export const animations = {
     initial: { opacity: 0, scale: 0.95 },
     animate: { opacity: 1, scale: 1 },
     exit: { opacity: 0, scale: 0.95 },
-    transition: { duration: 0.3, ease: 'easeOut' },
+    transition: { duration: 0.3 },
   },
 
   slideInRight: {
     initial: { opacity: 0, x: 20 },
     animate: { opacity: 1, x: 0 },
     exit: { opacity: 0, x: -20 },
-    transition: { duration: 0.3, ease: 'easeOut' },
-  },
-
-  slideInLeft: {
-    initial: { opacity: 0, x: -20 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: 20 },
-    transition: { duration: 0.3, ease: 'easeOut' },
-  },
-
-  // Stagger children
-  staggerContainer: {
-    animate: {
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.1,
-      },
-    },
-  },
-
-  staggerItem: {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.4, ease: 'easeOut' },
-  },
-
-  // Card hover
-  cardHover: {
-    scale: 1.02,
-    transition: { duration: 0.2, ease: 'easeOut' },
-  },
-
-  // Button press
-  buttonTap: {
-    scale: 0.98,
-  },
-
-  // Page transition
-  pageTransition: {
-    initial: { opacity: 0, y: 10 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -10 },
-    transition: { duration: 0.3, ease: 'easeOut' },
+    transition: { duration: 0.3 },
   },
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// Z-INDEX SCALE
+// COMPONENT SIZES
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const zIndex = {
-  base: 0,
-  dropdown: 100,
-  sticky: 200,
-  fixed: 300,
-  navbar: 400,
-  modalBackdrop: 500,
-  modal: 600,
-  popover: 700,
-  tooltip: 800,
-  toast: 900,
-} as const;
-
-// ═══════════════════════════════════════════════════════════════════════════
-// BREAKPOINTS
-// ═══════════════════════════════════════════════════════════════════════════
-
-export const breakpoints = {
-  sm: '640px',
-  md: '768px',
-  lg: '1024px',
-  xl: '1280px',
-  '2xl': '1536px',
-} as const;
-
-// ═══════════════════════════════════════════════════════════════════════════
-// COMPONENT-SPECIFIC STYLES
-// ═══════════════════════════════════════════════════════════════════════════
-
-export const components = {
-  // Card styles
-  card: {
-    base: `bg-[${colors.bg.surface}] border border-[${colors.border.default}] rounded-xl`,
-    hover: `hover:border-[${colors.border.hover}] transition-colors duration-200`,
-  },
-
-  // Button styles
-  button: {
-    primary: `bg-gradient-to-r from-[${colors.accent.primary}] to-[${colors.accent.secondary}] text-white font-semibold rounded-lg`,
-    secondary: `bg-[${colors.bg.input}] text-[${colors.text.primary}] border border-[${colors.border.default}] rounded-lg`,
-    outline: `bg-transparent text-[${colors.accent.gold}] border-2 border-[${colors.accent.gold}] rounded-lg`,
-  },
-
-  // Input styles
+export const componentSizes = {
   input: {
-    base: `bg-[${colors.bg.input}] border border-[${colors.border.default}] rounded-xl text-[${colors.text.primary}]`,
-    focus: `focus:border-[${colors.accent.gold}] focus:ring-2 focus:ring-[${colors.accent.gold}]/20`,
+    sm: { height: '40px', padding: '8px 12px' },
+    md: { height: '48px', padding: '12px 16px' },
+    lg: { height: '56px', padding: '16px 20px' },
   },
-
-  // Glass effect
-  glass: {
-    base: `bg-[${colors.bg.surface}]/80 backdrop-blur-xl border border-[${colors.border.default}]`,
-    gold: `bg-[${colors.bg.surface}]/80 backdrop-blur-xl border border-[${colors.border.gold}]`,
+  button: {
+    sm: { height: '32px', padding: '6px 12px', fontSize: '12px' },
+    md: { height: '40px', padding: '8px 16px', fontSize: '14px' },
+    lg: { height: '48px', padding: '12px 24px', fontSize: '16px' },
+  },
+  icon: {
+    sm: '16px',
+    md: '20px',
+    lg: '24px',
+    xl: '32px',
   },
 } as const;
 
 // ═══════════════════════════════════════════════════════════════════════════
-// UTILITY FUNCTIONS
+// CSS VARIABLE HELPER
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
- * Generate a glass morphism class string
+ * Generates CSS custom properties for the design system
+ * Use this to apply tokens to :root or specific scopes
  */
-export function glass(opacity: number = 0.8, blur: number = 21): string {
-  return `bg-[${colors.bg.surface}]/${Math.round(opacity * 100)} backdrop-blur-[${blur}px]`;
+export function generateCSSVariables(): Record<string, string> {
+  return {
+    // Backgrounds
+    '--bg-primary': colors.bg.primary,
+    '--bg-secondary': colors.bg.secondary,
+    '--bg-tertiary': colors.bg.tertiary,
+    '--bg-surface': colors.bg.surface,
+    '--bg-elevated': colors.bg.elevated,
+    '--bg-input': colors.bg.input,
+    '--bg-hover': colors.bg.hover,
+
+    // Text
+    '--text-primary': colors.text.primary,
+    '--text-secondary': colors.text.secondary,
+    '--text-muted': colors.text.muted,
+    '--text-disabled': colors.text.disabled,
+    '--text-subtle': colors.text.subtle,
+
+    // Accents
+    '--accent-primary': colors.accent.primary,
+    '--accent-primary-hover': colors.accent.primaryHover,
+    '--accent-secondary': colors.accent.secondary,
+    '--accent-tertiary': colors.accent.tertiary,
+    '--accent-gold': colors.accent.gold,
+    '--accent-gold-light': colors.accent.goldLight,
+    '--accent-gold-pale': colors.accent.goldPale,
+
+    // Semantic
+    '--semantic-success': colors.semantic.success,
+    '--semantic-success-light': colors.semantic.successLight,
+    '--semantic-warning': colors.semantic.warning,
+    '--semantic-error': colors.semantic.error,
+    '--semantic-error-light': colors.semantic.errorLight,
+    '--semantic-info': colors.semantic.info,
+
+    // Borders
+    '--border-default': colors.border.default,
+    '--border-hover': colors.border.hover,
+    '--border-accent': colors.border.accent,
+
+    // Spacing
+    '--space-1': spacing['1'],
+    '--space-2': spacing['2'],
+    '--space-3': spacing['3'],
+    '--space-4': spacing['4'],
+    '--space-5': spacing['5'],
+    '--space-6': spacing['6'],
+    '--space-8': spacing['8'],
+    '--space-10': spacing['10'],
+    '--space-12': spacing['12'],
+    '--space-16': spacing['16'],
+
+    // Border radius
+    '--radius-sm': borderRadius.sm,
+    '--radius-base': borderRadius.base,
+    '--radius-md': borderRadius.md,
+    '--radius-lg': borderRadius.lg,
+    '--radius-xl': borderRadius.xl,
+
+    // Shadows
+    '--shadow-sm': shadows.sm,
+    '--shadow-base': shadows.base,
+    '--shadow-md': shadows.md,
+    '--shadow-lg': shadows.lg,
+    '--shadow-xl': shadows.xl,
+
+    // Transitions
+    '--transition-fast': transitions.fast,
+    '--transition-base': transitions.base,
+    '--transition-slow': transitions.slow,
+  };
 }
 
-/**
- * Generate a gradient text class
- */
-export function gradientText(from: string = colors.accent.gold, to: string = colors.accent.goldLight): string {
-  return `bg-gradient-to-r from-[${from}] to-[${to}] bg-clip-text text-transparent`;
-}
-
-/**
- * Generate consistent card background
- */
-export function cardBg(elevated: boolean = false): string {
-  return elevated 
-    ? `bg-[${colors.bg.elevated}] border border-[${colors.border.default}]`
-    : `bg-[${colors.bg.surface}] border border-[${colors.border.default}]`;
-}
-
-// Export all design tokens as default
-export const designSystem = {
+// Default export for convenience
+export default {
   colors,
   spacing,
   typography,
   borderRadius,
   shadows,
-  animations,
+  transitions,
   zIndex,
   breakpoints,
-  components,
-} as const;
-
-export default designSystem;
+  animations,
+  componentSizes,
+  generateCSSVariables,
+};

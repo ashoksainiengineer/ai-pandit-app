@@ -81,28 +81,28 @@ export function Pagination({
   return (
     <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
       {/* Page Info */}
-      <div className="text-sm text-[#8C7F72]">
+      <div className="text-sm text-[#7A756F]">
         Showing{' '}
-        <span className="text-[#C4B8AD] font-medium">
+        <span className="text-[#4A453F] font-medium">
           {Math.min((currentPage - 1) * pageSize + 1, totalCount)}
         </span>{' '}
         to{' '}
-        <span className="text-[#C4B8AD] font-medium">
+        <span className="text-[#4A453F] font-medium">
           {Math.min(currentPage * pageSize, totalCount)}
         </span>{' '}
         of{' '}
-        <span className="text-[#C4B8AD] font-medium">{totalCount}</span> results
+        <span className="text-[#4A453F] font-medium">{totalCount}</span> results
       </div>
 
       {/* Page Size Selector */}
       <div className="flex items-center gap-2">
-        <span className="text-sm text-[#8C7F72]">Show</span>
+        <span className="text-sm text-[#7A756F]">Show</span>
         <select
           value={pageSize}
           onChange={(e) => onPageSizeChange(Number(e.target.value))}
           className="
-            bg-[#0F1419] border border-[#D4AF37]/20 rounded-lg
-            px-3 py-1.5 text-sm text-[#C4B8AD]
+            bg-white border border-[#F0E8DE] rounded-lg
+            px-3 py-1.5 text-sm text-[#4A453F]
             focus:outline-none focus:border-[#D4AF37]/50
           "
         >
@@ -110,7 +110,7 @@ export function Pagination({
             <option key={size} value={size}>{size}</option>
           ))}
         </select>
-        <span className="text-sm text-[#8C7F72]">per page</span>
+        <span className="text-sm text-[#7A756F]">per page</span>
       </div>
 
       {/* Page Navigation */}
@@ -120,8 +120,8 @@ export function Pagination({
           onClick={() => onPageChange(1)}
           disabled={currentPage === 1}
           className="
-            p-2 rounded-lg border border-[#D4AF37]/20
-            text-[#8C7F72] hover:text-[#D4AF37] hover:border-[#D4AF37]/40
+            p-2 rounded-lg border border-[#F0E8DE]
+            text-[#7A756F] hover:text-[#D4AF37] hover:border-[#D4AF37]/40
             disabled:opacity-30 disabled:cursor-not-allowed
             transition-colors
           "
@@ -135,8 +135,8 @@ export function Pagination({
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
           className="
-            p-2 rounded-lg border border-[#D4AF37]/20
-            text-[#8C7F72] hover:text-[#D4AF37] hover:border-[#D4AF37]/40
+            p-2 rounded-lg border border-[#F0E8DE]
+            text-[#7A756F] hover:text-[#D4AF37] hover:border-[#D4AF37]/40
             disabled:opacity-30 disabled:cursor-not-allowed
             transition-colors
           "
@@ -149,7 +149,7 @@ export function Pagination({
         <div className="flex items-center gap-1">
           {getPageNumbers().map((page, index) => (
             page === '...' ? (
-              <span key={`ellipsis-${index}`} className="px-2 text-[#8C7F72]">...</span>
+              <span key={`ellipsis-${index}`} className="px-2 text-[#7A756F]">...</span>
             ) : (
               <button
                 key={page}
@@ -158,8 +158,8 @@ export function Pagination({
                   w-10 h-10 rounded-lg text-sm font-medium
                   transition-all duration-200
                   ${currentPage === page
-                    ? 'bg-[#D4AF37] text-[#0F1419]'
-                    : 'border border-[#D4AF37]/20 text-[#C4B8AD] hover:border-[#D4AF37]/40 hover:text-[#D4AF37]'
+                    ? 'bg-[#D4AF37] text-white'
+                    : 'border border-[#F0E8DE] text-[#4A453F] hover:border-[#D4AF37]/40 hover:text-[#D4AF37]'
                   }
                 `}
               >
@@ -174,8 +174,8 @@ export function Pagination({
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
           className="
-            p-2 rounded-lg border border-[#D4AF37]/20
-            text-[#8C7F72] hover:text-[#D4AF37] hover:border-[#D4AF37]/40
+            p-2 rounded-lg border border-[#F0E8DE]
+            text-[#7A756F] hover:text-[#D4AF37] hover:border-[#D4AF37]/40
             disabled:opacity-30 disabled:cursor-not-allowed
             transition-colors
           "
@@ -189,8 +189,8 @@ export function Pagination({
           onClick={() => onPageChange(totalPages)}
           disabled={currentPage === totalPages}
           className="
-            p-2 rounded-lg border border-[#D4AF37]/20
-            text-[#8C7F72] hover:text-[#D4AF37] hover:border-[#D4AF37]/40
+            p-2 rounded-lg border border-[#F0E8DE]
+            text-[#7A756F] hover:text-[#D4AF37] hover:border-[#D4AF37]/40
             disabled:opacity-30 disabled:cursor-not-allowed
             transition-colors
           "
@@ -201,7 +201,7 @@ export function Pagination({
 
         {/* Jump to Page */}
         <div className="flex items-center gap-2 ml-4">
-          <span className="text-sm text-[#8C7F72]">Go to</span>
+          <span className="text-sm text-[#7A756F]">Go to</span>
           <input
             type="number"
             min={1}
@@ -211,8 +211,8 @@ export function Pagination({
             onKeyDown={(e) => e.key === 'Enter' && handleJumpToPage()}
             className="
               w-16 px-2 py-1.5 text-center
-              bg-[#0F1419] border border-[#D4AF37]/20 rounded-lg
-              text-sm text-[#C4B8AD]
+              bg-white border border-[#F0E8DE] rounded-lg
+              text-sm text-[#4A453F]
               focus:outline-none focus:border-[#D4AF37]/50
             "
             placeholder="#"

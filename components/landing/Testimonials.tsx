@@ -14,7 +14,7 @@ export default function TestimonialsSection() {
 
     const renderStars = (rating: number) => {
         return Array.from({ length: 5 }, (_, i) => (
-            <span key={i} className={i < rating ? 'text-[#D4AF37]' : 'text-[#2A3442]'}>
+            <span key={i} className={i < rating ? 'text-[#D4AF37]' : 'text-[#F0E8DE]'}>
                 ★
             </span>
         ));
@@ -31,10 +31,10 @@ export default function TestimonialsSection() {
                     <span className="inline-block px-4 py-2 bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-full text-[#D4AF37] text-sm font-medium mb-6">
                         ⭐ {getAverageRating()}/5 Average Rating from {getTotalTestimonials()} Users
                     </span>
-                    <h2 className="text-4xl md:text-5xl font-bold text-[#F5F0EB] mb-4">
+                    <h2 className="text-4xl md:text-5xl font-bold text-[#1A1612] mb-4">
                         Real Results from Real Users
                     </h2>
-                    <p className="text-[#C4B8AD] text-lg max-w-2xl mx-auto">
+                    <p className="text-[#4A453F] text-lg max-w-2xl mx-auto">
                         See how accurate birth time rectification transformed their astrological predictions
                     </p>
                 </div>
@@ -68,7 +68,7 @@ export default function TestimonialsSection() {
                     <div className="text-center">
                         <button
                             onClick={() => setShowAll(false)}
-                            className="px-8 py-3 text-[#8C7F72] hover:text-[#D4AF37] transition-colors"
+                            className="px-8 py-3 text-[#7A756F] hover:text-[#D4AF37] transition-colors"
                         >
                             Show Less
                         </button>
@@ -88,7 +88,7 @@ interface TestimonialCardProps {
 
 function TestimonialCard({ testimonial, isExpanded, onToggle, renderStars }: TestimonialCardProps) {
     return (
-        <div className={`glass-card p-6 transition-all duration-300 ${isExpanded ? 'md:col-span-2 lg:col-span-3' : ''}`}>
+        <div className={`glass-card p-6 transition-all duration-300 bg-white border border-[#F0E8DE] rounded-xl ${isExpanded ? 'md:col-span-2 lg:col-span-3' : ''}`}>
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
@@ -99,9 +99,9 @@ function TestimonialCard({ testimonial, isExpanded, onToggle, renderStars }: Tes
                         </span>
                     </div>
                     <div>
-                        <h4 className="font-semibold text-[#F5F0EB]">{testimonial.name}</h4>
-                        <p className="text-xs text-[#8C7F72]">{testimonial.profession}</p>
-                        <p className="text-xs text-[#8C7F72]">{testimonial.location}</p>
+                        <h4 className="font-semibold text-[#1A1612]">{testimonial.name}</h4>
+                        <p className="text-xs text-[#7A756F]">{testimonial.profession}</p>
+                        <p className="text-xs text-[#7A756F]">{testimonial.location}</p>
                     </div>
                 </div>
                 <div className="text-right">
@@ -116,16 +116,16 @@ function TestimonialCard({ testimonial, isExpanded, onToggle, renderStars }: Tes
 
             {/* Quote */}
             <div className="mb-4">
-                <p className="text-[#C4B8AD] italic leading-relaxed">
-                    &quot;{isExpanded ? testimonial.fullReview : testimonial.shortQuote}&quot;
+                <p className="text-[#4A453F] italic leading-relaxed">
+                    "{isExpanded ? testimonial.fullReview : testimonial.shortQuote}"
                 </p>
             </div>
 
             {/* Result Badge */}
             <div className="flex flex-wrap items-center gap-3 mb-4">
-                <div className="px-3 py-1.5 bg-[#2A3442] rounded-lg">
-                    <span className="text-xs text-[#8C7F72] block">Original</span>
-                    <span className="text-sm font-mono text-[#EF4444] line-through">{testimonial.result.originalTime}</span>
+                <div className="px-3 py-1.5 bg-[#F5EFE7] rounded-lg">
+                    <span className="text-xs text-[#7A756F] block">Original</span>
+                    <span className="text-sm font-mono text-red-600 line-through">{testimonial.result.originalTime}</span>
                 </div>
                 <span className="text-[#D4AF37]">→</span>
                 <div className="px-3 py-1.5 bg-[#2D7A5C]/20 rounded-lg border border-[#2D7A5C]/30">
@@ -140,7 +140,7 @@ function TestimonialCard({ testimonial, isExpanded, onToggle, renderStars }: Tes
 
             {/* Highlight */}
             <div className="p-3 bg-[#6A0572]/10 rounded-lg border border-[#6A0572]/20 mb-4">
-                <p className="text-sm text-[#E879F9]">
+                <p className="text-sm text-[#6A0572]">
                     <span className="font-semibold">Key Benefit:</span> {testimonial.highlight}
                 </p>
             </div>
@@ -148,7 +148,7 @@ function TestimonialCard({ testimonial, isExpanded, onToggle, renderStars }: Tes
             {/* Expand/Collapse Button */}
             <button
                 onClick={onToggle}
-                className="text-sm text-[#D4AF37] hover:text-[#E8C54D] transition-colors flex items-center gap-1"
+                className="text-sm text-[#D4AF37] hover:text-[#C9A961] transition-colors flex items-center gap-1"
             >
                 {isExpanded ? 'Show Less' : 'Read Full Story'}
                 <span className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>

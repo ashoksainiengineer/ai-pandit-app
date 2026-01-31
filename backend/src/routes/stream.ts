@@ -1,35 +1,51 @@
 // backend/src/routes/stream.ts
 // Server-Sent Events endpoint for real-time BTR progress streaming
-// Deployment Trigger: SSE Status Check & Terminal State Handling
+// SECURITY: Authenticated and authorized access only
 
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { db } from '../database/drizzle.js';
 import { sessions } from '../database/schema.js';
 import { eq } from 'drizzle-orm';
 import { sessionEvents, SessionEvent } from '../lib/session-events.js';
 import { getSessionProgress } from '../lib/progress-tracker.js';
 import { logger } from '../lib/logger.js';
+import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 
 const router = Router();
 
 /**
  * GET /api/stream/:sessionId
  * Server-Sent Events endpoint for real-time progress updates
+ *
+ * SECURITY: Requires authentication and session ownership verification
  */
-router.get('/:sessionId', async (req: Request, res: Response) => {
+router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     const { sessionId } = req.params;
+    const userId = req.userId;
 
     if (!sessionId) {
         res.status(400).json({ error: 'Session ID required' });
         return;
     }
 
-    console.log(`[SSE] >>> Connection requested for ${sessionId}`);
+    if (!userId) {
+        res.status(401).json({ error: 'Authentication required' });
+        return;
+    }
 
-    // 🛡️ SECURITY & STATUS CHECK: Fetch session status first
+    logger.info(`[SSE] Connection requested for session ${sessionId} by user ${userId.slice(0, 8)}`);
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // SECURITY: Verify session ownership
+    // ═══════════════════════════════════════════════════════════════════════════════
     let currentStatus = 'pending';
+    let isOwner = false;
+
     try {
-        const session = await db.select({ status: sessions.status })
+        const session = await db.select({
+            status: sessions.status,
+            userId: sessions.userId,
+        })
             .from(sessions)
             .where(eq(sessions.id, sessionId))
             .limit(1);
@@ -38,87 +54,104 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
             res.status(404).json({ error: 'Session not found' });
             return;
         }
+
+        // Verify ownership
+        if (session[0].userId !== userId) {
+            logger.warn(`[SSE] Unauthorized access attempt: user ${userId.slice(0, 8)} tried to access session ${sessionId}`);
+            res.status(403).json({ error: 'Access denied' });
+            return;
+        }
+
+        isOwner = true;
         currentStatus = session[0].status || 'pending';
 
-        // Handle terminal states immediately
+        // Handle terminal states
         if (currentStatus === 'cancelled' || currentStatus === 'error') {
-            console.log(`[SSE] Session ${sessionId} is in terminal state: ${currentStatus}. Refusing connection.`);
-            res.status(200).json({ status: currentStatus, message: `Session is in terminal state: ${currentStatus}` });
+            logger.info(`[SSE] Session ${sessionId} is in terminal state: ${currentStatus}`);
+            res.status(200).json({
+                status: currentStatus,
+                message: `Session is in terminal state: ${currentStatus}`,
+            });
             return;
         }
     } catch (error) {
-        console.error(`[SSE] Error checking session status for ${sessionId}:`, error);
+        logger.error(`[SSE] Error checking session for ${sessionId}:`, error);
+        res.status(500).json({ error: 'Internal server error' });
+        return;
     }
 
-    // console.log(`[SSE] Incoming headers: ${JSON.stringify(req.headers)}`);
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // SSE Setup
+    // ═══════════════════════════════════════════════════════════════════════════════
 
-    // Set SSE headers
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache, no-transform, no-store, must-revalidate, private');
     res.setHeader('Connection', 'keep-alive');
-    res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+    res.setHeader('X-Accel-Buffering', 'no');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
-    res.setHeader('Transfer-Encoding', 'chunked'); // Explicitly request chunked encoding
+    res.setHeader('Transfer-Encoding', 'chunked');
 
-    // 🛡️ Explicit CORS for SSE (Crucial for HF Public Space)
+    // CORS for SSE
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Last-Event-ID, Authorization');
     res.flushHeaders();
 
-    console.log(`[SSE] Headers flushed for ${sessionId}`);
+    logger.info(`[SSE] Headers flushed for ${sessionId}`);
 
-    // 🚀 Proxy-Buffering Bypass: Send a 2KB preamble
+    // Proxy-Buffering Bypass: Send a 2KB preamble
     res.write(':' + ' '.repeat(1024) + '\n');
     res.write(':' + ' '.repeat(1024) + '\n\n');
 
     if ((res as any).flush) (res as any).flush();
-    console.log(`[SSE] 🚀 2KB Preamble sent for ${sessionId}`);
+    logger.info(`[SSE] 2KB Preamble sent for ${sessionId}`);
 
     // Send initial connection event
     sendEvent(res, { type: 'connected', sessionId, timestamp: new Date().toISOString() });
 
-    // Send current progress if exists (ASYNC - DON'T AWAIT to prevent blocking)
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // Send current progress asynchronously
+    // ═══════════════════════════════════════════════════════════════════════════════
     (async () => {
         try {
-            console.log(`[SSE] Fetching initial progress for ${sessionId}`);
+            logger.info(`[SSE] Fetching initial progress for ${sessionId}`);
             const currentProgress = await getSessionProgress(sessionId);
 
-            // 🚀 IMMEDIATE FEEDBACK: If this is a fresh connection and no progress yet, send a warmup hint
+            // Warmup hint for fresh connections
             if (!currentProgress || currentProgress.currentStep === 0) {
                 sendEvent(res, {
                     type: 'ai_thinking',
                     chunk: "[SYSTEM] Initializing God-Tier Rectification Engine... Establishing mathematical grid connection.\n",
-                    stage: 1
+                    stage: 1,
                 });
             }
 
             if (currentProgress) {
-                console.log(`[SSE] Sending initial state for ${sessionId}`);
+                logger.info(`[SSE] Sending initial state for ${sessionId}`);
                 sendEvent(res, {
                     type: 'initial_state',
-                    progress: currentProgress
+                    progress: currentProgress,
                 });
             }
 
-            // 🔮 Send cached AI Context if exists
+            // Send cached AI Context if exists
             const lastContext = sessionEvents.getLastContext(sessionId);
             if (lastContext) {
                 sendEvent(res, lastContext);
             }
 
-            // 🧠 Send cached Thinking Buffer
+            // Send cached Thinking Buffer
             let thinkingBuffer = sessionEvents.getThinkingBuffer(sessionId);
 
-            // 🔄 FALLBACK: If memory buffer is empty (e.g. server restart), check DB-cached progress
+            // DB fallback for thinking buffer
             if (!thinkingBuffer && currentProgress?.lastAIThinking) {
-                console.log(`[SSE] 🔄 Thinking buffer missing in memory, using DB fallback for ${sessionId}`);
+                logger.info(`[SSE] Thinking buffer missing in memory, using DB fallback for ${sessionId}`);
                 thinkingBuffer = {
                     stage: currentProgress.lastAIThinking.stage,
                     text: currentProgress.lastAIThinking.fullText,
-                    candidateTime: currentProgress.lastAIThinking.candidateTime
+                    candidateTime: currentProgress.lastAIThinking.candidateTime,
                 };
             }
 
@@ -127,32 +160,34 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
                     type: 'ai_thinking',
                     chunk: thinkingBuffer.text,
                     stage: thinkingBuffer.stage,
-                    candidateTime: thinkingBuffer.candidateTime
+                    candidateTime: thinkingBuffer.candidateTime,
                 });
             }
 
-            // 🧮 Send cached Calculation Logs (Immediate "Matrix" Effect)
+            // Send cached Calculation Logs
             const calcLogs = sessionEvents.getCalculationBuffer(sessionId);
             if (calcLogs && calcLogs.length > 0) {
-                console.log(`[SSE] Replaying ${calcLogs.length} calc logs for ${sessionId}`);
+                logger.info(`[SSE] Replaying ${calcLogs.length} calc logs for ${sessionId}`);
                 calcLogs.forEach(log => sendEvent(res, log));
             }
 
-            // 📊 Send cached Candidate Scores (Persistence/Sync)
+            // Send cached Candidate Scores
             const scoreHistory = sessionEvents.getCandidateScoreBuffer(sessionId);
             if (scoreHistory && scoreHistory.length > 0) {
-                console.log(`[SSE] Replaying ${scoreHistory.length} candidate scores for ${sessionId}`);
+                logger.info(`[SSE] Replaying ${scoreHistory.length} candidate scores for ${sessionId}`);
                 scoreHistory.forEach(score => sendEvent(res, score));
             }
         } catch (error) {
-            console.error(`[SSE] Error in initial async sync for ${sessionId}:`, error);
+            logger.error(`[SSE] Error in initial async sync for ${sessionId}:`, error);
         }
     })();
 
-    // Get emitter for this session
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // Event Subscription
+    // ═══════════════════════════════════════════════════════════════════════════════
+
     const emitter = sessionEvents.getEmitter(sessionId);
 
-    // Event handler
     const eventHandler = (event: SessionEvent) => {
         sendEvent(res, event);
 
@@ -164,51 +199,57 @@ router.get('/:sessionId', async (req: Request, res: Response) => {
         }
     };
 
-    // Subscribe to events
     emitter.on('event', eventHandler);
 
-    // Keep-alive ping every 15 seconds (more frequent for Cloud/Vercel proxies)
+    // Keep-alive ping every 15 seconds
     const pingInterval = setInterval(() => {
-        // Send a comment ping to keep connection alive without parsing overhead
         res.write(': ping\n\n');
         sendEvent(res, { type: 'ping', timestamp: new Date().toISOString() });
     }, 15000);
 
     // Cleanup on disconnect
     req.on('close', () => {
-        logger.info('SSE connection closed', { sessionId });
+        logger.info('SSE connection closed', { sessionId, userId: userId.slice(0, 8) });
         emitter.off('event', eventHandler);
         clearInterval(pingInterval);
     });
 
     req.on('error', (error) => {
-        logger.error('SSE connection error', { sessionId, error });
+        logger.error('SSE connection error', { sessionId, userId: userId.slice(0, 8), error });
         emitter.off('event', eventHandler);
         clearInterval(pingInterval);
     });
 });
 
 /**
- * Send SSE event
+ * Send SSE event to client
  */
-function sendEvent(res: Response, data: any): void {
+function sendEvent(res: Response, data: unknown): void {
     try {
-        // Debug outgoing AI thinking events
-        if (data.type === 'ai_thinking') {
-            console.log('🧠 SSE ai_thinking:', data.candidateTime || '[General]', 'chunk:', data.chunk?.length, 'chars');
+        // Debug logging for specific event types
+        if (typeof data === 'object' && data !== null) {
+            const eventData = data as { type?: string; candidateTime?: string; chunk?: string };
+
+            if (eventData.type === 'ai_thinking') {
+                logger.debug('SSE ai_thinking:', {
+                    candidateTime: eventData.candidateTime || '[General]',
+                    chunkLength: eventData.chunk?.length,
+                });
+            }
+            if (eventData.type === 'candidate_score') {
+                logger.debug('Sending Candidate Score:', data);
+            }
         }
-        if (data.type === 'candidate_score') console.log('📊 Sending Candidate Score:', data);
 
+        const jsonData = JSON.stringify(data);
+        res.write(`data: ${jsonData}\n\n`);
 
-        const eventData = JSON.stringify(data);
-        res.write(`data: ${eventData}\n\n`);
-
-        // 🚀 Aggressive Flush for Real-time tokens
+        // Aggressive flush for real-time tokens
         if ((res as any).flush) {
             (res as any).flush();
         }
     } catch (error) {
-        console.error('Failed to send SSE event:', error);
+        logger.error('Failed to send SSE event:', error);
     }
 }
 

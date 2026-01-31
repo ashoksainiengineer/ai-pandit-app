@@ -2,6 +2,11 @@ import { Router, Request, Response } from 'express';
 import { getSessionProgress } from '../lib/progress-tracker.js';
 import { getQueueStatus } from '../lib/queue-manager.js';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
+import { db } from '../database/drizzle.js';
+import { sessions } from '../database/schema.js';
+import { eq } from 'drizzle-orm';
+import { safeDecrypt } from '../lib/crypto.js';
+import { logger } from '../lib/logger.js';
 
 const router = Router();
 
@@ -16,7 +21,7 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
         const userId = req.userId!;
         await handleProgressRequest(sessionId, userId, res);
     } catch (error) {
-        console.error('Progress fetch failed:', error);
+        logger.error('Progress fetch failed:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -30,18 +35,45 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
         const userId = req.userId!;
         await handleProgressRequest(sessionId, userId, res);
     } catch (error) {
-        console.error('Progress fetch failed:', error);
+        logger.error('Progress fetch failed:', error);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
 
-import { safeDecrypt } from '../lib/crypto.js';
-
+/**
+ * Handle progress request with ownership verification
+ */
 async function handleProgressRequest(sessionId: string, userId: string, res: Response) {
-    // console.log(`[DEBUG] Progress route hit for ID: ${sessionId}`);
-
     if (!sessionId) {
         res.status(400).json({ error: 'Session ID is required' });
+        return;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // SECURITY: Verify session ownership
+    // ═══════════════════════════════════════════════════════════════════════════════
+    try {
+        const sessionCheck = await db.select({
+            id: sessions.id,
+            userId: sessions.userId,
+        })
+            .from(sessions)
+            .where(eq(sessions.id, sessionId))
+            .limit(1);
+
+        if (sessionCheck.length === 0) {
+            res.status(404).json({ error: 'Session not found' });
+            return;
+        }
+
+        if (sessionCheck[0].userId !== userId) {
+            logger.warn(`[IDOR] Unauthorized progress access attempt: user ${userId.slice(0, 8)} tried to access session ${sessionId}`);
+            res.status(403).json({ error: 'Access denied' });
+            return;
+        }
+    } catch (error) {
+        logger.error('Error verifying session ownership:', error);
+        res.status(500).json({ error: 'Internal server error' });
         return;
     }
 
@@ -69,7 +101,11 @@ async function handleProgressRequest(sessionId: string, userId: string, res: Res
             dateOfBirth: queueStatus.session?.dateOfBirth,
             tentativeTime: queueStatus.session?.tentativeTime,
             birthPlace: queueStatus.session?.birthPlace,
-            offsetConfig: queueStatus.session?.offsetConfig ? (typeof queueStatus.session.offsetConfig === 'string' ? JSON.parse(queueStatus.session.offsetConfig) : queueStatus.session.offsetConfig) : undefined,
+            offsetConfig: queueStatus.session?.offsetConfig
+                ? (typeof queueStatus.session.offsetConfig === 'string'
+                    ? JSON.parse(queueStatus.session.offsetConfig)
+                    : queueStatus.session.offsetConfig)
+                : undefined,
             timezone: queueStatus.session?.timezone,
         },
         progress: progress || {

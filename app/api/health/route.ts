@@ -1,31 +1,83 @@
-export const dynamic = 'force-dynamic';
+/**
+ * Health Check Endpoint
+ * Provides detailed system health information
+ * Uses Node.js runtime for memory/process stats
+ */
+
 import { NextResponse } from 'next/server';
 import { getMemoryStats, getActiveCalculations } from '@/lib/memory-manager';
 import { isHighPrecisionMode } from '@/lib/ephemeris';
 
-export async function GET() {
+export const dynamic = 'force-dynamic';
+
+interface HealthStatus {
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  timestamp: string;
+  memory: {
+    heapUsed: string;
+    heapTotal: string;
+    percentUsed: string;
+    rss: string;
+  };
+  ephemeris: {
+    mode: string;
+    precision: string;
+  };
+  queue: {
+    activeCalculations: number;
+    maxConcurrent: number;
+  };
+  version: string;
+}
+
+export async function GET(): Promise<NextResponse<HealthStatus>> {
+  try {
     const memory = getMemoryStats();
     const activeCalcs = getActiveCalculations();
 
-    const status = memory.percentUsed < 0.9 ? 'healthy' : 'degraded';
+    const status: HealthStatus['status'] = memory.percentUsed < 0.9 ? 'healthy' : 'degraded';
 
     return NextResponse.json({
-        status,
+      status,
+      timestamp: new Date().toISOString(),
+      memory: {
+        heapUsed: `${(memory.heapUsed / 1024 / 1024).toFixed(1)}MB`,
+        heapTotal: `${(memory.heapTotal / 1024 / 1024).toFixed(1)}MB`,
+        percentUsed: `${(memory.percentUsed * 100).toFixed(1)}%`,
+        rss: `${(memory.rss / 1024 / 1024).toFixed(1)}MB`,
+      },
+      ephemeris: {
+        mode: isHighPrecisionMode() ? 'swiss-ephemeris' : 'algorithmic',
+        precision: isHighPrecisionMode() ? '0.0001°' : '0.01°',
+      },
+      queue: {
+        activeCalculations: activeCalcs,
+        maxConcurrent: 2,
+      },
+      version: '1.0.0',
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        status: 'unhealthy',
         timestamp: new Date().toISOString(),
         memory: {
-            heapUsed: `${(memory.heapUsed / 1024 / 1024).toFixed(1)}MB`,
-            heapTotal: `${(memory.heapTotal / 1024 / 1024).toFixed(1)}MB`,
-            percentUsed: `${(memory.percentUsed * 100).toFixed(1)}%`,
-            rss: `${(memory.rss / 1024 / 1024).toFixed(1)}MB`
+          heapUsed: '0MB',
+          heapTotal: '0MB',
+          percentUsed: '0%',
+          rss: '0MB',
         },
         ephemeris: {
-            mode: isHighPrecisionMode() ? 'swiss-ephemeris' : 'algorithmic',
-            precision: isHighPrecisionMode() ? '0.0001°' : '0.01°'
+          mode: 'unknown',
+          precision: 'unknown',
         },
         queue: {
-            activeCalculations: activeCalcs,
-            maxConcurrent: 2
+          activeCalculations: 0,
+          maxConcurrent: 2,
         },
-        version: '1.0.0'
-    });
+        version: '1.0.0',
+      },
+      { status: 503 }
+    );
+  }
 }

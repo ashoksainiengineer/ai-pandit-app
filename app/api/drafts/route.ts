@@ -4,6 +4,7 @@ import { db } from '@/database/drizzle';
 import { sessions, users } from '@/database/schema';
 import { eq } from 'drizzle-orm';
 import { encryptData } from '@/lib/encryption';
+import { parsePaginationParams, createPaginationMeta } from '@/lib/pagination';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // DRAFT API - Save form data without starting analysis
@@ -205,7 +206,7 @@ export async function POST(request: NextRequest) {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// GET: Get user's drafts
+// GET: Get user's drafts (Paginated)
 // ═════════════════════════════════════════════════════════════════════════════
 
 export async function GET(request: NextRequest) {
@@ -215,6 +216,9 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Parse pagination parameters
+        const { page, limit } = parsePaginationParams(request.nextUrl.searchParams);
+
         // Get user's internal ID
         const user = await db.select()
             .from(users)
@@ -222,11 +226,16 @@ export async function GET(request: NextRequest) {
             .limit(1);
 
         if (user.length === 0) {
-            return NextResponse.json({ success: true, drafts: [] });
+            return NextResponse.json({
+                success: true,
+                drafts: [],
+                pagination: createPaginationMeta(page, limit, 0),
+            });
         }
 
-        // Get drafts
-        const drafts = await db.select({
+        // Get all sessions for filtering (in production, use database-level filtering)
+        // Note: Filtering by status in query requires index optimization
+        const allDrafts = await db.select({
             id: sessions.id,
             birthPlace: sessions.birthPlace,
             dateOfBirth: sessions.dateOfBirth,
@@ -237,13 +246,25 @@ export async function GET(request: NextRequest) {
             .where(eq(sessions.userId, user[0].id));
 
         // Filter to only drafts and failed sessions (both can be continued)
-        const continuableSessions = drafts.filter(d =>
+        const continuableSessions = allDrafts.filter(d =>
             d.status === 'draft' || d.status === 'failed' || d.status === 'pending'
         );
 
+        // Sort by updatedAt desc (most recent first)
+        continuableSessions.sort((a, b) =>
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        );
+
+        // Apply pagination
+        const total = continuableSessions.length;
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        const paginatedDrafts = continuableSessions.slice(startIndex, endIndex);
+
         return NextResponse.json({
             success: true,
-            drafts: continuableSessions,
+            drafts: paginatedDrafts,
+            pagination: createPaginationMeta(page, limit, total),
         });
 
     } catch (error) {

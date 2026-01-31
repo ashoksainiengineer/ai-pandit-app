@@ -1,6 +1,11 @@
 /**
  * AI Pandit Landing Page - Celestial Design System
  * Cosmic aesthetics with sacred Indian heritage
+ *
+ * Build Optimization:
+ * - Static generation for instant load
+ * - ISR for automatic updates every hour
+ * - No server-side computation on request
  */
 
 import { Metadata } from 'next';
@@ -10,6 +15,12 @@ import Solution from '@/components/landing/Solution';
 import { AccuracyShowcase } from '@/components/landing/AccuracyShowcase';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
+
+// Force static generation - no server computation
+export const dynamic = 'force-static';
+
+// ISR: Revalidate every hour to refresh content without full rebuild
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'AI Pandit | Celestial Birth Time Rectification',

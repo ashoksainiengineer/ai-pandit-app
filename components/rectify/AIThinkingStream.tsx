@@ -86,7 +86,7 @@ export default function AIThinkingStream({ thinking, isActive, stage, analyzedCo
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
-                className="glass-card p-6 border border-[#8B5CF6]/30 overflow-hidden"
+                className="glass-card p-6 border border-[#8B5CF6]/30 overflow-hidden bg-white rounded-xl"
             >
                 {/* Header */}
                 <div className="flex items-center justify-between mb-4">
@@ -101,16 +101,16 @@ export default function AIThinkingStream({ thinking, isActive, stage, analyzedCo
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-[#F5F0EB]">{stageName}</h3>
+                                <h3 className="font-bold text-[#1A1612]">{stageName}</h3>
                                 {[7].includes(currentStage) && (
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-black animate-pulse">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-300 font-black animate-pulse">
                                         ESSENCE PROTOCOL
                                     </span>
                                 )}
                             </div>
                             {thinking?.candidateTime && (
-                                <p className="text-xs text-[#8C7F72]">
-                                    Analyzing: <span className="font-mono text-purple-300">
+                                <p className="text-xs text-[#7A756F]">
+                                    Analyzing: <span className="font-mono text-purple-600">
                                         {thinking?.candidateTime === 'final_decision'
                                             ? 'All Candidates'
                                             : thinking?.candidateTime}
@@ -134,10 +134,10 @@ export default function AIThinkingStream({ thinking, isActive, stage, analyzedCo
                 {/* Thinking Content */}
                 <div
                     ref={containerRef}
-                    className="bg-[#1A1F2E]/80 rounded-lg p-4 max-h-[300px] overflow-y-auto font-mono text-sm text-[#C4B8AD] leading-relaxed scroll-smooth"
+                    className="bg-[#FDF8F3] rounded-lg p-4 max-h-[300px] overflow-y-auto font-mono text-sm text-[#4A453F] leading-relaxed scroll-smooth"
                     style={{
                         scrollbarWidth: 'thin',
-                        scrollbarColor: '#8B5CF6 #1A1F2E',
+                        scrollbarColor: '#8B5CF6 #FDF8F3',
                     }}
                 >
                     {displayedText ? (
@@ -152,7 +152,7 @@ export default function AIThinkingStream({ thinking, isActive, stage, analyzedCo
                             )}
                         </pre>
                     ) : (
-                        <div className="text-[#8C7F72] flex items-center gap-2">
+                        <div className="text-[#7A756F] flex items-center gap-2">
                             <span className="animate-spin">⚙️</span>
                             Initializing DeepSeek R1 (Thinking Process)...
                         </div>
@@ -160,7 +160,7 @@ export default function AIThinkingStream({ thinking, isActive, stage, analyzedCo
                 </div>
 
                 {/* Stats Footer */}
-                <div className="mt-4 flex items-center justify-between text-xs text-[#8C7F72]">
+                <div className="mt-4 flex items-center justify-between text-xs text-[#7A756F]">
                     <span>
                         {displayedText.length.toLocaleString()} characters
                     </span>

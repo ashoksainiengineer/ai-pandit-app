@@ -69,19 +69,19 @@ export function BatchActionsToolbar({
           className="
             fixed bottom-8 left-1/2 -translate-x-1/2 z-50
             flex items-center gap-4 px-6 py-4
-            bg-[#0F1419]/95 backdrop-blur-xl
-            border border-[#D4AF37]/30 rounded-2xl
-            shadow-2xl shadow-black/50
+            bg-white/95 backdrop-blur-xl
+            border border-[#F0E8DE] rounded-2xl
+            shadow-2xl shadow-black/10
           "
         >
           {/* Selection Info */}
-          <div className="flex items-center gap-3 pr-4 border-r border-[#D4AF37]/20">
+          <div className="flex items-center gap-3 pr-4 border-r border-[#F0E8DE]">
             <div className="w-8 h-8 rounded-xl bg-[#D4AF37]/20 flex items-center justify-center">
               <CheckSquare className="w-4 h-4 text-[#D4AF37]" />
             </div>
             <div>
-              <span className="text-[#F5F0EB] font-semibold">{selectedCount}</span>
-              <span className="text-[#8C7F72] text-sm ml-1">selected</span>
+              <span className="text-[#1A1612] font-semibold">{selectedCount}</span>
+              <span className="text-[#7A756F] text-sm ml-1">selected</span>
             </div>
           </div>
 
@@ -120,7 +120,7 @@ export function BatchActionsToolbar({
               <div className="
                 absolute bottom-full left-0 mb-2
                 hidden group-hover:flex flex-col gap-1
-                bg-[#0F1419] border border-[#D4AF37]/20 rounded-xl p-2
+                bg-white border border-[#F0E8DE] rounded-xl p-2
                 shadow-xl
               ">
                 {(['json', 'csv', 'pdf'] as const).map(format => (
@@ -131,7 +131,7 @@ export function BatchActionsToolbar({
                       px-3 py-1.5 rounded-lg text-sm text-left capitalize
                       ${exportFormat === format 
                         ? 'bg-[#D4AF37]/20 text-[#D4AF37]' 
-                        : 'text-[#8C7F72] hover:bg-white/5'
+                        : 'text-[#7A756F] hover:bg-[#F5EFE7]'
                       }
                     `}
                   >
@@ -174,8 +174,8 @@ export function BatchActionsToolbar({
           <button
             onClick={onClearSelection}
             className="
-              p-2 rounded-xl text-[#8C7F72]
-              hover:text-[#C4B8AD] hover:bg-white/5
+              p-2 rounded-xl text-[#7A756F]
+              hover:text-[#4A453F] hover:bg-[#F5EFE7]
               transition-colors
             "
           >
@@ -186,7 +186,7 @@ export function BatchActionsToolbar({
           {showDeleteConfirm && (
             <div className="
               absolute bottom-full left-1/2 -translate-x-1/2 mb-4
-              w-80 p-4 bg-[#0F1419] border border-[#EF4444]/30 rounded-xl
+              w-80 p-4 bg-white border border-[#EF4444]/30 rounded-xl
               shadow-2xl
             ">
               <div className="flex items-start gap-3 mb-4">
@@ -194,8 +194,8 @@ export function BatchActionsToolbar({
                   <AlertTriangle className="w-5 h-5 text-[#EF4444]" />
                 </div>
                 <div>
-                  <h4 className="font-semibold text-[#F5F0EB]">Delete {selectedCount} sessions?</h4>
-                  <p className="text-sm text-[#8C7F72] mt-1">
+                  <h4 className="font-semibold text-[#1A1612]">Delete {selectedCount} sessions?</h4>
+                  <p className="text-sm text-[#7A756F] mt-1">
                     This action cannot be undone.
                   </p>
                 </div>
@@ -203,7 +203,7 @@ export function BatchActionsToolbar({
               <div className="flex gap-2">
                 <button
                   onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 px-4 py-2 rounded-lg border border-[#D4AF37]/20 text-[#C4B8AD] hover:bg-white/5 transition-colors"
+                  className="flex-1 px-4 py-2 rounded-lg border border-[#F0E8DE] text-[#4A453F] hover:bg-[#F5EFE7] transition-colors"
                 >
                   Cancel
                 </button>

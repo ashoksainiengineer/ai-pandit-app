@@ -21,7 +21,7 @@ const views: { mode: ViewMode; icon: React.ReactNode; label: string }[] = [
 
 export function ViewToggle({ currentView, onChange }: ViewToggleProps) {
   return (
-    <div className="flex items-center bg-[#0F1419] rounded-xl border border-[#D4AF37]/20 p-1">
+    <div className="flex items-center bg-white rounded-xl border border-[#F0E8DE] p-1">
       {views.map(({ mode, icon, label }) => (
         <button
           key={mode}
@@ -31,7 +31,7 @@ export function ViewToggle({ currentView, onChange }: ViewToggleProps) {
             transition-all duration-200
             ${currentView === mode
               ? 'bg-[#D4AF37]/20 text-[#D4AF37]'
-              : 'text-[#8C7F72] hover:text-[#C4B8AD]'
+              : 'text-[#7A756F] hover:text-[#4A453F]'
             }
           `}
           title={label}

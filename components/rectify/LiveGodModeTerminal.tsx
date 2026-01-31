@@ -53,16 +53,16 @@ export function LiveGodModeTerminal({
     };
 
     return (
-        <div className="w-full bg-[#0F1419] border border-[#2A3442] rounded-xl overflow-hidden">
+        <div className="w-full bg-white border border-[#F0E8DE] rounded-xl overflow-hidden">
             {/* Header */}
-            <div className="bg-[#1A2433] px-4 py-3 flex items-center justify-between border-b border-[#2A3442]">
+            <div className="bg-[#FDF8F3] px-4 py-3 flex items-center justify-between border-b border-[#F0E8DE]">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-[#D4AF37]/10 flex items-center justify-center">
                         <Target className="w-4 h-4 text-[#D4AF37]" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-bold text-[#F5F0EB]">Candidate Funnel</h3>
-                        <p className="text-xs text-[#8C7F72]">
+                        <h3 className="text-sm font-bold text-[#1A1612]">Candidate Funnel</h3>
+                        <p className="text-xs text-[#4A453F]">
                             {candidateScores.length} total • Stage {currentStage}
                         </p>
                     </div>
@@ -77,8 +77,8 @@ export function LiveGodModeTerminal({
                 )}
 
                 {/* Connection Status */}
-                <div className={`flex items-center gap-1.5 text-xs ${isConnected ? 'text-emerald-400' : 'text-red-400'}`}>
-                    <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-red-500'} animate-pulse`} />
+                <div className={`flex items-center gap-1.5 text-xs ${isConnected ? 'text-emerald-600' : 'text-red-600'}`}>
+                    <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-600' : 'bg-red-600'} animate-pulse`} />
                     {isConnected ? 'Live' : 'Offline'}
                 </div>
             </div>
@@ -123,14 +123,14 @@ export function LiveGodModeTerminal({
 
             {/* Recent Logs (Simplified) */}
             {calculationLogs.length > 0 && (
-                <div className="border-t border-[#2A3442] bg-[#0A0F14] px-4 py-3">
+                <div className="border-t border-[#F0E8DE] bg-[#FFFCF8] px-4 py-3">
                     <div className="flex items-center gap-2 mb-2">
                         <Zap className="w-3 h-3 text-[#D4AF37]" />
-                        <span className="text-xs font-bold text-[#8C7F72]">Recent Activity</span>
+                        <span className="text-xs font-bold text-[#4A453F]">Recent Activity</span>
                     </div>
                     <div className="space-y-1 max-h-[80px] overflow-y-auto">
                         {calculationLogs.slice(-3).map((log, i) => (
-                            <div key={i} className="text-xs text-[#8C7F72] flex gap-2">
+                            <div key={i} className="text-xs text-[#4A453F] flex gap-2">
                                 <span className="text-[#D4AF37] font-mono w-16 shrink-0">{log.candidateTime}</span>
                                 <span className="truncate">{log.log}</span>
                             </div>
@@ -170,14 +170,14 @@ function LevelSection({
         orange: {
             bg: 'bg-orange-500/10',
             border: 'border-orange-500/30',
-            text: 'text-orange-400',
-            icon: 'text-orange-500'
+            text: 'text-orange-600',
+            icon: 'text-orange-600'
         },
         blue: {
             bg: 'bg-blue-500/10',
             border: 'border-blue-500/30',
-            text: 'text-blue-400',
-            icon: 'text-blue-500'
+            text: 'text-blue-600',
+            icon: 'text-blue-600'
         },
         gold: {
             bg: 'bg-[#D4AF37]/10',
@@ -190,11 +190,11 @@ function LevelSection({
     const colors = colorClasses[color];
 
     return (
-        <div className={`border-b border-[#2A3442] ${isExpanded ? colors.bg : ''}`}>
+        <div className={`border-b border-[#F0E8DE] ${isExpanded ? colors.bg : ''}`}>
             {/* Header */}
             <button
                 onClick={onToggle}
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-[#1A2433]/50 transition-colors"
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-[#F5EFE7] transition-colors"
             >
                 <div className="flex items-center gap-3">
                     <div className={`w-6 h-6 rounded-md ${colors.bg} flex items-center justify-center ${colors.border} border`}>
@@ -202,13 +202,13 @@ function LevelSection({
                     </div>
                     <div className="text-left">
                         <div className={`text-sm font-bold ${colors.text}`}>{title}</div>
-                        <div className="text-xs text-[#8C7F72]">{subtitle}</div>
+                        <div className="text-xs text-[#4A453F]">{subtitle}</div>
                     </div>
                 </div>
                 {isExpanded ? (
-                    <ChevronUp className="w-4 h-4 text-[#8C7F72]" />
+                    <ChevronUp className="w-4 h-4 text-[#4A453F]" />
                 ) : (
-                    <ChevronDown className="w-4 h-4 text-[#8C7F72]" />
+                    <ChevronDown className="w-4 h-4 text-[#4A453F]" />
                 )}
             </button>
 
@@ -223,7 +223,7 @@ function LevelSection({
                         className="overflow-hidden"
                     >
                         {/* Table Header */}
-                        <div className={`grid grid-cols-[15%_35%_25%_25%] px-4 py-2 border-b border-[#2A3442] bg-[#0F1419]/50 text-[10px] font-bold uppercase tracking-wider ${colors.text} opacity-70`}>
+                        <div className={`grid grid-cols-[15%_35%_25%_25%] px-4 py-2 border-b border-[#F0E8DE] bg-[#FDF8F3] text-[10px] font-bold uppercase tracking-wider ${colors.text} opacity-70`}>
                             <span>Rank</span>
                             <span>Time</span>
                             <span>Score</span>
@@ -231,39 +231,39 @@ function LevelSection({
                         </div>
 
                         {/* Scrollable Table Body */}
-                        <div className="max-h-60 overflow-y-auto custom-scrollbar bg-[#0F1419]/30">
+                        <div className="max-h-60 overflow-y-auto custom-scrollbar bg-white/50">
                             {candidates.map((c, idx) => (
                                 <div
                                     key={c.time}
                                     className={`
-                                        grid grid-cols-[15%_35%_25%_25%] px-4 py-2 border-b border-[#2A3442]/50 items-center text-xs transition-colors
-                                        ${c.time === currentCandidate ? 'bg-[#D4AF37]/10' : 'hover:bg-[#1A2433]/50'}
+                                        grid grid-cols-[15%_35%_25%_25%] px-4 py-2 border-b border-[#F0E8DE]/50 items-center text-xs transition-colors
+                                        ${c.time === currentCandidate ? 'bg-[#D4AF37]/10' : 'hover:bg-[#F5EFE7]'}
                                     `}
                                 >
-                                    <span className={`font-mono ${idx < 3 ? 'text-[#D4AF37] font-bold' : 'text-[#8C7F72]'}`}>
+                                    <span className={`font-mono ${idx < 3 ? 'text-[#D4AF37] font-bold' : 'text-[#4A453F]'}`}>
                                         #{idx + 1}
                                     </span>
-                                    <span className={`font-mono font-bold ${c.time === currentCandidate ? 'text-[#D4AF37]' : 'text-[#F5F0EB]'}`}>
+                                    <span className={`font-mono font-bold ${c.time === currentCandidate ? 'text-[#D4AF37]' : 'text-[#1A1612]'}`}>
                                         {c.time}
                                     </span>
                                     <div className="flex items-center gap-2">
-                                        <div className="w-12 h-1.5 bg-[#2A3442] rounded-full overflow-hidden">
+                                        <div className="w-12 h-1.5 bg-[#F0E8DE] rounded-full overflow-hidden">
                                             <div
                                                 style={{ width: `${c.score}%` }}
-                                                className={`h-full rounded-full ${c.score > 80 ? 'bg-emerald-500' :
-                                                        c.score > 50 ? 'bg-orange-500' : 'bg-red-500'
+                                                className={`h-full rounded-full ${c.score > 80 ? 'bg-emerald-600' :
+                                                        c.score > 50 ? 'bg-orange-600' : 'bg-red-600'
                                                     }`}
                                             />
                                         </div>
-                                        <span className="text-[10px]">{c.score}%</span>
+                                        <span className="text-[10px] text-[#4A453F]">{c.score}%</span>
                                     </div>
                                     <div className="text-right">
                                         {c.time === currentCandidate ? (
                                             <span className="text-[10px] text-[#D4AF37] font-bold animate-pulse">ANALYZING</span>
                                         ) : c.reasoning ? (
-                                            <span className="text-[10px] text-emerald-500/70">VERIFIED</span>
+                                            <span className="text-[10px] text-emerald-600/80">VERIFIED</span>
                                         ) : (
-                                            <span className="text-[10px] text-[#8C7F72]">WAITING</span>
+                                            <span className="text-[10px] text-[#4A453F]">WAITING</span>
                                         )}
                                     </div>
                                 </div>
@@ -271,7 +271,7 @@ function LevelSection({
                         </div>
 
                         {/* Footer Summary */}
-                        <div className="px-4 py-2 bg-[#0F1419] border-t border-[#2A3442] text-[10px] text-[#8C7F72] flex justify-between">
+                        <div className="px-4 py-2 bg-[#FDF8F3] border-t border-[#F0E8DE] text-[10px] text-[#4A453F] flex justify-between">
                             <span>Showing {candidates.length} candidates</span>
                             <span>Top Score: {Math.max(...candidates.map(c => c.score))}%</span>
                         </div>
@@ -282,7 +282,7 @@ function LevelSection({
             {/* Empty state */}
             {isExpanded && candidates.length === 0 && (
                 <div className="px-4 pb-4 pt-1">
-                    <div className="text-center py-6 text-[#8C7F72] text-sm italic">
+                    <div className="text-center py-6 text-[#4A453F] text-sm italic">
                         Waiting for candidate data stream...
                     </div>
                 </div>

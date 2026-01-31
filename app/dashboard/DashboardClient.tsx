@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { Sparkles, Search, BarChart3, CheckCircle2, Activity } from 'lucide-react';
 import { DashboardSession } from '@/lib/dashboard/types';
 import { SessionCard } from '@/components/dashboard';
+import { Breadcrumbs, predefinedBreadcrumbs } from '@/components/ui/Breadcrumbs';
 
 interface DashboardClientProps {
   initialSessions: DashboardSession[];
@@ -70,6 +71,9 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pt-20 sm:pt-24">
+      {/* Breadcrumbs */}
+      <Breadcrumbs items={predefinedBreadcrumbs.dashboard()} className="mb-4" />
+      
       {/* Header - Mobile Responsive */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

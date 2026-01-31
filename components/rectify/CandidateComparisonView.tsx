@@ -51,9 +51,9 @@ export function CandidateComparisonView({ candidates, onSelect }: CandidateCompa
     // Can't compare if less than 2 candidates
     if (sortedCandidates.length < 2) {
         return (
-            <div className="glass-card p-6 border border-[#3A4452] text-center">
-                <Scale className="w-8 h-8 text-[#8C7F72] mx-auto mb-3" />
-                <p className="text-sm text-[#8C7F72]">At least 2 candidates required for comparison</p>
+            <div className="glass-card p-6 border border-[#F0E8DE] text-center bg-white rounded-xl">
+                <Scale className="w-8 h-8 text-[#7A756F] mx-auto mb-3" />
+                <p className="text-sm text-[#7A756F]">At least 2 candidates required for comparison</p>
             </div>
         );
     }
@@ -68,11 +68,11 @@ export function CandidateComparisonView({ candidates, onSelect }: CandidateCompa
     const StatusIcon = ({ status }: { status: 'match' | 'differ' | 'unknown' }) => {
         switch (status) {
             case 'match':
-                return <Check className="w-3.5 h-3.5 text-emerald-400" />;
+                return <Check className="w-3.5 h-3.5 text-emerald-600" />;
             case 'differ':
-                return <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />;
+                return <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />;
             default:
-                return <X className="w-3.5 h-3.5 text-[#8C7F72]" />;
+                return <X className="w-3.5 h-3.5 text-[#7A756F]" />;
         }
     };
 
@@ -84,7 +84,7 @@ export function CandidateComparisonView({ candidates, onSelect }: CandidateCompa
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-5 border border-[#D4AF37]/30 overflow-hidden"
+            className="glass-card p-5 border border-[#D4AF37]/30 overflow-hidden bg-white rounded-xl"
         >
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
@@ -93,14 +93,14 @@ export function CandidateComparisonView({ candidates, onSelect }: CandidateCompa
                         <Scale className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                        <h3 className="font-bold text-[#F5F0EB]">Candidate Comparison</h3>
-                        <p className="text-[10px] text-[#8C7F72] uppercase tracking-wider">Side-by-side analysis</p>
+                        <h3 className="font-bold text-[#1A1612]">Candidate Comparison</h3>
+                        <p className="text-[10px] text-[#7A756F] uppercase tracking-wider">Side-by-side analysis</p>
                     </div>
                 </div>
 
                 {/* Winner Badge */}
                 <div className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider
-                    ${scoreDiff > 5 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'}`}
+                    ${scoreDiff > 5 ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' : 'bg-amber-100 text-amber-700 border border-amber-300'}`}
                 >
                     {scoreDiff > 5 ? 'Clear Winner' : 'Close Match'}
                 </div>
@@ -113,7 +113,7 @@ export function CandidateComparisonView({ candidates, onSelect }: CandidateCompa
                     <select
                         value={leftIndex}
                         onChange={(e) => setLeftIndex(parseInt(e.target.value))}
-                        className="w-full appearance-none bg-[#1A2433] border border-[#3A4452] rounded-lg px-3 py-2 text-sm text-[#F5F0EB] cursor-pointer hover:border-[#D4AF37]/50 transition-colors pr-8"
+                        className="w-full appearance-none bg-[#FDF8F3] border border-[#F0E8DE] rounded-lg px-3 py-2 text-sm text-[#1A1612] cursor-pointer hover:border-[#D4AF37]/50 transition-colors pr-8"
                     >
                         {sortedCandidates.map((c, idx) => (
                             <option key={c.time} value={idx} disabled={idx === rightIndex}>
@@ -121,7 +121,7 @@ export function CandidateComparisonView({ candidates, onSelect }: CandidateCompa
                             </option>
                         ))}
                     </select>
-                    <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-[#8C7F72] pointer-events-none" />
+                    <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-[#7A756F] pointer-events-none" />
                 </div>
 
                 {/* Right Selector */}
@@ -129,7 +129,7 @@ export function CandidateComparisonView({ candidates, onSelect }: CandidateCompa
                     <select
                         value={rightIndex}
                         onChange={(e) => setRightIndex(parseInt(e.target.value))}
-                        className="w-full appearance-none bg-[#1A2433] border border-[#3A4452] rounded-lg px-3 py-2 text-sm text-[#F5F0EB] cursor-pointer hover:border-[#D4AF37]/50 transition-colors pr-8"
+                        className="w-full appearance-none bg-[#FDF8F3] border border-[#F0E8DE] rounded-lg px-3 py-2 text-sm text-[#1A1612] cursor-pointer hover:border-[#D4AF37]/50 transition-colors pr-8"
                     >
                         {sortedCandidates.map((c, idx) => (
                             <option key={c.time} value={idx} disabled={idx === leftIndex}>
@@ -137,7 +137,7 @@ export function CandidateComparisonView({ candidates, onSelect }: CandidateCompa
                             </option>
                         ))}
                     </select>
-                    <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-[#8C7F72] pointer-events-none" />
+                    <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-[#7A756F] pointer-events-none" />
                 </div>
             </div>
 
@@ -161,8 +161,8 @@ export function CandidateComparisonView({ candidates, onSelect }: CandidateCompa
             </div>
 
             {/* Detailed Differences */}
-            <div className="mt-6 bg-[#0F1419]/50 rounded-xl p-4 border border-[#3A4452]">
-                <h4 className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold mb-3">Key Differences</h4>
+            <div className="mt-6 bg-[#FDF8F3] rounded-xl p-4 border border-[#F0E8DE]">
+                <h4 className="text-[10px] text-[#7A756F] uppercase tracking-wider font-bold mb-3">Key Differences</h4>
                 <div className="space-y-2">
                     {/* Ephemeris Comparison */}
                     <ComparisonRow
@@ -196,7 +196,7 @@ export function CandidateComparisonView({ candidates, onSelect }: CandidateCompa
                     <Trophy className="w-5 h-5 text-[#D4AF37] mt-0.5" />
                     <div>
                         <h4 className="text-sm font-bold text-[#D4AF37] mb-1">AI Comparison Verdict</h4>
-                        <p className="text-xs text-[#C4B8AD] leading-relaxed">
+                        <p className="text-xs text-[#4A453F] leading-relaxed">
                             {winner === 'left' ? leftCandidate.time : rightCandidate.time} is preferred
                             {scoreDiff > 5
                                 ? ` with a significant ${scoreDiff.toFixed(1)}% lead. `
@@ -227,10 +227,10 @@ function CandidateCard({
             whileHover={{ scale: 1.01 }}
             onClick={onSelect}
             className={`
-                bg-[#0F1419]/70 rounded-xl p-4 border cursor-pointer transition-all
+                bg-[#FDF8F3] rounded-xl p-4 border cursor-pointer transition-all
                 ${isWinner
                     ? 'border-[#D4AF37]/50 shadow-[0_0_15px_rgba(212,175,55,0.15)]'
-                    : 'border-[#3A4452] hover:border-[#D4AF37]/30'
+                    : 'border-[#F0E8DE] hover:border-[#D4AF37]/30'
                 }
             `}
         >
@@ -240,9 +240,9 @@ function CandidateCard({
                     {isWinner ? (
                         <Trophy className="w-5 h-5 text-[#D4AF37]" />
                     ) : (
-                        <Medal className="w-5 h-5 text-[#8C7F72]" />
+                        <Medal className="w-5 h-5 text-[#7A756F]" />
                     )}
-                    <span className="text-[10px] text-[#8C7F72] font-bold uppercase">Rank #{rank}</span>
+                    <span className="text-[10px] text-[#7A756F] font-bold uppercase">Rank #{rank}</span>
                 </div>
                 {isWinner && (
                     <span className="text-[8px] bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 rounded-full font-bold uppercase">
@@ -252,49 +252,49 @@ function CandidateCard({
             </div>
 
             {/* Time */}
-            <div className="text-2xl font-black text-[#F5F0EB] font-mono mb-2">
+            <div className="text-2xl font-black text-[#1A1612] font-mono mb-2">
                 {candidate.time}
             </div>
 
             {/* Score */}
             <div className="mb-3">
                 <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-[#8C7F72]">Score</span>
-                    <span className={`font-bold ${candidate.score >= 80 ? 'text-emerald-400' : candidate.score >= 60 ? 'text-amber-400' : 'text-rose-400'}`}>
+                    <span className="text-[#7A756F]">Score</span>
+                    <span className={`font-bold ${candidate.score >= 80 ? 'text-emerald-600' : candidate.score >= 60 ? 'text-amber-600' : 'text-rose-600'}`}>
                         {candidate.score.toFixed(1)}%
                     </span>
                 </div>
-                <div className="w-full bg-[#2A3442] rounded-full h-2 overflow-hidden">
+                <div className="w-full bg-[#F0E8DE] rounded-full h-2 overflow-hidden">
                     <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${candidate.score}%` }}
                         transition={{ duration: 0.8, ease: "easeOut" }}
-                        className={`h-full rounded-full ${candidate.score >= 80 ? 'bg-emerald-500' : candidate.score >= 60 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                        className={`h-full rounded-full ${candidate.score >= 80 ? 'bg-emerald-600' : candidate.score >= 60 ? 'bg-amber-600' : 'bg-rose-600'}`}
                     />
                 </div>
             </div>
 
             {/* Ephemeris Summary */}
             {candidate.minifiedEph && (
-                <div className="space-y-1 text-[10px] font-mono border-t border-[#3A4452] pt-2 mt-2">
+                <div className="space-y-1 text-[10px] font-mono border-t border-[#F0E8DE] pt-2 mt-2">
                     <div className="flex justify-between">
-                        <span className="text-[#8C7F72]">☉ Sun</span>
-                        <span className="text-[#C4B8AD]">{candidate.minifiedEph.sun}</span>
+                        <span className="text-[#7A756F]">☉ Sun</span>
+                        <span className="text-[#4A453F]">{candidate.minifiedEph.sun}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-[#8C7F72]">☽ Moon</span>
-                        <span className="text-[#C4B8AD]">{candidate.minifiedEph.moon}</span>
+                        <span className="text-[#7A756F]">☽ Moon</span>
+                        <span className="text-[#4A453F]">{candidate.minifiedEph.moon}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-[#8C7F72]">↑ Asc</span>
-                        <span className="text-[#C4B8AD]">{candidate.minifiedEph.ascendant}</span>
+                        <span className="text-[#7A756F]">↑ Asc</span>
+                        <span className="text-[#4A453F]">{candidate.minifiedEph.ascendant}</span>
                     </div>
                 </div>
             )}
 
             {/* Reason */}
             {candidate.reason && (
-                <p className="text-[10px] text-[#8C7F72] mt-2 line-clamp-2 italic">
+                <p className="text-[10px] text-[#7A756F] mt-2 line-clamp-2 italic">
                     "{candidate.reason}"
                 </p>
             )}
@@ -316,15 +316,15 @@ function ComparisonRow({
 
     return (
         <div className="flex items-center gap-3 text-[10px]">
-            <span className="w-24 text-[#8C7F72] font-medium flex-shrink-0">{label}</span>
-            <div className="flex-1 flex items-center justify-between gap-2 bg-[#1A2433] rounded-lg px-2 py-1">
-                <span className="font-mono text-[#C4B8AD] truncate">{leftValue || '-'}</span>
+            <span className="w-24 text-[#7A756F] font-medium flex-shrink-0">{label}</span>
+            <div className="flex-1 flex items-center justify-between gap-2 bg-white rounded-lg px-2 py-1 border border-[#F0E8DE]">
+                <span className="font-mono text-[#4A453F] truncate">{leftValue || '-'}</span>
                 {matches ? (
-                    <Check className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                    <Check className="w-3 h-3 text-emerald-600 flex-shrink-0" />
                 ) : (
-                    <AlertTriangle className="w-3 h-3 text-amber-400 flex-shrink-0" />
+                    <AlertTriangle className="w-3 h-3 text-amber-600 flex-shrink-0" />
                 )}
-                <span className="font-mono text-[#C4B8AD] truncate">{rightValue || '-'}</span>
+                <span className="font-mono text-[#4A453F] truncate">{rightValue || '-'}</span>
             </div>
         </div>
     );

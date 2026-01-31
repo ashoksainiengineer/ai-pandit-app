@@ -101,12 +101,12 @@ class ResultsPageErrorBoundary extends React.Component<
     if (this.state.hasError) {
       return (
         <div className="max-w-4xl mx-auto p-8 text-center">
-          <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-[#F5F0EB] mb-2">Something Went Wrong</h2>
-          <p className="text-[#8C7F72] mb-4">Failed to display results. Please try refreshing.</p>
+          <AlertTriangle className="w-12 h-12 text-red-600 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-[#1A1612] mb-2">Something Went Wrong</h2>
+          <p className="text-[#7A756F] mb-4">Failed to display results. Please try refreshing.</p>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-[#D4AF37] text-[#0F1419] rounded-lg font-medium"
+            className="px-4 py-2 bg-[#D4AF37] text-white rounded-lg font-medium"
           >
             Refresh
           </button>
@@ -129,25 +129,25 @@ interface CandidateCardProps {
 
 function CandidateCard({ candidate, rank }: CandidateCardProps) {
   const scoreColor = useMemo(() => {
-    if (candidate.score >= 80) return 'text-emerald-400';
-    if (candidate.score >= 60) return 'text-yellow-400';
-    return 'text-red-400';
+    if (candidate.score >= 80) return 'text-emerald-600';
+    if (candidate.score >= 60) return 'text-yellow-600';
+    return 'text-red-600';
   }, [candidate.score]);
 
   const confidenceColor = useMemo(() => {
     if (candidate.confidence === 'High') {
-      return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+      return 'bg-emerald-100 text-emerald-700 border border-emerald-300';
     }
     if (candidate.confidence === 'Medium') {
-      return 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20';
+      return 'bg-yellow-100 text-yellow-700 border border-yellow-300';
     }
-    return 'bg-red-500/10 text-red-400 border border-red-500/20';
+    return 'bg-red-100 text-red-700 border border-red-300';
   }, [candidate.confidence]);
 
   return (
-    <div className="bg-[#0F1419] rounded-xl border border-[#3A4452] p-6 space-y-4 hover:border-[#D4AF37]/30 transition-all">
+    <div className="bg-white rounded-xl border border-[#F0E8DE] p-6 space-y-4 hover:border-[#D4AF37]/30 transition-all">
       {rank && (
-        <p className="text-[10px] font-black text-[#8C7F72] uppercase tracking-[0.2em]">
+        <p className="text-[10px] font-black text-[#7A756F] uppercase tracking-[0.2em]">
           Priority Sequence Alpha #{rank}
         </p>
       )}
@@ -164,27 +164,27 @@ function CandidateCard({ candidate, rank }: CandidateCardProps) {
         </div>
       </div>
 
-      <p className="text-[#8C7F72] text-xs font-medium uppercase tracking-wider">
+      <p className="text-[#7A756F] text-xs font-medium uppercase tracking-wider">
         {sanitizeHtml(candidate.offsetDescription)}
       </p>
 
       {candidate.recommendation && (
-        <div className="bg-[#151a21] rounded-xl border border-[#3A4452]/50 p-6">
+        <div className="bg-[#F5EFE7] rounded-xl border border-[#F0E8DE] p-6">
           <p className="text-[10px] font-black text-[#D4AF37] uppercase tracking-widest mb-3">
             Neural Decision
           </p>
-          <p className="text-[#C4B8AD] text-sm leading-relaxed">
+          <p className="text-[#4A453F] text-sm leading-relaxed">
             {sanitizeHtml(candidate.recommendation)}
           </p>
         </div>
       )}
 
       {candidate.analysis && (
-        <div className="bg-[#151a21] rounded-xl border border-[#3A4452]/50 p-6 max-h-64 overflow-y-auto custom-scrollbar">
-          <p className="text-[10px] font-black text-[#8C7F72] uppercase tracking-widest mb-3">
+        <div className="bg-[#F5EFE7] rounded-xl border border-[#F0E8DE] p-6 max-h-64 overflow-y-auto custom-scrollbar">
+          <p className="text-[10px] font-black text-[#7A756F] uppercase tracking-widest mb-3">
             Verification Trace
           </p>
-          <p className="text-[#8C7F72] text-xs leading-relaxed whitespace-pre-wrap">
+          <p className="text-[#7A756F] text-xs leading-relaxed whitespace-pre-wrap">
             {sanitizeHtml(candidate.analysis)}
           </p>
         </div>
@@ -225,7 +225,7 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
   // Extract section helper
   const extractSection = useCallback((text: string | undefined, section: string): string => {
     if (!text) return 'Analysis pending...';
-    const regex = new RegExp(`${section}[^:]*:([^]*?)(?=\\n\\n|\\n[A-Z]|$)`, 'i');
+    const regex = new RegExp(`${section}[^:]*:([^]*?)(?=\n\n|\n[A-Z]|$)`, 'i');
     const match = text.match(regex);
     return match ? sanitizeHtml(match[1].trim().substring(0, 200)) : 'Analysis pending...';
   }, []);
@@ -234,12 +234,12 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
   if (!analysisData || !topRecommendation) {
     return (
       <div className="max-w-4xl mx-auto p-8 text-center">
-        <AlertTriangle className="w-12 h-12 text-amber-400 mx-auto mb-4" />
-        <h2 className="text-xl font-bold text-[#F5F0EB] mb-2">Invalid Data</h2>
-        <p className="text-[#8C7F72] mb-4">The analysis data is incomplete or corrupted.</p>
+        <AlertTriangle className="w-12 h-12 text-amber-600 mx-auto mb-4" />
+        <h2 className="text-xl font-bold text-[#1A1612] mb-2">Invalid Data</h2>
+        <p className="text-[#7A756F] mb-4">The analysis data is incomplete or corrupted.</p>
         <button
           onClick={handleNewAnalysis}
-          className="px-6 py-3 bg-[#D4AF37] text-[#0F1419] rounded-lg font-bold"
+          className="px-6 py-3 bg-[#D4AF37] text-white rounded-lg font-bold"
         >
           Start New Analysis
         </button>
@@ -248,11 +248,11 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 text-[#F5F0EB]">
+    <div className="max-w-4xl mx-auto space-y-8 text-[#1A1612]">
       {/* Top Recommendation Card */}
-      <div className="bg-[#151a21] border-2 border-[#D4AF37]/30 rounded-xl p-8 shadow-[0_0_30px_rgba(212,175,55,0.1)]">
+      <div className="bg-white border-2 border-[#D4AF37]/30 rounded-xl p-8 shadow-[0_0_30px_rgba(212,175,55,0.1)]">
         <div className="text-center">
-          <p className="text-[10px] font-black text-[#8C7F72] uppercase tracking-[0.3em] mb-4">
+          <p className="text-[10px] font-black text-[#7A756F] uppercase tracking-[0.3em] mb-4">
             Rectified Birth Time
           </p>
           <h1 className="text-6xl font-black text-[#D4AF37] font-mono mb-6 tracking-tighter">
@@ -261,18 +261,18 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
 
           <div className="flex justify-center gap-12 mb-8">
             <div className="text-center">
-              <p className="text-[10px] text-[#8C7F72] uppercase font-bold mb-1">Accuracy Score</p>
-              <p className="text-4xl font-black text-[#F5F0EB]">{accuracy}%</p>
+              <p className="text-[10px] text-[#7A756F] uppercase font-bold mb-1">Accuracy Score</p>
+              <p className="text-4xl font-black text-[#1A1612]">{accuracy}%</p>
             </div>
             <div className="text-center">
-              <p className="text-[10px] text-[#8C7F72] uppercase font-bold mb-1">Confidence</p>
+              <p className="text-[10px] text-[#7A756F] uppercase font-bold mb-1">Confidence</p>
               <p
                 className={`text-4xl font-black ${
                   confidence === 'High'
-                    ? 'text-emerald-400'
+                    ? 'text-emerald-600'
                     : confidence === 'Medium'
-                    ? 'text-yellow-400'
-                    : 'text-red-400'
+                    ? 'text-yellow-600'
+                    : 'text-red-600'
                 }`}
               >
                 {confidence}
@@ -285,12 +285,12 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
             {sanitizeHtml(topRecommendation.offsetDescription)}
           </div>
 
-          <div className="bg-[#0F1419] border border-[#3A4452] rounded-xl p-8 text-left space-y-6">
+          <div className="bg-[#F5EFE7] border border-[#F0E8DE] rounded-xl p-8 text-left space-y-6">
             <div>
               <h3 className="text-[#D4AF37] font-black uppercase tracking-wider text-sm mb-3">
                 Logical Verdict
               </h3>
-              <p className="text-[#C4B8AD] leading-relaxed">
+              <p className="text-[#4A453F] leading-relaxed">
                 {sanitizeHtml(truncateText(topRecommendation.recommendation, 500))}
               </p>
             </div>
@@ -299,7 +299,7 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
               <h3 className="text-[#D4AF37] font-black uppercase tracking-wider text-sm mb-3">
                 Precision Strengths
               </h3>
-              <p className="text-[#8C7F72] text-sm leading-relaxed">
+              <p className="text-[#7A756F] text-sm leading-relaxed">
                 {extractSection(topRecommendation.analysis, 'STRENGTHS')}
               </p>
             </div>
@@ -309,7 +309,7 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
                 <h3 className="text-[#D4AF37] font-black uppercase tracking-wider text-sm mb-3">
                   Vimshottari/Yogini Alignment
                 </h3>
-                <p className="text-[#8C7F72] text-sm leading-relaxed">
+                <p className="text-[#7A756F] text-sm leading-relaxed">
                   {sanitizeHtml(topRecommendation.dashaAnalysis)}
                 </p>
               </div>
@@ -319,7 +319,7 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-[#3A4452]">
+      <div className="border-b border-[#F0E8DE]">
         <div className="flex gap-8" role="tablist">
           {(['top', 'alternatives', 'all'] as const).map((tab) => (
             <button
@@ -328,7 +328,7 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
               className={`pb-4 text-xs font-black uppercase tracking-widest transition-all ${
                 selectedTab === tab
                   ? 'text-[#D4AF37] border-b-2 border-[#D4AF37]'
-                  : 'text-[#8C7F72] hover:text-[#F5F0EB]'
+                  : 'text-[#7A756F] hover:text-[#1A1612]'
               }`}
               role="tab"
               aria-selected={selectedTab === tab}
@@ -349,10 +349,10 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="bg-[#151a21] border border-[#3A4452] rounded-xl p-8 space-y-6"
+            className="bg-white border border-[#F0E8DE] rounded-xl p-8 space-y-6"
             role="tabpanel"
           >
-            <h2 className="text-xl font-black text-[#F5F0EB] uppercase tracking-tight">
+            <h2 className="text-xl font-black text-[#1A1612] uppercase tracking-tight">
               Primary Candidate Analysis
             </h2>
             <CandidateCard candidate={topRecommendation} />
@@ -368,10 +368,10 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
             className="space-y-6"
             role="tabpanel"
           >
-            <h2 className="text-xl font-black text-[#F5F0EB] uppercase tracking-tight">
+            <h2 className="text-xl font-black text-[#1A1612] uppercase tracking-tight">
               Secondary Timeline Options
             </h2>
-            <p className="text-[#8C7F72] text-sm">
+            <p className="text-[#7A756F] text-sm">
               High-precision alternatives that crossed the Level 2 neural screening threshold:
             </p>
             {alternativeOptions.map((candidate, idx) => (
@@ -389,21 +389,21 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
             className="space-y-6"
             role="tabpanel"
           >
-            <h2 className="text-xl font-black text-[#F5F0EB] uppercase tracking-tight">
+            <h2 className="text-xl font-black text-[#1A1612] uppercase tracking-tight">
               Full Compute Statistics
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-              <div className="bg-[#151a21] border border-[#3A4452] p-4 rounded-xl">
-                <p className="text-[10px] text-[#8C7F72] uppercase font-bold mb-1">Generated</p>
-                <p className="text-xl font-mono text-white">{statistics.totalCandidatesGenerated}</p>
+              <div className="bg-white border border-[#F0E8DE] p-4 rounded-xl">
+                <p className="text-[10px] text-[#7A756F] uppercase font-bold mb-1">Generated</p>
+                <p className="text-xl font-mono text-[#1A1612]">{statistics.totalCandidatesGenerated}</p>
               </div>
-              <div className="bg-[#151a21] border border-[#3A4452] p-4 rounded-xl">
-                <p className="text-[10px] text-[#8C7F72] uppercase font-bold mb-1">Screened</p>
-                <p className="text-xl font-mono text-white">{statistics.topCandidatesAnalyzed}</p>
+              <div className="bg-white border border-[#F0E8DE] p-4 rounded-xl">
+                <p className="text-[10px] text-[#7A756F] uppercase font-bold mb-1">Screened</p>
+                <p className="text-xl font-mono text-[#1A1612]">{statistics.topCandidatesAnalyzed}</p>
               </div>
-              <div className="bg-[#151a21] border border-[#3A4452] p-4 rounded-xl">
-                <p className="text-[10px] text-[#8C7F72] uppercase font-bold mb-1">Neural Ops</p>
-                <p className="text-xl font-mono text-white">{statistics.deepAnalysisCount}</p>
+              <div className="bg-white border border-[#F0E8DE] p-4 rounded-xl">
+                <p className="text-[10px] text-[#7A756F] uppercase font-bold mb-1">Neural Ops</p>
+                <p className="text-xl font-mono text-[#1A1612]">{statistics.deepAnalysisCount}</p>
               </div>
             </div>
 
@@ -411,11 +411,11 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
               {statistics.allCandidateScores.map((candidate, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between p-4 bg-[#151a21] border border-[#3A4452]/50 rounded-xl hover:border-[#D4AF37]/30 transition-colors"
+                  className="flex items-center justify-between p-4 bg-white border border-[#F0E8DE] rounded-xl hover:border-[#D4AF37]/30 transition-colors"
                 >
                   <div>
-                    <p className="font-mono text-lg text-[#F5F0EB]">{candidate.time}</p>
-                    <p className="text-[10px] text-[#8C7F72] uppercase">
+                    <p className="font-mono text-lg text-[#1A1612]">{candidate.time}</p>
+                    <p className="text-[10px] text-[#7A756F] uppercase">
                       {sanitizeHtml(candidate.offsetDescription)}
                     </p>
                   </div>
@@ -436,15 +436,15 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
             <h3 className="font-black text-[#D4AF37] uppercase tracking-widest text-xs mb-1">
               Compute Latency
             </h3>
-            <p className="text-2xl font-black text-[#F5F0EB] font-mono">
+            <p className="text-2xl font-black text-[#1A1612] font-mono">
               {statistics.processingTime?.totalSeconds || 0}s
             </p>
           </div>
           <div className="text-right">
-            <p className="text-[10px] text-[#8C7F72] uppercase font-bold tracking-widest mb-2">
+            <p className="text-[10px] text-[#7A756F] uppercase font-bold tracking-widest mb-2">
               Engine Integrity
             </p>
-            <div className="flex items-center gap-1.5 justify-end text-emerald-400 font-black text-xs">
+            <div className="flex items-center gap-1.5 justify-end text-emerald-600 font-black text-xs">
               <ShieldCheck className="w-4 h-4" aria-hidden="true" />
               VERIFIED OUTPUT
             </div>
@@ -457,7 +457,7 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
         <button
           onClick={handleNewAnalysis}
           disabled={isLoading}
-          className="px-10 py-4 bg-gradient-to-r from-[#D4AF37] to-[#C9A961] text-[#0F1419] rounded-xl font-black uppercase tracking-widest text-sm shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:shadow-[0_15px_40px_rgba(212,175,55,0.3)] hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-10 py-4 bg-gradient-to-r from-[#D4AF37] to-[#C9A961] text-white rounded-xl font-black uppercase tracking-widest text-sm shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:shadow-[0_15px_40px_rgba(212,175,55,0.3)] hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? 'Loading...' : 'Initialize New Matrix'}
         </button>

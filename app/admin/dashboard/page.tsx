@@ -1,0 +1,223 @@
+/**
+ * Admin Dashboard Page
+ * Main dashboard overview with metrics, charts, and recent readings
+ */
+
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import DashboardLayout from '@/app/components/dashboard/DashboardLayout';
+import StatsCard from '@/app/components/dashboard/StatsCard';
+import ChartCard from '@/app/components/dashboard/ChartCard';
+import RecentReadingsTable from '@/app/components/dashboard/RecentReadingsTable';
+import ReadingsChart from '@/app/components/dashboard/charts/ReadingsChart';
+import {
+  Activity,
+  Users,
+  Clock,
+  TrendingUp,
+  Calendar,
+  CheckCircle2,
+  AlertCircle,
+  Timer,
+} from 'lucide-react';
+import type {
+  DashboardMetrics,
+  Reading,
+  TimeSeriesData,
+} from '@/app/types/dashboard';
+
+// API client
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
+  const response = await fetch(`${API_BASE_URL}/api/admin/metrics`, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
+  const data = await response.json();
+  if (!data.success) throw new Error(data.error?.message || 'Failed to fetch metrics');
+  return data.data;
+}
+
+async function fetchRecentReadings(): Promise<Reading[]> {
+  const response = await fetch(`${API_BASE_URL}/api/admin/readings?limit=5`, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
+  const data = await response.json();
+  if (!data.success) throw new Error(data.error?.message || 'Failed to fetch readings');
+  return data.data;
+}
+
+async function fetchTimeSeriesData(): Promise<TimeSeriesData[]> {
+  const response = await fetch(`${API_BASE_URL}/api/admin/analytics/timeseries?days=30`, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+    },
+  });
+  const data = await response.json();
+  if (!data.success) throw new Error(data.error?.message || 'Failed to fetch analytics');
+  return data.data;
+}
+
+export default function DashboardPage() {
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [readings, setReadings] = useState<Reading[]>([]);
+  const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadDashboardData() {
+      try {
+        setLoading(true);
+        const [metricsData, readingsData, timeSeries] = await Promise.all([
+          fetchDashboardMetrics(),
+          fetchRecentReadings(),
+          fetchTimeSeriesData(),
+        ]);
+        setMetrics(metricsData);
+        setReadings(readingsData);
+        setTimeSeriesData(timeSeries);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboardData();
+  }, []);
+
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <AlertCircle className="w-12 h-12 text-rose-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-[#1A1612] mb-2">Failed to load dashboard</h3>
+            <p className="text-[#7A756F]">{error}</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  return (
+    <DashboardLayout>
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-[#1A1612] font-[family-name:var(--font-cormorant)]">
+          Dashboard Overview
+        </h1>
+        <p className="text-[#7A756F] mt-1">
+          Monitor your birth time rectification platform performance
+        </p>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <StatsCard
+          title="Total Readings"
+          value={metrics?.totalReadings || 0}
+          change={12.5}
+          changeLabel="vs last month"
+          icon={<Activity className="w-6 h-6" />}
+          trend="up"
+          loading={loading}
+        />
+        <StatsCard
+          title="Active Users"
+          value={metrics?.activeUsers || 0}
+          change={8.2}
+          changeLabel="vs last month"
+          icon={<Users className="w-6 h-6" />}
+          trend="up"
+          loading={loading}
+        />
+        <StatsCard
+          title="Success Rate"
+          value={`${metrics?.successRate || 0}%`}
+          change={2.1}
+          changeLabel="vs last month"
+          icon={<CheckCircle2 className="w-6 h-6" />}
+          trend="up"
+          loading={loading}
+        />
+        <StatsCard
+          title="Avg. Processing Time"
+          value={`${metrics?.averageProcessingTime || 0}m`}
+          change={-5.3}
+          changeLabel="vs last month"
+          icon={<Timer className="w-6 h-6" />}
+          trend="up"
+          loading={loading}
+        />
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <ChartCard
+          title="Readings Over Time"
+          subtitle="Daily readings for the past 30 days"
+          className="lg:col-span-2"
+          loading={loading}
+        >
+          <ReadingsChart data={timeSeriesData} loading={loading} />
+        </ChartCard>
+
+        <ChartCard title="Quick Stats" loading={loading}>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-[#FDF8F3] rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-[#7A756F]">Today's Readings</p>
+                  <p className="text-xl font-semibold text-[#1A1612]">
+                    {metrics?.readingsToday || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-[#FDF8F3] rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-[#7A756F]">Processing</p>
+                  <p className="text-xl font-semibold text-[#1A1612]">
+                    {metrics?.activeReadings || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-[#FDF8F3] rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-sm text-[#7A756F]">This Week</p>
+                  <p className="text-xl font-semibold text-[#1A1612]">
+                    {metrics?.readingsThisWeek || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ChartCard>
+      </div>
+
+      {/* Recent Readings */}
+      <RecentReadingsTable readings={readings} loading={loading} />
+    </DashboardLayout>
+  );
+}

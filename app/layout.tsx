@@ -38,6 +38,20 @@ export const metadata = {
   title: 'AI Pandit | Birth Time Rectification',
   description: 'Discover your precise birth time with divine accuracy. AI-powered Vedic astrology with seconds-level precision.',
   keywords: 'birth time rectification, vedic astrology, jyotish, BTR, accurate birth time, kundli correction',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+    viewportFit: 'cover',
+  },
+  manifest: '/manifest.json',
+  themeColor: '#B8860B',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'AI Pandit',
+  },
   openGraph: {
     title: 'AI Pandit | Birth Time Rectification',
     description: 'Discover your precise birth time with divine accuracy through AI-powered Vedic astrology.',

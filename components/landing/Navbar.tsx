@@ -21,22 +21,31 @@ const navLinks = [
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { isSignedIn } = useUser();
 
   useEffect(() => {
+    setMounted(true);
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
+    // Check initial scroll position
+    handleScroll();
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Prevent hydration mismatch by using default styles until mounted
+  const navClasses = mounted
+    ? `fixed top-0 w-full z-50 transition-all duration-500 safe-area-top ${
+        scrolled
+          ? 'bg-white/90 backdrop-blur-xl border-b border-[#F0E8DE] shadow-sm'
+          : 'bg-transparent'
+      }`
+    : 'fixed top-0 w-full z-50 transition-all duration-500 safe-area-top bg-transparent';
+
   return (
-    <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${
-      scrolled 
-        ? 'bg-white/90 backdrop-blur-xl border-b border-[#F0E8DE] shadow-sm' 
-        : 'bg-transparent'
-    }`}>
+    <nav className={navClasses} suppressHydrationWarning>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Brand - Always visible with logo icon on mobile */}

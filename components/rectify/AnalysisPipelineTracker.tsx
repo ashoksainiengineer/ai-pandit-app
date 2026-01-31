@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { StageStat } from '@/lib/use-stream-progress';
+import { Cpu, Activity, Zap, Settings } from 'lucide-react';
 
 interface AnalysisPipelineTrackerProps {
     stats: StageStat[];
@@ -10,9 +11,31 @@ interface AnalysisPipelineTrackerProps {
     isComplete?: boolean; // 🏁 Completion flag
 }
 
+// Sacred Ivory Theme Constants
+const THEME = {
+    bg: '#FFFFFF',
+    bgWarm: '#FDF8F3',
+    bgCream: '#FAF5EF',
+    border: '#F0E8DE',
+    borderHover: '#E8E0D5',
+    textPrimary: '#1A1612',
+    textSecondary: '#4A453F',
+    textMuted: '#7A756F',
+    textSubtle: '#A8A39D',
+    gold: '#B8860B',
+    goldLight: '#D4A853',
+    goldPale: '#F2E4C6',
+    success: '#2D7A5C',
+    successLight: '#D4E5DE',
+    warning: '#E8A849',
+    error: '#C65D3B',
+    plum: '#6B1F7A',
+} as const;
+
 const ScanLine = () => (
     <motion.div
-        className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent z-10 opacity-50 shadow-[0_0_10px_rgba(212,175,55,0.5)]"
+        className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#B8860B] to-transparent z-10 opacity-50"
+        style={{ boxShadow: '0 0 10px rgba(184,134,11,0.3)' }}
         initial={{ top: '0%' }}
         animate={{ top: '100%' }}
         transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
@@ -48,136 +71,147 @@ export const AnalysisPipelineTracker: React.FC<AnalysisPipelineTrackerProps> = (
     const isAIStage = currentStep?.id === 'discovery' || currentStep?.id === 'seal';
 
     return (
-        <div className="w-full bg-[#0F1419] border-t border-[#3A4452] p-4 font-mono text-xs overflow-hidden relative">
-            {/* Background Data Stream Effect */}
-            <div className="absolute inset-0 opacity-[0.03] pointer-events-none select-none font-mono text-[8px] leading-none overflow-hidden">
-                {Array.from({ length: 15 }).map((_, i) => (
-                    <div key={i} className="whitespace-nowrap animate-pulse" style={{ animationDelay: `${i * 0.2}s` }}>
-                        {Array.from({ length: 50 }).map(() => Math.random().toString(16).substring(2, 8)).join(' ')}
+        <div className="w-full bg-white border border-[#F0E8DE] rounded-2xl p-6 font-sans text-sm overflow-hidden relative shadow-sm">
+            {/* Header Section */}
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#B8860B]/20 to-[#D4A853]/10 flex items-center justify-center border border-[#D4A853]/20">
+                        <Settings className="w-5 h-5 text-[#B8860B]" />
                     </div>
-                ))}
+                    <div>
+                        <h3 className="font-bold text-[#1A1612] font-[family-name:var(--font-cormorant)] text-lg">Analysis Pipeline</h3>
+                        <p className="text-xs text-[#7A756F]">Real-time processing stages</p>
+                    </div>
+                </div>
+                
+                <div className="flex items-center gap-6">
+                    {/* System Status */}
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-[#FDF8F3] rounded-lg border border-[#F0E8DE]">
+                        <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#2D7A5C]' : 'bg-[#C65D3B]'} animate-pulse`} />
+                        <span className={`text-xs font-semibold ${isConnected ? 'text-[#2D7A5C]' : 'text-[#C65D3B]'}`}>
+                            {isConnected ? 'Online' : 'Reconnecting'}
+                        </span>
+                    </div>
+                    
+                    {/* Active Engine */}
+                    <div className="text-right">
+                        <div className="text-[10px] text-[#7A756F] uppercase tracking-wider mb-0.5">Active Engine</div>
+                        <div className="text-xs font-semibold text-[#B8860B]">
+                            {currentStage >= 0 ? (isAIStage ? 'DeepSeek R1' : 'Swiss Ephemeris') : 'Idle'}
+                        </div>
+                    </div>
+                </div>
             </div>
 
-            <div className="max-w-7xl mx-auto relative z-10">
-                <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="flex flex-col">
-                            <span className="text-[#8C7F72] text-[8px] uppercase tracking-[0.2em]">System Status</span>
-                            <div className="flex items-center gap-2">
-                                <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'} animate-pulse`} />
-                                <span className="text-[#F5F0EB] font-bold">{isConnected ? 'ONLINE' : 'LINK LOST'}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex gap-8">
-                        <div className="text-right">
-                            <div className="text-[#8C7F72] text-[8px] uppercase tracking-[0.2em]">Buffer Sessions</div>
-                            <div className={`font-bold ${isConnected ? 'text-[#D4AF37]' : 'text-red-400'}`}>
-                                {isConnected ? 'STABLE' : 'DRAINING'}
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <div className="text-[#8C7F72] text-[8px] uppercase tracking-[0.2em]">Compute Pool</div>
-                            <div className={`${currentStage >= 0 ? 'text-[#D4AF37]' : 'text-[#8C7F72]'} font-bold whitespace-nowrap overflow-hidden max-w-[120px]`}>
-                                {currentStage >= 0 ? (isAIStage ? 'R1-REASONER-V1' : 'SWISS-EPHEM-V2') : 'IDLE'}
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            {/* Pipeline Blocks */}
+            <div className="relative flex items-center justify-between gap-2 overflow-x-auto pb-4 pt-2 scrollbar-none">
+                {allSteps.map((stage, idx) => {
+                    const isPast = currentStage > idx;
+                    const isActive = currentStage === idx;
+                    const stat = stats.find(s => s.stage === idx);
+                    const isAI = stage.id === 'discovery' || stage.id === 'seal';
 
-                {/* Pipeline Blocks */}
-                <div className="relative flex items-center justify-between gap-1 overflow-x-auto pb-4 pt-2 scrollbar-none">
-                    {allSteps.map((stage, idx) => {
-                        const isPast = currentStage > idx;
-                        const isActive = currentStage === idx;
-                        const stat = stats.find(s => s.stage === idx);
-                        const isAI = stage.id === 'discovery' || stage.id === 'seal';
-
-                        return (
-                            <div key={stage.id} className="flex-1 min-w-[120px] relative">
-                                <motion.div
-                                    initial={false}
-                                    animate={{
-                                        borderColor: isActive ? '#D4AF37' : isPast ? 'rgba(212,175,55,0.4)' : '#2A3442',
-                                        backgroundColor: isActive ? 'rgba(212,175,55,0.08)' : isPast ? 'transparent' : '#0F1419',
-                                    }}
-                                    className={`relative z-10 border p-2 rounded-sm transition-all duration-500
-                                    ${isActive ? 'shadow-[0_0_15px_rgba(212,175,55,0.15)] ring-1 ring-[#D4AF37]/20 scale-[1.02]' : 'opacity-60'}`}
-                                >
-                                    {isActive && !isComplete && <ScanLine />}
-
-                                    <div className="flex justify-between items-center mb-1">
-                                        <span className={`text-[8px] font-bold ${isActive ? 'text-[#D4AF37]' : 'text-[#8C7F72]'}`}>
-                                            PH-{(idx + 1).toString().padStart(2, '0')}
-                                        </span>
-                                        {isAI && (
-                                            <span className={`text-[7px] px-1 rounded-full ${isActive ? 'bg-purple-500 text-white animate-pulse' : 'bg-purple-900/30 text-purple-400'}`}>
-                                                AI
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    <div className={`text-[9px] font-black uppercase tracking-tighter truncate ${isActive ? 'text-[#F5F0EB]' : 'text-[#8C7F72]'}`}>
-                                        {stage.name}
-                                    </div>
-
-                                    <div className="mt-1 h-3 flex items-center justify-between">
-                                        {stat ? (
-                                            <motion.span
-                                                initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                                                className="text-[#D4AF37] font-bold text-[10px]"
-                                            >
-                                                {stat.candidateCount}
-                                            </motion.span>
-                                        ) : isActive ? (
-                                            <span className="text-emerald-400 animate-pulse text-[8px]">ACTIVE</span>
-                                        ) : (
-                                            <span className="text-[#2A3442]">---</span>
-                                        )}
-                                        {isPast && <span className="text-emerald-500 font-bold ml-1 text-[8px]">✓</span>}
-                                    </div>
-                                </motion.div>
-                            </div>
-                        );
-                    })}
-                </div>
-
-                {/* Sub-Metric Bar */}
-                <div className="mt-4 grid grid-cols-4 gap-6 items-center border-t border-[#3A4452]/50 pt-4">
-                    <div className="group cursor-help">
-                        <div className="text-[8px] text-[#8C7F72] uppercase tracking-[0.2em] mb-1 group-hover:text-[#D4AF37]">Active Thread</div>
-                        <div className="text-[#F5F0EB] text-xs font-bold truncate">
-                            {activeStat?.description || 'WAITING_FOR_TASK...'}
-                        </div>
-                    </div>
-                    <div>
-                        <div className="text-[8px] text-[#8C7F72] uppercase tracking-[0.2em] mb-1">Resolution</div>
-                        <div className="text-cyan-400 text-xs font-bold">
-                            {currentStage >= 8 ? '± 3.00 SECS' : currentStage >= 6 ? '± 6.00 SECS' : currentStage >= 4 ? '± 30.00 SECS' : '± 60.00 SECS'}
-                        </div>
-                    </div>
-                    <div>
-                        <div className="text-[8px] text-[#8C7F72] uppercase tracking-[0.2em] mb-1">Compute Throughput</div>
-                        <div className="text-[#F5F0EB] text-xs font-mono">
-                            {currentStage > 0 ? (isAIStage ? '1.42 T-OPS/S' : `${(candidateCount * 420).toLocaleString()} OPS/S`) : '0.00 OPS/S'}
-                        </div>
-                    </div>
-                    <div>
-                        <div className="flex justify-between items-center mb-1">
-                            <span className="text-[8px] text-[#8C7F72] uppercase tracking-[0.2em]">Neural Load</span>
-                            <span className={`text-[9px] font-bold ${load > 90 ? 'text-red-400' : 'text-[#D4AF37]'}`}>{load}%</span>
-                        </div>
-                        <div className="w-full bg-[#1A222C] h-1 rounded-full overflow-hidden">
+                    return (
+                        <div key={stage.id} className="flex-1 min-w-[100px] relative">
                             <motion.div
-                                className={`h-full ${load > 90 ? 'bg-red-500' : 'bg-gradient-to-r from-emerald-500 to-amber-500'}`}
-                                initial={{ width: '0%' }}
-                                animate={{ width: `${load}%` }}
-                                transition={{ duration: 1 }}
-                            />
+                                initial={false}
+                                animate={{
+                                    borderColor: isActive ? '#B8860B' : isPast ? 'rgba(184,134,11,0.4)' : '#F0E8DE',
+                                    backgroundColor: isActive ? 'rgba(184,134,11,0.05)' : isPast ? '#FDF8F3' : '#FFFFFF',
+                                }}
+                                className={`relative z-10 border-2 p-3 rounded-xl transition-all duration-500
+                                ${isActive ? 'shadow-lg shadow-[#B8860B]/10 ring-1 ring-[#B8860B]/20 scale-[1.02]' : ''}`}
+                            >
+                                {isActive && !isComplete && <ScanLine />}
+
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className={`text-[10px] font-bold ${isActive ? 'text-[#B8860B]' : 'text-[#7A756F]'}`}>
+                                        Step {idx + 1}
+                                    </span>
+                                    {isAI && (
+                                        <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${isActive ? 'bg-[#6B1F7A] text-white' : 'bg-[#6B1F7A]/10 text-[#6B1F7A]'}`}>
+                                            AI
+                                        </span>
+                                    )}
+                                </div>
+
+                                <div className={`text-xs font-semibold truncate mb-2 ${isActive ? 'text-[#1A1612]' : 'text-[#7A756F]'}`}>
+                                    {stage.name}
+                                </div>
+
+                                <div className="flex items-center justify-between">
+                                    {stat ? (
+                                        <motion.span
+                                            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                                            className="text-[#B8860B] font-bold text-sm"
+                                        >
+                                            {stat.candidateCount}
+                                        </motion.span>
+                                    ) : isActive ? (
+                                        <span className="text-[#2D7A5C] animate-pulse text-xs font-medium">Processing</span>
+                                    ) : (
+                                        <span className="text-[#D0CBC5]">—</span>
+                                    )}
+                                    {isPast && <CheckCircleIcon />}
+                                </div>
+                            </motion.div>
+                            
+                            {/* Connector Line */}
+                            {idx < allSteps.length - 1 && (
+                                <div className="absolute top-1/2 -right-1 w-2 h-0.5 bg-[#F0E8DE]" />
+                            )}
                         </div>
+                    );
+                })}
+            </div>
+
+            {/* Sub-Metrics Bar */}
+            <div className="mt-6 grid grid-cols-4 gap-4 items-center border-t border-[#F0E8DE] pt-4">
+                <div className="group">
+                    <div className="text-[10px] text-[#7A756F] uppercase tracking-wider mb-1">Current Task</div>
+                    <div className="text-[#1A1612] text-xs font-medium truncate">
+                        {activeStat?.description || 'Waiting for task...'}
+                    </div>
+                </div>
+                
+                <div>
+                    <div className="text-[10px] text-[#7A756F] uppercase tracking-wider mb-1">Precision</div>
+                    <div className="text-[#B8860B] text-xs font-semibold">
+                        {currentStage >= 8 ? '±3 seconds' : currentStage >= 6 ? '±6 seconds' : currentStage >= 4 ? '±30 seconds' : '±60 seconds'}
+                    </div>
+                </div>
+                
+                <div>
+                    <div className="text-[10px] text-[#7A756F] uppercase tracking-wider mb-1">Candidates</div>
+                    <div className="text-[#1A1612] text-xs font-mono font-semibold">
+                        {candidateCount > 0 ? candidateCount.toLocaleString() : '0'}
+                    </div>
+                </div>
+                
+                <div>
+                    <div className="flex justify-between items-center mb-1">
+                        <span className="text-[10px] text-[#7A756F] uppercase tracking-wider">Load</span>
+                        <span className={`text-[10px] font-bold ${load > 90 ? 'text-[#C65D3B]' : 'text-[#B8860B]'}`}>{load}%</span>
+                    </div>
+                    <div className="w-full bg-[#F5EFE7] h-1.5 rounded-full overflow-hidden">
+                        <motion.div
+                            className={`h-full rounded-full ${load > 90 ? 'bg-[#C65D3B]' : 'bg-gradient-to-r from-[#2D7A5C] to-[#B8860B]'}`}
+                            initial={{ width: '0%' }}
+                            animate={{ width: `${load}%` }}
+                            transition={{ duration: 1 }}
+                        />
                     </div>
                 </div>
             </div>
         </div>
     );
 };
+
+// Helper component for completed checkmark
+function CheckCircleIcon() {
+    return (
+        <svg className="w-4 h-4 text-[#2D7A5C]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+    );
+}

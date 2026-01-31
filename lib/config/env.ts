@@ -73,6 +73,13 @@ export const env = {
     enableAnalytics: parseBoolean(getEnvVarOptional('NEXT_PUBLIC_ENABLE_ANALYTICS'), false),
     enableDebug: parseBoolean(getEnvVarOptional('NEXT_PUBLIC_ENABLE_DEBUG'), false),
   },
+
+  warmup: {
+    enabled: parseBoolean(getEnvVarOptional('ENABLE_WARMUP'), true),
+    intervalMinutes: parseNumber(getEnvVarOptional('WARMUP_INTERVAL_MINUTES'), 2),
+    timeoutMs: parseNumber(getEnvVarOptional('WARMUP_TIMEOUT_MS'), 5000),
+    endpoints: ['/api/ping', '/api/health'],
+  },
 } as const;
 
 export type Env = typeof env;

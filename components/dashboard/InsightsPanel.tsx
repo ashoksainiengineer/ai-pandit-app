@@ -52,17 +52,17 @@ const typeConfig = {
 
 const priorityConfig = {
   high: 'shadow-lg shadow-red-500/10 border-red-500/30',
-  medium: 'shadow-md border-white/10',
+  medium: 'shadow-md border-[#F0E8DE]',
   low: 'opacity-80',
 };
 
 export function InsightsPanel({ insights, onDismiss, onDismissAll }: InsightsPanelProps) {
   if (insights.length === 0) {
     return (
-      <div className="glass-card p-6 text-center">
+      <div className="glass-card p-6 text-center bg-white rounded-xl border border-[#F0E8DE]">
         <div className="text-4xl mb-3">✨</div>
-        <h3 className="text-lg font-semibold text-[#F5F0EB]">All caught up!</h3>
-        <p className="text-sm text-[#8C7F72]">
+        <h3 className="text-lg font-semibold text-[#1A1612]">All caught up!</h3>
+        <p className="text-sm text-[#7A756F]">
           No new insights at the moment. Check back later.
         </p>
       </div>
@@ -70,17 +70,17 @@ export function InsightsPanel({ insights, onDismiss, onDismissAll }: InsightsPan
   }
 
   return (
-    <div className="glass-card p-6">
+    <div className="glass-card p-6 bg-white rounded-xl border border-[#F0E8DE]">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-semibold text-[#F5F0EB]">Insights</h3>
-          <p className="text-sm text-[#8C7F72]">
+          <h3 className="text-lg font-semibold text-[#1A1612]">Insights</h3>
+          <p className="text-sm text-[#7A756F]">
             {insights.length} insight{insights.length !== 1 ? 's' : ''} available
           </p>
         </div>
         <button
           onClick={onDismissAll}
-          className="text-xs text-[#8C7F72] hover:text-[#C4B8AD] transition-colors"
+          className="text-xs text-[#7A756F] hover:text-[#4A453F] transition-colors"
         >
           Dismiss All
         </button>
@@ -120,7 +120,7 @@ export function InsightsPanel({ insights, onDismiss, onDismissAll }: InsightsPan
                     <h4 className={`font-semibold ${config.color}`}>
                       {insight.title}
                     </h4>
-                    <p className="text-sm text-[#C4B8AD] mt-1">
+                    <p className="text-sm text-[#4A453F] mt-1">
                       {insight.description}
                     </p>
 
@@ -141,7 +141,7 @@ export function InsightsPanel({ insights, onDismiss, onDismissAll }: InsightsPan
 
                   <button
                     onClick={() => onDismiss(insight.id)}
-                    className="p-1 rounded-lg text-[#8C7F72] hover:text-[#C4B8AD] hover:bg-white/5 transition-colors"
+                    className="p-1 rounded-lg text-[#7A756F] hover:text-[#4A453F] hover:bg-[#F5EFE7] transition-colors"
                     aria-label="Dismiss insight"
                   >
                     <X className="w-4 h-4" />

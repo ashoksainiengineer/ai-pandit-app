@@ -1,0 +1,32 @@
+name: Keep Functions Warm
+
+on:
+  schedule:
+    # Run every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  warmup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Health Endpoint
+        run: |
+          curl -sSf "${{ secrets.VERCEL_URL }}/api/ping" \
+            --max-time 10 \
+            --retry 2 \
+            --retry-delay 1 \
+            -H "Accept: application/json" \
+            || echo "Ping failed but continuing"
+
+      - name: Ping API Health (detailed)
+        run: |
+          curl -sSf "${{ secrets.VERCEL_URL }}/api/health" \
+            --max-time 15 \
+            --retry 2 \
+            --retry-delay 1 \
+            -H "Accept: application/json" \
+            || echo "Health check failed but continuing"
+
+      - name: Log warmup completion
+        run: echo "Warmup completed at $(date)"

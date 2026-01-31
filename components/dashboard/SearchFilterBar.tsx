@@ -31,17 +31,17 @@ interface SearchFilterBarProps {
 }
 
 const statusOptions: { value: SessionStatus; label: string; icon: React.ReactNode; color: string }[] = [
-  { value: 'complete', label: 'Complete', icon: <CheckCircle2 className="w-4 h-4" />, color: 'text-green-400' },
-  { value: 'processing', label: 'Processing', icon: <Clock className="w-4 h-4" />, color: 'text-yellow-400' },
-  { value: 'pending', label: 'Pending', icon: <Clock className="w-4 h-4" />, color: 'text-blue-400' },
-  { value: 'failed', label: 'Failed', icon: <AlertCircle className="w-4 h-4" />, color: 'text-red-400' },
+  { value: 'complete', label: 'Complete', icon: <CheckCircle2 className="w-4 h-4" />, color: 'text-green-600' },
+  { value: 'processing', label: 'Processing', icon: <Clock className="w-4 h-4" />, color: 'text-yellow-600' },
+  { value: 'pending', label: 'Pending', icon: <Clock className="w-4 h-4" />, color: 'text-blue-600' },
+  { value: 'failed', label: 'Failed', icon: <AlertCircle className="w-4 h-4" />, color: 'text-red-600' },
 ];
 
 const confidenceOptions = [
   { value: 'god-tier', label: 'God-Tier', color: 'text-[#D4AF37]' },
-  { value: 'high', label: 'High', color: 'text-green-400' },
-  { value: 'medium', label: 'Medium', color: 'text-yellow-400' },
-  { value: 'low', label: 'Low', color: 'text-red-400' },
+  { value: 'high', label: 'High', color: 'text-green-600' },
+  { value: 'medium', label: 'Medium', color: 'text-yellow-600' },
+  { value: 'low', label: 'Low', color: 'text-red-600' },
 ];
 
 const sortOptions: { value: SortField; label: string }[] = [
@@ -107,7 +107,7 @@ export function SearchFilterBar({
       {/* Main Search Bar */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8C7F72]" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7A756F]" />
           <input
             ref={searchInputRef}
             type="text"
@@ -116,13 +116,13 @@ export function SearchFilterBar({
             onChange={(e) => onFilterChange({ searchQuery: e.target.value })}
             className="
               w-full pl-12 pr-4 py-3
-              bg-[#0F1419] border border-[#D4AF37]/20 rounded-xl
-              text-[#F5F0EB] placeholder-[#8C7F72]
+              bg-white border border-[#F0E8DE] rounded-xl
+              text-[#1A1612] placeholder-[#7A756F]
               focus:outline-none focus:border-[#D4AF37]/50 focus:ring-2 focus:ring-[#D4AF37]/10
               transition-all
             "
           />
-          <kbd className="absolute right-4 top-1/2 -translate-y-1/2 px-2 py-1 text-xs text-[#8C7F72] bg-[#151a21] rounded border border-[#D4AF37]/10 hidden md:block">
+          <kbd className="absolute right-4 top-1/2 -translate-y-1/2 px-2 py-1 text-xs text-[#7A756F] bg-[#F5EFE7] rounded border border-[#F0E8DE] hidden md:block">
             Ctrl K
           </kbd>
         </div>
@@ -134,14 +134,14 @@ export function SearchFilterBar({
             border transition-all duration-200
             ${hasActiveFilters 
               ? 'bg-[#D4AF37]/20 border-[#D4AF37]/50 text-[#D4AF37]' 
-              : 'bg-[#0F1419] border-[#D4AF37]/20 text-[#C4B8AD] hover:border-[#D4AF37]/40'
+              : 'bg-white border-[#F0E8DE] text-[#4A453F] hover:border-[#D4AF37]/40'
             }
           `}
         >
           <Filter className="w-5 h-5" />
           <span className="hidden sm:inline">Filters</span>
           {hasActiveFilters && (
-            <span className="ml-1 px-2 py-0.5 text-xs bg-[#D4AF37] text-[#0F1419] rounded-full">
+            <span className="ml-1 px-2 py-0.5 text-xs bg-[#D4AF37] text-white rounded-full">
               {filterState.statusFilter.length + filterState.confidenceFilter.length + 
                (filterState.favoritesOnly ? 1 : 0) + 
                (filterState.dateRange.from || filterState.dateRange.to ? 1 : 0)}
@@ -155,7 +155,7 @@ export function SearchFilterBar({
             field: sortState.field, 
             order: sortState.order === 'asc' ? 'desc' : 'asc' 
           })}
-          className="px-4 py-3 rounded-xl bg-[#0F1419] border border-[#D4AF37]/20 text-[#C4B8AD] hover:border-[#D4AF37]/40 transition-all"
+          className="px-4 py-3 rounded-xl bg-white border border-[#F0E8DE] text-[#4A453F] hover:border-[#D4AF37]/40 transition-all"
           title={`Sort: ${sortState.order === 'asc' ? 'Ascending' : 'Descending'}`}
         >
           {sortState.order === 'asc' ? '↑' : '↓'}
@@ -171,10 +171,10 @@ export function SearchFilterBar({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="glass-card p-4 space-y-4">
+            <div className="glass-card p-4 space-y-4 bg-white rounded-xl border border-[#F0E8DE]">
               {/* Status Filter */}
               <div>
-                <label className="text-sm font-medium text-[#8C7F72] mb-2 block">Status</label>
+                <label className="text-sm font-medium text-[#7A756F] mb-2 block">Status</label>
                 <div className="flex flex-wrap gap-2">
                   {statusOptions.map(({ value, label, icon, color }) => (
                     <button
@@ -185,7 +185,7 @@ export function SearchFilterBar({
                         border transition-all duration-200
                         ${filterState.statusFilter.includes(value)
                           ? `bg-[#D4AF37]/20 border-[#D4AF37]/50 ${color}`
-                          : 'bg-[#0F1419] border-[#D4AF37]/10 text-[#8C7F72] hover:border-[#D4AF37]/30'
+                          : 'bg-[#F5EFE7] border-[#F0E8DE] text-[#7A756F] hover:border-[#D4AF37]/30'
                         }
                       `}
                     >
@@ -198,7 +198,7 @@ export function SearchFilterBar({
 
               {/* Confidence Filter */}
               <div>
-                <label className="text-sm font-medium text-[#8C7F72] mb-2 block">Confidence</label>
+                <label className="text-sm font-medium text-[#7A756F] mb-2 block">Confidence</label>
                 <div className="flex flex-wrap gap-2">
                   {confidenceOptions.map(({ value, label, color }) => (
                     <button
@@ -209,7 +209,7 @@ export function SearchFilterBar({
                         border transition-all duration-200
                         ${filterState.confidenceFilter.includes(value)
                           ? `bg-[#D4AF37]/20 border-[#D4AF37]/50 ${color}`
-                          : 'bg-[#0F1419] border-[#D4AF37]/10 text-[#8C7F72] hover:border-[#D4AF37]/30'
+                          : 'bg-[#F5EFE7] border-[#F0E8DE] text-[#7A756F] hover:border-[#D4AF37]/30'
                         }
                       `}
                     >
@@ -228,7 +228,7 @@ export function SearchFilterBar({
                     border transition-all duration-200
                     ${filterState.favoritesOnly
                       ? 'bg-[#D4AF37]/20 border-[#D4AF37]/50 text-[#D4AF37]'
-                      : 'bg-[#0F1419] border-[#D4AF37]/10 text-[#8C7F72] hover:border-[#D4AF37]/30'
+                      : 'bg-[#F5EFE7] border-[#F0E8DE] text-[#7A756F] hover:border-[#D4AF37]/30'
                     }
                   `}
                 >
@@ -245,7 +245,7 @@ export function SearchFilterBar({
                     border transition-all duration-200
                     ${filterState.hasResults === true
                       ? 'bg-[#D4AF37]/20 border-[#D4AF37]/50 text-[#D4AF37]'
-                      : 'bg-[#0F1419] border-[#D4AF37]/10 text-[#8C7F72] hover:border-[#D4AF37]/30'
+                      : 'bg-[#F5EFE7] border-[#F0E8DE] text-[#7A756F] hover:border-[#D4AF37]/30'
                     }
                   `}
                 >
@@ -255,12 +255,12 @@ export function SearchFilterBar({
               </div>
 
               {/* Sort Options */}
-              <div className="flex items-center gap-3 pt-2 border-t border-[#D4AF37]/10">
-                <span className="text-sm text-[#8C7F72]">Sort by:</span>
+              <div className="flex items-center gap-3 pt-2 border-t border-[#F0E8DE]">
+                <span className="text-sm text-[#7A756F]">Sort by:</span>
                 <select
                   value={sortState.field}
                   onChange={(e) => onSortChange({ ...sortState, field: e.target.value as SortField })}
-                  className="bg-[#0F1419] border border-[#D4AF37]/20 rounded-lg px-3 py-2 text-sm text-[#C4B8AD] focus:outline-none focus:border-[#D4AF37]/50"
+                  className="bg-[#F5EFE7] border border-[#F0E8DE] rounded-lg px-3 py-2 text-sm text-[#4A453F] focus:outline-none focus:border-[#D4AF37]/50"
                 >
                   {sortOptions.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -272,7 +272,7 @@ export function SearchFilterBar({
               {hasActiveFilters && (
                 <button
                   onClick={onClearFilters}
-                  className="flex items-center gap-2 text-sm text-[#8C7F72] hover:text-[#C4B8AD] transition-colors"
+                  className="flex items-center gap-2 text-sm text-[#7A756F] hover:text-[#4A453F] transition-colors"
                 >
                   <X className="w-4 h-4" />
                   Clear all filters
@@ -285,9 +285,9 @@ export function SearchFilterBar({
 
       {/* Results Count */}
       <div className="flex items-center justify-between text-sm">
-        <span className="text-[#8C7F72]">
-          Showing <span className="text-[#C4B8AD] font-medium">{resultCount}</span> of{' '}
-          <span className="text-[#C4B8AD] font-medium">{totalCount}</span> sessions
+        <span className="text-[#7A756F]">
+          Showing <span className="text-[#4A453F] font-medium">{resultCount}</span> of{' '}
+          <span className="text-[#4A453F] font-medium">{totalCount}</span> sessions
         </span>
         {hasActiveFilters && (
           <span className="text-[#D4AF37]">

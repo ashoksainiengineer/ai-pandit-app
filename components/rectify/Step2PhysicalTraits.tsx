@@ -71,9 +71,9 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
 
     // Helper to get helper text color
     const getSignColor = (signs: string) => {
-        if (signs.includes('Mars') || signs.includes('Sun')) return 'text-red-400';
-        if (signs.includes('Venus') || signs.includes('Moon')) return 'text-emerald-400';
-        if (signs.includes('Saturn')) return 'text-blue-400';
+        if (signs.includes('Mars') || signs.includes('Sun')) return 'text-red-600';
+        if (signs.includes('Venus') || signs.includes('Moon')) return 'text-emerald-600';
+        if (signs.includes('Saturn')) return 'text-blue-600';
         return 'text-[#6B9AC4]';
     }
 
@@ -81,17 +81,17 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
         <div className="space-y-4 animate-fade-in-up">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-[#E8A849]/10 border border-[#E8A849]/20">
-                        <Icon className="w-5 h-5 text-[#E8A849]" />
+                    <div className="p-2 rounded-lg bg-[#D4AF37]/10 border border-[#D4AF37]/20">
+                        <Icon className="w-5 h-5 text-[#D4AF37]" />
                     </div>
                     <div>
-                        <h3 className="text-sm font-black text-[#F5F0EB] uppercase tracking-wide">{label}</h3>
-                        {description && <p className="text-[10px] text-[#8C7F72] uppercase tracking-wider">{description}</p>}
+                        <h3 className="text-sm font-black text-[#1A1612] uppercase tracking-wide">{label}</h3>
+                        {description && <p className="text-[10px] text-[#7A756F] uppercase tracking-wider">{description}</p>}
                     </div>
                 </div>
                 <button
                     onClick={() => setActiveHelp(activeHelp === groupId ? null : groupId)}
-                    className={`p-2 rounded-full transition-all ${activeHelp === groupId ? 'bg-[#E8A849] text-black' : 'hover:bg-white/5 text-[#8C7F72]'}`}
+                    className={`p-2 rounded-full transition-all ${activeHelp === groupId ? 'bg-[#D4AF37] text-white' : 'hover:bg-[#F5EFE7] text-[#7A756F]'}`}
                 >
                     <HelpCircle className="w-4 h-4" />
                 </button>
@@ -106,12 +106,12 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
                         exit={{ opacity: 0, height: 0 }}
                         className="overflow-hidden"
                     >
-                        <div className="bg-[#6B9AC4]/10 border border-[#6B9AC4]/20 rounded-xl p-4 mb-4 text-xs leading-relaxed text-[#C4B8AD] flex gap-3">
+                        <div className="bg-[#6B9AC4]/10 border border-[#6B9AC4]/20 rounded-xl p-4 mb-4 text-xs leading-relaxed text-[#4A453F] flex gap-3">
                             <Info className="w-4 h-4 text-[#6B9AC4] shrink-0 mt-0.5" />
                             <div>
                                 <strong className="text-[#6B9AC4]">Astrological Logic:</strong> This trait helps the AI differentiate between planetary influences on your Ascendant.
                                 <br />
-                                <span className="italic opacity-70">Example: A &quot;Mars&quot; jawline rules out soft ascendants like Pisces.</span>
+                                <span className="italic opacity-70">Example: A "Mars" jawline rules out soft ascendants like Pisces.</span>
                             </div>
                         </div>
                     </motion.div>
@@ -125,22 +125,22 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
                         type="button"
                         onClick={() => onChange(opt.value)}
                         className={`relative p-4 rounded-xl border text-left transition-all group overflow-hidden ${value === opt.value
-                            ? 'bg-[#E8A849]/10 border-[#E8A849] shadow-[0_0_20px_rgba(232,168,73,0.1)]'
-                            : 'bg-[#151a21] border-[#3A4452]/40 hover:border-[#E8A849]/50'
+                            ? 'bg-[#D4AF37]/10 border-[#D4AF37] shadow-[0_0_20px_rgba(212,175,55,0.1)]'
+                            : 'bg-white border-[#F0E8DE] hover:border-[#D4AF37]/50'
                             }`}
                     >
                         {value === opt.value && (
                             <div className="absolute top-0 right-0 p-2">
-                                <Sparkles className="w-3 h-3 text-[#E8A849] animate-pulse" />
+                                <Sparkles className="w-3 h-3 text-[#D4AF37] animate-pulse" />
                             </div>
                         )}
                         <div className="text-2xl mb-2">{opt.emoji}</div>
-                        <div className="font-bold text-[#F5F0EB] text-sm mb-1">{opt.label}</div>
+                        <div className="font-bold text-[#1A1612] text-sm mb-1">{opt.label}</div>
                         <div className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${getSignColor(opt.signs)}`}>
                             {opt.signs}
                         </div>
-                        <div className="text-[10px] text-[#8C7F72] italic leading-tight group-hover:text-[#C4B8AD] transition-colors">
-                            &quot;{opt.guide}&quot;
+                        <div className="text-[10px] text-[#7A756F] italic leading-tight group-hover:text-[#4A453F] transition-colors">
+                            "{opt.guide}"
                         </div>
                     </button>
                 ))}
@@ -152,18 +152,18 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
         <div className="w-full max-w-4xl mx-auto pb-12">
             {/* Header */}
             <div className="mb-8 text-center">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E8A849]/10 border border-[#E8A849]/20 text-[#E8A849] text-xs font-bold uppercase tracking-widest mb-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/20 text-[#D4AF37] text-xs font-bold uppercase tracking-widest mb-4">
                     <ScanFace className="w-3 h-3" />
                     Samudrika Shastra 2.0
                 </div>
-                <h1 className="text-3xl font-black text-[#F5F0EB] mb-2">Biometric Verification</h1>
-                <p className="text-[#8C7F72] text-sm max-w-xl mx-auto">
+                <h1 className="text-3xl font-black text-[#1A1612] mb-2">Biometric Verification</h1>
+                <p className="text-[#7A756F] text-sm max-w-xl mx-auto">
                     Your physical form is a map of your karma. Providing accurate details helps us fingerprint your true Ascendant.
                 </p>
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex p-1 bg-[#151a21] border border-[#3A4452] rounded-xl mb-8 sticky top-4 z-20 shadow-xl backdrop-blur-xl">
+            <div className="flex p-1 bg-[#F5EFE7] border border-[#F0E8DE] rounded-xl mb-8 sticky top-4 z-20 shadow-xl backdrop-blur-xl">
                 {TABS.map((tab) => {
                     const TabIcon = tab.icon;
                     const isActive = activeTab === tab.id;
@@ -172,8 +172,8 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${isActive
-                                ? 'bg-[#E8A849] text-black shadow-lg'
-                                : 'text-[#8C7F72] hover:text-[#F5F0EB] hover:bg-white/5'
+                                ? 'bg-[#D4AF37] text-white shadow-lg'
+                                : 'text-[#7A756F] hover:text-[#1A1612] hover:bg-white'
                                 }`}
                         >
                             <TabIcon className="w-4 h-4" />
@@ -292,12 +292,12 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
                             {/* Special Marks */}
                             <div className="space-y-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 rounded-lg bg-[#E8A849]/10 border border-[#E8A849]/20">
-                                        <Fingerprint className="w-5 h-5 text-[#E8A849]" />
+                                    <div className="p-2 rounded-lg bg-[#D4AF37]/10 border border-[#D4AF37]/20">
+                                        <Fingerprint className="w-5 h-5 text-[#D4AF37]" />
                                     </div>
                                     <div>
-                                        <h3 className="text-sm font-black text-[#F5F0EB] uppercase tracking-wide">Vishesha Lakshan</h3>
-                                        <p className="text-[10px] text-[#8C7F72] uppercase tracking-wider">Unique Distinguishing Marks</p>
+                                        <h3 className="text-sm font-black text-[#1A1612] uppercase tracking-wide">Vishesha Lakshan</h3>
+                                        <p className="text-[10px] text-[#7A756F] uppercase tracking-wider">Unique Distinguishing Marks</p>
                                     </div>
                                 </div>
                                 <div className="relative">
@@ -305,10 +305,10 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
                                         value={physicalTraits.specialFeatures || ''}
                                         onChange={(e) => updateTraits({ specialFeatures: e.target.value })}
                                         placeholder="Describe scars, moles (tilaks), or unique physical features..."
-                                        className="w-full h-32 bg-[#151a21] border border-[#3A4452] rounded-xl p-4 text-sm text-[#F5F0EB] placeholder-[#8C7F72] focus:border-[#E8A849] focus:ring-1 focus:ring-[#E8A849] outline-none transition-all resize-none"
+                                        className="w-full h-32 bg-white border border-[#F0E8DE] rounded-xl p-4 text-sm text-[#1A1612] placeholder-[#7A756F] focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] outline-none transition-all resize-none"
                                     />
-                                    <div className="absolute bottom-4 right-4 text-[10px] text-[#8C7F72] flex items-center gap-1">
-                                        <Zap className="w-3 h-3 text-[#E8A849]" />
+                                    <div className="absolute bottom-4 right-4 text-[10px] text-[#7A756F] flex items-center gap-1">
+                                        <Zap className="w-3 h-3 text-[#D4AF37]" />
                                         Encrypted
                                     </div>
                                 </div>
@@ -321,7 +321,7 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
             {/* Validation Badge */}
             <div className="mt-12 flex justify-center">
                 <div className="flex items-center gap-2 px-4 py-2 bg-[#2D7A5C]/10 border border-[#2D7A5C]/20 rounded-full">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <div className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
                     <span className="text-[10px] font-bold uppercase tracking-widest text-[#2D7A5C]">
                         AI-PANDIT LOGIC SYNC: ACTIVE
                     </span>

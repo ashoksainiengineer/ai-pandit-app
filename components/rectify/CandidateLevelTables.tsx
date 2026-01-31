@@ -31,9 +31,9 @@ type SortField = 'score' | 'time';
 type SortOrder = 'asc' | 'desc';
 
 const STAGES = [
-    { id: 2, name: 'Coarse (AI)', level: 1, icon: Target, color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30' },
-    { id: 4, name: 'Deep Analysis (AI)', level: 2, icon: TrendingUp, color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
-    { id: 6, name: 'Final Precision (AI)', level: 3, icon: Trophy, color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
+    { id: 2, name: 'Coarse (AI)', level: 1, icon: Target, color: 'text-orange-600', bg: 'bg-orange-500/10', border: 'border-orange-500/30' },
+    { id: 4, name: 'Deep Analysis (AI)', level: 2, icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-500/10', border: 'border-blue-500/30' },
+    { id: 6, name: 'Final Precision (AI)', level: 3, icon: Trophy, color: 'text-purple-600', bg: 'bg-purple-500/10', border: 'border-purple-500/30' },
 ];
 
 const SHOW_OPTIONS = [5, 10, 20, 'All'] as const;
@@ -110,7 +110,7 @@ export function CandidateLevelTables({ candidateScores, currentStage, onSelectCa
                         key={stage.id}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className={`glass-card p-5 border ${stage.border} relative overflow-hidden flex flex-col`}
+                        className={`glass-card p-5 border ${stage.border} relative overflow-hidden flex flex-col bg-white rounded-xl`}
                     >
                         {/* Background Glow */}
                         {isStarted && (
@@ -124,8 +124,8 @@ export function CandidateLevelTables({ candidateScores, currentStage, onSelectCa
                                     <stage.icon className={`w-5 h-5 ${stage.color}`} />
                                 </div>
                                 <div>
-                                    <h4 className="text-sm font-bold text-[#F5F0EB]">Stage {stage.id}</h4>
-                                    <p className="text-[10px] text-[#8C7F72] uppercase tracking-wider">{stage.name}</p>
+                                    <h4 className="text-sm font-bold text-[#1A1612]">Stage {stage.id}</h4>
+                                    <p className="text-[10px] text-[#7A756F] uppercase tracking-wider">{stage.name}</p>
                                 </div>
                             </div>
 
@@ -136,16 +136,16 @@ export function CandidateLevelTables({ candidateScores, currentStage, onSelectCa
                                         <select
                                             value={settings.showCount}
                                             onChange={(e) => setShowCount(stage.id, e.target.value === 'All' ? 'All' : parseInt(e.target.value))}
-                                            className="appearance-none bg-[#1A2433] border border-[#3A4452] rounded-lg px-2 py-1 text-[10px] text-[#8C7F72] cursor-pointer hover:border-[#D4AF37]/50 transition-colors pr-6"
+                                            className="appearance-none bg-[#FDF8F3] border border-[#F0E8DE] rounded-lg px-2 py-1 text-[10px] text-[#7A756F] cursor-pointer hover:border-[#D4AF37]/50 transition-colors pr-6"
                                         >
                                             {SHOW_OPTIONS.map(opt => (
                                                 <option key={opt} value={opt}>Top {opt}</option>
                                             ))}
                                         </select>
-                                        <Filter className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 text-[#8C7F72] pointer-events-none" />
+                                        <Filter className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 text-[#7A756F] pointer-events-none" />
                                     </div>
 
-                                    <span className={`text-[10px] font-mono ${stage.color} font-bold bg-white/5 px-2 py-1 rounded border border-white/5`}>
+                                    <span className={`text-[10px] font-mono ${stage.color} font-bold bg-[#F5EFE7] px-2 py-1 rounded border border-[#F0E8DE]`}>
                                         {rawResults.length} Total
                                     </span>
                                 </div>
@@ -153,15 +153,15 @@ export function CandidateLevelTables({ candidateScores, currentStage, onSelectCa
                         </div>
 
                         {/* Results Table */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#05080A]/60 rounded-xl border border-[#1A2433] shadow-inner max-h-[350px]">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#FFFCF8] rounded-xl border border-[#F0E8DE] shadow-inner max-h-[350px]">
                             {isStarted ? (
                                 <table className="w-full text-xs border-separate border-spacing-0">
-                                    <thead className="bg-[#0A0F14] sticky top-0 z-10">
-                                        <tr className="text-[#6B7280]">
-                                            <th className="px-3 py-2.5 text-left font-bold uppercase tracking-widest text-[9px] border-b border-[#1A2433] w-12">#</th>
+                                    <thead className="bg-[#FDF8F3] sticky top-0 z-10">
+                                        <tr className="text-[#7A756F]">
+                                            <th className="px-3 py-2.5 text-left font-bold uppercase tracking-widest text-[9px] border-b border-[#F0E8DE] w-12">#</th>
                                             <th
                                                 onClick={() => toggleSort(stage.id, 'time')}
-                                                className="px-3 py-2.5 text-left font-bold uppercase tracking-widest text-[9px] border-b border-[#1A2433] cursor-pointer hover:text-[#D4AF37] transition-colors group"
+                                                className="px-3 py-2.5 text-left font-bold uppercase tracking-widest text-[9px] border-b border-[#F0E8DE] cursor-pointer hover:text-[#D4AF37] transition-colors group"
                                             >
                                                 <div className="flex items-center gap-1">
                                                     Time
@@ -170,40 +170,40 @@ export function CandidateLevelTables({ candidateScores, currentStage, onSelectCa
                                             </th>
                                             <th
                                                 onClick={() => toggleSort(stage.id, 'score')}
-                                                className="px-3 py-2.5 text-center font-bold uppercase tracking-widest text-[9px] border-b border-[#1A2433] cursor-pointer hover:text-[#D4AF37] transition-colors group"
+                                                className="px-3 py-2.5 text-center font-bold uppercase tracking-widest text-[9px] border-b border-[#F0E8DE] cursor-pointer hover:text-[#D4AF37] transition-colors group"
                                             >
                                                 <div className="flex items-center justify-center gap-1">
                                                     Score
                                                     <ArrowUpDown className={`w-3 h-3 opacity-50 group-hover:opacity-100 ${settings.sortField === 'score' ? 'text-[#D4AF37]' : ''}`} />
                                                 </div>
                                             </th>
-                                            <th className="px-3 py-2.5 text-left font-bold uppercase tracking-widest text-[9px] border-b border-[#1A2433]">Key Reason</th>
-                                            <th className="px-3 py-2.5 text-center font-bold uppercase tracking-widest text-[9px] border-b border-[#1A2433] w-10"></th>
+                                            <th className="px-3 py-2.5 text-left font-bold uppercase tracking-widest text-[9px] border-b border-[#F0E8DE]">Key Reason</th>
+                                            <th className="px-3 py-2.5 text-center font-bold uppercase tracking-widest text-[9px] border-b border-[#F0E8DE] w-10"></th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-[#1A2433]">
+                                    <tbody className="divide-y divide-[#F0E8DE]">
                                         {results.map((c, idx) => {
                                             const isExpanded = settings.expandedRow === c.time;
                                             return (
                                                 <motion.tr
                                                     key={`${c.time}-${idx}`}
                                                     layout
-                                                    className={`group hover:bg-[#D4AF37]/5 transition-all duration-300 ${isExpanded ? 'bg-[#D4AF37]/10' : ''}`}
+                                                    className={`group hover:bg-[#F5EFE7] transition-all duration-300 ${isExpanded ? 'bg-[#D4AF37]/5' : ''}`}
                                                 >
                                                     {/* Rank */}
-                                                    <td className="px-3 py-2.5 text-[#8C7F72] font-mono text-[10px]">
+                                                    <td className="px-3 py-2.5 text-[#7A756F] font-mono text-[10px]">
                                                         {idx + 1}
                                                     </td>
 
                                                     {/* Time */}
                                                     <td
-                                                        className="px-3 py-2.5 font-mono text-[#F5F0EB] font-bold text-sm tracking-tighter cursor-pointer hover:text-[#D4AF37]"
+                                                        className="px-3 py-2.5 font-mono text-[#1A1612] font-bold text-sm tracking-tighter cursor-pointer hover:text-[#D4AF37]"
                                                         onClick={() => onSelectCandidate?.(c.time)}
                                                     >
                                                         <div className="flex flex-col">
                                                             <span>{c.time}</span>
                                                             {c.offsetMinutes !== undefined && (
-                                                                <span className="text-[9px] text-[#8C7F72]">
+                                                                <span className="text-[9px] text-[#7A756F]">
                                                                     {c.offsetMinutes >= 0 ? '+' : ''}{c.offsetMinutes.toFixed(1)}m
                                                                 </span>
                                                             )}
@@ -213,22 +213,22 @@ export function CandidateLevelTables({ candidateScores, currentStage, onSelectCa
                                                     {/* Score Bar */}
                                                     <td className="px-3 py-2.5">
                                                         <div className="flex items-center justify-center gap-2">
-                                                            <div className="w-16 bg-[#1A2433] rounded-full h-1.5 overflow-hidden">
+                                                            <div className="w-16 bg-[#F0E8DE] rounded-full h-1.5 overflow-hidden">
                                                                 <motion.div
                                                                     initial={{ width: 0 }}
                                                                     animate={{ width: `${c.score}%` }}
                                                                     transition={{ duration: 0.8, ease: "easeOut" }}
-                                                                    className={`h-full rounded-full ${c.score >= 80 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' : c.score >= 60 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                                                                    className={`h-full rounded-full ${c.score >= 80 ? 'bg-emerald-600 shadow-[0_0_10px_rgba(22,163,74,0.3)]' : c.score >= 60 ? 'bg-amber-600' : 'bg-rose-600'}`}
                                                                 />
                                                             </div>
-                                                            <span className="font-mono text-[11px] font-bold text-[#F5F0EB] w-8">
+                                                            <span className="font-mono text-[11px] font-bold text-[#1A1612] w-8">
                                                                 {Math.round(c.score)}%
                                                             </span>
                                                         </div>
                                                     </td>
 
                                                     {/* Key Reason */}
-                                                    <td className="px-3 py-2.5 text-[10px] text-[#C4B8AD] max-w-[200px]">
+                                                    <td className="px-3 py-2.5 text-[10px] text-[#4A453F] max-w-[200px]">
                                                         <span className="line-clamp-2" title={c.reason || 'No detailed reason provided'}>
                                                             {c.reason || (c.score >= 80 ? 'Strong dasha correlation' : c.score >= 60 ? 'Partial event match' : 'Vedic correlation identified')}
                                                         </span>
@@ -238,12 +238,12 @@ export function CandidateLevelTables({ candidateScores, currentStage, onSelectCa
                                                     <td className="px-3 py-2.5 text-center">
                                                         <button
                                                             onClick={() => toggleExpand(stage.id, c.time)}
-                                                            className="p-1 rounded hover:bg-white/10 transition-colors"
+                                                            className="p-1 rounded hover:bg-[#F5EFE7] transition-colors"
                                                         >
                                                             {isExpanded ? (
                                                                 <ChevronUp className="w-4 h-4 text-[#D4AF37]" />
                                                             ) : (
-                                                                <ChevronDown className="w-4 h-4 text-[#8C7F72]" />
+                                                                <ChevronDown className="w-4 h-4 text-[#7A756F]" />
                                                             )}
                                                         </button>
                                                     </td>
@@ -261,50 +261,50 @@ export function CandidateLevelTables({ candidateScores, currentStage, onSelectCa
                                                         initial={{ opacity: 0, height: 0 }}
                                                         animate={{ opacity: 1, height: 'auto' }}
                                                         exit={{ opacity: 0, height: 0 }}
-                                                        className="bg-[#0A0F14]"
+                                                        className="bg-[#FDF8F3]"
                                                     >
                                                         <td colSpan={5} className="px-4 py-4">
                                                             <div className="grid grid-cols-3 gap-4 text-[10px]">
                                                                 {/* Ephemeris Summary */}
-                                                                <div className="bg-[#1A2433]/50 rounded-lg p-3 border border-[#3A4452]">
-                                                                    <div className="text-[9px] text-[#8C7F72] uppercase tracking-wider mb-2 font-bold">Planetary Snapshot</div>
+                                                                <div className="bg-white rounded-lg p-3 border border-[#F0E8DE]">
+                                                                    <div className="text-[9px] text-[#7A756F] uppercase tracking-wider mb-2 font-bold">Planetary Snapshot</div>
                                                                     {c.minifiedEph ? (
                                                                         <div className="space-y-1.5 font-mono">
                                                                             <div className="flex justify-between">
                                                                                 <span className="text-[#D4AF37]">☉ Sun</span>
-                                                                                <span className="text-emerald-400">{c.minifiedEph.sun}</span>
+                                                                                <span className="text-emerald-700">{c.minifiedEph.sun}</span>
                                                                             </div>
                                                                             <div className="flex justify-between">
                                                                                 <span className="text-[#D4AF37]">☽ Moon</span>
-                                                                                <span className="text-emerald-400">{c.minifiedEph.moon}</span>
+                                                                                <span className="text-emerald-700">{c.minifiedEph.moon}</span>
                                                                             </div>
                                                                             <div className="flex justify-between">
                                                                                 <span className="text-[#D4AF37]">↑ Asc</span>
-                                                                                <span className="text-emerald-400">{c.minifiedEph.ascendant}</span>
+                                                                                <span className="text-emerald-700">{c.minifiedEph.ascendant}</span>
                                                                             </div>
                                                                         </div>
                                                                     ) : (
-                                                                        <span className="text-[#8C7F72] italic">Data not available</span>
+                                                                        <span className="text-[#7A756F] italic">Data not available</span>
                                                                     )}
                                                                 </div>
 
                                                                 {/* Score Details */}
-                                                                <div className="bg-[#1A2433]/50 rounded-lg p-3 border border-[#3A4452]">
-                                                                    <div className="text-[9px] text-[#8C7F72] uppercase tracking-wider mb-2 font-bold">Analysis Summary</div>
+                                                                <div className="bg-white rounded-lg p-3 border border-[#F0E8DE]">
+                                                                    <div className="text-[9px] text-[#7A756F] uppercase tracking-wider mb-2 font-bold">Analysis Summary</div>
                                                                     <div className="space-y-1.5">
                                                                         <div className="flex justify-between">
-                                                                            <span className="text-[#8C7F72]">AI Score</span>
-                                                                            <span className={`font-bold ${c.score >= 80 ? 'text-emerald-400' : c.score >= 60 ? 'text-amber-400' : 'text-rose-400'}`}>
+                                                                            <span className="text-[#7A756F]">AI Score</span>
+                                                                            <span className={`font-bold ${c.score >= 80 ? 'text-emerald-700' : c.score >= 60 ? 'text-amber-700' : 'text-rose-700'}`}>
                                                                                 {c.score.toFixed(1)}%
                                                                             </span>
                                                                         </div>
                                                                         <div className="flex justify-between">
-                                                                            <span className="text-[#8C7F72]">Stage</span>
-                                                                            <span className="text-[#F5F0EB]">{stage.id}</span>
+                                                                            <span className="text-[#7A756F]">Stage</span>
+                                                                            <span className="text-[#1A1612]">{stage.id}</span>
                                                                         </div>
                                                                         <div className="flex justify-between">
-                                                                            <span className="text-[#8C7F72]">Status</span>
-                                                                            <span className={c.score >= 70 ? 'text-emerald-400' : 'text-amber-400'}>
+                                                                            <span className="text-[#7A756F]">Status</span>
+                                                                            <span className={c.score >= 70 ? 'text-emerald-700' : 'text-amber-700'}>
                                                                                 {c.score >= 70 ? 'Optimal' : 'Review'}
                                                                             </span>
                                                                         </div>
@@ -312,9 +312,9 @@ export function CandidateLevelTables({ candidateScores, currentStage, onSelectCa
                                                                 </div>
 
                                                                 {/* AI Verdict */}
-                                                                <div className="bg-[#1A2433]/50 rounded-lg p-3 border border-[#3A4452]">
-                                                                    <div className="text-[9px] text-[#8C7F72] uppercase tracking-wider mb-2 font-bold">AI Verdict</div>
-                                                                    <p className="text-[#C4B8AD] leading-relaxed">
+                                                                <div className="bg-white rounded-lg p-3 border border-[#F0E8DE]">
+                                                                    <div className="text-[9px] text-[#7A756F] uppercase tracking-wider mb-2 font-bold">AI Verdict</div>
+                                                                    <p className="text-[#4A453F] leading-relaxed">
                                                                         {c.reason || 'Candidate passed through AI analysis. Dasha periods and event timing correlations were evaluated against life events provided.'}
                                                                     </p>
                                                                 </div>
@@ -327,9 +327,9 @@ export function CandidateLevelTables({ candidateScores, currentStage, onSelectCa
                                     </tbody>
                                 </table>
                             ) : (
-                                <div className="h-[200px] flex flex-col items-center justify-center text-[#4B5563] text-[10px] uppercase font-bold tracking-[0.2em] bg-gradient-to-b from-transparent to-[#0A0F14]/40">
-                                    <div className="w-12 h-12 border border-[#1A2433] rounded-full flex items-center justify-center mb-4 relative">
-                                        <Zap className="w-5 h-5 text-[#3A4452] animate-pulse" />
+                                <div className="h-[200px] flex flex-col items-center justify-center text-[#7A756F] text-[10px] uppercase font-bold tracking-[0.2em] bg-gradient-to-b from-transparent to-[#FDF8F3]/40">
+                                    <div className="w-12 h-12 border border-[#F0E8DE] rounded-full flex items-center justify-center mb-4 relative">
+                                        <Zap className="w-5 h-5 text-[#E8E0D5] animate-pulse" />
                                         <div className="absolute inset-0 border-t-2 border-[#D4AF37]/30 rounded-full animate-spin" />
                                     </div>
                                     <span className="animate-pulse">Awaiting Stage {stage.id} Analysis</span>

@@ -5,7 +5,7 @@
 
 import { db } from '../database/drizzle.js';
 import { sessions } from '../database/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, and, isNotNull } from 'drizzle-orm';
 import { emitProgress, emitComplete, emitError, emitCandidateScore, emitAIContext, emitEstimatedTime, emitAIThinking } from './session-events.js';
 import type { CandidateScore, ProgressStep, AIThinkingData, AIContextData, ProgressData } from '../types/index.js';
 
@@ -344,6 +344,7 @@ export class ProgressTracker {
 
     /**
      * Complete all progress
+     * Clears ephemeral data from database to save storage
      */
     async complete(): Promise<void> {
         this.progress.percentage = 100;
@@ -363,10 +364,40 @@ export class ProgressTracker {
 
         await this.saveProgress(true); // Final flush
 
+        // 🧹 Clear ephemeral progressData from database after completion
+        // This saves storage - progress data is only needed during active processing
+        await this.clearDatabaseProgressData();
+
         // Cleanup memory after short delay (preserve for immediate polling)
         setTimeout(() => {
             ProgressTracker.activeInstances.delete(this.sessionId);
         }, 120000); // Keep in memory for 2 minutes after completion
+    }
+
+    /**
+     * Clear progressData from database after session completion
+     * Ephemeral data should not persist long-term
+     */
+    private async clearDatabaseProgressData(): Promise<void> {
+        try {
+            // Wait 5 minutes to allow final polling, then clear
+            setTimeout(async () => {
+                await db.update(sessions)
+                    .set({
+                        progressData: null,
+                        updatedAt: new Date().toISOString(),
+                    })
+                    .where(
+                        and(
+                            eq(sessions.id, this.sessionId),
+                            isNotNull(sessions.progressData)
+                        )
+                    );
+            }, 300000); // 5 minutes delay
+        } catch (error) {
+            // Non-critical: Log but don't fail completion
+            console.warn('Failed to clear progress data (non-critical):', error);
+        }
     }
 
     /**

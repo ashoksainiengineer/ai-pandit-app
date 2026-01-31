@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ResultsDashboard } from '@/components/rectify/ResultsDashboard';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
+import { Breadcrumbs, predefinedBreadcrumbs } from '@/components/ui/Breadcrumbs';
 
 export default function ResultsPage() {
     const params = useParams();
@@ -118,22 +119,25 @@ export default function ResultsPage() {
     if (!resultData || !birthData) {
         return (
             <Layout>
+                <div className="max-w-7xl mx-auto px-6 pt-6">
+                    <Breadcrumbs items={predefinedBreadcrumbs.results(id)} className="mb-6" />
+                </div>
                 <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
-                    <div className="w-20 h-20 rounded-full bg-[#EF4444]/10 flex items-center justify-center mb-6">
+                    <div className="w-20 h-20 rounded-full bg-[#C65D3B]/10 flex items-center justify-center mb-6">
                         <span className="text-4xl">⚠️</span>
                     </div>
-                    <h1 className="text-2xl font-bold text-[#F5F0EB] mb-4">No Results Found</h1>
-                    <p className="text-[#8C7F72] mb-8 max-w-md">Could not retrieve analysis data for this session. The analysis may still be in progress.</p>
+                    <h1 className="text-2xl font-bold text-[#1A1612] mb-4 font-[family-name:var(--font-cormorant)]">No Results Found</h1>
+                    <p className="text-[#7A756F] mb-8 max-w-md">Could not retrieve analysis data for this session. The analysis may still be in progress.</p>
                     <div className="flex gap-4">
                         <Link
                             href={`/rectify/${id}`}
-                            className="px-6 py-3 bg-[#1A1F2E] border border-[#2A3442] text-[#F5F0EB] rounded-xl hover:border-[#D4AF37]/50 transition-colors"
+                            className="px-6 py-3 bg-white border border-[#F0E8DE] text-[#1A1612] rounded-xl hover:border-[#D4A853]/50 transition-colors"
                         >
                             Check Progress
                         </Link>
                         <Link
                             href="/dashboard"
-                            className="px-6 py-3 bg-gradient-to-r from-[#8B5CF6] to-[#6366F1] text-white rounded-xl font-semibold hover:shadow-[0_0_20px_rgba(139,92,246,0.4)] transition-all"
+                            className="px-6 py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-semibold hover:shadow-lg transition-all"
                         >
                             Go to Dashboard
                         </Link>
@@ -145,6 +149,9 @@ export default function ResultsPage() {
 
     return (
         <Layout>
+            <div className="max-w-7xl mx-auto px-6 pt-6">
+                <Breadcrumbs items={predefinedBreadcrumbs.results(id)} className="mb-6" />
+            </div>
             <ResultsDashboard
                 sessionId={id}
                 data={resultData}

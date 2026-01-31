@@ -10,10 +10,12 @@ import queueRouter from './queue.js';
 import progressRouter from './progress.js';
 import streamRouter from './stream.js';
 import warmupRouter from './warmup.js';
-import { 
-  apiRateLimiter, 
+import adminRouter from './admin.js';
+import {
+  apiRateLimiter,
   calculateRateLimiter,
-  strictRateLimiter 
+  strictRateLimiter,
+  healthRateLimiter,
 } from '../middleware/rate-limit.js';
 import { authMiddleware } from '../middleware/auth.js';
 
@@ -28,14 +30,14 @@ router.use(apiRateLimiter);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PUBLIC ROUTES
-// No authentication required
+// No authentication required, but rate limited
 // ═══════════════════════════════════════════════════════════════════════════════
 
-// Health check - intentionally no rate limit for monitoring
-router.use('/health', healthRouter);
+// Health check - rate limited to prevent DoS
+router.use('/health', healthRateLimiter, healthRouter);
 
-// Warmup endpoint for HF Spaces
-router.use('/warmup', warmupRouter);
+// Warmup endpoint for HF Spaces - rate limited
+router.use('/warmup', healthRateLimiter, warmupRouter);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PROTECTED ROUTES
@@ -49,7 +51,7 @@ router.use('/calculate', authMiddleware, calculateRateLimiter, calculateRouter);
 router.use('/queue/progress', authMiddleware, progressRouter);
 router.use('/queue', authMiddleware, strictRateLimiter, queueRouter);
 
-// Stream endpoint - SSE connection, custom handling
+// Stream endpoint - SSE connection with auth
 router.use('/stream', authMiddleware, streamRouter);
 
 export { router as routes };

@@ -1,6 +1,7 @@
 import express, { Request } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import compression from 'compression';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { routes } from './routes/index.js';
@@ -33,29 +34,29 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false,
 }));
 
-// CORS Configuration - Strict for production
+// CORS Configuration - Strict allowlist (no regex patterns)
 const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:5173',
     'https://localhost:3000',
     process.env.FRONTEND_URL,
     process.env.VERCEL_URL,
-    // Vercel preview deployments
-    /^https:\/\/.*-ai-pandit.*\.vercel\.app$/,
-    /^https:\/\/.*\.vercel\.app$/,
-].filter(Boolean) as (string | RegExp)[];
+].filter((origin): origin is string => typeof origin === 'string' && origin.length > 0);
 
 app.use(cors({
     origin: (origin, callback) => {
         // Allow requests with no origin (mobile apps, curl, internal requests)
         if (!origin) return callback(null, true);
-        
-        const isAllowed = allowedOrigins.some(allowed => {
-            if (typeof allowed === 'string') return allowed === origin;
-            return allowed.test(origin);
-        });
-        
-        if (isAllowed || process.env.NODE_ENV === 'development') {
+
+        // In development, allow all origins
+        if (process.env.NODE_ENV === 'development') {
+            return callback(null, true);
+        }
+
+        // Strict origin matching in production
+        const isAllowed = allowedOrigins.some(allowed => allowed === origin);
+
+        if (isAllowed) {
             callback(null, true);
         } else {
             logger.warn(`[CORS] Blocked origin: ${origin}`);
@@ -74,6 +75,24 @@ app.use(cors({
     ],
     exposedHeaders: ['Content-Type', 'X-Session-Id'],
     maxAge: 86400, // 24 hours
+}));
+
+// ═════════════════════════════════════════════════════════════════════════════
+// COMPRESSION MIDDLEWARE (PERF8)
+// ═════════════════════════════════════════════════════════════════════════════
+
+app.use(compression({
+    level: 6, // Balance between speed and compression ratio
+    filter: (req, res) => {
+        // Don't compress responses with this header
+        if (req.headers['x-no-compression']) {
+            return false;
+        }
+        // Use compression filter for other cases
+        return compression.filter(req, res);
+    },
+    // Compress responses larger than 1KB
+    threshold: 1024,
 }));
 
 // ═════════════════════════════════════════════════════════════════════════════

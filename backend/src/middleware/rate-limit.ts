@@ -223,6 +223,18 @@ export const calculateRateLimiter = new RateLimiter({
   },
 }).middleware();
 
+/**
+ * Health endpoint rate limiter - prevents DoS on public health checks
+ * More lenient than strict but still prevents abuse
+ */
+export const healthRateLimiter = new RateLimiter({
+  windowMs: 60000, // 1 minute
+  maxRequests: 30, // 30 requests per minute per IP
+  keyGenerator: (req: Request) => {
+    return `health:${req.ip || 'unknown'}`;
+  },
+}).middleware();
+
 // ═════════════════════════════════════════════════════════════════════════════
 // FACTORY FUNCTION
 // ═════════════════════════════════════════════════════════════════════════════

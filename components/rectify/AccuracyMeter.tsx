@@ -51,10 +51,10 @@ export default function AccuracyMeter({ lifeEvents, hasPhysicalTraits = false }:
     const accuracyColor = getAccuracyColor(accuracyData.totalAccuracy);
 
     return (
-        <div className="glass-card p-6 border-2 border-[#D4AF37]/30 mb-8">
+        <div className="glass-card p-6 border-2 border-[#D4AF37]/30 mb-8 bg-white rounded-xl">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-[#F5F0EB] flex items-center gap-2">
+                <h3 className="text-lg font-bold text-[#1A1612] flex items-center gap-2">
                     <span className="text-2xl">📊</span>
                     Accuracy Potential
                 </h3>
@@ -77,7 +77,7 @@ export default function AccuracyMeter({ lifeEvents, hasPhysicalTraits = false }:
                             cy="50"
                             r="42"
                             fill="none"
-                            stroke="#2A3442"
+                            stroke="#F0E8DE"
                             strokeWidth="10"
                         />
                         {/* Progress circle */}
@@ -97,22 +97,22 @@ export default function AccuracyMeter({ lifeEvents, hasPhysicalTraits = false }:
                         <span className="text-2xl font-bold" style={{ color: accuracyColor }}>
                             {accuracyData.totalAccuracy}%
                         </span>
-                        <span className="text-[8px] text-[#8C7F72] uppercase tracking-wider">Accuracy</span>
+                        <span className="text-[8px] text-[#7A756F] uppercase tracking-wider">Accuracy</span>
                     </div>
                 </div>
 
                 {/* Stats */}
                 <div className="flex-1 space-y-2">
                     <div className="flex items-center justify-between text-sm">
-                        <span className="text-[#C4B8AD]">Events Added</span>
-                        <span className="font-mono font-bold text-[#F5F0EB]">{totalEvents}</span>
+                        <span className="text-[#4A453F]">Events Added</span>
+                        <span className="font-mono font-bold text-[#1A1612]">{totalEvents}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                        <span className="text-[#C4B8AD]">Minimum Required</span>
+                        <span className="text-[#4A453F]">Minimum Required</span>
                         <span className="font-mono font-bold text-[#D4AF37]">{requirements.totalMinimumEvents}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
-                        <span className="text-[#C4B8AD]">Target Accuracy</span>
+                        <span className="text-[#4A453F]">Target Accuracy</span>
                         <span className="font-mono font-bold text-[#2D7A5C]">{requirements.targetAccuracy}</span>
                     </div>
                 </div>
@@ -120,7 +120,7 @@ export default function AccuracyMeter({ lifeEvents, hasPhysicalTraits = false }:
 
             {/* Category Breakdown */}
             <div className="space-y-2 mb-4">
-                <h4 className="text-xs font-semibold text-[#8C7F72] uppercase tracking-wider mb-3">
+                <h4 className="text-xs font-semibold text-[#7A756F] uppercase tracking-wider mb-3">
                     Category Requirements
                 </h4>
                 <div className="grid grid-cols-2 gap-2">
@@ -131,17 +131,17 @@ export default function AccuracyMeter({ lifeEvents, hasPhysicalTraits = false }:
                         return (
                             <div
                                 key={category.id}
-                                className={`flex items-center gap-2 p-2 rounded-lg transition-all ${isMet ? 'bg-[#2D7A5C]/10' : 'bg-[#2A3442]'
+                                className={`flex items-center gap-2 p-2 rounded-lg transition-all ${isMet ? 'bg-[#2D7A5C]/10' : 'bg-[#F5EFE7]'
                                     }`}
                             >
                                 <span className="text-lg">{category.icon}</span>
                                 <div className="flex-1 min-w-0">
-                                    <div className="text-xs text-[#C4B8AD] truncate">{category.name}</div>
+                                    <div className="text-xs text-[#4A453F] truncate">{category.name}</div>
                                     <div className="text-xs font-mono">
-                                        <span className={isMet ? 'text-[#2D7A5C]' : 'text-[#F97316]'}>
+                                        <span className={isMet ? 'text-[#2D7A5C]' : 'text-orange-600'}>
                                             {eventsInCategory}
                                         </span>
-                                        <span className="text-[#8C7F72]">/{category.minimumEvents}</span>
+                                        <span className="text-[#7A756F]">/{category.minimumEvents}</span>
                                     </div>
                                 </div>
                                 {isMet && (
@@ -161,7 +161,7 @@ export default function AccuracyMeter({ lifeEvents, hasPhysicalTraits = false }:
                     </h4>
                     <ul className="space-y-1">
                         {accuracyData.suggestions.slice(0, 3).map((suggestion, i) => (
-                            <li key={i} className="text-xs text-[#C4B8AD]">
+                            <li key={i} className="text-xs text-[#4A453F]">
                                 • {suggestion}
                             </li>
                         ))}
@@ -174,7 +174,7 @@ export default function AccuracyMeter({ lifeEvents, hasPhysicalTraits = false }:
                 <div className="mt-4 p-3 bg-[#2D7A5C]/10 rounded-lg border border-[#2D7A5C]/20">
                     <p className="text-sm text-[#2D7A5C] flex items-center gap-2">
                         <span className="text-lg">🎯</span>
-                        Excellent! You&apos;ve provided enough data for maximum accuracy rectification.
+                        Excellent! You've provided enough data for maximum accuracy rectification.
                     </p>
                 </div>
             )}

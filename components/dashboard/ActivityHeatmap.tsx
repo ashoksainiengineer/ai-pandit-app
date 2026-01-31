@@ -20,7 +20,7 @@ interface ActivityHeatmapProps {
 }
 
 const intensityColors = [
-  'bg-[#151a21]', // 0 - no activity
+  'bg-[#F5EFE7]', // 0 - no activity
   'bg-[#D4AF37]/30', // 1 - low
   'bg-[#D4AF37]/50', // 2 - medium
   'bg-[#D4AF37]/70', // 3 - high
@@ -92,27 +92,27 @@ export function ActivityHeatmap({ data, onDayClick }: ActivityHeatmapProps) {
   }, [data]);
 
   return (
-    <div className="glass-card p-6">
+    <div className="glass-card p-6 bg-white rounded-xl border border-[#F0E8DE]">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-[#F5F0EB]">Activity Heatmap</h3>
-          <p className="text-sm text-[#8C7F72]">
+          <h3 className="text-lg font-semibold text-[#1A1612]">Activity Heatmap</h3>
+          <p className="text-sm text-[#7A756F]">
             {totalSessions} sessions in the last 90 days
           </p>
         </div>
         <div className="flex gap-4 text-sm">
           <div className="text-center">
             <div className="text-xl font-bold text-[#D4AF37]">{activeDays}</div>
-            <div className="text-xs text-[#8C7F72]">Active Days</div>
+            <div className="text-xs text-[#7A756F]">Active Days</div>
           </div>
           <div className="text-center">
             <div className="text-xl font-bold text-[#D4AF37]">{streak}</div>
-            <div className="text-xs text-[#8C7F72]">Current Streak</div>
+            <div className="text-xs text-[#7A756F]">Current Streak</div>
           </div>
           {maxDay.count > 0 && (
             <div className="text-center">
               <div className="text-xl font-bold text-[#D4AF37]">{maxDay.count}</div>
-              <div className="text-xs text-[#8C7F72]">Best Day</div>
+              <div className="text-xs text-[#7A756F]">Best Day</div>
             </div>
           )}
         </div>
@@ -128,7 +128,7 @@ export function ActivityHeatmap({ data, onDayClick }: ActivityHeatmapProps) {
               {monthLabels.map((label, i) => (
                 <div
                   key={i}
-                  className="absolute text-xs text-[#8C7F72]"
+                  className="absolute text-xs text-[#7A756F]"
                   style={{ left: `${label.index * 16}px` }}
                 >
                   {label.month}
@@ -141,7 +141,7 @@ export function ActivityHeatmap({ data, onDayClick }: ActivityHeatmapProps) {
             {/* Day labels */}
             <div className="flex flex-col gap-1 mr-2">
               {weekDays.map((day, i) => (
-                <div key={day} className="h-3 text-[10px] text-[#8C7F72] leading-3">
+                <div key={day} className="h-3 text-[10px] text-[#7A756F] leading-3">
                   {i % 2 === 0 ? day[0] : ''}
                 </div>
               ))}
@@ -175,14 +175,14 @@ export function ActivityHeatmap({ data, onDayClick }: ActivityHeatmapProps) {
 
           {/* Legend */}
           <div className="flex items-center gap-2 mt-4 justify-end">
-            <span className="text-xs text-[#8C7F72]">Less</span>
+            <span className="text-xs text-[#7A756F]">Less</span>
             {intensityColors.map((color, i) => (
               <div
                 key={i}
                 className={`w-3 h-3 rounded-sm ${color}`}
               />
             ))}
-            <span className="text-xs text-[#8C7F72]">More</span>
+            <span className="text-xs text-[#7A756F]">More</span>
           </div>
         </div>
       </div>

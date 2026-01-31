@@ -89,34 +89,34 @@ export function SwissEphPanel({
         <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-xl border border-[#2A3442] bg-[#1A1F2E]/80 overflow-hidden"
+            className="rounded-xl border border-[#F0E8DE] bg-white overflow-hidden"
         >
             {/* Header */}
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full px-4 py-3 flex items-center justify-between hover:bg-[#2A3442]/30 transition-colors"
+                className="w-full px-4 py-3 flex items-center justify-between hover:bg-[#F5EFE7] transition-colors"
             >
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
                         <Orbit className="w-4 h-4 text-white" />
                     </div>
                     <div className="text-left">
-                        <h4 className="text-sm font-bold text-[#F5F0EB]">Swiss Ephemeris Data</h4>
-                        <p className="text-[10px] text-[#8C7F72] font-mono">Candidate: {candidateTime}</p>
+                        <h4 className="text-sm font-bold text-[#1A1612]">Swiss Ephemeris Data</h4>
+                        <p className="text-[10px] text-[#4A453F] font-mono">Candidate: {candidateTime}</p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                     {minifiedEph && !isExpanded && (
-                        <div className="hidden sm:flex items-center gap-3 text-[10px] font-mono text-[#8C7F72]">
-                            <span className="text-orange-400">☉ {minifiedEph.sun}</span>
-                            <span className="text-blue-300">☽ {minifiedEph.moon}</span>
+                        <div className="hidden sm:flex items-center gap-3 text-[10px] font-mono text-[#4A453F]">
+                            <span className="text-orange-600">☉ {minifiedEph.sun}</span>
+                            <span className="text-blue-600">☽ {minifiedEph.moon}</span>
                         </div>
                     )}
                     {isExpanded ? (
-                        <ChevronUp className="w-4 h-4 text-[#8C7F72]" />
+                        <ChevronUp className="w-4 h-4 text-[#4A453F]" />
                     ) : (
-                        <ChevronDown className="w-4 h-4 text-[#8C7F72]" />
+                        <ChevronDown className="w-4 h-4 text-[#4A453F]" />
                     )}
                 </div>
             </button>
@@ -129,15 +129,15 @@ export function SwissEphPanel({
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="border-t border-[#3A4452]/50"
+                        className="border-t border-[#F0E8DE]"
                     >
                         <div className="p-4 space-y-4">
                             {/* Ascendant */}
                             {(ascendant || minifiedEph?.ascendant) && (
-                                <div className="bg-[#0F1419]/50 rounded-lg p-3 border border-[#D4AF37]/30">
+                                <div className="bg-[#FDF8F3] rounded-lg p-3 border border-[#D4AF37]/30">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Star className="w-4 h-4 text-[#D4AF37]" />
-                                        <span className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold">Ascendant (Lagna)</span>
+                                        <span className="text-[10px] text-[#7A756F] uppercase tracking-wider font-bold">Ascendant (Lagna)</span>
                                     </div>
                                     <div className="text-lg font-bold text-[#D4AF37] font-mono">
                                         {ascendant ? (
@@ -154,25 +154,25 @@ export function SwissEphPanel({
                                 <div className="grid grid-cols-3 gap-2">
                                     {Object.entries(planets).map(([key, data]) => {
                                         if (!data) return null;
-                                        const config = PLANET_SYMBOLS[key] || { symbol: '?', color: 'text-white' };
+                                        const config = PLANET_SYMBOLS[key] || { symbol: '?', color: 'text-[#1A1612]' };
 
                                         return (
                                             <div
                                                 key={key}
-                                                className="bg-[#0F1419]/50 rounded-lg p-2.5 border border-[#3A4452] hover:border-[#D4AF37]/30 transition-colors"
+                                                className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE] hover:border-[#D4AF37]/30 transition-colors"
                                             >
                                                 <div className="flex items-center gap-1.5 mb-1">
                                                     <span className={`text-lg ${config.color}`}>{config.symbol}</span>
-                                                    <span className="text-[10px] text-[#8C7F72] uppercase font-bold">{key}</span>
-                                                    {data.isRetrograde && <span className="text-[8px] text-red-400">R</span>}
+                                                    <span className="text-[10px] text-[#7A756F] uppercase font-bold">{key}</span>
+                                                    {data.isRetrograde && <span className="text-[8px] text-red-600">R</span>}
                                                 </div>
-                                                <div className="text-xs font-mono text-[#F5F0EB]">
+                                                <div className="text-xs font-mono text-[#1A1612]">
                                                     {data.sign} {formatDegree(data.degree)}
                                                 </div>
-                                                <div className="text-[10px] text-[#8C7F72]">
+                                                <div className="text-[10px] text-[#7A756F]">
                                                     {data.nakshatra}
-                                                    {data.isExalted && <span className="ml-1 text-emerald-400">⭐</span>}
-                                                    {data.isDebilitated && <span className="ml-1 text-red-400">↓</span>}
+                                                    {data.isExalted && <span className="ml-1 text-emerald-600">⭐</span>}
+                                                    {data.isDebilitated && <span className="ml-1 text-red-600">↓</span>}
                                                 </div>
                                             </div>
                                         );
@@ -180,26 +180,26 @@ export function SwissEphPanel({
                                 </div>
                             ) : minifiedEph && (
                                 <div className="grid grid-cols-3 gap-2">
-                                    <div className="bg-[#0F1419]/50 rounded-lg p-2.5 border border-[#3A4452]">
+                                    <div className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE]">
                                         <div className="flex items-center gap-1.5 mb-1">
-                                            <span className="text-lg text-orange-400">☉</span>
-                                            <span className="text-[10px] text-[#8C7F72] uppercase font-bold">Sun</span>
+                                            <span className="text-lg text-orange-600">☉</span>
+                                            <span className="text-[10px] text-[#7A756F] uppercase font-bold">Sun</span>
                                         </div>
-                                        <div className="text-xs font-mono text-[#F5F0EB]">{minifiedEph.sun}</div>
+                                        <div className="text-xs font-mono text-[#1A1612]">{minifiedEph.sun}</div>
                                     </div>
-                                    <div className="bg-[#0F1419]/50 rounded-lg p-2.5 border border-[#3A4452]">
+                                    <div className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE]">
                                         <div className="flex items-center gap-1.5 mb-1">
-                                            <span className="text-lg text-blue-300">☽</span>
-                                            <span className="text-[10px] text-[#8C7F72] uppercase font-bold">Moon</span>
+                                            <span className="text-lg text-blue-600">☽</span>
+                                            <span className="text-[10px] text-[#7A756F] uppercase font-bold">Moon</span>
                                         </div>
-                                        <div className="text-xs font-mono text-[#F5F0EB]">{minifiedEph.moon}</div>
+                                        <div className="text-xs font-mono text-[#1A1612]">{minifiedEph.moon}</div>
                                     </div>
-                                    <div className="bg-[#0F1419]/50 rounded-lg p-2.5 border border-[#3A4452]">
+                                    <div className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE]">
                                         <div className="flex items-center gap-1.5 mb-1">
                                             <span className="text-lg text-[#D4AF37]">↑</span>
-                                            <span className="text-[10px] text-[#8C7F72] uppercase font-bold">Asc</span>
+                                            <span className="text-[10px] text-[#7A756F] uppercase font-bold">Asc</span>
                                         </div>
-                                        <div className="text-xs font-mono text-[#F5F0EB]">{minifiedEph.ascendant}</div>
+                                        <div className="text-xs font-mono text-[#1A1612]">{minifiedEph.ascendant}</div>
                                     </div>
                                 </div>
                             )}
@@ -208,17 +208,17 @@ export function SwissEphPanel({
                             {houses && houses.length > 0 && (
                                 <div>
                                     <div className="flex items-center gap-2 mb-2">
-                                        <Home className="w-4 h-4 text-[#8C7F72]" />
-                                        <span className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold">Houses</span>
+                                        <Home className="w-4 h-4 text-[#7A756F]" />
+                                        <span className="text-[10px] text-[#7A756F] uppercase tracking-wider font-bold">Houses</span>
                                     </div>
                                     <div className="grid grid-cols-6 gap-1.5">
                                         {houses.map((house) => (
                                             <div
                                                 key={house.number}
-                                                className="bg-[#0F1419]/50 rounded p-1.5 text-center border border-[#3A4452]"
+                                                className="bg-[#FDF8F3] rounded p-1.5 text-center border border-[#F0E8DE]"
                                             >
-                                                <div className="text-[9px] text-[#8C7F72]">{house.number}H</div>
-                                                <div className="text-[10px] font-mono text-[#F5F0EB]">{house.sign}</div>
+                                                <div className="text-[9px] text-[#7A756F]">{house.number}H</div>
+                                                <div className="text-[10px] font-mono text-[#1A1612]">{house.sign}</div>
                                             </div>
                                         ))}
                                     </div>
@@ -227,12 +227,12 @@ export function SwissEphPanel({
 
                             {/* Dasha */}
                             {dasha && (
-                                <div className="bg-[#0F1419]/50 rounded-lg p-3 border border-emerald-500/30">
+                                <div className="bg-[#FDF8F3] rounded-lg p-3 border border-emerald-500/30">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <Sparkles className="w-4 h-4 text-emerald-400" />
-                                        <span className="text-[10px] text-[#8C7F72] uppercase tracking-wider font-bold">Active Dasha</span>
+                                        <Sparkles className="w-4 h-4 text-emerald-600" />
+                                        <span className="text-[10px] text-[#7A756F] uppercase tracking-wider font-bold">Active Dasha</span>
                                     </div>
-                                    <div className="text-sm font-mono text-emerald-400">{dasha}</div>
+                                    <div className="text-sm font-mono text-emerald-700">{dasha}</div>
                                 </div>
                             )}
                         </div>
@@ -249,20 +249,20 @@ export function SwissEphMini({ sun, moon, ascendant }: { sun?: string; moon?: st
         <div className="flex flex-col gap-0.5 text-[9px] font-mono">
             {sun && (
                 <div className="flex items-center gap-1">
-                    <span className="text-orange-400">☉</span>
-                    <span className="text-[#C4B8AD]">{sun}</span>
+                    <span className="text-orange-600">☉</span>
+                    <span className="text-[#4A453F]">{sun}</span>
                 </div>
             )}
             {moon && (
                 <div className="flex items-center gap-1">
-                    <span className="text-blue-300">☽</span>
-                    <span className="text-[#C4B8AD]">{moon}</span>
+                    <span className="text-blue-600">☽</span>
+                    <span className="text-[#4A453F]">{moon}</span>
                 </div>
             )}
             {ascendant && (
                 <div className="flex items-center gap-1">
                     <span className="text-[#D4AF37]">↑</span>
-                    <span className="text-[#C4B8AD]">{ascendant}</span>
+                    <span className="text-[#4A453F]">{ascendant}</span>
                 </div>
             )}
         </div>
