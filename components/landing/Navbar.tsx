@@ -14,6 +14,8 @@ import { UserButton, useUser } from '@clerk/nextjs';
 const navLinks = [
   { href: '/rectify', label: 'Start Analysis' },
   { href: '/dashboard', label: 'Dashboard' },
+  { href: '/privacy', label: 'Privacy' },
+  { href: '/terms', label: 'Terms' },
 ];
 
 export default function Navbar() {

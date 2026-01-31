@@ -1,11 +1,17 @@
 /**
  * Step4Review - Final Review & Confirmation
  * Sacred Ivory Light Theme - Compact God Tier Design
+ * 
+ * Bug Fixes:
+ * - Fixed key prop issue using event.id instead of index
+ * - Memoized accuracy calculation
+ * - Added proper event validation
+ * - Fixed missing categories logic
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BirthData, PhysicalTraits, LifeEvent, TimeOffsetConfig, ForensicTraits } from '@/lib/types';
 import { FormCard } from '@/components/ui/form/FormCard';
@@ -21,6 +27,11 @@ interface Step4Props {
   onEdit: (step: number) => void;
   offsetConfig?: TimeOffsetConfig;
 }
+
+// Valid event check
+const isValidEvent = (e: LifeEvent): boolean => {
+  return !!(e.description && e.description.trim().length >= 10 && e.eventDate);
+};
 
 export default function Step4Review({
   data,
@@ -40,27 +51,43 @@ export default function Step4Review({
     return () => clearTimeout(timer);
   }, []);
 
-  const accuracy = (() => {
+  // Memoized accuracy calculation
+  const accuracy = useMemo(() => {
     let score = 40;
-    score += events.filter(e => e.description && e.eventDate).length * 8;
-    if (forensicTraits?.physical?.skinHair?.marks?.length) score += 5;
-    if ((forensicTraits?.family?.brotherCount || 0) > 0 || (forensicTraits?.family?.sisterCount || 0) > 0) score += 5;
+    const validEvents = events.filter(isValidEvent);
+    score += validEvents.length * 8;
+    
+    // Bonus for forensic traits
+    if (forensicTraits?.physical?.facialStructure?.forehead) score += 3;
+    if (forensicTraits?.physical?.facialStructure?.eyeShape) score += 3;
+    if (forensicTraits?.biological?.prakriti) score += 4;
+    if ((forensicTraits?.family?.siblingPosition)) score += 5;
+    
     return Math.min(99, score);
-  })();
+  }, [events, forensicTraits]);
 
-  const estimatedMinutes = Math.max(2, Math.ceil((offsetConfig?.customMinutes || 60) / 60) + 1);
+  const estimatedMinutes = useMemo(() => {
+    return Math.max(2, Math.ceil((offsetConfig?.customMinutes || 60) / 60) + 1);
+  }, [offsetConfig]);
 
-  const getMissingCategories = () => {
-    const categories = new Set(events.map(e => e.category));
+  // Memoized missing categories
+  const missingCategories = useMemo(() => {
+    const categories = new Set(events.filter(isValidEvent).map(e => e.category));
     const missing = [];
     if (!categories.has('career')) missing.push('Career events');
     if (!categories.has('marriage')) missing.push('Marriage');
     if (!categories.has('family_events')) missing.push('Family events');
-    return missing.slice(0, 2);
-  };
+    if (!categories.has('health')) missing.push('Health events');
+    return missing.slice(0, 3);
+  }, [events]);
 
-  const missingCategories = getMissingCategories();
   const showLowAccuracyWarning = accuracy < 70;
+
+  // Handle submit with validation
+  const handleSubmit = useCallback(() => {
+    if (!confirmed || cooldown || isSubmitting) return;
+    onSubmit();
+  }, [confirmed, cooldown, isSubmitting, onSubmit]);
 
   return (
     <motion.div className="space-y-6 max-w-3xl mx-auto" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
@@ -99,6 +126,11 @@ export default function Step4Review({
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="bg-gradient-to-br from-[#FDF8F3] to-white border border-[#D4A853]/30 rounded-xl p-6 text-center">
         <div className="font-[family-name:var(--font-cormorant)] text-5xl font-bold text-[#B8860B] mb-1">{accuracy}%</div>
         <div className="text-[#4A453F] text-sm font-medium">Expected Accuracy</div>
+        {events.filter(isValidEvent).length < 5 && (
+          <div className="mt-2 text-xs text-[#C65D3B]">
+            ⚠️ Add at least 5 detailed events for better accuracy
+          </div>
+        )}
       </motion.div>
 
       {/* Review Cards Grid - Compact */}
@@ -129,9 +161,9 @@ export default function Step4Review({
             <span>🧬</span> Traits
           </h3>
           <div className="space-y-3 text-xs">
-            <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Face</span><span className="text-[#4A453F]">{forensicTraits?.physical?.facialStructure?.forehead || '—'} forehead, {forensicTraits?.physical?.facialStructure?.eyeShape || '—'} eyes</span></div>
-            <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Speech</span><span className="text-[#4A453F]">{(forensicTraits?.psychographic?.speechStyle || '—').replace('_', ' ')}</span></div>
-            <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Family</span><span className="text-[#4A453F]">{forensicTraits?.family?.siblingPosition || '—'} child</span></div>
+            <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Face</span><span className="text-[#4A453F]">{(forensicTraits?.physical?.facialStructure?.forehead || '—').replace('_', ' ')} forehead, {(forensicTraits?.physical?.facialStructure?.eyeShape || '—').replace('_', ' ')} eyes</span></div>
+            <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Speech</span><span className="text-[#4A453F]">{(forensicTraits?.psychographic?.speechStyle || '—').replace(/_/g, ' ')}</span></div>
+            <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Family</span><span className="text-[#4A453F]">{(forensicTraits?.family?.siblingPosition || '—').replace(/_/g, ' ')}</span></div>
             <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Prakriti</span><span className="text-[#4A453F] uppercase font-medium">{forensicTraits?.biological?.prakriti || '—'}</span></div>
           </div>
         </FormCard>
@@ -143,24 +175,24 @@ export default function Step4Review({
           Edit <ArrowRight className="w-3 h-3" />
         </button>
         <h3 className="font-[family-name:var(--font-cormorant)] text-lg font-semibold text-[#1A1612] mb-4 pb-3 border-b border-[#F0E8DE] flex items-center gap-2">
-          <span>📅</span> Life Events <span className="text-[#B8860B] text-sm font-normal">({events.length})</span>
+          <span>📅</span> Life Events <span className="text-[#B8860B] text-sm font-normal">({events.filter(isValidEvent).length}/{events.length})</span>
         </h3>
 
         {events.length === 0 ? (
           <p className="text-[#7A756F] text-center py-6 text-sm">No events added</p>
         ) : (
           <div className="space-y-2 max-h-[250px] overflow-y-auto pr-1">
-            {events.map((e, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-[#F5EFE7]">
+            {events.filter(e => e.description).map((e) => (
+              <div key={e.id} className="flex items-start gap-3 p-3 rounded-lg bg-[#F5EFE7]">
                 <span className="text-xl">{e.icon || '📅'}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start">
                     <span className="font-semibold text-[#1A1612] text-sm truncate">{e.eventType}</span>
                     <span className="text-[#B8860B] text-xs font-medium bg-[#B8860B]/10 px-2 py-0.5 rounded-full">{e.eventDate?.split('-')[0] || '—'}</span>
                   </div>
-                  {e.description && <p className="text-[#7A756F] text-xs mt-1 line-clamp-1 italic">&ldquo;{e.description}&rdquo;</p>}
+                  {e.description && <p className="text-[#7A756F] text-xs mt-1 line-clamp-1 italic">&ldquo;{e.description.slice(0, 100)}{e.description.length > 100 ? '...' : ''}&rdquo;</p>}
                 </div>
-                {e.description ? <span className="text-[#2D7A5C]">✓</span> : <span className="text-[#C65D3B] text-xs">!</span>}
+                {isValidEvent(e) ? <span className="text-[#2D7A5C]">✓</span> : <span className="text-[#C65D3B] text-xs">!</span>}
               </div>
             ))}
           </div>
@@ -176,9 +208,13 @@ export default function Step4Review({
               <div>
                 <h4 className="text-[#C65D3B] font-semibold mb-1 text-sm">Low Accuracy ({accuracy}%)</h4>
                 <p className="text-[#4A453F] text-xs mb-2">For 90%+ accuracy, add:</p>
-                <ul className="list-disc list-inside text-xs text-[#B8860B] space-y-0.5 font-medium">
-                  {missingCategories.map((s, i) => <li key={i}>{s}</li>)}
-                </ul>
+                {missingCategories.length > 0 ? (
+                  <ul className="list-disc list-inside text-xs text-[#B8860B] space-y-0.5 font-medium">
+                    {missingCategories.map((s, i) => <li key={i}>{s}</li>)}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-[#7A756F]">More detailed events with complete descriptions</p>
+                )}
               </div>
             </div>
           </motion.div>
@@ -188,14 +224,19 @@ export default function Step4Review({
       {/* Confirmation & Submit */}
       <div className="pt-4 border-t border-[#F0E8DE]">
         <label className="flex items-start gap-3 cursor-pointer group mb-6 p-4 rounded-xl hover:bg-[#F5EFE7] transition-colors">
-          <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} className="mt-0.5 w-5 h-5 rounded border-2 border-[#D4A853] bg-white text-[#B8860B] accent-[#B8860B] cursor-pointer" />
+          <input 
+            type="checkbox" 
+            checked={confirmed} 
+            onChange={(e) => setConfirmed(e.target.checked)} 
+            className="mt-0.5 w-5 h-5 rounded border-2 border-[#D4A853] bg-white text-[#B8860B] accent-[#B8860B] cursor-pointer" 
+          />
           <span className={`text-sm leading-relaxed transition-colors ${confirmed ? 'text-[#1A1612]' : 'text-[#4A453F] group-hover:text-[#B8860B]'}`}>
             I confirm all details are accurate. Incorrect data will affect rectification accuracy.
           </span>
         </label>
 
         <motion.button
-          onClick={onSubmit}
+          onClick={handleSubmit}
           disabled={isSubmitting || !confirmed || cooldown}
           whileHover={{ scale: confirmed && !isSubmitting && !cooldown ? 1.02 : 1 }}
           whileTap={{ scale: confirmed && !isSubmitting && !cooldown ? 0.98 : 1 }}

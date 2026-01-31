@@ -92,6 +92,11 @@ export const sessions = sqliteTable(
         deletedAt: text('deletedAt'),
         retentionUntil: text('retentionUntil'),
         
+        // AI Consent Tracking
+        aiConsentGiven: integer('aiConsentGiven', { mode: 'boolean' }).default(false),
+        aiConsentGivenAt: text('aiConsentGivenAt'),
+        aiConsentIp: text('aiConsentIp'),
+        
         // Data Integrity
         isEncrypted: integer('isEncrypted', { mode: 'boolean' }).default(true).notNull(),
         

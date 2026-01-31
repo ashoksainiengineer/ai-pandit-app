@@ -87,9 +87,6 @@ export default function EphemerisTable() {
           <h4 className="text-sm font-bold text-[#1A1612]">Swiss Ephemeris Precision Data</h4>
           <div className="flex items-center gap-2">
             <p className="text-[10px] text-[#7A756F] font-mono">SE v2.10.03 • 4-decimal precision • NASA DE440</p>
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-600 border border-emerald-200 font-semibold">
-              🔒 End-to-End Encrypted
-            </span>
           </div>
         </div>
 

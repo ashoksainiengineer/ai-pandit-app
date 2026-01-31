@@ -26,7 +26,7 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
     try {
         const userId = req.userId!;
         const body: SubmitRequest = req.body;
-        const { birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig } = body;
+        const { birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig, consentConfirmed, existingSessionId } = req.body;
 
         // Validate input
         if (!birthData) {
@@ -42,6 +42,24 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
         if (!forensicTraits) {
             res.status(400).json({ success: false, error: 'Forensic Traits are required for high-precision BTR.' });
             return;
+        }
+
+        // 🔴 Check AI consent if session exists
+        if (existingSessionId && !consentConfirmed) {
+            const session = await db
+                .select({ aiConsentGiven: sessions.aiConsentGiven })
+                .from(sessions)
+                .where(eq(sessions.id, existingSessionId))
+                .limit(1);
+            
+            if (session.length > 0 && !session[0].aiConsentGiven) {
+                res.status(403).json({
+                    success: false,
+                    error: 'AI processing consent required',
+                    code: 'CONSENT_REQUIRED',
+                });
+                return;
+            }
         }
 
         // Validate offset config

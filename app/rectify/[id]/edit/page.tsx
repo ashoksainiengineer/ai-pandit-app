@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
 import { BirthData, LifeEvent, PhysicalTraits } from '@/lib/types';
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
@@ -25,11 +25,32 @@ const initialPhysicalTraits: PhysicalTraits = {
 export default function EditSessionPage() {
     const params = useParams();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const sessionId = params.id as string;
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [step, setStep] = useState(1);
+    
+    // Read initial step from URL query param, default to 1
+    const getInitialStep = () => {
+        const urlStep = searchParams.get('step');
+        if (urlStep) {
+            const parsed = parseInt(urlStep, 10);
+            if (parsed >= 1 && parsed <= 4) {
+                return parsed;
+            }
+        }
+        return 1;
+    };
+    const [step, setStep] = useState(getInitialStep());
+    
+    // Update URL when step changes
+    const updateStep = (newStep: number) => {
+        setStep(newStep);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('step', newStep.toString());
+        router.replace(`/rectify/${sessionId}/edit?${params.toString()}`, { scroll: false });
+    };
     const [birthData, setBirthData] = useState<BirthData | null>(null);
     const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>([]);
     const [physicalTraits, setPhysicalTraits] = useState<PhysicalTraits>(initialPhysicalTraits);
@@ -112,14 +133,16 @@ export default function EditSessionPage() {
     const handleNext = () => {
         setError(null);
         if (validateStep(step)) {
-            setStep(s => s + 1);
+            const newStep = step + 1;
+            updateStep(newStep);
             window.scrollTo(0, 0);
         }
     };
 
     const handleBack = () => {
         setError(null);
-        setStep(s => s - 1);
+        const newStep = step - 1;
+        updateStep(newStep);
         window.scrollTo(0, 0);
     };
 
@@ -275,15 +298,15 @@ export default function EditSessionPage() {
                         {[1, 2, 3, 4].map((s) => (
                             <button
                                 key={s}
-                                onClick={() => setStep(s)}
+                                onClick={() => updateStep(s)}
                                 className="flex flex-col items-center bg-[#FFFCF8] px-2 outline-none focus:outline-none"
                             >
                                 <div
                                     className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all border-2 ${s < step
                                         ? 'bg-[#2D7A5C] border-[#2D7A5C] text-white'
                                         : s === step
-                                            ? 'bg-[#FFFCF8] border-[#B8860B] text-[#B8860B]'
-                                            : 'bg-[#F0E8DE] border-[#F0E8DE] text-[#7A756F]'
+                                            ? 'bg-white border-[#B8860B] text-[#B8860B] shadow-[0_0_15px_rgba(184,134,11,0.3)]'
+                                            : 'bg-[#F5EFE7] border-[#EBE2D6] text-[#A8A39D]'
                                         }`}
                                 >
                                     {s < step ? '✓' : ['👤', '🪞', '📅', '✅'][s - 1]}
@@ -343,6 +366,7 @@ export default function EditSessionPage() {
                         <Step3LifeEvents
                             lifeEvents={lifeEvents}
                             updateEvents={setLifeEvents}
+                            offsetConfig={offsetConfig}
                         />
                     )}
                     {step === 4 && birthData && (
@@ -350,7 +374,7 @@ export default function EditSessionPage() {
                             data={birthData}
                             events={lifeEvents}
                             traits={physicalTraits}
-                            forensicTraits={{
+                            forensicTraits={forensicTraits || {
                                 physical: {
                                     facialStructure: {},
                                     skinHair: { marks: [] },
@@ -364,7 +388,7 @@ export default function EditSessionPage() {
                             }}
                             onSubmit={handleSubmit}
                             isSubmitting={isSubmitting}
-                            onEdit={setStep}
+                            onEdit={updateStep}
                             offsetConfig={offsetConfig}
                         />
                     )}

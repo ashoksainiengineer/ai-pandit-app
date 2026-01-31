@@ -476,12 +476,14 @@ function RectifyPageContent() {
                     timezone: birthData.timezone,
                     gender: birthData.gender
                 },
+                // Send COMPLETE life events data to AI
                 lifeEvents: lifeEvents.map(e => ({
                     category: e.category,
                     eventType: e.eventType,
                     datePrecision: e.datePrecision,
                     eventDate: e.eventDate,
                     endDate: e.endDate,
+                    eventTime: e.eventTime, // CRITICAL: Exact time for exact_date_time precision
                     description: e.description,
                     importance: e.importance
                 })),
