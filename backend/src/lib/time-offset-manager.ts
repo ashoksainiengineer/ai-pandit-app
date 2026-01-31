@@ -3,25 +3,10 @@
 // Research-backed: Max 10 candidates per AI batch for optimal attention
 
 import { logger } from './logger.js';
+import type { OffsetPreset, TimeOffsetConfig, CandidateTime } from '../types/index.js';
 
-// ═════════════════════════════════════════════════════════════════════════
-// TYPE DEFINITIONS
-// ═════════════════════════════════════════════════════════════════════════
-
-export type OffsetPreset = '30min' | '1hour' | '2hours' | '4hours' | '6hours' | '12hours' | 'seconds-30' | 'seconds-6';
-
-export interface TimeOffsetConfig {
-  preset?: OffsetPreset;
-  customMinutes?: number;
-  description: string;
-}
-
-export interface CandidateTime {
-  time: string; // HH:MM:SS format
-  offsetMinutes: number; // Positive or negative from tentative time
-  offsetDescription: string; // e.g., "+15 minutes", "-45 minutes"
-  batchIndex?: number; // Which batch this candidate belongs to
-}
+// Re-export types for backwards compatibility
+export type { OffsetPreset, TimeOffsetConfig, CandidateTime };
 
 // ═════════════════════════════════════════════════════════════════════════
 // CONSTANTS - RESEARCH-BACKED (Dynamic)

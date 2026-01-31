@@ -45,32 +45,30 @@ const QUEUE_CONFIG = {
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
+// C4 FIX: Retry & Circuit Breaker Configuration
+// ═════════════════════════════════════════════════════════════════════════════
+
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 60000,  // 1 minute max
+  backoffMultiplier: 2,
+  circuitBreakerThreshold: 5,  // After 5 consecutive failures, pause
+  circuitBreakerResetMs: 300000,  // Reset after 5 minutes
+};
+
+// Track consecutive failures for circuit breaker
+let consecutiveFailures = 0;
+let lastFailureTime = 0;
+
+// ═════════════════════════════════════════════════════════════════════════════
 // QUEUE STATUS TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-export type QueueStatus =
-  | 'queued'      // Waiting in queue
-  | 'processing'  // Currently being analyzed
-  | 'complete'    // Analysis done, results available
-  | 'failed';     // Error occurred
+import type { QueueStatus, QueuePosition, QueueSubmitResult } from '../types/index.js';
 
-export interface QueuePosition {
-  sessionId: string;
-  status: QueueStatus;
-  position: number;       // 0 = currently processing, 1 = next, etc.
-  estimatedWaitSeconds: number;
-  totalInQueue: number;
-  createdAt: string;
-  session?: any;          // Full session metadata for UI
-}
-
-export interface QueueSubmitResult {
-  success: boolean;
-  sessionId?: string;
-  position?: number;
-  estimatedWaitSeconds?: number;
-  error?: string;
-}
+// Re-export types for backwards compatibility
+export type { QueueStatus, QueuePosition, QueueSubmitResult };
 
 // ═════════════════════════════════════════════════════════════════════════════
 // IN-MEMORY STATE (minimal - just tracking current jobs)
@@ -397,6 +395,120 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// C4 FIX: Retry & Circuit Breaker Helper Functions
+// ═════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Calculate exponential backoff delay
+ */
+function getRetryDelay(attempt: number): number {
+  const delay = RETRY_CONFIG.baseDelayMs * Math.pow(RETRY_CONFIG.backoffMultiplier, attempt);
+  return Math.min(delay, RETRY_CONFIG.maxDelayMs);
+}
+
+/**
+ * Check if circuit breaker should trip
+ */
+function shouldTripCircuitBreaker(): boolean {
+  if (consecutiveFailures >= RETRY_CONFIG.circuitBreakerThreshold) {
+    const timeSinceLastFailure = Date.now() - lastFailureTime;
+    // Reset after 5 minutes of no failures
+    if (timeSinceLastFailure > RETRY_CONFIG.circuitBreakerResetMs) {
+      consecutiveFailures = 0;
+      return false;
+    }
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Determine if error is retryable
+ */
+function isRetryableError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    
+    // Network errors - retry
+    if (msg.includes('timeout') ||
+        msg.includes('network') ||
+        msg.includes('econnrefused') ||
+        msg.includes('enotfound') ||
+        msg.includes('rate limit') ||
+        msg.includes('429') ||
+        msg.includes('503') ||
+        msg.includes('too many requests') ||
+        msg.includes('etimedout') ||
+        msg.includes('econnreset')) {
+      return true;
+    }
+    
+    // AI service errors - retry
+    if (msg.includes('ai_analysis_incomplete') ||
+        msg.includes('openrouter') ||
+        msg.includes('temporarily unavailable') ||
+        msg.includes('service unavailable')) {
+      return true;
+    }
+    
+    // Database transient errors - retry
+    if (msg.includes('database is locked') ||
+        msg.includes('busy') ||
+        msg.includes('sqlITE_BUSY')) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * Process session with retry logic (C4 Fix)
+ */
+async function processSessionWithRetry(sessionId: string, attempt: number = 0): Promise<void> {
+  try {
+    await processSessionAsync(sessionId);
+    
+    // Success - reset failure counter
+    if (consecutiveFailures > 0) {
+      logger.info(`Session ${sessionId} succeeded after ${consecutiveFailures} previous failures. Resetting counter.`);
+      consecutiveFailures = 0;
+    }
+    
+  } catch (error) {
+    const isRetryable = isRetryableError(error);
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    
+    if (isRetryable && attempt < RETRY_CONFIG.maxRetries) {
+      const delay = getRetryDelay(attempt);
+      logger.warn(`Retrying session ${sessionId} after ${delay}ms (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries})`, {
+        error: errorMsg,
+        isRetryable,
+      });
+      
+      await sleep(delay);
+      return processSessionWithRetry(sessionId, attempt + 1);
+    }
+    
+    // Non-retryable or max retries exceeded
+    logger.error(`Session ${sessionId} failed permanently after ${attempt + 1} attempts`, {
+      error: errorMsg,
+      isRetryable,
+    });
+    
+    consecutiveFailures++;
+    lastFailureTime = Date.now();
+    
+    // Try to mark as failed (with its own error handling)
+    try {
+      await markAsFailed(sessionId, errorMsg);
+    } catch (markError) {
+      logger.error(`Failed to mark session ${sessionId} as failed`, markError);
+    }
+  }
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 // QUEUE PROCESSOR
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -417,12 +529,22 @@ export function startQueueProcessor(): void {
 }
 
 /**
- * Main queue processing loop
+ * Main queue processing loop (C4 Fix: Global error handling + Circuit breaker)
  */
 async function processQueue(): Promise<void> {
-  logger.info('Queue processor loop started');
+  logger.info('Queue processor loop started with C4 fixes (retry + circuit breaker)');
+  
   while (isProcessorRunning) {
     try {
+      // C4: Circuit breaker check
+      if (shouldTripCircuitBreaker()) {
+        const remainingMs = RETRY_CONFIG.circuitBreakerResetMs - (Date.now() - lastFailureTime);
+        const remainingSec = Math.ceil(remainingMs / 1000);
+        logger.error(`🔴 CIRCUIT BREAKER TRIPPED: ${consecutiveFailures} consecutive failures. Pausing for ${remainingSec}s...`);
+        await sleep(60000);  // Wait 60s before checking again
+        continue;
+      }
+      
       // Check for stale processing requests (crashed mid-process)
       await cleanupStaleRequests();
 
@@ -442,7 +564,7 @@ async function processQueue(): Promise<void> {
       
       // Only log memory stats every 10 iterations to reduce noise
       if (Math.random() < 0.1) {
-        logger.info(`[MEMORY] RSS: ${rssGB.toFixed(2)}GB | Heap: ${heapUsedGB.toFixed(2)}GB / ${heapTotalGB.toFixed(2)}GB | Concurrent: ${activeProcessingIds.size}/${effectiveMaxConcurrent}`);
+        logger.info(`[MEMORY] RSS: ${rssGB.toFixed(2)}GB | Heap: ${heapUsedGB.toFixed(2)}GB / ${heapTotalGB.toFixed(2)}GB | Concurrent: ${activeProcessingIds.size}/${effectiveMaxConcurrent} | Failures: ${consecutiveFailures}`);
       }
       
       if (rssGB > RSS_THRESHOLD_GB || heapUsedGB > HEAP_THRESHOLD_GB) {
@@ -482,13 +604,24 @@ async function processQueue(): Promise<void> {
       // Mark as processing
       await markAsProcessing(nextId);
 
-      // ⚡ ASYNC EXECUTION: Don't await the heavy process!
+      // ⚡ C4 FIX: Use retry wrapper instead of direct call
       // Fire and loop back immediately to pick up next task if slot available
-      processSessionAsync(nextId);
+      processSessionWithRetry(nextId).catch(err => {
+        // Final safety net - should not reach here due to internal error handling
+        logger.error(`🔴 CRITICAL: Unhandled error in processSessionWithRetry for ${nextId}`, err);
+        consecutiveFailures++;
+        lastFailureTime = Date.now();
+      });
 
     } catch (error) {
       logger.error('Queue processor error', error);
-      await sleep(5000); // Wait before retry on error
+      consecutiveFailures++;
+      lastFailureTime = Date.now();
+      
+      // C4: Exponential backoff for queue processor errors
+      const delay = getRetryDelay(Math.min(consecutiveFailures, 5));
+      logger.info(`Queue processor backing off for ${delay}ms due to error`);
+      await sleep(delay);
     }
   }
 }

@@ -5,7 +5,7 @@
 
 import { Router, Request, Response } from 'express';
 import { checkDatabaseHealth } from '../database/drizzle.js';
-import { config } from '../config/env.js';
+import { config } from '../config/index.js';
 import { logger } from '../lib/logger.js';
 
 const router = Router();

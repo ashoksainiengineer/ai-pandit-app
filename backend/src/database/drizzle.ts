@@ -6,7 +6,7 @@
 import { createClient, Client } from '@libsql/client';
 import { drizzle } from 'drizzle-orm/libsql';
 import * as schema from './schema.js';
-import { config } from '../config/env.js';
+import { config } from '../config/index.js';
 import { logger } from '../lib/logger.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════

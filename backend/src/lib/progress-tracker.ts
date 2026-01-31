@@ -7,66 +7,14 @@ import { db } from '../database/drizzle.js';
 import { sessions } from '../database/schema.js';
 import { eq } from 'drizzle-orm';
 import { emitProgress, emitComplete, emitError, emitCandidateScore, emitAIContext, emitEstimatedTime, emitAIThinking } from './session-events.js';
+import type { CandidateScore, ProgressStep, AIThinkingData, AIContextData, ProgressData } from '../types/index.js';
 
-// ═════════════════════════════════════════════════════════════════════════════
-
-export interface CandidateScore {
-    time: string;
-    score: number;
-    stage: number;
-    rank?: number;
-}
+// Re-export types for backwards compatibility
+export type { CandidateScore, ProgressStep, AIThinkingData, AIContextData, ProgressData };
 
 // ═════════════════════════════════════════════════════════════════════════════
 // PROGRESS STEPS DEFINITION
 // ═════════════════════════════════════════════════════════════════════════════
-
-export interface ProgressStep {
-    id: string;
-    name: string;
-    icon: string;
-    status: 'pending' | 'running' | 'complete' | 'error';
-    message?: string;
-    details?: string[];
-    startedAt?: string;
-    completedAt?: string;
-}
-
-export interface AIThinkingData {
-    stage: number;
-    candidateTime?: string;
-    chunks: string[];
-    fullText: string;
-}
-
-export interface AIContextData {
-    stage: number;
-    candidateTime: string;
-    planetaryInfo: {
-        ascendant: string;
-        sun: string;
-        moon: string;
-    };
-    dasha: string;
-    divCharts?: string;
-    groundTruth?: any; // 🔱 The exact "format" sent to the AI
-}
-
-export interface ProgressData {
-    currentStep: number;
-    totalSteps: number;
-    percentage: number;
-    steps: ProgressStep[];
-    lastUpdate: string;
-    liveMessage?: string;
-    startedAt?: string; // ⏱️ Absolute session start time
-    candidateScores: CandidateScore[];
-    lastAIThinking?: AIThinkingData;
-    aiContext?: AIContextData;
-    stageHistory?: Record<number, string>; // 🏛️ Persistent reasoning history per stage
-    calculationLogs?: Array<{ candidateTime: string; log: string }>; // ⚡ Persistent Swiss Eph logs
-    estimatedTimeRemaining?: number; // ⏱️ In seconds
-}
 
 
 // 🔱 GOD-TIER BTR v7.0 STEPS (6-Stage Batch Tournament Pipeline)

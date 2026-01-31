@@ -1,14 +1,14 @@
 /**
  * 🔱 EPHEMERIS SERVICE - The Cosmic Calculator
  * =============================================
- * 
+ *
  * "Grahanaam param jyotir, jyotir aditya anuttamam"
  * Among the planets, the supreme light is the Sun.
- * 
+ *
  * This service calculates the exact positions of all celestial bodies
  * with NASA JPL DE431 precision. It is the foundation upon which
  * all Vedic astrology calculations rest.
- * 
+ *
  * RESPONSIBILITIES:
  * - Swiss Ephemeris integration with WASM
  * - High-precision planetary calculations (0.001° accuracy)
@@ -17,8 +17,57 @@
  * - House system calculations (Placidus, Whole Sign, KP)
  */
 
-import { CalculationService, EphemerisSnapshot, PlanetPosition, AscendantPosition, HousePosition, Dignity, BTREphemerisError } from '../architecture/BTRSystem.js';
 import { logger } from '../../lib/logger.js';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TYPES (Extracted from BTRSystem.ts - H1 Fix)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+type Dignity = 'exalted' | 'moolatrikona' | 'own' | 'friendly' | 'neutral' | 'enemy' | 'debilitated';
+
+interface PlanetPosition {
+  name: string;
+  longitude: number;
+  latitude: number;
+  distance: number;
+  sign: string;
+  degree: number;
+  nakshatra: string;
+  pada: number;
+  isRetrograde: boolean;
+  speed: number;
+  dignity: Dignity;
+  house: number;
+}
+
+interface AscendantPosition {
+  sign: string;
+  degree: number;
+  longitude: number;
+  nakshatra: string;
+}
+
+interface HousePosition {
+  number: number;
+  sign: string;
+  cusp: number;
+  lord: string;
+}
+
+interface EphemerisSnapshot {
+  planets: Record<string, PlanetPosition>;
+  ascendant: AscendantPosition;
+  houses: HousePosition[];
+  ayanamsa: number;
+  julianDay: number;
+}
+
+class BTREphemerisError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BTREphemerisError';
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS (The Eternal Laws)
@@ -198,17 +247,19 @@ class EphemerisCache {
 // MAIN SERVICE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export class EphemerisService extends CalculationService {
+export class EphemerisService {
   private swe: SwissEphInstance | null = null;
   private cache: EphemerisCache;
   private isHighPrecision = false;
+  private isInitialized = false;
 
   constructor(cacheSize = 1000) {
-    super('EphemerisService');
     this.cache = new EphemerisCache(cacheSize);
   }
 
-  protected async onInitialize(): Promise<void> {
+  async initialize(): Promise<void> {
+    if (this.isInitialized) return;
+    
     try {
       const { default: SwissEph } = await import('swisseph-wasm');
       const instance = new SwissEph();
@@ -243,16 +294,19 @@ export class EphemerisService extends CalculationService {
       };
 
       this.isHighPrecision = true;
+      this.isInitialized = true;
       logger.info('🔭 Swiss Ephemeris initialized (High Precision Mode)');
     } catch (error) {
       logger.warn('⚠️ Swiss Ephemeris failed, falling back to algorithmic mode', error);
       this.isHighPrecision = false;
+      this.isInitialized = true;
     }
   }
 
-  protected async onShutdown(): Promise<void> {
+  async shutdown(): Promise<void> {
     this.cache.clear();
     this.swe = null;
+    this.isInitialized = false;
     logger.info('🔭 Ephemeris service shut down');
   }
 
@@ -260,7 +314,7 @@ export class EphemerisService extends CalculationService {
     // Check cache first
     const cached = this.cache.get(input);
     if (cached) {
-      this.emit('cache_hit', { input });
+      logger.debug('Ephemeris cache hit', { input });
       return cached;
     }
 
@@ -271,7 +325,7 @@ export class EphemerisService extends CalculationService {
 
       // Cache the result
       this.cache.set(input, result);
-      this.emit('calculation_complete', { input, precision: this.isHighPrecision });
+      logger.debug('Ephemeris calculation complete', { input, precision: this.isHighPrecision });
 
       return result;
     } catch (error) {

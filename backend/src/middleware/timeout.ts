@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import type { Request, Response, NextFunction } from 'express';
-import { config } from '../config/env.js';
+import { config } from '../config/index.js';
 import { logger } from '../lib/logger.js';
 
 // ───────────────────────────────────────────────────────────────────────────────

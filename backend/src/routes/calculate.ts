@@ -1,43 +1,99 @@
 import { Router, Request, Response } from 'express';
+import { z } from 'zod';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { db } from '../database/drizzle.js';
 import { sessions } from '../database/schema.js';
-import { eq } from 'drizzle-orm';
 import { logger } from '../lib/logger.js';
-import {
-    generateCandidateTimes,
-    validateOffsetConfig,
-    TimeOffsetConfig,
-} from '../lib/time-offset-manager.js';
 import { addToQueue } from '../lib/queue-manager.js';
 import { encryptData } from '../lib/crypto.js';
-import { BirthData, LifeEvent } from '../lib/types.js';
+import type { BirthData, LifeEvent, TimeOffsetConfig } from '../types/index.js';
 
 const router = Router();
 
-interface CalculateRequest {
-    birthData: BirthData;
-    lifeEvents: LifeEvent[];
-    physicalTraits?: any;
-    forensicTraits?: any;
-    offsetConfig: TimeOffsetConfig;
-}
+// ═════════════════════════════════════════════════════════════════════════════
+// INPUT VALIDATION SCHEMAS (C3 Security - XSS/Injection Prevention)
+// ═════════════════════════════════════════════════════════════════════════════
 
-interface CalculateResponse {
-    success: boolean;
-    data?: {
-        sessionId: string;
-        position: number;
-        estimatedWaitSeconds: number;
-        status: string;
-    };
-    error?: string;
-}
+// Sanitize string to prevent XSS
+const sanitizeString = (val: string) => {
+    return val
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/javascript:/gi, '')
+        .replace(/on\w+\s*=/gi, '')
+        .trim();
+};
+
+// Life Event validation schema with sanitization
+const LifeEventSchema = z.object({
+    id: z.string().uuid().optional(),
+    eventType: z.string()
+        .min(1, "Event type is required")
+        .max(100, "Event type must be less than 100 characters")
+        .transform(sanitizeString),
+    category: z.enum(['career', 'marriage', 'education', 'health', 'family', 'travel', 'other', 'financial', 'relocation', 'childbirth']),
+    eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD required)"),
+    eventTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM required)").optional().nullable(),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid end date format").optional().nullable(),
+    datePrecision: z.enum(['exact_date_time', 'exact_date', 'month_year', 'month_range', 'year_range', 'date_range']),
+    description: z.string()
+        .max(2000, "Description must be less than 2000 characters")
+        .transform(sanitizeString)
+        .optional()
+        .nullable(),
+    importance: z.enum(['high', 'medium', 'low']).default('medium'),
+    createdAt: z.string().datetime().optional(),
+    updatedAt: z.string().datetime().optional(),
+});
+
+// Birth Data validation schema
+const BirthDataSchema = z.object({
+    fullName: z.string()
+        .min(1, "Full name is required")
+        .max(100, "Name must be less than 100 characters")
+        .transform(sanitizeString),
+    dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD required)"),
+    tentativeTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/, "Invalid time format (HH:MM:SS required)"),
+    birthPlace: z.string()
+        .min(1, "Birth place is required")
+        .max(200, "Birth place must be less than 200 characters")
+        .transform(sanitizeString),
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+    timezone: z.number().min(-12).max(14),
+    gender: z.enum(['male', 'female', 'other']).optional(),
+});
+
+// Offset Config validation schema
+const OffsetConfigSchema = z.object({
+    preset: z.enum(['30min', '1hour', '2hours', '4hours', '6hours', '12hours', 'seconds-30', 'seconds-6']),
+    customMinutes: z.number().min(1).max(720).optional(),
+    description: z.string().default(''),
+});
+
+// Main request validation schema
+const CalculateRequestSchema = z.object({
+    birthData: BirthDataSchema,
+    lifeEvents: z.array(LifeEventSchema)
+        .min(3, "At least 3 life events are required")
+        .max(100, "Maximum 100 life events allowed"),
+    physicalTraits: z.record(z.any()).optional().nullable(),
+    forensicTraits: z.record(z.any()).optional().nullable(),
+    offsetConfig: OffsetConfigSchema,
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ROUTE HANDLER
+// ═════════════════════════════════════════════════════════════════════════════
 
 /**
  * POST /api/calculate - Submit birth time rectification for processing
  * 
- * This endpoint creates a session and queues it for async processing.
+ * Flow:
+ * 1. Accept and validate the request
+ * 2. Create a session record
+ * 3. Add to processing queue
+ * 4. Return immediately with sessionId for polling
+ * 
  * The client should poll /api/queue/progress/:sessionId for results.
  */
 router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
@@ -45,46 +101,48 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
 
     try {
         const userId = req.userId!;
-        const body = req.body as CalculateRequest;
-        const { birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig } = body;
+        const body = req.body;
 
-        // Validate input
-        if (!birthData || !lifeEvents || lifeEvents.length < 3) {
+        // ═════════════════════════════════════════════════════════════════════
+        // Step 1: Validate Input
+        // ═════════════════════════════════════════════════════════════════════
+        const validationResult = CalculateRequestSchema.safeParse(body);
+        
+        if (!validationResult.success) {
+            const errors = validationResult.error.errors.map(err => ({
+                field: err.path.join('.'),
+                message: err.message,
+            }));
+            
+            logger.warn('Validation Failed - Invalid input rejected', {
+                userId: userId?.slice(0, 8),
+                errors,
+            });
+            
             res.status(400).json({
                 success: false,
-                error: 'Invalid input: need birthData and minimum 3 life events',
+                error: 'Validation failed',
+                details: errors,
             });
             return;
         }
+        
+        const { birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig } = validationResult.data;
 
-        // Validate offset configuration
-        const offsetValidation = validateOffsetConfig(offsetConfig);
-        if (!offsetValidation.valid) {
-            res.status(400).json({
-                success: false,
-                error: offsetValidation.error || 'Invalid offset configuration',
-            });
-            return;
-        }
-
-        logger.info('Birth time rectification request', {
+        logger.info('Birth time rectification request received', {
             userId,
             dateOfBirth: birthData.dateOfBirth,
             eventCount: lifeEvents.length,
             offsetConfig,
         });
 
-        // Create database session
+        // ═════════════════════════════════════════════════════════════════════
+        // Step 2: Create Database Session
+        // ═════════════════════════════════════════════════════════════════════
         const sessionId = crypto.randomUUID();
         const now = new Date().toISOString();
 
-        // 🔍 DIAGNOSTIC: Log encryption key info
-        logger.info('🔍 DIAGNOSTIC: Encrypting session data', {
-            userIdPrefix: userId.slice(0, 8),
-            userIdLength: userId.length,
-        });
-
-        // Encrypt sensitive data
+        // Encrypt sensitive data using clerkId as key
         const encryptedLifeEvents = encryptData(JSON.stringify(lifeEvents), userId);
         const encryptedPhysicalTraits = physicalTraits 
             ? encryptData(JSON.stringify(physicalTraits), userId)
@@ -116,7 +174,9 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
 
         logger.info('Database session created', { sessionId });
 
-        // Add to processing queue
+        // ═════════════════════════════════════════════════════════════════════
+        // Step 3: Add to Processing Queue
+        // ═════════════════════════════════════════════════════════════════════
         const queueResult = await addToQueue(sessionId);
 
         if (!queueResult.success) {
@@ -135,6 +195,9 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
 
         const totalProcessingTime = Date.now() - startTime;
 
+        // ═════════════════════════════════════════════════════════════════════
+        // Step 4: Return Immediately with SessionId
+        // ═════════════════════════════════════════════════════════════════════
         res.json({
             success: true,
             data: {
@@ -143,14 +206,14 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
                 estimatedWaitSeconds: queueResult.estimatedWaitSeconds || 0,
                 status: 'queued',
             },
-        } as CalculateResponse);
+        });
 
     } catch (error) {
         logger.error('Calculate endpoint error', error);
         res.status(500).json({
             success: false,
             error: error instanceof Error ? error.message : 'Internal server error',
-        } as CalculateResponse);
+        });
     }
 });
 

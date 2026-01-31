@@ -14,49 +14,10 @@
 import { calculateKPSubLords, KPCuspalData, calculateKPCuspalSubLords } from './kp-sublords.js';
 import { calculateConsensus, ConsensusResult, ValidationInput } from './consensus-engine.js';
 import { logger } from './logger.js';
+import type { GodTierEnhancement, CandidateWithGodTierData } from '../types/index.js';
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export interface GodTierEnhancement {
-  /** KP Sub-lord data for all planets */
-  kpSubLords: Record<string, {
-    starLord: string;
-    subLord: string;
-    subSubLord: string;
-    subSubSubLord: string;
-  }>;
-  
-  /** KP Cuspal sub-lords for all 12 houses */
-  cuspalSubLords: Record<number, {
-    house: number;
-    cusp: number;
-    sign: string;
-    starLord: string;
-    subLord: string;
-    subSubLord: string;
-  }>;
-  
-  /** Multi-method consensus scores */
-  consensus: ConsensusResult;
-  
-  /** God-Tier confidence indicator */
-  isGodTier: boolean;
-  
-  /** Recommended precision level */
-  recommendedPrecision: 'seconds' | 'sub-seconds' | 'minutes';
-}
-
-export interface CandidateWithGodTierData {
-  time: string;
-  offsetMinutes: number;
-  ephemeris: any;
-  dasha: any;
-  vargas: any;
-  kpData: any;
-  godTier?: GodTierEnhancement;
-}
+// Re-export types for backwards compatibility
+export type { GodTierEnhancement, CandidateWithGodTierData };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ENHANCEMENT FUNCTIONS

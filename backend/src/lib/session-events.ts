@@ -3,110 +3,34 @@
 
 import { EventEmitter } from 'events';
 import crypto from 'crypto';
+import type {
+    ProgressEvent,
+    AIThinkingEvent,
+    EphemerisEvent,
+    CandidateScoreEvent,
+    CompleteEvent,
+    ErrorEvent,
+    AIContextEvent,
+    CalculationLogEvent,
+    StageStatsEvent,
+    EstimatedTimeEvent,
+    SessionEvent
+} from '../types/index.js';
 
-// ═════════════════════════════════════════════════════════════════════════════
-// SESSION EVENT TYPES
-// ═════════════════════════════════════════════════════════════════════════════
-
-export interface ProgressEvent {
-    type: 'progress';
-    step: string;
-    stepIndex: number;
-    totalSteps: number;
-    percentage: number;
-    message: string;
-    details?: string[];
-}
-
-export interface AIThinkingEvent {
-    type: 'ai_thinking';
-    chunk: string;        // Partial thinking text
-    stage: number;        // Which BTR stage (2, 5, 7)
-    candidateTime?: string;
-}
-
-export interface EphemerisEvent {
-    type: 'ephemeris';
-    candidateTime: string;
-    ascendant: { sign: string; degree: number };
-    moonSign: string;
-    moonNakshatra: string;
-}
-
-export interface CandidateScoreEvent {
-    type: 'candidate_score' | 'candidate_score_v2';
-    time: string;
-    score: number;
-    stage: number;
-    rank?: number;
-    minifiedEph?: { sun: string; moon: string; ascendant: string };
-}
-
-export interface CompleteEvent {
-    type: 'complete';
-    rectifiedTime: string;
-    accuracy: number;
-    confidence: string;
-}
-
-export interface AIContextEvent {
-    type: 'ai_context';
-    stage: number;
-    candidateTime: string;
-    planetaryInfo?: {
-        sun: string;
-        moon: string;
-        ascendant: string;
-    };
-    dasha?: string;
-    divCharts?: string;
-    contextHits?: string[]; // 🔱 Narrative keyword matches
-    // 🔱 v7.0 Batch Tournament fields
-    round?: number;
-    batch?: number;
-    totalBatches?: number;
-    candidatesInBatch?: number;
-}
-
-export interface CalculationLogEvent {
-    type: 'calculation_log';
-    logId: string; // 🆔 Unique ID for deduplication
-    candidateTime: string;
-    sunPos: string;
-    moonPos: string;
-    ascendant: string;
-    dashaObj?: string; // Short dasha string
-}
-
-export interface ErrorEvent {
-    type: 'error';
-    message: string;
-    stage?: string;
-}
-
-export interface StageStatsEvent {
-    type: 'stage_stats';
-    stage: number;
-    candidateCount: number;
-    description: string;
-}
-
-export interface EstimatedTimeEvent {
-    type: 'estimated_time';
-    seconds: number;
-}
-
-export type SessionEvent =
-    | ProgressEvent
-    | AIThinkingEvent
-    | EphemerisEvent
-    | CandidateScoreEvent
-    | CompleteEvent
-    | ErrorEvent
-    | AIContextEvent
-    | CalculationLogEvent
-    | StageStatsEvent
-    | EstimatedTimeEvent;
+// Re-export types for backwards compatibility
+export type {
+    ProgressEvent,
+    AIThinkingEvent,
+    EphemerisEvent,
+    CandidateScoreEvent,
+    CompleteEvent,
+    ErrorEvent,
+    AIContextEvent,
+    CalculationLogEvent,
+    StageStatsEvent,
+    EstimatedTimeEvent,
+    SessionEvent
+};
 
 // ═════════════════════════════════════════════════════════════════════════════
 // GLOBAL SESSION EVENT EMITTER

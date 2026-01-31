@@ -47,6 +47,10 @@ const envSchema = z.object({
   CLERK_SECRET_KEY: z.string().min(1, 'Clerk secret key is required'),
   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1, 'Clerk publishable key is required'),
   
+  // Encryption
+  ENCRYPTION_SECRET: z.string().min(32, 'ENCRYPTION_SECRET must be at least 32 characters'),
+  
+  
   // Feature Flags
   ENABLE_DETAILED_LOGGING: z.string().transform((v) => v === 'true').default('false'),
   ENABLE_GOD_TIER_ENHANCEMENT: z.string().transform((v) => v === 'true').default('true'),
@@ -121,6 +125,21 @@ export const queueConfig = {
   contentionMultiplier: 0.25,
 } as const;
 
+// Legacy compatibility - health.ts uses performance.rssThresholdGB
+export const performanceConfig = {
+  maxConcurrentSessions: env.MAX_CONCURRENT_SESSIONS,
+  rssThresholdGB: env.GC_THRESHOLD_GB,
+  heapThresholdGB: Math.round(env.MEMORY_THRESHOLD_PERCENT / 10),
+} as const;
+
+// Legacy compatibility - health.ts uses app.nodeEnv
+export const appConfig = {
+  nodeEnv: env.NODE_ENV,
+  port: env.PORT,
+  isProduction: env.NODE_ENV === 'production',
+  isDevelopment: env.NODE_ENV === 'development',
+} as const;
+
 export const memoryConfig = {
   thresholdPercent: env.MEMORY_THRESHOLD_PERCENT,
   gcThresholdGB: env.GC_THRESHOLD_GB,
@@ -134,6 +153,10 @@ export const securityConfig = {
   clerkPublishableKey: env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
   rateLimitWindowMs: 60000, // 1 minute
   rateLimitMaxRequests: 100,
+} as const;
+
+export const encryptionConfig = {
+  secret: env.ENCRYPTION_SECRET || '',
 } as const;
 
 export const featureFlags = {
@@ -194,9 +217,13 @@ export const config = {
   queue: queueConfig,
   memory: memoryConfig,
   security: securityConfig,
+  encryption: encryptionConfig,
   features: featureFlags,
   btr: btrConfig,
   logging: loggingConfig,
+  // Legacy compatibility
+  performance: performanceConfig,
+  app: appConfig,
 } as const;
 
 export type Config = typeof config;

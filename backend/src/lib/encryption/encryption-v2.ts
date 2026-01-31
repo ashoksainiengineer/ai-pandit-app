@@ -1,17 +1,15 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * C5 FIX: Secure Encryption with Proper Key Derivation
+ * C5 FIX: Secure Encryption v2 with Proper Key Derivation
  * ═══════════════════════════════════════════════════════════════════════════════
  *
- * SECURITY FEATURES:
- * - PBKDF2 with 100,000 iterations (OWASP recommended)
- * - Random 16-byte salt per encryption
- * - Only uses ENCRYPTION_SECRET (no predictable userId)
- * - AES-256-GCM with authentication tag
+ * IMPROVEMENTS over v1:
+ * - Random salt per encryption (not static 'salt')
+ * - PBKDF2 with 100k iterations (slow brute force)
+ * - Only uses ENCRYPTION_SECRET (not predictable userId)
+ * - Salt stored WITH ciphertext
  *
  * Format: base64(salt):base64(iv):base64(authTag):base64(ciphertext)
- *
- * ⚠️ OLD DATA AUTO-CLEANUP: Any data with 3-part format (old v1) is rejected
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
@@ -23,7 +21,7 @@ import { logger } from '../logger.js';
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
-const PBKDF2_ITERATIONS = 100000; // OWASP recommended minimum (100ms+ computation)
+const PBKDF2_ITERATIONS = 100000;  // OWASP recommended minimum
 const KEY_LENGTH_BYTES = 32;
 const SALT_LENGTH_BYTES = 16;
 const IV_LENGTH_BYTES = 16;
@@ -34,53 +32,19 @@ const AUTH_TAG_LENGTH_BYTES = 16;
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Get encryption secret from environment
- */
-function getEncryptionSecret(): string {
-    const secret = process.env.ENCRYPTION_SECRET;
-    if (!secret) {
-        throw new Error('ENCRYPTION_SECRET environment variable is required');
-    }
-    return secret;
-}
-
-/**
  * C5 FIX: Proper key derivation using PBKDF2
- *
+ * 
  * Uses only the high-entropy ENCRYPTION_SECRET with a random salt
- * 100k iterations makes brute force computationally infeasible (~100ms per derivation)
+ * 100k iterations makes brute force computationally infeasible
  */
-function deriveKey(secret: string, salt: Buffer): Buffer {
-    return pbkdf2Sync(secret, salt, PBKDF2_ITERATIONS, KEY_LENGTH_BYTES, 'sha512');
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// OLD DATA DETECTION & CLEANUP
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * C5 FIX: Detect and reject OLD format (v1) data
- * OLD format: iv:authTag:ciphertext (3 parts)
- * NEW format: salt:iv:authTag:ciphertext (4 parts)
- */
-function isOldFormat(data: string): boolean {
-    if (!data || typeof data !== 'string') return false;
-    if (!data.includes(':')) return false;
-
-    const parts = data.split(':');
-    return parts.length === 3; // OLD format has 3 parts
-}
-
-/**
- * C5 FIX: Clean/reject old format data
- * Returns null to trigger data cleanup
- */
-function rejectOldFormat(data: string, context: string): null {
-    logger.error(`🧹 CLEANUP: Rejecting OLD format encrypted data in ${context}. Data will be cleared.`, {
-        dataPrefix: data.slice(0, 50),
-        parts: data.split(':').length,
-    });
-    return null;
+export function deriveKey(secret: string, salt: Buffer): Buffer {
+    return pbkdf2Sync(
+        secret,
+        salt,
+        PBKDF2_ITERATIONS,
+        KEY_LENGTH_BYTES,
+        'sha512'
+    );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -89,20 +53,18 @@ function rejectOldFormat(data: string, context: string): null {
 
 /**
  * C5 FIX: Encrypt data with secure key derivation
- *
- * Format: salt:iv:authTag:ciphertext
+ * 
+ * NEW Format: salt:iv:authTag:ciphertext
  * Each encryption uses a NEW random salt
  */
-export function encryptData(plaintext: string, _userId: string): string {
+export function encryptData(plaintext: string, secret: string): string {
     try {
-        const secret = getEncryptionSecret();
-
         // Generate random salt (unique per encryption)
         const salt = randomBytes(SALT_LENGTH_BYTES);
-
+        
         // Derive key using PBKDF2
         const key = deriveKey(secret, salt);
-
+        
         // Generate random IV
         const iv = randomBytes(IV_LENGTH_BYTES);
 
@@ -115,27 +77,26 @@ export function encryptData(plaintext: string, _userId: string): string {
         const authTag = cipher.getAuthTag();
 
         // Format: salt:iv:authTag:ciphertext
-        return [salt.toString('base64'), iv.toString('base64'), authTag.toString('base64'), ciphertext].join(':');
+        return [
+            salt.toString('base64'),
+            iv.toString('base64'),
+            authTag.toString('base64'),
+            ciphertext
+        ].join(':');
     } catch (error) {
-        logger.error('Encryption failed', { error });
+        logger.error('Encryption v2 failed', { error });
         throw new Error('Failed to encrypt data');
     }
 }
 
 /**
  * C5 FIX: Decrypt data with secure key derivation
- *
- * Expects format: salt:iv:authTag:ciphertext (4 parts)
- * REJECTS old format: iv:authTag:ciphertext (3 parts)
+ * 
+ * Expects format: salt:iv:authTag:ciphertext
+ * Extracts salt and derives key for decryption
  */
-export function decryptData(encryptedString: string, _userId: string): string {
+export function decryptData(encryptedString: string, secret: string): string {
     try {
-        // C5: Auto-cleanup old format data
-        if (isOldFormat(encryptedString)) {
-            throw new Error('OLD_FORMAT_DATA_DETECTED: This data uses weak encryption v1 and has been rejected for security. Please re-enter the data.');
-        }
-
-        const secret = getEncryptionSecret();
         const parts = encryptedString.split(':');
 
         if (parts.length !== 4) {
@@ -176,30 +137,25 @@ export function decryptData(encryptedString: string, _userId: string): string {
 
         return plaintext;
     } catch (error) {
-        logger.error('Decryption failed', { error });
+        logger.error('Decryption v2 failed', { error });
         throw new Error('Failed to decrypt data: invalid key or corrupted data');
     }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SAFE OPERATIONS
+// DETECTION
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Check if data is encrypted (NEW format only)
+ * Check if data is encrypted with NEW format (v2)
+ * NEW format has 4 parts: salt:iv:authTag:ciphertext
  */
 export function isEncrypted(data: string): boolean {
     if (!data || typeof data !== 'string') return false;
     if (!data.includes(':')) return false;
 
     const parts = data.split(':');
-
-    // C5: Reject old format (3 parts)
-    if (parts.length === 3) {
-        return false;
-    }
-
-    if (parts.length !== 4) return false;
+    if (parts.length !== 4) return false;  // NEW format has 4 parts
 
     // Check each part looks like base64
     const base64Pattern = /^[A-Za-z0-9+/=]+$/;
@@ -212,40 +168,38 @@ export function isEncrypted(data: string): boolean {
 }
 
 /**
- * Safe decrypt (returns null on failure)
- * Auto-rejects old format data
+ * Check if data might be OLD format (v1)
+ * OLD format has 3 parts: iv:authTag:ciphertext
  */
-export function safeDecrypt(encryptedString: string, userId: string): string | null {
-    try {
-        // C5: Auto-cleanup old format data
-        if (isOldFormat(encryptedString)) {
-            return rejectOldFormat(encryptedString, 'safeDecrypt');
-        }
+export function isEncryptedOldFormat(data: string): boolean {
+    if (!data || typeof data !== 'string') return false;
+    if (!data.includes(':')) return false;
 
+    const parts = data.split(':');
+    return parts.length === 3;  // OLD format has 3 parts
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SAFE OPERATIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export function safeDecrypt(encryptedString: string, secret: string): string | null {
+    try {
         if (!isEncrypted(encryptedString)) {
-            return encryptedString; // Plaintext
+            return encryptedString;  // Plaintext
         }
-        return decryptData(encryptedString, userId);
+        return decryptData(encryptedString, secret);
     } catch (error) {
-        logger.error('Safe decrypt failed', {
-            userId: userId.slice(0, 8),
-            error: error instanceof Error ? error.message : 'Unknown',
-        });
+        logger.error('Safe decrypt v2 failed', { error });
         return null;
     }
 }
 
-/**
- * Safe encrypt (returns null on failure)
- */
-export function safeEncrypt(plaintext: string, userId: string): string | null {
+export function safeEncrypt(plaintext: string, secret: string): string | null {
     try {
-        return encryptData(plaintext, userId);
+        return encryptData(plaintext, secret);
     } catch (error) {
-        logger.error('Safe encrypt failed', {
-            userId: userId.slice(0, 8),
-            error: error instanceof Error ? error.message : 'Unknown',
-        });
+        logger.error('Safe encrypt v2 failed', { error });
         return null;
     }
 }
@@ -254,16 +208,17 @@ export function safeEncrypt(plaintext: string, userId: string): string | null {
 // OBJECT SERIALIZATION
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export function encryptObject<T extends Record<string, unknown>>(obj: T, userId: string): string {
-    return encryptData(JSON.stringify(obj), userId);
+export function encryptObject<T extends Record<string, unknown>>(
+    obj: T,
+    secret: string
+): string {
+    return encryptData(JSON.stringify(obj), secret);
 }
 
-export function decryptObject<T extends Record<string, unknown>>(encryptedString: string, userId: string): T {
-    // C5: Auto-cleanup old format data
-    if (isOldFormat(encryptedString)) {
-        logger.error('🧹 CLEANUP: Rejecting OLD format object data');
-        throw new Error('OLD_FORMAT_DATA: Weak encryption data detected and rejected. Please re-enter data.');
-    }
-    const decrypted = decryptData(encryptedString, userId);
+export function decryptObject<T extends Record<string, unknown>>(
+    encryptedString: string,
+    secret: string
+): T {
+    const decrypted = decryptData(encryptedString, secret);
     return JSON.parse(decrypted) as T;
 }

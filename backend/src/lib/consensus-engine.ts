@@ -28,93 +28,22 @@
 
 import { logger } from './logger.js';
 import { calculateKPSubLords, KPCuspalData } from './kp-sublords.js';
+import type {
+  ConsensusScores,
+  ValidationDetail,
+  RedFlags,
+  ConsensusResult,
+  ValidationInput
+} from '../types/index.js';
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export interface ConsensusScores {
-  vimshottari: number;
-  yogini: number;
-  chara: number;
-  kalachakra: number;
-  kp: number;
-  ashtakavarga: number;
-  varga: number;
-  transit: number;
-  forensic: number;
-  ai: number;
-}
-
-export interface ValidationDetail {
-  method: string;
-  score: number;
-  maxScore: number;
-  status: 'pass' | 'warning' | 'fail';
-  details: string;
-  criticalFindings: string[];
-}
-
-export interface RedFlags {
-  /** Birth during sign/nakshatra transition */
-  sandhiBirth: boolean;
-  /** Birth at gandanta (water-fire junction) */
-  gandanta: boolean;
-  /** Birth during dasha transition */
-  dashaSandhi: boolean;
-  /** Methods disagree significantly */
-  conflictingMethods: boolean;
-  /** Key significators weak (Shadbala < 1.0) */
-  weakSignificators: boolean;
-  /** D60 changes in uncertainty window */
-  d60Instability: boolean;
-  /** Low confidence forensic match */
-  forensicMismatch: boolean;
-}
-
-export interface ConsensusResult {
-  /** Individual method scores (0-100) */
-  scores: ConsensusScores;
-  
-  /** Overall consensus score (weighted average) */
-  overallConsensus: number;
-  
-  /** Confidence classification */
-  confidenceLevel: 'GOD_TIER' | 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW';
-  
-  /** Margin of error in seconds */
-  marginOfError: number;
-  
-  /** Detailed validation breakdown */
-  validationDetails: ValidationDetail[];
-  
-  /** Warning flags */
-  redFlags: RedFlags;
-  
-  /** Primary evidence for rectified time */
-  keyEvidence: string[];
-  
-  /** Recommended actions for improvement */
-  recommendations: string[];
-  
-  /** Timestamp of validation */
-  validatedAt: Date;
-}
-
-export interface ValidationInput {
-  candidate: {
-    time: string;
-    ephemeris: any;
-    dasha: any;
-    vargas: any;
-    kpData: any;
-    aiScore?: number;
-    birthDate?: string;
-  };
-  events: any[];
-  forensicProfile: any;
-  tentativeTime: string;
-}
+// Re-export types for backwards compatibility
+export type {
+  ConsensusScores,
+  ValidationDetail,
+  RedFlags,
+  ConsensusResult,
+  ValidationInput
+};
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // WEIGHTS (Method Importance in Final Score)

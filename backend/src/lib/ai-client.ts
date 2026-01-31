@@ -6,7 +6,10 @@
 
 import { logger } from './logger.js';
 import { config } from '../config/index.js';
+import type { AIResponse, AIMessage } from '../types/index.js';
 
+// Re-export types for backwards compatibility
+export type { AIResponse, AIMessage };
 
 // ═════════════════════════════════════════════════════════════════════════════
 // AI CONFIGURATION
@@ -24,23 +27,6 @@ const AI_CONFIG = {
     retryDelayMs: config.ai.retryDelayMs,
     timeoutMs: config.ai.timeoutMs,
 };
-
-// ═════════════════════════════════════════════════════════════════════════════
-// RESPONSE TYPES
-// ═════════════════════════════════════════════════════════════════════════════
-
-export interface AIResponse {
-    success: boolean;
-    thinking?: string;       // Internal reasoning (if thinking mode)
-    content: string;         // Final analysis
-    tokensUsed?: number;
-    error?: string;
-}
-
-export interface AIMessage {
-    role: 'system' | 'user' | 'assistant';
-    content: string;
-}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // MAIN API CALL FUNCTION

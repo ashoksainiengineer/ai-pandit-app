@@ -1,17 +1,17 @@
 /**
  * 🔱 KP SUB-LORD CALCULATION SYSTEM (Krishnamurti Paddhati)
  * =========================================================
- * 
+ *
  * The precision layer of Vedic astrology. Sub-lords divide each nakshatra
  * into 9 parts proportional to Vimshottari dasha years, enabling timing
  * accuracy to seconds level.
- * 
+ *
  * KP HIERARCHY:
  * - Level 1: Star Lord (Nakshatra Lord) - 13°20' span
  * - Level 2: Sub Lord - Variable span based on dasha years
  * - Level 3: Sub-Sub Lord - Further subdivision
  * - Level 4: Sub-Sub-Sub Lord - Seconds-level precision
- * 
+ *
  * REFERENCE: Vimshottari Dasha Years
  * Ketu: 7, Venus: 20, Sun: 6, Moon: 10, Mars: 7,
  * Rahu: 18, Jupiter: 16, Saturn: 19, Mercury: 17
@@ -19,6 +19,10 @@
  */
 
 import { logger } from './logger.js';
+import type { KPSubLordData, KPCuspalData, KPEventCorrelation } from '../types/index.js';
+
+// Re-export types for backwards compatibility
+export type { KPSubLordData, KPCuspalData, KPEventCorrelation };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CONSTANTS
@@ -41,70 +45,6 @@ const DASHA_YEARS: Record<string, number> = {
 };
 
 const TOTAL_DASHA_YEARS = 120;
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
-
-export interface KPSubLordData {
-  /** Level 1: Nakshatra lord (13°20' span) */
-  readonly starLord: string;
-  
-  /** Level 2: Sub-lord (proportional to dasha years) */
-  readonly subLord: string;
-  
-  /** Level 3: Sub-sub-lord (deeper precision) */
-  readonly subSubLord: string;
-  
-  /** Level 4: Sub-sub-sub-lord (seconds-level precision) */
-  readonly subSubSubLord: string;
-  
-  /** Exact span of sub-lord in degrees */
-  readonly subSpan: number;
-  
-  /** Position within sub-lord (0-1) for next level calculation */
-  readonly positionInSub: number;
-}
-
-export interface KPCuspalData {
-  /** House number (1-12) */
-  readonly house: number;
-  
-  /** Cusp longitude */
-  readonly cusp: number;
-  
-  /** Sign on cusp */
-  readonly sign: string;
-  
-  /** Level 1: Star lord of cusp */
-  readonly starLord: string;
-  
-  /** Level 2: Sub-lord of cusp (critical for timing) */
-  readonly subLord: string;
-  
-  /** Level 3: Sub-sub-lord */
-  readonly subSubLord: string;
-}
-
-export interface KPEventCorrelation {
-  readonly eventId: string;
-  readonly eventDate: Date;
-  
-  /** Dasha lord at event time */
-  readonly dashaLord: string;
-  
-  /** Is dasha lord the sub-lord of event house cusp? */
-  readonly dashaLordAsCuspalSubLord: boolean;
-  
-  /** Is dasha lord the star lord of event significator? */
-  readonly dashaLordAsStarLord: boolean;
-  
-  /** Correlation score (0-100) */
-  readonly correlationScore: number;
-  
-  /** Timing precision indicator */
-  readonly timingPrecision: 'exact' | 'close' | 'approximate';
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // CORE CALCULATIONS

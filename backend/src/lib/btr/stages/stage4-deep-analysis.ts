@@ -1,0 +1,171 @@
+/**
+ * Stage 4: Deep Analysis
+ *
+ * Multi-dasha verification with deep forensic analysis on Stage 3 candidates.
+ * Uses parallel AI execution for comprehensive candidate evaluation.
+ */
+
+import { SecondsPrecisionInput, ForensicTraits } from '../../../types/index.js';
+import { CandidateTime, MAX_BATCH_SIZE, SURVIVORS_PER_BATCH, splitIntoBatches } from '../../time-offset-manager.js';
+import { ProgressTracker } from '../../progress-tracker.js';
+import { callAIWithStream, executeAIInParallel } from '../../ai-client.js';
+import { emitCandidateScore, emitAIContext } from '../../session-events.js';
+import { throwIfCancelled } from '../../cancellation-manager.js';
+import { cleanup } from '../../ephemeris.js';
+import { buildCandidateDataPackage } from '../data-package-builder.js';
+import { getDeepAnalysisPrompt } from '../prompts/index.js';
+import { extractBatchSurvivors } from '../extractors/index.js';
+import { CandidateDataPackage, StageResult } from '../types.js';
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+/**
+ * Stage 4: Deep multi-dasha analysis on refined candidates
+ *
+ * @param input - BTR input parameters
+ * @param candidates - Refined candidates from Stage 3
+ * @param progress - Progress tracker
+ * @param forensicTraits - User's forensic traits
+ * @param globalLifecycle - Pre-calculated lifecycle shifts
+ * @returns Deep analysis survivors and stage result
+ */
+export async function stage4DeepAnalysis(
+    input: SecondsPrecisionInput,
+    candidates: CandidateTime[],
+    progress: ProgressTracker,
+    forensicTraits: ForensicTraits,
+    globalLifecycle: any[] = []
+): Promise<{ survivors: CandidateTime[]; stageResult: StageResult; aiReasoning: string }> {
+    await progress.startStep('deep', 'Stage 4: Deep analysis tournament...');
+
+    let currentCandidates = [...candidates];
+    let allReasoning = '';
+
+    const batchSize = MAX_BATCH_SIZE;
+    const survivorsPerBatch = SURVIVORS_PER_BATCH;
+
+    const getMinifiedEphemerisInline = (c: CandidateDataPackage) => ({
+        sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
+        moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
+        ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
+    });
+
+    while (currentCandidates.length > batchSize) {
+        const batches = splitIntoBatches(currentCandidates, batchSize);
+        const batchSurvivors: CandidateTime[] = [];
+        const batchDataMap = new Map<number, CandidateDataPackage[]>();
+
+        const tasks = batches.map((batchTimes, i) => async () => {
+            const batchEnriched = await Promise.all(batchTimes.map(ct =>
+                buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
+                    includeFullData: true,
+                    dashaDepth: 3,
+                    lifecycleShifts: globalLifecycle
+                })
+            ));
+            batchDataMap.set(i, batchEnriched);
+
+            emitAIContext(input.sessionId, {
+                stage: 4,
+                candidateTime: `Deep Batch ${i + 1}/${batches.length}`,
+                batch: i + 1,
+                totalBatches: batches.length,
+                candidatesInBatch: batchEnriched.length
+            });
+
+            return callAIWithStream(
+                input.sessionId,
+                4,
+                'You are the GOD-TIER VEDIC ANALYST. Perform deep forensic multi-dasha verification.',
+                getDeepAnalysisPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData),
+                {
+                    candidateTime: `Deep ${i + 1}/${batches.length}`,
+                    progressTracker: progress
+                }
+            );
+        });
+
+        const results = await executeAIInParallel(tasks, 10, 100);
+
+        for (let i = 0; i < batches.length; i++) {
+            const batchTimes = batches[i];
+            const response = results[i];
+            const fullBatchData = batchDataMap.get(i) || [];
+            const aiContent = response.success ? (response.content || response.thinking || '') : '';
+            allReasoning += aiContent + '\n\n';
+
+            const survivorTimes = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), survivorsPerBatch);
+
+            for (let j = 0; j < fullBatchData.length; j++) {
+                const candidate = fullBatchData[j];
+                const originalTimeInfo = batchTimes[j];
+                const isSurvivor = survivorTimes.includes(candidate.time);
+                let score = 60;
+
+                if (isSurvivor) {
+                    score = 90;
+                    batchSurvivors.push(originalTimeInfo);
+                }
+
+                emitCandidateScore(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEphemerisInline(candidate));
+            }
+        }
+        currentCandidates = batchSurvivors;
+    }
+
+    // Final deep analysis on remaining candidates
+    if (currentCandidates.length > 0) {
+        const finalBatchData = await Promise.all(currentCandidates.map(ct =>
+            buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
+                includeFullData: true,
+                dashaDepth: 3,
+                lifecycleShifts: globalLifecycle
+            })
+        ));
+
+        const prompt = getDeepAnalysisPrompt(finalBatchData, input.lifeEvents, forensicTraits, input.spouseData);
+
+        const response = await callAIWithStream(
+            input.sessionId,
+            4,
+            'You are performing FINAL deep verification.',
+            prompt,
+            {
+                candidateTime: 'Deep Final',
+                progressTracker: progress
+            }
+        );
+
+        const aiContent = response.success ? (response.content || response.thinking || '') : '';
+        allReasoning += aiContent;
+
+        const survivorTimes = extractBatchSurvivors(aiContent, currentCandidates.map(c => c.time), 7);
+
+        const survivors: CandidateTime[] = [];
+        for (let j = 0; j < finalBatchData.length; j++) {
+            const candidate = finalBatchData[j];
+            const originalTimeInfo = currentCandidates[j];
+            const isSurvivor = survivorTimes.includes(candidate.time);
+            const score = isSurvivor ? 95 : 65;
+
+            if (isSurvivor) survivors.push(originalTimeInfo);
+
+            emitCandidateScore(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEphemerisInline(candidate));
+        }
+        currentCandidates = survivors;
+    }
+
+    await sleep(2000);
+    await progress.completeStep('deep', [`Deep analysis: ${currentCandidates.length} survivors`]);
+
+    return {
+        survivors: currentCandidates.slice(0, 7),
+        stageResult: {
+            stageNumber: 4,
+            stageName: 'Deep Multi-Dasha Analysis',
+            candidatesIn: candidates.length,
+            candidatesOut: Math.min(currentCandidates.length, 7)
+        },
+        aiReasoning: allReasoning
+    };
+}
