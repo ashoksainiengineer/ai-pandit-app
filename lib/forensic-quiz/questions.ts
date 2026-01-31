@@ -17,6 +17,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'Think about your natural tendency, not during dieting',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe your unique body type or dietary pattern...',
     confidenceImpact: 15,
     options: [
       {
@@ -64,6 +66,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'Your usual digestive experience',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe your digestion experience in your own words...',
     confidenceImpact: 15,
     options: [
       {
@@ -111,6 +115,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'Without alarms or obligations',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe your sleep habits and patterns...',
     confidenceImpact: 10,
     options: [
       {
@@ -158,6 +164,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'Your natural comfort zone',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe how different climates affect you...',
     confidenceImpact: 10,
     options: [
       {
@@ -205,6 +213,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'Natural rhythm without caffeine',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe your daily energy patterns...',
     confidenceImpact: 10,
     options: [
       {
@@ -256,6 +266,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'Look straight ahead, observe hairline position',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe your forehead shape and features...',
     confidenceImpact: 20,
     options: [
       {
@@ -307,6 +319,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'Natural resting position, don\'t strain',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe your eye shape, size, and appearance...',
     confidenceImpact: 20,
     options: [
       {
@@ -365,7 +379,9 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     question: 'What is your natural eye color?',
     context: 'Without contacts or enhancement',
     allowMultiple: false,
-    hasNotSureOption: false,
+    hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe your eye color and any unique features...',
     confidenceImpact: 5,
     options: [
       {
@@ -425,6 +441,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'Pull hair back, look at full face outline',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe your face shape and prominent features...',
     confidenceImpact: 10,
     options: [
       {
@@ -480,6 +498,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'Relax and speak normally, not trying to project',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe the quality and tone of your voice...',
     confidenceImpact: 15,
     options: [
       {
@@ -539,6 +559,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'With friends or colleagues, not formal settings',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe how you typically communicate with others...',
     confidenceImpact: 15,
     options: [
       {
@@ -590,6 +612,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'Meeting or social gathering with 4+ people',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe your behavior in group settings...',
     confidenceImpact: 10,
     options: [
       {
@@ -641,6 +665,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'Natural tendency, not trying to be loud or quiet',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe your natural speaking volume and style...',
     confidenceImpact: 10,
     options: [
       {
@@ -688,6 +714,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'Typical decision-making style',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe how you typically make decisions...',
     confidenceImpact: 20,
     options: [
       {
@@ -747,6 +775,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'Your immediate, natural reaction',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe how you react to stress and pressure...',
     confidenceImpact: 20,
     options: [
       {
@@ -806,6 +836,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'When you have control over your schedule',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe how you like to work and your productivity style...',
     confidenceImpact: 15,
     options: [
       {
@@ -857,6 +889,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'Your natural planning tendency',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe your approach to planning and organizing...',
     confidenceImpact: 10,
     options: [
       {
@@ -900,6 +934,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'Your natural reaction',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe how you handle disagreements and conflicts...',
     confidenceImpact: 10,
     options: [
       {
@@ -954,7 +990,9 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     question: 'Do you have any significant moles or birthmarks?',
     context: 'Since childhood, not recent',
     allowMultiple: true,
-    hasNotSureOption: false,
+    hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe any distinctive marks on your body...',
     confidenceImpact: 10,
     options: [
       {
@@ -1005,7 +1043,9 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     question: 'Any scars or distinctive marks from childhood?',
     context: 'Accidents, surgeries, or birth marks',
     allowMultiple: true,
-    hasNotSureOption: false,
+    hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe any scars or childhood marks...',
     confidenceImpact: 5,
     options: [
       {
@@ -1060,7 +1100,9 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     question: 'What is your birth order among siblings?',
     context: 'Full siblings from same parents',
     allowMultiple: false,
-    hasNotSureOption: false,
+    hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe your family position and sibling relationships...',
     confidenceImpact: 20,
     options: [
       {
@@ -1104,6 +1146,8 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     context: 'Ask older family member if unsure',
     allowMultiple: false,
     hasNotSureOption: true,
+    allowCustomAnswer: true,
+    customAnswerPlaceholder: 'Describe your father\'s occupation and situation when you were born...',
     confidenceImpact: 20,
     options: [
       {

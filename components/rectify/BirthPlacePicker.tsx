@@ -1,14 +1,13 @@
 /**
- * BirthPlacePicker Component
+ * BirthPlacePicker Component - Optimized
  * Sacred Ivory Light Theme - Compact God Tier Design
  */
 
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { debounce } from '@/lib/debounce';
-import { MapPin, Search, Crosshair, Globe } from 'lucide-react';
+import { MapPin, Search, Crosshair, Globe, X } from 'lucide-react';
 
 const InteractiveMap = dynamic(() => import('./InteractiveMap'), {
   ssr: false,
@@ -45,6 +44,30 @@ interface BirthPlacePickerProps {
 
 type InputMode = 'search' | 'manual' | 'map';
 
+// Cache for search results
+const searchCache = new Map<string, { results: LocationResult[]; timestamp: number }>();
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Timezone lookup
+const getTimezoneForCountry = (country: string, lng: number): string => {
+  const countryTimezones: Record<string, string> = {
+    'India': '5.5', 'Nepal': '5.75', 'Pakistan': '5', 'Bangladesh': '6',
+    'Sri Lanka': '5.5', 'Myanmar': '6.5', 'Thailand': '7', 'Vietnam': '7',
+    'Malaysia': '8', 'Singapore': '8', 'Indonesia': '7', 'Philippines': '8',
+    'China': '8', 'Japan': '9', 'South Korea': '9', 'Australia': '10',
+    'New Zealand': '12', 'United Kingdom': '0', 'United States': '-5',
+    'Canada': '-5', 'Brazil': '-3', 'Germany': '1', 'France': '1',
+    'Italy': '1', 'Spain': '1', 'Russia': '3', 'UAE': '4',
+    'Saudi Arabia': '3', 'South Africa': '2', 'Egypt': '2', 'Kenya': '3',
+    'Nigeria': '1',
+  };
+  for (const [countryName, tz] of Object.entries(countryTimezones)) {
+    if (country.toLowerCase().includes(countryName.toLowerCase())) return tz;
+  }
+  const offset = Math.round(lng / 15 * 2) / 2;
+  return offset.toString();
+};
+
 export default function BirthPlacePicker({ birthPlace, latitude, longitude, timezone, onUpdate }: BirthPlacePickerProps) {
   const [mode, setMode] = useState<InputMode>('search');
   const [searchQuery, setSearchQuery] = useState(birthPlace);
@@ -52,6 +75,7 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
   const [isSearching, setIsSearching] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<LocationResult | null>(null);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   const [manualLat, setManualLat] = useState(latitude ? latitude.toString() : '');
   const [manualLng, setManualLng] = useState(longitude ? longitude.toString() : '');
@@ -64,7 +88,10 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Click outside handler
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -75,58 +102,96 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const getTimezoneForCountry = (country: string, lng: number): string => {
-    const countryTimezones: Record<string, string> = {
-      'India': '5.5', 'Nepal': '5.75', 'Pakistan': '5', 'Bangladesh': '6',
-      'Sri Lanka': '5.5', 'Myanmar': '6.5', 'Thailand': '7', 'Vietnam': '7',
-      'Malaysia': '8', 'Singapore': '8', 'Indonesia': '7', 'Philippines': '8',
-      'China': '8', 'Japan': '9', 'South Korea': '9', 'Australia': '10',
-      'New Zealand': '12', 'United Kingdom': '0', 'United States': '-5',
-      'Canada': '-5', 'Brazil': '-3', 'Germany': '1', 'France': '1',
-      'Italy': '1', 'Spain': '1', 'Russia': '3', 'UAE': '4',
-      'Saudi Arabia': '3', 'South Africa': '2', 'Egypt': '2', 'Kenya': '3',
-      'Nigeria': '1',
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+      if (abortControllerRef.current) abortControllerRef.current.abort();
     };
-    for (const [countryName, tz] of Object.entries(countryTimezones)) {
-      if (country.toLowerCase().includes(countryName.toLowerCase())) return tz;
+  }, []);
+
+  // Search cities with debounce and cancellation
+  const searchCities = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setSearchResults([]);
+      setShowDropdown(false);
+      return;
     }
-    const offset = Math.round(lng / 15 * 2) / 2;
-    return offset.toString();
-  };
 
-  const searchCities = useCallback(
-    debounce(async (query: string) => {
-      if (query.length < 2) { setSearchResults([]); return; }
-      setIsSearching(true);
-      try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&addressdetails=1&accept-language=en`, { headers: { 'User-Agent': 'AIPandit/1.0' } });
-        if (!response.ok) throw new Error('Search failed');
-        const data = await response.json();
-        const results: LocationResult[] = data.map((item: any, index: number) => ({
-          id: `${index}-${item.place_id}`,
-          city: item.address?.city || item.address?.town || item.address?.village || item.address?.municipality || item.name || '',
-          district: item.address?.county || item.address?.state_district || '',
-          state: item.address?.state || '',
-          country: item.address?.country || '',
-          pincode: item.address?.postcode || '',
-          latitude: parseFloat(item.lat),
-          longitude: parseFloat(item.lon),
-          timezone: getTimezoneForCountry(item.address?.country || '', parseFloat(item.lon)),
-          displayName: item.display_name
-        }));
-        setSearchResults(results);
-        setShowDropdown(results.length > 0);
-      } catch (error) {
-        console.error('City search failed:', error);
-        setSearchResults([]);
-      } finally { setIsSearching(false); }
-    }, 300), []
-  );
+    // Check cache
+    const cached = searchCache.get(query);
+    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+      setSearchResults(cached.results);
+      setShowDropdown(cached.results.length > 0);
+      return;
+    }
 
-  const handleSearchChange = (value: string) => {
+    setIsSearching(true);
+    setSearchError(null);
+
+    // Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&accept-language=en`,
+        {
+          headers: { 'User-Agent': 'AIPandit/1.0' },
+          signal: abortControllerRef.current.signal
+        }
+      );
+
+      if (!response.ok) throw new Error('Search failed');
+      const data = await response.json();
+      const results: LocationResult[] = data.map((item: any, index: number) => ({
+        id: `${index}-${item.place_id}`,
+        city: item.address?.city || item.address?.town || item.address?.village || item.address?.municipality || item.name || '',
+        district: item.address?.county || item.address?.state_district || '',
+        state: item.address?.state || '',
+        country: item.address?.country || '',
+        pincode: item.address?.postcode || '',
+        latitude: parseFloat(item.lat),
+        longitude: parseFloat(item.lon),
+        timezone: getTimezoneForCountry(item.address?.country || '', parseFloat(item.lon)),
+        displayName: item.display_name
+      }));
+
+      // Cache results
+      searchCache.set(query, { results, timestamp: Date.now() });
+      setSearchResults(results);
+      setShowDropdown(results.length > 0);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+      console.error('City search failed:', error);
+      setSearchError('Search failed. Please try again.');
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  // Debounced search handler
+  const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value);
-    searchCities(value);
-  };
+    setSearchError(null);
+
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      searchCities(value);
+    }, 400);
+  }, [searchCities]);
+
+  // Clear search
+  const clearSearch = useCallback(() => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setShowDropdown(false);
+    setSearchError(null);
+    inputRef.current?.focus();
+  }, []);
 
   const handleSelectLocation = (location: LocationResult) => {
     setSelectedLocation(location);
@@ -192,15 +257,31 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
-              className="w-full h-10 px-4 pr-10 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm placeholder-[#A8A39D] focus:border-[#D4A853] focus:ring-2 focus:ring-[#D4A853]/10 outline-none"
+              className="w-full h-10 px-4 pr-20 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm placeholder-[#A8A39D] focus:border-[#D4A853] focus:ring-2 focus:ring-[#D4A853]/10 outline-none"
               placeholder="Type city name..."
             />
-            {isSearching && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="p-1 hover:bg-[#F5EFE7] rounded-full transition-colors"
+                >
+                  <X className="w-4 h-4 text-[#A8A39D]" />
+                </button>
+              )}
+              {isSearching && (
                 <div className="w-4 h-4 border-2 border-[#B8860B] border-t-transparent rounded-full animate-spin" />
-              </div>
-            )}
+              )}
+            </div>
           </div>
+
+          {/* Error Message */}
+          {searchError && (
+            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">
+              {searchError}
+            </div>
+          )}
 
           {showDropdown && searchResults.length > 0 && (
             <div className="absolute z-50 w-full mt-2 bg-white border border-[#E8E0D5] rounded-lg shadow-lg max-h-64 overflow-y-auto">

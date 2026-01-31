@@ -4,7 +4,7 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '../../../database/drizzle';
 import { sessions } from '../../../database/schema';
 import { eq } from 'drizzle-orm';
-import { encryptData } from '@/lib/crypto';
+import { encryptData } from '@/lib/encryption';
 import { env } from '@/lib/config';
 
 // ═════════════════════════════════════════════════════════════════════════════

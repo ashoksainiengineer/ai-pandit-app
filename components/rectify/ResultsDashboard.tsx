@@ -19,6 +19,24 @@ import { SwissEphPanel } from './SwissEphPanel';
 import { CandidateComparisonView } from './CandidateComparisonView';
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// THEME CONSTANTS - Sacred Ivory Light
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const THEME = {
+  bg: '#FFFCF8',
+  surface: 'white',
+  textPrimary: '#1A1612',
+  textSecondary: '#7A756F',
+  textMuted: '#A8A39D',
+  border: '#F0E8DE',
+  borderHover: '#E8E0D5',
+  gold: '#B8860B',
+  goldLight: '#D4A853',
+  success: '#2D7A5C',
+  error: '#C65D3B',
+} as const;
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -110,9 +128,9 @@ function sanitizeHtml(input: string): string {
   if (!input) return '';
   
   return input
-    .replace(/<script[^>]*>.*?<\/script>/gi, '')
-    .replace(/<iframe[^>]*>.*?<\/iframe>/gi, '')
-    .replace(/<object[^>]*>.*?<\/object>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '')
+    .replace(/<object[^>]*>[\s\S]*?<\/object>/gi, '')
     .replace(/<embed[^>]*>/gi, '')
     .replace(/javascript:/gi, '')
     .replace(/on\w+\s*=/gi, '')
@@ -208,16 +226,17 @@ class ResultsErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-[#0F1419] flex items-center justify-center p-6">
-          <div className="bg-[#151a21] border border-red-500/30 rounded-xl p-8 max-w-md text-center">
-            <AlertTriangle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-[#F5F0EB] mb-2">Something Went Wrong</h2>
-            <p className="text-[#8C7F72] text-sm mb-4">
+        <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: THEME.bg }}>
+          <div className="rounded-xl p-8 max-w-md text-center shadow-lg" style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.error}30` }}>
+            <AlertTriangle className="w-12 h-12 mx-auto mb-4" style={{ color: THEME.error }} />
+            <h2 className="text-xl font-bold mb-2" style={{ color: THEME.textPrimary }}>Something Went Wrong</h2>
+            <p className="text-sm mb-4" style={{ color: THEME.textSecondary }}>
               We encountered an error displaying your results. Please try refreshing the page.
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-[#D4AF37] text-[#0F1419] rounded-lg font-medium"
+              className="px-4 py-2 rounded-lg font-medium transition-colors"
+              style={{ backgroundColor: THEME.gold, color: 'white' }}
             >
               Refresh Page
             </button>
@@ -238,7 +257,7 @@ const STAGES: Stage[] = [
   { id: 1, name: 'Grid Generation', candidates: 60, color: 'from-slate-500 to-slate-600' },
   { id: 2, name: 'Coarse Analysis', candidates: 15, color: 'from-orange-500 to-amber-600' },
   { id: 3, name: 'Fine Grid', candidates: 100, color: 'from-cyan-500 to-blue-600' },
- { id: 4, name: 'Deep Analysis', candidates: 7, color: 'from-blue-500 to-indigo-600' },
+  { id: 4, name: 'Deep Analysis', candidates: 7, color: 'from-blue-500 to-indigo-600' },
   { id: 5, name: 'Micro Grid', candidates: 77, color: 'from-violet-500 to-purple-600' },
   { id: 6, name: 'Final Selection', candidates: 1, color: 'from-amber-500 to-yellow-500' },
 ];
@@ -259,9 +278,9 @@ function StageJourneyFunnel({ stageHistory }: { stageHistory?: StageHistory }) {
   const maxCandidates = useMemo(() => Math.max(...stages.map(s => s.candidates)), [stages]);
 
   return (
-    <div className="bg-[#151a21] border border-[#3A4452] rounded-xl p-6">
-      <h4 className="text-[#F5F0EB] font-bold mb-4 flex items-center gap-2">
-        <Filter className="w-4 h-4 text-[#D4AF37]" aria-hidden="true" />
+    <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}>
+      <h4 className="font-bold mb-4 flex items-center gap-2" style={{ color: THEME.textPrimary }}>
+        <Filter className="w-4 h-4" style={{ color: THEME.gold }} aria-hidden="true" />
         Stage Journey Funnel
       </h4>
       <div className="space-y-2" role="list" aria-label="Processing stages">
@@ -277,17 +296,18 @@ function StageJourneyFunnel({ stageHistory }: { stageHistory?: StageHistory }) {
               role="listitem"
             >
               <div 
-                className="w-8 h-8 rounded-lg bg-[#0F1419] border border-[#3A4452] flex items-center justify-center text-xs font-bold text-[#8C7F72]"
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold"
+                style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}`, color: THEME.textMuted }}
                 aria-label={`Stage ${stage.id}`}
               >
                 {stage.id}
               </div>
               <div className="flex-1">
                 <div className="flex justify-between text-[10px] mb-1">
-                  <span className="text-[#8C7F72] uppercase tracking-wider">{stage.name}</span>
-                  <span className="text-[#D4AF37] font-bold">{stage.candidates} candidates</span>
+                  <span style={{ color: THEME.textMuted }} className="uppercase tracking-wider">{stage.name}</span>
+                  <span className="font-bold" style={{ color: THEME.gold }}>{stage.candidates} candidates</span>
                 </div>
-                <div className="h-2 bg-[#0F1419] rounded-full overflow-hidden">
+                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: THEME.bg }}>
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${width}%` }}
@@ -304,9 +324,9 @@ function StageJourneyFunnel({ stageHistory }: { stageHistory?: StageHistory }) {
           );
         })}
       </div>
-      <div className="mt-4 pt-4 border-t border-[#3A4452] text-center">
-        <div className="text-[10px] text-[#8C7F72] uppercase tracking-wider mb-1">Convergence Ratio</div>
-        <div className="text-2xl font-black text-[#D4AF37]">
+      <div className="mt-4 pt-4 text-center" style={{ borderTop: `1px solid ${THEME.border}` }}>
+        <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: THEME.textMuted }}>Convergence Ratio</div>
+        <div className="text-2xl font-black" style={{ color: THEME.gold }}>
           {stages[0]?.candidates || 60} → 1
         </div>
       </div>
@@ -325,48 +345,68 @@ function BirthDetailsBanner({ birthData }: { birthData: BirthData | null | undef
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-r from-[#151a21] to-[#1A2433] border border-[#D4AF37]/20 rounded-xl p-4 mb-6"
+      className="rounded-xl p-4 mb-6 shadow-sm"
+      style={{ 
+        background: `linear-gradient(to right, ${THEME.surface}, #FDF9F3)`, 
+        border: `1px solid ${THEME.gold}20` 
+      }}
     >
       <div className="flex flex-wrap items-center gap-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#D4AF37]/10 flex items-center justify-center" aria-hidden="true">
-            <User className="w-5 h-5 text-[#D4AF37]" />
+          <div 
+            className="w-10 h-10 rounded-full flex items-center justify-center" 
+            style={{ backgroundColor: `${THEME.gold}10` }}
+            aria-hidden="true"
+          >
+            <User className="w-5 h-5" style={{ color: THEME.gold }} />
           </div>
           <div>
-            <div className="text-[9px] text-[#8C7F72] uppercase tracking-wider">Subject</div>
-            <div className="text-sm font-bold text-[#F5F0EB]">
+            <div className="text-[9px] uppercase tracking-wider" style={{ color: THEME.textMuted }}>Subject</div>
+            <div className="text-sm font-bold" style={{ color: THEME.textPrimary }}>
               {sanitizeHtml(truncateText(birthData.fullName, 50)) || 'N/A'}
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center" aria-hidden="true">
-            <Calendar className="w-5 h-5 text-purple-400" />
+          <div 
+            className="w-10 h-10 rounded-full flex items-center justify-center" 
+            style={{ backgroundColor: '#8B5CF610' }}
+            aria-hidden="true"
+          >
+            <Calendar className="w-5 h-5" style={{ color: '#8B5CF6' }} />
           </div>
           <div>
-            <div className="text-[9px] text-[#8C7F72] uppercase tracking-wider">Date of Birth</div>
-            <div className="text-sm font-bold text-[#F5F0EB]">{formatDate(birthData.dateOfBirth)}</div>
+            <div className="text-[9px] uppercase tracking-wider" style={{ color: THEME.textMuted }}>Date of Birth</div>
+            <div className="text-sm font-bold" style={{ color: THEME.textPrimary }}>{formatDate(birthData.dateOfBirth)}</div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center" aria-hidden="true">
-            <Clock className="w-5 h-5 text-blue-400" />
+          <div 
+            className="w-10 h-10 rounded-full flex items-center justify-center" 
+            style={{ backgroundColor: '#3B82F610' }}
+            aria-hidden="true"
+          >
+            <Clock className="w-5 h-5" style={{ color: '#3B82F6' }} />
           </div>
           <div>
-            <div className="text-[9px] text-[#8C7F72] uppercase tracking-wider">Tentative Time</div>
-            <div className="text-sm font-bold text-[#F5F0EB]">{birthData.tentativeTime || 'N/A'}</div>
+            <div className="text-[9px] uppercase tracking-wider" style={{ color: THEME.textMuted }}>Tentative Time</div>
+            <div className="text-sm font-bold" style={{ color: THEME.textPrimary }}>{birthData.tentativeTime || 'N/A'}</div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center" aria-hidden="true">
-            <MapPin className="w-5 h-5 text-emerald-400" />
+          <div 
+            className="w-10 h-10 rounded-full flex items-center justify-center" 
+            style={{ backgroundColor: '#10B98110' }}
+            aria-hidden="true"
+          >
+            <MapPin className="w-5 h-5" style={{ color: '#10B981' }} />
           </div>
           <div>
-            <div className="text-[9px] text-[#8C7F72] uppercase tracking-wider">Birth Place</div>
-            <div className="text-sm font-bold text-[#F5F0EB] max-w-[200px] truncate">
+            <div className="text-[9px] uppercase tracking-wider" style={{ color: THEME.textMuted }}>Birth Place</div>
+            <div className="text-sm font-bold max-w-[200px] truncate" style={{ color: THEME.textPrimary }}>
               {sanitizeHtml(truncateText(birthData.birthPlace, 100)) || 'N/A'}
             </div>
           </div>
@@ -400,12 +440,12 @@ function EventMatchGrid({
 
   if (!eventMatches.length) {
     return (
-      <div className="bg-[#151a21] border border-[#3A4452] rounded-xl p-6">
-        <h4 className="text-[#F5F0EB] font-bold mb-4 flex items-center gap-2">
-          <CheckCircle className="w-4 h-4 text-[#D4AF37]" aria-hidden="true" />
+      <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}>
+        <h4 className="font-bold mb-4 flex items-center gap-2" style={{ color: THEME.textPrimary }}>
+          <CheckCircle className="w-4 h-4" style={{ color: THEME.gold }} aria-hidden="true" />
           Event Correlation Audit
         </h4>
-        <div className="text-center text-[#8C7F72] text-sm italic py-4">
+        <div className="text-center text-sm italic py-4" style={{ color: THEME.textSecondary }}>
           No event correlations available yet.
         </div>
       </div>
@@ -413,39 +453,40 @@ function EventMatchGrid({
   }
 
   return (
-    <div className="bg-[#151a21] border border-[#3A4452] rounded-xl p-6">
-      <h4 className="text-[#F5F0EB] font-bold mb-4 flex items-center gap-2">
-        <CheckCircle className="w-4 h-4 text-[#D4AF37]" aria-hidden="true" />
+    <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}>
+      <h4 className="font-bold mb-4 flex items-center gap-2" style={{ color: THEME.textPrimary }}>
+        <CheckCircle className="w-4 h-4" style={{ color: THEME.gold }} aria-hidden="true" />
         Event Correlation Audit
       </h4>
       <div className="space-y-2">
         {eventMatches.map((evt: EventMatch, idx: number) => (
           <div 
             key={idx} 
-            className="flex items-center justify-between p-3 bg-[#0F1419] rounded-lg border border-[#3A4452]/50"
+            className="flex items-center justify-between p-3 rounded-lg"
+            style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}80` }}
           >
             <div className="flex items-center gap-3">
               <div 
-                className={`w-6 h-6 rounded-full flex items-center justify-center ${
-                  evt.match ? 'bg-emerald-500/20' : 'bg-amber-500/20'
-                }`}
+                className={`w-6 h-6 rounded-full flex items-center justify-center`}
+                style={{ backgroundColor: evt.match ? `${THEME.success}20` : '#F59E0B20' }}
                 aria-hidden="true"
               >
                 {evt.match ? (
-                  <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+                  <CheckCircle className="w-3.5 h-3.5" style={{ color: THEME.success }} />
                 ) : (
-                  <Activity className="w-3.5 h-3.5 text-amber-400" />
+                  <Activity className="w-3.5 h-3.5" style={{ color: '#F59E0B' }} />
                 )}
               </div>
-              <span className="text-sm text-[#F5F0EB]">
+              <span className="text-sm" style={{ color: THEME.textPrimary }}>
                 {sanitizeHtml(evt.event || evt.name || 'Unknown Event')}
               </span>
             </div>
             <div className="text-right">
-              <div className="text-xs font-mono text-[#D4AF37]">{evt.dasha || 'N/A'}</div>
-              <div className={`text-[9px] uppercase tracking-wider ${
-                evt.match ? 'text-emerald-400' : 'text-amber-400'
-              }`}>
+              <div className="text-xs font-mono" style={{ color: THEME.gold }}>{evt.dasha || 'N/A'}</div>
+              <div 
+                className="text-[9px] uppercase tracking-wider"
+                style={{ color: evt.match ? THEME.success : '#F59E0B' }}
+              >
                 {evt.match ? 'Strong Match' : 'Partial'}
               </div>
             </div>
@@ -508,20 +549,23 @@ function FormattedAIReasoning({
 
   if (!rawText) {
     return (
-      <div className="text-center text-[#3A4452] italic py-10">
+      <div className="text-center italic py-10" style={{ color: THEME.textMuted }}>
         [AI Reasoning data not available for this session]
       </div>
     );
   }
 
   return (
-    <div className="bg-[#0F1419] rounded-xl border border-[#3A4452] p-6">
+    <div 
+      className="rounded-xl p-6"
+      style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}` }}
+    >
       <div className="flex items-center justify-between mb-4">
-        <h4 className="text-[#F5F0EB] font-bold flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-[#D4AF37]" aria-hidden="true" />
+        <h4 className="font-bold flex items-center gap-2" style={{ color: THEME.textPrimary }}>
+          <Sparkles className="w-4 h-4" style={{ color: THEME.gold }} aria-hidden="true" />
           AI Reasoning Transcript
         </h4>
-        <span className="text-[10px] text-[#8C7F72] font-mono">{rawText.length.toLocaleString()} chars</span>
+        <span className="text-[10px] font-mono" style={{ color: THEME.textMuted }}>{rawText.length.toLocaleString()} chars</span>
       </div>
 
       <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
@@ -529,15 +573,31 @@ function FormattedAIReasoning({
           if (section.type === 'header') {
             return (
               <div key={section.key} className="mb-4">
-                <div className="inline-block px-2 py-1 bg-[#D4AF37]/10 text-[#D4AF37] text-[10px] font-bold uppercase tracking-wider rounded border border-[#D4AF37]/20 mb-2">
+                <div 
+                  className="inline-block px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded mb-2"
+                  style={{ 
+                    backgroundColor: `${THEME.gold}10`, 
+                    color: THEME.gold, 
+                    border: `1px solid ${THEME.gold}20` 
+                  }}
+                >
                   {section.header}
                 </div>
-                <p className="text-[#C4B8AD] text-sm leading-relaxed whitespace-pre-wrap">{section.content}</p>
+                <p 
+                  className="text-sm leading-relaxed whitespace-pre-wrap"
+                  style={{ color: THEME.textSecondary }}
+                >
+                  {section.content}
+                </p>
               </div>
             );
           }
           return (
-            <p key={section.key} className="text-[#C4B8AD] text-sm leading-relaxed mb-2 whitespace-pre-wrap">
+            <p 
+              key={section.key} 
+              className="text-sm leading-relaxed mb-2 whitespace-pre-wrap"
+              style={{ color: THEME.textSecondary }}
+            >
               {section.content}
             </p>
           );
@@ -547,7 +607,12 @@ function FormattedAIReasoning({
       {rawText.length > 1000 && (
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="mt-4 w-full py-2 bg-[#151a21] border border-[#3A4452] rounded-lg text-[#D4AF37] text-sm font-bold hover:bg-[#1A2433] transition-colors flex items-center justify-center gap-2"
+          className="mt-4 w-full py-2 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2"
+          style={{ 
+            backgroundColor: THEME.surface, 
+            border: `1px solid ${THEME.border}`, 
+            color: THEME.gold 
+          }}
           aria-expanded={isExpanded}
         >
           {isExpanded ? (
@@ -641,21 +706,28 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
     if (entries.length === 0) return null;
 
     return (
-      <div className="bg-[#0F1419] rounded-lg border border-[#3A4452] p-4 font-mono text-sm">
+      <div 
+        className="rounded-lg p-4 font-mono text-sm"
+        style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}` }}
+      >
         <table className="w-full text-left">
           <thead>
-            <tr className="border-b border-[#3A4452] text-[#8C7F72]">
-              <th className="py-2">Methodology</th>
-              <th className="py-2 text-right">Score Impact</th>
+            <tr style={{ borderBottom: `1px solid ${THEME.border}` }}>
+              <th className="py-2" style={{ color: THEME.textMuted }}>Methodology</th>
+              <th className="py-2 text-right" style={{ color: THEME.textMuted }}>Score Impact</th>
             </tr>
           </thead>
           <tbody>
             {entries.map(([key, val]) => (
-              <tr key={key} className="border-b border-[#3A4452]/50 last:border-0 hover:bg-[#151a21]">
-                <td className="py-2 text-[#F5F0EB] capitalize">
+              <tr 
+                key={key} 
+                style={{ borderBottom: `1px solid ${THEME.border}80` }}
+                className="last:border-0 hover:bg-white/50"
+              >
+                <td className="py-2 capitalize" style={{ color: THEME.textPrimary }}>
                   {key.replace(/([A-Z])/g, ' $1').trim()}
                 </td>
-                <td className="py-2 text-right text-[#D4AF37] font-bold">+{val as number}</td>
+                <td className="py-2 text-right font-bold" style={{ color: THEME.gold }}>+{val as number}</td>
               </tr>
             ))}
           </tbody>
@@ -677,21 +749,21 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
       const pageWidth = doc.internal.pageSize.getWidth();
 
       // Header
-      doc.setFillColor(15, 20, 25);
+      doc.setFillColor(255, 252, 248);
       doc.rect(0, 0, pageWidth, 40, 'F');
 
-      doc.setTextColor(212, 175, 55);
+      doc.setTextColor(184, 134, 11);
       doc.setFontSize(22);
       doc.setFont('helvetica', 'bold');
       doc.text('AI-PANDIT RECTIFICATION REPORT', pageWidth / 2, 20, { align: 'center' });
 
       doc.setFontSize(10);
-      doc.setTextColor(200, 200, 200);
+      doc.setTextColor(122, 117, 111);
       doc.text(`Session ID: ${sessionId}`, pageWidth / 2, 30, { align: 'center' });
 
       // Executive Summary
       let yPos = 55;
-      doc.setTextColor(0, 0, 0);
+      doc.setTextColor(26, 22, 18);
       doc.setFontSize(16);
       doc.setFont('helvetica', 'bold');
       doc.text('EXECUTIVE SUMMARY', 20, yPos);
@@ -708,18 +780,18 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
 
       // Verdict Box
       yPos += 25;
-      doc.setFillColor(245, 240, 235);
-      doc.setDrawColor(212, 175, 55);
+      doc.setFillColor(255, 252, 248);
+      doc.setDrawColor(184, 134, 11);
       doc.roundedRect(15, yPos, pageWidth - 30, 40, 3, 3, 'FD');
 
       yPos += 15;
       doc.setFontSize(14);
-      doc.setTextColor(100, 100, 100);
+      doc.setTextColor(122, 117, 111);
       doc.text('RECTIFIED BIRTH TIME', pageWidth / 2, yPos, { align: 'center' });
 
       yPos += 12;
       doc.setFontSize(24);
-      doc.setTextColor(212, 175, 55);
+      doc.setTextColor(184, 134, 11);
       doc.setFont('helvetica', 'bold');
       doc.text(data.rectifiedTime, pageWidth / 2, yPos, { align: 'center' });
 
@@ -734,7 +806,7 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
           ['Margin of Error', `±${data.marginOfError || 3} Seconds`, 'PASS'],
         ],
         theme: 'grid',
-        headStyles: { fillColor: [15, 20, 25], textColor: [212, 175, 55] },
+        headStyles: { fillColor: [255, 252, 248], textColor: [184, 134, 11] },
         styles: { fontSize: 10, cellPadding: 5 }
       });
 
@@ -782,20 +854,36 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
   }, [analysisDetails?.alternatives, data.rectifiedTime, data.accuracy]);
 
   return (
-    <div className="bg-[#0F1419] min-h-screen text-[#F5F0EB] font-sans">
+    <div className="min-h-screen font-sans" style={{ backgroundColor: THEME.bg, color: THEME.textPrimary }}>
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-[#0F1419]/90 backdrop-blur-xl border-b border-[#D4AF37]/10">
+      <nav 
+        className="sticky top-0 z-50 backdrop-blur-xl border-b"
+        style={{ backgroundColor: `${THEME.bg}90`, borderColor: `${THEME.gold}10` }}
+      >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-3 group">
-              <span className="font-bold text-xl text-[#D4AF37] tracking-tight">AI Pandit</span>
+              <span 
+                className="font-bold text-xl tracking-tight"
+                style={{ color: THEME.gold }}
+              >
+                AI Pandit
+              </span>
             </Link>
 
             <div className="hidden md:flex items-center gap-6">
-              <Link href="/dashboard" className="text-sm font-medium text-[#C4B8AD] hover:text-[#D4AF37] transition-colors">
+              <Link 
+                href="/dashboard" 
+                className="text-sm font-medium transition-colors hover:text-[#B8860B]"
+                style={{ color: THEME.textSecondary }}
+              >
                 Dashboard
               </Link>
-              <Link href="/rectify" className="text-sm font-medium text-[#C4B8AD] hover:text-[#D4AF37] transition-colors">
+              <Link 
+                href="/rectify" 
+                className="text-sm font-medium transition-colors hover:text-[#B8860B]"
+                style={{ color: THEME.textSecondary }}
+              >
                 New Analysis
               </Link>
             </div>
@@ -804,16 +892,30 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
           <div className="flex items-center gap-3">
             <button
               onClick={copyShareLink}
-              className="px-4 py-2 bg-[#1A2433] border border-[#3A4452] rounded-lg text-sm font-medium text-[#C4B8AD] hover:border-[#D4AF37]/50 hover:text-[#D4AF37] transition-all flex items-center gap-2"
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 hover:shadow-md"
+              style={{ 
+                backgroundColor: THEME.surface, 
+                border: `1px solid ${THEME.border}`, 
+                color: THEME.textSecondary 
+              }}
               aria-label={copied ? 'Link copied' : 'Copy share link'}
             >
-              {copied ? <CheckCircle className="w-4 h-4 text-emerald-400" aria-hidden="true" /> : <Copy className="w-4 h-4" aria-hidden="true" />}
+              {copied ? (
+                <CheckCircle className="w-4 h-4" style={{ color: THEME.success }} aria-hidden="true" />
+              ) : (
+                <Copy className="w-4 h-4" aria-hidden="true" />
+              )}
               <span className="hidden sm:inline">{copied ? 'Copied!' : 'Share'}</span>
             </button>
 
             <button
               onClick={exportJSON}
-              className="px-4 py-2 bg-[#1A2433] border border-[#3A4452] rounded-lg text-sm font-medium text-[#C4B8AD] hover:border-[#D4AF37]/50 hover:text-[#D4AF37] transition-all flex items-center gap-2"
+              className="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 hover:shadow-md"
+              style={{ 
+                backgroundColor: THEME.surface, 
+                border: `1px solid ${THEME.border}`, 
+                color: THEME.textSecondary 
+              }}
               aria-label="Export as JSON"
             >
               <ExternalLink className="w-4 h-4" aria-hidden="true" />
@@ -823,11 +925,16 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
             <button
               onClick={generatePDF}
               disabled={isGenerating}
-              className="bg-gradient-to-r from-[#D4AF37] to-[#C9A961] hover:opacity-90 text-[#0F1419] px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all shadow-lg shadow-[#D4AF37]/10 disabled:opacity-50"
+              className="px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all disabled:opacity-50 hover:shadow-lg"
+              style={{ 
+                background: `linear-gradient(to right, ${THEME.gold}, ${THEME.goldLight})`, 
+                color: 'white',
+                boxShadow: `0 4px 14px ${THEME.gold}20`
+              }}
               aria-label="Download PDF report"
             >
               {isGenerating ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#0F1419]" aria-hidden="true" />
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white" aria-hidden="true" />
               ) : (
                 <Download className="w-4 h-4" aria-hidden="true" />
               )}
@@ -847,19 +954,47 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
         {/* Left Column: KPI Dashboard */}
         <div className="lg:col-span-4 space-y-6">
           {/* Rectified Time Card */}
-          <div className="bg-[#151a21] border border-[#D4AF37] rounded-xl p-8 text-center shadow-[0_0_30px_rgba(212,175,55,0.1)] relative overflow-hidden group">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#D4AF37] to-transparent opacity-50" />
+          <div 
+            className="rounded-xl p-8 text-center relative overflow-hidden group shadow-lg"
+            style={{ 
+              backgroundColor: THEME.surface, 
+              border: `2px solid ${THEME.gold}`,
+              boxShadow: `0 0 30px ${THEME.gold}10`
+            }}
+          >
+            <div 
+              className="absolute top-0 left-0 w-full h-1 opacity-50"
+              style={{ background: `linear-gradient(to right, transparent, ${THEME.gold}, transparent)` }}
+            />
 
-            <h3 className="text-[#8C7F72] uppercase tracking-[0.2em] text-xs mb-4 font-mono">Rectified Birth Time</h3>
-            <div className="text-5xl font-bold text-[#D4AF37] font-mono tracking-tighter mb-4">
+            <h3 
+              className="uppercase tracking-[0.2em] text-xs mb-4 font-mono"
+              style={{ color: THEME.textMuted }}
+            >
+              Rectified Birth Time
+            </h3>
+            <div 
+              className="text-5xl font-bold font-mono tracking-tighter mb-4"
+              style={{ color: THEME.gold }}
+            >
               {data.rectifiedTime}
             </div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#D4AF37]/10 border border-[#D4AF37]/50 rounded-full text-[#D4AF37] text-xs font-bold uppercase tracking-wide mb-3">
+            <div 
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-3"
+              style={{ 
+                backgroundColor: `${THEME.gold}10`, 
+                border: `1px solid ${THEME.gold}50`, 
+                color: THEME.gold 
+              }}
+            >
               <CheckCircle className="w-3 h-3" aria-hidden="true" />
               Confidence: {data.accuracy}%
             </div>
             {data.accuracy > 90 && (
-              <div className="flex items-center justify-center gap-2 text-[10px] text-[#D4AF37] font-black uppercase tracking-[0.2em] animate-pulse mt-2">
+              <div 
+                className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] animate-pulse mt-2"
+                style={{ color: THEME.gold }}
+              >
                 <ShieldCheck className="w-4 h-4" aria-hidden="true" />
                 🔱 God-Tier Precision
               </div>
@@ -868,21 +1003,62 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
 
           {/* Technical Metrics */}
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-[#151a21] border border-[#3A4452] rounded-xl p-4 hover:border-[#D4AF37]/50 transition-colors">
-              <div className="text-[#8C7F72] text-[10px] uppercase font-mono mb-1">Process Stages</div>
-              <div className="text-xl font-bold font-mono text-white">{data.stagesCompleted || 6} / 6</div>
+            <div 
+              className="rounded-xl p-4 transition-all hover:shadow-md"
+              style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}
+            >
+              <div 
+                className="text-[10px] uppercase font-mono mb-1"
+                style={{ color: THEME.textMuted }}
+              >
+                Process Stages
+              </div>
+              <div className="text-xl font-bold font-mono" style={{ color: THEME.textPrimary }}>
+                {data.stagesCompleted || 6} / 6
+              </div>
             </div>
-            <div className="bg-[#151a21] border border-[#3A4452] rounded-xl p-4 hover:border-[#D4AF37]/50 transition-colors">
-              <div className="text-[#8C7F72] text-[10px] uppercase font-mono mb-1">Grid Resolution</div>
-              <div className="text-xl font-bold font-mono text-white">±{data.marginOfError || 3}s</div>
+            <div 
+              className="rounded-xl p-4 transition-all hover:shadow-md"
+              style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}
+            >
+              <div 
+                className="text-[10px] uppercase font-mono mb-1"
+                style={{ color: THEME.textMuted }}
+              >
+                Grid Resolution
+              </div>
+              <div className="text-xl font-bold font-mono" style={{ color: THEME.textPrimary }}>
+                ±{data.marginOfError || 3}s
+              </div>
             </div>
-            <div className="bg-[#151a21] border border-[#3A4452] rounded-xl p-4 hover:border-[#D4AF37]/50 transition-colors">
-              <div className="text-[#8C7F72] text-[10px] uppercase font-mono mb-1">AI Model</div>
-              <div className="text-sm font-bold font-mono text-[#D4AF37]">DeepSeek R1</div>
+            <div 
+              className="rounded-xl p-4 transition-all hover:shadow-md"
+              style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}
+            >
+              <div 
+                className="text-[10px] uppercase font-mono mb-1"
+                style={{ color: THEME.textMuted }}
+              >
+                AI Model
+              </div>
+              <div className="text-sm font-bold font-mono" style={{ color: THEME.gold }}>DeepSeek R1</div>
             </div>
-            <div className="bg-[#151a21] border border-[#3A4452] rounded-xl p-4 hover:border-[#D4AF37]/50 transition-colors">
-              <div className="text-[#8C7F72] text-[10px] uppercase font-mono mb-1">Confidence</div>
-              <div className="text-xl font-bold font-mono text-emerald-400">{data.confidence}</div>
+            <div 
+              className="rounded-xl p-4 transition-all hover:shadow-md"
+              style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}
+            >
+              <div 
+                className="text-[10px] uppercase font-mono mb-1"
+                style={{ color: THEME.textMuted }}
+              >
+                Confidence
+              </div>
+              <div 
+                className="text-xl font-bold font-mono"
+                style={{ color: THEME.success }}
+              >
+                {data.confidence}
+              </div>
             </div>
           </div>
 
@@ -893,9 +1069,12 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
           <EventMatchGrid analysisDetails={analysisDetails} />
 
           {/* Method Scores */}
-          <div className="bg-[#151a21] border border-[#3A4452] rounded-xl p-6">
-            <h4 className="text-[#F5F0EB] font-bold mb-4 flex items-center gap-2">
-              <Award className="w-4 h-4 text-[#D4AF37]" aria-hidden="true" />
+          <div 
+            className="rounded-xl p-6 shadow-sm"
+            style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}
+          >
+            <h4 className="font-bold mb-4 flex items-center gap-2" style={{ color: THEME.textPrimary }}>
+              <Award className="w-4 h-4" style={{ color: THEME.gold }} aria-hidden="true" />
               Verification Audit
             </h4>
             {renderMethodScores()}
@@ -905,16 +1084,24 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
         {/* Right Column: Detailed Analysis Tabs */}
         <div className="lg:col-span-8 flex flex-col h-full">
           {/* Navigation Tabs */}
-          <div className="flex border-b border-[#3A4452] mb-6 space-x-4 overflow-x-auto" role="tablist">
+          <div 
+            className="flex border-b mb-6 space-x-4 overflow-x-auto"
+            style={{ borderColor: THEME.border }}
+            role="tablist"
+          >
             {(['summary', 'comparison', 'audit', 'logs'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
                 className={`pb-4 px-2 text-sm font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${
                   activeTab === tab
-                    ? 'text-[#D4AF37] border-b-2 border-[#D4AF37]'
-                    : 'text-[#8C7F72] hover:text-[#F5F0EB]'
+                    ? 'border-b-2'
+                    : 'hover:text-[#1A1612]'
                 }`}
+                style={{ 
+                  color: activeTab === tab ? THEME.gold : THEME.textMuted,
+                  borderColor: activeTab === tab ? THEME.gold : 'transparent'
+                }}
                 role="tab"
                 aria-selected={activeTab === tab}
                 aria-controls={`${tab}-panel`}
@@ -928,7 +1115,10 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
           </div>
 
           {/* Tab Content */}
-          <div className="bg-[#151a21] border border-[#3A4452] rounded-xl p-8 flex-grow">
+          <div 
+            className="rounded-xl p-8 flex-grow shadow-sm"
+            style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}
+          >
             <AnimatePresence mode="wait">
               {activeTab === 'summary' && (
                 <motion.div
@@ -941,34 +1131,47 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                   id="summary-panel"
                 >
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <div className="prose prose-invert max-w-none">
-                      <h3 className="text-xl font-bold text-[#F5F0EB] mb-4 flex items-center gap-2">
-                        <FileText className="w-5 h-5 text-[#D4AF37]" aria-hidden="true" />
+                    <div className="prose max-w-none">
+                      <h3 
+                        className="text-xl font-bold mb-4 flex items-center gap-2"
+                        style={{ color: THEME.textPrimary }}
+                      >
+                        <FileText className="w-5 h-5" style={{ color: THEME.gold }} aria-hidden="true" />
                         Final Verdict
                       </h3>
-                      <p className="text-[#8C7F72] leading-relaxed">
+                      <p style={{ color: THEME.textSecondary }} className="leading-relaxed">
                         The rectification engine has successfully converged on a final birth time of{' '}
-                        <strong className="text-[#F5F0EB]">{data.rectifiedTime}</strong>.
+                        <strong style={{ color: THEME.textPrimary }}>{data.rectifiedTime}</strong>.
                         This time was selected after rigorous AI reasoning and multi-stage verification.
                       </p>
-                      <div className="my-6 p-4 bg-[#D4AF37]/5 border-l-2 border-[#D4AF37] text-sm text-[#F5F0EB] font-serif italic">
+                      <div 
+                        className="my-6 p-4 text-sm font-serif italic rounded-r-lg"
+                        style={{ 
+                          backgroundColor: `${THEME.gold}05`, 
+                          borderLeft: `2px solid ${THEME.gold}`,
+                          color: THEME.textPrimary 
+                        }}
+                      >
                         &ldquo;{cleanSummary(analysisDetails?.summary)}&rdquo;
                       </div>
-                      <h4 className="font-bold text-[#F5F0EB] mt-6 mb-2 text-sm uppercase tracking-wider">
+                      <h4 
+                        className="font-bold mt-6 mb-2 text-sm uppercase tracking-wider"
+                        style={{ color: THEME.textPrimary }}
+                      >
                         Confirmation Factors:
                       </h4>
-                      <ul className="space-y-2 text-[#8C7F72] text-[13px]">
+                      <ul className="space-y-2 text-[13px]" style={{ color: THEME.textSecondary }}>
                         <li className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-[#D4AF37] mt-0.5 shrink-0" aria-hidden="true" />
-                          <span>Verified via <strong>6-Stage AI Pipeline</strong></span>
+                          <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: THEME.gold }} aria-hidden="true" />
+                          <span>Verified via <strong style={{ color: THEME.textPrimary }}>6-Stage AI Pipeline</strong></span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-[#D4AF37] mt-0.5 shrink-0" aria-hidden="true" />
-                          <span>Sub-second <strong>Boundary Safety</strong> verified</span>
+                          <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: THEME.gold }} aria-hidden="true" />
+                          <span>Sub-second <strong style={{ color: THEME.textPrimary }}>Boundary Safety</strong> verified</span>
                         </li>
                         <li className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-[#D4AF37] mt-0.5 shrink-0" aria-hidden="true" />
-                          <span>DeepSeek Reasoner <strong>narrative analysis</strong> passed</span>
+                          <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" style={{ color: THEME.gold }} aria-hidden="true" />
+                          <span>DeepSeek Reasoner <strong style={{ color: THEME.textPrimary }}>narrative analysis</strong> passed</span>
                         </li>
                       </ul>
                     </div>
@@ -1021,20 +1224,26 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                   role="tabpanel"
                   id="audit-panel"
                 >
-                  <h3 className="text-lg font-bold text-[#F5F0EB] mb-4">Boundary Safety Check</h3>
+                  <h3 className="text-lg font-bold mb-4" style={{ color: THEME.textPrimary }}>Boundary Safety Check</h3>
                   {analysisDetails?.boundarySafety ? (
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-[#0F1419] p-4 rounded-lg border border-[#3A4452]">
-                        <div className="text-xs text-[#8C7F72] uppercase">Lagna Safety</div>
-                        <div className="text-lg font-mono text-[#D4AF37]">
+                      <div 
+                        className="p-4 rounded-lg"
+                        style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}` }}
+                      >
+                        <div className="text-xs uppercase" style={{ color: THEME.textMuted }}>Lagna Safety</div>
+                        <div className="text-lg font-mono" style={{ color: THEME.gold }}>
                           {analysisDetails.boundarySafety.lagnaSignBoundary > 60
                             ? 'SAFE (>1m)'
                             : `CRITICAL (${analysisDetails.boundarySafety.lagnaSignBoundary}s)`}
                         </div>
                       </div>
-                      <div className="bg-[#0F1419] p-4 rounded-lg border border-[#3A4452]">
-                        <div className="text-xs text-[#8C7F72] uppercase">Nakshatra Safety</div>
-                        <div className="text-lg font-mono text-[#D4AF37]">
+                      <div 
+                        className="p-4 rounded-lg"
+                        style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}` }}
+                      >
+                        <div className="text-xs uppercase" style={{ color: THEME.textMuted }}>Nakshatra Safety</div>
+                        <div className="text-lg font-mono" style={{ color: THEME.gold }}>
                           {analysisDetails.boundarySafety.moonNakshatraBoundary > 60
                             ? 'SAFE'
                             : `WARNING (${analysisDetails.boundarySafety.moonNakshatraBoundary}s)`}
@@ -1042,18 +1251,25 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                       </div>
                     </div>
                   ) : (
-                    <div className="text-[#8C7F72] italic p-4 bg-[#0F1419] rounded-lg border border-[#3A4452]">
+                    <div 
+                      className="italic p-4 rounded-lg"
+                      style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}`, color: THEME.textMuted }}
+                    >
                       Boundary data calculated during analysis.
                     </div>
                   )}
 
                   <div className="mt-8">
-                    <h3 className="text-lg font-bold text-[#F5F0EB] mb-4">Runner-Up Candidates</h3>
+                    <h3 className="text-lg font-bold mb-4" style={{ color: THEME.textPrimary }}>Runner-Up Candidates</h3>
                     <div className="space-y-2">
                       {topCandidates.slice(1, 6).map((alt, i) => (
-                        <div key={i} className="flex justify-between items-center bg-[#0F1419] p-3 rounded border border-[#3A4452]/50">
-                          <span className="font-mono text-[#8C7F72]">#{i + 2} {alt.time}</span>
-                          <span className="text-sm text-[#D4AF37]">Score: {alt.score?.toFixed(1) || 'N/A'}%</span>
+                        <div 
+                          key={i} 
+                          className="flex justify-between items-center p-3 rounded"
+                          style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}80` }}
+                        >
+                          <span className="font-mono" style={{ color: THEME.textMuted }}>#{i + 2} {alt.time}</span>
+                          <span className="text-sm" style={{ color: THEME.gold }}>Score: {alt.score?.toFixed(1) || 'N/A'}%</span>
                         </div>
                       ))}
                     </div>

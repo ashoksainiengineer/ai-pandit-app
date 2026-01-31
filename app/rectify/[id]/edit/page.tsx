@@ -205,10 +205,10 @@ export default function EditSessionPage() {
 
     if (loading) {
         return (
-            <main className="min-h-screen bg-[#0F1419] flex items-center justify-center">
+            <main className="min-h-screen bg-[#FFFCF8] flex items-center justify-center">
                 <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-[#D4AF37] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-[#C4B8AD]">Loading session data...</p>
+                    <div className="w-16 h-16 border-4 border-[#B8860B] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-[#7A756F]">Loading session data...</p>
                 </div>
             </main>
         );
@@ -216,12 +216,12 @@ export default function EditSessionPage() {
 
     if (error && !birthData) {
         return (
-            <main className="min-h-screen bg-[#0F1419] flex items-center justify-center">
+            <main className="min-h-screen bg-[#FFFCF8] flex items-center justify-center">
                 <div className="text-center max-w-md px-6">
                     <div className="text-6xl mb-4">❌</div>
-                    <h1 className="text-2xl font-bold text-[#F5F0EB] mb-2">Could not load session</h1>
-                    <p className="text-[#C4B8AD] mb-6">{error}</p>
-                    <Link href="/dashboard" className="inline-block px-6 py-3 bg-[#D4AF37] text-[#0F1419] rounded-lg font-bold">
+                    <h1 className="text-2xl font-bold text-[#1A1612] mb-2">Could not load session</h1>
+                    <p className="text-[#7A756F] mb-6">{error}</p>
+                    <Link href="/dashboard" className="inline-block px-6 py-3 bg-[#B8860B] text-white rounded-lg font-bold hover:bg-[#D4A853] transition-colors">
                         Back to Dashboard
                     </Link>
                 </div>
@@ -230,20 +230,26 @@ export default function EditSessionPage() {
     }
 
     return (
-        <main className="min-h-screen bg-[#0F1419] text-[#F5F0EB]">
+        <main className="min-h-screen bg-[#FFFCF8] text-[#1A1612]">
             {/* Header */}
-            <nav className="sticky top-0 z-50 bg-[#0F1419]/90 backdrop-blur-xl border-b border-[#D4AF37]/10">
+            <nav className="sticky top-0 z-50 bg-[#FFFCF8]/90 backdrop-blur-xl border-b border-[#F0E8DE]">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
                     <Link href="/" className="flex items-center gap-3 group">
-                        <span className="font-bold text-xl text-[#D4AF37] tracking-tight">AI Pandit</span>
+                        <span className="font-bold text-xl text-[#B8860B] tracking-tight">AI Pandit</span>
                     </Link>
                     <div className="flex items-center gap-6">
+                        <Link
+                            href="/dashboard"
+                            className="text-sm font-medium text-[#7A756F] hover:text-[#B8860B] transition-colors"
+                        >
+                            Dashboard
+                        </Link>
                         <div className="flex items-center gap-2 text-sm">
-                            {savingStatus === 'saving' && <span className="text-[#E8A849] animate-pulse">Saving...</span>}
-                            {savingStatus === 'saved' && <span className="text-[#5CB57B]">Saved ✓</span>}
+                            {savingStatus === 'saving' && <span className="text-[#B8860B] animate-pulse">Saving...</span>}
+                            {savingStatus === 'saved' && <span className="text-[#2D7A5C]">Saved ✓</span>}
                             {savingStatus === 'error' && <span className="text-[#D64545]">Save Failed</span>}
-                            <span className="text-[#D4AF37] font-medium opacity-50">|</span>
-                            <span className="text-[#D4AF37] font-medium">✏️ Editing Session</span>
+                            <span className="text-[#B8860B] font-medium opacity-50">|</span>
+                            <span className="text-[#B8860B] font-medium">✏️ Editing Session</span>
                         </div>
                         <UserButton afterSignOutUrl="/" />
                     </div>
@@ -253,16 +259,16 @@ export default function EditSessionPage() {
             <div className="max-w-4xl mx-auto px-6 py-12">
                 {/* Title */}
                 <div className="mb-8 text-center">
-                    <h1 className="text-3xl font-bold text-[#D4AF37] mb-2">✏️ Edit & Re-analyze</h1>
-                    <p className="text-[#C4B8AD]">Update your details and run a new analysis</p>
+                    <h1 className="text-3xl font-bold text-[#B8860B] mb-2">✏️ Edit & Re-analyze</h1>
+                    <p className="text-[#7A756F]">Update your details and run a new analysis</p>
                 </div>
 
                 {/* Progress Indicator */}
                 <div className="mb-12">
                     <div className="flex items-center justify-between mb-4 relative">
-                        <div className="absolute top-1/2 left-0 w-full h-1 bg-[#2A3442] -z-10 rounded-full" />
+                        <div className="absolute top-1/2 left-0 w-full h-1 bg-[#F0E8DE] -z-10 rounded-full" />
                         <div
-                            className="absolute top-1/2 left-0 h-1 bg-[#D4AF37] -z-10 rounded-full transition-all duration-500"
+                            className="absolute top-1/2 left-0 h-1 bg-[#B8860B] -z-10 rounded-full transition-all duration-500"
                             style={{ width: `${((step - 1) / 3) * 100}%` }}
                         />
 
@@ -270,19 +276,19 @@ export default function EditSessionPage() {
                             <button
                                 key={s}
                                 onClick={() => setStep(s)}
-                                className="flex flex-col items-center bg-[#0F1419] px-2 outline-none focus:outline-none"
+                                className="flex flex-col items-center bg-[#FFFCF8] px-2 outline-none focus:outline-none"
                             >
                                 <div
                                     className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all border-2 ${s < step
                                         ? 'bg-[#2D7A5C] border-[#2D7A5C] text-white'
                                         : s === step
-                                            ? 'bg-[#0F1419] border-[#D4AF37] text-[#D4AF37]'
-                                            : 'bg-[#2A3442] border-[#2A3442] text-[#8C7F72]'
+                                            ? 'bg-[#FFFCF8] border-[#B8860B] text-[#B8860B]'
+                                            : 'bg-[#F0E8DE] border-[#F0E8DE] text-[#7A756F]'
                                         }`}
                                 >
                                     {s < step ? '✓' : ['👤', '🪞', '📅', '✅'][s - 1]}
                                 </div>
-                                <span className={`text-xs mt-2 font-medium ${s === step ? 'text-[#D4AF37]' : 'text-[#8C7F72]'}`}>
+                                <span className={`text-xs mt-2 font-medium ${s === step ? 'text-[#B8860B]' : 'text-[#7A756F]'}`}>
                                     {s === 1 ? 'Birth Details' : s === 2 ? 'Physical' : s === 3 ? 'Life Events' : 'Review'}
                                 </span>
                             </button>
@@ -292,7 +298,7 @@ export default function EditSessionPage() {
 
                 {/* Error Message */}
                 {error && (
-                    <div className="mb-6 p-4 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl text-[#EF4444]">
+                    <div className="mb-6 p-4 bg-[#EF4444]/10 border border-[#EF4444]/30 rounded-xl text-[#D64545]">
                         ⚠️ {error}
                     </div>
                 )}
@@ -366,13 +372,13 @@ export default function EditSessionPage() {
 
                 {/* Navigation */}
                 {step < 4 && (
-                    <div className="flex justify-between mt-12 pt-6 border-t border-white/5">
+                    <div className="flex justify-between mt-12 pt-6 border-t border-[#F0E8DE]">
                         <button
                             onClick={handleBack}
                             disabled={step === 1}
                             className={`px-6 py-3 rounded-xl font-semibold transition-colors ${step === 1
                                 ? 'opacity-0 cursor-default'
-                                : 'border-2 border-[#D4AF37]/50 text-[#D4AF37] hover:bg-[#D4AF37]/10'
+                                : 'border-2 border-[#B8860B]/50 text-[#B8860B] hover:bg-[#B8860B]/10'
                                 }`}
                         >
                             ← Back
@@ -380,7 +386,7 @@ export default function EditSessionPage() {
 
                         <button
                             onClick={handleNext}
-                            className="px-8 py-3 bg-gradient-to-r from-[#D4AF37] to-[#C9A961] text-[#0F1419] rounded-xl font-semibold hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all"
+                            className="px-8 py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-semibold hover:shadow-[0_0_15px_rgba(184,134,11,0.4)] transition-all"
                         >
                             Next Step →
                         </button>

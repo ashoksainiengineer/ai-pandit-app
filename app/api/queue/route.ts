@@ -8,7 +8,7 @@ import { addToQueue, getQueueStatus, startQueueProcessor } from '@/lib/queue-man
 import { env } from '@/lib/config';
 import { validateOffsetConfig, TimeOffsetConfig } from '@/lib/time-offset-manager';
 import { BirthData, LifeEvent } from '@/lib/types';
-import { encryptData, decryptData } from '@/lib/crypto';
+import { encryptData, decryptData } from '@/lib/encryption';
 
 // Queue API - Submit and Poll for BTR Analysis
 

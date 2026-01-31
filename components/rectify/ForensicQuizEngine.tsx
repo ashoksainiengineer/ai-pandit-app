@@ -6,11 +6,11 @@
 
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ChevronRight, ChevronLeft, HelpCircle, Sparkles, 
-  CheckCircle, RefreshCw, AlertCircle, Info,
+  CheckCircle, RefreshCw, AlertCircle, Info, Save,
   Target, Brain, Eye, Mic, Users, Activity
 } from 'lucide-react';
 import { 
@@ -33,7 +33,9 @@ import {
 interface ForensicQuizEngineProps {
   onComplete: (results: QuizResults) => void;
   onCancel?: () => void;
+  onAutoSave?: (answers: QuizAnswer[], currentIndex: number) => void;
   initialResults?: QuizResults | null;
+  sessionId?: string;
 }
 
 // Category icons mapping
@@ -60,11 +62,37 @@ const CATEGORY_COLORS: Record<string, string> = {
   marks: 'bg-[#7C3AED]'
 };
 
+// Storage key generator
+const getStorageKey = (sessionId?: string) => {
+  return sessionId ? `forensic_quiz_${sessionId}` : 'forensic_quiz_progress';
+};
+
 export default function ForensicQuizEngine({ 
   onComplete, 
   onCancel,
-  initialResults 
+  onAutoSave,
+  initialResults,
+  sessionId
 }: ForensicQuizEngineProps) {
+  // Load saved progress from localStorage
+  const loadSavedProgress = useCallback(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const saved = localStorage.getItem(getStorageKey(sessionId));
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          answers: parsed.answers || [],
+          currentQuestionIndex: parsed.currentQuestionIndex || 0,
+          timestamp: parsed.timestamp || Date.now()
+        };
+      }
+    } catch (e) {
+      console.error('Error loading quiz progress:', e);
+    }
+    return null;
+  }, [sessionId]);
+
   // State management
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswer[]>(
@@ -73,6 +101,52 @@ export default function ForensicQuizEngine({
   const [showResults, setShowResults] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [quizStarted, setQuizStarted] = useState(false);
+  const [customAnswer, setCustomAnswer] = useState('');
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  // Load saved progress on mount
+  useEffect(() => {
+    if (!initialResults && !quizStarted) {
+      const saved = loadSavedProgress();
+      if (saved && saved.answers.length > 0) {
+        setAnswers(saved.answers);
+        setCurrentQuestionIndex(saved.currentQuestionIndex);
+        setLastSaved(new Date(saved.timestamp));
+      }
+    }
+  }, [initialResults, quizStarted, loadSavedProgress]);
+
+  // Auto-save effect
+  useEffect(() => {
+    if (!quizStarted || answers.length === 0) return;
+
+    const saveProgress = () => {
+      setSaveStatus('saving');
+      try {
+        const data = {
+          answers,
+          currentQuestionIndex,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(getStorageKey(sessionId), JSON.stringify(data));
+        setSaveStatus('saved');
+        setLastSaved(new Date());
+        onAutoSave?.(answers, currentQuestionIndex);
+        
+        // Reset status after 2 seconds
+        setTimeout(() => setSaveStatus('idle'), 2000);
+      } catch (e) {
+        console.error('Error saving quiz progress:', e);
+        setSaveStatus('idle');
+      }
+    };
+
+    // Debounce save
+    const timer = setTimeout(saveProgress, 1000);
+    return () => clearTimeout(timer);
+  }, [answers, currentQuestionIndex, quizStarted, sessionId, onAutoSave]);
 
   // Get current question
   const currentQuestion = FORENSIC_QUIZ_QUESTIONS[currentQuestionIndex];
@@ -103,12 +177,14 @@ export default function ForensicQuizEngine({
 
     setAnswers(prev => {
       const existingIndex = prev.findIndex(a => a.questionId === currentQuestion.id);
+      const existingAnswer = prev[existingIndex];
       const newAnswer: QuizAnswer = {
         questionId: currentQuestion.id,
-        selectedOptions: currentQuestion.allowMultiple 
-          ? [...(prev[existingIndex]?.selectedOptions || []), optionId]
+        selectedOptions: currentQuestion.allowMultiple
+          ? [...(existingAnswer?.selectedOptions || []), optionId]
           : [optionId],
         isNotSure: false,
+        customAnswer: existingAnswer?.customAnswer, // Preserve custom answer if exists
         timestamp: Date.now()
       };
 
@@ -118,6 +194,47 @@ export default function ForensicQuizEngine({
         return updated;
       }
       return [...prev, newAnswer];
+    });
+  }, [currentQuestion]);
+
+  // Handle custom answer input
+  const handleCustomAnswerChange = useCallback((value: string) => {
+    if (!currentQuestion) return;
+    setCustomAnswer(value);
+
+    setAnswers(prev => {
+      const existingIndex = prev.findIndex(a => a.questionId === currentQuestion.id);
+      const existingAnswer = prev[existingIndex];
+      const newAnswer: QuizAnswer = {
+        questionId: currentQuestion.id,
+        selectedOptions: existingAnswer?.selectedOptions || [],
+        isNotSure: existingAnswer?.isNotSure || false,
+        customAnswer: value.trim() || undefined,
+        timestamp: Date.now()
+      };
+
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = newAnswer;
+        return updated;
+      }
+      return [...prev, newAnswer];
+    });
+  }, [currentQuestion]);
+
+  // Clear custom answer
+  const handleClearCustomAnswer = useCallback(() => {
+    setCustomAnswer('');
+    if (!currentQuestion) return;
+
+    setAnswers(prev => {
+      const existingIndex = prev.findIndex(a => a.questionId === currentQuestion.id);
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = { ...updated[existingIndex], customAnswer: undefined };
+        return updated;
+      }
+      return prev;
     });
   }, [currentQuestion]);
 
@@ -152,6 +269,8 @@ export default function ForensicQuizEngine({
 
   // Navigate to next question
   const handleNext = useCallback(() => {
+    // Reset custom answer for next question
+    setCustomAnswer('');
     if (currentQuestionIndex < FORENSIC_QUIZ_QUESTIONS.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
     } else {
@@ -163,27 +282,39 @@ export default function ForensicQuizEngine({
   const handlePrevious = useCallback(() => {
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(prev => prev - 1);
+      // Restore custom answer if exists for previous question
+      const prevQuestionId = FORENSIC_QUIZ_QUESTIONS[currentQuestionIndex - 1]?.id;
+      const prevAnswer = answers.find(a => a.questionId === prevQuestionId);
+      setCustomAnswer(prevAnswer?.customAnswer || '');
     }
-  }, [currentQuestionIndex]);
+  }, [currentQuestionIndex, answers]);
 
   // Handle quiz completion
   const handleComplete = useCallback(() => {
     if (!results) return;
     setIsSubmitting(true);
     
+    // Clear saved progress on completion
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(getStorageKey(sessionId));
+    }
+    
     // Small delay for UX
     setTimeout(() => {
       onComplete(results);
       setIsSubmitting(false);
     }, 500);
-  }, [results, onComplete]);
+  }, [results, onComplete, sessionId]);
 
   // Handle retake
   const handleRetake = useCallback(() => {
     setAnswers([]);
     setCurrentQuestionIndex(0);
     setShowResults(false);
-  }, []);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(getStorageKey(sessionId));
+    }
+  }, [sessionId]);
 
   // Get category progress
   const getCategoryProgress = useCallback((categoryId: string) => {
@@ -196,7 +327,9 @@ export default function ForensicQuizEngine({
   }, [answers]);
 
   // Render intro screen
-  if (answers.length === 0 && !showResults) {
+  if (!quizStarted && !showResults) {
+    const hasSavedProgress = answers.length > 0;
+    
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -214,6 +347,12 @@ export default function ForensicQuizEngine({
             <p className="text-[#7A756F]">
               Discover your cosmic imprint through observable traits
             </p>
+            {hasSavedProgress && lastSaved && (
+              <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-[#2D7A5C]/10 text-[#2D7A5C] rounded-full text-sm">
+                <Save className="w-4 h-4" />
+                <span>Progress saved from {lastSaved.toLocaleTimeString()}</span>
+              </div>
+            )}
           </div>
 
           <div className="space-y-4 mb-8">
@@ -225,15 +364,25 @@ export default function ForensicQuizEngine({
                 <div className="font-semibold text-[#1A1612]">22 Questions</div>
                 <div className="text-sm text-[#7A756F]">About 5-7 minutes</div>
               </div>
+              {hasSavedProgress && (
+                <div className="ml-auto text-sm text-[#B8860B] font-medium">
+                  {answers.length}/22 answered
+                </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               {QUIZ_METADATA.categories.map((cat) => {
                 const Icon = CATEGORY_ICONS[cat.id] || Activity;
+                const catProg = getCategoryProgress(cat.id);
+                const isComplete = catProg.answered === catProg.total;
                 return (
-                  <div key={cat.id} className="flex items-center gap-2 p-3 bg-white rounded-lg border border-[#F0E8DE]">
+                  <div key={cat.id} className={`flex items-center gap-2 p-3 rounded-lg border ${
+                    isComplete ? 'bg-[#2D7A5C]/5 border-[#2D7A5C]/30' : 'bg-white border-[#F0E8DE]'
+                  }`}>
                     <span className="text-lg">{cat.icon}</span>
                     <div className="text-sm text-[#4A453F]">{cat.name}</div>
+                    {isComplete && <CheckCircle className="w-4 h-4 text-[#2D7A5C] ml-auto" />}
                   </div>
                 );
               })}
@@ -242,19 +391,29 @@ export default function ForensicQuizEngine({
 
           <div className="flex gap-3">
             <button
-              onClick={onCancel}
-              className="flex-1 py-3 border-2 border-[#E8E0D5] text-[#7A756F] rounded-xl font-semibold hover:bg-[#F5EFE7] transition-colors"
+              onClick={() => setQuizStarted(true)}
+              className="w-full py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
             >
-              Skip for Now
-            </button>
-            <button
-              onClick={() => setCurrentQuestionIndex(0)}
-              className="flex-1 py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
-            >
-              Start Assessment
+              {hasSavedProgress ? 'Resume Assessment' : 'Start Assessment'}
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
+          
+          {hasSavedProgress && (
+            <button
+              onClick={() => {
+                setAnswers([]);
+                setCurrentQuestionIndex(0);
+                if (typeof window !== 'undefined') {
+                  localStorage.removeItem(getStorageKey(sessionId));
+                }
+                setQuizStarted(true);
+              }}
+              className="w-full mt-3 py-2 text-sm text-[#7A756F] hover:text-[#D64545] transition-colors"
+            >
+              Start Fresh (Clear saved progress)
+            </button>
+          )}
         </div>
       </motion.div>
     );
@@ -386,18 +545,11 @@ export default function ForensicQuizEngine({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3">
-            <button
-              onClick={handleRetake}
-              className="flex-1 py-3 border-2 border-[#E8E0D5] text-[#7A756F] rounded-xl font-semibold hover:bg-[#F5EFE7] transition-colors flex items-center justify-center gap-2"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Retake
-            </button>
+          <div className="space-y-3">
             <button
               onClick={handleComplete}
               disabled={isSubmitting}
-              className="flex-1 py-3 bg-gradient-to-r from-[#2D7A5C] to-[#4ADE80] text-white rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full py-3 bg-gradient-to-r from-[#2D7A5C] to-[#4ADE80] text-white rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isSubmitting ? (
                 <>
@@ -411,6 +563,26 @@ export default function ForensicQuizEngine({
                 </>
               )}
             </button>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowResults(false);
+                  setQuizStarted(true);
+                }}
+                className="flex-1 py-3 border-2 border-[#B8860B] text-[#B8860B] rounded-xl font-semibold hover:bg-[#B8860B]/10 transition-colors flex items-center justify-center gap-2"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Review Answers
+              </button>
+              <button
+                onClick={handleRetake}
+                className="flex-1 py-3 border-2 border-[#E8E0D5] text-[#7A756F] rounded-xl font-semibold hover:bg-[#F5EFE7] hover:text-[#D64545] transition-colors flex items-center justify-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Start Fresh
+              </button>
+            </div>
           </div>
         </div>
       </motion.div>
@@ -435,9 +607,26 @@ export default function ForensicQuizEngine({
               {QUIZ_METADATA.categories.find(c => c.id === currentQuestion.category)?.name}
             </span>
           </div>
-          <span className="text-sm font-semibold text-[#B8860B]">
-            {currentQuestionIndex + 1} of {FORENSIC_QUIZ_QUESTIONS.length}
-          </span>
+          <div className="flex items-center gap-3">
+            {/* Auto-save status */}
+            <div className="flex items-center gap-1.5 text-xs">
+              {saveStatus === 'saving' && (
+                <>
+                  <div className="w-3 h-3 border-2 border-[#B8860B]/30 border-t-[#B8860B] rounded-full animate-spin" />
+                  <span className="text-[#B8860B]">Saving...</span>
+                </>
+              )}
+              {saveStatus === 'saved' && (
+                <>
+                  <CheckCircle className="w-3 h-3 text-[#2D7A5C]" />
+                  <span className="text-[#2D7A5C]">Saved</span>
+                </>
+              )}
+            </div>
+            <span className="text-sm font-semibold text-[#B8860B]">
+              {currentQuestionIndex + 1} of {FORENSIC_QUIZ_QUESTIONS.length}
+            </span>
+          </div>
         </div>
         
         {/* Progress Bar */}
@@ -570,6 +759,38 @@ export default function ForensicQuizEngine({
               );
             })}
 
+            {/* Custom Answer Option */}
+            {currentQuestion.allowCustomAnswer && (
+              <div className={`w-full p-4 rounded-xl border-2 transition-all ${
+                customAnswer.trim()
+                  ? 'border-[#B8860B] bg-[#B8860B]/5'
+                  : 'border-[#E8E0D5] bg-white'
+              }`}>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-xl">✏️</span>
+                  <span className="text-[#1A1612] font-medium">Add your own answer</span>
+                </div>
+                <div className="relative">
+                  <textarea
+                    value={customAnswer}
+                    onChange={(e) => handleCustomAnswerChange(e.target.value)}
+                    placeholder={currentQuestion.customAnswerPlaceholder || 'Describe in your own words...'}
+                    className="w-full p-3 rounded-lg border border-[#F0E8DE] bg-white text-[#1A1612] placeholder:text-[#7A756F]/50 resize-none focus:outline-none focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B] transition-all"
+                    rows={3}
+                  />
+                  {customAnswer.trim() && (
+                    <button
+                      onClick={handleClearCustomAnswer}
+                      className="absolute top-2 right-2 p-1 text-[#7A756F] hover:text-[#D64545] transition-colors"
+                      title="Clear custom answer"
+                    >
+                      <span className="text-lg">×</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Not Sure Option */}
             {currentQuestion.hasNotSureOption && (
               <button
@@ -602,7 +823,7 @@ export default function ForensicQuizEngine({
 
               <button
                 onClick={handleNext}
-                disabled={!currentAnswer}
+                disabled={!currentAnswer?.selectedOptions?.length && !currentAnswer?.customAnswer && !currentAnswer?.isNotSure}
                 className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {currentQuestionIndex === FORENSIC_QUIZ_QUESTIONS.length - 1 ? (

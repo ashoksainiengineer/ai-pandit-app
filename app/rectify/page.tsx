@@ -1,12 +1,12 @@
 /**
- * Birth Time Rectification Page
- * Sacred Ivory Light Theme - Consistent with landing page
+ * Birth Time Rectification Page - GOD TIER ROBUST VERSION
+ * Sacred Ivory Light Theme - Bulletproof form flow with step guards
  */
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { BirthData, LifeEvent, PhysicalTraits, TimeOffsetConfig, SpouseData, ForensicTraits } from '@/lib/types';
 import { Gender } from '@/lib/forensic-emojis';
@@ -64,8 +64,37 @@ const initialSpouseData: SpouseData = {
     timezone: 5.5
 };
 
-export default function RectifyPage() {
+// Step Validation Types
+type StepValidation = {
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+    progress: number; // 0-100
+};
+
+type StepStatus = 'locked' | 'unlocked' | 'current' | 'completed';
+
+// Loading skeleton for Suspense
+function RectifyPageSkeleton() {
+    return (
+        <Layout hideFooter>
+            <div className="pt-28 pb-16">
+                <div className="flex justify-center items-center min-h-[400px]">
+                    <div className="text-center">
+                        <div className="w-12 h-12 border-4 border-[#B8860B] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                        <p className="text-[#7A756F]">Loading form...</p>
+                    </div>
+                </div>
+            </div>
+        </Layout>
+    );
+}
+
+// Inner component that uses useSearchParams
+function RectifyPageContent() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const isNewPerson = searchParams.get('new') === 'true';
     const [step, setStep] = useState(1);
     const [birthData, setBirthData] = useState<BirthData>(initialBirthData);
     const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>([]);
@@ -79,7 +108,229 @@ export default function RectifyPage() {
     const [cloudSaveStatus, setCloudSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(false);
 
-    // Save draft to cloud
+    // Track which steps have been completed
+    const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+    const [maxUnlockedStep, setMaxUnlockedStep] = useState(1);
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // VALIDATION FUNCTIONS - GOD TIER ROBUSTNESS
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    const validateStep1 = useCallback((): StepValidation => {
+        const errors: string[] = [];
+        const warnings: string[] = [];
+        let progress = 0;
+        const totalFields = 5;
+        let filledFields = 0;
+
+        // Full Name
+        if (!birthData.fullName?.trim()) {
+            errors.push("Full Name is required");
+        } else if (birthData.fullName.trim().length < 2) {
+            errors.push("Full Name must be at least 2 characters");
+        } else {
+            filledFields++;
+        }
+
+        // Date of Birth
+        if (!birthData.dateOfBirth) {
+            errors.push("Date of Birth is required");
+        } else {
+            const dob = new Date(birthData.dateOfBirth);
+            const now = new Date();
+            if (dob > now) {
+                errors.push("Date of Birth cannot be in the future");
+            } else {
+                filledFields++;
+            }
+        }
+
+        // Tentative Time
+        if (!birthData.tentativeTime) {
+            errors.push("Tentative Birth Time is required");
+        } else {
+            filledFields++;
+        }
+
+        // Birth Place
+        if (!birthData.birthPlace?.trim()) {
+            errors.push("Birth Place is required");
+        } else {
+            filledFields++;
+        }
+
+        // Gender
+        if (!birthData.gender) {
+            errors.push("Gender is required");
+        } else {
+            filledFields++;
+        }
+
+        // Location validation
+        if (birthData.latitude === 0 && birthData.longitude === 0) {
+            warnings.push("Please select a valid location from search or map");
+        }
+
+        progress = Math.round((filledFields / totalFields) * 100);
+
+        return { isValid: errors.length === 0, errors, warnings, progress };
+    }, [birthData]);
+
+    const validateStep2 = useCallback((): StepValidation => {
+        const errors: string[] = [];
+        const warnings: string[] = [];
+        let progress = 0;
+
+        const { physical, psychographic, biological, family } = forensicTraits;
+        const requiredFields = [
+            { value: physical?.facialStructure?.forehead, name: "Forehead Type" },
+            { value: physical?.facialStructure?.eyeShape, name: "Eye Shape" },
+            { value: physical?.facialStructure?.voicePitch, name: "Voice Texture" },
+            { value: biological?.prakriti, name: "Body Constitution (Prakriti)" },
+            { value: psychographic?.speechStyle, name: "Speech Style" },
+            { value: psychographic?.decisionMaking, name: "Decision Making Style" },
+            { value: psychographic?.temperament, name: "Temperament" },
+            { value: family?.siblingPosition, name: "Sibling Order" },
+            { value: family?.fatherStatusAtBirth, name: "Father's Status at Birth" },
+        ];
+
+        let filledFields = 0;
+        requiredFields.forEach(field => {
+            if (field.value) {
+                filledFields++;
+            } else {
+                errors.push(`${field.name} is required`);
+            }
+        });
+
+        progress = Math.round((filledFields / requiredFields.length) * 100);
+
+        return { isValid: errors.length === 0, errors, warnings, progress };
+    }, [forensicTraits]);
+
+    const validateStep3 = useCallback((): StepValidation => {
+        const errors: string[] = [];
+        const warnings: string[] = [];
+        let progress = 0;
+
+        if (lifeEvents.length < 3) {
+            errors.push(`Minimum 3 life events required. Currently: ${lifeEvents.length}`);
+        }
+
+        // Check for critical events (career, marriage, education, relocation)
+        const criticalCategories = ['career', 'marriage', 'education', 'relocation'];
+        const presentCategories = new Set(lifeEvents.map(e => e.category));
+        const missingCritical = criticalCategories.filter(c => !presentCategories.has(c));
+
+        if (missingCritical.length > 0) {
+            warnings.push(`Consider adding events from: ${missingCritical.join(', ')}`);
+        }
+
+        progress = lifeEvents.length >= 3 ? 100 : Math.round((lifeEvents.length / 3) * 100);
+
+        return { isValid: errors.length === 0, errors, warnings, progress };
+    }, [lifeEvents]);
+
+    const validateStep4 = useCallback((): StepValidation => {
+        // Step 4 is review, always valid if we reach here
+        return { isValid: true, errors: [], warnings: [], progress: 100 };
+    }, []);
+
+    const getStepValidation = useCallback((stepNum: number): StepValidation => {
+        switch (stepNum) {
+            case 1: return validateStep1();
+            case 2: return validateStep2();
+            case 3: return validateStep3();
+            case 4: return validateStep4();
+            default: return { isValid: false, errors: [], warnings: [], progress: 0 };
+        }
+    }, [validateStep1, validateStep2, validateStep3, validateStep4]);
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // STEP NAVIGATION - WITH GUARDS
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    const getStepStatus = useCallback((stepNum: number): StepStatus => {
+        if (stepNum === step) return 'current';
+        if (completedSteps.has(stepNum)) return 'completed';
+        if (stepNum <= maxUnlockedStep) return 'unlocked';
+        return 'locked';
+    }, [step, completedSteps, maxUnlockedStep]);
+
+    const canNavigateToStep = useCallback((targetStep: number): boolean => {
+        // Can always go to previous steps
+        if (targetStep < step) return true;
+        // Can go to next step if current step is valid
+        if (targetStep === step + 1) {
+            const validation = getStepValidation(step);
+            return validation.isValid;
+        }
+        // Can go to unlocked steps
+        return targetStep <= maxUnlockedStep;
+    }, [step, maxUnlockedStep, getStepValidation]);
+
+    const handleStepClick = useCallback((targetStep: number) => {
+        const status = getStepStatus(targetStep);
+        
+        if (status === 'locked') {
+            setError(`Please complete Step ${targetStep - 1} first`);
+            return;
+        }
+
+        // If going to a previous step, just navigate
+        if (targetStep < step) {
+            setStep(targetStep);
+            setError(null);
+            window.scrollTo(0, 0);
+            return;
+        }
+
+        // Validate current step before moving forward
+        const currentValidation = getStepValidation(step);
+        if (!currentValidation.isValid && targetStep > step) {
+            setError(currentValidation.errors[0]);
+            return;
+        }
+
+        setStep(targetStep);
+        setError(null);
+        window.scrollTo(0, 0);
+    }, [step, getStepStatus, getStepValidation]);
+
+    const handleNext = useCallback(() => {
+        if (isSubmitting) return;
+        
+        const validation = getStepValidation(step);
+        
+        if (!validation.isValid) {
+            setError(validation.errors.join(', '));
+            return;
+        }
+
+        // Mark current step as completed
+        setCompletedSteps(prev => new Set([...prev, step]));
+        
+        // Unlock next step
+        const nextStep = step + 1;
+        setMaxUnlockedStep(prev => Math.max(prev, nextStep));
+        
+        setStep(nextStep);
+        setError(null);
+        window.scrollTo(0, 0);
+    }, [step, isSubmitting, getStepValidation]);
+
+    const handleBack = useCallback(() => {
+        if (step > 1) {
+            setStep(step - 1);
+            setError(null);
+            window.scrollTo(0, 0);
+        }
+    }, [step]);
+
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // AUTO-SAVE & DATA PERSISTENCE
+    // ═══════════════════════════════════════════════════════════════════════════════
+
     const saveDraftToCloud = async () => {
         if (!birthData.fullName) return;
         setCloudSaveStatus('saving');
@@ -101,7 +352,6 @@ export default function RectifyPage() {
                 setDraftSessionId(result.sessionId);
                 setCloudSaveStatus('saved');
                 localStorage.setItem('btr_draft_id', result.sessionId);
-                // Reset to idle after 2 seconds
                 setTimeout(() => setCloudSaveStatus('idle'), 2000);
             } else {
                 setCloudSaveStatus('error');
@@ -111,19 +361,29 @@ export default function RectifyPage() {
         }
     };
 
-    // Auto-save effect - runs when form data changes
     useEffect(() => {
         if (!isAutoSaveEnabled || !birthData.fullName) return;
-
-        const timer = setTimeout(() => {
-            saveDraftToCloud();
-        }, 1500); // Auto-save 1.5 seconds after last change
-
+        const timer = setTimeout(() => saveDraftToCloud(), 1500);
         return () => clearTimeout(timer);
     }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, isAutoSaveEnabled]);
 
-    // Load from local storage on mount
+    // Load from local storage
     useEffect(() => {
+        // If new person requested, clear localStorage
+        if (isNewPerson) {
+            localStorage.removeItem('btr_form_data');
+            localStorage.removeItem('btr_draft_id');
+            // Reset all states
+            setBirthData(initialBirthData);
+            setLifeEvents([]);
+            setForensicTraits(initialForensicTraits);
+            setSpouseData(initialSpouseData);
+            setStep(1);
+            setCompletedSteps(new Set());
+            setMaxUnlockedStep(1);
+            setDraftSessionId(null);
+        }
+
         const pingWarmup = async () => {
             try {
                 const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
@@ -133,7 +393,7 @@ export default function RectifyPage() {
         pingWarmup();
 
         const saved = localStorage.getItem('btr_form_data');
-        if (saved) {
+        if (saved && !isNewPerson) {
             try {
                 const parsed = JSON.parse(saved);
                 if (parsed.birthData) setBirthData(parsed.birthData);
@@ -151,85 +411,56 @@ export default function RectifyPage() {
                 }
                 if (parsed.spouseData) setSpouseData(parsed.spouseData);
                 if (parsed.offsetConfig) setOffsetConfig(parsed.offsetConfig);
-                if (parsed.step) setStep(parsed.step);
+                if (parsed.completedSteps) setCompletedSteps(new Set(parsed.completedSteps));
+                if (parsed.maxUnlockedStep) setMaxUnlockedStep(parsed.maxUnlockedStep);
             } catch (e) {
                 console.error('Failed to restore form data', e);
             }
         }
-        // Enable auto-save after initial load
         setIsAutoSaveEnabled(true);
-    }, []);
+    }, [isNewPerson]);
 
-    // Save to local storage on change
+    // Save to local storage
     useEffect(() => {
-        const dataToSave = { birthData, lifeEvents, forensicTraits, offsetConfig, step, spouseData };
+        const dataToSave = { 
+            birthData, 
+            lifeEvents, 
+            forensicTraits, 
+            offsetConfig, 
+            step, 
+            spouseData,
+            completedSteps: Array.from(completedSteps),
+            maxUnlockedStep
+        };
         localStorage.setItem('btr_form_data', JSON.stringify(dataToSave));
-    }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, step]);
+    }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, step, completedSteps, maxUnlockedStep]);
 
-    const handleNext = () => {
-        if (isSubmitting) return;
-        setError(null);
-        if (validateStep(step)) {
-            setStep(s => s + 1);
-            window.scrollTo(0, 0);
-        }
-    };
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // SUBMIT ANALYSIS
+    // ═══════════════════════════════════════════════════════════════════════════════
 
-    const handleBack = () => {
-        setError(null);
-        setStep(s => s - 1);
-        window.scrollTo(0, 0);
-    };
-
-    const validateStep = (currentStep: number): boolean => {
-        const missingFields: string[] = [];
+    const validateAllSteps = useCallback((): { isValid: boolean; errors: string[] } => {
+        const allErrors: string[] = [];
         
-        switch (currentStep) {
-            case 1:
-                if (!birthData.fullName?.trim()) missingFields.push("Full Name");
-                if (!birthData.dateOfBirth) missingFields.push("Date of Birth");
-                if (!birthData.tentativeTime) missingFields.push("Tentative Birth Time");
-                if (!birthData.birthPlace?.trim()) missingFields.push("Birth Place");
-                if (!birthData.gender) missingFields.push("Gender");
-                
-                if (missingFields.length > 0) {
-                    setError(`Please complete: ${missingFields.join(", ")}`);
-                    return false;
-                }
-                return true;
-                
-            case 2:
-                const { physical, psychographic, biological, family } = forensicTraits;
-                if (!physical?.facialStructure?.forehead) missingFields.push("Forehead Type");
-                if (!physical?.facialStructure?.eyeShape) missingFields.push("Eye Shape");
-                if (!physical?.facialStructure?.voicePitch) missingFields.push("Voice Texture");
-                if (!biological?.prakriti) missingFields.push("Body Constitution");
-                if (!psychographic?.speechStyle) missingFields.push("Speech Style");
-                if (!psychographic?.decisionMaking) missingFields.push("Decision Making Style");
-                if (!psychographic?.temperament) missingFields.push("Temperament");
-                if (!family?.siblingPosition) missingFields.push("Sibling Order");
-                if (!family?.fatherStatusAtBirth) missingFields.push("Father's Status at Birth");
-                
-                if (missingFields.length > 0) {
-                    setError(`Forensic markers required: ${missingFields.join(", ")}`);
-                    return false;
-                }
-                return true;
-                
-            case 3:
-                if (lifeEvents.length < 3) {
-                    setError(`Minimum 3 life events required. Current: ${lifeEvents.length}`);
-                    return false;
-                }
-                return true;
-                
-            default:
-                return true;
-        }
-    };
+        const step1Val = validateStep1();
+        const step2Val = validateStep2();
+        const step3Val = validateStep3();
+
+        if (!step1Val.isValid) allErrors.push(`Step 1: ${step1Val.errors[0]}`);
+        if (!step2Val.isValid) allErrors.push(`Step 2: ${step2Val.errors[0]}`);
+        if (!step3Val.isValid) allErrors.push(`Step 3: ${step3Val.errors[0]}`);
+
+        return { isValid: allErrors.length === 0, errors: allErrors };
+    }, [validateStep1, validateStep2, validateStep3]);
 
     const handleSubmit = async () => {
-        if (step !== 4) return;
+        // Full validation before submit
+        const fullValidation = validateAllSteps();
+        if (!fullValidation.isValid) {
+            setError(fullValidation.errors.join('. '));
+            return;
+        }
+
         setIsSubmitting(true);
         setError(null);
 
@@ -277,16 +508,20 @@ export default function RectifyPage() {
                 localStorage.removeItem('btr_form_data');
                 router.push(`/rectify/${result.data.sessionId}`);
             } else {
-                setError(result.error || 'Failed to submit analysis');
+                setError(result.error || 'Failed to submit analysis. Please try again.');
             }
         } catch (err: any) {
-            setError(err.message || 'Network error. Please try again.');
+            setError(err.message || 'Network error. Please check your connection and try again.');
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const stepLabels = ['Birth Details', 'Physical', 'Life Events', 'Review'];
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // RENDER
+    // ═══════════════════════════════════════════════════════════════════════════════
+
+    const stepLabels = ['Birth Details', 'Physical Traits', 'Life Events', 'Review & Submit'];
     const stepEmojis = ['👤', '🪞', '📅', '✅'];
 
     return (
@@ -298,7 +533,7 @@ export default function RectifyPage() {
                         {[1, 2, 3, 4].map((s) => (
                             <React.Fragment key={s}>
                                 <button
-                                    onClick={() => setStep(s)}
+                                    onClick={() => handleStepClick(s)}
                                     className="relative z-10 flex flex-col items-center min-w-[80px] outline-none focus:outline-none"
                                 >
                                     <div
@@ -425,5 +660,14 @@ export default function RectifyPage() {
                 )}
             </div>
         </Layout>
+    );
+}
+
+// Main export with Suspense wrapper
+export default function RectifyPage() {
+    return (
+        <Suspense fallback={<RectifyPageSkeleton />}>
+            <RectifyPageContent />
+        </Suspense>
     );
 }

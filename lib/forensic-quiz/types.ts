@@ -31,6 +31,8 @@ export interface QuizQuestion {
   allowMultiple: boolean;
   options: QuizOption[];
   hasNotSureOption: boolean;
+  allowCustomAnswer?: boolean; // Allow user to type their own answer
+  customAnswerPlaceholder?: string; // Placeholder text for custom answer input
   confidenceImpact: number; // How much "not sure" reduces confidence
 }
 
@@ -38,6 +40,7 @@ export interface QuizAnswer {
   questionId: string;
   selectedOptions: string[];
   isNotSure: boolean;
+  customAnswer?: string; // For user-provided custom text answers
   timestamp: number;
 }
 

@@ -7,18 +7,12 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { 
-  ArrowRight, 
-  Play, 
+import {
+  ArrowRight,
+  Play,
   Clock,
   Target,
   Sparkles,
-  Telescope,
-  Brain,
-  Server,
-  Database,
-  Code2,
-  Star,
   ChevronDown
 } from 'lucide-react';
 import { Suspense, lazy } from 'react';
@@ -26,15 +20,6 @@ import { Suspense, lazy } from 'react';
 const AIThinkingBox = lazy(() => import('./AIThinkingBox'));
 const EphemerisTable = lazy(() => import('./EphemerisTable'));
 const CandidateComparisonTable = lazy(() => import('./CandidateComparisonTable'));
-
-// Tech stack with elegant styling
-const techStack = [
-  { name: 'Swiss Ephemeris', icon: Telescope, color: '#8B4A9C' },
-  { name: 'DeepSeek AI', icon: Brain, color: '#4A7C6F' },
-  { name: 'Turso DB', icon: Database, color: '#C65D3B' },
-  { name: 'Next.js', icon: Server, color: '#B8860B' },
-  { name: 'TypeScript', icon: Code2, color: '#6B1F7A' },
-];
 
 // Core stats with warm colors
 const coreStats = [
@@ -77,31 +62,6 @@ export default function Hero() {
       </div>
 
       <div className="relative max-w-6xl mx-auto px-6 lg:px-8 pt-28 pb-16">
-        {/* Tech Stack Pills */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="flex flex-wrap items-center justify-center gap-3 mb-10"
-        >
-          {techStack.map((tech, index) => {
-            const Icon = tech.icon;
-            return (
-              <motion.div
-                key={tech.name}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.2 + index * 0.1 }}
-                className="group flex items-center gap-2 px-4 py-2 bg-white/80 border border-[#F0E8DE] rounded-full 
-                           hover:border-[#D4A853]/40 hover:shadow-md transition-all duration-300"
-              >
-                <Icon className="w-4 h-4 transition-colors duration-300" style={{ color: tech.color }} />
-                <span className="text-xs text-[#7A756F] group-hover:text-[#4A453F] transition-colors">{tech.name}</span>
-              </motion.div>
-            );
-          })}
-        </motion.div>
-
         {/* Main Content */}
         <div className="text-center max-w-4xl mx-auto mb-16">
           {/* Sacred Badge */}
@@ -113,7 +73,8 @@ export default function Hero() {
                        border border-[#F0E8DE] rounded-full text-sm mb-8 shadow-sm"
           >
             <span className="text-[#6B1F7A] font-medium">Vedic Birth Time Rectification</span>
-            <span className="text-[10px] px-2 py-0.5 bg-[#B8860B]/10 text-[#B8860B] rounded-full">by DeepSeek R1-0528</span>
+            <span className="text-[10px] px-2 py-0.5 bg-[#B8860B]/10 text-[#B8860B] rounded-full">by Swiss Ephemeris</span>
+            <span className="text-[10px] px-2 py-0.5 bg-[#4A7C6F]/10 text-[#4A7C6F] rounded-full">by DeepSeek R1-0528</span>
           </motion.div>
 
           {/* Main Headline - Elegant Typography */}

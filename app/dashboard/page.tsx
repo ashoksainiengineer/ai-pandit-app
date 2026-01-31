@@ -9,7 +9,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/database/drizzle';
 import { sessions, users } from '@/database/schema';
 import { eq, desc } from 'drizzle-orm';
-import { safeDecrypt } from '@/lib/crypto';
+import { safeDecrypt } from '@/lib/encryption';
 import { DashboardSession } from '@/lib/dashboard/types';
 import { DashboardClient } from './DashboardClient';
 import Layout from '@/components/Layout';

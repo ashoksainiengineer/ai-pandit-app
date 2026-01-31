@@ -5,16 +5,16 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  
+  // Moved from experimental to root level (Next.js 15+)
+  serverExternalPackages: ['swisseph'],
+  
   experimental: {
-    serverComponentsExternalPackages: ['swisseph'],
-    workerThreads: false,
-    webpackBuildWorker: false,
     cpus: 1
   },
+  
   productionBrowserSourceMaps: false,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  
   typescript: {
     ignoreBuildErrors: true,
   },

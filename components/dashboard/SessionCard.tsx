@@ -1,6 +1,7 @@
 /**
  * SessionCard Component
  * Displays a single session with rich information and actions
+ * Sacred Ivory Light Theme
  */
 
 'use client';
@@ -10,11 +11,8 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import {
   Star,
-  MoreVertical,
-  Copy,
   Trash2,
   ExternalLink,
-  RefreshCw,
   Calendar,
   MapPin,
   Clock,
@@ -23,6 +21,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { DashboardSession } from '@/lib/dashboard/types';
+import { DeleteConfirmModal } from './DeleteConfirmModal';
 
 interface SessionCardProps {
   session: DashboardSession;
@@ -35,42 +34,65 @@ interface SessionCardProps {
   onDuplicate?: (id: string) => void;
 }
 
+// Sacred Ivory Light Theme Colors
+const THEME = {
+  bg: '#FFFCF8',
+  surface: 'white',
+  textPrimary: '#1A1612',
+  textSecondary: '#7A756F',
+  textMuted: '#A8A39D',
+  border: '#F0E8DE',
+  borderHover: '#E8E0D5',
+  gold: '#B8860B',
+  goldLight: '#D4A853',
+  success: '#2D7A5C',
+  error: '#C65D3B',
+  info: '#3B82F6',
+} as const;
+
 const statusConfig = {
   complete: {
-    label: '✓ GOD-TIER VERIFIED',
-    bgColor: 'bg-[#2D7A5C]/20',
+    label: '✓ Verified',
+    bgColor: 'bg-[#2D7A5C]/10',
     textColor: 'text-[#2D7A5C]',
-    borderColor: 'border-[#2D7A5C]/50',
-    icon: <CheckCircle2 className="w-4 h-4" />,
+    borderColor: 'border-[#2D7A5C]/30',
+    icon: <CheckCircle2 className="w-3.5 h-3.5" />,
   },
   processing: {
-    label: '⚡ ANALYZING MULTIVERSE',
-    bgColor: 'bg-[#D4AF37]/20',
-    textColor: 'text-[#D4AF37]',
-    borderColor: 'border-[#D4AF37]/50',
-    icon: <Loader2 className="w-4 h-4 animate-spin" />,
+    label: 'Analyzing',
+    bgColor: 'bg-[#D4A853]/10',
+    textColor: 'text-[#B8860B]',
+    borderColor: 'border-[#D4A853]/30',
+    icon: <Loader2 className="w-3.5 h-3.5 animate-spin" />,
   },
   pending: {
-    label: '🕒 QUEUED',
-    bgColor: 'bg-[#3B82F6]/20',
+    label: 'Queued',
+    bgColor: 'bg-[#3B82F6]/10',
     textColor: 'text-[#3B82F6]',
-    borderColor: 'border-[#3B82F6]/50',
-    icon: <Clock className="w-4 h-4" />,
+    borderColor: 'border-[#3B82F6]/30',
+    icon: <Clock className="w-3.5 h-3.5" />,
+  },
+  draft: {
+    label: 'Draft',
+    bgColor: 'bg-[#3B82F6]/10',
+    textColor: 'text-[#3B82F6]',
+    borderColor: 'border-[#3B82F6]/30',
+    icon: <Clock className="w-3.5 h-3.5" />,
   },
   failed: {
-    label: '✗ FAILED',
-    bgColor: 'bg-[#EF4444]/20',
-    textColor: 'text-[#EF4444]',
-    borderColor: 'border-[#EF4444]/50',
-    icon: <AlertCircle className="w-4 h-4" />,
+    label: 'Failed',
+    bgColor: 'bg-[#C65D3B]/10',
+    textColor: 'text-[#C65D3B]',
+    borderColor: 'border-[#C65D3B]/30',
+    icon: <AlertCircle className="w-3.5 h-3.5" />,
   },
 };
 
 const confidenceConfig = {
-  'god-tier': { color: '#D4AF37', label: 'GOD-TIER' },
+  'god-tier': { color: '#B8860B', label: 'GOD-TIER' },
   'high': { color: '#2D7A5C', label: 'HIGH' },
-  'medium': { color: '#F59E0B', label: 'MEDIUM' },
-  'low': { color: '#EF4444', label: 'LOW' },
+  'medium': { color: '#D4A853', label: 'MEDIUM' },
+  'low': { color: '#C65D3B', label: 'LOW' },
 };
 
 export function SessionCard({
@@ -81,10 +103,12 @@ export function SessionCard({
   onSelect,
   onFavorite,
   onDelete,
-  onDuplicate,
 }: SessionCardProps) {
-  const [showActions, setShowActions] = useState(false);
-  const status = statusConfig[session.status as keyof typeof statusConfig] || statusConfig.pending;
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  
+  const status = statusConfig[session.status as keyof typeof statusConfig] || statusConfig.draft;
   const confidence = session.confidence ? confidenceConfig[session.confidence as keyof typeof confidenceConfig] : null;
 
   const formattedDate = new Date(session.createdAt).toLocaleDateString('en-US', {
@@ -99,6 +123,38 @@ export function SessionCard({
     onFavorite?.(session.id);
   };
 
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    setDeleteError(null);
+    
+    try {
+      const response = await fetch(`/api/sessions/${session.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        onDelete?.(session.id);
+        setShowDeleteConfirm(false);
+      } else {
+        setDeleteError(data.error || data.details || 'Failed to delete session');
+      }
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'Network error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Compact View
   if (viewMode === 'compact') {
     return (
       <motion.div
@@ -106,9 +162,12 @@ export function SessionCard({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className={`
-          flex items-center gap-3 p-3 rounded-lg border
-          ${isSelected ? 'bg-[#D4AF37]/10 border-[#D4AF37]' : 'bg-[#0F1419]/50 border-[#D4AF37]/10'}
-          hover:border-[#D4AF37]/30 transition-all cursor-pointer
+          flex items-center gap-3 p-3 rounded-xl border cursor-pointer
+          ${isSelected 
+            ? 'bg-[#B8860B]/5 border-[#B8860B]' 
+            : 'bg-white border-[#F0E8DE] hover:border-[#D4A853]/50'
+          }
+          transition-all
         `}
         onClick={() => onSelect?.(session.id)}
       >
@@ -116,15 +175,16 @@ export function SessionCard({
           type="checkbox"
           checked={isSelected}
           onChange={() => {}}
-          className="w-4 h-4 rounded border-[#D4AF37]/30 bg-transparent text-[#D4AF37] focus:ring-[#D4AF37]"
+          className="w-4 h-4 rounded border-[#D4A853]/30 text-[#B8860B] focus:ring-[#B8860B]"
         />
-        <div className={`w-2 h-2 rounded-full ${status.bgColor.replace('/20', '')}`} />
-        <span className="flex-1 truncate text-sm text-[#F5F0EB]">{session.fullName}</span>
-        <span className="text-xs text-[#8C7F72]">{formattedDate}</span>
+        <div className={`w-2 h-2 rounded-full ${status.bgColor.replace('/10', '')}`} />
+        <span className="flex-1 truncate text-sm text-[#1A1612]">{session.fullName}</span>
+        <span className="text-xs text-[#7A756F]">{formattedDate}</span>
       </motion.div>
     );
   }
 
+  // Grid View
   if (viewMode === 'grid') {
     return (
       <motion.div
@@ -133,9 +193,9 @@ export function SessionCard({
         animate={{ opacity: 1, y: 0 }}
         whileHover={{ y: -4 }}
         className={`
-          relative group rounded-2xl border p-5
-          ${isSelected ? 'bg-[#D4AF37]/10 border-[#D4AF37]' : 'bg-[#0F1419]/80 border-[#D4AF37]/10'}
-          hover:border-[#D4AF37]/40 hover:shadow-lg hover:shadow-[#D4AF37]/5
+          relative group rounded-2xl border p-5 bg-white
+          ${isSelected ? 'border-[#B8860B] ring-1 ring-[#B8860B]' : 'border-[#F0E8DE]'}
+          hover:border-[#D4A853]/50 hover:shadow-lg hover:shadow-[#D4A853]/5
           transition-all duration-300
         `}
       >
@@ -146,7 +206,7 @@ export function SessionCard({
               type="checkbox"
               checked={isSelected}
               onChange={() => onSelect(session.id)}
-              className="w-5 h-5 rounded border-[#D4AF37]/30 bg-transparent text-[#D4AF37] focus:ring-[#D4AF37]"
+              className="w-5 h-5 rounded border-[#D4A853]/30 text-[#B8860B] focus:ring-[#B8860B]"
             />
           </div>
         )}
@@ -155,11 +215,10 @@ export function SessionCard({
         <button
           onClick={handleFavoriteClick}
           className={`
-            absolute top-4 right-4 p-2 rounded-xl
-            transition-all duration-200
+            absolute top-4 right-4 p-2 rounded-xl transition-all duration-200
             ${isFavorite 
-              ? 'text-[#D4AF37] bg-[#D4AF37]/20' 
-              : 'text-[#8C7F72] hover:text-[#D4AF37] hover:bg-[#D4AF37]/10'
+              ? 'text-[#B8860B] bg-[#B8860B]/10' 
+              : 'text-[#A8A39D] hover:text-[#B8860B] hover:bg-[#B8860B]/5'
             }
           `}
         >
@@ -167,11 +226,11 @@ export function SessionCard({
         </button>
 
         {/* Content */}
-        <Link href={`/rectify/${session.id}${session.status === 'complete' ? '/results' : ''}`}>
+        <Link href={`/rectify/${session.id}${session.status === 'complete' ? '/results' : session.status === 'draft' ? '/edit' : ''}`}>
           <div className="pt-8">
             {/* Status Badge */}
             <div className={`
-              inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider
+              inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
               ${status.bgColor} ${status.textColor} border ${status.borderColor}
               ${session.status === 'processing' ? 'animate-pulse' : ''}
             `}>
@@ -180,27 +239,27 @@ export function SessionCard({
             </div>
 
             {/* Name */}
-            <h3 className="mt-4 text-lg font-semibold text-[#F5F0EB] truncate">
+            <h3 className="mt-4 text-lg font-semibold text-[#1A1612] truncate">
               {session.fullName}
             </h3>
 
             {/* Details */}
             <div className="mt-3 space-y-2">
-              <div className="flex items-center gap-2 text-sm text-[#8C7F72]">
+              <div className="flex items-center gap-2 text-sm text-[#7A756F]">
                 <Calendar className="w-4 h-4" />
                 {session.dateOfBirth}
               </div>
-              <div className="flex items-center gap-2 text-sm text-[#8C7F72]">
+              <div className="flex items-center gap-2 text-sm text-[#7A756F]">
                 <MapPin className="w-4 h-4" />
-                {session.birthPlace}
+                <span className="truncate">{session.birthPlace}</span>
               </div>
             </div>
 
             {/* Rectified Time */}
             {session.rectifiedTime && (
-              <div className="mt-4 p-3 bg-[#D4AF37]/5 rounded-xl border border-[#D4AF37]/20">
-                <span className="text-xs text-[#8C7F72] uppercase tracking-wider">Rectified Time</span>
-                <p className="text-[#D4AF37] font-mono font-bold">{session.rectifiedTime}</p>
+              <div className="mt-4 p-3 bg-[#FDF8F3] rounded-xl border border-[#D4A853]/20">
+                <span className="text-xs text-[#7A756F] uppercase tracking-wider">Rectified Time</span>
+                <p className="text-[#B8860B] font-mono font-bold">{session.rectifiedTime}</p>
               </div>
             )}
 
@@ -208,12 +267,12 @@ export function SessionCard({
             {confidence && session.accuracy && (
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[#8C7F72]">Confidence:</span>
+                  <span className="text-xs text-[#7A756F]">Confidence:</span>
                   <span className="text-xs font-bold" style={{ color: confidence.color }}>
                     {confidence.label}
                   </span>
                 </div>
-                <div className="w-16 h-1.5 bg-[#151a21] rounded-full overflow-hidden">
+                <div className="w-16 h-1.5 bg-[#F0E8DE] rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${session.accuracy}%` }}
@@ -225,8 +284,8 @@ export function SessionCard({
             )}
 
             {/* Date */}
-            <div className="mt-4 pt-4 border-t border-[#D4AF37]/10 text-xs text-[#8C7F72]">
-              Created {formattedDate}
+            <div className="mt-4 pt-4 border-t border-[#F0E8DE] text-xs text-[#A8A39D]">
+              Updated {formattedDate}
             </div>
           </div>
         </Link>
@@ -234,7 +293,7 @@ export function SessionCard({
     );
   }
 
-  // List View (Default) - Mobile Responsive with Light Theme
+  // List View (Default) - Sacred Ivory Light Theme
   return (
     <motion.div
       layout
@@ -242,7 +301,7 @@ export function SessionCard({
       animate={{ opacity: 1 }}
       className={`
         group relative flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 rounded-xl border
-        ${isSelected ? 'bg-[#B8860B]/10 border-[#B8860B]' : 'bg-white border-[#F0E8DE]'}
+        ${isSelected ? 'bg-[#B8860B]/5 border-[#B8860B]' : 'bg-white border-[#F0E8DE]'}
         hover:border-[#D4A853]/50 hover:shadow-sm transition-all
       `}
     >
@@ -254,18 +313,18 @@ export function SessionCard({
             type="checkbox"
             checked={isSelected}
             onChange={() => onSelect(session.id)}
-            className="w-4 h-4 sm:w-5 sm:h-5 rounded border-[#B8860B]/30 bg-transparent text-[#B8860B] focus:ring-[#B8860B]"
+            className="w-4 h-4 sm:w-5 sm:h-5 rounded border-[#D4A853]/30 text-[#B8860B] focus:ring-[#B8860B]"
           />
         )}
 
         {/* Status Indicator */}
-        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${status.bgColor.replace('/20', '')}`} />
+        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${status.bgColor.replace('/10', '')}`} />
 
         {/* Name & Status - Mobile Only */}
         <div className="flex-1 min-w-0 sm:hidden">
           <h3 className="font-semibold text-[#1A1612] truncate text-sm">{session.fullName}</h3>
           <span className={`
-            inline-flex items-center gap-1 text-[10px] font-bold uppercase
+            inline-flex items-center gap-1 text-[10px] font-semibold
             ${status.textColor}
           `}>
             {status.icon}
@@ -276,14 +335,14 @@ export function SessionCard({
 
       {/* Main Content */}
       <Link
-        href={`/rectify/${session.id}${session.status === 'complete' ? '/results' : ''}`}
+        href={`/rectify/${session.id}${session.status === 'complete' ? '/results' : session.status === 'draft' ? '/edit' : ''}`}
         className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 items-start sm:items-center"
       >
         {/* Name & Status - Desktop Only */}
         <div className="hidden sm:block col-span-3 min-w-0">
           <h3 className="font-semibold text-[#1A1612] truncate">{session.fullName}</h3>
           <span className={`
-            inline-flex items-center gap-1 text-xs font-bold uppercase
+            inline-flex items-center gap-1 text-xs font-semibold
             ${status.textColor}
           `}>
             {status.icon}
@@ -298,9 +357,21 @@ export function SessionCard({
             {session.dateOfBirth}
           </div>
           <div className="flex items-center gap-1">
+            <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+            <span className="text-[#B8860B] font-medium">{session.tentativeTime || 'Not set'}</span>
+          </div>
+          <div className="flex items-center gap-1">
             <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             <span className="truncate">{session.birthPlace}</span>
           </div>
+          {/* Offset Config */}
+          {(session as any).offsetConfig && (
+            <div className="flex items-center gap-1 text-[10px] text-[#A8A39D]">
+              <span className="bg-[#F5EFE7] px-1.5 py-0.5 rounded">
+                ±{(session as any).offsetConfig.customMinutes || 60}min
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Rectified Time */}
@@ -337,8 +408,12 @@ export function SessionCard({
         </div>
 
         {/* Date */}
-        <div className="col-span-12 sm:col-span-2 text-xs sm:text-sm text-[#7A756F] sm:text-right">
-          {formattedDate}
+        <div className="col-span-12 sm:col-span-2 text-xs text-[#7A756F] sm:text-right">
+          <div className="text-[10px] uppercase tracking-wider text-[#A8A39D] mb-0.5">Last Updated</div>
+          <div>{formattedDate}</div>
+          <div className="text-[10px] text-[#B8860B] mt-0.5">
+            {new Date(session.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+          </div>
         </div>
       </Link>
 
@@ -350,7 +425,7 @@ export function SessionCard({
             p-1.5 sm:p-2 rounded-lg transition-colors
             ${isFavorite
               ? 'text-[#B8860B]'
-              : 'text-[#7A756F] hover:text-[#B8860B]'
+              : 'text-[#A8A39D] hover:text-[#B8860B]'
             }
           `}
         >
@@ -358,12 +433,34 @@ export function SessionCard({
         </button>
 
         <Link
-          href={`/rectify/${session.id}${session.status === 'complete' ? '/results' : ''}`}
-          className="p-1.5 sm:p-2 text-[#7A756F] hover:text-[#B8860B] rounded-lg transition-colors"
+          href={`/rectify/${session.id}${session.status === 'complete' ? '/results' : session.status === 'draft' ? '/edit' : ''}`}
+          className="p-1.5 sm:p-2 text-[#A8A39D] hover:text-[#B8860B] rounded-lg transition-colors"
         >
           <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5" />
         </Link>
+
+        {/* Delete Button */}
+        <button
+          onClick={handleDeleteClick}
+          className="p-1.5 sm:p-2 text-[#A8A39D] hover:text-red-500 rounded-lg transition-colors"
+          title="Delete session"
+        >
+          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+        </button>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setDeleteError(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        session={session}
+        isDeleting={isDeleting}
+        error={deleteError}
+      />
     </motion.div>
   );
 }

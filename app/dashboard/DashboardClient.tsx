@@ -39,18 +39,23 @@ function calculateStats(sessions: DashboardSession[]): DashboardStats {
 }
 
 export function DashboardClient({ initialSessions, userName }: DashboardClientProps) {
+  const [sessions, setSessions] = useState(initialSessions);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const stats = useMemo(() => calculateStats(initialSessions), [initialSessions]);
+  const stats = useMemo(() => calculateStats(sessions), [sessions]);
+
+  const handleDeleteSession = (deletedId: string) => {
+    setSessions(prev => prev.filter(s => s.id !== deletedId));
+  };
 
   const filteredSessions = useMemo(() => {
-    if (!searchQuery.trim()) return initialSessions;
+    if (!searchQuery.trim()) return sessions;
     const query = searchQuery.toLowerCase();
-    return initialSessions.filter(session =>
+    return sessions.filter(session =>
       session.fullName?.toLowerCase().includes(query)
     );
-  }, [initialSessions, searchQuery]);
+  }, [sessions, searchQuery]);
 
   const totalPages = Math.ceil(filteredSessions.length / ITEMS_PER_PAGE);
   const paginatedSessions = filteredSessions.slice(
@@ -80,13 +85,21 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
           </p>
         </div>
         
-        <Link
-          href="/rectify"
-          className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-[#B8860B]/20 transition-all text-sm sm:text-base"
-        >
-          <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
-          New Analysis
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/rectify?new=true"
+            className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-[#B8860B] text-[#B8860B] rounded-xl font-semibold hover:bg-[#B8860B]/10 transition-all text-xs sm:text-sm"
+          >
+            + New Person
+          </Link>
+          <Link
+            href="/rectify"
+            className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-[#B8860B]/20 transition-all text-sm sm:text-base"
+          >
+            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
+            Continue Analysis
+          </Link>
+        </div>
       </motion.div>
 
       {/* Stats - Mobile Responsive Grid */}
@@ -171,6 +184,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
                 viewMode="list"
                 isSelected={false}
                 isFavorite={false}
+                onDelete={handleDeleteSession}
               />
             </motion.div>
           ))

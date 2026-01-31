@@ -3,7 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/database/drizzle';
 import { sessions, users } from '@/database/schema';
 import { eq } from 'drizzle-orm';
-import { encryptData } from '@/lib/crypto';
+import { encryptData } from '@/lib/encryption';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // DRAFT API - Save form data without starting analysis
@@ -33,18 +33,35 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Get User from DB (Synced via Webhook)
-        const user = await db.select()
+        // Get or Create User from DB (Auto-sync if webhook hasn't run yet)
+        let user = await db.select()
             .from(users)
             .where(eq(users.clerkId, clerkId))
             .limit(1);
 
-        if (user.length === 0) {
-            // Highly unlikely with global middleware, but handle for safety
-            return NextResponse.json({ error: 'User profile not synchronized' }, { status: 403 });
-        }
+        let internalUserId: string;
 
-        const internalUserId = user[0].id;
+        if (user.length === 0) {
+            // User not synced yet - fetch from Clerk and create locally
+            const { userId } = await auth();
+            const now = new Date().toISOString();
+            
+            // Create user with basic info (webhook will update with full details later)
+            const newUserId = crypto.randomUUID();
+            await db.insert(users).values({
+                id: newUserId,
+                clerkId: clerkId,
+                email: '', // Will be updated by webhook
+                fullName: null,
+                createdAt: now,
+                updatedAt: now,
+            });
+            
+            internalUserId = newUserId;
+            console.log('Auto-created user during draft save:', { clerkId, internalUserId });
+        } else {
+            internalUserId = user[0].id;
+        }
         const now = new Date().toISOString();
 
         // Encrypt sensitive data
@@ -102,6 +119,52 @@ export async function POST(request: NextRequest) {
                 message: 'Draft updated',
                 sessionId,
             });
+        }
+
+        // Check if draft already exists for this user + birth date combination
+        // This prevents multiple drafts for the same person
+        if (birthData.dateOfBirth) {
+            const existingDraft = await db.select({
+                id: sessions.id,
+                status: sessions.status,
+                dateOfBirth: sessions.dateOfBirth,
+            })
+            .from(sessions)
+            .where(
+                eq(sessions.userId, internalUserId)
+            );
+            
+            // Find draft with matching birth date (decrypted comparison not possible, so we check dateOfBirth)
+            const matchingDraft = existingDraft.find(d =>
+                d.status === 'draft' && d.dateOfBirth === birthData.dateOfBirth
+            );
+            
+            if (matchingDraft) {
+                // Update existing draft for this birth date
+                await db.update(sessions)
+                    .set({
+                        fullName: encryptedFullName,
+                        tentativeTime: birthData.tentativeTime || '',
+                        birthPlace: birthData.birthPlace || '',
+                        latitude: birthData.latitude || 0,
+                        longitude: birthData.longitude || 0,
+                        timezone: birthData.timezone?.toString() || '5.5',
+                        gender: birthData.gender || 'other',
+                        physicalTraits: encryptedPhysicalTraits,
+                        forensicTraits: encryptedForensicTraits,
+                        spouseData: encryptedSpouseData,
+                        lifeEvents: encryptedLifeEvents,
+                        offsetConfig: offsetConfig ? JSON.stringify(offsetConfig) : null,
+                        updatedAt: now,
+                    })
+                    .where(eq(sessions.id, matchingDraft.id));
+
+                return NextResponse.json({
+                    success: true,
+                    message: 'Draft updated (same birth date)',
+                    sessionId: matchingDraft.id,
+                });
+            }
         }
 
         // Create new draft
