@@ -107,7 +107,7 @@ export function SessionCard({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  
+
   const status = statusConfig[session.status as keyof typeof statusConfig] || statusConfig.draft;
   const confidence = session.confidence ? confidenceConfig[session.confidence as keyof typeof confidenceConfig] : null;
 
@@ -132,15 +132,15 @@ export function SessionCard({
   const handleConfirmDelete = async () => {
     setIsDeleting(true);
     setDeleteError(null);
-    
+
     try {
       const response = await fetch(`/api/sessions/${session.id}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
       });
-      
+
       const data = await response.json();
-      
+
       if (response.ok && data.success) {
         onDelete?.(session.id);
         setShowDeleteConfirm(false);
@@ -163,8 +163,8 @@ export function SessionCard({
         animate={{ opacity: 1 }}
         className={`
           flex items-center gap-3 p-3 rounded-xl border cursor-pointer
-          ${isSelected 
-            ? 'bg-[#B8860B]/5 border-[#B8860B]' 
+          ${isSelected
+            ? 'bg-[#B8860B]/5 border-[#B8860B]'
             : 'bg-white border-[#F0E8DE] hover:border-[#D4A853]/50'
           }
           transition-all
@@ -174,7 +174,7 @@ export function SessionCard({
         <input
           type="checkbox"
           checked={isSelected}
-          onChange={() => {}}
+          onChange={() => { }}
           className="w-4 h-4 rounded border-[#D4A853]/30 text-[#B8860B] focus:ring-[#B8860B]"
         />
         <div className={`w-2 h-2 rounded-full ${status.bgColor.replace('/10', '')}`} />
@@ -216,8 +216,8 @@ export function SessionCard({
           onClick={handleFavoriteClick}
           className={`
             absolute top-4 right-4 p-2 rounded-xl transition-all duration-200
-            ${isFavorite 
-              ? 'text-[#B8860B] bg-[#B8860B]/10' 
+            ${isFavorite
+              ? 'text-[#B8860B] bg-[#B8860B]/10'
               : 'text-[#A8A39D] hover:text-[#B8860B] hover:bg-[#B8860B]/5'
             }
           `}
@@ -226,7 +226,7 @@ export function SessionCard({
         </button>
 
         {/* Content */}
-        <Link href={`/rectify/${session.id}${session.status === 'complete' ? '/results' : session.status === 'draft' ? '/edit' : ''}`}>
+        <Link href={`/rectify/${session.id}${session.status === 'complete' ? '/results' : '/edit'}`}>
           <div className="pt-8">
             {/* Status Badge */}
             <div className={`
@@ -335,7 +335,7 @@ export function SessionCard({
 
       {/* Main Content */}
       <Link
-        href={`/rectify/${session.id}${session.status === 'complete' ? '/results' : session.status === 'draft' ? '/edit' : ''}`}
+        href={`/rectify/${session.id}${session.status === 'complete' ? '/results' : '/edit'}`}
         className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 items-start sm:items-center"
       >
         {/* Name & Status - Desktop Only */}
@@ -433,7 +433,7 @@ export function SessionCard({
         </button>
 
         <Link
-          href={`/rectify/${session.id}${session.status === 'complete' ? '/results' : session.status === 'draft' ? '/edit' : ''}`}
+          href={`/rectify/${session.id}${session.status === 'complete' ? '/results' : '/edit'}`}
           className="p-1.5 sm:p-2 text-[#A8A39D] hover:text-[#B8860B] rounded-lg transition-colors"
         >
           <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5" />
