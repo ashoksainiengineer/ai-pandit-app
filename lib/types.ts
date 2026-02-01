@@ -19,7 +19,7 @@ export interface LifeEvent {
   description: string;
   importance?: 'high' | 'medium' | 'low' | 'critical';
   eventTime?: string;
-  datePrecision?: 'exact' | 'approximate' | 'range' | 'month_year' | 'exact_date' | 'exact_date_time' | 'exact_date_range' | 'year_range' | 'month_range';
+  datePrecision?: 'exact_date_time' | 'exact_date' | 'date_range' | 'month_year' | 'month_range' | 'year_range';
   endDate?: string;
   icon?: string;
   isCustom?: boolean;

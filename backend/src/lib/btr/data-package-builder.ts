@@ -64,7 +64,15 @@ export async function buildCandidateDataPackage(
     birthDate,
     dashaDepth,
     pranaWindowDays,
-    eventDates: input.lifeEvents.map(e => new Date(e.eventDate).getTime()),
+    // Safely parse event dates (handles partial dates like YYYY and YYYY-MM)
+    eventDates: input.lifeEvents.map(e => {
+      if (!e.eventDate) return Date.now();
+      const parts = e.eventDate.split('-');
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1 || 0; // Default to January
+      const day = parseInt(parts[2], 10) || 1; // Default to 1st
+      return new Date(year, month, day).getTime();
+    }),
     now: Date.now()
   });
 

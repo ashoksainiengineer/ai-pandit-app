@@ -28,7 +28,13 @@ const footerLinks = {
 };
 
 export default function Footer() {
-  const currentYear = new Date().getFullYear();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const currentYear = mounted ? new Date().getFullYear() : 2026;
 
   return (
     <footer className="bg-[#FDF8F3] border-t border-[#F0E8DE]">
@@ -51,7 +57,7 @@ export default function Footer() {
               </div>
             </Link>
             <p className="text-[#7A756F] text-sm leading-relaxed max-w-xs mb-4">
-              Birth time rectification within seconds-level precision using 
+              Birth time rectification within seconds-level precision using
               Swiss Ephemeris and DeepSeek AI.
             </p>
             <div className="flex items-center gap-2 text-sm text-[#7A756F]">
@@ -78,8 +84,8 @@ export default function Footer() {
             <ul className="space-y-3">
               {footerLinks.product.map((link) => (
                 <li key={link.href}>
-                  <Link 
-                    href={link.href} 
+                  <Link
+                    href={link.href}
                     className="text-[#7A756F] hover:text-[#B8860B] transition-colors text-sm"
                   >
                     {link.label}
@@ -101,8 +107,8 @@ export default function Footer() {
             <ul className="space-y-3">
               {footerLinks.company.map((link) => (
                 <li key={link.href}>
-                  <Link 
-                    href={link.href} 
+                  <Link
+                    href={link.href}
                     className="text-[#7A756F] hover:text-[#B8860B] transition-colors text-sm"
                   >
                     {link.label}
@@ -124,8 +130,8 @@ export default function Footer() {
             <ul className="space-y-3">
               {footerLinks.legal.map((link) => (
                 <li key={link.href}>
-                  <Link 
-                    href={link.href} 
+                  <Link
+                    href={link.href}
                     className="text-[#7A756F] hover:text-[#B8860B] transition-colors text-sm"
                   >
                     {link.label}

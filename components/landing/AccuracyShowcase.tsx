@@ -7,10 +7,10 @@
 
 import { motion, useInView } from 'framer-motion';
 import { useRef, useEffect, useState } from 'react';
-import { 
-  TrendingUp, 
-  Target, 
-  BarChart3, 
+import {
+  TrendingUp,
+  Target,
+  BarChart3,
   Terminal,
   Cpu,
   Activity,
@@ -84,7 +84,7 @@ function AnimatedBar({ value, color, delay }: { value: number; color: string; de
     <div ref={ref} className="h-3 bg-[#F0E8DE] rounded-full overflow-hidden">
       <motion.div
         className="h-full rounded-full transition-all duration-1000 ease-out"
-        style={{ 
+        style={{
           width: `${width}%`,
           backgroundColor: color,
           boxShadow: width > 0 ? `0 0 20px ${color}30` : 'none'
@@ -95,23 +95,29 @@ function AnimatedBar({ value, color, delay }: { value: number; color: string; de
 }
 
 export function AccuracyShowcase() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   return (
     <section className="relative py-24 lg:py-32 overflow-hidden">
-      {/* Soft Background Elements */}
-      <div className="absolute inset-0 pointer-events-none">
+      {/* Soft Background Elements - always rendered but conditionally visible */}
+      <div className="absolute inset-0 pointer-events-none" style={{ opacity: mounted ? 1 : 0 }}>
         <div className="absolute top-1/4 left-0 w-[500px] h-[500px] bg-emerald-100/30 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-0 w-[400px] h-[400px] bg-amber-100/30 rounded-full blur-3xl" />
-        
+
         {/* Subtle dot pattern */}
-        <div className="absolute inset-0 opacity-[0.015]" 
+        <div className="absolute inset-0 opacity-[0.015]"
           style={{
             backgroundImage: `radial-gradient(circle at 1px 1px, #B8860B 1px, transparent 0)`,
             backgroundSize: '40px 40px'
-          }} 
+          }}
         />
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-6 lg:px-8">
+      <div className="relative max-w-7xl mx-auto px-6 lg:px-8" style={{ opacity: mounted ? 1 : 0 }}>
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -124,21 +130,21 @@ export function AccuracyShowcase() {
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#F0E8DE] 
-                       rounded-full text-sm mb-8 shadow-sm"
+                   rounded-full text-sm mb-8 shadow-sm"
           >
             <Terminal className="w-4 h-4 text-[#B8860B]" />
             <span className="text-[#4A453F]">Precision Metrics</span>
           </motion.div>
-          
+
           <h2 className="font-[family-name:var(--font-cormorant)] text-3xl md:text-4xl lg:text-5xl 
-                         font-semibold text-[#1A1612] mb-6 leading-tight">
+                     font-semibold text-[#1A1612] mb-6 leading-tight">
             Divine{' '}
             <span className="text-gradient-gold">Precision</span>
             {' '}Engineering
           </h2>
-          
+
           <p className="text-lg text-[#4A453F] max-w-3xl mx-auto">
-            Swiss Ephemeris calculations with IEEE 754 double-precision arithmetic. 
+            Swiss Ephemeris calculations with IEEE 754 double-precision arithmetic.
             Achieving sub-arcsecond accuracy through algorithmic consensus.
           </p>
         </motion.div>
@@ -160,7 +166,7 @@ export function AccuracyShowcase() {
                 <span className="text-xs text-[#7A756F]">Validated</span>
               </div>
             </div>
-            
+
             <div className="space-y-8">
               {precisionMetrics.map((item, index) => (
                 <div key={item.method} className="relative">
@@ -171,7 +177,7 @@ export function AccuracyShowcase() {
                       </span>
                       {item.highlight && (
                         <span className="px-2 py-0.5 bg-[#B8860B]/10 border border-[#B8860B]/30 
-                                         text-[#B8860B] text-xs rounded-full font-medium">
+                                     text-[#B8860B] text-xs rounded-full font-medium">
                           Divine
                         </span>
                       )}
@@ -180,13 +186,13 @@ export function AccuracyShowcase() {
                       {item.accuracy}%
                     </span>
                   </div>
-                  
-                  <AnimatedBar 
-                    value={item.accuracy} 
-                    color={item.color} 
+
+                  <AnimatedBar
+                    value={item.accuracy}
+                    color={item.color}
                     delay={index * 200}
                   />
-                  
+
                   <div className="grid grid-cols-3 gap-4 mt-3 text-xs">
                     <div>
                       <span className="text-[#A8A39D]">Precision:</span>
@@ -219,24 +225,24 @@ export function AccuracyShowcase() {
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   className="group relative bg-white border border-[#F0E8DE] rounded-2xl p-6 
-                             hover:border-[#D4A853]/30 hover:shadow-lg transition-all duration-300"
+                         hover:border-[#D4A853]/30 hover:shadow-lg transition-all duration-300"
                 >
                   {/* Glow effect */}
-                  <div 
+                  <div
                     className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                     style={{
                       background: `radial-gradient(circle at center, ${metric.color}08 0%, transparent 70%)`
                     }}
                   />
-                  
+
                   <div className="relative">
-                    <div 
+                    <div
                       className="w-12 h-12 rounded-xl flex items-center justify-center mb-4"
                       style={{ backgroundColor: `${metric.color}10` }}
                     >
                       <Icon className="w-6 h-6" style={{ color: metric.color }} />
                     </div>
-                    
+
                     <div className="font-mono text-4xl font-bold text-[#1A1612] mb-2">
                       {metric.value}%
                     </div>
@@ -263,7 +269,7 @@ export function AccuracyShowcase() {
                   Calculation Pipeline
                 </h4>
               </div>
-              
+
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
                 <div className="p-4 bg-[#FDF8F3] rounded-xl border border-[#F0E8DE]">
                   <div className="text-[#7A756F] mb-2">Ephemeris</div>
@@ -298,7 +304,7 @@ export function AccuracyShowcase() {
           className="mt-20 flex justify-center"
         >
           <div className="inline-flex flex-wrap items-center justify-center gap-4 px-8 py-4 
-                          bg-white border border-[#F0E8DE] rounded-2xl shadow-sm">
+                      bg-white border border-[#F0E8DE] rounded-2xl shadow-sm">
             <div className="flex items-center gap-2">
               <div className="relative">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
@@ -306,23 +312,23 @@ export function AccuracyShowcase() {
               </div>
               <span className="text-emerald-600 text-sm font-medium">System Operational</span>
             </div>
-            
+
             <div className="hidden sm:block h-5 w-px bg-[#F0E8DE]" />
-            
+
             <div className="flex items-center gap-2 text-sm text-[#7A756F]">
               <Activity className="w-4 h-4" />
               <span>{'API Latency: <50ms'}</span>
             </div>
-            
+
             <div className="hidden sm:block h-5 w-px bg-[#F0E8DE]" />
-            
+
             <div className="flex items-center gap-2 text-sm text-[#7A756F]">
               <Database className="w-4 h-4" />
               <span>Ephemeris: Synced</span>
             </div>
-            
+
             <div className="hidden sm:block h-5 w-px bg-[#F0E8DE]" />
-            
+
             <div className="flex items-center gap-2 text-sm text-[#7A756F]">
               <Cpu className="w-4 h-4" />
               <span>AI: Connected</span>

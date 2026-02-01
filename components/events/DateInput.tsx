@@ -17,6 +17,7 @@ import { AlertCircle } from 'lucide-react';
 import {
   DatePrecision,
   DateParts,
+  TimeParts,
   parseDateParts,
   parseTimeParts,
   validateDate,
@@ -77,8 +78,8 @@ const YearSelect: React.FC<{
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className={`h-10 px-3 bg-white border rounded-lg text-sm outline-none transition-all flex-1 min-w-0
-        ${hasError 
-          ? 'border-[#C65D3B] focus:border-[#C65D3B] focus:ring-2 focus:ring-[#C65D3B]/20' 
+        ${hasError
+          ? 'border-[#C65D3B] focus:border-[#C65D3B] focus:ring-2 focus:ring-[#C65D3B]/20'
           : 'border-[#E8E0D5] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10'
         }`}
     >
@@ -104,8 +105,8 @@ const MonthSelect: React.FC<{
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className={`h-10 px-3 bg-white border rounded-lg text-sm outline-none transition-all flex-1 min-w-0
-        ${hasError 
-          ? 'border-[#C65D3B] focus:border-[#C65D3B] focus:ring-2 focus:ring-[#C65D3B]/20' 
+        ${hasError
+          ? 'border-[#C65D3B] focus:border-[#C65D3B] focus:ring-2 focus:ring-[#C65D3B]/20'
           : 'border-[#E8E0D5] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10'
         }`}
     >
@@ -138,8 +139,8 @@ const DaySelect: React.FC<{
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className={`h-10 px-3 bg-white border rounded-lg text-sm outline-none transition-all w-20
-        ${hasError 
-          ? 'border-[#C65D3B] focus:border-[#C65D3B] focus:ring-2 focus:ring-[#C65D3B]/20' 
+        ${hasError
+          ? 'border-[#C65D3B] focus:border-[#C65D3B] focus:ring-2 focus:ring-[#C65D3B]/20'
           : 'border-[#E8E0D5] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10'
         }`}
     >
@@ -166,8 +167,8 @@ const TimeSelect: React.FC<{
         value={hour}
         onChange={(e) => onChange(e.target.value, minute)}
         className={`h-10 px-3 bg-white border rounded-lg text-sm outline-none transition-all w-20
-          ${hasError 
-            ? 'border-[#C65D3B] focus:border-[#C65D3B] focus:ring-2 focus:ring-[#C65D3B]/20' 
+          ${hasError
+            ? 'border-[#C65D3B] focus:border-[#C65D3B] focus:ring-2 focus:ring-[#C65D3B]/20'
             : 'border-[#E8E0D5] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10'
           }`}
       >
@@ -181,8 +182,8 @@ const TimeSelect: React.FC<{
         value={minute}
         onChange={(e) => onChange(hour, e.target.value)}
         className={`h-10 px-3 bg-white border rounded-lg text-sm outline-none transition-all w-20
-          ${hasError 
-            ? 'border-[#C65D3B] focus:border-[#C65D3B] focus:ring-2 focus:ring-[#C65D3B]/20' 
+          ${hasError
+            ? 'border-[#C65D3B] focus:border-[#C65D3B] focus:ring-2 focus:ring-[#C65D3B]/20'
             : 'border-[#E8E0D5] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10'
           }`}
       >
@@ -200,7 +201,7 @@ const TimeSelect: React.FC<{
  */
 const ErrorDisplay: React.FC<{ error: string | null }> = ({ error }) => {
   if (!error) return null;
-  
+
   return (
     <div className="flex items-center gap-2 text-[#C65D3B] text-xs mt-2 animate-in fade-in">
       <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
@@ -230,7 +231,56 @@ export default function DateInput({
   minYear = 1900,
   maxYear = new Date().getFullYear()
 }: DateInputProps) {
-  // Parse current values
+  // Helper to normalize month/day values (remove leading zeros to match dropdown option values)
+  const normalizeParts = (parts: DateParts): DateParts => ({
+    year: parts.year,
+    month: parts.month ? parseInt(parts.month, 10).toString() : '',
+    day: parts.day ? parseInt(parts.day, 10).toString() : ''
+  });
+
+  // LOCAL state for immediate dropdown updates (prevents lag from parent re-renders)
+  const [localStartParts, setLocalStartParts] = useState<DateParts>({ year: '', month: '', day: '' });
+  const [localEndParts, setLocalEndParts] = useState<DateParts>({ year: '', month: '', day: '' });
+  const [localTimeParts, setLocalTimeParts] = useState<TimeParts>({ hour: '', minute: '' });
+
+  // Sync local state with props when they change
+  // BUT: Only sync if props have equal or more complete data than local state
+  // This prevents losing user input when buildDateString returns empty for partial dates
+  useEffect(() => {
+    const propsParts = normalizeParts(parseDateParts(eventDate));
+
+    setLocalStartParts(prev => {
+      const propsCount = (propsParts.year ? 1 : 0) + (propsParts.month ? 1 : 0) + (propsParts.day ? 1 : 0);
+      const localCount = (prev.year ? 1 : 0) + (prev.month ? 1 : 0) + (prev.day ? 1 : 0);
+
+      // Only sync if props have at least as much data as local state
+      return propsCount >= localCount ? propsParts : prev;
+    });
+  }, [eventDate]);
+
+  useEffect(() => {
+    const propsParts = normalizeParts(parseDateParts(endDate));
+
+    setLocalEndParts(prev => {
+      const propsCount = (propsParts.year ? 1 : 0) + (propsParts.month ? 1 : 0) + (propsParts.day ? 1 : 0);
+      const localCount = (prev.year ? 1 : 0) + (prev.month ? 1 : 0) + (prev.day ? 1 : 0);
+
+      return propsCount >= localCount ? propsParts : prev;
+    });
+  }, [endDate]);
+
+  useEffect(() => {
+    const propsParts = parseTimeParts(eventTime);
+
+    setLocalTimeParts(prev => {
+      const propsCount = (propsParts.hour ? 1 : 0) + (propsParts.minute ? 1 : 0);
+      const localCount = (prev.hour ? 1 : 0) + (prev.minute ? 1 : 0);
+
+      return propsCount >= localCount ? propsParts : prev;
+    });
+  }, [eventTime]);
+
+  // Derived parts for validation (from props)
   const startParts = useMemo(() => parseDateParts(eventDate), [eventDate]);
   const endParts = useMemo(() => parseDateParts(endDate), [endDate]);
   const timeParts = useMemo(() => parseTimeParts(eventTime), [eventTime]);
@@ -266,7 +316,7 @@ export default function DateInput({
         }
         break;
 
-      case 'exact_date_range':
+      case 'date_range':
         if (eventDate && endDate) {
           result = validateDateRange(eventDate, endDate);
         }
@@ -294,7 +344,8 @@ export default function DateInput({
       error: result.error || null,
       isValid: result.valid
     });
-  }, [precision, eventDate, endDate, eventTime, startParts, endParts]);
+  }, [precision, eventDate, endDate, eventTime]);
+  // Note: startParts and endParts are derived from eventDate/endDate, so don't include them
 
   // Validate on changes - only update internal validation state, NEVER call onUpdate from here
   useEffect(() => {
@@ -305,24 +356,37 @@ export default function DateInput({
    * Update start date parts
    */
   const updateStartDate = useCallback((updates: Partial<DateParts>) => {
-    const newParts = { ...startParts, ...updates };
+    // Update local state immediately for UI responsiveness
+    setLocalStartParts(prev => ({ ...prev, ...updates }));
+
+    // Parse current date to get fresh parts
+    const currentParts = parseDateParts(eventDate || '');
+    const newParts = { ...currentParts, ...updates };
     const newDate = buildDateString(newParts);
     onUpdate({ eventDate: newDate || undefined });
-  }, [startParts, onUpdate]);
+  }, [eventDate, onUpdate]);
 
   /**
    * Update end date parts
    */
   const updateEndDate = useCallback((updates: Partial<DateParts>) => {
-    const newParts = { ...endParts, ...updates };
+    // Update local state immediately for UI responsiveness
+    setLocalEndParts(prev => ({ ...prev, ...updates }));
+
+    // Parse current date to get fresh parts
+    const currentParts = parseDateParts(endDate || '');
+    const newParts = { ...currentParts, ...updates };
     const newDate = buildDateString(newParts);
     onUpdate({ endDate: newDate || undefined });
-  }, [endParts, onUpdate]);
+  }, [endDate, onUpdate]);
 
   /**
    * Update time
    */
   const updateTime = useCallback((hour: string, minute: string) => {
+    // Update local state immediately for UI responsiveness
+    setLocalTimeParts({ hour, minute });
+
     const newTime = buildTimeString(hour, minute);
     onUpdate({ eventTime: newTime || undefined });
   }, [onUpdate]);
@@ -336,7 +400,7 @@ export default function DateInput({
     <div className="bg-[#F5EFE7] p-4 rounded-lg space-y-3">
       <div className="flex items-center gap-3">
         <YearSelect
-          value={startParts.year}
+          value={localStartParts.year}
           onChange={(year) => updateStartDate({ year })}
           placeholder="Start Year"
           minYear={minYear}
@@ -345,7 +409,7 @@ export default function DateInput({
         />
         <span className="text-[#B8860B] text-xl font-bold">→</span>
         <YearSelect
-          value={endParts.year}
+          value={localEndParts.year}
           onChange={(year) => updateEndDate({ year })}
           placeholder="End Year"
           minYear={minYear}
@@ -365,13 +429,13 @@ export default function DateInput({
       {/* Start Date */}
       <div className="flex gap-3">
         <MonthSelect
-          value={startParts.month}
+          value={localStartParts.month}
           onChange={(month) => updateStartDate({ month })}
           placeholder="Start Month"
           hasError={!!validation.error && validation.error.includes('Start')}
         />
         <YearSelect
-          value={startParts.year}
+          value={localStartParts.year}
           onChange={(year) => updateStartDate({ year })}
           placeholder="Start Year"
           minYear={minYear}
@@ -379,19 +443,19 @@ export default function DateInput({
           hasError={!!validation.error && validation.error.includes('Start')}
         />
       </div>
-      
+
       <RangeArrow />
-      
+
       {/* End Date */}
       <div className="flex gap-3">
         <MonthSelect
-          value={endParts.month}
+          value={localEndParts.month}
           onChange={(month) => updateEndDate({ month })}
           placeholder="End Month"
           hasError={!!validation.error && validation.error.includes('End')}
         />
         <YearSelect
-          value={endParts.year}
+          value={localEndParts.year}
           onChange={(year) => updateEndDate({ year })}
           placeholder="End Year"
           minYear={minYear}
@@ -399,7 +463,7 @@ export default function DateInput({
           hasError={!!validation.error && validation.error.includes('End')}
         />
       </div>
-      
+
       <ErrorDisplay error={validation.error} />
     </div>
   );
@@ -411,13 +475,13 @@ export default function DateInput({
     <div className="bg-[#F5EFE7] p-4 rounded-lg space-y-3">
       <div className="flex gap-3">
         <MonthSelect
-          value={startParts.month}
+          value={localStartParts.month}
           onChange={(month) => updateStartDate({ month })}
           placeholder="Month"
           hasError={!!validation.error}
         />
         <YearSelect
-          value={startParts.year}
+          value={localStartParts.year}
           onChange={(year) => updateStartDate({ year })}
           placeholder="Year"
           minYear={minYear}
@@ -437,21 +501,21 @@ export default function DateInput({
       {/* Start Date */}
       <div className="flex gap-3">
         <DaySelect
-          value={startParts.day}
+          value={localStartParts.day}
           onChange={(day) => updateStartDate({ day })}
-          year={startParts.year}
-          month={startParts.month}
+          year={localStartParts.year}
+          month={localStartParts.month}
           placeholder="Start Day"
           hasError={!!validation.error && validation.error.includes('Start')}
         />
         <MonthSelect
-          value={startParts.month}
+          value={localStartParts.month}
           onChange={(month) => updateStartDate({ month })}
           placeholder="Start Month"
           hasError={!!validation.error && validation.error.includes('Start')}
         />
         <YearSelect
-          value={startParts.year}
+          value={localStartParts.year}
           onChange={(year) => updateStartDate({ year })}
           placeholder="Start Year"
           minYear={minYear}
@@ -459,13 +523,13 @@ export default function DateInput({
           hasError={!!validation.error && validation.error.includes('Start')}
         />
       </div>
-      
+
       <RangeArrow />
-      
+
       {/* End Date */}
       <div className="flex gap-3">
         <DaySelect
-          value={endParts.day}
+          value={localEndParts.day}
           onChange={(day) => updateEndDate({ day })}
           year={endParts.year || startParts.year}
           month={endParts.month || startParts.month}
@@ -473,13 +537,13 @@ export default function DateInput({
           hasError={!!validation.error && validation.error.includes('End')}
         />
         <MonthSelect
-          value={endParts.month}
+          value={localEndParts.month}
           onChange={(month) => updateEndDate({ month })}
           placeholder="End Month"
           hasError={!!validation.error && validation.error.includes('End')}
         />
         <YearSelect
-          value={endParts.year}
+          value={localEndParts.year}
           onChange={(year) => updateEndDate({ year })}
           placeholder="End Year"
           minYear={minYear}
@@ -487,7 +551,7 @@ export default function DateInput({
           hasError={!!validation.error && validation.error.includes('End')}
         />
       </div>
-      
+
       <ErrorDisplay error={validation.error} />
     </div>
   );
@@ -500,21 +564,21 @@ export default function DateInput({
       <div className="bg-[#F5EFE7] p-4 rounded-lg">
         <div className="flex gap-3">
           <DaySelect
-            value={startParts.day}
+            value={localStartParts.day}
             onChange={(day) => updateStartDate({ day })}
-            year={startParts.year}
-            month={startParts.month}
+            year={localStartParts.year}
+            month={localStartParts.month}
             placeholder="Day"
             hasError={!!validation.error && !validation.error.includes('Time')}
           />
           <MonthSelect
-            value={startParts.month}
+            value={localStartParts.month}
             onChange={(month) => updateStartDate({ month })}
             placeholder="Month"
             hasError={!!validation.error && !validation.error.includes('Time')}
           />
           <YearSelect
-            value={startParts.year}
+            value={localStartParts.year}
             onChange={(year) => updateStartDate({ year })}
             placeholder="Year"
             minYear={minYear}
@@ -522,7 +586,7 @@ export default function DateInput({
             hasError={!!validation.error && !validation.error.includes('Time')}
           />
         </div>
-        
+
         {precision === 'exact_date' && <ErrorDisplay error={validation.error} />}
       </div>
 
@@ -553,7 +617,7 @@ export default function DateInput({
       return renderMonthRange();
     case 'month_year':
       return renderMonthYear();
-    case 'exact_date_range':
+    case 'date_range':
       return renderDateRange();
     case 'exact_date':
     case 'exact_date_time':

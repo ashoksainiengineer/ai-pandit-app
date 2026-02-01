@@ -1,9 +1,10 @@
+import 'dotenv/config';
 import express, { Request } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
+
 import { routes } from './routes/index.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { startQueueProcessor, cleanupZombiesOnStartup } from './lib/queue-manager.js';
@@ -19,11 +20,10 @@ declare global {
     }
 }
 
-// Load environment variables
-dotenv.config();
+
 
 const app = express();
-const PORT = parseInt(process.env.PORT || '7860', 10);
+const PORT = parseInt(process.env.PORT || '3001', 10);
 
 // ═════════════════════════════════════════════════════════════════════════════
 // SECURITY MIDDLEWARE (Production-Ready)
@@ -66,8 +66,8 @@ app.use(cors({
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
-        'Content-Type', 
-        'Authorization', 
+        'Content-Type',
+        'Authorization',
         'X-Requested-With',
         'X-Clerk-Auth-Status',
         'X-Clerk-Auth-Reason',
@@ -100,7 +100,7 @@ app.use(compression({
 // ═════════════════════════════════════════════════════════════════════════════
 
 // Body parsing with limits
-app.use(express.json({ 
+app.use(express.json({
     limit: '5mb',
     verify: (req, res, buf) => {
         // Store raw body for webhook verification if needed
@@ -169,7 +169,7 @@ app.use('/api', routes);
 
 // 404 handler
 app.use((req, res) => {
-    res.status(404).json({ 
+    res.status(404).json({
         error: 'Not Found',
         path: req.path,
         method: req.method,
@@ -194,7 +194,7 @@ async function bootstrap() {
         logger.info('🚀 AI Pandit BTR Engine v2.0.0 Starting...');
         logger.info(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
         logger.info(`🔌 Port: ${PORT}`);
-        
+
         // Validate critical environment variables
         const requiredEnv = ['TURSO_DATABASE_URL', 'TURSO_AUTH_TOKEN', 'CLERK_SECRET_KEY'];
         const missing = requiredEnv.filter(key => !process.env[key]);
@@ -202,7 +202,7 @@ async function bootstrap() {
             logger.error(`❌ Missing required env vars: ${missing.join(', ')}`);
             process.exit(1);
         }
-        
+
         // Check AI configuration
         if (!process.env.AI_API_KEY) {
             logger.warn('⚠️ AI_API_KEY not set - BTR processing will fail');
@@ -220,14 +220,14 @@ async function bootstrap() {
                 logger.info('✅ HTTP server closed');
                 process.exit(0);
             });
-            
+
             // Force shutdown after 30s
             setTimeout(() => {
                 logger.error('❌ Forced shutdown after timeout');
                 process.exit(1);
             }, 30000);
         };
-        
+
         process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
         process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
@@ -246,14 +246,14 @@ async function bootstrap() {
         // Cleanup zombie sessions
         logger.info('🧹 Cleaning up zombie sessions...');
         await cleanupZombiesOnStartup();
-        
+
         // Start queue processor
         logger.info('🔄 Starting queue processor...');
         startQueueProcessor();
         queueStarted = true;
-        
+
         logger.info('✨ AI Pandit BTR Engine fully operational');
-        
+
     } catch (err) {
         logger.error('❌ Fatal bootstrap error:', err);
         process.exit(1);

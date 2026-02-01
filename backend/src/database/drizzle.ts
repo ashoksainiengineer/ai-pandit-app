@@ -18,10 +18,10 @@ const CONNECTION_CONFIG = {
   maxRetries: 5,
   baseDelayMs: 1000,
   maxDelayMs: 30000,
-  
+
   // Query timeout
   queryTimeoutMs: 30000,
-  
+
   // Connection pool settings (Turso client handles pooling internally)
   syncUrl: config.database.url,
   authToken: config.database.authToken,
@@ -33,39 +33,39 @@ const CONNECTION_CONFIG = {
 
 async function createClientWithRetry(): Promise<Client> {
   let lastError: Error | undefined;
-  
+
   for (let attempt = 1; attempt <= CONNECTION_CONFIG.maxRetries; attempt++) {
     try {
       logger.info(`Connecting to Turso database (attempt ${attempt}/${CONNECTION_CONFIG.maxRetries})...`);
-      
+
       const client = createClient({
         url: CONNECTION_CONFIG.syncUrl,
         authToken: CONNECTION_CONFIG.authToken,
       });
-      
+
       // Verify connection with a simple query
       await client.execute('SELECT 1');
-      
+
       logger.info('✅ Database connection established');
       return client;
-      
+
     } catch (error) {
       lastError = error as Error;
       const delay = Math.min(
         CONNECTION_CONFIG.baseDelayMs * Math.pow(2, attempt - 1),
         CONNECTION_CONFIG.maxDelayMs
       );
-      
+
       logger.warn(`Database connection attempt ${attempt} failed, retrying in ${delay}ms...`, {
         error: lastError.message,
       });
-      
+
       if (attempt < CONNECTION_CONFIG.maxRetries) {
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
   }
-  
+
   throw new Error(`Failed to connect to database after ${CONNECTION_CONFIG.maxRetries} attempts: ${lastError?.message}`);
 }
 
@@ -83,9 +83,9 @@ try {
     url: CONNECTION_CONFIG.syncUrl,
     authToken: CONNECTION_CONFIG.authToken,
   });
-  
+
   db = drizzle(client, { schema });
-  
+
 } catch (error) {
   logger.error('Failed to initialize database client:', error);
   throw error;
@@ -101,7 +101,7 @@ export async function checkDatabaseHealth(): Promise<{
   error?: string;
 }> {
   const startTime = Date.now();
-  
+
   try {
     await client.execute('SELECT 1');
     return {
@@ -127,7 +127,7 @@ export async function executeWithTimeout<T>(
 ): Promise<T> {
   return Promise.race([
     operation(),
-    new Promise<never>((_, reject) => 
+    new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error(`Query timeout after ${timeoutMs}ms`)), timeoutMs)
     ),
   ]);
@@ -138,35 +138,35 @@ export async function executeWithRetry<T>(
   maxRetries: number = 3
 ): Promise<T> {
   let lastError: Error | undefined;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await operation();
     } catch (error) {
       lastError = error as Error;
-      
+
       // Only retry on transient errors
       const errorMessage = lastError.message.toLowerCase();
-      const isTransient = 
+      const isTransient =
         errorMessage.includes('timeout') ||
         errorMessage.includes('network') ||
         errorMessage.includes('econnrefused') ||
         errorMessage.includes('temporarily') ||
         errorMessage.includes('busy');
-      
+
       if (!isTransient || attempt === maxRetries) {
         throw lastError;
       }
-      
+
       const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
       logger.warn(`Query failed (attempt ${attempt}/${maxRetries}), retrying...`, {
         error: lastError.message,
       });
-      
+
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
-  
+
   throw lastError;
 }
 

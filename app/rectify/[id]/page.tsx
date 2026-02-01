@@ -256,11 +256,10 @@ function ProgressBar({ percentage, isConnected }: { percentage: number; isConnec
                     initial={{ width: 0 }}
                     animate={{ width: `${percentage}%` }}
                     transition={{ duration: 0.5, ease: "easeOut" }}
-                    className={`h-full rounded-full transition-all duration-300 ${
-                        isConnected 
-                            ? 'bg-gradient-to-r from-[#B8860B] to-[#D4A853]' 
+                    className={`h-full rounded-full transition-all duration-300 ${isConnected
+                            ? 'bg-gradient-to-r from-[#B8860B] to-[#D4A853]'
                             : 'bg-[#A8A39D]'
-                    }`}
+                        }`}
                 />
             </div>
         </div>
@@ -364,11 +363,11 @@ export default function ProgressPage() {
 
     const handleCancelAnalysis = async () => {
         if (isCancelling || cancelled) return;
-        
+
         try {
             setIsCancelling(true);
             const token = await getToken();
-            
+
             const response = await fetch(`/api/queue/cancel`, {
                 method: 'POST',
                 headers: {
@@ -414,23 +413,23 @@ export default function ProgressPage() {
                             { label: 'Analysis', icon: <Activity className="w-4 h-4" /> }
                         ]}
                     />
-                    
+
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-2xl font-bold text-[#1A1612] font-[family-name:var(--font-cormorant)]">
-                                Birth Time Analysis
+                                Analysis for {sessionMetadata?.fullName || 'Birth Time Analysis'}
                             </h1>
                             <p className="text-sm text-[#7A756F]">
                                 Session ID: <span className="font-mono text-[#B8860B]">{sessionId.slice(0, 8)}...</span>
                             </p>
                         </div>
-                        
+
                         <div className="flex items-center gap-4">
-                            <AnalysisTimer 
-                                startTime={startedAt} 
+                            <AnalysisTimer
+                                startTime={startedAt}
                                 estimatedTimeRemaining={estimatedTimeRemaining}
                             />
-                            
+
                             {!isComplete && !cancelled && (
                                 <button
                                     onClick={handleCancelAnalysis}

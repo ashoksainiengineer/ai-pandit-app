@@ -18,7 +18,13 @@ const footerLinks = [
 ];
 
 export default function Footer() {
-  const currentYear = new Date().getFullYear();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const currentYear = mounted ? new Date().getFullYear() : 2026;
 
   return (
     <footer className="relative border-t border-[#F0E8DE] bg-[#FDF8F3]">
@@ -39,13 +45,13 @@ export default function Footer() {
                 Powered by DeepSeek R1-0528
               </span>
             </div>
-            
+
             <p className="text-[#4A453F] text-sm leading-relaxed mb-6">
-              Birth time rectification within seconds-level precision using 
-              Swiss Ephemeris and DeepSeek AI. Aligning ancient Vedic wisdom 
+              Birth time rectification within seconds-level precision using
+              Swiss Ephemeris and DeepSeek AI. Aligning ancient Vedic wisdom
               with modern computational power.
             </p>
-            
+
             <div className="flex items-center gap-2 text-xs text-[#7A756F]">
               <span>Crafted with</span>
               <Heart className="w-3.5 h-3.5 text-red-400 fill-red-400" />
@@ -66,8 +72,8 @@ export default function Footer() {
             <ul className="space-y-3">
               {footerLinks.map((link) => (
                 <li key={link.href}>
-                  <Link 
-                    href={link.href} 
+                  <Link
+                    href={link.href}
                     className="text-[#4A453F] hover:text-[#B8860B] transition-colors duration-300 text-sm 
                                flex items-center gap-2 group"
                   >
@@ -89,7 +95,7 @@ export default function Footer() {
             <h3 className="font-[family-name:var(--font-cormorant)] text-[#1A1612] font-semibold text-lg mb-6">
               Connect
             </h3>
-            
+
             <div className="space-y-4">
               <a
                 href="mailto:support@aipandit.app"
@@ -102,10 +108,10 @@ export default function Footer() {
                 </div>
                 <span>support@aipandit.app</span>
               </a>
-              
+
               <div className="pt-4 border-t border-[#F0E8DE]">
                 <p className="text-xs text-[#7A756F] leading-relaxed">
-                  Based on Swiss Ephemeris calculations. For spiritual guidance only. 
+                  Based on Swiss Ephemeris calculations. For spiritual guidance only.
                   Not a substitute for professional astrological consultation.
                 </p>
               </div>
@@ -124,7 +130,7 @@ export default function Footer() {
           <p className="text-[#7A756F] text-sm">
             © {currentYear} AI Pandit. All rights reserved.
           </p>
-          
+
           <div className="flex items-center gap-6">
             <span className="text-xs text-[#A8A39D]">Powered by</span>
             <div className="flex items-center gap-3">

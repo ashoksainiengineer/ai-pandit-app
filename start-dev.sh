@@ -187,9 +187,10 @@ start_services() {
     print_info "════════════════════════════════════════════════════"
     
     # Export environment for subprocesses
+    local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     export ENCRYPTION_SECRET
-    export DATABASE_URL="file:./dev.db"
-    export TURSO_DATABASE_URL="file:./dev.db"
+    export DATABASE_URL="file:$SCRIPT_DIR/dev.db"
+    export TURSO_DATABASE_URL="file:$SCRIPT_DIR/dev.db"
     export BACKEND_URL="http://localhost:3001"
     export NEXT_PUBLIC_BACKEND_URL="http://localhost:3001"
     
@@ -203,7 +204,7 @@ start_services() {
     # Wait for backend to be ready
     print_info "Waiting for backend to be ready..."
     for i in {1..30}; do
-        if curl -s http://localhost:3001/health/live > /dev/null 2>&1; then
+        if curl -sf http://localhost:3001/api/health/live > /dev/null 2>&1; then
             print_success "Backend is ready ✓"
             break
         fi

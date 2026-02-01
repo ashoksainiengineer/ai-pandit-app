@@ -299,7 +299,7 @@ export async function processSecondsPrecisionBTR(
 // ═════════════════════════════════════════════════════════════════════════════
 
 export { MAX_BATCH_SIZE, SURVIVORS_PER_BATCH };
-export { CandidateDataPackage, StageResult, TournamentRound, FinalVerdict } from './btr/types.js';
+export type { CandidateDataPackage, StageResult, TournamentRound, FinalVerdict } from './btr/types.js';
 export { buildCandidateDataPackage } from './btr/data-package-builder.js';
 
 // Re-export for backward compatibility
