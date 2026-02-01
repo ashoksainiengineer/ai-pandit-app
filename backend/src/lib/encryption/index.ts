@@ -94,53 +94,51 @@ export function encryptData(plaintext: string, _userId: string): string {
 }
 
 /**
- * C5 FIX: Decrypt data with secure key derivation
+ * Decrypt data with backward compatibility
  *
- * Expects format: salt:iv:authTag:ciphertext (4 parts)
- * REJECTS old format: iv:authTag:ciphertext (3 parts)
+ * Supports TWO formats:
+ * - NEW (4 parts): salt:iv:authTag:ciphertext (secure PBKDF2)
+ * - OLD (3 parts): iv:authTag:ciphertext (legacy scrypt)
  */
-export function decryptData(encryptedString: string, _userId: string): string {
+export function decryptData(encryptedString: string, userId: string): string {
     try {
-        const secret = getEncryptionSecret();
         const parts = encryptedString.split(':');
 
-        if (parts.length !== 4) {
-            throw new Error('Invalid format: expected salt:iv:authTag:ciphertext');
+        // NEW FORMAT (4 parts): salt:iv:authTag:ciphertext
+        if (parts.length === 4) {
+            const secret = getEncryptionSecret();
+            const [saltB64, ivB64, authTagB64, ciphertext] = parts;
+
+            if (!saltB64 || !ivB64 || !authTagB64 || !ciphertext) {
+                throw new Error('Invalid encrypted data: missing components');
+            }
+
+            const salt = Buffer.from(saltB64, 'base64');
+            const iv = Buffer.from(ivB64, 'base64');
+            const authTag = Buffer.from(authTagB64, 'base64');
+
+            if (salt.length !== SALT_LENGTH_BYTES) throw new Error('Invalid salt length');
+            if (iv.length !== IV_LENGTH_BYTES) throw new Error('Invalid IV length');
+            if (authTag.length !== AUTH_TAG_LENGTH_BYTES) throw new Error('Invalid auth tag length');
+
+            const key = deriveKey(secret, salt);
+            const decipher = createDecipheriv(ENCRYPTION_ALGORITHM, key, iv);
+            decipher.setAuthTag(authTag);
+
+            let plaintext = decipher.update(ciphertext, 'base64', 'utf8');
+            plaintext += decipher.final('utf8');
+            return plaintext;
         }
 
-        const [saltB64, ivB64, authTagB64, ciphertext] = parts;
-
-        if (!saltB64 || !ivB64 || !authTagB64 || !ciphertext) {
-            throw new Error('Invalid encrypted data: missing components');
+        // OLD FORMAT (3 parts): iv:authTag:ciphertext - use legacy decryption
+        if (parts.length === 3) {
+            const secret = getEncryptionSecret();
+            const { decryptData: legacyDecrypt } = require('./DANGER_DO_NOT_MODIFY.js');
+            logger.info('Using legacy decryption for 3-part encrypted data');
+            return legacyDecrypt(encryptedString, userId, secret);
         }
 
-        // Decode components
-        const salt = Buffer.from(saltB64, 'base64');
-        const iv = Buffer.from(ivB64, 'base64');
-        const authTag = Buffer.from(authTagB64, 'base64');
-
-        // Validate lengths
-        if (salt.length !== SALT_LENGTH_BYTES) {
-            throw new Error('Invalid salt length');
-        }
-        if (iv.length !== IV_LENGTH_BYTES) {
-            throw new Error('Invalid IV length');
-        }
-        if (authTag.length !== AUTH_TAG_LENGTH_BYTES) {
-            throw new Error('Invalid auth tag length');
-        }
-
-        // Derive key using stored salt
-        const key = deriveKey(secret, salt);
-
-        // Decrypt
-        const decipher = createDecipheriv(ENCRYPTION_ALGORITHM, key, iv);
-        decipher.setAuthTag(authTag);
-
-        let plaintext = decipher.update(ciphertext, 'base64', 'utf8');
-        plaintext += decipher.final('utf8');
-
-        return plaintext;
+        throw new Error(`Invalid format: expected 3 or 4 parts, got ${parts.length}`);
     } catch (error) {
         logger.error('Decryption failed', { error });
         throw new Error('Failed to decrypt data: invalid key or corrupted data');
@@ -152,7 +150,7 @@ export function decryptData(encryptedString: string, _userId: string): string {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Check if data is encrypted (NEW format only)
+ * Check if data is encrypted (supports both old 3-part and new 4-part formats)
  */
 export function isEncrypted(data: string): boolean {
     if (!data || typeof data !== 'string') return false;
@@ -160,7 +158,8 @@ export function isEncrypted(data: string): boolean {
 
     const parts = data.split(':');
 
-    if (parts.length !== 4) return false;
+    // Accept both old (3 parts) and new (4 parts) formats
+    if (parts.length !== 3 && parts.length !== 4) return false;
 
     // Check each part looks like base64
     const base64Pattern = /^[A-Za-z0-9+/=]+$/;
