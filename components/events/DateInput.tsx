@@ -357,28 +357,32 @@ export default function DateInput({
    */
   const updateStartDate = useCallback((updates: Partial<DateParts>) => {
     // Update local state immediately for UI responsiveness
-    setLocalStartParts(prev => ({ ...prev, ...updates }));
+    setLocalStartParts(prev => {
+      const newParts = { ...prev, ...updates };
 
-    // Parse current date to get fresh parts
-    const currentParts = parseDateParts(eventDate || '');
-    const newParts = { ...currentParts, ...updates };
-    const newDate = buildDateString(newParts);
-    onUpdate({ eventDate: newDate || undefined });
-  }, [eventDate, onUpdate]);
+      // Build date string from local state (preserves all user input)
+      const newDate = buildDateString(newParts);
+      onUpdate({ eventDate: newDate || undefined });
+
+      return newParts;
+    });
+  }, [onUpdate]);
 
   /**
    * Update end date parts
    */
   const updateEndDate = useCallback((updates: Partial<DateParts>) => {
     // Update local state immediately for UI responsiveness
-    setLocalEndParts(prev => ({ ...prev, ...updates }));
+    setLocalEndParts(prev => {
+      const newParts = { ...prev, ...updates };
 
-    // Parse current date to get fresh parts
-    const currentParts = parseDateParts(endDate || '');
-    const newParts = { ...currentParts, ...updates };
-    const newDate = buildDateString(newParts);
-    onUpdate({ endDate: newDate || undefined });
-  }, [endDate, onUpdate]);
+      // Build date string from local state (preserves all user input)
+      const newDate = buildDateString(newParts);
+      onUpdate({ endDate: newDate || undefined });
+
+      return newParts;
+    });
+  }, [onUpdate]);
 
   /**
    * Update time
