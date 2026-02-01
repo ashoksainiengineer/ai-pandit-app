@@ -1000,6 +1000,71 @@ export const FORENSIC_QUIZ_QUESTIONS: QuizQuestion[] = [
     },
 
     // ============================================
+    // CATEGORY 6: TEMPERAMENT - 1 Question
+    // ============================================
+    {
+        id: 'temperament_q1',
+        category: 'temperament',
+        question: 'How do you typically react when things go wrong unexpectedly?',
+        context: 'Your natural emotional response to setbacks',
+        allowMultiple: false,
+        hasNotSureOption: true,
+        allowCustomAnswer: true,
+        customAnswerPlaceholder: 'Describe your typical emotional response to problems...',
+        confidenceImpact: 20,
+        options: [
+            {
+                id: 'calm_stable',
+                label: 'Stay calm, assess situation, solve methodically',
+                emoji: '🧘',
+                description: 'Even-tempered, rarely rattled',
+                planetarySignature: ['Saturn', 'Jupiter'],
+                weight: 3
+            },
+            {
+                id: 'quick_anger',
+                label: 'Feel frustrated quickly, may express anger, then cool down',
+                emoji: '😤',
+                description: 'Fiery temperament, quick to react',
+                planetarySignature: ['Mars', 'Sun'],
+                weight: 3
+            },
+            {
+                id: 'anxious_worried',
+                label: 'Worry immediately, overthink consequences, seek reassurance',
+                emoji: '😰',
+                description: 'Anxious temperament, cautious',
+                planetarySignature: ['Moon', 'Mercury'],
+                weight: 3
+            },
+            {
+                id: 'enthusiastic',
+                label: 'See opportunity in crisis, motivated to fix it quickly',
+                emoji: '🚀',
+                description: 'Optimistic, action-oriented',
+                planetarySignature: ['Sun', 'Jupiter'],
+                weight: 3
+            },
+            {
+                id: 'melancholic',
+                label: 'Withdraw, feel down, need time to process',
+                emoji: '😔',
+                description: 'Reflective, sensitive temperament',
+                planetarySignature: ['Saturn', 'Ketu'],
+                weight: 2
+            },
+            {
+                id: 'adaptive',
+                label: 'Go with the flow, adapt quickly, no strong reaction',
+                emoji: '🌊',
+                description: 'Flexible, easy-going',
+                planetarySignature: ['Venus', 'Jupiter'],
+                weight: 2
+            }
+        ]
+    },
+
+    // ============================================
     // CATEGORY 7: MARKS - 2 Questions
     // ============================================
     {

@@ -99,9 +99,19 @@ export default function EditSessionPage() {
         fetchSession();
     }, [sessionId]);
 
-    // Auto-save effect
+    // Auto-save effect with debounce - only save after user stops typing
+    const [lastSavedData, setLastSavedData] = useState<string>('');
+    
     useEffect(() => {
         if (!isLoaded || !birthData) return;
+
+        // Only save if there's actual meaningful data
+        if (!birthData.fullName || birthData.fullName.trim().length < 2) return;
+
+        const currentData = JSON.stringify({ birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig });
+        
+        // Don't save if data hasn't changed from last save
+        if (currentData === lastSavedData) return;
 
         const saveDraft = async () => {
             setSavingStatus('saving');
@@ -113,11 +123,12 @@ export default function EditSessionPage() {
                         birthData,
                         lifeEvents,
                         physicalTraits,
-                        forensicTraits, // Include forensic traits in auto-save
+                        forensicTraits,
                         offsetConfig,
-                        isDraft: true // Important: Don't reset status
+                        isDraft: true
                     })
                 });
+                setLastSavedData(currentData);
                 setSavingStatus('saved');
                 setTimeout(() => setSavingStatus('idle'), 2000);
             } catch (err) {
@@ -126,9 +137,10 @@ export default function EditSessionPage() {
             }
         };
 
-        const timer = setTimeout(saveDraft, 1000);
+        // 3 second debounce - only save after user stops typing for 3 seconds
+        const timer = setTimeout(saveDraft, 3000);
         return () => clearTimeout(timer);
-    }, [birthData, lifeEvents, physicalTraits, offsetConfig, isLoaded, sessionId]);
+    }, [birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig, isLoaded, sessionId, lastSavedData]);
 
     const handleNext = () => {
         setError(null);

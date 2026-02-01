@@ -487,6 +487,7 @@ export function calculateQuizResults(answers: QuizAnswer[]): QuizResults {
     const voice = calculateTrait(validAnswers, 'voice', questions);
     const speech = calculateTrait(validAnswers, 'speech', questions);
     const decision = calculateTrait(validAnswers, 'decision', questions);
+    const temperament = calculateTrait(validAnswers, 'temperament', questions);
     const family = calculateFamily(validAnswers, questions);
 
     const results: QuizResults = {
@@ -496,6 +497,7 @@ export function calculateQuizResults(answers: QuizAnswer[]): QuizResults {
         voice,
         speech,
         decision,
+        temperament,
         family,
         overallConfidence: 0,
         answers: validAnswers,
@@ -640,7 +642,8 @@ export function mapQuizResultsToLegacyTraits(results: QuizResults) {
         },
         psychographic: {
             speechStyle: mapSpeechToLegacy(results.speech.type),
-            decisionMaking: mapDecisionToLegacy(results.decision.type)
+            decisionMaking: mapDecisionToLegacy(results.decision.type),
+            temperament: mapTemperamentToLegacy(results.temperament.type)
         },
         family: {
             siblingPosition: results.family.birthOrder,
@@ -706,4 +709,16 @@ function mapDecisionToLegacy(type: string): string {
         'Step back, analyze options, plan response': 'deliberate'
     };
     return map[type] || 'deliberate';
+}
+
+function mapTemperamentToLegacy(type: string): string {
+    const map: Record<string, string> = {
+        'Stay calm, assess situation, solve methodically': 'calm_stable',
+        'Feel frustrated quickly, may express anger, then cool down': 'quick_anger',
+        'Worry immediately, overthink consequences, seek reassurance': 'anxious_worried',
+        'See opportunity in crisis, motivated to fix it quickly': 'enthusiastic',
+        'Withdraw, feel down, need time to process': 'melancholic',
+        'Go with the flow, adapt quickly, no strong reaction': 'adaptive'
+    };
+    return map[type] || 'calm_stable';
 }

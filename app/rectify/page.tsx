@@ -331,8 +331,18 @@ function RectifyPageContent() {
     // AUTO-SAVE & DATA PERSISTENCE
     // ═══════════════════════════════════════════════════════════════════════════════
 
+    // Track last saved data to prevent duplicate saves
+    const [lastSavedDataHash, setLastSavedDataHash] = useState<string>('');
+    
     const saveDraftToCloud = async () => {
-        if (!birthData.fullName) return;
+        if (!birthData.fullName || birthData.fullName.trim().length < 2) return;
+        
+        // Create hash of current data
+        const currentData = JSON.stringify({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig });
+        
+        // Don't save if data hasn't changed
+        if (currentData === lastSavedDataHash) return;
+        
         setCloudSaveStatus('saving');
         try {
             const res = await fetch('/api/drafts', {
@@ -350,6 +360,7 @@ function RectifyPageContent() {
             const result = await res.json();
             if (result.success) {
                 setDraftSessionId(result.sessionId);
+                setLastSavedDataHash(currentData);
                 setCloudSaveStatus('saved');
                 localStorage.setItem('btr_draft_id', result.sessionId);
                 setTimeout(() => setCloudSaveStatus('idle'), 2000);
@@ -363,9 +374,10 @@ function RectifyPageContent() {
 
     useEffect(() => {
         if (!isAutoSaveEnabled || !birthData.fullName) return;
-        const timer = setTimeout(() => saveDraftToCloud(), 1500);
+        // 5 second debounce - only save after user stops typing for 5 seconds
+        const timer = setTimeout(() => saveDraftToCloud(), 5000);
         return () => clearTimeout(timer);
-    }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, isAutoSaveEnabled]);
+    }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, isAutoSaveEnabled, lastSavedDataHash]);
 
     // Load from local storage
     useEffect(() => {

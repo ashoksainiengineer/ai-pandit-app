@@ -10,6 +10,7 @@ export type EyeType = 'deep_set' | 'prominent' | 'almond' | 'round' | 'small_int
 export type VoiceType = 'deep' | 'high_pitch' | 'soft' | 'raspy' | 'resonant' | 'nasal';
 export type SpeechType = 'fast_loud' | 'measured' | 'logical' | 'concise' | 'talkative';
 export type DecisionType = 'impulsive' | 'deliberate' | 'over_analytical' | 'emotionally_swayed' | 'intuitive' | 'fear_based';
+export type TemperamentType = 'calm_stable' | 'quick_anger' | 'anxious_worried' | 'enthusiastic' | 'melancholic' | 'adaptive';
 export type BirthOrder = 'eldest' | 'middle' | 'youngest' | 'only_child';
 export type FatherStatus = 'struggling' | 'working_class' | 'professional' | 'business_owner' | 'prosperous' | 'distinguished';
 
@@ -25,7 +26,7 @@ export interface QuizOption {
 
 export interface QuizQuestion {
   id: string;
-  category: 'prakriti' | 'forehead' | 'eyes' | 'voice' | 'speech' | 'decision' | 'family' | 'marks';
+  category: 'prakriti' | 'forehead' | 'eyes' | 'voice' | 'speech' | 'decision' | 'temperament' | 'family' | 'marks';
   question: string;
   context?: string;
   allowMultiple: boolean;
@@ -70,6 +71,7 @@ export interface QuizResults {
   voice: TraitResult;
   speech: TraitResult;
   decision: TraitResult;
+  temperament: TraitResult;
   family: FamilyResult;
   overallConfidence: number;
   answers: QuizAnswer[];
@@ -116,6 +118,9 @@ export interface LegacyForensicTraits {
   psychographic?: {
     speechStyle?: SpeechType;
     decisionMaking?: DecisionType;
+    temperament?: TemperamentType;
+    stressResponse?: string;
+    sleepCycle?: string;
   };
   family?: {
     siblingPosition?: BirthOrder;
