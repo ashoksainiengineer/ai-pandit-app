@@ -1,6 +1,6 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * C5 FIX: Secure Encryption with Proper Key Derivation
+ * Secure Encryption with Proper Key Derivation
  * ═══════════════════════════════════════════════════════════════════════════════
  *
  * SECURITY FEATURES:
@@ -10,8 +10,6 @@
  * - AES-256-GCM with authentication tag
  *
  * Format: base64(salt):base64(iv):base64(authTag):base64(ciphertext)
- *
- * ⚠️ OLD DATA AUTO-CLEANUP: Any data with 3-part format (old v1) is rejected
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
@@ -54,38 +52,11 @@ function deriveKey(secret: string, salt: Buffer): Buffer {
     return pbkdf2Sync(secret, salt, PBKDF2_ITERATIONS, KEY_LENGTH_BYTES, 'sha512');
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// OLD DATA DETECTION & CLEANUP
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * C5 FIX: Detect and reject OLD format (v1) data
- * OLD format: iv:authTag:ciphertext (3 parts)
- * NEW format: salt:iv:authTag:ciphertext (4 parts)
- */
-function isOldFormat(data: string): boolean {
-    if (!data || typeof data !== 'string') return false;
-    if (!data.includes(':')) return false;
-
-    const parts = data.split(':');
-    return parts.length === 3; // OLD format has 3 parts
-}
-
-/**
- * C5 FIX: Clean/reject old format data
- * Returns null to trigger data cleanup
- */
-function rejectOldFormat(data: string, context: string): null {
-    logger.error(`🧹 CLEANUP: Rejecting OLD format encrypted data in ${context}. Data will be cleared.`, {
-        dataPrefix: data.slice(0, 50),
-        parts: data.split(':').length,
-    });
-    return null;
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ENCRYPTION
 // ═══════════════════════════════════════════════════════════════════════════════
+
 
 /**
  * C5 FIX: Encrypt data with secure key derivation
@@ -130,11 +101,6 @@ export function encryptData(plaintext: string, _userId: string): string {
  */
 export function decryptData(encryptedString: string, _userId: string): string {
     try {
-        // C5: Auto-cleanup old format data
-        if (isOldFormat(encryptedString)) {
-            throw new Error('OLD_FORMAT_DATA_DETECTED: This data uses weak encryption v1 and has been rejected for security. Please re-enter the data.');
-        }
-
         const secret = getEncryptionSecret();
         const parts = encryptedString.split(':');
 
@@ -194,11 +160,6 @@ export function isEncrypted(data: string): boolean {
 
     const parts = data.split(':');
 
-    // C5: Reject old format (3 parts)
-    if (parts.length === 3) {
-        return false;
-    }
-
     if (parts.length !== 4) return false;
 
     // Check each part looks like base64
@@ -217,11 +178,6 @@ export function isEncrypted(data: string): boolean {
  */
 export function safeDecrypt(encryptedString: string, userId: string): string | null {
     try {
-        // C5: Auto-cleanup old format data
-        if (isOldFormat(encryptedString)) {
-            return rejectOldFormat(encryptedString, 'safeDecrypt');
-        }
-
         if (!isEncrypted(encryptedString)) {
             return encryptedString; // Plaintext
         }
@@ -259,11 +215,6 @@ export function encryptObject<T extends Record<string, unknown>>(obj: T, userId:
 }
 
 export function decryptObject<T extends Record<string, unknown>>(encryptedString: string, userId: string): T {
-    // C5: Auto-cleanup old format data
-    if (isOldFormat(encryptedString)) {
-        logger.error('🧹 CLEANUP: Rejecting OLD format object data');
-        throw new Error('OLD_FORMAT_DATA: Weak encryption data detected and rejected. Please re-enter data.');
-    }
     const decrypted = decryptData(encryptedString, userId);
     return JSON.parse(decrypted) as T;
 }
