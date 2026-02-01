@@ -205,22 +205,6 @@ export function AccuracyShowcase() {
               ))}
             </div>
 
-            {/* Technical Specs */}
-            <div className="mt-10 pt-8 border-t border-[#F0E8DE]">
-              <div className="text-[10px] uppercase tracking-[0.15em] text-[#7A756F] mb-4">Technical Specifications</div>
-              <div className="grid grid-cols-2 gap-3">
-                {systemMetrics.map((metric) => {
-                  const Icon = metric.icon;
-                  return (
-                    <div key={metric.label} className="flex items-center gap-2 text-sm">
-                      <Icon className="w-4 h-4 text-[#A8A39D]" />
-                      <span className="text-[#7A756F]">{metric.label}:</span>
-                      <span className="text-[#4A453F] font-mono">{metric.value}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </motion.div>
 
           {/* Technical Metrics Grid */}

@@ -36,13 +36,14 @@ export default function Navbar() {
   }, []);
 
   // Prevent hydration mismatch by using default styles until mounted
+  // Server-side: no safe-area-top, no dynamic classes
   const navClasses = mounted
     ? `fixed top-0 w-full z-50 transition-all duration-500 safe-area-top ${
         scrolled
           ? 'bg-white/90 backdrop-blur-xl border-b border-[#F0E8DE] shadow-sm'
           : 'bg-transparent'
       }`
-    : 'fixed top-0 w-full z-50 transition-all duration-500 safe-area-top bg-transparent';
+    : 'fixed top-0 w-full z-50 transition-all duration-500 bg-transparent';
 
   return (
     <nav className={navClasses} suppressHydrationWarning>

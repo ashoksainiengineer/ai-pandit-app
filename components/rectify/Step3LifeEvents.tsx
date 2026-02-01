@@ -15,7 +15,7 @@
 
 'use client';
 
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LifeEvent, TimeOffsetConfig } from '@/lib/types';
 import { EventCategory, EventTemplate, EventImportance } from '@/lib/events/types';
@@ -26,6 +26,7 @@ import { FormField } from '@/components/ui/form/FormField';
 import EventSelector from '@/components/events/EventSelector';
 import CustomEventModal from '@/components/events/CustomEventModal';
 import EventEditor from '@/components/events/EventEditor';
+import DateInput from '@/components/events/DateInput';
 import WhyEventsMatter from './WhyEventsMatter';
 
 interface Step3Props {
@@ -85,13 +86,25 @@ const getMonthName = (monthNum: string): string => {
   return MONTHS[index].slice(0, 3);
 };
 
-// Validate date string format
+// Validate date string format - accepts partial dates (year only, year-month, or full date)
 const isValidDateString = (dateStr: string): boolean => {
   if (!dateStr) return false;
   const parts = dateStr.split('-');
   if (parts.length < 1) return false;
   const year = parseInt(parts[0], 10);
   return !isNaN(year) && year > 1900 && year <= CURRENT_YEAR;
+};
+
+// Parse partial date for display - returns what's available
+const parsePartialDate = (dateStr: string): { year: string; month: string; day: string; isPartial: boolean } => {
+  if (!dateStr) return { year: '', month: '', day: '', isPartial: true };
+  const parts = dateStr.split('-');
+  return {
+    year: parts[0] || '',
+    month: parts[1] || '',
+    day: parts[2] || '',
+    isPartial: parts.length < 3 || !parts[1] || !parts[2]
+  };
 };
 
 // Sanitize description
@@ -109,6 +122,12 @@ export default function Step3LifeEvents({
   const [customCategories, setCustomCategories] = useState<EventCategory[]>([]);
   const [preselectedCategoryId, setPreselectedCategoryId] = useState<string>('');
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Use ref to always have access to current lifeEvents (must be defined before useCallback that uses it)
+  const lifeEventsRef = useRef(lifeEvents);
+  useEffect(() => {
+    lifeEventsRef.current = lifeEvents;
+  }, [lifeEvents]);
 
   // Combine default and custom categories
   const allCategories = useMemo(() => {
@@ -246,16 +265,42 @@ export default function Step3LifeEvents({
       updates.description = sanitizeDescription(updates.description);
     }
     
-    // Validate date strings
+    // Validate date strings - allow partial dates (year only, year-month, or full date)
     if (updates.eventDate !== undefined && updates.eventDate && !isValidDateString(updates.eventDate)) {
       console.warn('Invalid date string:', updates.eventDate);
       updates.eventDate = '';
     }
     
-    // Create updated array directly
-    const updatedEvents = lifeEvents.map(e => e.id === id ? { ...e, ...updates } : e);
+    // Create updated array directly - use ref to get current state
+    const updatedEvents = lifeEventsRef.current.map(e => e.id === id ? { ...e, ...updates } : e);
     updateEvents(updatedEvents);
-  }, [updateEvents, lifeEvents]);
+  }, [updateEvents]);
+
+  // Handle precision change - reset date/time fields appropriately
+  const handlePrecisionChange = useCallback((id: string, newPrecision: DatePrecision) => {
+    const event = lifeEventsRef.current.find(e => e.id === id);
+    if (!event) return;
+
+    const updates: Partial<LifeEvent> = { datePrecision: newPrecision };
+    
+    // Reset eventTime when switching away from exact_date_time
+    if (newPrecision !== 'exact_date_time' && event.eventTime) {
+      updates.eventTime = undefined;
+    }
+    
+    // Clear endDate when switching away from range types
+    if (!newPrecision.includes('range') && event.endDate) {
+      updates.endDate = undefined;
+    }
+    
+    // Clear eventDate when switching precision (user needs to re-enter)
+    if (event.datePrecision !== newPrecision) {
+      updates.eventDate = '';
+      updates.endDate = undefined;
+    }
+    
+    updateEvent(id, updates);
+  }, [updateEvent]);
 
   const deleteEvent = useCallback((id: string) => {
     const updatedEvents = lifeEvents.filter(e => e.id !== id);
@@ -412,7 +457,7 @@ export default function Step3LifeEvents({
                     <button
                       key={opt.value}
                       type="button"
-                      onClick={() => updateEvent(editingEvent.id, { datePrecision: opt.value })}
+                      onClick={() => handlePrecisionChange(editingEvent.id, opt.value)}
                       className={`py-3 px-2 rounded-lg text-center transition-all border ${
                         editingEvent.datePrecision === opt.value
                           ? 'bg-[#B8860B] text-white border-[#B8860B] shadow-md'
@@ -426,11 +471,13 @@ export default function Step3LifeEvents({
                 </div>
               </FormField>
 
-              {/* Date Fields */}
-              <DateInput 
-                precision={editingEvent.datePrecision as DatePrecision} 
-                event={editingEvent} 
-                onUpdate={(updates) => updateEvent(editingEvent.id, updates)} 
+              {/* Date Fields - Using proper DateInput component */}
+              <DateInput
+                precision={editingEvent.datePrecision as import('@/lib/date-utils').DatePrecision}
+                eventDate={editingEvent.eventDate}
+                endDate={editingEvent.endDate}
+                eventTime={editingEvent.eventTime}
+                onUpdate={(updates) => updateEvent(editingEvent.id, updates)}
               />
 
               {/* Importance */}
@@ -464,26 +511,30 @@ export default function Step3LifeEvents({
               </FormField>
 
               {/* Description */}
-              <FormField 
-                label="Describe your experience" 
+              <FormField
+                label="Describe your experience"
                 required
                 error={errors.description}
               >
-                <textarea 
-                  value={editingEvent.description || ''} 
+                <textarea
+                  value={editingEvent.description || ''}
                   onChange={(e) => {
                     updateEvent(editingEvent.id, { description: e.target.value });
                     // Clear error when user types
                     if (errors.description) {
                       setErrors(prev => ({ ...prev, description: '' }));
                     }
-                  }} 
-                  placeholder="What happened? How did you feel?..." 
+                  }}
+                  onKeyDown={(e) => {
+                    // Allow space key to work normally in textarea
+                    e.stopPropagation();
+                  }}
+                  placeholder="What happened? How did you feel?..."
                   className={`w-full h-24 p-4 bg-white border-2 rounded-lg text-sm text-[#1A1612] placeholder-[#A8A39D] resize-none focus:ring-2 outline-none transition-all ${
                     editingEvent.description && editingEvent.description.length >= 10
-                      ? 'border-[#2D7A5C]/50 focus:border-[#2D7A5C]' 
+                      ? 'border-[#2D7A5C]/50 focus:border-[#2D7A5C]'
                       : 'border-[#C65D3B]/50 focus:border-[#C65D3B]'
-                  }`} 
+                  }`}
                 />
                 <div className="flex items-center justify-between mt-2">
                   <div className="flex items-center gap-2 text-[10px] text-[#2D7A5C]">
@@ -491,7 +542,7 @@ export default function Step3LifeEvents({
                     <span>End-to-end encrypted</span>
                   </div>
                   <div className={`text-[10px] ${(editingEvent.description?.length || 0) < 10 ? 'text-[#C65D3B]' : 'text-[#7A756F]'}`}>
-                    {editingEvent.description?.length || 0} chars (min 10)
+                    {editingEvent.description?.length || 0} / 1000 chars (min 10)
                   </div>
                 </div>
               </FormField>
@@ -598,296 +649,6 @@ export default function Step3LifeEvents({
         onCreateEvent={handleCreateCustomEvent}
         preselectedCategoryId={preselectedCategoryId}
       />
-    </div>
-  );
-}
-
-// Date Input Component
-interface DateInputProps {
-  precision: DatePrecision;
-  event: LifeEvent;
-  onUpdate: (updates: Partial<LifeEvent>) => void;
-}
-
-function DateInput({ precision, event, onUpdate }: DateInputProps) {
-  const { year: y, month: m, day: d } = parseDateParts(event.eventDate);
-  const { year: endY, month: endM, day: endD } = parseDateParts(event.endDate);
-
-  // Safe date change handler
-  const handleDateChange = (part: 'y' | 'm' | 'd', value: string) => {
-    const newY = part === 'y' ? value : y;
-    const newM = part === 'm' ? value.padStart(2, '0') : m;
-    const newD = part === 'd' ? value.padStart(2, '0') : d;
-    
-    // Only update if we have at least a year
-    if (newY) {
-      const eventDate = `${newY}-${newM || '01'}-${newD || '01'}`;
-      onUpdate({ eventDate });
-    }
-  };
-
-  // Year Range: Start Year → End Year
-  if (precision === 'year_range') {
-    return (
-      <div className="flex items-center gap-3 bg-[#F5EFE7] p-3 rounded-lg">
-        <select
-          value={y}
-          onChange={(e) => handleDateChange('y', e.target.value)}
-          className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853] flex-1"
-        >
-          <option value="">Start Year</option>
-          {YEARS.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-        </select>
-        <span className="text-[#B8860B] text-xl">→</span>
-        <select
-          value={endY}
-          onChange={(e) => {
-            const year = e.target.value;
-            if (year) {
-              onUpdate({ endDate: `${year}-01-01` });
-            } else {
-              onUpdate({ endDate: undefined });
-            }
-          }}
-          className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853] flex-1"
-        >
-          <option value="">End Year</option>
-          {YEARS.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-        </select>
-      </div>
-    );
-  }
-
-  // Month Range: Start Month/Year → End Month/Year
-  if (precision === 'month_range') {
-    return (
-      <div className="space-y-3 bg-[#F5EFE7] p-3 rounded-lg">
-        <div className="flex gap-3">
-          <select
-            value={m}
-            onChange={(e) => handleDateChange('m', e.target.value)}
-            className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none flex-1 focus:border-[#D4A853]"
-          >
-            <option value="">Start Month</option>
-            {MONTHS.map((mon, i) => <option key={mon} value={(i + 1).toString()}>{mon}</option>)}
-          </select>
-          <select
-            value={y}
-            onChange={(e) => handleDateChange('y', e.target.value)}
-            className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none flex-1 focus:border-[#D4A853]"
-          >
-            <option value="">Start Year</option>
-            {YEARS.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-          </select>
-        </div>
-        <div className="flex items-center justify-center">
-          <span className="text-[#B8860B] text-xl">↓</span>
-        </div>
-        <div className="flex gap-3">
-          <select
-            value={endM}
-            onChange={(e) => {
-              const month = e.target.value;
-              const year = endY || y || CURRENT_YEAR.toString();
-              if (month) {
-                onUpdate({ endDate: `${year}-${month.padStart(2, '0')}-01` });
-              }
-            }}
-            className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none flex-1 focus:border-[#D4A853]"
-          >
-            <option value="">End Month</option>
-            {MONTHS.map((mon, i) => <option key={mon} value={(i + 1).toString()}>{mon}</option>)}
-          </select>
-          <select
-            value={endY}
-            onChange={(e) => {
-              const year = e.target.value;
-              const month = endM || m || '01';
-              if (year) {
-                onUpdate({ endDate: `${year}-${month.padStart(2, '0')}-01` });
-              }
-            }}
-            className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none flex-1 focus:border-[#D4A853]"
-          >
-            <option value="">End Year</option>
-            {YEARS.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-          </select>
-        </div>
-      </div>
-    );
-  }
-
-  // Month & Year
-  if (precision === 'month_year') {
-    return (
-      <div className="flex gap-3 bg-[#F5EFE7] p-3 rounded-lg">
-        <select
-          value={m}
-          onChange={(e) => handleDateChange('m', e.target.value)}
-          className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none flex-1 focus:border-[#D4A853]"
-        >
-          <option value="">Month</option>
-          {MONTHS.map((mon, i) => <option key={mon} value={(i + 1).toString()}>{mon}</option>)}
-        </select>
-        <select
-          value={y}
-          onChange={(e) => handleDateChange('y', e.target.value)}
-          className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none flex-1 focus:border-[#D4A853]"
-        >
-          <option value="">Year</option>
-          {YEARS.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-        </select>
-      </div>
-    );
-  }
-
-  // Date Range: Start Date → End Date
-  if (precision === 'exact_date_range') {
-    return (
-      <div className="space-y-3 bg-[#F5EFE7] p-3 rounded-lg">
-        {/* Start Date */}
-        <div className="flex gap-3">
-          <select
-            value={d}
-            onChange={(e) => handleDateChange('d', e.target.value)}
-            className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853]"
-          >
-            <option value="">Start Day</option>
-            {DAYS.map(day => <option key={day} value={day}>{day}</option>)}
-          </select>
-          <select
-            value={m}
-            onChange={(e) => handleDateChange('m', e.target.value)}
-            className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none flex-1 focus:border-[#D4A853]"
-          >
-            <option value="">Start Month</option>
-            {MONTHS.map((mon, i) => <option key={mon} value={(i + 1).toString()}>{mon}</option>)}
-          </select>
-          <select
-            value={y}
-            onChange={(e) => handleDateChange('y', e.target.value)}
-            className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853]"
-          >
-            <option value="">Start Year</option>
-            {YEARS.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-          </select>
-        </div>
-        <div className="flex items-center justify-center">
-          <span className="text-[#B8860B] text-xl">↓</span>
-        </div>
-        {/* End Date */}
-        <div className="flex gap-3">
-          <select
-            value={endD}
-            onChange={(e) => {
-              const day = e.target.value;
-              const year = endY || y || CURRENT_YEAR.toString();
-              const month = endM || m || '01';
-              if (day) {
-                onUpdate({ endDate: `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}` });
-              }
-            }}
-            className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853]"
-          >
-            <option value="">End Day</option>
-            {DAYS.map(day => <option key={day} value={day}>{day}</option>)}
-          </select>
-          <select
-            value={endM}
-            onChange={(e) => {
-              const month = e.target.value;
-              const year = endY || y || CURRENT_YEAR.toString();
-              const day = endD || d || '01';
-              if (month) {
-                onUpdate({ endDate: `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}` });
-              }
-            }}
-            className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none flex-1 focus:border-[#D4A853]"
-          >
-            <option value="">End Month</option>
-            {MONTHS.map((mon, i) => <option key={mon} value={(i + 1).toString()}>{mon}</option>)}
-          </select>
-          <select
-            value={endY}
-            onChange={(e) => {
-              const year = e.target.value;
-              const month = endM || m || '01';
-              const day = endD || d || '01';
-              if (year) {
-                onUpdate({ endDate: `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}` });
-              }
-            }}
-            className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853]"
-          >
-            <option value="">End Year</option>
-            {YEARS.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-          </select>
-        </div>
-      </div>
-    );
-  }
-
-  // Default: Exact Date (Day/Month/Year) or Exact Date & Time
-  return (
-    <div className="space-y-3">
-      <div className="flex gap-3 bg-[#F5EFE7] p-3 rounded-lg">
-        <select
-          value={d}
-          onChange={(e) => handleDateChange('d', e.target.value)}
-          className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853]"
-        >
-          <option value="">Day</option>
-          {DAYS.map(day => <option key={day} value={day}>{day}</option>)}
-        </select>
-        <select
-          value={m}
-          onChange={(e) => handleDateChange('m', e.target.value)}
-          className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none flex-1 focus:border-[#D4A853]"
-        >
-          <option value="">Month</option>
-          {MONTHS.map((mon, i) => <option key={mon} value={(i + 1).toString()}>{mon}</option>)}
-        </select>
-        <select
-          value={y}
-          onChange={(e) => handleDateChange('y', e.target.value)}
-          className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853]"
-        >
-          <option value="">Year</option>
-          {YEARS.map(yr => <option key={yr} value={yr}>{yr}</option>)}
-        </select>
-      </div>
-      
-      {/* Time selector for exact_date_time */}
-      {precision === 'exact_date_time' && (
-        <div className="flex items-center gap-2 bg-[#F5EFE7] p-3 rounded-lg">
-          <label className="text-xs text-[#7A756F] mr-2">Time:</label>
-          <select
-            value={event.eventTime?.split(':')[0] || ''}
-            onChange={(e) => {
-              const hour = e.target.value;
-              const currentMin = event.eventTime?.split(':')[1] || '';
-              onUpdate({ eventTime: hour ? `${hour}:${currentMin || '00'}` : '' });
-            }}
-            className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853]"
-          >
-            <option value="">HH</option>
-            {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
-          </select>
-          <span className="text-[#B8860B]">:</span>
-          <select
-            value={event.eventTime?.split(':')[1] || ''}
-            onChange={(e) => {
-              const min = e.target.value;
-              const currentHour = event.eventTime?.split(':')[0] || '';
-              onUpdate({ eventTime: min ? `${currentHour || '00'}:${min}` : '' });
-            }}
-            className="h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853]"
-          >
-            <option value="">MM</option>
-            {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
-          </select>
-        </div>
-      )}
     </div>
   );
 }
