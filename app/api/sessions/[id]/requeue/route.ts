@@ -10,7 +10,7 @@ import { addToQueue, startQueueProcessor } from '@/lib/queue-manager';
 // ═════════════════════════════════════════════════════════════════════════════
 
 interface SessionParams {
-    params: { id: string };
+    params: Promise<{ id: string }>;
 }
 
 export async function POST(request: NextRequest, { params }: SessionParams) {
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest, { params }: SessionParams) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const sessionId = params.id;
+        const { id: sessionId } = await params;
 
         // Get session to verify ownership
         const session = await db.select()
