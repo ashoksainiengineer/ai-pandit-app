@@ -5,7 +5,9 @@
  * Supports 5 levels: Maha → Antar → Pratyantar → Sukshma → Prana
  */
 
-import { calculateVimshottariDasha, getDashaForDate } from '../vedic-astrology-engine.js';
+import { calculateVimshottariDasha } from '../vedic-astrology-engine.js';
+import { calculateYoginiDasha } from '../advanced-btr-methods.js';
+import { calculateCharaDasha } from '../jaimini-astrology.js';
 import { VimshottariDashaEntry } from './types.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -26,20 +28,22 @@ export function buildVimshottariDasha(
   options: DashaBuildOptions
 ): VimshottariDashaEntry[] {
   const { moonLongitude, birthDate, dashaDepth, pranaWindowDays, eventDates, now } = options;
-  
+
   const vimDashas = calculateVimshottariDasha(moonLongitude, birthDate, dashaDepth);
   const pruningWindowMs = pranaWindowDays * DAY_MS;
   const minDate = Math.min(...eventDates, now) - (365 * DAY_MS);
-  const maxDate = Math.max(...eventDates, now) + (365 * DAY_MS);
+
+  // Used for pruning logic but not extensively used in calculation here
+  // const maxDate = Math.max(...eventDates, now) + (365 * DAY_MS);
 
   const result: VimshottariDashaEntry[] = [];
 
   for (const maha of vimDashas) {
     if (!maha.subPeriods || dashaDepth < 1) continue;
-    
+
     for (const antar of maha.subPeriods) {
       if (!antar.subPeriods || dashaDepth < 2) continue;
-      
+
       for (const prat of antar.subPeriods) {
         const entries = processPratyantarLevel(
           maha, antar, prat, dashaDepth, pruningWindowMs, eventDates
@@ -66,7 +70,7 @@ function processPratyantarLevel(
   const result: VimshottariDashaEntry[] = [];
 
   if (dashaDepth === 3) {
-    result.push(createDashaEntry(maha.lord, antar.lord, prat.lord, '-', '-', 
+    result.push(createDashaEntry(maha.lord, antar.lord, prat.lord, '-', '-',
       formatDateRange(prat.startDate, prat.endDate)));
     return result;
   }
@@ -106,7 +110,7 @@ function processSukshmaLevel(
   if (dashaDepth >= 5 && suksh.subPeriods) {
     const sukshStart = suksh.startDate.getTime();
     const sukshEnd = suksh.endDate.getTime();
-    const isNearEvent = eventDates.some(ed => 
+    const isNearEvent = eventDates.some(ed =>
       ed >= sukshStart - pruningWindowMs && ed <= sukshEnd + pruningWindowMs
     );
 
@@ -173,10 +177,9 @@ export function buildYoginiDasha(
   minDate: number,
   maxDate: number
 ): Array<{ lord: string; startEnd: string }> {
-  const { calculateYoginiDasha } = require('../advanced-btr-methods.js');
-  
+  // Use static import instead of require
   const dashas = calculateYoginiDasha(moonLongitude, birthDate);
-  
+
   return dashas
     .filter(d => {
       const start = d.startDate.getTime();
@@ -198,10 +201,9 @@ export function buildCharaDasha(
   minDate: number,
   maxDate: number
 ): Array<{ sign: string; startEnd: string }> {
-  const { calculateCharaDasha } = require('../jaimini-astrology.js');
-  
+  // Use static import instead of require
   const dashas = calculateCharaDasha(ephemeris, birthDate);
-  
+
   return dashas
     .filter(d => {
       const start = d.startDate.getTime();
