@@ -7,7 +7,7 @@ import { auth } from '@clerk/nextjs/server';
 import { db, client } from '@/database/drizzle';
 import { sessions } from '@/database/schema';
 import { eq } from 'drizzle-orm';
-import { decryptData, encryptData } from '@/lib/encryption';
+import { safeDecrypt, encryptData, isEncrypted } from '@/lib/encryption';
 
 // GET: Fetch session data for editing
 export async function GET(
@@ -15,7 +15,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: sessionId } = await params;
-  
+
   try {
     const { userId: clerkId } = await auth();
     if (!clerkId) {
@@ -40,10 +40,10 @@ export async function GET(
 
     const s = session[0];
 
-    // Decrypt sensitive data
+    // Decrypt sensitive data with safety fallbacks
     const decryptedData = {
       id: s.id,
-      fullName: s.fullName ? decryptData(s.fullName, clerkId) : '',
+      fullName: s.fullName ? (safeDecrypt(s.fullName, clerkId) || 'Unencryptable name') : '',
       dateOfBirth: s.dateOfBirth,
       tentativeTime: s.tentativeTime,
       birthPlace: s.birthPlace,
@@ -53,7 +53,7 @@ export async function GET(
       gender: s.gender,
       status: s.status,
       birthData: {
-        fullName: s.fullName ? decryptData(s.fullName, clerkId) : '',
+        fullName: s.fullName ? (safeDecrypt(s.fullName, clerkId) || 'Unencryptable name') : '',
         dateOfBirth: s.dateOfBirth,
         tentativeTime: s.tentativeTime,
         birthPlace: s.birthPlace,
@@ -62,9 +62,15 @@ export async function GET(
         timezone: parseFloat(s.timezone || '5.5'),
         gender: s.gender,
       },
-      lifeEvents: s.lifeEvents ? JSON.parse(decryptData(s.lifeEvents, clerkId)) : [],
-      physicalTraits: s.physicalTraits ? JSON.parse(decryptData(s.physicalTraits, clerkId)) : null,
-      forensicTraits: s.forensicTraits ? JSON.parse(decryptData(s.forensicTraits, clerkId)) : null,
+      lifeEvents: s.lifeEvents
+        ? (safeDecrypt(s.lifeEvents, clerkId) ? JSON.parse(safeDecrypt(s.lifeEvents, clerkId)!) : [])
+        : [],
+      physicalTraits: s.physicalTraits
+        ? (safeDecrypt(s.physicalTraits, clerkId) ? JSON.parse(safeDecrypt(s.physicalTraits, clerkId)!) : null)
+        : null,
+      forensicTraits: s.forensicTraits
+        ? (safeDecrypt(s.forensicTraits, clerkId) ? JSON.parse(safeDecrypt(s.forensicTraits, clerkId)!) : null)
+        : null,
       offsetConfig: s.offsetConfig ? JSON.parse(s.offsetConfig) : null,
     };
 
@@ -85,7 +91,7 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: sessionId } = await params;
-  
+
   try {
     const { userId: clerkId } = await auth();
     if (!clerkId) {
@@ -133,7 +139,7 @@ export async function PUT(
     if (encryptedPhysicalTraits !== undefined) updateData.physicalTraits = encryptedPhysicalTraits;
     if (encryptedForensicTraits !== undefined) updateData.forensicTraits = encryptedForensicTraits;
     if (offsetConfig !== undefined) updateData.offsetConfig = JSON.stringify(offsetConfig);
-    
+
     // Only update status if not explicitly preserving as draft
     if (!isDraft) {
       updateData.status = 'pending';
@@ -159,7 +165,7 @@ export async function DELETE(
 ) {
   const { id: sessionId } = await params;
   const errors: string[] = [];
-  
+
   console.log(`[DELETE] Starting delete for session: ${sessionId}`);
 
   try {
@@ -230,10 +236,10 @@ export async function DELETE(
     } catch (e: any) {
       console.error('[DELETE] Session delete error:', e);
       return NextResponse.json(
-        { 
-          error: 'Failed to delete session', 
+        {
+          error: 'Failed to delete session',
           details: e.message,
-          previousErrors: errors 
+          previousErrors: errors
         },
         { status: 500 }
       );
@@ -244,10 +250,10 @@ export async function DELETE(
   } catch (error: any) {
     console.error('[DELETE] Top level error:', error);
     return NextResponse.json(
-      { 
-        error: 'Failed to delete session', 
+      {
+        error: 'Failed to delete session',
         details: error?.message || String(error),
-        stack: error?.stack 
+        stack: error?.stack
       },
       { status: 500 }
     );

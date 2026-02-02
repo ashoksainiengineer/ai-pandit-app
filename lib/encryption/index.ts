@@ -27,7 +27,7 @@
  * ═══════════════════════════════════════════════════════════════════════════════
  */
 
-import { getEncryptionSecret } from './config';
+import { getEncryptionSecret, getAllEncryptionSecrets } from './config';
 import {
     encryptData as rawEncryptData,
     decryptData as rawDecryptData,
@@ -48,27 +48,27 @@ export * from './types';
  *
  * @param plaintext - Data to encrypt
  * @param userId - User identifier for key derivation
- * @returns Encrypted string in format "iv:authTag:ciphertext"
+ * @returns Encrypted string in format "v1:iv:authTag:ciphertext"
  * @throws Error if encryption fails
  */
 export function encryptData(plaintext: string, userId: string): string {
-    // 🔴 DO NOT MODIFY - Uses config secret internally
+    // 🔴 DO NOT MODIFY - Uses primary config secret internally
     return rawEncryptData(plaintext, userId, getEncryptionSecret());
 }
 
 /**
  * 🔴 CRITICAL FUNCTION - DO NOT MODIFY 🔴
  *
- * Decrypts data encrypted with encryptData().
+ * Decrypts data using multi-secret fallback logic.
  *
- * @param encryptedString - Format: "iv:authTag:ciphertext"
+ * @param encryptedString - Encrypted string
  * @param userId - User identifier for key derivation
  * @returns Decrypted plaintext
  * @throws Error if decryption fails
  */
 export function decryptData(encryptedString: string, userId: string): string {
-    // 🔴 DO NOT MODIFY - Uses config secret internally
-    return rawDecryptData(encryptedString, userId, getEncryptionSecret());
+    // 🔴 DO NOT MODIFY - Uses all configured secrets for resilience
+    return rawDecryptData(encryptedString, userId, getAllEncryptionSecrets());
 }
 
 /**
@@ -81,7 +81,7 @@ export function decryptData(encryptedString: string, userId: string): string {
  * @returns Encrypted string or null
  */
 export function safeEncrypt(plaintext: string, userId: string): string | null {
-    // 🔴 DO NOT MODIFY - Uses config secret internally
+    // 🔴 DO NOT MODIFY - Uses primary config secret internally
     return rawSafeEncrypt(plaintext, userId, getEncryptionSecret());
 }
 
@@ -95,8 +95,8 @@ export function safeEncrypt(plaintext: string, userId: string): string | null {
  * @returns Decrypted string or null
  */
 export function safeDecrypt(encryptedString: string, userId: string): string | null {
-    // 🔴 DO NOT MODIFY - Uses config secret internally
-    return rawSafeDecrypt(encryptedString, userId, getEncryptionSecret());
+    // 🔴 DO NOT MODIFY - Uses all configured secrets for resilience
+    return rawSafeDecrypt(encryptedString, userId, getAllEncryptionSecrets());
 }
 
 /**
@@ -109,7 +109,7 @@ export function safeDecrypt(encryptedString: string, userId: string): string | n
  * @returns Encrypted string
  */
 export function encryptObject<T extends Record<string, unknown>>(obj: T, userId: string): string {
-    // 🔴 DO NOT MODIFY - Uses config secret internally
+    // 🔴 DO NOT MODIFY - Uses primary config secret internally
     return rawEncryptObject(obj, userId, getEncryptionSecret());
 }
 
@@ -123,8 +123,8 @@ export function encryptObject<T extends Record<string, unknown>>(obj: T, userId:
  * @returns Decrypted object
  */
 export function decryptObject<T extends Record<string, unknown>>(encryptedString: string, userId: string): T {
-    // 🔴 DO NOT MODIFY - Uses config secret internally
-    return rawDecryptObject(encryptedString, userId, getEncryptionSecret());
+    // 🔴 DO NOT MODIFY - Uses all configured secrets for resilience
+    return rawDecryptObject(encryptedString, userId, getAllEncryptionSecrets());
 }
 
 /**

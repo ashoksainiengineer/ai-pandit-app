@@ -151,6 +151,7 @@ export async function executeWithRetry<T>(
         errorMessage.includes('timeout') ||
         errorMessage.includes('network') ||
         errorMessage.includes('econnrefused') ||
+        errorMessage.includes('econnreset') ||
         errorMessage.includes('temporarily') ||
         errorMessage.includes('busy');
 

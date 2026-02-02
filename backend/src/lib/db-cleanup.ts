@@ -3,7 +3,7 @@
  * Handles soft-deleted records, expired cache, and ephemeral data
  */
 
-import { db } from '../database/drizzle.js';
+import { db, executeWithRetry } from '../database/drizzle.js';
 import { sessions, calculations, users } from '../database/schema.js';
 import { eq, lt, and, isNotNull, sql } from 'drizzle-orm';
 import { logger } from './logger.js';
@@ -38,15 +38,17 @@ async function cleanupSoftDeletedSessions(): Promise<CleanupResult> {
   try {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - RETENTION.softDeletedSessions);
-    
-    const result = await db.delete(sessions)
-      .where(
-        and(
-          isNotNull(sessions.deletedAt),
-          lt(sessions.deletedAt, cutoffDate.toISOString())
+
+    const result = await executeWithRetry(() =>
+      db.delete(sessions)
+        .where(
+          and(
+            isNotNull(sessions.deletedAt),
+            lt(sessions.deletedAt, cutoffDate.toISOString())
+          )
         )
-      );
-    
+    );
+
     return {
       table: 'sessions',
       deleted: result.rowsAffected ?? 0,
@@ -68,15 +70,17 @@ async function cleanupSoftDeletedUsers(): Promise<CleanupResult> {
   try {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - RETENTION.softDeletedUsers);
-    
-    const result = await db.delete(users)
-      .where(
-        and(
-          isNotNull(users.deletedAt),
-          lt(users.deletedAt, cutoffDate.toISOString())
+
+    const result = await executeWithRetry(() =>
+      db.delete(users)
+        .where(
+          and(
+            isNotNull(users.deletedAt),
+            lt(users.deletedAt, cutoffDate.toISOString())
+          )
         )
-      );
-    
+    );
+
     return {
       table: 'users',
       deleted: result.rowsAffected ?? 0,
@@ -98,21 +102,23 @@ async function cleanupCompletedSessionProgress(): Promise<CleanupResult> {
   try {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - RETENTION.completedSessionsProgress);
-    
-    const result = await db.update(sessions)
-      .set({ 
-        progressData: null,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(
-        and(
-          eq(sessions.status, 'complete'),
-          isNotNull(sessions.completedAt),
-          lt(sessions.completedAt, cutoffDate.toISOString()),
-          isNotNull(sessions.progressData)
+
+    const result = await executeWithRetry(() =>
+      db.update(sessions)
+        .set({
+          progressData: null,
+          updatedAt: new Date().toISOString(),
+        })
+        .where(
+          and(
+            eq(sessions.status, 'complete'),
+            isNotNull(sessions.completedAt),
+            lt(sessions.completedAt, cutoffDate.toISOString()),
+            isNotNull(sessions.progressData)
+          )
         )
-      );
-    
+    );
+
     return {
       table: 'sessions.progressData',
       deleted: result.rowsAffected ?? 0,
@@ -133,15 +139,17 @@ async function cleanupCompletedSessionProgress(): Promise<CleanupResult> {
 async function cleanupExpiredCalculations(): Promise<CleanupResult> {
   try {
     const now = new Date().toISOString();
-    
-    const result = await db.delete(calculations)
-      .where(
-        and(
-          isNotNull(calculations.expiresAt),
-          lt(calculations.expiresAt, now)
+
+    const result = await executeWithRetry(() =>
+      db.delete(calculations)
+        .where(
+          and(
+            isNotNull(calculations.expiresAt),
+            lt(calculations.expiresAt, now)
+          )
         )
-      );
-    
+    );
+
     return {
       table: 'calculations',
       deleted: result.rowsAffected ?? 0,
@@ -163,16 +171,18 @@ async function cleanupStalePendingSessions(): Promise<CleanupResult> {
   try {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - RETENTION.stalePendingSessions);
-    
-    const result = await db.delete(sessions)
-      .where(
-        and(
-          eq(sessions.status, 'pending'),
-          lt(sessions.createdAt, cutoffDate.toISOString()),
-          isNotNull(sessions.lifeEvents) // Has data (not draft)
+
+    const result = await executeWithRetry(() =>
+      db.delete(sessions)
+        .where(
+          and(
+            eq(sessions.status, 'pending'),
+            lt(sessions.createdAt, cutoffDate.toISOString()),
+            isNotNull(sessions.lifeEvents) // Has data (not draft)
+          )
         )
-      );
-    
+    );
+
     return {
       table: 'stale_pending_sessions',
       deleted: result.rowsAffected ?? 0,
@@ -192,9 +202,9 @@ async function cleanupStalePendingSessions(): Promise<CleanupResult> {
  */
 export async function runDatabaseCleanup(): Promise<CleanupReport> {
   const startTime = Date.now();
-  
+
   logger.info('Starting database cleanup...');
-  
+
   const results = await Promise.all([
     cleanupSoftDeletedSessions(),
     cleanupSoftDeletedUsers(),
@@ -202,23 +212,23 @@ export async function runDatabaseCleanup(): Promise<CleanupReport> {
     cleanupExpiredCalculations(),
     cleanupStalePendingSessions(),
   ]);
-  
+
   const totalDeleted = results.reduce((sum, r) => sum + r.deleted, 0);
   const durationMs = Date.now() - startTime;
-  
+
   const report: CleanupReport = {
     timestamp: new Date().toISOString(),
     results,
     totalDeleted,
     durationMs,
   };
-  
+
   logger.info('Database cleanup completed', {
     totalDeleted,
     durationMs,
     details: results,
   });
-  
+
   return report;
 }
 
@@ -230,12 +240,12 @@ export async function getCleanupPreview(): Promise<{
 }> {
   const cutoffSessions = new Date();
   cutoffSessions.setDate(cutoffSessions.getDate() - RETENTION.softDeletedSessions);
-  
+
   const cutoffUsers = new Date();
   cutoffUsers.setDate(cutoffUsers.getDate() - RETENTION.softDeletedUsers);
-  
+
   const now = new Date().toISOString();
-  
+
   // Count queries (implementation depends on your Drizzle version)
   const wouldDelete: Record<string, number> = {
     softDeletedSessions: 0, // Query would go here
@@ -244,7 +254,7 @@ export async function getCleanupPreview(): Promise<{
     expiredCalculations: 0,
     stalePendingSessions: 0,
   };
-  
+
   return { wouldDelete };
 }
 

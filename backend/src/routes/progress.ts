@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { getSessionProgress } from '../lib/progress-tracker.js';
 import { getQueueStatus } from '../lib/queue-manager.js';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
-import { db } from '../database/drizzle.js';
+import { db, executeWithRetry } from '../database/drizzle.js';
 import { sessions } from '../database/schema.js';
 import { eq } from 'drizzle-orm';
 import { safeDecrypt } from '../lib/crypto.js';
@@ -53,13 +53,15 @@ async function handleProgressRequest(sessionId: string, userId: string, res: Res
     // SECURITY: Verify session ownership
     // ═══════════════════════════════════════════════════════════════════════════════
     try {
-        const sessionCheck = await db.select({
-            id: sessions.id,
-            userId: sessions.userId,
-        })
-            .from(sessions)
-            .where(eq(sessions.id, sessionId))
-            .limit(1);
+        const sessionCheck = await executeWithRetry(() =>
+            db.select({
+                id: sessions.id,
+                userId: sessions.userId,
+            })
+                .from(sessions)
+                .where(eq(sessions.id, sessionId))
+                .limit(1)
+        );
 
         if (sessionCheck.length === 0) {
             res.status(404).json({ error: 'Session not found' });

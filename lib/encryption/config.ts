@@ -27,56 +27,78 @@
 // The secret is loaded and validated only when first accessed at runtime
 // ═══════════════════════════════════════════════════════════════════════════════
 
-let cachedSecret: string | undefined;
+let cachedSecrets: string[] | undefined;
 
-function loadEncryptionSecret(): string {
-    if (cachedSecret !== undefined) {
-        return cachedSecret;
+function loadEncryptionSecrets(): string[] {
+    if (cachedSecrets !== undefined) {
+        return cachedSecrets;
     }
 
-    const secret = process.env.ENCRYPTION_SECRET?.trim();
+    const secretsString = process.env.ENCRYPTION_SECRET?.trim();
 
-    if (!secret) {
+    if (!secretsString) {
         console.error('🔴 CRITICAL: ENCRYPTION_SECRET environment variable is not set');
         console.error('   Data encryption is impossible without a secure master key');
         console.error('   Set ENCRYPTION_SECRET to a cryptographically secure random string (64+ chars)');
         throw new Error('ENCRYPTION_SECRET is required for secure data storage');
     }
 
-    if (secret.length < 32) {
-        console.warn('⚠️  ENCRYPTION_SECRET should be at least 32 characters for security');
+    // Support comma-separated secrets for rotation
+    const secrets = secretsString.split(',').map(s => s.trim()).filter(Boolean);
+
+    if (secrets.length === 0) {
+        throw new Error('No valid secrets found in ENCRYPTION_SECRET');
     }
 
-    cachedSecret = secret;
-    return secret;
+    for (const secret of secrets) {
+        if (secret.length < 32) {
+            console.warn('⚠️  One of the ENCRYPTION_SECRETS is less than 32 characters');
+        }
+    }
+
+    cachedSecrets = secrets;
+    return secrets;
 }
 
 /**
  * 🔴 CRITICAL FUNCTION - DO NOT MODIFY 🔴
  *
- * Gets the encryption secret. This is used internally by the encryption module.
+ * Gets the primary encryption secret. Used for ALL NEW encryption operations.
  * ⚠️  Never log or expose this value.
  *
- * This function uses lazy loading to prevent build-time errors.
- * The secret is only loaded and validated when first accessed at runtime.
- *
- * @returns The master encryption secret
+ * @returns The primary master encryption secret
  */
 export function getEncryptionSecret(): string {
-    return loadEncryptionSecret();
+    return loadEncryptionSecrets()[0];
+}
+
+/**
+ * Gets all configured encryption secrets for rotation support.
+ * @returns Array of encryption secrets
+ */
+export function getAllEncryptionSecrets(): string[] {
+    return loadEncryptionSecrets();
+}
+
+/**
+ * Validates that secrets are correctly configured on startup.
+ */
+export function validateSecrets(): void {
+    const secrets = loadEncryptionSecrets();
+    console.log(`[Encryption] Initialized with ${secrets.length} secret(s).`);
 }
 
 // For backward compatibility - export a getter that looks like a constant
 // This will throw only when actually accessed, not at import/build time
 const ENCRYPTION_SECRET_GETTER = {
     toString() {
-        return loadEncryptionSecret();
+        return getEncryptionSecret();
     },
     valueOf() {
-        return loadEncryptionSecret();
+        return getEncryptionSecret();
     },
     get value() {
-        return loadEncryptionSecret();
+        return getEncryptionSecret();
     }
 };
 

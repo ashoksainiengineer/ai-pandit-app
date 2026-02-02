@@ -10,6 +10,7 @@ import { errorHandler } from './middleware/error-handler.js';
 import { startQueueProcessor, cleanupZombiesOnStartup } from './lib/queue-manager.js';
 import { initSwissEph } from './lib/ephemeris.js';
 import { logger } from './lib/logger.js';
+import { validateSecrets } from './lib/encryption/config.js';
 
 // Extend Express Request type to include id
 declare global {
@@ -192,6 +193,7 @@ let queueStarted = false;
 async function bootstrap() {
     try {
         logger.info('🚀 AI Pandit BTR Engine v2.0.0 Starting...');
+        validateSecrets();
         logger.info(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
         logger.info(`🔌 Port: ${PORT}`);
 

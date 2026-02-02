@@ -2,7 +2,7 @@
 // Efficient queue system for high-performance AI backend
 // Design: Process multiple requests concurrently based on system capacity
 
-import { db } from '../database/drizzle.js';
+import { db, executeWithRetry } from '../database/drizzle.js';
 import { sessions } from '../database/schema.js';
 import { eq, and, or, desc, asc, lt } from 'drizzle-orm';
 import { logger } from './logger.js';
@@ -26,19 +26,19 @@ const QUEUE_CONFIG = {
   // Default 3 concurrent sessions - can handle up to 3 simultaneous BTR analyses
   // With 16GB RAM, each session gets ~5GB which is sufficient for God-Tier BTR
   maxConcurrent: config.queue.maxConcurrent,
-  
+
   pollIntervalMs: config.queue.pollIntervalMs,
   maxQueueSize: config.queue.maxSize,
-  
+
   // 2 hour timeout for complex BTR analyses with multiple life events
   staleTimeoutMs: config.queue.staleTimeoutMs,
-  
+
   // Base analysis time ~4 minutes per session with DeepSeek R1
   baseAnalysisTime: config.queue.baseAnalysisTime,
-  
+
   // Contention factor - minimal overhead per additional concurrent session
   contentionMultiplier: config.queue.contentionMultiplier,
-  
+
   // Memory thresholds (in GB) for automatic throttling
   memoryPressureThresholdGB: config.memory.pressureThresholdGB,
   memoryCriticalThresholdGB: config.memory.criticalThresholdGB,
@@ -100,12 +100,14 @@ export async function addToQueue(sessionId: string): Promise<QueueSubmitResult> 
     }
 
     // Update session status to queued
-    await db.update(sessions)
-      .set({
-        status: 'queued',
-        updatedAt: new Date().toISOString(),
-      })
-      .where(eq(sessions.id, sessionId));
+    await executeWithRetry(() =>
+      db.update(sessions)
+        .set({
+          status: 'queued',
+          updatedAt: new Date().toISOString(),
+        })
+        .where(eq(sessions.id, sessionId))
+    );
 
     // Start processor if not running
     startQueueProcessor();
@@ -139,13 +141,15 @@ export async function addToQueue(sessionId: string): Promise<QueueSubmitResult> 
 export async function getQueuePosition(sessionId: string): Promise<number> {
   try {
     // Get all active sessions (processing or queued) ordered by creation time
-    const active = await db.select({ id: sessions.id, status: sessions.status })
-      .from(sessions)
-      .where(or(
-        eq(sessions.status, 'queued'),
-        eq(sessions.status, 'processing')
-      ))
-      .orderBy(asc(sessions.createdAt));
+    const active = await executeWithRetry(() =>
+      db.select({ id: sessions.id, status: sessions.status })
+        .from(sessions)
+        .where(or(
+          eq(sessions.status, 'queued'),
+          eq(sessions.status, 'processing')
+        ))
+        .orderBy(asc(sessions.createdAt))
+    );
 
     const item = active.find(s => s.id === sessionId);
     if (!item) return 0;
@@ -172,10 +176,12 @@ export async function getQueuePosition(sessionId: string): Promise<number> {
  */
 export async function getQueueStatus(sessionId: string): Promise<QueuePosition | null> {
   try {
-    const session = await db.select()
-      .from(sessions)
-      .where(eq(sessions.id, sessionId))
-      .limit(1);
+    const session = await executeWithRetry(() =>
+      db.select()
+        .from(sessions)
+        .where(eq(sessions.id, sessionId))
+        .limit(1)
+    );
 
     if (session.length === 0) {
       return null;
@@ -233,12 +239,14 @@ export async function getQueueStatus(sessionId: string): Promise<QueuePosition |
  */
 async function getQueuedCount(): Promise<number> {
   try {
-    const result = await db.select({ id: sessions.id })
-      .from(sessions)
-      .where(or(
-        eq(sessions.status, 'queued'),
-        eq(sessions.status, 'processing')
-      ));
+    const result = await executeWithRetry(() =>
+      db.select({ id: sessions.id })
+        .from(sessions)
+        .where(or(
+          eq(sessions.status, 'queued'),
+          eq(sessions.status, 'processing')
+        ))
+    );
 
     return result.length;
   } catch (error) {
@@ -252,16 +260,18 @@ async function getQueuedCount(): Promise<number> {
 async function getNextInQueue(): Promise<string | null> {
   try {
     // Check for both 'pending' (new submissions) and 'queued' status
-    const next = await db.select({ id: sessions.id })
-      .from(sessions)
-      .where(
-        or(
-          eq(sessions.status, 'pending'),
-          eq(sessions.status, 'queued')
+    const next = await executeWithRetry(() =>
+      db.select({ id: sessions.id })
+        .from(sessions)
+        .where(
+          or(
+            eq(sessions.status, 'pending'),
+            eq(sessions.status, 'queued')
+          )
         )
-      )
-      .orderBy(asc(sessions.createdAt))
-      .limit(1);
+        .orderBy(asc(sessions.createdAt))
+        .limit(1)
+    );
 
     return next.length > 0 ? next[0].id : null;
   } catch (error) {
@@ -274,12 +284,14 @@ async function getNextInQueue(): Promise<string | null> {
  * Mark session as processing
  */
 async function markAsProcessing(sessionId: string): Promise<void> {
-  await db.update(sessions)
-    .set({
-      status: 'processing',
-      updatedAt: new Date().toISOString(),
-    })
-    .where(eq(sessions.id, sessionId));
+  await executeWithRetry(() =>
+    db.update(sessions)
+      .set({
+        status: 'processing',
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(sessions.id, sessionId))
+  );
 
   activeProcessingIds.add(sessionId);
   processingStartTimes.set(sessionId, Date.now());
@@ -298,18 +310,20 @@ export async function markAsComplete(
     reasoningLogs?: string | null;
   }
 ): Promise<void> {
-  await db.update(sessions)
-    .set({
-      status: 'complete',
-      rectifiedTime: results.rectifiedTime,
-      accuracy: results.accuracy,
-      confidence: results.confidence,
-      analysisResult: results.analysisResult,
-      reasoningLogs: results.reasoningLogs,
-      completedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    } as any)
-    .where(eq(sessions.id, sessionId));
+  await executeWithRetry(() =>
+    db.update(sessions)
+      .set({
+        status: 'complete',
+        rectifiedTime: results.rectifiedTime,
+        accuracy: results.accuracy,
+        confidence: results.confidence,
+        analysisResult: results.analysisResult,
+        reasoningLogs: results.reasoningLogs,
+        completedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      } as any)
+      .where(eq(sessions.id, sessionId))
+  );
 
   activeProcessingIds.delete(sessionId);
   processingStartTimes.delete(sessionId);
@@ -329,13 +343,15 @@ export async function markAsComplete(
  * Mark session as failed
  */
 export async function markAsFailed(sessionId: string, error: string): Promise<void> {
-  await db.update(sessions)
-    .set({
-      status: 'failed',
-      errorMessage: error,
-      updatedAt: new Date().toISOString(),
-    })
-    .where(eq(sessions.id, sessionId));
+  await executeWithRetry(() =>
+    db.update(sessions)
+      .set({
+        status: 'failed',
+        errorMessage: error,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(sessions.id, sessionId))
+  );
 
   activeProcessingIds.delete(sessionId);
   processingStartTimes.delete(sessionId);
@@ -347,11 +363,13 @@ export async function markAsFailed(sessionId: string, error: string): Promise<vo
  * Update session timestamp to prevent it from being marked as stale
  */
 export async function heartbeat(sessionId: string): Promise<void> {
-  await db.update(sessions)
-    .set({
-      updatedAt: new Date().toISOString(),
-    })
-    .where(eq(sessions.id, sessionId));
+  await executeWithRetry(() =>
+    db.update(sessions)
+      .set({
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(sessions.id, sessionId))
+  );
 }
 
 /**
@@ -371,17 +389,19 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
     // 🛑 ABORT the running process (this will cancel fetch requests!)
     abortSessionController(sessionId);
 
-    await db.update(sessions)
-      .set({
-        status: 'failed',
-        errorMessage: 'Cancelled by user',
-        updatedAt: new Date().toISOString(),
-        // 🗑️ HARD WIPE: Clear heavy data to save Turso Free Tier limit
-        progressData: null,
-        analysisResult: null,
-        reasoningLogs: null
-      } as any)
-      .where(eq(sessions.id, sessionId));
+    await executeWithRetry(() =>
+      db.update(sessions)
+        .set({
+          status: 'failed',
+          errorMessage: 'Cancelled by user',
+          updatedAt: new Date().toISOString(),
+          // 🗑️ HARD WIPE: Clear heavy data to save Turso Free Tier limit
+          progressData: null,
+          analysisResult: null,
+          reasoningLogs: null
+        } as any)
+        .where(eq(sessions.id, sessionId))
+    );
 
     activeProcessingIds.delete(sessionId);
     processingStartTimes.delete(sessionId);
@@ -428,37 +448,37 @@ function shouldTripCircuitBreaker(): boolean {
 function isRetryableError(error: unknown): boolean {
   if (error instanceof Error) {
     const msg = error.message.toLowerCase();
-    
+
     // Network errors - retry
     if (msg.includes('timeout') ||
-        msg.includes('network') ||
-        msg.includes('econnrefused') ||
-        msg.includes('enotfound') ||
-        msg.includes('rate limit') ||
-        msg.includes('429') ||
-        msg.includes('503') ||
-        msg.includes('too many requests') ||
-        msg.includes('etimedout') ||
-        msg.includes('econnreset')) {
+      msg.includes('network') ||
+      msg.includes('econnrefused') ||
+      msg.includes('enotfound') ||
+      msg.includes('rate limit') ||
+      msg.includes('429') ||
+      msg.includes('503') ||
+      msg.includes('too many requests') ||
+      msg.includes('etimedout') ||
+      msg.includes('econnreset')) {
       return true;
     }
-    
+
     // AI service errors - retry
     if (msg.includes('ai_analysis_incomplete') ||
-        msg.includes('openrouter') ||
-        msg.includes('temporarily unavailable') ||
-        msg.includes('service unavailable')) {
+      msg.includes('openrouter') ||
+      msg.includes('temporarily unavailable') ||
+      msg.includes('service unavailable')) {
       return true;
     }
-    
+
     // Database transient errors - retry
     if (msg.includes('database is locked') ||
-        msg.includes('busy') ||
-        msg.includes('sqlITE_BUSY')) {
+      msg.includes('busy') ||
+      msg.includes('sqlITE_BUSY')) {
       return true;
     }
   }
-  
+
   return false;
 }
 
@@ -468,37 +488,37 @@ function isRetryableError(error: unknown): boolean {
 async function processSessionWithRetry(sessionId: string, attempt: number = 0): Promise<void> {
   try {
     await processSessionAsync(sessionId);
-    
+
     // Success - reset failure counter
     if (consecutiveFailures > 0) {
       logger.info(`Session ${sessionId} succeeded after ${consecutiveFailures} previous failures. Resetting counter.`);
       consecutiveFailures = 0;
     }
-    
+
   } catch (error) {
     const isRetryable = isRetryableError(error);
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-    
+
     if (isRetryable && attempt < RETRY_CONFIG.maxRetries) {
       const delay = getRetryDelay(attempt);
       logger.warn(`Retrying session ${sessionId} after ${delay}ms (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries})`, {
         error: errorMsg,
         isRetryable,
       });
-      
+
       await sleep(delay);
       return processSessionWithRetry(sessionId, attempt + 1);
     }
-    
+
     // Non-retryable or max retries exceeded
     logger.error(`Session ${sessionId} failed permanently after ${attempt + 1} attempts`, {
       error: errorMsg,
       isRetryable,
     });
-    
+
     consecutiveFailures++;
     lastFailureTime = Date.now();
-    
+
     // Try to mark as failed (with its own error handling)
     try {
       await markAsFailed(sessionId, errorMsg);
@@ -533,7 +553,7 @@ export function startQueueProcessor(): void {
  */
 async function processQueue(): Promise<void> {
   logger.info('Queue processor loop started with C4 fixes (retry + circuit breaker)');
-  
+
   while (isProcessorRunning) {
     try {
       // C4: Circuit breaker check
@@ -544,7 +564,7 @@ async function processQueue(): Promise<void> {
         await sleep(60000);  // Wait 60s before checking again
         continue;
       }
-      
+
       // Check for stale processing requests (crashed mid-process)
       await cleanupStaleRequests();
 
@@ -561,16 +581,16 @@ async function processQueue(): Promise<void> {
       // This ensures stability while utilizing HF Spaces 16GB capacity
       const RSS_THRESHOLD_GB = config.memory.gcThresholdGB;
       const HEAP_THRESHOLD_GB = config.memory.thresholdPercent / 10; // Convert percentage to GB approximation
-      
+
       // Only log memory stats every 10 iterations to reduce noise
       if (Math.random() < 0.1) {
         logger.info(`[MEMORY] RSS: ${rssGB.toFixed(2)}GB | Heap: ${heapUsedGB.toFixed(2)}GB / ${heapTotalGB.toFixed(2)}GB | Concurrent: ${activeProcessingIds.size}/${effectiveMaxConcurrent} | Failures: ${consecutiveFailures}`);
       }
-      
+
       if (rssGB > RSS_THRESHOLD_GB || heapUsedGB > HEAP_THRESHOLD_GB) {
         logger.warn(`[PRESSURE] RAM Pressure detected (RSS: ${rssGB.toFixed(2)}GB, Heap: ${heapUsedGB.toFixed(2)}GB), restricting concurrency from ${effectiveMaxConcurrent} to 1`);
         effectiveMaxConcurrent = 1;
-        
+
         // Trigger GC if available
         if ((global as any).gc) {
           logger.info('[MEMORY] Triggering manual GC due to pressure');
@@ -617,7 +637,7 @@ async function processQueue(): Promise<void> {
       logger.error('Queue processor error', error);
       consecutiveFailures++;
       lastFailureTime = Date.now();
-      
+
       // C4: Exponential backoff for queue processor errors
       const delay = getRetryDelay(Math.min(consecutiveFailures, 5));
       logger.info(`Queue processor backing off for ${delay}ms due to error`);
@@ -634,10 +654,12 @@ async function processSessionAsync(sessionId: string): Promise<void> {
     logger.info('Starting to process request', { sessionId });
 
     // Get session data
-    const session = await db.select()
-      .from(sessions)
-      .where(eq(sessions.id, sessionId))
-      .limit(1);
+    const session = await executeWithRetry(() =>
+      db.select()
+        .from(sessions)
+        .where(eq(sessions.id, sessionId))
+        .limit(1)
+    );
 
     if (session.length === 0) {
       await markAsFailed(sessionId, 'Session not found');
@@ -645,7 +667,7 @@ async function processSessionAsync(sessionId: string): Promise<void> {
     }
 
     const s = session[0];
-    
+
     // Debug logging for forensicTraits issue
     logger.info('Session data retrieved', {
       sessionId,
@@ -670,7 +692,7 @@ async function processSessionAsync(sessionId: string): Promise<void> {
         physicalTraitsLength: s.physicalTraits?.length,
         forensicTraitsLength: s.forensicTraits?.length,
       });
-      
+
       // 🔐 Decrypt sensitive data using clerkId (encryption key)
       // lifeEvents is nullable for drafts, but at processing stage it must exist
       if (!s.lifeEvents) {
@@ -681,7 +703,7 @@ async function processSessionAsync(sessionId: string): Promise<void> {
         throw new Error('Failed to decrypt lifeEvents data');
       }
       const decryptedLifeEvents = JSON.parse(lifeEventsData);
-      
+
       let decryptedPhysicalTraits: any = undefined;
       if (s.physicalTraits) {
         const decrypted = safeDecrypt(s.physicalTraits, s.clerkId);
@@ -693,7 +715,7 @@ async function processSessionAsync(sessionId: string): Promise<void> {
           }
         }
       }
-      
+
       let decryptedForensicTraits: any = undefined;
       if (s.forensicTraits) {
         const decrypted = safeDecrypt(s.forensicTraits, s.clerkId);
@@ -780,12 +802,14 @@ async function cleanupStaleRequests(): Promise<void> {
     const staleThreshold = new Date(Date.now() - QUEUE_CONFIG.staleTimeoutMs).toISOString();
 
     // Find processing requests that are too old
-    const stale = await db.select({ id: sessions.id })
-      .from(sessions)
-      .where(and(
-        eq(sessions.status, 'processing'),
-        lt(sessions.updatedAt, staleThreshold)
-      ));
+    const stale = await executeWithRetry(() =>
+      db.select({ id: sessions.id })
+        .from(sessions)
+        .where(and(
+          eq(sessions.status, 'processing'),
+          lt(sessions.updatedAt, staleThreshold)
+        ))
+    );
 
     for (const s of stale) {
       await markAsFailed(s.id, 'Request timed out');

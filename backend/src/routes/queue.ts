@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
-import { db } from '../database/drizzle.js';
+import { db, executeWithRetry } from '../database/drizzle.js';
 import { sessions } from '../database/schema.js';
 import { eq } from 'drizzle-orm';
 import { logger } from '../lib/logger.js';
@@ -46,12 +46,13 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
 
         // 🔴 Check AI consent if session exists
         if (existingSessionId && !consentConfirmed) {
-            const session = await db
-                .select({ aiConsentGiven: sessions.aiConsentGiven })
-                .from(sessions)
-                .where(eq(sessions.id, existingSessionId))
-                .limit(1);
-            
+            const session = await executeWithRetry(() =>
+                db.select({ aiConsentGiven: sessions.aiConsentGiven })
+                    .from(sessions)
+                    .where(eq(sessions.id, existingSessionId))
+                    .limit(1)
+            );
+
             if (session.length > 0 && !session[0].aiConsentGiven) {
                 res.status(403).json({
                     success: false,
@@ -122,26 +123,28 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
             ? encryptData(JSON.stringify(forensicTraits), userId)
             : null;
 
-        await db.insert(sessions).values({
-            id: sessionId,
-            userId,
-            clerkId: userId, // Use userId as clerkId (same for Clerk auth)
-            fullName: encryptedFullName,
-            dateOfBirth: birthData.dateOfBirth,
-            tentativeTime: birthData.tentativeTime,
-            birthPlace: birthData.birthPlace,
-            latitude: birthData.latitude,
-            longitude: birthData.longitude,
-            timezone: birthData.timezone.toString(),
-            gender: birthData.gender || 'other',
-            physicalTraits: encryptedPhysicalTraits,
-            forensicTraits: encryptedForensicTraits,
-            lifeEvents: encryptedLifeEvents,
-            offsetConfig: JSON.stringify(offsetConfig),
-            status: 'pending',
-            createdAt: now,
-            updatedAt: now,
-        });
+        await executeWithRetry(() =>
+            db.insert(sessions).values({
+                id: sessionId,
+                userId,
+                clerkId: userId, // Use userId as clerkId (same for Clerk auth)
+                fullName: encryptedFullName,
+                dateOfBirth: birthData.dateOfBirth,
+                tentativeTime: birthData.tentativeTime,
+                birthPlace: birthData.birthPlace,
+                latitude: birthData.latitude,
+                longitude: birthData.longitude,
+                timezone: birthData.timezone.toString(),
+                gender: birthData.gender || 'other',
+                physicalTraits: encryptedPhysicalTraits,
+                forensicTraits: encryptedForensicTraits,
+                lifeEvents: encryptedLifeEvents,
+                offsetConfig: JSON.stringify(offsetConfig),
+                status: 'pending',
+                createdAt: now,
+                updatedAt: now,
+            })
+        );
 
         logger.info('Session created', { sessionId, userId });
 
@@ -149,10 +152,11 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
         const queueResult = await addToQueue(sessionId);
 
         if (!queueResult.success) {
-            await db
-                .update(sessions)
-                .set({ status: 'failed', errorMessage: queueResult.error })
-                .where(eq(sessions.id, sessionId));
+            await executeWithRetry(() =>
+                db.update(sessions)
+                    .set({ status: 'failed', errorMessage: queueResult.error })
+                    .where(eq(sessions.id, sessionId))
+            );
 
             res.status(503).json({ success: false, error: queueResult.error });
             return;
@@ -190,7 +194,9 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
         }
 
         // Verify session belongs to user
-        const session = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+        const session = await executeWithRetry(() =>
+            db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1)
+        );
 
         if (session.length === 0) {
             res.status(404).json({ success: false, error: 'Session not found' });
@@ -272,7 +278,9 @@ router.post('/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Re
         }
 
         // Verify session belongs to user
-        const session = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+        const session = await executeWithRetry(() =>
+            db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1)
+        );
 
         if (session.length === 0) {
             res.status(404).json({ success: false, error: 'Session not found' });

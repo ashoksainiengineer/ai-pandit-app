@@ -66,34 +66,37 @@ async function getUserSessions(clerkId: string): Promise<DashboardSession[]> {
     if (!user) return [];
 
     let userSessions: DashboardSession[] = [];
-    
+
     try {
       const result = await db.query.sessions.findMany({
         where: eq(sessions.userId, user.id),
         orderBy: [desc(sessions.createdAt)],
       });
-      userSessions = result.map(s => ({
-        ...s,
-        id: s.id,
-        userId: s.userId,
-        status: s.status as DashboardSession['status'],
-        fullName: safeDecrypt(s.fullName, clerkId),
-        dateOfBirth: s.dateOfBirth,
-        tentativeTime: s.tentativeTime,
-        birthPlace: s.birthPlace,
-        latitude: s.latitude,
-        longitude: s.longitude,
-        timezone: s.timezone,
-        gender: s.gender || undefined,
-        rectifiedTime: s.rectifiedTime || undefined,
-        accuracy: s.accuracy || undefined,
-        confidence: s.confidence || undefined,
-        createdAt: s.createdAt,
-        updatedAt: s.updatedAt,
-        isFavorite: false,
-        tags: [],
-        analysisResult: undefined,
-      })) as DashboardSession[];
+      userSessions = result.map(s => {
+        const decryptedName = safeDecrypt(s.fullName, clerkId);
+        return {
+          ...s,
+          id: s.id,
+          userId: s.userId,
+          status: s.status as DashboardSession['status'],
+          fullName: decryptedName || 'Unencryptable Session',
+          dateOfBirth: s.dateOfBirth,
+          tentativeTime: s.tentativeTime,
+          birthPlace: s.birthPlace,
+          latitude: s.latitude,
+          longitude: s.longitude,
+          timezone: s.timezone,
+          gender: s.gender || undefined,
+          rectifiedTime: s.rectifiedTime || undefined,
+          accuracy: s.accuracy || undefined,
+          confidence: s.confidence || undefined,
+          createdAt: s.createdAt,
+          updatedAt: s.updatedAt,
+          isFavorite: false,
+          tags: [],
+          analysisResult: undefined,
+        };
+      }) as DashboardSession[];
     } catch (dbError: any) {
       // Fallback for missing columns
       if (dbError.message?.includes('forensicTraits') || dbError.message?.includes('no such column')) {
@@ -127,36 +130,36 @@ export default async function DashboardPage() {
   const user = await currentUser();
 
   if (!user) {
-  return (
-    <Layout hideFooter>
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="text-center bg-white border border-[#F0E8DE] rounded-2xl p-8 max-w-md shadow-lg">
-          <h1 className="text-2xl font-bold text-[#1A1612] mb-4 font-[family-name:var(--font-cormorant)]">Please Sign In</h1>
-          <p className="text-[#7A756F] mb-6">Access your dashboard to view and manage your birth time rectification sessions.</p>
-          <Link
-            href="/sign-in"
-            className="inline-block bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white px-6 py-3 rounded-xl font-semibold hover:shadow-[0_0_20px_rgba(184,134,11,0.4)] transition-all"
-          >
-            Sign In
-          </Link>
+    return (
+      <Layout hideFooter>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <div className="text-center bg-white border border-[#F0E8DE] rounded-2xl p-8 max-w-md shadow-lg">
+            <h1 className="text-2xl font-bold text-[#1A1612] mb-4 font-[family-name:var(--font-cormorant)]">Please Sign In</h1>
+            <p className="text-[#7A756F] mb-6">Access your dashboard to view and manage your birth time rectification sessions.</p>
+            <Link
+              href="/sign-in"
+              className="inline-block bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white px-6 py-3 rounded-xl font-semibold hover:shadow-[0_0_20px_rgba(184,134,11,0.4)] transition-all"
+            >
+              Sign In
+            </Link>
+          </div>
         </div>
-      </div>
-    </Layout>
+      </Layout>
+    );
+  }
+
+  const userSessions = await getUserSessions(user.id);
+
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <Layout hideFooter>
+        <div className="pt-8 pb-12">
+          <DashboardClient
+            initialSessions={userSessions}
+            userName={user.firstName || 'User'}
+          />
+        </div>
+      </Layout>
+    </Suspense>
   );
-}
-
-const userSessions = await getUserSessions(user.id);
-
-return (
-  <Suspense fallback={<DashboardSkeleton />}>
-    <Layout hideFooter>
-      <div className="pt-8 pb-12">
-        <DashboardClient
-          initialSessions={userSessions}
-          userName={user.firstName || 'User'}
-        />
-      </div>
-    </Layout>
-  </Suspense>
-);
 }
