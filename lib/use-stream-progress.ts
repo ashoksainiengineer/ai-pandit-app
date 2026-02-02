@@ -168,6 +168,7 @@ export function useStreamProgress(
     const rotationTimerRef = useRef<NodeJS.Timeout | null>(null);
     const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const activityCheckRef = useRef<NodeJS.Timeout | null>(null);
 
     // 1. Fetch Session Metadata (Birth Data)
     const fetchSessionData = useCallback(async (sid: string) => {
@@ -338,7 +339,7 @@ export function useStreamProgress(
         // Determine effective backend URL
         let effectiveUrl = backendUrl;
         if (!effectiveUrl && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-            effectiveUrl = 'http://127.0.0.1:8080';
+            effectiveUrl = 'http://127.0.0.1:3001';
         }
 
         setConnectionState(prev => ({
@@ -626,64 +627,77 @@ export function useStreamProgress(
         // Don't restart SSE if already polling or complete
         if (connectionState.usingFallback || state.isComplete) return;
 
-        // Create EventSource connection
-        const url = `${backendUrl}/api/stream/${sessionId}`;
-        console.log('📡 [SSE] Connecting to stream:', url);
+        // Create EventSource connection with token for auth support
+        const initSSE = async () => {
+            const token = getToken ? await getToken() : null;
+            const queryToken = token ? `?token=${encodeURIComponent(token)}` : '';
+            const url = `${backendUrl}/api/stream/${sessionId}${queryToken}`;
 
-        setConnectionState(prev => ({ ...prev, url, readyState: 0, lastError: null }));
+            console.log('📡 [SSE] Connecting to stream:', url.split('?')[0] + '?[TOKEN]');
 
-        const eventSource = new EventSource(url);
-        eventSourceRef.current = eventSource;
+            setConnectionState(prev => ({ ...prev, url, readyState: 0, lastError: null }));
 
-        // 🏁 Connection Race: If SSE doesn't open in 5s, switch to full polling mode
-        connectionTimeoutRef.current = setTimeout(() => {
-            if (eventSource.readyState !== 1) { // Not OPEN
-                console.warn('⚠️ [SSE] Negotiation slow. Escalating to Polling Mode...');
+            const eventSource = new EventSource(url);
+            eventSourceRef.current = eventSource;
+
+            // 🏁 Connection Race: If SSE doesn't open in 5s, switch to full polling mode
+            connectionTimeoutRef.current = setTimeout(() => {
+                if (eventSource.readyState !== 1) { // Not OPEN
+                    console.warn('⚠️ [SSE] Negotiation slow. Escalating to Polling Mode...');
+                    eventSource.close();
+                    startPolling(sessionId);
+                }
+            }, 8000); // 8s tolerance for slow HF Cold Starts
+
+            // 💓 HEARTBEAT MONITOR: If no activity for 60s, force refresh
+            let lastActivity = Date.now();
+            activityCheckRef.current = setInterval(() => {
+                if (state.isComplete) {
+                    console.log('Stopping activity check due to completion');
+                    if (activityCheckRef.current) clearInterval(activityCheckRef.current);
+                    return;
+                }
+                if (Date.now() - lastActivity > 60000 && eventSource.readyState === 1) {
+                    console.warn('💓 [Heartbeat] Connection stale. Refreshing...');
+                    eventSource.close();
+                    startPolling(sessionId);
+                }
+            }, 30000);
+
+            eventSource.onmessage = (event) => {
+                lastActivity = Date.now();
+                try {
+                    const data = JSON.parse(event.data);
+                    handleEvent(data);
+                } catch (error) {
+                    console.error('Failed to parse SSE event:', error);
+                }
+            };
+
+            eventSource.onerror = (err: any) => {
+                console.error('📡 [SSE] Stream Error:', err);
+                // If we get an auth error (401/403), we might need to refresh token
+                if (err?.status === 401 || err?.status === 403) {
+                    console.log('🔒 [Auth] Token might be expired. Retrying polling path...');
+                    eventSource.close();
+                    startPolling(sessionId);
+                }
+            };
+
+            eventSource.onopen = () => {
+                console.log('📡 [SSE] Connection Established Successfully');
+                if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
+                setConnectionState(prev => ({ ...prev, readyState: 1, lastError: null }));
+            };
+
+            return () => {
                 eventSource.close();
-                startPolling(sessionId);
-            }
-        }, 8000); // 8s tolerance for slow HF Cold Starts
-
-        // 💓 HEARTBEAT MONITOR: If no activity for 60s, force refresh
-        let lastActivity = Date.now();
-        const activityCheck = setInterval(() => {
-            if (state.isComplete) {
-                console.log('Stopping activity check due to completion');
-                clearInterval(activityCheck);
-                return;
-            }
-            if (Date.now() - lastActivity > 60000 && eventSource.readyState === 1) {
-                console.warn('💓 [Heartbeat] Connection stale. Refreshing...');
-                eventSource.close();
-                startPolling(sessionId);
-            }
-        }, 30000);
-
-        eventSource.onmessage = (event) => {
-            lastActivity = Date.now();
-            try {
-                const data = JSON.parse(event.data);
-                handleEvent(data);
-            } catch (error) {
-                console.error('Failed to parse SSE event:', error);
-            }
+                if (activityCheckRef.current) clearInterval(activityCheckRef.current);
+                if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
+            };
         };
 
-        eventSource.onerror = (err: any) => {
-            console.error('📡 [SSE] Stream Error:', err);
-            // If we get an auth error (401/403), we might need to refresh token
-            if (err?.status === 401 || err?.status === 403) {
-                console.log('🔒 [Auth] Token might be expired. Retrying polling path...');
-                eventSource.close();
-                startPolling(sessionId);
-            }
-        };
-
-        eventSource.onopen = () => {
-            console.log('📡 [SSE] Connection Established Successfully');
-            if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
-            setConnectionState(prev => ({ ...prev, readyState: 1, lastError: null }));
-        };
+        const sseCleanupPromise = initSSE();
 
         // 🔄 [GOD-TIER] VISIBILITY & ONLINE SYNC
         // Auto-reconnect when user returns to tab or internet returns
@@ -695,8 +709,8 @@ export function useStreamProgress(
                 // Always do a quick poll check on focus to ensure we didn't miss completion
                 fetchProgress(sessionId, backendUrl);
 
-                if (eventSource.readyState !== 1 && !state.isComplete) {
-                    eventSource.close();
+                if (eventSourceRef.current && eventSourceRef.current.readyState !== 1 && !state.isComplete) {
+                    eventSourceRef.current.close();
                     if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
                     startPolling(sessionId);
                 }
@@ -707,8 +721,8 @@ export function useStreamProgress(
         document.addEventListener('visibilitychange', handleSync);
 
         return () => {
-            eventSource.close();
-            clearInterval(activityCheck);
+            if (eventSourceRef.current) eventSourceRef.current.close();
+            if (activityCheckRef.current) clearInterval(activityCheckRef.current);
             if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
             window.removeEventListener('online', handleSync);
             document.removeEventListener('visibilitychange', handleSync);

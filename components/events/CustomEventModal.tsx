@@ -28,22 +28,22 @@ interface CustomEventModalProps {
 const IMPORTANCE_OPTIONS: { value: EventImportance; label: string; description: string }[] = [
   {
     value: 'critical',
-    label: '⚡ Critical',
+    label: 'Critical',
     description: 'Life-transforming events (marriage, birth, near-death)',
   },
   {
     value: 'high',
-    label: '⭐ High',
+    label: 'High',
     description: 'Major milestones (job change, property purchase)',
   },
   {
     value: 'medium',
-    label: '● Medium',
+    label: 'Medium',
     description: 'Notable events (education, travel)',
   },
   {
     value: 'low',
-    label: '○ Low',
+    label: 'Low',
     description: 'Minor occurrences',
   },
 ];
@@ -263,11 +263,10 @@ export default function CustomEventModal({
                             key={emoji}
                             type="button"
                             onClick={() => setNewCategoryIcon(emoji)}
-                            className={`w-8 h-8 text-lg rounded-md transition-all ${
-                              newCategoryIcon === emoji
+                            className={`w-8 h-8 text-lg rounded-md transition-all ${newCategoryIcon === emoji
                                 ? 'bg-[#B8860B] text-white'
                                 : 'bg-white hover:bg-[#E8E0D5]'
-                            }`}
+                              }`}
                           >
                             {emoji}
                           </button>
@@ -302,19 +301,17 @@ export default function CustomEventModal({
                       key={option.value}
                       type="button"
                       onClick={() => setImportance(option.value)}
-                      className={`p-2.5 rounded-lg text-left transition-all border ${
-                        importance === option.value
+                      className={`p-2.5 rounded-lg text-left transition-all border ${importance === option.value
                           ? 'bg-[#B8860B]/10 border-[#B8860B]'
                           : 'bg-white border-[#E8E0D5] hover:border-[#D4A853]/50'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-2">
                         <span
-                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                            importance === option.value
+                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${importance === option.value
                               ? 'border-[#B8860B] bg-[#B8860B]'
                               : 'border-[#A8A39D]'
-                          }`}
+                            }`}
                         >
                           {importance === option.value && (
                             <span className="text-white text-[10px]">✓</span>
@@ -322,20 +319,18 @@ export default function CustomEventModal({
                         </span>
                         <div className="min-w-0">
                           <div
-                            className={`font-medium text-xs ${
-                              importance === option.value
+                            className={`font-medium text-xs ${importance === option.value
                                 ? 'text-[#1A1612]'
                                 : 'text-[#4A453F]'
-                            }`}
+                              }`}
                           >
                             {option.label}
                           </div>
                           <div
-                            className={`text-[10px] leading-tight ${
-                              importance === option.value
+                            className={`text-[10px] leading-tight ${importance === option.value
                                 ? 'text-[#B8860B]'
                                 : 'text-[#7A756F]'
-                            }`}
+                              }`}
                           >
                             {option.description}
                           </div>

@@ -21,19 +21,19 @@ const router = Router();
  */
 router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     const { sessionId } = req.params;
-    const userId = req.userId;
+    const clerkId = req.clerkId;
 
     if (!sessionId) {
         res.status(400).json({ error: 'Session ID required' });
         return;
     }
 
-    if (!userId) {
+    if (!clerkId) {
         res.status(401).json({ error: 'Authentication required' });
         return;
     }
 
-    logger.info(`[SSE] Connection requested for session ${sessionId} by user ${userId.slice(0, 8)}`);
+    logger.info(`[SSE] Connection requested for session ${sessionId} by clerkId ${clerkId.slice(0, 12)}...`);
 
     // ═══════════════════════════════════════════════════════════════════════════════
     // SECURITY: Verify session ownership
@@ -45,6 +45,7 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
         const session = await db.select({
             status: sessions.status,
             userId: sessions.userId,
+            clerkId: sessions.clerkId,
         })
             .from(sessions)
             .where(eq(sessions.id, sessionId))
@@ -56,11 +57,13 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
         }
 
         // Verify ownership
-        if (session[0].userId !== userId) {
-            logger.warn(`[SSE] Unauthorized access attempt: user ${userId.slice(0, 8)} tried to access session ${sessionId}`);
+        if (session[0].clerkId !== clerkId) {
+            logger.warn(`[SSE] Unauthorized access attempt: clerkId ${clerkId.slice(0, 12)}... tried to access session ${sessionId}`);
             res.status(403).json({ error: 'Access denied' });
             return;
         }
+
+        const userId = session[0].userId; // Internal DB ID needed elsewhere
 
         isOwner = true;
         currentStatus = session[0].status || 'pending';
@@ -209,13 +212,13 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
 
     // Cleanup on disconnect
     req.on('close', () => {
-        logger.info('SSE connection closed', { sessionId, userId: userId.slice(0, 8) });
+        logger.info('SSE connection closed', { sessionId, clerkId: clerkId.slice(0, 12) + '...' });
         emitter.off('event', eventHandler);
         clearInterval(pingInterval);
     });
 
     req.on('error', (error) => {
-        logger.error('SSE connection error', { sessionId, userId: userId.slice(0, 8), error });
+        logger.error('SSE connection error', { sessionId, clerkId: clerkId.slice(0, 12) + '...', error });
         emitter.off('event', eventHandler);
         clearInterval(pingInterval);
     });

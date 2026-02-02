@@ -19,7 +19,7 @@ const router = Router();
  */
 router.get('/metrics', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.userId!;
+    const clerkId = req.clerkId!;
 
     // Get total readings count
     const totalReadingsResult = await db
@@ -54,7 +54,7 @@ router.get('/metrics', authMiddleware, async (req: AuthenticatedRequest, res: Re
     // Get active users (logged in within last 30 days)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
+
     const activeUsersResult = await db
       .select({ count: count() })
       .from(users)
@@ -64,7 +64,7 @@ router.get('/metrics', authMiddleware, async (req: AuthenticatedRequest, res: Re
     // Get today's readings
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const readingsTodayResult = await db
       .select({ count: count() })
       .from(sessions)
@@ -74,7 +74,7 @@ router.get('/metrics', authMiddleware, async (req: AuthenticatedRequest, res: Re
     // Get this week's readings
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-    
+
     const readingsThisWeekResult = await db
       .select({ count: count() })
       .from(sessions)
@@ -84,7 +84,7 @@ router.get('/metrics', authMiddleware, async (req: AuthenticatedRequest, res: Re
     // Get this month's readings
     const monthAgo = new Date();
     monthAgo.setDate(monthAgo.getDate() - 30);
-    
+
     const readingsThisMonthResult = await db
       .select({ count: count() })
       .from(sessions)
@@ -104,7 +104,7 @@ router.get('/metrics', authMiddleware, async (req: AuthenticatedRequest, res: Re
       })
       .from(sessions)
       .where(eq(sessions.status, 'completed'));
-    
+
     const averageProcessingTime = avgProcessingResult[0]?.avgTime || 0;
 
     res.json({
@@ -145,7 +145,7 @@ router.get('/readings', authMiddleware, async (req: AuthenticatedRequest, res: R
     const status = req.query.status as string | undefined;
     const offset = (page - 1) * limit;
 
-    // Build query conditions
+    const clerkId = req.clerkId!;
     const conditions: SQL<unknown>[] = [];
     if (status) {
       conditions.push(eq(sessions.status, status));
@@ -314,12 +314,12 @@ router.get('/analytics/timeseries', authMiddleware, async (req: AuthenticatedReq
     // Fill in missing dates
     const dataMap = new Map(dailyData.map(d => [d.date, d.readings]));
     const filledData: Array<{ date: string; readings: number }> = [];
-    
+
     for (let i = 0; i < days; i++) {
       const date = new Date();
       date.setDate(date.getDate() - (days - 1 - i));
       const dateStr = date.toISOString().split('T')[0];
-      
+
       filledData.push({
         date: dateStr,
         readings: dataMap.get(dateStr) || 0,

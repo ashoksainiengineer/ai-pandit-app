@@ -289,10 +289,10 @@ export function getImportanceColor(importance: string): string {
  */
 export function getImportanceLabel(importance: string): string {
   const labels = {
-    critical: '⚡ Critical',
-    high: '⭐ High',
-    medium: '● Medium',
-    low: '○ Low',
+    critical: 'Critical',
+    high: 'High',
+    medium: 'Medium',
+    low: 'Low',
   };
   return labels[importance as keyof typeof labels] ?? importance;
 }

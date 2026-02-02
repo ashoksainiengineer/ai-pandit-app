@@ -40,6 +40,18 @@ export function safeDecrypt(encryptedString: string, userId: string): string | n
 }
 
 /**
+ * 🟢 RECOVERY HELPER
+ * Tries primary key first, then falls back to secondary key.
+ */
+export function safeDecryptWithFallback(data: string | null | undefined, primaryId: string, secondaryId?: string): string | null {
+    if (!data) return null;
+    const primary = safeDecrypt(data, primaryId);
+    if (primary) return primary;
+    if (secondaryId) return safeDecrypt(data, secondaryId);
+    return null;
+}
+
+/**
  * 🔴 CRITICAL FUNCTION - DO NOT MODIFY 🔴
  */
 export function encryptObject<T extends Record<string, unknown>>(obj: T, userId: string): string {

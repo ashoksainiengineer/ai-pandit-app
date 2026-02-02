@@ -1,13 +1,15 @@
 import { Request, Response, NextFunction } from 'express';
 import { createClerkClient, verifyToken } from '@clerk/backend';
+import { logger } from '../lib/logger.js';
 
-const clerk = createClerkClient({
+export const clerk = createClerkClient({
     secretKey: process.env.CLERK_SECRET_KEY,
 });
 
 
 export interface AuthenticatedRequest extends Request {
-    userId?: string;
+    userId?: string;     // Internal DB UUID
+    clerkId?: string;    // External Clerk User ID
     sessionId?: string;
 }
 
@@ -21,9 +23,18 @@ export async function authMiddleware(
     next: NextFunction
 ): Promise<void> {
     try {
+        let token = '';
         const authHeader = req.headers.authorization;
 
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            token = authHeader.split(' ')[1];
+        } else if (req.query.token) {
+            // Support token in query for SSE (which doesn't support headers)
+            token = req.query.token as string;
+            logger.info('🔑 [Auth] Using query parameter token for authentication');
+        }
+
+        if (!token) {
             res.status(401).json({
                 success: false,
                 error: 'No authorization token provided',
@@ -32,8 +43,6 @@ export async function authMiddleware(
             return;
         }
 
-        const token = authHeader.split(' ')[1];
-
         // 🛡️ INDUSTRIAL GRADE VERIFICATION
         try {
             const session = await verifyToken(token, {
@@ -41,8 +50,10 @@ export async function authMiddleware(
             });
 
             if (session && session.sub) {
-                req.userId = session.sub;
+                req.clerkId = session.sub;
                 req.sessionId = session.sid;
+                // Note: userId (internal DB ID) is left for routes to populate or self-heal
+                // as middleware shouldn't block on DB lookup per request if not mandatory.
                 next();
             } else {
                 res.status(401).json({

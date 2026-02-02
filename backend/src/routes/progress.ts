@@ -5,7 +5,7 @@ import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { db, executeWithRetry } from '../database/drizzle.js';
 import { sessions } from '../database/schema.js';
 import { eq } from 'drizzle-orm';
-import { safeDecrypt } from '../lib/crypto.js';
+import { safeDecrypt, safeDecryptWithFallback } from '../lib/encryption/index.js';
 import { logger } from '../lib/logger.js';
 
 const router = Router();
@@ -18,8 +18,8 @@ console.log('✅ Progress Route Loaded');
 router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const { sessionId } = req.params;
-        const userId = req.userId!;
-        await handleProgressRequest(sessionId, userId, res);
+        const clerkId = req.clerkId!;
+        await handleProgressRequest(sessionId, clerkId, res);
     } catch (error) {
         logger.error('Progress fetch failed:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -32,8 +32,8 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
 router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const sessionId = req.query.sessionId as string;
-        const userId = req.userId!;
-        await handleProgressRequest(sessionId, userId, res);
+        const clerkId = req.clerkId!;
+        await handleProgressRequest(sessionId, clerkId, res);
     } catch (error) {
         logger.error('Progress fetch failed:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -43,7 +43,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
 /**
  * Handle progress request with ownership verification
  */
-async function handleProgressRequest(sessionId: string, userId: string, res: Response) {
+async function handleProgressRequest(sessionId: string, clerkId: string, res: Response) {
     if (!sessionId) {
         res.status(400).json({ error: 'Session ID is required' });
         return;
@@ -52,11 +52,13 @@ async function handleProgressRequest(sessionId: string, userId: string, res: Res
     // ═══════════════════════════════════════════════════════════════════════════════
     // SECURITY: Verify session ownership
     // ═══════════════════════════════════════════════════════════════════════════════
+    let internalUserId: string | undefined;
     try {
         const sessionCheck = await executeWithRetry(() =>
             db.select({
                 id: sessions.id,
-                userId: sessions.userId,
+                clerkId: sessions.clerkId,
+                userId: sessions.userId, // Include userId for safeDecryptWithFallback
             })
                 .from(sessions)
                 .where(eq(sessions.id, sessionId))
@@ -68,11 +70,13 @@ async function handleProgressRequest(sessionId: string, userId: string, res: Res
             return;
         }
 
-        if (sessionCheck[0].userId !== userId) {
-            logger.warn(`[IDOR] Unauthorized progress access attempt: user ${userId.slice(0, 8)} tried to access session ${sessionId}`);
+        if (sessionCheck[0].clerkId !== clerkId) {
+            logger.warn(`[IDOR] Unauthorized progress access attempt: clerkId ${clerkId.slice(0, 12)}... tried to access session ${sessionId}`);
             res.status(403).json({ error: 'Access denied' });
             return;
         }
+
+        internalUserId = sessionCheck[0].userId;
     } catch (error) {
         logger.error('Error verifying session ownership:', error);
         res.status(500).json({ error: 'Internal server error' });
@@ -98,7 +102,7 @@ async function handleProgressRequest(sessionId: string, userId: string, res: Res
         // Include session metadata for frontend "Blueprint" display
         metadata: {
             fullName: queueStatus.session?.fullName
-                ? safeDecrypt(queueStatus.session.fullName, userId)
+                ? safeDecryptWithFallback(queueStatus.session.fullName, clerkId, internalUserId)
                 : undefined,
             dateOfBirth: queueStatus.session?.dateOfBirth,
             tentativeTime: queueStatus.session?.tentativeTime,

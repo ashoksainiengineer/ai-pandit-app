@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        if (session[0].userId !== userId) {
+        if (session[0].clerkId !== userId) {
             return NextResponse.json(
                 { success: false, error: 'Unauthorized' },
                 { status: 403 }

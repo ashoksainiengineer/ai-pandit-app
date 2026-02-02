@@ -1,8 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
-import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
-import { db } from '../database/drizzle.js';
-import { sessions } from '../database/schema.js';
+import { AuthenticatedRequest, authMiddleware, clerk } from '../middleware/auth.js';
+import { db, executeWithRetry } from '../database/drizzle.js';
+import { sessions, users } from '../database/schema.js';
+import { eq } from 'drizzle-orm';
 import { logger } from '../lib/logger.js';
 import { addToQueue } from '../lib/queue-manager.js';
 import { encryptData } from '../lib/crypto.js';
@@ -100,25 +101,25 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
     const startTime = Date.now();
 
     try {
-        const userId = req.userId!;
+        const clerkId = req.clerkId!;
         const body = req.body;
 
         // ═════════════════════════════════════════════════════════════════════
         // Step 1: Validate Input
         // ═════════════════════════════════════════════════════════════════════
         const validationResult = CalculateRequestSchema.safeParse(body);
-        
+
         if (!validationResult.success) {
             const errors = validationResult.error.errors.map(err => ({
                 field: err.path.join('.'),
                 message: err.message,
             }));
-            
+
             logger.warn('Validation Failed - Invalid input rejected', {
-                userId: userId?.slice(0, 8),
+                clerkId: clerkId?.slice(0, 8),
                 errors,
             });
-            
+
             res.status(400).json({
                 success: false,
                 error: 'Validation failed',
@@ -126,15 +127,55 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
             });
             return;
         }
-        
+
         const { birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig } = validationResult.data;
 
         logger.info('Birth time rectification request received', {
-            userId,
+            clerkId,
             dateOfBirth: birthData.dateOfBirth,
             eventCount: lifeEvents.length,
             offsetConfig,
         });
+
+        // ═════════════════════════════════════════════════════════════════════
+        // Step 1.5: Self-Healing User Sync
+        // ═════════════════════════════════════════════════════════════════════
+        let dbUser = await executeWithRetry(() =>
+            db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
+        );
+
+        let internalUserId: string;
+
+        if (dbUser.length === 0) {
+            logger.info('🔄 [Self-Healing] User missing from DB. Syncing from Clerk...', { clerkId });
+
+            try {
+                const clerkUser = await clerk.users.getUser(clerkId);
+                const email = clerkUser.emailAddresses[0]?.emailAddress || '';
+                const fullName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null;
+
+                internalUserId = crypto.randomUUID();
+
+                await executeWithRetry(() =>
+                    db.insert(users).values({
+                        id: internalUserId,
+                        clerkId: clerkId,
+                        email: email,
+                        fullName: fullName,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                    })
+                );
+
+                logger.info('✅ [Self-Healing] User record recreated successfully', { clerkId, internalUserId });
+            } catch (clerkError) {
+                logger.error('❌ [Self-Healing] Failed to fetch/create user from Clerk', { clerkId, error: clerkError });
+                res.status(500).json({ success: false, error: 'User synchronization failed' });
+                return;
+            }
+        } else {
+            internalUserId = dbUser[0].id;
+        }
 
         // ═════════════════════════════════════════════════════════════════════
         // Step 2: Create Database Session
@@ -142,20 +183,21 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
         const sessionId = crypto.randomUUID();
         const now = new Date().toISOString();
 
-        // Encrypt sensitive data using clerkId as key
-        const encryptedLifeEvents = encryptData(JSON.stringify(lifeEvents), userId);
-        const encryptedPhysicalTraits = physicalTraits 
-            ? encryptData(JSON.stringify(physicalTraits), userId)
+        // Encrypt sensitive data using clerkId (consistent with frontend expectations)
+        const encryptedFullName = encryptData(birthData.fullName, clerkId);
+        const encryptedLifeEvents = encryptData(JSON.stringify(lifeEvents), clerkId);
+        const encryptedPhysicalTraits = physicalTraits
+            ? encryptData(JSON.stringify(physicalTraits), clerkId)
             : null;
         const encryptedForensicTraits = forensicTraits
-            ? encryptData(JSON.stringify(forensicTraits), userId)
+            ? encryptData(JSON.stringify(forensicTraits), clerkId)
             : null;
 
         await db.insert(sessions).values({
             id: sessionId,
-            userId,
-            clerkId: userId,
-            fullName: birthData.fullName,
+            userId: internalUserId,
+            clerkId: clerkId,
+            fullName: encryptedFullName,
             dateOfBirth: birthData.dateOfBirth,
             tentativeTime: birthData.tentativeTime,
             birthPlace: birthData.birthPlace,

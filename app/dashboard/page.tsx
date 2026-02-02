@@ -9,7 +9,7 @@ import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/database/drizzle';
 import { sessions, users } from '@/database/schema';
 import { eq, desc } from 'drizzle-orm';
-import { safeDecrypt } from '@/lib/encryption';
+import { safeDecrypt, safeDecryptWithFallback } from '@/lib/encryption';
 import { DashboardSession } from '@/lib/dashboard/types';
 import { DashboardClient } from './DashboardClient';
 import Layout from '@/components/Layout';
@@ -57,11 +57,30 @@ function DashboardSkeleton() {
 }
 
 // Fetch user sessions with error handling
-async function getUserSessions(clerkId: string): Promise<DashboardSession[]> {
+async function getUserSessions(clerkId: string, clerkUser?: any): Promise<DashboardSession[]> {
   try {
-    const user = await db.query.users.findFirst({
+    let user = await db.query.users.findFirst({
       where: eq(users.clerkId, clerkId),
     });
+
+    // 🔄 SELF-HEALING: If user doesn't exist in DB, create them now
+    if (!user && clerkUser) {
+      console.log(`🔄 [Dashboard] Syncing missing user to DB: ${clerkId}`);
+      const email = clerkUser.emailAddresses[0]?.emailAddress || '';
+      const fullName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null;
+
+      const newUserId = crypto.randomUUID();
+      await db.insert(users).values({
+        id: newUserId,
+        clerkId: clerkId,
+        email: email,
+        fullName: fullName,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      user = { id: newUserId, clerkId, email, fullName } as any;
+    }
 
     if (!user) return [];
 
@@ -69,46 +88,43 @@ async function getUserSessions(clerkId: string): Promise<DashboardSession[]> {
 
     try {
       const result = await db.query.sessions.findMany({
-        where: eq(sessions.userId, user.id),
+        where: eq(sessions.clerkId, clerkId),
         orderBy: [desc(sessions.createdAt)],
       });
-      userSessions = result.map(s => {
-        const decryptedName = safeDecrypt(s.fullName, clerkId);
-        return {
-          ...s,
-          id: s.id,
-          userId: s.userId,
-          status: s.status as DashboardSession['status'],
-          fullName: decryptedName || 'Unencryptable Session',
-          dateOfBirth: s.dateOfBirth,
-          tentativeTime: s.tentativeTime,
-          birthPlace: s.birthPlace,
-          latitude: s.latitude,
-          longitude: s.longitude,
-          timezone: s.timezone,
-          gender: s.gender || undefined,
-          rectifiedTime: s.rectifiedTime || undefined,
-          accuracy: s.accuracy || undefined,
-          confidence: s.confidence || undefined,
-          createdAt: s.createdAt,
-          updatedAt: s.updatedAt,
-          isFavorite: false,
-          tags: [],
-          analysisResult: undefined,
-        };
-      }) as DashboardSession[];
+      userSessions = result.map(s => ({
+        ...s,
+        id: s.id,
+        userId: s.userId,
+        status: s.status as DashboardSession['status'],
+        fullName: safeDecryptWithFallback(s.fullName, clerkId, s.userId) || 'Unencryptable Session',
+        dateOfBirth: s.dateOfBirth,
+        tentativeTime: s.tentativeTime,
+        birthPlace: s.birthPlace,
+        latitude: s.latitude,
+        longitude: s.longitude,
+        timezone: s.timezone,
+        gender: s.gender || undefined,
+        rectifiedTime: s.rectifiedTime || undefined,
+        accuracy: s.accuracy || undefined,
+        confidence: s.confidence || undefined,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+        isFavorite: false,
+        tags: [],
+        analysisResult: undefined,
+      })) as DashboardSession[];
     } catch (dbError: any) {
       // Fallback for missing columns
       if (dbError.message?.includes('forensicTraits') || dbError.message?.includes('no such column')) {
         console.log('[Dashboard] Using fallback query...');
         const { client } = await import('@/database/drizzle');
         const rawResult = await client.execute({
-          sql: `SELECT * FROM sessions WHERE userId = ? ORDER BY createdAt DESC`,
-          args: [user.id]
+          sql: `SELECT * FROM sessions WHERE clerkId = ? ORDER BY createdAt DESC`,
+          args: [clerkId]
         });
         userSessions = rawResult.rows.map((s: any) => ({
           ...s,
-          fullName: safeDecrypt(s.fullName, clerkId),
+          fullName: safeDecryptWithFallback(s.fullName, clerkId, s.userId) || 'Unencryptable Session',
           isFavorite: false,
           tags: [],
           status: s.status || 'pending',
@@ -148,7 +164,7 @@ export default async function DashboardPage() {
     );
   }
 
-  const userSessions = await getUserSessions(user.id);
+  const userSessions = await getUserSessions(user.id, user);
 
   return (
     <Suspense fallback={<DashboardSkeleton />}>

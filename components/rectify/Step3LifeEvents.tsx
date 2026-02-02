@@ -25,9 +25,9 @@ import { FormCard } from '@/components/ui/form/FormCard';
 import { FormField } from '@/components/ui/form/FormField';
 import EventSelector from '@/components/events/EventSelector';
 import CustomEventModal from '@/components/events/CustomEventModal';
-import EventEditor from '@/components/events/EventEditor';
 import DateInput from '@/components/events/DateInput';
 import WhyEventsMatter from './WhyEventsMatter';
+import { isPrecisionSatisfied } from '@/lib/date-utils';
 
 interface Step3Props {
   lifeEvents: LifeEvent[];
@@ -101,7 +101,8 @@ export default function Step3LifeEvents({
     const parts = dateStr.split('-');
     if (parts.length < 1) return false;
     const year = parseInt(parts[0], 10);
-    return !isNaN(year) && year > 1900 && year <= CURRENT_YEAR;
+    // Be more permissive for years (some users might have historical data)
+    return !isNaN(year) && year > 1800 && year <= CURRENT_YEAR + 5;
   };
 
   // Parse partial date for display - returns what's available
@@ -407,20 +408,29 @@ export default function Step3LifeEvents({
               <div className="flex gap-2">
                 {(() => {
                   // Check if all required fields are filled
+                  // Check if all required fields are filled
                   const hasEventType = !!editingEvent.eventType?.trim();
-                  const hasDate = !!editingEvent.eventDate?.trim() && isValidDateString(editingEvent.eventDate);
+
+                  // Use robust precision satisfaction check
+                  const isDateSatisfied = isPrecisionSatisfied(
+                    editingEvent.datePrecision as any,
+                    editingEvent.eventDate,
+                    editingEvent.endDate,
+                    editingEvent.eventTime
+                  );
+
                   const hasSignificance = !!editingEvent.importance;
                   const hasDescription = !!editingEvent.description?.trim() && editingEvent.description.trim().length >= 10;
 
-                  const isFormComplete = hasEventType && hasDate && hasSignificance && hasDescription;
+                  const isFormComplete = hasEventType && isDateSatisfied && hasSignificance && hasDescription;
 
                   return (
                     <button
                       onClick={() => setEditingId(null)}
                       disabled={!isFormComplete}
                       className={`px-4 py-2 font-semibold rounded-lg text-sm transition-colors ${isFormComplete
-                          ? 'bg-[#2D7A5C] text-white hover:bg-[#236B4F]'
-                          : 'bg-[#2D7A5C]/30 text-white/50 cursor-not-allowed'
+                        ? 'bg-[#2D7A5C] text-white hover:bg-[#236B4F]'
+                        : 'bg-[#2D7A5C]/30 text-white/50 cursor-not-allowed'
                         }`}
                       title={!isFormComplete ? 'Please fill all required fields' : 'Save event'}
                     >
@@ -439,19 +449,33 @@ export default function Step3LifeEvents({
 
             {/* Event Editor Body */}
             <div className="p-5 space-y-4">
-              {/* Inline Event Editor for custom events */}
+              {/* Header: Name & Category (Custom Events Only) */}
               {editingEvent.isCustom && (
-                <EventEditor
-                  event={editingEventData}
-                  categories={allCategories}
-                  onSave={(updates) => {
-                    if (updates.label) updateEvent(editingEvent.id, { eventType: updates.label });
-                    if (updates.categoryId) updateEvent(editingEvent.id, { category: updates.categoryId as any });
-                    if (updates.importance) updateEvent(editingEvent.id, { importance: updates.importance });
-                  }}
-                  onDelete={() => deleteEvent(editingEvent.id)}
-                  onCancel={() => setEditingId(null)}
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField label="Event Name" required>
+                    <input
+                      type="text"
+                      value={editingEvent.eventType}
+                      onChange={(e) => updateEvent(editingEvent.id, { eventType: e.target.value })}
+                      className="w-full h-11 px-4 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10 outline-none transition-all"
+                      placeholder="e.g. Graduation"
+                    />
+                  </FormField>
+
+                  <FormField label="Category">
+                    <select
+                      value={editingEvent.category}
+                      onChange={(e) => updateEvent(editingEvent.id, { category: e.target.value as any })}
+                      className="w-full h-11 px-4 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10 outline-none cursor-pointer appearance-none"
+                    >
+                      {allCategories.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.icon} {cat.label}
+                        </option>
+                      ))}
+                    </select>
+                  </FormField>
+                </div>
               )}
 
               {/* Date Precision */}

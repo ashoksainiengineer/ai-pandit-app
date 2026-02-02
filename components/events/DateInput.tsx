@@ -244,40 +244,16 @@ export default function DateInput({
   const [localTimeParts, setLocalTimeParts] = useState<TimeParts>({ hour: '', minute: '' });
 
   // Sync local state with props when they change
-  // BUT: Only sync if props have equal or more complete data than local state
-  // This prevents losing user input when buildDateString returns empty for partial dates
   useEffect(() => {
-    const propsParts = normalizeParts(parseDateParts(eventDate));
-
-    setLocalStartParts(prev => {
-      const propsCount = (propsParts.year ? 1 : 0) + (propsParts.month ? 1 : 0) + (propsParts.day ? 1 : 0);
-      const localCount = (prev.year ? 1 : 0) + (prev.month ? 1 : 0) + (prev.day ? 1 : 0);
-
-      // Only sync if props have at least as much data as local state
-      return propsCount >= localCount ? propsParts : prev;
-    });
+    setLocalStartParts(normalizeParts(parseDateParts(eventDate)));
   }, [eventDate]);
 
   useEffect(() => {
-    const propsParts = normalizeParts(parseDateParts(endDate));
-
-    setLocalEndParts(prev => {
-      const propsCount = (propsParts.year ? 1 : 0) + (propsParts.month ? 1 : 0) + (propsParts.day ? 1 : 0);
-      const localCount = (prev.year ? 1 : 0) + (prev.month ? 1 : 0) + (prev.day ? 1 : 0);
-
-      return propsCount >= localCount ? propsParts : prev;
-    });
+    setLocalEndParts(normalizeParts(parseDateParts(endDate)));
   }, [endDate]);
 
   useEffect(() => {
-    const propsParts = parseTimeParts(eventTime);
-
-    setLocalTimeParts(prev => {
-      const propsCount = (propsParts.hour ? 1 : 0) + (propsParts.minute ? 1 : 0);
-      const localCount = (prev.hour ? 1 : 0) + (prev.minute ? 1 : 0);
-
-      return propsCount >= localCount ? propsParts : prev;
-    });
+    setLocalTimeParts(parseTimeParts(eventTime));
   }, [eventTime]);
 
   // Derived parts for validation (from props)
@@ -297,46 +273,27 @@ export default function DateInput({
   const performValidation = useCallback(() => {
     let result: { valid: boolean; error?: string } = { valid: true };
 
+    // Standard validation
     switch (precision) {
       case 'exact_date_time':
-        if (eventDate && eventTime) {
-          result = validateDateTime(eventDate, eventTime);
-        }
+        if (eventDate && eventTime) result = validateDateTime(eventDate, eventTime);
         break;
-
       case 'exact_date':
-        if (eventDate) {
-          result = validateDate(eventDate);
-        }
+        if (eventDate) result = validateDate(eventDate);
         break;
-
       case 'month_year':
-        if (startParts.year && startParts.month) {
-          result = validateMonthYear(startParts.year, startParts.month);
-        }
+        if (startParts.year && startParts.month) result = validateMonthYear(startParts.year, startParts.month);
         break;
-
       case 'date_range':
-        if (eventDate && endDate) {
-          result = validateDateRange(eventDate, endDate);
-        }
+        if (eventDate && endDate) result = validateDateRange(eventDate, endDate);
         break;
-
       case 'month_range':
         if (startParts.year && startParts.month && endParts.year && endParts.month) {
-          result = validateMonthRange(
-            startParts.year,
-            startParts.month,
-            endParts.year,
-            endParts.month
-          );
+          result = validateMonthRange(startParts.year, startParts.month, endParts.year, endParts.month);
         }
         break;
-
       case 'year_range':
-        if (startParts.year && endParts.year) {
-          result = validateYearRange(startParts.year, endParts.year);
-        }
+        if (startParts.year && endParts.year) result = validateYearRange(startParts.year, endParts.year);
         break;
     }
 
@@ -344,7 +301,7 @@ export default function DateInput({
       error: result.error || null,
       isValid: result.valid
     });
-  }, [precision, eventDate, endDate, eventTime]);
+  }, [precision, eventDate, endDate, eventTime, startParts.year, startParts.month, endParts.year, endParts.month]);
   // Note: startParts and endParts are derived from eventDate/endDate, so don't include them
 
   // Validate on changes - only update internal validation state, NEVER call onUpdate from here

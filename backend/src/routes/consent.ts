@@ -1,8 +1,9 @@
 import { Router, Request, Response } from 'express';
-import { db } from '../database/drizzle.js';
+import { db, executeWithRetry } from '../database/drizzle.js';
 import { sessions } from '../database/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
+import { logger } from '../lib/logger.js';
 
 const router = Router();
 
@@ -11,7 +12,7 @@ const router = Router();
  */
 router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const userId = req.userId!;
+    const clerkId = req.clerkId!;
     const { sessionId, consent } = req.body;
 
     if (!sessionId || consent === undefined) {
@@ -21,7 +22,7 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
 
     // Verify session belongs to user
     const session = await db
-      .select()
+      .select({ clerkId: sessions.clerkId })
       .from(sessions)
       .where(eq(sessions.id, sessionId))
       .limit(1);
@@ -31,7 +32,7 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
       return;
     }
 
-    if (session[0].userId !== userId) {
+    if (session[0].clerkId !== clerkId) {
       res.status(403).json({ success: false, error: 'Unauthorized' });
       return;
     }
@@ -49,7 +50,7 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
     res.json({ success: true, message: 'Consent recorded' });
 
   } catch (error) {
-    console.error('Consent recording error:', error);
+    logger.error('Consent recording error:', error);
     res.status(500).json({ success: false, error: 'Failed to record consent' });
   }
 });
@@ -60,12 +61,16 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
 router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { sessionId } = req.params;
-    const userId = req.userId!;
+    const clerkId = req.clerkId!;
 
+    // SELF-HEALING USER SYNC
+    // Ensures user exists in DB and gets internal UUID
+    // ═════════════════════════════════════════════════════════════════════════════
     const session = await db
       .select({
         aiConsentGiven: sessions.aiConsentGiven,
         aiConsentGivenAt: sessions.aiConsentGivenAt,
+        clerkId: sessions.clerkId,
       })
       .from(sessions)
       .where(eq(sessions.id, sessionId))
@@ -77,13 +82,7 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
     }
 
     // Verify ownership
-    const fullSession = await db
-      .select({ userId: sessions.userId })
-      .from(sessions)
-      .where(eq(sessions.id, sessionId))
-      .limit(1);
-
-    if (fullSession[0]?.userId !== userId) {
+    if (session[0].clerkId !== clerkId) {
       res.status(403).json({ success: false, error: 'Unauthorized' });
       return;
     }
@@ -97,7 +96,7 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
     });
 
   } catch (error) {
-    console.error('Consent check error:', error);
+    logger.error('Consent check error:', error);
     res.status(500).json({ success: false, error: 'Failed to check consent' });
   }
 });

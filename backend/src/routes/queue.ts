@@ -1,13 +1,14 @@
 import { Router, Request, Response } from 'express';
-import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
+import { AuthenticatedRequest, authMiddleware, clerk } from '../middleware/auth.js';
 import { db, executeWithRetry } from '../database/drizzle.js';
-import { sessions } from '../database/schema.js';
+import { sessions, users } from '../database/schema.js';
 import { eq } from 'drizzle-orm';
 import { logger } from '../lib/logger.js';
 import { addToQueue, getQueueStatus, startQueueProcessor, cancelSession } from '../lib/queue-manager.js';
 import { validateOffsetConfig, TimeOffsetConfig } from '../lib/time-offset-manager.js';
 import { BirthData, LifeEvent } from '../lib/types.js';
 import { encryptData } from '../lib/crypto.js';
+import { safeDecrypt, safeDecryptWithFallback } from '../lib/encryption/index.js';
 
 const router = Router();
 
@@ -24,7 +25,7 @@ interface SubmitRequest {
  */
 router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const userId = req.userId!;
+        const clerkId = req.clerkId!;
         const body: SubmitRequest = req.body;
         const { birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig, consentConfirmed, existingSessionId } = req.body;
 
@@ -104,30 +105,71 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
             return;
         }
 
+        // SELF-HEALING USER SYNC
+        // Ensures user exists in DB and gets internal UUID
+        // ═════════════════════════════════════════════════════════════════════════════
+        let dbUser = await executeWithRetry(() =>
+            db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
+        );
+
+        let internalUserId: string;
+
+        if (dbUser.length === 0) {
+            logger.info('🔄 [Self-Healing] User missing from DB. Syncing from Clerk...', { clerkId });
+
+            try {
+                const clerkUser = await clerk.users.getUser(clerkId);
+                const email = clerkUser.emailAddresses[0]?.emailAddress || '';
+                const fullName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null;
+
+                internalUserId = crypto.randomUUID();
+
+                await executeWithRetry(() =>
+                    db.insert(users).values({
+                        id: internalUserId,
+                        clerkId: clerkId,
+                        email: email,
+                        fullName: fullName,
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                    })
+                );
+
+                logger.info('✅ [Self-Healing] User record recreated successfully', { clerkId, internalUserId });
+            } catch (clerkError) {
+                logger.error('❌ [Self-Healing] Failed to fetch/create user from Clerk', { clerkId, error: clerkError });
+                res.status(500).json({ success: false, error: 'User synchronization failed' });
+                return;
+            }
+        } else {
+            internalUserId = dbUser[0].id;
+        }
+
         // Create session with encrypted data
         const sessionId = crypto.randomUUID();
         const now = new Date().toISOString();
 
-        // 🔍 DIAGNOSTIC: Log encryption key info
-        logger.info('🔍 DIAGNOSTIC: Encrypting session data', {
-            userIdPrefix: userId.slice(0, 8),
-            userIdLength: userId.length,
+        // 🔍 DIAGNOSTIC: Log migration info
+        logger.info('🔍 SESSION SUBMISSION: Mapping IDs', {
+            clerkId: clerkId.slice(0, 12) + '...',
+            internalUserId: internalUserId.slice(0, 8),
+            sessionId: sessionId.slice(0, 8)
         });
 
-        const encryptedFullName = encryptData(birthData.fullName, userId);
-        const encryptedLifeEvents = encryptData(JSON.stringify(lifeEvents), userId);
+        const encryptedFullName = encryptData(birthData.fullName, clerkId);
+        const encryptedLifeEvents = encryptData(JSON.stringify(lifeEvents), clerkId);
         const encryptedPhysicalTraits = physicalTraits
-            ? encryptData(JSON.stringify(physicalTraits), userId)
+            ? encryptData(JSON.stringify(physicalTraits), clerkId)
             : null;
         const encryptedForensicTraits = forensicTraits
-            ? encryptData(JSON.stringify(forensicTraits), userId)
+            ? encryptData(JSON.stringify(forensicTraits), clerkId)
             : null;
 
         await executeWithRetry(() =>
             db.insert(sessions).values({
                 id: sessionId,
-                userId,
-                clerkId: userId, // Use userId as clerkId (same for Clerk auth)
+                userId: internalUserId,
+                clerkId: clerkId,
                 fullName: encryptedFullName,
                 dateOfBirth: birthData.dateOfBirth,
                 tentativeTime: birthData.tentativeTime,
@@ -146,7 +188,7 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
             })
         );
 
-        logger.info('Session created', { sessionId, userId });
+        logger.info('Session created', { sessionId, clerkId, internalUserId });
 
         // Add to queue
         const queueResult = await addToQueue(sessionId);
@@ -185,7 +227,7 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
  */
 router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const userId = req.userId!;
+        const clerkId = req.clerkId!;
         const sessionId = req.query.sessionId as string;
 
         if (!sessionId) {
@@ -203,7 +245,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
             return;
         }
 
-        if (session[0].userId !== userId) {
+        if (session[0].clerkId !== clerkId) {
             res.status(403).json({ success: false, error: 'Unauthorized' });
             return;
         }
@@ -269,7 +311,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
  */
 router.post('/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const userId = req.userId!;
+        const clerkId = req.clerkId!;
         const { sessionId } = req.body;
 
         if (!sessionId) {
@@ -288,8 +330,8 @@ router.post('/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Re
         }
 
         // Verify using clerkId (which matches the auth token), not internal userId
-        if (session[0].clerkId !== userId) {
-            logger.warn(`Cancel unauthorized: Session ${sessionId} owned by ${session[0].clerkId}, requested by ${userId}`);
+        if (session[0].clerkId !== clerkId) {
+            logger.warn(`Cancel unauthorized: Session ${sessionId} owned by ${session[0].clerkId}, requested by ${clerkId}`);
             res.status(403).json({ success: false, error: 'Unauthorized' });
             return;
         }

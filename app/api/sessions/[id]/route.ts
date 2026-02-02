@@ -7,7 +7,9 @@ import { auth } from '@clerk/nextjs/server';
 import { db, client } from '@/database/drizzle';
 import { sessions } from '@/database/schema';
 import { eq } from 'drizzle-orm';
-import { safeDecrypt, encryptData, isEncrypted } from '@/lib/encryption';
+import { safeDecrypt, encryptData, isEncrypted, safeDecryptWithFallback } from '@/lib/encryption';
+import fs from 'fs';
+import path from 'path';
 
 // GET: Fetch session data for editing
 export async function GET(
@@ -40,10 +42,15 @@ export async function GET(
 
     const s = session[0];
 
-    // Decrypt sensitive data with safety fallbacks
+    // 🔍 RECOVERY LOGGING: Helpful for debugging data mismatch
+    const logPath = path.join(process.cwd(), 'debug_recovery.log');
+    const logMsg = `[${new Date().toISOString()}] GET Session ${sessionId}: clerkId=${clerkId}, db_clerkId=${s.clerkId}, db_userId=${s.userId}, fullName_prefix=${s.fullName.slice(0, 10)}\n`;
+    fs.appendFileSync(logPath, logMsg);
+
+    // Decrypt sensitive data with recovery fallback (Clerk ID vs Internal UUID)
     const decryptedData = {
       id: s.id,
-      fullName: s.fullName ? (safeDecrypt(s.fullName, clerkId) || 'Unencryptable name') : '',
+      fullName: safeDecryptWithFallback(s.fullName, clerkId, s.userId) || 'Unencryptable name',
       dateOfBirth: s.dateOfBirth,
       tentativeTime: s.tentativeTime,
       birthPlace: s.birthPlace,
@@ -53,7 +60,7 @@ export async function GET(
       gender: s.gender,
       status: s.status,
       birthData: {
-        fullName: s.fullName ? (safeDecrypt(s.fullName, clerkId) || 'Unencryptable name') : '',
+        fullName: safeDecryptWithFallback(s.fullName, clerkId, s.userId) || 'Unencryptable name',
         dateOfBirth: s.dateOfBirth,
         tentativeTime: s.tentativeTime,
         birthPlace: s.birthPlace,
@@ -63,13 +70,13 @@ export async function GET(
         gender: s.gender,
       },
       lifeEvents: s.lifeEvents
-        ? (safeDecrypt(s.lifeEvents, clerkId) ? JSON.parse(safeDecrypt(s.lifeEvents, clerkId)!) : [])
+        ? (safeDecryptWithFallback(s.lifeEvents, clerkId, s.userId) ? JSON.parse(safeDecryptWithFallback(s.lifeEvents, clerkId, s.userId)!) : [])
         : [],
       physicalTraits: s.physicalTraits
-        ? (safeDecrypt(s.physicalTraits, clerkId) ? JSON.parse(safeDecrypt(s.physicalTraits, clerkId)!) : null)
+        ? (safeDecryptWithFallback(s.physicalTraits, clerkId, s.userId) ? JSON.parse(safeDecryptWithFallback(s.physicalTraits, clerkId, s.userId)!) : null)
         : null,
       forensicTraits: s.forensicTraits
-        ? (safeDecrypt(s.forensicTraits, clerkId) ? JSON.parse(safeDecrypt(s.forensicTraits, clerkId)!) : null)
+        ? (safeDecryptWithFallback(s.forensicTraits, clerkId, s.userId) ? JSON.parse(safeDecryptWithFallback(s.forensicTraits, clerkId, s.userId)!) : null)
         : null,
       offsetConfig: s.offsetConfig ? JSON.parse(s.offsetConfig) : null,
     };

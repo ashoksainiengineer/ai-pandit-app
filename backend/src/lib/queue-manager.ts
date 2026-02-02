@@ -6,7 +6,12 @@ import { db, executeWithRetry } from '../database/drizzle.js';
 import { sessions } from '../database/schema.js';
 import { eq, and, or, desc, asc, lt } from 'drizzle-orm';
 import { logger } from './logger.js';
-import { safeDecrypt, isEncrypted } from './crypto.js';
+import {
+  safeDecrypt,
+  isEncrypted,
+  decryptObject,
+  safeDecryptWithFallback,
+} from './encryption/index.js';
 import {
   createAbortController,
   abortSession as abortSessionController,
@@ -668,37 +673,17 @@ async function processSessionAsync(sessionId: string): Promise<void> {
 
     const s = session[0];
 
-    // Debug logging for forensicTraits issue
-    logger.info('Session data retrieved', {
-      sessionId,
-      hasForensicTraits: !!s.forensicTraits,
-      forensicTraitsPreview: s.forensicTraits ? s.forensicTraits.substring(0, 50) : null,
-      isForensicTraitsEncrypted: s.forensicTraits ? isEncrypted(s.forensicTraits) : false
-    });
-
     // 🛑 Create AbortController for this session
     const abortController = createAbortController(sessionId);
 
     // Process the analysis
     try {
-      // 🔐 DIAGNOSTIC: Log what we're trying to decrypt
-      logger.info('🔍 DIAGNOSTIC: Attempting to decrypt session data', {
-        sessionId,
-        clerkIdFromSession: s.clerkId?.slice(0, 8),
-        clerkIdLength: s.clerkId?.length,
-        lifeEventsLength: s.lifeEvents?.length,
-        lifeEventsPrefix: s.lifeEvents?.substring(0, 50),
-        isLifeEventsEncrypted: s.lifeEvents ? isEncrypted(s.lifeEvents) : false,
-        physicalTraitsLength: s.physicalTraits?.length,
-        forensicTraitsLength: s.forensicTraits?.length,
-      });
-
       // 🔐 Decrypt sensitive data using clerkId (encryption key)
       // lifeEvents is nullable for drafts, but at processing stage it must exist
       if (!s.lifeEvents) {
         throw new Error('lifeEvents data is missing - cannot process without life events');
       }
-      const lifeEventsData = safeDecrypt(s.lifeEvents, s.clerkId);
+      const lifeEventsData = safeDecryptWithFallback(s.lifeEvents, s.clerkId, s.userId);
       if (!lifeEventsData) {
         throw new Error('Failed to decrypt lifeEvents data');
       }
@@ -706,7 +691,7 @@ async function processSessionAsync(sessionId: string): Promise<void> {
 
       let decryptedPhysicalTraits: any = undefined;
       if (s.physicalTraits) {
-        const decrypted = safeDecrypt(s.physicalTraits, s.clerkId);
+        const decrypted = safeDecryptWithFallback(s.physicalTraits, s.clerkId, s.userId);
         if (decrypted) {
           try {
             decryptedPhysicalTraits = JSON.parse(decrypted);
@@ -718,7 +703,7 @@ async function processSessionAsync(sessionId: string): Promise<void> {
 
       let decryptedForensicTraits: any = undefined;
       if (s.forensicTraits) {
-        const decrypted = safeDecrypt(s.forensicTraits, s.clerkId);
+        const decrypted = safeDecryptWithFallback(s.forensicTraits, s.clerkId, s.userId);
         if (decrypted) {
           try {
             decryptedForensicTraits = JSON.parse(decrypted);

@@ -564,10 +564,16 @@ export function buildDateString(parts: Partial<DateParts>): string {
   const month = parts.month ? parts.month.padStart(2, '0') : '';
   const day = parts.day ? parts.day.padStart(2, '0') : '';
 
-  if (year && month && day) return `${year}-${month}-${day}`;
-  if (year && month) return `${year}-${month}-01`;
-  if (year) return `${year}-01-01`;
-  return '';
+  if (!year) return '';
+
+  let str = year;
+  if (month) {
+    str += `-${month}`;
+    if (day) {
+      str += `-${day}`;
+    }
+  }
+  return str;
 }
 
 /**
@@ -593,6 +599,43 @@ export function generateYears(count: number = 100): string[] {
  */
 export function generateDays(year: string, month: string): string[] {
   return getAvailableDays(year, month);
+}
+
+/**
+ * Check if the date string satisfies the requirements for a given precision
+ */
+export function isPrecisionSatisfied(
+  precision: DatePrecision,
+  dateStr: string,
+  endDateStr?: string,
+  timeStr?: string
+): boolean {
+  if (!dateStr) return false;
+  const parts = parseDateParts(dateStr);
+  const hasYear = !!parts.year && parseInt(parts.year, 10) >= MIN_YEAR && parseInt(parts.year, 10) <= MAX_YEAR;
+
+  switch (precision) {
+    case 'exact_date_time':
+      return hasYear && !!parts.month && !!parts.day && !!timeStr && timeStr.includes(':');
+    case 'exact_date':
+      return hasYear && !!parts.month && !!parts.day;
+    case 'month_year':
+      return hasYear && !!parts.month;
+    case 'year_range':
+      if (!endDateStr) return false;
+      const endParts = parseDateParts(endDateStr);
+      return hasYear && !!endParts.year;
+    case 'month_range':
+      if (!endDateStr) return false;
+      const endMonthParts = parseDateParts(endDateStr);
+      return hasYear && !!parts.month && !!endMonthParts.year && !!endMonthParts.month;
+    case 'date_range':
+      if (!endDateStr) return false;
+      const endDateParts = parseDateParts(endDateStr);
+      return hasYear && !!parts.month && !!parts.day && !!endDateParts.year && !!endDateParts.month && !!endDateParts.day;
+    default:
+      return hasYear;
+  }
 }
 
 /**

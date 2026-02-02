@@ -24,6 +24,7 @@ export {
     encryptObject,
     decryptObject,
     isEncrypted,
+    safeDecryptWithFallback,
 } from './encryption/index.js';
 
 // Re-export types
