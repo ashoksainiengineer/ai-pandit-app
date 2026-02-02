@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import express, { Request } from 'express';
+import crypto from 'node:crypto';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
@@ -185,7 +186,7 @@ app.use(errorHandler);
 // SERVER STARTUP
 // ═════════════════════════════════════════════════════════════════════════════
 
-import crypto from 'crypto';
+
 
 let swissEphReady = false;
 let queueStarted = false;

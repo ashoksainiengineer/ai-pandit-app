@@ -16,6 +16,7 @@ import type {
     EstimatedTimeEvent,
     SessionEvent
 } from '../types/index.js';
+import { db } from '../database/drizzle.js';
 
 // Re-export types for backwards compatibility
 export type {

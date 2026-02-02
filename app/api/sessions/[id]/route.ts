@@ -11,6 +11,16 @@ import { safeDecrypt, encryptData, isEncrypted, safeDecryptWithFallback } from '
 import fs from 'fs';
 import path from 'path';
 
+const safeJsonParse = <T>(jsonString: string | null | undefined, fallback: T): T => {
+  if (!jsonString) return fallback;
+  try {
+    return JSON.parse(jsonString);
+  } catch (e) {
+    console.warn('JSON Parse Error:', e);
+    return fallback;
+  }
+};
+
 // GET: Fetch session data for editing
 export async function GET(
   request: NextRequest,
@@ -69,16 +79,10 @@ export async function GET(
         timezone: parseFloat(s.timezone || '5.5'),
         gender: s.gender,
       },
-      lifeEvents: s.lifeEvents
-        ? (safeDecryptWithFallback(s.lifeEvents, clerkId, s.userId) ? JSON.parse(safeDecryptWithFallback(s.lifeEvents, clerkId, s.userId)!) : [])
-        : [],
-      physicalTraits: s.physicalTraits
-        ? (safeDecryptWithFallback(s.physicalTraits, clerkId, s.userId) ? JSON.parse(safeDecryptWithFallback(s.physicalTraits, clerkId, s.userId)!) : null)
-        : null,
-      forensicTraits: s.forensicTraits
-        ? (safeDecryptWithFallback(s.forensicTraits, clerkId, s.userId) ? JSON.parse(safeDecryptWithFallback(s.forensicTraits, clerkId, s.userId)!) : null)
-        : null,
-      offsetConfig: s.offsetConfig ? JSON.parse(s.offsetConfig) : null,
+      lifeEvents: safeJsonParse(safeDecryptWithFallback(s.lifeEvents, clerkId, s.userId), []),
+      physicalTraits: safeJsonParse(safeDecryptWithFallback(s.physicalTraits, clerkId, s.userId), null),
+      forensicTraits: safeJsonParse(safeDecryptWithFallback(s.forensicTraits, clerkId, s.userId), null),
+      offsetConfig: safeJsonParse(s.offsetConfig, null),
     };
 
     return NextResponse.json({ success: true, data: decryptedData });

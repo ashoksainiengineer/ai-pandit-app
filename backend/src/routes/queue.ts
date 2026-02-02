@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import crypto from 'node:crypto';
 import { AuthenticatedRequest, authMiddleware, clerk } from '../middleware/auth.js';
 import { db, executeWithRetry } from '../database/drizzle.js';
 import { sessions, users } from '../database/schema.js';
@@ -260,9 +261,19 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
 
         // If complete, return results
         if (queueStatus.status === 'complete') {
-            const analysisResult = session[0].analysisResult
-                ? JSON.parse(session[0].analysisResult)
-                : null;
+            let analysisResult = null;
+            try {
+                analysisResult = session[0].analysisResult ? JSON.parse(session[0].analysisResult) : null;
+            } catch (e) {
+                logger.error('Failed to parse analysis result', e);
+            }
+
+            let reasoningLogs = null;
+            try {
+                reasoningLogs = session[0].reasoningLogs ? JSON.parse(session[0].reasoningLogs) : null;
+            } catch (e) {
+                logger.error('Failed to parse reasoning logs', e);
+            }
 
             res.json({
                 success: true,
@@ -272,7 +283,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
                     accuracy: session[0].accuracy,
                     confidence: session[0].confidence,
                     analysisResult,
-                    reasoningLogs: session[0].reasoningLogs ? JSON.parse(session[0].reasoningLogs) : null,
+                    reasoningLogs,
                 },
             });
             return;

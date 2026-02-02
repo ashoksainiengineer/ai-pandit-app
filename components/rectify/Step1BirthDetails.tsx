@@ -58,18 +58,18 @@ const YEARS = Array.from({ length: 100 }, (_, i) => (CURRENT_YEAR - i).toString(
 // Generate days dynamically based on month and year
 const getDaysForMonth = (month: string, year: string): string[] => {
   if (!month || !year) return Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'));
-  
+
   const monthNum = parseInt(month, 10);
   const yearNum = parseInt(year, 10);
-  
+
   let daysInMonth = MONTHS.find(m => m.val === month)?.days || 31;
-  
+
   // Handle February leap year
   if (monthNum === 2) {
     const isLeapYear = (yearNum % 4 === 0 && yearNum % 100 !== 0) || (yearNum % 400 === 0);
     daysInMonth = isLeapYear ? 29 : 28;
   }
-  
+
   return Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString().padStart(2, '0'));
 };
 
@@ -86,13 +86,13 @@ const sanitizeInput = (input: string): string => {
 // Validate if date is real (accounts for leap years and month lengths)
 const isValidDate = (year: string, month: string, day: string): boolean => {
   if (!year || !month || !day) return false;
-  
+
   const y = parseInt(year, 10);
   const m = parseInt(month, 10);
   const d = parseInt(day, 10);
-  
+
   if (isNaN(y) || isNaN(m) || isNaN(d)) return false;
-  
+
   const date = new Date(y, m - 1, d);
   return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
 };
@@ -101,41 +101,41 @@ const isValidDate = (year: string, month: string, day: string): boolean => {
 const convertTo24Hour = (hour: string, minute: string, period: 'AM' | 'PM'): string => {
   let h = parseInt(hour, 10);
   const m = minute.padStart(2, '0');
-  
+
   if (period === 'PM' && h !== 12) {
     h += 12;
   } else if (period === 'AM' && h === 12) {
     h = 0;
   }
-  
+
   return `${h.toString().padStart(2, '0')}:${m}:00`;
 };
 
 // Parse 24-hour time to 12-hour parts
 const parseTimeToParts = (timeString: string | undefined): { hour: string; minute: string; period: 'AM' | 'PM' } => {
   if (!timeString) return { hour: '', minute: '', period: 'AM' };
-  
+
   const [h, m] = timeString.split(':');
   let hour = parseInt(h, 10);
   const period = hour >= 12 ? 'PM' as const : 'AM' as const;
-  
+
   if (hour > 12) hour -= 12;
   if (hour === 0) hour = 12;
-  
-  return { 
-    hour: hour.toString().padStart(2, '0'), 
-    minute: m, 
-    period 
+
+  return {
+    hour: hour.toString().padStart(2, '0'),
+    minute: m,
+    period
   };
 };
 
-export default function Step1BirthDetails({ 
-  data, 
-  updateData, 
-  offsetConfig, 
+export default function Step1BirthDetails({
+  data,
+  updateData,
+  offsetConfig,
   updateOffset,
-  spouseData, 
-  updateSpouse 
+  spouseData,
+  updateSpouse
 }: Step1Props) {
   const [showSpouse, setShowSpouse] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -149,7 +149,7 @@ export default function Step1BirthDetails({
 
   // Parse time with useEffect to sync with external data changes
   const [timeParts, setTimeParts] = useState(() => parseTimeToParts(data.tentativeTime));
-  
+
   // Sync time parts when data changes externally
   useEffect(() => {
     setTimeParts(parseTimeToParts(data.tentativeTime));
@@ -158,7 +158,7 @@ export default function Step1BirthDetails({
   // Offset state
   const [selectedOffset, setSelectedOffset] = useState<OffsetPreset>(offsetConfig?.preset || '1hour');
   const [customOffset, setCustomOffset] = useState<number>(offsetConfig?.customMinutes ?? 60);
-  
+
   // Sync offset with parent config
   useEffect(() => {
     if (offsetConfig?.preset) {
@@ -178,19 +178,19 @@ export default function Step1BirthDetails({
 
   // Spouse time parts
   const [spouseTimeParts, setSpouseTimeParts] = useState(() => parseTimeToParts(spouseData?.birthTime));
-  
+
   // Sync spouse time when data changes
   useEffect(() => {
     setSpouseTimeParts(parseTimeToParts(spouseData?.birthTime));
   }, [spouseData?.birthTime]);
 
   // Get available days based on selected month/year
-  const availableDays = useMemo(() => 
+  const availableDays = useMemo(() =>
     getDaysForMonth(dobParts.month, dobParts.year),
     [dobParts.month, dobParts.year]
   );
 
-  const spouseAvailableDays = useMemo(() => 
+  const spouseAvailableDays = useMemo(() =>
     getDaysForMonth(spouseDobParts.month, spouseDobParts.year),
     [spouseDobParts.month, spouseDobParts.year]
   );
@@ -198,7 +198,7 @@ export default function Step1BirthDetails({
   // Memoized validation
   const errors = useMemo(() => {
     const newErrors: Record<string, string> = {};
-    
+
     if (touched.fullName || data.fullName) {
       if (!data.fullName?.trim()) {
         newErrors.fullName = 'Full name is required';
@@ -206,7 +206,7 @@ export default function Step1BirthDetails({
         newErrors.fullName = 'Name must be at least 2 characters';
       }
     }
-    
+
     if (touched.dateOfBirth || dobParts.day) {
       if (!dobParts.day || !dobParts.month || !dobParts.year) {
         newErrors.dateOfBirth = 'Complete date of birth is required';
@@ -214,26 +214,26 @@ export default function Step1BirthDetails({
         newErrors.dateOfBirth = 'Invalid date (e.g., Feb 30 doesn\'t exist)';
       }
     }
-    
+
     if (touched.tentativeTime || timeParts.hour) {
       if (!timeParts.hour || !timeParts.minute) {
         newErrors.tentativeTime = 'Approximate birth time is required';
       }
     }
-    
+
     if (touched.birthPlace || data.birthPlace) {
       if (!data.birthPlace?.trim()) {
         newErrors.birthPlace = 'Birth place is required';
       }
     }
-    
+
     return newErrors;
   }, [data.fullName, data.birthPlace, dobParts, timeParts, touched]);
 
   const handleDateChange = useCallback((part: 'day' | 'month' | 'year', value: string) => {
     setTouched(prev => ({ ...prev, dateOfBirth: true }));
     const newParts = { ...dobParts, [part]: value };
-    
+
     // Reset day if it's invalid for the new month
     if (part === 'month' || part === 'year') {
       const maxDays = getDaysForMonth(newParts.month, newParts.year).length;
@@ -241,11 +241,11 @@ export default function Step1BirthDetails({
         newParts.day = '';
       }
     }
-    
+
     setDobParts(newParts);
-    
-    if (newParts.year && newParts.month && newParts.day && 
-        isValidDate(newParts.year, newParts.month, newParts.day)) {
+
+    if (newParts.year && newParts.month && newParts.day &&
+      isValidDate(newParts.year, newParts.month, newParts.day)) {
       updateData({ dateOfBirth: `${newParts.year}-${newParts.month}-${newParts.day}` });
     }
   }, [dobParts, updateData]);
@@ -254,7 +254,7 @@ export default function Step1BirthDetails({
     setTouched(prev => ({ ...prev, tentativeTime: true }));
     const newParts = { ...timeParts, [part]: value } as typeof timeParts;
     setTimeParts(newParts);
-    
+
     if (newParts.hour && newParts.minute) {
       const time24 = convertTo24Hour(newParts.hour, newParts.minute, newParts.period);
       updateData({ tentativeTime: time24 });
@@ -273,7 +273,7 @@ export default function Step1BirthDetails({
 
   const handleSpouseDateChange = useCallback((part: 'day' | 'month' | 'year', value: string) => {
     const newParts = { ...spouseDobParts, [part]: value };
-    
+
     // Reset day if it's invalid for the new month
     if (part === 'month' || part === 'year') {
       const maxDays = getDaysForMonth(newParts.month, newParts.year).length;
@@ -281,11 +281,11 @@ export default function Step1BirthDetails({
         newParts.day = '';
       }
     }
-    
+
     setSpouseDobParts(newParts);
-    
+
     if (newParts.year && newParts.month && newParts.day &&
-        isValidDate(newParts.year, newParts.month, newParts.day)) {
+      isValidDate(newParts.year, newParts.month, newParts.day)) {
       updateSpouse?.({ dateOfBirth: `${newParts.year}-${newParts.month}-${newParts.day}` });
     }
   }, [spouseDobParts, updateSpouse]);
@@ -293,7 +293,7 @@ export default function Step1BirthDetails({
   const handleSpouseTimeChange = useCallback((part: 'hour' | 'minute' | 'period', value: string) => {
     const newParts = { ...spouseTimeParts, [part]: value } as typeof spouseTimeParts;
     setSpouseTimeParts(newParts);
-    
+
     if (newParts.hour && newParts.minute) {
       const time24 = convertTo24Hour(newParts.hour, newParts.minute, newParts.period);
       updateSpouse?.({ birthTime: time24 });
@@ -347,46 +347,46 @@ export default function Step1BirthDetails({
       <FormCard className="space-y-5 p-5 md:p-6">
         {/* Full Name - Compact */}
         <FormField label="Full Name" required error={errors.fullName}>
-          <input 
-            type="text" 
-            value={data.fullName || ''} 
+          <input
+            type="text"
+            value={data.fullName || ''}
             onChange={(e) => {
               setTouched(prev => ({ ...prev, fullName: true }));
               updateData({ fullName: sanitizeInput(e.target.value) });
-            }} 
-            placeholder="Enter your full name" 
-            className="w-full h-11 px-4 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm placeholder-[#A8A39D] focus:border-[#D4A853] focus:ring-2 focus:ring-[#D4A853]/10 outline-none transition-all" 
+            }}
+            placeholder="Enter your full name"
+            className="w-full h-11 px-4 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm placeholder-[#A8A39D] focus:border-[#D4A853] focus:ring-2 focus:ring-[#D4A853]/10 outline-none transition-all"
             maxLength={100}
           />
         </FormField>
 
         {/* Date of Birth - Compact */}
-        <FormField 
-          label="Date of Birth" 
-          required 
+        <FormField
+          label="Date of Birth"
+          required
           error={errors.dateOfBirth}
           description="Select your birth date"
         >
           <div className="grid grid-cols-3 gap-2">
-            <select 
-              value={dobParts.day} 
-              onChange={(e) => handleDateChange('day', e.target.value)} 
+            <select
+              value={dobParts.day}
+              onChange={(e) => handleDateChange('day', e.target.value)}
               className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm focus:border-[#D4A853] outline-none cursor-pointer"
             >
               <option value="">Day</option>
               {availableDays.map(d => <option key={d} value={d}>{d}</option>)}
             </select>
-            <select 
-              value={dobParts.month} 
-              onChange={(e) => handleDateChange('month', e.target.value)} 
+            <select
+              value={dobParts.month}
+              onChange={(e) => handleDateChange('month', e.target.value)}
               className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm focus:border-[#D4A853] outline-none cursor-pointer"
             >
               <option value="">Month</option>
               {MONTHS.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
             </select>
-            <select 
-              value={dobParts.year} 
-              onChange={(e) => handleDateChange('year', e.target.value)} 
+            <select
+              value={dobParts.year}
+              onChange={(e) => handleDateChange('year', e.target.value)}
               className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm focus:border-[#D4A853] outline-none cursor-pointer"
             >
               <option value="">Year</option>
@@ -396,25 +396,25 @@ export default function Step1BirthDetails({
         </FormField>
 
         {/* Time of Birth - Compact */}
-        <FormField 
-          label="Approximate Birth Time" 
-          required 
+        <FormField
+          label="Approximate Birth Time"
+          required
           error={errors.tentativeTime}
           description="Don't worry if it's not exact"
         >
           <div className="flex items-center gap-2 flex-wrap">
-            <select 
-              value={timeParts.hour} 
-              onChange={(e) => handleTimeChange('hour', e.target.value)} 
+            <select
+              value={timeParts.hour}
+              onChange={(e) => handleTimeChange('hour', e.target.value)}
               className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center focus:border-[#D4A853] outline-none"
             >
               <option value="">HH</option>
               {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
             </select>
             <span className="text-xl text-[#B8860B]">:</span>
-            <select 
-              value={timeParts.minute} 
-              onChange={(e) => handleTimeChange('minute', e.target.value)} 
+            <select
+              value={timeParts.minute}
+              onChange={(e) => handleTimeChange('minute', e.target.value)}
               className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center focus:border-[#D4A853] outline-none"
             >
               <option value="">MM</option>
@@ -422,10 +422,10 @@ export default function Step1BirthDetails({
             </select>
             <div className="flex bg-white rounded-lg overflow-hidden border border-[#E8E0D5] h-11">
               {['AM', 'PM'].map((p) => (
-                <button 
-                  key={p} 
-                  type="button" 
-                  onClick={() => handleTimeChange('period', p)} 
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => handleTimeChange('period', p)}
                   className={`px-4 font-medium text-sm transition-all ${timeParts.period === p ? 'bg-[#B8860B] text-white' : 'text-[#7A756F] hover:text-[#1A1612]'}`}
                 >
                   {p}
@@ -434,6 +434,70 @@ export default function Step1BirthDetails({
             </div>
           </div>
         </FormField>
+
+        {/* Birth Time Window (Offset) - Compact */}
+        <div className="pt-4 border-t border-[#F0E8DE]">
+          <FormField
+            label="Birth Time Window"
+            description="How uncertain is this time?"
+          >
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {OFFSET_PRESETS.map((preset) => (
+                  <button
+                    key={preset.value}
+                    type="button"
+                    onClick={() => handleOffsetChange(preset.value)}
+                    className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all ${selectedOffset === preset.value
+                        ? 'bg-[#B8860B] text-white border-[#B8860B]'
+                        : 'bg-white text-[#7A756F] border-[#E8E0D5] hover:border-[#B8860B]/50'
+                      }`}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+
+              {selectedOffset === 'custom' && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="flex items-center gap-3 bg-[#FDF8F3] p-3 rounded-lg border border-[#E8E0D5]"
+                >
+                  <label className="text-sm text-[#1A1612] font-medium whitespace-nowrap">
+                    Unknown by ±
+                  </label>
+                  <div className="relative w-24">
+                    <input
+                      type="number"
+                      min="1"
+                      max="720"
+                      value={customOffset}
+                      onChange={(e) => {
+                        let val = parseInt(e.target.value, 10);
+                        if (isNaN(val)) val = 0;
+                        if (val > 720) val = 720; // Max 12 hours
+                        setCustomOffset(val);
+                        updateOffset?.({
+                          preset: 'custom',
+                          customMinutes: val,
+                          description: `±${val} min`
+                        });
+                      }}
+                      className="w-full h-9 px-2 text-center bg-white border border-[#E8E0D5] rounded-md text-[#1A1612] focus:border-[#B8860B] outline-none"
+                    />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-[#7A756F] pointer-events-none">
+                      min
+                    </span>
+                  </div>
+                  <span className="text-xs text-[#7A756F]">
+                    (Max 720 mins)
+                  </span>
+                </motion.div>
+              )}
+            </div>
+          </FormField>
+        </div>
 
         {/* Birth Place */}
         <div className="pt-4 border-t border-[#F0E8DE]">
@@ -456,10 +520,10 @@ export default function Step1BirthDetails({
           <FormField label="Gender">
             <div className="grid grid-cols-3 gap-3">
               {[{ value: 'male', label: 'Male', icon: '👨' }, { value: 'female', label: 'Female', icon: '👩' }, { value: 'other', label: 'Other', icon: '🧑' }].map((g) => (
-                <button 
-                  key={g.value} 
-                  type="button" 
-                  onClick={() => updateData({ gender: g.value as any })} 
+                <button
+                  key={g.value}
+                  type="button"
+                  onClick={() => updateData({ gender: g.value as any })}
                   className={`p-4 rounded-xl text-center transition-all border ${data.gender === g.value ? 'bg-[#B8860B]/10 border-[#B8860B] shadow-sm' : 'bg-white border-[#E8E0D5] hover:border-[#D4A853]/50'}`}
                 >
                   <span className="text-2xl mb-1 block">{g.icon}</span>
@@ -473,9 +537,9 @@ export default function Step1BirthDetails({
 
       {/* Spouse Details - Compact */}
       <FormCard variant="subtle" className="p-5">
-        <button 
-          type="button" 
-          onClick={() => setShowSpouse(!showSpouse)} 
+        <button
+          type="button"
+          onClick={() => setShowSpouse(!showSpouse)}
           className="flex items-center justify-between w-full text-left group"
         >
           <div className="flex items-center gap-3">
@@ -489,32 +553,32 @@ export default function Step1BirthDetails({
         </button>
 
         {showSpouse && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }} 
-            animate={{ opacity: 1, height: 'auto' }} 
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
             className="mt-4 space-y-4 pt-4 border-t border-[#F0E8DE]"
           >
             <FormField label="Spouse Date of Birth">
               <div className="grid grid-cols-3 gap-2">
-                <select 
-                  value={spouseDobParts.day} 
-                  onChange={(e) => handleSpouseDateChange('day', e.target.value)} 
+                <select
+                  value={spouseDobParts.day}
+                  onChange={(e) => handleSpouseDateChange('day', e.target.value)}
                   className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853]"
                 >
                   <option value="">Day</option>
                   {spouseAvailableDays.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
-                <select 
-                  value={spouseDobParts.month} 
-                  onChange={(e) => handleSpouseDateChange('month', e.target.value)} 
+                <select
+                  value={spouseDobParts.month}
+                  onChange={(e) => handleSpouseDateChange('month', e.target.value)}
                   className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853]"
                 >
                   <option value="">Month</option>
                   {MONTHS.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
                 </select>
-                <select 
-                  value={spouseDobParts.year} 
-                  onChange={(e) => handleSpouseDateChange('year', e.target.value)} 
+                <select
+                  value={spouseDobParts.year}
+                  onChange={(e) => handleSpouseDateChange('year', e.target.value)}
                   className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853]"
                 >
                   <option value="">Year</option>
@@ -525,18 +589,18 @@ export default function Step1BirthDetails({
 
             <FormField label="Spouse Birth Time">
               <div className="flex items-center gap-2 flex-wrap">
-                <select 
-                  value={spouseTimeParts.hour} 
-                  onChange={(e) => handleSpouseTimeChange('hour', e.target.value)} 
+                <select
+                  value={spouseTimeParts.hour}
+                  onChange={(e) => handleSpouseTimeChange('hour', e.target.value)}
                   className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center outline-none focus:border-[#D4A853]"
                 >
                   <option value="">HH</option>
                   {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
                 <span className="text-xl text-[#B8860B]">:</span>
-                <select 
-                  value={spouseTimeParts.minute} 
-                  onChange={(e) => handleSpouseTimeChange('minute', e.target.value)} 
+                <select
+                  value={spouseTimeParts.minute}
+                  onChange={(e) => handleSpouseTimeChange('minute', e.target.value)}
                   className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center outline-none focus:border-[#D4A853]"
                 >
                   <option value="">MM</option>
@@ -544,10 +608,10 @@ export default function Step1BirthDetails({
                 </select>
                 <div className="flex bg-white rounded-lg overflow-hidden border border-[#E8E0D5] h-11">
                   {['AM', 'PM'].map((p) => (
-                    <button 
-                      key={p} 
-                      type="button" 
-                      onClick={() => handleSpouseTimeChange('period', p)} 
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => handleSpouseTimeChange('period', p)}
                       className={`px-4 font-medium text-sm transition-all ${spouseTimeParts.period === p ? 'bg-[#B8860B] text-white' : 'text-[#7A756F] hover:text-[#1A1612]'}`}
                     >
                       {p}

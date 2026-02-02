@@ -4,6 +4,7 @@
  * Reduces redundant calculations and improves performance
  */
 
+import crypto from 'node:crypto';
 import { db } from '../database/drizzle.js';
 import { calculations } from '../database/schema.js';
 import { eq, and, lt, isNotNull, sql } from 'drizzle-orm';
