@@ -34,12 +34,27 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch session
-    const session = await db
-      .select()
-      .from(sessions)
-      .where(eq(sessions.id, sessionId))
-      .limit(1);
+    // Fetch session with robust error handling for schema mismatch
+    let session = [];
+    try {
+      session = await db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.id, sessionId))
+        .limit(1);
+    } catch (dbError: any) {
+      // Fallback for missing columns (e.g. forensicTraits migration missing)
+      if (dbError.message?.includes('no such column') || dbError.message?.includes('forensicTraits')) {
+        console.warn('[GET] Schema mismatch, falling back to raw query:', dbError.message);
+        const rawResult = await client.execute({
+          sql: `SELECT * FROM sessions WHERE id = ? LIMIT 1`,
+          args: [sessionId]
+        });
+        session = rawResult.rows as any[];
+      } else {
+        throw dbError;
+      }
+    }
 
     if (session.length === 0) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
