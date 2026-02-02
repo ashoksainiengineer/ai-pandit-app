@@ -8,8 +8,7 @@ import { db, client } from '@/database/drizzle';
 import { sessions } from '@/database/schema';
 import { eq } from 'drizzle-orm';
 import { safeDecrypt, encryptData, isEncrypted, safeDecryptWithFallback } from '@/lib/encryption';
-import fs from 'fs';
-import path from 'path';
+
 
 const safeJsonParse = <T>(jsonString: string | null | undefined, fallback: T): T => {
   if (!jsonString) return fallback;
@@ -68,9 +67,8 @@ export async function GET(
     const s = session[0];
 
     // 🔍 RECOVERY LOGGING: Helpful for debugging data mismatch
-    const logPath = path.join(process.cwd(), 'debug_recovery.log');
-    const logMsg = `[${new Date().toISOString()}] GET Session ${sessionId}: clerkId=${clerkId}, db_clerkId=${s.clerkId}, db_userId=${s.userId}, fullName_prefix=${s.fullName.slice(0, 10)}\n`;
-    fs.appendFileSync(logPath, logMsg);
+    // 🔍 RECOVERY LOGGING: Helpful for debugging data mismatch
+    console.log(`[${new Date().toISOString()}] GET Session ${sessionId}: clerkId=${clerkId}, db_clerkId=${s.clerkId}, db_userId=${s.userId}, fullName_prefix=${s.fullName.slice(0, 10)}`);
 
     // Decrypt sensitive data with recovery fallback (Clerk ID vs Internal UUID)
     const decryptedData = {
