@@ -12,6 +12,8 @@ import { VimshottariDashaEntry } from './types.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+console.log('[DEBUG] 🛠️ ESM-Fixed dasha-builder.ts loaded. If you see this, require() is gone!');
+
 interface DashaBuildOptions {
   moonLongitude: number;
   birthDate: Date;
