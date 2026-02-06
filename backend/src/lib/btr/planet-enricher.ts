@@ -79,17 +79,24 @@ function enrichSinglePlanet(
   const signIdx = ZODIAC_SIGNS.indexOf(rawPlanet.sign);
   const houseLord = context.houses[signIdx]?.lord || '';
 
+  // FIXED: Proper null/undefined handling for house calculation
+  let houseNumber = rawPlanet.house;
+  if (!houseNumber || houseNumber < 1 || houseNumber > 12) {
+    houseNumber = calculateHouse(context.ascendantSign, rawPlanet.sign);
+  }
+
   return {
     sign: rawPlanet.sign,
     degree: formatDegree(rawPlanet.longitude),
     nakshatra: rawPlanet.nakshatra,
-    house: rawPlanet.house || calculateHouse(context.ascendantSign, rawPlanet.sign),
+    house: houseNumber,
     dignity: rawPlanet.dignity || getDignity(planetName, rawPlanet.sign),
-    isRetro: rawPlanet.retro,
-    speed: rawPlanet.speed,
-    isCombust: rawPlanet.isCombust,
-    shadbala: context.shadbala?.[planetName],
-    bav: context.ashtakavarga?.[planetName]?.[signIdx],
+    // FIXED: Proper null handling for retro status
+    isRetro: rawPlanet.retro === true,
+    speed: rawPlanet.speed ?? 0,
+    isCombust: rawPlanet.isCombust === true,
+    shadbala: context.shadbala?.[planetName] ?? null,
+    bav: context.ashtakavarga?.[planetName]?.[signIdx] ?? null,
     functionalNature: calculateFunctionalNature(context.ascendantSign, planetName),
     aspects: calculateAspects(planetName, rawPlanet.longitude, planetLongitudes, context.ascendantLongitude),
     avastha: calculateBaladiAvastha(rawPlanet.longitude),

@@ -6,7 +6,7 @@
  */
 
 import { SecondsPrecisionInput, ForensicTraits } from '../../../types/index.js';
-import { CandidateTime, MAX_BATCH_SIZE, SURVIVORS_PER_BATCH, splitIntoBatches } from '../../time-offset-manager.js';
+import { CandidateTime, MAX_BATCH_SIZE, getDynamicSurvivors, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { callAIWithStream, executeAIInParallel } from '../../ai-client.js';
 import { emitCandidateScore, emitAIContext } from '../../session-events.js';
@@ -16,6 +16,7 @@ import { buildCandidateDataPackage } from '../data-package-builder.js';
 import { getDeepAnalysisPrompt } from '../prompts/index.js';
 import { extractBatchSurvivors } from '../extractors/index.js';
 import { CandidateDataPackage, StageResult } from '../types.js';
+import { logger } from '../../logger.js';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -38,11 +39,20 @@ export async function stage4DeepAnalysis(
 ): Promise<{ survivors: CandidateTime[]; stageResult: StageResult; aiReasoning: string }> {
     await progress.startStep('deep', 'Stage 4: Deep analysis tournament...');
 
+    // FIXED: Log data state for audit trail
+    logger.info('🔱 [STAGE-4] Starting deep analysis', {
+      candidatesIn: candidates.length,
+      sampleTime: candidates[0]?.time,
+      lifeEventsCount: input.lifeEvents?.length,
+      hasForensicTraits: !!forensicTraits
+    });
+
     let currentCandidates = [...candidates];
     let allReasoning = '';
 
     const batchSize = MAX_BATCH_SIZE;
-    const survivorsPerBatch = SURVIVORS_PER_BATCH;
+    // FIXED: Use getDynamicSurvivors for consistent tournament logic
+    const survivorsPerBatch = getDynamicSurvivors(batchSize, false);
 
     const getMinifiedEphemerisInline = (c: CandidateDataPackage) => ({
         sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
@@ -139,7 +149,8 @@ export async function stage4DeepAnalysis(
         const aiContent = response.success ? (response.content || response.thinking || '') : '';
         allReasoning += aiContent;
 
-        const survivorTimes = extractBatchSurvivors(aiContent, currentCandidates.map(c => c.time), 7);
+        // FIXED: Use survivorsPerBatch variable instead of hardcoded 7
+        const survivorTimes = extractBatchSurvivors(aiContent, currentCandidates.map(c => c.time), survivorsPerBatch);
 
         const survivors: CandidateTime[] = [];
         for (let j = 0; j < finalBatchData.length; j++) {

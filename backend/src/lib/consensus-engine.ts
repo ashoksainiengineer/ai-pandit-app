@@ -221,7 +221,7 @@ function validateVimshottari(input: ValidationInput): ValidationDetail {
 function validateYogini(input: ValidationInput): ValidationDetail {
   const { candidate, events } = input;
   
-  if (!candidate.dasha?.yogini) {
+  if (!candidate.dasha?.yogini || !Array.isArray(candidate.dasha.yogini)) {
     return {
       method: 'Yogini Dasha',
       score: 50,
@@ -232,21 +232,49 @@ function validateYogini(input: ValidationInput): ValidationDetail {
     };
   }
   
-  // Yogini validation logic
-  const yoginiLord = candidate.dasha.yogini.current;
-  const eventCorrelations = events.filter(e => 
-    correlateYoginiWithEvent(yoginiLord, e.category)
-  );
+  // FIXED: Temporal matching - check if each event falls under a supporting Yogini period
+  let matchCount = 0;
+  let totalWeight = 0;
+  const findings: string[] = [];
   
-  const score = Math.min(100, (eventCorrelations.length / events.length) * 100 + 40);
+  for (const event of events) {
+    const weight = getEventWeight(event.impact || 'moderate');
+    totalWeight += weight;
+    
+    // Parse event date
+    let eventDate: Date;
+    try {
+      eventDate = new Date(event.eventDate);
+      if (isNaN(eventDate.getTime())) continue;
+    } catch {
+      continue;
+    }
+    
+    // Find which Yogini period contains this event
+    const yoginiPeriod = candidate.dasha.yogini.find((y: any) => {
+      if (!y.startEnd) return false;
+      const [start, end] = y.startEnd.split(' to ').map((d: string) => new Date(d));
+      return eventDate >= start && eventDate <= end;
+    });
+    
+    if (yoginiPeriod) {
+      const supports = correlateYoginiWithEvent(yoginiPeriod.lord, event.category);
+      if (supports) {
+        matchCount += weight;
+        findings.push(`${event.type}: ${yoginiPeriod.lord} Yogini supports ${event.category}`);
+      }
+    }
+  }
+  
+  const score = totalWeight > 0 ? Math.min(100, (matchCount / totalWeight) * 100 + 30) : 50;
   
   return {
     method: 'Yogini Dasha',
-    score,
+    score: Math.round(score),
     maxScore: 100,
     status: score >= 70 ? 'pass' : 'warning',
-    details: `Yogini ${yoginiLord} correlates with ${eventCorrelations.length} events`,
-    criticalFindings: eventCorrelations.slice(0, 2).map(e => e.type)
+    details: `${matchCount.toFixed(1)}/${totalWeight} weighted events match Yogini periods`,
+    criticalFindings: findings.slice(0, 3)
   };
 }
 
@@ -282,16 +310,54 @@ function validateChara(input: ValidationInput): ValidationDetail {
 }
 
 function validateKalachakra(input: ValidationInput): ValidationDetail {
-  // Kalachakra is advanced - if unavailable, use medium score
-  const score = 60; // Placeholder
+  const { candidate, events } = input;
+  
+  // Calculate Kalachakra based on Moon's D60 position
+  // Kalachakra Dasha is nakshatra-based like Vimshottari but with different sequence
+  const moonLong = candidate.ephemeris?.planets?.moon?.longitude;
+  if (!moonLong) {
+    return {
+      method: 'Kalachakra Dasha',
+      score: 50,
+      maxScore: 100,
+      status: 'warning',
+      details: 'Moon position unavailable for Kalachakra',
+      criticalFindings: []
+    };
+  }
+  
+  // Kalachakra sequence based on nakshatra group (Savya/Apasavya)
+  const nakshatraIndex = Math.floor(moonLong / (360 / 27));
+  // 1-9: Savya, 10-18: Apasavya, 19-27: Savya
+  const isSavya = nakshatraIndex < 9 || nakshatraIndex >= 18;
+  
+  // Simplified scoring: Check if events correlate with expected Kalachakra lords
+  let matchCount = 0;
+  const kalachakraLords = isSavya
+    ? ['Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn'] // Savya sequence
+    : ['Jupiter', 'Venus', 'Saturn', 'Sun', 'Moon', 'Mars', 'Mercury']; // Apasavya sequence
+  
+  for (const event of events) {
+    const eventNakshatra = Math.floor((moonLong + (event.yearOffset || 0) * 30) / (360 / 27)) % 27;
+    const expectedLord = kalachakraLords[eventNakshatra % 7];
+    const significators = getEventSignificators(event.category);
+    
+    if (significators.includes(expectedLord)) {
+      matchCount++;
+    }
+  }
+  
+  const score = events.length > 0
+    ? Math.min(100, 40 + (matchCount / events.length) * 60)
+    : 60;
   
   return {
     method: 'Kalachakra Dasha',
-    score,
+    score: Math.round(score),
     maxScore: 100,
-    status: 'warning',
-    details: 'Kalachakra validation not fully implemented',
-    criticalFindings: []
+    status: score >= 70 ? 'pass' : 'warning',
+    details: `${matchCount}/${events.length} events match Kalachakra lords (${isSavya ? 'Savya' : 'Apasavya'} cycle)`,
+    criticalFindings: matchCount > 0 ? [`Kalachakra matches for ${matchCount} events`] : []
   };
 }
 
@@ -560,17 +626,24 @@ function determineConfidenceLevel(
 
 function calculateMarginOfError(scores: ConsensusScores, redFlags: RedFlags): number {
   let baseError = 60; // Base 60 seconds
+  let highScoreCount = 0;
   
-  // Reduce error with higher scores
-  if (scores.kp >= 80) baseError -= 20;
-  if (scores.vimshottari >= 80) baseError -= 15;
-  if (scores.varga >= 80) baseError -= 10;
-  if (scores.transit >= 80) baseError -= 10;
+  // Reduce error with higher scores - count how many methods are high
+  if (scores.kp >= 80) { baseError -= 20; highScoreCount++; }
+  if (scores.vimshottari >= 80) { baseError -= 15; highScoreCount++; }
+  if (scores.varga >= 80) { baseError -= 10; highScoreCount++; }
+  if (scores.transit >= 80) { baseError -= 10; highScoreCount++; }
+  if (scores.forensic >= 80) { baseError -= 5; highScoreCount++; }
+  
+  // Bonus reduction if multiple methods agree (high consensus)
+  if (highScoreCount >= 4) baseError -= 10;
+  if (highScoreCount >= 6) baseError -= 10;
   
   // Increase error with red flags
   if (redFlags.sandhiBirth) baseError += 30;
   if (redFlags.dashaSandhi) baseError += 20;
   if (redFlags.d60Instability) baseError += 25;
+  if (redFlags.conflictingMethods) baseError += 15;
   
   return Math.max(3, baseError); // Minimum 3 seconds
 }

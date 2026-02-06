@@ -44,8 +44,9 @@ export function extractBatchSurvivors(
 
   for (const time of candidateTimes) {
     const escapedTime = time.replace(/:/g, '[:\\s]?');
+    // FIXED: Removed spaces inside regex quantifiers and capture groups
     const timePattern = new RegExp(
-      `CANDIDATE[: \\s]* ${escapedTime} [\\s\\S]{ 0, 300 } SCORE[: \\s]* (\\d +)`,
+      `CANDIDATE[:\\s]*${escapedTime}[\\s\\S]{0,300}SCORE[:\\s]*(\\d+)`,
       'i'
     );
     const match = aiContent.match(timePattern);

@@ -258,25 +258,27 @@ export default function Step3LifeEvents({
   }, [addEvent]);
 
   // Update event with proper state handling
+  // FIXED: Removed setTimeout to prevent race conditions and stale state issues
   const updateEvent = useCallback((id: string, updates: Partial<LifeEvent>) => {
     // Sanitize description if present
     if (updates.description !== undefined) {
       updates.description = sanitizeDescription(updates.description);
     }
 
-    // Create updated array directly from props to ensure fresh state
+    // Create updated array from current props
     const updatedEvents = lifeEvents.map(e => e.id === id ? { ...e, ...updates } : e);
     updateEvents(updatedEvents);
   }, [lifeEvents, updateEvents]);
 
-  // Handle precision change - reset date/time fields appropriately
+  // Handle precision change - intelligently preserve date values when possible
   const handlePrecisionChange = useCallback((id: string, newPrecision: DatePrecision) => {
     const event = lifeEvents.find(e => e.id === id);
     if (!event) return;
 
     const updates: Partial<LifeEvent> = { datePrecision: newPrecision };
+    const oldPrecision = event.datePrecision;
 
-    // Reset eventTime when switching away from exact_date_time
+    // Only clear time when switching away from exact_date_time
     if (newPrecision !== 'exact_date_time' && event.eventTime) {
       updates.eventTime = undefined;
     }
@@ -286,14 +288,48 @@ export default function Step3LifeEvents({
       updates.endDate = undefined;
     }
 
-    // Clear eventDate when switching precision (user needs to re-enter)
-    if (event.datePrecision !== newPrecision) {
-      updates.eventDate = '';
-      updates.endDate = undefined;
+    // Intelligently handle date field preservation based on precision change
+    if (oldPrecision !== newPrecision) {
+      const { year, month, day } = parseDateParts(event.eventDate);
+
+      // Define precision levels (higher = more specific)
+      const precisionLevels: Record<DatePrecision, number> = {
+        'exact_date_time': 5,
+        'exact_date': 4,
+        'date_range': 4,
+        'month_year': 2,
+        'month_range': 2,
+        'year_range': 1
+      };
+
+      const oldLevel = precisionLevels[oldPrecision] || 0;
+      const newLevel = precisionLevels[newPrecision] || 0;
+
+      // When switching to a less specific precision, truncate the date
+      if (newLevel < oldLevel) {
+        if (newPrecision === 'year_range') {
+          // Keep just the year for start
+          updates.eventDate = year || '';
+          updates.endDate = year || ''; // Default end to same year
+        } else if (newPrecision === 'month_year' || newPrecision === 'month_range') {
+          // Keep year and month
+          if (year && month) {
+            updates.eventDate = `${year}-${month.padStart(2, '0')}`;
+          } else {
+            updates.eventDate = year || '';
+          }
+          if (newPrecision === 'month_range') {
+            updates.endDate = updates.eventDate;
+          }
+        }
+        // For exact_date -> exact_date_time, keep the date as-is
+      }
+      // When switching to more specific or same level, keep existing data
+      // User will fill in the additional fields
     }
 
     updateEvent(id, updates);
-  }, [lifeEvents, updateEvent]);
+  }, [lifeEvents, updateEvent, parseDateParts]);
 
   const deleteEvent = useCallback((id: string) => {
     const updatedEvents = lifeEvents.filter(e => e.id !== id);

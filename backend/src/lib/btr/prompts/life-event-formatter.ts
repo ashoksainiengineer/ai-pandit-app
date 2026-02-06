@@ -1,20 +1,41 @@
 /**
  * Life Event Formatter for AI Prompts
- * 
+ *
  * Formats user life events into structured text for AI analysis.
  * This module handles the conversion of event data into human-readable
  * descriptions that the AI can use for birth time rectification.
  */
 
 import { LifeEvent } from '../../../types/index.js';
+import { logger } from '../../logger.js';
+
+/**
+ * Validates that a life event has all required fields
+ */
+function validateLifeEvent(event: LifeEvent): { isValid: boolean; errors: string[] } {
+  const errors: string[] = [];
+  
+  if (!event.id) errors.push('Missing id');
+  if (!event.eventType) errors.push('Missing eventType');
+  if (!event.eventDate) errors.push('Missing eventDate');
+  if (!event.category) errors.push('Missing category');
+  if (!event.importance) errors.push('Missing importance');
+  
+  // Validate date format (YYYY-MM-DD or partial for precision types)
+  if (event.eventDate && !/^\d{4}(-\d{2})?(-\d{2})?$/.test(event.eventDate)) {
+    errors.push(`Invalid eventDate format: ${event.eventDate}`);
+  }
+  
+  return { isValid: errors.length === 0, errors };
+}
 
 /**
  * Formats a life event for inclusion in AI prompts
- * 
+ *
  * Converts structured event data into a descriptive text format
  * that includes the event type, date, precision level, and narrative
  * description for AI analysis.
- * 
+ *
  * @param event - The life event to format
  * @returns Formatted string for AI prompt
  * @example
@@ -23,10 +44,19 @@ import { LifeEvent } from '../../../types/index.js';
  *   eventDate: '2020-06-15',
  *   datePrecision: 'exact_date',
  *   importance: 'high'
- * }) 
+ * })
  * // Returns: "[HIGH IMPORTANCE] Marriage\n  Date: 2020-06-15 (Exact Date)"
  */
 export function formatLifeEventForAI(event: LifeEvent): string {
+  // Validate event before processing
+  const validation = validateLifeEvent(event);
+  if (!validation.isValid) {
+    logger.warn('[LifeEventFormatter] Invalid life event data', {
+      eventId: event.id,
+      errors: validation.errors
+    });
+  }
+
   const { eventType, category, eventDate, eventTime, endDate, datePrecision, description, importance } = event;
   let timeStr = eventDate;
   let nuance = '';
@@ -69,7 +99,16 @@ export function formatLifeEventForAI(event: LifeEvent): string {
       break;
   }
 
-  let result = `• [${importance?.toUpperCase() || 'MEDIUM'} IMPORTANCE] ${eventType}\n  Date: ${timeStr} ${nuance}`;
+  // Use provided importance or default to MEDIUM with warning
+  const eventImportance = importance || 'medium';
+  if (!importance) {
+    logger.debug('[LifeEventFormatter] Event importance not specified, defaulting to MEDIUM', {
+      eventId: event.id,
+      eventType
+    });
+  }
+  
+  let result = `• [${eventImportance.toUpperCase()} IMPORTANCE] ${eventType}\n  Date: ${timeStr} ${nuance}`;
   
   if (description) {
     result += `\n  SITUATIONAL NARRATIVE & EXPERIENCE: "${description}"`;

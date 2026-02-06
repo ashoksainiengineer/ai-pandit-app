@@ -779,7 +779,8 @@ function calculateVarga(v: number, ephemeris: EphemerisData): DivisionalChart {
 
     for (const name of planetNames) {
         const p = ephemeris.planets[name as keyof typeof ephemeris.planets];
-        planets[name] = calculateVargaPosition(v, p.longitude, name);
+        // FIXED: Pass the full planet data to preserve retro status and other properties
+        planets[name] = calculateVargaPosition(v, p.longitude, name, p);
     }
 
     const asc = calculateVargaPosition(v, ephemeris.ascendant.longitude, 'Ascendant');
@@ -795,7 +796,12 @@ function calculateVarga(v: number, ephemeris: EphemerisData): DivisionalChart {
     };
 }
 
-function calculateVargaPosition(v: number, longitude: number, name: string): PlanetPosition {
+function calculateVargaPosition(
+    v: number,
+    longitude: number,
+    name: string,
+    sourcePlanet?: PlanetPosition
+): PlanetPosition {
     const siderealLong = longitude % 360;
     const signIndex = Math.floor(siderealLong / 30);
     const signDegree = siderealLong % 30;
@@ -867,6 +873,10 @@ function calculateVargaPosition(v: number, longitude: number, name: string): Pla
     const targetSign = ZODIAC_SIGNS[targetSignIndex % 12];
     const targetLong = (targetSignIndex * 30) + (signDegree * v % 30);
 
+    // FIXED: Properly inherit retro status from source planet (D1)
+    // Divisional charts don't have their own retro motion - they mirror D1
+    const isRetro = sourcePlanet?.retro ?? false;
+
     return {
         sign: targetSign,
         degree: targetLong % 30,
@@ -874,12 +884,12 @@ function calculateVargaPosition(v: number, longitude: number, name: string): Pla
         latitude: 0, // Varga latitude is not standardized
         nakshatra: '', // Not needed for divisional charts usually
         lord: PLANET_RULERSHIPS[targetSign],
-        retro: false, // Inherited from D1
-        speed: 0,
-        distance: 0,
-        isCombust: false,
-        dignity: '',
-        house: 0
+        retro: isRetro, // FIXED: Now properly inherits from D1
+        speed: sourcePlanet?.speed ?? 0,
+        distance: sourcePlanet?.distance ?? 0,
+        isCombust: sourcePlanet?.isCombust ?? false,
+        dignity: sourcePlanet?.dignity ?? '',
+        house: 0 // Will be calculated relative to varga ascendant
     };
 }
 // 2. GEOMETRIC ASPECT ENGINE

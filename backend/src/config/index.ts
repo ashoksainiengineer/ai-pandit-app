@@ -24,7 +24,7 @@ const envSchema = z.object({
   // AI Configuration (OpenRouter)
   AI_API_KEY: z.string().min(1, 'AI API key is required'),
   AI_BASE_URL: z.string().url().default('https://openrouter.ai/api/v1'),
-  AI_MODEL: z.string().default('deepseek/deepseek-r1'),
+  AI_MODEL: z.string().default('moonshotai/kimi-k2.5'),
   AI_MAX_TOKENS: z.string().transform(Number).default('65536'),
   AI_THINKING_BUDGET: z.string().transform(Number).default('49152'),
   AI_TEMPERATURE: z.string().transform(Number).default('0'),

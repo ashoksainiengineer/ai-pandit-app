@@ -361,13 +361,16 @@ export async function calculateEphemeris(
   longitude: number,
   timezone: number | string
 ): Promise<EphemerisData> {
-  // Cache check
-  const cacheKey = `${birthDate}_${birthTime}_${latitude.toFixed(4)}_${longitude.toFixed(4)}`;
-  if (EPH_CACHE.has(cacheKey)) return EPH_CACHE.get(cacheKey)!;
+  // FIXED: More precise cache key including timezone
+  const cacheKey = `${birthDate}_${birthTime}_${latitude.toFixed(6)}_${longitude.toFixed(6)}_${typeof timezone === 'string' ? timezone : timezone.toFixed(2)}`;
+  if (EPH_CACHE.has(cacheKey)) {
+    console.log('📦 [EPHEMERIS] Cache hit for', cacheKey);
+    return EPH_CACHE.get(cacheKey)!;
+  }
 
   // Validate
-  if (latitude < -90 || latitude > 90) throw new Error('Invalid latitude');
-  if (longitude < -180 || longitude > 180) throw new Error('Invalid longitude');
+  if (latitude < -90 || latitude > 90) throw new Error(`Invalid latitude: ${latitude}. Must be between -90 and 90.`);
+  if (longitude < -180 || longitude > 180) throw new Error(`Invalid longitude: ${longitude}. Must be between -180 and 180.`);
 
   const tz = typeof timezone === 'number' ? timezone : parseFloat(String(timezone)) || 5.5;
   const utcDate = convertToUTC(birthDate, birthTime, tz);
@@ -394,26 +397,56 @@ export async function calculateEphemeris(
 
     const seIds = [SE.SUN, SE.MOON, SE.MERCURY, SE.VENUS, SE.MARS, SE.JUPITER, SE.SATURN, SE.TRUE_NODE];
 
-    const sunLng = swe.swe_calc_ut(jd, SE.SUN, SEFLG_SIDEREAL | SEFLG_SPEED).longitude;
+    // FIXED: Added error handling around Swiss Ephemeris calculations
+    let sunLng = 0;
+    try {
+      const sunResult = swe.swe_calc_ut(jd, SE.SUN, SEFLG_SIDEREAL | SEFLG_SPEED);
+      sunLng = sunResult.longitude;
+    } catch (e) {
+      console.error('🔴 [EPHEMERIS] Failed to calculate Sun position:', e);
+      throw new Error('Swiss Ephemeris calculation failed for Sun');
+    }
 
     for (let i = 0; i < planetNames.length; i++) {
-      const result = swe.swe_calc_ut(jd, seIds[i], SEFLG_SIDEREAL | SEFLG_SPEED);
-      const lng = result.longitude;
-      const sign = getZodiacSign(lng);
-      const name = planetNames[i].charAt(0).toUpperCase() + planetNames[i].slice(1);
+      try {
+        const result = swe.swe_calc_ut(jd, seIds[i], SEFLG_SIDEREAL | SEFLG_SPEED);
+        const lng = result.longitude;
+        const sign = getZodiacSign(lng);
+        const name = planetNames[i].charAt(0).toUpperCase() + planetNames[i].slice(1);
 
-      planets[planetNames[i]] = {
-        sign, degree: lng % 30, longitude: lng,
-        latitude: result.latitude,
-        nakshatra: getNakshatra(lng), nakshatraPada: getNakshatraPada(lng),
-        lord: getLord(sign), retro: result.longitudeSpeed < 0,
-        speed: result.longitudeSpeed,
-        longitudeSpeed: result.longitudeSpeed,
-        distance: result.distance,
-        isCombust: isCombust(name, lng, sunLng),
-        dignity: getDignity(name, sign),
-        house: 0 // Will be set after ascendant is calculated
-      };
+        planets[planetNames[i]] = {
+          sign, degree: lng % 30, longitude: lng,
+          latitude: result.latitude,
+          nakshatra: getNakshatra(lng), nakshatraPada: getNakshatraPada(lng),
+          lord: getLord(sign), retro: result.longitudeSpeed < 0,
+          speed: result.longitudeSpeed,
+          longitudeSpeed: result.longitudeSpeed,
+          distance: result.distance,
+          isCombust: isCombust(name, lng, sunLng),
+          dignity: getDignity(name, sign),
+          house: 0 // Will be set after ascendant is calculated
+        };
+      } catch (e) {
+        console.error(`🔴 [EPHEMERIS] Failed to calculate ${planetNames[i]}:`, e);
+        // Use algorithmic fallback for this planet
+        const algoResult = calcPlanet(jd, planetNames[i]);
+        const lng = algoResult.longitude;
+        const sign = getZodiacSign(lng);
+        const name = planetNames[i].charAt(0).toUpperCase() + planetNames[i].slice(1);
+
+        planets[planetNames[i]] = {
+          sign, degree: lng % 30, longitude: lng,
+          latitude: 0,
+          nakshatra: getNakshatra(lng), nakshatraPada: getNakshatraPada(lng),
+          lord: getLord(sign), retro: algoResult.speed < 0,
+          speed: algoResult.speed,
+          longitudeSpeed: algoResult.speed,
+          distance: 1.0,
+          isCombust: isCombust(name, lng, sunLng),
+          dignity: getDignity(name, sign),
+          house: 0
+        };
+      }
     }
 
     // Ketu

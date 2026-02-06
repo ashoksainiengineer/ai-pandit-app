@@ -16,6 +16,7 @@ import {
   calculatePanchanga,
   calculateVimsopakaBala,
   detectBhavaChalitDiscrepancy,
+  getD60Deity,
 } from '../vedic-astrology-engine.js';
 import {
   detectVargottama,
@@ -94,6 +95,15 @@ export async function buildCandidateDataPackage(
   // Detect Sandhi zones
   const sandhiZones = detectSandhiZones(ephemeris);
 
+  // Build house lords mapping from houses data
+  const houseLords: Record<number, string> = {};
+  for (let i = 1; i <= 12; i++) {
+    const house = ephemeris.houses?.[i - 1];
+    if (house?.lord) {
+      houseLords[i] = house.lord;
+    }
+  }
+
   // Build base package
   const pkg: CandidateDataPackage = {
     time,
@@ -108,7 +118,7 @@ export async function buildCandidateDataPackage(
       degree: formatDegree(ephemeris.ascendant.longitude),
       nakshatra: ephemeris.ascendant.nakshatra || ''
     },
-    houseLords: {}, // Populated by caller
+    houseLords, // FIXED: Now properly populated from ephemeris data
     moonNakshatra: ephemeris.planets.moon.nakshatra,
     vimshottariDasha,
     ashtakavarga: ephemeris.ashtakavarga,
@@ -127,7 +137,53 @@ export async function buildCandidateDataPackage(
     await addExtendedData(pkg, input, ephemeris, birthDate, moonLong);
   }
 
+  // FIXED: Validate that all critical data is present before returning
+  const validationErrors = validateDataPackage(pkg);
+  if (validationErrors.length > 0) {
+    logger.warn(`[DATA-PACKAGE] Validation warnings for ${time}:`, validationErrors);
+  }
+
   return pkg;
+}
+
+/**
+ * Validate that the data package contains all required fields
+ */
+function validateDataPackage(pkg: CandidateDataPackage): string[] {
+  const errors: string[] = [];
+
+  // Check required fields
+  if (!pkg.time) errors.push('Missing time');
+  if (!pkg.ascendant?.sign) errors.push('Missing ascendant sign');
+  if (!pkg.moonNakshatra) errors.push('Missing moon nakshatra');
+  if (!pkg.planets || Object.keys(pkg.planets).length === 0) {
+    errors.push('Missing planets data');
+  } else {
+    // Check each planet has required fields
+    for (const [name, planet] of Object.entries(pkg.planets)) {
+      if (!planet.sign) errors.push(`Planet ${name} missing sign`);
+      if (!planet.degree) errors.push(`Planet ${name} missing degree`);
+      if (!planet.nakshatra) errors.push(`Planet ${name} missing nakshatra`);
+      if (typeof planet.house !== 'number') errors.push(`Planet ${name} missing house`);
+    }
+  }
+
+  // Check divisional charts
+  if (!pkg.d9Lagna) errors.push('Missing D9 Lagna');
+  if (!pkg.d10Lagna) errors.push('Missing D10 Lagna');
+  if (!pkg.d60Sign) errors.push('Missing D60 Sign');
+
+  // Check Dasha data
+  if (!pkg.vimshottariDasha || pkg.vimshottariDasha.length === 0) {
+    errors.push('Missing Vimshottari Dasha');
+  }
+
+  // Check house lords
+  if (!pkg.houseLords || Object.keys(pkg.houseLords).length === 0) {
+    errors.push('Missing house lords');
+  }
+
+  return errors;
 }
 
 /**
@@ -205,10 +261,14 @@ function buildVargaData(ephemeris: any) {
       vargaDegrees[varga][capitalizeFirstLetter(pName)] = `${pPos.sign} ${pPos.degree.toFixed(2)}°`;
 
       if (varga === 'D60') {
+        // Calculate D60 deity based on planet's D60 longitude
+        const signIndex = ZODIAC_SIGNS.indexOf(pPos.sign);
+        const d60Longitude = pPos.degree + (signIndex * 30);
+        const deity = getD60Deity(d60Longitude);
         d60Planets[capitalizeFirstLetter(pName)] = {
           sign: pPos.sign,
           degree: pPos.degree.toFixed(2) + '°',
-          deity: '' // Calculated elsewhere
+          deity: deity || 'Unknown'
         };
       }
     }

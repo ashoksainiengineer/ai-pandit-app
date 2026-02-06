@@ -40,6 +40,14 @@ export async function stage2BatchTournament(
 ): Promise<{ survivors: CandidateTime[]; stageResult: StageResult; rounds: TournamentRound[] }> {
     await progress.startStep('coarse', 'Stage 2: Batch Tournament...');
 
+    // FIXED: Log initial data state for debugging
+    logger.info('🔱 [STAGE-2] Starting batch tournament', {
+      totalCandidates: candidates.length,
+      sampleCandidate: candidates[0]?.time,
+      hasInputData: !!input.lifeEvents?.length,
+      forensicTraitsPresent: !!forensicTraits
+    });
+
     const rounds: TournamentRound[] = [];
     let currentCandidates = [...candidates];
     let roundNumber = 0;
@@ -87,7 +95,7 @@ export async function stage2BatchTournament(
             const batchEnriched = await Promise.all(batchTimes.map(ct =>
                 buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
                     includeFullData: true,
-                    dashaDepth: 2,
+                    dashaDepth: 3,
                     lifecycleShifts: globalLifecycle
                 })
             ));
@@ -143,7 +151,7 @@ export async function stage2BatchTournament(
             const batchEnriched = await Promise.all(batchTimes.map(ct =>
                 buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
                     includeFullData: true,
-                    dashaDepth: 2,
+                    dashaDepth: 3,
                     lifecycleShifts: globalLifecycle
                 })
             ));

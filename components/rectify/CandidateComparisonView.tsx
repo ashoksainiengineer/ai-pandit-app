@@ -1,11 +1,28 @@
 'use client';
 
-// components/rectify/CandidateComparisonView.tsx
-// Side-by-side comparison of top candidates with difference highlighting
+// components/rectify/CandidateComparisonView-fixed.tsx
+// Production-grade candidate comparison with accessibility,
+// keyboard navigation, and responsive design
 
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo, memo, useCallback, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Scale, ChevronDown, Check, AlertTriangle, X, Trophy, Medal } from 'lucide-react';
+import { Scale, Check, AlertTriangle, Trophy, Medal, ChevronDown } from 'lucide-react';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TYPES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface MinifiedEph {
+    sun: string;
+    moon: string;
+    ascendant: string;
+}
+
+interface EventMatch {
+    event: string;
+    matches: boolean;
+    dasha?: string;
+}
 
 interface CandidateData {
     time: string;
@@ -14,82 +31,308 @@ interface CandidateData {
     rank?: number;
     reason?: string;
     offsetMinutes?: number;
-    minifiedEph?: {
-        sun: string;
-        moon: string;
-        ascendant: string;
-    };
-    // Extended data for detailed comparison
+    minifiedEph?: MinifiedEph;
     d60?: string;
     boundaryDistance?: number;
-    eventMatches?: Array<{
-        event: string;
-        matches: boolean;
-        dasha?: string;
-    }>;
+    eventMatches?: EventMatch[];
 }
 
 interface CandidateComparisonViewProps {
     candidates: CandidateData[];
     onSelect?: (time: string) => void;
+    'aria-label'?: string;
 }
 
-export function CandidateComparisonView({ candidates, onSelect }: CandidateComparisonViewProps) {
-    // Sort candidates by score descending
+// ═══════════════════════════════════════════════════════════════════════════════
+// THEME CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const THEME = {
+    border: '#F0E8DE',
+    textPrimary: '#1A1612',
+    textSecondary: '#4A453F',
+    textMuted: '#7A756F',
+    gold: '#D4AF37',
+    success: '#10B981',
+    warning: '#F59E0B',
+} as const;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STATUS ICON COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+type StatusType = 'match' | 'differ' | 'unknown';
+
+const StatusIcon = memo(function StatusIcon({ status }: { status: StatusType }) {
+    switch (status) {
+        case 'match':
+            return <Check className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true" />;
+        case 'differ':
+            return <AlertTriangle className="w-3.5 h-3.5 text-amber-600" aria-hidden="true" />;
+        default:
+            return <span className="w-3.5 h-3.5 text-[#7A756F]" aria-hidden="true">—</span>;
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CANDIDATE CARD COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface CandidateCardProps {
+    candidate: CandidateData;
+    rank: number;
+    isWinner: boolean;
+    onSelect?: () => void;
+    cardId: string;
+}
+
+const CandidateCard = memo(function CandidateCard({
+    candidate,
+    rank,
+    isWinner,
+    onSelect,
+    cardId,
+}: CandidateCardProps) {
+    const scoreColor = candidate.score >= 80 ? 'text-emerald-600' : candidate.score >= 60 ? 'text-amber-600' : 'text-rose-600';
+    const barColor = candidate.score >= 80 ? 'bg-emerald-600' : candidate.score >= 60 ? 'bg-amber-600' : 'bg-rose-600';
+
+    return (
+        <motion.div
+            whileHover={{ scale: 1.01 }}
+            onClick={onSelect}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelect?.();
+                }
+            }}
+            role="button"
+            tabIndex={0}
+            aria-label={`Candidate ${candidate.time}, Rank ${rank}, Score ${candidate.score.toFixed(1)}%${isWinner ? ', Winner' : ''}`}
+            className={`
+                bg-[#FDF8F3] rounded-xl p-3 sm:p-4 border cursor-pointer transition-all outline-none focus:ring-2 focus:ring-[#D4AF37]/50
+                ${isWinner
+                    ? 'border-[#D4AF37]/50 shadow-[0_0_15px_rgba(212,175,55,0.15)]'
+                    : 'border-[#F0E8DE] hover:border-[#D4AF37]/30'
+                }
+            `}
+        >
+            {/* Header with rank */}
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className="flex items-center gap-2">
+                    {isWinner ? (
+                        <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#D4AF37]" aria-hidden="true" />
+                    ) : (
+                        <Medal className="w-4 h-4 sm:w-5 sm:h-5 text-[#7A756F]" aria-hidden="true" />
+                    )}
+                    <span className="text-[10px] sm:text-xs text-[#7A756F] font-bold uppercase">Rank #{rank}</span>
+                </div>
+                {isWinner && (
+                    <span className="text-[8px] bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 rounded-full font-bold uppercase">
+                        Winner
+                    </span>
+                )}
+            </div>
+
+            {/* Time */}
+            <div className="text-xl sm:text-2xl font-black text-[#1A1612] font-mono mb-2">
+                <span className="tabular-nums">{candidate.time}</span>
+            </div>
+
+            {/* Score */}
+            <div className="mb-3">
+                <div className="flex items-center justify-between text-xs mb-1">
+                    <span className="text-[#7A756F]">Score</span>
+                    <span className={`font-bold ${scoreColor}`}>
+                        {candidate.score.toFixed(1)}%
+                    </span>
+                </div>
+                <div
+                    className="w-full bg-[#F0E8DE] rounded-full h-2 overflow-hidden"
+                    role="progressbar"
+                    aria-valuenow={candidate.score}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label={`Score: ${candidate.score.toFixed(1)} percent`}
+                >
+                    <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${candidate.score}%` }}
+                        transition={{ duration: 0.8, ease: 'easeOut' }}
+                        className={`h-full rounded-full ${barColor}`}
+                    />
+                </div>
+            </div>
+
+            {/* Ephemeris Summary */}
+            {candidate.minifiedEph && (
+                <div className="space-y-1 text-[9px] sm:text-[10px] font-mono border-t border-[#F0E8DE] pt-2 mt-2">
+                    <div className="flex justify-between">
+                        <span className="text-[#7A756F]" aria-label="Sun position">☉ Sun</span>
+                        <span className="text-[#4A453F]">{candidate.minifiedEph.sun}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-[#7A756F]" aria-label="Moon position">☽ Moon</span>
+                        <span className="text-[#4A453F]">{candidate.minifiedEph.moon}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-[#7A756F]" aria-label="Ascendant">↑ Asc</span>
+                        <span className="text-[#4A453F]">{candidate.minifiedEph.ascendant}</span>
+                    </div>
+                </div>
+            )}
+
+            {/* Reason */}
+            {candidate.reason && (
+                <p className="text-[9px] sm:text-[10px] text-[#7A756F] mt-2 line-clamp-2 italic">
+                    &ldquo;{candidate.reason}&rdquo;
+                </p>
+            )}
+        </motion.div>
+    );
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// COMPARISON ROW COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface ComparisonRowProps {
+    label: string;
+    leftValue?: string;
+    rightValue?: string;
+}
+
+const ComparisonRow = memo(function ComparisonRow({ label, leftValue, rightValue }: ComparisonRowProps) {
+    const matches = leftValue === rightValue;
+    const status: StatusType = !leftValue || !rightValue ? 'unknown' : matches ? 'match' : 'differ';
+
+    return (
+        <div className="flex items-center gap-2 sm:gap-3 text-[9px] sm:text-[10px]">
+            <span className="w-16 sm:w-24 text-[#7A756F] font-medium flex-shrink-0">{label}</span>
+            <div
+                className="flex-1 flex items-center justify-between gap-1 sm:gap-2 bg-white rounded-lg px-2 py-1 border border-[#F0E8DE]"
+                role="group"
+                aria-label={`${label} comparison`}
+            >
+                <span className="font-mono text-[#4A453F] truncate">{leftValue || '-'}</span>
+                <span aria-label={matches ? 'Values match' : 'Values differ'}>
+                    <StatusIcon status={status} />
+                </span>
+                <span className="font-mono text-[#4A453F] truncate">{rightValue || '-'}</span>
+            </div>
+        </div>
+    );
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CUSTOM SELECT COMPONENT (Accessible)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface CandidateSelectProps {
+    candidates: CandidateData[];
+    selectedIndex: number;
+    onChange: (index: number) => void;
+    disabledIndex: number;
+    label: string;
+    selectId: string;
+}
+
+const CandidateSelect = memo(function CandidateSelect({
+    candidates,
+    selectedIndex,
+    onChange,
+    disabledIndex,
+    label,
+    selectId,
+}: CandidateSelectProps) {
+    return (
+        <div className="relative">
+            <label htmlFor={selectId} className="sr-only">
+                {label}
+            </label>
+            <select
+                id={selectId}
+                value={selectedIndex}
+                onChange={(e) => onChange(parseInt(e.target.value, 10))}
+                className="w-full appearance-none bg-[#FDF8F3] border border-[#F0E8DE] rounded-lg px-3 py-2 text-xs sm:text-sm text-[#1A1612] cursor-pointer hover:border-[#D4AF37]/50 transition-colors pr-8 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30"
+                aria-label={label}
+            >
+                {candidates.map((c, idx) => (
+                    <option key={c.time} value={idx} disabled={idx === disabledIndex}>
+                        {idx + 1}. {c.time} ({c.score.toFixed(1)}%)
+                        {idx === disabledIndex ? ' (Already selected)' : ''}
+                    </option>
+                ))}
+            </select>
+            <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-[#7A756F] pointer-events-none" aria-hidden="true" />
+        </div>
+    );
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const CandidateComparisonView = memo(function CandidateComparisonView({
+    candidates,
+    onSelect,
+    'aria-label': ariaLabel = 'Candidate Comparison',
+}: CandidateComparisonViewProps) {
+    const leftSelectId = useId();
+    const rightSelectId = useId();
+
+    // Memoized sorting
     const sortedCandidates = useMemo(() =>
         [...candidates].sort((a, b) => b.score - a.score),
         [candidates]
     );
 
-    // Default to top 2 candidates
     const [leftIndex, setLeftIndex] = useState(0);
     const [rightIndex, setRightIndex] = useState(1);
 
     const leftCandidate = sortedCandidates[leftIndex];
     const rightCandidate = sortedCandidates[rightIndex];
 
+    // Reset indices if candidates change
+    React.useEffect(() => {
+        if (leftIndex >= sortedCandidates.length) setLeftIndex(0);
+        if (rightIndex >= sortedCandidates.length) setRightIndex(Math.min(1, sortedCandidates.length - 1));
+    }, [sortedCandidates.length, leftIndex, rightIndex]);
+
     // Can't compare if less than 2 candidates
     if (sortedCandidates.length < 2) {
         return (
-            <div className="glass-card p-6 border border-[#F0E8DE] text-center bg-white rounded-xl">
-                <Scale className="w-8 h-8 text-[#7A756F] mx-auto mb-3" />
+            <div
+                className="glass-card p-6 border border-[#F0E8DE] text-center bg-white rounded-xl"
+                role="alert"
+                aria-live="polite"
+            >
+                <Scale className="w-8 h-8 text-[#7A756F] mx-auto mb-3" aria-hidden="true" />
                 <p className="text-sm text-[#7A756F]">At least 2 candidates required for comparison</p>
             </div>
         );
     }
 
-    // Compare two values and determine match status
-    const compareValues = (left: string | undefined, right: string | undefined): 'match' | 'differ' | 'unknown' => {
-        if (!left || !right) return 'unknown';
-        return left === right ? 'match' : 'differ';
-    };
-
-    // Get status icon
-    const StatusIcon = ({ status }: { status: 'match' | 'differ' | 'unknown' }) => {
-        switch (status) {
-            case 'match':
-                return <Check className="w-3.5 h-3.5 text-emerald-600" />;
-            case 'differ':
-                return <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />;
-            default:
-                return <X className="w-3.5 h-3.5 text-[#7A756F]" />;
-        }
-    };
-
     // Determine winner
     const winner = leftCandidate.score >= rightCandidate.score ? 'left' : 'right';
     const scoreDiff = Math.abs(leftCandidate.score - rightCandidate.score);
+    const isClearWinner = scoreDiff > 5;
 
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-5 border border-[#D4AF37]/30 overflow-hidden bg-white rounded-xl"
+            className="glass-card p-4 sm:p-5 border border-[#D4AF37]/30 overflow-hidden bg-white rounded-xl"
+            role="region"
+            aria-label={ariaLabel}
         >
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                    <div
+                        className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center"
+                        aria-hidden="true"
+                    >
                         <Scale className="w-5 h-5 text-white" />
                     </div>
                     <div>
@@ -99,72 +342,58 @@ export function CandidateComparisonView({ candidates, onSelect }: CandidateCompa
                 </div>
 
                 {/* Winner Badge */}
-                <div className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider
-                    ${scoreDiff > 5 ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' : 'bg-amber-100 text-amber-700 border border-amber-300'}`}
+                <div
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider w-fit
+                        ${isClearWinner ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' : 'bg-amber-100 text-amber-700 border border-amber-300'}`}
+                    role="status"
+                    aria-label={isClearWinner ? 'Clear winner determined' : 'Close match between candidates'}
                 >
-                    {scoreDiff > 5 ? 'Clear Winner' : 'Close Match'}
+                    {isClearWinner ? 'Clear Winner' : 'Close Match'}
                 </div>
             </div>
 
             {/* Candidate Selectors */}
-            <div className="grid grid-cols-2 gap-4 mb-6">
-                {/* Left Selector */}
-                <div className="relative">
-                    <select
-                        value={leftIndex}
-                        onChange={(e) => setLeftIndex(parseInt(e.target.value))}
-                        className="w-full appearance-none bg-[#FDF8F3] border border-[#F0E8DE] rounded-lg px-3 py-2 text-sm text-[#1A1612] cursor-pointer hover:border-[#D4AF37]/50 transition-colors pr-8"
-                    >
-                        {sortedCandidates.map((c, idx) => (
-                            <option key={c.time} value={idx} disabled={idx === rightIndex}>
-                                {idx + 1}. {c.time} ({c.score.toFixed(1)}%)
-                            </option>
-                        ))}
-                    </select>
-                    <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-[#7A756F] pointer-events-none" />
-                </div>
-
-                {/* Right Selector */}
-                <div className="relative">
-                    <select
-                        value={rightIndex}
-                        onChange={(e) => setRightIndex(parseInt(e.target.value))}
-                        className="w-full appearance-none bg-[#FDF8F3] border border-[#F0E8DE] rounded-lg px-3 py-2 text-sm text-[#1A1612] cursor-pointer hover:border-[#D4AF37]/50 transition-colors pr-8"
-                    >
-                        {sortedCandidates.map((c, idx) => (
-                            <option key={c.time} value={idx} disabled={idx === leftIndex}>
-                                {idx + 1}. {c.time} ({c.score.toFixed(1)}%)
-                            </option>
-                        ))}
-                    </select>
-                    <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-[#7A756F] pointer-events-none" />
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                <CandidateSelect
+                    candidates={sortedCandidates}
+                    selectedIndex={leftIndex}
+                    onChange={setLeftIndex}
+                    disabledIndex={rightIndex}
+                    label="Select left candidate"
+                    selectId={leftSelectId}
+                />
+                <CandidateSelect
+                    candidates={sortedCandidates}
+                    selectedIndex={rightIndex}
+                    onChange={setRightIndex}
+                    disabledIndex={leftIndex}
+                    label="Select right candidate"
+                    selectId={rightSelectId}
+                />
             </div>
 
             {/* Comparison Grid */}
-            <div className="grid grid-cols-2 gap-4">
-                {/* Left Candidate Card */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <CandidateCard
                     candidate={leftCandidate}
                     rank={leftIndex + 1}
                     isWinner={winner === 'left'}
                     onSelect={() => onSelect?.(leftCandidate.time)}
+                    cardId="left-candidate"
                 />
-
-                {/* Right Candidate Card */}
                 <CandidateCard
                     candidate={rightCandidate}
                     rank={rightIndex + 1}
                     isWinner={winner === 'right'}
                     onSelect={() => onSelect?.(rightCandidate.time)}
+                    cardId="right-candidate"
                 />
             </div>
 
             {/* Detailed Differences */}
-            <div className="mt-6 bg-[#FDF8F3] rounded-xl p-4 border border-[#F0E8DE]">
+            <div className="mt-4 sm:mt-6 bg-[#FDF8F3] rounded-xl p-3 sm:p-4 border border-[#F0E8DE]">
                 <h4 className="text-[10px] text-[#7A756F] uppercase tracking-wider font-bold mb-3">Key Differences</h4>
                 <div className="space-y-2">
-                    {/* Ephemeris Comparison */}
                     <ComparisonRow
                         label="Sun Position"
                         leftValue={leftCandidate.minifiedEph?.sun}
@@ -191,14 +420,17 @@ export function CandidateComparisonView({ candidates, onSelect }: CandidateCompa
             </div>
 
             {/* AI Verdict */}
-            <div className="mt-4 p-4 bg-[#D4AF37]/10 rounded-xl border border-[#D4AF37]/30">
+            <div className="mt-4 p-3 sm:p-4 bg-[#D4AF37]/10 rounded-xl border border-[#D4AF37]/30">
                 <div className="flex items-start gap-3">
-                    <Trophy className="w-5 h-5 text-[#D4AF37] mt-0.5" />
+                    <Trophy className="w-5 h-5 text-[#D4AF37] mt-0.5 flex-shrink-0" aria-hidden="true" />
                     <div>
                         <h4 className="text-sm font-bold text-[#D4AF37] mb-1">AI Comparison Verdict</h4>
                         <p className="text-xs text-[#4A453F] leading-relaxed">
-                            {winner === 'left' ? leftCandidate.time : rightCandidate.time} is preferred
-                            {scoreDiff > 5
+                            <span className="font-medium">
+                                {winner === 'left' ? leftCandidate.time : rightCandidate.time}
+                            </span>
+                            {' '}is preferred
+                            {isClearWinner
                                 ? ` with a significant ${scoreDiff.toFixed(1)}% lead. `
                                 : ` by a narrow ${scoreDiff.toFixed(1)}% margin. `}
                             {leftCandidate.reason || rightCandidate.reason || 'Dasha correlation and event timing were primary factors in this determination.'}
@@ -208,124 +440,6 @@ export function CandidateComparisonView({ candidates, onSelect }: CandidateCompa
             </div>
         </motion.div>
     );
-}
+});
 
-// Individual Candidate Card
-function CandidateCard({
-    candidate,
-    rank,
-    isWinner,
-    onSelect
-}: {
-    candidate: CandidateData;
-    rank: number;
-    isWinner: boolean;
-    onSelect?: () => void;
-}) {
-    return (
-        <motion.div
-            whileHover={{ scale: 1.01 }}
-            onClick={onSelect}
-            className={`
-                bg-[#FDF8F3] rounded-xl p-4 border cursor-pointer transition-all
-                ${isWinner
-                    ? 'border-[#D4AF37]/50 shadow-[0_0_15px_rgba(212,175,55,0.15)]'
-                    : 'border-[#F0E8DE] hover:border-[#D4AF37]/30'
-                }
-            `}
-        >
-            {/* Header with rank */}
-            <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                    {isWinner ? (
-                        <Trophy className="w-5 h-5 text-[#D4AF37]" />
-                    ) : (
-                        <Medal className="w-5 h-5 text-[#7A756F]" />
-                    )}
-                    <span className="text-[10px] text-[#7A756F] font-bold uppercase">Rank #{rank}</span>
-                </div>
-                {isWinner && (
-                    <span className="text-[8px] bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 rounded-full font-bold uppercase">
-                        Winner
-                    </span>
-                )}
-            </div>
-
-            {/* Time */}
-            <div className="text-2xl font-black text-[#1A1612] font-mono mb-2">
-                {candidate.time}
-            </div>
-
-            {/* Score */}
-            <div className="mb-3">
-                <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-[#7A756F]">Score</span>
-                    <span className={`font-bold ${candidate.score >= 80 ? 'text-emerald-600' : candidate.score >= 60 ? 'text-amber-600' : 'text-rose-600'}`}>
-                        {candidate.score.toFixed(1)}%
-                    </span>
-                </div>
-                <div className="w-full bg-[#F0E8DE] rounded-full h-2 overflow-hidden">
-                    <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${candidate.score}%` }}
-                        transition={{ duration: 0.8, ease: "easeOut" }}
-                        className={`h-full rounded-full ${candidate.score >= 80 ? 'bg-emerald-600' : candidate.score >= 60 ? 'bg-amber-600' : 'bg-rose-600'}`}
-                    />
-                </div>
-            </div>
-
-            {/* Ephemeris Summary */}
-            {candidate.minifiedEph && (
-                <div className="space-y-1 text-[10px] font-mono border-t border-[#F0E8DE] pt-2 mt-2">
-                    <div className="flex justify-between">
-                        <span className="text-[#7A756F]">☉ Sun</span>
-                        <span className="text-[#4A453F]">{candidate.minifiedEph.sun}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-[#7A756F]">☽ Moon</span>
-                        <span className="text-[#4A453F]">{candidate.minifiedEph.moon}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span className="text-[#7A756F]">↑ Asc</span>
-                        <span className="text-[#4A453F]">{candidate.minifiedEph.ascendant}</span>
-                    </div>
-                </div>
-            )}
-
-            {/* Reason */}
-            {candidate.reason && (
-                <p className="text-[10px] text-[#7A756F] mt-2 line-clamp-2 italic">
-                    "{candidate.reason}"
-                </p>
-            )}
-        </motion.div>
-    );
-}
-
-// Comparison Row Component
-function ComparisonRow({
-    label,
-    leftValue,
-    rightValue
-}: {
-    label: string;
-    leftValue?: string;
-    rightValue?: string;
-}) {
-    const matches = leftValue === rightValue;
-
-    return (
-        <div className="flex items-center gap-3 text-[10px]">
-            <span className="w-24 text-[#7A756F] font-medium flex-shrink-0">{label}</span>
-            <div className="flex-1 flex items-center justify-between gap-2 bg-white rounded-lg px-2 py-1 border border-[#F0E8DE]">
-                <span className="font-mono text-[#4A453F] truncate">{leftValue || '-'}</span>
-                {matches ? (
-                    <Check className="w-3 h-3 text-emerald-600 flex-shrink-0" />
-                ) : (
-                    <AlertTriangle className="w-3 h-3 text-amber-600 flex-shrink-0" />
-                )}
-                <span className="font-mono text-[#4A453F] truncate">{rightValue || '-'}</span>
-            </div>
-        </div>
-    );
-}
+export default CandidateComparisonView;

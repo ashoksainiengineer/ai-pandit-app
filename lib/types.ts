@@ -12,12 +12,12 @@ export interface BirthData {
 }
 
 export interface LifeEvent {
-  id?: string;
+  id: string;  // Required to match backend schema
   category: string;
   eventType: string;
   eventDate: string;
   description: string;
-  importance?: 'high' | 'medium' | 'low' | 'critical';
+  importance: 'high' | 'medium' | 'low' | 'critical';  // Required to match backend
   eventTime?: string;
   datePrecision?: 'exact_date_time' | 'exact_date' | 'date_range' | 'month_year' | 'month_range' | 'year_range';
   endDate?: string;

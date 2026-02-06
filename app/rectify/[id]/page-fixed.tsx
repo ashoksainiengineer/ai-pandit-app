@@ -67,35 +67,16 @@ const AnalysisTimer = memo(function AnalysisTimer({ startedAt, isComplete }: Ana
     const [elapsed, setElapsed] = useState(0);
     const [isValid, setIsValid] = useState(false);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
-    const hasStartedRef = useRef(false);
 
-    // Parse start time safely with fallback to current time
+    // Parse start time safely
     const startTime = useMemo(() => {
-        if (!startedAt) {
-            // If analysis is running but no startedAt, use current time as fallback
-            if (!isComplete && hasStartedRef.current) {
-                return new Date();
-            }
-            return null;
-        }
+        if (!startedAt) return null;
         const parsed = new Date(startedAt);
-        if (isNaN(parsed.getTime())) {
-            // Invalid date, use current time as fallback
-            if (!isComplete) {
-                return new Date();
-            }
-            return null;
-        }
-        return parsed;
-    }, [startedAt, isComplete]);
+        return isNaN(parsed.getTime()) ? null : parsed;
+    }, [startedAt]);
 
     useEffect(() => {
-        if (startTime && !hasStartedRef.current) {
-            hasStartedRef.current = true;
-        }
-        
-        const valid = !!startTime && !isComplete;
-        setIsValid(valid);
+        setIsValid(!!startTime && !isComplete);
 
         // Clear existing interval
         if (intervalRef.current) {
@@ -103,7 +84,7 @@ const AnalysisTimer = memo(function AnalysisTimer({ startedAt, isComplete }: Ana
             intervalRef.current = null;
         }
 
-        if (valid) {
+        if (startTime && !isComplete) {
             // Initial calculation
             setElapsed(Math.floor((Date.now() - startTime.getTime()) / 1000));
 

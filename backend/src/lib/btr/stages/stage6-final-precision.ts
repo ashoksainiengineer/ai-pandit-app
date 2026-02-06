@@ -70,6 +70,15 @@ export async function stage6FinalPrecision(
     // GOD-TIER ENHANCEMENT: Enhance finalists with KP and Consensus data
     let godTierEnhancedCandidates: Array<CandidateWithGodTierData & { time: string; offsetMinutes: number }> = [];
 
+    // FIXED: Log candidate data state before enhancement
+    logger.info('🔱 [STAGE-6] Starting final precision judgment', {
+      candidatesIn: candidates.length,
+      sampleTime: candidates[0]?.time,
+      lifeEventsCount: input.lifeEvents?.length,
+      hasForensicTraits: !!forensicTraits,
+      hasSpouseData: !!input.spouseData
+    });
+
     for (const candidate of candidates.slice(0, 7)) {
         try {
             const pkg = await buildCandidateDataPackage(candidate.time, candidate.offsetMinutes, input, {
@@ -178,6 +187,40 @@ export async function stage6FinalPrecision(
     }
 
     // Final judgement with God-Tier prompt enhancement
+    // FIXED: Enhance ALL finalists with God-Tier data for comprehensive judgment
+    const enhancedFinalBatch: Array<CandidateWithGodTierData & { time: string; offsetMinutes: number }> = [];
+    
+    for (const finalist of finalists) {
+      const existingEnhanced = godTierEnhancedCandidates.find(ge => ge.time === finalist.time);
+      if (existingEnhanced) {
+        enhancedFinalBatch.push(existingEnhanced);
+      } else {
+        // Build and enhance if not already done
+        try {
+          const pkg = await buildCandidateDataPackage(finalist.time, finalist.offsetMinutes, input, {
+            includeFullData: true,
+            dashaDepth: 5,
+            pranaWindowDays: 5,
+            lifecycleShifts: globalLifecycle
+          });
+          const baseCandidate: CandidateWithGodTierData = {
+            time: finalist.time,
+            offsetMinutes: finalist.offsetMinutes,
+            ephemeris: pkg,
+            dasha: pkg.vimshottariDasha,
+            vargas: { D9: pkg.d9Chart, D10: pkg.d10Chart, D60: pkg.d60Sign },
+            kpData: {}
+          };
+          const enhanced = enhanceCandidateWithGodTierData(
+            baseCandidate, input.lifeEvents, input.forensicTraits, input.tentativeTime
+          );
+          enhancedFinalBatch.push({ ...enhanced, time: finalist.time, offsetMinutes: finalist.offsetMinutes });
+        } catch (error) {
+          logger.warn(`Failed to enhance finalist ${finalist.time}`, error);
+        }
+      }
+    }
+    
     const finalBatch = await Promise.all(finalists.map(ct =>
         buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
             includeFullData: true,
@@ -189,13 +232,34 @@ export async function stage6FinalPrecision(
     const finalAnchor = getPresentTransitData(finalBatch[0]);
     let prompt = getFinalPrecisionPrompt(finalBatch, input.lifeEvents, forensicTraits, input.spouseData, finalAnchor);
 
-    const winnerEnhanced = godTierEnhancedCandidates.find(c => c.time === finalBatch[0]?.time);
-    if (winnerEnhanced?.godTier) {
-        prompt = generateGodTierAIPrompt(winnerEnhanced, prompt);
-        logger.info('🔱 God-Tier AI prompt enhancement applied', {
-            consensus: winnerEnhanced.godTier.consensus.overallConsensus,
-            confidenceLevel: winnerEnhanced.godTier.consensus.confidenceLevel
-        });
+    // FIXED: Aggregate God-Tier data from ALL finalists for comprehensive prompt
+    // This provides the AI with consensus patterns across all finalists
+    const validEnhanced = enhancedFinalBatch.filter(e => e.godTier?.consensus);
+    if (validEnhanced.length > 0) {
+      // Use the candidate with highest consensus for main enhancement
+      const bestEnhanced = validEnhanced.reduce((best, current) =>
+          (current.godTier?.consensus?.overallConsensus ?? 0) > (best.godTier?.consensus?.overallConsensus ?? 0)
+            ? current : best
+        );
+      
+      // Add comparative analysis section
+      const comparativeAnalysis = `
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 🔱 FINALIST CONSENSUS COMPARISON (${validEnhanced.length} candidates)           ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+${validEnhanced.map((c, i) =>
+  `  ${i + 1}. ${c.time}: ${c.godTier?.consensus.overallConsensus.toFixed(1)}% (${c.godTier?.consensus.confidenceLevel})`
+).join('\n')}
+
+Consensus Range: ${Math.min(...validEnhanced.map(c => c.godTier?.consensus.overallConsensus ?? 0)).toFixed(1)}% - ${Math.max(...validEnhanced.map(c => c.godTier?.consensus.overallConsensus ?? 0)).toFixed(1)}%
+`;
+      
+      prompt = generateGodTierAIPrompt(bestEnhanced, prompt) + comparativeAnalysis;
+      logger.info('🔱 God-Tier AI prompt enhancement applied with comparative analysis', {
+        finalistCount: validEnhanced.length,
+        bestConsensus: bestEnhanced.godTier?.consensus.overallConsensus,
+        confidenceLevel: bestEnhanced.godTier?.consensus.confidenceLevel
+      });
     }
 
     const response = await callAIWithStream(
@@ -204,7 +268,7 @@ export async function stage6FinalPrecision(
         'You are the DIVINE ARCHITECT of Time. FINAL JUDGEMENT.',
         prompt,
         {
-            model: 'deepseek/deepseek-v3.2',
+            model: 'moonshotai/kimi-k2.5',
             candidateTime: 'FINAL VERDICT',
             progressTracker: progress,
             timeoutMs: 120000

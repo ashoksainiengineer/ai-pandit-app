@@ -1,18 +1,25 @@
 /**
  * DateInput Component
  * Production-grade date/time input for all 6 precision types
- * 
+ *
  * Features:
  * - Comprehensive validation (leap years, days per month)
  * - Real-time error display
  * - Range validation (start <= end)
- * - Proper state management
+ * - Proper state management with synchronization fixes
  * - Clean separation of concerns
+ *
+ * Bug Fixes (2026-02-04):
+ * - Fixed race conditions by separating state update from parent notification
+ * - Fixed state sync loop using refs to track update source
+ * - Fixed leading zero normalization for all dropdown values
+ * - Fixed TimeSelect to use local state instead of props
+ * - Added proper state persistence between re-renders
  */
 
 'use client';
 
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState, useEffect, useRef } from 'react';
 import { AlertCircle } from 'lucide-react';
 import {
   DatePrecision,
@@ -57,6 +64,23 @@ interface ValidationState {
 }
 
 /**
+ * Helper to normalize month/day values (remove leading zeros)
+ * This ensures dropdown values match option values
+ */
+const normalizeValue = (val: string): string => {
+  if (!val) return '';
+  // Remove leading zeros but keep the value
+  const parsed = parseInt(val, 10);
+  return isNaN(parsed) ? '' : parsed.toString();
+};
+
+const normalizeParts = (parts: DateParts): DateParts => ({
+  year: parts.year,
+  month: normalizeValue(parts.month),
+  day: normalizeValue(parts.day)
+});
+
+/**
  * Year Select Component
  */
 const YearSelect: React.FC<{
@@ -73,9 +97,12 @@ const YearSelect: React.FC<{
     return Array.from({ length: max - min + 1 }, (_, i) => (max - i).toString());
   }, [minYear, maxYear]);
 
+  // Normalize value to ensure it matches an option
+  const normalizedValue = value ? parseInt(value, 10).toString() : '';
+
   return (
     <select
-      value={value}
+      value={normalizedValue}
       onChange={(e) => onChange(e.target.value)}
       className={`h-10 px-3 bg-white border rounded-lg text-sm outline-none transition-all flex-1 min-w-0
         ${hasError
@@ -93,6 +120,7 @@ const YearSelect: React.FC<{
 
 /**
  * Month Select Component
+ * Values are 1-12 without leading zeros
  */
 const MonthSelect: React.FC<{
   value: string;
@@ -100,9 +128,12 @@ const MonthSelect: React.FC<{
   placeholder?: string;
   hasError?: boolean;
 }> = ({ value, onChange, placeholder = 'Month', hasError }) => {
+  // Normalize value to ensure it matches option values (1-12 without leading zeros)
+  const normalizedValue = normalizeValue(value);
+
   return (
     <select
-      value={value}
+      value={normalizedValue}
       onChange={(e) => onChange(e.target.value)}
       className={`h-10 px-3 bg-white border rounded-lg text-sm outline-none transition-all flex-1 min-w-0
         ${hasError
@@ -121,6 +152,7 @@ const MonthSelect: React.FC<{
 /**
  * Day Select Component
  * Dynamically shows correct number of days based on year/month
+ * Values are 1-31 without leading zeros to match normalized state
  */
 const DaySelect: React.FC<{
   value: string;
@@ -131,12 +163,21 @@ const DaySelect: React.FC<{
   hasError?: boolean;
 }> = ({ value, onChange, year, month, placeholder = 'Day', hasError }) => {
   const days = useMemo(() => {
-    return getAvailableDays(year, month);
+    const y = parseInt(year, 10);
+    const m = parseInt(month, 10);
+    if (isNaN(y) || isNaN(m) || m < 1 || m > 12) {
+      return Array.from({ length: 31 }, (_, i) => (i + 1).toString());
+    }
+    const daysInMonth = getDaysInMonth(y, m);
+    return Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString());
   }, [year, month]);
+
+  // Normalize value to ensure it matches option values
+  const normalizedValue = normalizeValue(value);
 
   return (
     <select
-      value={value}
+      value={normalizedValue}
       onChange={(e) => onChange(e.target.value)}
       className={`h-10 px-3 bg-white border rounded-lg text-sm outline-none transition-all w-20
         ${hasError
@@ -152,8 +193,28 @@ const DaySelect: React.FC<{
   );
 };
 
+// Helper function for days in month (needed for DaySelect)
+function getDaysInMonth(year: number, month: number): number {
+  if (isNaN(year) || isNaN(month)) return 31;
+  if (month < 1 || month > 12) return 31;
+  
+  const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  
+  if (month === 2 && isLeapYear(year)) {
+    return 29;
+  }
+  
+  return daysInMonth[month - 1];
+}
+
+function isLeapYear(year: number): boolean {
+  if (isNaN(year)) return false;
+  return (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+}
+
 /**
  * Time Select Component
+ * Uses normalized values without leading zeros for consistency
  */
 const TimeSelect: React.FC<{
   hour: string;
@@ -161,10 +222,14 @@ const TimeSelect: React.FC<{
   onChange: (hour: string, minute: string) => void;
   hasError?: boolean;
 }> = ({ hour, minute, onChange, hasError }) => {
+  // Normalize values for select options
+  const normalizedHour = normalizeValue(hour);
+  const normalizedMinute = normalizeValue(minute);
+
   return (
     <div className="flex items-center gap-2">
       <select
-        value={hour}
+        value={normalizedHour}
         onChange={(e) => onChange(e.target.value, minute)}
         className={`h-10 px-3 bg-white border rounded-lg text-sm outline-none transition-all w-20
           ${hasError
@@ -174,12 +239,12 @@ const TimeSelect: React.FC<{
       >
         <option value="">HH</option>
         {HOURS.map((h) => (
-          <option key={h} value={h}>{h}</option>
+          <option key={h} value={parseInt(h, 10).toString()}>{h}</option>
         ))}
       </select>
       <span className="text-[#B8860B] font-bold">:</span>
       <select
-        value={minute}
+        value={normalizedMinute}
         onChange={(e) => onChange(hour, e.target.value)}
         className={`h-10 px-3 bg-white border rounded-lg text-sm outline-none transition-all w-20
           ${hasError
@@ -189,7 +254,7 @@ const TimeSelect: React.FC<{
       >
         <option value="">MM</option>
         {MINUTES.map((m) => (
-          <option key={m} value={m}>{m}</option>
+          <option key={m} value={parseInt(m, 10).toString()}>{m}</option>
         ))}
       </select>
     </div>
@@ -231,32 +296,56 @@ export default function DateInput({
   minYear = 1900,
   maxYear = new Date().getFullYear()
 }: DateInputProps) {
-  // Helper to normalize month/day values (remove leading zeros to match dropdown option values)
-  const normalizeParts = (parts: DateParts): DateParts => ({
-    year: parts.year,
-    month: parts.month ? parseInt(parts.month, 10).toString() : '',
-    day: parts.day ? parseInt(parts.day, 10).toString() : ''
-  });
+  // Ref to track if we're currently processing a user update
+  // This prevents useEffect from overwriting user input
+  const isUpdatingRef = useRef(false);
+  const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // LOCAL state for immediate dropdown updates (prevents lag from parent re-renders)
   const [localStartParts, setLocalStartParts] = useState<DateParts>({ year: '', month: '', day: '' });
   const [localEndParts, setLocalEndParts] = useState<DateParts>({ year: '', month: '', day: '' });
   const [localTimeParts, setLocalTimeParts] = useState<TimeParts>({ hour: '', minute: '' });
 
-  // Sync local state with props when they change
+  // Sync local state with props when they change from parent
+  // But NOT when user is actively updating (tracked by isUpdatingRef)
   useEffect(() => {
-    setLocalStartParts(normalizeParts(parseDateParts(eventDate)));
+    if (isUpdatingRef.current) return;
+    
+    const parts = normalizeParts(parseDateParts(eventDate));
+    setLocalStartParts(prev => {
+      // Only update if actually different to prevent loops
+      if (prev.year !== parts.year || prev.month !== parts.month || prev.day !== parts.day) {
+        return parts;
+      }
+      return prev;
+    });
   }, [eventDate]);
 
   useEffect(() => {
-    setLocalEndParts(normalizeParts(parseDateParts(endDate)));
+    if (isUpdatingRef.current) return;
+    
+    const parts = normalizeParts(parseDateParts(endDate));
+    setLocalEndParts(prev => {
+      if (prev.year !== parts.year || prev.month !== parts.month || prev.day !== parts.day) {
+        return parts;
+      }
+      return prev;
+    });
   }, [endDate]);
 
   useEffect(() => {
-    setLocalTimeParts(parseTimeParts(eventTime));
+    if (isUpdatingRef.current) return;
+    
+    const parts = parseTimeParts(eventTime);
+    setLocalTimeParts(prev => {
+      if (prev.hour !== parts.hour || prev.minute !== parts.minute) {
+        return parts;
+      }
+      return prev;
+    });
   }, [eventTime]);
 
-  // Derived parts for validation (from props)
+  // Derived parts for validation (from props - always use the canonical values)
   const startParts = useMemo(() => parseDateParts(eventDate), [eventDate]);
   const endParts = useMemo(() => parseDateParts(endDate), [endDate]);
   const timeParts = useMemo(() => parseTimeParts(eventTime), [eventTime]);
@@ -273,7 +362,6 @@ export default function DateInput({
   const performValidation = useCallback(() => {
     let result: { valid: boolean; error?: string } = { valid: true };
 
-    // Standard validation
     switch (precision) {
       case 'exact_date_time':
         if (eventDate && eventTime) result = validateDateTime(eventDate, eventTime);
@@ -302,55 +390,101 @@ export default function DateInput({
       isValid: result.valid
     });
   }, [precision, eventDate, endDate, eventTime, startParts.year, startParts.month, endParts.year, endParts.month]);
-  // Note: startParts and endParts are derived from eventDate/endDate, so don't include them
 
-  // Validate on changes - only update internal validation state, NEVER call onUpdate from here
+  // Validate on changes
   useEffect(() => {
     performValidation();
   }, [performValidation]);
 
   /**
+   * Debounced parent update to batch rapid changes
+   * and avoid race conditions
+   */
+  const debouncedOnUpdate = useCallback((updates: {
+    eventDate?: string;
+    endDate?: string;
+    eventTime?: string;
+  }) => {
+    // Clear any pending update
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
+
+    // Set the updating flag to prevent useEffect from overwriting
+    isUpdatingRef.current = true;
+
+    // Debounce the parent notification
+    updateTimeoutRef.current = setTimeout(() => {
+      onUpdate(updates);
+      // Clear the flag after a delay to allow parent re-render to complete
+      setTimeout(() => {
+        isUpdatingRef.current = false;
+      }, 50);
+    }, 10);
+  }, [onUpdate]);
+
+  /**
    * Update start date parts
+   * Fixed: Separate state update from parent notification to avoid race conditions
    */
   const updateStartDate = useCallback((updates: Partial<DateParts>) => {
     // Update local state immediately for UI responsiveness
     setLocalStartParts(prev => {
       const newParts = { ...prev, ...updates };
+      
+      // Build date string from new parts
+      const newDate = buildDateString({
+        year: newParts.year,
+        month: newParts.month,
+        day: newParts.day
+      });
 
-      // Build date string from local state (preserves all user input)
-      const newDate = buildDateString(newParts);
-      onUpdate({ eventDate: newDate || undefined });
+      // Debounced notification to parent
+      debouncedOnUpdate({ eventDate: newDate || undefined });
 
       return newParts;
     });
-  }, [onUpdate]);
+  }, [debouncedOnUpdate]);
 
   /**
    * Update end date parts
+   * Fixed: Separate state update from parent notification to avoid race conditions
    */
   const updateEndDate = useCallback((updates: Partial<DateParts>) => {
-    // Update local state immediately for UI responsiveness
     setLocalEndParts(prev => {
       const newParts = { ...prev, ...updates };
+      
+      const newDate = buildDateString({
+        year: newParts.year,
+        month: newParts.month,
+        day: newParts.day
+      });
 
-      // Build date string from local state (preserves all user input)
-      const newDate = buildDateString(newParts);
-      onUpdate({ endDate: newDate || undefined });
+      debouncedOnUpdate({ endDate: newDate || undefined });
 
       return newParts;
     });
-  }, [onUpdate]);
+  }, [debouncedOnUpdate]);
 
   /**
    * Update time
+   * Fixed: Use debounced update and proper state management
    */
   const updateTime = useCallback((hour: string, minute: string) => {
-    // Update local state immediately for UI responsiveness
     setLocalTimeParts({ hour, minute });
 
     const newTime = buildTimeString(hour, minute);
-    onUpdate({ eventTime: newTime || undefined });
-  }, [onUpdate]);
+    debouncedOnUpdate({ eventTime: newTime || undefined });
+  }, [debouncedOnUpdate]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // ============ RENDERERS FOR EACH PRECISION ============
 
@@ -492,8 +626,8 @@ export default function DateInput({
         <DaySelect
           value={localEndParts.day}
           onChange={(day) => updateEndDate({ day })}
-          year={endParts.year || startParts.year}
-          month={endParts.month || startParts.month}
+          year={localEndParts.year || localStartParts.year}
+          month={localEndParts.month || localStartParts.month}
           placeholder="End Day"
           hasError={!!validation.error && validation.error.includes('End')}
         />
@@ -557,8 +691,8 @@ export default function DateInput({
           <div className="flex items-center gap-4">
             <label className="text-sm text-[#7A756F] font-medium">Time:</label>
             <TimeSelect
-              hour={timeParts.hour}
-              minute={timeParts.minute}
+              hour={localTimeParts.hour}
+              minute={localTimeParts.minute}
               onChange={updateTime}
               hasError={!!validation.error && validation.error.includes('Time')}
             />

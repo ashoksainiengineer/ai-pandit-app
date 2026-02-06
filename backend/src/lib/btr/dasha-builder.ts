@@ -143,7 +143,7 @@ function createDashaEntry(
   prana: string,
   startEnd: string
 ): VimshottariDashaEntry {
-  return { maha, antar: maha, pratyantar: antar, sukshma, prana, startEnd };
+  return { maha, antar, pratyantar, sukshma, prana, startEnd };
 }
 
 /**

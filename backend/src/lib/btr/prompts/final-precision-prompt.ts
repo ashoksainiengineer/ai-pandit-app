@@ -83,7 +83,7 @@ ${shuffledCandidates.map((c, i) => `
 ┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
 ├ PANCHANGA: ${c.panchanga?.tithi} | ${c.panchanga?.vara}
 ├ ARUDHAS: AL=${c.specialPoints?.AL.sign} | UL=${c.specialPoints?.UL.sign}
-├ HOUSE LORDS: 1=${c.houseLords[1]} | 7=${c.houseLords[7]} | 10=${c.houseLords[10]}
+├ HOUSE LORDS: 1=${c.houseLords[1]} | 2=${c.houseLords[2]} | 3=${c.houseLords[3]} | 4=${c.houseLords[4]} | 5=${c.houseLords[5]} | 6=${c.houseLords[6]} | 7=${c.houseLords[7]} | 8=${c.houseLords[8]} | 9=${c.houseLords[9]} | 10=${c.houseLords[10]} | 11=${c.houseLords[11]} | 12=${c.houseLords[12]}
 ├ D60 (Karma Lagna): ${c.d60Sign || 'N/A'}
 ├ PLANETARY STRENGTH MATRIX (Full Forensic Data):
 ${Object.entries(c.planets).map(([name, p]) => {
@@ -96,7 +96,11 @@ ${Object.entries(c.planets).map(([name, p]) => {
         const sh = p.shadbalaBreakdown;
         const shStr = sh ? `Sum:${sh.total} (S:${sh.sthana} D:${sh.dig} K:${sh.kaala} C:${sh.cheshta})` : '?';
         const aspects = p.aspects?.filter((a: any) => a.isHit).map((a: any) => `${a.type}`).join(', ') || 'None';
-        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} [H${String(p.house).padEnd(2)}, ${avastha}, ${deity}, I/K:${ikp}, ${sambandha}, Sh:${shStr}, SAV:${sav}] | Asp: ${aspects}`;
+        const statusFlags: string[] = [];
+        if (p.isRetro) statusFlags.push('R');
+        if (p.isCombust) statusFlags.push('C');
+        const statusStr = statusFlags.length > 0 ? `[${statusFlags.join(',')}]` : '';
+        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} [H${String(p.house).padEnd(2)}, ${avastha}, ${deity}, I/K:${ikp}, ${sambandha}, Sh:${shStr}, SAV:${sav}] ${statusStr} | Asp: ${aspects}`;
     }).join('\n')}
 ├ YOGAS: ${c.yogas?.map((y: any) => y.name).join(', ') || 'N/A'}
 ├ DIVISIONAL CHARTS (Detailed Degrees):

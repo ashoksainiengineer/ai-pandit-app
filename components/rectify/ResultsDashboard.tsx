@@ -1180,9 +1180,10 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                       <SwissEphPanel
                         candidateTime={data.rectifiedTime}
                         minifiedEph={analysisDetails?.godTierData?.ephemeris?.planets ? {
-                          sun: `${analysisDetails.godTierData.ephemeris.planets.sun?.sign || 'N/A'} ${(analysisDetails.godTierData.ephemeris.planets.sun?.longitude || 0 % 30)?.toFixed(1)}°`,
-                          moon: `${analysisDetails.godTierData.ephemeris.planets.moon?.sign || 'N/A'} ${(analysisDetails.godTierData.ephemeris.planets.moon?.longitude || 0 % 30)?.toFixed(1)}°`,
-                          ascendant: `${analysisDetails.godTierData.ephemeris.ascendant?.sign || 'N/A'} ${(analysisDetails.godTierData.ephemeris.ascendant?.longitude || 0 % 30)?.toFixed(1)}°`
+                          // FIXED: Correct degree calculation with proper parentheses
+                          sun: `${analysisDetails.godTierData.ephemeris.planets.sun?.sign || 'N/A'} ${((analysisDetails.godTierData.ephemeris.planets.sun?.longitude || 0) % 30).toFixed(1)}°`,
+                          moon: `${analysisDetails.godTierData.ephemeris.planets.moon?.sign || 'N/A'} ${((analysisDetails.godTierData.ephemeris.planets.moon?.longitude || 0) % 30).toFixed(1)}°`,
+                          ascendant: `${analysisDetails.godTierData.ephemeris.ascendant?.sign || 'N/A'} ${((analysisDetails.godTierData.ephemeris.ascendant?.longitude || 0) % 30).toFixed(1)}°`
                         } : undefined}
                         dasha={analysisDetails?.godTierData?.dasha || 'Venus MD / Jupiter AD / Moon PD'}
                         defaultExpanded={true}

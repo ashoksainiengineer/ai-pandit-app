@@ -81,7 +81,7 @@ ${shuffledCandidates.map(c => `
 ┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
 ├ PANCHANGA: Tithi=${c.panchanga?.tithi} | Vara=${c.panchanga?.vara} | Yoga=${c.panchanga?.yoga}
 ├ ARUDHAS: AL=${c.specialPoints?.AL.sign} | UL=${c.specialPoints?.UL.sign}
-├ HOUSE LORDS: 1=${c.houseLords[1]} | 7=${c.houseLords[7]} | 10=${c.houseLords[10]} | 5=${c.houseLords[5]} | 9=${c.houseLords[9]}
+├ HOUSE LORDS: 1=${c.houseLords[1]} | 2=${c.houseLords[2]} | 3=${c.houseLords[3]} | 4=${c.houseLords[4]} | 5=${c.houseLords[5]} | 6=${c.houseLords[6]} | 7=${c.houseLords[7]} | 8=${c.houseLords[8]} | 9=${c.houseLords[9]} | 10=${c.houseLords[10]} | 11=${c.houseLords[11]} | 12=${c.houseLords[12]}
 ├ PLANETARY MATRIX (Full Vedic Metrics):
 ${Object.entries(c.planets).map(([name, p]) => {
         const caps = name.charAt(0).toUpperCase() + name.slice(1);
@@ -93,7 +93,11 @@ ${Object.entries(c.planets).map(([name, p]) => {
         const sambandha = p.compoundDignity || 'Sama';
         const sh = p.shadbalaBreakdown;
         const shStr = sh ? `Sum:${sh.total} (S:${sh.sthana} D:${sh.dig} K:${sh.kaala})` : '?';
-        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${String(p.house).padEnd(2)} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${shStr.padEnd(25)} | SAV:${String(sav).padEnd(2)} | ${aspects}`;
+        const statusFlags: string[] = [];
+        if (p.isRetro) statusFlags.push('R');
+        if (p.isCombust) statusFlags.push('C');
+        const statusStr = statusFlags.length > 0 ? `[${statusFlags.join(',')}]` : '';
+        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${String(p.house).padEnd(2)} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${shStr.padEnd(25)} | SAV:${String(sav).padEnd(2)} ${statusStr.padEnd(5)} | ${aspects}`;
     }).join('\n')}
 ├ YOGAS: ${c.yogas?.map((y: any) => y.name).join(', ') || 'None'}
 ├ DIVISIONAL CHARTS (Detailed Degrees):
