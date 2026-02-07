@@ -30,7 +30,7 @@ export default function RobustAnalysisPage() {
 
     const streamData = useStreamProgress(
         sessionId,
-        process.env.NEXT_PUBLIC_BACKEND_URL || '',
+        '', // Now uses local proxy automatically
         getToken
     );
 
@@ -134,9 +134,9 @@ export default function RobustAnalysisPage() {
                             <AIThinkingPanel thinking={aiThinking} isActive={!isComplete && !cancelled} />
                         </SectionErrorBoundary>
                     )}
-                    
+
                     {(advancedSignals || (isComplete && result)) && (
-                         <SectionErrorBoundary sectionName="Advanced Signals" icon={<Gem className="w-5 h-5" />}>
+                        <SectionErrorBoundary sectionName="Advanced Signals" icon={<Gem className="w-5 h-5" />}>
                             <AdvancedSignalsDashboard signals={advancedSignals} isComplete={isComplete} />
                         </SectionErrorBoundary>
                     )}
@@ -244,7 +244,7 @@ ProgressBar.displayName = 'ProgressBar';
 const PipelineTracker = memo(({ steps, currentStep, isConnected, stats }: { steps: StreamStep[], currentStep: number, isConnected: boolean, stats: StageStat[] }) => (
     <div className="mb-6 sm:mb-8">
         {/* ... component implementation ... */}
-         <h2 className="text-lg font-bold text-[#1A1612] mb-4">Analysis Pipeline</h2>
+        <h2 className="text-lg font-bold text-[#1A1612] mb-4">Analysis Pipeline</h2>
     </div>
 ));
 PipelineTracker.displayName = 'PipelineTracker';
@@ -256,11 +256,11 @@ const AIThinkingPanel = memo(({ thinking, isActive }: { thinking: AIThinking, is
     }, [thinking?.fullText]);
     return (
         <div className="mb-6 sm:mb-8">
-             <h2 className="text-lg font-bold text-[#1A1612] mb-4">AI Thinking</h2>
-             <div ref={scrollRef} className="h-48 overflow-y-auto bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm text-gray-600 font-mono">
+            <h2 className="text-lg font-bold text-[#1A1612] mb-4">AI Thinking</h2>
+            <div ref={scrollRef} className="h-48 overflow-y-auto bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm text-gray-600 font-mono">
                 {thinking.fullText}
-                {isActive && <span className="inline-block w-2 h-4 bg-gray-800 animate-pulse ml-1" />} 
-             </div>
+                {isActive && <span className="inline-block w-2 h-4 bg-gray-800 animate-pulse ml-1" />}
+            </div>
         </div>
     );
 });

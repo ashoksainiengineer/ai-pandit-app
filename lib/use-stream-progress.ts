@@ -325,7 +325,7 @@ export function useStreamProgress(
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const response = await fetch(`${baseUrl}/api/queue/progress?sessionId=${sid}`, { headers });
+            const response = await fetch(`/api/queue/progress?sessionId=${sid}`, { headers });
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
@@ -392,7 +392,7 @@ export function useStreamProgress(
         try {
             const token = getToken ? await getToken() : null;
             const queryToken = token ? `?token=${encodeURIComponent(token)}` : '';
-            const url = `${baseUrl}/api/stream/${sid}${queryToken}`;
+            const url = `/api/stream/${sid}${queryToken}`;
 
             setConnectionState(prev => ({ ...prev, url }));
 
@@ -451,13 +451,13 @@ export function useStreamProgress(
             return;
         }
 
-        connectSSE(sessionId, backendUrl);
+        connectSSE(sessionId, '');
 
         return () => {
             isMountedRef.current = false;
             cleanup();
         };
-    }, [sessionId, backendUrl, connectSSE, cleanup]);
+    }, [sessionId, connectSSE, cleanup]);
 
     // Memoize return value to prevent unnecessary re-renders
     return useMemo(() => ({

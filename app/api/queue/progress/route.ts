@@ -1,53 +1,65 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSessionProgress } from '@/lib/progress-tracker';
-import { getQueueStatus } from '@/lib/queue-manager';
+import { auth } from '@clerk/nextjs/server';
+import { env } from '@/lib/config';
+
+/**
+ * /api/queue/progress/route.ts
+ * Proxy endpoint to fetch real-time analysis progress from the backend.
+ * Ensures the frontend only communicates with Vercel, which then talks to the backend.
+ */
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
     try {
+        // 1. Authenticate Request
+        const { userId, getToken } = await auth();
+        if (!userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        // 2. Extract Session ID
         const searchParams = request.nextUrl.searchParams;
         const sessionId = searchParams.get('sessionId');
 
         if (!sessionId) {
-            return NextResponse.json(
-                { error: 'Session ID is required' },
-                { status: 400 }
-            );
+            return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
         }
 
-        // Get queue status to know if we are processing
-        const queueStatus = await getQueueStatus(sessionId);
-
-        if (!queueStatus) {
-            return NextResponse.json(
-                { error: 'Session not found' },
-                { status: 404 }
-            );
+        // 3. Get Auth Token for Backend
+        const token = await getToken();
+        if (!token) {
+            return NextResponse.json({ error: 'Backend token unavailable' }, { status: 401 });
         }
 
-        // Get detailed progress
-        const progress = await getSessionProgress(sessionId);
+        // 4. Proxy to Backend
+        const backendUrl = env.api.backendUrl;
+        const progressUrl = `${backendUrl}/api/queue/progress?sessionId=${sessionId}`;
 
-        return NextResponse.json({
-            sessionId,
-            status: queueStatus.status,
-            position: queueStatus.position,
-            estimatedWaitSeconds: queueStatus.estimatedWaitSeconds,
-            progress: progress || {
-                currentStep: 0,
-                totalSteps: 10,
-                percentage: 0,
-                steps: [],
-                lastUpdate: new Date().toISOString(),
-                liveMessage: 'Waiting in queue...'
-            }
+        const backendResponse = await fetch(progressUrl, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+            // Cache must be disabled for real-time progress
+            cache: 'no-store',
         });
 
+        if (!backendResponse.ok) {
+            const errorText = await backendResponse.text();
+            return NextResponse.json(
+                { error: `Backend error: ${backendResponse.status}`, details: errorText },
+                { status: backendResponse.status }
+            );
+        }
+
+        const data = await backendResponse.json();
+        return NextResponse.json(data);
+
     } catch (error) {
-        console.error('Progress fetch failed:', error);
+        console.error('Queue progress proxy failed:', error);
         return NextResponse.json(
-            { error: 'Internal server error' },
+            { error: 'Internal server error while fetching progress' },
             { status: 500 }
         );
     }

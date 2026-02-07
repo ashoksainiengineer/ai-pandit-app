@@ -1,3 +1,5 @@
+import 'dotenv/config';
+
 /**
  * 🔱 AI-Pandit BTR Engine Server
  * ===============================
@@ -8,10 +10,6 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
-
-// Load environment variables first (before config import)
-dotenv.config();
 
 // Configuration (validates on import)
 import { config, serverConfig } from './config/index.js';
