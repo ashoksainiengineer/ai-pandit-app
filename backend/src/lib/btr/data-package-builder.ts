@@ -252,26 +252,34 @@ function buildVargaData(ephemeris: any) {
 
   for (const varga of vargaNames) {
     const chart = ephemeris.divisionalCharts?.[varga];
-    if (!chart) continue;
+    if (!chart || !chart.ascendant || !chart.planets) {
+      logger.warn(`[VARGA] Missing or incomplete chart data for ${varga}`);
+      continue;
+    }
 
-    vargaDegrees[varga] = {
-      Ascendant: `${chart.ascendant.sign} ${chart.ascendant.degree.toFixed(2)}°`
-    };
+    try {
+      vargaDegrees[varga] = {
+        Ascendant: `${chart.ascendant.sign || 'Unknown'} ${(chart.ascendant.degree || 0).toFixed(2)}°`
+      };
 
-    for (const [pName, pPos] of Object.entries(chart.planets) as [string, any][]) {
-      vargaDegrees[varga][capitalizeFirstLetter(pName)] = `${pPos.sign} ${pPos.degree.toFixed(2)}°`;
+      for (const [pName, pPos] of Object.entries(chart.planets) as [string, any][]) {
+        if (!pPos) continue;
+        vargaDegrees[varga][capitalizeFirstLetter(pName)] = `${pPos.sign || 'Unknown'} ${(pPos.degree || 0).toFixed(2)}°`;
 
-      if (varga === 'D60') {
-        // Calculate D60 deity based on planet's D60 longitude
-        const signIndex = ZODIAC_SIGNS.indexOf(pPos.sign);
-        const d60Longitude = pPos.degree + (signIndex * 30);
-        const deity = getD60Deity(d60Longitude);
-        d60Planets[capitalizeFirstLetter(pName)] = {
-          sign: pPos.sign,
-          degree: pPos.degree.toFixed(2) + '°',
-          deity: deity || 'Unknown' // Correctly populate the deity
-        };
+        if (varga === 'D60') {
+          // Calculate D60 deity based on planet's D60 longitude
+          const signIndex = ZODIAC_SIGNS.indexOf(pPos.sign);
+          const d60Longitude = (pPos.degree || 0) + (signIndex * 30);
+          const deity = getD60Deity(d60Longitude);
+          d60Planets[capitalizeFirstLetter(pName)] = {
+            sign: pPos.sign || 'Unknown',
+            degree: (pPos.degree || 0).toFixed(2) + '°',
+            deity: deity || 'Unknown'
+          };
+        }
       }
+    } catch (err) {
+      logger.error(`[VARGA] Failed to build varga data for ${varga}:`, err);
     }
   }
 
