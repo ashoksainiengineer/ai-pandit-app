@@ -107,9 +107,10 @@ function RectifyPageContent() {
     const [offsetConfig, setOffsetConfig] = useState<TimeOffsetConfig>({ preset: '1hour', customMinutes: 60, description: '±1 hour' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { getToken } = useAuth();
+    const { getToken, userId } = useAuth();
     const [draftSessionId, setDraftSessionId] = useState<string | null>(null);
     const [cloudSaveStatus, setCloudSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+    const [lastSavedData, setLastSavedData] = useState<string>('');
 
     const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
     const [maxUnlockedStep, setMaxUnlockedStep] = useState(1);
@@ -170,7 +171,12 @@ function RectifyPageContent() {
             const token = await getToken();
             const payload = { birthData, lifeEvents, forensicTraits, spouseData, offsetConfig };
 
-            const response = await fetch(`/api/sessions/${draftSessionId}/submit`, {
+            // If we have a draft session, submit it. Otherwise create new and submit.
+            const submitUrl = draftSessionId
+                ? `/api/sessions/${draftSessionId}/submit`
+                : '/api/calculate';
+
+            const response = await fetch(submitUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(payload)
@@ -183,7 +189,10 @@ function RectifyPageContent() {
 
             const result = await response.json();
             localStorage.removeItem('btr_draft_id');
-            router.push(`/rectify/${result.data.sessionId}/results`);
+            
+            // Navigate to analysis page (not results)
+            const sessionId = result.data?.sessionId || result.sessionId || draftSessionId;
+            router.push(`/rectify/${sessionId}`);
 
         } catch (err: any) {
             setError(err.message || 'An unexpected error occurred. Please try again.');
@@ -219,6 +228,101 @@ function RectifyPageContent() {
         return () => clearTimeout(timer);
     }, []);
 
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // AUTO-SAVE: Save draft to database every 5 seconds when data changes
+    // ═══════════════════════════════════════════════════════════════════════════════
+    useEffect(() => {
+        // Only save if user has entered meaningful data (at least name)
+        if (!birthData.fullName || birthData.fullName.trim().length < 2) return;
+        if (!userId) return; // Must be logged in
+
+        const currentData = JSON.stringify({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig });
+        
+        // Don't save if data hasn't changed from last save
+        if (currentData === lastSavedData) return;
+
+        const saveDraft = async () => {
+            setCloudSaveStatus('saving');
+            try {
+                const token = await getToken();
+                const payload = { birthData, lifeEvents, forensicTraits, spouseData, offsetConfig };
+
+                // If we don't have a draft session ID yet, create one
+                if (!draftSessionId) {
+                    const createRes = await fetch('/api/drafts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify(payload)
+                    });
+                    if (createRes.ok) {
+                        const result = await createRes.json();
+                        setDraftSessionId(result.sessionId);
+                        localStorage.setItem('btr_draft_id', result.sessionId);
+                    }
+                } else {
+                    // Update existing draft
+                    await fetch('/api/drafts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ ...payload, sessionId: draftSessionId })
+                    });
+                }
+                
+                setLastSavedData(currentData);
+                setCloudSaveStatus('saved');
+                setTimeout(() => setCloudSaveStatus('idle'), 2000);
+            } catch (err) {
+                console.error('Auto-save failed:', err);
+                setCloudSaveStatus('error');
+            }
+        };
+
+        // 5 second debounce - save after user stops typing for 5 seconds
+        const timer = setTimeout(saveDraft, 5000);
+        return () => clearTimeout(timer);
+    }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, draftSessionId, userId, getToken, lastSavedData]);
+
+    // Load existing draft on mount
+    useEffect(() => {
+        const loadDraft = async () => {
+            const savedDraftId = localStorage.getItem('btr_draft_id');
+            if (!savedDraftId || !userId) return;
+
+            try {
+                const token = await getToken();
+                const res = await fetch(`/api/sessions/${savedDraftId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    const result = await res.json();
+                    if (result.success && result.data) {
+                        // Only load if it's actually a draft (not submitted)
+                        if (result.data.status === 'draft') {
+                            setDraftSessionId(savedDraftId);
+                            if (result.data.birthData) setBirthData(result.data.birthData);
+                            if (result.data.lifeEvents?.length) setLifeEvents(result.data.lifeEvents);
+                            if (result.data.forensicTraits) setForensicTraits(result.data.forensicTraits);
+                            if (result.data.spouseData) setSpouseData(result.data.spouseData);
+                            if (result.data.offsetConfig) setOffsetConfig(result.data.offsetConfig);
+                            setLastSavedData(JSON.stringify({
+                                birthData: result.data.birthData,
+                                lifeEvents: result.data.lifeEvents,
+                                forensicTraits: result.data.forensicTraits,
+                                spouseData: result.data.spouseData,
+                                offsetConfig: result.data.offsetConfig
+                            }));
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to load draft:', err);
+            }
+        };
+
+        loadDraft();
+    }, [userId, getToken]);
+
     if (isLoading) {
         return <RectifyPageSkeleton />;
     }
@@ -226,6 +330,32 @@ function RectifyPageContent() {
     return (
         <Layout hideFooter>
             <AnalysisErrorBoundary>
+                {/* Auto-save Status Indicator */}
+                <div className="fixed top-20 right-4 z-50">
+                    {cloudSaveStatus === 'saving' && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-full text-xs font-medium shadow-sm border border-blue-100">
+                            <div className="w-3 h-3 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                            Saving...
+                        </div>
+                    )}
+                    {cloudSaveStatus === 'saved' && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-600 rounded-full text-xs font-medium shadow-sm border border-green-100">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                            Saved
+                        </div>
+                    )}
+                    {cloudSaveStatus === 'error' && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 text-red-600 rounded-full text-xs font-medium shadow-sm border border-red-100">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                            </svg>
+                            Save failed
+                        </div>
+                    )}
+                </div>
+                
                 {/* The rest of the JSX content */}
                 <div className="pt-28 pb-16">
                     {/* Progress Indicator and other UI elements */}

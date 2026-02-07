@@ -53,8 +53,9 @@ export async function GET(
         return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    if (session[0].userId !== userId) {
-        console.warn(`User ${userId} attempted to access session ${sessionId} owned by ${session[0].userId}`);
+    // Compare clerkId (external Clerk user ID) instead of userId (internal DB UUID)
+    if (session[0].clerkId !== userId) {
+        console.warn(`User ${userId} attempted to access session ${sessionId} owned by clerkId ${session[0].clerkId}`);
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

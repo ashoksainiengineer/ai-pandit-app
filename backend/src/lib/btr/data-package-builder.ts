@@ -263,7 +263,7 @@ function buildVargaData(ephemeris: any) {
       };
 
       for (const [pName, pPos] of Object.entries(chart.planets) as [string, any][]) {
-        if (!pPos) continue;
+        if (!pPos || !pPos.sign) continue;
         vargaDegrees[varga][capitalizeFirstLetter(pName)] = `${pPos.sign || 'Unknown'} ${(pPos.degree || 0).toFixed(2)}°`;
 
         if (varga === 'D60') {
