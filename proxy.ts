@@ -5,22 +5,22 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
 const isPublicRoute = createRouteMatcher([
-    '/', // The landing page is accessible to everyone.
-    '/sign-in(.*)', // All sign-in related pages.
-    '/sign-up(.*)', // All sign-up related pages.
-    '/api/health', // A public endpoint for health checks.
-    '/api/ping' // A public endpoint for ping checks.
+  '/', // The landing page is accessible to everyone.
+  '/sign-in(.*)', // All sign-in related pages.
+  '/sign-up(.*)', // All sign-up related pages.
+  '/api/health', // A public endpoint for health checks.
+  '/api/ping' // A public endpoint for ping checks.
 ]);
 
 const isIgnoredRoute = createRouteMatcher([
-    '/api/webhooks/clerk' // Clerk webhook for user management.
+  '/api/webhooks/clerk' // Clerk webhook for user management.
 ]);
 
-export default clerkMiddleware((auth, req) => {
+export const proxy = clerkMiddleware((auth, req) => {
   if (isPublicRoute(req) || isIgnoredRoute(req)) {
     return NextResponse.next();
   }
-  auth().protect();
+  auth.protect();
 
   const headers = new Headers(req.headers);
 
@@ -49,10 +49,11 @@ export default clerkMiddleware((auth, req) => {
 });
 
 export const config = {
-    // The following matcher runs middleware on all routes
-    // except for static files and Next.js-specific assets (_next).
-    matcher: [
-        '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-        '/(api|trpc)(.*)',
-    ],
+  // The following matcher runs middleware on all routes
+  // except for static files and Next.js-specific assets (_next).
+  matcher: [
+    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
+    '/(api|trpc)(.*)',
+  ],
 };
+export default proxy;

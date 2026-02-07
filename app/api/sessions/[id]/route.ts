@@ -7,7 +7,7 @@ import { auth } from '@clerk/nextjs/server';
 import { db, client } from '@/database/drizzle';
 import { sessions } from '@/database/schema';
 import { eq } from 'drizzle-orm';
-import { decrypt, encryptObject, isEncrypted, initializeEncryption, decryptObject } from '@/lib/crypto';
+import { decrypt, encrypt, encryptObject, isEncrypted, initializeEncryption, decryptObject } from '@/lib/crypto';
 import { logAuditEvent, getRequestMetadata } from '@/lib/audit';
 import { LifeEvent, ForensicTraits, SpouseData, TimeOffsetConfig, BirthData } from '@/lib/types';
 
@@ -25,33 +25,33 @@ const safeJsonParse = <T>(jsonString: string | null | undefined, fallback: T): T
 };
 
 const safeDecrypt = (data: string | null | undefined): string | null => {
-    if (!data || !isEncrypted(data)) return data;
-    try {
-        return decrypt(data);
-    } catch (error) {
-        console.error('Decryption failed:', error);
-        return null;
-    }
+  if (!data || !isEncrypted(data)) return data;
+  try {
+    return decrypt(data);
+  } catch (error) {
+    console.error('Decryption failed:', error);
+    return null;
+  }
 };
 
 const safeDecryptObject = <T>(data: string | null | undefined, fallback: T): T => {
-    if (!data) return fallback;
-    try {
-        // Assuming data is an encrypted JSON string
-        return decryptObject(data) as T;
-    } catch (error) {
-        console.error('Decryption failed for object:', error);
-        return fallback;
-    }
+  if (!data) return fallback;
+  try {
+    // Assuming data is an encrypted JSON string
+    return decryptObject(data) as T;
+  } catch (error) {
+    console.error('Decryption failed for object:', error);
+    return fallback;
+  }
 };
 
 // GET: Fetch session data
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { ipAddress, userAgent } = getRequestMetadata(request);
-  const { id: sessionId } = params;
+  const { id: sessionId } = await params;
 
   try {
     const { userId: clerkId } = await auth();
@@ -73,13 +73,13 @@ export async function GET(
 
     const fullName = safeDecrypt(s.fullName);
     if (fullName === null) {
-        await logAuditEvent({ userId: clerkId, action: 'DECRYPTION_FAILED', resourceType: 'SESSION', resourceId: sessionId, details: { field: 'fullName' } });
+      await logAuditEvent({ userId: clerkId, action: 'DECRYPTION_FAILED', resourceType: 'SESSION', resourceId: sessionId, details: { field: 'fullName' } });
     }
 
     const lifeEvents = safeDecryptObject<LifeEvent[]>(s.lifeEvents, []);
     const forensicTraits = safeDecryptObject<ForensicTraits>(s.forensicTraits, {} as ForensicTraits);
     const spouseData = safeDecryptObject<SpouseData | null>(s.spouseData, null);
-    
+
     const birthData: BirthData = {
       fullName: fullName || '',
       dateOfBirth: s.dateOfBirth || '',
@@ -102,7 +102,7 @@ export async function GET(
       updatedAt: s.updatedAt,
       createdAt: s.createdAt,
     };
-    
+
     // NOTE: Logging every view event is too expensive for the free tier.
     // await logAuditEvent({ userId: clerkId, action: 'SESSION_VIEWED', resourceType: 'SESSION', resourceId: sessionId, ipAddress, userAgent });
     return NextResponse.json({ success: true, data: decryptedData });
@@ -117,10 +117,10 @@ export async function GET(
 // PUT: Update session
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { ipAddress, userAgent } = getRequestMetadata(request);
-  const { id: sessionId } = params;
+  const { id: sessionId } = await params;
 
   try {
     const { userId: clerkId } = await auth();
@@ -168,10 +168,10 @@ export async function PUT(
 // DELETE: Delete session
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { ipAddress, userAgent } = getRequestMetadata(request);
-  const { id: sessionId } = params;
+  const { id: sessionId } = await params;
 
   try {
     const { userId: clerkId } = await auth();
@@ -195,7 +195,7 @@ export async function DELETE(
     await client.execute({ sql: 'DELETE FROM calculations WHERE sessionId = ?', args: [sessionId] });
     await client.execute({ sql: 'DELETE FROM auditLogs WHERE resourceId = ?', args: [sessionId] });
     await db.delete(sessions).where(eq(sessions.id, sessionId));
-    
+
     await logAuditEvent({ userId: clerkId, action: 'SESSION_DELETED', resourceType: 'SESSION', resourceId: sessionId, ipAddress, userAgent });
 
     return NextResponse.json({ success: true, message: 'Session and all related data deleted' });

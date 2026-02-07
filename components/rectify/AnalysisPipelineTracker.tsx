@@ -122,9 +122,8 @@ const StageStep = memo(function StageStep({
                     </span>
                     {isAI && (
                         <span
-                            className={`text-[8px] sm:text-[9px] px-1 py-0.5 rounded-full ${
-                                isActive ? 'bg-[#6B1F7A] text-white' : 'bg-[#6B1F7A]/10 text-[#6B1F7A]'
-                            }`}
+                            className={`text-[8px] sm:text-[9px] px-1 py-0.5 rounded-full ${isActive ? 'bg-[#6B1F7A] text-white' : 'bg-[#6B1F7A]/10 text-[#6B1F7A]'
+                                }`}
                         >
                             AI
                         </span>
@@ -132,9 +131,8 @@ const StageStep = memo(function StageStep({
                 </div>
 
                 <div
-                    className={`text-[10px] sm:text-xs font-semibold truncate mb-1 sm:mb-2 ${
-                        isActive ? 'text-[#1A1612]' : 'text-[#7A756F]'
-                    }`}
+                    className={`text-[10px] sm:text-xs font-semibold truncate mb-1 sm:mb-2 ${isActive ? 'text-[#1A1612]' : 'text-[#7A756F]'
+                        }`}
                     title={step.name}
                 >
                     {step.name}

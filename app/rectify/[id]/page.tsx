@@ -13,7 +13,7 @@ import {
     Home, LayoutDashboard, AlertCircle, Settings, Gem,
     CheckCircle, XCircle, RefreshCw, Download, Share2
 } from 'lucide-react';
-import { useStreamProgress, StreamState, CandidateScore, StreamStep, StageStat, AIThinking } from '@/lib/use-stream-progress-fixed';
+import { useStreamProgress, StreamState, CandidateScore, StreamStep, StageStat, AIThinking } from '@/lib/use-stream-progress';
 import { logger } from '@/lib/secure-logger';
 import { AnalysisErrorBoundary, SectionErrorBoundary } from '@/components/rectify/AnalysisErrorBoundary';
 import AdvancedSignalsDashboard from '@/components/rectify/advanced-signals/AdvancedSignalsDashboard';

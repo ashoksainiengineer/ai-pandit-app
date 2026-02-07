@@ -251,7 +251,7 @@ function LevelSection({
                                             <div
                                                 style={{ width: `${c.score}%` }}
                                                 className={`h-full rounded-full ${c.score > 80 ? 'bg-emerald-600' :
-                                                        c.score > 50 ? 'bg-orange-600' : 'bg-red-600'
+                                                    c.score > 50 ? 'bg-orange-600' : 'bg-red-600'
                                                     }`}
                                             />
                                         </div>

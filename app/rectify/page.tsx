@@ -191,8 +191,33 @@ function RectifyPageContent() {
         }
     };
 
-    // Other hooks and functions remain the same...
-    // ...
+    // Wrapper functions for child components
+    const updateBirthData = useCallback((updates: Partial<BirthData>) => {
+        setBirthData(prev => ({ ...prev, ...updates }));
+    }, []);
+
+    const updateForensicTraits = useCallback((updates: Partial<ForensicTraits>) => {
+        setForensicTraits(prev => ({ ...prev, ...updates }));
+    }, []);
+
+    const updateSpouseData = useCallback((updates: Partial<SpouseData>) => {
+        setSpouseData(prev => ({ ...prev, ...updates }));
+    }, []);
+
+    const handleBack = useCallback(() => {
+        if (step > 1) {
+            setStep(step - 1);
+            setError(null);
+            window.scrollTo(0, 0);
+        }
+    }, [step]);
+
+    // Loading state
+    useEffect(() => {
+        // Simplified loading - just set to false after a brief delay
+        const timer = setTimeout(() => setIsLoading(false), 100);
+        return () => clearTimeout(timer);
+    }, []);
 
     if (isLoading) {
         return <RectifyPageSkeleton />;
@@ -202,13 +227,13 @@ function RectifyPageContent() {
         <Layout hideFooter>
             <AnalysisErrorBoundary>
                 {/* The rest of the JSX content */}
-                 <div className="pt-28 pb-16">
+                <div className="pt-28 pb-16">
                     {/* Progress Indicator and other UI elements */}
                     <div className="min-h-[400px]">
-                        {step === 1 && <Step1BirthDetails data={birthData} updateData={setBirthData} offsetConfig={offsetConfig} updateOffset={setOffsetConfig} spouseData={spouseData} updateSpouse={setSpouseData} />}
-                        {step === 2 && <Step2ForensicTraits traits={forensicTraits} updateTraits={setForensicTraits} gender={birthData.gender as Gender} />}
+                        {step === 1 && <Step1BirthDetails data={birthData} updateData={updateBirthData} offsetConfig={offsetConfig} updateOffset={setOffsetConfig} spouseData={spouseData} updateSpouse={updateSpouseData} />}
+                        {step === 2 && <Step2ForensicTraits traits={forensicTraits} updateTraits={updateForensicTraits} gender={birthData.gender as Gender} />}
                         {step === 3 && <Step3LifeEvents lifeEvents={lifeEvents} updateEvents={setLifeEvents} offsetConfig={offsetConfig} />}
-                        {step === 4 && <Step4Review data={birthData} events={lifeEvents} forensicTraits={forensicTraits} onSubmit={handleSubmit} isSubmitting={isSubmitting} onEdit={setStep} offsetConfig={offsetConfig} />}
+                        {step === 4 && <Step4Review data={birthData} events={lifeEvents} traits={forensicTraits.physical} forensicTraits={forensicTraits} onSubmit={handleSubmit} isSubmitting={isSubmitting} onEdit={setStep} offsetConfig={offsetConfig} />}
                     </div>
                     <div className="flex justify-between items-center mt-12 pt-6 border-t border-[#F0E8DE]">
                         <button onClick={handleBack} disabled={step === 1} className={`px-6 py-3 rounded-xl font-semibold transition-colors ${step === 1 ? 'opacity-0' : 'border-2 border-[#B8860B]/50 text-[#B8860B] hover:bg-[#B8860B]/10'}`}>← Back</button>

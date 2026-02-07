@@ -85,7 +85,7 @@ function StageTable({ stage, candidateScores, onSelectCandidate }: {
                         <div className="relative">
                             <select
                                 value={settings.showCount}
-                                onChange={(e) => setSettings(prev => ({ ...prev, showCount: e.target.value === 'All' ? 'All' : parseInt(e.target.value) }))}
+                                onChange={(e) => setSettings(prev => ({ ...prev, showCount: e.target.value === 'All' ? 'All' as const : parseInt(e.target.value) as 5 | 10 | 20 }))}
                                 className="appearance-none bg-[#FDF8F3] border border-[#F0E8DE] rounded-lg px-2 py-1 text-[10px] text-[#7A756F] cursor-pointer hover:border-[#D4AF37]/50 transition-colors pr-6"
                             >
                                 {SHOW_OPTIONS.map(opt => <option key={opt} value={opt}>Top {opt}</option>)}

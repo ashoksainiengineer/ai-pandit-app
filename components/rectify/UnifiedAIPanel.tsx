@@ -250,11 +250,120 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
         );
     }
 
-    // Accordion mode
+    // Accordion mode - collapsible stages
     return (
-        <div className="space-y-4">
+        <div className="space-y-3" role="region" aria-labelledby={`${panelId}-accordion-title`}>
+            <h2 id={`${panelId}-accordion-title`} className="sr-only">
+                AI Analysis Stages
+            </h2>
             {STAGES.map((stageConfig) => {
-                // ... Accordion rendering logic ...
+                const isExpanded = expandedStages.includes(stageConfig.id);
+                const stageContent = stageHistory?.get(stageConfig.id);
+                const isCurrentStage = stageConfig.id === currentStage;
+                const stageCandidates = groupedCandidates.get(stageConfig.id) || [];
+                const hasContent = !!stageContent || (isCurrentStage && thinking);
+
+                return (
+                    <motion.div
+                        key={stageConfig.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`rounded-xl border overflow-hidden transition-all ${isCurrentStage
+                                ? 'border-[#B8860B]/50 bg-white shadow-lg'
+                                : 'border-[#F0E8DE] bg-[#FEFDFB]'
+                            }`}
+                    >
+                        {/* Accordion Header */}
+                        <button
+                            onClick={() => toggleStage(stageConfig.id)}
+                            className={`w-full flex items-center justify-between p-3 sm:p-4 transition-colors ${isCurrentStage ? 'bg-[#B8860B]/5' : 'hover:bg-[#FDF8F3]'
+                                }`}
+                            aria-expanded={isExpanded}
+                            aria-controls={`${panelId}-stage-${stageConfig.id}-content`}
+                        >
+                            <div className="flex items-center gap-2 sm:gap-3">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isCurrentStage
+                                        ? 'bg-[#B8860B]/20 text-[#B8860B]'
+                                        : hasContent
+                                            ? 'bg-[#2D7A5C]/10 text-[#2D7A5C]'
+                                            : 'bg-[#F0E8DE] text-[#A8A39D]'
+                                    }`}>
+                                    {stageConfig.id === 2 && <Users className="w-4 h-4" />}
+                                    {stageConfig.id === 4 && <Activity className="w-4 h-4" />}
+                                    {stageConfig.id === 6 && <Zap className="w-4 h-4" />}
+                                </div>
+                                <div className="text-left">
+                                    <p className={`font-medium text-sm ${isCurrentStage ? 'text-[#B8860B]' : 'text-[#1A1612]'
+                                        }`}>
+                                        Stage {stageConfig.id}: {stageConfig.name}
+                                    </p>
+                                    <p className="text-xs text-[#A8A39D]">
+                                        {stageCandidates.length} candidates • {stageConfig.accuracy}
+                                    </p>
+                                </div>
+                                {isCurrentStage && isActive && (
+                                    <span className="ml-2 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-[#B8860B] text-white rounded-full animate-pulse">
+                                        Live
+                                    </span>
+                                )}
+                            </div>
+                            {isExpanded ? (
+                                <ChevronUp className="w-5 h-5 text-[#A8A39D]" />
+                            ) : (
+                                <ChevronDown className="w-5 h-5 text-[#A8A39D]" />
+                            )}
+                        </button>
+
+                        {/* Accordion Content */}
+                        <AnimatePresence>
+                            {isExpanded && (
+                                <motion.div
+                                    id={`${panelId}-stage-${stageConfig.id}-content`}
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: 'auto', opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="p-3 sm:p-4 border-t border-[#F0E8DE]">
+                                        {/* Candidate tabs if multiple */}
+                                        {stageCandidates.length > 1 && (
+                                            <div className="flex flex-wrap gap-1.5 mb-3 pb-3 border-b border-[#F0E8DE]">
+                                                {stageCandidates.map((candidate) => (
+                                                    <CandidateTabButton
+                                                        key={candidate.candidateTime}
+                                                        time={candidate.candidateTime || ''}
+                                                        isSelected={effectiveDisplayedCandidate === candidate.candidateTime}
+                                                        isLive={isStreaming(candidate.candidateTime || '')}
+                                                        onClick={() => handleCandidateClick(candidate.candidateTime || '')}
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* Content display */}
+                                        <div className="font-mono text-xs sm:text-sm text-[#4A453F] leading-relaxed max-h-[300px] overflow-y-auto custom-scrollbar">
+                                            {stageContent ? (
+                                                formatStructuredSections(stageContent)
+                                            ) : isCurrentStage && thinking ? (
+                                                <>
+                                                    {formatStructuredSections(thinking.fullText)}
+                                                    {isActive && (
+                                                        <span className="inline-block w-1.5 h-4 bg-[#B8860B] animate-pulse ml-1" />
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <p className="text-[#A8A39D] italic text-center py-4">
+                                                    Waiting for analysis to reach this stage...
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </motion.div>
+                );
             })}
         </div>
     );

@@ -27,7 +27,14 @@ export async function logAuditEvent(data: AuditLogData): Promise<void> {
     await db.insert(auditLogs).values({
       id: newAuditLogId,
       createdAt: new Date().toISOString(),
-      ...data,
+      userId: data.userId || 'system',  // Default to 'system' if no user
+      userRole: 'user',  // Default role
+      resource: data.resourceType || 'unknown',  // Map resourceType to resource
+      resourceId: data.resourceId,
+      ipAddress: data.ipAddress,
+      userAgent: data.userAgent,
+      action: data.action,
+      newValues: data.details ? JSON.stringify(data.details) : null,
     });
   } catch (error) {
     console.error('FATAL: Failed to write to audit log!', {
@@ -44,7 +51,7 @@ export async function logAuditEvent(data: AuditLogData): Promise<void> {
  * @returns An object containing the IP address and user agent.
  */
 export function getRequestMetadata(request: NextRequest) {
-    const ip = request.ip || request.headers.get('x-forwarded-for') || 'unknown';
-    const userAgent = request.headers.get('user-agent') || 'unknown';
-    return { ipAddress: ip, userAgent };
+  const ip = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
+  const userAgent = request.headers.get('user-agent') || 'unknown';
+  return { ipAddress: ip, userAgent };
 }
