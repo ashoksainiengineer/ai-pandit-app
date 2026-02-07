@@ -33,7 +33,11 @@ export function buildVimshottariDasha(
 
   const vimDashas = calculateVimshottariDasha(moonLongitude, birthDate, dashaDepth);
   const pruningWindowMs = pranaWindowDays * DAY_MS;
-  const minDate = Math.min(...eventDates, now) - (365 * DAY_MS);
+  
+  // Fix: Handle empty or invalid eventDates array
+  const validEventDates = eventDates.filter(d => typeof d === 'number' && !isNaN(d));
+  const referenceDate = validEventDates.length > 0 ? Math.min(...validEventDates) : now;
+  const minDate = referenceDate - (365 * DAY_MS);
 
   // Used for pruning logic but not extensively used in calculation here
   // const maxDate = Math.max(...eventDates, now) + (365 * DAY_MS);

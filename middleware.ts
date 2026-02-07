@@ -28,13 +28,15 @@ export default clerkMiddleware(async (auth, req) => {
 
   const headers = new Headers(req.headers);
 
-  // Add Content Security Policy
+  // Add Content Security Policy - PRODUCTION SAFE
   const csp = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval';
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' data:;
-    font-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://vercel.live https://*.vercel.app;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    img-src 'self' data: https://*.clerk.com https://*.vercel.app;
+    font-src 'self' https://fonts.gstatic.com;
+    connect-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://openrouter.ai https://*.huggingface.co https://*.hf.space https://vercel.live https://*.vercel.app;
+    frame-src 'self' https://*.clerk.com;
     object-src 'none';
     frame-ancestors 'none';
     form-action 'self';
