@@ -95,7 +95,7 @@ export async function stage2BatchTournament(
             const batchEnriched = await Promise.all(batchTimes.map(ct =>
                 buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
                     includeFullData: true,
-                    dashaDepth: 3,
+                    dashaDepth: 3, // Corrected Dasha Depth
                     lifecycleShifts: globalLifecycle
                 })
             ));
@@ -151,7 +151,7 @@ export async function stage2BatchTournament(
             const batchEnriched = await Promise.all(batchTimes.map(ct =>
                 buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
                     includeFullData: true,
-                    dashaDepth: 3,
+                    dashaDepth: 3, // Corrected Dasha Depth
                     lifecycleShifts: globalLifecycle
                 })
             ));

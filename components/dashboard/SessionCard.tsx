@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { DashboardSession } from '@/lib/dashboard/types';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
+import { ClientOnly } from '@/components/ui/ClientOnly';
 
 interface SessionCardProps {
   session: DashboardSession;
@@ -412,7 +413,9 @@ export function SessionCard({
           <div className="text-[10px] uppercase tracking-wider text-[#A8A39D] mb-0.5">Last Updated</div>
           <div>{formattedDate}</div>
           <div className="text-[10px] text-[#B8860B] mt-0.5">
-            {new Date(session.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            <ClientOnly>
+                {new Date(session.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+            </ClientOnly>
           </div>
         </div>
       </Link>

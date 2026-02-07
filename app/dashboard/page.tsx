@@ -9,10 +9,24 @@ import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/database/drizzle';
 import { sessions, users } from '@/database/schema';
 import { eq, desc } from 'drizzle-orm';
-import { safeDecrypt, safeDecryptWithFallback } from '@/lib/encryption';
+import { decrypt, isEncrypted, initializeEncryption } from '@/lib/crypto';
 import { DashboardSession } from '@/lib/dashboard/types';
 import { DashboardClient } from './DashboardClient';
 import Layout from '@/components/Layout';
+
+// Initialize encryption with the secret from environment variables.
+initializeEncryption(process.env.ENCRYPTION_SECRET);
+
+// Helper to safely decrypt data, returning a fallback string on failure.
+const safeDecrypt = (data: string | null | undefined, fallback = 'Decryption Failed'): string => {
+    if (!data || !isEncrypted(data)) return data || fallback;
+    try {
+        return decrypt(data);
+    } catch (error) {
+        console.error('Dashboard decryption failed:', error);
+        return fallback;
+    }
+};
 
 // Loading skeleton for the dashboard
 function DashboardSkeleton() {
@@ -74,7 +88,7 @@ async function getUserSessions(clerkId: string, clerkUser?: any): Promise<Dashbo
         id: newUserId,
         clerkId: clerkId,
         email: email,
-        fullName: fullName,
+        fullName: fullName, // Note: This is plaintext, as per schema design for users table
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
@@ -96,7 +110,7 @@ async function getUserSessions(clerkId: string, clerkUser?: any): Promise<Dashbo
         id: s.id,
         userId: s.userId,
         status: s.status as DashboardSession['status'],
-        fullName: safeDecryptWithFallback(s.fullName, clerkId, s.userId) || 'Unencryptable Session',
+        fullName: safeDecrypt(s.fullName, 'Unencryptable Session'),
         dateOfBirth: s.dateOfBirth,
         tentativeTime: s.tentativeTime,
         birthPlace: s.birthPlace,
@@ -124,7 +138,7 @@ async function getUserSessions(clerkId: string, clerkUser?: any): Promise<Dashbo
         });
         userSessions = rawResult.rows.map((s: any) => ({
           ...s,
-          fullName: safeDecryptWithFallback(s.fullName, clerkId, s.userId) || 'Unencryptable Session',
+          fullName: safeDecrypt(s.fullName, 'Unencryptable Session'),
           isFavorite: false,
           tags: [],
           status: s.status || 'pending',

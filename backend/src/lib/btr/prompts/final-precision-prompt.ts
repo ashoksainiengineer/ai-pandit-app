@@ -83,7 +83,7 @@ ${shuffledCandidates.map((c, i) => `
 ┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
 ├ PANCHANGA: ${c.panchanga?.tithi} | ${c.panchanga?.vara}
 ├ ARUDHAS: AL=${c.specialPoints?.AL.sign} | UL=${c.specialPoints?.UL.sign}
-├ HOUSE LORDS: 1=${c.houseLords[1]} | 2=${c.houseLords[2]} | 3=${c.houseLords[3]} | 4=${c.houseLords[4]} | 5=${c.houseLords[5]} | 6=${c.houseLords[6]} | 7=${c.houseLords[7]} | 8=${c.houseLords[8]} | 9=${c.houseLords[9]} | 10=${c.houseLords[10]} | 11=${c.houseLords[11]} | 12=${c.houseLords[12]}
+├ HOUSE LORDS: ${[...Array(12)].map((_, i) => `${i + 1}=${c.houseLords[i + 1]}`).join(' | ')}
 ├ D60 (Karma Lagna): ${c.d60Sign || 'N/A'}
 ├ PLANETARY STRENGTH MATRIX (Full Forensic Data):
 ${Object.entries(c.planets).map(([name, p]) => {

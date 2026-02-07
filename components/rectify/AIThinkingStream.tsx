@@ -5,6 +5,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { sanitizeAIContent } from '../../lib/xss-sanitizer';
 
 interface AIThinkingStreamProps {
     thinking: {
@@ -28,7 +29,7 @@ export default function AIThinkingStream({ thinking, isActive, stage, analyzedCo
     // Smooth text append with auto-scroll and candidate switch handling
     useEffect(() => {
         const candidateTime = thinking?.candidateTime;
-        const fullText = thinking?.fullText;
+        const fullText = thinking?.fullText ? sanitizeAIContent(thinking.fullText) : '';
 
         if (!fullText) {
             setDisplayedText('');

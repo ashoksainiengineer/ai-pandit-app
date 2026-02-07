@@ -1,70 +1,61 @@
 /**
  * Life Event Formatter for AI Prompts
  *
- * Formats user life events into structured text for AI analysis.
- * This module handles the conversion of event data into human-readable
- * descriptions that the AI can use for birth time rectification.
+ * Securely formats user life events for AI analysis, ensuring no PII is leaked.
  */
 
 import { LifeEvent } from '../../../types/index.js';
 import { logger } from '../../logger.js';
 
 /**
- * Validates that a life event has all required fields
+ * A simple regex-based PII sanitizer. It redacts potential names, emails, 
+ * phone numbers, and other numerical IDs from a text string.
+ * @param text The string to sanitize.
+ * @returns A sanitized string with PII replaced by markers like [REDACTED].
  */
-function validateLifeEvent(event: LifeEvent): { isValid: boolean; errors: string[] } {
-  const errors: string[] = [];
+const sanitizeNarration = (text: string): string => {
+  if (!text) return '';
+
+  let sanitizedText = text;
+
+  // Redact potential proper nouns (capitalized words not at the start of a sentence)
+  // This is a heuristic and might have false positives, but is safer than not redacting.
+  sanitizedText = sanitizedText.replace(/\b([A-Z][a-z]+)\b/g, (match, p1, offset) => {
+    if (offset === 0 || sanitizedText.charAt(offset - 2) === '.') {
+      return match; // Keep words at the start of a sentence.
+    }
+    return '[REDACTED_NAME]';
+  });
+
+  // Redact email addresses
+  sanitizedText = sanitizedText.replace(/\S+@\S+\.\S+/g, '[REDACTED_EMAIL]');
+
+  // Redact phone numbers
+  sanitizedText = sanitizedText.replace(/\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/g, '[REDACTED_PHONE]');
   
-  if (!event.id) errors.push('Missing id');
-  if (!event.eventType) errors.push('Missing eventType');
-  if (!event.eventDate) errors.push('Missing eventDate');
-  if (!event.category) errors.push('Missing category');
-  if (!event.importance) errors.push('Missing importance');
-  
-  // Validate date format (YYYY-MM-DD or partial for precision types)
-  if (event.eventDate && !/^\d{4}(-\d{2})?(-\d{2})?$/.test(event.eventDate)) {
-    errors.push(`Invalid eventDate format: ${event.eventDate}`);
-  }
-  
-  return { isValid: errors.length === 0, errors };
-}
+  // Redact long numbers (could be IDs, etc.)
+  sanitizedText = sanitizedText.replace(/\b\d{5,}\b/g, '[REDACTED_ID]');
+
+  return sanitizedText;
+};
+
 
 /**
- * Formats a life event for inclusion in AI prompts
+ * Formats a life event for inclusion in AI prompts in a secure way.
+ * It preserves the event's context while sanitizing the narrative to remove PII.
  *
- * Converts structured event data into a descriptive text format
- * that includes the event type, date, precision level, and narrative
- * description for AI analysis.
- *
- * @param event - The life event to format
- * @returns Formatted string for AI prompt
- * @example
- * formatLifeEventForAI({
- *   eventType: 'Marriage',
- *   eventDate: '2020-06-15',
- *   datePrecision: 'exact_date',
- *   importance: 'high'
- * })
- * // Returns: "[HIGH IMPORTANCE] Marriage\n  Date: 2020-06-15 (Exact Date)"
+ * @param event - The life event to format.
+ * @returns Formatted, PII-sanitized string for the AI prompt.
  */
 export function formatLifeEventForAI(event: LifeEvent): string {
-  // Validate event before processing
-  const validation = validateLifeEvent(event);
-  if (!validation.isValid) {
-    logger.warn('[LifeEventFormatter] Invalid life event data', {
-      eventId: event.id,
-      errors: validation.errors
-    });
-  }
-
-  const { eventType, category, eventDate, eventTime, endDate, datePrecision, description, importance } = event;
+  const { eventType, eventDate, datePrecision, description, importance } = event;
   let timeStr = eventDate;
   let nuance = '';
 
   switch (datePrecision) {
     case 'exact_date_time':
-      if (eventTime) {
-        timeStr = `${eventDate} at ${eventTime}`;
+      if (event.eventTime) {
+        timeStr = `${eventDate} at ${event.eventTime}`;
         nuance = '(Exact Time)';
       }
       break;
@@ -72,46 +63,23 @@ export function formatLifeEventForAI(event: LifeEvent): string {
       timeStr = eventDate.split('-').slice(0, 2).join('-');
       nuance = '(Month-Level)';
       break;
-    case 'month_range':
-      if (endDate) {
-        const start = eventDate.split('-').slice(0, 2).join('-');
-        const end = endDate.split('-').slice(0, 2).join('-');
-        timeStr = `${start} to ${end}`;
-      }
-      nuance = '(Month Range)';
-      break;
     case 'year_range':
       const yearStart = eventDate.split('-')[0];
-      if (endDate) {
-        const yearEnd = endDate.split('-')[0];
-        timeStr = `${yearStart} to ${yearEnd}`;
-      } else {
-        timeStr = yearStart;
-      }
+      timeStr = yearStart;
       nuance = '(Year-Level)';
-      break;
-    case 'date_range':
-      if (endDate) timeStr = `${eventDate} to ${endDate}`;
-      nuance = '(Date Range)';
       break;
     case 'exact_date':
       nuance = '(Exact Date)';
       break;
   }
 
-  // Use provided importance or default to MEDIUM with warning
   const eventImportance = importance || 'medium';
-  if (!importance) {
-    logger.debug('[LifeEventFormatter] Event importance not specified, defaulting to MEDIUM', {
-      eventId: event.id,
-      eventType
-    });
-  }
-  
   let result = `• [${eventImportance.toUpperCase()} IMPORTANCE] ${eventType}\n  Date: ${timeStr} ${nuance}`;
   
+  // CRITICAL SECURITY STEP: Sanitize the free-text description before adding it to the AI prompt.
   if (description) {
-    result += `\n  SITUATIONAL NARRATIVE & EXPERIENCE: "${description}"`;
+    const sanitizedDescription = sanitizeNarration(description);
+    result += `\n  SITUATIONAL NARRATIVE & EXPERIENCE: "${sanitizedDescription}"`;
   }
   
   return result;

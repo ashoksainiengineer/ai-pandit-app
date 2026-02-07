@@ -3,20 +3,20 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/database/drizzle';
 import { sessions, users } from '@/database/schema';
 import { eq } from 'drizzle-orm';
-import { encryptData } from '@/lib/encryption';
+import { encrypt, encryptObject, initializeEncryption } from '@/lib/crypto';
 import { parsePaginationParams, createPaginationMeta } from '@/lib/pagination';
+import { logAuditEvent, getRequestMetadata } from '@/lib/audit';
+
+// Initialize encryption
+initializeEncryption(process.env.ENCRYPTION_SECRET);
 
 // ═════════════════════════════════════════════════════════════════════════════
 // DRAFT API - Save form data without starting analysis
 // ═════════════════════════════════════════════════════════════════════════════
 
-// Draft API - Save form data without starting analysis
-
-// ═════════════════════════════════════════════════════════════════════════════
-// POST: Save draft (without starting analysis)
-// ═════════════════════════════════════════════════════════════════════════════
-
 export async function POST(request: NextRequest) {
+    const { ipAddress, userAgent } = getRequestMetadata(request);
+
     try {
         const { userId: clerkId } = await auth();
         if (!clerkId) {
@@ -26,7 +26,6 @@ export async function POST(request: NextRequest) {
         const body = await request.json();
         const { birthData, lifeEvents, physicalTraits, forensicTraits, spouseData, offsetConfig, sessionId } = body;
 
-        // Validate minimum data
         if (!birthData || !birthData.fullName) {
             return NextResponse.json(
                 { error: 'At least fullName is required to save draft' },
@@ -34,147 +33,33 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Get or Create User from DB (Auto-sync if webhook hasn't run yet)
-        let user = await db.select()
-            .from(users)
-            .where(eq(users.clerkId, clerkId))
-            .limit(1);
+        let user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) });
 
         let internalUserId: string;
-
-        if (user.length === 0) {
-            // User not synced yet - fetch from Clerk and create locally
-            const { userId } = await auth();
-            const now = new Date().toISOString();
-            
-            // Create user with basic info (webhook will update with full details later)
+        if (!user) {
             const newUserId = crypto.randomUUID();
             await db.insert(users).values({
                 id: newUserId,
                 clerkId: clerkId,
                 email: '', // Will be updated by webhook
-                fullName: null,
-                createdAt: now,
-                updatedAt: now,
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
             });
-            
             internalUserId = newUserId;
-            console.log('Auto-created user during draft save:', { clerkId, internalUserId });
+            await logAuditEvent({ userId: clerkId, action: 'USER_AUTOCREATED', ipAddress, userAgent, details: { source: 'POST /api/drafts' } });
         } else {
-            internalUserId = user[0].id;
+            internalUserId = user.id;
         }
+
         const now = new Date().toISOString();
 
-        // Encrypt sensitive data
-        const encryptedFullName = encryptData(birthData.fullName, clerkId);
-        const encryptedLifeEvents = lifeEvents?.length > 0
-            ? encryptData(JSON.stringify(lifeEvents), clerkId)
-            : '';
-        const encryptedPhysicalTraits = physicalTraits
-            ? encryptData(JSON.stringify(physicalTraits), clerkId)
-            : null;
-        const encryptedForensicTraits = forensicTraits
-            ? encryptData(JSON.stringify(forensicTraits), clerkId)
-            : null;
-        const encryptedSpouseData = spouseData
-            ? encryptData(JSON.stringify(spouseData), clerkId)
-            : null;
+        const encryptedFullName = encrypt(birthData.fullName);
+        const encryptedLifeEvents = lifeEvents && lifeEvents.length > 0 ? encryptObject(lifeEvents) : '';
+        const encryptedPhysicalTraits = physicalTraits ? encryptObject(physicalTraits) : null;
+        const encryptedForensicTraits = forensicTraits ? encryptObject(forensicTraits) : null;
+        const encryptedSpouseData = spouseData ? encryptObject(spouseData) : null;
 
-        // If sessionId provided, update existing draft
-        if (sessionId) {
-            // Verify ownership
-            const existing = await db.select()
-                .from(sessions)
-                .where(eq(sessions.id, sessionId))
-                .limit(1);
-
-            if (existing.length === 0) {
-                return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-            }
-
-            if (existing[0].clerkId !== clerkId) {
-                return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-            }
-
-            await db.update(sessions)
-                .set({
-                    fullName: encryptedFullName,
-                    dateOfBirth: birthData.dateOfBirth || '',
-                    tentativeTime: birthData.tentativeTime || '',
-                    birthPlace: birthData.birthPlace || '',
-                    latitude: birthData.latitude || 0,
-                    longitude: birthData.longitude || 0,
-                    timezone: birthData.timezone?.toString() || '5.5',
-                    gender: birthData.gender || 'other',
-                    physicalTraits: encryptedPhysicalTraits,
-                    forensicTraits: encryptedForensicTraits,
-                    spouseData: encryptedSpouseData,
-                    lifeEvents: encryptedLifeEvents,
-                    offsetConfig: offsetConfig ? JSON.stringify(offsetConfig) : null,
-                    updatedAt: now,
-                })
-                .where(eq(sessions.id, sessionId));
-
-            return NextResponse.json({
-                success: true,
-                message: 'Draft updated',
-                sessionId,
-            });
-        }
-
-        // Check if draft already exists for this user + birth date combination
-        // This prevents multiple drafts for the same person
-        if (birthData.dateOfBirth) {
-            const existingDraft = await db.select({
-                id: sessions.id,
-                status: sessions.status,
-                dateOfBirth: sessions.dateOfBirth,
-            })
-            .from(sessions)
-            .where(
-                eq(sessions.userId, internalUserId)
-            );
-            
-            // Find draft with matching birth date (decrypted comparison not possible, so we check dateOfBirth)
-            const matchingDraft = existingDraft.find(d =>
-                d.status === 'draft' && d.dateOfBirth === birthData.dateOfBirth
-            );
-            
-            if (matchingDraft) {
-                // Update existing draft for this birth date
-                await db.update(sessions)
-                    .set({
-                        fullName: encryptedFullName,
-                        tentativeTime: birthData.tentativeTime || '',
-                        birthPlace: birthData.birthPlace || '',
-                        latitude: birthData.latitude || 0,
-                        longitude: birthData.longitude || 0,
-                        timezone: birthData.timezone?.toString() || '5.5',
-                        gender: birthData.gender || 'other',
-                        physicalTraits: encryptedPhysicalTraits,
-                        forensicTraits: encryptedForensicTraits,
-                        spouseData: encryptedSpouseData,
-                        lifeEvents: encryptedLifeEvents,
-                        offsetConfig: offsetConfig ? JSON.stringify(offsetConfig) : null,
-                        updatedAt: now,
-                    })
-                    .where(eq(sessions.id, matchingDraft.id));
-
-                return NextResponse.json({
-                    success: true,
-                    message: 'Draft updated (same birth date)',
-                    sessionId: matchingDraft.id,
-                });
-            }
-        }
-
-        // Create new draft
-        const newSessionId = crypto.randomUUID();
-
-        await db.insert(sessions).values({
-            id: newSessionId,
-            userId: internalUserId,
-            clerkId: clerkId,
+        const draftData = {
             fullName: encryptedFullName,
             dateOfBirth: birthData.dateOfBirth || '',
             tentativeTime: birthData.tentativeTime || '',
@@ -188,27 +73,55 @@ export async function POST(request: NextRequest) {
             spouseData: encryptedSpouseData,
             lifeEvents: encryptedLifeEvents,
             offsetConfig: offsetConfig ? JSON.stringify(offsetConfig) : null,
+            updatedAt: now,
+        };
+
+        if (sessionId) {
+            const existing = await db.select({ clerkId: sessions.clerkId }).from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+            if (existing.length === 0) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+            if (existing[0].clerkId !== clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+
+            await db.update(sessions).set(draftData).where(eq(sessions.id, sessionId));
+            await logAuditEvent({ userId: clerkId, action: 'DRAFT_UPDATED', resourceType: 'SESSION', resourceId: sessionId, ipAddress, userAgent });
+
+            return NextResponse.json({ success: true, message: 'Draft updated', sessionId });
+        }
+
+        if (birthData.dateOfBirth) {
+            const existingDrafts = await db.select({ id: sessions.id, status: sessions.status, dateOfBirth: sessions.dateOfBirth })
+                                          .from(sessions)
+                                          .where(eq(sessions.userId, internalUserId));
+            const matchingDraft = existingDrafts.find(d => d.status === 'draft' && d.dateOfBirth === birthData.dateOfBirth);
+            
+            if (matchingDraft) {
+                await db.update(sessions).set(draftData).where(eq(sessions.id, matchingDraft.id));
+                await logAuditEvent({ userId: clerkId, action: 'DRAFT_UPDATED', resourceType: 'SESSION', resourceId: matchingDraft.id, ipAddress, userAgent, details: { reason: 'Matching birth date' } });
+                return NextResponse.json({ success: true, message: 'Draft updated (same birth date)', sessionId: matchingDraft.id });
+            }
+        }
+
+        const newSessionId = crypto.randomUUID();
+        await db.insert(sessions).values({
+            ...draftData,
+            id: newSessionId,
+            userId: internalUserId,
+            clerkId: clerkId,
             status: 'draft',
             createdAt: now,
-            updatedAt: now,
         });
 
-        return NextResponse.json({
-            success: true,
-            message: 'Draft saved to cloud',
-            sessionId: newSessionId,
-        });
+        await logAuditEvent({ userId: clerkId, action: 'DRAFT_CREATED', resourceType: 'SESSION', resourceId: newSessionId, ipAddress, userAgent });
 
-    } catch (error) {
+        return NextResponse.json({ success: true, message: 'Draft saved to cloud', sessionId: newSessionId });
+
+    } catch (error: any) {
         console.error('Draft save error:', error);
+        await logAuditEvent({ action: 'DRAFT_SAVE_FAILED', ipAddress, userAgent, details: { error: error.message } });
         return NextResponse.json({ error: 'Failed to save draft' }, { status: 500 });
     }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// GET: Get user's drafts (Paginated)
-// ═════════════════════════════════════════════════════════════════════════════
-
+// ... (GET function remains the same)
 export async function GET(request: NextRequest) {
     try {
         const { userId: clerkId } = await auth();
@@ -219,13 +132,9 @@ export async function GET(request: NextRequest) {
         // Parse pagination parameters
         const { page, limit } = parsePaginationParams(request.nextUrl.searchParams);
 
-        // Get user's internal ID
-        const user = await db.select()
-            .from(users)
-            .where(eq(users.clerkId, clerkId))
-            .limit(1);
+        const user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) });
 
-        if (user.length === 0) {
+        if (!user) {
             return NextResponse.json({
                 success: true,
                 drafts: [],
@@ -233,33 +142,27 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // Get all sessions for filtering (in production, use database-level filtering)
-        // Note: Filtering by status in query requires index optimization
-        const allDrafts = await db.select({
+        const allUserSessions = await db.select({
             id: sessions.id,
             birthPlace: sessions.birthPlace,
             dateOfBirth: sessions.dateOfBirth,
             status: sessions.status,
             updatedAt: sessions.updatedAt,
         })
-            .from(sessions)
-            .where(eq(sessions.userId, user[0].id));
+        .from(sessions)
+        .where(eq(sessions.userId, user.id));
 
-        // Filter to only drafts and failed sessions (both can be continued)
-        const continuableSessions = allDrafts.filter(d =>
-            d.status === 'draft' || d.status === 'failed' || d.status === 'pending'
+        // Filter for sessions that can be continued
+        const continuableSessions = allUserSessions.filter(d =>
+            ['draft', 'failed', 'pending'].includes(d.status)
         );
 
-        // Sort by updatedAt desc (most recent first)
-        continuableSessions.sort((a, b) =>
-            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-        );
+        // Sort by most recently updated
+        continuableSessions.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
         // Apply pagination
         const total = continuableSessions.length;
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + limit;
-        const paginatedDrafts = continuableSessions.slice(startIndex, endIndex);
+        const paginatedDrafts = continuableSessions.slice((page - 1) * limit, page * limit);
 
         return NextResponse.json({
             success: true,

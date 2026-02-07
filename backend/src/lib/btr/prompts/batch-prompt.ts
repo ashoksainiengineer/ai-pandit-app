@@ -81,7 +81,7 @@ CANDIDATE: ${c.time}
 PANCHANGA: Day=${c.panchanga?.vara} | Tithi=${c.panchanga?.tithi} | Yoga=${c.panchanga?.yoga} | Karana=${c.panchanga?.karana}
 SPECIAL POINTS: AL (Arudha Lagna)=${c.specialPoints?.AL.sign} | UL (Upapada Lagna)=${c.specialPoints?.UL.sign}
 LAGNA (Ascendant): ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
-HOUSE LORDS: 1=${c.houseLords[1]} | 2=${c.houseLords[2]} | 3=${c.houseLords[3]} | 4=${c.houseLords[4]} | 5=${c.houseLords[5]} | 6=${c.houseLords[6]} | 7=${c.houseLords[7]} | 8=${c.houseLords[8]} | 9=${c.houseLords[9]} | 10=${c.houseLords[10]} | 11=${c.houseLords[11]} | 12=${c.houseLords[12]}
+HOUSE LORDS: ${[...Array(12)].map((_, i) => `${i + 1}=${c.houseLords[i + 1]}`).join(' | ')}
 ${c.sandhiZones?.length ? `⚠️ SANDHI WARNINGS: ${c.sandhiZones.join(' | ')}` : ''}
 
 PLANETARY MATRIX (Verified Swiss Eph Positions):

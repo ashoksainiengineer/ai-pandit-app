@@ -82,7 +82,7 @@ function enrichSinglePlanet(
   // FIXED: Proper null/undefined handling for house calculation
   let houseNumber = rawPlanet.house;
   if (!houseNumber || houseNumber < 1 || houseNumber > 12) {
-    houseNumber = calculateHouse(context.ascendantSign, rawPlanet.sign);
+    houseNumber = calculateHouse(rawPlanet.longitude, []); // Corrected call
   }
 
   return {
@@ -97,20 +97,13 @@ function enrichSinglePlanet(
     isCombust: rawPlanet.isCombust === true,
     shadbala: context.shadbala?.[planetName] ?? null,
     bav: context.ashtakavarga?.[planetName]?.[signIdx] ?? null,
-    functionalNature: calculateFunctionalNature(context.ascendantSign, planetName),
+    functionalNature: calculateFunctionalNature(planetName, context.ascendantSign), // Corrected argument order
     aspects: calculateAspects(planetName, rawPlanet.longitude, planetLongitudes, context.ascendantLongitude),
-    avastha: calculateBaladiAvastha(rawPlanet.longitude),
-    d60Deity: getD60Deity(rawPlanet.longitude),
-    compoundDignity: calculatePanchadhaSambandha(planetName, capitalizeFirstLetter(houseLord), { 
-      planets: {}, 
-      houses: context.houses,
-      ascendant: { sign: context.ascendantSign, longitude: context.ascendantLongitude }
-    } as any),
+    avastha: calculateBaladiAvastha(parseFloat(rawPlanet.longitude)),
+    d60Deity: getD60Deity(parseFloat(rawPlanet.longitude)), // Corrected call with parseFloat
+    compoundDignity: calculatePanchadhaSambandha(planetName, capitalizeFirstLetter(houseLord)),
     shadbalaBreakdown: context.shadbala?.[planetName],
-    ishtaKashtaPhala: calculateIshtaKashtaPhala(planetName, { 
-      planets: {}, 
-      houses: context.houses 
-    } as any)
+    ishtaKashtaPhala: calculateIshtaKashtaPhala(planetName, rawPlanet) // Added missing argument
   };
 }
 

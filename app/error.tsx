@@ -59,7 +59,7 @@ export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
 
           {/* Message */}
           <p className="text-[#7A756F] text-center mb-6">
-            We apologize for the inconvenience. Our team has been notified and we're working to fix this issue.
+            We apologize for the inconvenience. Our team has been notified and we&apos;re working to fix this issue.
           </p>
 
           {/* Error Reference ID */}
@@ -101,7 +101,7 @@ export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
             </Link>
 
             <a
-              href="mailto:support@aipandit.com?subject=Error%20Report%20-%20${errorId}"
+              href={`mailto:support@aipandit.com?subject=Error%20Report%20-%20${errorId}`}
               className="w-full flex items-center justify-center gap-2 px-6 py-3 text-[#7A756F] hover:text-[#B8860B] transition-colors"
             >
               <Mail className="w-4 h-4" />

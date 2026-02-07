@@ -1,36 +1,36 @@
 // middleware.ts
-// Clerk authentication middleware for protected routes
+// Industry-standard Clerk authentication middleware.
+// For more information, see: https://clerk.com/docs/references/nextjs/clerk-middleware
 
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 
-// Define which routes require authentication
-const isProtectedRoute = createRouteMatcher([
-    '/rectify(.*)',
-    '/dashboard(.*)',
-    '/api/calculate(.*)',
-    '/api/queue(.*)',
-]);
-
-// Define which routes are always public (Landing page, Auth, Webhooks)
 const isPublicRoute = createRouteMatcher([
-    '/',
-    '/sign-in(.*)',
-    '/sign-up(.*)',
-    '/api/webhooks(.*)',
+    '/', // The landing page is accessible to everyone.
+    '/sign-in(.*)', // All sign-in related pages.
+    '/sign-up(.*)', // All sign-up related pages.
+    '/api/health', // A public endpoint for health checks.
+    '/api/ping' // A public endpoint for ping checks.
 ]);
 
-export default clerkMiddleware(async (auth, req) => {
-    // Protect all routes except public ones
-    if (!isPublicRoute(req)) {
-        await auth.protect();
-    }
+const isIgnoredRoute = createRouteMatcher([
+    '/api/webhooks/clerk' // Clerk webhook for user management.
+]);
+
+export default clerkMiddleware((auth, req) => {
+  if (isPublicRoute(req)) {
+    return; // Allow public routes
+  }
+  if (isIgnoredRoute(req)) {
+    return; // Allow ignored routes
+  }
+  auth().protect();
 });
 
 export const config = {
+    // The following matcher runs middleware on all routes
+    // except for static files and Next.js-specific assets (_next).
     matcher: [
-        // Skip static files and Next.js internals
         '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-        // Always run for API routes
         '/(api|trpc)(.*)',
     ],
 };

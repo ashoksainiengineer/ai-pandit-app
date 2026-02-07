@@ -177,7 +177,7 @@ export default function DashboardPage() {
                   <Calendar className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-[#7A756F]">Today's Readings</p>
+                  <p className="text-sm text-[#7A756F]">Today&apos;s Readings</p>
                   <p className="text-xl font-semibold text-[#1A1612]">
                     {metrics?.readingsToday || 0}
                   </p>

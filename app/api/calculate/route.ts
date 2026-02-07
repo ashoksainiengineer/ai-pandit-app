@@ -2,197 +2,96 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { db } from '../../../database/drizzle';
-import { sessions } from '../../../database/schema';
+import { sessions, users } from '../../../database/schema';
 import { eq } from 'drizzle-orm';
-import { encryptData } from '@/lib/encryption';
+import { encrypt, encryptObject, initializeEncryption } from '@/lib/crypto';
+import { logAuditEvent, getRequestMetadata } from '@/lib/audit';
 import { env } from '@/lib/config';
 
-// ═════════════════════════════════════════════════════════════════════════════
-// SIMPLE LOGGER (avoids import issues)
-// ═════════════════════════════════════════════════════════════════════════════
-const logger = {
-  info: (msg: string, meta?: any) => console.log(`[INFO] ${msg}`, meta || ''),
-  warn: (msg: string, meta?: any) => console.warn(`[WARN] ${msg}`, meta || ''),
-  error: (msg: string, meta?: any) => console.error(`[ERROR] ${msg}`, meta || ''),
-};
-
-// ═════════════════════════════════════════════════════════════════════════════
-// TYPES
-// ═════════════════════════════════════════════════════════════════════════════
-interface TimeOffsetConfig {
-  preset?: '30min' | '1hour' | '2hours' | '4hours' | '6hours' | '12hours';
-  customMinutes?: number;
-}
-
-interface BirthData {
-  fullName: string;
-  dateOfBirth: string;
-  tentativeTime: string;
-  birthPlace: string;
-  latitude: number;
-  longitude: number;
-  timezone: number;
-  gender: string;
-}
-
-interface LifeEvent {
-  category: string;
-  eventType: string;
-  eventDate: string;
-  description: string;
-  importance?: string;
-  eventTime?: string;
-  datePrecision?: string;
-  endDate?: string;
-}
-
-interface CalculateRequest {
-  birthData: BirthData;
-  lifeEvents: LifeEvent[];
-  physicalTraits?: any;
-  forensicTraits?: any;
-  offsetConfig: TimeOffsetConfig;
-}
-
-interface CalculateResponse {
-  success: boolean;
-  data?: {
-    sessionId: string;
-    position: number;
-    estimatedWaitSeconds: number;
-    status: string;
-  };
-  error?: string;
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
-// VALIDATION
-// ═════════════════════════════════════════════════════════════════════════════
-function validateOffsetConfig(config: TimeOffsetConfig): { valid: boolean; error?: string } {
-  if (!config) return { valid: false, error: 'Config is required' };
-  
-  const validPresets = ['30min', '1hour', '2hours', '4hours', '6hours', '12hours'];
-  
-  if (config.preset && !validPresets.includes(config.preset)) {
-    return { valid: false, error: `Invalid preset. Must be one of: ${validPresets.join(', ')}` };
-  }
-  
-  if (config.customMinutes !== undefined) {
-    if (config.customMinutes < 1 || config.customMinutes > 720) {
-      return { valid: false, error: 'Custom minutes must be between 1 and 720' };
-    }
-  }
-  
-  return { valid: true };
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
-// MAIN API ROUTE
-// ═════════════════════════════════════════════════════════════════════════════
+// Initialize dependencies
+initializeEncryption(process.env.ENCRYPTION_SECRET);
 
 /**
- * POST /api/calculate - Submit birth time rectification for async processing
- * 
- * This endpoint creates a session and forwards it to the backend processing queue.
- * The backend queue-manager handles the actual BTR processing via seconds-precision-btr.ts.
- * 
- * Client should poll /api/queue/progress/:sessionId for results.
+ * @description API route to initiate a birth time rectification calculation.
+ * It secures data, creates a session, and queues it for backend processing.
  */
-export async function POST(request: NextRequest): Promise<NextResponse<CalculateResponse>> {
-  const startTime = Date.now();
+export async function POST(request: NextRequest) {
+  const { ipAddress, userAgent } = getRequestMetadata(request);
 
   try {
-    // ─────────────────────────────────────────────────────────────────────
-    // 1. AUTHENTICATE USER
-    // ─────────────────────────────────────────────────────────────────────
-    const { userId } = await auth();
-    if (!userId) {
-      logger.warn('Unauthorized calculate request');
+    // 1. Authenticate the user
+    const { userId: clerkId } = await auth();
+    if (!clerkId) {
+      // No audit log here as there's no user to associate with the event.
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    // ─────────────────────────────────────────────────────────────────────
-    // 2. PARSE REQUEST
-    // ─────────────────────────────────────────────────────────────────────
+    // 2. Parse and validate the request body
     const body = await request.json();
-    const {
-      birthData,
-      lifeEvents,
-      physicalTraits,
-      forensicTraits,
-      offsetConfig,
-    }: CalculateRequest = body;
+    const { birthData, lifeEvents, offsetConfig } = body;
 
-    // ─────────────────────────────────────────────────────────────────────
-    // 3. VALIDATE INPUT
-    // ─────────────────────────────────────────────────────────────────────
     if (!birthData || !lifeEvents || lifeEvents.length < 3) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid input: need birthData and minimum 3 life events' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'Invalid input: birthData and at least 3 life events are required.' }, { status: 400 });
     }
 
-    const offsetValidation = validateOffsetConfig(offsetConfig);
-    if (!offsetValidation.valid) {
-      return NextResponse.json(
-        { success: false, error: offsetValidation.error || 'Invalid offset configuration' },
-        { status: 400 }
-      );
+    // 3. Get or create the internal user record
+    let user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) });
+    if (!user) {
+        const newUserId = crypto.randomUUID();
+        await db.insert(users).values({
+            id: newUserId,
+            clerkId: clerkId,
+            email: '', // This will be populated by a webhook
+            role: 'user',
+            isActive: true,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        });
+        user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) });
+        // Log this critical security event
+        await logAuditEvent({ userId: clerkId, action: 'USER_AUTOCREATED', ipAddress, userAgent, details: { source: 'POST /api/calculate' } });
     }
 
-    logger.info('Birth time rectification request', {
-      userId,
-      dateOfBirth: birthData.dateOfBirth,
-      eventCount: lifeEvents.length,
-      offsetConfig,
-    });
-
-    // ─────────────────────────────────────────────────────────────────────
-    // 4. CREATE DATABASE SESSION
-    // ─────────────────────────────────────────────────────────────────────
     const sessionId = crypto.randomUUID();
     const now = new Date().toISOString();
 
-    // Encrypt sensitive data using the same method as backend
-    const encryptedLifeEvents = encryptData(JSON.stringify(lifeEvents), userId);
-    const encryptedPhysicalTraits = physicalTraits
-      ? encryptData(JSON.stringify(physicalTraits), userId)
-      : null;
-    const encryptedForensicTraits = forensicTraits
-      ? encryptData(JSON.stringify(forensicTraits), userId)
-      : null;
+    // 4. Securely encrypt all PII and sensitive data
+    const encryptedData = {
+        fullName: encrypt(birthData.fullName),
+        birthPlace: encrypt(birthData.birthPlace), // Critical PII now encrypted
+        lifeEvents: encryptObject(lifeEvents),
+        physicalTraits: body.physicalTraits ? encryptObject(body.physicalTraits) : null,
+        forensicTraits: body.forensicTraits ? encryptObject(body.forensicTraits) : null,
+    };
 
-    // Encrypt fullName as well
-    const encryptedFullName = encryptData(birthData.fullName, userId);
-
+    // 5. Create the session record in the database
     await db.insert(sessions).values({
       id: sessionId,
-      userId,
-      clerkId: userId,
-      fullName: encryptedFullName,
+      userId: user.id,
+      clerkId: clerkId,
+      status: 'pending', // Start as pending
+      // Encrypted fields
+      fullName: encryptedData.fullName,
+      birthPlace: encryptedData.birthPlace,
+      lifeEvents: encryptedData.lifeEvents,
+      physicalTraits: encryptedData.physicalTraits,
+      forensicTraits: encryptedData.forensicTraits,
+      // Unencrypted but non-PII fields
       dateOfBirth: birthData.dateOfBirth,
       tentativeTime: birthData.tentativeTime,
-      birthPlace: birthData.birthPlace,
       latitude: birthData.latitude,
       longitude: birthData.longitude,
       timezone: birthData.timezone.toString(),
       gender: birthData.gender,
-      physicalTraits: encryptedPhysicalTraits,
-      forensicTraits: encryptedForensicTraits,
-      lifeEvents: encryptedLifeEvents,
       offsetConfig: JSON.stringify(offsetConfig),
-      status: 'pending',
       createdAt: now,
       updatedAt: now,
     });
-
-    logger.info('Database session created', { sessionId });
-
-    // ─────────────────────────────────────────────────────────────────────
-    // 5. FORWARD TO BACKEND QUEUE
-    // ─────────────────────────────────────────────────────────────────────
     
+    // Log the successful queuing of the calculation - THIS IS A CRITICAL EVENT
+    await logAuditEvent({ userId: clerkId, action: 'CALCULATION_QUEUED', resourceType: 'SESSION', resourceId: sessionId, ipAddress, userAgent });
+
+    // 6. Forward only the sessionId to the backend processing queue
     const backendUrl = env.api.backendUrl;
     const queueResponse = await fetch(`${backendUrl}/api/queue`, {
       method: 'POST',
@@ -200,38 +99,20 @@ export async function POST(request: NextRequest): Promise<NextResponse<Calculate
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${env.api.internalApiKey || ''}`,
       },
-      body: JSON.stringify({ sessionId }),
+      body: JSON.stringify({ sessionId }), // Securely send only the ID
     });
 
     if (!queueResponse.ok) {
       const errorText = await queueResponse.text();
-      logger.error('Backend queue submission failed', { sessionId, error: errorText });
-      
-      // Update session status to failed
-      await db.update(sessions)
-        .set({
-          status: 'failed',
-          errorMessage: 'Failed to queue for processing',
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(sessions.id, sessionId));
-      
-      return NextResponse.json(
-        { success: false, error: 'Failed to queue request for processing' },
-        { status: 503 }
-      );
+      await db.update(sessions).set({ status: 'failed', errorMessage: 'Failed to queue for processing' }).where(eq(sessions.id, sessionId));
+      // Log this critical failure event
+      await logAuditEvent({ userId: clerkId, action: 'QUEUE_SUBMISSION_FAILED', resourceType: 'SESSION', resourceId: sessionId, details: { error: errorText } });
+      return NextResponse.json({ success: false, error: 'Failed to queue request for processing' }, { status: 503 });
     }
 
     const queueResult = await queueResponse.json();
 
-    logger.info('Request queued for processing', {
-      sessionId,
-      position: queueResult.position,
-      estimatedWait: queueResult.estimatedWaitSeconds,
-    });
-
-    const totalProcessingTime = Date.now() - startTime;
-
+    // 7. Return the queue position to the client
     return NextResponse.json({
       success: true,
       data: {
@@ -243,14 +124,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<Calculate
     });
 
   } catch (error) {
-    logger.error('Calculate endpoint error', error);
-
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Internal server error',
-      },
-      { status: 500 }
-    );
+    const errorMsg = error instanceof Error ? error.message : 'Internal server error';
+    console.error('[POST /api/calculate] CRITICAL ERROR:', error);
+    // Log the overarching failure without a userId if it's not available
+    await logAuditEvent({ action: 'CALCULATION_REQUEST_FAILED', ipAddress, userAgent, details: { error: errorMsg } });
+    return NextResponse.json({ success: false, error: errorMsg }, { status: 500 });
   }
 }

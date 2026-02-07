@@ -7,6 +7,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 
 interface GlobalErrorProps {
   error: Error & { digest?: string };
@@ -87,7 +88,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               Refresh Page
             </button>
 
-            <a
+            <Link
               href="/"
               style={{
                 display: 'block',
@@ -98,7 +99,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               }}
             >
               Go to Homepage
-            </a>
+            </Link>
           </div>
         </div>
       </body>

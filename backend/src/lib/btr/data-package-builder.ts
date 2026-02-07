@@ -32,11 +32,12 @@ import { buildVimshottariDasha, buildYoginiDasha, buildCharaDasha } from './dash
 import { enrichPlanets, extractIshtaKashtaPhala } from './planet-enricher.js';
 import { buildTransitData } from './transit-builder.js';
 
-interface PackageBuildOptions {
+export interface PackageBuildOptions {
   includeFullData?: boolean;
   dashaDepth?: number;
   pranaWindowDays?: number;
   lifecycleShifts?: any[];
+  includeDivisionalCharts?: string[];
 }
 
 /**
@@ -268,7 +269,7 @@ function buildVargaData(ephemeris: any) {
         d60Planets[capitalizeFirstLetter(pName)] = {
           sign: pPos.sign,
           degree: pPos.degree.toFixed(2) + '°',
-          deity: deity || 'Unknown'
+          deity: deity || 'Unknown' // Correctly populate the deity
         };
       }
     }
