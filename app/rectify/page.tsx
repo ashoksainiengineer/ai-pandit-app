@@ -95,6 +95,8 @@ function RectifyPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const isNewPerson = searchParams.get('new') === 'true';
+    const draftIdFromUrl = searchParams.get('draft_id');
+    const [isLoading, setIsLoading] = useState(true);
     const [step, setStep] = useState(1);
     const [birthData, setBirthData] = useState<BirthData>(initialBirthData);
     const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>([]);
@@ -108,13 +110,8 @@ function RectifyPageContent() {
     const [cloudSaveStatus, setCloudSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [isAutoSaveEnabled, setIsAutoSaveEnabled] = useState(false);
 
-    // Track which steps have been completed
     const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
     const [maxUnlockedStep, setMaxUnlockedStep] = useState(1);
-
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // VALIDATION FUNCTIONS - GOD TIER ROBUSTNESS
-    // ═══════════════════════════════════════════════════════════════════════════════
 
     const validateStep1 = useCallback((): StepValidation => {
         const errors: string[] = [];
@@ -123,7 +120,6 @@ function RectifyPageContent() {
         const totalFields = 5;
         let filledFields = 0;
 
-        // Full Name
         if (!birthData.fullName?.trim()) {
             errors.push("Full Name is required");
         } else if (birthData.fullName.trim().length < 2) {
@@ -132,7 +128,6 @@ function RectifyPageContent() {
             filledFields++;
         }
 
-        // Date of Birth
         if (!birthData.dateOfBirth) {
             errors.push("Date of Birth is required");
         } else {
@@ -145,28 +140,24 @@ function RectifyPageContent() {
             }
         }
 
-        // Tentative Time
         if (!birthData.tentativeTime) {
             errors.push("Tentative Birth Time is required");
         } else {
             filledFields++;
         }
 
-        // Birth Place
         if (!birthData.birthPlace?.trim()) {
             errors.push("Birth Place is required");
         } else {
             filledFields++;
         }
 
-        // Gender
         if (!birthData.gender) {
             errors.push("Gender is required");
         } else {
             filledFields++;
         }
 
-        // Location validation
         if (birthData.latitude === 0 && birthData.longitude === 0) {
             warnings.push("Please select a valid location from search or map");
         }
@@ -217,7 +208,6 @@ function RectifyPageContent() {
             errors.push(`Minimum 3 life events required. Currently: ${lifeEvents.length}`);
         }
 
-        // Check for critical events (career, marriage, education, relocation)
         const criticalCategories = ['career', 'marriage', 'education', 'relocation'];
         const presentCategories = new Set(lifeEvents.map(e => e.category));
         const missingCritical = criticalCategories.filter(c => !presentCategories.has(c));
@@ -232,7 +222,6 @@ function RectifyPageContent() {
     }, [lifeEvents]);
 
     const validateStep4 = useCallback((): StepValidation => {
-        // Step 4 is review, always valid if we reach here
         return { isValid: true, errors: [], warnings: [], progress: 100 };
     }, []);
 
@@ -246,10 +235,6 @@ function RectifyPageContent() {
         }
     }, [validateStep1, validateStep2, validateStep3, validateStep4]);
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // STEP NAVIGATION - WITH GUARDS
-    // ═══════════════════════════════════════════════════════════════════════════════
-
     const getStepStatus = useCallback((stepNum: number): StepStatus => {
         if (stepNum === step) return 'current';
         if (completedSteps.has(stepNum)) return 'completed';
@@ -258,14 +243,11 @@ function RectifyPageContent() {
     }, [step, completedSteps, maxUnlockedStep]);
 
     const canNavigateToStep = useCallback((targetStep: number): boolean => {
-        // Can always go to previous steps
         if (targetStep < step) return true;
-        // Can go to next step if current step is valid
         if (targetStep === step + 1) {
             const validation = getStepValidation(step);
             return validation.isValid;
         }
-        // Can go to unlocked steps
         return targetStep <= maxUnlockedStep;
     }, [step, maxUnlockedStep, getStepValidation]);
 
@@ -277,7 +259,6 @@ function RectifyPageContent() {
             return;
         }
 
-        // If going to a previous step, just navigate
         if (targetStep < step) {
             setStep(targetStep);
             setError(null);
@@ -285,7 +266,6 @@ function RectifyPageContent() {
             return;
         }
 
-        // Validate current step before moving forward
         const currentValidation = getStepValidation(step);
         if (!currentValidation.isValid && targetStep > step) {
             setError(currentValidation.errors[0]);
@@ -307,10 +287,8 @@ function RectifyPageContent() {
             return;
         }
 
-        // Mark current step as completed
         setCompletedSteps(prev => new Set([...prev, step]));
         
-        // Unlock next step
         const nextStep = step + 1;
         setMaxUnlockedStep(prev => Math.max(prev, nextStep));
         
@@ -327,20 +305,14 @@ function RectifyPageContent() {
         }
     }, [step]);
 
-    // ═══════════════════════════════════════════════════════════════════════════════
     // AUTO-SAVE & DATA PERSISTENCE
-    // ═══════════════════════════════════════════════════════════════════════════════
-
-    // Track last saved data to prevent duplicate saves
     const [lastSavedDataHash, setLastSavedDataHash] = useState<string>('');
     
     const saveDraftToCloud = async () => {
         if (!birthData.fullName || birthData.fullName.trim().length < 2) return;
         
-        // Create hash of current data
         const currentData = JSON.stringify({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig });
         
-        // Don't save if data hasn't changed
         if (currentData === lastSavedDataHash) return;
         
         setCloudSaveStatus('saving');
@@ -374,66 +346,95 @@ function RectifyPageContent() {
 
     useEffect(() => {
         if (!isAutoSaveEnabled || !birthData.fullName) return;
-        // 5 second debounce - only save after user stops typing for 5 seconds
         const timer = setTimeout(() => saveDraftToCloud(), 5000);
         return () => clearTimeout(timer);
     }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, isAutoSaveEnabled, lastSavedDataHash]);
 
-    // Load from local storage
+    // DATA LOADING LOGIC
     useEffect(() => {
-        // If new person requested, clear localStorage
-        if (isNewPerson) {
-            localStorage.removeItem('btr_form_data');
-            localStorage.removeItem('btr_draft_id');
-            // Reset all states
-            setBirthData(initialBirthData);
-            setLifeEvents([]);
-            setForensicTraits(initialForensicTraits);
-            setSpouseData(initialSpouseData);
-            setStep(1);
-            setCompletedSteps(new Set());
-            setMaxUnlockedStep(1);
-            setDraftSessionId(null);
-        }
+        const loadData = async () => {
+            setIsLoading(true);
+            const token = await getToken();
 
-        const pingWarmup = async () => {
-            try {
-                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:8080';
-                fetch(`${backendUrl}/api/warmup`).catch(() => { });
-            } catch (e) { }
-        };
-        pingWarmup();
-
-        const saved = localStorage.getItem('btr_form_data');
-        if (saved && !isNewPerson) {
-            try {
-                const parsed = JSON.parse(saved);
-                if (parsed.birthData) setBirthData(parsed.birthData);
-                if (parsed.lifeEvents) setLifeEvents(parsed.lifeEvents);
-                if (parsed.forensicTraits) {
-                    const merged = {
-                        ...initialForensicTraits,
-                        ...parsed.forensicTraits,
-                        physical: { ...initialForensicTraits.physical, ...parsed.forensicTraits.physical },
-                        psychographic: { ...initialForensicTraits.psychographic, ...parsed.forensicTraits.psychographic },
-                        biological: { ...initialForensicTraits.biological, ...parsed.forensicTraits.biological },
-                        family: { ...initialForensicTraits.family, ...parsed.forensicTraits.family }
-                    };
-                    setForensicTraits(merged);
-                }
-                if (parsed.spouseData) setSpouseData(parsed.spouseData);
-                if (parsed.offsetConfig) setOffsetConfig(parsed.offsetConfig);
-                if (parsed.completedSteps) setCompletedSteps(new Set(parsed.completedSteps));
-                if (parsed.maxUnlockedStep) setMaxUnlockedStep(parsed.maxUnlockedStep);
-            } catch (e) {
-                console.error('Failed to restore form data', e);
+            if (isNewPerson) {
+                localStorage.removeItem('btr_form_data');
+                localStorage.removeItem('btr_draft_id');
+                setBirthData(initialBirthData);
+                setLifeEvents([]);
+                setForensicTraits(initialForensicTraits);
+                setSpouseData(initialSpouseData);
+                setStep(1);
+                setCompletedSteps(new Set());
+                setMaxUnlockedStep(1);
+                setDraftSessionId(null);
+                setIsLoading(false);
+                return;
             }
-        }
+
+            const sessionIdToLoad = draftIdFromUrl || localStorage.getItem('btr_draft_id');
+
+            if (sessionIdToLoad) {
+                try {
+                    const res = await fetch(`/api/sessions/${sessionIdToLoad}`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    if (res.ok) {
+                        const { data } = await res.json();
+                        setBirthData(data.birthData || initialBirthData);
+                        setLifeEvents(data.lifeEvents || []);
+                        setForensicTraits(data.forensicTraits || initialForensicTraits);
+                        setSpouseData(data.spouseData || initialSpouseData);
+                        if(data.offsetConfig) setOffsetConfig(data.offsetConfig);
+                        setDraftSessionId(sessionIdToLoad);
+                    } else {
+                        // Fallback to localStorage if fetch fails
+                        loadFromLocalStorage();
+                    }
+                } catch (e) {
+                    console.error('Failed to load from cloud', e);
+                    loadFromLocalStorage();
+                }
+            } else {
+                loadFromLocalStorage();
+            }
+            setIsLoading(false);
+        };
+
+        const loadFromLocalStorage = () => {
+            const saved = localStorage.getItem('btr_form_data');
+            if (saved) {
+                try {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.birthData) setBirthData(parsed.birthData);
+                    if (parsed.lifeEvents) setLifeEvents(parsed.lifeEvents);
+                    if (parsed.forensicTraits) {
+                         const merged = {
+                            ...initialForensicTraits,
+                            ...parsed.forensicTraits,
+                            physical: { ...initialForensicTraits.physical, ...parsed.forensicTraits.physical },
+                            psychographic: { ...initialForensicTraits.psychographic, ...parsed.forensicTraits.psychographic },
+                            biological: { ...initialForensicTraits.biological, ...parsed.forensicTraits.biological },
+                            family: { ...initialForensicTraits.family, ...parsed.forensicTraits.family }
+                        };
+                        setForensicTraits(merged);
+                    }
+                    if (parsed.spouseData) setSpouseData(parsed.spouseData);
+                    if (parsed.offsetConfig) setOffsetConfig(parsed.offsetConfig);
+                    if (parsed.completedSteps) setCompletedSteps(new Set(parsed.completedSteps));
+                    if (parsed.maxUnlockedStep) setMaxUnlockedStep(parsed.maxUnlockedStep);
+                } catch (e) {
+                    console.error('Failed to restore form data from localStorage', e);
+                }
+            }
+        };
+
+        loadData();
         setIsAutoSaveEnabled(true);
-    }, [isNewPerson]);
+    }, [isNewPerson, draftIdFromUrl, getToken]);
 
     // Save to local storage
     useEffect(() => {
+        if (isLoading) return; // Don't save while loading
         const dataToSave = { 
             birthData, 
             lifeEvents, 
@@ -445,12 +446,9 @@ function RectifyPageContent() {
             maxUnlockedStep
         };
         localStorage.setItem('btr_form_data', JSON.stringify(dataToSave));
-    }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, step, completedSteps, maxUnlockedStep]);
+    }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, step, completedSteps, maxUnlockedStep, isLoading]);
 
-    // ═══════════════════════════════════════════════════════════════════════════════
     // SUBMIT ANALYSIS
-    // ═══════════════════════════════════════════════════════════════════════════════
-
     const validateAllSteps = useCallback((): { isValid: boolean; errors: string[] } => {
         const allErrors: string[] = [];
         
@@ -466,7 +464,6 @@ function RectifyPageContent() {
     }, [validateStep1, validateStep2, validateStep3]);
 
     const handleSubmit = async () => {
-        // Full validation before submit
         const fullValidation = validateAllSteps();
         if (!fullValidation.isValid) {
             setError(fullValidation.errors.join('. '));
@@ -478,24 +475,14 @@ function RectifyPageContent() {
 
         try {
             const payload = {
-                birthData: {
-                    fullName: birthData.fullName,
-                    dateOfBirth: birthData.dateOfBirth,
-                    tentativeTime: birthData.tentativeTime,
-                    birthPlace: birthData.birthPlace,
-                    latitude: birthData.latitude || 28.6,
-                    longitude: birthData.longitude || 77.2,
-                    timezone: birthData.timezone,
-                    gender: birthData.gender
-                },
-                // Send COMPLETE life events data to AI
+                birthData,
                 lifeEvents: lifeEvents.map(e => ({
                     category: e.category,
                     eventType: e.eventType,
                     datePrecision: e.datePrecision,
                     eventDate: e.eventDate,
                     endDate: e.endDate,
-                    eventTime: e.eventTime, // CRITICAL: Exact time for exact_date_time precision
+                    eventTime: e.eventTime, 
                     description: e.description,
                     importance: e.importance
                 })),
@@ -520,6 +507,7 @@ function RectifyPageContent() {
 
             if (result.success) {
                 localStorage.removeItem('btr_form_data');
+                localStorage.removeItem('btr_draft_id');
                 router.push(`/rectify/${result.data.sessionId}`);
             } else {
                 setError(result.error || 'Failed to submit analysis. Please try again.');
@@ -530,11 +518,12 @@ function RectifyPageContent() {
             setIsSubmitting(false);
         }
     };
+    
+    if (isLoading) {
+        return <RectifyPageSkeleton />;
+    }
 
-    // ═══════════════════════════════════════════════════════════════════════════════
     // RENDER
-    // ═══════════════════════════════════════════════════════════════════════════════
-
     const stepLabels = ['Birth Details', 'Physical Traits', 'Life Events', 'Review & Submit'];
     const stepEmojis = ['👤', '🪞', '📅', '✅'];
 
@@ -577,14 +566,12 @@ function RectifyPageContent() {
                     </div>
                 </div>
 
-                {/* Error Message */}
                 {error && (
                     <div className="mb-6 p-4 bg-[#C65D3B]/10 border border-[#C65D3B]/30 rounded-xl text-[#C65D3B]">
                         ⚠️ {error}
                     </div>
                 )}
 
-                {/* Step Content */}
                 <div className="min-h-[400px]">
                     {step === 1 && (
                         <Step1BirthDetails
@@ -624,7 +611,6 @@ function RectifyPageContent() {
                     )}
                 </div>
 
-                {/* Navigation */}
                 {step < 4 && (
                     <div className="flex justify-between items-center mt-12 pt-6 border-t border-[#F0E8DE]">
                             <button
@@ -638,7 +624,6 @@ function RectifyPageContent() {
                                 ← Back
                             </button>
     
-                            {/* Auto-save Status Indicator */}
                             <div className="flex items-center gap-2 text-sm">
                                 {cloudSaveStatus === 'saving' && (
                                     <span className="flex items-center gap-1.5 text-[#B8860B] animate-pulse">

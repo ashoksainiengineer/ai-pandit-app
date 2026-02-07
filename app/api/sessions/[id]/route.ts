@@ -7,8 +7,9 @@ import { auth } from '@clerk/nextjs/server';
 import { db, client } from '@/database/drizzle';
 import { sessions } from '@/database/schema';
 import { eq } from 'drizzle-orm';
-import { encrypt, decrypt, encryptObject, isEncrypted, initializeEncryption } from '@/lib/crypto';
+import { decrypt, encryptObject, isEncrypted, initializeEncryption, decryptObject } from '@/lib/crypto';
 import { logAuditEvent, getRequestMetadata } from '@/lib/audit';
+import { LifeEvent, ForensicTraits, SpouseData, TimeOffsetConfig, BirthData } from '@/lib/types';
 
 // Initialize encryption
 initializeEncryption(process.env.ENCRYPTION_SECRET);
@@ -34,17 +35,23 @@ const safeDecrypt = (data: string | null | undefined): string | null => {
 };
 
 const safeDecryptObject = <T>(data: string | null | undefined, fallback: T): T => {
-    const decrypted = safeDecrypt(data);
-    return safeJsonParse(decrypted, fallback);
+    if (!data) return fallback;
+    try {
+        // Assuming data is an encrypted JSON string
+        return decryptObject(data) as T;
+    } catch (error) {
+        console.error('Decryption failed for object:', error);
+        return fallback;
+    }
 };
 
 // GET: Fetch session data
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   const { ipAddress, userAgent } = getRequestMetadata(request);
-  const { id: sessionId } = await params;
+  const { id: sessionId } = params;
 
   try {
     const { userId: clerkId } = await auth();
@@ -64,15 +71,36 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const fullName = safeDecrypt(s.fullName) || 'Decryption Failed';
-    if (fullName === 'Decryption Failed') {
+    const fullName = safeDecrypt(s.fullName);
+    if (fullName === null) {
         await logAuditEvent({ userId: clerkId, action: 'DECRYPTION_FAILED', resourceType: 'SESSION', resourceId: sessionId, details: { field: 'fullName' } });
     }
 
+    const lifeEvents = safeDecryptObject<LifeEvent[]>(s.lifeEvents, []);
+    const forensicTraits = safeDecryptObject<ForensicTraits>(s.forensicTraits, {} as ForensicTraits);
+    const spouseData = safeDecryptObject<SpouseData | null>(s.spouseData, null);
+    
+    const birthData: BirthData = {
+      fullName: fullName || '',
+      dateOfBirth: s.dateOfBirth || '',
+      tentativeTime: s.tentativeTime || '',
+      birthPlace: s.birthPlace || '',
+      latitude: s.latitude || 0,
+      longitude: s.longitude || 0,
+      timezone: Number(s.timezone) || 5.5,
+      gender: s.gender as 'male' | 'female' | 'other' || 'other'
+    };
+
     const decryptedData = {
       id: s.id,
-      fullName,
-      // ... (rest of the fields)
+      birthData,
+      lifeEvents,
+      forensicTraits,
+      spouseData,
+      offsetConfig: safeJsonParse<TimeOffsetConfig | null>(s.offsetConfig, null),
+      status: s.status,
+      updatedAt: s.updatedAt,
+      createdAt: s.createdAt,
     };
     
     // NOTE: Logging every view event is too expensive for the free tier.
@@ -89,10 +117,10 @@ export async function GET(
 // PUT: Update session
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   const { ipAddress, userAgent } = getRequestMetadata(request);
-  const { id: sessionId } = await params;
+  const { id: sessionId } = params;
 
   try {
     const { userId: clerkId } = await auth();
@@ -117,7 +145,9 @@ export async function PUT(
 
     if (birthData?.fullName) updateData.fullName = encrypt(birthData.fullName);
     if (lifeEvents) updateData.lifeEvents = encryptObject(lifeEvents);
-    // ... (encrypt other fields)
+    if (forensicTraits) updateData.forensicTraits = encryptObject(forensicTraits);
+    if (offsetConfig) updateData.offsetConfig = JSON.stringify(offsetConfig);
+
 
     if (!isDraft) {
       updateData.status = 'pending';
@@ -138,10 +168,10 @@ export async function PUT(
 // DELETE: Delete session
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   const { ipAddress, userAgent } = getRequestMetadata(request);
-  const { id: sessionId } = await params;
+  const { id: sessionId } = params;
 
   try {
     const { userId: clerkId } = await auth();
