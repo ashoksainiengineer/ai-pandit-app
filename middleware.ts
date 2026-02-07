@@ -1,8 +1,8 @@
 // middleware.ts
-// Industry-standard Clerk authentication middleware.
-// For more information, see: https://clerk.com/docs/references/nextjs/clerk-middleware
+// Industry-standard Clerk authentication middleware with added security headers.
 
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
 const isPublicRoute = createRouteMatcher([
     '/', // The landing page is accessible to everyone.
@@ -17,13 +17,35 @@ const isIgnoredRoute = createRouteMatcher([
 ]);
 
 export default clerkMiddleware((auth, req) => {
-  if (isPublicRoute(req)) {
-    return; // Allow public routes
-  }
-  if (isIgnoredRoute(req)) {
-    return; // Allow ignored routes
+  if (isPublicRoute(req) || isIgnoredRoute(req)) {
+    return NextResponse.next();
   }
   auth().protect();
+
+  const headers = new Headers(req.headers);
+
+  // Add Content Security Policy
+  const csp = `
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval';
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' data:;
+    font-src 'self';
+    object-src 'none';
+    frame-ancestors 'none';
+    form-action 'self';
+    base-uri 'self';
+  `.trim().replace(/\s{2,}/g, ' ');
+
+  headers.set('Content-Security-Policy', csp);
+  headers.set('X-Content-Type-Options', 'nosniff');
+  headers.set('X-Frame-Options', 'DENY');
+  headers.set('Referrer-Policy', 'origin-when-cross-origin');
+  headers.set('Permissions-Policy', "camera=(), microphone=(), geolocation=()");
+
+  return NextResponse.next({
+    headers: headers,
+  });
 });
 
 export const config = {

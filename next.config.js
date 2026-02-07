@@ -29,7 +29,7 @@ const nextConfig = {
   productionBrowserSourceMaps: false,
 
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false,
   },
 
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -82,7 +82,7 @@ const nextConfig = {
         source: '/api/health',
         headers: [
           {
-            key: 'Cache-Control',
+            key: 'Cache-control',
             value: 'no-store, no-cache, must-revalidate',
           },
         ],

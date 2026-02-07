@@ -2,8 +2,8 @@
  * Database Schema - AI Pandit BTR System
  * Production-grade schema with full audit support
  * 
- * @version 2.0.0 - Post-Audit Implementation
- * @author Database Architect
+ * @version 2.1.0 - Enhanced Security Constraints
+ * @author Database Architect, with God-Tier review
  */
 
 import { sqliteTable, text, integer, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
@@ -80,7 +80,6 @@ export const sessions = sqliteTable(
     
     // Status with CHECK constraint
     status: text('status').default('draft').notNull(),
-    // Valid: 'draft', 'pending', 'processing', 'complete', 'failed', 'cancelled'
     
     // Error Tracking
     errorMessage: text('errorMessage'),

@@ -45,7 +45,6 @@ export const metadata = {
     userScalable: true,
     viewportFit: 'cover',
   },
-  manifest: '/manifest.json',
   themeColor: '#B8860B',
   appleWebApp: {
     capable: true,
@@ -91,6 +90,9 @@ export default function RootLayout({
       }}
     >
       <html lang="en" className={`${inter.variable} ${cormorant.variable} ${playfair.variable} ${jetbrainsMono.variable}`}>
+        <head>
+          <link rel="manifest" href="/manifest.json" />
+        </head>
         <body className="min-h-screen bg-[#FFFCF8] text-[#1A1612] antialiased overflow-x-hidden">
           {/* Subtle Sacred Pattern Background */}
           <div className="fixed inset-0 pointer-events-none z-0 bg-sacred-pattern" />
