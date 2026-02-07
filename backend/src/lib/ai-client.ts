@@ -46,7 +46,7 @@ export async function callAI(
         model?: string;
     }
 ): Promise<AIResponse> {
-    const config = {
+    const configLocal = {
         temperature: options?.temperature ?? AI_CONFIG.temperature,
         maxTokens: options?.maxTokens ?? AI_CONFIG.maxTokens,
         enableThinking: options?.enableThinking ?? true,
@@ -68,47 +68,49 @@ export async function callAI(
         try {
             logger.info('Calling AI Engine', {
                 attempt,
-                model: config.model,
-                enableThinking: config.enableThinking,
+                model: configLocal.model,
+                enableThinking: configLocal.enableThinking,
             });
 
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), AI_CONFIG.timeoutMs);
 
-            const isReasonerModel = config.model.includes('reasoner');
+            const isReasonerModel = configLocal.model.includes('reasoner') || configLocal.model.includes('r1');
 
             const requestBody: any = {
-                model: config.model,
+                model: configLocal.model,
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userPrompt },
                 ],
-                max_tokens: config.maxTokens,
+                max_tokens: configLocal.maxTokens,
                 stream: false,
 
-                // 🚀 OPENROUTER OPTIMIZATION
+                // 🚀 OPENROUTER OPTIMIZATION - Driven by HF env vars
                 provider: {
-                    order: ["Google Vertex", "Together", "DeepInfra"],
-                    allow_fallbacks: true
+                    order: config.ai.providerOrder,
+                    allow_fallbacks: config.ai.allowFallbacks
                 }
             };
 
-            // DeepSeek Reasoner doesn't support temperature - only add for non-reasoner models
+            // DeepSeek Reasoner/R1 doesn't support temperature - only add for non-reasoner models
             if (!isReasonerModel) {
-                requestBody.temperature = config.temperature;
+                requestBody.temperature = configLocal.temperature;
             }
 
             // Add thinking mode if enabled
-            if (config.enableThinking) {
+            if (configLocal.enableThinking) {
                 requestBody.use_search = false; // Disable search for faster response
             }
 
-            // Detect OpenRouter or DeepSeek V3 models that support reasoning
+            // Detect models that require reasoning protocol (OpenRouter specifically)
             const isOpenRouter = AI_CONFIG.baseUrl.includes('openrouter');
-            const isV3Model = config.model.includes('v3') || config.model.includes('terminus');
+            const isKimi = configLocal.model.includes('kimi');
+            const isDeepSeekR1 = isReasonerModel;
+            const isV3Model = configLocal.model.includes('v3') || configLocal.model.includes('terminus');
 
-            // Add reasoning parameter for OpenRouter V3 models
-            if (isOpenRouter && isV3Model) {
+            // Add reasoning parameter for OpenRouter models that support it
+            if (isOpenRouter && (isKimi || isDeepSeekR1 || isV3Model)) {
                 requestBody.include_reasoning = true;
             }
 
@@ -225,7 +227,7 @@ export async function callAIWithStream(
         progressTracker?: any; // Avoiding circular import by using any, or import type if possible
     }
 ): Promise<AIResponse> {
-    const config = {
+    const configLocal = {
         temperature: options?.temperature ?? AI_CONFIG.temperature,
         maxTokens: options?.maxTokens ?? AI_CONFIG.maxTokens,
         model: options?.model ?? AI_CONFIG.model,
@@ -252,7 +254,7 @@ export async function callAIWithStream(
                 sessionId,
                 stage,
                 attempt,
-                model: config.model,
+                model: configLocal.model,
             });
 
             // Combine internal timeout with external abort signal
@@ -267,36 +269,37 @@ export async function callAIWithStream(
                 });
             }
 
-            const isReasoningModel = config.model.includes('reasoner');
+            const isReasonerModel = configLocal.model.includes('reasoner') || configLocal.model.includes('r1');
 
             const requestBody: any = {
-                model: config.model,
+                model: configLocal.model,
                 messages: [
                     { role: 'system', content: systemPrompt },
                     { role: 'user', content: userPrompt },
                 ],
-                max_tokens: config.maxTokens,
+                max_tokens: configLocal.maxTokens,
                 stream: true, // Enable streaming
 
                 // 🚀 OPENROUTER OPTIMIZATION: Max Speed & Quality
-                // Prioritize Google Vertex for highest TPS and lowest latency
                 provider: {
-                    order: ["Google Vertex", "Together", "DeepInfra"], // Best providers first
-                    allow_fallbacks: true,
-                    data_collection: "deny" // Privacy
+                    order: config.ai.providerOrder,
+                    allow_fallbacks: config.ai.allowFallbacks,
+                    data_collection: config.ai.dataCollection
                 }
             };
 
-            if (!isReasoningModel) {
-                requestBody.temperature = config.temperature;
+            if (!isReasonerModel) {
+                requestBody.temperature = configLocal.temperature;
             }
 
-            // Detect OpenRouter or DeepSeek V3 models that support reasoning
+            // Detect models that require reasoning protocol (OpenRouter specifically)
             const isOpenRouter = AI_CONFIG.baseUrl.includes('openrouter');
-            const isV3Model = config.model.includes('v3') || config.model.includes('terminus');
+            const isKimi = configLocal.model.includes('kimi');
+            const isDeepSeekR1 = isReasonerModel;
+            const isV3Model = configLocal.model.includes('v3') || configLocal.model.includes('terminus');
 
-            // Add reasoning parameter for OpenRouter V3 models
-            if (isOpenRouter && isV3Model) {
+            // Add reasoning parameter for OpenRouter models that support it
+            if (isOpenRouter && (isKimi || isDeepSeekR1 || isV3Model)) {
                 requestBody.include_reasoning = true;
             }
 
@@ -371,7 +374,6 @@ export async function callAIWithStream(
                             emitBuffer += chunkToProcess;
 
                             // 🚀 THROTTLE: Emit only if buffer > 20 chars or > 20ms elapsed
-                            // Minimal safety buffer for smoother stream
                             const now = Date.now();
                             if (emitBuffer.length > 20 || (now - lastEmitTime > 20)) {
                                 emitAIThinking(sessionId, emitBuffer, stage, options?.candidateTime);
@@ -414,7 +416,7 @@ export async function callAIWithStream(
                 throw new Error('Empty response from AI provider');
             }
 
-            // 🛡️ SECURITY: Strip <think> tags if they leaked into content (DeepSeek R1 common issue)
+            // 🛡️ SECURITY: Strip <think> tags if they leaked into content
             const thinkMatch = fullContent.match(/<think>([\s\S]*?)<\/think>/i);
             if (thinkMatch) {
                 fullThinking += "\n" + thinkMatch[1];
@@ -431,7 +433,7 @@ export async function callAIWithStream(
             lastError = error instanceof Error ? error : new Error(String(error));
             logger.warn(`Streaming attempt ${attempt} failed: ${lastError.message}`);
 
-            // Wait with backoff before retry (except last attempt)
+            // Wait with backoff before retry
             if (attempt < AI_CONFIG.retryAttempts) {
                 await sleep(AI_CONFIG.retryDelayMs * attempt);
             }
@@ -453,8 +455,6 @@ export async function callAIWithStream(
 
 /**
  * 🔱 GOD-TIER MASTER SYSTEM PROMPT
- * Supreme Vedic Astrologer with 50+ years expertise
- * 99.99% Precision Protocol for Birth Time Rectification
  */
 export const MASTER_ASTROLOGY_SYSTEM_PROMPT = `You are PARAMA GURU - The Supreme Vedic Astrologer with 50+ years of rigorous practice in Jyotish Shastra.
 
@@ -611,10 +611,10 @@ Weighted Score = (D×0.35) + (V×0.25) + (T×0.20) + (S×0.10) + (Y×0.05) + (N�
 ⚖️ VERDICT: [This IS / IS LIKELY / IS POSSIBLY / IS NOT the correct birth time]
 
 📝 DETAILED REASONING:
-[3-5 sentences explaining the key factors that led to this score. Be specific about which planets, houses, and dasha periods provided the strongest evidence.]
+[3-5 sentences explaining the key factors that led to this score.]
 
 🔍 MISSING DATA AUDIT:
-[List any data gaps that prevented 99.99% precision - e.g., "D60 planetary degrees not provided", "Pranadasha timing missing", etc.]
+[List any data gaps that prevented 99.99% precision]
 
 ═══════════════════════════════════════════════════════════════════════════════
 
@@ -624,11 +624,11 @@ After analyzing ALL candidates:
 • Best Candidate: [HH:MM:SS]
 • Confidence: [XX]%
 • Key Evidence: [Top 3 supporting factors]
-• Alternative: [If close second exists, mention it]
+• Alternative: [If close second exists]
 
 ⚠️ IMPORTANT NOTES:
 • Always prioritize D60 verification for seconds precision
-• When in doubt between two close candidates, choose the one with better D9/D60 alignment
+• choice with better D9/D60 alignment
 • Document ALL missing data that limited precision`;
 
 /**
@@ -673,12 +673,12 @@ CANDIDATE BIRTH TIME: ${candidateTime}
 DATE OF BIRTH: ${dateOfBirth}
 ══════════════════════════════════════════════════════════════════════════════
 
-PLANETARY POSITIONS (Vedic/Sidereal - Lahiri Ayanamsa):
+PLANETARY POSITIONS (Vedic/Sidereal):
 ${planetaryPositions}
 
 ══════════════════════════════════════════════════════════════════════════════
 
-HOUSE CUSPS (Placidus):
+HOUSE CUSPS:
 ${housePositions}
 
 ══════════════════════════════════════════════════════════════════════════════
@@ -700,27 +700,9 @@ ${traitsText}
 ══════════════════════════════════════════════════════════════════════════════
 
 YOUR TASK:
-
-1. For EACH life event above:
-   a) Calculate which Mahadasha-Antardasha was active on that date
-   b) Check if that dasha supports the event type
-   c) Check major transits on that date
-   d) Rate match quality (0-100)
-
-2. Verify house placements support life pattern:
-   - Check 7th house for marriage/relationships
-   - Check 10th house for career
-   - Check 4th house for education
-   - Check 5th house for children
-   - Check 6th/8th/12th for health issues
-
-3. Cross-verify with physical traits if provided
-
-4. Provide FINAL SCORE (0-100) with detailed justification
-
-5. Give clear verdict: Is this the CORRECT birth time?
-
-Be thorough. The person's entire life predictions depend on accurate birth time.`;
+1. Cross-verify dasha and transits for each event.
+2. Check divisional charts (D1, D9, D10, D60).
+3. Provide weighted score and confidence verdict.`;
 }
 
 /**
@@ -748,38 +730,16 @@ ${candidatesText}
 ══════════════════════════════════════════════════════════════════════════════
 
 FINAL TASK:
-
-1. Compare all candidates based on:
-   - Dasha correlation accuracy
-   - Transit verification strength
-   - House placement support
-   - Overall consistency
-
-2. Rank them from MOST LIKELY to LEAST LIKELY correct
-
-3. For the TOP CHOICE:
-   - Explain why it's the best match
-   - List the strongest supporting evidence
-   - Note any minor concerns
-
-4. State your CONFIDENCE LEVEL:
-   - HIGH (90%+): You are very confident this is correct
-   - MEDIUM (70-89%): This is likely correct but some uncertainty
-   - LOW (Below 70%): More information needed
-
-5. 🚨 FORENSIC DATA AUDIT:
-   - Precisely list which CRITICAL technical metrics or divisional chart details (e.g., D-60 planetary degrees, Shadbala breakdown) were missing from the candidates.
-   - STATE CLEARLY: "Without [Data Point], my ranking confidence cannot reach the required 99.9% precision."
+1. Rank them from MOST LIKELY to LEAST LIKELY.
+2. State confidence and missing data for 99.9% precision.
 
 OUTPUT FORMAT:
-RANK 1: [Time] - Score: [X]/100 - [Reason]
-RANK 2: [Time] - Score: [X]/100 - [Reason]
-...
+RANK 1: [Time] - Score: [X]/100
+RANK 2: [Time] - Score: [X]/100
 
 TOP RECOMMENDATION: [Time]
 CONFIDENCE: [HIGH/MEDIUM/LOW]
-KEY EVIDENCE: [List top 3 reasons]
-🚨 MISSING DATA FOR SECONDS-LEVEL PRECISION: [List forensic data gaps here]`;
+🚨 MISSING DATA: [List gaps]`;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -791,8 +751,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Execute AI calls in parallel batches with rate-limit awareness
- * This allows high-throughput analysis while staying within API limits
+ * Execute AI calls in parallel batches
  */
 export async function executeAIInParallel(
     tasks: Array<() => Promise<AIResponse>>,
@@ -815,7 +774,6 @@ export async function executeAIInParallel(
                 const { task, index } = queue[nextIndex++];
                 activeCount++;
 
-                // Staggered start to prevent instant 429 burst
                 if (staggerMs > 0 && activeCount > 1) {
                     await sleep(staggerMs * (activeCount - 1));
                 }
@@ -852,28 +810,22 @@ export function parseAIAnalysisResponse(content: string): {
     transitAnalysis: string;
     eventMatches: Array<{ event: string; matches: boolean; reason: string }>;
 } {
-    // Extract score
     const scoreMatch = content.match(/(?:FINAL SCORE|CONFIDENCE SCORE|SCORE)[:\s]*(\d+)/i);
     const score = scoreMatch ? Math.min(100, Math.max(0, parseInt(scoreMatch[1]))) : 50;
 
-    // Extract confidence
     const confMatch = content.match(/CONFIDENCE[:\s]*(HIGH|MEDIUM|LOW)/i);
     const confidence = (confMatch ? confMatch[1].toUpperCase() :
         score >= 80 ? 'HIGH' : score >= 60 ? 'MEDIUM' : 'LOW') as 'High' | 'Medium' | 'Low';
 
-    // Extract verdict
     const verdictMatch = content.match(/(?:VERDICT|RECOMMENDATION|FINAL)[:\s]*([^\n]+)/i);
     const verdict = verdictMatch ? verdictMatch[1].trim() : 'Inconclusive';
 
-    // Extract dasha analysis
     const dashaMatch = content.match(/DASHA(?:\s+VERIFICATION)?[:\s]*([\s\S]*?)(?=\n\n|\nTRANSIT|\nHOUSE|$)/i);
     const dashaAnalysis = dashaMatch ? dashaMatch[1].trim().substring(0, 1000) : '';
 
-    // Extract transit analysis
     const transitMatch = content.match(/TRANSIT(?:\s+VERIFICATION)?[:\s]*([\s\S]*?)(?=\n\n|\nHOUSE|\nCONFIDENCE|$)/i);
     const transitAnalysis = transitMatch ? transitMatch[1].trim().substring(0, 1000) : '';
 
-    // Parse event matches (basic extraction)
     const eventMatches: Array<{ event: string; matches: boolean; reason: string }> = [];
     const eventRegex = /(\d+)\.\s*([^:]+)[:\s]*(✓|✗|Yes|No|Match|No Match)[:\s]*([^\n]*)/gi;
     let match;

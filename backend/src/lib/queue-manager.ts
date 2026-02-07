@@ -585,7 +585,7 @@ async function processQueue(): Promise<void> {
       // OR heapUsed > threshold (Node.js heap getting full)
       // This ensures stability while utilizing HF Spaces 16GB capacity
       const RSS_THRESHOLD_GB = config.memory.gcThresholdGB;
-      const HEAP_THRESHOLD_GB = config.memory.thresholdPercent / 10; // Convert percentage to GB approximation
+      const HEAP_THRESHOLD_GB = config.memory.heapThresholdGB;
 
       // Only log memory stats every 10 iterations to reduce noise
       if (Math.random() < 0.1) {

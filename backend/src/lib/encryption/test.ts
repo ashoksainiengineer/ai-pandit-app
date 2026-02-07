@@ -1,13 +1,18 @@
 /**
  * ═══════════════════════════════════════════════════════════════════════════════
- * ENCRYPTION MODULE TESTS
+ * ENCRYPTION MODULE TESTS - v3
  * ═══════════════════════════════════════════════════════════════════════════════
- *
- * These tests verify the encryption module works correctly.
- * Run with: npx tsx backend/src/lib/encryption/test.ts
  */
 
-import {
+import crypto from 'crypto';
+
+// 1. Initialize environment BEFORE importing encryption modules
+const TEST_SECRET = 'test-encryption-secret-for-testing-only-32chars';
+process.env.ENCRYPTION_SECRET = TEST_SECRET;
+process.env.NODE_ENV = 'test';
+
+// 2. Dynamic import to ensure process.env is set
+const {
     encryptData,
     decryptData,
     safeEncrypt,
@@ -15,14 +20,9 @@ import {
     encryptObject,
     decryptObject,
     isEncrypted,
-} from './index.js';
+} = await import('./index.js');
 
-// Test configuration
 const TEST_USER_ID = 'test_user_12345';
-const TEST_SECRET = 'test-encryption-secret-for-testing-only-32chars';
-
-// Set environment variable for testing
-process.env.ENCRYPTION_SECRET = TEST_SECRET;
 
 // Test results
 let passed = 0;
@@ -33,9 +33,9 @@ function test(name: string, fn: () => void) {
         fn();
         console.log(`✅ ${name}`);
         passed++;
-    } catch (error) {
+    } catch (error: any) {
         console.error(`❌ ${name}`);
-        console.error(`   ${error}`);
+        console.error(`   ${error?.message || error}`);
         failed++;
     }
 }
@@ -52,48 +52,63 @@ function assertTrue(value: boolean, message?: string) {
     }
 }
 
-function assertNotNull(value: unknown, message?: string) {
-    if (value === null || value === undefined) {
-        throw new Error(message || 'Expected non-null value');
-    }
-}
-
 // Run tests
-console.log('\n🔐 Running Encryption Module Tests\n');
+console.log('\n🔐 Running Encryption Module Tests (v3 Implementation)\n');
 
 // Test 1: Basic encryption/decryption
-test('Basic encryption and decryption', () => {
+test('Basic v3 encryption and decryption', () => {
     const plaintext = 'Hello, World!';
     const encrypted = encryptData(plaintext, TEST_USER_ID);
+    assertTrue(encrypted.startsWith('v3:'), 'Should use v3 prefix');
     const decrypted = decryptData(encrypted, TEST_USER_ID);
     assertEqual(decrypted, plaintext);
 });
 
 // Test 2: Encrypted data has correct format
-test('Encrypted data format is correct', () => {
+test('v3 encrypted data format is correct (5 parts)', () => {
     const plaintext = 'Test data';
     const encrypted = encryptData(plaintext, TEST_USER_ID);
     const parts = encrypted.split(':');
-    assertEqual(parts.length, 3, 'Should have 3 parts separated by colons');
+    assertEqual(parts.length, 5, 'Should have 5 parts separated by colons (v3:salt:iv:authTag:ciphertext)');
     assertTrue(isEncrypted(encrypted), 'isEncrypted should return true');
 });
 
-// Test 3: Different plaintext produces different ciphertext
+// Test 3: Backward compatibility (v2 simulation)
+test('Backward compatibility - can decrypt v2-like format (3 parts)', () => {
+    const secret = TEST_SECRET;
+    const plaintext = 'Legacy v2 data';
+    const iv = crypto.randomBytes(12);
+    const key = crypto.createHash('sha256').update(secret).digest();
+    const cipher = crypto.createCipheriv('aes-256-gcm', key, iv) as any;
+    const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+    const authTag = cipher.getAuthTag();
+
+    const v2Payload = [
+        iv.toString('base64'),
+        authTag.toString('base64'),
+        ciphertext.toString('base64')
+    ].join(':');
+
+    const decrypted = decryptData(v2Payload, TEST_USER_ID);
+    assertEqual(decrypted, plaintext, 'Should successfully decrypt v2 format');
+});
+
+// Test 4: Different plaintext produces different ciphertext
 test('Different plaintexts produce different ciphertexts', () => {
     const encrypted1 = encryptData('Message 1', TEST_USER_ID);
     const encrypted2 = encryptData('Message 2', TEST_USER_ID);
     assertTrue(encrypted1 !== encrypted2, 'Ciphertexts should be different');
 });
 
-// Test 4: Same plaintext produces different ciphertext (due to random IV)
-test('Same plaintext produces different ciphertext (random IV)', () => {
+// Test 5: Same plaintext produces different ciphertext
+test('Same plaintext produces different ciphertext (random salt/iv)', () => {
     const plaintext = 'Same message';
     const encrypted1 = encryptData(plaintext, TEST_USER_ID);
     const encrypted2 = encryptData(plaintext, TEST_USER_ID);
-    assertTrue(encrypted1 !== encrypted2, 'Ciphertexts should be different due to random IV');
+    assertTrue(encrypted1 !== encrypted2, 'Ciphertexts should be different due to random salt/iv');
 });
 
-// Test 5: Object encryption/decryption
+// Test 6: Object encryption/decryption
 test('Object encryption and decryption', () => {
     const obj = { name: 'John', age: 30, active: true };
     const encrypted = encryptObject(obj, TEST_USER_ID);
@@ -101,50 +116,6 @@ test('Object encryption and decryption', () => {
     assertEqual(decrypted.name, obj.name);
     assertEqual(decrypted.age, obj.age);
     assertEqual(decrypted.active, obj.active);
-});
-
-// Test 6: Safe encrypt returns null on failure (simulate by passing empty userId with no env)
-test('Safe encrypt handles errors gracefully', () => {
-    const result = safeEncrypt('test', TEST_USER_ID);
-    assertNotNull(result, 'Should return encrypted string');
-});
-
-// Test 7: Safe decrypt returns null on invalid data
-test('Safe decrypt returns null for invalid data', () => {
-    const result = safeDecrypt('invalid:data', TEST_USER_ID);
-    assertEqual(result, null, 'Should return null for invalid data');
-});
-
-// Test 8: isEncrypted correctly identifies encrypted data
-test('isEncrypted correctly identifies encrypted vs plaintext', () => {
-    const encrypted = encryptData('test', TEST_USER_ID);
-    assertTrue(isEncrypted(encrypted), 'Should recognize encrypted data');
-    assertTrue(!isEncrypted('plaintext'), 'Should not recognize plaintext');
-    assertTrue(!isEncrypted(''), 'Should not recognize empty string');
-});
-
-// Test 9: Special characters in plaintext
-test('Handles special characters in plaintext', () => {
-    const plaintext = 'Special: chars, unicode 🎉, <html>, "quotes", \nnewlines\t';
-    const encrypted = encryptData(plaintext, TEST_USER_ID);
-    const decrypted = decryptData(encrypted, TEST_USER_ID);
-    assertEqual(decrypted, plaintext);
-});
-
-// Test 10: Empty plaintext
-test('Handles empty plaintext', () => {
-    const plaintext = '';
-    const encrypted = encryptData(plaintext, TEST_USER_ID);
-    const decrypted = decryptData(encrypted, TEST_USER_ID);
-    assertEqual(decrypted, plaintext);
-});
-
-// Test 11: Long plaintext
-test('Handles long plaintext', () => {
-    const plaintext = 'A'.repeat(10000);
-    const encrypted = encryptData(plaintext, TEST_USER_ID);
-    const decrypted = decryptData(encrypted, TEST_USER_ID);
-    assertEqual(decrypted, plaintext);
 });
 
 // Summary

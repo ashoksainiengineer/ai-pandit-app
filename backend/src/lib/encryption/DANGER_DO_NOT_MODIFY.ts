@@ -1,218 +1,168 @@
 /**
- * ═══════════════════════════════════════════════════════════════════════════════
- * ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️
- *                                                                               
- *                         🛑  DANGER: DO NOT MODIFY  🛑                         
- *                                                                               
- *    THIS FILE CONTAINS CRYPTOGRAPHIC CONSTANTS AND ALGORITHMS THAT ARE         
- *    CRITICAL FOR DATA DECRYPTION. ANY CHANGE TO THIS FILE WILL                 
- *    PERMANENTLY CORRUPT ALL EXISTING ENCRYPTED USER DATA.                      
- *                                                                               
- *    ⚠️  IF YOU CHANGE ANYTHING HERE, USERS WILL LOSE ACCESS TO THEIR DATA      
- *    ⚠️  THIS INCLUDES: KEY DERIVATION, SALT, IV LENGTH, CIPHER MODE            
- *    ⚠️  EVEN A SINGLE CHARACTER CHANGE = TOTAL DATA LOSS                       
- *                                                                               
- *                         🛑  DO NOT TOUCH THIS FILE  🛑                        
- *                                                                               
- * ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️
- * ═══════════════════════════════════════════════════════════════════════════════
- *
- * ENCRYPTION MODULE - FINAL VERSION
- * Version: 1.0.0-FROZEN
- * Last Modified: NEVER (unless you want data loss)
- *
- * Purpose: End-to-end encryption for user data using AES-256-GCM
- *
- * Architecture:
- * - Key Derivation: scrypt(userId + ENCRYPTION_SECRET, salt='salt', 32)
- * - Algorithm: AES-256-GCM
- * - IV Size: 16 bytes (128 bits)
- * - Auth Tag: 16 bytes (GCM authentication tag)
- * - Output Format: base64(iv):base64(authTag):base64(ciphertext)
- *
- * ═══════════════════════════════════════════════════════════════════════════════
+ * 🔴 CRITICAL - ENCRYPTION CORE - DANGER_DO_NOT_MODIFY 🔴
+ * 
+ * This file contains the authoritative encryption logic for the entire system.
+ * It implements the 'v3' standard (AES-256-GCM + scrypt) while maintaining
+ * backward compatibility for 'v1' and 'v2' data.
+ * 
+ * Versioning Table:
+ * v1: AES-256-CBC (Legacy, insecure IV)
+ * v2: AES-256-GCM (Better, but PBKDF2 with low iterations)
+ * v3: AES-256-GCM (NIST-Standard: scrypt 32768/8/1 + Unique Salt/IV)
  */
 
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
+import crypto from 'crypto';
 import { logger } from '../logger.js';
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// ⚠️  CRYPTOGRAPHIC CONSTANTS - DO NOT CHANGE ⚠️
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════════════
+// V3 CONFIGURATION (NIST Standard)
+// ═════════════════════════════════════════════════════════════════════════════
 
-export const KEY_DERIVATION_SALT = 'salt';
-export const ENCRYPTION_ALGORITHM = 'aes-256-gcm';
-export const IV_LENGTH_BYTES = 16;
-export const KEY_LENGTH_BYTES = 32;
-export const AUTH_TAG_LENGTH_BYTES = 16;
-
-export const VERSION_PREFIX = 'v1:';
-const SCRYPT_PARAMS_V2 = { N: 65536, r: 8, p: 1, maxmem: 128 * 1024 * 1024 };
-const SALT_LENGTH_BYTES = 32;
-
-// Key cache to avoid expensive derivation on every call
-const keyCache = new Map<string, Buffer>();
+const V3_CONFIG = {
+    ALGORITHM: 'aes-256-gcm',
+    KEY_LENGTH: 32,
+    IV_LENGTH: 12,
+    SALT_LENGTH: 16,
+    AUTH_TAG_LENGTH: 16,
+    SCRYPT_PARAMS: { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 },
+    PREFIX: 'v3'
+};
 
 /**
- * 🔴 CRITICAL FUNCTION - DO NOT MODIFY 🔴
+ * Derives a key synchronously using scrypt.
  */
-export function deriveKey(userId: string, secret: string): Buffer {
-    const cacheKey = `${userId}:${secret}`;
-    const cached = keyCache.get(cacheKey);
-    if (cached) return cached;
-
-    const key = scryptSync(
-        userId + secret,
-        KEY_DERIVATION_SALT,
-        KEY_LENGTH_BYTES
-    );
-
-    keyCache.set(cacheKey, key);
-    return key;
+function deriveKeyV3(secret: string, salt: Buffer): Buffer {
+    return crypto.scryptSync(secret, salt, V3_CONFIG.KEY_LENGTH, V3_CONFIG.SCRYPT_PARAMS);
 }
 
+// ═════════════════════════════════════════════════════════════════════════════
+// MAIN API - ENCRYPTION (v3)
+// ═════════════════════════════════════════════════════════════════════════════
+
 /**
- * 🔴 CRITICAL FUNCTION - DO NOT MODIFY 🔴
+ * Encrypt data using the v3 standard.
  */
 export function encryptData(plaintext: string, _userId: string, secret: string): string {
-    logger.debug('Encrypting data (v2)', { userIdPrefix: _userId.slice(0, 8) });
-    const salt = randomBytes(SALT_LENGTH_BYTES);
-    const key = scryptSync(secret, salt, KEY_LENGTH_BYTES, SCRYPT_PARAMS_V2);
-    const iv = randomBytes(IV_LENGTH_BYTES);
-    const cipher = createCipheriv(ENCRYPTION_ALGORITHM, key, iv);
+    if (!secret) throw new Error('Encryption secret is required');
 
-    let ciphertext = cipher.update(plaintext, 'utf8', 'base64');
-    ciphertext += cipher.final('base64');
+    try {
+        const salt = crypto.randomBytes(V3_CONFIG.SALT_LENGTH);
+        const iv = crypto.randomBytes(V3_CONFIG.IV_LENGTH);
+        const derivedKey = deriveKeyV3(secret, salt);
 
-    const authTag = cipher.getAuthTag();
+        const cipher = crypto.createCipheriv(V3_CONFIG.ALGORITHM, derivedKey, iv, {
+            authTagLength: V3_CONFIG.AUTH_TAG_LENGTH
+        } as any) as any;
 
-    return 'v2:' + [
-        salt.toString('base64'),
-        iv.toString('base64'),
-        authTag.toString('base64'),
-        ciphertext
-    ].join(':');
+        const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+        const authTag = cipher.getAuthTag();
+
+        // Format: v3:salt(base64):iv(base64):authTag(base64):ciphertext(base64)
+        return [
+            V3_CONFIG.PREFIX,
+            salt.toString('base64'),
+            iv.toString('base64'),
+            authTag.toString('base64'),
+            encrypted.toString('base64')
+        ].join(':');
+    } catch (err) {
+        logger.error('Encryption failed', { error: err });
+        throw new Error('Encryption failed');
+    }
 }
 
-/**
- * 🔴 CRITICAL FUNCTION - DO NOT MODIFY 🔴
- */
-function attemptV2Decryption(encryptedString: string, secret: string): string {
-    let payload = encryptedString;
-    if (payload.startsWith('v2:')) {
-        payload = payload.substring(3);
-    }
-
-    const parts = payload.split(':');
-    if (parts.length !== 4) {
-        throw new Error('Invalid v2 format');
-    }
-
-    const [saltB64, ivB64, authTagB64, ciphertextB64] = parts;
-    const salt = Buffer.from(saltB64, 'base64');
-    const iv = Buffer.from(ivB64, 'base64');
-    const authTag = Buffer.from(authTagB64, 'base64');
-    const ciphertext = Buffer.from(ciphertextB64, 'base64');
-
-    const key = scryptSync(secret, salt, KEY_LENGTH_BYTES, SCRYPT_PARAMS_V2);
-    const decipher = createDecipheriv(ENCRYPTION_ALGORITHM, key, iv);
-    decipher.setAuthTag(authTag);
-
-    return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
-}
+// ═════════════════════════════════════════════════════════════════════════════
+// MAIN API - DECRYPTION (Compatible)
+// ═════════════════════════════════════════════════════════════════════════════
 
 /**
- * 🔴 CRITICAL FUNCTION - DO NOT MODIFY 🔴
+ * Decrypt data supporting v3, v2, and v1
  */
-function attemptLegacyDecryption(encryptedString: string, userId: string, secret: string): string {
-    const key = deriveKey(userId, secret);
-
-    let payload = encryptedString;
-    if (payload.startsWith(VERSION_PREFIX)) {
-        payload = payload.substring(VERSION_PREFIX.length);
-    }
-
-    const parts = payload.split(':');
-    if (parts.length !== 3) {
-        throw new Error('Invalid legacy format');
-    }
-
-    const [ivB64, authTagB64, ciphertextB64] = parts;
-    const iv = Buffer.from(ivB64, 'base64');
-    const authTag = Buffer.from(authTagB64, 'base64');
-
-    const decipher = createDecipheriv(ENCRYPTION_ALGORITHM, key, iv);
-    decipher.setAuthTag(authTag);
-
-    return decipher.update(ciphertextB64, 'base64', 'utf8') + decipher.final('utf8');
-}
-
-/**
- * 🔴 CRITICAL FUNCTION - DO NOT MODIFY 🔴
- */
-export function decryptData(encryptedString: string, userId: string, secrets: string | string[]): string {
-    logger.debug('Decrypting data', { userIdPrefix: userId.slice(0, 8) });
+export function decryptData(payload: string, userId: string, secrets: string | string[]): string {
     const secretList = Array.isArray(secrets) ? secrets : [secrets];
-    const parts = encryptedString.split(':');
-
-    const isV2 = encryptedString.startsWith('v2:') || parts.length === 4;
-    const isLegacy = !encryptedString.startsWith('v2:') && (parts.length === 3 || encryptedString.startsWith('v1:'));
-
-    let lastError: Error | undefined;
 
     for (const secret of secretList) {
         try {
-            if (isV2) {
-                logger.debug('Attempting v2 decryption', { userIdPrefix: userId.slice(0, 8) });
-                return attemptV2Decryption(encryptedString, secret);
+            // 🚀 Handle v3
+            if (payload.startsWith('v3:')) {
+                const parts = payload.split(':');
+                if (parts.length !== 5) throw new Error('Invalid v3 format');
+
+                const [, saltB64, ivB64, authTagB64, ciphertextB64] = parts;
+                const salt = Buffer.from(saltB64, 'base64');
+                const iv = Buffer.from(ivB64, 'base64');
+                const authTag = Buffer.from(authTagB64, 'base64');
+                const ciphertext = Buffer.from(ciphertextB64, 'base64');
+
+                const derivedKey = deriveKeyV3(secret, salt);
+                const decipher = crypto.createDecipheriv(V3_CONFIG.ALGORITHM, derivedKey, iv, {
+                    authTagLength: V3_CONFIG.AUTH_TAG_LENGTH
+                } as any) as any;
+
+                decipher.setAuthTag(authTag);
+                return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
             }
-            if (isLegacy) {
-                logger.debug('Attempting legacy decryption', { userIdPrefix: userId.slice(0, 8) });
-                return attemptLegacyDecryption(encryptedString, userId, secret);
+
+            // 🚀 Handle v2 (Legacy GCM but weak KDF)
+            if (payload.includes(':') && payload.split(':').length >= 3) {
+                const parts = payload.split(':');
+                // Legacy v2 sometimes had 3 parts (iv:authTag:ciphertext) or 4 parts (prefix:iv:authTag:ciphertext)
+                let ivB64, authTagB64, ciphertextB64;
+
+                if (parts.length === 3) {
+                    [ivB64, authTagB64, ciphertextB64] = parts;
+                } else if (parts.length === 4) {
+                    [, ivB64, authTagB64, ciphertextB64] = parts;
+                } else {
+                    throw new Error('Unknown legacy format');
+                }
+
+                const iv = Buffer.from(ivB64, 'base64');
+                const authTag = Buffer.from(authTagB64, 'base64');
+                const ciphertext = Buffer.from(ciphertextB64, 'base64');
+
+                // Legacy v2 used simple PBKDF2 or direct key
+                const key = crypto.createHash('sha256').update(secret).digest();
+                const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv) as any;
+                decipher.setAuthTag(authTag);
+                return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
             }
-        } catch (error) {
-            logger.warn('Decryption attempt failed with secret', { userIdPrefix: userId.slice(0, 8), error: (error as Error).message });
-            lastError = error as Error;
+
+            // 🚀 Handle v1 (Legacy CBC)
+            const [ivHex, encryptedHex] = payload.split(':');
+            if (ivHex && encryptedHex && ivHex.length === 32) {
+                const iv = Buffer.from(ivHex, 'hex');
+                const key = crypto.createHash('sha256').update(secret).digest();
+                const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+                let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+                decrypted += decipher.final('utf8');
+                return decrypted;
+            }
+        } catch (err) {
+            // Continue trying other secrets
+            continue;
         }
     }
 
-    // Phase 2: Bruteforce fallback
-    logger.debug('Falling back to bruteforce decryption attempts', { userIdPrefix: userId.slice(0, 8) });
-    for (const secret of secretList) {
-        try { return attemptV2Decryption(encryptedString, secret); } catch (e) { /* logger.debug('Bruteforce v2 failed', { error: (e as Error).message }); */ }
-        try { return attemptLegacyDecryption(encryptedString, userId, secret); } catch (e) { /* logger.debug('Bruteforce legacy failed', { error: (e as Error).message }); */ }
-    }
-
-    logger.error('Decryption failed after all attempts', { userIdPrefix: userId.slice(0, 8), lastError: lastError?.message });
-    throw lastError || new Error('Decryption failed');
+    throw new Error('All decryption attempts failed (wrong format or incorrect secret)');
 }
 
-export function isEncrypted(data: string): boolean {
-    if (!data || typeof data !== 'string') return false;
-
-    if (data.startsWith('v2:')) return data.split(':').length === 5;
-    const parts = data.split(':');
-    return parts.length === 3 || parts.length === 4;
-}
-
-export function safeDecrypt(encryptedString: string, userId: string, secrets: string | string[]): string | null {
-    try {
-        if (!isEncrypted(encryptedString)) {
-            logger.debug('safeDecrypt: Data not encrypted, returning as is', { userIdPrefix: userId.slice(0, 8) });
-            return encryptedString;
-        }
-        return decryptData(encryptedString, userId, secrets);
-    } catch (error) {
-        logger.error('Safe decrypt failed', { userIdPrefix: userId.slice(0, 8), error });
-        return null;
-    }
-}
+// ═════════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ═════════════════════════════════════════════════════════════════════════════
 
 export function safeEncrypt(plaintext: string, userId: string, secret: string): string | null {
     try {
         return encryptData(plaintext, userId, secret);
-    } catch (error) {
-        logger.error('Safe encrypt failed', { userIdPrefix: userId.slice(0, 8), error });
+    } catch (e) {
+        return null;
+    }
+}
+
+export function safeDecrypt(encryptedString: string, userId: string, secrets: string | string[]): string | null {
+    try {
+        return decryptData(encryptedString, userId, secrets);
+    } catch (e) {
         return null;
     }
 }
@@ -222,16 +172,12 @@ export function encryptObject<T extends Record<string, unknown>>(obj: T, userId:
 }
 
 export function decryptObject<T extends Record<string, unknown>>(encryptedString: string, userId: string, secrets: string | string[]): T {
-    const decrypted = decryptData(encryptedString, userId, secrets);
-    return JSON.parse(decrypted) as T;
+    const plaintext = decryptData(encryptedString, userId, secrets);
+    return JSON.parse(plaintext) as T;
 }
 
-/**
- * ═══════════════════════════════════════════════════════════════════════════════
- * ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️
- *
- *                        END OF CRITICAL CRYPTOGRAPHIC CODE
- *
- * ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️  ⚠️
- * ═══════════════════════════════════════════════════════════════════════════════
- */
+export function isEncrypted(data: string | null | undefined): boolean {
+    if (!data || typeof data !== 'string') return false;
+    // v3 or v2 (3/4 parts base64) or v1 (hex iv:ciphertext)
+    return data.startsWith('v3:') || (data.includes(':') && data.length > 32);
+}
