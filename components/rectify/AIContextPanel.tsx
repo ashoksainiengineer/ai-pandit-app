@@ -38,20 +38,20 @@ export function AIContextPanel({ data, currentStage }: AIContextPanelProps) {
                 <div className="space-y-2">
                     <p className="text-emerald-400/60 mb-1 flex items-center gap-1">
                         <Activity className="w-3 h-3" />
-                        Planetary Positions ({data.candidateTime})
+                        Planetary Positions ({data.candidateTime || 'Analyzing...'})
                     </p>
                     <div className="bg-black/30 p-2 rounded border border-emerald-500/10 space-y-1">
                         <div className="flex justify-between">
                             <span className="text-white/60">Ascendant</span>
-                            <span className="text-emerald-300">{data.planetaryInfo.ascendant}</span>
+                            <span className="text-emerald-300">{data.planetaryInfo?.ascendant || '-'}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-white/60">Sun</span>
-                            <span className="text-emerald-300">{data.planetaryInfo.sun}</span>
+                            <span className="text-emerald-300">{data.planetaryInfo?.sun || '-'}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-white/60">Moon</span>
-                            <span className="text-emerald-300">{data.planetaryInfo.moon}</span>
+                            <span className="text-emerald-300">{data.planetaryInfo?.moon || '-'}</span>
                         </div>
                     </div>
                 </div>
@@ -65,7 +65,7 @@ export function AIContextPanel({ data, currentStage }: AIContextPanelProps) {
                     <div className="bg-black/30 p-2 rounded border border-emerald-500/10 space-y-1">
                         <div className="flex flex-col">
                             <span className="text-white/60">Current Dasha</span>
-                            <span className="text-emerald-300 truncate">{data.dasha}</span>
+                            <span className="text-emerald-300 truncate">{data.dasha || '-'}</span>
                         </div>
                         {data.divCharts && (
                             <div className="flex flex-col pt-1 mt-1 border-t border-white/5">
