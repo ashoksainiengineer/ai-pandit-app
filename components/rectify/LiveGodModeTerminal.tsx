@@ -129,9 +129,9 @@ export function LiveGodModeTerminal({
                         <span className="text-xs font-bold text-[#4A453F]">Recent Activity</span>
                     </div>
                     <div className="space-y-1 max-h-[80px] overflow-y-auto">
-                        {calculationLogs.slice(-3).map((log, i) => (
-                            <div key={i} className="text-xs text-[#4A453F] flex gap-2">
-                                <span className="text-[#D4AF37] font-mono w-16 shrink-0">{log.candidateTime}</span>
+                        {calculationLogs.slice(-3).filter(log => log?.candidateTime).map((log, i) => (
+                            <div key={`log-${i}`} className="text-xs text-[#4A453F] flex gap-2">
+                                <span className="text-[#D4AF37] font-mono w-16 shrink-0">{log.candidateTime || '-'}</span>
                                 <span className="truncate">{log.log}</span>
                             </div>
                         ))}

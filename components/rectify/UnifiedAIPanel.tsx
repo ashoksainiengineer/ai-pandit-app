@@ -269,8 +269,8 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         className={`rounded-xl border overflow-hidden transition-all ${isCurrentStage
-                                ? 'border-[#B8860B]/50 bg-white shadow-lg'
-                                : 'border-[#F0E8DE] bg-[#FEFDFB]'
+                            ? 'border-[#B8860B]/50 bg-white shadow-lg'
+                            : 'border-[#F0E8DE] bg-[#FEFDFB]'
                             }`}
                     >
                         {/* Accordion Header */}
@@ -283,10 +283,10 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                         >
                             <div className="flex items-center gap-2 sm:gap-3">
                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isCurrentStage
-                                        ? 'bg-[#B8860B]/20 text-[#B8860B]'
-                                        : hasContent
-                                            ? 'bg-[#2D7A5C]/10 text-[#2D7A5C]'
-                                            : 'bg-[#F0E8DE] text-[#A8A39D]'
+                                    ? 'bg-[#B8860B]/20 text-[#B8860B]'
+                                    : hasContent
+                                        ? 'bg-[#2D7A5C]/10 text-[#2D7A5C]'
+                                        : 'bg-[#F0E8DE] text-[#A8A39D]'
                                     }`}>
                                     {stageConfig.id === 2 && <Users className="w-4 h-4" />}
                                     {stageConfig.id === 4 && <Activity className="w-4 h-4" />}
@@ -329,9 +329,9 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                                         {/* Candidate tabs if multiple */}
                                         {stageCandidates.length > 1 && (
                                             <div className="flex flex-wrap gap-1.5 mb-3 pb-3 border-b border-[#F0E8DE]">
-                                                {stageCandidates.map((candidate) => (
+                                                {stageCandidates.filter(c => c?.candidateTime).map((candidate, idx) => (
                                                     <CandidateTabButton
-                                                        key={candidate.candidateTime}
+                                                        key={candidate.candidateTime || `candidate-${idx}`}
                                                         time={candidate.candidateTime || ''}
                                                         isSelected={effectiveDisplayedCandidate === candidate.candidateTime}
                                                         isLive={isStreaming(candidate.candidateTime || '')}

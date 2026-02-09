@@ -81,14 +81,14 @@ export const LiveCalculationPanel: React.FC<LiveCalculationPanelProps> = ({ logs
                 className="h-40 overflow-y-auto font-mono text-[9px] md:text-[10px] space-y-0.5 scrollbar-thin scrollbar-thumb-[#E8E0D5] scrollbar-track-transparent bg-white"
             >
                 <AnimatePresence initial={false}>
-                    {displayedLogs.map((log, idx) => (
+                    {displayedLogs.filter(log => log?.candidateTime).map((log, idx) => (
                         <motion.div
-                            key={log.candidateTime + idx}
+                            key={`${log.candidateTime || 'log'}-${idx}`}
                             initial={{ opacity: 0, x: -5 }}
                             animate={{ opacity: 1, x: 0 }}
                             className="grid grid-cols-[12%_18%_18%_18%_24%_10%] items-center px-4 py-0.5 hover:bg-[#F5EFE7] transition-colors border-b border-[#F0E8DE]/50"
                         >
-                            <span className="text-emerald-700 font-bold">{log.candidateTime}</span>
+                            <span className="text-emerald-700 font-bold">{log.candidateTime || '-'}</span>
                             <span className="text-emerald-600/80 truncate pr-2">{log.sunPos}</span>
                             <span className="text-emerald-600/80 truncate pr-2">{log.moonPos}</span>
                             <span className="text-cyan-700 font-bold truncate pr-2">{log.ascendant}</span>
