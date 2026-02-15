@@ -60,7 +60,20 @@ export const env = {
   },
 
   api: {
-    backendUrl: getEnvVar(process.env.NEXT_PUBLIC_BACKEND_URL, 'NEXT_PUBLIC_BACKEND_URL', 'http://localhost:8080'),
+    backendUrl: (() => {
+      const url = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+      if (process.env.NODE_ENV === 'production') {
+        if (!url) {
+          throw new Error('❌ NEXT_PUBLIC_BACKEND_URL is required in production. Set this to your Hugging Face Space URL.');
+        }
+        if (!url.startsWith('http')) {
+          throw new Error('❌ NEXT_PUBLIC_BACKEND_URL must be an absolute URL (starting with http/https) in production.');
+        }
+      }
+
+      return (url || 'http://localhost:8080').replace(/\/$/, '');
+    })(),
     internalApiKey: getEnvVarOptional(process.env.INTERNAL_API_KEY),
   },
 

@@ -4,6 +4,7 @@
  */
 
 import { logger } from './logger';
+import { env } from './config';
 
 interface ApiClientConfig {
   baseUrl?: string;
@@ -27,7 +28,7 @@ interface ApiResponse<T> {
 
 // Default configuration
 const DEFAULT_CONFIG: Required<ApiClientConfig> = {
-  baseUrl: process.env.NEXT_PUBLIC_BACKEND_URL || '',
+  baseUrl: env.api.backendUrl,
   timeout: 30000, // 30 seconds
   retries: 3,
   retryDelay: 1000, // 1 second
@@ -128,8 +129,8 @@ async function makeRequest<T>(
     ...fetchOptions
   } = config;
 
-  const url = endpoint.startsWith('http') 
-    ? endpoint 
+  const url = endpoint.startsWith('http')
+    ? endpoint
     : `${DEFAULT_CONFIG.baseUrl}${endpoint}`;
 
   let lastError: Error | null = null;
@@ -161,7 +162,7 @@ async function makeRequest<T>(
       // Parse response
       let data: T | null = null;
       const contentType = response.headers.get('content-type');
-      
+
       if (contentType?.includes('application/json')) {
         data = await response.json();
       } else if (response.status !== 204) {

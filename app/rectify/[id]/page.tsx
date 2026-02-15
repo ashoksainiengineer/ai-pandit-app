@@ -398,7 +398,13 @@ const CandidateScoreTable = memo(({ scores }: { scores: CandidateScore[] }) => {
 });
 CandidateScoreTable.displayName = 'CandidateScoreTable';
 
-const AIContextPanel = memo(({ persistentCandidates, isActive }: { persistentCandidates: any[]; isActive: boolean }) => {
+interface PersistentCandidate {
+    time: string;
+    ascendant?: string;
+    moon?: string;
+}
+
+const AIContextPanel = memo(({ persistentCandidates, isActive }: { persistentCandidates: PersistentCandidate[]; isActive: boolean }) => {
     if (!isActive && persistentCandidates.length === 0) return null;
 
     return (

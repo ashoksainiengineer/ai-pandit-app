@@ -4,6 +4,7 @@
  */
 
 import { logger } from './logger';
+import { env } from './config';
 
 interface HFApiConfig {
   baseUrl: string;
@@ -20,7 +21,7 @@ interface ApiResponse<T> {
 }
 
 const DEFAULT_CONFIG: Required<HFApiConfig> = {
-  baseUrl: process.env.NEXT_PUBLIC_BACKEND_URL || '',
+  baseUrl: env.api.backendUrl,
   timeout: 10000,      // Normal timeout: 10 seconds
   wakeUpTimeout: 60000, // Cold start timeout: 60 seconds
   retries: 2,
@@ -53,14 +54,14 @@ export async function fetchWithColdStartHandling<T>(
 ): Promise<ApiResponse<T>> {
   const mergedConfig = { ...DEFAULT_CONFIG, ...config };
   const fullUrl = url.startsWith('http') ? url : `${mergedConfig.baseUrl}${url}`;
-  
+
   let lastError: Error | null = null;
   let isColdStart = false;
 
   for (let attempt = 1; attempt <= mergedConfig.retries; attempt++) {
     try {
       const controller = new AbortController();
-      
+
       // Use longer timeout for potential cold start
       const timeoutMs = isColdStart ? mergedConfig.wakeUpTimeout : mergedConfig.timeout;
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -90,7 +91,7 @@ export async function fetchWithColdStartHandling<T>(
       if (isColdStartError(error)) {
         isColdStart = true;
         logger.warn(`HF Space cold start detected (attempt ${attempt})`);
-        
+
         if (attempt < mergedConfig.retries) {
           // Wait longer for cold start wake-up
           const delay = attempt === 1 ? 5000 : 10000;
@@ -153,7 +154,7 @@ export async function prewarmHFSpace(config?: Partial<HFApiConfig>): Promise<boo
       ...config,
       timeout: 5000, // Quick check
     });
-    
+
     return !result.error;
   } catch {
     return false;

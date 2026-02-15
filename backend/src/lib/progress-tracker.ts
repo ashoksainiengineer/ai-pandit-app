@@ -56,6 +56,13 @@ export class ProgressTracker {
         return ProgressTracker.activeInstances.get(sessionId);
     }
 
+    /**
+     * Remove instance from memory
+     */
+    public static clearInstance(sessionId: string): void {
+        ProgressTracker.activeInstances.delete(sessionId);
+    }
+
 
     private initProgress(): ProgressData {
         return {

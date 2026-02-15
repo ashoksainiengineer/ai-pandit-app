@@ -108,12 +108,7 @@ const nextConfig = {
   // REWRITES - API ROUTING
   // ═══════════════════════════════════════════════════════════════════════════════
   async rewrites() {
-    return [
-      {
-        source: '/api/health',
-        destination: '/api/health',
-      },
-    ];
+    return [];
   },
 };
 

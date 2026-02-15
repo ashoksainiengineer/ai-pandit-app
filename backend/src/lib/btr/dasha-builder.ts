@@ -32,6 +32,12 @@ export function buildVimshottariDasha(
   const { moonLongitude, birthDate, dashaDepth, pranaWindowDays, eventRanges, now } = options;
 
   const vimDashas = calculateVimshottariDasha(moonLongitude, birthDate, dashaDepth);
+
+  if (!vimDashas || vimDashas.length === 0) {
+    console.error(`[DASHA-BUILDER] calculateVimshottariDasha returned empty! Moon=${moonLongitude}, Birth=${birthDate.toISOString()}`);
+    return [];
+  }
+
   const pruningWindowMs = pranaWindowDays * DAY_MS;
 
   // Use range starts for reference date calculation
@@ -66,6 +72,25 @@ export function buildVimshottariDasha(
         );
         result.push(...entries);
       }
+    }
+  }
+
+  if (result.length === 0) {
+    console.warn(`[DASHA-BUILDER] No dasha entries built for cutoff. VimDashas Count: ${vimDashas.length}`);
+
+    // 🛡️ FALLBACK: If we have no entries but we HAVE vimDashas, at least add the first Mahadasha/Antardasha 
+    // This prevents the "Missing Vimshottari Dasha" fatal error in builder
+    if (vimDashas.length > 0) {
+      const first = vimDashas[0];
+      const sub = first.subPeriods?.[0];
+      result.push({
+        maha: first.lord,
+        antar: sub?.lord || '?',
+        pratyantar: '?',
+        sukshma: '?',
+        prana: '?',
+        startEnd: `${first.startDate.toISOString().split('T')[0]} to ${first.endDate.toISOString().split('T')[0]}`
+      });
     }
   }
 

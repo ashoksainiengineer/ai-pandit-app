@@ -29,6 +29,42 @@ const AI_CONFIG = {
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
+// AI COMPLETION SCHEMAS
+// ═════════════════════════════════════════════════════════════════════════════
+
+interface AICompletionRequest {
+    model: string;
+    messages: { role: string; content: string }[];
+    max_tokens?: number;
+    temperature?: number;
+    stream?: boolean;
+    use_search?: boolean;
+    include_reasoning?: boolean;
+    provider?: {
+        order?: string[];
+        allow_fallbacks?: boolean;
+        data_collection?: string;
+    };
+}
+
+interface AICompletionResponse {
+    choices: Array<{
+        message: {
+            role: string;
+            content: string;
+            reasoning?: string;
+            reasoning_content?: string;
+        };
+        finish_reason: string;
+    }>;
+    usage?: {
+        prompt_tokens: number;
+        completion_tokens: number;
+        total_tokens: number;
+    };
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 // MAIN API CALL FUNCTION
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -77,7 +113,9 @@ export async function callAI(
 
             const isReasonerModel = configLocal.model.includes('reasoner') || configLocal.model.includes('r1');
 
-            const requestBody: any = {
+            const isOpenRouter = AI_CONFIG.baseUrl.includes('openrouter');
+
+            const requestBody: AICompletionRequest = {
                 model: configLocal.model,
                 messages: [
                     { role: 'system', content: systemPrompt },
@@ -85,13 +123,16 @@ export async function callAI(
                 ],
                 max_tokens: configLocal.maxTokens,
                 stream: false,
-
-                // 🚀 OPENROUTER OPTIMIZATION - Driven by HF env vars
-                provider: {
-                    order: config.ai.providerOrder,
-                    allow_fallbacks: config.ai.allowFallbacks
-                }
             };
+
+            // 🚀 OPENROUTER OPTIMIZATION - Only add for OpenRouter
+            if (isOpenRouter) {
+                requestBody.provider = {
+                    order: config.ai.providerOrder,
+                    allow_fallbacks: config.ai.allowFallbacks,
+                    data_collection: config.ai.dataCollection
+                };
+            }
 
             // DeepSeek Reasoner/R1 doesn't support temperature - only add for non-reasoner models
             if (!isReasonerModel) {
@@ -104,7 +145,6 @@ export async function callAI(
             }
 
             // Detect models that require reasoning protocol (OpenRouter specifically)
-            const isOpenRouter = AI_CONFIG.baseUrl.includes('openrouter');
             const isKimi = configLocal.model.includes('kimi');
             const isDeepSeekR1 = isReasonerModel;
             const isV3Model = configLocal.model.includes('v3') || configLocal.model.includes('terminus');
@@ -141,7 +181,7 @@ export async function callAI(
                 throw new Error(`AI API error ${response.status}: ${errorText}`);
             }
 
-            const data = await response.json() as any;
+            const data = await response.json() as AICompletionResponse;
 
             // Parse response
             const message = data.choices?.[0]?.message;
@@ -225,7 +265,9 @@ export async function callAIWithStream(
         abortSignal?: AbortSignal; // Support external cancellation
         onToken?: (content: string, isThinking: boolean) => void; // For heartbeats
         timeoutMs?: number; // Custom timeout
-        progressTracker?: any; // Avoiding circular import by using any, or import type if possible
+        progressTracker?: {
+            updateAIThinking: (text: string, stage: number, candidateTime?: string) => Promise<void>;
+        };
     }
 ): Promise<AIResponse> {
     const configLocal = {
@@ -272,7 +314,9 @@ export async function callAIWithStream(
 
             const isReasonerModel = configLocal.model.includes('reasoner') || configLocal.model.includes('r1');
 
-            const requestBody: any = {
+            const isOpenRouter = AI_CONFIG.baseUrl.includes('openrouter');
+
+            const requestBody: AICompletionRequest = {
                 model: configLocal.model,
                 messages: [
                     { role: 'system', content: systemPrompt },
@@ -280,21 +324,22 @@ export async function callAIWithStream(
                 ],
                 max_tokens: configLocal.maxTokens,
                 stream: true, // Enable streaming
+            };
 
-                // 🚀 OPENROUTER OPTIMIZATION: Max Speed & Quality
-                provider: {
+            // 🚀 OPENROUTER OPTIMIZATION - Only add for OpenRouter
+            if (isOpenRouter) {
+                requestBody.provider = {
                     order: config.ai.providerOrder,
                     allow_fallbacks: config.ai.allowFallbacks,
                     data_collection: config.ai.dataCollection
-                }
-            };
+                };
+            }
 
             if (!isReasonerModel) {
                 requestBody.temperature = configLocal.temperature;
             }
 
             // Detect models that require reasoning protocol (OpenRouter specifically)
-            const isOpenRouter = AI_CONFIG.baseUrl.includes('openrouter');
             const isKimi = configLocal.model.includes('kimi');
             const isDeepSeekR1 = isReasonerModel;
             const isV3Model = configLocal.model.includes('v3') || configLocal.model.includes('terminus');

@@ -62,6 +62,7 @@ const envSchema = z.object({
 
   // Provider Optimization
   AI_PROVIDER_ORDER: z.string().default('Google Vertex,Together,DeepInfra').transform(s => s.split(',')),
+  AI_MAX_CONCURRENCY: z.string().optional().transform((v) => v ? Number(v) : undefined),
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -124,7 +125,8 @@ export const aiConfig = {
   dataCollection: 'deny' as const,
 
   // Parallel Processing Optimization
-  maxConcurrency: env.NODE_ENV === 'production' ? 10 : 5,
+  // Use AI_MAX_CONCURRENCY if set, otherwise fallback to environment defaults
+  maxConcurrency: env.AI_MAX_CONCURRENCY ?? (env.NODE_ENV === 'production' ? 10 : 5),
   staggerMs: 500,
 } as const;
 
@@ -189,7 +191,7 @@ export const featureFlags = {
 
 export const btrConfig = {
   // Batch processing
-  maxBatchSize: 10,
+  maxBatchSize: 4,
   survivorsPerBatch: 3,
 
   // Refinement grid

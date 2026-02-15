@@ -15,6 +15,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { logger } from './secure-logger';
+import { env } from './config';
 import type { IAdvancedSignals } from '@/components/rectify/advanced-signals/types';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -35,6 +36,30 @@ export interface AIThinking {
     candidateTime?: string;
     chunks: string[];
     fullText: string;
+}
+
+// Data coming from SSE 'ai_thinking' event
+interface AIThinkingEventData {
+    chunk: string;
+    stage: number;
+    candidateTime?: string;
+}
+
+// Data coming from polling progress endpoint
+interface PollingProgressData {
+    currentStep: number;
+    totalSteps: number;
+    percentage: number;
+    liveMessage?: string;
+    message?: string;
+    steps?: Array<{
+        id: string;
+        name: string;
+        details?: string[];
+    }>;
+    candidateScores?: CandidateScore[];
+    startedAt?: string;
+    estimatedTimeRemaining?: number;
 }
 
 export interface AIContextData {
@@ -154,7 +179,7 @@ const SSE_TIMEOUT = 10000;       // 10 seconds to establish SSE
 const RATE_LIMIT_WAIT = 30000;   // 30 seconds on 429
 
 // Direct backend URL for SSE and Polling — bypasses Vercel serverless timeout
-const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
+const BACKEND_URL = env.api.backendUrl.replace(/\/$/, '');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // INITIAL STATE
@@ -231,17 +256,17 @@ export function useStreamProgress(
         setState(prev => {
             switch (type) {
                 case 'initial_state': {
-                    const progressData = data.progress as any;
+                    const progressData = data.progress as PollingProgressData;
                     return {
                         ...prev,
                         isConnected: true,
                         progress: progressData ? {
-                            step: progressData.steps?.[progressData.currentStep]?.id || 'unknown',
+                            step: progressData.steps?.[progressData.currentStep || 0]?.id || 'unknown',
                             stepIndex: progressData.currentStep || 0,
                             totalSteps: progressData.totalSteps || 7,
                             percentage: progressData.percentage || 0,
-                            message: progressData.liveMessage || '',
-                            details: progressData.steps?.[progressData.currentStep]?.details || []
+                            message: progressData.message || progressData.liveMessage || '',
+                            details: progressData.steps?.[progressData.currentStep || 0]?.details || []
                         } : prev.progress,
                         candidateScores: progressData?.candidateScores || prev.candidateScores,
                         startedAt: progressData?.startedAt || prev.startedAt,
@@ -253,15 +278,25 @@ export function useStreamProgress(
                     return { ...prev, isConnected: true };
 
                 case 'progress': {
-                    const p = (data.data as StreamProgress) || (data as unknown as StreamProgress);
-                    return { ...prev, progress: p };
+                    const progressData = (data.data as PollingProgressData) || (data as unknown as PollingProgressData);
+                    return {
+                        ...prev,
+                        progress: {
+                            step: progressData.steps?.[progressData.currentStep || 0]?.id || 'unknown',
+                            stepIndex: progressData.currentStep || 0,
+                            totalSteps: progressData.totalSteps || 7,
+                            percentage: progressData.percentage || 0,
+                            message: progressData.message || progressData.liveMessage || '',
+                            details: progressData.steps?.[progressData.currentStep || 0]?.details || []
+                        }
+                    };
                 }
 
                 case 'ai_thinking': {
-                    const dataObj = (data.data as any) || data;
-                    const chunk = dataObj?.chunk || '';
-                    const stage = dataObj?.stage || 1;
-                    const candidateTime = dataObj?.candidateTime || 'general';
+                    const thinkingEvent = (data.data as AIThinkingEventData) || (data as unknown as AIThinkingEventData);
+                    const chunk = thinkingEvent?.chunk || '';
+                    const stage = thinkingEvent?.stage || 1;
+                    const candidateTime = thinkingEvent?.candidateTime || 'general';
 
                     const existing = prev.aiThinking[candidateTime] || {
                         stage,
@@ -292,9 +327,9 @@ export function useStreamProgress(
                     let updatedPersistent = prev.persistentCandidates;
 
                     if (context?.candidatesInBatch && Array.isArray(context.candidatesInBatch)) {
-                        const incoming = context.candidatesInBatch as any[];
+                        const incoming = context.candidatesInBatch as Array<{ time: string; ascendant?: string; moon?: string }>;
                         const now = Date.now();
-                        const newMap = new Map();
+                        const newMap = new Map<string, any>();
                         // Add old ones
                         prev.persistentCandidates.forEach(c => newMap.set(c.time, c));
                         // Add/overwrite incoming

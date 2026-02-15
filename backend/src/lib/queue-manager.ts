@@ -3,7 +3,6 @@
 // Design: Process multiple requests concurrently based on system capacity
 
 import { db, executeWithRetry } from '../database/drizzle.js';
-import { sessions } from '../database/schema.js';
 import { eq, and, or, desc, asc, lt, gte } from 'drizzle-orm';
 import { logger } from './logger.js';
 import { safeDecryptWithFallback } from './encryption/index.js';
@@ -15,6 +14,7 @@ import {
 } from './cancellation-manager.js';
 import { emitComplete } from './session-events.js';
 import { ProgressTracker } from './progress-tracker.js';
+import { calculations, sessions } from '../database/schema.js';
 import { config } from '../config/index.js';
 import { processSecondsPrecisionBTR } from './seconds-precision-btr.js';
 
@@ -341,9 +341,12 @@ export async function markAsComplete(
 }
 
 /**
- * Mark session as failed
+ * Mark session as failed and flush technical trash
  */
 export async function markAsFailed(sessionId: string, error: string): Promise<void> {
+  // 🧹 FLUSH KACHRA & ABORT: Stop operations and clear logs immediately on failure
+  await flushSessionTrash(sessionId);
+
   await executeWithRetry(() =>
     db.update(sessions)
       .set({
@@ -357,7 +360,48 @@ export async function markAsFailed(sessionId: string, error: string): Promise<vo
   activeProcessingIds.delete(sessionId);
   processingStartTimes.delete(sessionId);
 
-  logger.error('Session marked failed', { sessionId, error });
+  logger.error('Session marked failed (Trash Flushed)', { sessionId, error });
+}
+
+/**
+ * Technical Trash Flush Tool
+ * Aborts ongoing operations and wipes heavy processing artifacts (logs, cache, results)
+ */
+export async function flushSessionTrash(sessionId: string): Promise<void> {
+  try {
+    logger.info('🧹 Flushing technical trash and aborting session', { sessionId });
+
+    // 1. 🛑 ABORT Engine: Immediately kill all ongoing AI calls and calculations
+    abortSessionController(sessionId);
+
+    // 2. 🧽 DB WIPE: Clear heavy processing columns
+    await executeWithRetry(() =>
+      db.update(sessions)
+        .set({
+          progressData: null,
+          analysisResult: null,
+          // reasoningLogs: null, // Note: Not in DB but keep in mind
+          updatedAt: new Date().toISOString(),
+        } as any)
+        .where(eq(sessions.id, sessionId))
+    );
+
+    // 3. 🗑️ CACHE WIPE: Delete all ephemeris cache records for this session
+    await executeWithRetry(() =>
+      db.delete(calculations)
+        .where(eq(calculations.sessionId, sessionId))
+    );
+
+    // 4. Memory Cleanup
+    cleanupController(sessionId);
+    ProgressTracker.clearInstance(sessionId);
+    activeProcessingIds.delete(sessionId);
+    processingStartTimes.delete(sessionId);
+
+    logger.debug('✨ Trash flush complete', { sessionId });
+  } catch (error) {
+    logger.error('Failed to flush session trash', { sessionId, error });
+  }
 }
 
 /**
@@ -387,8 +431,8 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
       return false;
     }
 
-    // 🛑 ABORT the running process (this will cancel fetch requests!)
-    abortSessionController(sessionId);
+    // 🧹 FLUSH KACHRA & ABORT: Stop operations and clear logs immediately
+    await flushSessionTrash(sessionId);
 
     await executeWithRetry(() =>
       db.update(sessions)
@@ -396,18 +440,11 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
           status: 'failed',
           errorMessage: 'Cancelled by user',
           updatedAt: new Date().toISOString(),
-          // 🗑️ HARD WIPE: Clear heavy data to save Turso Free Tier limit
-          progressData: null,
-          analysisResult: null,
-          // reasoningLogs: null // 🔥 REMOVED: COLUMN NOT USED
-        } as any)
+        })
         .where(eq(sessions.id, sessionId))
     );
 
-    activeProcessingIds.delete(sessionId);
-    processingStartTimes.delete(sessionId);
-
-    logger.info('Session cancelled by user (Hard Wipe Complete)', { sessionId });
+    logger.info('Session cancelled by user (Full Wipe Complete)', { sessionId });
     return true;
   } catch (error) {
     logger.error('Failed to cancel session', error);

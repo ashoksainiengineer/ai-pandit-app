@@ -67,7 +67,11 @@ const isVercelOrigin = (origin: string): boolean =>
   /^https:\/\/[\w-]+\.vercel\.app$/.test(origin);
 
 // Log at startup so we can debug CORS issues from logs
-logger.info('CORS allowed origins', { origins: allowedOrigins });
+logger.info('🛰️ Starting Engine with CORS constraints', {
+  allowedOrigins,
+  allowVercelPreviews: true,
+  env: serverConfig.env
+});
 
 app.use(cors({
   origin: (origin, callback) => {
@@ -110,6 +114,32 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(requestIdMiddleware());
 app.use(requestContextMiddleware());
 app.use(performanceMiddleware());
+
+// Enhanced Request Logger for HF Observability
+app.use((req, res, next) => {
+  const start = Date.now();
+  const path = req.path;
+
+  // Log real-time endpoint starts
+  if (path.startsWith('/api/stream') || path.startsWith('/api/queue/progress')) {
+    logger.info(`📡 Real-time request started: ${req.method} ${path}`, {
+      sessionId: req.query.sessionId || req.params.sessionId,
+      ip: req.ip,
+      userAgent: req.get('user-agent'),
+    });
+  }
+
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    if (path.startsWith('/api/stream') || path.startsWith('/api/queue/progress')) {
+      logger.info(`📡 Real-time request finished: ${req.method} ${path}`, {
+        status: res.statusCode,
+        duration: `${duration}ms`,
+      });
+    }
+  });
+  next();
+});
 
 // Rate limiting - selective application
 // SSE stream and polling endpoints have their own dedicated limiters in routes/index.ts
