@@ -108,9 +108,10 @@ export async function callAI(
             const isKimi = configLocal.model.includes('kimi');
             const isDeepSeekR1 = isReasonerModel;
             const isV3Model = configLocal.model.includes('v3') || configLocal.model.includes('terminus');
+            const isGrok = configLocal.model.includes('grok');
 
             // Add reasoning parameter for OpenRouter models that support it
-            if (isOpenRouter && (isKimi || isDeepSeekR1 || isV3Model)) {
+            if (isOpenRouter && (isKimi || isDeepSeekR1 || isV3Model || isGrok)) {
                 requestBody.include_reasoning = true;
             }
 
@@ -297,9 +298,10 @@ export async function callAIWithStream(
             const isKimi = configLocal.model.includes('kimi');
             const isDeepSeekR1 = isReasonerModel;
             const isV3Model = configLocal.model.includes('v3') || configLocal.model.includes('terminus');
+            const isGrok = configLocal.model.includes('grok');
 
             // Add reasoning parameter for OpenRouter models that support it
-            if (isOpenRouter && (isKimi || isDeepSeekR1 || isV3Model)) {
+            if (isOpenRouter && (isKimi || isDeepSeekR1 || isV3Model || isGrok)) {
                 requestBody.include_reasoning = true;
             }
 

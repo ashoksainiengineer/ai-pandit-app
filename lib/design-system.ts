@@ -377,7 +377,7 @@ export function generateCSSVariables(): Record<string, string> {
 }
 
 // Default export for convenience
-export default {
+const designSystem = {
   colors,
   spacing,
   typography,
@@ -390,3 +390,5 @@ export default {
   componentSizes,
   generateCSSVariables,
 };
+
+export default designSystem;

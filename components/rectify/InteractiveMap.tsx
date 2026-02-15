@@ -3,7 +3,7 @@
 // components/rectify/InteractiveMap.tsx
 // Interactive OpenStreetMap with zoom, pan, and click-to-select - OPTIMIZED
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -64,8 +64,8 @@ export default function InteractiveMap({
     }, [onCenterChange]);
 
     // Throttled center change handler
-    const throttledCenterChange = useCallback(
-        throttle((lat: number, lng: number) => {
+    const throttledCenterChange = useMemo(
+        () => throttle((lat: number, lng: number) => {
             onCenterChangeRef.current({ lat, lng });
         }, 200),
         []
@@ -116,6 +116,7 @@ export default function InteractiveMap({
                 isMapReadyRef.current = false;
             }
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Empty deps - only initialize once
 
     // Update center when it changes from outside - but only if significantly different
@@ -168,7 +169,7 @@ export default function InteractiveMap({
             markerRef.current.remove();
             markerRef.current = null;
         }
-    }, [marker?.lat, marker?.lng]); // Only re-run when marker coords change
+    }, [marker, marker?.lat, marker?.lng]); // Only re-run when marker coords change
 
     return (
         <div className="relative w-full h-72 md:h-80 rounded-xl overflow-hidden border-2 border-[#EBE2D6] shadow-lg">

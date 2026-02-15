@@ -65,6 +65,50 @@ const generateEventId = (): string => {
   return `evt_${Date.now()}_${idCounter}`;
 };
 
+// Sanitize description
+const sanitizeDescription = (desc: string): string => {
+  return desc.slice(0, 1000);
+};
+
+// Safe date parser
+const parseDateParts = (dateStr: string): { year: string; month: string; day: string } => {
+  if (!dateStr) return { year: '', month: '', day: '' };
+  const parts = dateStr.split('-');
+  return {
+    year: parts[0] || '',
+    month: parts[1] || '',
+    day: parts[2] || ''
+  };
+};
+
+// Safe month name getter
+const getMonthName = (monthNum: string): string => {
+  const index = parseInt(monthNum, 10) - 1;
+  if (isNaN(index) || index < 0 || index >= MONTHS.length) return '';
+  return MONTHS[index].slice(0, 3);
+};
+
+// Validate date string format
+const isValidDateString = (dateStr: string): boolean => {
+  if (!dateStr) return false;
+  const parts = dateStr.split('-');
+  if (parts.length < 1) return false;
+  const year = parseInt(parts[0], 10);
+  return !isNaN(year) && year > 1800 && year <= 2030;
+};
+
+// Parse partial date
+const parsePartialDate = (dateStr: string): { year: string; month: string; day: string; isPartial: boolean } => {
+  if (!dateStr) return { year: '', month: '', day: '', isPartial: true };
+  const parts = dateStr.split('-');
+  return {
+    year: parts[0] || '',
+    month: parts[1] || '',
+    day: parts[2] || '',
+    isPartial: parts.length < 3 || !parts[1] || !parts[2]
+  };
+};
+
 export default function Step3LifeEvents({
   lifeEvents,
   updateEvents,
@@ -77,50 +121,7 @@ export default function Step3LifeEvents({
   const YEARS = Array.from({ length: 80 }, (_, i) => (CURRENT_YEAR - i).toString());
   const DAYS = Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0'));
 
-  // Safe date parser
-  const parseDateParts = (dateStr: string): { year: string; month: string; day: string } => {
-    if (!dateStr) return { year: '', month: '', day: '' };
-    const parts = dateStr.split('-');
-    return {
-      year: parts[0] || '',
-      month: parts[1] || '',
-      day: parts[2] || ''
-    };
-  };
 
-  // Safe month name getter
-  const getMonthName = (monthNum: string): string => {
-    const index = parseInt(monthNum, 10) - 1;
-    if (isNaN(index) || index < 0 || index >= MONTHS.length) return '';
-    return MONTHS[index].slice(0, 3);
-  };
-
-  // Validate date string format - accepts partial dates (year only, year-month, or full date)
-  const isValidDateString = (dateStr: string): boolean => {
-    if (!dateStr) return false;
-    const parts = dateStr.split('-');
-    if (parts.length < 1) return false;
-    const year = parseInt(parts[0], 10);
-    // Be more permissive for years (some users might have historical data)
-    return !isNaN(year) && year > 1800 && year <= CURRENT_YEAR + 5;
-  };
-
-  // Parse partial date for display - returns what's available
-  const parsePartialDate = (dateStr: string): { year: string; month: string; day: string; isPartial: boolean } => {
-    if (!dateStr) return { year: '', month: '', day: '', isPartial: true };
-    const parts = dateStr.split('-');
-    return {
-      year: parts[0] || '',
-      month: parts[1] || '',
-      day: parts[2] || '',
-      isPartial: parts.length < 3 || !parts[1] || !parts[2]
-    };
-  };
-
-  // Sanitize description - do NOT trim here to allow typing spaces
-  const sanitizeDescription = (desc: string): string => {
-    return desc.slice(0, 1000); // Only limit length, don't trim trailing spaces during typing
-  };
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);

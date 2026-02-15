@@ -309,7 +309,7 @@ const CandidateScoreTable = memo(({ scores }: { scores: CandidateScore[] }) => {
                 setActiveTab(latestStage);
             }
         }
-    }, [scores.length]);
+    }, [scores, activeTab]);
 
     const filteredScores = useMemo(() => {
         const filtered = activeTab === 'all' ? scores : scores.filter(s => s.stage === activeTab);

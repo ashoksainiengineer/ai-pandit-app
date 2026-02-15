@@ -75,7 +75,7 @@ export default function CustomEventModal({
       setSelectedCategory('');
       setIsCreatingCategory(false);
     }
-  }, [isOpen]);
+  }, [isOpen, preselectedCategoryId]);
 
   const resetForm = useCallback(() => {
     setEventName('');
@@ -264,8 +264,8 @@ export default function CustomEventModal({
                             type="button"
                             onClick={() => setNewCategoryIcon(emoji)}
                             className={`w-8 h-8 text-lg rounded-md transition-all ${newCategoryIcon === emoji
-                                ? 'bg-[#B8860B] text-white'
-                                : 'bg-white hover:bg-[#E8E0D5]'
+                              ? 'bg-[#B8860B] text-white'
+                              : 'bg-white hover:bg-[#E8E0D5]'
                               }`}
                           >
                             {emoji}
@@ -302,15 +302,15 @@ export default function CustomEventModal({
                       type="button"
                       onClick={() => setImportance(option.value)}
                       className={`p-2.5 rounded-lg text-left transition-all border ${importance === option.value
-                          ? 'bg-[#B8860B]/10 border-[#B8860B]'
-                          : 'bg-white border-[#E8E0D5] hover:border-[#D4A853]/50'
+                        ? 'bg-[#B8860B]/10 border-[#B8860B]'
+                        : 'bg-white border-[#E8E0D5] hover:border-[#D4A853]/50'
                         }`}
                     >
                       <div className="flex items-center gap-2">
                         <span
                           className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${importance === option.value
-                              ? 'border-[#B8860B] bg-[#B8860B]'
-                              : 'border-[#A8A39D]'
+                            ? 'border-[#B8860B] bg-[#B8860B]'
+                            : 'border-[#A8A39D]'
                             }`}
                         >
                           {importance === option.value && (
@@ -320,16 +320,16 @@ export default function CustomEventModal({
                         <div className="min-w-0">
                           <div
                             className={`font-medium text-xs ${importance === option.value
-                                ? 'text-[#1A1612]'
-                                : 'text-[#4A453F]'
+                              ? 'text-[#1A1612]'
+                              : 'text-[#4A453F]'
                               }`}
                           >
                             {option.label}
                           </div>
                           <div
                             className={`text-[10px] leading-tight ${importance === option.value
-                                ? 'text-[#B8860B]'
-                                : 'text-[#7A756F]'
+                              ? 'text-[#B8860B]'
+                              : 'text-[#7A756F]'
                               }`}
                           >
                             {option.description}

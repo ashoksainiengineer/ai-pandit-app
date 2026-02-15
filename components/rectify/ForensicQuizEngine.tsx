@@ -14,25 +14,25 @@
 
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-    ChevronRight, ChevronLeft, HelpCircle, Sparkles, 
+import {
+    ChevronRight, ChevronLeft, HelpCircle, Sparkles,
     CheckCircle, RefreshCw, AlertCircle, Info, Save,
     Target, Brain, Eye, Mic, Users, Activity
 } from 'lucide-react';
-import { 
-    QuizAnswer, 
-    QuizResults, 
+import {
+    QuizAnswer,
+    QuizResults,
     QuizQuestion,
-    QuizProgress 
+    QuizProgress
 } from '@/lib/forensic-quiz/types';
-import { 
+import {
     FORENSIC_QUIZ_QUESTIONS,
     QUIZ_METADATA,
     validateAnswer
 } from '@/lib/forensic-quiz/questions';
-import { 
-    calculateQuizResults, 
-    getQuizProgress, 
+import {
+    calculateQuizResults,
+    getQuizProgress,
     verifyTraitConsistency,
     formatQuizResults,
     mapQuizResultsToLegacyTraits
@@ -78,7 +78,7 @@ const getStorageKey = (sessionId?: string): string => {
 // Debounce helper for auto-save
 const useDebounce = <T extends (...args: any[]) => void>(callback: T, delay: number) => {
     const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-    
+
     return useCallback((...args: Parameters<T>) => {
         if (timeoutRef.current) {
             clearTimeout(timeoutRef.current);
@@ -87,8 +87,8 @@ const useDebounce = <T extends (...args: any[]) => void>(callback: T, delay: num
     }, [callback, delay]);
 };
 
-export default function ForensicQuizEngine({ 
-    onComplete, 
+export default function ForensicQuizEngine({
+    onComplete,
     onCancel,
     onAutoSave,
     initialResults,
@@ -129,7 +129,7 @@ export default function ForensicQuizEngine({
                 fromStorage: false
             };
         }
-        
+
         // Priority 2: localStorage (resume saved progress)
         const saved = loadSavedProgress();
         if (saved && saved.answers.length > 0) {
@@ -139,7 +139,7 @@ export default function ForensicQuizEngine({
                 fromStorage: true
             };
         }
-        
+
         // Default: fresh start
         return {
             answers: [],
@@ -201,7 +201,7 @@ export default function ForensicQuizEngine({
     // Auto-save effect with debounce
     const debouncedSave = useDebounce(() => {
         if (!quizStarted || answers.length === 0) return;
-        
+
         setSaveStatus('saving');
         try {
             const data = {
@@ -213,7 +213,7 @@ export default function ForensicQuizEngine({
             setSaveStatus('saved');
             setLastSaved(new Date());
             onAutoSave?.(answers, currentQuestionIndex);
-            
+
             // Reset status after delay
             setTimeout(() => setSaveStatus('idle'), 2000);
         } catch (e) {
@@ -227,14 +227,17 @@ export default function ForensicQuizEngine({
         debouncedSave();
     }, [answers, currentQuestionIndex, debouncedSave]);
 
+    // Track previous question ID to only sync when changing questions
+    const prevQuestionIdRef = useRef<string | null>(null);
+
     // Sync custom answer input when question ID changes
-    // This ensures each question shows its own custom answer
     useEffect(() => {
-        if (currentQuestion?.id) {
+        if (currentQuestion?.id && currentQuestion.id !== prevQuestionIdRef.current) {
             const answerForCurrentQuestion = answers.find(a => a.questionId === currentQuestion.id);
             setCustomAnswer(answerForCurrentQuestion?.customAnswer || '');
+            prevQuestionIdRef.current = currentQuestion.id;
         }
-    }, [currentQuestion?.id]); // Only depend on question ID, not answers
+    }, [currentQuestion?.id, answers]);
 
     // Handle option selection with toggle support for multi-select
     const handleSelectOption = useCallback((optionId: string) => {
@@ -244,9 +247,9 @@ export default function ForensicQuizEngine({
         setAnswers(prev => {
             const existingIndex = prev.findIndex(a => a.questionId === currentQuestion.id);
             const existingAnswer = prev[existingIndex];
-            
+
             let newSelectedOptions: string[];
-            
+
             if (currentQuestion.allowMultiple) {
                 // Multi-select: toggle option
                 const currentOptions = existingAnswer?.selectedOptions || [];
@@ -282,14 +285,14 @@ export default function ForensicQuizEngine({
     // Handle custom answer input
     const handleCustomAnswerChange = useCallback((value: string) => {
         if (!currentQuestion) return;
-        
+
         setCustomAnswer(value);
         setError(null);
 
         setAnswers(prev => {
             const existingIndex = prev.findIndex(a => a.questionId === currentQuestion.id);
             const existingAnswer = prev[existingIndex];
-            
+
             const newAnswer: QuizAnswer = {
                 questionId: currentQuestion.id,
                 selectedOptions: existingAnswer?.selectedOptions || [],
@@ -316,8 +319,8 @@ export default function ForensicQuizEngine({
             const existingIndex = prev.findIndex(a => a.questionId === currentQuestion.id);
             if (existingIndex >= 0) {
                 const updated = [...prev];
-                updated[existingIndex] = { 
-                    ...updated[existingIndex], 
+                updated[existingIndex] = {
+                    ...updated[existingIndex],
                     customAnswer: undefined,
                     timestamp: Date.now()
                 };
@@ -362,7 +365,7 @@ export default function ForensicQuizEngine({
     // Navigate to next question
     const handleNext = useCallback(() => {
         if (!currentQuestion) return;
-        
+
         // Validate current answer
         const currentAns = answers.find(a => a.questionId === currentQuestion.id);
         const hasAnswer = currentAns && (
@@ -370,7 +373,7 @@ export default function ForensicQuizEngine({
             currentAns.customAnswer?.trim() ||
             currentAns.isNotSure
         );
-        
+
         if (!hasAnswer) {
             setError('Please select an option or choose "Not sure"');
             return;
@@ -378,7 +381,7 @@ export default function ForensicQuizEngine({
 
         setError(null);
         setCustomAnswer('');
-        
+
         if (currentQuestionIndex < FORENSIC_QUIZ_QUESTIONS.length - 1) {
             setCurrentQuestionIndex(prev => prev + 1);
         } else {
@@ -397,16 +400,16 @@ export default function ForensicQuizEngine({
     // Handle quiz completion
     const handleComplete = useCallback(() => {
         if (!results) return;
-        
+
         setIsSubmitting(true);
         setError(null);
-        
+
         try {
             // Clear saved progress on completion
             if (typeof window !== 'undefined') {
                 localStorage.removeItem(getStorageKey(sessionId));
             }
-            
+
             onComplete(results);
         } catch (e) {
             console.error('Error completing quiz:', e);
@@ -423,7 +426,7 @@ export default function ForensicQuizEngine({
         setShowResults(false);
         setCustomAnswer('');
         setError(null);
-        
+
         if (typeof window !== 'undefined') {
             localStorage.removeItem(getStorageKey(sessionId));
         }
@@ -434,7 +437,7 @@ export default function ForensicQuizEngine({
         setAnswers([]);
         setCurrentQuestionIndex(0);
         setLastSaved(null);
-        
+
         if (typeof window !== 'undefined') {
             localStorage.removeItem(getStorageKey(sessionId));
         }
@@ -463,7 +466,7 @@ export default function ForensicQuizEngine({
     if (!quizStarted && !showResults) {
         const hasSavedProgress = answers.length > 0;
         const prog = getQuizProgress(answers);
-        
+
         return (
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -510,9 +513,8 @@ export default function ForensicQuizEngine({
                                 const catProg = getCategoryProgress(cat.id);
                                 const isComplete = catProg.answered === catProg.total && catProg.total > 0;
                                 return (
-                                    <div key={cat.id} className={`flex items-center gap-2 p-3 rounded-lg border ${
-                                        isComplete ? 'bg-[#2D7A5C]/5 border-[#2D7A5C]/30' : 'bg-white border-[#F0E8DE]'
-                                    }`}>
+                                    <div key={cat.id} className={`flex items-center gap-2 p-3 rounded-lg border ${isComplete ? 'bg-[#2D7A5C]/5 border-[#2D7A5C]/30' : 'bg-white border-[#F0E8DE]'
+                                        }`}>
                                         <span className="text-lg">{cat.icon}</span>
                                         <div className="text-sm text-[#4A453F]">{cat.name}</div>
                                         {isComplete && <CheckCircle className="w-4 h-4 text-[#2D7A5C] ml-auto" />}
@@ -531,7 +533,7 @@ export default function ForensicQuizEngine({
                             <ChevronRight className="w-4 h-4" />
                         </button>
                     </div>
-                    
+
                     {hasSavedProgress && (
                         <button
                             onClick={handleStartFresh}
@@ -689,7 +691,7 @@ export default function ForensicQuizEngine({
                                 </>
                             )}
                         </button>
-                        
+
                         <div className="flex gap-3">
                             <button
                                 onClick={() => {
@@ -771,7 +773,7 @@ export default function ForensicQuizEngine({
                         </span>
                     </div>
                 </div>
-                
+
                 {/* Progress Bar */}
                 <div className="h-2 bg-[#F0E8DE] rounded-full overflow-hidden">
                     <motion.div
@@ -781,14 +783,14 @@ export default function ForensicQuizEngine({
                         transition={{ duration: 0.3 }}
                     />
                 </div>
-                
+
                 {/* Category Progress */}
                 <div className="mt-2 flex gap-2 flex-wrap">
                     {QUIZ_METADATA.categories.map(cat => {
                         const catProg = getCategoryProgress(cat.id);
                         const isActive = currentQuestion.category === cat.id;
                         const isComplete = catProg.answered === catProg.total && catProg.total > 0;
-                        
+
                         return (
                             <button
                                 key={cat.id}
@@ -800,13 +802,12 @@ export default function ForensicQuizEngine({
                                     }
                                 }}
                                 disabled={catProg.answered === 0}
-                                className={`text-[10px] px-2 py-1 rounded-full transition-colors disabled:opacity-50 ${
-                                    isActive
-                                        ? 'bg-[#B8860B] text-white'
-                                        : isComplete
-                                            ? 'bg-[#2D7A5C]/20 text-[#2D7A5C]'
-                                            : 'bg-[#F5EFE7] text-[#7A756F]'
-                                }`}
+                                className={`text-[10px] px-2 py-1 rounded-full transition-colors disabled:opacity-50 ${isActive
+                                    ? 'bg-[#B8860B] text-white'
+                                    : isComplete
+                                        ? 'bg-[#2D7A5C]/20 text-[#2D7A5C]'
+                                        : 'bg-[#F5EFE7] text-[#7A756F]'
+                                    }`}
                             >
                                 {cat.icon} {catProg.answered}/{catProg.total}
                             </button>
@@ -849,9 +850,8 @@ export default function ForensicQuizEngine({
                             </div>
                             <button
                                 onClick={() => setShowHelp(!showHelp)}
-                                className={`p-2 rounded-lg transition-colors ${
-                                    showHelp ? 'bg-[#B8860B]/10 text-[#B8860B]' : 'hover:bg-[#F5EFE7] text-[#7A756F]'
-                                }`}
+                                className={`p-2 rounded-lg transition-colors ${showHelp ? 'bg-[#B8860B]/10 text-[#B8860B]' : 'hover:bg-[#F5EFE7] text-[#7A756F]'
+                                    }`}
                             >
                                 <HelpCircle className="w-5 h-5" />
                             </button>
@@ -872,8 +872,8 @@ export default function ForensicQuizEngine({
                                             <div className="text-sm text-[#4A453F]">
                                                 <strong className="text-[#B8860B]">Why this matters:</strong>
                                                 <p className="mt-1">
-                                                    This question helps determine your {currentQuestion.category} traits, 
-                                                    which correlate to specific planetary positions at birth. 
+                                                    This question helps determine your {currentQuestion.category} traits,
+                                                    which correlate to specific planetary positions at birth.
                                                     Accurate answers improve birth time rectification precision.
                                                 </p>
                                             </div>
@@ -888,16 +888,15 @@ export default function ForensicQuizEngine({
                     <div className="p-6 space-y-3">
                         {currentQuestion.options.map((option) => {
                             const isSelected = currentAnswer?.selectedOptions?.includes(option.id);
-                            
+
                             return (
                                 <button
                                     key={option.id}
                                     onClick={() => handleSelectOption(option.id)}
-                                    className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
-                                        isSelected
-                                            ? 'border-[#B8860B] bg-[#B8860B]/5'
-                                            : 'border-[#F0E8DE] hover:border-[#D4A853]/50 hover:bg-[#F5EFE7]/50'
-                                    }`}
+                                    className={`w-full p-4 rounded-xl border-2 text-left transition-all ${isSelected
+                                        ? 'border-[#B8860B] bg-[#B8860B]/5'
+                                        : 'border-[#F0E8DE] hover:border-[#D4A853]/50 hover:bg-[#F5EFE7]/50'
+                                        }`}
                                 >
                                     <div className="flex items-start gap-3">
                                         <span className="text-2xl">{option.emoji}</span>
@@ -919,11 +918,10 @@ export default function ForensicQuizEngine({
 
                         {/* Custom Answer Option */}
                         {currentQuestion.allowCustomAnswer && (
-                            <div className={`w-full p-4 rounded-xl border-2 transition-all ${
-                                customAnswer.trim()
-                                    ? 'border-[#B8860B] bg-[#B8860B]/5'
-                                    : 'border-[#E8E0D5] bg-white'
-                            }`}>
+                            <div className={`w-full p-4 rounded-xl border-2 transition-all ${customAnswer.trim()
+                                ? 'border-[#B8860B] bg-[#B8860B]/5'
+                                : 'border-[#E8E0D5] bg-white'
+                                }`}>
                                 <div className="flex items-center gap-3 mb-3">
                                     <span className="text-xl">✏️</span>
                                     <span className="text-[#1A1612] font-medium">Add your own answer</span>
@@ -953,11 +951,10 @@ export default function ForensicQuizEngine({
                         {currentQuestion.hasNotSureOption && (
                             <button
                                 onClick={handleNotSure}
-                                className={`w-full p-4 rounded-xl border-2 border-dashed text-left transition-all ${
-                                    currentAnswer?.isNotSure
-                                        ? 'border-[#7A756F] bg-[#7A756F]/5'
-                                        : 'border-[#E8E0D5] hover:border-[#7A756F]/50'
-                                }`}
+                                className={`w-full p-4 rounded-xl border-2 border-dashed text-left transition-all ${currentAnswer?.isNotSure
+                                    ? 'border-[#7A756F] bg-[#7A756F]/5'
+                                    : 'border-[#E8E0D5] hover:border-[#7A756F]/50'
+                                    }`}
                             >
                                 <div className="flex items-center gap-3">
                                     <span className="text-xl">🤷</span>
@@ -1001,17 +998,16 @@ export default function ForensicQuizEngine({
                     const catProg = getCategoryProgress(cat.id);
                     const isComplete = catProg.answered === catProg.total && catProg.total > 0;
                     const hasStarted = catProg.answered > 0;
-                    
+
                     return (
                         <div
                             key={cat.id}
-                            className={`w-2 h-2 rounded-full transition-colors ${
-                                isComplete 
-                                    ? 'bg-[#2D7A5C]' 
-                                    : hasStarted 
-                                        ? 'bg-[#B8860B]' 
-                                        : 'bg-[#E8E0D5]'
-                            }`}
+                            className={`w-2 h-2 rounded-full transition-colors ${isComplete
+                                ? 'bg-[#2D7A5C]'
+                                : hasStarted
+                                    ? 'bg-[#B8860B]'
+                                    : 'bg-[#E8E0D5]'
+                                }`}
                             title={cat.name}
                         />
                     );
@@ -1022,16 +1018,16 @@ export default function ForensicQuizEngine({
 }
 
 // Helper component for result cards
-function ResultCard({ 
-    icon, 
-    label, 
-    value, 
-    confidence, 
-    color 
-}: { 
-    icon: string; 
-    label: string; 
-    value: string; 
+function ResultCard({
+    icon,
+    label,
+    value,
+    confidence,
+    color
+}: {
+    icon: string;
+    label: string;
+    value: string;
     confidence: number;
     color: string;
 }) {

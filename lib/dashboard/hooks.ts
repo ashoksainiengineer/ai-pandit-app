@@ -55,7 +55,7 @@ interface UseDashboardReturn {
   isLoading: boolean;
   error: Error | null;
   activity: { date: string; count: number; intensity: number }[];
-  
+
   // Actions
   setFilter: (filter: Partial<FilterState>) => void;
   setSort: (sort: SortState) => void;
@@ -79,12 +79,12 @@ interface UseDashboardReturn {
 export function useDashboard(initialSessions: DashboardSession[]): UseDashboardReturn {
   const router = useRouter();
   const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Core state
   const [sessions, setSessions] = useState<DashboardSession[]>(initialSessions);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  
+
   // UI state
   const [filterState, setFilterState] = useState<FilterState>(DEFAULT_FILTER);
   const [sortState, setSortState] = useState<SortState>(DEFAULT_PREFERENCES.defaultSort);
@@ -116,6 +116,21 @@ export function useDashboard(initialSessions: DashboardSession[]): UseDashboardR
     localStorage.setItem('dashboardPreferences', JSON.stringify(preferences));
   }, [preferences]);
 
+
+  const refresh = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/sessions');
+      if (!response.ok) throw new Error('Failed to refresh');
+      const data = await response.json();
+      setSessions(data);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('Refresh failed'));
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // Auto-refresh logic
   useEffect(() => {
     if (!preferences.autoRefresh) {
@@ -135,7 +150,7 @@ export function useDashboard(initialSessions: DashboardSession[]): UseDashboardR
         clearInterval(refreshTimerRef.current);
       }
     };
-  }, [preferences.autoRefresh, preferences.refreshInterval]);
+  }, [preferences.autoRefresh, preferences.refreshInterval, refresh]);
 
   // Compute filtered and sorted sessions
   const filteredSessions = useMemo(() => {
@@ -144,7 +159,7 @@ export function useDashboard(initialSessions: DashboardSession[]): UseDashboardR
     // Search filter
     if (filterState.searchQuery) {
       const query = filterState.searchQuery.toLowerCase();
-      result = result.filter(s => 
+      result = result.filter(s =>
         s.fullName?.toLowerCase().includes(query) ||
         s.birthPlace?.toLowerCase().includes(query) ||
         s.id?.toLowerCase().includes(query)
@@ -158,7 +173,7 @@ export function useDashboard(initialSessions: DashboardSession[]): UseDashboardR
 
     // Confidence filter
     if (filterState.confidenceFilter.length > 0) {
-      result = result.filter(s => 
+      result = result.filter(s =>
         s.confidence && filterState.confidenceFilter.includes(s.confidence)
       );
     }
@@ -173,7 +188,7 @@ export function useDashboard(initialSessions: DashboardSession[]): UseDashboardR
 
     // Has results filter
     if (filterState.hasResults !== null) {
-      result = result.filter(s => 
+      result = result.filter(s =>
         filterState.hasResults ? !!s.rectifiedTime : !s.rectifiedTime
       );
     }
@@ -186,7 +201,7 @@ export function useDashboard(initialSessions: DashboardSession[]): UseDashboardR
     // Sorting
     result.sort((a, b) => {
       const order = sortState.order === 'asc' ? 1 : -1;
-      
+
       switch (sortState.field) {
         case 'createdAt':
           return (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) * order;
@@ -228,13 +243,13 @@ export function useDashboard(initialSessions: DashboardSession[]): UseDashboardR
     const processing = sessions.filter(s => s.status === 'processing').length;
     const failed = sessions.filter(s => s.status === 'failed').length;
     const favorites = sessions.filter(s => s.isFavorite).length;
-    
+
     const completedSessions = sessions.filter(s => s.status === 'complete' && s.accuracy);
     const avgAccuracy = completedSessions.length > 0
       ? completedSessions.reduce((sum, s) => sum + (s.accuracy || 0), 0) / completedSessions.length
       : 0;
-    
-    const highConfCount = sessions.filter(s => 
+
+    const highConfCount = sessions.filter(s =>
       s.confidence === 'high' || s.confidence === 'god-tier'
     ).length;
 
@@ -269,7 +284,7 @@ export function useDashboard(initialSessions: DashboardSession[]): UseDashboardR
       const daySessions = sessions.filter(s => s.createdAt.startsWith(date));
       const count = daySessions.length;
       const completed = daySessions.filter(s => s.status === 'complete').length;
-      
+
       // Calculate intensity (0-4)
       let intensity = 0;
       if (count > 0) intensity = 1;
@@ -362,16 +377,16 @@ export function useDashboard(initialSessions: DashboardSession[]): UseDashboardR
   }, []);
 
   const toggleFavorite = useCallback(async (sessionId: string) => {
-    setSessions(prev => prev.map(s => 
+    setSessions(prev => prev.map(s =>
       s.id === sessionId ? { ...s, isFavorite: !s.isFavorite } : s
     ));
-    
+
     try {
       // API call would go here
       await fetch(`/api/sessions/${sessionId}/favorite`, { method: 'POST' });
     } catch (err) {
       // Revert on error
-      setSessions(prev => prev.map(s => 
+      setSessions(prev => prev.map(s =>
         s.id === sessionId ? { ...s, isFavorite: !s.isFavorite } : s
       ));
       setError(err instanceof Error ? err : new Error('Failed to toggle favorite'));
@@ -410,19 +425,7 @@ export function useDashboard(initialSessions: DashboardSession[]): UseDashboardR
     setPaginationState(prev => ({ ...prev, page: 1 }));
   }, []);
 
-  const refresh = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/sessions');
-      if (!response.ok) throw new Error('Failed to refresh');
-      const data = await response.json();
-      setSessions(data);
-    } catch (err) {
-      setError(err instanceof Error ? err : new Error('Refresh failed'));
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+
 
   const executeBatchOperation = useCallback(async (operation: BatchOperation) => {
     setIsLoading(true);
@@ -432,13 +435,13 @@ export function useDashboard(initialSessions: DashboardSession[]): UseDashboardR
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(operation),
       });
-      
+
       if (!response.ok) throw new Error('Batch operation failed');
-      
+
       // Refresh after batch operation
       await refresh();
       clearSelection();
-      
+
       // Add notification
       const notification: NotificationItem = {
         id: Date.now().toString(),
@@ -463,9 +466,9 @@ export function useDashboard(initialSessions: DashboardSession[]): UseDashboardR
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(options),
       });
-      
+
       if (!response.ok) throw new Error('Export failed');
-      
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -482,10 +485,10 @@ export function useDashboard(initialSessions: DashboardSession[]): UseDashboardR
 
   const compareSessions = useCallback((sessionIds: string[]): SessionComparison => {
     const selected = sessions.filter(s => sessionIds.includes(s.id));
-    
+
     const differences: Record<string, { values: unknown[]; isDifferent: boolean }> = {};
     const fields = ['fullName', 'dateOfBirth', 'birthPlace', 'rectifiedTime', 'confidence', 'accuracy'];
-    
+
     fields.forEach(field => {
       const values = selected.map(s => s[field as keyof DashboardSession]);
       const isDifferent = new Set(values).size > 1;
@@ -524,7 +527,7 @@ export function useDashboard(initialSessions: DashboardSession[]): UseDashboardR
     isLoading,
     error,
     activity,
-    
+
     setFilter,
     setSort,
     setPagination,
