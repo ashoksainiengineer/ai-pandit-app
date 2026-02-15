@@ -55,7 +55,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:5173',
-  process.env.FRONTEND_URL,
+  // Trim trailing slash — a common misconfiguration that causes silent CORS failures
+  process.env.FRONTEND_URL?.replace(/\/+$/, ''),
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
 ].filter((origin): origin is string => Boolean(origin));
 
@@ -63,12 +64,15 @@ const allowedOrigins = [
 const isVercelOrigin = (origin: string): boolean =>
   /^https:\/\/[\w-]+\.vercel\.app$/.test(origin);
 
+// Log at startup so we can debug CORS issues from logs
+logger.info('CORS allowed origins', { origins: allowedOrigins });
+
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin || allowedOrigins.includes(origin) || isVercelOrigin(origin || '') || serverConfig.isDevelopment) {
       callback(null, true);
     } else {
-      logger.warn('CORS blocked origin', { origin });
+      logger.warn('CORS blocked origin', { origin, allowedOrigins });
       callback(new Error('Not allowed by CORS'));
     }
   },
