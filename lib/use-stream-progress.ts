@@ -451,9 +451,10 @@ export function useStreamProgress(
             if (token) headers['Authorization'] = `Bearer ${token}`;
 
             const sseBaseUrl = backendUrl || BACKEND_URL;
-            const pollUrl = sseBaseUrl
-                ? `${sseBaseUrl}/api/queue/progress?sessionId=${sid}`
-                : `/api/queue/progress?sessionId=${sid}`;
+            if (!sseBaseUrl) {
+                throw new Error('Backend URL not configured');
+            }
+            const pollUrl = `${sseBaseUrl}/api/queue/progress?sessionId=${sid}`;
 
             const res = await fetch(pollUrl, {
                 headers,
@@ -534,9 +535,10 @@ export function useStreamProgress(
 
             // Direct connection to backend — no Vercel proxy, no timeout limit
             const sseBaseUrl = backendUrl || BACKEND_URL;
-            const url = sseBaseUrl
-                ? `${sseBaseUrl}/api/stream/${sid}${query}`
-                : `/api/stream/${sid}${query}`; // Local dev fallback
+            if (!sseBaseUrl) {
+                throw new Error('Backend URL not configured');
+            }
+            const url = `${sseBaseUrl}/api/stream/${sid}${query}`;
 
             logger.info('Opening direct SSE connection', { url: url.replace(/token=[^&]+/, 'token=***') });
 

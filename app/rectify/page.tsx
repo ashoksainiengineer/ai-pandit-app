@@ -19,6 +19,7 @@ import Layout from '@/components/Layout';
 import { debounce } from '@/lib/debounce';
 import AnalysisErrorBoundary from '@/components/rectify/AnalysisErrorBoundary';
 import { useWarmup } from '@/hooks/use-warmup';
+import { env } from '@/lib/config';
 
 // Initial States
 const initialBirthData: BirthData = {
@@ -182,9 +183,10 @@ function RectifyPageContent() {
             const payload = { birthData, lifeEvents, forensicTraits, spouseData, offsetConfig };
 
             // If we have a draft session, submit it. Otherwise create new and submit.
+            const backendUrl = env.api.backendUrl.replace(/\/$/, '');
             const submitUrl = draftSessionId
-                ? `/api/sessions/${draftSessionId}/submit`
-                : '/api/calculate';
+                ? `${backendUrl}/api/sessions/${draftSessionId}/submit`
+                : `${backendUrl}/api/calculate`;
 
             const response = await fetch(submitUrl, {
                 method: 'POST',
@@ -257,9 +259,10 @@ function RectifyPageContent() {
                 const token = await getToken();
                 const payload = { birthData, lifeEvents, forensicTraits, spouseData, offsetConfig };
 
+                const backendUrl = env.api.backendUrl.replace(/\/$/, '');
                 // If we don't have a draft session ID yet, create one
                 if (!draftSessionId) {
-                    const createRes = await fetch('/api/drafts', {
+                    const createRes = await fetch(`${backendUrl}/api/drafts`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify(payload)
@@ -271,7 +274,7 @@ function RectifyPageContent() {
                     }
                 } else {
                     // Update existing draft
-                    await fetch('/api/drafts', {
+                    await fetch(`${backendUrl}/api/drafts`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify({ ...payload, sessionId: draftSessionId })

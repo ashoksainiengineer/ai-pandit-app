@@ -135,6 +135,46 @@ router.get('/metrics', authMiddleware, async (req: AuthenticatedRequest, res: Re
 });
 
 /**
+ * GET /api/admin/db-check
+ * Industrial diagnostic for Turso connectivity and session sync
+ */
+router.get('/db-check', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  const startTime = Date.now();
+  try {
+    // 1. Check raw connectivity
+    const dbTest = await db.select({ val: sql`1` }).from(sessions).limit(1);
+
+    // 2. Check session counts
+    const sessionCount = await db.select({ count: count() }).from(sessions);
+
+    // 3. Check user counts
+    const userCount = await db.select({ count: count() }).from(users);
+
+    res.json({
+      success: true,
+      diagnostics: {
+        database: 'Turso/libSQL',
+        connected: true,
+        latencyMs: Date.now() - startTime,
+        stats: {
+          sessions: sessionCount[0]?.count || 0,
+          users: userCount[0]?.count || 0
+        },
+        engineVersion: '3.0.0',
+        environment: process.env.NODE_ENV
+      }
+    });
+  } catch (error: any) {
+    logger.error('❌ Database diagnostic failed', error);
+    res.status(500).json({
+      success: false,
+      error: 'Database diagnostic failed',
+      details: error.message
+    });
+  }
+});
+
+/**
  * GET /api/admin/readings
  * Get recent readings with pagination
  */
