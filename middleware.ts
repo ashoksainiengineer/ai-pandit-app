@@ -6,10 +6,14 @@ import { NextResponse } from 'next/server';
 
 const isPublicRoute = createRouteMatcher([
   '/', // The landing page is accessible to everyone.
-  '/sign-in(.*)', // All sign-in related pages.
-  '/sign-up(.*)', // All sign-up related pages.
+  '/sign-in(.*)', // Matches /sign-in, /sign-in/any, etc.
+  '/sign-up(.*)', // Matches /sign-up, /sign-up/any, etc.
   '/api/health', // A public endpoint for health checks.
-  '/api/ping' // A public endpoint for ping checks.
+  '/api/ping', // A public endpoint for ping checks.
+  '/manifest.json',
+  '/favicon.ico',
+  '/robots.txt',
+  '/sitemap.xml'
 ]);
 
 const isIgnoredRoute = createRouteMatcher([
@@ -28,20 +32,22 @@ export default clerkMiddleware(async (auth, req) => {
 
   const headers = new Headers(req.headers);
 
-  // Add Content Security Policy - PRODUCTION SAFE
+  // Add Content Security Policy - Development + Production Compatible
   const csp = `
     default-src 'self';
-    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.clerk.accounts.dev https://vercel.live https://*.vercel.app;
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://*.clerk.accounts.dev https://vercel.live https://*.vercel.app;
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-    img-src 'self' data: https://*.clerk.com https://*.vercel.app;
+    img-src 'self' data: blob: https://*.clerk.com https://*.vercel.app;
     font-src 'self' https://fonts.gstatic.com;
-    connect-src 'self' https://*.clerk.com https://*.clerk.accounts.dev https://openrouter.ai https://*.huggingface.co https://*.hf.space https://vercel.live https://*.vercel.app;
+    connect-src 'self' blob: http://localhost:* https://*.clerk.com https://*.clerk.accounts.dev https://openrouter.ai https://*.huggingface.co https://*.hf.space https://vercel.live https://*.vercel.app wss://*.clerk.accounts.dev;
     frame-src 'self' https://*.clerk.com;
+    worker-src 'self' blob:;
     object-src 'none';
     frame-ancestors 'none';
     form-action 'self';
     base-uri 'self';
   `.trim().replace(/\s{2,}/g, ' ');
+
 
   headers.set('Content-Security-Policy', csp);
   headers.set('X-Content-Type-Options', 'nosniff');
