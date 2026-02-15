@@ -11,6 +11,7 @@ import { getSessionProgress } from '../lib/progress-tracker.js';
 import { getQueueStatus } from '../lib/queue-manager.js';
 import { logger } from '../lib/logger.js';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
+import { safeDecryptWithFallback } from '../lib/encryption/index.js';
 
 const router = Router();
 
@@ -149,10 +150,23 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
             const queueStatus = await getQueueStatus(sessionId);
             if (queueStatus) {
                 logger.info(`[SSE] Sending initial metadata for ${sessionId}`);
+
+                // 🔐 Decrypt the full name for the frontend
+                let fullName = queueStatus.session.fullName;
+                try {
+                    if (fullName && fullName.includes(':')) {
+                        const decrypted = safeDecryptWithFallback(fullName, clerkId, queueStatus.session.userId);
+                        if (decrypted) fullName = decrypted;
+                    }
+                } catch (e) {
+                    logger.warn(`[SSE] Failed to decrypt name for session ${sessionId}`, e);
+                }
+
                 sendEvent(res, {
                     type: 'metadata',
                     data: {
                         ...queueStatus.session,
+                        fullName, // Send decrypted name
                         status: queueStatus.status,
                     }
                 });

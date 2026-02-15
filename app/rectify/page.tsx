@@ -17,6 +17,7 @@ import Step4Review from '@/components/rectify/Step4Review';
 import Layout from '@/components/Layout';
 import { debounce } from '@/lib/debounce';
 import AnalysisErrorBoundary from '@/components/rectify/AnalysisErrorBoundary';
+import { useWarmup } from '@/hooks/use-warmup';
 
 // Initial States
 const initialBirthData: BirthData = {
@@ -112,6 +113,9 @@ function RectifyPageContent() {
     const [cloudSaveStatus, setCloudSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [lastSavedData, setLastSavedData] = useState<string>('');
 
+    // 🔥 WAKE UP ENGINE: Pre-warm Hugging Face backends
+    useWarmup();
+
     const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
     const [maxUnlockedStep, setMaxUnlockedStep] = useState(1);
 
@@ -189,7 +193,7 @@ function RectifyPageContent() {
 
             const result = await response.json();
             localStorage.removeItem('btr_draft_id');
-            
+
             // Navigate to analysis page (not results)
             const sessionId = result.data?.sessionId || result.sessionId || draftSessionId;
             router.push(`/rectify/${sessionId}`);
@@ -237,7 +241,7 @@ function RectifyPageContent() {
         if (!userId) return; // Must be logged in
 
         const currentData = JSON.stringify({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig });
-        
+
         // Don't save if data hasn't changed from last save
         if (currentData === lastSavedData) return;
 
@@ -267,7 +271,7 @@ function RectifyPageContent() {
                         body: JSON.stringify({ ...payload, sessionId: draftSessionId })
                     });
                 }
-                
+
                 setLastSavedData(currentData);
                 setCloudSaveStatus('saved');
                 setTimeout(() => setCloudSaveStatus('idle'), 2000);
@@ -293,7 +297,7 @@ function RectifyPageContent() {
                 const res = await fetch(`/api/sessions/${savedDraftId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                
+
                 if (res.ok) {
                     const result = await res.json();
                     if (result.success && result.data) {
@@ -355,7 +359,7 @@ function RectifyPageContent() {
                         </div>
                     )}
                 </div>
-                
+
                 {/* The rest of the JSX content */}
                 <div className="pt-28 pb-16">
                     {/* Progress Indicator and other UI elements */}

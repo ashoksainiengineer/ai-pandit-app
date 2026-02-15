@@ -361,11 +361,9 @@ router.post('/requeue', authMiddleware, async (req: AuthenticatedRequest, res: R
             return;
         }
 
-        // Only allow requeue if failed or cancelled
-        if (session[0].status !== 'failed' && session[0].status !== 'cancelled') {
-            res.status(400).json({ success: false, error: 'Can only restart failed or cancelled sessions' });
-            return;
-        }
+        // IMPACT: Allow restarting any session that isn't already pending (which would be a fresh one anyway)
+        // This acts as a "Force Restart" for stuck/processing sessions too.
+        // We will cleanup/kill any running processes below.
 
         const now = new Date().toISOString();
 

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect, useState, useRef, useCallback, useMemo, memo, useId } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -138,46 +140,59 @@ const AIThinkingPanel = memo(({ thinking, isActive }: { thinking: AIThinking; is
     }, [thinking?.fullText, isActive]);
 
     return (
-        <div className="border-l-4 border-[#e5e7eb] pl-4 ml-2 my-6">
-            <button
+        <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm overflow-hidden my-6 font-sans">
+            {/* Header Bar */}
+            <div
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors mb-2 select-none"
+                className="px-4 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB] flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
             >
-                {isActive ? (
-                    <span className="flex h-2 w-2 relative">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-gray-500"></span>
+                <div className="flex items-center gap-3">
+                    {isActive ? (
+                        <div className="flex h-2.5 w-2.5 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
+                        </div>
+                    ) : (
+                        <div className={`w-2.5 h-2.5 rounded-full ${thinking?.fullText ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    )}
+                    <h3 className="text-xs font-bold text-gray-700 tracking-wider uppercase flex items-center gap-2">
+                        <Brain className="w-4 h-4 text-gray-500" />
+                        AI Reasoning Engine
+                    </h3>
+                </div>
+                <div className="flex items-center gap-2">
+                    <span className="text-[10px] uppercase font-bold text-gray-400 tracking-widest hidden sm:inline-block">
+                        {isActive ? 'Processing' : 'Standby'}
                     </span>
-                ) : (
-                    <div className="w-2 h-2 rounded-full bg-gray-300" />
-                )}
-                Thought Process
-                <span className="text-xs text-gray-400 font-normal ml-2">
-                    {isExpanded ? 'Hide' : 'Show'} details
-                </span>
-            </button>
+                    <button className="text-gray-400 hover:text-gray-600 transition-colors">
+                        {isExpanded ? <ChevronRight className="w-4 h-4 rotate-90 transition-transform" /> : <ChevronRight className="w-4 h-4 transition-transform" />}
+                    </button>
+                </div>
+            </div>
 
+            {/* Content Area */}
             <AnimatePresence>
                 {isExpanded && (
                     <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
+                        initial={{ height: 0 }}
+                        animate={{ height: "auto" }}
+                        exit={{ height: 0 }}
                         className="overflow-hidden"
                     >
                         <div
                             ref={scrollRef}
-                            className="text-gray-600 text-[15px] leading-7 font-normal font-sans max-h-[60vh] overflow-y-auto pr-4 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent"
-                            style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif' }}
+                            className="bg-[#FFFFFE] p-5 h-96 overflow-y-auto font-mono text-sm leading-6 text-gray-600"
+                            style={{ scrollBehavior: 'smooth' }}
                         >
                             {thinking?.fullText ? (
                                 <div className="whitespace-pre-wrap">
                                     {thinking.fullText}
-                                    {isActive && <span className="inline-block w-1.5 h-4 bg-gray-400 animate-pulse ml-1 align-middle" />}
+                                    {isActive && <span className="inline-block w-2 h-4 bg-indigo-500 animate-pulse ml-1 align-middle" />}
                                 </div>
                             ) : (
-                                <div className="text-gray-400 italic">
-                                    Initializing reasoning engine...
+                                <div className="flex flex-col items-center justify-center h-full text-gray-400 italic gap-2">
+                                    <Brain className="w-8 h-8 opacity-20" />
+                                    <span>Initializing neural pathways...</span>
                                 </div>
                             )}
                         </div>
@@ -551,9 +566,9 @@ export default function RobustAnalysisPage() {
 
                         {/* 2. AI Thinking (DeepSeek Style) */}
                         {(aiThinking || (progress?.stepIndex || 0) >= 1) && !isComplete && (
-                            <SectionErrorBoundary sectionName="AI Thinking" icon={<Brain className="w-5 h-5" />}>
+                            <AnalysisErrorBoundary sectionName="AI Thinking Process">
                                 <AIThinkingPanel thinking={aiThinking} isActive={!isComplete && !cancelled} />
-                            </SectionErrorBoundary>
+                            </AnalysisErrorBoundary>
                         )}
 
                         {/* 3. Candidate Scores (Leaderboard) */}
