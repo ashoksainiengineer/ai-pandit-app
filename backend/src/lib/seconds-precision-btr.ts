@@ -237,11 +237,12 @@ export async function processSecondsPrecisionBTR(
                 score: stage6.accuracy,
                 confidence: stage6.confidence,
                 margin: stage6.margin,
-                thinking: stage6.thinking,
+                thinking: stage6.thinking || 'Final analysis completed.',
                 vimsopakaBala: winnerPkg?.vimsopakaBala,
                 ishtaKashtaPhala: winnerPkg?.ishtaKashtaPhala,
                 chalitDiscrepancies: winnerPkg?.chalitDiscrepancies
             },
+            alternatives: [],
             technicalProof: {
                 ephemeris: finalEphemeris,
                 divCharts,

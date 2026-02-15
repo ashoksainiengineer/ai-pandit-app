@@ -84,21 +84,21 @@ ${shuffledCandidates.map(c => `
 ├ HOUSE LORDS: ${[...Array(12)].map((_, i) => `${i + 1}=${c.houseLords[i + 1]}`).join(' | ')}
 ├ PLANETARY MATRIX (Full Vedic Metrics):
 ${Object.entries(c.planets).map(([name, p]) => {
-        const caps = name.charAt(0).toUpperCase() + name.slice(1);
-        const sav = c.ashtakavarga?.SAVSigns?.[p.sign] || '?';
-        const aspects = p.aspects?.filter((a: any) => a.isHit).map((a: any) => `${a.type}→${a.targetPlanet || 'H' + a.targetHouse}`).join(', ') || 'None';
-        const avastha = p.avastha || 'Unknown';
-        const deity = p.d60Deity || 'Unknown';
-        const ikp = p.ishtaKashtaPhala ? `${p.ishtaKashtaPhala.ishta}/${p.ishtaKashtaPhala.kashta}` : '?';
-        const sambandha = p.compoundDignity || 'Sama';
-        const sh = p.shadbalaBreakdown;
-        const shStr = sh ? `Sum:${sh.total} (S:${sh.sthana} D:${sh.dig} K:${sh.kaala})` : '?';
-        const statusFlags: string[] = [];
-        if (p.isRetro) statusFlags.push('R');
-        if (p.isCombust) statusFlags.push('C');
-        const statusStr = statusFlags.length > 0 ? `[${statusFlags.join(',')}]` : '';
-        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${String(p.house).padEnd(2)} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${shStr.padEnd(25)} | SAV:${String(sav).padEnd(2)} ${statusStr.padEnd(5)} | ${aspects}`;
-    }).join('\n')}
+    const caps = name.charAt(0).toUpperCase() + name.slice(1);
+    const sav = c.ashtakavarga?.SAVSigns?.[p.sign] || '?';
+    const aspects = p.aspects?.filter((a: any) => a.isHit).map((a: any) => `${a.type}→${a.targetPlanet || 'H' + a.targetHouse}`).join(', ') || 'None';
+    const avastha = p.avastha || 'Unknown';
+    const deity = p.d60Deity || 'Unknown';
+    const ikp = p.ishtaKashtaPhala ? `${p.ishtaKashtaPhala.ishta}/${p.ishtaKashtaPhala.kashta}` : '?';
+    const sambandha = p.compoundDignity || 'Sama';
+    const sh = p.shadbalaBreakdown;
+    const shStr = sh ? `Sum:${sh.total} (S:${sh.sthana} D:${sh.dig} K:${sh.kaala})` : '?';
+    const statusFlags: string[] = [];
+    if (p.isRetro) statusFlags.push('R');
+    if (p.isCombust) statusFlags.push('C');
+    const statusStr = statusFlags.length > 0 ? `[${statusFlags.join(',')}]` : '';
+    return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${String(p.house).padEnd(2)} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${shStr.padEnd(25)} | SAV:${String(sav).padEnd(2)} ${statusStr.padEnd(5)} | ${aspects}`;
+  }).join('\n')}
 ├ YOGAS: ${c.yogas?.map((y: any) => y.name).join(', ') || 'None'}
 ├ DIVISIONAL CHARTS (Detailed Degrees):
 │ D9 Navamsa: Asc=${c.vargaDegrees?.D9?.Ascendant} | ${Object.entries(c.vargaDegrees?.D9 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
@@ -112,10 +112,10 @@ ${c.vimshottariDasha.map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar}${d
 ${c.lifecycleShifts?.map(s => `│ [${s.date}]: ${s.event} (Dasha: ${s.dasha})`).join('\n') || 'N/A'}
 ├ YOGINI DASHA (Full): ${c.yoginiDasha?.map(d => `${d.lord} [${d.startEnd}]`).join(' | ') || 'N/A'}
 ├ CHARA DASHA: ${c.charaDasha?.map(d => `${d.sign} [${d.startEnd}]`).join(' | ') || 'N/A'}
-├ ASHTAKAVARGA SAV: ${c.ashtakavarga?.SAV ? `[${c.ashtakavarga.SAV.join(', ')}]` : 'N/A'}
+├ ASHTAKAVARGA SAV: ${c.ashtakavarga ? `[${Object.entries(c.ashtakavarga).map(([k, v]) => `${k}:${v}`).join(', ')}]` : 'N/A'}
 ${c.transitData ? `├ TRANSITS & DASHAS ON ALL EVENTS (Full Planetary Matrix):
 ${Object.entries(c.transitData).map(([date, t]: [string, any]) =>
-        `│ [${date}]: Dasha=${t.dasha}
+    `│ [${date}]: Dasha=${t.dasha}
 │   Transits: ${Object.entries(t.planets || {}).map(([p, pos]) => `${p}:${pos}`).join(' | ')}
 │   Signals: ${t.signatures?.join(', ') || 'Regular Period'}`).join('\n')}` : ''}
 ${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:
@@ -127,7 +127,7 @@ ${c.spouseMatch ? `├ SPOUSE SYNASTRY CORRELATION:
 ${c.lifecycleShifts?.length ? `├ LIFECYCLE CHRONOLOGY (SATURN/JUPITER INGRESS):
 ${c.lifecycleShifts.map(s => `│ [${s.date}]: ${s.event} (Dasha: ${s.dasha})`).join('\n')}` : ''}
 └──────────────────────────────────────────────────────────────`).join('\n')
-        }
+    }
 
     SCORING:
     - Rate 0 - 100 based on how well the Dasha Lords + Divisional Charts explain the Events.
