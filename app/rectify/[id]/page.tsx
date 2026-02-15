@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useStreamProgress, type CandidateScore, type StreamStep, type StageStat, type AIThinking } from '@/lib/use-stream-progress';
 import { logger } from '@/lib/secure-logger';
+import { AnalysisPipelineTracker } from '@/components/rectify/AnalysisPipelineTracker';
 import { AnalysisErrorBoundary, SectionErrorBoundary } from '@/components/rectify/AnalysisErrorBoundary';
 import AdvancedSignalsDashboard from '@/components/rectify/advanced-signals/AdvancedSignalsDashboard';
 
@@ -42,7 +43,11 @@ export default function RobustAnalysisPage() {
     const [cancelled, setCancelled] = useState(false);
 
     useEffect(() => {
-        if (metadata?.status === 'cancelled') setCancelled(true);
+        if (metadata?.status === 'cancelled') {
+            setCancelled(true);
+        } else if (metadata?.status && ['pending', 'queued', 'processing'].includes(metadata.status)) {
+            setCancelled(false);
+        }
     }, [metadata?.status]);
 
     // Redirect to results page when analysis completes
@@ -97,6 +102,7 @@ export default function RobustAnalysisPage() {
                 body: JSON.stringify({ sessionId }),
             });
             if (res.ok) {
+                setCancelled(false); // Clear stale UI state
                 // Refresh the page or just let SSE reconnect to the now-pending session
                 window.location.reload();
             } else {
@@ -268,17 +274,18 @@ export default function RobustAnalysisPage() {
                     {/* Pipeline tracker */}
                     {allSteps && allSteps.length > 0 && (
                         <SectionErrorBoundary sectionName="Pipeline Tracker" icon={<Activity className="w-5 h-5" />}>
-                            <PipelineTracker
-                                steps={allSteps}
-                                currentStep={progress?.stepIndex || 0}
-                                isComplete={isComplete}
+                            <AnalysisPipelineTracker
                                 stats={stageStats || []}
+                                allSteps={allSteps}
+                                currentStage={progress?.stepIndex || 0}
+                                isConnected={isConnected}
+                                isComplete={isComplete}
                             />
                         </SectionErrorBoundary>
                     )}
 
                     {/* AI Thinking panel */}
-                    {aiThinking && (
+                    {(aiThinking || (progress?.stepIndex || 0) >= 1) && !isComplete && (
                         <SectionErrorBoundary sectionName="AI Thinking" icon={<Brain className="w-5 h-5" />}>
                             <AIThinkingPanel thinking={aiThinking} isActive={!isComplete && !cancelled} />
                         </SectionErrorBoundary>
@@ -291,8 +298,8 @@ export default function RobustAnalysisPage() {
                         </SectionErrorBoundary>
                     )}
 
-                    {/* Candidate scores (visible only during analysis) */}
-                    {candidateScores && candidateScores.length > 0 && !isComplete && (
+                    {/* Candidate scores (visible during and after analysis if any exist) */}
+                    {(candidateScores.length > 0 || (progress?.stepIndex || 0) >= 2) && !isComplete && (
                         <SectionErrorBoundary sectionName="Candidate Scores" icon={<Activity className="w-5 h-5" />}>
                             <CandidateScoreTable scores={candidateScores} />
                         </SectionErrorBoundary>
@@ -411,56 +418,7 @@ const ProgressBar = memo(({ percentage, stepIndex, totalSteps, message }: {
 ));
 ProgressBar.displayName = 'ProgressBar';
 
-const PipelineTracker = memo(({ steps, currentStep, isComplete, stats }: {
-    steps: StreamStep[]; currentStep: number; isComplete: boolean; stats: StageStat[];
-}) => {
-    // Match stats to steps by index for candidate counts
-    const getStepStat = (index: number) => stats.find(s => s.stage === index + 1);
 
-    return (
-        <div className="mb-6 sm:mb-8">
-            <h2 className="text-lg font-bold text-[#1A1612] mb-4">Analysis Pipeline</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-                {steps.map((step, index) => {
-                    const isDone = index < currentStep || isComplete;
-                    const isActive = index === currentStep && !isComplete;
-                    const stat = getStepStat(index);
-
-                    return (
-                        <div
-                            key={step.id}
-                            className={`
-                                relative rounded-xl border p-3 sm:p-4 transition-all duration-300
-                                ${isDone ? 'bg-[#2D7A5C]/5 border-[#2D7A5C]/30' : ''}
-                                ${isActive ? 'bg-[#B8860B]/5 border-[#B8860B]/40 ring-1 ring-[#B8860B]/20' : ''}
-                                ${!isDone && !isActive ? 'bg-white border-[#F0E8DE] opacity-50' : ''}
-                            `}
-                        >
-                            <div className="flex items-center gap-2 mb-1">
-                                {isDone ? (
-                                    <CheckCircle className="w-4 h-4 text-[#2D7A5C] flex-shrink-0" />
-                                ) : isActive ? (
-                                    <motion.div
-                                        className="w-4 h-4 rounded-full bg-[#B8860B] flex-shrink-0"
-                                        animate={{ scale: [1, 1.2, 1] }}
-                                        transition={{ duration: 1.5, repeat: Infinity }}
-                                    />
-                                ) : (
-                                    <div className="w-4 h-4 rounded-full border-2 border-[#F0E8DE] flex-shrink-0" />
-                                )}
-                                <span className="text-xs sm:text-sm font-semibold text-[#1A1612] truncate">{step.name}</span>
-                            </div>
-                            {stat && (
-                                <p className="text-xs text-[#7A756F] ml-6">{stat.candidateCount} candidates</p>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
-});
-PipelineTracker.displayName = 'PipelineTracker';
 
 const AIThinkingPanel = memo(({ thinking, isActive }: { thinking: AIThinking; isActive: boolean }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -478,8 +436,8 @@ const AIThinkingPanel = memo(({ thinking, isActive }: { thinking: AIThinking; is
                 ref={scrollRef}
                 className="h-48 overflow-y-auto bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm text-gray-600 font-mono whitespace-pre-wrap"
             >
-                {thinking.fullText}
-                {isActive && <span className="inline-block w-2 h-4 bg-gray-800 animate-pulse ml-1" />}
+                {thinking?.fullText || (isActive ? "Establishing connection to reasoning engine..." : "No reasoning logs available for this stage.")}
+                {isActive && thinking?.fullText && <span className="inline-block w-2 h-4 bg-gray-800 animate-pulse ml-1" />}
             </div>
         </div>
     );
@@ -493,24 +451,30 @@ const CandidateScoreTable = memo(({ scores }: { scores: CandidateScore[] }) => {
         <div className="mb-6 sm:mb-8">
             <h2 className="text-lg font-bold text-[#1A1612] mb-4">Candidate Scores</h2>
             <div className="overflow-x-auto rounded-lg border border-[#F0E8DE]">
-                <table className="min-w-full divide-y divide-[#F0E8DE]">
-                    <thead className="bg-[#F8F4F0]">
-                        <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#7A756F] uppercase tracking-wider">Time</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#7A756F] uppercase tracking-wider">Score</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#7A756F] uppercase tracking-wider">Stage</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-[#F0E8DE]">
-                        {sortedScores.map((s, index) => (
-                            <tr key={`${s.time}-stage${s.stage}-${index}`}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-[#1A1612]">{s.time}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-[#1A1612]">{s.score.toFixed(2)}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-[#7A756F]">{s.stage}</td>
+                {scores.length > 0 ? (
+                    <table className="min-w-full divide-y divide-[#F0E8DE]">
+                        <thead className="bg-[#F8F4F0]">
+                            <tr>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#7A756F] uppercase tracking-wider">Time</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#7A756F] uppercase tracking-wider">Score</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-[#7A756F] uppercase tracking-wider">Stage</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-[#F0E8DE]">
+                            {sortedScores.map((s, index) => (
+                                <tr key={`${s.time}-stage${s.stage}-${index}`}>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-[#1A1612]">{s.time}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-[#1A1612]">{s.score.toFixed(2)}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-[#7A756F]">{s.stage}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                ) : (
+                    <div className="p-8 text-center text-sm text-[#7A756F] bg-white">
+                        Waiting for tournament to begin... Candidates will appear here soon.
+                    </div>
+                )}
             </div>
         </div>
     );

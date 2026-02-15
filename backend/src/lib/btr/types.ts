@@ -14,6 +14,17 @@ export const ZODIAC_SIGNS: readonly string[] = [
   'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
 ];
 
+/** Zodiac Signs Type */
+export type ZodiacSign = (typeof ZODIAC_SIGNS)[number];
+
+/** Astrological Yoga Definition */
+export interface Yoga {
+  name: string;
+  description: string;
+  significance: string;
+  planetsInvolved: string[];
+}
+
 /** Represents a planet's position and attributes */
 export interface PlanetData {
   sign: string;
@@ -58,6 +69,13 @@ export interface VimshottariDashaEntry {
   startEnd: string;
 }
 
+/** Chara Karaka Definition */
+export interface CharaKaraka {
+  karakaName: string;
+  planet: string;
+  degree: number;
+}
+
 /** Divisional chart data */
 export interface DivisionalChartData {
   ascendant: string;
@@ -93,7 +111,7 @@ export interface VedicSignals {
   vargottama?: string[];
   parivartana?: Array<{ houses: number[] }>;
   pushkar?: string[];
-  charaKarakas?: unknown[];
+  charaKarakas?: CharaKaraka[];
 }
 
 /** Complete candidate data package for AI analysis */
@@ -113,19 +131,24 @@ export interface CandidateDataPackage {
   d60Sign?: string;
   d9Chart?: DivisionalChartData;
   d10Chart?: DivisionalChartData;
-  ashtakavarga?: Record<string, number[]>;
+  ashtakavarga?: Record<string, number>;
   panchanga?: PanchangaData;
-  yogas?: unknown[];
-  doubleTransitAnalysis?: Record<string, unknown>;
+  yogas?: Yoga[];
+  doubleTransitAnalysis?: Record<string, { isTriggered: boolean; details: any[] }>;
   lifecycleShifts?: Array<{ date: string; event: string; dasha: string }>;
-  transitData?: Record<string, unknown>;
+  transitData?: Record<string, {
+    dasha: string;
+    signatures: string[];
+    planets: Record<string, string>;
+    doubleTransit: { isTriggered: boolean; details: any[] };
+  }>;
   aiScore?: number;
   aiVerdict?: string;
-  rawVimshottari?: unknown[];
+  rawVimshottari?: VimshottariDashaEntry[];
   vedicSignals?: VedicSignals;
-  charaKarakas?: unknown[];
+  charaKarakas?: CharaKaraka[];
   vimsopakaBala?: Record<string, number>;
-  chalitDiscrepancies?: unknown[];
+  chalitDiscrepancies?: Array<{ planet: string; rasiHouse: number; chalitHouse: number }>;
   ishtaKashtaPhala?: Record<string, { ishta: number; kashta: number }>;
   vargaDegrees?: Record<string, Record<string, string>>;
   d60Planets?: Record<string, D60PlanetData>;

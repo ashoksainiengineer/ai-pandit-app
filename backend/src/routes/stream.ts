@@ -8,6 +8,7 @@ import { sessions } from '../database/schema.js';
 import { eq } from 'drizzle-orm';
 import { sessionEvents, SessionEvent } from '../lib/session-events.js';
 import { getSessionProgress } from '../lib/progress-tracker.js';
+import { getQueueStatus } from '../lib/queue-manager.js';
 import { logger } from '../lib/logger.js';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 
@@ -142,6 +143,18 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
                 sendEvent(res, {
                     type: 'initial_state',
                     progress: currentProgress,
+                });
+            }
+
+            const queueStatus = await getQueueStatus(sessionId);
+            if (queueStatus) {
+                logger.info(`[SSE] Sending initial metadata for ${sessionId}`);
+                sendEvent(res, {
+                    type: 'metadata',
+                    data: {
+                        ...queueStatus.session,
+                        status: queueStatus.status,
+                    }
                 });
             }
 

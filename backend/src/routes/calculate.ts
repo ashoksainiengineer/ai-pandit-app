@@ -7,7 +7,8 @@ import { sessions, users } from '../database/schema.js';
 import { eq } from 'drizzle-orm';
 import { logger } from '../lib/logger.js';
 import { addToQueue } from '../lib/queue-manager.js';
-import { encryptData } from '../lib/crypto.js';
+import { encryptData } from '../lib/encryption/index.js';
+import { syncUser } from '../lib/user-sync.js';
 import type { BirthData, LifeEvent, TimeOffsetConfig } from '../types/index.js';
 
 const router = Router();
@@ -141,41 +142,12 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
         // ═════════════════════════════════════════════════════════════════════
         // Step 1.5: Self-Healing User Sync
         // ═════════════════════════════════════════════════════════════════════
-        let dbUser = await executeWithRetry(() =>
-            db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
-        );
-
         let internalUserId: string;
-
-        if (dbUser.length === 0) {
-            logger.info('🔄 [Self-Healing] User missing from DB. Syncing from Clerk...', { clerkId });
-
-            try {
-                const clerkUser = await clerk.users.getUser(clerkId);
-                const email = clerkUser.emailAddresses[0]?.emailAddress || '';
-                const fullName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null;
-
-                internalUserId = crypto.randomUUID();
-
-                await executeWithRetry(() =>
-                    db.insert(users).values({
-                        id: internalUserId,
-                        clerkId: clerkId,
-                        email: email,
-                        fullName: fullName,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                    })
-                );
-
-                logger.info('✅ [Self-Healing] User record recreated successfully', { clerkId, internalUserId });
-            } catch (clerkError) {
-                logger.error('❌ [Self-Healing] Failed to fetch/create user from Clerk', { clerkId, error: clerkError });
-                res.status(500).json({ success: false, error: 'User synchronization failed' });
-                return;
-            }
-        } else {
-            internalUserId = dbUser[0].id;
+        try {
+            internalUserId = await syncUser(clerkId);
+        } catch (syncError) {
+            res.status(500).json({ success: false, error: 'User synchronization failed' });
+            return;
         }
 
         // ═════════════════════════════════════════════════════════════════════

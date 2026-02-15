@@ -387,3 +387,10 @@ export function emitEstimatedTime(
         seconds
     });
 }
+
+/**
+ * Manually cleanup session resources (used for re-queuing)
+ */
+export function cleanupSession(sessionId: string): void {
+    sessionEvents.cleanup(sessionId);
+}

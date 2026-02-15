@@ -8,8 +8,9 @@ import { logger } from '../lib/logger.js';
 import { addToQueue, getQueueStatus, startQueueProcessor, cancelSession } from '../lib/queue-manager.js';
 import { validateOffsetConfig, TimeOffsetConfig } from '../lib/time-offset-manager.js';
 import { BirthData, LifeEvent } from '../lib/types.js';
-import { encryptData } from '../lib/crypto.js';
-import { safeDecrypt, safeDecryptWithFallback } from '../lib/encryption/index.js';
+import { encryptData, safeDecrypt, safeDecryptWithFallback } from '../lib/encryption/index.js';
+import { syncUser } from '../lib/user-sync.js';
+import { cleanupSession } from '../lib/session-events.js';
 
 const router = Router();
 
@@ -109,41 +110,12 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
         // SELF-HEALING USER SYNC
         // Ensures user exists in DB and gets internal UUID
         // ═════════════════════════════════════════════════════════════════════════════
-        let dbUser = await executeWithRetry(() =>
-            db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
-        );
-
         let internalUserId: string;
-
-        if (dbUser.length === 0) {
-            logger.info('🔄 [Self-Healing] User missing from DB. Syncing from Clerk...', { clerkId });
-
-            try {
-                const clerkUser = await clerk.users.getUser(clerkId);
-                const email = clerkUser.emailAddresses[0]?.emailAddress || '';
-                const fullName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null;
-
-                internalUserId = crypto.randomUUID();
-
-                await executeWithRetry(() =>
-                    db.insert(users).values({
-                        id: internalUserId,
-                        clerkId: clerkId,
-                        email: email,
-                        fullName: fullName,
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                    })
-                );
-
-                logger.info('✅ [Self-Healing] User record recreated successfully', { clerkId, internalUserId });
-            } catch (clerkError) {
-                logger.error('❌ [Self-Healing] Failed to fetch/create user from Clerk', { clerkId, error: clerkError });
-                res.status(500).json({ success: false, error: 'User synchronization failed' });
-                return;
-            }
-        } else {
-            internalUserId = dbUser[0].id;
+        try {
+            internalUserId = await syncUser(clerkId);
+        } catch (syncError) {
+            res.status(500).json({ success: false, error: 'User synchronization failed' });
+            return;
         }
 
         // Create session with encrypted data
@@ -414,7 +386,10 @@ router.post('/requeue', authMiddleware, async (req: AuthenticatedRequest, res: R
                 .where(eq(sessions.id, sessionId))
         );
 
-        // 2. Add back to queue
+        // 2. Clear event buffers to ensure a clean start for the new run
+        cleanupSession(sessionId);
+
+        // 3. Add back to queue
         const queueResult = await addToQueue(sessionId);
 
         if (!queueResult.success) {

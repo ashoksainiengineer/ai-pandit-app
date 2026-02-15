@@ -121,11 +121,13 @@ interface ConnectionState {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const DEFAULT_STEPS: StreamStep[] = [
-    { id: 'prana', name: 'Prana Mapping' },
-    { id: 'discovery', name: 'Discovery Tournament' },
-    { id: 'convergence', name: 'Temporal Convergence' },
-    { id: 'audit', name: 'Micro-Audit (D60)' },
-    { id: 'seal', name: 'God-Tier Lock' },
+    { id: 'init', name: 'Initializing Engine' },
+    { id: 'grid', name: 'Stage 1: Grid Generation' },
+    { id: 'coarse', name: 'Stage 2: Batch Tournament' },
+    { id: 'fine', name: 'Stage 3: Refinement Grid' },
+    { id: 'deep', name: 'Stage 4: Deep Analysis' },
+    { id: 'micro', name: 'Stage 5: Micro Precision' },
+    { id: 'final', name: 'Final Verdict' },
 ];
 
 const POLL_INTERVAL = 5000;      // 5 seconds
@@ -208,52 +210,121 @@ export function useStreamProgress(
 
         setState(prev => {
             switch (type) {
-                case 'connected':
-                case 'initial_state':
-                    return { ...prev, isConnected: true };
-
-                case 'progress':
-                    return { ...prev, progress: data.data as StreamProgress };
-
-                case 'ai_thinking': {
-                    const thinking = data.data as AIThinking;
-                    const newCandidates = new Map(prev.allCandidates);
-                    if (thinking?.candidateTime) {
-                        newCandidates.set(thinking.candidateTime, thinking);
-                    }
+                case 'initial_state': {
+                    const progressData = data.progress as any;
                     return {
                         ...prev,
-                        aiThinking: thinking,
-                        allCandidates: newCandidates,
-                        displayedCandidate: thinking?.candidateTime || prev.displayedCandidate,
+                        isConnected: true,
+                        progress: progressData ? {
+                            step: progressData.steps?.[progressData.currentStep]?.id || 'unknown',
+                            stepIndex: progressData.currentStep || 0,
+                            totalSteps: progressData.totalSteps || 7,
+                            percentage: progressData.percentage || 0,
+                            message: progressData.liveMessage || '',
+                            details: progressData.steps?.[progressData.currentStep]?.details || []
+                        } : prev.progress,
+                        candidateScores: progressData?.candidateScores || prev.candidateScores,
+                        startedAt: progressData?.startedAt || prev.startedAt,
+                        estimatedTimeRemaining: progressData?.estimatedTimeRemaining || prev.estimatedTimeRemaining
                     };
                 }
 
-                case 'ai_context':
-                    return { ...prev, aiContext: data.data as AIContextData };
+                case 'connected':
+                    return { ...prev, isConnected: true };
 
-                case 'candidate_scores':
-                    return { ...prev, candidateScores: data.data as CandidateScore[] };
+                case 'progress': {
+                    const p = (data.data as StreamProgress) || (data as unknown as StreamProgress);
+                    return { ...prev, progress: p };
+                }
 
-                case 'stage_stats':
-                    return { ...prev, stageStats: data.data as StageStat[] };
+                case 'ai_thinking': {
+                    const dataObj = (data.data as any) || data;
+                    const chunk = dataObj?.chunk || '';
+                    const stage = dataObj?.stage || 1;
+                    const candidateTime = dataObj?.candidateTime || 'general';
 
-                case 'advanced_signals':
-                    return { ...prev, advancedSignals: data.data as IAdvancedSignals };
+                    const newHistory = new Map(prev.allCandidates);
+                    const existing = newHistory.get(candidateTime) || {
+                        stage,
+                        candidateTime,
+                        chunks: [],
+                        fullText: ''
+                    };
 
-                case 'metadata':
-                    return { ...prev, metadata: data.data as StreamMetadata };
+                    const updatedThinking: AIThinking = {
+                        ...existing,
+                        stage,
+                        fullText: existing.fullText + chunk,
+                        chunks: [...existing.chunks, chunk]
+                    };
+
+                    newHistory.set(candidateTime, updatedThinking);
+
+                    return {
+                        ...prev,
+                        aiThinking: updatedThinking,
+                        allCandidates: newHistory,
+                        displayedCandidate: candidateTime,
+                    };
+                }
+
+                case 'ai_context': {
+                    const context = (data.data as AIContextData) || (data as unknown as AIContextData);
+                    return { ...prev, aiContext: context };
+                }
+
+                case 'candidate_score':
+                case 'candidate_score_v2': {
+                    const score = (data.data as CandidateScore) || (data as unknown as CandidateScore);
+                    if (!score || !score.time) return prev;
+
+                    // Ensure we don't add duplicates for the same time and stage
+                    const exists = prev.candidateScores.some(s => s.time === score.time && s.stage === score.stage);
+                    if (exists) return prev;
+
+                    return {
+                        ...prev,
+                        candidateScores: [...prev.candidateScores, score]
+                    };
+                }
+
+                case 'candidate_scores': {
+                    const scores = (data.data as CandidateScore[]) || (data as unknown as CandidateScore[]);
+                    return { ...prev, candidateScores: scores };
+                }
+
+                case 'estimated_time': {
+                    const d = (data.data as any) || data;
+                    return { ...prev, estimatedTimeRemaining: d?.seconds || 0 };
+                }
+
+                case 'stage_stats': {
+                    const stats = (data.data as StageStat[]) || (data as unknown as StageStat[]);
+                    return { ...prev, stageStats: stats };
+                }
+
+                case 'advanced_signals': {
+                    const signals = (data.data as IAdvancedSignals) || (data as unknown as IAdvancedSignals);
+                    return { ...prev, advancedSignals: signals };
+                }
+
+                case 'metadata': {
+                    const metadata = (data.data as StreamMetadata) || (data as unknown as StreamMetadata);
+                    return { ...prev, metadata: metadata };
+                }
 
                 case 'complete':
-                case 'result':
+                case 'result': {
+                    const resData = (data.data as StreamResult) || (data as unknown as StreamResult);
                     cleanup();
                     setConnectionState(cs => ({ ...cs, status: 'finished' }));
                     return {
                         ...prev,
                         isComplete: true,
                         isConnected: false,
-                        result: data.data as StreamResult,
+                        result: resData,
                     };
+                }
 
                 case 'error':
                     cleanup();

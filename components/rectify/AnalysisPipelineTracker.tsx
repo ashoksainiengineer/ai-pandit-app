@@ -201,7 +201,7 @@ export const AnalysisPipelineTracker = memo(function AnalysisPipelineTracker({
         intervalRef.current = setInterval(() => {
             setLoad(prev => {
                 const step = allSteps[currentStage];
-                const isAIStage = step?.id === 'discovery' || step?.id === 'seal';
+                const isAIStage = step?.id === 'coarse' || step?.id === 'deep' || step?.id === 'final';
                 const baseLoad = isAIStage ? 85 : currentStage > 0 ? 45 : 12;
                 const jitter = (Math.random() - 0.5) * 10;
                 const next = Math.max(10, Math.min(99, baseLoad + jitter));
@@ -220,14 +220,14 @@ export const AnalysisPipelineTracker = memo(function AnalysisPipelineTracker({
     const activeStat = stats[stats.length - 1];
     const candidateCount = activeStat?.candidateCount || 0;
     const currentStep = allSteps[currentStage];
-    const isAIStage = currentStep?.id === 'discovery' || currentStep?.id === 'seal';
+    const isAIStage = currentStep?.id === 'coarse' || currentStep?.id === 'deep' || currentStep?.id === 'final';
 
     // Calculate precision based on stage
     const precision = useCallback(() => {
-        if (currentStage >= 8) return '±3 seconds';
-        if (currentStage >= 6) return '±6 seconds';
-        if (currentStage >= 4) return '±30 seconds';
-        return '±60 seconds';
+        if (currentStage >= 6) return '±1 second';
+        if (currentStage >= 5) return '±30 seconds';
+        if (currentStage >= 4) return '±5 minutes';
+        return '±12 hours';
     }, [currentStage])();
 
     return (
@@ -291,7 +291,7 @@ export const AnalysisPipelineTracker = memo(function AnalysisPipelineTracker({
                         index={idx}
                         isActive={currentStage === idx}
                         isPast={currentStage > idx}
-                        isAI={step.id === 'discovery' || step.id === 'seal'}
+                        isAI={step.id === 'coarse' || step.id === 'deep' || step.id === 'final'}
                         stat={stats.find(s => s.stage === idx)}
                         isLast={idx === allSteps.length - 1}
                     />

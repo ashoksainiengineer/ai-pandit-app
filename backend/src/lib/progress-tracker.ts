@@ -17,15 +17,15 @@ export type { CandidateScore, ProgressStep, AIThinkingData, AIContextData, Progr
 // ═════════════════════════════════════════════════════════════════════════════
 
 
-// 🔱 GOD-TIER BTR v7.0 STEPS (6-Stage Batch Tournament Pipeline)
+// 🔱 GOD-TIER BTR v7.0 STEPS (7-Stage Analysis Pipeline)
 export const ANALYSIS_STEPS: Omit<ProgressStep, 'status'>[] = [
-    { id: 'init', name: 'Initializing', icon: '🚀' },
-    { id: 'grid', name: 'Stage 1: Exhaustive Data Generation', icon: '📊' },
+    { id: 'init', name: 'Initializing Engine', icon: '🚀' },
+    { id: 'grid', name: 'Stage 1: Grid Generation', icon: '📊' },
     { id: 'coarse', name: 'Stage 2: Batch Tournament', icon: '🏆' },
     { id: 'fine', name: 'Stage 3: Refinement Grid', icon: '🔬' },
-    { id: 'deep', name: 'Stage 4: Deep Multi-Dasha Analysis', icon: '⚔️' },
-    { id: 'micro', name: 'Stage 5: Micro Precision Grid', icon: '📐' },
-    { id: 'final', name: 'Stage 6: Final Precision', icon: '🔱' },
+    { id: 'deep', name: 'Stage 4: Deep Analysis', icon: '⚔️' },
+    { id: 'micro', name: 'Stage 5: Micro Precision', icon: '📐' },
+    { id: 'final', name: 'Final Verdict', icon: '🔱' },
 ];
 
 // ═════════════════════════════════════════════════════════════════════════════

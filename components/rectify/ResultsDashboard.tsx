@@ -17,185 +17,19 @@ import { VedicShuddhiRadar } from './VedicShuddhiRadar';
 import { PlanetaryVitals } from './PlanetaryVitals';
 import { SwissEphPanel } from './SwissEphPanel';
 import { CandidateComparisonView } from './CandidateComparisonView';
+import { THEME } from './dashboard/theme';
+import { sanitizeHtml, truncateText, formatDate, cleanSummary } from './dashboard/utils';
+import {
+  BirthData, FinalResult, ResultsDashboardProps,
+  AnalysisDetails, Stage, StageHistory
+} from './dashboard/types';
+import { BirthDetailsBanner } from './dashboard/BirthDetailsBanner';
+import { VerdictCard } from './dashboard/VerdictCard';
+import { TechnicalMetrics } from './dashboard/TechnicalMetrics';
+import { StageJourneyFunnel } from './dashboard/StageJourneyFunnel';
+import { EventMatchGrid } from './dashboard/EventMatchGrid';
+import { FormattedAIReasoning } from './dashboard/FormattedAIReasoning';
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// THEME CONSTANTS - Sacred Ivory Light
-// ═══════════════════════════════════════════════════════════════════════════════
-
-const THEME = {
-  bg: '#FFFCF8',
-  surface: 'white',
-  textPrimary: '#1A1612',
-  textSecondary: '#7A756F',
-  textMuted: '#A8A39D',
-  border: '#F0E8DE',
-  borderHover: '#E8E0D5',
-  gold: '#B8860B',
-  goldLight: '#D4A853',
-  success: '#2D7A5C',
-  error: '#C65D3B',
-} as const;
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
-
-interface BirthData {
-  fullName?: string;
-  dateOfBirth?: string;
-  tentativeTime?: string;
-  birthPlace?: string;
-}
-
-interface StageHistory {
-  stage1Count?: number;
-  stage2Count?: number;
-  stage3Count?: number;
-  stage4Count?: number;
-  stage5Count?: number;
-}
-
-interface MethodScores {
-  [key: string]: number;
-}
-
-interface FinalCandidate {
-  thinking?: string;
-  methodScores?: MethodScores;
-}
-
-interface GodTierData {
-  ephemeris?: {
-    planets?: {
-      sun?: { sign?: string; longitude?: number };
-      moon?: { sign?: string; longitude?: number };
-    };
-    ascendant?: { sign?: string; longitude?: number };
-  };
-  divCharts?: unknown;
-  dasha?: string;
-  shuddhi?: unknown;
-}
-
-interface BoundarySafety {
-  lagnaSignBoundary: number;
-  moonNakshatraBoundary: number;
-}
-
-interface AnalysisDetails {
-  summary?: string;
-  finalCandidate?: FinalCandidate;
-  alternatives?: Array<{ time: string; score?: number; ephemeris?: unknown }>;
-  stageHistory?: StageHistory;
-  eventMatches?: Array<{ event?: string; name?: string; match?: boolean; dasha?: string }>;
-  boundarySafety?: BoundarySafety;
-  godTierData?: GodTierData;
-  aiAnalysis?: string;
-}
-
-interface FinalResult {
-  rectifiedTime: string;
-  accuracy: number;
-  confidence: string;
-  marginOfError: number;
-  analysisResult: string | AnalysisDetails;
-  stagesCompleted: number;
-}
-
-interface ResultsDashboardProps {
-  sessionId: string;
-  data: FinalResult;
-  birthData: BirthData;
-  reasoningLogs?: string | AnalysisDetails;
-}
-
-interface Stage {
-  id: number;
-  name: string;
-  candidates: number;
-  color: string;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SECURITY: HTML Sanitization Utility
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * Sanitizes user input to prevent XSS attacks
- * Removes script tags, event handlers, and dangerous attributes
- */
-function sanitizeHtml(input: string): string {
-  if (!input) return '';
-  
-  return input
-    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-    .replace(/<iframe[^>]*>[\s\S]*?<\/iframe>/gi, '')
-    .replace(/<object[^>]*>[\s\S]*?<\/object>/gi, '')
-    .replace(/<embed[^>]*>/gi, '')
-    .replace(/javascript:/gi, '')
-    .replace(/on\w+\s*=/gi, '')
-    .replace(/<[^>]+\s+on\w+\s*=/gi, (match) => match.replace(/on\w+\s*=/gi, ''));
-}
-
-/**
- * Truncates text safely for display
- */
-function truncateText(text: string, maxLength: number): string {
-  if (!text || text.length <= maxLength) return text || '';
-  return text.slice(0, maxLength) + '...';
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// UTILITY FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-/**
- * Extracts a clean verdict from AI analysis text
- * Security: Output is sanitized to prevent XSS
- */
-function cleanSummary(rawSummary: string | undefined): string {
-  if (!rawSummary) {
-    return 'The logical convergence of Dasha patterns and Divisional Chart markers strongly favors this specific time.';
-  }
-
-  // Try to extract a clean verdict line
-  const verdictMatch = rawSummary.match(/(?:VERDICT|RECOMMENDATION|CONCLUSION)[:\s]*([^\n]{10,150})/i);
-  if (verdictMatch) {
-    return sanitizeHtml(verdictMatch[1].trim());
-  }
-
-  // Try to find a meaningful sentence
-  const sentences = rawSummary.split(/[.!]/).filter(s => s.trim().length > 20);
-  if (sentences.length > 0) {
-    const cleanSentence = sentences[0]
-      .replace(/FINAL VERDICT:|BEST TIME:|ACCURACY:/gi, '')
-      .replace(/\[.*?\]/g, '')
-      .trim();
-    if (cleanSentence.length > 20 && cleanSentence.length < 200) {
-      return sanitizeHtml(cleanSentence);
-    }
-  }
-
-  return 'The logical convergence of Dasha patterns and Divisional Chart markers strongly favors this specific time.';
-}
-
-/**
- * Formats date safely for display
- */
-function formatDate(dateStr: string | undefined): string {
-  if (!dateStr) return 'N/A';
-  try {
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
-    return date.toLocaleDateString('en-GB', {
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric'
-    });
-  } catch {
-    return dateStr;
-  }
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ERROR BOUNDARY COMPONENT
@@ -249,386 +83,19 @@ class ResultsErrorBoundary extends React.Component<
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// STAGE JOURNEY FUNNEL COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════════
 
-const STAGES: Stage[] = [
-  { id: 1, name: 'Grid Generation', candidates: 60, color: 'from-slate-500 to-slate-600' },
-  { id: 2, name: 'Coarse Analysis', candidates: 15, color: 'from-orange-500 to-amber-600' },
-  { id: 3, name: 'Fine Grid', candidates: 100, color: 'from-cyan-500 to-blue-600' },
-  { id: 4, name: 'Deep Analysis', candidates: 7, color: 'from-blue-500 to-indigo-600' },
-  { id: 5, name: 'Micro Grid', candidates: 77, color: 'from-violet-500 to-purple-600' },
-  { id: 6, name: 'Final Selection', candidates: 1, color: 'from-amber-500 to-yellow-500' },
-];
 
-function StageJourneyFunnel({ stageHistory }: { stageHistory?: StageHistory }) {
-  const stages = useMemo(() => {
-    if (!stageHistory) return STAGES;
-    return [
-      { ...STAGES[0], candidates: stageHistory.stage1Count || 60 },
-      { ...STAGES[1], candidates: stageHistory.stage2Count || 15 },
-      { ...STAGES[2], candidates: stageHistory.stage3Count || 100 },
-      { ...STAGES[3], candidates: stageHistory.stage4Count || 7 },
-      { ...STAGES[4], candidates: stageHistory.stage5Count || 77 },
-      STAGES[5],
-    ];
-  }, [stageHistory]);
 
-  const maxCandidates = useMemo(() => Math.max(...stages.map(s => s.candidates)), [stages]);
-
-  return (
-    <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}>
-      <h4 className="font-bold mb-4 flex items-center gap-2" style={{ color: THEME.textPrimary }}>
-        <Filter className="w-4 h-4" style={{ color: THEME.gold }} aria-hidden="true" />
-        Stage Journey Funnel
-      </h4>
-      <div className="space-y-2" role="list" aria-label="Processing stages">
-        {stages.map((stage, idx) => {
-          const width = maxCandidates > 0 ? (stage.candidates / maxCandidates) * 100 : 0;
-          return (
-            <motion.div
-              key={stage.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: idx * 0.1 }}
-              className="flex items-center gap-3"
-              role="listitem"
-            >
-              <div 
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold"
-                style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}`, color: THEME.textMuted }}
-                aria-label={`Stage ${stage.id}`}
-              >
-                {stage.id}
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between text-[10px] mb-1">
-                  <span style={{ color: THEME.textMuted }} className="uppercase tracking-wider">{stage.name}</span>
-                  <span className="font-bold" style={{ color: THEME.gold }}>{stage.candidates} candidates</span>
-                </div>
-                <div className="h-2 rounded-full overflow-hidden" style={{ backgroundColor: THEME.bg }}>
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${width}%` }}
-                    transition={{ duration: 0.8, delay: idx * 0.1 }}
-                    className={`h-full rounded-full bg-gradient-to-r ${stage.color}`}
-                    role="progressbar"
-                    aria-valuenow={stage.candidates}
-                    aria-valuemin={0}
-                    aria-valuemax={maxCandidates}
-                  />
-                </div>
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
-      <div className="mt-4 pt-4 text-center" style={{ borderTop: `1px solid ${THEME.border}` }}>
-        <div className="text-[10px] uppercase tracking-wider mb-1" style={{ color: THEME.textMuted }}>Convergence Ratio</div>
-        <div className="text-2xl font-black" style={{ color: THEME.gold }}>
-          {stages[0]?.candidates || 60} → 1
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // BIRTH DETAILS BANNER COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function BirthDetailsBanner({ birthData }: { birthData: BirthData | null | undefined }) {
-  if (!birthData) return null;
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="rounded-xl p-4 mb-6 shadow-sm"
-      style={{ 
-        background: `linear-gradient(to right, ${THEME.surface}, #FDF9F3)`, 
-        border: `1px solid ${THEME.gold}20` 
-      }}
-    >
-      <div className="flex flex-wrap items-center gap-6">
-        <div className="flex items-center gap-3">
-          <div 
-            className="w-10 h-10 rounded-full flex items-center justify-center" 
-            style={{ backgroundColor: `${THEME.gold}10` }}
-            aria-hidden="true"
-          >
-            <User className="w-5 h-5" style={{ color: THEME.gold }} />
-          </div>
-          <div>
-            <div className="text-[9px] uppercase tracking-wider" style={{ color: THEME.textMuted }}>Subject</div>
-            <div className="text-sm font-bold" style={{ color: THEME.textPrimary }}>
-              {sanitizeHtml(truncateText(birthData.fullName, 50)) || 'N/A'}
-            </div>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <div 
-            className="w-10 h-10 rounded-full flex items-center justify-center" 
-            style={{ backgroundColor: '#8B5CF610' }}
-            aria-hidden="true"
-          >
-            <Calendar className="w-5 h-5" style={{ color: '#8B5CF6' }} />
-          </div>
-          <div>
-            <div className="text-[9px] uppercase tracking-wider" style={{ color: THEME.textMuted }}>Date of Birth</div>
-            <div className="text-sm font-bold" style={{ color: THEME.textPrimary }}>{formatDate(birthData.dateOfBirth)}</div>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <div 
-            className="w-10 h-10 rounded-full flex items-center justify-center" 
-            style={{ backgroundColor: '#3B82F610' }}
-            aria-hidden="true"
-          >
-            <Clock className="w-5 h-5" style={{ color: '#3B82F6' }} />
-          </div>
-          <div>
-            <div className="text-[9px] uppercase tracking-wider" style={{ color: THEME.textMuted }}>Tentative Time</div>
-            <div className="text-sm font-bold" style={{ color: THEME.textPrimary }}>{birthData.tentativeTime || 'N/A'}</div>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <div 
-            className="w-10 h-10 rounded-full flex items-center justify-center" 
-            style={{ backgroundColor: '#10B98110' }}
-            aria-hidden="true"
-          >
-            <MapPin className="w-5 h-5" style={{ color: '#10B981' }} />
-          </div>
-          <div>
-            <div className="text-[9px] uppercase tracking-wider" style={{ color: THEME.textMuted }}>Birth Place</div>
-            <div className="text-sm font-bold max-w-[200px] truncate" style={{ color: THEME.textPrimary }}>
-              {sanitizeHtml(truncateText(birthData.birthPlace, 100)) || 'N/A'}
-            </div>
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// EVENT MATCH GRID COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════════
-
-interface EventMatch {
-  event?: string;
-  name?: string;
-  match?: boolean;
-  dasha?: string;
-}
-
-function EventMatchGrid({ 
-  events, 
-  analysisDetails 
-}: { 
-  events?: EventMatch[]; 
-  analysisDetails?: AnalysisDetails;
-}) {
-  const eventMatches = useMemo(() => {
-    return analysisDetails?.eventMatches || events || [];
-  }, [analysisDetails?.eventMatches, events]);
-
-  if (!eventMatches.length) {
-    return (
-      <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}>
-        <h4 className="font-bold mb-4 flex items-center gap-2" style={{ color: THEME.textPrimary }}>
-          <CheckCircle className="w-4 h-4" style={{ color: THEME.gold }} aria-hidden="true" />
-          Event Correlation Audit
-        </h4>
-        <div className="text-center text-sm italic py-4" style={{ color: THEME.textSecondary }}>
-          No event correlations available yet.
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-xl p-6 shadow-sm" style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}>
-      <h4 className="font-bold mb-4 flex items-center gap-2" style={{ color: THEME.textPrimary }}>
-        <CheckCircle className="w-4 h-4" style={{ color: THEME.gold }} aria-hidden="true" />
-        Event Correlation Audit
-      </h4>
-      <div className="space-y-2">
-        {eventMatches.map((evt: EventMatch, idx: number) => (
-          <div 
-            key={idx} 
-            className="flex items-center justify-between p-3 rounded-lg"
-            style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}80` }}
-          >
-            <div className="flex items-center gap-3">
-              <div 
-                className={`w-6 h-6 rounded-full flex items-center justify-center`}
-                style={{ backgroundColor: evt.match ? `${THEME.success}20` : '#F59E0B20' }}
-                aria-hidden="true"
-              >
-                {evt.match ? (
-                  <CheckCircle className="w-3.5 h-3.5" style={{ color: THEME.success }} />
-                ) : (
-                  <Activity className="w-3.5 h-3.5" style={{ color: '#F59E0B' }} />
-                )}
-              </div>
-              <span className="text-sm" style={{ color: THEME.textPrimary }}>
-                {sanitizeHtml(evt.event || evt.name || 'Unknown Event')}
-              </span>
-            </div>
-            <div className="text-right">
-              <div className="text-xs font-mono" style={{ color: THEME.gold }}>{evt.dasha || 'N/A'}</div>
-              <div 
-                className="text-[9px] uppercase tracking-wider"
-                style={{ color: evt.match ? THEME.success : '#F59E0B' }}
-              >
-                {evt.match ? 'Strong Match' : 'Partial'}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// FORMATTED AI REASONING COMPONENT
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function FormattedAIReasoning({ 
-  reasoningLogs, 
-  analysisDetails 
-}: { 
-  reasoningLogs?: string | AnalysisDetails;
-  analysisDetails?: AnalysisDetails;
-}) {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  const rawText = useMemo(() => {
-    if (typeof reasoningLogs === 'string') return reasoningLogs;
-    return analysisDetails?.finalCandidate?.thinking || 
-           analysisDetails?.aiAnalysis || 
-           '';
-  }, [reasoningLogs, analysisDetails]);
-
-  const displayText = useMemo(() => {
-    return isExpanded ? rawText : truncateText(rawText, 1000);
-  }, [rawText, isExpanded]);
-
-  const formattedSections = useMemo(() => {
-    if (!displayText) return [];
-    const sections = displayText.split(/\n(?=(?:DASHA|DIVISIONAL|PLANETARY|VERDICT|EVENT|TRANSIT|FINAL))/gi);
-    
-    return sections.map((section, idx) => {
-      const firstLine = section.split('\n')[0];
-      const isHeader = /^(DASHA|DIVISIONAL|PLANETARY|VERDICT|EVENT|TRANSIT|FINAL)/i.test(firstLine);
-
-      if (isHeader) {
-        const [header, ...rest] = section.split('\n');
-        return {
-          type: 'header' as const,
-          header: sanitizeHtml(header.split(':')[0]),
-          content: sanitizeHtml(rest.join('\n')),
-          key: idx,
-        };
-      }
-
-      return {
-        type: 'text' as const,
-        content: sanitizeHtml(section),
-        key: idx,
-      };
-    });
-  }, [displayText]);
-
-  if (!rawText) {
-    return (
-      <div className="text-center italic py-10" style={{ color: THEME.textMuted }}>
-        [AI Reasoning data not available for this session]
-      </div>
-    );
-  }
-
-  return (
-    <div 
-      className="rounded-xl p-6"
-      style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}` }}
-    >
-      <div className="flex items-center justify-between mb-4">
-        <h4 className="font-bold flex items-center gap-2" style={{ color: THEME.textPrimary }}>
-          <Sparkles className="w-4 h-4" style={{ color: THEME.gold }} aria-hidden="true" />
-          AI Reasoning Transcript
-        </h4>
-        <span className="text-[10px] font-mono" style={{ color: THEME.textMuted }}>{rawText.length.toLocaleString()} chars</span>
-      </div>
-
-      <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
-        {formattedSections.map((section) => {
-          if (section.type === 'header') {
-            return (
-              <div key={section.key} className="mb-4">
-                <div 
-                  className="inline-block px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded mb-2"
-                  style={{ 
-                    backgroundColor: `${THEME.gold}10`, 
-                    color: THEME.gold, 
-                    border: `1px solid ${THEME.gold}20` 
-                  }}
-                >
-                  {section.header}
-                </div>
-                <p 
-                  className="text-sm leading-relaxed whitespace-pre-wrap"
-                  style={{ color: THEME.textSecondary }}
-                >
-                  {section.content}
-                </p>
-              </div>
-            );
-          }
-          return (
-            <p 
-              key={section.key} 
-              className="text-sm leading-relaxed mb-2 whitespace-pre-wrap"
-              style={{ color: THEME.textSecondary }}
-            >
-              {section.content}
-            </p>
-          );
-        })}
-      </div>
-
-      {rawText.length > 1000 && (
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="mt-4 w-full py-2 rounded-lg text-sm font-bold transition-colors flex items-center justify-center gap-2"
-          style={{ 
-            backgroundColor: THEME.surface, 
-            border: `1px solid ${THEME.border}`, 
-            color: THEME.gold 
-          }}
-          aria-expanded={isExpanded}
-        >
-          {isExpanded ? (
-            <>
-              <ChevronUp className="w-4 h-4" aria-hidden="true" /> Show Less
-            </>
-          ) : (
-            <>
-              <ChevronDown className="w-4 h-4" aria-hidden="true" /> Show Full Reasoning ({Math.ceil(rawText.length / 1000)}K chars)
-            </>
-          )}
-        </button>
-      )}
-    </div>
-  );
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN RESULTS DASHBOARD COMPONENT
@@ -680,7 +147,7 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
         analysisDetails,
         exportedAt: new Date().toISOString()
       };
-      
+
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -699,14 +166,14 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
   // Render method scores table
   const renderMethodScores = useCallback(() => {
     if (!analysisDetails?.finalCandidate?.methodScores) return null;
-    
+
     const scores = analysisDetails.finalCandidate.methodScores;
     const entries = Object.entries(scores);
-    
+
     if (entries.length === 0) return null;
 
     return (
-      <div 
+      <div
         className="rounded-lg p-4 font-mono text-sm"
         style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}` }}
       >
@@ -719,8 +186,8 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
           </thead>
           <tbody>
             {entries.map(([key, val]) => (
-              <tr 
-                key={key} 
+              <tr
+                key={key}
                 style={{ borderBottom: `1px solid ${THEME.border}80` }}
                 className="last:border-0 hover:bg-white/50"
               >
@@ -842,10 +309,10 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
       rank: idx + 2,
       minifiedEph: alt.ephemeris,
     })) || [
-      { time: data.rectifiedTime, score: data.accuracy, stage: 6, rank: 1 },
-      { time: '10:48:00', score: data.accuracy - 3, stage: 6, rank: 2 },
-      { time: '10:42:00', score: data.accuracy - 7, stage: 6, rank: 3 },
-    ];
+        { time: data.rectifiedTime, score: data.accuracy, stage: 6, rank: 1 },
+        { time: '10:48:00', score: data.accuracy - 3, stage: 6, rank: 2 },
+        { time: '10:42:00', score: data.accuracy - 7, stage: 6, rank: 3 },
+      ];
 
     return [
       { time: data.rectifiedTime, score: data.accuracy, stage: 6, rank: 1, reason: 'Final selected candidate' },
@@ -856,14 +323,14 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
   return (
     <div className="min-h-screen font-sans" style={{ backgroundColor: THEME.bg, color: THEME.textPrimary }}>
       {/* Navigation */}
-      <nav 
+      <nav
         className="sticky top-0 z-50 backdrop-blur-xl border-b"
         style={{ backgroundColor: `${THEME.bg}90`, borderColor: `${THEME.gold}10` }}
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-3 group">
-              <span 
+              <span
                 className="font-bold text-xl tracking-tight"
                 style={{ color: THEME.gold }}
               >
@@ -872,15 +339,15 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
             </Link>
 
             <div className="hidden md:flex items-center gap-6">
-              <Link 
-                href="/dashboard" 
+              <Link
+                href="/dashboard"
                 className="text-sm font-medium transition-colors hover:text-[#B8860B]"
                 style={{ color: THEME.textSecondary }}
               >
                 Dashboard
               </Link>
-              <Link 
-                href="/rectify" 
+              <Link
+                href="/rectify"
                 className="text-sm font-medium transition-colors hover:text-[#B8860B]"
                 style={{ color: THEME.textSecondary }}
               >
@@ -893,10 +360,10 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
             <button
               onClick={copyShareLink}
               className="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 hover:shadow-md"
-              style={{ 
-                backgroundColor: THEME.surface, 
-                border: `1px solid ${THEME.border}`, 
-                color: THEME.textSecondary 
+              style={{
+                backgroundColor: THEME.surface,
+                border: `1px solid ${THEME.border}`,
+                color: THEME.textSecondary
               }}
               aria-label={copied ? 'Link copied' : 'Copy share link'}
             >
@@ -911,10 +378,10 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
             <button
               onClick={exportJSON}
               className="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 hover:shadow-md"
-              style={{ 
-                backgroundColor: THEME.surface, 
-                border: `1px solid ${THEME.border}`, 
-                color: THEME.textSecondary 
+              style={{
+                backgroundColor: THEME.surface,
+                border: `1px solid ${THEME.border}`,
+                color: THEME.textSecondary
               }}
               aria-label="Export as JSON"
             >
@@ -926,8 +393,8 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
               onClick={generatePDF}
               disabled={isGenerating}
               className="px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all disabled:opacity-50 hover:shadow-lg"
-              style={{ 
-                background: `linear-gradient(to right, ${THEME.gold}, ${THEME.goldLight})`, 
+              style={{
+                background: `linear-gradient(to right, ${THEME.gold}, ${THEME.goldLight})`,
                 color: 'white',
                 boxShadow: `0 4px 14px ${THEME.gold}20`
               }}
@@ -954,44 +421,44 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
         {/* Left Column: KPI Dashboard */}
         <div className="lg:col-span-4 space-y-6">
           {/* Rectified Time Card */}
-          <div 
+          <div
             className="rounded-xl p-8 text-center relative overflow-hidden group shadow-lg"
-            style={{ 
-              backgroundColor: THEME.surface, 
+            style={{
+              backgroundColor: THEME.surface,
               border: `2px solid ${THEME.gold}`,
               boxShadow: `0 0 30px ${THEME.gold}10`
             }}
           >
-            <div 
+            <div
               className="absolute top-0 left-0 w-full h-1 opacity-50"
               style={{ background: `linear-gradient(to right, transparent, ${THEME.gold}, transparent)` }}
             />
 
-            <h3 
+            <h3
               className="uppercase tracking-[0.2em] text-xs mb-4 font-mono"
               style={{ color: THEME.textMuted }}
             >
               Rectified Birth Time
             </h3>
-            <div 
+            <div
               className="text-5xl font-bold font-mono tracking-tighter mb-4"
               style={{ color: THEME.gold }}
             >
               {data.rectifiedTime}
             </div>
-            <div 
+            <div
               className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide mb-3"
-              style={{ 
-                backgroundColor: `${THEME.gold}10`, 
-                border: `1px solid ${THEME.gold}50`, 
-                color: THEME.gold 
+              style={{
+                backgroundColor: `${THEME.gold}10`,
+                border: `1px solid ${THEME.gold}50`,
+                color: THEME.gold
               }}
             >
               <CheckCircle className="w-3 h-3" aria-hidden="true" />
               Confidence: {data.accuracy}%
             </div>
             {data.accuracy > 90 && (
-              <div 
+              <div
                 className="flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] animate-pulse mt-2"
                 style={{ color: THEME.gold }}
               >
@@ -1003,11 +470,11 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
 
           {/* Technical Metrics */}
           <div className="grid grid-cols-2 gap-4">
-            <div 
+            <div
               className="rounded-xl p-4 transition-all hover:shadow-md"
               style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}
             >
-              <div 
+              <div
                 className="text-[10px] uppercase font-mono mb-1"
                 style={{ color: THEME.textMuted }}
               >
@@ -1017,11 +484,11 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                 {data.stagesCompleted || 6} / 6
               </div>
             </div>
-            <div 
+            <div
               className="rounded-xl p-4 transition-all hover:shadow-md"
               style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}
             >
-              <div 
+              <div
                 className="text-[10px] uppercase font-mono mb-1"
                 style={{ color: THEME.textMuted }}
               >
@@ -1031,11 +498,11 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                 ±{data.marginOfError || 3}s
               </div>
             </div>
-            <div 
+            <div
               className="rounded-xl p-4 transition-all hover:shadow-md"
               style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}
             >
-              <div 
+              <div
                 className="text-[10px] uppercase font-mono mb-1"
                 style={{ color: THEME.textMuted }}
               >
@@ -1043,17 +510,17 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
               </div>
               <div className="text-sm font-bold font-mono" style={{ color: THEME.gold }}>DeepSeek R1</div>
             </div>
-            <div 
+            <div
               className="rounded-xl p-4 transition-all hover:shadow-md"
               style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}
             >
-              <div 
+              <div
                 className="text-[10px] uppercase font-mono mb-1"
                 style={{ color: THEME.textMuted }}
               >
                 Confidence
               </div>
-              <div 
+              <div
                 className="text-xl font-bold font-mono"
                 style={{ color: THEME.success }}
               >
@@ -1069,7 +536,7 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
           <EventMatchGrid analysisDetails={analysisDetails} />
 
           {/* Method Scores */}
-          <div 
+          <div
             className="rounded-xl p-6 shadow-sm"
             style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}
           >
@@ -1084,7 +551,7 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
         {/* Right Column: Detailed Analysis Tabs */}
         <div className="lg:col-span-8 flex flex-col h-full">
           {/* Navigation Tabs */}
-          <div 
+          <div
             className="flex border-b mb-6 space-x-4 overflow-x-auto"
             style={{ borderColor: THEME.border }}
             role="tablist"
@@ -1093,12 +560,11 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`pb-4 px-2 text-sm font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${
-                  activeTab === tab
-                    ? 'border-b-2'
-                    : 'hover:text-[#1A1612]'
-                }`}
-                style={{ 
+                className={`pb-4 px-2 text-sm font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${activeTab === tab
+                  ? 'border-b-2'
+                  : 'hover:text-[#1A1612]'
+                  }`}
+                style={{
                   color: activeTab === tab ? THEME.gold : THEME.textMuted,
                   borderColor: activeTab === tab ? THEME.gold : 'transparent'
                 }}
@@ -1115,7 +581,7 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
           </div>
 
           {/* Tab Content */}
-          <div 
+          <div
             className="rounded-xl p-8 flex-grow shadow-sm"
             style={{ backgroundColor: THEME.surface, border: `1px solid ${THEME.border}` }}
           >
@@ -1132,7 +598,7 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                 >
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div className="prose max-w-none">
-                      <h3 
+                      <h3
                         className="text-xl font-bold mb-4 flex items-center gap-2"
                         style={{ color: THEME.textPrimary }}
                       >
@@ -1144,17 +610,17 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                         <strong style={{ color: THEME.textPrimary }}>{data.rectifiedTime}</strong>.
                         This time was selected after rigorous AI reasoning and multi-stage verification.
                       </p>
-                      <div 
+                      <div
                         className="my-6 p-4 text-sm font-serif italic rounded-r-lg"
-                        style={{ 
-                          backgroundColor: `${THEME.gold}05`, 
+                        style={{
+                          backgroundColor: `${THEME.gold}05`,
                           borderLeft: `2px solid ${THEME.gold}`,
-                          color: THEME.textPrimary 
+                          color: THEME.textPrimary
                         }}
                       >
                         &ldquo;{cleanSummary(analysisDetails?.summary)}&rdquo;
                       </div>
-                      <h4 
+                      <h4
                         className="font-bold mt-6 mb-2 text-sm uppercase tracking-wider"
                         style={{ color: THEME.textPrimary }}
                       >
@@ -1228,7 +694,7 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                   <h3 className="text-lg font-bold mb-4" style={{ color: THEME.textPrimary }}>Boundary Safety Check</h3>
                   {analysisDetails?.boundarySafety ? (
                     <div className="grid grid-cols-2 gap-4">
-                      <div 
+                      <div
                         className="p-4 rounded-lg"
                         style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}` }}
                       >
@@ -1239,7 +705,7 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                             : `CRITICAL (${analysisDetails.boundarySafety.lagnaSignBoundary}s)`}
                         </div>
                       </div>
-                      <div 
+                      <div
                         className="p-4 rounded-lg"
                         style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}` }}
                       >
@@ -1252,7 +718,7 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                       </div>
                     </div>
                   ) : (
-                    <div 
+                    <div
                       className="italic p-4 rounded-lg"
                       style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}`, color: THEME.textMuted }}
                     >
@@ -1264,8 +730,8 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                     <h3 className="text-lg font-bold mb-4" style={{ color: THEME.textPrimary }}>Runner-Up Candidates</h3>
                     <div className="space-y-2">
                       {topCandidates.slice(1, 6).map((alt, i) => (
-                        <div 
-                          key={i} 
+                        <div
+                          key={i}
                           className="flex justify-between items-center p-3 rounded"
                           style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}80` }}
                         >

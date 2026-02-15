@@ -900,8 +900,21 @@ export interface SecondsPrecisionResult {
   boundaryWarnings: string[];
   methodsUsed: string[];
   processingTimeMs: number;
-  analysisResult: any;
-  narrativeManifest?: any;
+  analysisResult: {
+    summary: string;
+    finalCandidate: {
+      time: string;
+      score: number;
+      thinking: string;
+    };
+    alternatives: Array<{ time: string; score: number }>;
+    stageHistory: Record<number, { candidatesIn: number; candidatesOut: number }>;
+  };
+  narrativeManifest?: {
+    birthContext: string;
+    technicalHighlight: string;
+    spiritualSummary: string;
+  };
 }
 
 /**
@@ -946,13 +959,13 @@ export interface RectificationSession {
   longitude: number;
   timezone: string | number;
   gender?: string;
-  physicalTraits?: any;
-  lifeEvents: any;
-  offsetConfig?: any;
+  physicalTraits?: PhysicalTraits;
+  lifeEvents: LifeEvent[];
+  offsetConfig?: TimeOffsetConfig;
   rectifiedTime?: string;
   accuracy?: number;
   confidence?: string;
-  analysisResult?: any;
+  analysisResult?: any; // Kept as any for DB flexibility, but internal code should cast to SecondsPrecisionResult['analysisResult']
   progressData?: string;
   status: SessionStatus;
   errorMessage?: string;
