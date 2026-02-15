@@ -10,7 +10,7 @@ import { SecondsPrecisionInput, ForensicTraits } from '../../../types/index.js';
 import { CandidateTime, getDynamicBatchSize, getDynamicSurvivors, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { callAIWithStream, executeAIInParallel } from '../../ai-client.js';
-import { emitCandidateScore } from '../../session-events.js';
+import { emitCandidateScore, emitAIContext, emitDecision } from '../../session-events.js';
 import { throwIfCancelled } from '../../cancellation-manager.js';
 import { cleanup } from '../../ephemeris.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
@@ -42,10 +42,10 @@ export async function stage2BatchTournament(
 
     // FIXED: Log initial data state for debugging
     logger.info('🔱 [STAGE-2] Starting batch tournament', {
-      totalCandidates: candidates.length,
-      sampleCandidate: candidates[0]?.time,
-      hasInputData: !!input.lifeEvents?.length,
-      forensicTraitsPresent: !!forensicTraits
+        totalCandidates: candidates.length,
+        sampleCandidate: candidates[0]?.time,
+        hasInputData: !!input.lifeEvents?.length,
+        forensicTraitsPresent: !!forensicTraits
     });
 
     const rounds: TournamentRound[] = [];
@@ -90,6 +90,7 @@ export async function stage2BatchTournament(
 
         await progress.updateMessage(`Base Analysis: Evaluating ${currentCandidates.length} potential paths...`);
 
+        let completedBatches = 0;
         const batchDataMap = new Map<number, CandidateDataPackage[]>();
         const tasks = batches.map((batchTimes, i) => async () => {
             const batchEnriched = await Promise.all(batchTimes.map(ct =>
@@ -100,7 +101,21 @@ export async function stage2BatchTournament(
                 })
             ));
             batchDataMap.set(i, batchEnriched);
-            return callAIWithStream(
+            emitAIContext(input.sessionId, {
+                stage: 2,
+                candidateTime: `Batch ${i + 1}/${batches.length}`,
+                batch: i + 1,
+                totalBatches: batches.length,
+                candidatesInBatch: batchEnriched.map(c => ({
+                    time: c.time,
+                    ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`,
+                    moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`
+                })),
+                lifeEventsCount: input.lifeEvents.length,
+                hasForensicTraits: !!forensicTraits
+            });
+
+            const response = await callAIWithStream(
                 input.sessionId,
                 2,
                 'You are the SUPREME VEDIC ASTROLOGER. Analyze candidate birth times for primary alignment using forensic markers.',
@@ -110,6 +125,11 @@ export async function stage2BatchTournament(
                     progressTracker: progress
                 }
             );
+
+            completedBatches++;
+            await progress.updateSubProgress(completedBatches, batches.length);
+
+            return response;
         });
 
         const results = await executeAIInParallel(tasks, 10, 100);
@@ -119,18 +139,34 @@ export async function stage2BatchTournament(
             const response = results[i];
             const fullBatchData = batchDataMap.get(i) || [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
-            const survivorTimes = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), Math.min(batchTimes.length, survivorsPerBatch));
+            const aiScores = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), Math.min(batchTimes.length, survivorsPerBatch));
+            const survivorTimes = aiScores
+                .sort((a, b) => b.score - a.score)
+                .slice(0, Math.min(batchTimes.length, survivorsPerBatch))
+                .map(s => s.time);
 
             for (let j = 0; j < fullBatchData.length; j++) {
                 const candidate = fullBatchData[j];
                 const originalTimeInfo = batchTimes[j];
                 const isSurvivor = survivorTimes.includes(candidate.time);
-                let score = 55;
+                const scoreObj = aiScores.find(s => s.time === candidate.time);
+                const score = scoreObj ? scoreObj.score : (isSurvivor ? 85 : 40);
+                const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Meets primary alignment criteria" : "Low forensic match score");
+
                 if (isSurvivor) {
-                    score = 85;
                     roundSurvivors.push(originalTimeInfo);
                 }
+
+                // Emit score and structured decision
                 emitCandidateScore(input.sessionId, candidate.time, score, 2, undefined, getMinifiedEphemerisInline(candidate));
+                emitDecision(input.sessionId, {
+                    stage: 2,
+                    time: candidate.time,
+                    verdict: isSurvivor ? 'promoted' : 'rejected',
+                    score,
+                    reason,
+                    batch: i + 1
+                });
             }
         }
 
@@ -146,6 +182,7 @@ export async function stage2BatchTournament(
 
         await progress.updateMessage(`Tournament Round ${roundNumber}: ${batches.length} batches of ${batchSize}`);
 
+        let completedBatches = 0;
         const batchDataMap = new Map<number, CandidateDataPackage[]>();
         const tasks = batches.map((batchTimes, i) => async () => {
             const batchEnriched = await Promise.all(batchTimes.map(ct =>
@@ -156,13 +193,29 @@ export async function stage2BatchTournament(
                 })
             ));
             batchDataMap.set(i, batchEnriched);
-            return callAIWithStream(
+            emitAIContext(input.sessionId, {
+                stage: 2,
+                candidateTime: `Tournament ${roundNumber}-${i + 1}`,
+                batch: i + 1,
+                totalBatches: batches.length,
+                candidatesInBatch: batchEnriched.map(c => ({
+                    time: c.time,
+                    ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
+                }))
+            });
+
+            const response = await callAIWithStream(
                 input.sessionId,
                 2,
                 'You are the SUPREME VEDIC ASTROLOGER. Tournament analysis: prune based on forensic alignment.',
                 getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch),
                 { candidateTime: `Tournament ${roundNumber}-${i + 1}`, progressTracker: progress }
             );
+
+            completedBatches++;
+            await progress.updateSubProgress(completedBatches, batches.length);
+
+            return response;
         });
 
         const results = await executeAIInParallel(tasks, 10, 100);
@@ -172,17 +225,33 @@ export async function stage2BatchTournament(
             const response = results[i];
             const fullBatchData = batchDataMap.get(i) || [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
-            const survivorTimes = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), survivorsPerBatch);
+            const aiScores = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), survivorsPerBatch);
+            const survivorTimes = aiScores
+                .sort((a, b) => b.score - a.score)
+                .slice(0, survivorsPerBatch)
+                .map(s => s.time);
 
             for (let j = 0; j < fullBatchData.length; j++) {
                 const candidate = fullBatchData[j];
                 const originalTimeInfo = batchTimes[j];
-                if (survivorTimes.includes(candidate.time)) {
+                const isSurvivor = survivorTimes.includes(candidate.time);
+                const scoreObj = aiScores.find(s => s.time === candidate.time);
+                const score = scoreObj ? scoreObj.score : (isSurvivor ? 88 : 30);
+                const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Superior alignment in tournament round" : "Eliminated in batch tournament");
+
+                if (isSurvivor) {
                     roundSurvivors.push(originalTimeInfo);
-                    emitCandidateScore(input.sessionId, candidate.time, 88, 2, undefined, getMinifiedEphemerisInline(candidate));
-                } else {
-                    emitCandidateScore(input.sessionId, candidate.time, 30, 2, undefined, getMinifiedEphemerisInline(candidate));
                 }
+
+                emitCandidateScore(input.sessionId, candidate.time, score, 2, undefined, getMinifiedEphemerisInline(candidate));
+                emitDecision(input.sessionId, {
+                    stage: 2,
+                    time: candidate.time,
+                    verdict: isSurvivor ? 'promoted' : 'rejected',
+                    score,
+                    reason,
+                    batch: i + 1
+                });
             }
         }
 

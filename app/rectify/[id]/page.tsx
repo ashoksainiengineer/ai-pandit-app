@@ -7,9 +7,9 @@ import { useAuth } from '@clerk/nextjs';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Brain, Clock, Activity, Home, LayoutDashboard, AlertCircle, Gem,
-    CheckCircle, RefreshCw, XCircle, ChevronRight, Play, PauseCircle
+    CheckCircle, RefreshCw, XCircle, ChevronRight, Play, PauseCircle, Filter
 } from 'lucide-react';
-import { useStreamProgress, type CandidateScore, type StreamStep, type StageStat, type AIThinking } from '@/lib/use-stream-progress';
+import { useStreamProgress, type CandidateScore, type StreamStep, type StageStat, type AIThinking, type AIContextData, type AnalysisDecision } from '@/lib/use-stream-progress';
 import { logger } from '@/lib/secure-logger';
 import { AnalysisPipelineTracker } from '@/components/rectify/AnalysisPipelineTracker';
 import { AnalysisErrorBoundary, SectionErrorBoundary } from '@/components/rectify/AnalysisErrorBoundary';
@@ -157,7 +157,7 @@ const AIThinkingPanel = memo(({ thinking, isActive }: { thinking: AIThinking; is
                     )}
                     <h3 className="text-xs font-bold text-gray-700 tracking-wider uppercase flex items-center gap-2">
                         <Brain className="w-4 h-4 text-gray-500" />
-                        AI Reasoning Engine
+                        Reasoning Engine {thinking?.candidateTime && <span className="text-[#B8860B] lowercase font-medium ml-1">· Analyzing {thinking.candidateTime}</span>}
                     </h3>
                 </div>
                 <div className="flex items-center gap-2">
@@ -205,48 +205,243 @@ const AIThinkingPanel = memo(({ thinking, isActive }: { thinking: AIThinking; is
 AIThinkingPanel.displayName = 'AIThinkingPanel';
 
 const CandidateScoreTable = memo(({ scores }: { scores: CandidateScore[] }) => {
-    const sortedScores = useMemo(() => [...scores].sort((a, b) => b.score - a.score).slice(0, 10), [scores]);
+    const [activeTab, setActiveTab] = useState<number | 'all'>('all');
+
+    // Auto-switch to latest stage
+    useEffect(() => {
+        if (scores.length > 0) {
+            const latestStage = Math.max(...scores.map(s => s.stage));
+            if (activeTab === 'all' || latestStage > Number(activeTab)) {
+                setActiveTab(latestStage);
+            }
+        }
+    }, [scores.length]);
+
+    const filteredScores = useMemo(() => {
+        const filtered = activeTab === 'all' ? scores : scores.filter(s => s.stage === activeTab);
+        // Take unique by time, highest score first
+        const unique = new Map<string, CandidateScore>();
+        filtered.forEach(s => {
+            const existing = unique.get(s.time);
+            if (!existing || s.score > existing.score) unique.set(s.time, s);
+        });
+        return Array.from(unique.values()).sort((a, b) => b.score - a.score).slice(0, 15);
+    }, [scores, activeTab]);
+
+    const stages = useMemo(() => {
+        const uniqueStages = Array.from(new Set(scores.map(s => s.stage))).sort((a, b) => a - b);
+        return uniqueStages;
+    }, [scores]);
 
     return (
         <div className="h-full">
-            <h2 className="text-sm font-bold text-[#1A1612] mb-3 flex items-center gap-2">
-                <Activity className="w-4 h-4 text-[#B8860B]" />
-                Live Leaderboard
-            </h2>
-            <div className="overflow-hidden rounded-xl border border-[#F0E8DE] bg-white shadow-sm">
-                {scores.length > 0 ? (
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <h2 className="text-sm font-bold text-[#1A1612] flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-[#B8860B]" />
+                    Stage-wise Leaderboard
+                </h2>
+                <div className="flex items-center gap-1 p-1 bg-stone-100 rounded-lg overflow-x-auto">
+                    <button
+                        onClick={() => setActiveTab('all')}
+                        className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${activeTab === 'all' ? 'bg-white text-[#B8860B] shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+                    >
+                        ALL
+                    </button>
+                    {stages.map(stage => (
+                        <button
+                            key={stage}
+                            onClick={() => setActiveTab(stage)}
+                            className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${activeTab === stage ? 'bg-white text-[#B8860B] shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+                        >
+                            S{stage}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-[#F0E8DE] bg-white shadow-sm overflow-x-auto">
+                {filteredScores.length > 0 ? (
                     <table className="min-w-full divide-y divide-[#F0E8DE]">
                         <thead className="bg-[#FAF8F5]">
                             <tr>
-                                <th scope="col" className="px-4 py-2.5 text-left text-[10px] font-bold text-[#7A756F] uppercase tracking-wider">Candidate</th>
-                                <th scope="col" className="px-4 py-2.5 text-right text-[10px] font-bold text-[#7A756F] uppercase tracking-wider">Score</th>
+                                <th className="px-4 py-2 text-left text-[10px] font-bold text-[#7A756F] uppercase">Candidate</th>
+                                <th className="px-4 py-2 text-center text-[10px] font-bold text-[#7A756F] uppercase">Sun</th>
+                                <th className="px-4 py-2 text-center text-[10px] font-bold text-[#7A756F] uppercase">Moon</th>
+                                <th className="px-4 py-2 text-center text-[10px] font-bold text-[#7A756F] uppercase">Ascendant</th>
+                                <th className="px-4 py-2 text-right text-[10px] font-bold text-[#7A756F] uppercase">Score</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-[#F0E8DE]">
-                            {sortedScores.map((s, index) => (
-                                <tr key={`${s.time}-stage${s.stage}-${index}`} className="hover:bg-stone-50 transition-colors">
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-mono font-medium text-[#1A1612]">
-                                        {s.time}
-                                        {index === 0 && <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-yellow-100 text-yellow-800">TOP</span>}
+                            {filteredScores.map((s, index) => (
+                                <tr key={`${s.time}-${s.stage}-${index}`} className="hover:bg-stone-50 transition-colors">
+                                    <td className="px-4 py-2.5 whitespace-nowrap">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-mono font-bold text-[#1A1612]">{s.time}</span>
+                                            {index === 0 && <span className="bg-yellow-100 text-yellow-800 text-[8px] font-heavy px-1 rounded">WINNER</span>}
+                                        </div>
                                     </td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm font-bold text-right font-mono" style={{ color: index === 0 ? THEME.success : THEME.textSecondary }}>
-                                        {s.score.toFixed(1)}%
+                                    <td className="px-4 py-2.5 text-center text-[11px] font-medium text-stone-600 font-mono">{s.minifiedEph?.sun || '---'}</td>
+                                    <td className="px-4 py-2.5 text-center text-[11px] font-medium text-stone-600 font-mono">{s.minifiedEph?.moon || '---'}</td>
+                                    <td className="px-4 py-2.5 text-center text-[11px] font-medium text-stone-600 font-mono">{s.minifiedEph?.ascendant || '---'}</td>
+                                    <td className="px-4 py-2.5 text-right">
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className="text-sm font-bold font-mono text-[#2D7A5C]">{s.score.toFixed(1)}%</span>
+                                            <div className="w-16 h-1 bg-stone-100 rounded-full overflow-hidden">
+                                                <div className="h-full bg-[#2D7A5C]" style={{ width: `${s.score}%` }} />
+                                            </div>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 ) : (
-                    <div className="p-8 text-center text-xs text-[#7A756F] bg-stone-50 flex flex-col items-center justify-center h-32">
-                        <Clock className="w-8 h-8 opacity-20 mb-2" />
-                        Awaiting tournament results...
-                    </div>
+                    <div className="p-8 text-center text-xs text-stone-400 italic">No data for this stage yet...</div>
                 )}
             </div>
         </div>
     );
 });
 CandidateScoreTable.displayName = 'CandidateScoreTable';
+
+const AIContextPanel = memo(({ context }: { context: AIContextData | null }) => {
+    if (!context) return null;
+
+    const candidates = Array.isArray(context.candidatesInBatch) ? context.candidatesInBatch : [];
+
+    return (
+        <div className="bg-[#FAF9F6] border border-[#F0E8DE] rounded-xl p-5 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-[#F0E8DE] pb-3">
+                <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-[#B8860B]" />
+                    <h3 className="text-sm font-bold text-[#1A1612]">AI Input Context · Stage {context.stage}</h3>
+                </div>
+                <div className="text-[10px] font-bold text-stone-500 uppercase tracking-widest bg-stone-100 px-2 py-1 rounded">
+                    Batch Mode · {context.candidateTime}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <p className="text-[10px] text-stone-500 uppercase font-bold tracking-wider">Candidates Under Analysis</p>
+                    <div className="bg-white border border-[#F0E8DE] rounded-lg overflow-hidden">
+                        <table className="min-w-full text-[10px]">
+                            <thead className="bg-[#FAF8F5] border-b border-[#F0E8DE]">
+                                <tr>
+                                    <th className="px-3 py-1.5 text-left font-bold text-stone-600">Time</th>
+                                    <th className="px-3 py-1.5 text-left font-bold text-stone-600">Ascendant</th>
+                                    <th className="px-3 py-1.5 text-left font-bold text-stone-600">Moon</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[#F0E8DE]">
+                                {candidates.map((c, i) => (
+                                    <tr key={i} className="hover:bg-stone-50">
+                                        <td className="px-3 py-1.5 font-mono font-bold">{c.time}</td>
+                                        <td className="px-3 py-1.5 text-stone-500">{c.ascendant || '---'}</td>
+                                        <td className="px-3 py-1.5 text-stone-500">{c.moon || '---'}</td>
+                                    </tr>
+                                ))}
+                                {candidates.length === 0 && (
+                                    <tr>
+                                        <td colSpan={3} className="px-3 py-4 text-center text-stone-400 italic">Processing high-precision grid...</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div className="space-y-3">
+                    <div className="p-3 bg-white border border-[#F0E8DE] rounded-lg shadow-sm">
+                        <p className="text-[10px] text-stone-500 uppercase font-bold tracking-wider mb-2">Analysis Constraints</p>
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="text-stone-600">Life Events Sent</span>
+                                <span className="font-bold text-[#B8860B]">{context.lifeEventsCount || 0} Events</span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="text-stone-600">Forensic DNA Traits</span>
+                                <span className={`font-bold ${context.hasForensicTraits ? 'text-green-600' : 'text-stone-400'}`}>
+                                    {context.hasForensicTraits ? 'ACTIVE' : 'NONE'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+});
+AIContextPanel.displayName = 'AIContextPanel';
+
+const AnalysisDecisionFunnel = memo(({ decisions }: { decisions: AnalysisDecision[] }) => {
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [decisions.length]);
+
+    if (decisions.length === 0) return null;
+
+    // Only show last 10 decisions for UI space efficiency
+    const recentDecisions = decisions.slice(-10);
+
+    return (
+        <div className="bg-white border border-[#F0E8DE] rounded-xl overflow-hidden shadow-sm">
+            <div className="bg-[#FAF8F5] px-4 py-2 border-b border-[#F0E8DE] flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Activity className="w-3.5 h-3.5 text-[#B8860B]" />
+                    <h3 className="text-xs font-bold text-[#1A1612] uppercase tracking-wider">Funnel of Truth · Decisions</h3>
+                </div>
+                <span className="text-[10px] font-bold text-stone-400">STAGE {decisions[decisions.length - 1]?.stage}</span>
+            </div>
+            <div
+                ref={scrollRef}
+                className="max-h-60 overflow-y-auto p-4 space-y-3 bg-[#FCFBFA] style-scroll"
+            >
+                <AnimatePresence initial={false}>
+                    {recentDecisions.map((d, i) => (
+                        <motion.div
+                            key={`${d.time}-${d.stage}-${d.batch}-${i}`}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className={`p-3 rounded-lg border flex gap-3 transition-colors ${d.verdict === 'promoted'
+                                ? 'bg-green-50/50 border-green-100'
+                                : 'bg-red-50/30 border-red-100 opacity-80'
+                                }`}
+                        >
+                            <div className="mt-0.5">
+                                {d.verdict === 'promoted' ? (
+                                    <CheckCircle className="w-4 h-4 text-green-600" />
+                                ) : (
+                                    <XCircle className="w-4 h-4 text-red-400" />
+                                )}
+                            </div>
+                            <div className="flex-1 space-y-1">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs font-mono font-bold text-stone-800">{d.time}</span>
+                                        <span className={`text-[10px] font-heavy px-1.5 py-0.5 rounded ${d.verdict === 'promoted' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
+                                            }`}>
+                                            {d.verdict === 'promoted' ? 'PROMOTED' : 'DISCARDED'}
+                                        </span>
+                                    </div>
+                                    <span className="text-xs font-mono font-bold text-stone-600">{d.score}% Match</span>
+                                </div>
+                                <p className="text-[11px] text-stone-500 leading-relaxed italic">
+                                    {d.reason || "Analyzing forensic alignment markers..."}
+                                </p>
+                            </div>
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
+            </div>
+        </div>
+    );
+});
+AnalysisDecisionFunnel.displayName = 'AnalysisDecisionFunnel';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE COMPONENT
@@ -263,7 +458,7 @@ export default function RobustAnalysisPage() {
     const streamData = useStreamProgress(sessionId, undefined, getToken);
 
     const {
-        isConnected, isComplete, error: streamError, progress, aiThinking,
+        isConnected, isComplete, error: streamError, progress, aiThinking, aiContext, decisions,
         candidateScores, stageStats, advancedSignals, result, startedAt, allSteps, metadata,
         connectionState,
     } = streamData;
@@ -551,28 +746,43 @@ export default function RobustAnalysisPage() {
                         {/* 1. Pipeline Tracker (Top) */}
                         {allSteps && allSteps.length > 0 && (
                             <SectionErrorBoundary sectionName="Pipeline Tracker" icon={<Activity className="w-5 h-5" />}>
-                                <div className="bg-white rounded-xl border border-[#F0E8DE] p-6 shadow-sm">
-                                    <h3 className="text-sm font-bold text-[#1A1612] mb-4">Analysis Pipeline</h3>
-                                    <AnalysisPipelineTracker
-                                        stats={stageStats || []}
-                                        allSteps={allSteps}
-                                        currentStage={progress?.stepIndex || 0}
-                                        isConnected={isConnected}
-                                        isComplete={isComplete}
-                                    />
-                                </div>
+                                <AnalysisPipelineTracker
+                                    stats={stageStats || []}
+                                    allSteps={allSteps}
+                                    currentStage={progress?.stepIndex || 0}
+                                    isConnected={isConnected}
+                                    isComplete={isComplete}
+                                    aiModel={metadata?.aiModel}
+                                />
                             </SectionErrorBoundary>
                         )}
 
-                        {/* 2. AI Thinking (DeepSeek Style) */}
-                        {(aiThinking || (progress?.stepIndex || 0) >= 1) && !isComplete && (
-                            <AnalysisErrorBoundary sectionName="AI Thinking Process">
-                                <AIThinkingPanel thinking={aiThinking} isActive={!isComplete && !cancelled} />
+                        {/* 2. AI Context Panel (What AI sees) */}
+                        {!isComplete && !cancelled && aiContext && (
+                            <SectionErrorBoundary sectionName="AI Context" icon={<Activity className="w-5 h-5" />}>
+                                <AIContextPanel context={aiContext} />
+                            </SectionErrorBoundary>
+                        )}
+
+                        {/* 3. AI Decision Funnel (Promotions/Rejections) */}
+                        {(decisions && decisions.length > 0) && !isComplete && !cancelled && (
+                            <SectionErrorBoundary sectionName="AI Decision Funnel" icon={<Filter className="w-5 h-5" />}>
+                                <AnalysisDecisionFunnel decisions={decisions || []} />
+                            </SectionErrorBoundary>
+                        )}
+
+                        {/* 4. AI Reasoning Panel (What AI feels) */}
+                        {(aiThinking || (progress?.stepIndex || 0) >= 1) && !isComplete && !cancelled && (
+                            <AnalysisErrorBoundary sectionName="AI Reasoning Process">
+                                <AIThinkingPanel
+                                    thinking={aiThinking || { stage: 1, chunks: [], fullText: '' }}
+                                    isActive={isConnected && !isComplete && !!aiThinking}
+                                />
                             </AnalysisErrorBoundary>
                         )}
 
-                        {/* 3. Candidate Scores (Leaderboard) */}
-                        {(candidateScores.length > 0 || (progress?.stepIndex || 0) >= 2) && !isComplete && (
+                        {/* 5. Candidate Scores (What AI decided) */}
+                        {(candidateScores.length > 0 || (progress?.stepIndex || 0) >= 2) && !isComplete && !cancelled && (
                             <SectionErrorBoundary sectionName="Candidate Scores" icon={<Activity className="w-5 h-5" />}>
                                 <div className="bg-white rounded-xl border border-[#F0E8DE] p-6 shadow-sm">
                                     <CandidateScoreTable scores={candidateScores} />

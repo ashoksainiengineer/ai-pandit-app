@@ -9,7 +9,7 @@ import { SecondsPrecisionInput, ForensicTraits } from '../../../types/index.js';
 import { CandidateTime, MAX_BATCH_SIZE, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { callAIWithStream, executeAIInParallel } from '../../ai-client.js';
-import { emitCandidateScore } from '../../session-events.js';
+import { emitCandidateScore, emitAIContext } from '../../session-events.js';
 import { calculateEphemeris } from '../../ephemeris.js';
 import { getDashaForDate } from '../../vedic-astrology-engine.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
@@ -262,10 +262,23 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.godTier?.consensus.overa
         });
     }
 
+    emitAIContext(input.sessionId, {
+        stage: 6,
+        candidateTime: 'FINAL VERDICT',
+        round: 1,
+        candidatesInBatch: finalBatch.map(c => ({
+            time: c.time,
+            ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`,
+            moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`
+        })),
+        lifeEventsCount: input.lifeEvents.length,
+        hasForensicTraits: !!forensicTraits
+    });
+
     const response = await callAIWithStream(
         input.sessionId,
         6,
-        'You are the DIVINE ARCHITECT of Time. FINAL JUDGEMENT.',
+        'You are THE DIVINE ARCHITECT of Time. Perform the ultimate FINAL JUDGEMENT.',
         prompt,
         {
             candidateTime: 'FINAL VERDICT',

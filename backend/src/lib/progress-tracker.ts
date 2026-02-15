@@ -226,7 +226,7 @@ export class ProgressTracker {
         this.progress.liveMessage = message;
 
         // ⏱️ Initialize global session start time on first step
-        if (stepId === 'prana' && !this.progress.startedAt) {
+        if (stepId === 'init' && !this.progress.startedAt) {
             this.progress.startedAt = this.progress.steps[stepIndex].startedAt;
         }
 
@@ -239,7 +239,8 @@ export class ProgressTracker {
             stepIndex,
             this.progress.totalSteps,
             message || `Starting ${this.progress.steps[stepIndex].name}`,
-            undefined
+            undefined,
+            this.progress.startedAt
         );
     }
 
@@ -266,7 +267,8 @@ export class ProgressTracker {
             currentIndex,
             this.progress.totalSteps,
             message,
-            details
+            details,
+            this.progress.startedAt
         );
     }
 
@@ -285,8 +287,33 @@ export class ProgressTracker {
             this.progress.currentStep,
             this.progress.totalSteps,
             this.progress.liveMessage || '',
-            undefined
+            undefined,
+            this.progress.startedAt
         );
+    }
+
+    /**
+     * Update sub-progress within a stage
+     * Calculates overall percentage based on current stage index and sub-step completion
+     */
+    async updateSubProgress(currentSubStep: number, totalSubSteps: number): Promise<void> {
+        const stepIndex = this.progress.currentStep;
+        const totalSteps = this.progress.totalSteps;
+
+        // Base percentage for the current stage
+        const basePercentage = (stepIndex / totalSteps) * 100;
+
+        // Percentage weight of a single stage
+        const stepWeight = (1 / totalSteps) * 100;
+
+        // Calculate intra-stage progress (clamped between 0 and 0.99 of the stage weight)
+        const subProgress = Math.min(0.99, currentSubStep / totalSubSteps) * stepWeight;
+
+        const finalPercentage = Math.round(basePercentage + subProgress);
+
+        if (finalPercentage !== this.progress.percentage) {
+            await this.updatePercentage(finalPercentage);
+        }
     }
 
     /**

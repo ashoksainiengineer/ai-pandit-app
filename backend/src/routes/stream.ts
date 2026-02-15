@@ -5,7 +5,8 @@
 import { Router, Response } from 'express';
 import { db } from '../database/drizzle.js';
 import { sessions } from '../database/schema.js';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
+import { aiConfig } from '../config/index.js';
 import { sessionEvents, SessionEvent } from '../lib/session-events.js';
 import { getSessionProgress } from '../lib/progress-tracker.js';
 import { getQueueStatus } from '../lib/queue-manager.js';
@@ -168,6 +169,7 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
                         ...queueStatus.session,
                         fullName, // Send decrypted name
                         status: queueStatus.status,
+                        aiModel: aiConfig.model, // Send current AI model from config
                     }
                 });
             }
@@ -212,6 +214,13 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
             if (scoreHistory && scoreHistory.length > 0) {
                 logger.info(`[SSE] Replaying ${scoreHistory.length} candidate scores for ${sessionId}`);
                 scoreHistory.forEach(score => sendEvent(res, score));
+            }
+
+            // Send cached Decisions
+            const decisions = sessionEvents.getDecisionBuffer(sessionId);
+            if (decisions && decisions.length > 0) {
+                logger.info(`[SSE] Replaying ${decisions.length} decisions for ${sessionId}`);
+                decisions.forEach(decision => sendEvent(res, decision));
             }
         } catch (error) {
             logger.error(`[SSE] Error in initial async sync for ${sessionId}:`, error);

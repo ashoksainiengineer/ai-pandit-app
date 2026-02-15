@@ -9,7 +9,7 @@ import { SecondsPrecisionInput, ForensicTraits } from '../../../types/index.js';
 import { CandidateTime, MAX_BATCH_SIZE, getDynamicSurvivors, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { callAIWithStream, executeAIInParallel } from '../../ai-client.js';
-import { emitCandidateScore, emitAIContext } from '../../session-events.js';
+import { emitCandidateScore, emitAIContext, emitDecision } from '../../session-events.js';
 import { throwIfCancelled } from '../../cancellation-manager.js';
 import { cleanup } from '../../ephemeris.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
@@ -41,10 +41,10 @@ export async function stage4DeepAnalysis(
 
     // FIXED: Log data state for audit trail
     logger.info('🔱 [STAGE-4] Starting deep analysis', {
-      candidatesIn: candidates.length,
-      sampleTime: candidates[0]?.time,
-      lifeEventsCount: input.lifeEvents?.length,
-      hasForensicTraits: !!forensicTraits
+        candidatesIn: candidates.length,
+        sampleTime: candidates[0]?.time,
+        lifeEventsCount: input.lifeEvents?.length,
+        hasForensicTraits: !!forensicTraits
     });
 
     let currentCandidates = [...candidates];
@@ -65,6 +65,7 @@ export async function stage4DeepAnalysis(
         const batchSurvivors: CandidateTime[] = [];
         const batchDataMap = new Map<number, CandidateDataPackage[]>();
 
+        let completedBatches = 0;
         const tasks = batches.map((batchTimes, i) => async () => {
             const batchEnriched = await Promise.all(batchTimes.map(ct =>
                 buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
@@ -80,10 +81,16 @@ export async function stage4DeepAnalysis(
                 candidateTime: `Deep Batch ${i + 1}/${batches.length}`,
                 batch: i + 1,
                 totalBatches: batches.length,
-                candidatesInBatch: batchEnriched.length
+                candidatesInBatch: batchEnriched.map(c => ({
+                    time: c.time,
+                    ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`,
+                    moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`
+                })),
+                lifeEventsCount: input.lifeEvents.length,
+                hasForensicTraits: !!forensicTraits
             });
 
-            return callAIWithStream(
+            const response = await callAIWithStream(
                 input.sessionId,
                 4,
                 'You are the GOD-TIER VEDIC ANALYST. Perform deep forensic multi-dasha verification.',
@@ -93,6 +100,12 @@ export async function stage4DeepAnalysis(
                     progressTracker: progress
                 }
             );
+
+            completedBatches++;
+            // Use batches.length + 1 to account for the potential final verification step
+            await progress.updateSubProgress(completedBatches, batches.length + 1);
+
+            return response;
         });
 
         const results = await executeAIInParallel(tasks, 10, 100);
@@ -104,20 +117,33 @@ export async function stage4DeepAnalysis(
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
             allReasoning += aiContent + '\n\n';
 
-            const survivorTimes = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), survivorsPerBatch);
+            const aiScores = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), survivorsPerBatch);
+            const survivorTimes = aiScores
+                .sort((a, b) => b.score - a.score)
+                .slice(0, survivorsPerBatch)
+                .map(s => s.time);
 
             for (let j = 0; j < fullBatchData.length; j++) {
                 const candidate = fullBatchData[j];
                 const originalTimeInfo = batchTimes[j];
                 const isSurvivor = survivorTimes.includes(candidate.time);
-                let score = 60;
+                const scoreObj = aiScores.find(s => s.time === candidate.time);
+                const score = scoreObj ? scoreObj.score : (isSurvivor ? 90 : 60);
+                const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Matched core forensic dasha markers" : "Failed deep multi-dasha verification");
 
                 if (isSurvivor) {
-                    score = 90;
                     batchSurvivors.push(originalTimeInfo);
                 }
 
                 emitCandidateScore(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEphemerisInline(candidate));
+                emitDecision(input.sessionId, {
+                    stage: 4,
+                    time: candidate.time,
+                    verdict: isSurvivor ? 'promoted' : 'rejected',
+                    score,
+                    reason,
+                    batch: i + 1
+                });
             }
         }
         currentCandidates = batchSurvivors;
@@ -146,22 +172,39 @@ export async function stage4DeepAnalysis(
             }
         );
 
+        // Final verification is complete
+        await progress.updateSubProgress(1, 1);
+
         const aiContent = response.success ? (response.content || response.thinking || '') : '';
         allReasoning += aiContent;
 
         // FIXED: Use survivorsPerBatch variable instead of hardcoded 7
-        const survivorTimes = extractBatchSurvivors(aiContent, currentCandidates.map(c => c.time), survivorsPerBatch);
+        const aiScores = extractBatchSurvivors(aiContent, currentCandidates.map(c => c.time), survivorsPerBatch);
+        const survivorTimes = aiScores
+            .sort((a, b) => b.score - a.score)
+            .slice(0, survivorsPerBatch)
+            .map(s => s.time);
 
         const survivors: CandidateTime[] = [];
         for (let j = 0; j < finalBatchData.length; j++) {
             const candidate = finalBatchData[j];
             const originalTimeInfo = currentCandidates[j];
             const isSurvivor = survivorTimes.includes(candidate.time);
-            const score = isSurvivor ? 95 : 65;
+            const scoreObj = aiScores.find(s => s.time === candidate.time);
+            const score = scoreObj ? scoreObj.score : (isSurvivor ? 95 : 65);
+            const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Superior alignment in final deep analysis" : "Low confidence in multi-dasha alignment");
 
             if (isSurvivor) survivors.push(originalTimeInfo);
 
             emitCandidateScore(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEphemerisInline(candidate));
+            emitDecision(input.sessionId, {
+                stage: 4,
+                time: candidate.time,
+                verdict: isSurvivor ? 'promoted' : 'rejected',
+                score,
+                reason,
+                batch: 0 // Final batch
+            });
         }
         currentCandidates = survivors;
     }

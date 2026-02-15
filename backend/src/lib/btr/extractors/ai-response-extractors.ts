@@ -9,53 +9,62 @@
 import { FinalVerdict } from '../types.js';
 
 /**
- * Extracts top survivor times from AI batch analysis response
- * 
- * Parses the AI response looking for the TOP_SURVIVORS line or
- * extracts scores from individual candidate evaluations.
+ * Extracts top survivor times and their scores from AI batch analysis response
  * 
  * @param aiContent - Raw AI response text
  * @param candidateTimes - All candidate times in the batch
  * @param neededCount - Number of survivors needed
- * @returns Array of survivor time strings
- * @example
- * extractBatchSurvivors(
- *   "TOP_SURVIVORS: 12:30:00, 12:31:00, 12:32:00",
- *   ["12:30:00", "12:31:00", "12:32:00", "12:33:00"],
- *   3
- * ) // Returns: ["12:30:00", "12:31:00", "12:32:00"]
+ * @returns Array of survivor objects { time, score }
  */
 export function extractBatchSurvivors(
   aiContent: string,
   candidateTimes: string[],
   neededCount: number
-): string[] {
-  // Try to extract from TOP_SURVIVORS line
-  const survivorMatch = aiContent.match(/TOP_SURVIVORS?[:\s]*([^\n]+)/i);
-  if (survivorMatch) {
-    const times = survivorMatch[1].match(/\d{2}:\d{2}:\d{2}/g) || [];
-    if (times.length >= neededCount) {
-      return times.slice(0, neededCount);
-    }
-  }
-
-  // Fallback: Extract scores and pick top N
-  const scores: { time: string; score: number }[] = [];
+): { time: string; score: number; reason: string }[] {
+  const scores: { time: string; score: number; reason: string }[] = [];
 
   for (const time of candidateTimes) {
     const escapedTime = time.replace(/:/g, '[:\\s]?');
-    // FIXED: Removed spaces inside regex quantifiers and capture groups
+    // Extracts score and preceding context as reason
     const timePattern = new RegExp(
-      `CANDIDATE[:\\s]*${escapedTime}[\\s\\S]{0,300}SCORE[:\\s]*(\\d+)`,
+      `(?:JUSTIFICATION|REASON|ANALYSIS)[:\\s]*(.{1,200}?)[\\s\\S]{0,100}CANDIDATE[:\\s]*${escapedTime}[\\s\\S]{0,500}SCORE[:\\s]*(\\d+)`,
       'i'
     );
-    const match = aiContent.match(timePattern);
-    const score = match ? parseInt(match[1], 10) : 50;
-    scores.push({ time, score });
+
+    // Alternative pattern if reason follows score
+    const fallbackPattern = new RegExp(
+      `CANDIDATE[:\\s]*${escapedTime}[\\s\\S]{0,100}SCORE[:\\s]*(\\d+)[\\s\\S]{0,100}(?:JUSTIFICATION|REASON)[:\\s]*(.{1,200}?)`,
+      'i'
+    );
+
+    let match = aiContent.match(timePattern);
+    let score = 50;
+    let reason = "Contextual alignment analysis";
+
+    if (match) {
+      reason = match[1].trim();
+      score = parseInt(match[2], 10);
+    } else {
+      match = aiContent.match(fallbackPattern);
+      if (match) {
+        score = parseInt(match[1], 10);
+        reason = match[2].trim();
+      } else {
+        // Final fallback: just score
+        const simplePattern = new RegExp(`CANDIDATE[:\\s]*${escapedTime}[\\s\\S]{0,300}SCORE[:\\s]*(\\d+)`, 'i');
+        const simpleMatch = aiContent.match(simplePattern);
+        if (simpleMatch) score = parseInt(simpleMatch[1], 10);
+      }
+    }
+
+    // Clean up reason (remove newlines, extra spaces)
+    reason = reason.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+    if (reason.length > 150) reason = reason.substring(0, 147) + '...';
+
+    scores.push({ time, score, reason });
   }
 
-  scores.sort((a, b) => b.score - a.score);
-  return scores.slice(0, neededCount).map(s => s.time);
+  return scores;
 }
 
 /**

@@ -356,6 +356,7 @@ export interface ProgressEvent {
   percentage: number;
   message: string;
   details?: string[];
+  startedAt?: string;
 }
 
 /**
@@ -419,7 +420,23 @@ export interface AIContextEvent {
   round?: number;
   batch?: number;
   totalBatches?: number;
-  candidatesInBatch?: number;
+  candidatesInBatch?: number | Array<{
+    time: string;
+    ascendant?: string;
+    moon?: string;
+  }>;
+  lifeEventsCount?: number;
+  hasForensicTraits?: boolean;
+}
+
+export interface DecisionEvent {
+  type: 'decision';
+  stage: number;
+  time: string;
+  verdict: 'promoted' | 'rejected';
+  score: number;
+  reason: string;
+  batch?: number;
 }
 
 /**
@@ -475,7 +492,8 @@ export type SessionEvent =
   | AIContextEvent
   | CalculationLogEvent
   | StageStatsEvent
-  | EstimatedTimeEvent;
+  | EstimatedTimeEvent
+  | DecisionEvent;
 
 // ═════════════════════════════════════════════════════════════════════════════
 // AI CLIENT TYPES

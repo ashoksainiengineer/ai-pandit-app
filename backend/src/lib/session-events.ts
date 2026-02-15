@@ -14,9 +14,9 @@ import type {
     CalculationLogEvent,
     StageStatsEvent,
     EstimatedTimeEvent,
+    DecisionEvent,
     SessionEvent
 } from '../types/index.js';
-import { db } from '../database/drizzle.js';
 
 // Re-export types for backwards compatibility
 export type {
@@ -30,6 +30,7 @@ export type {
     CalculationLogEvent,
     StageStatsEvent,
     EstimatedTimeEvent,
+    DecisionEvent,
     SessionEvent
 };
 
@@ -46,6 +47,8 @@ class SessionEventManager {
     private calculationLogBuffers: Map<string, CalculationLogEvent[]> = new Map();
     // 📊 Store ALL candidate scores for session history replay (Persistence)
     private candidateScoreBuffers: Map<string, CandidateScoreEvent[]> = new Map();
+    // ⚖️ Store decision logs for "Funnel of Truth"
+    private decisionBuffers: Map<string, DecisionEvent[]> = new Map();
     // ⏱️ Track last activity for garbage collection
     private lastActive: Map<string, number> = new Map();
 
@@ -77,13 +80,16 @@ class SessionEventManager {
             emitter.emit('event', event);
         }
         if (event.type === 'ai_context') {
-            this.lastContexts.set(sessionId, event);
+            this.lastContexts.set(sessionId, event as AIContextEvent);
         }
         if (event.type === 'calculation_log') {
-            this.appendToCalculationBuffer(sessionId, event);
+            this.appendToCalculationBuffer(sessionId, event as CalculationLogEvent);
         }
         if (event.type === 'candidate_score_v2' || event.type === 'candidate_score') {
-            this.appendToCandidateScoreBuffer(sessionId, event);
+            this.appendToCandidateScoreBuffer(sessionId, event as CandidateScoreEvent);
+        }
+        if (event.type === 'decision') {
+            this.appendToDecisionBuffer(sessionId, event as DecisionEvent);
         }
     }
 
@@ -101,6 +107,7 @@ class SessionEventManager {
         this.thinkingBuffers.delete(sessionId);
         this.calculationLogBuffers.delete(sessionId);
         this.candidateScoreBuffers.delete(sessionId);
+        this.decisionBuffers.delete(sessionId);
         this.lastActive.delete(sessionId);
     }
 
@@ -133,7 +140,6 @@ class SessionEventManager {
             this.thinkingBuffers.set(sessionId, { stage, text, candidateTime });
         } else {
             // Append to existing
-            // Don't log every append, too noisy
             current.text += text;
             current.candidateTime = candidateTime || current.candidateTime;
         }
@@ -145,7 +151,6 @@ class SessionEventManager {
     getThinkingBuffer(sessionId: string): { stage: number; text: string; candidateTime?: string } | undefined {
         this.touch(sessionId);
         const buffer = this.thinkingBuffers.get(sessionId);
-        // console.log(`📖 Reading Thinking Buffer: ${sessionId?.slice(0, 8)} | Found=${!!buffer} | Len=${buffer?.text?.length}`);
         return buffer;
     }
 
@@ -153,13 +158,11 @@ class SessionEventManager {
      * Append to calculation log buffer (Keep last 50)
      */
     appendToCalculationBuffer(sessionId: string, log: CalculationLogEvent): void {
-        // No need to touch() here as it's called by emit() which touches
         if (!this.calculationLogBuffers.has(sessionId)) {
             this.calculationLogBuffers.set(sessionId, []);
         }
         const buffer = this.calculationLogBuffers.get(sessionId)!;
         buffer.push(log);
-        // 🔱 GOD MODE: NO LIMITS. We keep every single candidate log for the entire session.
     }
 
     /**
@@ -172,18 +175,31 @@ class SessionEventManager {
         }
         const buffer = this.candidateScoreBuffers.get(sessionId)!;
 
-        // Remove existing score for same time (Update implicitly) or append?
-        // Actually, we want to keep history if it moves stages? 
-        // No, current state usually suffices. Frontend filters by time.
-        // Let's just push. Frontend handles dedupe.
-
-        // Optional: Replace if existing to keep buffer small?
         const existingIdx = buffer.findIndex(c => c.time === scoreEvent.time);
         if (existingIdx >= 0) {
-            buffer[existingIdx] = scoreEvent; // Update in place
+            buffer[existingIdx] = scoreEvent;
         } else {
             buffer.push(scoreEvent);
         }
+    }
+
+    /**
+     * Append to decision buffer
+     */
+    appendToDecisionBuffer(sessionId: string, decision: DecisionEvent): void {
+        this.touch(sessionId);
+        if (!this.decisionBuffers.has(sessionId)) {
+            this.decisionBuffers.set(sessionId, []);
+        }
+        this.decisionBuffers.get(sessionId)!.push(decision);
+    }
+
+    /**
+     * Get decision buffer
+     */
+    getDecisionBuffer(sessionId: string): DecisionEvent[] | undefined {
+        this.touch(sessionId);
+        return this.decisionBuffers.get(sessionId);
     }
 
     /**
@@ -244,7 +260,8 @@ export function emitProgress(
     stepIndex: number,
     totalSteps: number,
     message: string,
-    details?: string[]
+    details?: string[],
+    startedAt?: string
 ): void {
     sessionEvents.emit(sessionId, {
         type: 'progress',
@@ -254,6 +271,7 @@ export function emitProgress(
         percentage: Math.round((stepIndex / totalSteps) * 100),
         message,
         details,
+        startedAt,
     });
 }
 
@@ -263,9 +281,6 @@ export function emitAIThinking(
     stage: number,
     candidateTime?: string
 ): void {
-    // console.log('🔥 emitAIThinking called:', { sessionId: sessionId?.slice(0, 8), stage, chunkLen: chunk?.length, candidateTime });
-
-    // 🧠 Store content for reconnects
     sessionEvents.appendToThinkingBuffer(sessionId, stage, chunk, candidateTime);
 
     sessionEvents.emit(sessionId, {
@@ -275,8 +290,6 @@ export function emitAIThinking(
         candidateTime,
     });
 }
-
-
 
 export function emitEphemeris(
     sessionId: string,
@@ -350,7 +363,7 @@ export function emitAIContext(
     sessionEvents.emit(sessionId, {
         type: 'ai_context',
         ...data
-    });
+    } as AIContextEvent);
 }
 
 export function emitCalculationLog(
@@ -361,7 +374,7 @@ export function emitCalculationLog(
         type: 'calculation_log',
         logId: crypto.randomUUID(),
         ...data
-    });
+    } as CalculationLogEvent);
 }
 
 export function emitStageStats(
@@ -386,6 +399,16 @@ export function emitEstimatedTime(
         type: 'estimated_time',
         seconds
     });
+}
+
+export function emitDecision(
+    sessionId: string,
+    data: Omit<DecisionEvent, 'type'>
+): void {
+    sessionEvents.emit(sessionId, {
+        type: 'decision',
+        ...data
+    } as DecisionEvent);
 }
 
 /**

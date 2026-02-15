@@ -40,10 +40,16 @@ export interface AIThinking {
 export interface AIContextData {
     stage: number;
     candidateTime: string;
-    planetaryInfo: Record<string, string>;
-    dasha: string;
+    planetaryInfo?: Record<string, string>;
+    dasha?: string;
     divCharts?: string;
-    groundTruth?: unknown;
+    candidatesInBatch?: number | Array<{
+        time: string;
+        ascendant?: string;
+        moon?: string;
+    }>;
+    lifeEventsCount?: number;
+    hasForensicTraits?: boolean;
 }
 
 export interface CandidateScore {
@@ -59,6 +65,15 @@ export interface StageStat {
     stage: number;
     candidateCount: number;
     description: string;
+}
+
+export interface AnalysisDecision {
+    stage: number;
+    time: string;
+    verdict: 'promoted' | 'rejected';
+    score: number;
+    reason: string;
+    batch?: number;
 }
 
 export interface StreamResult {
@@ -78,6 +93,7 @@ export interface StreamMetadata {
     lifeEvents?: unknown[];
     physicalTraits?: unknown;
     offsetConfig?: { preset: string; minutes?: number };
+    aiModel?: string; // Added dynamic AI model name
 }
 
 export interface StreamStep {
@@ -106,6 +122,7 @@ export interface StreamState {
     estimatedTimeRemaining?: number;
     allSteps: StreamStep[];
     advancedSignals: IAdvancedSignals | null;
+    decisions: AnalysisDecision[];
 }
 
 type ConnectionStatus = 'idle' | 'connecting' | 'streaming' | 'polling' | 'rate_limited' | 'finished' | 'error';
@@ -163,6 +180,7 @@ function createInitialState(): StreamState {
         estimatedTimeRemaining: undefined,
         allSteps: DEFAULT_STEPS,
         advancedSignals: null,
+        decisions: [],
     };
 }
 
@@ -291,6 +309,18 @@ export function useStreamProgress(
                 case 'candidate_scores': {
                     const scores = (data.data as CandidateScore[]) || (data as unknown as CandidateScore[]);
                     return { ...prev, candidateScores: scores };
+                }
+
+                case 'decision': {
+                    const decision = (data.data as AnalysisDecision) || (data as unknown as AnalysisDecision);
+                    if (!decision || !decision.time) return prev;
+
+                    // Deduplicate and keep most recent
+                    const filtered = prev.decisions.filter(d => !(d.time === decision.time && d.stage === decision.stage));
+                    return {
+                        ...prev,
+                        decisions: [...filtered, decision]
+                    };
                 }
 
                 case 'estimated_time': {
