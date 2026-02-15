@@ -68,12 +68,17 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
         isOwner = true;
         currentStatus = session[0].status || 'pending';
 
-        // Handle terminal states
-        if (currentStatus === 'cancelled' || currentStatus === 'error') {
+        // Handle terminal states — do NOT open SSE for sessions that are done
+        // NOTE: cancelSession() sets status to 'failed' with errorMessage 'Cancelled by user'
+        const terminalStates = ['cancelled', 'error', 'failed', 'complete'];
+        if (terminalStates.includes(currentStatus)) {
             logger.info(`[SSE] Session ${sessionId} is in terminal state: ${currentStatus}`);
             res.status(200).json({
                 status: currentStatus,
-                message: `Session is in terminal state: ${currentStatus}`,
+                message: currentStatus === 'complete'
+                    ? 'Session already completed'
+                    : `Session is in terminal state: ${currentStatus}`,
+                errorMessage: session[0].errorMessage || undefined,
             });
             return;
         }
