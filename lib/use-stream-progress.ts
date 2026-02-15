@@ -1,25 +1,24 @@
 'use client';
 
 /**
- * useStreamProgress - Production-Grade SSE/Polling Hook
- * ======================================================
+ * useStreamProgress - Bulletproof Real-Time Progress Hook
+ * ========================================================
  * 
- * Provides real-time progress updates for BTR analysis via:
- * - Server-Sent Events (SSE) as primary connection
- * - Automatic fallback to polling if SSE fails
- * - Race condition protection with mount tracking
- * - Memory leak prevention with proper cleanup
+ * SIMPLE architecture:
+ * 1. Try SSE once
+ * 2. If SSE fails, use polling
+ * 3. On 404 (session not found), stop and show error
+ * 4. On 429 (rate limit), wait 30s and retry
  * 
- * @version 4.0.0
- * @author AI Pandit Engineering Team
+ * @version 7.0.0 - Bulletproof rewrite
  */
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { logger } from './secure-logger';
 import type { IAdvancedSignals } from '@/components/rectify/advanced-signals/types';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TYPE DEFINITIONS
+// TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export interface StreamProgress {
@@ -41,12 +40,7 @@ export interface AIThinking {
 export interface AIContextData {
     stage: number;
     candidateTime: string;
-    planetaryInfo: {
-        ascendant: string;
-        sun: string;
-        moon: string;
-        [key: string]: string;
-    };
+    planetaryInfo: Record<string, string>;
     dasha: string;
     divCharts?: string;
     groundTruth?: unknown;
@@ -113,7 +107,7 @@ export interface StreamState {
     advancedSignals: IAdvancedSignals | null;
 }
 
-type ConnectionStatus = 'idle' | 'connecting' | 'streaming' | 'polling' | 'finished' | 'error';
+type ConnectionStatus = 'idle' | 'connecting' | 'streaming' | 'polling' | 'rate_limited' | 'finished' | 'error';
 
 interface ConnectionState {
     status: ConnectionStatus;
@@ -125,21 +119,24 @@ interface ConnectionState {
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const FALLBACK_STEPS: StreamStep[] = [
+const DEFAULT_STEPS: StreamStep[] = [
     { id: 'prana', name: 'Prana Mapping' },
     { id: 'discovery', name: 'Discovery Tournament' },
     { id: 'convergence', name: 'Temporal Convergence' },
     { id: 'audit', name: 'Micro-Audit (D60)' },
-    { id: 'seal', name: 'God-Tier Lock' }
+    { id: 'seal', name: 'God-Tier Lock' },
 ];
 
-const POLLING_INTERVAL_MS = 2500;
-const POLLING_MAX_DELAY_MS = 45000;
-const SSE_TIMEOUT_MS = 15000;
-const MAX_RETRY_COUNT = 5;
+const POLL_INTERVAL = 5000;      // 5 seconds
+const MAX_POLL_INTERVAL = 60000; // 60 seconds
+const SSE_TIMEOUT = 10000;       // 10 seconds to establish SSE
+const RATE_LIMIT_WAIT = 30000;   // 30 seconds on 429
+
+// Direct backend URL for SSE — bypasses Vercel serverless timeout (10-60s limit)
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// INITIAL STATE FACTORY
+// INITIAL STATE
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function createInitialState(): StreamState {
@@ -161,18 +158,18 @@ function createInitialState(): StreamState {
         totalCandidates: 0,
         startedAt: undefined,
         estimatedTimeRemaining: undefined,
-        allSteps: FALLBACK_STEPS,
+        allSteps: DEFAULT_STEPS,
         advancedSignals: null,
     };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// HOOK IMPLEMENTATION
+// HOOK
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export function useStreamProgress(
     sessionId: string | null,
-    backendUrl: string = '',
+    backendUrl: string = BACKEND_URL,
     getToken?: () => Promise<string | null>
 ): StreamState & { connectionState: ConnectionState } {
 
@@ -183,283 +180,277 @@ export function useStreamProgress(
         lastError: null,
     });
 
-    // Refs for cleanup and mount tracking
-    const isMountedRef = useRef(true);
+    // Refs for cleanup
+    const mountedRef = useRef(true);
     const eventSourceRef = useRef<EventSource | null>(null);
-    const pollingTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const retryCountRef = useRef(0);
-
-    // Safe state updater that checks mount status
-    const safeSetState = useCallback((updater: (prev: StreamState) => StreamState) => {
-        if (isMountedRef.current) {
-            setState(updater);
-        }
-    }, []);
+    const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const connectionAttemptedRef = useRef(false);
+    const currentSessionRef = useRef<string | null>(null);
 
     // Cleanup function
-    const cleanup = useCallback(() => {
+    const cleanup = () => {
         if (eventSourceRef.current) {
             eventSourceRef.current.close();
             eventSourceRef.current = null;
         }
-        if (pollingTimerRef.current) {
-            clearTimeout(pollingTimerRef.current);
-            pollingTimerRef.current = null;
+        if (pollTimerRef.current) {
+            clearTimeout(pollTimerRef.current);
+            pollTimerRef.current = null;
         }
-    }, []);
+    };
 
-    /**
-     * Handle incoming SSE/polling event data
-     */
-    const handleEventData = useCallback((eventData: Record<string, unknown>) => {
-        if (!isMountedRef.current) return;
+    // Handle incoming event data
+    const handleEvent = (data: Record<string, unknown>) => {
+        if (!mountedRef.current) return;
 
-        const eventType = String(eventData.type || '');
+        const type = String(data.type || '');
 
-        switch (eventType) {
-            case 'connected':
-                safeSetState(prev => ({ ...prev, isConnected: true }));
-                break;
+        setState(prev => {
+            switch (type) {
+                case 'connected':
+                case 'initial_state':
+                    return { ...prev, isConnected: true };
 
-            case 'progress':
-                safeSetState(prev => ({
-                    ...prev,
-                    progress: eventData.data as StreamProgress,
-                }));
-                break;
+                case 'progress':
+                    return { ...prev, progress: data.data as StreamProgress };
 
-            case 'ai_thinking':
-                safeSetState(prev => {
-                    const thinking = eventData.data as AIThinking;
+                case 'ai_thinking': {
+                    const thinking = data.data as AIThinking;
                     const newCandidates = new Map(prev.allCandidates);
-                    if (thinking.candidateTime) {
+                    if (thinking?.candidateTime) {
                         newCandidates.set(thinking.candidateTime, thinking);
                     }
                     return {
                         ...prev,
                         aiThinking: thinking,
                         allCandidates: newCandidates,
-                        displayedCandidate: thinking.candidateTime || prev.displayedCandidate,
+                        displayedCandidate: thinking?.candidateTime || prev.displayedCandidate,
                     };
-                });
-                break;
+                }
 
-            case 'ai_context':
-                safeSetState(prev => ({
-                    ...prev,
-                    aiContext: eventData.data as AIContextData,
-                }));
-                break;
+                case 'ai_context':
+                    return { ...prev, aiContext: data.data as AIContextData };
 
-            case 'candidate_scores':
-                safeSetState(prev => ({
-                    ...prev,
-                    candidateScores: eventData.data as CandidateScore[],
-                }));
-                break;
+                case 'candidate_scores':
+                    return { ...prev, candidateScores: data.data as CandidateScore[] };
 
-            case 'stage_stats':
-                safeSetState(prev => ({
-                    ...prev,
-                    stageStats: eventData.data as StageStat[],
-                }));
-                break;
+                case 'stage_stats':
+                    return { ...prev, stageStats: data.data as StageStat[] };
 
-            case 'advanced_signals':
-                safeSetState(prev => ({
-                    ...prev,
-                    advancedSignals: eventData.data as IAdvancedSignals,
-                }));
-                break;
+                case 'advanced_signals':
+                    return { ...prev, advancedSignals: data.data as IAdvancedSignals };
 
-            case 'metadata':
-                safeSetState(prev => ({
-                    ...prev,
-                    metadata: eventData.data as StreamMetadata,
-                }));
-                break;
+                case 'metadata':
+                    return { ...prev, metadata: data.data as StreamMetadata };
 
-            case 'complete':
-            case 'result':
-                safeSetState(prev => ({
-                    ...prev,
-                    isComplete: true,
-                    isConnected: false,
-                    result: eventData.data as StreamResult,
-                }));
-                setConnectionState(prev => ({ ...prev, status: 'finished' }));
-                cleanup();
-                break;
+                case 'complete':
+                case 'result':
+                    cleanup();
+                    setConnectionState(cs => ({ ...cs, status: 'finished' }));
+                    return {
+                        ...prev,
+                        isComplete: true,
+                        isConnected: false,
+                        result: data.data as StreamResult,
+                    };
 
-            case 'error':
-                safeSetState(prev => ({
-                    ...prev,
-                    error: String(eventData.message || 'Unknown error'),
-                    isConnected: false,
-                }));
-                setConnectionState(prev => ({
-                    ...prev,
-                    status: 'error',
-                    lastError: String(eventData.message || 'Unknown error'),
-                }));
-                cleanup();
-                break;
+                case 'error':
+                    cleanup();
+                    setConnectionState(cs => ({
+                        ...cs,
+                        status: 'error',
+                        lastError: String(data.message || 'Unknown error'),
+                    }));
+                    return {
+                        ...prev,
+                        error: String(data.message || 'Unknown error'),
+                        isConnected: false,
+                    };
 
-            default:
-                logger.debug('Unknown event type', { eventType });
-        }
-    }, [safeSetState, cleanup]);
+                default:
+                    return prev;
+            }
+        });
+    };
 
-    /**
-     * Fetch progress via polling (fallback mechanism)
-     */
-    const fetchProgressViaPolling = useCallback(async (sid: string, baseUrl: string): Promise<boolean> => {
-        if (!isMountedRef.current) return false;
+    // Single polling function
+    const poll = async (sid: string, interval: number = POLL_INTERVAL) => {
+        if (!mountedRef.current || currentSessionRef.current !== sid) return;
 
         try {
             const token = getToken ? await getToken() : null;
-            const headers: HeadersInit = {
-                'Content-Type': 'application/json',
-            };
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
+            const headers: HeadersInit = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+
+            const res = await fetch(`/api/queue/progress?sessionId=${sid}`, {
+                headers,
+                cache: 'no-store',
+            });
+
+            if (!mountedRef.current || currentSessionRef.current !== sid) return;
+
+            // Handle 404 - session not in queue (maybe completed or never started)
+            if (res.status === 404) {
+                logger.warn('Session not found in queue (404)');
+                setConnectionState({ status: 'error', url: '', lastError: 'Session not found - analysis may have already completed' });
+                setState(prev => ({ ...prev, error: 'Session not found. Start a new analysis.', isConnected: false }));
+                return; // Stop polling
             }
 
-            const response = await fetch(`/api/queue/progress?sessionId=${sid}`, { headers });
-
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+            // Handle 429 - rate limited
+            if (res.status === 429) {
+                logger.warn('Rate limited (429), waiting 30s');
+                setConnectionState({ status: 'rate_limited', url: '', lastError: 'Rate limited' });
+                pollTimerRef.current = setTimeout(() => poll(sid, interval), RATE_LIMIT_WAIT);
+                return;
             }
 
-            const data = await response.json();
+            // Handle other errors
+            if (!res.ok) {
+                throw new Error(`HTTP ${res.status}`);
+            }
 
-            if (data.success && data.data) {
-                handleEventData({
-                    type: data.data.status === 'complete' ? 'complete' : 'progress',
-                    data: data.data,
+            const result = await res.json();
+
+            // Update state
+            setConnectionState(cs => ({ ...cs, status: 'polling', lastError: null }));
+
+            if (result.success !== false) {
+                const status = result.status || result.data?.status;
+                const isComplete = ['complete', 'success', 'finished'].includes(status);
+                const isFailed = ['failed', 'error', 'cancelled'].includes(status);
+
+                handleEvent({
+                    type: isComplete ? 'complete' : 'progress',
+                    data: result.data || result,
                 });
 
-                // Continue polling if not complete
-                return data.data.status !== 'complete' && data.data.status !== 'failed';
+                if (result.metadata) {
+                    handleEvent({ type: 'metadata', data: result.metadata });
+                }
+
+                // Stop if complete or failed
+                if (isComplete || isFailed) return;
             }
 
-            return true; // Continue polling
+            // Schedule next poll
+            pollTimerRef.current = setTimeout(() => poll(sid, interval), interval);
+
         } catch (error) {
-            logger.warn('Polling fetch failed', { error });
-            retryCountRef.current++;
+            logger.warn('Polling failed', { error });
 
-            if (retryCountRef.current >= MAX_RETRY_COUNT) {
-                handleEventData({
-                    type: 'error',
-                    message: 'Connection lost after multiple retries',
-                });
-                return false;
-            }
-
-            return true; // Retry
+            // Retry with backoff
+            const nextInterval = Math.min(interval * 1.5, MAX_POLL_INTERVAL);
+            pollTimerRef.current = setTimeout(() => poll(sid, nextInterval), nextInterval);
         }
-    }, [getToken, handleEventData]);
+    };
 
-    /**
-     * Start polling loop
-     */
-    const startPolling = useCallback((sid: string, baseUrl: string) => {
-        const poll = async () => {
-            if (!isMountedRef.current || connectionState.status !== 'polling') return;
+    // Connect — SSE directly to backend (bypasses Vercel serverless timeout)
+    const connect = async (sid: string) => {
+        if (!mountedRef.current) return;
 
-            const shouldContinue = await fetchProgressViaPolling(sid, baseUrl);
-
-            if (shouldContinue && isMountedRef.current) {
-                const delay = Math.min(
-                    POLLING_INTERVAL_MS * Math.pow(1.5, retryCountRef.current),
-                    POLLING_MAX_DELAY_MS
-                );
-                pollingTimerRef.current = setTimeout(poll, delay);
-            }
-        };
-
-        poll();
-    }, [fetchProgressViaPolling, connectionState.status]);
-
-    /**
-     * Connect via SSE
-     */
-    const connectSSE = useCallback(async (sid: string, baseUrl: string) => {
         cleanup();
+        connectionAttemptedRef.current = true;
+        currentSessionRef.current = sid;
+
         setConnectionState({ status: 'connecting', url: '', lastError: null });
-        retryCountRef.current = 0;
 
         try {
             const token = getToken ? await getToken() : null;
-            const queryToken = token ? `?token=${encodeURIComponent(token)}` : '';
-            const url = `/api/stream/${sid}${queryToken}`;
+            const query = token ? `?token=${encodeURIComponent(token)}` : '';
 
-            setConnectionState(prev => ({ ...prev, url }));
+            // Direct connection to backend — no Vercel proxy, no timeout limit
+            const sseBaseUrl = backendUrl || BACKEND_URL;
+            const url = sseBaseUrl
+                ? `${sseBaseUrl}/api/stream/${sid}${query}`
+                : `/api/stream/${sid}${query}`; // Local dev fallback
+
+            logger.info('Opening direct SSE connection', { url: url.replace(/token=[^&]+/, 'token=***') });
 
             const eventSource = new EventSource(url);
             eventSourceRef.current = eventSource;
 
-            // Connection timeout
-            const timeoutId = setTimeout(() => {
-                if (eventSourceRef.current?.readyState !== EventSource.OPEN) {
-                    logger.info('SSE connection timeout, switching to polling');
-                    cleanup();
-                    setConnectionState({ status: 'polling', url, lastError: 'Connection timeout' });
-                    startPolling(sid, baseUrl);
+            let sseConnected = false;
+
+            // Timeout — if SSE doesn't connect in 10s, fall back to polling
+            const timeout = setTimeout(() => {
+                if (!sseConnected && mountedRef.current && currentSessionRef.current === sid) {
+                    logger.info('SSE timeout, falling back to polling');
+                    eventSource.close();
+                    eventSourceRef.current = null;
+                    setConnectionState({ status: 'polling', url: '', lastError: 'SSE timeout' });
+                    poll(sid);
                 }
-            }, SSE_TIMEOUT_MS);
+            }, SSE_TIMEOUT);
 
             eventSource.onopen = () => {
-                clearTimeout(timeoutId);
-                logger.info('SSE connection established');
-                safeSetState(prev => ({ ...prev, isConnected: true }));
-                setConnectionState(prev => ({ ...prev, status: 'streaming', lastError: null }));
+                if (!mountedRef.current) return;
+                sseConnected = true;
+                clearTimeout(timeout);
+                logger.info('SSE connected (direct to backend)');
+                setState(prev => ({ ...prev, isConnected: true }));
+                setConnectionState({ status: 'streaming', url, lastError: null });
             };
 
             eventSource.onmessage = (event) => {
+                if (!mountedRef.current) return;
                 try {
                     const data = JSON.parse(event.data);
-                    handleEventData(data);
+                    handleEvent(data);
                 } catch (e) {
-                    logger.warn('Failed to parse SSE message', { error: e });
+                    logger.warn('Failed to parse SSE message');
                 }
             };
 
             eventSource.onerror = () => {
-                clearTimeout(timeoutId);
-                logger.warn('SSE error, switching to polling');
-                cleanup();
-                setConnectionState({ status: 'polling', url, lastError: 'SSE error' });
-                startPolling(sid, baseUrl);
+                if (!mountedRef.current || currentSessionRef.current !== sid) return;
+                clearTimeout(timeout);
+
+                // Close SSE and fall back to polling (via Vercel proxy — quick requests, no timeout issue)
+                if (eventSourceRef.current) {
+                    logger.warn('SSE error, falling back to polling');
+                    eventSource.close();
+                    eventSourceRef.current = null;
+                    setConnectionState({ status: 'polling', url: '', lastError: 'SSE error' });
+                    pollTimerRef.current = setTimeout(() => poll(sid), 2000);
+                }
             };
 
         } catch (error) {
-            logger.error('SSE initialization failed', { error });
-            setConnectionState({ status: 'polling', url: '', lastError: 'SSE init failed' });
-            startPolling(sid, baseUrl);
+            logger.error('Connection failed', { error });
+            setConnectionState({ status: 'polling', url: '', lastError: 'Connection failed' });
+            pollTimerRef.current = setTimeout(() => poll(sid), 2000);
         }
-    }, [getToken, cleanup, handleEventData, startPolling, safeSetState]);
+    };
 
-    // Main effect: connect when sessionId changes
+    // Main effect
     useEffect(() => {
-        isMountedRef.current = true;
+        mountedRef.current = true;
+        connectionAttemptedRef.current = false;
 
         if (!sessionId) {
             cleanup();
+            currentSessionRef.current = null;
             setState(createInitialState());
             setConnectionState({ status: 'idle', url: '', lastError: null });
             return;
         }
 
-        connectSSE(sessionId, '');
+        // Connect after a small delay to debounce
+        const timer = setTimeout(() => {
+            if (mountedRef.current && !connectionAttemptedRef.current) {
+                connect(sessionId);
+            }
+        }, 300);
 
         return () => {
-            isMountedRef.current = false;
+            clearTimeout(timer);
+            mountedRef.current = false;
+            currentSessionRef.current = null;
             cleanup();
         };
-    }, [sessionId, connectSSE, cleanup]);
+    }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Memoize return value to prevent unnecessary re-renders
     return useMemo(() => ({
         ...state,
         connectionState,

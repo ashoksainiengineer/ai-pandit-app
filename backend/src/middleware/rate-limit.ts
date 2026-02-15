@@ -116,17 +116,17 @@ class RateLimiter {
   constructor(options: RateLimitOptions = {}) {
     this.store = options.store || new MemoryStore();
     this.windowMs = options.windowMs || config.security.rateLimitWindowMs || 60000;
-    this.maxRequests = options.maxRequests || config.security.rateLimitMaxRequests || 100;
+    this.maxRequests = options.maxRequests || config.security.rateLimitMaxRequests || 300; // Increased from 100
     this.keyGenerator = options.keyGenerator || this.defaultKeyGenerator;
     this.standardHeaders = options.standardHeaders ?? true;
     this.legacyHeaders = options.legacyHeaders ?? false;
   }
 
   private defaultKeyGenerator(req: Request): string {
-    // Use IP + user ID (if authenticated) for more accurate limiting
+    // Use IP + clerkId (set by auth middleware) for per-user limiting
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
-    const userId = (req as any).userId;
-    return userId ? `${ip}:${userId}` : ip;
+    const clerkId = (req as any).clerkId;
+    return clerkId ? `${ip}:${clerkId}` : ip;
   }
 
   private getRetryAfter(resetTime: number): number {
@@ -204,7 +204,7 @@ export const strictRateLimiter = new RateLimiter({
 
 export const apiRateLimiter = new RateLimiter({
   windowMs: 60000, // 1 minute
-  maxRequests: 60, // 60 requests per minute
+  maxRequests: 200, // 200 requests per minute (increased from 60)
   keyGenerator: (req: Request) => {
     // Stricter limiting for AI endpoints
     if (req.path.includes('/api/calculate')) {
@@ -214,12 +214,14 @@ export const apiRateLimiter = new RateLimiter({
   },
 }).middleware();
 
+
 export const calculateRateLimiter = new RateLimiter({
   windowMs: 5 * 60 * 1000, // 5 minutes
   maxRequests: 3, // 3 BTR calculations per 5 minutes
   keyGenerator: (req: Request) => {
-    const userId = (req as any).userId;
-    return `calculate:${userId || req.ip || 'unknown'}`;
+    // Auth middleware sets clerkId — use it for per-user rate limiting
+    const clerkId = (req as any).clerkId;
+    return `calculate:${clerkId || req.ip || 'unknown'}`;
   },
 }).middleware();
 

@@ -53,9 +53,11 @@ app.use(helmet({
 // CORS with strict origin validation
 const allowedOrigins = [
   'http://localhost:3000',
+  'http://localhost:3001',
   'http://localhost:5173',
   process.env.FRONTEND_URL,
-  process.env.VERCEL_URL,
+  // Vercel sets VERCEL_URL without the protocol prefix (e.g. 'your-app.vercel.app')
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
 ].filter((origin): origin is string => Boolean(origin));
 
 app.use(cors({
@@ -100,9 +102,22 @@ app.use(requestIdMiddleware());
 app.use(requestContextMiddleware());
 app.use(performanceMiddleware());
 
-// Rate limiting
-app.use(defaultRateLimiter);
-app.use('/api/calculate', calculateRateLimiter);
+// Rate limiting - selective application
+// SSE stream and polling endpoints have their own dedicated limiters in routes/index.ts
+// Skip global rate limit for these to prevent double-limiting
+app.use((req, res, next) => {
+  const path = req.path;
+
+  // Whitelist real-time endpoints from global rate limit
+  if (path.startsWith('/api/stream') ||
+    path.startsWith('/api/queue/progress') ||
+    path.startsWith('/health')) {
+    return next();
+  }
+
+  // Apply global rate limiter to all other routes
+  return defaultRateLimiter(req, res, next);
+});
 
 // ═════════════════════════════════════════════════════════════════════════════
 // HEALTH ENDPOINTS (Must be before API routes for HF Spaces)

@@ -4,14 +4,9 @@
 
 import { db, executeWithRetry } from '../database/drizzle.js';
 import { sessions } from '../database/schema.js';
-import { eq, and, or, desc, asc, lt } from 'drizzle-orm';
+import { eq, and, or, desc, asc, lt, gte } from 'drizzle-orm';
 import { logger } from './logger.js';
-import {
-  safeDecrypt,
-  isEncrypted,
-  decryptObject,
-  safeDecryptWithFallback,
-} from './encryption/index.js';
+import { safeDecryptWithFallback } from './encryption/index.js';
 import {
   createAbortController,
   abortSession as abortSessionController,
@@ -21,6 +16,7 @@ import {
 import { emitComplete } from './session-events.js';
 import { ProgressTracker } from './progress-tracker.js';
 import { config } from '../config/index.js';
+import { processSecondsPrecisionBTR } from './seconds-precision-btr.js';
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -468,9 +464,10 @@ function isRetryableError(error: unknown): boolean {
       return true;
     }
 
-    // AI service errors - retry
-    if (msg.includes('ai_analysis_incomplete') ||
-      msg.includes('openrouter') ||
+    // AI service errors - retry (only transient/network issues)
+    // NOTE: ai_analysis_incomplete is NOT retryable — it's a parsing failure,
+    // and retrying restarts ALL 6 stages (~19 AI calls each time = credit drain)
+    if (msg.includes('openrouter') ||
       msg.includes('temporarily unavailable') ||
       msg.includes('service unavailable')) {
       return true;
@@ -537,8 +534,7 @@ async function processSessionWithRetry(sessionId: string, attempt: number = 0): 
 // QUEUE PROCESSOR
 // ═════════════════════════════════════════════════════════════════════════════
 
-// Import seconds-precision analysis function for ultimate accuracy
-import { processSecondsPrecisionBTR } from './seconds-precision-btr.js';
+// processSecondsPrecisionBTR imported at top of file
 
 /**
  * Start the queue processor
@@ -835,9 +831,13 @@ export async function getQueueStats(): Promise<{
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString();
 
+    // Filter by today's date — previously todayStr was computed but never used
     const completed = await db.select({ id: sessions.id })
       .from(sessions)
-      .where(eq(sessions.status, 'complete'));
+      .where(and(
+        eq(sessions.status, 'complete'),
+        gte(sessions.completedAt, todayStr)
+      ));
 
     return {
       queuedCount: queued.length,

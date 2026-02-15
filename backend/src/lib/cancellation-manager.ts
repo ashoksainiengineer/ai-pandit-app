@@ -57,8 +57,10 @@ export function cleanupController(sessionId: string): void {
 }
 
 /**
- * Check if session is cancelled by user (from database)
- * Only returns true if user explicitly cancelled, not if failed for other reasons
+ * Check if session was explicitly cancelled by the user.
+ * Returns true ONLY for user-initiated cancellations — never for completed or
+ * naturally failed sessions. This prevents race conditions where a successfully
+ * completed session is mistakenly treated as cancelled during parallel checks.
  */
 export async function isSessionCancelled(sessionId: string): Promise<boolean> {
     try {
@@ -70,19 +72,18 @@ export async function isSessionCancelled(sessionId: string): Promise<boolean> {
             .where(eq(sessions.id, sessionId))
             .limit(1);
 
-        if (result.length === 0) return true; // Session not found = treat as cancelled
+        // Session not found in DB — treat as cancelled to stop processing
+        if (result.length === 0) return true;
 
         const { status, errorMessage } = result[0];
 
-        // Only treat as cancelled if:
-        // 1. User explicitly cancelled (specific error message)
-        // 2. Session is complete (processing done)
-        if (status === 'complete') return true;
+        // Only treat as cancelled if user explicitly requested cancellation
         if (status === 'failed' && errorMessage?.includes('Cancelled by user')) return true;
 
         return false;
     } catch (error) {
         logger.error('Failed to check session status', { sessionId, error });
+        // Fail-open: don't cancel on transient DB errors
         return false;
     }
 }

@@ -99,7 +99,7 @@ export function setupUncaughtExceptionHandlers(): void {
   process.on('uncaughtException', (error: Error) => {
     logger.error('Uncaught Exception', error);
 
-    // Graceful shutdown
+    // Give logger time to flush before exiting
     setTimeout(() => {
       process.exit(1);
     }, 1000);
@@ -109,13 +109,6 @@ export function setupUncaughtExceptionHandlers(): void {
     logger.error('Unhandled Rejection', reason instanceof Error ? reason : new Error(String(reason)));
   });
 
-  // Graceful shutdown on SIGTERM
-  process.on('SIGTERM', () => {
-    logger.info('SIGTERM received, starting graceful shutdown...');
-
-    setTimeout(() => {
-      logger.info('Graceful shutdown complete');
-      process.exit(0);
-    }, 5000);
-  });
+  // Note: SIGTERM is handled in server.ts bootstrap() with proper HTTP server shutdown.
+  // Do NOT register a duplicate handler here — it causes race conditions.
 }

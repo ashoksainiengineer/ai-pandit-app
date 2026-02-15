@@ -1,19 +1,19 @@
 'use client';
 
 // app/rectify/[id]/page.tsx
-// FINAL PATCH: This version restores all missing sub-components and fixes the build.
+// Live analysis page — shows real-time progress, AI thinking, and candidate scores.
+// On completion, redirects to the results page.
 
 import React, { useEffect, useState, useRef, useCallback, useMemo, memo, useId } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
-    ChevronDown, ChevronUp, Brain, Clock, Activity, Users, Radio,
-    Home, LayoutDashboard, AlertCircle, Settings, Gem,
-    CheckCircle, XCircle, RefreshCw, Download, Share2
+    Brain, Clock, Activity, Home, LayoutDashboard, AlertCircle, Gem,
+    CheckCircle, RefreshCw,
 } from 'lucide-react';
-import { useStreamProgress, StreamState, CandidateScore, StreamStep, StageStat, AIThinking } from '@/lib/use-stream-progress';
+import { useStreamProgress, type CandidateScore, type StreamStep, type StageStat, type AIThinking } from '@/lib/use-stream-progress';
 import { logger } from '@/lib/secure-logger';
 import { AnalysisErrorBoundary, SectionErrorBoundary } from '@/components/rectify/AnalysisErrorBoundary';
 import AdvancedSignalsDashboard from '@/components/rectify/advanced-signals/AdvancedSignalsDashboard';
@@ -24,19 +24,18 @@ import AdvancedSignalsDashboard from '@/components/rectify/advanced-signals/Adva
 
 export default function RobustAnalysisPage() {
     const params = useParams();
+    const router = useRouter();
     const { getToken } = useAuth();
     const sessionId = params.id as string;
     const pageTitleId = useId();
 
-    const streamData = useStreamProgress(
-        sessionId,
-        '', // Now uses local proxy automatically
-        getToken
-    );
+    // Direct SSE to backend — no backendUrl override, uses NEXT_PUBLIC_BACKEND_URL default
+    const streamData = useStreamProgress(sessionId, undefined, getToken);
 
     const {
-        isConnected, isComplete, error: streamError, progress, aiThinking, stageHistory,
-        candidateScores, stageStats, advancedSignals, result, startedAt, allSteps, metadata
+        isConnected, isComplete, error: streamError, progress, aiThinking,
+        candidateScores, stageStats, advancedSignals, result, startedAt, allSteps, metadata,
+        connectionState,
     } = streamData;
 
     const [isCancelling, setIsCancelling] = useState(false);
@@ -46,6 +45,27 @@ export default function RobustAnalysisPage() {
         if (metadata?.status === 'cancelled') setCancelled(true);
     }, [metadata?.status]);
 
+    // Redirect to results page when analysis completes
+    useEffect(() => {
+        if (isComplete && result) {
+            // Store result in localStorage for the results page to hydrate instantly
+            try {
+                localStorage.setItem(`rectification_result_${sessionId}`, JSON.stringify({
+                    rectifiedTime: result.rectifiedTime,
+                    accuracy: result.accuracy,
+                    confidence: result.confidence,
+                }));
+            } catch { /* localStorage may be unavailable */ }
+
+            // Brief delay so user sees the completion state before navigating
+            const timer = setTimeout(() => {
+                router.push(`/rectify/${sessionId}/results`);
+            }, 2000);
+
+            return () => clearTimeout(timer);
+        }
+    }, [isComplete, result, sessionId, router]);
+
     const handleCancel = useCallback(async () => {
         if (isCancelling || cancelled) return;
         setIsCancelling(true);
@@ -54,23 +74,50 @@ export default function RobustAnalysisPage() {
             const res = await fetch('/api/queue/cancel', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ sessionId })
+                body: JSON.stringify({ sessionId }),
             });
             if (res.ok) {
                 setCancelled(true);
                 logger.info('Analysis cancelled', { sessionId });
             }
-        } catch (err) { logger.error('Cancel failed', err); }
-        finally { setIsCancelling(false); }
-    }, [sessionId, getToken, isCancelling, cancelled]);
+        } catch (err) {
+            logger.error('Cancel failed', err);
+        } finally {
+            setIsCancelling(false);
+        }
+    }, [sessionId, getToken]);
 
     const progressPercentage = useMemo(() =>
         progress?.percentage || (allSteps?.length ? ((progress?.stepIndex || 0) / allSteps.length) * 100 : 0),
         [progress?.percentage, progress?.stepIndex, allSteps?.length]
     );
 
-    if (!isConnected && !streamError && !result) return <LoadingState />;
-    if (streamError) return <ErrorDisplay error={streamError} onRetry={() => window.location.reload()} />;
+    const hasError = streamError || connectionState.status === 'error';
+    const errorMessage = streamError || connectionState.lastError || 'Unknown error';
+
+    // Derive human-readable connection label
+    const connectionLabel = useMemo(() => {
+        switch (connectionState.status) {
+            case 'streaming': return 'Connected to analysis engine';
+            case 'polling': return 'Monitoring analysis progress';
+            case 'connecting': return 'Establishing connection...';
+            case 'rate_limited': return 'Rate limited — retrying shortly';
+            case 'finished': return 'Analysis complete';
+            case 'error': return 'Connection lost';
+            default: return 'Initializing...';
+        }
+    }, [connectionState.status]);
+
+    const isLive = connectionState.status === 'streaming' || connectionState.status === 'polling';
+
+    // Loading state (only while establishing initial connection)
+    if (!isConnected && !hasError && !result && connectionState.status !== 'polling') {
+        return <LoadingState />;
+    }
+
+    if (hasError && !result) {
+        return <ErrorDisplay error={errorMessage} onRetry={() => window.location.reload()} />;
+    }
 
     return (
         <AnalysisErrorBoundary sectionName="Analysis Page">
@@ -80,7 +127,7 @@ export default function RobustAnalysisPage() {
                         <Breadcrumbs items={[
                             { label: 'Home', href: '/', icon: <Home className="w-4 h-4" /> },
                             { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
-                            { label: 'Analysis', icon: <Activity className="w-4 h-4" /> }
+                            { label: 'Analysis', icon: <Activity className="w-4 h-4" /> },
                         ]} />
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                             <div>
@@ -94,7 +141,12 @@ export default function RobustAnalysisPage() {
                             <div className="flex items-center gap-3">
                                 <AnalysisTimer startedAt={startedAt || null} isComplete={isComplete} />
                                 {!isComplete && !cancelled && (
-                                    <button onClick={handleCancel} disabled={isCancelling} className="px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-lg border transition-colors disabled:opacity-50 outline-none focus:ring-2 focus:ring-[#C65D3B]/30 text-[#C65D3B] border-[#C65D3B30] bg-[#C65D3B05]" aria-label="Cancel analysis">
+                                    <button
+                                        onClick={handleCancel}
+                                        disabled={isCancelling}
+                                        className="px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-lg border transition-colors disabled:opacity-50 outline-none focus:ring-2 focus:ring-[#C65D3B]/30 text-[#C65D3B] border-[#C65D3B30] bg-[#C65D3B05]"
+                                        aria-label="Cancel analysis"
+                                    >
                                         {isCancelling ? 'Cancelling...' : 'Cancel'}
                                     </button>
                                 )}
@@ -104,43 +156,100 @@ export default function RobustAnalysisPage() {
                 </header>
 
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} role="status" aria-live="polite" className="flex items-center gap-2 mb-4 sm:mb-6">
-                        <motion.span className="w-2 h-2 rounded-full" style={{ backgroundColor: isConnected ? "#2D7A5C" : "#C65D3B" }} animate={{ scale: isConnected ? [1, 1.3, 1] : 1 }} transition={{ duration: 1, repeat: Infinity }} aria-hidden="true" />
-                        <span className="text-xs sm:text-sm text-[#7A756F]">{isConnected ? 'Connected to analysis engine' : 'Reconnecting...'}</span>
+                    {/* Connection indicator */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        role="status"
+                        aria-live="polite"
+                        className="flex items-center gap-2 mb-4 sm:mb-6"
+                    >
+                        <motion.span
+                            className="w-2 h-2 rounded-full"
+                            style={{ backgroundColor: isLive ? '#2D7A5C' : '#C65D3B' }}
+                            animate={{ scale: isLive ? [1, 1.3, 1] : 1 }}
+                            transition={{ duration: 1, repeat: Infinity }}
+                            aria-hidden="true"
+                        />
+                        <span className="text-xs sm:text-sm text-[#7A756F]">{connectionLabel}</span>
                     </motion.div>
 
+                    {/* Progress bar (visible only during active analysis) */}
                     {!isComplete && !cancelled && (
-                        <ProgressBar percentage={progressPercentage} stepIndex={progress?.stepIndex || 0} totalSteps={allSteps?.length || 5} message={progress?.message} />
+                        <ProgressBar
+                            percentage={progressPercentage}
+                            stepIndex={progress?.stepIndex || 0}
+                            totalSteps={allSteps?.length || 5}
+                            message={progress?.message}
+                        />
                     )}
 
+                    {/* Cancelled state */}
                     {cancelled && (
-                        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} role="alert" className="rounded-2xl border p-6 sm:p-8 text-center mb-6 sm:mb-8 bg-white border-[#E8A84930]">
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            role="alert"
+                            className="rounded-2xl border p-6 sm:p-8 text-center mb-6 sm:mb-8 bg-white border-[#E8A84930]"
+                        >
                             <h2 className="text-lg sm:text-xl font-bold mb-2 text-[#1A1612]">Analysis Cancelled</h2>
                             <p className="mb-4 text-sm text-[#7A756F]">The analysis was cancelled by user request.</p>
-                            <Link href="/rectify?new=true" className="inline-block px-6 py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90 outline-none focus:ring-2 focus:ring-offset-2" style={{ background: `linear-gradient(90deg, #B8860B, #D4A853)` }}>
+                            <Link
+                                href="/rectify?new=true"
+                                className="inline-block px-6 py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90 outline-none focus:ring-2 focus:ring-offset-2"
+                                style={{ background: 'linear-gradient(90deg, #B8860B, #D4A853)' }}
+                            >
                                 Start New Analysis
                             </Link>
                         </motion.div>
                     )}
 
+                    {/* Completion banner (brief — redirects to results page shortly) */}
+                    {isComplete && result && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="rounded-2xl border-2 border-[#2D7A5C]/30 bg-[#2D7A5C]/5 p-6 sm:p-8 text-center mb-6 sm:mb-8"
+                            role="status"
+                        >
+                            <CheckCircle className="w-12 h-12 text-[#2D7A5C] mx-auto mb-3" />
+                            <h2 className="text-lg sm:text-xl font-bold text-[#1A1612] mb-1">Analysis Complete!</h2>
+                            <p className="text-sm text-[#7A756F] mb-3">
+                                Rectified Time: <span className="font-mono font-bold text-[#1A1612]">{result.rectifiedTime}</span>
+                                {' · '}
+                                Confidence: <span className="font-semibold text-[#2D7A5C]">{result.confidence}</span>
+                            </p>
+                            <p className="text-xs text-[#7A756F]">Redirecting to full results...</p>
+                        </motion.div>
+                    )}
+
+                    {/* Pipeline tracker */}
                     {allSteps && allSteps.length > 0 && (
-                        <SectionErrorBoundary sectionName="Pipeline Tracker" icon={<Settings className="w-5 h-5" />}>
-                            <PipelineTracker steps={allSteps} currentStep={progress?.stepIndex || 0} isConnected={isConnected} stats={stageStats || []} />
+                        <SectionErrorBoundary sectionName="Pipeline Tracker" icon={<Activity className="w-5 h-5" />}>
+                            <PipelineTracker
+                                steps={allSteps}
+                                currentStep={progress?.stepIndex || 0}
+                                isComplete={isComplete}
+                                stats={stageStats || []}
+                            />
                         </SectionErrorBoundary>
                     )}
 
+                    {/* AI Thinking panel */}
                     {aiThinking && (
                         <SectionErrorBoundary sectionName="AI Thinking" icon={<Brain className="w-5 h-5" />}>
                             <AIThinkingPanel thinking={aiThinking} isActive={!isComplete && !cancelled} />
                         </SectionErrorBoundary>
                     )}
 
+                    {/* Advanced signals */}
                     {(advancedSignals || (isComplete && result)) && (
                         <SectionErrorBoundary sectionName="Advanced Signals" icon={<Gem className="w-5 h-5" />}>
                             <AdvancedSignalsDashboard signals={advancedSignals} isComplete={isComplete} />
                         </SectionErrorBoundary>
                     )}
 
+                    {/* Candidate scores (visible only during analysis) */}
                     {candidateScores && candidateScores.length > 0 && !isComplete && (
                         <SectionErrorBoundary sectionName="Candidate Scores" icon={<Activity className="w-5 h-5" />}>
                             <CandidateScoreTable scores={candidateScores} />
@@ -153,15 +262,12 @@ export default function RobustAnalysisPage() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SUB-COMPONENTS (Restored)
+// SUB-COMPONENTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const LoadingState = memo(() => (
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#FFFCF8] text-center p-4">
-        <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-        >
+        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
             <Gem className="w-16 h-16 text-[#B8860B]" />
         </motion.div>
         <h1 className="text-2xl font-bold mt-6 text-[#1A1612]">Initiating Analysis Engine</h1>
@@ -170,12 +276,15 @@ const LoadingState = memo(() => (
 ));
 LoadingState.displayName = 'LoadingState';
 
-const ErrorDisplay = memo(({ error, onRetry }: { error: string, onRetry: () => void }) => (
+const ErrorDisplay = memo(({ error, onRetry }: { error: string; onRetry: () => void }) => (
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#FFFCF8] text-center p-4" role="alert">
         <AlertCircle className="w-16 h-16 text-red-500" />
         <h1 className="text-2xl font-bold mt-6 text-red-700">An Error Occurred</h1>
         <p className="text-lg text-red-600 mt-2 max-w-md">{error}</p>
-        <button onClick={onRetry} className="mt-8 px-6 py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90 bg-gray-800 flex items-center gap-2">
+        <button
+            onClick={onRetry}
+            className="mt-8 px-6 py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90 bg-gray-800 flex items-center gap-2"
+        >
             <RefreshCw className="w-4 h-4" />
             Retry Connection
         </button>
@@ -187,7 +296,7 @@ const Breadcrumbs = memo(({ items }: { items: { label: string; href?: string; ic
     <nav aria-label="Breadcrumb" className="mb-3">
         <ol className="flex items-center gap-2 text-xs sm:text-sm text-[#7A756F]">
             {items.map((item, index) => (
-                <li key={index} className="flex items-center gap-2">
+                <li key={item.label} className="flex items-center gap-2">
                     {item.href ? (
                         <Link href={item.href} className="flex items-center gap-1.5 hover:text-[#B8860B] transition-colors">
                             {item.icon}{item.label}
@@ -205,59 +314,128 @@ Breadcrumbs.displayName = 'Breadcrumbs';
 
 const AnalysisTimer = memo(({ startedAt, isComplete }: { startedAt: string | null; isComplete: boolean }) => {
     const [duration, setDuration] = useState(0);
+    const finalDurationRef = useRef<number | null>(null);
+
     useEffect(() => {
         if (!startedAt) return;
-        const start = new Date(startedAt).getTime();
+        const startMs = new Date(startedAt).getTime();
+
         if (isComplete) {
-            // Optionally calculate final duration if needed
+            // Freeze at the final elapsed time
+            if (finalDurationRef.current === null) {
+                finalDurationRef.current = Date.now() - startMs;
+            }
+            setDuration(finalDurationRef.current);
             return;
         }
-        const interval = setInterval(() => setDuration(Date.now() - start), 1000);
+
+        // Live counter — updates every second
+        const interval = setInterval(() => setDuration(Date.now() - startMs), 1000);
         return () => clearInterval(interval);
     }, [startedAt, isComplete]);
 
-    const format = (ms: number) => {
-        const totalSeconds = Math.floor(ms / 1000);
-        const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
-        const seconds = (totalSeconds % 60).toString().padStart(2, '0');
-        return `${minutes}:${seconds}`;
-    };
-
     if (!startedAt) return null;
-    return <div className="flex items-center gap-2 font-mono text-sm tabular-nums"><Clock className="w-4 h-4 text-[#7A756F]" /> <span className="text-[#1A1612]">{format(duration)}</span></div>;
+
+    const totalSeconds = Math.floor(duration / 1000);
+    const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+    const seconds = String(totalSeconds % 60).padStart(2, '0');
+
+    return (
+        <div className="flex items-center gap-2 font-mono text-sm tabular-nums">
+            <Clock className="w-4 h-4 text-[#7A756F]" />
+            <span className="text-[#1A1612]">{minutes}:{seconds}</span>
+        </div>
+    );
 });
 AnalysisTimer.displayName = 'AnalysisTimer';
 
-const ProgressBar = memo(({ percentage, stepIndex, totalSteps, message }: { percentage: number, stepIndex: number, totalSteps: number, message?: string }) => (
+const ProgressBar = memo(({ percentage, stepIndex, totalSteps, message }: {
+    percentage: number; stepIndex: number; totalSteps: number; message?: string;
+}) => (
     <div className="mb-6 sm:mb-8">
         <div className="flex justify-between items-center mb-2">
             <p className="text-sm font-semibold text-[#1A1612]">{message || 'Analysis in progress...'}</p>
             <p className="text-sm font-mono tabular-nums text-[#7A756F]">{`Step ${stepIndex + 1}/${totalSteps}`}</p>
         </div>
         <div className="w-full bg-[#F0E8DE] rounded-full h-2.5">
-            <motion.div className="bg-[#B8860B] h-2.5 rounded-full" style={{ width: `${percentage}%` }} animate={{ width: `${percentage}%` }} transition={{ duration: 0.5, ease: 'easeInOut' }} />
+            <motion.div
+                className="bg-[#B8860B] h-2.5 rounded-full"
+                style={{ width: `${percentage}%` }}
+                animate={{ width: `${percentage}%` }}
+                transition={{ duration: 0.5, ease: 'easeInOut' }}
+            />
         </div>
     </div>
 ));
 ProgressBar.displayName = 'ProgressBar';
 
-const PipelineTracker = memo(({ steps, currentStep, isConnected, stats }: { steps: StreamStep[], currentStep: number, isConnected: boolean, stats: StageStat[] }) => (
-    <div className="mb-6 sm:mb-8">
-        {/* ... component implementation ... */}
-        <h2 className="text-lg font-bold text-[#1A1612] mb-4">Analysis Pipeline</h2>
-    </div>
-));
+const PipelineTracker = memo(({ steps, currentStep, isComplete, stats }: {
+    steps: StreamStep[]; currentStep: number; isComplete: boolean; stats: StageStat[];
+}) => {
+    // Match stats to steps by index for candidate counts
+    const getStepStat = (index: number) => stats.find(s => s.stage === index + 1);
+
+    return (
+        <div className="mb-6 sm:mb-8">
+            <h2 className="text-lg font-bold text-[#1A1612] mb-4">Analysis Pipeline</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+                {steps.map((step, index) => {
+                    const isDone = index < currentStep || isComplete;
+                    const isActive = index === currentStep && !isComplete;
+                    const stat = getStepStat(index);
+
+                    return (
+                        <div
+                            key={step.id}
+                            className={`
+                                relative rounded-xl border p-3 sm:p-4 transition-all duration-300
+                                ${isDone ? 'bg-[#2D7A5C]/5 border-[#2D7A5C]/30' : ''}
+                                ${isActive ? 'bg-[#B8860B]/5 border-[#B8860B]/40 ring-1 ring-[#B8860B]/20' : ''}
+                                ${!isDone && !isActive ? 'bg-white border-[#F0E8DE] opacity-50' : ''}
+                            `}
+                        >
+                            <div className="flex items-center gap-2 mb-1">
+                                {isDone ? (
+                                    <CheckCircle className="w-4 h-4 text-[#2D7A5C] flex-shrink-0" />
+                                ) : isActive ? (
+                                    <motion.div
+                                        className="w-4 h-4 rounded-full bg-[#B8860B] flex-shrink-0"
+                                        animate={{ scale: [1, 1.2, 1] }}
+                                        transition={{ duration: 1.5, repeat: Infinity }}
+                                    />
+                                ) : (
+                                    <div className="w-4 h-4 rounded-full border-2 border-[#F0E8DE] flex-shrink-0" />
+                                )}
+                                <span className="text-xs sm:text-sm font-semibold text-[#1A1612] truncate">{step.name}</span>
+                            </div>
+                            {stat && (
+                                <p className="text-xs text-[#7A756F] ml-6">{stat.candidateCount} candidates</p>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+    );
+});
 PipelineTracker.displayName = 'PipelineTracker';
 
-const AIThinkingPanel = memo(({ thinking, isActive }: { thinking: AIThinking, isActive: boolean }) => {
+const AIThinkingPanel = memo(({ thinking, isActive }: { thinking: AIThinking; isActive: boolean }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
+
     useEffect(() => {
-        if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
     }, [thinking?.fullText]);
+
     return (
         <div className="mb-6 sm:mb-8">
             <h2 className="text-lg font-bold text-[#1A1612] mb-4">AI Thinking</h2>
-            <div ref={scrollRef} className="h-48 overflow-y-auto bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm text-gray-600 font-mono">
+            <div
+                ref={scrollRef}
+                className="h-48 overflow-y-auto bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm text-gray-600 font-mono whitespace-pre-wrap"
+            >
                 {thinking.fullText}
                 {isActive && <span className="inline-block w-2 h-4 bg-gray-800 animate-pulse ml-1" />}
             </div>
@@ -268,6 +446,7 @@ AIThinkingPanel.displayName = 'AIThinkingPanel';
 
 const CandidateScoreTable = memo(({ scores }: { scores: CandidateScore[] }) => {
     const sortedScores = useMemo(() => [...scores].sort((a, b) => b.score - a.score), [scores]);
+
     return (
         <div className="mb-6 sm:mb-8">
             <h2 className="text-lg font-bold text-[#1A1612] mb-4">Candidate Scores</h2>
@@ -281,8 +460,8 @@ const CandidateScoreTable = memo(({ scores }: { scores: CandidateScore[] }) => {
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-[#F0E8DE]">
-                        {sortedScores.map(s => (
-                            <tr key={s.time}>
+                        {sortedScores.map((s, index) => (
+                            <tr key={`${s.time}-stage${s.stage}-${index}`}>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-[#1A1612]">{s.time}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-[#1A1612]">{s.score.toFixed(2)}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-[#7A756F]">{s.stage}</td>
@@ -292,6 +471,6 @@ const CandidateScoreTable = memo(({ scores }: { scores: CandidateScore[] }) => {
                 </table>
             </div>
         </div>
-    )
+    );
 });
 CandidateScoreTable.displayName = 'CandidateScoreTable';
