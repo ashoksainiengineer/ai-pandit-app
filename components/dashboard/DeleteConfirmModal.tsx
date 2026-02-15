@@ -78,7 +78,7 @@ export function DeleteConfirmModal({
 
             {/* Subtitle */}
             <p className="text-[#7A756F] text-center text-sm mb-6">
-              This will permanently remove <span className="font-medium text-[#1A1612]">{session.fullName}'s</span> data
+              This will permanently remove <span className="font-medium text-[#1A1612]">{session.fullName}&apos;s</span> data
             </p>
 
             {/* Data Categories Grid */}

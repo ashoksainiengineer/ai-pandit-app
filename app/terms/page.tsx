@@ -85,7 +85,7 @@ export default function TermsPage() {
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-indigo-600 mt-1">✓</span>
-                <span><strong>Anonymization:</strong> Your name and exact location are anonymized before being sent to AI systems. You will be assigned a pseudonym (e.g., "Golden-Star-A7B2") for AI processing.</span>
+                <span><strong>Anonymization:</strong> Your name and exact location are anonymized before being sent to AI systems. You will be assigned a pseudonym (e.g., &quot;Golden-Star-A7B2&quot;) for AI processing.</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-indigo-600 mt-1">✓</span>
@@ -120,7 +120,7 @@ export default function TermsPage() {
             <p className="text-[#4A453F] leading-relaxed mb-4">
               For transparency, here is exactly what data is shared with AI systems during analysis:
             </p>
-            
+
             <div className="grid md:grid-cols-2 gap-4 mb-4">
               <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
                 <h4 className="font-semibold text-emerald-800 mb-2">✓ Data That IS Shared</h4>
@@ -139,13 +139,13 @@ export default function TermsPage() {
                   <li>• Your real name</li>
                   <li>• Exact address/location string</li>
                   <li>• Health conditions</li>
-                  <li>• Spouse's real name</li>
+                  <li>• Spouse&apos;s real name</li>
                   <li>• Email address</li>
                   <li>• Phone number</li>
                 </ul>
               </div>
             </div>
-            
+
             <p className="text-sm text-[#7A756F]">
               All data shared with AI systems is anonymized and used solely for the purpose of birth time rectification. We do not share your data with AI providers for any other purpose.
             </p>

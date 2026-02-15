@@ -6,10 +6,10 @@
 
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { 
-  Telescope, 
-  Orbit, 
-  Clock, 
+import {
+  Telescope,
+  Orbit,
+  Clock,
   Compass,
   Activity,
   Database,
@@ -119,11 +119,10 @@ export default function EphemerisTable() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-4 py-3 text-xs font-medium transition-colors ${
-                    activeTab === tab.id
+                  className={`flex items-center gap-2 px-4 py-3 text-xs font-medium transition-colors ${activeTab === tab.id
                       ? 'text-[#B8860B] border-b-2 border-[#B8860B] bg-[#B8860B]/5'
                       : 'text-[#7A756F] hover:text-[#4A453F]'
-                  }`}
+                    }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
                   {tab.label}
@@ -142,7 +141,7 @@ export default function EphemerisTable() {
                     <span className="text-[10px] text-[#7A756F] uppercase tracking-wider font-bold">Ascendant (Lagna)</span>
                   </div>
                   <div className="text-lg font-bold text-[#B8860B] font-mono">
-                    Aries 15°23'45" (Bharani)
+                    Aries 15°23&apos;45&quot; (Bharani)
                   </div>
                 </div>
 
@@ -166,13 +165,12 @@ export default function EphemerisTable() {
                       </div>
                       <div className="text-[10px] text-[#7A756F] flex items-center justify-between">
                         <span>{planet.nakshatra}</span>
-                        <span className={`text-[8px] px-1.5 py-0.5 rounded ${
-                          planet.dignity === 'Exalted' ? 'bg-emerald-100 text-emerald-600' :
-                          planet.dignity === 'Debilitated' ? 'bg-red-100 text-red-600' :
-                          planet.dignity === 'Own House' ? 'bg-blue-100 text-blue-600' :
-                          planet.dignity === 'Moolatrikona' ? 'bg-purple-100 text-purple-600' :
-                          'bg-[#F0E8DE] text-[#7A756F]'
-                        }`}>
+                        <span className={`text-[8px] px-1.5 py-0.5 rounded ${planet.dignity === 'Exalted' ? 'bg-emerald-100 text-emerald-600' :
+                            planet.dignity === 'Debilitated' ? 'bg-red-100 text-red-600' :
+                              planet.dignity === 'Own House' ? 'bg-blue-100 text-blue-600' :
+                                planet.dignity === 'Moolatrikona' ? 'bg-purple-100 text-purple-600' :
+                                  'bg-[#F0E8DE] text-[#7A756F]'
+                          }`}>
                           {planet.dignity}
                         </span>
                       </div>
@@ -187,11 +185,10 @@ export default function EphemerisTable() {
                             initial={{ width: 0 }}
                             animate={{ width: `${parseFloat(planet.shadbala) * 50}%` }}
                             transition={{ delay: 0.5 + index * 0.05, duration: 0.5 }}
-                            className={`h-full rounded-full ${
-                              parseFloat(planet.shadbala) > 1.2 ? 'bg-emerald-500' :
-                              parseFloat(planet.shadbala) > 0.9 ? 'bg-amber-500' :
-                              'bg-red-500'
-                            }`}
+                            className={`h-full rounded-full ${parseFloat(planet.shadbala) > 1.2 ? 'bg-emerald-500' :
+                                parseFloat(planet.shadbala) > 0.9 ? 'bg-amber-500' :
+                                  'bg-red-500'
+                              }`}
                           />
                         </div>
                       </div>
@@ -239,7 +236,7 @@ export default function EphemerisTable() {
                       {['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'][i]}
                     </div>
                     <div className="text-[10px] text-[#B8860B]">
-                      {15 + i}°{20 + i}'{30 + i}"
+                      {15 + i}°{20 + i}&apos;{30 + i}&quot;
                     </div>
                   </motion.div>
                 ))}
@@ -266,11 +263,10 @@ export default function EphemerisTable() {
                 {/* Vimshottari Sequence */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {['Ketu (7)', 'Venus (20)', 'Sun (6)', 'Moon (10)', 'Mars (7)', 'Rahu (18)', 'Jupiter (16)', 'Saturn (19)', 'Mercury (17)'].map((planet, i) => (
-                    <div 
+                    <div
                       key={planet}
-                      className={`p-3 rounded-xl border text-center text-xs ${
-                        i === 1 ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-[#FDF8F3] border-[#F0E8DE] text-[#7A756F]'
-                      }`}
+                      className={`p-3 rounded-xl border text-center text-xs ${i === 1 ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-[#FDF8F3] border-[#F0E8DE] text-[#7A756F]'
+                        }`}
                     >
                       {planet} years
                     </div>

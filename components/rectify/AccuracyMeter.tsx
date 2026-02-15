@@ -174,7 +174,7 @@ export default function AccuracyMeter({ lifeEvents, hasPhysicalTraits = false }:
                 <div className="mt-4 p-3 bg-[#2D7A5C]/10 rounded-lg border border-[#2D7A5C]/20">
                     <p className="text-sm text-[#2D7A5C] flex items-center gap-2">
                         <span className="text-lg">🎯</span>
-                        Excellent! You've provided enough data for maximum accuracy rectification.
+                        Excellent! You&apos;ve provided enough data for maximum accuracy rectification.
                     </p>
                 </div>
             )}

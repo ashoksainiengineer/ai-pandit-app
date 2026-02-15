@@ -117,7 +117,7 @@ function TestimonialCard({ testimonial, isExpanded, onToggle, renderStars }: Tes
             {/* Quote */}
             <div className="mb-4">
                 <p className="text-[#4A453F] italic leading-relaxed">
-                    "{isExpanded ? testimonial.fullReview : testimonial.shortQuote}"
+                    &quot;{isExpanded ? testimonial.fullReview : testimonial.shortQuote}&quot;
                 </p>
             </div>
 

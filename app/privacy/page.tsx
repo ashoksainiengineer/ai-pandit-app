@@ -82,7 +82,7 @@ export default function PrivacyPage() {
                 AI Processing & Data Anonymization
               </h2>
             </div>
-            
+
             <div className="p-4 bg-purple-100/50 border border-purple-200 rounded-lg mb-6">
               <p className="text-sm text-purple-900">
                 <strong>Critical Privacy Protection:</strong> We use advanced anonymization techniques to ensure your personally identifiable information (PII) is never exposed to AI systems or third-party AI providers.
@@ -99,7 +99,7 @@ export default function PrivacyPage() {
             <ul className="space-y-2 text-[#4A453F] mb-6">
               <li className="flex items-start gap-2">
                 <span className="text-purple-600 mt-1">→</span>
-                <span><strong>Your Name</strong> → Replaced with anonymous ID (e.g., "Golden-Star-A7B2")</span>
+                <span><strong>Your Name</strong> → Replaced with anonymous ID (e.g., &quot;Golden-Star-A7B2&quot;)</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-purple-600 mt-1">→</span>
@@ -255,9 +255,9 @@ export default function PrivacyPage() {
               </h2>
             </div>
             <p className="text-[#4A453F] leading-relaxed mb-4">
-              We use OpenRouter as our AI gateway to access DeepSeek's AI models for astrological analysis. Here's how we ensure your privacy:
+              We use OpenRouter as our AI gateway to access DeepSeek&apos;s AI models for astrological analysis. Here&apos;s how we ensure your privacy:
             </p>
-            
+
             <div className="space-y-4">
               <div className="p-4 bg-[#FDF8F3] rounded-lg">
                 <h4 className="font-semibold text-[#1A1612] mb-2">OpenRouter (AI Gateway)</h4>
@@ -267,7 +267,7 @@ export default function PrivacyPage() {
                   <li>• Privacy Policy: <a href="https://openrouter.ai/privacy" target="_blank" rel="noopener noreferrer" className="text-[#B8860B] hover:underline">openrouter.ai/privacy</a></li>
                 </ul>
               </div>
-              
+
               <div className="p-4 bg-[#FDF8F3] rounded-lg">
                 <h4 className="font-semibold text-[#1A1612] mb-2">DeepSeek (AI Model Provider)</h4>
                 <ul className="space-y-1 text-sm text-[#7A756F]">
@@ -298,7 +298,7 @@ export default function PrivacyPage() {
               </h2>
             </div>
             <p className="text-[#4A453F] leading-relaxed mb-6">
-              We collect only the information necessary for birth time rectification. Below is a complete breakdown of what data we store and how it's protected:
+              We collect only the information necessary for birth time rectification. Below is a complete breakdown of what data we store and how it&apos;s protected:
             </p>
 
             {/* Data Collection Table */}
@@ -383,7 +383,7 @@ export default function PrivacyPage() {
 
             <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-sm text-amber-800">
-                <strong>Note:</strong> Only location coordinates (latitude/longitude) and analysis settings are stored unencrypted, as they are required for astrological calculations. All personal identifying information is always encrypted. Data marked "Anonymized" for AI is stripped of PII before transmission.
+                <strong>Note:</strong> Only location coordinates (latitude/longitude) and analysis settings are stored unencrypted, as they are required for astrological calculations. All personal identifying information is always encrypted. Data marked &quot;Anonymized&quot; for AI is stripped of PII before transmission.
               </p>
             </div>
           </section>
@@ -412,7 +412,7 @@ export default function PrivacyPage() {
                 <p className="text-sm text-[#7A756F]">Email and name from Clerk are used for login and account identification only.</p>
               </div>
               <div className="p-4 bg-[#FDF8F3] rounded-lg">
-                <h3 className="font-semibold text-[#1A1612] mb-2">What We DON'T Do</h3>
+                <h3 className="font-semibold text-[#1A1612] mb-2">What We DON&apos;T Do</h3>
                 <p className="text-sm text-[#7A756F]">We never sell, share, or use your data for advertising or third-party analytics.</p>
               </div>
             </div>
@@ -577,7 +577,7 @@ export default function PrivacyPage() {
               </div>
               <div className="p-4 bg-[#FDF8F3] rounded-lg">
                 <h4 className="font-semibold text-[#1A1612] mb-2">DPDP (India)</h4>
-                <p className="text-sm text-[#7A756F]">Compliant with India's Digital Personal Data Protection Act, 2023.</p>
+                <p className="text-sm text-[#7A756F]">Compliant with India&apos;s Digital Personal Data Protection Act, 2023.</p>
               </div>
             </div>
           </section>
@@ -590,8 +590,8 @@ export default function PrivacyPage() {
             <p className="text-[#4A453F] mb-4">
               If you have any questions about our privacy practices, AI data processing, or would like to exercise your data rights, please contact our Data Protection Officer:
             </p>
-            <a 
-              href="mailto:privacy@aipandit.app" 
+            <a
+              href="mailto:privacy@aipandit.app"
               className="inline-flex items-center gap-2 text-[#B8860B] hover:text-[#6B1F7A] transition-colors font-medium"
             >
               privacy@aipandit.app

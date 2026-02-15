@@ -106,7 +106,7 @@ export default function EventSelector({
           className="bg-white rounded-xl border border-[#E8E0D5] overflow-hidden"
         >
           <div className="p-3 bg-[#F5EFE7] border-b border-[#E8E0D5] text-xs text-[#7A756F]">
-            Found {searchResults.length} results for "{searchQuery}"
+            Found {searchResults.length} results for &quot;{searchQuery}&quot;
           </div>
           <div className="max-h-64 overflow-y-auto">
             {searchResults.map((event) => {
@@ -116,11 +116,10 @@ export default function EventSelector({
                   key={event.id}
                   onClick={() => handleEventClick(event, event.categoryId)}
                   disabled={added}
-                  className={`w-full text-left px-4 py-3 border-b border-[#F0E8DE] last:border-0 transition-colors ${
-                    added
+                  className={`w-full text-left px-4 py-3 border-b border-[#F0E8DE] last:border-0 transition-colors ${added
                       ? 'bg-[#2D7A5C]/5 text-[#2D7A5C]'
                       : 'hover:bg-[#F5EFE7]'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -151,11 +150,10 @@ export default function EventSelector({
               <button
                 key={importance}
                 onClick={() => toggleImportance(importance)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                  importanceFilter.includes(importance)
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${importanceFilter.includes(importance)
                     ? 'bg-[#B8860B] text-white'
                     : 'bg-[#F5EFE7] text-[#7A756F] hover:bg-[#E8E0D5]'
-                }`}
+                  }`}
               >
                 {getImportanceLabel(importance)}
               </button>
@@ -181,11 +179,10 @@ export default function EventSelector({
             </h3>
             <button
               onClick={() => setShowSensitive(!showSensitive)}
-              className={`text-xs flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors ${
-                showSensitive
+              className={`text-xs flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors ${showSensitive
                   ? 'bg-[#DC143C]/10 text-[#DC143C]'
                   : 'bg-[#F5EFE7] text-[#7A756F] hover:bg-[#E8E0D5]'
-              }`}
+                }`}
             >
               <AlertTriangle className="w-3 h-3" />
               {showSensitive ? 'Hide Sensitive' : 'Show Sensitive'}
@@ -203,33 +200,30 @@ export default function EventSelector({
                 }
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className={`p-4 rounded-xl text-left transition-all border ${
-                  selectedCategory === category.id
+                className={`p-4 rounded-xl text-left transition-all border ${selectedCategory === category.id
                     ? 'bg-[#B8860B] text-white border-[#B8860B] shadow-md'
                     : category.isSensitive
                       ? 'bg-[#DC143C]/5 text-[#4A453F] border-[#DC143C]/20 hover:bg-[#DC143C]/10'
                       : 'bg-white text-[#4A453F] border-[#E8E0D5] hover:border-[#B8860B]/30 hover:shadow-sm'
-                }`}
+                  }`}
               >
                 <div className="flex items-start justify-between">
                   <span className="text-2xl">{category.icon}</span>
                   <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${
-                      selectedCategory === category.id
+                    className={`text-xs px-2 py-0.5 rounded-full ${selectedCategory === category.id
                         ? 'bg-white/20'
                         : 'bg-[#F5EFE7] text-[#7A756F]'
-                    }`}
+                      }`}
                   >
                     {category.events.length}
                   </span>
                 </div>
                 <div className="mt-2 font-medium text-sm">{category.label}</div>
                 <div
-                  className={`text-xs mt-1 ${
-                    selectedCategory === category.id
+                  className={`text-xs mt-1 ${selectedCategory === category.id
                       ? 'text-white/80'
                       : 'text-[#7A756F]'
-                  }`}
+                    }`}
                 >
                   {category.events.slice(0, 3).map((e) => e.label.split(' ')[0]).join(', ')}
                   {category.events.length > 3 && '...'}
@@ -281,18 +275,16 @@ export default function EventSelector({
                             key={event.id}
                             onClick={() => handleEventClick(event, category.id)}
                             disabled={added}
-                            className={`px-3 py-2 rounded-lg text-sm transition-all ${
-                              added
+                            className={`px-3 py-2 rounded-lg text-sm transition-all ${added
                                 ? 'bg-[#2D7A5C]/10 text-[#2D7A5C] cursor-default'
                                 : 'bg-[#F5EFE7] text-[#4A453F] hover:bg-[#B8860B]/10 hover:text-[#B8860B] border border-transparent hover:border-[#B8860B]/30'
-                            }`}
+                              }`}
                           >
                             {added && <span className="mr-1">✓</span>}
                             {event.label}
                             <span
-                              className={`ml-2 text-xs ${
-                                added ? 'text-[#2D7A5C]' : 'text-[#A8A39D]'
-                              }`}
+                              className={`ml-2 text-xs ${added ? 'text-[#2D7A5C]' : 'text-[#A8A39D]'
+                                }`}
                             >
                               {event.importance === 'critical' && '⚡'}
                             </span>

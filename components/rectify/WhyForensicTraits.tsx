@@ -8,8 +8,8 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Sparkles, ChevronDown, BookOpen, ScanFace, 
+import {
+  Sparkles, ChevronDown, BookOpen, ScanFace,
   Activity, Speech, Users, Brain, Target
 } from 'lucide-react';
 
@@ -72,7 +72,7 @@ export default function WhyForensicTraits() {
       className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl border border-[#B8860B]/30 overflow-hidden shadow-lg shadow-[#B8860B]/5"
     >
       {/* Header */}
-      <div 
+      <div
         className="p-5 cursor-pointer hover:bg-[#F5EFE7]/50 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -87,8 +87,8 @@ export default function WhyForensicTraits() {
               </h3>
             </div>
             <p className="text-sm text-[#4A453F] leading-relaxed">
-              <span className="font-semibold text-[#B8860B]">Your body is a cosmic map.</span> Every feature—forehead, eyes, voice—is 
-              <span className="font-semibold text-[#1A1612]"> encoded by planets at birth</span>. 
+              <span className="font-semibold text-[#B8860B]">Your body is a cosmic map.</span> Every feature—forehead, eyes, voice—is
+              <span className="font-semibold text-[#1A1612]"> encoded by planets at birth</span>.
               We verify: Does your body match your chart?
             </p>
           </div>
@@ -133,11 +133,10 @@ export default function WhyForensicTraits() {
                     e.stopPropagation();
                     setActiveSection(tab.id as any);
                   }}
-                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
-                    activeSection === tab.id 
-                      ? 'bg-white text-[#B8860B] shadow-sm' 
-                      : 'text-[#7A756F] hover:text-[#4A453F]'
-                  }`}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all ${activeSection === tab.id
+                    ? 'bg-white text-[#B8860B] shadow-sm'
+                    : 'text-[#7A756F] hover:text-[#4A453F]'
+                    }`}
                 >
                   <tab.icon className="w-3.5 h-3.5" />
                   {tab.label}
@@ -159,20 +158,20 @@ export default function WhyForensicTraits() {
                       The Body is a Cosmic Text
                     </h4>
                     <p className="text-sm text-[#4A453F] leading-relaxed">
-                      According to <span className="italic">Brihat Parashara Hora Shastra</span>, your physical body is 
-                      <span className="font-bold text-[#B8860B]"> NOT random</span>. It is a manifestation of your 
+                      According to <span className="italic">Brihat Parashara Hora Shastra</span>, your physical body is
+                      <span className="font-bold text-[#B8860B]"> NOT random</span>. It is a manifestation of your
                       <span className="font-bold text-[#1A1612]"> Lagna (Ascendant)</span> and its ruling planet at the moment of birth.
                     </p>
                   </div>
 
                   <div className="space-y-3">
                     <h5 className="font-semibold text-sm text-[#1A1612]">The Lagna-Body Connection:</h5>
-                    
+
                     <div className="space-y-2">
                       <div className="p-3 bg-white rounded-lg border border-[#F0E8DE]">
                         <div className="font-medium text-sm text-[#1A1612] mb-1">1st House (Lagna)</div>
                         <p className="text-xs text-[#7A756F]">
-                          Determines overall body type, appearance, and constitution. 
+                          Determines overall body type, appearance, and constitution.
                           Wrong Lagna = Wrong physical description.
                         </p>
                       </div>
@@ -201,8 +200,8 @@ export default function WhyForensicTraits() {
                       <span className="font-semibold text-sm text-[#C65D3B]">Birth Time Discrepancy</span>
                     </div>
                     <p className="text-xs text-[#4A453F]">
-                      If your chart says Aries Lagna (Pitta, athletic, competitive) but you have 
-                      a thin, nervous, intellectual build (Vata, Gemini traits), your birth time is likely 
+                      If your chart says Aries Lagna (Pitta, athletic, competitive) but you have
+                      a thin, nervous, intellectual build (Vata, Gemini traits), your birth time is likely
                       off by <span className="font-bold">12-15 minutes</span>.
                     </p>
                   </div>
@@ -222,7 +221,7 @@ export default function WhyForensicTraits() {
                   <p className="text-xs text-[#7A756F]">
                     Each trait corresponds to specific planetary and house influences
                   </p>
-                  
+
                   <div className="space-y-3">
                     {traitScience.map((item, idx) => (
                       <div key={idx} className="p-3 bg-white rounded-xl border border-[#F0E8DE]">
@@ -233,11 +232,10 @@ export default function WhyForensicTraits() {
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
                               <h5 className="font-semibold text-sm text-[#1A1612]">{item.trait}</h5>
-                              <span className={`text-[10px] px-2 py-0.5 rounded-full ${
-                                item.accuracy === 'Very High' 
-                                  ? 'bg-[#2D7A5C]/10 text-[#2D7A5C]' 
-                                  : 'bg-[#D4A853]/10 text-[#B8860B]'
-                              }`}>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full ${item.accuracy === 'Very High'
+                                ? 'bg-[#2D7A5C]/10 text-[#2D7A5C]'
+                                : 'bg-[#D4A853]/10 text-[#B8860B]'
+                                }`}>
                                 {item.accuracy} Accuracy
                               </span>
                             </div>
@@ -268,8 +266,8 @@ export default function WhyForensicTraits() {
             {/* Footer Quote */}
             <div className="p-4 bg-gradient-to-r from-[#B8860B]/10 to-[#D4A853]/10 border-t border-[#D4A853]/20">
               <p className="text-sm text-center text-[#4A453F] italic">
-                "The body never lies. It holds the memory of the stars at birth. 
-                Learn to read it, and you hold the key to time itself."
+                &quot;The body never lies. It holds the memory of the stars at birth.
+                Learn to read it, and you hold the key to time itself.&quot;
               </p>
               <p className="text-xs text-center text-[#7A756F] mt-1">
                 — Ancient Vedic Seer

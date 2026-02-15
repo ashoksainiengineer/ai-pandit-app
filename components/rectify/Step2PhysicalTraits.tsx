@@ -111,7 +111,7 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
                             <div>
                                 <strong className="text-[#6B9AC4]">Astrological Logic:</strong> This trait helps the AI differentiate between planetary influences on your Ascendant.
                                 <br />
-                                <span className="italic opacity-70">Example: A "Mars" jawline rules out soft ascendants like Pisces.</span>
+                                <span className="italic opacity-70">Example: A &quot;Mars&quot; jawline rules out soft ascendants like Pisces.</span>
                             </div>
                         </div>
                     </motion.div>
@@ -140,7 +140,7 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
                             {opt.signs}
                         </div>
                         <div className="text-[10px] text-[#7A756F] italic leading-tight group-hover:text-[#4A453F] transition-colors">
-                            "{opt.guide}"
+                            &quot;{opt.guide}&quot;
                         </div>
                     </button>
                 ))}
