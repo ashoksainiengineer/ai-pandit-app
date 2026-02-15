@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
 import { BirthData, LifeEvent, PhysicalTraits } from '@/lib/types';
+import { env } from '@/lib/config';
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
 import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
 import Step2ForensicTraits from '@/components/rectify/Step2ForensicTraits';
@@ -67,7 +68,9 @@ export default function EditSessionPage() {
     useEffect(() => {
         async function fetchSession() {
             try {
-                const res = await fetch(`/api/sessions/${sessionId}`);
+                const backendUrl = env.api.backendUrl.replace(/\/$/, '');
+                // Use the new queue endpoint which handles session retrieval too
+                const res = await fetch(`${backendUrl}/api/queue?sessionId=${sessionId}`);
                 const data = await res.json();
 
                 if (!data.success) {
@@ -76,18 +79,20 @@ export default function EditSessionPage() {
                     return;
                 }
 
-                setBirthData(data.data.birthData);
-                setLifeEvents(data.data.lifeEvents || []);
-                if (data.data.physicalTraits) {
-                    setPhysicalTraits(data.data.physicalTraits);
+                // Data mapping from queue format
+                const session = data.data;
+                setBirthData(session.birthData);
+                setLifeEvents(session.lifeEvents || []);
+                if (session.physicalTraits) {
+                    setPhysicalTraits(session.physicalTraits);
                 }
                 // Load forensic traits from database (new feature support)
-                if (data.data.forensicTraits) {
-                    setForensicTraits(data.data.forensicTraits);
+                if (session.forensicTraits) {
+                    setForensicTraits(session.forensicTraits);
                 }
                 // Load offset config if available, otherwise default
-                if (data.data.offsetConfig) {
-                    setOffsetConfig(data.data.offsetConfig);
+                if (session.offsetConfig) {
+                    setOffsetConfig(typeof session.offsetConfig === 'string' ? JSON.parse(session.offsetConfig) : session.offsetConfig);
                 }
                 setLoading(false);
                 setIsLoaded(true); // Data loaded, enable auto-save
@@ -117,10 +122,12 @@ export default function EditSessionPage() {
         const saveDraft = async () => {
             setSavingStatus('saving');
             try {
-                await fetch(`/api/sessions/${sessionId}`, {
-                    method: 'PUT',
+                const backendUrl = env.api.backendUrl.replace(/\/$/, '');
+                await fetch(`${backendUrl}/api/drafts`, {
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
+                        sessionId, // Include session ID to update existing
                         birthData,
                         lifeEvents,
                         physicalTraits,
@@ -195,18 +202,27 @@ export default function EditSessionPage() {
         setError(null);
 
         try {
+            const backendUrl = env.api.backendUrl.replace(/\/$/, '');
+
             // Final update (not draft)
-            const updateRes = await fetch(`/api/sessions/${sessionId}`, {
-                method: 'PUT',
+            // Use the submit endpoint logic or just update then requeue
+            // Since we don't have a direct "update session" endpoint exposed publicly except for drafts/submit
+            // We will use the calculate/submit flow logic
+
+            const payload = {
+                birthData,
+                lifeEvents,
+                physicalTraits,
+                forensicTraits,
+                offsetConfig
+            };
+
+            const submitUrl = `${backendUrl}/api/sessions/${sessionId}/submit`;
+
+            const updateRes = await fetch(submitUrl, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    birthData,
-                    lifeEvents,
-                    physicalTraits,
-                    forensicTraits, // Include forensic traits in final save
-                    offsetConfig
-                    // isDraft undefined -> Resets status
-                })
+                body: JSON.stringify(payload)
             });
 
             const updateResult = await updateRes.json();
@@ -217,8 +233,10 @@ export default function EditSessionPage() {
             }
 
             // Then re-queue the session
-            const queueRes = await fetch(`/api/sessions/${sessionId}/requeue`, {
-                method: 'POST'
+            const queueRes = await fetch(`${backendUrl}/api/queue/requeue`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId })
             });
 
             const queueResult = await queueRes.json();

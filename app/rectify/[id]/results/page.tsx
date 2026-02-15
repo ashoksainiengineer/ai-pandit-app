@@ -6,6 +6,7 @@ import { ResultsDashboard } from '@/components/rectify/ResultsDashboard';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
 import { Breadcrumbs, predefinedBreadcrumbs } from '@/components/ui/Breadcrumbs';
+import { env } from '@/lib/config';
 
 export default function ResultsPage() {
     const params = useParams();
@@ -54,7 +55,8 @@ export default function ResultsPage() {
         const fetchFromServer = async () => {
             try {
                 console.log('📡 [Results] Local data missing or skeletal. Hydrating from API...');
-                const res = await fetch(`/api/sessions/${id}`);
+                const backendUrl = env.api.backendUrl.replace(/\/$/, '');
+                const res = await fetch(`${backendUrl}/api/queue?sessionId=${id}`);
                 const data = await res.json();
 
                 if (data.success && data.data) {

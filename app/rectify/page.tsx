@@ -299,33 +299,42 @@ function RectifyPageContent() {
     useEffect(() => {
         const loadDraft = async () => {
             const savedDraftId = localStorage.getItem('btr_draft_id');
-            if (!savedDraftId || !userId) return;
+            if (!savedDraftId) return;
 
             try {
                 const token = await getToken();
-                const res = await fetch(`/api/sessions/${savedDraftId}`, {
+                const backendUrl = env.api.backendUrl.replace(/\/$/, '');
+                // Use absolute backend URL
+                const res = await fetch(`${backendUrl}/api/queue?sessionId=${savedDraftId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
                 if (res.ok) {
                     const result = await res.json();
                     if (result.success && result.data) {
-                        // Only load if it's actually a draft (not submitted)
-                        if (result.data.status === 'draft') {
-                            setDraftSessionId(savedDraftId);
-                            if (result.data.birthData) setBirthData(result.data.birthData);
-                            if (result.data.lifeEvents?.length) setLifeEvents(result.data.lifeEvents);
-                            if (result.data.forensicTraits) setForensicTraits(result.data.forensicTraits);
-                            if (result.data.spouseData) setSpouseData(result.data.spouseData);
-                            if (result.data.offsetConfig) setOffsetConfig(result.data.offsetConfig);
-                            setLastSavedData(JSON.stringify({
-                                birthData: result.data.birthData,
-                                lifeEvents: result.data.lifeEvents,
-                                forensicTraits: result.data.forensicTraits,
-                                spouseData: result.data.spouseData,
-                                offsetConfig: result.data.offsetConfig
-                            }));
+                        const session = result.data;
+                        // Only load if it's actually in a state that allows editing (though queue endpoint returns all)
+                        // We assume if it exists and user has ID, we load it.
+
+                        setDraftSessionId(savedDraftId);
+                        if (session.birthData) setBirthData(session.birthData);
+                        if (session.lifeEvents?.length) setLifeEvents(session.lifeEvents);
+                        if (session.forensicTraits) setForensicTraits(session.forensicTraits);
+                        if (session.spouseData) setSpouseData(session.spouseData);
+
+                        if (session.offsetConfig) {
+                            setOffsetConfig(typeof session.offsetConfig === 'string'
+                                ? JSON.parse(session.offsetConfig)
+                                : session.offsetConfig);
                         }
+
+                        setLastSavedData(JSON.stringify({
+                            birthData: session.birthData,
+                            lifeEvents: session.lifeEvents,
+                            forensicTraits: session.forensicTraits,
+                            spouseData: session.spouseData,
+                            offsetConfig: session.offsetConfig
+                        }));
                     }
                 }
             } catch (err) {
@@ -334,7 +343,7 @@ function RectifyPageContent() {
         };
 
         loadDraft();
-    }, [userId, getToken]);
+    }, [getToken]);
 
     if (isLoading) {
         return <RectifyPageSkeleton />;
