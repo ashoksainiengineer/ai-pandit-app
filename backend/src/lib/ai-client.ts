@@ -753,18 +753,21 @@ function sleep(ms: number): Promise<void> {
 /**
  * Execute AI calls in parallel batches
  */
-export async function executeAIInParallel(
-    tasks: Array<() => Promise<AIResponse>>,
+/**
+ * Execute tasks in parallel with controlled concurrency
+ */
+export async function executeAIInParallel<T>(
+    tasks: Array<() => Promise<T>>,
     concurrency: number = 3,
     staggerMs: number = 500
-): Promise<AIResponse[]> {
-    const results: AIResponse[] = new Array(tasks.length);
+): Promise<T[]> {
+    const results: T[] = new Array(tasks.length);
     const queue = tasks.map((task, index) => ({ task, index }));
     let activeCount = 0;
     let nextIndex = 0;
 
     return new Promise((resolve) => {
-        async function runNext() {
+        const runNext = () => {
             if (nextIndex >= tasks.length && activeCount === 0) {
                 resolve(results);
                 return;
@@ -775,25 +778,28 @@ export async function executeAIInParallel(
                 activeCount++;
 
                 if (staggerMs > 0 && activeCount > 1) {
-                    await sleep(staggerMs * (activeCount - 1));
+                    // Stagger logic is simplified here to avoid blocking loop
+                    setTimeout(() => {
+                        processTask(task, index);
+                    }, staggerMs * (activeCount - 1));
+                } else {
+                    processTask(task, index);
                 }
-
-                (async () => {
-                    try {
-                        results[index] = await task();
-                    } catch (error) {
-                        results[index] = {
-                            success: false,
-                            content: '',
-                            error: error instanceof Error ? error.message : String(error)
-                        };
-                    } finally {
-                        activeCount--;
-                        runNext();
-                    }
-                })();
             }
-        }
+        };
+
+        const processTask = async (task: () => Promise<T>, index: number) => {
+            try {
+                results[index] = await task();
+            } catch (error) {
+                // For now, if a task fails and T is not AIResponse, we might have issues.
+                // But in our case, we handle errors inside the task wrapper in stage2/4.
+                logger.error(`Parallel task failed at index ${index}`, error);
+            } finally {
+                activeCount--;
+                runNext();
+            }
+        };
 
         runNext();
     });

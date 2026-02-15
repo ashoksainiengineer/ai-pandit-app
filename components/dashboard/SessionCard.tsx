@@ -9,6 +9,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useAuth } from '@clerk/nextjs';
 import {
   Star,
   Trash2,
@@ -105,12 +106,21 @@ export function SessionCard({
   onFavorite,
   onDelete,
 }: SessionCardProps) {
+  const { getToken } = useAuth();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const status = statusConfig[session.status as keyof typeof statusConfig] || statusConfig.draft;
   const confidence = session.confidence ? confidenceConfig[session.confidence as keyof typeof confidenceConfig] : null;
+
+  const isLive = ['processing', 'pending', 'queued'].includes(session.status);
+
+  const getSessionUrl = () => {
+    if (session.status === 'complete') return `/rectify/${session.id}/results`;
+    if (isLive) return `/rectify/${session.id}`;
+    return `/rectify/${session.id}/edit`;
+  };
 
   const formattedDate = new Date(session.createdAt).toLocaleDateString('en-US', {
     month: 'short',
@@ -135,9 +145,13 @@ export function SessionCard({
     setDeleteError(null);
 
     try {
+      const token = await getToken();
       const response = await fetch(`/api/sessions/${session.id}`, {
         method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // Ensure token is passed if available
+        },
       });
 
       const data = await response.json();
@@ -227,7 +241,7 @@ export function SessionCard({
         </button>
 
         {/* Content */}
-        <Link href={`/rectify/${session.id}${session.status === 'complete' ? '/results' : '/edit'}`}>
+        <Link href={getSessionUrl()}>
           <div className="pt-8">
             {/* Status Badge */}
             <div className={`
@@ -237,6 +251,12 @@ export function SessionCard({
             `}>
               {status.icon}
               {status.label}
+              {isLive && (
+                <span className="flex h-1.5 w-1.5 relative ml-1">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-current"></span>
+                </span>
+              )}
             </div>
 
             {/* Name */}
@@ -330,13 +350,19 @@ export function SessionCard({
           `}>
             {status.icon}
             {session.status}
+            {isLive && (
+              <span className="flex h-1 w-1 relative ml-1">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1 w-1 bg-current"></span>
+              </span>
+            )}
           </span>
         </div>
       </div>
 
       {/* Main Content */}
       <Link
-        href={`/rectify/${session.id}${session.status === 'complete' ? '/results' : '/edit'}`}
+        href={getSessionUrl()}
         className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 items-start sm:items-center"
       >
         {/* Name & Status - Desktop Only */}
@@ -348,6 +374,12 @@ export function SessionCard({
           `}>
             {status.icon}
             {session.status}
+            {isLive && (
+              <span className="flex h-1 w-1 relative ml-1">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-1 w-1 bg-current"></span>
+              </span>
+            )}
           </span>
         </div>
 
@@ -414,7 +446,7 @@ export function SessionCard({
           <div>{formattedDate}</div>
           <div className="text-[10px] text-[#B8860B] mt-0.5">
             <ClientOnly>
-                {new Date(session.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+              {new Date(session.updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
             </ClientOnly>
           </div>
         </div>
@@ -436,7 +468,7 @@ export function SessionCard({
         </button>
 
         <Link
-          href={`/rectify/${session.id}${session.status === 'complete' ? '/results' : '/edit'}`}
+          href={getSessionUrl()}
           className="p-1.5 sm:p-2 text-[#A8A39D] hover:text-[#B8860B] rounded-lg transition-colors"
         >
           <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5" />

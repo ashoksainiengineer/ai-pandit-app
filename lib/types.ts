@@ -49,6 +49,8 @@ export interface ForensicTraits {
       forehead?: string;
       eyeShape?: string;
       noseType?: string;
+      noseShape?: string;
+      jawLine?: string;
       teethAlignment?: string;
       voicePitch?: string;
     };

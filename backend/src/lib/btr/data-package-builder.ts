@@ -6,7 +6,7 @@
  * into AI-ready structured format.
  */
 
-import { calculateEphemeris, calculateJulianDay } from '../ephemeris.js';
+import { calculateEphemeris, calculateJulianDay, calculateSunrise, convertToUTC } from '../ephemeris.js';
 import {
   calculateAllVargas,
   calculateAshtakavarga,
@@ -22,6 +22,8 @@ import {
   detectVargottama,
   detectParivartana,
   detectPushkarNavamsa,
+  calculateTatwaShuddhi,
+  calculateKundaLagna,
 } from '../advanced-btr-methods.js';
 import { calculateCharaKarakas, calculateBhriguBindu } from '../jaimini-astrology.js';
 import { CandidateDataPackage, ZODIAC_SIGNS } from './types.js';
@@ -67,13 +69,8 @@ export async function buildCandidateDataPackage(
     dashaDepth,
     pranaWindowDays,
     // Safely parse event dates (handles partial dates like YYYY and YYYY-MM)
-    eventDates: input.lifeEvents.map(e => {
-      if (!e.eventDate) return Date.now();
-      const parts = e.eventDate.split('-');
-      const year = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10) - 1 || 0; // Default to January
-      const day = parseInt(parts[2], 10) || 1; // Default to 1st
-      return new Date(year, month, day).getTime();
+    eventRanges: input.lifeEvents.map(e => {
+      return parseEventRange(e);
     }),
     now: Date.now()
   });
@@ -132,6 +129,20 @@ export async function buildCandidateDataPackage(
     yogas: detectYogas(ephemeris),
     spouseMatch: await buildSpouseMatch(input, ephemeris)
   };
+
+  // 🔱 PROJECT MAHAKALA PRECISION ANCHORS
+  try {
+    const sunriseDate = await calculateSunrise(input.dateOfBirth, input.latitude, input.longitude, input.timezone);
+    const candidateUTC = convertToUTC(input.dateOfBirth, time, input.timezone);
+
+    // Ensure vedicSignals is initialized
+    if (!pkg.vedicSignals) pkg.vedicSignals = {};
+
+    pkg.vedicSignals.tatwa = calculateTatwaShuddhi(candidateUTC, sunriseDate);
+    pkg.vedicSignals.kundaLagna = calculateKundaLagna(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
+  } catch (err) {
+    logger.error('Mahakala indicator calculation failed', err);
+  }
 
   // Add extended data for later stages
   if (includeFullData) {
@@ -248,7 +259,7 @@ function buildVargaData(ephemeris: any) {
   const vargaDegrees: Record<string, Record<string, string>> = {};
   const d60Planets: Record<string, any> = {};
 
-  const vargaNames = ['D9', 'D10', 'D60'];
+  const vargaNames = ['D9', 'D10', 'D60', 'D150'];
 
   for (const varga of vargaNames) {
     const chart = ephemeris.divisionalCharts?.[varga];
@@ -288,7 +299,8 @@ function buildVargaData(ephemeris: any) {
     d60Planets,
     d9Lagna: ephemeris.divisionalCharts?.D9?.ascendant.sign,
     d10Lagna: ephemeris.divisionalCharts?.D10?.ascendant.sign,
-    d60Sign: ephemeris.divisionalCharts?.D60?.ascendant.sign
+    d60Sign: ephemeris.divisionalCharts?.D60?.ascendant.sign,
+    d150Sign: ephemeris.divisionalCharts?.D150?.ascendant.sign
   };
 }
 
@@ -421,6 +433,15 @@ function buildDivisionalCharts(pkg: CandidateDataPackage, ephemeris: any) {
       )
     };
   }
+
+  if (vargas.D150) {
+    pkg.d150Chart = {
+      ascendant: vargas.D150.ascendant.sign,
+      planets: Object.fromEntries(
+        Object.entries(vargas.D150.planets).map(([name, p]: [string, any]) => [name, p.sign])
+      )
+    };
+  }
 }
 
 /**
@@ -428,4 +449,88 @@ function buildDivisionalCharts(pkg: CandidateDataPackage, ephemeris: any) {
  */
 function formatDegree(longitude: number): string {
   return (longitude % 30).toFixed(4) + '°';
+}
+
+/**
+ * Parse life event into time range based on precision
+ */
+function parseEventRange(event: any): { start: number; end: number } {
+  try {
+    const precision = event.datePrecision || 'exact_date';
+    let start: number;
+    let end: number;
+
+    // Helper to parse YYYY-MM-DD or partials
+    const parseDate = (dateStr: string, defaultMonth = 0, defaultDay = 1) => {
+      if (!dateStr) return Date.now();
+      const parts = dateStr.split(/[-/]/);
+      const year = parseInt(parts[0], 10);
+      const month = (parseInt(parts[1], 10) || (defaultMonth + 1)) - 1;
+      const day = parseInt(parts[2], 10) || defaultDay;
+      return new Date(year, month, day).getTime();
+    };
+
+    // Helper to get last day of month
+    const getLastDay = (dateStr: string) => {
+      const parts = dateStr.split(/[-/]/);
+      const year = parseInt(parts[0], 10);
+      const month = (parseInt(parts[1], 10) || 1) - 1;
+      return new Date(year, month + 1, 0).getTime(); // Last day of month
+    };
+
+    switch (precision) {
+      case 'exact_date_time':
+        // If time is provided, combine; otherwise treat as date
+        if (event.eventTime) {
+          const datePart = event.eventDate.split('T')[0]; // Handle ISO potentially
+          const combined = new Date(`${datePart}T${event.eventTime}`);
+          start = combined.getTime();
+          end = start + (1000 * 60 * 60); // 1 hour window default
+        } else {
+          start = parseDate(event.eventDate);
+          end = start + (24 * 60 * 60 * 1000);
+        }
+        break;
+
+      case 'exact_date':
+        start = parseDate(event.eventDate);
+        end = start + (24 * 60 * 60 * 1000) - 1; // End of day
+        break;
+
+      case 'date_range':
+        start = parseDate(event.eventDate);
+        end = event.endDate ? parseDate(event.endDate) + (24 * 60 * 60 * 1000) - 1 : start + (24 * 60 * 60 * 1000);
+        break;
+
+      case 'month_year': // Input format likely "YYYY-MM" or "MM/YYYY"
+        // Ensure standard parsing
+        start = parseDate(event.eventDate); // Defaults to 1st
+        end = getLastDay(event.eventDate);
+        break;
+
+      case 'month_range':
+        start = parseDate(event.eventDate);
+        end = event.endDate ? getLastDay(event.endDate) : getLastDay(event.eventDate);
+        break;
+
+      case 'year_range': // Input format "YYYY"
+        const startYear = parseInt(event.eventDate, 10);
+        const endYear = event.endDate ? parseInt(event.endDate, 10) : startYear;
+        start = new Date(startYear, 0, 1).getTime(); // Jan 1st
+        end = new Date(endYear, 11, 31, 23, 59, 59).getTime(); // Dec 31st
+        break;
+
+      default:
+        start = parseDate(event.eventDate);
+        end = start + (24 * 60 * 60 * 1000);
+    }
+
+    if (isNaN(start)) start = Date.now();
+    if (isNaN(end)) end = start;
+
+    return { start, end };
+  } catch (e) {
+    logger.warn('Failed to parse event range', { event, error: e });
+    return { start: Date.now(), end: Date.now() };
+  }
 }

@@ -26,40 +26,53 @@ export function extractBatchSurvivors(
   for (const time of candidateTimes) {
     const escapedTime = time.replace(/:/g, '[:\\s]?');
     // Extracts score and preceding context as reason
-    const timePattern = new RegExp(
-      `(?:JUSTIFICATION|REASON|ANALYSIS)[:\\s]*(.{1,200}?)[\\s\\S]{0,100}CANDIDATE[:\\s]*${escapedTime}[\\s\\S]{0,500}SCORE[:\\s]*(\\d+)`,
+    // Unified regex to handle various formats:
+    // 1. Explicit: CANDIDATE: [10:30:00] ... SCORE: 85
+    // 2. Implicit: [10:30:00] | SCORE: 85 ...
+    // key parts: time (bracketed or not), score (near keyword), reason (context)
+    const combinedPattern = new RegExp(
+      `(?:CANDIDATE[:\\s]*)?\\[?${escapedTime}\\]?` + // Time match
+      `[\\s\\S]{0,400}` + // Gap
+      `SCORE[:\\s]*(\\d+)` + // Score match
+      `[\\s\\S]{0,200}` + // Gap
+      `(?:JUSTIFICATION|REASON|ANALYSIS|VERDICT)?[:\\s]*` + // Optional reason label
+      `([^\\n]+)`, // Capture reason (one line generally)
       'i'
     );
 
-    // Alternative pattern if reason follows score
-    const fallbackPattern = new RegExp(
-      `CANDIDATE[:\\s]*${escapedTime}[\\s\\S]{0,100}SCORE[:\\s]*(\\d+)[\\s\\S]{0,100}(?:JUSTIFICATION|REASON)[:\\s]*(.{1,200}?)`,
+    const match = aiContent.match(combinedPattern);
+
+    // Fallback specific pattern for just score if complex match fails
+    const simplePattern = new RegExp(
+      `(?:CANDIDATE[:\\s]*)?\\[?${escapedTime}\\]?[\\s\\S]{0,150}SCORE[:\\s]*(\\d+)`,
       'i'
     );
 
-    let match = aiContent.match(timePattern);
     let score = 50;
     let reason = "Contextual alignment analysis";
 
     if (match) {
-      reason = match[1].trim();
-      score = parseInt(match[2], 10);
-    } else {
-      match = aiContent.match(fallbackPattern);
-      if (match) {
-        score = parseInt(match[1], 10);
+      score = parseInt(match[1], 10);
+      if (match[2] && match[2].length > 5) {
         reason = match[2].trim();
-      } else {
-        // Final fallback: just score
-        const simplePattern = new RegExp(`CANDIDATE[:\\s]*${escapedTime}[\\s\\S]{0,300}SCORE[:\\s]*(\\d+)`, 'i');
-        const simpleMatch = aiContent.match(simplePattern);
-        if (simpleMatch) score = parseInt(simpleMatch[1], 10);
+        // Cleanup reason from common prefixes/suffixes
+        reason = reason.replace(/\|/g, '').replace(/^[:-]\s*/, '').trim();
+      }
+    } else {
+      const simpleMatch = aiContent.match(simplePattern);
+      if (simpleMatch) {
+        score = parseInt(simpleMatch[1], 10);
       }
     }
 
-    // Clean up reason (remove newlines, extra spaces)
-    reason = reason.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-    if (reason.length > 150) reason = reason.substring(0, 147) + '...';
+    // Heuristic: If reason is still default, try to extract nearby text
+    if (reason === "Contextual alignment analysis" && score !== 50) {
+      // Try to grab text right after score or verdict
+      const nearbyTextMatch = aiContent.match(new RegExp(`SCORE[:\\s]*${score}[\\s\\S]{0,50}(?:REASON|VERDICT)?[:\\s]*([^\\n]+)`, 'i'));
+      if (nearbyTextMatch && nearbyTextMatch[1]) {
+        reason = nearbyTextMatch[1].replace(/\|/g, '').trim();
+      }
+    }
 
     scores.push({ time, score, reason });
   }

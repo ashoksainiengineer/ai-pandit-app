@@ -112,6 +112,8 @@ export interface VedicSignals {
   parivartana?: Array<{ houses: number[] }>;
   pushkar?: string[];
   charaKarakas?: CharaKaraka[];
+  tatwa?: { name: string; element: string; isAuspicious: boolean };
+  kundaLagna?: { sign: string; degree: number; matchesMoon: boolean };
 }
 
 /** Complete candidate data package for AI analysis */
@@ -129,8 +131,10 @@ export interface CandidateDataPackage {
   d9Lagna?: string;
   d10Lagna?: string;
   d60Sign?: string;
+  d150Sign?: string;
   d9Chart?: DivisionalChartData;
   d10Chart?: DivisionalChartData;
+  d150Chart?: DivisionalChartData;
   ashtakavarga?: Record<string, number>;
   panchanga?: PanchangaData;
   yogas?: Yoga[];

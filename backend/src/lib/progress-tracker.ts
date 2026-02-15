@@ -378,22 +378,10 @@ export class ProgressTracker {
         this.progress.liveMessage = 'Analysis complete!';
         this.progress.lastUpdate = new Date().toISOString();
 
-        // 🛡️ [PRUNING] ONLY FINAL CANDIDATE DATA REMAINS
-        // Remove reasoning for all intermediate stages except the final verdict (Stage 6)
-        if (this.progress.stageHistory) {
-            const finalReasoning = this.progress.stageHistory[6];
-            this.progress.stageHistory = { 6: finalReasoning || "Final verdict determined." };
-        }
-
-        // Clear out bulky calculation logs and multiple candidate scores
-        // We only need the history of what happened, not every single bit of intermediate data.
-        this.progress.calculationLogs = [];
+        // 🛡️ NO PRUNING: Keep all calculation logs and candidate scores for long-term audit
+        // Only reasoning (lastAIThinking/stageHistory) is filtered in saveProgress()
 
         await this.saveProgress(true); // Final flush
-
-        // 🧹 Clear ephemeral progressData from database after completion
-        // This saves storage - progress data is only needed during active processing
-        await this.clearDatabaseProgressData();
 
         // Cleanup memory after short delay (preserve for immediate polling)
         setTimeout(() => {
@@ -401,31 +389,6 @@ export class ProgressTracker {
         }, 120000); // Keep in memory for 2 minutes after completion
     }
 
-    /**
-     * Clear progressData from database after session completion
-     * Ephemeral data should not persist long-term
-     */
-    private async clearDatabaseProgressData(): Promise<void> {
-        try {
-            // Wait 5 minutes to allow final polling, then clear
-            setTimeout(async () => {
-                await db.update(sessions)
-                    .set({
-                        progressData: null,
-                        updatedAt: new Date().toISOString(),
-                    })
-                    .where(
-                        and(
-                            eq(sessions.id, this.sessionId),
-                            isNotNull(sessions.progressData)
-                        )
-                    );
-            }, 300000); // 5 minutes delay
-        } catch (error) {
-            // Non-critical: Log but don't fail completion
-            console.warn('Failed to clear progress data (non-critical):', error);
-        }
-    }
 
     /**
      * Add and persist candidate score
@@ -462,25 +425,28 @@ export class ProgressTracker {
 
             this.lastPulseTime = Date.now();
 
-            // 🛡️ [TURSO OPTIMIZED] Data Minimization
+            // 🛡️ [TURSO OPTIMIZED] Data Persistence with Volatile Reasoning
+            // We persist everything except AI thinking logs (stageHistory and lastAIThinking)
+            // as per user request for "No permanent reasoning store".
             const dbProgress = { ...this.progress };
 
-            // Limit thinking history to save space
-            if (!includeThinking) {
-                delete dbProgress.lastAIThinking;
-            }
+            // 🗑️ STRIP ONLY ACTIVE REASONING BEFORE DB SYNC
+            delete dbProgress.stageHistory;
+            delete dbProgress.lastAIThinking;
 
             let progressJson = JSON.stringify(dbProgress);
 
-            // 💾 Size Limit Check: Truncate if too huge (Increased for deep archive)
+            // 💾 Size Limit Check: Truncate if too huge
             const MAX_DB_SIZE = 500000;
             if (progressJson.length > MAX_DB_SIZE) {
-                if (dbProgress.calculationLogs && dbProgress.calculationLogs.length > 100) {
-                    dbProgress.calculationLogs = dbProgress.calculationLogs.slice(-100);
+                // If calculation logs are huge, prune them first
+                if (dbProgress.calculationLogs && dbProgress.calculationLogs.length > 200) {
+                    dbProgress.calculationLogs = dbProgress.calculationLogs.slice(-200);
                     progressJson = JSON.stringify(dbProgress);
                 }
-                if (progressJson.length > MAX_DB_SIZE && dbProgress.lastAIThinking) {
-                    dbProgress.lastAIThinking.fullText = dbProgress.lastAIThinking.fullText.slice(-50000);
+                // If still too large, prune candidate scores
+                if (progressJson.length > MAX_DB_SIZE && dbProgress.candidateScores && dbProgress.candidateScores.length > 500) {
+                    dbProgress.candidateScores = dbProgress.candidateScores.slice(-500);
                     progressJson = JSON.stringify(dbProgress);
                 }
             }

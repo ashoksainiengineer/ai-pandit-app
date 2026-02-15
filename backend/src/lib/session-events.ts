@@ -41,11 +41,11 @@ export type {
 class SessionEventManager {
     private emitters: Map<string, EventEmitter> = new Map();
     private lastContexts: Map<string, AIContextEvent> = new Map();
-    // 🧠 Store accumulated thinking text per session { sessionId: { stage: number, text: string } }
-    private thinkingBuffers: Map<string, { stage: number; text: string; candidateTime?: string }> = new Map();
-    // 🧮 Store recent calculation logs for immediate UI feedback on connect (Circular Buffer-ish)
+    // 🧠 Multi-Stream Thinking Buffers: { sessionId: Map<candidateTime, { stage, text }> }
+    private thinkingBuffers: Map<string, Map<string, { stage: number; text: string; candidateTime: string }>> = new Map();
+    // 🧮 Store recent calculation logs for immediate UI feedback on connect
     private calculationLogBuffers: Map<string, CalculationLogEvent[]> = new Map();
-    // 📊 Store ALL candidate scores for session history replay (Persistence)
+    // 📊 Store ALL candidate scores for session history replay
     private candidateScoreBuffers: Map<string, CandidateScoreEvent[]> = new Map();
     // ⚖️ Store decision logs for "Funnel of Truth"
     private decisionBuffers: Map<string, DecisionEvent[]> = new Map();
@@ -64,7 +64,7 @@ class SessionEventManager {
         this.touch(sessionId);
         if (!this.emitters.has(sessionId)) {
             const emitter = new EventEmitter();
-            emitter.setMaxListeners(10); // Allow multiple SSE connections
+            emitter.setMaxListeners(50); // Increased for high concurrency
             this.emitters.set(sessionId, emitter);
         }
         return this.emitters.get(sessionId)!;
@@ -128,30 +128,33 @@ class SessionEventManager {
     }
 
     /**
-     * Append text to thinking buffer or start new
+     * Append text to specific candidate buffer
      */
-    appendToThinkingBuffer(sessionId: string, stage: number, text: string, candidateTime?: string): void {
+    appendToThinkingBuffer(sessionId: string, stage: number, text: string, candidateTime: string = 'general'): void {
         this.touch(sessionId);
-        const current = this.thinkingBuffers.get(sessionId);
+        if (!this.thinkingBuffers.has(sessionId)) {
+            this.thinkingBuffers.set(sessionId, new Map());
+        }
 
-        // If new stage or no buffer, start flesh
+        const sessionBufferMap = this.thinkingBuffers.get(sessionId)!;
+        const current = sessionBufferMap.get(candidateTime);
+
+        // If new stage or no buffer for this candidate, start fresh
         if (!current || current.stage !== stage) {
-            console.log(`📝 Starting New Thinking Buffer: ${sessionId?.slice(0, 8)} | Stage ${stage}`);
-            this.thinkingBuffers.set(sessionId, { stage, text, candidateTime });
+            sessionBufferMap.set(candidateTime, { stage, text, candidateTime });
         } else {
-            // Append to existing
+            // Append to existing candidate buffer
             current.text += text;
-            current.candidateTime = candidateTime || current.candidateTime;
         }
     }
 
     /**
-     * Get accumulated thinking text
+     * Get all accumulated thinking streams for a session
      */
-    getThinkingBuffer(sessionId: string): { stage: number; text: string; candidateTime?: string } | undefined {
+    getThinkingBuffers(sessionId: string): Array<{ stage: number; text: string; candidateTime: string }> {
         this.touch(sessionId);
-        const buffer = this.thinkingBuffers.get(sessionId);
-        return buffer;
+        const map = this.thinkingBuffers.get(sessionId);
+        return map ? Array.from(map.values()) : [];
     }
 
     /**

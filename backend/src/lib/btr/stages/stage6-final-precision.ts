@@ -22,6 +22,7 @@ import {
     CandidateWithGodTierData,
 } from '../../btr-god-tier-integrator.js';
 import { logger } from '../../logger.js';
+import { config } from '../../../config/index.js';
 
 /**
  * Stage 6: Final seconds-level precision judgement
@@ -46,6 +47,7 @@ export async function stage6FinalPrecision(
     margin: number;
     aiReasoning: string;
     thinking?: string;
+    finalists: Array<{ time: string; score: number; ephemeris?: any }>;
     stageResult: StageResult;
 }> {
     const now = new Date();
@@ -146,13 +148,13 @@ export async function stage6FinalPrecision(
                 'FINAL FORENSIC JUDGEMENT. Pick THE ONE based on bio-Vedic alignment.',
                 getFinalPrecisionPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData, presentAnchor),
                 {
-                    candidateTime: 'FINAL',
+                    candidateTime: `Batch ${i + 1}`,
                     progressTracker: progress
                 }
             );
         });
 
-        const results = await executeAIInParallel(tasks, 10, 200);
+        const results = await executeAIInParallel(tasks, config.ai.maxConcurrency, config.ai.staggerMs);
 
         for (let i = 0; i < batches.length; i++) {
             const batchTimes = batches[i];
@@ -326,6 +328,11 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.godTier?.consensus.overa
         margin,
         aiReasoning: aiContent,
         thinking: response.thinking,
+        finalists: finalBatch.map(c => ({
+            time: c.time,
+            score: c.time === finalTime ? accuracy : 70, // Basic score for runner-ups if not specified
+            ephemeris: getMinifiedEphemerisInline(c)
+        })),
         stageResult: {
             stageNumber: 6,
             stageName: 'Final Precision',

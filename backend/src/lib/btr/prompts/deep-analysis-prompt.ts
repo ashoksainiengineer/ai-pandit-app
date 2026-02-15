@@ -54,9 +54,11 @@ export function getDeepAnalysisPrompt(
 2. NARRATIVE PRIMACY: Qualitative experiences(SITUATIONAL NARRATIVE) outrank generic scoring.Match the flavor of the experience(e.g. "intense struggle" vs "smooth success") to the specific planetary dignity and aspects provided.
 3. FORENSIC CORRELATION: For EACH candidate, verify if their Varga markers(D1 Lagna, D60 Deity, Navamsa Lord) align with the PHYSICAL and PSYCHOGRAPHIC data provided.A "measured_soft" speaker cannot have a Mercury - Mars lagna with heavy Agni influence unless strong Saturn control exists.
 4. BIO - VEDIC MAPPING: Treat Forensic Traits as "Biological Anchors". If the user is an "eldest" child, the 3rd house(younger siblings) in D1 / D9 must reflect this karma(e.g., 3rd lord in 12th or malefic aspect).
-6. CORRELATE DASHAS: Match Dasha Lords(and their House ownerships) to life events.
-7. EVENT SIGNATURES: Use the pre - calculated signatures(D10 strength, Double Transit) to confirm "VIGOUR".
-8. ⚡⚡⚡ CRITICAL METHODOLOGICAL AUDIT ⚡⚡⚡: Group all missing technical data into a stylized ASCII box:
+6. 🔱 PROJECT MAHAKALA (Infinite Precision):
+   - TATWA SHUDDHI: Does the candidate's active Tatwa (Element) match the user's BIOLOGICAL and TEMPERAMENTAL profile? (e.g., Earth for structured/physical, Fire for intense/driven).
+   - KUNDA LAGNA: Check for 'Matches Moon' status. This is a 1-second sensitive geometric anchor. If multiple candidates have similar dasha alignments, prioritize the one with a verified Kunda match.
+   - DIVISIONAL BOUNDARIES: Some candidates represent 'Boundary Locks'. These are structural inflection points where charts switch. Evaluate if the life reality drastically changes across these boundaries.
+7. ⚡⚡⚡ CRITICAL METHODOLOGICAL AUDIT ⚡⚡⚡: Group all missing technical data into a stylized ASCII box:
 ============================
   METHODOLOGICAL AUDIT
 ----------------------------
@@ -121,6 +123,8 @@ ${Object.entries(c.transitData).map(([date, t]: [string, any]) =>
 ${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:
 │ Vargottama: ${c.vedicSignals.vargottama?.join(', ') || 'None'}
 │ Pushkar: ${c.vedicSignals.pushkar?.join(', ') || 'None'}
+│ Tatwa Shuddhi: ${c.vedicSignals.tatwa?.name} (${c.vedicSignals.tatwa?.element}) | Auspicious: ${c.vedicSignals.tatwa?.isAuspicious}
+│ Kunda Lagna: ${c.vedicSignals.kundaLagna?.sign} ${c.vedicSignals.kundaLagna?.degree.toFixed(2)}° | Matches Moon: ${c.vedicSignals.kundaLagna?.matchesMoon ? 'YES 🔥' : 'NO'}
 │ Parivartana: ${c.vedicSignals.parivartana?.map((ex: any) => `L${ex.houses[0]}↔L${ex.houses[1]}`).join(', ') || 'None'}` : ''}
 ${c.spouseMatch ? `├ SPOUSE SYNASTRY CORRELATION:
 │ ${c.spouseMatch.reason}` : ''}
@@ -129,9 +133,21 @@ ${c.lifecycleShifts.map(s => `│ [${s.date}]: ${s.event} (Dasha: ${s.dasha})`).
 └──────────────────────────────────────────────────────────────`).join('\n')
     }
 
-    SCORING:
-    - Rate 0 - 100 based on how well the Dasha Lords + Divisional Charts explain the Events.
-- Strict correlation required.
+    ⚖️ THE MAHAKALA SCORING MATRIX (DEEP FORENSIC AUDIT):
+    1. HIERARCHICAL WEIGHTING (Base Points):
+       - DEEP-KARMA (+50): Parent Death, Child Birth, Life-Threatening Event.
+       - DHARMA SHIFTS (+30): Marriage/Divorce, Major Career Transition.
+       - ARTHA/KAMA (+15): Minor Ingress, casual job shift, relocation.
+
+    2. VEDIC SYNERGY MULTIPLIERS:
+       - x2.5 Varga-Dasha Mirror: Dasha lord rules the event house in BOTH D1 and the specific Varga (D9, D10, D7 etc.).
+       - x2.0 Double Transit Lock: Confirmed Jupiter/Saturn dual aspect on event house/lord.
+       - x1.5 Mahakala Kunda Match: Geometric alignment confirmed.
+       - x1.3 Nadi Ansha Resonance: Soul-flavor alignment in D150.
+
+    3. FORENSIC VETOES (Immediate ELIMINATION):
+       - Primary Lagna Inversion: Physical DNA (e.g. Pitta/Fire) contradicts Lagna elements.
+       - Structural Contradiction: Family karma markers (siblings/parents) in D1/D9/D12 are critically mismatched.
 
         OUTPUT(for each candidate):
             [TIME] | REASONING: [Brief 1 - liner] | VERDICT: [KEEP / DROP] | SCORE: [0 - 100]

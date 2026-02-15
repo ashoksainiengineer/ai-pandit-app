@@ -7,13 +7,38 @@ import { useAuth } from '@clerk/nextjs';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Brain, Clock, Activity, Home, LayoutDashboard, AlertCircle, Gem,
-    CheckCircle, RefreshCw, XCircle, ChevronRight, Play, PauseCircle, Filter
+    CheckCircle, RefreshCw, XCircle, ChevronRight, ChevronDown, ChevronUp, Play, PauseCircle, Filter, Database,
+    Maximize2, ArrowLeft, Cpu, Zap, ShieldCheck
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useStreamProgress, type CandidateScore, type StreamStep, type StageStat, type AIThinking, type AIContextData, type AnalysisDecision } from '@/lib/use-stream-progress';
 import { logger } from '@/lib/secure-logger';
 import { AnalysisPipelineTracker } from '@/components/rectify/AnalysisPipelineTracker';
 import { AnalysisErrorBoundary, SectionErrorBoundary } from '@/components/rectify/AnalysisErrorBoundary';
 import AdvancedSignalsDashboard from '@/components/rectify/advanced-signals/AdvancedSignalsDashboard';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const GlobalStyles = () => (
+    <style jsx global>{`
+        .style-scroll::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        .style-scroll::-webkit-scrollbar-track {
+            background: #FDF8F3;
+            border-radius: 10px;
+        }
+        .style-scroll::-webkit-scrollbar-thumb {
+            background: #E5E0D8;
+            border-radius: 10px;
+        }
+        .style-scroll::-webkit-scrollbar-thumb:hover {
+            background: #B8860B;
+        }
+    `}</style>
+);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES & THEME
@@ -128,77 +153,145 @@ const ProgressBar = memo(({ percentage, stepIndex, totalSteps, message }: {
 ));
 ProgressBar.displayName = 'ProgressBar';
 
-// DEEPSEEK STYLE THINKING PANEL
-const AIThinkingPanel = memo(({ thinking, isActive }: { thinking: AIThinking; isActive: boolean }) => {
-    const scrollRef = useRef<HTMLDivElement>(null);
+// 🔱 THE HIVE: MULTI-STREAM THINKING PANEL
+const AIThinkingPanel = memo(({ thinking, isActive, aiModel }: { thinking: Record<string, AIThinking>; isActive: boolean; aiModel?: string }) => {
+    const [focusedBatch, setFocusedBatch] = useState<string | null>(null);
     const [isExpanded, setIsExpanded] = useState(true);
 
-    useEffect(() => {
-        if (scrollRef.current && isActive) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-    }, [thinking?.fullText, isActive]);
+    const batches = useMemo(() => Object.values(thinking).sort((a, b) => {
+        // Sort by Batch number
+        const numA = parseInt(a.candidateTime?.replace(/\D/g, '') || '0');
+        const numB = parseInt(b.candidateTime?.replace(/\D/g, '') || '0');
+        return numA - numB;
+    }), [thinking]);
 
-    return (
-        <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm overflow-hidden my-6 font-sans">
-            {/* Header Bar */}
+    const activeBatchCount = batches.length;
+
+    if (!isExpanded) {
+        return (
             <div
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="px-4 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB] flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => setIsExpanded(true)}
+                className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors my-6"
             >
                 <div className="flex items-center gap-3">
-                    {isActive ? (
-                        <div className="flex h-2.5 w-2.5 relative">
-                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
-                        </div>
-                    ) : (
-                        <div className={`w-2.5 h-2.5 rounded-full ${thinking?.fullText ? 'bg-green-500' : 'bg-gray-300'}`} />
-                    )}
-                    <h3 className="text-xs font-bold text-gray-700 tracking-wider uppercase flex items-center gap-2">
-                        <Brain className="w-4 h-4 text-gray-500" />
-                        Reasoning Engine {thinking?.candidateTime && <span className="text-[#B8860B] lowercase font-medium ml-1">· Analyzing {thinking.candidateTime}</span>}
-                    </h3>
+                    <Brain className="w-5 h-5 text-[#B8860B]" />
+                    <h3 className="text-sm font-bold text-[#1A1612]">AI Reasoning Engine ({activeBatchCount} active analysts)</h3>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase font-bold text-gray-400 tracking-widest hidden sm:inline-block">
-                        {isActive ? 'Processing' : 'Standby'}
-                    </span>
-                    <button className="text-gray-400 hover:text-gray-600 transition-colors">
-                        {isExpanded ? <ChevronRight className="w-4 h-4 rotate-90 transition-transform" /> : <ChevronRight className="w-4 h-4 transition-transform" />}
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="bg-white rounded-2xl border border-[#F0E8DE] shadow-sm overflow-hidden my-6 font-sans">
+            {/* Main Header */}
+            <div className="px-5 py-4 border-b border-[#F0E8DE] bg-[#FAF8F5] flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${isActive ? 'bg-[#B8860B]/10' : 'bg-gray-100'}`}>
+                        <Brain className={`w-5 h-5 ${isActive ? 'text-[#B8860B]' : 'text-gray-400'}`} />
+                    </div>
+                    <div className="flex flex-col">
+                        <h3 className="text-sm font-bold text-[#1A1612]">AI Reasoning Engine</h3>
+                        <p className="text-[10px] text-stone-400 font-medium tracking-tight">
+                            {focusedBatch ? `Focusing on ${focusedBatch}` : `${activeBatchCount} Parallel Batch Analysts Processing...`}
+                        </p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-4">
+                    {focusedBatch && (
+                        <button
+                            onClick={() => setFocusedBatch(null)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#F0E8DE] text-[10px] font-bold text-[#B8860B] hover:bg-[#FAF8F5] transition-all shadow-sm"
+                        >
+                            <ArrowLeft className="w-3 h-3" />
+                            BACK TO GRID
+                        </button>
+                    )}
+                    <button
+                        onClick={() => setIsExpanded(false)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400"
+                    >
+                        <ChevronUp className="w-4 h-4" />
                     </button>
                 </div>
             </div>
 
             {/* Content Area */}
-            <AnimatePresence>
-                {isExpanded && (
-                    <motion.div
-                        initial={{ height: 0 }}
-                        animate={{ height: "auto" }}
-                        exit={{ height: 0 }}
-                        className="overflow-hidden"
-                    >
-                        <div
-                            ref={scrollRef}
-                            className="bg-[#FFFFFE] p-5 h-96 overflow-y-auto font-mono text-sm leading-6 text-gray-600"
-                            style={{ scrollBehavior: 'smooth' }}
-                        >
-                            {thinking?.fullText ? (
-                                <div className="whitespace-pre-wrap">
-                                    {thinking.fullText}
-                                    {isActive && <span className="inline-block w-2 h-4 bg-indigo-500 animate-pulse ml-1 align-middle" />}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center h-full text-gray-400 italic gap-2">
-                                    <Brain className="w-8 h-8 opacity-20" />
-                                    <span>Initializing neural pathways...</span>
-                                </div>
-                            )}
+            <div className="p-5 bg-white min-h-[400px]">
+                {activeBatchCount === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-[350px] space-y-4 text-center">
+                        <div className="p-4 rounded-full bg-stone-50 border border-stone-100 animate-pulse">
+                            <Activity className="w-8 h-8 text-stone-200" />
                         </div>
-                    </motion.div>
+                        <p className="text-sm text-stone-400 italic">Initializing parallel neural pathways...</p>
+                    </div>
+                ) : focusedBatch ? (
+                    // FOCUS VIEW
+                    <div className="animate-in fade-in zoom-in-95 duration-200 h-full">
+                        <div className="flex items-center justify-between mb-4 pb-4 border-b border-[#F0E8DE]">
+                            <div className="flex items-center gap-2">
+                                <span className="flex h-2 w-2 relative">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                </span>
+                                <h4 className="text-xs font-bold text-[#1A1612] uppercase tracking-wider">Analysis Stream: {focusedBatch}</h4>
+                            </div>
+                            <div className="text-[10px] font-bold text-[#B8860B] bg-[#B8860B]/5 px-2 py-0.5 rounded-full border border-[#B8860B]/10">
+                                ACTIVE FOCUS
+                            </div>
+                        </div>
+                        <div className="prose prose-stone prose-sm max-w-none text-[#4A453F] leading-7 style-scroll h-[400px] overflow-y-auto pr-4">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {thinking[focusedBatch]?.fullText || ''}
+                            </ReactMarkdown>
+                        </div>
+                    </div>
+                ) : (
+                    // GRID VIEW (THE HIVE)
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 animate-in fade-in duration-300">
+                        {batches.map((batch) => (
+                            <motion.div
+                                key={batch.candidateTime}
+                                whileHover={{ y: -2 }}
+                                onClick={() => setFocusedBatch(batch.candidateTime || null)}
+                                className="group relative bg-[#FAF9F6] border border-[#F0E8DE] rounded-xl p-4 cursor-pointer hover:border-[#B8860B]/30 hover:shadow-md transition-all overflow-hidden h-[160px]"
+                            >
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                        <span className="text-[10px] font-bold text-[#1A1612] uppercase tracking-wider">{batch.candidateTime}</span>
+                                    </div>
+                                    <Maximize2 className="w-3 h-3 text-stone-300 group-hover:text-[#B8860B] transition-colors" />
+                                </div>
+                                <div className="text-[11px] text-[#4A453F] line-clamp-4 leading-relaxed font-mono">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                        {batch.fullText.length > 300 ? `${batch.fullText.substring(0, 300)}...` : batch.fullText}
+                                    </ReactMarkdown>
+                                </div>
+                                <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#FAF9F6] to-transparent pointer-events-none" />
+                            </motion.div>
+                        ))}
+                    </div>
                 )}
-            </AnimatePresence>
+            </div>
+
+            {/* Footer */}
+            <div className="px-5 py-3 bg-[#FAF8F5] border-t border-[#F0E8DE] flex justify-between items-center text-[10px] font-bold text-stone-400">
+                <div className="flex items-center gap-4">
+                    <span className="flex items-center gap-1">
+                        <Cpu className="w-3 h-3" />
+                        ENGINE: MULTI-CORE PARALLEL
+                    </span>
+                    <span className="flex items-center gap-1">
+                        <Zap className="w-3 h-3 text-[#B8860B]" />
+                        MODALITY: LIVE STREAMING
+                    </span>
+                </div>
+                <div className="text-[#B8860B] flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" />
+                    POWERED BY {aiModel || 'HUGGING FACE AI'}
+                </div>
+            </div>
         </div>
     );
 });
@@ -259,7 +352,7 @@ const CandidateScoreTable = memo(({ scores }: { scores: CandidateScore[] }) => {
                 </div>
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-[#F0E8DE] bg-white shadow-sm overflow-x-auto">
+            <div className="overflow-hidden rounded-xl border border-[#F0E8DE] bg-white shadow-sm overflow-x-auto max-h-[350px] style-scroll">
                 {filteredScores.length > 0 ? (
                     <table className="min-w-full divide-y divide-[#F0E8DE]">
                         <thead className="bg-[#FAF8F5]">
@@ -304,144 +397,54 @@ const CandidateScoreTable = memo(({ scores }: { scores: CandidateScore[] }) => {
 });
 CandidateScoreTable.displayName = 'CandidateScoreTable';
 
-const AIContextPanel = memo(({ context }: { context: AIContextData | null }) => {
-    if (!context) return null;
-
-    const candidates = Array.isArray(context.candidatesInBatch) ? context.candidatesInBatch : [];
+const AIContextPanel = memo(({ persistentCandidates, isActive }: { persistentCandidates: any[]; isActive: boolean }) => {
+    if (!isActive && persistentCandidates.length === 0) return null;
 
     return (
         <div className="bg-[#FAF9F6] border border-[#F0E8DE] rounded-xl p-5 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-[#F0E8DE] pb-3">
                 <div className="flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-[#B8860B]" />
-                    <h3 className="text-sm font-bold text-[#1A1612]">AI Input Context · Stage {context.stage}</h3>
-                </div>
-                <div className="text-[10px] font-bold text-stone-500 uppercase tracking-widest bg-stone-100 px-2 py-1 rounded">
-                    Batch Mode · {context.candidateTime}
+                    <Database className="w-4 h-4 text-[#B8860B]" />
+                    <div className="flex flex-col">
+                        <h3 className="text-sm font-bold text-[#1A1612]">Candidates Astrological Data</h3>
+                        <p className="text-[10px] text-stone-400 font-medium">Powered by Swiss Ephemeris Engine</p>
+                    </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <p className="text-[10px] text-stone-500 uppercase font-bold tracking-wider">Candidates Under Analysis</p>
-                    <div className="bg-white border border-[#F0E8DE] rounded-lg overflow-hidden">
-                        <table className="min-w-full text-[10px]">
-                            <thead className="bg-[#FAF8F5] border-b border-[#F0E8DE]">
-                                <tr>
-                                    <th className="px-3 py-1.5 text-left font-bold text-stone-600">Time</th>
-                                    <th className="px-3 py-1.5 text-left font-bold text-stone-600">Ascendant</th>
-                                    <th className="px-3 py-1.5 text-left font-bold text-stone-600">Moon</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-[#F0E8DE]">
-                                {candidates.map((c, i) => (
-                                    <tr key={i} className="hover:bg-stone-50">
-                                        <td className="px-3 py-1.5 font-mono font-bold">{c.time}</td>
-                                        <td className="px-3 py-1.5 text-stone-500">{c.ascendant || '---'}</td>
-                                        <td className="px-3 py-1.5 text-stone-500">{c.moon || '---'}</td>
-                                    </tr>
-                                ))}
-                                {candidates.length === 0 && (
-                                    <tr>
-                                        <td colSpan={3} className="px-3 py-4 text-center text-stone-400 italic">Processing high-precision grid...</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div className="space-y-3">
-                    <div className="p-3 bg-white border border-[#F0E8DE] rounded-lg shadow-sm">
-                        <p className="text-[10px] text-stone-500 uppercase font-bold tracking-wider mb-2">Analysis Constraints</p>
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-stone-600">Life Events Sent</span>
-                                <span className="font-bold text-[#B8860B]">{context.lifeEventsCount || 0} Events</span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-stone-600">Forensic DNA Traits</span>
-                                <span className={`font-bold ${context.hasForensicTraits ? 'text-green-600' : 'text-stone-400'}`}>
-                                    {context.hasForensicTraits ? 'ACTIVE' : 'NONE'}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <div className="rounded-lg border border-[#F0E8DE] bg-white overflow-hidden max-h-[300px] overflow-y-auto style-scroll">
+                <table className="min-w-full text-[10px]">
+                    <thead className="bg-[#FAF8F5] border-b border-[#F0E8DE] sticky top-0 z-10">
+                        <tr>
+                            <th className="px-3 py-1.5 text-left font-bold text-stone-600 uppercase">Birth Time</th>
+                            <th className="px-3 py-1.5 text-left font-bold text-stone-600 uppercase">Ascendant</th>
+                            <th className="px-3 py-1.5 text-left font-bold text-stone-600 uppercase">Moon (Chandra)</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#F0E8DE]">
+                        {persistentCandidates.map((c, i) => (
+                            <tr key={`${c.time}-${i}`} className="hover:bg-stone-50 transition-colors">
+                                <td className="px-3 py-2 font-mono font-bold text-[#1A1612]">{c.time}</td>
+                                <td className="px-3 py-2 text-stone-600 font-medium">{c.ascendant || 'Pending...'}</td>
+                                <td className="px-3 py-2 text-stone-600 font-medium">{c.moon || 'Pending...'}</td>
+                            </tr>
+                        ))}
+                        {persistentCandidates.length === 0 && (
+                            <tr>
+                                <td colSpan={3} className="px-3 py-8 text-center text-stone-400 italic">
+                                    Awaiting high-precision data from Swiss Ephemeris...
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
             </div>
         </div>
     );
 });
 AIContextPanel.displayName = 'AIContextPanel';
 
-const AnalysisDecisionFunnel = memo(({ decisions }: { decisions: AnalysisDecision[] }) => {
-    const scrollRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-    }, [decisions.length]);
-
-    if (decisions.length === 0) return null;
-
-    // Only show last 10 decisions for UI space efficiency
-    const recentDecisions = decisions.slice(-10);
-
-    return (
-        <div className="bg-white border border-[#F0E8DE] rounded-xl overflow-hidden shadow-sm">
-            <div className="bg-[#FAF8F5] px-4 py-2 border-b border-[#F0E8DE] flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    <Activity className="w-3.5 h-3.5 text-[#B8860B]" />
-                    <h3 className="text-xs font-bold text-[#1A1612] uppercase tracking-wider">Funnel of Truth · Decisions</h3>
-                </div>
-                <span className="text-[10px] font-bold text-stone-400">STAGE {decisions[decisions.length - 1]?.stage}</span>
-            </div>
-            <div
-                ref={scrollRef}
-                className="max-h-60 overflow-y-auto p-4 space-y-3 bg-[#FCFBFA] style-scroll"
-            >
-                <AnimatePresence initial={false}>
-                    {recentDecisions.map((d, i) => (
-                        <motion.div
-                            key={`${d.time}-${d.stage}-${d.batch}-${i}`}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className={`p-3 rounded-lg border flex gap-3 transition-colors ${d.verdict === 'promoted'
-                                ? 'bg-green-50/50 border-green-100'
-                                : 'bg-red-50/30 border-red-100 opacity-80'
-                                }`}
-                        >
-                            <div className="mt-0.5">
-                                {d.verdict === 'promoted' ? (
-                                    <CheckCircle className="w-4 h-4 text-green-600" />
-                                ) : (
-                                    <XCircle className="w-4 h-4 text-red-400" />
-                                )}
-                            </div>
-                            <div className="flex-1 space-y-1">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs font-mono font-bold text-stone-800">{d.time}</span>
-                                        <span className={`text-[10px] font-heavy px-1.5 py-0.5 rounded ${d.verdict === 'promoted' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'
-                                            }`}>
-                                            {d.verdict === 'promoted' ? 'PROMOTED' : 'DISCARDED'}
-                                        </span>
-                                    </div>
-                                    <span className="text-xs font-mono font-bold text-stone-600">{d.score}% Match</span>
-                                </div>
-                                <p className="text-[11px] text-stone-500 leading-relaxed italic">
-                                    {d.reason || "Analyzing forensic alignment markers..."}
-                                </p>
-                            </div>
-                        </motion.div>
-                    ))}
-                </AnimatePresence>
-            </div>
-        </div>
-    );
-});
-AnalysisDecisionFunnel.displayName = 'AnalysisDecisionFunnel';
+// Funnel removed as requested
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE COMPONENT
@@ -460,7 +463,7 @@ export default function RobustAnalysisPage() {
     const {
         isConnected, isComplete, error: streamError, progress, aiThinking, aiContext, decisions,
         candidateScores, stageStats, advancedSignals, result, startedAt, allSteps, metadata,
-        connectionState,
+        connectionState, persistentCandidates
     } = streamData;
 
     const [isCancelling, setIsCancelling] = useState(false);
@@ -571,6 +574,7 @@ export default function RobustAnalysisPage() {
 
     return (
         <AnalysisErrorBoundary sectionName="Analysis Page">
+            <GlobalStyles />
             <main className="min-h-screen font-sans" style={{ backgroundColor: THEME.bg }} aria-labelledby={pageTitleId}>
                 <header className="sticky top-0 z-40 border-b backdrop-blur-md bg-white/80" style={{ borderColor: THEME.border }} role="banner">
                     <div className="max-w-7xl mx-auto px-6 py-4">
@@ -758,25 +762,20 @@ export default function RobustAnalysisPage() {
                         )}
 
                         {/* 2. AI Context Panel (What AI sees) */}
-                        {!isComplete && !cancelled && aiContext && (
+                        {!isComplete && !cancelled && persistentCandidates && persistentCandidates.length > 0 && (
                             <SectionErrorBoundary sectionName="AI Context" icon={<Activity className="w-5 h-5" />}>
-                                <AIContextPanel context={aiContext} />
+                                <AIContextPanel persistentCandidates={persistentCandidates} isActive={isConnected && !isComplete} />
                             </SectionErrorBoundary>
                         )}
 
-                        {/* 3. AI Decision Funnel (Promotions/Rejections) */}
-                        {(decisions && decisions.length > 0) && !isComplete && !cancelled && (
-                            <SectionErrorBoundary sectionName="AI Decision Funnel" icon={<Filter className="w-5 h-5" />}>
-                                <AnalysisDecisionFunnel decisions={decisions || []} />
-                            </SectionErrorBoundary>
-                        )}
 
                         {/* 4. AI Reasoning Panel (What AI feels) */}
                         {(aiThinking || (progress?.stepIndex || 0) >= 1) && !isComplete && !cancelled && (
                             <AnalysisErrorBoundary sectionName="AI Reasoning Process">
                                 <AIThinkingPanel
-                                    thinking={aiThinking || { stage: 1, chunks: [], fullText: '' }}
-                                    isActive={isConnected && !isComplete && !!aiThinking}
+                                    thinking={aiThinking || {}}
+                                    isActive={isConnected && !isComplete && Object.keys(aiThinking || {}).length > 0}
+                                    aiModel={metadata?.aiModel}
                                 />
                             </AnalysisErrorBoundary>
                         )}

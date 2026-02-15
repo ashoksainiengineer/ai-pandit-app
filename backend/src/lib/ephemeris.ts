@@ -604,6 +604,55 @@ export async function calculateEphemeris(
     return result;
   }
 }
+/**
+ * Calculate Sunrise for a given date and location.
+ * Precise BTR requires exact sunrise for Tatwa Shuddhi.
+ * Rule: Sunrise is when the Sun is at 0° altitude or on the Ascendant.
+ */
+export async function calculateSunrise(
+  dateStr: string,
+  latitude: number,
+  longitude: number,
+  timezone: number | string
+): Promise<Date> {
+  // Sweep morning from 04:00 to 08:00
+  let bestDate = new Date(`${dateStr}T06:00:00Z`);
+  let minDiff = 1000;
+
+  for (let h = 4; h <= 8; h++) {
+    for (let m = 0; m < 60; m += 5) {
+      const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`;
+      const eph = await calculateEphemeris(dateStr, timeStr, latitude, longitude, timezone);
+      const sunLong = eph.planets.sun.longitude;
+      const ascLong = eph.ascendant.longitude;
+
+      // Sun on Ascendant = Sunrise
+      const diff = Math.abs(sunLong - ascLong);
+      const normDiff = Math.min(diff, 360 - diff);
+
+      if (normDiff < minDiff) {
+        minDiff = normDiff;
+        bestDate = convertToUTC(dateStr, timeStr, timezone);
+      }
+    }
+  }
+
+  // Refine sweep
+  const refinedBase = bestDate.getTime();
+  for (let s = -300; s <= 300; s += 10) {
+    const testDate = new Date(refinedBase + s * 1000);
+    const timeStr = testDate.toISOString().split('T')[1].split('.')[0];
+    const eph = await calculateEphemeris(dateStr, timeStr, latitude, longitude, timezone);
+    const diff = Math.abs(eph.planets.sun.longitude - eph.ascendant.longitude);
+    const normDiff = Math.min(diff, 360 - diff);
+    if (normDiff < minDiff) {
+      minDiff = normDiff;
+      bestDate = testDate;
+    }
+  }
+
+  return bestDate;
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // EXPORTS

@@ -319,7 +319,7 @@ export async function markAsComplete(
         accuracy: results.accuracy,
         confidence: results.confidence,
         analysisResult: results.analysisResult,
-        reasoningLogs: results.reasoningLogs,
+        // reasoningLogs: results.reasoningLogs, // 🔥 REMOVED: NO DB PERSISTENCE
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       } as any)
@@ -399,7 +399,7 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
           // 🗑️ HARD WIPE: Clear heavy data to save Turso Free Tier limit
           progressData: null,
           analysisResult: null,
-          reasoningLogs: null
+          // reasoningLogs: null // 🔥 REMOVED: COLUMN NOT USED
         } as any)
         .where(eq(sessions.id, sessionId))
     );
@@ -743,8 +743,8 @@ async function processSessionAsync(sessionId: string): Promise<void> {
 
       await markAsComplete(sessionId, {
         ...result,
-        analysisResult: optimizedAnalysisStr,
-        reasoningLogs
+        analysisResult: optimizedAnalysisStr
+        // reasoningLogs: null // 🔥 NOT SAVED TO DB
       });
 
       cleanupController(sessionId); // Cleanup on success

@@ -56,13 +56,13 @@ export default function Step4Review({
     let score = 40;
     const validEvents = events.filter(isValidEvent);
     score += validEvents.length * 8;
-    
+
     // Bonus for forensic traits
     if (forensicTraits?.physical?.facialStructure?.forehead) score += 3;
     if (forensicTraits?.physical?.facialStructure?.eyeShape) score += 3;
     if (forensicTraits?.biological?.prakriti) score += 4;
     if ((forensicTraits?.family?.siblingPosition)) score += 5;
-    
+
     return Math.min(99, score);
   }, [events, forensicTraits]);
 
@@ -112,7 +112,7 @@ export default function Step4Review({
           animate={{ opacity: 1, scale: 1 }}
           className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FDF8F3] to-white border border-[#F0E8DE] rounded-full text-xs mb-6 shadow-sm"
         >
-          <span className="text-[#B8860B] font-medium tracking-wider">STEP 4 OF 4</span>
+          <span className="text-[#B8860B] font-medium tracking-wider">STEP 5 OF 5</span>
         </motion.div>
         <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-[#1A1612] leading-tight mb-2">
           Review & <span className="text-gradient-gold">Confirm</span>
@@ -164,7 +164,8 @@ export default function Step4Review({
             <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Face</span><span className="text-[#4A453F]">{(forensicTraits?.physical?.facialStructure?.forehead || '—').replace('_', ' ')} forehead, {(forensicTraits?.physical?.facialStructure?.eyeShape || '—').replace('_', ' ')} eyes</span></div>
             <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Speech</span><span className="text-[#4A453F]">{(forensicTraits?.psychographic?.speechStyle || '—').replace(/_/g, ' ')}</span></div>
             <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Family</span><span className="text-[#4A453F]">{(forensicTraits?.family?.siblingPosition || '—').replace(/_/g, ' ')}</span></div>
-            <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Prakriti</span><span className="text-[#4A453F] uppercase font-medium">{forensicTraits?.biological?.prakriti || '—'}</span></div>
+            <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Physical Markers</span><span className="text-[#4A453F]">{(traits?.facialStructure?.eyeShape || '—').replace(/_/g, ' ')} eyes, {(traits?.facialStructure?.jawLine || '—')} jaw, {(traits?.build || '—')} build</span></div>
+            <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Prakriti</span><span className="text-[#4A453F]">{(forensicTraits?.biological?.prakriti || '—').toUpperCase()}</span></div>
           </div>
         </FormCard>
       </div>
@@ -224,11 +225,11 @@ export default function Step4Review({
       {/* Confirmation & Submit */}
       <div className="pt-4 border-t border-[#F0E8DE]">
         <label className="flex items-start gap-3 cursor-pointer group mb-6 p-4 rounded-xl hover:bg-[#F5EFE7] transition-colors">
-          <input 
-            type="checkbox" 
-            checked={confirmed} 
-            onChange={(e) => setConfirmed(e.target.checked)} 
-            className="mt-0.5 w-5 h-5 rounded border-2 border-[#D4A853] bg-white text-[#B8860B] accent-[#B8860B] cursor-pointer" 
+          <input
+            type="checkbox"
+            checked={confirmed}
+            onChange={(e) => setConfirmed(e.target.checked)}
+            className="mt-0.5 w-5 h-5 rounded border-2 border-[#D4A853] bg-white text-[#B8860B] accent-[#B8860B] cursor-pointer"
           />
           <span className={`text-sm leading-relaxed transition-colors ${confirmed ? 'text-[#1A1612]' : 'text-[#4A453F] group-hover:text-[#B8860B]'}`}>
             I confirm all details are accurate. Incorrect data will affect rectification accuracy.
@@ -240,9 +241,8 @@ export default function Step4Review({
           disabled={isSubmitting || !confirmed || cooldown}
           whileHover={{ scale: confirmed && !isSubmitting && !cooldown ? 1.02 : 1 }}
           whileTap={{ scale: confirmed && !isSubmitting && !cooldown ? 0.98 : 1 }}
-          className={`w-full py-4 font-bold rounded-xl text-lg transition-all flex items-center justify-center gap-2 ${
-            !confirmed || cooldown ? 'bg-[#F0E8DE] text-[#A8A39D] cursor-not-allowed' : 'bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white shadow-lg shadow-[#B8860B]/20 hover:shadow-xl'
-          }`}
+          className={`w-full py-4 font-bold rounded-xl text-lg transition-all flex items-center justify-center gap-2 ${!confirmed || cooldown ? 'bg-[#F0E8DE] text-[#A8A39D] cursor-not-allowed' : 'bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white shadow-lg shadow-[#B8860B]/20 hover:shadow-xl'
+            }`}
         >
           {isSubmitting ? <><span className="animate-spin">⏳</span> Processing...</> : cooldown ? <><span className="animate-pulse">⏳</span> Preparing...</> : <><Sparkles className="w-5 h-5" /> Start Analysis (~{estimatedMinutes}m)</>}
         </motion.button>

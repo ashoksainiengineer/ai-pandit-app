@@ -98,7 +98,7 @@ const StageStep = memo(function StageStep({
                     )}
                 </div>
 
-                <div className={`text-[10px] sm:text-xs font-semibold truncate mb-1 sm:mb-2 ${isActive ? 'text-[#1A1612]' : 'text-[#7A756F]'}`}>
+                <div className={`text-[10px] sm:text-xs font-semibold mb-1 sm:mb-2 leading-tight ${isActive ? 'text-[#1A1612]' : 'text-[#7A756F]'}`}>
                     {step.name}
                 </div>
 
@@ -114,9 +114,13 @@ const StageStep = memo(function StageStep({
                 </div>
 
                 {stat?.description && (
-                    <div className="absolute top-full mt-2 left-0 w-48 p-2 bg-stone-800 text-white text-[10px] rounded-lg opacity-0 invisible group-hover/step:opacity-100 group-hover/step:visible transition-all z-50 shadow-xl">
-                        <div className="font-bold mb-1 border-b border-white/10 pb-1">{step.name}</div>
-                        {stat.description}
+                    <div className="absolute top-full mt-2 left-0 w-56 p-3 bg-stone-900 text-white text-[11px] rounded-xl opacity-0 invisible group-hover/step:opacity-100 group-hover/step:visible transition-all z-50 shadow-2xl border border-white/10 backdrop-blur-sm">
+                        <div className="font-bold mb-1.5 text-[#B8860B] border-b border-white/10 pb-1.5 flex items-center gap-2">
+                            <Settings className="w-3 h-3" />
+                            {step.name}
+                        </div>
+                        <p className="leading-relaxed opacity-90">{stat.description}</p>
+                        <div className="mt-2 text-[9px] text-[#B8860B] font-bold uppercase tracking-tighter">Click to view stage details</div>
                     </div>
                 )}
             </motion.div>

@@ -323,7 +323,7 @@ export default function Step1BirthDetails({
           animate={{ opacity: 1, scale: 1 }}
           className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FDF8F3] to-white border border-[#F0E8DE] rounded-full text-xs mb-6 shadow-sm"
         >
-          <span className="text-[#B8860B] font-medium tracking-wider">STEP 1 OF 4</span>
+          <span className="text-[#B8860B] font-medium tracking-wider">STEP 1 OF 5</span>
         </motion.div>
         <motion.h1
           className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-[#1A1612] leading-tight mb-2"
@@ -449,8 +449,8 @@ export default function Step1BirthDetails({
                     type="button"
                     onClick={() => handleOffsetChange(preset.value)}
                     className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all ${selectedOffset === preset.value
-                        ? 'bg-[#B8860B] text-white border-[#B8860B]'
-                        : 'bg-white text-[#7A756F] border-[#E8E0D5] hover:border-[#B8860B]/50'
+                      ? 'bg-[#B8860B] text-white border-[#B8860B]'
+                      : 'bg-white text-[#7A756F] border-[#E8E0D5] hover:border-[#B8860B]/50'
                       }`}
                   >
                     {preset.label}

@@ -13,7 +13,7 @@ export type { OffsetPreset, TimeOffsetConfig, CandidateTime };
 // ═════════════════════════════════════════════════════════════════════════
 
 // Absolute max candidates per AI call (OpenRouter supports higher concurrency)
-export const MAX_BATCH_SIZE = 15;
+export const MAX_BATCH_SIZE = 10;
 
 // Survivors per batch for tournament progression
 // 🔱 GOD-TIER SAFETY: Increased from 2 to 5 to prevent actual birth time elimination
@@ -73,7 +73,6 @@ export function getDynamicSurvivors(batchSize: number, isFirstRound: boolean = f
   if (batchSize <= 8) return 4;
 
   // For batch of 9-10 → 5 survivors (50-55% survive)
-  // For batch of 11-15 → 5 survivors (33-45% survive)
   return Math.min(5, Math.ceil(batchSize * 0.35));
 }
 
@@ -340,7 +339,7 @@ export function injectSafetyNetCandidates(
   for (const offset of safetyOffsets) {
     const candidateMinutes = baseTotalMinutes + offset.min;
     const candidate = convertMinutesToTimeSafetyNet(candidateMinutes, offset.min, offset.desc);
-    
+
     // Only add if not already present
     if (!existingTimes.has(candidate.time)) {
       safetyCandidates.push(candidate);

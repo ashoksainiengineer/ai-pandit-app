@@ -16,6 +16,7 @@ import { buildCandidateDataPackage } from '../data-package-builder.js';
 import { getDeepAnalysisPrompt } from '../prompts/index.js';
 import { extractBatchSurvivors } from '../extractors/index.js';
 import { CandidateDataPackage, StageResult } from '../types.js';
+import { config } from '../../../config/index.js';
 import { logger } from '../../logger.js';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -70,7 +71,7 @@ export async function stage4DeepAnalysis(
             const batchEnriched = await Promise.all(batchTimes.map(ct =>
                 buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
                     includeFullData: true,
-                    dashaDepth: 3,
+                    dashaDepth: 5, // God-Tier Precision (Prana Dasha)
                     lifecycleShifts: globalLifecycle
                 })
             ));
@@ -96,7 +97,7 @@ export async function stage4DeepAnalysis(
                 'You are the GOD-TIER VEDIC ANALYST. Perform deep forensic multi-dasha verification.',
                 getDeepAnalysisPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData),
                 {
-                    candidateTime: `Deep ${i + 1}/${batches.length}`,
+                    candidateTime: `Batch ${i + 1}`,
                     progressTracker: progress
                 }
             );
@@ -105,48 +106,49 @@ export async function stage4DeepAnalysis(
             // Use batches.length + 1 to account for the potential final verification step
             await progress.updateSubProgress(completedBatches, batches.length + 1);
 
-            return response;
+            // PROCESS BATCH IMMEDIATELY
+            const batchSurvivors: any[] = [];
+            if (response.success) {
+                const aiContent = response.content || response.thinking || '';
+                const aiScores = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), survivorsPerBatch);
+                const survivorTimes = aiScores
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, survivorsPerBatch)
+                    .map(s => s.time);
+
+                for (let j = 0; j < batchEnriched.length; j++) {
+                    const candidate = batchEnriched[j];
+                    const originalTimeInfo = batchTimes[j];
+                    const isSurvivor = survivorTimes.includes(candidate.time);
+                    const scoreObj = aiScores.find(s => s.time === candidate.time);
+                    const score = scoreObj ? scoreObj.score : (isSurvivor ? 90 : 60);
+                    const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Matched core forensic dasha markers" : "Failed deep multi-dasha verification");
+
+                    if (isSurvivor) {
+                        batchSurvivors.push(originalTimeInfo);
+                    }
+
+                    // IMMEDIATE EMIT - SYNCED WITH AI
+                    emitCandidateScore(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEphemerisInline(candidate));
+                    emitDecision(input.sessionId, {
+                        stage: 4,
+                        time: candidate.time,
+                        verdict: isSurvivor ? 'promoted' : 'rejected',
+                        score,
+                        reason,
+                        batch: i + 1
+                    });
+                }
+            }
+
+            return batchSurvivors;
         });
 
-        const results = await executeAIInParallel(tasks, 10, 100);
+        const results = await executeAIInParallel(tasks, config.ai.maxConcurrency, config.ai.staggerMs);
 
-        for (let i = 0; i < batches.length; i++) {
-            const batchTimes = batches[i];
-            const response = results[i];
-            const fullBatchData = batchDataMap.get(i) || [];
-            const aiContent = response.success ? (response.content || response.thinking || '') : '';
-            allReasoning += aiContent + '\n\n';
-
-            const aiScores = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), survivorsPerBatch);
-            const survivorTimes = aiScores
-                .sort((a, b) => b.score - a.score)
-                .slice(0, survivorsPerBatch)
-                .map(s => s.time);
-
-            for (let j = 0; j < fullBatchData.length; j++) {
-                const candidate = fullBatchData[j];
-                const originalTimeInfo = batchTimes[j];
-                const isSurvivor = survivorTimes.includes(candidate.time);
-                const scoreObj = aiScores.find(s => s.time === candidate.time);
-                const score = scoreObj ? scoreObj.score : (isSurvivor ? 90 : 60);
-                const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Matched core forensic dasha markers" : "Failed deep multi-dasha verification");
-
-                if (isSurvivor) {
-                    batchSurvivors.push(originalTimeInfo);
-                }
-
-                emitCandidateScore(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEphemerisInline(candidate));
-                emitDecision(input.sessionId, {
-                    stage: 4,
-                    time: candidate.time,
-                    verdict: isSurvivor ? 'promoted' : 'rejected',
-                    score,
-                    reason,
-                    batch: i + 1
-                });
-            }
-        }
-        currentCandidates = batchSurvivors;
+        // Flatten array of survivor arrays
+        const roundSurvivors = results.flat();
+        currentCandidates = roundSurvivors;
     }
 
     // Final deep analysis on remaining candidates
@@ -154,7 +156,7 @@ export async function stage4DeepAnalysis(
         const finalBatchData = await Promise.all(currentCandidates.map(ct =>
             buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
                 includeFullData: true,
-                dashaDepth: 3,
+                dashaDepth: 5, // God-Tier Precision (Prana Dasha)
                 lifecycleShifts: globalLifecycle
             })
         ));

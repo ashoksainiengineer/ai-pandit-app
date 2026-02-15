@@ -180,25 +180,17 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
                 sendEvent(res, lastContext);
             }
 
-            // Send cached Thinking Buffer
-            let thinkingBuffer = sessionEvents.getThinkingBuffer(sessionId);
-
-            // DB fallback for thinking buffer
-            if (!thinkingBuffer && currentProgress?.lastAIThinking) {
-                logger.info(`[SSE] Thinking buffer missing in memory, using DB fallback for ${sessionId}`);
-                thinkingBuffer = {
-                    stage: currentProgress.lastAIThinking.stage,
-                    text: currentProgress.lastAIThinking.fullText,
-                    candidateTime: currentProgress.lastAIThinking.candidateTime,
-                };
-            }
-
-            if (thinkingBuffer) {
-                sendEvent(res, {
-                    type: 'ai_thinking',
-                    chunk: thinkingBuffer.text,
-                    stage: thinkingBuffer.stage,
-                    candidateTime: thinkingBuffer.candidateTime,
+            // Send cached Thinking Buffers (Multi-Stage Replay)
+            const thinkingBuffers = sessionEvents.getThinkingBuffers(sessionId);
+            if (thinkingBuffers && thinkingBuffers.length > 0) {
+                logger.info(`[SSE] Replaying ${thinkingBuffers.length} thinking streams for ${sessionId}`);
+                thinkingBuffers.forEach(buf => {
+                    sendEvent(res, {
+                        type: 'ai_thinking',
+                        chunk: buf.text,
+                        stage: buf.stage,
+                        candidateTime: buf.candidateTime,
+                    });
                 });
             }
 

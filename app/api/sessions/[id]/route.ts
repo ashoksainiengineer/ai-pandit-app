@@ -99,6 +99,10 @@ export async function GET(
       spouseData,
       offsetConfig: safeJsonParse<TimeOffsetConfig | null>(s.offsetConfig, null),
       status: s.status,
+      rectifiedTime: s.rectifiedTime,
+      accuracy: s.accuracy,
+      confidence: s.confidence,
+      analysisResult: safeJsonParse<any>(s.analysisResult, null),
       updatedAt: s.updatedAt,
       createdAt: s.createdAt,
     };

@@ -106,11 +106,13 @@ export interface PhysicalTraits {
  * Facial structure characteristics
  */
 export interface FacialStructure {
-  forehead: 'broad' | 'narrow' | 'average' | 'sloping';
-  eyeShape: 'deep_set' | 'prominent' | 'almond' | 'round' | 'small';
-  noseType: 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
-  teethAlignment: 'perfect' | 'crooked' | 'gap' | 'large' | 'small';
-  voicePitch: 'deep' | 'high' | 'medium' | 'soft' | 'raspy';
+  forehead: string | 'broad' | 'narrow' | 'average' | 'sloping';
+  eyeShape: string | 'deep_set' | 'prominent' | 'almond' | 'round' | 'small';
+  noseType: string | 'sharp' | 'blunt' | 'aquiline' | 'long' | 'small';
+  noseShape?: string;
+  jawLine?: string;
+  teethAlignment: string | 'perfect' | 'crooked' | 'gap' | 'large' | 'small';
+  voicePitch: string | 'deep' | 'high' | 'medium' | 'soft' | 'raspy';
 }
 
 /**

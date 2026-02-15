@@ -16,10 +16,10 @@ import { ForensicTraits } from '../../../types/index.js';
  */
 function formatPhysicalDNA(physical: ForensicTraits['physical']): string {
   return `┌── FORENSIC PHYSICAL DNA (Varga Markers) ──
-│ Facial: ${physical.facialStructure.forehead} forehead, ${physical.facialStructure.eyeShape} eyes, ${physical.facialStructure.noseType} nose, ${physical.facialStructure.teethAlignment} teeth, ${physical.facialStructure.voicePitch} voice
+│ Facial: ${physical.facialStructure.forehead} forehead, ${physical.facialStructure.eyeShape} eyes, ${physical.facialStructure.noseShape || physical.facialStructure.noseType} nose, ${physical.facialStructure.jawLine || 'average'} jaw, ${physical.facialStructure.teethAlignment} teeth, ${physical.facialStructure.voicePitch} voice
 │ Hair/Skin: ${physical.skinHair.hairType} hair, ${physical.skinHair.texture} skin, ${physical.skinHair.complexion} complexion
 │ Special Marks: ${physical.skinHair.marks.join(', ') || 'None reported'}
-│ Build: ${physical.build} (${physical.height.feet}'${physical.height.inches}")`;
+│ Build: ${physical.build} (${physical.height?.feet}'${physical.height?.inches}")`;
 }
 
 /**
@@ -97,10 +97,10 @@ export function buildForensicContext(forensicTraits: ForensicTraits): string {
  */
 export function buildForensicDNASummary(forensicTraits: ForensicTraits): string {
   const f = forensicTraits;
-  
+
   return `🧬 MANDATORY FORENSIC CORRELATION MATRIX:
     - Biological: ${f.biological.prakriti.toUpperCase()} | Health: ${f.biological.recurringHealthIssues.join(', ')}
     - Psychographic: ${f.psychographic.temperament} | Decisions: ${f.psychographic.decisionMaking} | Speech: ${f.psychographic.speechStyle}
-    - Varga Signs: Forehead: ${f.physical.facialStructure.forehead} | Eyes: ${f.physical.facialStructure.eyeShape} | Voice: ${f.physical.facialStructure.voicePitch}
+    - Varga Signs: Forehead: ${f.physical.facialStructure.forehead} | Eyes: ${f.physical.facialStructure.eyeShape} | Nose: ${f.physical.facialStructure.noseShape || f.physical.facialStructure.noseType} | Jaw: ${f.physical.facialStructure.jawLine || 'average'} | Voice: ${f.physical.facialStructure.voicePitch}
     - Family Karma: ${f.family.siblingPosition} child | Father Status: ${f.family.fatherStatusAtBirth}`;
 }

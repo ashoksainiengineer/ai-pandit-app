@@ -16,6 +16,7 @@ import { emitCalculationLog } from '../../session-events.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
 import { StageResult } from '../types.js';
 import { logger } from '../../logger.js';
+import { findAstrologicalBoundaries } from '../../advanced-btr-methods.js';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -38,17 +39,46 @@ export async function stage1ExhaustiveDataGeneration(
   // 🔱 SAFETY NET: Inject safety net candidates around tentative time
   const candidatesWithSafetyNet = injectSafetyNetCandidates(input.tentativeTime, rawCandidates);
 
-  const total = candidatesWithSafetyNet.length;
+  // 🔱 PROJECT MAHAKALA: Boundary-Locked Generation
+  await progress.updateMessage('Mahakala: Scanning for divisional boundaries...');
+  const boundaries = await findAstrologicalBoundaries(
+    input.dateOfBirth,
+    input.tentativeTime,
+    input.offsetConfig.customMinutes || 360, // Fallback if no specific offset
+    input.latitude,
+    input.longitude,
+    input.timezone
+  );
+
+  const finalCandidates = [...candidatesWithSafetyNet];
+  const existingTimes = new Set(finalCandidates.map(c => c.time));
+
+  for (const b of boundaries) {
+    if (!existingTimes.has(b.time)) {
+      finalCandidates.push({
+        time: b.time,
+        offsetMinutes: b.offsetMinutes,
+        offsetDescription: `Boundary Lock: ${b.type} (${b.from} → ${b.to})`
+      });
+      existingTimes.add(b.time);
+    }
+  }
+
+  // Final sort to keep it chronological
+  finalCandidates.sort((a, b) => a.offsetMinutes - b.offsetMinutes);
+
+  const total = finalCandidates.length;
   let processed = 0;
 
-  logger.info('🔱 Stage 1: Initializing metadata for candidates', {
+  logger.info('🔱 Stage 1: Initializing metadata with Boundary Locks', {
     total,
     rawCandidates: rawCandidates.length,
     safetyNetAdded: candidatesWithSafetyNet.length - rawCandidates.length,
+    boundariesAdded: finalCandidates.length - candidatesWithSafetyNet.length,
     tentativeTime: input.tentativeTime,
   });
 
-  for (const raw of candidatesWithSafetyNet) {
+  for (const raw of finalCandidates) {
     // Build the package once to ensure calculation log is sent,
     // but DO NOT keep it in memory
     const pkg = await buildCandidateDataPackage(raw.time, raw.offsetMinutes, input, {
@@ -85,8 +115,8 @@ export async function stage1ExhaustiveDataGeneration(
     stageResult: {
       stageNumber: 1,
       stageName: 'Exhaustive Data Generation',
-      candidatesIn: total,
-      candidatesOut: candidatesWithSafetyNet.length
+      candidatesIn: rawCandidates.length,
+      candidatesOut: finalCandidates.length
     }
   };
 }

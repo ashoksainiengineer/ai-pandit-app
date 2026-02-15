@@ -13,6 +13,7 @@ import { Gender } from '@/lib/forensic-emojis';
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
 import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
 import Step2ForensicTraits from '@/components/rectify/Step2ForensicTraits';
+import Step3PhysicalTraits from '@/components/rectify/Step3PhysicalTraits';
 import Step4Review from '@/components/rectify/Step4Review';
 import Layout from '@/components/Layout';
 import { debounce } from '@/lib/debounce';
@@ -142,17 +143,22 @@ function RectifyPageContent() {
     const validateAllSteps = useCallback((): { isValid: boolean; errors: string[] } => {
         const allErrors: string[] = [];
         if (!validateStep1().isValid) allErrors.push('Step 1 is incomplete.');
-        if (!validateStep3().isValid) allErrors.push('Step 3 is incomplete.');
+        if (!validateStep3().isValid) allErrors.push('Life Events are incomplete.');
         return { isValid: allErrors.length === 0, errors: allErrors };
     }, [validateStep1, validateStep3]);
 
     const handleNext = useCallback(() => {
         if (isSubmitting) return;
-        const validation = step === 1 ? validateStep1() : validateStep3();
-        if (!validation.isValid) {
-            setError(validation.errors.join(', '));
-            return;
+
+        // Validation per step
+        if (step === 1) {
+            const v = validateStep1();
+            if (!v.isValid) { setError(v.errors.join(', ')); return; }
+        } else if (step === 4) {
+            const v = validateStep3();
+            if (!v.isValid) { setError(v.errors.join(', ')); return; }
         }
+
         setCompletedSteps(prev => new Set(prev).add(step));
         const nextStep = step + 1;
         setMaxUnlockedStep(prev => Math.max(prev, nextStep));
@@ -366,12 +372,13 @@ function RectifyPageContent() {
                     <div className="min-h-[400px]">
                         {step === 1 && <Step1BirthDetails data={birthData} updateData={updateBirthData} offsetConfig={offsetConfig} updateOffset={setOffsetConfig} spouseData={spouseData} updateSpouse={updateSpouseData} />}
                         {step === 2 && <Step2ForensicTraits traits={forensicTraits} updateTraits={updateForensicTraits} gender={birthData.gender as Gender} />}
-                        {step === 3 && <Step3LifeEvents lifeEvents={lifeEvents} updateEvents={setLifeEvents} offsetConfig={offsetConfig} />}
-                        {step === 4 && <Step4Review data={birthData} events={lifeEvents} traits={forensicTraits.physical} forensicTraits={forensicTraits} onSubmit={handleSubmit} isSubmitting={isSubmitting} onEdit={setStep} offsetConfig={offsetConfig} />}
+                        {step === 3 && <Step3PhysicalTraits physicalTraits={forensicTraits.physical} updateTraits={(p) => updateForensicTraits({ physical: { ...forensicTraits.physical, ...p } })} />}
+                        {step === 4 && <Step3LifeEvents lifeEvents={lifeEvents} updateEvents={setLifeEvents} offsetConfig={offsetConfig} />}
+                        {step === 5 && <Step4Review data={birthData} events={lifeEvents} traits={forensicTraits.physical} forensicTraits={forensicTraits} onSubmit={handleSubmit} isSubmitting={isSubmitting} onEdit={setStep} offsetConfig={offsetConfig} />}
                     </div>
                     <div className="flex justify-between items-center mt-12 pt-6 border-t border-[#F0E8DE]">
                         <button onClick={handleBack} disabled={step === 1} className={`px-6 py-3 rounded-xl font-semibold transition-colors ${step === 1 ? 'opacity-0' : 'border-2 border-[#B8860B]/50 text-[#B8860B] hover:bg-[#B8860B]/10'}`}>← Back</button>
-                        {step < 4 && <button onClick={handleNext} className="px-8 py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-semibold hover:shadow-lg transition-all">Next Step →</button>}
+                        {step < 5 && <button onClick={handleNext} className="px-8 py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-semibold hover:shadow-lg transition-all">Next Step →</button>}
                     </div>
                 </div>
             </AnalysisErrorBoundary>

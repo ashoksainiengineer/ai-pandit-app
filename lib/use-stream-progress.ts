@@ -107,7 +107,7 @@ export interface StreamState {
     isComplete: boolean;
     error: string | null;
     progress: StreamProgress | null;
-    aiThinking: AIThinking | null;
+    aiThinking: Record<string, AIThinking>; // Changed to record for multi-stream
     aiContext: AIContextData | null;
     candidateScores: CandidateScore[];
     stageStats: StageStat[];
@@ -115,6 +115,7 @@ export interface StreamState {
     metadata?: StreamMetadata;
     allCandidates: Map<string, AIThinking>;
     displayedCandidate: string | null;
+    persistentCandidates: any[]; // Bulletproof accumulator for parallel batches
     stageHistory: Map<number, string>;
     analyzedCount: number;
     totalCandidates: number;
@@ -165,7 +166,7 @@ function createInitialState(): StreamState {
         isComplete: false,
         error: null,
         progress: null,
-        aiThinking: null,
+        aiThinking: {},
         aiContext: null,
         candidateScores: [],
         stageStats: [],
@@ -173,6 +174,7 @@ function createInitialState(): StreamState {
         metadata: undefined,
         allCandidates: new Map(),
         displayedCandidate: null,
+        persistentCandidates: [],
         stageHistory: new Map(),
         analyzedCount: 0,
         totalCandidates: 0,
@@ -261,8 +263,7 @@ export function useStreamProgress(
                     const stage = dataObj?.stage || 1;
                     const candidateTime = dataObj?.candidateTime || 'general';
 
-                    const newHistory = new Map(prev.allCandidates);
-                    const existing = newHistory.get(candidateTime) || {
+                    const existing = prev.aiThinking[candidateTime] || {
                         stage,
                         candidateTime,
                         chunks: [],
@@ -276,19 +277,33 @@ export function useStreamProgress(
                         chunks: [...existing.chunks, chunk]
                     };
 
-                    newHistory.set(candidateTime, updatedThinking);
-
                     return {
                         ...prev,
-                        aiThinking: updatedThinking,
-                        allCandidates: newHistory,
+                        aiThinking: {
+                            ...prev.aiThinking,
+                            [candidateTime]: updatedThinking
+                        },
                         displayedCandidate: candidateTime,
                     };
                 }
 
                 case 'ai_context': {
                     const context = (data.data as AIContextData) || (data as unknown as AIContextData);
-                    return { ...prev, aiContext: context };
+                    let updatedPersistent = prev.persistentCandidates;
+
+                    if (context?.candidatesInBatch && Array.isArray(context.candidatesInBatch)) {
+                        const incoming = context.candidatesInBatch as any[];
+                        const now = Date.now();
+                        const newMap = new Map();
+                        // Add old ones
+                        prev.persistentCandidates.forEach(c => newMap.set(c.time, c));
+                        // Add/overwrite incoming
+                        incoming.forEach(c => newMap.set(c.time, { ...c, lastUpdated: now }));
+                        // Sort by lastUpdated desc
+                        updatedPersistent = Array.from(newMap.values()).sort((a, b) => (b.lastUpdated || 0) - (a.lastUpdated || 0));
+                    }
+
+                    return { ...prev, aiContext: context, persistentCandidates: updatedPersistent };
                 }
 
                 case 'candidate_score':

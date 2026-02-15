@@ -49,11 +49,11 @@ function getTraitSummary(traits: ForensicTraits) {
     };
 }
 
-export default function Step2ForensicTraits({ 
-    traits, 
-    updateTraits, 
+export default function Step2ForensicTraits({
+    traits,
+    updateTraits,
     gender = 'other',
-    sessionId 
+    sessionId
 }: Step2Props) {
     const [showQuiz, setShowQuiz] = useState(false);
     const [quizCompleted, setQuizCompleted] = useState(false);
@@ -121,19 +121,19 @@ export default function Step2ForensicTraits({
                     animate={{ opacity: 1, scale: 1 }}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FDF8F3] to-white border border-[#F0E8DE] rounded-full text-xs mb-6 shadow-sm"
                 >
-                    <span className="text-[#B8860B] font-medium tracking-wider">STEP 2 OF 4</span>
+                    <span className="text-[#B8860B] font-medium tracking-wider">STEP 2 OF 5</span>
                 </motion.div>
-                <motion.h1 
-                    initial={{ opacity: 0, y: 20 }} 
-                    animate={{ opacity: 1, y: 0 }} 
+                <motion.h1
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
                     className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-[#1A1612] leading-tight mb-2"
                 >
                     Forensic <span className="text-gradient-gold">Traits</span>
                 </motion.h1>
-                <motion.p 
-                    initial={{ opacity: 0 }} 
-                    animate={{ opacity: 1 }} 
-                    transition={{ delay: 0.2 }} 
+                <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.2 }}
                     className="text-sm text-[#7A756F]"
                 >
                     Sub-second rectification through physical markers
@@ -159,7 +159,7 @@ export default function Step2ForensicTraits({
                                 Vedic Forensic Assessment
                             </h2>
                             <p className="text-[#7A756F] max-w-md mx-auto">
-                                Answer {QUIZ_METADATA.totalQuestions} simple questions about your physical traits and behaviors. 
+                                Answer {QUIZ_METADATA.totalQuestions} simple questions about your physical traits and behaviors.
                                 Our system will determine your cosmic imprint for precise birth time rectification.
                             </p>
                         </div>
@@ -223,7 +223,7 @@ export default function Step2ForensicTraits({
                                 Your forensic profile is ready for birth time rectification.
                             </p>
                         </div>
-                        
+
                         <div className="grid grid-cols-2 gap-4 mb-6">
                             <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
                                 <div className="text-2xl mb-1">🍃</div>
@@ -287,7 +287,7 @@ export default function Step2ForensicTraits({
                         <p className="text-[#7A756F] mb-6">
                             Your forensic profile has been recorded and will be used for precise birth time rectification.
                         </p>
-                        
+
                         <div className="grid grid-cols-2 gap-4 mb-6">
                             <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
                                 <div className="text-2xl mb-1">🍃</div>

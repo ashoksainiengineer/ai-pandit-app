@@ -19,7 +19,7 @@ interface DashaBuildOptions {
   birthDate: Date;
   dashaDepth: number;
   pranaWindowDays: number;
-  eventDates: number[];
+  eventRanges: { start: number; end: number }[];
   now: number;
 }
 
@@ -29,14 +29,14 @@ interface DashaBuildOptions {
 export function buildVimshottariDasha(
   options: DashaBuildOptions
 ): VimshottariDashaEntry[] {
-  const { moonLongitude, birthDate, dashaDepth, pranaWindowDays, eventDates, now } = options;
+  const { moonLongitude, birthDate, dashaDepth, pranaWindowDays, eventRanges, now } = options;
 
   const vimDashas = calculateVimshottariDasha(moonLongitude, birthDate, dashaDepth);
   const pruningWindowMs = pranaWindowDays * DAY_MS;
-  
-  // Fix: Handle empty or invalid eventDates array
-  const validEventDates = eventDates.filter(d => typeof d === 'number' && !isNaN(d));
-  const referenceDate = validEventDates.length > 0 ? Math.min(...validEventDates) : now;
+
+  // Use range starts for reference date calculation
+  const validStartDates = eventRanges.map(r => r.start).filter(d => !isNaN(d));
+  const referenceDate = validStartDates.length > 0 ? Math.min(...validStartDates) : now;
   const minDate = referenceDate - (365 * DAY_MS);
 
   // Used for pruning logic but not extensively used in calculation here
@@ -44,15 +44,25 @@ export function buildVimshottariDasha(
 
   const result: VimshottariDashaEntry[] = [];
 
+  const CUTOFF_YEARS = 3;
+  const cutoffDate = now + (CUTOFF_YEARS * 365 * DAY_MS);
+
   for (const maha of vimDashas) {
+    // Optimization: Stop if Mahadasha starts after our cutoff
+    if (maha.startDate.getTime() > cutoffDate) break;
+
     if (!maha.subPeriods || dashaDepth < 1) continue;
 
     for (const antar of maha.subPeriods) {
+      if (antar.startDate.getTime() > cutoffDate) break;
+
       if (!antar.subPeriods || dashaDepth < 2) continue;
 
       for (const prat of antar.subPeriods) {
+        if (prat.startDate.getTime() > cutoffDate) break;
+
         const entries = processPratyantarLevel(
-          maha, antar, prat, dashaDepth, pruningWindowMs, eventDates
+          maha, antar, prat, dashaDepth, pruningWindowMs, eventRanges
         );
         result.push(...entries);
       }
@@ -71,7 +81,7 @@ function processPratyantarLevel(
   prat: any,
   dashaDepth: number,
   pruningWindowMs: number,
-  eventDates: number[]
+  eventRanges: { start: number; end: number }[]
 ): VimshottariDashaEntry[] {
   const result: VimshottariDashaEntry[] = [];
 
@@ -84,7 +94,7 @@ function processPratyantarLevel(
   if (dashaDepth >= 4 && prat.subPeriods) {
     for (const suksh of prat.subPeriods) {
       const entries = processSukshmaLevel(
-        maha, antar, prat, suksh, dashaDepth, pruningWindowMs, eventDates
+        maha, antar, prat, suksh, dashaDepth, pruningWindowMs, eventRanges
       );
       result.push(...entries);
     }
@@ -103,7 +113,7 @@ function processSukshmaLevel(
   suksh: any,
   dashaDepth: number,
   pruningWindowMs: number,
-  eventDates: number[]
+  eventRanges: { start: number; end: number }[]
 ): VimshottariDashaEntry[] {
   const result: VimshottariDashaEntry[] = [];
 
@@ -116,9 +126,14 @@ function processSukshmaLevel(
   if (dashaDepth >= 5 && suksh.subPeriods) {
     const sukshStart = suksh.startDate.getTime();
     const sukshEnd = suksh.endDate.getTime();
-    const isNearEvent = eventDates.some(ed =>
-      ed >= sukshStart - pruningWindowMs && ed <= sukshEnd + pruningWindowMs
-    );
+
+    // Check if sukshma overlaps with any event range (plus padding)
+    const isNearEvent = eventRanges.some(range => {
+      const paddedStart = range.start - pruningWindowMs;
+      const paddedEnd = range.end + pruningWindowMs;
+      // Check for overlap: (StartA <= EndB) and (EndA >= StartB)
+      return sukshStart <= paddedEnd && sukshEnd >= paddedStart;
+    });
 
     if (isNearEvent) {
       for (const prana of suksh.subPeriods) {

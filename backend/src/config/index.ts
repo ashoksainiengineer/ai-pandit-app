@@ -122,6 +122,10 @@ export const aiConfig = {
   providerOrder: env.AI_PROVIDER_ORDER,
   allowFallbacks: true,
   dataCollection: 'deny' as const,
+
+  // Parallel Processing Optimization
+  maxConcurrency: env.NODE_ENV === 'production' ? 10 : 5,
+  staggerMs: 500,
 } as const;
 
 export const queueConfig = {

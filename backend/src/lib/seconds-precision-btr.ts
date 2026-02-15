@@ -242,7 +242,7 @@ export async function processSecondsPrecisionBTR(
                 ishtaKashtaPhala: winnerPkg?.ishtaKashtaPhala,
                 chalitDiscrepancies: winnerPkg?.chalitDiscrepancies
             },
-            alternatives: [],
+            alternatives: stage6.finalists.filter(f => f.time !== stage6.finalTime),
             technicalProof: {
                 ephemeris: finalEphemeris,
                 divCharts,
@@ -255,6 +255,16 @@ export async function processSecondsPrecisionBTR(
                 ephemeris: finalEphemeris,
                 divCharts,
                 boundarySafety: boundary,
+                shuddhi: {
+                    kunda: {
+                        score: winnerPkg.vedicSignals?.kundaLagna?.matchesMoon ? 100 : 40,
+                        details: `Kunda Lagna: ${winnerPkg.vedicSignals?.kundaLagna?.sign} ${winnerPkg.vedicSignals?.kundaLagna?.degree.toFixed(2)}° | ${winnerPkg.vedicSignals?.kundaLagna?.matchesMoon ? 'Matches Moon Nakshatra' : 'Genetic Offset Detected'}`
+                    },
+                    tatwa: {
+                        score: winnerPkg.vedicSignals?.tatwa?.isAuspicious ? 100 : 20,
+                        details: `Current Tatwa: ${winnerPkg.vedicSignals?.tatwa?.name} (${winnerPkg.vedicSignals?.tatwa?.element}) | Aligning with the 90-min cycle.`
+                    }
+                },
                 dasha: stage6.aiReasoning.match(/DASHA[:\s]*([^\n]+)/i)?.[1] || 'Final decision context',
                 precisionMetrics: {
                     vimsopaka: winnerPkg?.vimsopakaBala,

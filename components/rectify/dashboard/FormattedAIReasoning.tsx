@@ -19,14 +19,51 @@ export function FormattedAIReasoning({
     const [isExpanded, setIsExpanded] = useState(false);
 
     const rawText = useMemo(() => {
-        if (typeof reasoningLogs === 'string') return reasoningLogs;
-        if (reasoningLogs && typeof reasoningLogs === 'object' && 'finalCandidate' in reasoningLogs) {
-            return (reasoningLogs as any).finalCandidate?.thinking || '';
+        if (!reasoningLogs) return analysisDetails?.finalCandidate?.thinking || analysisDetails?.aiAnalysis || '';
+
+        // Case 1: Standard string reasoning
+        if (typeof reasoningLogs === 'string') {
+            // Check if it's actually JSON
+            if (reasoningLogs.startsWith('{') || reasoningLogs.startsWith('[')) {
+                try {
+                    const parsed = JSON.parse(reasoningLogs);
+                    return processStructuredLogs(parsed);
+                } catch (e) {
+                    return reasoningLogs;
+                }
+            }
+            return reasoningLogs;
         }
-        return analysisDetails?.finalCandidate?.thinking ||
-            analysisDetails?.aiAnalysis ||
-            '';
+
+        // Case 2: Structured object (stageHistory or similar)
+        return processStructuredLogs(reasoningLogs);
     }, [reasoningLogs, analysisDetails]);
+
+    // Helper to extract text from structured stage history
+    function processStructuredLogs(data: any): string {
+        if (!data) return '';
+
+        // If it's the finalCandidate/AnalysisDetails object itself
+        if (data.finalCandidate?.thinking) return data.finalCandidate.thinking;
+
+        // If it's stageHistory { [key: number]: string }
+        if (typeof data === 'object' && !Array.isArray(data)) {
+            const stages = Object.keys(data).map(Number).sort((a, b) => a - b);
+            if (stages.length > 0) {
+                return stages.map(s => {
+                    const stageText = data[s];
+                    if (typeof stageText === 'string') {
+                        // If it's just one stage, don't add header to avoid redundancy
+                        if (stages.length === 1) return stageText;
+                        return `--- STAGE ${s} ---\n${stageText}`;
+                    }
+                    return '';
+                }).join('\n\n');
+            }
+        }
+
+        return typeof data === 'string' ? data : JSON.stringify(data);
+    }
 
     const displayText = useMemo(() => {
         return isExpanded ? rawText : truncateText(rawText, 1000);

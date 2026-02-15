@@ -9,6 +9,8 @@ import 'dotenv/config';
 
 import express from 'express';
 import cors from 'cors';
+import cluster from 'cluster';
+import os from 'os';
 import helmet from 'helmet';
 
 // Configuration (validates on import)
@@ -165,9 +167,33 @@ app.use(errorHandlerMiddleware());
 let swissEphReady = false;
 let queueStarted = false;
 
+const numCPUs = os.cpus().length;
+
 async function bootstrap(): Promise<void> {
+  if (cluster.isPrimary && serverConfig.env === 'production') {
+    logger.info(`🚀 Master process ${process.pid} is running`);
+    logger.info(`🔥 Forking for ${numCPUs} CPUs...`);
+
+    // Fork workers.
+    for (let i = 0; i < numCPUs; i++) {
+      cluster.fork();
+    }
+
+    cluster.on('exit', (worker, code, signal) => {
+      logger.warn(`❌ Worker ${worker.process.pid} died. Forking replacement...`);
+      cluster.fork();
+    });
+
+  } else {
+    // Workers share the TCP connection in this server
+    startWorkerServer();
+  }
+}
+
+async function startWorkerServer() {
   try {
-    logger.info('🚀 AI Pandit BTR Engine v3.0.0 Starting...');
+    const workerId = cluster.isWorker ? `Worker ${process.pid}` : 'Single Process';
+    logger.info(`🚀 AI Pandit BTR Engine v3.0.0 Starting (${workerId})...`);
     logger.info('📍 Environment', {
       env: serverConfig.env,
       port: serverConfig.port,
@@ -224,7 +250,7 @@ async function bootstrap(): Promise<void> {
     startQueueProcessor();
     queueStarted = true;
 
-    logger.info('✨ AI Pandit BTR Engine fully operational');
+    logger.info(`✨ AI Pandit BTR Engine fully operational (${workerId})`);
 
   } catch (err) {
     logger.error('❌ Fatal bootstrap error', err);

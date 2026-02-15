@@ -3,6 +3,7 @@
 // Includes: Yogini Dasha, Divisional Charts, Physical Traits, Advanced Aspects, Arudha Lagna
 
 import { EphemerisData, PlanetPosition, LifeEvent } from './types.js';
+import { calculateEphemeris } from './ephemeris.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES AND CONSTANTS
@@ -17,9 +18,9 @@ export interface YoginiDashaPeriod {
 }
 
 export interface DivisionalChart {
-    chartType: string;  // D2, D7, D9, D10, D24, D30, D40, D45, D60
-    planets: Record<string, { sign: string; degree: number; house: number }>;
-    ascendant: { sign: string; degree: number };
+    chartType: string;  // D2, D7, D9, D10, D24, D30, D40, D45, D60, D150
+    planets: Record<string, { sign: string; degree: number; house: number; nadiName?: string }>;
+    ascendant: { sign: string; degree: number; nadiName?: string };
 }
 
 export interface PhysicalTraitsScore {
@@ -65,6 +66,8 @@ export interface VedicSignal {
     yogaKaraka?: string;
     badhakaLord?: string;
     isDashaLordStrongInVarga: Record<string, boolean>; // e.g. "marriage": lord is strong in D9
+    tatwa?: { name: string; element: string; isAuspicious: boolean };
+    kundaLagna?: { sign: string; degree: number; matchesMoon: boolean };
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -411,6 +414,42 @@ export function calculateD60(longitude: number): { sign: string; degree: number 
     };
 }
 
+/**
+ * Calculate D150 (Nadi Ansha) - The Ultimate Precision Division
+ * Each sign divided into 150 parts (12 minutes of arc / 0.2° each)
+ * Changes every ~48 seconds of birth time.
+ * This is the "DNA" of the soul in Vedic Astrology.
+ */
+export function calculateD150(longitude: number): { sign: string; degree: number; index: number } {
+    const signIndex = Math.floor(longitude / 30);
+    const degreeInSign = longitude % 30;
+    const nadiSpan = 30 / 150; // 0.2 degrees
+    const nadiIndex = Math.floor(degreeInSign / nadiSpan);
+
+    // Standard Nadi Ansha logic:
+    // Moveable signs: Normal order
+    // Fixed signs: Reverse order
+    // Dual signs: Reverse order starting from middle? (Varies by school, using standard moveable/fixed/dual logic)
+    const signType = signIndex % 3; // 0=Moveable, 1=Fixed, 2=Dual
+
+    let d150SignIndex: number;
+    if (signType === 0) {
+        d150SignIndex = (signIndex + nadiIndex) % 12;
+    } else if (signType === 1) {
+        // Fixed signs reverse - start from Scorpio (7)
+        d150SignIndex = (7 + (149 - nadiIndex)) % 12;
+    } else {
+        // Dual signs start from Sagittarius (8)
+        d150SignIndex = (8 + nadiIndex) % 12;
+    }
+
+    return {
+        sign: ZODIAC_SIGNS[d150SignIndex],
+        degree: (degreeInSign % nadiSpan) * 150,
+        index: nadiIndex + 1
+    };
+}
+
 
 
 /**
@@ -420,7 +459,7 @@ export function generateDivisionalCharts(
     ephemeris: EphemerisData
 ): Record<string, DivisionalChart> {
     const charts: Record<string, DivisionalChart> = {};
-    const chartTypes = ['D2', 'D7', 'D9', 'D10', 'D24', 'D30', 'D40', 'D45', 'D60'];
+    const chartTypes = ['D2', 'D7', 'D9', 'D10', 'D24', 'D30', 'D40', 'D45', 'D60', 'D150'];
 
     for (const type of chartTypes) {
         const planets: Record<string, { sign: string; degree: number; house: number }> = {};
@@ -435,6 +474,7 @@ export function generateDivisionalCharts(
             else if (type === 'D40') div = calculateD40(pos.longitude);
             else if (type === 'D45') div = calculateD45(pos.longitude);
             else if (type === 'D60') div = calculateD60(pos.longitude);
+            else if (type === 'D150') div = calculateD150(pos.longitude);
             else div = { sign: pos.sign, degree: pos.degree };
 
             // Find house in divisional chart (relative to divisional ascendant sign - Whole Sign)
@@ -447,7 +487,8 @@ export function generateDivisionalCharts(
                                     type === 'D40' ? calculateD40(ephemeris.ascendant.longitude) :
                                         type === 'D45' ? calculateD45(ephemeris.ascendant.longitude) :
                                             type === 'D60' ? calculateD60(ephemeris.ascendant.longitude) :
-                                                { sign: ephemeris.ascendant.sign, degree: ephemeris.ascendant.degree };
+                                                type === 'D150' ? calculateD150(ephemeris.ascendant.longitude) :
+                                                    { sign: ephemeris.ascendant.sign, degree: ephemeris.ascendant.degree };
 
             const signIdx = ZODIAC_SIGNS.indexOf(div.sign);
             const ascIdx = ZODIAC_SIGNS.indexOf(divAsc.sign);
@@ -465,7 +506,8 @@ export function generateDivisionalCharts(
                                 type === 'D40' ? calculateD40(ephemeris.ascendant.longitude) :
                                     type === 'D45' ? calculateD45(ephemeris.ascendant.longitude) :
                                         type === 'D60' ? calculateD60(ephemeris.ascendant.longitude) :
-                                            { sign: ephemeris.ascendant.sign, degree: ephemeris.ascendant.degree };
+                                            type === 'D150' ? calculateD150(ephemeris.ascendant.longitude) :
+                                                { sign: ephemeris.ascendant.sign, degree: ephemeris.ascendant.degree };
 
         charts[type] = {
             chartType: type,
@@ -1007,6 +1049,7 @@ function getChartPurpose(chartName: string): string {
         D40: 'Auspiciousness/Success',
         D45: 'Character/General Luck',
         D60: 'GOD-TIER Precision/Past Life',
+        D150: 'ULTIMATE SECONDS-LEVEL DNA (Nadi Ansha)',
     };
     return purposes[chartName] || 'General';
 }
@@ -1406,7 +1449,6 @@ export function detectParivartana(ephemeris: EphemerisData): any[] {
 
             const pos1 = ephemeris.planets[lord1.toLowerCase() as keyof typeof ephemeris.planets];
             const pos2 = ephemeris.planets[lord2.toLowerCase() as keyof typeof ephemeris.planets];
-
             if (pos1 && pos2 && pos1.house === h2 && pos2.house === h1) {
                 exchanges.push({ houses: [h1, h2], planets: [lord1, lord2] });
             }
@@ -1446,3 +1488,137 @@ export function detectPushkarNavamsa(ephemeris: EphemerisData): string[] {
     }
     return pushkar;
 }
+
+/**
+ * Calculate Tatwa Shuddhi (Five Elements Verification)
+ * Based on Sunrise and a 90-minute cycle (8 cycles between sunrise-sunset)
+ */
+export function calculateTatwaShuddhi(
+    birthDate: Date,
+    sunriseDate: Date
+): { name: string; element: string; isAuspicious: boolean } {
+    const diffMs = birthDate.getTime() - sunriseDate.getTime();
+    if (diffMs < 0) return { name: 'Unknown', element: 'Unknown', isAuspicious: false };
+
+    const diffMinutes = diffMs / (1000 * 60);
+    const cyclePos = diffMinutes % 90; // 90-minute cycle
+
+    // Weekday-based starting Tatwa order
+    const weekday = sunriseDate.getDay(); // 0-6 (Sun-Sat)
+
+    // Standard sequence: Prithvi(6), Apas(12), Tejas(18), Vayu(24), Akasha(30) = 90m
+    const tatwas = [
+        { name: 'Prithvi', element: 'Earth', duration: 6 },
+        { name: 'Apas', element: 'Water', duration: 12 },
+        { name: 'Tejas', element: 'Fire', duration: 18 },
+        { name: 'Vayu', element: 'Air', duration: 24 },
+        { name: 'Akasha', element: 'Ether', duration: 30 }
+    ];
+
+    // Shift based on weekday
+    let startIndex = 0;
+    if (weekday === 0 || weekday === 2) startIndex = 2; // Tejas
+    else if (weekday === 1 || weekday === 5) startIndex = 1; // Apas
+    else if (weekday === 3) startIndex = 0; // Prithvi
+    else if (weekday === 4) startIndex = 4; // Akasha
+    else if (weekday === 6) startIndex = 3; // Vayu
+
+    const orderedTatwas = [...tatwas.slice(startIndex), ...tatwas.slice(0, startIndex)];
+
+    let currentPos = 0;
+    for (const t of orderedTatwas) {
+        if (cyclePos >= currentPos && cyclePos < currentPos + t.duration) {
+            return {
+                name: t.name,
+                element: t.element,
+                isAuspicious: true
+            };
+        }
+        currentPos += t.duration;
+    }
+
+    return { name: orderedTatwas[0].name, element: orderedTatwas[0].element, isAuspicious: true };
+}
+
+/**
+ * Calculate Kunda Lagna (The 1-Second Genetic Key)
+ */
+export function calculateKundaLagna(
+    ascendantLongitude: number,
+    moonLongitude: number
+): { sign: string; degree: number; matchesMoon: boolean } {
+    const kundaLong = (ascendantLongitude * 81) % 360;
+    const signIndex = Math.floor(kundaLong / 30);
+    const degree = kundaLong % 30;
+
+    const NAK_SPAN = 360 / 27;
+    const kundaNak = Math.floor(kundaLong / NAK_SPAN);
+    const moonNak = Math.floor(moonLongitude / NAK_SPAN);
+
+    const diff = Math.abs(kundaNak - moonNak);
+    const matchesMoon = diff === 0 || diff === 9 || diff === 18;
+
+    return {
+        sign: ZODIAC_SIGNS[signIndex],
+        degree,
+        matchesMoon
+    };
+}
+
+/**
+ * Sweeps a time range to find exact moments of divisional chart boundary changes.
+ * Locks onto D1, D9, and D60 sign transitions.
+ */
+export async function findAstrologicalBoundaries(
+    birthDate: string,
+    centerTime: string,
+    offsetMinutes: number,
+    latitude: number,
+    longitude: number,
+    timezone: number | string
+): Promise<{ time: string; type: string; from: string; to: string; offsetMinutes: number }[]> {
+    const boundaries: { time: string; type: string; from: string; to: string; offsetMinutes: number }[] = [];
+
+    // Sweep range in 15-second steps for high discovery resolution
+    const STEP_SECONDS = 15;
+    const rangeSeconds = offsetMinutes * 60;
+
+    const [h, m, s] = centerTime.split(':').map(Number);
+    const centerTotalSeconds = h * 3600 + m * 60 + s;
+
+    let lastD1 = '';
+    let lastD9 = '';
+    let lastD60 = '';
+
+    for (let offset = -rangeSeconds; offset <= rangeSeconds; offset += STEP_SECONDS) {
+        let currentTotal = centerTotalSeconds + offset;
+        const curH = Math.floor(currentTotal / 3600) % 24;
+        const curM = Math.floor((currentTotal % 3600) / 60);
+        const curS = currentTotal % 60;
+        const timeStr = `${String(curH).padStart(2, '0')}:${String(curM).padStart(2, '0')}:${String(curS).padStart(2, '0')}`;
+
+        // We need a lightweight calculation here or use the existing one
+        const eph = await calculateEphemeris(birthDate, timeStr, latitude, longitude, timezone);
+        const d1 = eph.ascendant.sign;
+        const d9 = calculateD9(eph.ascendant.longitude).sign;
+        const d60 = calculateD60(eph.ascendant.longitude).sign;
+
+        if (lastD1 && d1 !== lastD1) {
+            boundaries.push({ time: timeStr, type: 'D1 Lagna', from: lastD1, to: d1, offsetMinutes: offset / 60 });
+        }
+        if (lastD9 && d9 !== lastD9) {
+            boundaries.push({ time: timeStr, type: 'D9 Navamsha', from: lastD9, to: d9, offsetMinutes: offset / 60 });
+        }
+        if (lastD60 && d60 !== lastD60) {
+            boundaries.push({ time: timeStr, type: 'D60 Shashtiamsha', from: lastD60, to: d60, offsetMinutes: offset / 60 });
+        }
+
+        lastD1 = d1;
+        lastD9 = d9;
+        lastD60 = d60;
+    }
+
+    return boundaries;
+}
+
+

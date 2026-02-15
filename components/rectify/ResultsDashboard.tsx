@@ -556,7 +556,7 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
             style={{ borderColor: THEME.border }}
             role="tablist"
           >
-            {(['summary', 'comparison', 'audit', 'logs'] as const).map((tab) => (
+            {(['summary', 'comparison', 'audit'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -575,7 +575,6 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                 {tab === 'summary' && 'Executive Summary'}
                 {tab === 'comparison' && 'Candidate Comparison'}
                 {tab === 'audit' && 'Deep Audit'}
-                {tab === 'logs' && 'AI Reasoning'}
               </button>
             ))}
           </div>
@@ -756,22 +755,6 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                 </motion.div>
               )}
 
-              {activeTab === 'logs' && (
-                <motion.div
-                  key="logs"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="h-full"
-                  role="tabpanel"
-                  id="logs-panel"
-                >
-                  <FormattedAIReasoning
-                    reasoningLogs={reasoningLogs}
-                    analysisDetails={analysisDetails}
-                  />
-                </motion.div>
-              )}
             </AnimatePresence>
           </div>
         </div>
