@@ -299,8 +299,24 @@ export function useStreamProgress(
                 }
 
                 case 'stage_stats': {
-                    const stats = (data.data as StageStat[]) || (data as unknown as StageStat[]);
-                    return { ...prev, stageStats: stats };
+                    const payload = (data.data as any) || data;
+                    let newStats: StageStat[] = [];
+
+                    if (Array.isArray(payload)) {
+                        newStats = payload as StageStat[];
+                    } else if (payload && typeof payload === 'object') {
+                        // Single stat update
+                        const stat = payload as StageStat;
+                        const exists = prev.stageStats.some(s => s.stage === stat.stage);
+                        if (exists) {
+                            newStats = prev.stageStats.map(s => s.stage === stat.stage ? stat : s);
+                        } else {
+                            newStats = [...prev.stageStats, stat];
+                        }
+                    } else {
+                        newStats = prev.stageStats;
+                    }
+                    return { ...prev, stageStats: newStats };
                 }
 
                 case 'advanced_signals': {

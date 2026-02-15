@@ -292,7 +292,7 @@ export const AnalysisPipelineTracker = memo(function AnalysisPipelineTracker({
                         isActive={currentStage === idx}
                         isPast={currentStage > idx}
                         isAI={step.id === 'coarse' || step.id === 'deep' || step.id === 'final'}
-                        stat={stats.find(s => s.stage === idx)}
+                        stat={Array.isArray(stats) ? stats.find(s => s.stage === idx) : undefined}
                         isLast={idx === allSteps.length - 1}
                     />
                 ))}
