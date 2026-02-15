@@ -56,13 +56,16 @@ const allowedOrigins = [
   'http://localhost:3001',
   'http://localhost:5173',
   process.env.FRONTEND_URL,
-  // Vercel sets VERCEL_URL without the protocol prefix (e.g. 'your-app.vercel.app')
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
 ].filter((origin): origin is string => Boolean(origin));
 
+// Match any *.vercel.app deployment (production, preview, etc.)
+const isVercelOrigin = (origin: string): boolean =>
+  /^https:\/\/[\w-]+\.vercel\.app$/.test(origin);
+
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || serverConfig.isDevelopment) {
+    if (!origin || allowedOrigins.includes(origin) || isVercelOrigin(origin || '') || serverConfig.isDevelopment) {
       callback(null, true);
     } else {
       logger.warn('CORS blocked origin', { origin });
