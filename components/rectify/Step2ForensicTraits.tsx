@@ -121,7 +121,7 @@ export default function Step2ForensicTraits({
                     animate={{ opacity: 1, scale: 1 }}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FDF8F3] to-white border border-[#F0E8DE] rounded-full text-xs mb-6 shadow-sm"
                 >
-                    <span className="text-[#B8860B] font-medium tracking-wider">STEP 2 OF 5</span>
+                    <span className="text-[#B8860B] font-medium tracking-wider">STEP 3 OF 5</span>
                 </motion.div>
                 <motion.h1
                     initial={{ opacity: 0, y: 20 }}

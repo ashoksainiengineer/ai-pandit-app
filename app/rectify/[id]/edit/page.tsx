@@ -169,19 +169,12 @@ export default function EditSessionPage() {
                 if (!birthData.birthPlace) { setError("Birth Place is required"); return false; }
                 return true;
             case 2:
-                // Step 2 is Physical Traits in the UI order (step state map is: 1=Birth, 2=Physical, 3=LifeEvents, 4=Review) 
-                // Wait, in the render:
-                // step 2 = Step2PhysicalTraits
-                // step 3 = Step3LifeEvents
-                // This seems swapped compared to validate function?
-                // Let's check the render: 
-                // {step === 2 && (<Step2PhysicalTraits ... />)}
-                // {step === 3 && (<Step3LifeEvents ... />)}
-                // So Step 2 is Physical, Step 3 is Life Events.
+                // Step 2 is now Physical Traits
+                // Optional validation for physical traits can be added here
                 return true;
             case 3:
-                // Physical Details validation (Step 3)
-                // Optional for now but good to keep as a placeholder
+                // Step 3 is now Forensic Traits
+                // Optional validation for forensic traits can be added here
                 return true;
             case 4:
                 // Life Events validation (Step 4)
@@ -329,7 +322,7 @@ export default function EditSessionPage() {
                                     {s < step ? '✓' : ['👤', '🪞', '📏', '📅', '✅'][s - 1]}
                                 </div>
                                 <span className={`text-xs mt-2 font-medium ${s === step ? 'text-[#B8860B]' : 'text-[#7A756F]'}`}>
-                                    {s === 1 ? 'Birth' : s === 2 ? 'Quiz' : s === 3 ? 'Physical' : s === 4 ? 'Life Events' : 'Review'}
+                                    {s === 1 ? 'Birth' : s === 2 ? 'Physical' : s === 3 ? 'Forensic' : s === 4 ? 'Life Events' : 'Review'}
                                 </span>
                             </button>
                         ))}
@@ -354,6 +347,28 @@ export default function EditSessionPage() {
                         />
                     )}
                     {step === 2 && (
+                        <Step3PhysicalTraits
+                            physicalTraits={forensicTraits?.physical || {
+                                facialStructure: {},
+                                skinHair: { marks: [] },
+                                build: '',
+                                height: { cm: 0, feet: 0, inches: 0 }
+                            }}
+                            updateTraits={(p) => {
+                                // Update forensic traits storage
+                                setForensicTraits((prev: any) => ({
+                                    ...prev,
+                                    physical: { ...(prev?.physical || {}), ...p }
+                                }));
+                                // Also sync legacy physicalTraits state for Review step compatibility
+                                setPhysicalTraits((prev) => ({
+                                    ...prev,
+                                    ...p
+                                }));
+                            }}
+                        />
+                    )}
+                    {step === 3 && (
                         <Step2ForensicTraits
                             traits={forensicTraits || {
                                 physical: {
@@ -377,20 +392,6 @@ export default function EditSessionPage() {
                                     return { ...current, ...updates };
                                 });
                             }}
-                        />
-                    )}
-                    {step === 3 && (
-                        <Step3PhysicalTraits
-                            physicalTraits={forensicTraits?.physical || {
-                                facialStructure: {},
-                                skinHair: { marks: [] },
-                                build: '',
-                                height: { cm: 0, feet: 0, inches: 0 }
-                            }}
-                            updateTraits={(p) => setForensicTraits((prev: any) => ({
-                                ...prev,
-                                physical: { ...(prev?.physical || {}), ...p }
-                            }))}
                         />
                     )}
                     {step === 4 && (

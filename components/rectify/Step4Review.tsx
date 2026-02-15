@@ -152,19 +152,42 @@ export default function Step4Review({
           </div>
         </FormCard>
 
-        {/* Forensic Traits */}
+        {/* Physical Traits (New 2nd Position) */}
+        <FormCard className="relative group p-5">
+          <button onClick={() => onEdit(3)} className="absolute top-4 right-4 text-[#B8860B] opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold hover:underline flex items-center gap-1">
+            Edit <ArrowRight className="w-3 h-3" />
+          </button>
+          <h3 className="font-[family-name:var(--font-cormorant)] text-lg font-semibold text-[#1A1612] mb-4 pb-3 border-b border-[#F0E8DE] flex items-center gap-2">
+            <span>📏</span> Physical Traits
+          </h3>
+          <div className="space-y-3 text-xs">
+            <div className="flex justify-between items-center">
+              <span className="text-[#7A756F]">Height</span>
+              <span className="text-[#4A453F] font-medium">
+                {typeof traits?.height === 'object'
+                  ? `${traits.height.feet}'${traits.height.inches}" (${traits.height.cm} cm)`
+                  : traits?.height || '—'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center"><span className="text-[#7A756F]">Build</span><span className="text-[#4A453F] capitalize">{traits?.build || '—'}</span></div>
+            <div className="flex justify-between items-center"><span className="text-[#7A756F]">Complexion</span><span className="text-[#4A453F] capitalize">{traits?.complexion || '—'}</span></div>
+            <div className="flex justify-between items-center"><span className="text-[#7A756F]">Hair</span><span className="text-[#4A453F] capitalize">{traits?.hairColor || '—'}</span></div>
+            <div className="flex justify-between items-center"><span className="text-[#7A756F]">Eyes</span><span className="text-[#4A453F] capitalize">{traits?.eyeColor || '—'}</span></div>
+          </div>
+        </FormCard>
+
+        {/* Forensic Traits (New 3rd Position) */}
         <FormCard className="relative group p-5">
           <button onClick={() => onEdit(2)} className="absolute top-4 right-4 text-[#B8860B] opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold hover:underline flex items-center gap-1">
             Edit <ArrowRight className="w-3 h-3" />
           </button>
           <h3 className="font-[family-name:var(--font-cormorant)] text-lg font-semibold text-[#1A1612] mb-4 pb-3 border-b border-[#F0E8DE] flex items-center gap-2">
-            <span>🧬</span> Traits
+            <span>🧬</span> Forensic Traits
           </h3>
           <div className="space-y-3 text-xs">
             <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Face</span><span className="text-[#4A453F]">{(forensicTraits?.physical?.facialStructure?.forehead || '—').replace('_', ' ')} forehead, {(forensicTraits?.physical?.facialStructure?.eyeShape || '—').replace('_', ' ')} eyes</span></div>
             <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Speech</span><span className="text-[#4A453F]">{(forensicTraits?.psychographic?.speechStyle || '—').replace(/_/g, ' ')}</span></div>
             <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Family</span><span className="text-[#4A453F]">{(forensicTraits?.family?.siblingPosition || '—').replace(/_/g, ' ')}</span></div>
-            <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Physical Markers</span><span className="text-[#4A453F]">{(traits?.facialStructure?.eyeShape || '—').replace(/_/g, ' ')} eyes, {(traits?.facialStructure?.jawLine || '—')} jaw, {(traits?.build || '—')} build</span></div>
             <div><span className="text-[#7A756F] block text-[10px] uppercase tracking-wider mb-0.5">Prakriti</span><span className="text-[#4A453F]">{(forensicTraits?.biological?.prakriti || '—').toUpperCase()}</span></div>
           </div>
         </FormCard>

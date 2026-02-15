@@ -153,8 +153,8 @@ const MAX_POLL_INTERVAL = 60000; // 60 seconds
 const SSE_TIMEOUT = 10000;       // 10 seconds to establish SSE
 const RATE_LIMIT_WAIT = 30000;   // 30 seconds on 429
 
-// Direct backend URL for SSE — bypasses Vercel serverless timeout (10-60s limit)
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+// Direct backend URL for SSE and Polling — bypasses Vercel serverless timeout
+const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL || '').replace(/\/$/, '');
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // INITIAL STATE
@@ -415,7 +415,12 @@ export function useStreamProgress(
             const headers: HeadersInit = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
 
-            const res = await fetch(`/api/queue/progress?sessionId=${sid}`, {
+            const sseBaseUrl = backendUrl || BACKEND_URL;
+            const pollUrl = sseBaseUrl
+                ? `${sseBaseUrl}/api/queue/progress?sessionId=${sid}`
+                : `/api/queue/progress?sessionId=${sid}`;
+
+            const res = await fetch(pollUrl, {
                 headers,
                 cache: 'no-store',
             });

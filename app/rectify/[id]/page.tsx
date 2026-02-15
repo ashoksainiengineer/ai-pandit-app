@@ -14,6 +14,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useStreamProgress, type CandidateScore, type StreamStep, type StageStat, type AIThinking, type AIContextData, type AnalysisDecision } from '@/lib/use-stream-progress';
 import { logger } from '@/lib/secure-logger';
+import { env } from '@/lib/config';
 import { AnalysisPipelineTracker } from '@/components/rectify/AnalysisPipelineTracker';
 import { AnalysisErrorBoundary, SectionErrorBoundary } from '@/components/rectify/AnalysisErrorBoundary';
 import AdvancedSignalsDashboard from '@/components/rectify/advanced-signals/AdvancedSignalsDashboard';
@@ -501,7 +502,10 @@ export default function RobustAnalysisPage() {
         setIsCancelling(true);
         try {
             const token = await getToken();
-            const res = await fetch('/api/queue/cancel', {
+            const backendUrl = env.api.backendUrl.replace(/\/$/, '');
+            const cancelUrl = `${backendUrl}/api/queue/cancel`;
+
+            const res = await fetch(cancelUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ sessionId }),
@@ -522,7 +526,10 @@ export default function RobustAnalysisPage() {
         setIsCancelling(true);
         try {
             const token = await getToken();
-            const res = await fetch('/api/queue/requeue', {
+            const backendUrl = env.api.backendUrl.replace(/\/$/, '');
+            const requeueUrl = `${backendUrl}/api/queue/requeue`;
+
+            const res = await fetch(requeueUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ sessionId }),
