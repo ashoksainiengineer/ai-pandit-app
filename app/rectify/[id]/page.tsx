@@ -87,6 +87,30 @@ export default function RobustAnalysisPage() {
         }
     }, [sessionId, getToken]);
 
+    const handleRestart = useCallback(async () => {
+        setIsCancelling(true); // Using isCancelling as a generic loading state for actions
+        try {
+            const token = await getToken();
+            const res = await fetch('/api/queue/requeue', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ sessionId }),
+            });
+            if (res.ok) {
+                // Refresh the page or just let SSE reconnect to the now-pending session
+                window.location.reload();
+            } else {
+                const data = await res.json();
+                logger.error('Restart failed', data.error);
+                alert(`Failed to restart: ${data.error}`);
+            }
+        } catch (err) {
+            logger.error('Restart error', err);
+        } finally {
+            setIsCancelling(false);
+        }
+    }, [sessionId, getToken]);
+
     const progressPercentage = useMemo(() =>
         progress?.percentage || (allSteps?.length ? ((progress?.stepIndex || 0) / allSteps.length) * 100 : 0),
         [progress?.percentage, progress?.stepIndex, allSteps?.length]
@@ -184,23 +208,41 @@ export default function RobustAnalysisPage() {
                         />
                     )}
 
-                    {/* Cancelled state */}
-                    {cancelled && (
+                    {/* Cancelled or Failed state */}
+                    {(cancelled || metadata?.status === 'failed') && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             role="alert"
                             className="rounded-2xl border p-6 sm:p-8 text-center mb-6 sm:mb-8 bg-white border-[#E8A84930]"
                         >
-                            <h2 className="text-lg sm:text-xl font-bold mb-2 text-[#1A1612]">Analysis Cancelled</h2>
-                            <p className="mb-4 text-sm text-[#7A756F]">The analysis was cancelled by user request.</p>
-                            <Link
-                                href="/rectify?new=true"
-                                className="inline-block px-6 py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90 outline-none focus:ring-2 focus:ring-offset-2"
-                                style={{ background: 'linear-gradient(90deg, #B8860B, #D4A853)' }}
-                            >
-                                Start New Analysis
-                            </Link>
+                            <h2 className="text-lg sm:text-xl font-bold mb-2 text-[#1A1612]">
+                                {metadata?.status === 'failed' ? 'Analysis Failed' : 'Analysis Cancelled'}
+                            </h2>
+                            <p className="mb-6 text-sm text-[#7A756F]">
+                                {metadata?.status === 'failed'
+                                    ? (metadata?.errorMessage || 'An error occurred during analysis.')
+                                    : 'The analysis was cancelled by user request.'}
+                            </p>
+
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                                <button
+                                    onClick={handleRestart}
+                                    disabled={isCancelling}
+                                    className="px-8 py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90 outline-none focus:ring-2 focus:ring-offset-2 flex items-center gap-2"
+                                    style={{ background: 'linear-gradient(90deg, #2D7A5C, #45A049)' }}
+                                >
+                                    {isCancelling ? <RefreshCw className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
+                                    Restart This Analysis
+                                </button>
+
+                                <Link
+                                    href="/rectify?new=true"
+                                    className="px-8 py-3 rounded-xl font-semibold text-[#1A1612] transition-all hover:bg-gray-100 border border-gray-200 outline-none focus:ring-2 focus:ring-offset-2"
+                                >
+                                    Start New Analysis
+                                </Link>
+                            </div>
                         </motion.div>
                     )}
 

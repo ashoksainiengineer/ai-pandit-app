@@ -177,7 +177,7 @@ trap cleanup INT TERM EXIT
 kill_existing() {
     print_info "Cleaning up existing processes..."
     fuser -k 3000/tcp 2>/dev/null || true
-    fuser -k 3001/tcp 2>/dev/null || true
+    fuser -k 7080/tcp 2>/dev/null || true
     sleep 2
 }
 
@@ -191,20 +191,20 @@ start_services() {
     export ENCRYPTION_SECRET
     export DATABASE_URL="file:$SCRIPT_DIR/dev.db"
     export TURSO_DATABASE_URL="file:$SCRIPT_DIR/dev.db"
-    export BACKEND_URL="http://localhost:3001"
-    export NEXT_PUBLIC_BACKEND_URL="http://localhost:3001"
+    export BACKEND_URL="http://localhost:7080"
+    export NEXT_PUBLIC_BACKEND_URL="http://localhost:7080"
     
     # Start backend
-    print_info "Starting backend on http://localhost:3001 ..."
+    print_info "Starting backend on http://localhost:7080 ..."
     cd backend
-    PORT=3001 npm run dev > ../backend.log 2>&1 &
+    PORT=7080 npm run dev > ../backend.log 2>&1 &
     BACKEND_PID=$!
     cd ..
     
     # Wait for backend to be ready
     print_info "Waiting for backend to be ready..."
     for i in {1..30}; do
-        if curl -sf http://localhost:3001/api/health/live > /dev/null 2>&1; then
+        if curl -sf http://localhost:7080/api/health/live > /dev/null 2>&1; then
             print_success "Backend is ready ✓"
             break
         fi
@@ -239,7 +239,7 @@ start_services() {
     print_success "All services are running!"
     echo ""
     print_info "Frontend: http://localhost:3000"
-    print_info "Backend:  http://localhost:3001"
+    print_info "Backend:  http://localhost:7080"
     echo ""
     print_info "Logs:"
     print_info "  Frontend: tail -f frontend.log"

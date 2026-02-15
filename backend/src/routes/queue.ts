@@ -361,4 +361,89 @@ router.post('/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Re
     }
 });
 
+/**
+ * POST /api/queue/requeue - Restart a failed or cancelled session
+ */
+router.post('/requeue', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const clerkId = req.clerkId!;
+        const { sessionId } = req.body;
+
+        if (!sessionId) {
+            res.status(400).json({ success: false, error: 'sessionId is required' });
+            return;
+        }
+
+        // Verify session belongs to user
+        const session = await executeWithRetry(() =>
+            db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1)
+        );
+
+        if (session.length === 0) {
+            res.status(404).json({ success: false, error: 'Session not found' });
+            return;
+        }
+
+        if (session[0].clerkId !== clerkId) {
+            res.status(403).json({ success: false, error: 'Unauthorized' });
+            return;
+        }
+
+        // Only allow requeue if failed or cancelled
+        if (session[0].status !== 'failed' && session[0].status !== 'cancelled') {
+            res.status(400).json({ success: false, error: 'Can only restart failed or cancelled sessions' });
+            return;
+        }
+
+        const now = new Date().toISOString();
+
+        // 1. Reset session state
+        await executeWithRetry(() =>
+            db.update(sessions)
+                .set({
+                    status: 'pending',
+                    analysisResult: null,
+                    progressData: null,
+                    reasoningLogs: null,
+                    errorMessage: null,
+                    accuracy: null,
+                    confidence: null,
+                    rectifiedTime: null,
+                    updatedAt: now,
+                } as any)
+                .where(eq(sessions.id, sessionId))
+        );
+
+        // 2. Add back to queue
+        const queueResult = await addToQueue(sessionId);
+
+        if (!queueResult.success) {
+            await executeWithRetry(() =>
+                db.update(sessions)
+                    .set({ status: 'failed', errorMessage: queueResult.error })
+                    .where(eq(sessions.id, sessionId))
+            );
+            res.status(503).json({ success: false, error: queueResult.error });
+            return;
+        }
+
+        // 3. Kick off processor
+        startQueueProcessor();
+
+        logger.info('Session requeued successfully', { sessionId, clerkId });
+
+        res.json({
+            success: true,
+            data: {
+                sessionId,
+                position: queueResult.position,
+                estimatedWaitSeconds: queueResult.estimatedWaitSeconds,
+            },
+        });
+    } catch (error) {
+        logger.error('Requeue error', error);
+        res.status(500).json({ success: false, error: 'Failed to restart analysis' });
+    }
+});
+
 export default router;

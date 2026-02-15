@@ -74,6 +74,7 @@ export interface StreamMetadata {
     birthPlace?: string;
     timezone?: string;
     status?: string;
+    errorMessage?: string;
     lifeEvents?: unknown[];
     physicalTraits?: unknown;
     offsetConfig?: { preset: string; minutes?: number };
