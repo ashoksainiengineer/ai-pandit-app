@@ -46,6 +46,7 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
             status: sessions.status,
             userId: sessions.userId,
             clerkId: sessions.clerkId,
+            errorMessage: sessions.errorMessage,
         })
             .from(sessions)
             .where(eq(sessions.id, sessionId))
