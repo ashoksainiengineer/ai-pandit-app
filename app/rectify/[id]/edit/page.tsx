@@ -11,6 +11,7 @@ import { BirthData, LifeEvent, PhysicalTraits } from '@/lib/types';
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
 import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
 import Step2ForensicTraits from '@/components/rectify/Step2ForensicTraits';
+import Step3PhysicalTraits from '@/components/rectify/Step3PhysicalTraits';
 import Step4Review from '@/components/rectify/Step4Review';
 
 const initialPhysicalTraits: PhysicalTraits = {
@@ -30,20 +31,20 @@ export default function EditSessionPage() {
 
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    
+
     // Read initial step from URL query param, default to 1
     const getInitialStep = () => {
         const urlStep = searchParams.get('step');
         if (urlStep) {
             const parsed = parseInt(urlStep, 10);
-            if (parsed >= 1 && parsed <= 4) {
+            if (parsed >= 1 && parsed <= 5) {
                 return parsed;
             }
         }
         return 1;
     };
     const [step, setStep] = useState(getInitialStep());
-    
+
     // Update URL when step changes
     const updateStep = (newStep: number) => {
         setStep(newStep);
@@ -101,7 +102,7 @@ export default function EditSessionPage() {
 
     // Auto-save effect with debounce - only save after user stops typing
     const [lastSavedData, setLastSavedData] = useState<string>('');
-    
+
     useEffect(() => {
         if (!isLoaded || !birthData) return;
 
@@ -109,7 +110,7 @@ export default function EditSessionPage() {
         if (!birthData.fullName || birthData.fullName.trim().length < 2) return;
 
         const currentData = JSON.stringify({ birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig });
-        
+
         // Don't save if data hasn't changed from last save
         if (currentData === lastSavedData) return;
 
@@ -179,7 +180,11 @@ export default function EditSessionPage() {
                 // So Step 2 is Physical, Step 3 is Life Events.
                 return true;
             case 3:
-                // Life Events validation (Step 3)
+                // Physical Details validation (Step 3)
+                // Optional for now but good to keep as a placeholder
+                return true;
+            case 4:
+                // Life Events validation (Step 4)
                 if (lifeEvents.length < 5) {
                     setError("Please add at least 5 life events");
                     return false;
@@ -304,10 +309,10 @@ export default function EditSessionPage() {
                         <div className="absolute top-1/2 left-0 w-full h-1 bg-[#F0E8DE] -z-10 rounded-full" />
                         <div
                             className="absolute top-1/2 left-0 h-1 bg-[#B8860B] -z-10 rounded-full transition-all duration-500"
-                            style={{ width: `${((step - 1) / 3) * 100}%` }}
+                            style={{ width: `${((step - 1) / 4) * 100}%` }}
                         />
 
-                        {[1, 2, 3, 4].map((s) => (
+                        {[1, 2, 3, 4, 5].map((s) => (
                             <button
                                 key={s}
                                 onClick={() => updateStep(s)}
@@ -321,10 +326,10 @@ export default function EditSessionPage() {
                                             : 'bg-[#F5EFE7] border-[#EBE2D6] text-[#A8A39D]'
                                         }`}
                                 >
-                                    {s < step ? '✓' : ['👤', '🪞', '📅', '✅'][s - 1]}
+                                    {s < step ? '✓' : ['👤', '🪞', '📏', '📅', '✅'][s - 1]}
                                 </div>
                                 <span className={`text-xs mt-2 font-medium ${s === step ? 'text-[#B8860B]' : 'text-[#7A756F]'}`}>
-                                    {s === 1 ? 'Birth Details' : s === 2 ? 'Physical' : s === 3 ? 'Life Events' : 'Review'}
+                                    {s === 1 ? 'Birth' : s === 2 ? 'Quiz' : s === 3 ? 'Physical' : s === 4 ? 'Life Events' : 'Review'}
                                 </span>
                             </button>
                         ))}
@@ -375,13 +380,27 @@ export default function EditSessionPage() {
                         />
                     )}
                     {step === 3 && (
+                        <Step3PhysicalTraits
+                            physicalTraits={forensicTraits?.physical || {
+                                facialStructure: {},
+                                skinHair: { marks: [] },
+                                build: '',
+                                height: { cm: 0, feet: 0, inches: 0 }
+                            }}
+                            updateTraits={(p) => setForensicTraits((prev: any) => ({
+                                ...prev,
+                                physical: { ...(prev?.physical || {}), ...p }
+                            }))}
+                        />
+                    )}
+                    {step === 4 && (
                         <Step3LifeEvents
                             lifeEvents={lifeEvents}
                             updateEvents={setLifeEvents}
                             offsetConfig={offsetConfig}
                         />
                     )}
-                    {step === 4 && birthData && (
+                    {step === 5 && birthData && (
                         <Step4Review
                             data={birthData}
                             events={lifeEvents}
@@ -407,7 +426,7 @@ export default function EditSessionPage() {
                 </div>
 
                 {/* Navigation */}
-                {step < 4 && (
+                {step < 5 && (
                     <div className="flex justify-between mt-12 pt-6 border-t border-[#F0E8DE]">
                         <button
                             onClick={handleBack}
