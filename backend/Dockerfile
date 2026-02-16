@@ -23,7 +23,7 @@ COPY package*.json ./
 COPY drizzle.config.* ./
 
 # Install all dependencies (including devDependencies for build)
-RUN npm ci
+RUN npm install
 
 # Copy source code and build
 COPY src/ ./src/

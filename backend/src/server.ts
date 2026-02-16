@@ -100,6 +100,18 @@ app.use(cors({
 // REQUEST PROCESSING MIDDLEWARE
 // ═════════════════════════════════════════════════════════════════════════════
 
+app.use((req, res, next) => {
+  if (req.path.includes('/api/queue/requeue')) {
+    console.log('📢 LOUD LOG: Requeue request detected', {
+      method: req.method,
+      headers: req.headers,
+      url: req.url,
+      originalUrl: req.originalUrl
+    });
+  }
+  next();
+});
+
 // Body parsing with limits
 app.use(express.json({
   limit: '5mb',
@@ -197,27 +209,14 @@ app.use(errorHandlerMiddleware());
 let swissEphReady = false;
 let queueStarted = false;
 
-const numCPUs = os.cpus().length;
+const numCPUs = 1; // Force single process for memory consistency (SSE/Progress)
 
 async function bootstrap(): Promise<void> {
-  if (cluster.isPrimary && serverConfig.env === 'production') {
-    logger.info(`🚀 Master process ${process.pid} is running`);
-    logger.info(`🔥 Forking for ${numCPUs} CPUs...`);
-
-    // Fork workers.
-    for (let i = 0; i < numCPUs; i++) {
-      cluster.fork();
-    }
-
-    cluster.on('exit', (worker, code, signal) => {
-      logger.warn(`❌ Worker ${worker.process.pid} died. Forking replacement...`);
-      cluster.fork();
-    });
-
-  } else {
-    // Workers share the TCP connection in this server
-    startWorkerServer();
-  }
+  // 🚀 GOD-TIER STABILITY: Disable clustering for HF Spaces
+  // In-memory state (SSE emitters, ProgressTracker) is NOT shared across workers.
+  // We run as a single process to ensure real-time consistency.
+  logger.info(`🚀 Starting engine in single-process mode for memory consistency`);
+  startWorkerServer();
 }
 
 async function startWorkerServer() {

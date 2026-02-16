@@ -34,11 +34,10 @@ export default function Navbar({ transparent = false }: NavbarProps) {
   }, []);
 
   return (
-    <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${
-      scrolled
+    <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${scrolled
         ? 'bg-white/90 backdrop-blur-xl border-b border-[#F0E8DE] shadow-sm'
         : transparent ? 'bg-transparent' : 'bg-[#FFFCF8]/80 backdrop-blur-sm'
-    }`}>
+      }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Brand - Always visible on mobile */}
@@ -90,7 +89,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
             </Link>
             {isSignedIn && (
               <div className="border border-[#F0E8DE] rounded-xl p-1 bg-white">
-                <UserButton afterSignOutUrl="/" />
+                <UserButton />
               </div>
             )}
           </div>

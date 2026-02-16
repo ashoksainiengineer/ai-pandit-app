@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef, useCallback, useMemo, memo, useId }
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
+import { APIClient } from '@/lib/api-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Brain, Clock, Activity, Home, LayoutDashboard, AlertCircle, Gem,
@@ -507,21 +508,17 @@ export default function RobustAnalysisPage() {
         if (isCancelling || cancelled) return;
         setIsCancelling(true);
         try {
-            const token = await getToken();
             const backendUrl = env.api.backendUrl.replace(/\/$/, '');
-            const cancelUrl = `${backendUrl}/api/queue/cancel`;
-
-            const res = await fetch(cancelUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ sessionId }),
-            });
-            if (res.ok) {
-                setCancelled(true);
-                logger.info('Analysis cancelled', { sessionId });
-            }
-        } catch (err) {
+            await APIClient.post(
+                `${backendUrl}/api/queue/cancel`,
+                { sessionId },
+                getToken
+            );
+            setCancelled(true);
+            logger.info('Analysis cancelled', { sessionId });
+        } catch (err: any) {
             logger.error('Cancel failed', err);
+            alert(`Failed to cancel: ${err.message}`);
         } finally {
             setIsCancelling(false);
             setShowCancelConfirm(false);
@@ -531,25 +528,17 @@ export default function RobustAnalysisPage() {
     const handleRestart = useCallback(async () => {
         setIsCancelling(true);
         try {
-            const token = await getToken();
             const backendUrl = env.api.backendUrl.replace(/\/$/, '');
-            const requeueUrl = `${backendUrl}/api/queue/requeue`;
-
-            const res = await fetch(requeueUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({ sessionId }),
-            });
-            if (res.ok) {
-                setCancelled(false);
-                window.location.reload();
-            } else {
-                const data = await res.json();
-                logger.error('Restart failed', data.error);
-                alert(`Failed to restart: ${data.error}`);
-            }
-        } catch (err) {
-            logger.error('Restart error', err);
+            await APIClient.post(
+                `${backendUrl}/api/queue/requeue`,
+                { sessionId },
+                getToken
+            );
+            setCancelled(false);
+            window.location.reload();
+        } catch (err: any) {
+            logger.error('Restart failed', err.message);
+            alert(`Failed to restart: ${err.message}`);
         } finally {
             setIsCancelling(false);
         }

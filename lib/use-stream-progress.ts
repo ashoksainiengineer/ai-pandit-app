@@ -16,6 +16,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { logger } from './secure-logger';
 import { env } from './config';
+import { getTokenWithRetry } from './auth-utils';
 import type { IAdvancedSignals } from '@/components/rectify/advanced-signals/types';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -230,17 +231,24 @@ export function useStreamProgress(
 
     // Refs for cleanup
     const mountedRef = useRef(true);
-    const eventSourceRef = useRef<EventSource | null>(null);
+    const sseSourceRef = useRef<EventSource | null>(null);
     const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const connectionAttemptedRef = useRef(false);
+    const connectionAttemptedRef = useRef<boolean>(false);
+    const streamCleanupRef = useRef<boolean>(false);
     const currentSessionRef = useRef<string | null>(null);
+    const authRetryRef = useRef<boolean>(false);
 
     // Cleanup function
     const cleanup = () => {
-        if (eventSourceRef.current) {
-            eventSourceRef.current.close();
-            eventSourceRef.current = null;
+        if (sseSourceRef.current) {
+            logger.info('[SSE] Closing active connection', { sessionId: currentSessionRef.current });
+            sseSourceRef.current.close();
+            sseSourceRef.current = null;
         }
+
+        // Mark as cleaned up to prevent async connect() from opening new ones
+        streamCleanupRef.current = true;
+
         if (pollTimerRef.current) {
             clearTimeout(pollTimerRef.current);
             pollTimerRef.current = null;
@@ -446,15 +454,19 @@ export function useStreamProgress(
         if (!mountedRef.current || currentSessionRef.current !== sid) return;
 
         try {
-            const token = getToken ? await getToken() : null;
+            // RETRY TOKEN ACQUISITION
+            const token = getToken ? await getTokenWithRetry(getToken) : null;
+
             const headers: HeadersInit = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
+            else if (getToken) logger.warn('[Polling] Missing token after retries');
 
             const sseBaseUrl = backendUrl || BACKEND_URL;
             if (!sseBaseUrl) {
                 throw new Error('Backend URL not configured');
             }
-            const pollUrl = `${sseBaseUrl}/api/queue/progress?sessionId=${sid}`;
+            const separator = '&'; // sessionId is already there
+            const pollUrl = `${sseBaseUrl}/api/queue/progress?sessionId=${sid}${token ? `${separator}token=${encodeURIComponent(token)}` : ''}`;
 
             const res = await fetch(pollUrl, {
                 headers,
@@ -521,16 +533,27 @@ export function useStreamProgress(
 
     // Connect — SSE directly to backend (bypasses Vercel serverless timeout)
     const connect = async (sid: string) => {
-        if (!mountedRef.current) return;
+        if (!sid || sid === 'undefined') return;
 
-        cleanup();
-        connectionAttemptedRef.current = true;
+        // Guard against stale connections during rapid navigation/unmount
+        if (!mountedRef.current || streamCleanupRef.current) {
+            logger.debug('[SSE] Ignoring stale connection attempt', { sid, mounted: mountedRef.current, cleanedUp: streamCleanupRef.current });
+            return;
+        }
+
+        cleanup(); // Clean up any previous connections for this hook instance
+        streamCleanupRef.current = false;
         currentSessionRef.current = sid;
-
         setConnectionState({ status: 'connecting', url: '', lastError: null });
 
         try {
-            const token = getToken ? await getToken() : null;
+            // RETRY TOKEN ACQUISITION
+            const token = getToken ? await getTokenWithRetry(getToken) : null;
+
+            if (!token && getToken) {
+                logger.warn('Token acquisition failed after maximum retries');
+            }
+
             const query = token ? `?token=${encodeURIComponent(token)}` : '';
 
             // Direct connection to backend — no Vercel proxy, no timeout limit
@@ -540,35 +563,43 @@ export function useStreamProgress(
             }
             const url = `${sseBaseUrl}/api/stream/${sid}${query}`;
 
-            logger.info('Opening direct SSE connection', { url: url.replace(/token=[^&]+/, 'token=***') });
+            logger.info('Opening direct SSE connection', {
+                url: url.replace(/token=[^&]+/, 'token=***'),
+                sessionId: sid
+            });
 
-            const eventSource = new EventSource(url);
-            eventSourceRef.current = eventSource;
+            const sse = new EventSource(url);
+            sseSourceRef.current = sse;
 
             let sseConnected = false;
 
             // Timeout — if SSE doesn't connect in 10s, fall back to polling
             const timeout = setTimeout(() => {
                 if (!sseConnected && mountedRef.current && currentSessionRef.current === sid) {
-                    logger.info('SSE timeout, falling back to polling');
-                    eventSource.close();
-                    eventSourceRef.current = null;
+                    console.warn('⚠️ [SSE] Connection timeout (10s), falling back to polling fallback...');
+                    if (sseSourceRef.current) {
+                        sseSourceRef.current.close();
+                        sseSourceRef.current = null;
+                    }
                     setConnectionState({ status: 'polling', url: '', lastError: 'SSE timeout' });
                     poll(sid);
                 }
             }, SSE_TIMEOUT);
 
-            eventSource.onopen = () => {
-                if (!mountedRef.current) return;
+            sse.onopen = () => {
+                if (!mountedRef.current || currentSessionRef.current !== sid) {
+                    sse.close();
+                    return;
+                }
                 sseConnected = true;
                 clearTimeout(timeout);
-                logger.info('SSE connected (direct to backend)');
+                console.log('✅ [SSE] Connection OPENED successfully');
                 setState(prev => ({ ...prev, isConnected: true }));
                 setConnectionState({ status: 'streaming', url, lastError: null });
             };
 
-            eventSource.onmessage = (event) => {
-                if (!mountedRef.current) return;
+            sse.onmessage = (event) => {
+                if (!mountedRef.current || currentSessionRef.current !== sid) return;
                 try {
                     const data = JSON.parse(event.data);
                     handleEvent(data);
@@ -577,17 +608,56 @@ export function useStreamProgress(
                 }
             };
 
-            eventSource.onerror = () => {
+            // Listen for named 'error' events (custom backend events)
+            sse.addEventListener('error', (event: any) => {
                 if (!mountedRef.current || currentSessionRef.current !== sid) return;
-                clearTimeout(timeout);
+                try {
+                    const errorData = JSON.parse(event.data);
+                    console.error('🔥 [SSE] Received named error event:', errorData);
 
-                // Close SSE and fall back to polling (via Vercel proxy — quick requests, no timeout issue)
-                if (eventSourceRef.current) {
-                    logger.warn('SSE error, falling back to polling');
-                    eventSource.close();
-                    eventSourceRef.current = null;
-                    setConnectionState({ status: 'polling', url: '', lastError: 'SSE error' });
-                    pollTimerRef.current = setTimeout(() => poll(sid), 2000);
+                    if (errorData.code === 'AUTH_FAILED' && !authRetryRef.current) {
+                        console.warn('🔄 [SSE] Authentication failed. Attempting one-time token refresh...');
+                        authRetryRef.current = true;
+                        cleanup();
+                        // Small delay before reconnecting with fresh token
+                        setTimeout(() => connect(sid), 500);
+                        return;
+                    }
+
+                    // Terminal error
+                    cleanup();
+                    setState(prev => ({
+                        ...prev,
+                        error: errorData.error || 'Authentication failed',
+                        isConnected: false
+                    }));
+                    setConnectionState({
+                        status: 'error',
+                        url: '',
+                        lastError: errorData.error || 'Authentication failed'
+                    });
+                } catch (e) {
+                    logger.warn('Failed to parse SSE error event data');
+                }
+            });
+
+            sse.onerror = (err) => {
+                console.error('❌ [SSE] Connection generic ERROR occurred', err);
+                if (!mountedRef.current || currentSessionRef.current !== sid) return;
+
+                if (sseConnected) {
+                    console.warn('⚠️ [SSE] Lost connection, browser will handle auto-retry...');
+                } else {
+                    // Only switch to polling if it's NOT a terminal named error (caught above)
+                    // and we haven't already started a retry/cleanup.
+                    setTimeout(() => {
+                        if (mountedRef.current && currentSessionRef.current === sid && !sseSourceRef.current && connectionState.status !== 'error') {
+                            console.error('🔥 [SSE] Initial connection failed. Switching to polling...');
+                            cleanup();
+                            setConnectionState({ status: 'polling', url: '', lastError: 'Initial SSE connection failed' });
+                            poll(sid);
+                        }
+                    }, 100);
                 }
             };
 

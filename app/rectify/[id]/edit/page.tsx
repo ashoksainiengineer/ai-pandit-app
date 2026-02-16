@@ -6,8 +6,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { UserButton } from '@clerk/nextjs';
-import { BirthData, LifeEvent, PhysicalTraits } from '@/lib/types';
+import { UserButton, useAuth } from '@clerk/nextjs';
+import { APIClient } from '@/lib/api-client';
+import { BirthData, LifeEvent, TimeOffsetConfig, PhysicalTraits } from '@/lib/types';
 import { env } from '@/lib/config';
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
 import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
@@ -68,10 +69,12 @@ export default function EditSessionPage() {
     useEffect(() => {
         async function fetchSession() {
             try {
-                const backendUrl = env.api.backendUrl.replace(/\/$/, '');
-                // Use the new queue endpoint which handles session retrieval too
-                const res = await fetch(`${backendUrl}/api/queue?sessionId=${sessionId}`);
+                // Hybrid: Load from Local Vercel API (Turso DB)
+                const localUrl = `/api/sessions/${sessionId}`;
+                console.warn(`🔱 [GOD-MODE] Loading session from: ${localUrl}`);
+                const res = await fetch(localUrl);
                 const data = await res.json();
+                console.warn(`🔱 [GOD-MODE] Session Load Result:`, { status: res.status, success: data.success });
 
                 if (!data.success) {
                     setError(data.error || 'Failed to load session');
@@ -79,23 +82,21 @@ export default function EditSessionPage() {
                     return;
                 }
 
-                // Data mapping from queue format
+                // Data mapping from local DB format
                 const session = data.data;
                 setBirthData(session.birthData);
                 setLifeEvents(session.lifeEvents || []);
                 if (session.physicalTraits) {
                     setPhysicalTraits(session.physicalTraits);
                 }
-                // Load forensic traits from database (new feature support)
                 if (session.forensicTraits) {
                     setForensicTraits(session.forensicTraits);
                 }
-                // Load offset config if available, otherwise default
                 if (session.offsetConfig) {
                     setOffsetConfig(typeof session.offsetConfig === 'string' ? JSON.parse(session.offsetConfig) : session.offsetConfig);
                 }
                 setLoading(false);
-                setIsLoaded(true); // Data loaded, enable auto-save
+                setIsLoaded(true);
             } catch (err) {
                 setError('Failed to fetch session data');
                 setLoading(false);
@@ -105,29 +106,24 @@ export default function EditSessionPage() {
         fetchSession();
     }, [sessionId]);
 
-    // Auto-save effect with debounce - only save after user stops typing
+    // Auto-save effect with debounce
     const [lastSavedData, setLastSavedData] = useState<string>('');
 
     useEffect(() => {
         if (!isLoaded || !birthData) return;
-
-        // Only save if there's actual meaningful data
         if (!birthData.fullName || birthData.fullName.trim().length < 2) return;
 
         const currentData = JSON.stringify({ birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig });
-
-        // Don't save if data hasn't changed from last save
         if (currentData === lastSavedData) return;
 
         const saveDraft = async () => {
             setSavingStatus('saving');
             try {
-                const backendUrl = env.api.backendUrl.replace(/\/$/, '');
-                await fetch(`${backendUrl}/api/drafts`, {
-                    method: 'POST',
+                // Hybrid: Save to Local Vercel API
+                await fetch(`/api/sessions/${sessionId}`, {
+                    method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        sessionId, // Include session ID to update existing
                         birthData,
                         lifeEvents,
                         physicalTraits,
@@ -136,6 +132,7 @@ export default function EditSessionPage() {
                         isDraft: true
                     })
                 });
+
                 setLastSavedData(currentData);
                 setSavingStatus('saved');
                 setTimeout(() => setSavingStatus('idle'), 2000);
@@ -145,7 +142,6 @@ export default function EditSessionPage() {
             }
         };
 
-        // 3 second debounce - only save after user stops typing for 3 seconds
         const timer = setTimeout(saveDraft, 3000);
         return () => clearTimeout(timer);
     }, [birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig, isLoaded, sessionId, lastSavedData]);
@@ -176,15 +172,10 @@ export default function EditSessionPage() {
                 if (!birthData.birthPlace) { setError("Birth Place is required"); return false; }
                 return true;
             case 2:
-                // Step 2 is now Physical Traits
-                // Optional validation for physical traits can be added here
                 return true;
             case 3:
-                // Step 3 is now Forensic Traits
-                // Optional validation for forensic traits can be added here
                 return true;
             case 4:
-                // Life Events validation (Step 4)
                 if (lifeEvents.length < 5) {
                     setError("Please add at least 5 life events");
                     return false;
@@ -195,6 +186,8 @@ export default function EditSessionPage() {
         }
     };
 
+
+    const { getToken } = useAuth();
     const handleSubmit = async () => {
         if (!birthData) return;
 
@@ -202,27 +195,17 @@ export default function EditSessionPage() {
         setError(null);
 
         try {
-            const backendUrl = env.api.backendUrl.replace(/\/$/, '');
-
-            // Final update (not draft)
-            // Use the submit endpoint logic or just update then requeue
-            // Since we don't have a direct "update session" endpoint exposed publicly except for drafts/submit
-            // We will use the calculate/submit flow logic
-
-            const payload = {
-                birthData,
-                lifeEvents,
-                physicalTraits,
-                forensicTraits,
-                offsetConfig
-            };
-
-            const submitUrl = `${backendUrl}/api/sessions/${sessionId}/submit`;
-
-            const updateRes = await fetch(submitUrl, {
-                method: 'POST',
+            // 1. Update Local DB (Vercel)
+            const updateRes = await fetch(`/api/sessions/${sessionId}`, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    birthData,
+                    lifeEvents,
+                    physicalTraits,
+                    forensicTraits,
+                    offsetConfig
+                })
             });
 
             const updateResult = await updateRes.json();
@@ -232,17 +215,41 @@ export default function EditSessionPage() {
                 return;
             }
 
-            // Then re-queue the session
-            const queueRes = await fetch(`${backendUrl}/api/queue/requeue`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ sessionId })
-            });
+            // 2. Trigger Requeue on Backend (Remote Engine) - IN-DEPTH TRACING
+            const backendUrl = env.api.backendUrl.replace(/\/$/, '');
+            console.warn('🔱 [GOD-MODE] Initiating Requeue Trace...');
 
-            const queueResult = await queueRes.json();
-            if (!queueResult.success) {
-                // Even if re-queue fails, redirect to progress page
-                console.warn('Re-queue warning:', queueResult.error);
+            try {
+                const token = await getToken();
+                console.warn(`🔑 [GOD-MODE] Clerk Token: ${token ? `FOUND (len: ${token.length})` : 'MISSING'}`);
+
+                if (token) {
+                    console.log(`🔑 [GOD-MODE] Token Prefix: ${token.substring(0, 15)}...`);
+                }
+
+                // DUAL-CHANNEL AUTH (Header + Query)
+                const targetUrl = `${backendUrl}/api/queue/requeue${token ? `?token=${encodeURIComponent(token)}` : ''}`;
+
+                console.warn(`🚀 [GOD-MODE] Fetching: ${targetUrl.split('?')[0]}...`);
+
+                const queueRes = await fetch(targetUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token ? `Bearer ${token}` : 'Bearer missing'
+                    },
+                    body: JSON.stringify({ sessionId }),
+                    credentials: 'include'
+                });
+
+                const queueResult = await queueRes.json();
+                console.warn(`📩 [GOD-MODE] Result Status: ${queueRes.status}`, queueResult);
+
+                if (!queueResult.success) {
+                    console.warn('Re-queue warning:', queueResult.error);
+                }
+            } catch (err: any) {
+                console.error('🔥 [GOD-MODE] Re-queue logic failed:', err.message);
             }
 
             // Redirect to progress page
@@ -302,7 +309,7 @@ export default function EditSessionPage() {
                             <span className="text-[#B8860B] font-medium opacity-50">|</span>
                             <span className="text-[#B8860B] font-medium">✏️ Editing Session</span>
                         </div>
-                        <UserButton afterSignOutUrl="/" />
+                        {/* <UserButton /> */}
                     </div>
                 </div>
             </nav>

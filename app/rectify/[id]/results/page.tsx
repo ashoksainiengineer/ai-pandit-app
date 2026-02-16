@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
+import { getTokenWithRetry } from '@/lib/auth-utils';
 import { ResultsDashboard } from '@/components/rectify/ResultsDashboard';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
@@ -11,6 +13,7 @@ import { env } from '@/lib/config';
 export default function ResultsPage() {
     const params = useParams();
     const router = useRouter();
+    const { getToken } = useAuth();
     const id = params.id as string;
 
     const [resultData, setResultData] = useState<any>(null);
@@ -56,7 +59,17 @@ export default function ResultsPage() {
             try {
                 console.log('📡 [Results] Local data missing or skeletal. Hydrating from API...');
                 const backendUrl = env.api.backendUrl.replace(/\/$/, '');
-                const res = await fetch(`${backendUrl}/api/queue?sessionId=${id}`);
+                const token = await getTokenWithRetry(getToken);
+
+                const separator = '?';
+                const baseTarget = `${backendUrl}/api/queue`;
+                const finalUrl = `${baseTarget}?sessionId=${id}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+
+                const res = await fetch(finalUrl, {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : 'Bearer missing'
+                    }
+                });
                 const data = await res.json();
 
                 if (data.success && data.data) {
@@ -103,7 +116,7 @@ export default function ResultsPage() {
         } else {
             setLoading(false);
         }
-    }, [id]);
+    }, [id, getToken]);
 
     if (loading) {
         return (

@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { env } from '@/lib/config/env';
+import { getTokenWithRetry } from '@/lib/auth-utils';
 import { logger } from '@/lib/logger';
 
 /**
@@ -10,6 +12,7 @@ import { logger } from '@/lib/logger';
  */
 export function useWarmup() {
     const hasWarmedUp = useRef(false);
+    const { getToken } = useAuth();
 
     useEffect(() => {
         if (hasWarmedUp.current || !env.warmup.enabled) return;
@@ -22,14 +25,21 @@ export function useWarmup() {
 
                 logger.info('🚀 Pre-warming backend engine...');
 
+                const token = await getTokenWithRetry(getToken);
+
                 await Promise.all(
-                    endpoints.map(endpoint =>
-                        fetch(`${backendUrl}${endpoint}`, {
+                    endpoints.map(endpoint => {
+                        const separator = endpoint.includes('?') ? '&' : '?';
+                        const url = `${backendUrl}${endpoint}${token ? `${separator}token=${encodeURIComponent(token)}` : ''}`;
+                        return fetch(url, {
                             method: 'GET',
                             mode: 'cors',
-                            headers: { 'Accept': 'application/json' }
-                        }).catch(e => logger.warn(`Warmup for ${endpoint} failed`, e))
-                    )
+                            headers: {
+                                'Accept': 'application/json',
+                                'Authorization': token ? `Bearer ${token}` : 'Bearer missing'
+                            }
+                        }).catch(e => logger.warn(`Warmup for ${endpoint} failed`, e));
+                    })
                 );
 
                 hasWarmedUp.current = true;

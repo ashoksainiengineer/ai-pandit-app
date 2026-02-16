@@ -330,7 +330,7 @@ export default function Step3LifeEvents({
     }
 
     updateEvent(id, updates);
-  }, [lifeEvents, updateEvent, parseDateParts]);
+  }, [lifeEvents, updateEvent]);
 
   const deleteEvent = useCallback((id: string) => {
     const updatedEvents = lifeEvents.filter(e => e.id !== id);

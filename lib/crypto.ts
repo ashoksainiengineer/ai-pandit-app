@@ -186,3 +186,40 @@ export function isEncrypted(data: string | null | undefined): boolean {
     }
     return data.startsWith(`${VERSION_PREFIX}:`);
 }
+
+/**
+ * 🟢 GOD-TIER ROBUST DECRYPTION HELPER
+ * Handles both encrypted and non-encrypted fields, and safely parses JSON.
+ * @param data The field value to parse (may be encrypted v3, plain JSON, or plain string)
+ * @param defaultValue Fallback if data is null/undefined
+ */
+export function parseSensitiveField(data: string | null | undefined, defaultValue: any = null): any {
+    if (!data) return defaultValue;
+
+    try {
+        // 1. Try Decrypting (if it looks encrypted with v3)
+        if (isEncrypted(data)) {
+            const decrypted = decrypt(data);
+            try {
+                // If it can be parsed as JSON (object/array), do it
+                return JSON.parse(decrypted);
+            } catch (e) {
+                // Otherwise it's probably a plain string (like name)
+                return decrypted;
+            }
+        }
+    } catch (e) {
+        // Fallback to legacy or plain checks if decryption fails
+    }
+
+    // 2. Try Plain JSON Parse (Legacy or unencrypted)
+    try {
+        const parsed = JSON.parse(data);
+        // If it's a number/boolean/null, JSON.parse might be too aggressive
+        if (typeof parsed === 'object' && parsed !== null) return parsed;
+        return data;
+    } catch (e) {
+        // 3. Return raw string if JSON parse fails
+        return data || defaultValue;
+    }
+}

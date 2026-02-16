@@ -8,6 +8,7 @@
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
+import { APIClient } from '@/lib/api-client';
 import { BirthData, LifeEvent, PhysicalTraits, TimeOffsetConfig, SpouseData, ForensicTraits } from '@/lib/types';
 import { Gender } from '@/lib/forensic-emojis';
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
@@ -180,29 +181,37 @@ function RectifyPageContent() {
 
         try {
             const token = await getToken();
-            const payload = { birthData, lifeEvents, forensicTraits, spouseData, offsetConfig };
-
-            // If we have a draft session, submit it. Otherwise create new and submit.
             const backendUrl = env.api.backendUrl.replace(/\/$/, '');
-            const submitUrl = draftSessionId
-                ? `${backendUrl}/api/sessions/${draftSessionId}/submit`
-                : `${backendUrl}/api/calculate`;
+            let submitUrl = `${backendUrl}/api/calculate`;
 
-            const response = await fetch(submitUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify(payload)
-            });
+            // Full payload for calculate
+            let payload: any = {
+                birthData,
+                lifeEvents,
+                forensicTraits,
+                spouseData,
+                offsetConfig,
+                consentConfirmed: true
+            };
 
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `Server error: ${response.status}`);
+            let result;
+            if (draftSessionId) {
+                // 1. Force save to ensure backend sees latest data in Turso (Local API)
+                await fetch(`/api/sessions/${draftSessionId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+
+                // 2. Trigger Requeue (Restart Analysis on existing ID)
+                result = await APIClient.post(`${backendUrl}/api/queue/requeue`, { sessionId: draftSessionId }, getToken);
+            } else {
+                // 3. Normal Calculate
+                result = await APIClient.post(`${backendUrl}/api/calculate`, payload, getToken);
             }
-
-            const result = await response.json();
             localStorage.removeItem('btr_draft_id');
 
-            // Navigate to analysis page (not results)
+            // Navigate to analysis page (requeue returns sessionId in data)
             const sessionId = result.data?.sessionId || result.sessionId || draftSessionId;
             router.push(`/rectify/${sessionId}`);
 
@@ -243,6 +252,9 @@ function RectifyPageContent() {
     // ═══════════════════════════════════════════════════════════════════════════════
     // AUTO-SAVE: Save draft to database every 5 seconds when data changes
     // ═══════════════════════════════════════════════════════════════════════════════
+    // ═══════════════════════════════════════════════════════════════════════════════
+    // AUTO-SAVE: Save draft to database every 5 seconds when data changes
+    // ═══════════════════════════════════════════════════════════════════════════════
     useEffect(() => {
         // Only save if user has entered meaningful data (at least name)
         if (!birthData.fullName || birthData.fullName.trim().length < 2) return;
@@ -259,25 +271,25 @@ function RectifyPageContent() {
                 const token = await getToken();
                 const payload = { birthData, lifeEvents, forensicTraits, spouseData, offsetConfig };
 
-                const backendUrl = env.api.backendUrl.replace(/\/$/, '');
-                // If we don't have a draft session ID yet, create one
+                // Hybrid Architecture: Save drafts to Vercel (Local API) for speed
                 if (!draftSessionId) {
-                    const createRes = await fetch(`${backendUrl}/api/drafts`, {
+                    const createRes = await fetch(`/api/sessions`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify(payload)
                     });
                     if (createRes.ok) {
                         const result = await createRes.json();
-                        setDraftSessionId(result.sessionId);
-                        localStorage.setItem('btr_draft_id', result.sessionId);
+                        setDraftSessionId(result.data.id);
+                        localStorage.setItem('btr_draft_id', result.data.id);
                     }
                 } else {
-                    // Update existing draft
-                    await fetch(`${backendUrl}/api/drafts`, {
-                        method: 'POST',
+                    // Update existing draft via local API
+                    // Note: Use PUT /api/sessions/[id] for updates
+                    await fetch(`/api/sessions/${draftSessionId}`, {
+                        method: 'PUT',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify({ ...payload, sessionId: draftSessionId })
+                        body: JSON.stringify(payload)
                     });
                 }
 
@@ -303,9 +315,9 @@ function RectifyPageContent() {
 
             try {
                 const token = await getToken();
-                const backendUrl = env.api.backendUrl.replace(/\/$/, '');
-                // Use absolute backend URL
-                const res = await fetch(`${backendUrl}/api/queue?sessionId=${savedDraftId}`, {
+
+                // Hybrid Architecture: Load drafts from Vercel (Local API) for speed
+                const res = await fetch(`/api/sessions/${savedDraftId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
 
@@ -313,8 +325,6 @@ function RectifyPageContent() {
                     const result = await res.json();
                     if (result.success && result.data) {
                         const session = result.data;
-                        // Only load if it's actually in a state that allows editing (though queue endpoint returns all)
-                        // We assume if it exists and user has ID, we load it.
 
                         setDraftSessionId(savedDraftId);
                         if (session.birthData) setBirthData(session.birthData);

@@ -55,8 +55,8 @@ export const env = {
     publishableKey: getEnvVar(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'),
     signInUrl: getEnvVar(process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL, 'NEXT_PUBLIC_CLERK_SIGN_IN_URL', '/sign-in'),
     signUpUrl: getEnvVar(process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL, 'NEXT_PUBLIC_CLERK_SIGN_UP_URL', '/sign-up'),
-    afterSignInUrl: getEnvVar(process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL, 'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL', '/dashboard'),
-    afterSignUpUrl: getEnvVar(process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL, 'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL', '/dashboard'),
+    signInFallbackRedirectUrl: getEnvVar(process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL, 'NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL', '/dashboard'),
+    signUpFallbackRedirectUrl: getEnvVar(process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL, 'NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL', '/dashboard'),
   },
 
   api: {

@@ -25,9 +25,9 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next();
   }
 
-  const authData = await auth();
-  if (!authData.userId) {
-    return authData.redirectToSignIn();
+  const { userId } = await auth();
+  if (!userId) {
+    return (await auth()).redirectToSignIn();
   }
 
   const headers = new Headers(req.headers);
@@ -39,12 +39,11 @@ export default clerkMiddleware(async (auth, req) => {
     style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
     img-src 'self' data: blob: https://*.clerk.com https://*.vercel.app;
     font-src 'self' https://fonts.gstatic.com;
-    connect-src 'self' blob: http://localhost:* https://*.clerk.com https://*.clerk.accounts.dev https://openrouter.ai https://*.huggingface.co https://*.hf.space https://vercel.live https://*.vercel.app wss://*.clerk.accounts.dev;
+    connect-src 'self' blob: http://localhost:* https://*.clerk.com https://*.clerk.accounts.dev https://*.clerk-telemetry.com https://clerk-telemetry.com https://openrouter.ai https://*.huggingface.co https://*.hf.space https://vercel.live https://*.vercel.app wss://*.clerk.accounts.dev;
     frame-src 'self' https://*.clerk.com;
     worker-src 'self' blob:;
     object-src 'none';
     frame-ancestors 'none';
-    form-action 'self';
     base-uri 'self';
   `.trim().replace(/\s{2,}/g, ' ');
 

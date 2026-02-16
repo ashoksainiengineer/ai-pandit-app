@@ -16,9 +16,6 @@ import { AccuracyShowcase } from '@/components/landing/AccuracyShowcase';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
 
-// Force static generation - no server computation
-export const dynamic = 'force-static';
-
 // ISR: Revalidate every hour to refresh content without full rebuild
 export const revalidate = 3600;
 

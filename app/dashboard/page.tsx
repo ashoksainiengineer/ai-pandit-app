@@ -9,24 +9,13 @@ import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/database/drizzle';
 import { sessions, users } from '@/database/schema';
 import { eq, desc } from 'drizzle-orm';
-import { decrypt, isEncrypted, initializeEncryption } from '@/lib/crypto';
+import { isEncrypted, parseSensitiveField } from '@/lib/crypto';
 import { DashboardSession } from '@/lib/dashboard/types';
 import { DashboardClient } from './DashboardClient';
 import Layout from '@/components/Layout';
 
-// Initialize encryption with the secret from environment variables.
-initializeEncryption(process.env.ENCRYPTION_SECRET);
-
-// Helper to safely decrypt data, returning a fallback string on failure.
-const safeDecrypt = (data: string | null | undefined, fallback = 'Decryption Failed'): string => {
-    if (!data || !isEncrypted(data)) return data || fallback;
-    try {
-        return decrypt(data);
-    } catch (error) {
-        console.error('Dashboard decryption failed:', error);
-        return fallback;
-    }
-};
+// Initialized in layout or root if needed, but we ensure it's loaded here
+// initializeEncryption(process.env.ENCRYPTION_SECRET);
 
 // Loading skeleton for the dashboard
 function DashboardSkeleton() {
@@ -110,10 +99,11 @@ async function getUserSessions(clerkId: string, clerkUser?: any): Promise<Dashbo
         id: s.id,
         userId: s.userId,
         status: s.status as DashboardSession['status'],
-        fullName: safeDecrypt(s.fullName, 'Unencryptable Session'),
-        dateOfBirth: s.dateOfBirth,
-        tentativeTime: s.tentativeTime,
-        birthPlace: s.birthPlace,
+        fullName: parseSensitiveField(s.fullName, 'Unencryptable Session'),
+        dateOfBirth: parseSensitiveField(s.dateOfBirth, 'Not set'),
+        tentativeTime: parseSensitiveField(s.tentativeTime, 'Not set'),
+        birthPlace: parseSensitiveField(s.birthPlace, 'Unknown'),
+        offsetConfig: parseSensitiveField(s.offsetConfig, null),
         latitude: s.latitude,
         longitude: s.longitude,
         timezone: s.timezone,
@@ -138,7 +128,11 @@ async function getUserSessions(clerkId: string, clerkUser?: any): Promise<Dashbo
         });
         userSessions = rawResult.rows.map((s: any) => ({
           ...s,
-          fullName: safeDecrypt(s.fullName, 'Unencryptable Session'),
+          fullName: parseSensitiveField(s.fullName, 'Unencryptable Session'),
+          dateOfBirth: parseSensitiveField(s.dateOfBirth, 'Not set'),
+          tentativeTime: parseSensitiveField(s.tentativeTime, 'Not set'),
+          birthPlace: parseSensitiveField(s.birthPlace, 'Unknown'),
+          offsetConfig: parseSensitiveField(s.offsetConfig, null),
           isFavorite: false,
           tags: [],
           status: s.status || 'pending',

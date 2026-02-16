@@ -78,40 +78,43 @@ export async function stage1ExhaustiveDataGeneration(
     tentativeTime: input.tentativeTime,
   });
 
-  for (const raw of finalCandidates) {
-    // Build the package once to ensure calculation log is sent,
-    // but DO NOT keep it in memory
-    const pkg = await buildCandidateDataPackage(raw.time, raw.offsetMinutes, input, {
-      includeFullData: false,
-      dashaDepth: 2
-    });
+  const BATCH_LOG_SIZE = 20;
+  for (let i = 0; i < finalCandidates.length; i += BATCH_LOG_SIZE) {
+    const batch = finalCandidates.slice(i, i + BATCH_LOG_SIZE);
 
-    processed++;
+    await Promise.all(batch.map(async (raw) => {
+      const pkg = await buildCandidateDataPackage(raw.time, raw.offsetMinutes, input, {
+        includeFullData: false,
+        dashaDepth: 2
+      });
 
-    // Log EVERY calculation with lightweight data
-    emitCalculationLog(input.sessionId, {
-      candidateTime: raw.time,
-      sunPos: `${pkg.planets.sun.sign} ${pkg.planets.sun.degree}`,
-      moonPos: `${pkg.planets.moon.sign} ${pkg.planets.moon.degree}`,
-      ascendant: `${pkg.ascendant.sign} ${pkg.ascendant.degree}`,
-      dashaObj: pkg.vimshottariDasha[0]?.maha || 'N/A',
-    });
+      processed++;
 
-    if (processed % 10 === 0) {
-      await progress.updateMessage(`Ephemeris: ${processed}/${total}`);
-    }
+      // Emit aggregated log entry (simplified)
+      if (processed % 5 === 0) {
+        emitCalculationLog(input.sessionId, {
+          candidateTime: raw.time,
+          sunPos: `${pkg.planets.sun.sign} ${pkg.planets.sun.degree}`,
+          moonPos: `${pkg.planets.moon.sign} ${pkg.planets.moon.degree}`,
+          ascendant: `${pkg.ascendant.sign} ${pkg.ascendant.degree}`,
+          dashaObj: pkg.vimshottariDasha[0]?.maha || 'N/A',
+        });
+      }
+    }));
 
-    // GC breathing room
-    if (processed % 5 === 0) await sleep(10);
+    await progress.updateMessage(`Ephemeris: ${processed}/${total}`);
+
+    // GC breathing room and prevent event loop starvation
+    await sleep(20);
   }
 
   await progress.completeStep('grid', [
-    `Initialized ${candidatesWithSafetyNet.length} paths`,
-    `(${candidatesWithSafetyNet.length - rawCandidates.length} safety net candidates)`,
+    `Initialized ${finalCandidates.length} paths`,
+    `(${finalCandidates.length - rawCandidates.length} safety/boundary locks)`,
   ]);
 
   return {
-    candidates: candidatesWithSafetyNet,
+    candidates: finalCandidates, // FIX: Return the ACTUAL candidates used!
     stageResult: {
       stageNumber: 1,
       stageName: 'Exhaustive Data Generation',

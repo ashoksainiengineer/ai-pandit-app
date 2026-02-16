@@ -5,7 +5,7 @@
 import { db, executeWithRetry } from '../database/drizzle.js';
 import { eq, and, or, desc, asc, lt, gte } from 'drizzle-orm';
 import { logger } from './logger.js';
-import { safeDecryptWithFallback } from './encryption/index.js';
+import { safeDecryptWithFallback, parseSensitiveField } from './encryption/index.js';
 import {
   createAbortController,
   abortSession as abortSessionController,
@@ -716,11 +716,19 @@ async function processSessionAsync(sessionId: string): Promise<void> {
       if (!s.lifeEvents) {
         throw new Error('lifeEvents data is missing - cannot process without life events');
       }
-      const lifeEventsData = safeDecryptWithFallback(s.lifeEvents, s.clerkId, s.userId);
-      if (!lifeEventsData) {
-        throw new Error('Failed to decrypt lifeEvents data');
+
+      let decryptedLifeEvents;
+      const lifeEventsDecrypted = safeDecryptWithFallback(s.lifeEvents, s.clerkId, s.userId);
+      if (lifeEventsDecrypted) {
+        decryptedLifeEvents = JSON.parse(lifeEventsDecrypted);
+      } else {
+        // Fallback: Try parsing as plain JSON (for Hybrid/Vercel created sessions)
+        try {
+          decryptedLifeEvents = JSON.parse(s.lifeEvents);
+        } catch (e) {
+          throw new Error('Failed to decrypt or parse lifeEvents data');
+        }
       }
-      const decryptedLifeEvents = JSON.parse(lifeEventsData);
 
       let decryptedPhysicalTraits: any = undefined;
       if (s.physicalTraits) {
@@ -730,6 +738,13 @@ async function processSessionAsync(sessionId: string): Promise<void> {
             decryptedPhysicalTraits = JSON.parse(decrypted);
           } catch (e) {
             logger.warn('Failed to parse physicalTraits JSON, using undefined', { sessionId, error: e });
+          }
+        } else {
+          // Fallback: Try parsing as plain JSON
+          try {
+            decryptedPhysicalTraits = JSON.parse(s.physicalTraits);
+          } catch (e) {
+            // Ignore plain text parse errors for optional fields
           }
         }
       }
@@ -743,6 +758,13 @@ async function processSessionAsync(sessionId: string): Promise<void> {
           } catch (e) {
             logger.warn('Failed to parse forensicTraits JSON, using undefined', { sessionId, error: e });
           }
+        } else {
+          // Fallback: Try parsing as plain JSON
+          try {
+            decryptedForensicTraits = JSON.parse(s.forensicTraits);
+          } catch (e) {
+            // Ignore plain text parse errors for optional fields
+          }
         }
       }
 
@@ -754,7 +776,7 @@ async function processSessionAsync(sessionId: string): Promise<void> {
         longitude: s.longitude,
         timezone: s.timezone,
         lifeEvents: decryptedLifeEvents,
-        offsetConfig: s.offsetConfig ? JSON.parse(s.offsetConfig) : { preset: '1hour' },
+        offsetConfig: parseSensitiveField(s.offsetConfig, s.clerkId, s.userId, { preset: '1hour' }),
         physicalTraits: decryptedPhysicalTraits,
         forensicTraits: decryptedForensicTraits,
         abortSignal: abortController.signal, // 🛑 Pass abort signal
@@ -907,15 +929,24 @@ function sleep(ms: number): Promise<void> {
  */
 export async function cleanupZombiesOnStartup(): Promise<void> {
   try {
+    // 🛡️ [STABILITY] Only cleanup 'processing' sessions that are truly stale
+    // (Older than 10 minutes) at startup. This prevents a new instance from
+    // killing jobs that might still be active in a parallel instance or
+    // during a very fast restart.
+    const staleThreshold = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+
     const zombies = await db.select({ id: sessions.id })
       .from(sessions)
-      .where(eq(sessions.status, 'processing'));
+      .where(and(
+        eq(sessions.status, 'processing'),
+        lt(sessions.updatedAt, staleThreshold)
+      ));
 
     if (zombies.length > 0) {
-      logger.warn(`Found ${zombies.length} zombie sessions from previous run. Cleaning up...`);
+      logger.warn(`Found ${zombies.length} stale zombie sessions at startup. Cleaning up...`);
 
       for (const zombie of zombies) {
-        await markAsFailed(zombie.id, 'Process interrupted (Server Restart)');
+        await markAsFailed(zombie.id, 'Process interrupted (Stale Session at Startup)');
       }
     }
   } catch (error) {

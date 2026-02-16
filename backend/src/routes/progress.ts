@@ -5,7 +5,7 @@ import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { db, executeWithRetry } from '../database/drizzle.js';
 import { sessions } from '../database/schema.js';
 import { eq } from 'drizzle-orm';
-import { safeDecrypt, safeDecryptWithFallback } from '../lib/encryption/index.js';
+import { safeDecrypt, safeDecryptWithFallback, parseSensitiveField } from '../lib/encryption/index.js';
 import { logger } from '../lib/logger.js';
 
 const router = Router();
@@ -101,17 +101,11 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
         estimatedWaitSeconds: queueStatus.estimatedWaitSeconds,
         // Include session metadata for frontend "Blueprint" display
         metadata: {
-            fullName: queueStatus.session?.fullName
-                ? safeDecryptWithFallback(queueStatus.session.fullName, clerkId, internalUserId)
-                : undefined,
+            fullName: parseSensitiveField(queueStatus.session?.fullName, clerkId, internalUserId!),
             dateOfBirth: queueStatus.session?.dateOfBirth,
             tentativeTime: queueStatus.session?.tentativeTime,
             birthPlace: queueStatus.session?.birthPlace,
-            offsetConfig: queueStatus.session?.offsetConfig
-                ? (typeof queueStatus.session.offsetConfig === 'string'
-                    ? JSON.parse(queueStatus.session.offsetConfig)
-                    : queueStatus.session.offsetConfig)
-                : undefined,
+            offsetConfig: parseSensitiveField(queueStatus.session?.offsetConfig, clerkId, internalUserId!),
             timezone: queueStatus.session?.timezone,
         },
         progress: progress || {

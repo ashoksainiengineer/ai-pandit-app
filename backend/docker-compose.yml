@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  backend-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ai_pandit_backend
+    ports:
+      - "7860:7860"
+    environment:
+      - NODE_ENV=development
+      - PORT=7860
+      - EPHE_PATH=/app/ephe
+      # Database
+      - TURSO_DATABASE_URL=${TURSO_DATABASE_URL}
+      - TURSO_AUTH_TOKEN=${TURSO_AUTH_TOKEN}
+      # AI
+      - AI_API_KEY=${AI_API_KEY}
+      - AI_MODEL=${AI_MODEL}
+      - AI_TIMEOUT_MS=120000
+      # App Config
+      - REQUEST_TIMEOUT_MS=300000
+      - MAX_CONCURRENT_SESSIONS=3
+      - HEAP_THRESHOLD_GB=8
+      - RSS_THRESHOLD_GB=10
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
+      - RATE_LIMIT_WINDOW_MS=60000
+      - RATE_LIMIT_MAX_REQUESTS=100
+    volumes:
+      - ./ephe:/app/ephe:ro
+      - ./logs:/app/logs
+      # Bind mount for hot reload (optional, but good for dev)
+      - ./src:/app/src
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-fsS", "http://localhost:7860/api/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s

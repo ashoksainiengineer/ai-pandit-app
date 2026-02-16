@@ -65,4 +65,41 @@ export function decryptObject<T extends Record<string, unknown>>(encryptedString
     return rawDecryptObject(encryptedString, userId, getAllEncryptionSecrets());
 }
 
+/**
+ * 🟢 GOD-TIER ROBUST DECRYPTION HELPER
+ * Handles both encrypted and non-encrypted fields, and safely parses JSON.
+ */
+export function parseSensitiveField(data: string | null | undefined, clerkId: string, internalUserId: string, defaultValue: any = null): any {
+    if (!data) return defaultValue;
+
+    try {
+        // 1. Try Decrypting (if it looks encrypted)
+        if (isEncrypted(data)) {
+            const decrypted = safeDecryptWithFallback(data, clerkId, internalUserId);
+            if (decrypted) {
+                try {
+                    // If it can be parsed as JSON, do it
+                    return JSON.parse(decrypted);
+                } catch (e) {
+                    // Otherwise it's probably a plain string (like name)
+                    return decrypted;
+                }
+            }
+        }
+    } catch (e) {
+        // Fallback to legacy path
+    }
+
+    // 2. Try Plain JSON Parse (Legacy or unencrypted)
+    try {
+        const parsed = JSON.parse(data);
+        // If it's a number/boolean/null, JSON.parse might be too aggressive
+        if (typeof parsed === 'object' && parsed !== null) return parsed;
+        return data;
+    } catch (e) {
+        // 3. Return raw string if JSON parse fails
+        return data || defaultValue;
+    }
+}
+
 export { isEncrypted };
