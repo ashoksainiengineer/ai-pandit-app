@@ -158,6 +158,12 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
 
         // Encrypt sensitive data using clerkId (consistent with frontend expectations)
         const encryptedFullName = encryptData(birthData.fullName, clerkId);
+
+        // 🔒 CORE DATA ENCRYPTION (God-Tier Security)
+        // Encrypting birth details matches queue-manager expectations
+        const encryptedDateOfBirth = encryptData(birthData.dateOfBirth, clerkId);
+        const encryptedTentativeTime = encryptData(birthData.tentativeTime, clerkId);
+
         const encryptedLifeEvents = encryptData(JSON.stringify(lifeEvents), clerkId);
         const encryptedPhysicalTraits = physicalTraits
             ? encryptData(JSON.stringify(physicalTraits), clerkId)
@@ -171,8 +177,8 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
             userId: internalUserId,
             clerkId: clerkId,
             fullName: encryptedFullName,
-            dateOfBirth: birthData.dateOfBirth,
-            tentativeTime: birthData.tentativeTime,
+            dateOfBirth: encryptedDateOfBirth, // 🔒 Encrypted
+            tentativeTime: encryptedTentativeTime, // 🔒 Encrypted
             birthPlace: birthData.birthPlace,
             latitude: birthData.latitude,
             longitude: birthData.longitude,
