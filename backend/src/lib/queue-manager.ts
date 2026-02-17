@@ -778,6 +778,13 @@ async function processSessionAsync(sessionId: string): Promise<void> {
         decryptedSpouseData = parseSensitiveField(s.spouseData, s.clerkId, s.userId);
       }
 
+      // 🚀 GOD-TIER STARTUP LOGGING
+      logger.info('🚀 [ENGINE START] Initializing Seconds Precision BTR...', {
+        sessionId,
+        offsetConfig: s.offsetConfig ? 'Preserving User Config' : 'Using Default',
+        dashaSystem: 'Vimshottari'
+      });
+
       const result = await processSecondsPrecisionBTR({
         sessionId: sessionId,
         dateOfBirth: dateOfBirth,
@@ -797,6 +804,9 @@ async function processSessionAsync(sessionId: string): Promise<void> {
         spouseData: decryptedSpouseData,
         abortSignal: abortController.signal, // 🛑 Pass abort signal
       });
+
+      logger.info('✅ [ENGINE COMPLETE] Analysis finished successfully', { sessionId });
+
 
       // ✂️ SPLIT REASONING LOGS (Database Optimization)
       // Capture the persistent stage history from the ProgressTracker

@@ -118,8 +118,9 @@ export interface StreamMetadata {
     errorMessage?: string;
     lifeEvents?: unknown[];
     physicalTraits?: unknown;
-    offsetConfig?: { preset: string; minutes?: number };
+    offsetConfig?: { preset: string; customMinutes?: number; minutes?: number };
     aiModel?: string; // Added dynamic AI model name
+    updatedAt?: string; // 🛡️ Added for robust timer fallback
 }
 
 export interface StreamStep {

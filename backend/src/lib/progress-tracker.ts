@@ -232,11 +232,12 @@ export class ProgressTracker {
         this.progress.lastUpdate = new Date().toISOString();
         this.progress.liveMessage = message;
 
-        // ⏱️ Initialize global session start time on first step
-        if (stepId === 'init' && !this.progress.startedAt) {
-            this.progress.startedAt = this.progress.steps[stepIndex].startedAt;
+        // ⏱️ Initialize global session start time on first step (Robust Safety Net)
+        if (stepId === 'init' || !this.progress.startedAt) {
+            this.progress.startedAt = new Date().toISOString();
         }
 
+        this.progress.lastUpdate = new Date().toISOString();
         await this.saveProgress();
 
         // Emit SSE event for real-time streaming

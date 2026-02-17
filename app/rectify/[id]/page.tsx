@@ -108,13 +108,16 @@ const Breadcrumbs = memo(({ items }: { items: { label: string; href?: string; ic
 ));
 Breadcrumbs.displayName = 'Breadcrumbs';
 
-const AnalysisTimer = memo(({ startedAt, isComplete }: { startedAt: string | null; isComplete: boolean }) => {
+const AnalysisTimer = memo(({ startedAt, isComplete, updatedAt }: { startedAt: string | null; isComplete: boolean; updatedAt?: string }) => {
     const [duration, setDuration] = useState(0);
     const finalDurationRef = useRef<number | null>(null);
 
     useEffect(() => {
-        if (!startedAt) return;
-        const startMs = new Date(startedAt).getTime();
+        // 🛡️ User Robustness: Use startedAt if available, else fallback to updatedAt for "rough" start time
+        const effectiveStart = startedAt || updatedAt;
+
+        if (!effectiveStart) return;
+        const startMs = new Date(effectiveStart).getTime();
 
         if (isComplete) {
             if (finalDurationRef.current === null) {
@@ -124,13 +127,22 @@ const AnalysisTimer = memo(({ startedAt, isComplete }: { startedAt: string | nul
             return;
         }
 
+        // Live update
         const interval = setInterval(() => setDuration(Date.now() - startMs), 1000);
+        setDuration(Date.now() - startMs); // Immediate tick
         return () => clearInterval(interval);
-    }, [startedAt, isComplete]);
+    }, [startedAt, updatedAt, isComplete]);
 
-    if (!startedAt) return null;
+    if (!startedAt && !updatedAt) {
+        return (
+            <div className="flex items-center gap-1.5 font-mono text-sm tabular-nums bg-stone-100 px-3 py-1.5 rounded-lg border border-stone-200 animate-pulse">
+                <Clock className="w-3.5 h-3.5 text-[#7A756F]" />
+                <span className="text-[#1A1612] font-semibold text-xs">Waiting...</span>
+            </div>
+        );
+    }
 
-    const totalSeconds = Math.floor(duration / 1000);
+    const totalSeconds = Math.max(0, Math.floor(duration / 1000));
     const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
     const seconds = String(totalSeconds % 60).padStart(2, '0');
 
@@ -611,7 +623,11 @@ export default function RobustAnalysisPage() {
                                         </span>
                                     </div>
                                 )}
-                                <AnalysisTimer startedAt={startedAt || null} isComplete={isComplete} />
+                                <AnalysisTimer
+                                    startedAt={startedAt || null}
+                                    updatedAt={metadata?.updatedAt} // 🛡️ Pass fallback
+                                    isComplete={isComplete}
+                                />
                                 {!isComplete && !cancelled && (
                                     <div className="relative">
                                         {showCancelConfirm ? (
