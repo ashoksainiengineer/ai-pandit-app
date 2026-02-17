@@ -786,7 +786,12 @@ async function processSessionAsync(sessionId: string): Promise<void> {
         longitude: s.longitude,
         timezone: s.timezone,
         lifeEvents: decryptedLifeEvents,
-        offsetConfig: parseSensitiveField(s.offsetConfig, s.clerkId, s.userId, { preset: '1hour' }),
+        offsetConfig: (() => {
+          // 🧠 Robust Offset Parsing: Prioritize User Config > Default
+          const raw = parseSensitiveField(s.offsetConfig, s.clerkId, s.userId);
+          if (raw && (raw.preset || raw.customMinutes)) return raw;
+          return { preset: '1hour' }; // Only fallback if totally missing/invalid
+        })(),
         physicalTraits: decryptedPhysicalTraits,
         forensicTraits: decryptedForensicTraits,
         spouseData: decryptedSpouseData,

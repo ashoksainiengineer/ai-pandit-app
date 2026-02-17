@@ -405,8 +405,12 @@ interface PersistentCandidate {
     moon?: string;
 }
 
-const AIContextPanel = memo(({ persistentCandidates, isActive }: { persistentCandidates: PersistentCandidate[]; isActive: boolean }) => {
+const AIContextPanel = memo(({ persistentCandidates, isActive, offsetConfig }: { persistentCandidates: PersistentCandidate[]; isActive: boolean; offsetConfig?: any }) => {
     if (!isActive && persistentCandidates.length === 0) return null;
+
+    const gridDescription = offsetConfig?.customMinutes
+        ? `±${offsetConfig.customMinutes} min Grid`
+        : offsetConfig?.preset === '1hour' ? '±1h Grid' : 'Standard Grid';
 
     return (
         <div className="bg-[#FAF9F6] border border-[#F0E8DE] rounded-xl p-5 shadow-sm space-y-4">
@@ -595,6 +599,18 @@ export default function RobustAnalysisPage() {
                                 </h1>
                             </div>
                             <div className="flex items-center gap-3">
+                                {!isComplete && !cancelled && (
+                                    <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-stone-100/50 rounded-lg border border-stone-200">
+                                        <span className="text-[10px] uppercase font-bold text-stone-400">Precision</span>
+                                        <span className="text-xs font-bold text-[#B8860B] font-mono">
+                                            {metadata?.offsetConfig?.customMinutes
+                                                ? `±${metadata.offsetConfig.customMinutes} min`
+                                                : metadata?.offsetConfig?.preset === '1hour'
+                                                    ? '±1 hour'
+                                                    : 'Standard'}
+                                        </span>
+                                    </div>
+                                )}
                                 <AnalysisTimer startedAt={startedAt || null} isComplete={isComplete} />
                                 {!isComplete && !cancelled && (
                                     <div className="relative">
@@ -766,7 +782,11 @@ export default function RobustAnalysisPage() {
                         {/* 2. AI Context Panel (What AI sees) */}
                         {!isComplete && !cancelled && persistentCandidates && persistentCandidates.length > 0 && (
                             <SectionErrorBoundary sectionName="AI Context" icon={<Activity className="w-5 h-5" />}>
-                                <AIContextPanel persistentCandidates={persistentCandidates} isActive={isConnected && !isComplete} />
+                                <AIContextPanel
+                                    persistentCandidates={persistentCandidates}
+                                    isActive={isConnected && !isComplete}
+                                    offsetConfig={metadata?.offsetConfig}
+                                />
                             </SectionErrorBoundary>
                         )}
 
