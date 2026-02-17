@@ -615,39 +615,72 @@ export async function calculateSunrise(
   longitude: number,
   timezone: number | string
 ): Promise<Date> {
+  // Validate input date
+  if (isNaN(new Date(dateStr).getTime())) {
+    throw new Error(`Invalid date provided to calculateSunrise: ${dateStr}`);
+  }
+
   // Sweep morning from 04:00 to 08:00
   let bestDate = new Date(`${dateStr}T06:00:00Z`);
+
+  // Robust check for initial bestDate validity
+  if (isNaN(bestDate.getTime())) {
+    // Fallback if direct ISO construction fails
+    const d = new Date(dateStr);
+    d.setUTCHours(6, 0, 0, 0);
+    bestDate = d;
+  }
+
   let minDiff = 1000;
 
   for (let h = 4; h <= 8; h++) {
     for (let m = 0; m < 60; m += 5) {
       const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`;
-      const eph = await calculateEphemeris(dateStr, timeStr, latitude, longitude, timezone);
-      const sunLong = eph.planets.sun.longitude;
-      const ascLong = eph.ascendant.longitude;
+      try {
+        const eph = await calculateEphemeris(dateStr, timeStr, latitude, longitude, timezone);
+        const sunLong = eph.planets.sun.longitude;
+        const ascLong = eph.ascendant.longitude;
 
-      // Sun on Ascendant = Sunrise
-      const diff = Math.abs(sunLong - ascLong);
-      const normDiff = Math.min(diff, 360 - diff);
+        // Sun on Ascendant = Sunrise
+        const diff = Math.abs(sunLong - ascLong);
+        const normDiff = Math.min(diff, 360 - diff);
 
-      if (normDiff < minDiff) {
-        minDiff = normDiff;
-        bestDate = convertToUTC(dateStr, timeStr, timezone);
+        if (normDiff < minDiff) {
+          minDiff = normDiff;
+          bestDate = convertToUTC(dateStr, timeStr, timezone);
+        }
+      } catch (e) {
+        // Ignore ephemeris failures during sweep
       }
     }
   }
 
   // Refine sweep
   const refinedBase = bestDate.getTime();
+  if (isNaN(refinedBase)) {
+    throw new Error(`Failed to determine base sunrise time for ${dateStr}`);
+  }
+
   for (let s = -300; s <= 300; s += 10) {
     const testDate = new Date(refinedBase + s * 1000);
-    const timeStr = testDate.toISOString().split('T')[1].split('.')[0];
-    const eph = await calculateEphemeris(dateStr, timeStr, latitude, longitude, timezone);
-    const diff = Math.abs(eph.planets.sun.longitude - eph.ascendant.longitude);
-    const normDiff = Math.min(diff, 360 - diff);
-    if (normDiff < minDiff) {
-      minDiff = normDiff;
-      bestDate = testDate;
+    // Safe ISO string generation
+    let timeStr = '06:00:00';
+    try {
+      timeStr = testDate.toISOString().split('T')[1].split('.')[0];
+    } catch (e) {
+      continue; // Skip invalid dates
+    }
+
+    try {
+      const eph = await calculateEphemeris(dateStr, timeStr, latitude, longitude, timezone);
+      const diff = Math.abs(eph.planets.sun.longitude - eph.ascendant.longitude);
+      const normDiff = Math.min(diff, 360 - diff);
+      if (normDiff < minDiff) {
+        minDiff = normDiff;
+        bestDate = testDate;
+      }
+    } catch (e) {
+      // Ignore errors
     }
   }
 

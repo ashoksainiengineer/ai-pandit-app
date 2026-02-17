@@ -548,6 +548,13 @@ export function useStreamProgress(
         } catch (error) {
             logger.warn('Polling failed', { error });
 
+            // CAPTURE STACK TRACE FOR DEBUGGING
+            const err = error as Error;
+            const stackMsg = err.message + (err.stack ? '\n' + err.stack : '');
+            if (err.name === 'RangeError' || err.message.includes('Invalid time value')) {
+                setState(prev => ({ ...prev, error: stackMsg }));
+            }
+
             // Retry with backoff
             const nextInterval = Math.min(interval * 1.5, MAX_POLL_INTERVAL);
             pollTimerRef.current = setTimeout(() => poll(sid, nextInterval), nextInterval);
@@ -686,6 +693,13 @@ export function useStreamProgress(
 
         } catch (error) {
             logger.error('Connection failed', { error });
+            // CAPTURE STACK TRACE FOR DEBUGGING
+            const err = error as Error;
+            const stackMsg = err.message + (err.stack ? '\n' + err.stack : '');
+            if (err.name === 'RangeError' || err.message.includes('Invalid time value')) {
+                setState(prev => ({ ...prev, error: stackMsg }));
+            }
+
             setConnectionState({ status: 'polling', url: '', lastError: 'Connection failed' });
             pollTimerRef.current = setTimeout(() => poll(sid), 2000);
         }

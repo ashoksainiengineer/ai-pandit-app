@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useCallback, useMemo, memo, useId } from 'react';
+import React, { useState, useEffect, useCallback, memo, useRef, useMemo, useId } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
@@ -76,7 +76,7 @@ const ErrorDisplay = memo(({ error, onRetry }: { error: string; onRetry: () => v
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#FFFCF8] text-center p-4" role="alert">
         <AlertCircle className="w-16 h-16 text-red-500" />
         <h1 className="text-2xl font-bold mt-6 text-red-700">An Error Occurred</h1>
-        <p className="text-lg text-red-600 mt-2 max-w-md">{error}</p>
+        <p className="text-xs text-red-800 mt-2 max-w-2xl whitespace-pre-wrap text-left bg-red-50 p-4 rounded border border-red-200 overflow-auto max-h-96">{error}</p>
         <button
             onClick={onRetry}
             className="mt-8 px-6 py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90 bg-gray-800 flex items-center gap-2"

@@ -41,11 +41,8 @@ export async function stage1ExhaustiveDataGeneration(
 
   // 🔱 PROJECT MAHAKALA: Boundary-Locked Generation
   await progress.updateMessage('Mahakala: Scanning for divisional boundaries...');
-  const boundaries = await findAstrologicalBoundaries(
-    input.dateOfBirth,
-    input.tentativeTime,
-    // 🔱 Determine correct offset minutes for boundary scan
-    let boundaryScanMinutes = 360; // Default 6 hours
+  // 🔱 Determine correct offset minutes for boundary scan
+  let boundaryScanMinutes = 360; // Default 6 hours
   if (input.offsetConfig.customMinutes) {
     boundaryScanMinutes = input.offsetConfig.customMinutes;
   } else if (input.offsetConfig.preset) {
