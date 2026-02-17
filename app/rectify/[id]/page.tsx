@@ -117,7 +117,14 @@ const AnalysisTimer = memo(({ startedAt, isComplete, updatedAt }: { startedAt: s
         const effectiveStart = startedAt || updatedAt;
 
         if (!effectiveStart) return;
-        const startMs = new Date(effectiveStart).getTime();
+
+        // Validate date string before parsing
+        const startDate = new Date(effectiveStart);
+        if (isNaN(startDate.getTime())) {
+            console.warn('Invalid date string in AnalysisTimer:', effectiveStart);
+            return;
+        }
+        const startMs = startDate.getTime();
 
         if (isComplete) {
             if (finalDurationRef.current === null) {
