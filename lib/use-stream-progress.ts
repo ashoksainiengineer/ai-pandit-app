@@ -239,6 +239,7 @@ export function useStreamProgress(
     const streamCleanupRef = useRef<boolean>(false);
     const currentSessionRef = useRef<string | null>(null);
     const authRetryRef = useRef<boolean>(false);
+    const terminalStateReceivedRef = useRef<boolean>(false); // Track if we got terminal state
 
     // Cleanup function
     const cleanup = () => {
@@ -447,6 +448,8 @@ export function useStreamProgress(
 
                 case 'terminal_state': {
                     const termData = (data.data as any) || data;
+                    // Mark that we received terminal state so onerror doesn't show spurious error
+                    terminalStateReceivedRef.current = true;
                     cleanup();
                     // If it's complete, show result. If failed/cancelled, show error.
                     const isErr = termData.status === 'failed' || termData.status === 'error' || termData.status === 'cancelled';
@@ -575,6 +578,7 @@ export function useStreamProgress(
         streamCleanupRef.current = false;
         currentSessionRef.current = sid;
         setConnectionState({ status: 'connecting', url: '', lastError: null });
+        terminalStateReceivedRef.current = false; // Reset for new connection
 
         try {
             // RETRY TOKEN ACQUISITION
@@ -672,8 +676,16 @@ export function useStreamProgress(
             });
 
             sse.onerror = (err) => {
-                console.error('❌ [SSE] Connection generic ERROR occurred', err);
                 if (!mountedRef.current || currentSessionRef.current !== sid) return;
+
+                // Check if we already received a terminal state - if so, this error is expected
+                // Use ref instead of state to avoid stale closure issues
+                if (terminalStateReceivedRef.current) {
+                    console.log('📤 [SSE] Connection closed after terminal state (expected)');
+                    return;
+                }
+
+                console.error('❌ [SSE] Connection generic ERROR occurred', err);
 
                 if (sseConnected) {
                     console.warn('⚠️ [SSE] Lost connection, browser will handle auto-retry...');
@@ -681,7 +693,7 @@ export function useStreamProgress(
                     // Only switch to polling if it's NOT a terminal named error (caught above)
                     // and we haven't already started a retry/cleanup.
                     setTimeout(() => {
-                        if (mountedRef.current && currentSessionRef.current === sid && !sseSourceRef.current && connectionState.status !== 'error') {
+                        if (mountedRef.current && currentSessionRef.current === sid && !sseSourceRef.current && !terminalStateReceivedRef.current) {
                             console.error('🔥 [SSE] Initial connection failed. Switching to polling...');
                             cleanup();
                             setConnectionState({ status: 'polling', url: '', lastError: 'Initial SSE connection failed' });

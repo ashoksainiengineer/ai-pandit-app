@@ -77,7 +77,12 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
 
         if (session.length === 0) {
             res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('X-Accel-Buffering', 'no');
+            res.flushHeaders();
+            res.write(': ping\n\n');
             sendEvent(res, { type: 'error', error: 'Session not found', code: 'NOT_FOUND' });
+            if ((res as any).flush) (res as any).flush();
             res.end();
             return;
         }
@@ -86,7 +91,12 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
         if (session[0].clerkId !== clerkId) {
             logger.warn(`[SSE] Unauthorized access attempt: clerkId ${clerkId.slice(0, 12)}... tried to access session ${sessionId}`);
             res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('X-Accel-Buffering', 'no');
+            res.flushHeaders();
+            res.write(': ping\n\n');
             sendEvent(res, { type: 'error', error: 'Access denied', code: 'FORBIDDEN' });
+            if ((res as any).flush) (res as any).flush();
             res.end();
             return;
         }
@@ -101,7 +111,18 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
         const terminalStates = ['cancelled', 'error', 'failed', 'complete'];
         if (terminalStates.includes(currentStatus)) {
             logger.info(`[SSE] Session ${sessionId} is in terminal state: ${currentStatus}`);
+
+            // Set all SSE headers for proper EventSource handling
             res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache, no-transform, no-store, must-revalidate, private');
+            res.setHeader('Connection', 'keep-alive');
+            res.setHeader('X-Accel-Buffering', 'no');
+            res.flushHeaders();
+
+            // Send preamble to ensure event is delivered through proxies
+            res.write(':' + ' '.repeat(1024) + '\n\n');
+            if ((res as any).flush) (res as any).flush();
+
             sendEvent(res, {
                 type: 'terminal_state',
                 status: currentStatus,
@@ -110,6 +131,9 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
                     : `Session is in terminal state: ${currentStatus}`,
                 errorMessage: session[0].errorMessage || undefined,
             });
+
+            // Flush before closing
+            if ((res as any).flush) (res as any).flush();
             res.end();
             return;
         }
