@@ -167,249 +167,11 @@ const ProgressBar = memo(({ percentage, stepIndex, totalSteps, message }: {
 ));
 ProgressBar.displayName = 'ProgressBar';
 
-// 🔱 THE HIVE: MULTI-STREAM THINKING PANEL
-const AIThinkingPanel = memo(({ thinking, isActive, aiModel }: { thinking: Record<string, AIThinking>; isActive: boolean; aiModel?: string }) => {
-    const [focusedBatch, setFocusedBatch] = useState<string | null>(null);
-    const [isExpanded, setIsExpanded] = useState(true);
+// ... imports at top ...
+import { UnifiedAIPanel } from '@/components/rectify/UnifiedAIPanel';
+import { LiveCalculationPanel } from '@/components/rectify/LiveCalculationPanel';
+// Remove AIThinkingPanel and CandidateScoreTable inline components
 
-    const batches = useMemo(() => Object.values(thinking).sort((a, b) => {
-        // Sort by Batch number
-        const numA = parseInt(a.candidateTime?.replace(/\D/g, '') || '0');
-        const numB = parseInt(b.candidateTime?.replace(/\D/g, '') || '0');
-        return numA - numB;
-    }), [thinking]);
-
-    const activeBatchCount = batches.length;
-
-    if (!isExpanded) {
-        return (
-            <div
-                onClick={() => setIsExpanded(true)}
-                className="bg-white rounded-xl border border-[#E5E7EB] shadow-sm p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors my-6"
-            >
-                <div className="flex items-center gap-3">
-                    <Brain className="w-5 h-5 text-[#B8860B]" />
-                    <h3 className="text-sm font-bold text-[#1A1612]">AI Reasoning Engine ({activeBatchCount} active analysts)</h3>
-                </div>
-                <ChevronDown className="w-4 h-4 text-gray-400" />
-            </div>
-        );
-    }
-
-    return (
-        <div className="bg-white rounded-2xl border border-[#F0E8DE] shadow-sm overflow-hidden my-6 font-sans">
-            {/* Main Header */}
-            <div className="px-5 py-4 border-b border-[#F0E8DE] bg-[#FAF8F5] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${isActive ? 'bg-[#B8860B]/10' : 'bg-gray-100'}`}>
-                        <Brain className={`w-5 h-5 ${isActive ? 'text-[#B8860B]' : 'text-gray-400'}`} />
-                    </div>
-                    <div className="flex flex-col">
-                        <h3 className="text-sm font-bold text-[#1A1612]">AI Reasoning Engine</h3>
-                        <p className="text-[10px] text-stone-400 font-medium tracking-tight">
-                            {focusedBatch ? `Focusing on ${focusedBatch}` : `${activeBatchCount} Parallel Batch Analysts Processing...`}
-                        </p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-4">
-                    {focusedBatch && (
-                        <button
-                            onClick={() => setFocusedBatch(null)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#F0E8DE] text-[10px] font-bold text-[#B8860B] hover:bg-[#FAF8F5] transition-all shadow-sm"
-                        >
-                            <ArrowLeft className="w-3 h-3" />
-                            BACK TO GRID
-                        </button>
-                    )}
-                    <button
-                        onClick={() => setIsExpanded(false)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors text-gray-400"
-                    >
-                        <ChevronUp className="w-4 h-4" />
-                    </button>
-                </div>
-            </div>
-
-            {/* Content Area */}
-            <div className="p-5 bg-white min-h-[400px]">
-                {activeBatchCount === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-[350px] space-y-4 text-center">
-                        <div className="p-4 rounded-full bg-stone-50 border border-stone-100 animate-pulse">
-                            <Activity className="w-8 h-8 text-stone-200" />
-                        </div>
-                        <p className="text-sm text-stone-400 italic">Initializing parallel neural pathways...</p>
-                    </div>
-                ) : focusedBatch ? (
-                    // FOCUS VIEW
-                    <div className="animate-in fade-in zoom-in-95 duration-200 h-full">
-                        <div className="flex items-center justify-between mb-4 pb-4 border-b border-[#F0E8DE]">
-                            <div className="flex items-center gap-2">
-                                <span className="flex h-2 w-2 relative">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                                </span>
-                                <h4 className="text-xs font-bold text-[#1A1612] uppercase tracking-wider">Analysis Stream: {focusedBatch}</h4>
-                            </div>
-                            <div className="text-[10px] font-bold text-[#B8860B] bg-[#B8860B]/5 px-2 py-0.5 rounded-full border border-[#B8860B]/10">
-                                ACTIVE FOCUS
-                            </div>
-                        </div>
-                        <div className="prose prose-stone prose-sm max-w-none text-[#4A453F] leading-7 style-scroll h-[400px] overflow-y-auto pr-4">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {thinking[focusedBatch]?.fullText || ''}
-                            </ReactMarkdown>
-                        </div>
-                    </div>
-                ) : (
-                    // GRID VIEW (THE HIVE)
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 animate-in fade-in duration-300">
-                        {batches.map((batch) => (
-                            <motion.div
-                                key={batch.candidateTime}
-                                whileHover={{ y: -2 }}
-                                onClick={() => setFocusedBatch(batch.candidateTime || null)}
-                                className="group relative bg-[#FAF9F6] border border-[#F0E8DE] rounded-xl p-4 cursor-pointer hover:border-[#B8860B]/30 hover:shadow-md transition-all overflow-hidden h-[160px]"
-                            >
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                        <span className="text-[10px] font-bold text-[#1A1612] uppercase tracking-wider">{batch.candidateTime}</span>
-                                    </div>
-                                    <Maximize2 className="w-3 h-3 text-stone-300 group-hover:text-[#B8860B] transition-colors" />
-                                </div>
-                                <div className="text-[11px] text-[#4A453F] line-clamp-4 leading-relaxed font-mono">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                        {batch.fullText.length > 300 ? `${batch.fullText.substring(0, 300)}...` : batch.fullText}
-                                    </ReactMarkdown>
-                                </div>
-                                <div className="absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-[#FAF9F6] to-transparent pointer-events-none" />
-                            </motion.div>
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Footer */}
-            <div className="px-5 py-3 bg-[#FAF8F5] border-t border-[#F0E8DE] flex justify-between items-center text-[10px] font-bold text-stone-400">
-                <div className="flex items-center gap-4">
-                    <span className="flex items-center gap-1">
-                        <Cpu className="w-3 h-3" />
-                        ENGINE: MULTI-CORE PARALLEL
-                    </span>
-                    <span className="flex items-center gap-1">
-                        <Zap className="w-3 h-3 text-[#B8860B]" />
-                        MODALITY: LIVE STREAMING
-                    </span>
-                </div>
-                <div className="text-[#B8860B] flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3" />
-                    POWERED BY {aiModel || 'HUGGING FACE AI'}
-                </div>
-            </div>
-        </div>
-    );
-});
-AIThinkingPanel.displayName = 'AIThinkingPanel';
-
-const CandidateScoreTable = memo(({ scores }: { scores: CandidateScore[] }) => {
-    const [activeTab, setActiveTab] = useState<number | 'all'>('all');
-
-    // Auto-switch to latest stage
-    useEffect(() => {
-        if (scores.length > 0) {
-            const latestStage = Math.max(...scores.map(s => s.stage));
-            if (activeTab === 'all' || latestStage > Number(activeTab)) {
-                setActiveTab(latestStage);
-            }
-        }
-    }, [scores, activeTab]);
-
-    const filteredScores = useMemo(() => {
-        const filtered = activeTab === 'all' ? scores : scores.filter(s => s.stage === activeTab);
-        // Take unique by time, highest score first
-        const unique = new Map<string, CandidateScore>();
-        filtered.forEach(s => {
-            const existing = unique.get(s.time);
-            if (!existing || s.score > existing.score) unique.set(s.time, s);
-        });
-        return Array.from(unique.values()).sort((a, b) => b.score - a.score).slice(0, 15);
-    }, [scores, activeTab]);
-
-    const stages = useMemo(() => {
-        const uniqueStages = Array.from(new Set(scores.map(s => s.stage))).sort((a, b) => a - b);
-        return uniqueStages;
-    }, [scores]);
-
-    return (
-        <div className="h-full">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                <h2 className="text-sm font-bold text-[#1A1612] flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-[#B8860B]" />
-                    Stage-wise Leaderboard
-                </h2>
-                <div className="flex items-center gap-1 p-1 bg-stone-100 rounded-lg overflow-x-auto">
-                    <button
-                        onClick={() => setActiveTab('all')}
-                        className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${activeTab === 'all' ? 'bg-white text-[#B8860B] shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
-                    >
-                        ALL
-                    </button>
-                    {stages.map(stage => (
-                        <button
-                            key={stage}
-                            onClick={() => setActiveTab(stage)}
-                            className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all ${activeTab === stage ? 'bg-white text-[#B8860B] shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
-                        >
-                            S{stage}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            <div className="overflow-hidden rounded-xl border border-[#F0E8DE] bg-white shadow-sm overflow-x-auto max-h-[350px] style-scroll">
-                {filteredScores.length > 0 ? (
-                    <table className="min-w-full divide-y divide-[#F0E8DE]">
-                        <thead className="bg-[#FAF8F5]">
-                            <tr>
-                                <th className="px-4 py-2 text-left text-[10px] font-bold text-[#7A756F] uppercase">Candidate</th>
-                                <th className="px-4 py-2 text-center text-[10px] font-bold text-[#7A756F] uppercase">Sun</th>
-                                <th className="px-4 py-2 text-center text-[10px] font-bold text-[#7A756F] uppercase">Moon</th>
-                                <th className="px-4 py-2 text-center text-[10px] font-bold text-[#7A756F] uppercase">Ascendant</th>
-                                <th className="px-4 py-2 text-right text-[10px] font-bold text-[#7A756F] uppercase">Score</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-[#F0E8DE]">
-                            {filteredScores.map((s, index) => (
-                                <tr key={`${s.time}-${s.stage}-${index}`} className="hover:bg-stone-50 transition-colors">
-                                    <td className="px-4 py-2.5 whitespace-nowrap">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm font-mono font-bold text-[#1A1612]">{s.time}</span>
-                                            {index === 0 && <span className="bg-yellow-100 text-yellow-800 text-[8px] font-heavy px-1 rounded">WINNER</span>}
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-2.5 text-center text-[11px] font-medium text-stone-600 font-mono">{s.minifiedEph?.sun || '---'}</td>
-                                    <td className="px-4 py-2.5 text-center text-[11px] font-medium text-stone-600 font-mono">{s.minifiedEph?.moon || '---'}</td>
-                                    <td className="px-4 py-2.5 text-center text-[11px] font-medium text-stone-600 font-mono">{s.minifiedEph?.ascendant || '---'}</td>
-                                    <td className="px-4 py-2.5 text-right">
-                                        <div className="flex flex-col items-end gap-1">
-                                            <span className="text-sm font-bold font-mono text-[#2D7A5C]">{s.score.toFixed(1)}%</span>
-                                            <div className="w-16 h-1 bg-stone-100 rounded-full overflow-hidden">
-                                                <div className="h-full bg-[#2D7A5C]" style={{ width: `${s.score}%` }} />
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                ) : (
-                    <div className="p-8 text-center text-xs text-stone-400 italic">No data for this stage yet...</div>
-                )}
-            </div>
-        </div>
-    );
-});
-CandidateScoreTable.displayName = 'CandidateScoreTable';
 
 interface PersistentCandidate {
     time: string;
@@ -417,12 +179,9 @@ interface PersistentCandidate {
     moon?: string;
 }
 
-const AIContextPanel = memo(({ persistentCandidates, isActive, offsetConfig }: { persistentCandidates: PersistentCandidate[]; isActive: boolean; offsetConfig?: any }) => {
-    if (!isActive && persistentCandidates.length === 0) return null;
-
-    const gridDescription = offsetConfig?.customMinutes
-        ? `±${offsetConfig.customMinutes} min Grid`
-        : offsetConfig?.preset === '1hour' ? '±1h Grid' : 'Standard Grid';
+const AIContextPanel = memo(({ persistentCandidates, isActive, offsetConfig, totalAnalyzed }: { persistentCandidates: PersistentCandidate[]; isActive: boolean; offsetConfig?: any; totalAnalyzed?: number }) => {
+    // Always show if we have data, even if not strictly "active" (active just means streaming now)
+    if (persistentCandidates.length === 0 && !isActive) return null;
 
     return (
         <div className="bg-[#FAF9F6] border border-[#F0E8DE] rounded-xl p-5 shadow-sm space-y-4">
@@ -434,6 +193,11 @@ const AIContextPanel = memo(({ persistentCandidates, isActive, offsetConfig }: {
                         <p className="text-[10px] text-stone-400 font-medium">Powered by Swiss Ephemeris Engine</p>
                     </div>
                 </div>
+                {totalAnalyzed !== undefined && (
+                    <div className="bg-stone-100 px-3 py-1 rounded-lg border border-stone-200 text-xs font-mono font-bold text-[#7A756F]">
+                        Analyzed: <span className="text-[#B8860B]">{persistentCandidates.length}</span>
+                    </div>
+                )}
             </div>
 
             <div className="rounded-lg border border-[#F0E8DE] bg-white overflow-hidden max-h-[300px] overflow-y-auto style-scroll">
@@ -456,17 +220,33 @@ const AIContextPanel = memo(({ persistentCandidates, isActive, offsetConfig }: {
                         {persistentCandidates.length === 0 && (
                             <tr>
                                 <td colSpan={3} className="px-3 py-8 text-center text-stone-400 italic">
-                                    Awaiting high-precision data from Swiss Ephemeris...
+                                    <div className="flex flex-col items-center gap-2">
+                                        <div className="w-4 h-4 border-2 border-[#B8860B]/30 border-t-[#B8860B] rounded-full animate-spin" />
+                                        <span>Hydrating candidate pool...</span>
+                                    </div>
                                 </td>
                             </tr>
                         )}
                     </tbody>
                 </table>
             </div>
+
+            {/* Legend/Footer */}
+            <div className="flex items-center gap-4 text-[9px] text-stone-400 pt-1">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-[#B8860B]"></span>Precise Match</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-stone-300"></span>Candidate</span>
+            </div>
         </div>
     );
 });
 AIContextPanel.displayName = 'AIContextPanel';
+
+// ... (rest of the file until LiveCalculationPanel usage)
+
+// Inside the main return, usually near the bottom
+// Replace the LiveCalculationPanel block:
+
+
 
 // Funnel removed as requested
 
@@ -807,35 +587,42 @@ export default function RobustAnalysisPage() {
                         )}
 
 
-                        {/* 4. AI Reasoning Panel (What AI feels) */}
+                        {/* 4. AI Reasoning & Ranking (Unified) */}
                         {(aiThinking || (progress?.stepIndex || 0) >= 1) && !isComplete && !cancelled && (
-                            <AnalysisErrorBoundary sectionName="AI Reasoning Process">
-                                <AIThinkingPanel
-                                    thinking={aiThinking || {}}
-                                    isActive={isConnected && !isComplete && Object.keys(aiThinking || {}).length > 0}
-                                    aiModel={metadata?.aiModel}
+                            <AnalysisErrorBoundary sectionName="AI Reasoning">
+                                <UnifiedAIPanel
+                                    thinking={aiThinking ? (Object.values(aiThinking)[0] as any) : null}
+                                    stageHistory={streamData.stageHistory}
+                                    context={aiContext}
+                                    isActive={isConnected && !isComplete}
+                                    stage={progress?.stepIndex}
+                                    allCandidates={streamData.allCandidates}
+                                    displayedCandidate={streamData.displayedCandidate}
+                                    unifiedMode={true}
                                 />
                             </AnalysisErrorBoundary>
                         )}
 
-                        {/* 5. Candidate Scores (What AI decided) */}
-                        {(candidateScores.length > 0 || (progress?.stepIndex || 0) >= 2) && !isComplete && !cancelled && (
-                            <SectionErrorBoundary sectionName="Candidate Scores" icon={<Activity className="w-5 h-5" />}>
-                                <div className="bg-white rounded-xl border border-[#F0E8DE] p-6 shadow-sm">
-                                    <CandidateScoreTable scores={candidateScores} />
-                                </div>
+                        {/* 5. Live Logs & Advanced Signals */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <SectionErrorBoundary sectionName="Live Logs">
+                                <LiveCalculationPanel
+                                    logs={progress?.calculationLogs || []}
+                                    isConnected={isConnected}
+                                    engineName="DeepSeek-V3 + Swiss Eph"
+                                    latency={12}
+                                />
                             </SectionErrorBoundary>
-                        )}
 
-                        {/* 4. Advanced Signals (Bottom) */}
-                        {(advancedSignals || (isComplete && result)) && (
-                            <SectionErrorBoundary sectionName="Advanced Signals" icon={<Gem className="w-5 h-5" />}>
-                                <div className="bg-white rounded-xl border border-[#F0E8DE] p-6 shadow-sm">
-                                    <h3 className="text-sm font-bold text-[#1A1612] mb-4">Real-time Signals</h3>
+                            {/* Advanced Signals (if available) */}
+                            {advancedSignals && (
+                                <SectionErrorBoundary sectionName="Advanced Signals">
                                     <AdvancedSignalsDashboard signals={advancedSignals} isComplete={isComplete} />
-                                </div>
-                            </SectionErrorBoundary>
-                        )}
+                                </SectionErrorBoundary>
+                            )}
+                        </div>
+
+
                     </div>
                 </div>
             </main>

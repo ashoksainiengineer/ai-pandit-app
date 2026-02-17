@@ -11,23 +11,17 @@ import React, {
 } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, ChevronDown, ChevronUp, Activity, Users, Radio, Zap, Clock } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { sanitizeAIContent } from '@/lib/xss-sanitizer';
+import { CandidateScoreTable } from './CandidateScoreTable';
 
-// Types and Constants here
+import { AIContextData } from '@/lib/use-stream-progress';
 
 interface PlanetaryInfo {
     sun: string;
     moon: string;
     ascendant: string;
-}
-
-interface AIContextData {
-    stage: number;
-    candidateTime: string;
-    planetaryInfo: PlanetaryInfo;
-    dasha: string;
-    divCharts?: string;
-    groundTruth?: unknown;
 }
 
 interface AIThinking {
@@ -239,13 +233,108 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
         return groups;
     }, [allCandidates, thinking]);
 
+    const candidatesList = useMemo(() => Array.from(allCandidates?.keys() || []), [allCandidates]);
+
     if (unifiedMode) {
         const currentStageConfig = STAGES.find(s => s.id === currentStage) || STAGES[0];
         const activeContent = unifiedContent;
 
         return (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl border border-[#D4A853]/50 bg-white shadow-[0_0_20px_rgba(184,134,11,0.1)] overflow-hidden" role="region" aria-labelledby={`${panelId}-title`}>
-                {/* Header, Candidate Tabs, Content, etc. using the hooks from above */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6" role="region" aria-labelledby={`${panelId}-title`}>
+
+                {/* 1. Reasoning Container (Bifurcated by Stage) */}
+                <div className="rounded-2xl border border-[#D4A853]/50 bg-white shadow-[0_0_20px_rgba(184,134,11,0.1)] overflow-hidden">
+                    {/* Header */}
+                    <div className="bg-[#FAF8F5] px-6 py-4 border-b border-[#F0E8DE] flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-[#B8860B]/10 rounded-lg">
+                                <Brain className="w-5 h-5 text-[#B8860B]" />
+                            </div>
+                            <div>
+                                <h3 id={`${panelId}-title`} className="text-lg font-bold text-[#1A1612]">AI Reasoning Stream</h3>
+                                <p className="text-xs text-[#7A756F]">Live cognitive analysis of authorized candidates</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {/* Stage Indicators */}
+                            {STAGES.map((s) => (
+                                <div key={s.id} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition-all ${currentStage === s.id
+                                    ? `bg-${s.color}-50 text-${s.color}-700 border-${s.color}-200 shadow-sm`
+                                    : 'bg-white text-stone-400 border-stone-100 opacity-60'
+                                    }`}>
+                                    {s.name}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Content Area - Auto-scrolls to latest */}
+                    <div className="relative min-h-[300px] max-h-[500px] bg-white">
+                        {(candidatesList.length > 0 || thinking) && effectiveDisplayedCandidate ? (
+                            <div className="flex flex-col h-full">
+                                {/* Candidate Focus Header */}
+                                <div className="px-6 py-3 bg-[#FCFBF9] border-b border-[#F0E8DE] flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <span className="flex h-2 w-2 relative">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                        </span>
+                                        <span className="text-xs font-bold text-[#1A1612] font-mono">
+                                            ANALYZING: <span className="text-[#B8860B]">{effectiveDisplayedCandidate}</span>
+                                        </span>
+                                    </div>
+                                    <span className="text-[10px] text-stone-400 font-mono">
+                                        {activeContent.length} TOKENS STREAMED
+                                    </span>
+                                </div>
+
+                                {/* Scrollable Text */}
+                                <div className="flex-1 p-6 overflow-y-auto style-scroll font-mono text-sm text-[#4A453F] leading-7 space-y-4">
+                                    {activeContent ? (
+                                        <ReactMarkdown
+                                            remarkPlugins={[remarkGfm]}
+                                            components={{
+                                                p: ({ node, ...props }) => <p className="mb-4 last:mb-0" {...props} />,
+                                                li: ({ node, ...props }) => <li className="ml-4 list-disc marker:text-[#B8860B]" {...props} />,
+                                                strong: ({ node, ...props }) => <strong className="font-bold text-[#1A1612]" {...props} />
+                                            }}
+                                        >
+                                            {activeContent}
+                                        </ReactMarkdown>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center h-[200px] text-stone-400 italic gap-2">
+                                            <Activity className="w-6 h-6 opacity-20" />
+                                            <span>Waiting for analysis stream...</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-[400px] text-center p-8">
+                                <motion.div
+                                    animate={{ scale: [1, 1.05, 1], opacity: [0.5, 0.8, 0.5] }}
+                                    transition={{ duration: 3, repeat: Infinity }}
+                                    className="w-24 h-24 rounded-full bg-[#B8860B]/5 flex items-center justify-center mb-4"
+                                >
+                                    <Brain className="w-10 h-10 text-[#B8860B]/40" />
+                                </motion.div>
+                                <h3 className="text-lg font-bold text-[#1A1612] mb-2">Neural Engine Initialized</h3>
+                                <p className="text-sm text-[#7A756F] max-w-md">
+                                    The AI Pandit is preparing to process astrological data.
+                                    Real-time reasoning will appear here shortly.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* 2. Ranking Container (Live Leaderboard) */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-3">
+                        <CandidateScoreTable scores={allCandidates} />
+                    </div>
+                </div>
+
             </motion.div>
         );
     }

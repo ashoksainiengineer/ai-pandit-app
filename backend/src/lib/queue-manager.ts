@@ -319,7 +319,8 @@ export async function markAsComplete(
         accuracy: results.accuracy,
         confidence: results.confidence,
         analysisResult: results.analysisResult,
-        // reasoningLogs: results.reasoningLogs, // 🔥 REMOVED: NO DB PERSISTENCE
+        // progressData: LEAVE AS IS (Saved by ProgressTracker.complete())
+        reasoningLogs: results.reasoningLogs ? JSON.stringify(results.reasoningLogs) : null, // 🔥 PERSISTING LOGS NOW
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       } as any)

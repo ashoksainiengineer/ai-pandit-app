@@ -39,7 +39,7 @@ const CATEGORY_WEIGHTS: Record<string, number> = {
  */
 export function calculatePrakriti(answers: QuizAnswer[]): PrakritiResult {
     const prakritiQuestions = FORENSIC_QUIZ_QUESTIONS.filter(q => q.category === 'prakriti');
-    
+
     if (prakritiQuestions.length === 0) {
         return {
             primary: 'vata',
@@ -79,9 +79,9 @@ export function calculatePrakriti(answers: QuizAnswer[]): PrakritiResult {
 
     // Normalize to percentages
     const total = vata + pitta + kapha;
-    
+
     let vataPct: number, pittaPct: number, kaphaPct: number;
-    
+
     if (total === 0) {
         // Equal distribution if no data
         vataPct = 33;
@@ -147,7 +147,7 @@ function calculateTrait(
     questions: QuizQuestion[]
 ): TraitResult {
     const categoryQuestions = questions.filter(q => q.category === category);
-    
+
     if (categoryQuestions.length === 0) {
         return {
             type: 'Unknown',
@@ -161,10 +161,16 @@ function calculateTrait(
     let answeredCount = 0;
     let notSureCount = 0;
     let totalWeight = 0;
+    let customAnswerText: string | null = null;
 
     answers.forEach(answer => {
         const question = questions.find(q => q.id === answer.questionId);
         if (!question || question.category !== category) return;
+
+        // Capture custom answer if present
+        if (answer.customAnswer) {
+            customAnswerText = answer.customAnswer.trim();
+        }
 
         if (answer.isNotSure) {
             notSureCount++;
@@ -203,6 +209,12 @@ function calculateTrait(
             winningOption = data.option;
         }
     });
+
+    // Determine Result Type: Custom Answer takes priority
+    let resultType = winningOption?.label || 'Unknown';
+    if (customAnswerText) {
+        resultType = customAnswerText;
+    }
 
     // Collect planetary indicators from all selected options in category
     const planetaryIndicators: string[] = [];
@@ -245,7 +257,7 @@ function calculateTrait(
     }
 
     return {
-        type: winningOption?.label || 'Unknown',
+        type: resultType,
         confidence: Math.max(0, Math.round(confidence)),
         planetaryIndicators
     };
@@ -288,7 +300,7 @@ function calculateFamily(answers: QuizAnswer[], questions: QuizQuestion[]): Fami
     // Calculate confidence based on how many were answered
     const familyQuestions = questions.filter(q => q.category === 'family');
     let answeredQuestions = 0;
-    
+
     answers.forEach(answer => {
         const question = questions.find(q => q.id === answer.questionId);
         if (question?.category === 'family' && !answer.isNotSure) {
@@ -296,7 +308,7 @@ function calculateFamily(answers: QuizAnswer[], questions: QuizQuestion[]): Fami
         }
     });
 
-    const confidence = familyQuestions.length > 0 
+    const confidence = familyQuestions.length > 0
         ? Math.round((answeredQuestions / familyQuestions.length) * 100)
         : 0;
 
@@ -329,7 +341,7 @@ export function verifyTraitConsistency(results: QuizResults): {
     // Check 1: Vata prakriti alignment
     if (results.prakriti.primary === 'vata') {
         totalChecks += 3;
-        
+
         // Vata should have fast/variable speech
         if (matchesAny(results.speech.type, ['fast', 'quick', 'variable'])) {
             alignmentScore++;
@@ -355,7 +367,7 @@ export function verifyTraitConsistency(results: QuizResults): {
     // Check 2: Pitta prakriti alignment
     if (results.prakriti.primary === 'pitta') {
         totalChecks += 3;
-        
+
         // Pitta should have measured/logical speech
         if (matchesAny(results.speech.type, ['measured', 'logical', 'analytical'])) {
             alignmentScore++;
@@ -381,7 +393,7 @@ export function verifyTraitConsistency(results: QuizResults): {
     // Check 3: Kapha prakriti alignment
     if (results.prakriti.primary === 'kapha') {
         totalChecks += 3;
-        
+
         // Kapha should have soft/listening speech
         if (matchesAny(results.speech.type, ['soft', 'listen', 'calm'])) {
             alignmentScore++;
@@ -421,7 +433,7 @@ export function verifyTraitConsistency(results: QuizResults): {
     }
 
     const alignment = totalChecks > 0 ? Math.round((alignmentScore / totalChecks) * 100) : 100;
-    
+
     return {
         isConsistent: alignment >= 60,
         alignment,
@@ -450,7 +462,7 @@ function calculateOverallConfidence(results: QuizResults): number {
     // Boost for high consistency
     const consistency = verifyTraitConsistency(results);
     let finalConfidence = average;
-    
+
     if (consistency.alignment > 80) {
         finalConfidence = Math.min(100, average * 1.1);
     } else if (consistency.alignment < 40) {
@@ -472,8 +484,8 @@ export function calculateQuizResults(answers: QuizAnswer[]): QuizResults {
     }
 
     // Filter out invalid answers
-    const validAnswers = answers.filter(a => 
-        a && 
+    const validAnswers = answers.filter(a =>
+        a &&
         typeof a.questionId === 'string' &&
         Array.isArray(a.selectedOptions) &&
         typeof a.isNotSure === 'boolean'
@@ -521,7 +533,7 @@ export function getQuizProgress(answers: QuizAnswer[]): {
 } {
     const questions = FORENSIC_QUIZ_QUESTIONS;
     const total = questions.length;
-    
+
     // Get set of answered question IDs (excluding "not sure" without selection)
     const answeredQuestions = new Set(
         answers
@@ -538,7 +550,7 @@ export function getQuizProgress(answers: QuizAnswer[]): {
             categories[q.category] = { answered: 0, total: 0 };
         }
         categories[q.category].total++;
-        
+
         if (answeredQuestions.has(q.id)) {
             categories[q.category].answered++;
         }
@@ -565,7 +577,7 @@ export function getNextQuestion(
             .filter(a => !a.isNotSure || a.selectedOptions.length > 0 || a.customAnswer)
             .map(a => a.questionId)
     );
-    
+
     const unanswered = FORENSIC_QUIZ_QUESTIONS.filter(q => !answeredIds.has(q.id));
 
     if (unanswered.length === 0) return null;
@@ -588,7 +600,7 @@ export function formatQuizResults(results: QuizResults): {
     detailed: Record<string, string>;
     astroMapping: string;
 } {
-    const prakritiDesc = results.prakriti.secondary 
+    const prakritiDesc = results.prakriti.secondary
         ? `${results.prakriti.primary}-${results.prakriti.secondary}`
         : results.prakriti.primary;
 
@@ -636,7 +648,7 @@ export function mapQuizResultsToLegacyTraits(results: QuizResults) {
             }
         },
         biological: {
-            prakriti: results.prakriti.secondary 
+            prakriti: results.prakriti.secondary
                 ? `${results.prakriti.primary}-${results.prakriti.secondary}`
                 : results.prakriti.primary
         },
@@ -661,7 +673,7 @@ function mapForeheadToLegacy(type: string): string {
         'Protrudes forward, prominent brow ridge': 'prominent',
         'Low, short, or significantly receding': 'narrow'
     };
-    return map[type] || 'average';
+    return map[type] || type.replace(/[<>]/g, ''); // Return sanitized original if no match
 }
 
 function mapEyesToLegacy(type: string): string {
@@ -673,7 +685,7 @@ function mapEyesToLegacy(type: string): string {
         'Small, intense, piercing gaze': 'small',
         'Large, luminous, expressive': 'round'
     };
-    return map[type] || 'almond';
+    return map[type] || type.replace(/[<>]/g, '');
 }
 
 function mapVoiceToLegacy(type: string): string {
@@ -685,7 +697,7 @@ function mapVoiceToLegacy(type: string): string {
         'Resonant, commanding, authoritative': 'deep',
         'Nasal, twang, or constricted': 'nasal'
     };
-    return map[type] || 'medium';
+    return map[type] || type.replace(/[<>]/g, '');
 }
 
 function mapSpeechToLegacy(type: string): string {
@@ -696,7 +708,7 @@ function mapSpeechToLegacy(type: string): string {
         'Use minimal words, get to the point': 'concise',
         'Talk a lot, connect ideas, storytelling': 'talkative'
     };
-    return map[type] || 'measured_soft';
+    return map[type] || type.replace(/[<>]/g, '');
 }
 
 function mapDecisionToLegacy(type: string): string {
@@ -708,7 +720,7 @@ function mapDecisionToLegacy(type: string): string {
         'Take charge, act immediately, solve the problem': 'impulsive',
         'Step back, analyze options, plan response': 'deliberate'
     };
-    return map[type] || 'deliberate';
+    return map[type] || type.replace(/[<>]/g, '');
 }
 
 function mapTemperamentToLegacy(type: string): string {
@@ -720,5 +732,5 @@ function mapTemperamentToLegacy(type: string): string {
         'Withdraw, feel down, need time to process': 'melancholic',
         'Go with the flow, adapt quickly, no strong reaction': 'adaptive'
     };
-    return map[type] || 'calm_stable';
+    return map[type] || type.replace(/[<>]/g, '');
 }

@@ -30,10 +30,11 @@ export function getBatchPrompt(
   batchNumber: number,
   totalBatches: number,
   survivorsNeeded: number,
-  tentativeTime?: string
+  spouseData?: any
 ): string {
   const eventsText = events.map(formatLifeEventForAI).join('\n');
   const forensicContext = buildForensicContext(forensicTraits);
+  const spouseText = spouseData ? `SPOUSE DATA: ${JSON.stringify(spouseData)}` : 'SPOUSE DATA: N/A';
 
   // Anti-bias: Shuffle candidate order in every batch to prevent positional bias
   const shuffledCandidates = randomSort(candidates);
@@ -69,7 +70,7 @@ export function getBatchPrompt(
 ============================
 List every technical metric (e.g. D60 Degrees, Vimsopaka strength) that was missing but required for 100% mathematical certainty.
 
-7. �️ THE TRI-PRONGED LAGNA VERIFICATION (Human Factor Safety):
+7. ️ THE TRI-PRONGED LAGNA VERIFICATION (Human Factor Safety):
    If forensic traits feel generic or "unreliable", do NOT eliminate based on looks alone. Use the "Triple Check":
    A. PHYSICAL/SOFT: Check Sign Element (Fire/Water etc.).
    B. NARRATIVE/HARD: Check family positioning (e.g., eldest sibling, parents' status). This is less subjective.
@@ -84,6 +85,7 @@ LIFE EVENTS:
 ${eventsText}
 
 ${forensicContext}
+${spouseText}
 
 CANDIDATES WITH ENRICHED VEDIC DATA(100 % Mathematical Matrix):
 ${shuffledCandidates.map(c => `
@@ -128,9 +130,11 @@ VIMSHOTTARI DASHA PERIODS (MD-AD-PD):
 ${c.vimshottariDasha.slice(0, 100).map(d => `  • ${d.maha}/${d.antar}/${d.pratyantar} : ${d.startEnd}`).join('\n')}
 ${c.yoginiDasha ? `\nYOGINI DASHA: ${c.yoginiDasha.slice(0, 20).map(d => `${d.lord} (${d.startEnd})`).join(' → ')}` : ''}
 
-${c.transitData ? `TRANSITS & DASHAS ON EVENTS:
+${c.transitData ? `TRANSITS & DASHAS ON EVENTS (Full Matrix):
 ${Object.entries(c.transitData).map(([date, t]: [string, any]) =>
-    `│ [${date}]: Dasha=${t.dasha} | ${t.signatures?.join(', ') || 'Regular Period'}`).join('\n')}` : ''}
+    `│ [${date}]: Dasha=${t.dasha}
+│   Transits: ${Object.entries(t.planets || {}).map(([p, pos]) => `${p}:${pos}`).join(' | ')}
+│   Signatures: ${t.signatures?.join(', ') || 'None'}`).join('\n')}` : ''}
 ${c.vedicSignals ? `VEDIC HIGH-SIGNALS:
 │ Vargottama: ${c.vedicSignals.vargottama?.join(', ') || 'None'}
 │ Pushkar: ${c.vedicSignals.pushkar?.join(', ') || 'None'}

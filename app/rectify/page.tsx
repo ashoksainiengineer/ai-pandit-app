@@ -139,6 +139,13 @@ function RectifyPageContent() {
     const validateStep3 = useCallback((): StepValidation => {
         const errors: string[] = [];
         if (lifeEvents.length < 3) errors.push(`Minimum 3 life events required. Currently: ${lifeEvents.length}`);
+
+        // Deep Dive Check: Ensure events have dates
+        const invalidEvents = lifeEvents.filter(e => !e.eventDate || e.eventDate.trim() === '');
+        if (invalidEvents.length > 0) {
+            errors.push(`Please set dates for ${invalidEvents.length} event(s).`);
+        }
+
         return { isValid: errors.length === 0, errors, warnings: [], progress: lifeEvents.length >= 3 ? 100 : Math.round((lifeEvents.length / 3) * 100) };
     }, [lifeEvents]);
 
@@ -393,7 +400,7 @@ function RectifyPageContent() {
                     {/* Progress Indicator and other UI elements */}
                     <div className="min-h-[400px]">
                         {step === 1 && <Step1BirthDetails data={birthData} updateData={updateBirthData} offsetConfig={offsetConfig} updateOffset={setOffsetConfig} spouseData={spouseData} updateSpouse={updateSpouseData} />}
-                        {step === 2 && <Step2ForensicTraits traits={forensicTraits} updateTraits={updateForensicTraits} gender={birthData.gender as Gender} />}
+                        {step === 2 && <Step2ForensicTraits traits={forensicTraits} updateTraits={updateForensicTraits} gender={birthData.gender as Gender} onNext={handleNext} />}
                         {step === 3 && <Step3PhysicalTraits physicalTraits={forensicTraits.physical} updateTraits={(p) => updateForensicTraits({ physical: { ...forensicTraits.physical, ...p } })} />}
                         {step === 4 && <Step3LifeEvents lifeEvents={lifeEvents} updateEvents={setLifeEvents} offsetConfig={offsetConfig} />}
                         {step === 5 && <Step4Review data={birthData} events={lifeEvents} traits={forensicTraits.physical} forensicTraits={forensicTraits} onSubmit={handleSubmit} isSubmitting={isSubmitting} onEdit={setStep} offsetConfig={offsetConfig} />}

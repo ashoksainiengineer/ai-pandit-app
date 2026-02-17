@@ -27,6 +27,7 @@ interface Step2Props {
     updateTraits: (traits: Partial<ForensicTraits>) => void;
     gender?: Gender;
     sessionId?: string;
+    onNext?: () => void;
 }
 
 // Check if traits are already populated
@@ -53,7 +54,8 @@ export default function Step2ForensicTraits({
     traits,
     updateTraits,
     gender = 'other',
-    sessionId
+    sessionId,
+    onNext
 }: Step2Props) {
     const [showQuiz, setShowQuiz] = useState(false);
     const [quizCompleted, setQuizCompleted] = useState(false);

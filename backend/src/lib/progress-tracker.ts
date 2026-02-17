@@ -438,8 +438,11 @@ export class ProgressTracker {
             // as per user request for "No permanent reasoning store".
             const dbProgress = { ...this.progress };
 
-            // 🗑️ STRIP ONLY ACTIVE REASONING BEFORE DB SYNC
-            delete dbProgress.stageHistory;
+            // 🛡️ [TURSO OPTIMIZED] Data Persistence
+            // We now PERSIST stageHistory (Reasoning Logs) as per "Industry Standard" request.
+            // But we still strip `lastAIThinking` as it's a transient UI state, not a permanent log.
+
+            // 🗑️ STRIP ONLY TRANSIENT UI STATE
             delete dbProgress.lastAIThinking;
 
             let progressJson = JSON.stringify(dbProgress);
@@ -475,6 +478,13 @@ export class ProgressTracker {
      */
     getProgress(): ProgressData {
         return this.progress;
+    }
+
+    /**
+     * Get full stage history (Reasoning Logs)
+     */
+    getStageHistory(): Record<number, string> | undefined {
+        return this.progress.stageHistory;
     }
 }
 

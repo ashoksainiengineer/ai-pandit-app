@@ -30,6 +30,7 @@ export interface StreamProgress {
     percentage: number;
     message: string;
     details?: string[];
+    calculationLogs?: any[]; // For LiveCalculationPanel
 }
 
 export interface AIThinking {
@@ -66,7 +67,7 @@ interface PollingProgressData {
 export interface AIContextData {
     stage: number;
     candidateTime: string;
-    planetaryInfo?: Record<string, string>;
+    planetaryInfo?: { sun: string; moon: string; ascendant: string };
     dasha?: string;
     divCharts?: string;
     candidatesInBatch?: number | Array<{
@@ -696,6 +697,27 @@ export function useStreamProgress(
             cleanup();
         };
     }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+    // 🛡️ PROACTIVE TOKEN REFRESH (God-Tier Fix)
+    // Long-running analysis (20+ mins) can cause tokens to expire silently.
+    // We refresh the token every 45 minutes to ensure the session remains valid.
+    useEffect(() => {
+        if (!getToken) return;
+
+        const REFRESH_INTERVAL = 45 * 60 * 1000; // 45 minutes
+        logger.info('[Token] Setting up proactive token refresh service');
+
+        const interval = setInterval(async () => {
+            try {
+                logger.debug('[Token] 🔄 Proactively refreshing Clerk token...');
+                await getTokenWithRetry(getToken, { skipCache: true });
+                logger.info('[Token] ✅ Token refreshed successfully');
+            } catch (err) {
+                logger.warn('[Token] ⚠️ Failed to refresh token proactively', err);
+            }
+        }, REFRESH_INTERVAL);
+
+        return () => clearInterval(interval);
+    }, [getToken]);
 
     return useMemo(() => ({
         ...state,

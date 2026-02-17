@@ -278,7 +278,9 @@ export async function processSecondsPrecisionBTR(
                     candidatesIn: v.candidatesIn,
                     candidatesOut: v.candidatesOut
                 }])
-            )
+            ),
+            // 📝 PERSIST FULL REASONING LOGS
+            reasoningLogs: progress.getStageHistory()
         };
 
         return {

@@ -1,117 +1,117 @@
-'use client';
-
-import React, { useEffect, useRef, useState } from 'react';
+import React, { memo, useRef, useEffect, useState } from 'react';
+import { Terminal, Cpu, Activity, Clock, Server } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Compass } from 'lucide-react';
 
-export interface CalculationLog {
+interface LogItem {
     candidateTime: string;
-    sunPos: string;
-    moonPos: string;
-    ascendant: string;
-    dashaObj?: string;
-    message: string;
-    log: string; // Alias for compatibility with new terminal
-    timestamp: number;
-    level: 1 | 2 | 3;
+    log: string;
+    timestamp?: number;
+    // ... support other props if needed
 }
 
+// Support updated props
 interface LiveCalculationPanelProps {
-    logs: CalculationLog[];
-    isAnalyzing: boolean;
+    logs: any[]; // Use any to support both old/new log shapes compatible
+    isConnected: boolean;
+    engineName?: string;
+    latency?: number;
 }
 
-export const LiveCalculationPanel: React.FC<LiveCalculationPanelProps> = ({ logs, isAnalyzing }) => {
+export const LiveCalculationPanel = memo<LiveCalculationPanelProps>(({
+    logs,
+    isConnected,
+    engineName = 'DeepSeek-V3 + Swiss Eph',
+    latency = 0
+}) => {
     const scrollRef = useRef<HTMLDivElement>(null);
-    const [displayedLogs, setDisplayedLogs] = useState<CalculationLog[]>([]);
+    const [autoScroll, setAutoScroll] = useState(true);
 
-    // 🔱 GOD MODE: Remove limits to store ALL candidates logged
+    // Auto-scroll to bottom
     useEffect(() => {
-        setDisplayedLogs(logs);
-    }, [logs]);
-
-    // Auto-scroll logging
-    useEffect(() => {
-        if (scrollRef.current) {
+        if (autoScroll && scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
-    }, [displayedLogs]);
+    }, [logs, autoScroll]);
 
-    if (!isAnalyzing && logs.length === 0) return null;
+    // Detect manual scroll
+    const handleScroll = () => {
+        if (scrollRef.current) {
+            const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+            const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
+            setAutoScroll(isAtBottom);
+        }
+    };
 
     return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="w-full mt-4 rounded-xl border border-[#F0E8DE] bg-white overflow-hidden shadow-2xl"
-        >
-            <div className="bg-[#FDF8F3] px-4 py-2 border-b border-[#F0E8DE] flex items-center justify-between">
+        <div className="rounded-xl border border-[#F0E8DE] bg-[#1e1e1e] text-white shadow-sm overflow-hidden flex flex-col h-[300px]">
+            {/* Header */}
+            <div className="bg-[#2d2d2d] px-4 py-2 border-b border-[#3e3e3e] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
-                    <motion.div
-                        animate={{ opacity: [0.5, 1, 0.5] }}
-                        transition={{ repeat: Infinity, duration: 2 }}
-                        className="w-1.5 h-1.5 rounded-full bg-emerald-600"
-                    />
-                    <span className="text-[10px] font-black text-emerald-700 tracking-[0.2em] uppercase">
-                        SWISS EPH VEDIC ASTROLOGICAL DATA
-                    </span>
+                    <Terminal className="w-4 h-4 text-emerald-400" />
+                    <span className="text-xs font-bold text-gray-300 tracking-wider">LIVE CALCULATION LOGS</span>
                 </div>
                 <div className="flex items-center gap-4">
-                    <span className="text-[9px] text-emerald-600/60 font-mono font-bold">
-                        LATENCY: 8ms
-                    </span>
-                    <span className="text-[9px] text-[#7A756F] font-mono font-bold">
+                    {latency > 0 && (
+                        <span className="text-[9px] text-emerald-600/60 font-mono font-bold flex items-center gap-1">
+                            <Activity className="w-3 h-3" />
+                            LATENCY: {latency}ms
+                        </span>
+                    )}
+                    <span className="text-[9px] text-[#7A756F] font-mono font-bold flex items-center gap-1">
+                        <Server className="w-3 h-3" />
                         {logs.length > 0 ? `${logs.length} OPS_LOGGED` : 'SYSTEM_READY'}
                     </span>
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-black/20 border border-white/10">
+                        <Cpu className="w-3 h-3 text-[#B8860B]" />
+                        <span className="text-[9px] font-bold text-stone-400">{engineName}</span>
+                    </div>
                 </div>
             </div>
 
-            {/* TABLE HEADER */}
-            <div className="grid grid-cols-[12%_18%_18%_18%_24%_10%] px-4 py-1.5 bg-[#FAF5EF] text-[8px] font-black tracking-widest text-emerald-700/50 uppercase border-b border-[#F0E8DE]">
-                <span>TIME (+IST)</span>
-                <span>SUN LONG</span>
-                <span>MOON LONG</span>
-                <span>ASCENDANT</span>
-                <span>VIMSHOTTARI</span>
-                <span className="text-right">STATUS</span>
-            </div>
-
+            {/* Logs Area */}
             <div
                 ref={scrollRef}
-                className="h-40 overflow-y-auto font-mono text-[9px] md:text-[10px] space-y-0.5 scrollbar-thin scrollbar-thumb-[#E8E0D5] scrollbar-track-transparent bg-white"
+                onScroll={handleScroll}
+                className="flex-1 overflow-y-auto p-4 font-mono text-[10px] space-y-1 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent"
             >
                 <AnimatePresence initial={false}>
-                    {displayedLogs.filter(log => log?.candidateTime).map((log, idx) => (
-                        <motion.div
-                            key={`${log.candidateTime || 'log'}-${idx}`}
-                            initial={{ opacity: 0, x: -5 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="grid grid-cols-[12%_18%_18%_18%_24%_10%] items-center px-4 py-0.5 hover:bg-[#F5EFE7] transition-colors border-b border-[#F0E8DE]/50"
-                        >
-                            <span className="text-emerald-700 font-bold">{log.candidateTime || '-'}</span>
-                            <span className="text-emerald-600/80 truncate pr-2">{log.sunPos}</span>
-                            <span className="text-emerald-600/80 truncate pr-2">{log.moonPos}</span>
-                            <span className="text-cyan-700 font-bold truncate pr-2">{log.ascendant}</span>
-                            <span className="text-amber-700/70 truncate pr-2">{log.dashaObj || '-'}</span>
-                            <span className="text-[8px] text-emerald-600/40 text-right">SCN_OK</span>
-                        </motion.div>
-                    ))}
-                    {isAnalyzing && logs.length === 0 && (
-                        <div className="flex items-center justify-center h-full text-emerald-600/40 text-xs animate-pulse uppercase tracking-widest font-black p-4">
-                            <Compass className="w-4 h-4 mr-2 animate-spin-slow" />
-                            Syncing Astral Coordinates...
+                    {logs.length === 0 ? (
+                        <div className="h-full flex flex-col items-center justify-center text-gray-600 space-y-2 opacity-50">
+                            <Activity className="w-8 h-8 animate-pulse" />
+                            <p>Waiting for calculation stream...</p>
                         </div>
+                    ) : (
+                        logs.map((log, i) => (
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="grid grid-cols-[80px_1fr] gap-3 hover:bg-white/5 px-2 py-0.5 rounded transition-colors"
+                            >
+                                <span className="text-emerald-500/80 font-bold border-r border-white/10 pr-2 truncate">
+                                    {log.candidateTime || log.time || '-'}
+                                </span>
+                                <span className="text-gray-300 break-all leading-relaxed">
+                                    {log.log || log.message || JSON.stringify(log)}
+                                </span>
+                            </motion.div>
+                        ))
                     )}
                 </AnimatePresence>
             </div>
 
-            <div className="bg-[#FDF8F3] px-4 py-1.5 border-t border-[#F0E8DE] flex justify-between text-[9px] text-emerald-800/60 font-black uppercase tracking-widest">
-                <div className="flex items-center gap-3">
-                    <span>ACC: 0.00018s</span>
-                    <span>BUF: OPTIMAL</span>
-                </div>
-                <span>EPHEM_V2_ACTIVE</span>
+            {/* Footer Status */}
+            <div className="bg-[#252526] px-3 py-1 border-t border-[#3e3e3e] flex justify-between items-center text-[9px] text-gray-500 shrink-0">
+                <span className="flex items-center gap-1.5">
+                    <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                    {isConnected ? 'STREAM_ACTIVE' : 'DISCONNECTED'}
+                </span>
+                <span className="font-mono">
+                    MEM_USAGE: OPTIMIZED
+                </span>
             </div>
-        </motion.div>
+        </div>
     );
-};
+});
+
+LiveCalculationPanel.displayName = 'LiveCalculationPanel';
