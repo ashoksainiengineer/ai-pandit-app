@@ -334,12 +334,12 @@ router.post('/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Re
 });
 
 /**
- * POST /api/queue/requeue - Restart a failed or cancelled session
+ * REUSABLE REQUEUE HANDLER
  */
-router.post('/requeue', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionIdFromPath?: string) {
     try {
         const clerkId = req.clerkId!;
-        const { sessionId } = req.body;
+        const sessionId = sessionIdFromPath || req.body.sessionId;
 
         if (!sessionId) {
             res.status(400).json({ success: false, error: 'sessionId is required' });
@@ -361,10 +361,6 @@ router.post('/requeue', authMiddleware, async (req: AuthenticatedRequest, res: R
             return;
         }
 
-        // IMPACT: Allow restarting any session that isn't already pending (which would be a fresh one anyway)
-        // This acts as a "Force Restart" for stuck/processing sessions too.
-        // We will cleanup/kill any running processes below.
-
         const now = new Date().toISOString();
 
         // 1. Reset session state
@@ -384,7 +380,7 @@ router.post('/requeue', authMiddleware, async (req: AuthenticatedRequest, res: R
                 .where(eq(sessions.id, sessionId))
         );
 
-        // 2. Clear event buffers to ensure a clean start for the new run
+        // 2. Clear event buffers 
         cleanupSession(sessionId);
 
         // 3. Add back to queue
@@ -400,10 +396,10 @@ router.post('/requeue', authMiddleware, async (req: AuthenticatedRequest, res: R
             return;
         }
 
-        // 3. Kick off processor
+        // 4. Kick off processor
         startQueueProcessor();
 
-        logger.info('Session requeued successfully', { sessionId, clerkId });
+        logger.info('Session requeued successfully', { sessionId, clerkId, legacy: !!sessionIdFromPath });
 
         res.json({
             success: true,
@@ -417,6 +413,21 @@ router.post('/requeue', authMiddleware, async (req: AuthenticatedRequest, res: R
         logger.error('Requeue error', error);
         res.status(500).json({ success: false, error: 'Failed to restart analysis' });
     }
+}
+
+/**
+ * POST /api/queue/requeue - Modern endpoint
+ */
+router.post('/requeue', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+    return handleRequeue(req, res);
+});
+
+/**
+ * POST /api/sessions/:id/requeue - LEGACY BRIDGE
+ * Used by older frontend builds that haven't been redeployed yet.
+ */
+router.post('/:sessionId/requeue', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+    return handleRequeue(req, res, req.params.sessionId);
 });
 
 export default router;

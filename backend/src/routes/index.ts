@@ -93,6 +93,9 @@ router.use('/queue/progress', authMiddleware, progressRateLimiter, progressRoute
 // Queue management - strict rate limit (matches /queue but NOT /queue/progress)
 router.use('/queue', authMiddleware, strictRateLimiter, queueRouter);
 
+// LEGACY BRIDGE: Older frontends use /api/sessions/ID/requeue
+router.use('/sessions', authMiddleware, strictRateLimiter, queueRouter);
+
 // Stream endpoint - SSE connection, lenient rate limit
 router.use('/stream', authMiddleware, progressRateLimiter, streamRouter);
 
