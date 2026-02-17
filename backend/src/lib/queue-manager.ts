@@ -768,10 +768,20 @@ async function processSessionAsync(sessionId: string): Promise<void> {
         }
       }
 
+      // 🔐 Decrypt core birth data (Robust Fallback for Legacy Sessions)
+      const dateOfBirth = parseSensitiveField(s.dateOfBirth, s.clerkId, s.userId);
+      const tentativeTime = parseSensitiveField(s.tentativeTime, s.clerkId, s.userId);
+
+      // Decrypt Spouse Data if present
+      let decryptedSpouseData: any = undefined;
+      if (s.spouseData) {
+        decryptedSpouseData = parseSensitiveField(s.spouseData, s.clerkId, s.userId);
+      }
+
       const result = await processSecondsPrecisionBTR({
         sessionId: sessionId,
-        dateOfBirth: s.dateOfBirth,
-        tentativeTime: s.tentativeTime,
+        dateOfBirth: dateOfBirth,
+        tentativeTime: tentativeTime,
         latitude: s.latitude,
         longitude: s.longitude,
         timezone: s.timezone,
@@ -779,6 +789,7 @@ async function processSessionAsync(sessionId: string): Promise<void> {
         offsetConfig: parseSensitiveField(s.offsetConfig, s.clerkId, s.userId, { preset: '1hour' }),
         physicalTraits: decryptedPhysicalTraits,
         forensicTraits: decryptedForensicTraits,
+        spouseData: decryptedSpouseData,
         abortSignal: abortController.signal, // 🛑 Pass abort signal
       });
 
