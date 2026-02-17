@@ -4,10 +4,14 @@ import { logger } from './secure-logger';
  * 🔱 GOD-TIER TOKEN RETRIEVAL
  * Robustly acquires a Clerk token with retries and exponential backoff.
  */
-export async function getTokenWithRetry(getToken: () => Promise<string | null>, maxRetries = 10): Promise<string | null> {
+export async function getTokenWithRetry(
+    getToken: (options?: any) => Promise<string | null>,
+    options: any = {},
+    maxRetries = 10
+): Promise<string | null> {
     for (let i = 0; i < maxRetries; i++) {
         try {
-            const token = await getToken();
+            const token = await getToken(options);
 
             // Clean common garbage tokens
             if (token && token !== 'null' && token !== 'undefined' && token.length > 20) {

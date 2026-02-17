@@ -450,12 +450,12 @@ export function useStreamProgress(
     };
 
     // Single polling function
-    const poll = async (sid: string, interval: number = POLL_INTERVAL) => {
+    const poll = async (sid: string, interval: number = POLL_INTERVAL, options: any = {}) => {
         if (!mountedRef.current || currentSessionRef.current !== sid) return;
 
         try {
             // RETRY TOKEN ACQUISITION
-            const token = getToken ? await getTokenWithRetry(getToken) : null;
+            const token = getToken ? await getTokenWithRetry(getToken, options) : null;
 
             const headers: HeadersInit = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -532,7 +532,7 @@ export function useStreamProgress(
     };
 
     // Connect — SSE directly to backend (bypasses Vercel serverless timeout)
-    const connect = async (sid: string) => {
+    const connect = async (sid: string, options: any = {}) => {
         if (!sid || sid === 'undefined') return;
 
         // Guard against stale connections during rapid navigation/unmount
@@ -548,7 +548,7 @@ export function useStreamProgress(
 
         try {
             // RETRY TOKEN ACQUISITION
-            const token = getToken ? await getTokenWithRetry(getToken) : null;
+            const token = getToken ? await getTokenWithRetry(getToken, options) : null;
 
             if (!token && getToken) {
                 logger.warn('Token acquisition failed after maximum retries');
@@ -620,7 +620,7 @@ export function useStreamProgress(
                         authRetryRef.current = true;
                         cleanup();
                         // Small delay before reconnecting with fresh token
-                        setTimeout(() => connect(sid), 500);
+                        setTimeout(() => connect(sid, { skipCache: true }), 500);
                         return;
                     }
 

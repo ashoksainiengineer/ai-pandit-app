@@ -102,7 +102,7 @@ export async function authMiddleware(
         try {
             const session = await verifyToken(token, {
                 secretKey: process.env.CLERK_SECRET_KEY,
-                clockSkewInMs: 300000, // 5 minutes leeway for clock skew
+                clockSkewInMs: 900000, // 15 minutes leeway for clock skew
             });
 
             if (session && session.sub) {
