@@ -17,6 +17,7 @@ const envSchema = z.object({
   PORT: z.string().transform(Number).default('3001'),
   BACKEND_URL: z.string().url().optional(),
   FRONTEND_URL: z.string().url().optional(),
+  ALLOWED_ORIGINS: z.string().optional(), // Comma-separated list of allowed CORS origins
 
   // Database Configuration (Turso)
   TURSO_DATABASE_URL: z.string().min(1, 'Turso database URL is required'),

@@ -60,6 +60,8 @@ const allowedOrigins = [
   // Trim trailing slash — a common misconfiguration that causes silent CORS failures
   process.env.FRONTEND_URL?.replace(/\/+$/, ''),
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
+  // Additional frontend URLs from environment (comma-separated)
+  ...(process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || []),
 ].filter((origin): origin is string => Boolean(origin));
 
 // Match any *.vercel.app deployment (production, preview, etc.)

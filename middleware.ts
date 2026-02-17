@@ -30,7 +30,8 @@ export default clerkMiddleware(async (auth, req) => {
     return (await auth()).redirectToSignIn();
   }
 
-  const headers = new Headers(req.headers);
+  // Clone headers to avoid mutation issues in Next.js 15
+  const headers = new Headers(await req.headers);
 
   // Add Content Security Policy - Development + Production Compatible
   const csp = `

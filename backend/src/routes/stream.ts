@@ -17,6 +17,22 @@ import { safeDecryptWithFallback, parseSensitiveField } from '../lib/encryption/
 const router = Router();
 
 /**
+ * OPTIONS /api/stream/:sessionId
+ * Handle CORS preflight requests for SSE endpoint
+ */
+router.options('/:sessionId', (req, res) => {
+    const requestOrigin = req.headers.origin;
+    if (requestOrigin) {
+        res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Last-Event-ID, Authorization');
+    res.setHeader('Access-Control-Max-Age', '86400');
+    res.status(204).end();
+});
+
+/**
  * GET /api/stream/:sessionId
  * Server-Sent Events endpoint for real-time progress updates
  *
@@ -118,8 +134,13 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
     res.setHeader('Expires', '0');
     res.setHeader('Transfer-Encoding', 'chunked');
 
-    // CORS for SSE
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // CORS for SSE - Use request origin for credentials support
+    // NOTE: Cannot use wildcard (*) with credentials mode
+    const requestOrigin = req.headers.origin;
+    if (requestOrigin) {
+        res.setHeader('Access-Control-Allow-Origin', requestOrigin);
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Last-Event-ID, Authorization');
     res.flushHeaders();

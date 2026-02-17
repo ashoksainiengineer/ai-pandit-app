@@ -362,12 +362,18 @@ export default function RobustAnalysisPage() {
 
     const isLive = connectionState.status === 'streaming' || connectionState.status === 'polling';
 
-    if (!isConnected && !hasError && !result && connectionState.status !== 'polling') {
+    // Show loading state while connecting (but not if polling - polling means we're reconnecting)
+    if (!isConnected && !hasError && !result && connectionState.status !== 'polling' && connectionState.status !== 'connecting') {
         return <LoadingState />;
     }
 
-    if (hasError && !result) {
-        return <ErrorDisplay error={errorMessage} onRetry={() => window.location.reload()} />;
+    // Show error only if we have a real error and no result to display
+    if (hasError && !result && connectionState.status === 'error') {
+        return <ErrorDisplay error={errorMessage} onRetry={() => {
+            // Use router navigation instead of reload to avoid server action cache issues
+            router.push('/dashboard');
+            setTimeout(() => router.push(`/rectify/${sessionId}`), 100);
+        }} />;
     }
 
     return (
