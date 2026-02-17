@@ -44,7 +44,24 @@ export async function stage1ExhaustiveDataGeneration(
   const boundaries = await findAstrologicalBoundaries(
     input.dateOfBirth,
     input.tentativeTime,
-    input.offsetConfig.customMinutes || 360, // Fallback if no specific offset
+    // 🔱 Determine correct offset minutes for boundary scan
+    let boundaryScanMinutes = 360; // Default 6 hours
+  if (input.offsetConfig.customMinutes) {
+    boundaryScanMinutes = input.offsetConfig.customMinutes;
+  } else if (input.offsetConfig.preset) {
+    // Import OFFSET_PRESETS dynamically or use hardcoded map to avoid circular dependency if possible
+    // actually we can just ask for the preset values, but for now let's map common ones
+    const presetMap: Record<string, number> = {
+      '30min': 30, '1hour': 60, '2hours': 120, '4hours': 240, '6hours': 360, '12hours': 720,
+      'seconds-30': 5, 'seconds-6': 1
+    };
+    boundaryScanMinutes = presetMap[input.offsetConfig.preset] || 360;
+  }
+
+  const boundaries = await findAstrologicalBoundaries(
+    input.dateOfBirth,
+    input.tentativeTime,
+    boundaryScanMinutes,
     input.latitude,
     input.longitude,
     input.timezone

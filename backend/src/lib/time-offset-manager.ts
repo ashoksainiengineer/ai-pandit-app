@@ -216,7 +216,12 @@ export function generateCandidateTimes(
       offsetMinutes = offsetConfig.customMinutes;
     } else if (offsetConfig.preset) {
       const preset = OFFSET_PRESETS[offsetConfig.preset];
-      offsetMinutes = preset.minutes;
+      if (!preset) {
+        logger.warn(`Invalid preset '${offsetConfig.preset}' provided, falling back to '2hours'`, { tentativeTime });
+        offsetMinutes = 120; // 2 hours
+      } else {
+        offsetMinutes = preset.minutes;
+      }
     } else {
       throw new Error('No offset configuration provided');
     }
@@ -224,9 +229,10 @@ export function generateCandidateTimes(
     // 🔱 Adaptive interval for consistent candidate count
     const interval = getAdaptiveInterval(offsetMinutes);
 
+    const presetLabel = offsetConfig.preset ? (OFFSET_PRESETS[offsetConfig.preset]?.label || 'Custom/Fallback') : 'Custom';
     const description = offsetConfig.customMinutes !== undefined
       ? `±${offsetMinutes} min (${interval >= 1 ? interval + 'min' : (interval * 60) + 's'} Grid)`
-      : `${OFFSET_PRESETS[offsetConfig.preset!].label} (${interval >= 1 ? interval + 'min' : (interval * 60) + 's'} Grid)`;
+      : `${presetLabel} (${interval >= 1 ? interval + 'min' : (interval * 60) + 's'} Grid)`;
 
     const expectedCandidates = Math.ceil(offsetMinutes / interval) * 2 + 1;
 
