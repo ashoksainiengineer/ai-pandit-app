@@ -445,6 +445,27 @@ export function useStreamProgress(
                         isConnected: false,
                     };
 
+                case 'terminal_state': {
+                    const termData = (data.data as any) || data;
+                    cleanup();
+                    // If it's complete, show result. If failed/cancelled, show error.
+                    const isErr = termData.status === 'failed' || termData.status === 'error' || termData.status === 'cancelled';
+
+                    setConnectionState(cs => ({
+                        ...cs,
+                        status: isErr ? 'error' : 'finished',
+                        lastError: isErr ? (termData.errorMessage || termData.message) : null
+                    }));
+
+                    return {
+                        ...prev,
+                        isConnected: false,
+                        isComplete: !isErr,
+                        error: isErr ? (termData.errorMessage || termData.message || `Session is ${termData.status}`) : null,
+                        result: termData.result || prev.result, // Use existing result if none provided
+                    };
+                }
+
                 default:
                     return prev;
             }
