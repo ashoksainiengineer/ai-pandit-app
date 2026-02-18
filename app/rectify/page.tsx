@@ -265,11 +265,17 @@ function RectifyPageContent() {
     useEffect(() => {
         if (isNewPerson) {
             setIsLoading(false);
+            setDraftLoaded(true);
             return;
+        }
+        // If not new person and no draft will be loaded, set loaded immediately
+        const savedDraftId = draftIdFromUrl || localStorage.getItem('btr_draft_id');
+        if (!savedDraftId) {
+            setDraftLoaded(true);
         }
         const timer = setTimeout(() => setIsLoading(false), 100);
         return () => clearTimeout(timer);
-    }, [isNewPerson]);
+    }, [isNewPerson, draftIdFromUrl]);
 
     // ═══════════════════════════════════════════════════════════════════════════════
     // AUTO-SAVE: Save draft to database every 5 seconds when data changes
@@ -331,7 +337,11 @@ function RectifyPageContent() {
         const loadDraft = async () => {
             // Priority: URL param > localStorage
             const savedDraftId = draftIdFromUrl || localStorage.getItem('btr_draft_id');
-            if (!savedDraftId) return;
+            if (!savedDraftId) {
+                // No draft to load - mark as loaded immediately
+                setDraftLoaded(true);
+                return;
+            }
 
             try {
                 const token = await getToken();

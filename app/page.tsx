@@ -13,6 +13,10 @@ import Hero from '@/components/landing/Hero';
 import Problem from '@/components/landing/Problem';
 import Solution from '@/components/landing/Solution';
 import { AccuracyShowcase } from '@/components/landing/AccuracyShowcase';
+import { FinalCTA } from '@/components/landing/FinalCTA';
+import TestimonialsSection from '@/components/landing/Testimonials';
+import Pricing from '@/components/landing/Pricing';
+import FAQ from '@/components/landing/FAQ';
 import Navbar from '@/components/landing/Navbar';
 import Footer from '@/components/landing/Footer';
 
@@ -39,6 +43,10 @@ export default function LandingPage() {
       <Problem />
       <Solution />
       <AccuracyShowcase />
+      <TestimonialsSection />
+      <Pricing />
+      <FAQ />
+      <FinalCTA />
       <Footer />
     </main>
   );

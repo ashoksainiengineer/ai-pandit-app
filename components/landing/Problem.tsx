@@ -6,6 +6,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import { 
   Cpu, 
   Timer, 
@@ -380,6 +381,15 @@ export default function Problem() {
                 Join the sacred revolution in Vedic astrology through algorithmic mastery.
               </p>
             </div>
+            <Link href="/rectify">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="px-8 py-4 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white font-semibold rounded-xl shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-all"
+              >
+                Start Analysis
+              </motion.button>
+            </Link>
           </div>
         </motion.div>
       </div>
