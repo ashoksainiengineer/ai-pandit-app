@@ -41,7 +41,14 @@ const VERSION_PREFIX = 'v3';
 const SCRYPT_PARAMS = { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
 
 // This will be loaded from environment variables. A default is provided ONLY for local dev.
-let ENCRYPTION_SECRET = process.env.ENCRYPTION_SECRET;
+let ENCRYPTION_SECRET = process.env.ENCRYPTION_SECRET || process.env.CLERK_ENCRYPTION_KEY;
+
+// Auto-initialize on first use
+if (ENCRYPTION_SECRET) {
+  console.log('[Crypto] Encryption secret loaded');
+} else {
+  console.warn('[Crypto] WARNING: No encryption secret found!');
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // KEY MANAGEMENT & INITIALIZATION

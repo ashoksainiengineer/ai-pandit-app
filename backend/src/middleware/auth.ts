@@ -78,15 +78,25 @@ export async function authMiddleware(
             });
 
             if (isStreamRequest) {
+                // 🔧 FIX: Send as regular message, not named event (onmessage can't receive named events)
                 res.setHeader('Content-Type', 'text/event-stream');
                 res.setHeader('Cache-Control', 'no-cache');
                 res.setHeader('Connection', 'keep-alive');
-
-                res.write(`event: error\ndata: ${JSON.stringify({
+                res.setHeader('X-Accel-Buffering', 'no');
+                res.flushHeaders();
+                
+                // Preamble for proxy buffer bypass
+                res.write(':' + ' '.repeat(1024) + '\n\n');
+                
+                // Send as regular data message (not named event)
+                res.write(`data: ${JSON.stringify({
+                    type: 'error',
                     error: 'Unauthorized: No valid session token',
                     code: 'UNAUTHORIZED',
                     isAuthError: true
                 })}\n\n`);
+                
+                if ((res as any).flush) (res as any).flush();
                 res.end();
             } else {
                 res.status(401).json({
@@ -133,13 +143,23 @@ export async function authMiddleware(
                 path: req.originalUrl
             });
             if (isStreamRequest) {
+                // 🔧 FIX: Send as regular message, not named event
                 res.setHeader('Content-Type', 'text/event-stream');
-                res.write(`event: error\ndata: ${JSON.stringify({
+                res.setHeader('Cache-Control', 'no-cache');
+                res.setHeader('X-Accel-Buffering', 'no');
+                res.flushHeaders();
+                
+                // Preamble for proxy buffer bypass
+                res.write(':' + ' '.repeat(1024) + '\n\n');
+                
+                res.write(`data: ${JSON.stringify({
                     type: 'error',
                     error: 'Authentication failed',
                     code: 'AUTH_FAILED',
                     details: clerkError.message
                 })}\n\n`);
+                
+                if ((res as any).flush) (res as any).flush();
                 res.end();
             } else {
                 res.status(401).json({

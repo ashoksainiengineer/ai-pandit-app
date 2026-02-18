@@ -19,6 +19,7 @@ import progressRouter from './progress.js';
 import streamRouter from './stream.js';
 import warmupRouter from './warmup.js';
 import adminRouter from './admin.js';
+import sessionsRouter from './sessions.js';
 import {
   apiRateLimiter,
   calculateRateLimiter,
@@ -93,12 +94,13 @@ router.use('/queue/progress', authMiddleware, progressRateLimiter, progressRoute
 // Queue management - strict rate limit (matches /queue but NOT /queue/progress)
 router.use('/queue', authMiddleware, strictRateLimiter, queueRouter);
 
-// LEGACY BRIDGE: Older frontends use /api/sessions/ID/requeue
-router.use('/sessions', authMiddleware, strictRateLimiter, queueRouter);
+// Sessions CRUD - Kept for internal use / debugging
+// Primary CRUD is now handled by Vercel serverless (Option A Hybrid Architecture)
+// Frontend uses Vercel /api/sessions for speed, HF only handles AI analysis
+router.use('/sessions', authMiddleware, apiRateLimiter, sessionsRouter);
 
 // Stream endpoint - SSE connection, lenient rate limit
 router.use('/stream', authMiddleware, progressRateLimiter, streamRouter);
-
 
 // Admin routes
 router.use('/admin', authMiddleware, strictRateLimiter, adminRouter);

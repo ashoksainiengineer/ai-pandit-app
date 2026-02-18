@@ -1,461 +1,463 @@
 'use client';
 
 import React, {
-    useEffect,
-    useState,
-    useRef,
-    useMemo,
-    useCallback,
-    memo,
-    useId,
+  useState,
+  useRef,
+  useMemo,
+  useCallback,
+  memo,
+  useEffect,
+  useId,
 } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, ChevronDown, ChevronUp, Activity, Users, Radio, Zap, Clock } from 'lucide-react';
+import { Brain, Radio, Activity, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { sanitizeAIContent } from '@/lib/xss-sanitizer';
-import { CandidateScoreTable } from './CandidateScoreTable';
-
-import { AIContextData } from '@/lib/use-stream-progress';
 
 interface PlanetaryInfo {
-    sun: string;
-    moon: string;
-    ascendant: string;
+  sun: string;
+  moon: string;
+  ascendant: string;
 }
 
 interface AIThinking {
-    stage: number;
-    candidateTime?: string;
-    chunks?: string[];
-    fullText: string;
+  stage: number;
+  candidateTime?: string;
+  chunks?: string[];
+  fullText: string;
 }
 
 interface CandidateScore {
-    time: string;
-    score: number;
-    stage: number;
-    rank?: number;
-    offsetMinutes?: number;
-    minifiedEph?: PlanetaryInfo;
-}
-
-interface CalculationLog {
-    logId: string;
-    candidateTime: string;
-    sunPos: string;
-    moonPos: string;
-    ascendant: string;
-    timestamp: number;
-    message: string;
-    level: 1 | 2 | 3;
+  time: string;
+  score: number;
+  stage: number;
+  rank?: number;
+  offsetMinutes?: number;
+  minifiedEph?: PlanetaryInfo;
 }
 
 interface UnifiedAIPanelProps {
-    thinking: AIThinking | null;
-    stageHistory?: Map<number, string>;
-    context: AIContextData | null;
-    isActive: boolean;
-    stage?: number;
-    analyzedCount?: number;
-    totalCandidates?: number;
-    allCandidates?: Map<string, AIThinking>;
-    displayedCandidate?: string | null;
-    onSelectCandidate?: (time: string) => void;
-    candidateScores?: CandidateScore[];
-    calculationLogs?: CalculationLog[];
-    unifiedMode?: boolean;
-    isComplete?: boolean;
+  thinking: AIThinking | null;
+  stageHistory?: Map<number, string>;
+  isActive: boolean;
+  stage?: number;
+  allCandidates?: Map<string, AIThinking>;
+  displayedCandidate?: string | null;
+  onSelectCandidate?: (time: string) => void;
+  candidateScores?: CandidateScore[];
+  unifiedMode?: boolean;
+  isComplete?: boolean;
 }
 
-const formatStructuredSections = (text: string): React.ReactNode[] => {
-    if (!text) return [];
+type ScoreTier = 'top' | 'promising' | 'exploring';
 
-    const sanitizedText = sanitizeAIContent(text);
-    const lines = sanitizedText.split('\n');
+interface GroupedCandidates {
+  top: Array<{ time: string; score: number }>;
+  promising: Array<{ time: string; score: number }>;
+  exploring: Array<{ time: string; score: number }>;
+}
 
-    return lines.map((line, i) => {
-        const sectionMatch = line.match(/^(DASHA|DIVISIONAL|TRANSIT|PLANETARY|EVENT|VERDICT|FINAL|PHYSICAL|BOUNDARY|LAGNA|NAKSHATRA|D9|D10|D60):/i);
-        if (sectionMatch) {
-            const colonIdx = line.indexOf(':');
-            const label = line.slice(0, colonIdx).toUpperCase();
-            const rest = line.slice(colonIdx + 1).trim();
-            return (
-                <div key={i} className="mt-4 mb-2 first:mt-0">
-                    <span className="inline-block text-[#B8860B] font-bold uppercase text-[10px] tracking-widest bg-[#B8860B]/10 px-2 py-0.5 rounded border border-[#B8860B]/20">
-                        {label}
-                    </span>
-                    <p className="mt-1 text-[#1A1612] text-sm">{rest}</p>
-                </div>
-            );
-        }
-        if (/^TIME: \d{2}:\d{2}:\d{2}/i.test(line)) {
-            return (
-                <div key={i} className="mt-6 mb-3 border-l-2 border-[#2D7A5C] pl-3">
-                    <span className="text-[#2D7A5C] font-bold text-base sm:text-lg font-mono">{line}</span>
-                </div>
-            );
-        }
-        if (/^(SCORE|RATING|CONFIDENCE):/i.test(line)) {
-            return (
-                <div key={i} className="my-2 p-2 bg-[#B8860B]/5 rounded border-l-2 border-[#B8860B]">
-                    <span className="text-[#B8860B] font-bold font-mono text-sm">{line}</span>
-                </div>
-            );
-        }
-        if (/^[▸◦•\-\*] /.test(line)) {
-            return (
-                <div key={i} className="mb-1 pl-2 text-[#4A453F] text-sm">
-                    <span className="text-[#2D7A5C] mr-1">▹</span>
-                    {line.replace(/^[▸◦•\-\*] /, '')}
-                </div>
-            );
-        }
-        return <div key={i} className="mb-1 text-[#4A453F] text-sm">{line}</div>;
-    });
+const TIER_CONFIG: Record<ScoreTier, { label: string; color: string; bgColor: string; borderColor: string; pulseColor: string }> = {
+  top: {
+    label: 'Top',
+    color: 'text-emerald-700',
+    bgColor: 'bg-emerald-50',
+    borderColor: 'border-emerald-300',
+    pulseColor: 'bg-emerald-500',
+  },
+  promising: {
+    label: 'Promising',
+    color: 'text-amber-700',
+    bgColor: 'bg-amber-50',
+    borderColor: 'border-amber-300',
+    pulseColor: 'bg-amber-500',
+  },
+  exploring: {
+    label: 'Exploring',
+    color: 'text-stone-600',
+    bgColor: 'bg-stone-50',
+    borderColor: 'border-stone-200',
+    pulseColor: 'bg-stone-400',
+  },
 };
 
-interface ScrollableContentProps {
-    content: string;
-    isThinking: boolean;
-    candidateTime?: string;
+function groupCandidatesByScore(
+  candidates: Map<string, AIThinking> | undefined,
+  scores: CandidateScore[] | undefined
+): GroupedCandidates {
+  const result: GroupedCandidates = { top: [], promising: [], exploring: [] };
+
+  if (!candidates || candidates.size === 0) return result;
+
+  const scoreMap = new Map<string, number>();
+  if (scores) {
+    scores.forEach(s => {
+      const existing = scoreMap.get(s.time);
+      if (existing === undefined || s.score > existing) {
+        scoreMap.set(s.time, s.score);
+      }
+    });
+  }
+
+  candidates.forEach((_, time) => {
+    const score = scoreMap.get(time) ?? 0;
+    const entry = { time, score };
+
+    if (score >= 80) result.top.push(entry);
+    else if (score >= 60) result.promising.push(entry);
+    else result.exploring.push(entry);
+  });
+
+  result.top.sort((a, b) => b.score - a.score);
+  result.promising.sort((a, b) => b.score - a.score);
+  result.exploring.sort((a, b) => b.score - a.score);
+
+  return result;
 }
 
-const ScrollableContent = memo(function ScrollableContent({ content, isThinking, candidateTime }: ScrollableContentProps) {
-    const scrollRef = useRef<HTMLDivElement>(null);
-    // ... other scroll logic ...
-    return (
-        <div ref={scrollRef} className="p-3 sm:p-4 bg-[#FAF5EF]/50 font-mono text-xs sm:text-sm text-[#4A453F] leading-relaxed max-h-[300px] sm:max-h-[400px] overflow-y-auto custom-scrollbar relative scroll-smooth">
-            {/* ... content ... */}
-        </div>
-    );
+const CandidatePill = memo(function CandidatePill({
+  time,
+  score,
+  tier,
+  isSelected,
+  isLive,
+  onClick,
+}: {
+  time: string;
+  score: number;
+  tier: ScoreTier;
+  isSelected: boolean;
+  isLive: boolean;
+  onClick: () => void;
+}) {
+  const config = TIER_CONFIG[tier];
+
+  return (
+    <button
+      onClick={onClick}
+      className={`
+        relative px-2.5 py-1.5 rounded-lg text-[10px] font-mono font-bold
+        transition-all duration-200 border
+        ${isSelected
+          ? `${config.bgColor} ${config.color} ${config.borderColor} ring-2 ring-offset-1 ring-current/20 shadow-sm`
+          : 'bg-white text-[#7A756F] border-[#F0E8DE] hover:border-[#B8860B]/30 hover:text-[#4A453F]'
+        }
+      `}
+    >
+      {isLive && (
+        <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${config.pulseColor} opacity-75`} />
+          <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${config.pulseColor}`} />
+        </span>
+      )}
+      <span className="flex items-center gap-1">
+        {isLive && <Radio className="w-2.5 h-2.5 animate-pulse" />}
+        {time}
+        {score > 0 && (
+          <span className={`text-[8px] opacity-70 ${isSelected ? config.color : 'text-[#A8A39D]'}`}>
+            {score.toFixed(0)}
+          </span>
+        )}
+      </span>
+    </button>
+  );
 });
 
-interface CandidateTabButtonProps {
-    time: string;
-    isSelected: boolean;
-    isLive: boolean;
-    onClick: () => void;
-}
+const CandidateTabsSection = memo(function CandidateTabsSection({
+  groupedCandidates,
+  selectedCandidate,
+  liveCandidate,
+  onSelect,
+}: {
+  groupedCandidates: GroupedCandidates;
+  selectedCandidate: string | null;
+  liveCandidate: string | null;
+  onSelect: (time: string) => void;
+}) {
+  const [expandedTiers, setExpandedTiers] = useState<Set<ScoreTier>>(new Set(['top', 'promising']));
 
-const CandidateTabButton = memo(function CandidateTabButton({ time, isSelected, isLive, onClick }: CandidateTabButtonProps) {
+  const toggleTier = useCallback((tier: ScoreTier) => {
+    setExpandedTiers(prev => {
+      const next = new Set(prev);
+      if (next.has(tier)) next.delete(tier);
+      else next.add(tier);
+      return next;
+    });
+  }, []);
+
+  const totalCandidates =
+    groupedCandidates.top.length +
+    groupedCandidates.promising.length +
+    groupedCandidates.exploring.length;
+
+  if (totalCandidates === 0) return null;
+
+  return (
+    <div className="px-5 py-3 bg-[#FAF8F5] border-b border-[#F0E8DE]">
+      <div className="flex items-center gap-2 mb-3">
+        <Users className="w-3.5 h-3.5 text-[#7A756F]" />
+        <span className="text-[10px] text-[#7A756F] uppercase tracking-wider font-bold">
+          Candidates ({totalCandidates})
+        </span>
+      </div>
+
+      <div className="space-y-2">
+        {(['top', 'promising', 'exploring'] as ScoreTier[]).map(tier => {
+          const candidates = groupedCandidates[tier];
+          if (candidates.length === 0) return null;
+
+          const config = TIER_CONFIG[tier];
+          const isExpanded = expandedTiers.has(tier);
+          const displayedCount = isExpanded ? candidates.length : Math.min(5, candidates.length);
+          const hasMore = candidates.length > 5;
+
+          return (
+            <div key={tier}>
+              <button
+                onClick={() => toggleTier(tier)}
+                className="flex items-center gap-2 mb-1.5 group"
+              >
+                <span className={`text-[9px] font-bold uppercase tracking-wider ${config.color}`}>
+                  {config.label}
+                </span>
+                <span className="text-[9px] text-[#A8A39D]">
+                  ({candidates.length})
+                </span>
+                {hasMore && (
+                  <>
+                    {isExpanded ? (
+                      <ChevronUp className="w-3 h-3 text-[#A8A39D] group-hover:text-[#7A756F]" />
+                    ) : (
+                      <ChevronDown className="w-3 h-3 text-[#A8A39D] group-hover:text-[#7A756F]" />
+                    )}
+                  </>
+                )}
+              </button>
+
+              <div className="flex flex-wrap gap-1.5">
+                {candidates.slice(0, displayedCount).map(({ time, score }) => (
+                  <CandidatePill
+                    key={time}
+                    time={time}
+                    score={score}
+                    tier={tier}
+                    isSelected={selectedCandidate === time}
+                    isLive={liveCandidate === time}
+                    onClick={() => onSelect(time)}
+                  />
+                ))}
+                {hasMore && !isExpanded && (
+                  <button
+                    onClick={() => toggleTier(tier)}
+                    className="px-2 py-1 text-[10px] text-[#7A756F] hover:text-[#4A453F]"
+                  >
+                    +{candidates.length - 5} more
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+});
+
+const ReasoningContent = memo(function ReasoningContent({
+  content,
+  isActive,
+}: {
+  content: string;
+  isActive: boolean;
+}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current && isActive) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [content, isActive]);
+
+  if (!content) {
     return (
-        <button onClick={onClick} className={`px-2 sm:px-2.5 py-1 rounded text-[9px] sm:text-[10px] font-mono font-bold transition-all relative outline-none focus:ring-2 focus:ring-[#B8860B]/50 ${isSelected ? 'bg-[#B8860B]/20 text-[#B8860B] border border-[#B8860B]/50 shadow-[0_0_10px_rgba(184,134,11,0.2)]' : 'bg-[#FDF8F3] text-[#7A756F] border border-[#F0E8DE] hover:border-[#B8860B]/30 hover:text-[#4A453F]'}`} role="tab" aria-selected={isSelected} tabIndex={isSelected ? 0 : -1}>
-            {/* ... content ... */}
-        </button>
+      <div className="flex flex-col items-center justify-center h-[300px] text-center p-8">
+        <motion.div
+          animate={{ scale: [1, 1.05, 1], opacity: [0.5, 0.8, 0.5] }}
+          transition={{ duration: 3, repeat: Infinity }}
+          className="w-16 h-16 rounded-full bg-[#B8860B]/5 flex items-center justify-center mb-4"
+        >
+          <Brain className="w-8 h-8 text-[#B8860B]/40" />
+        </motion.div>
+        <p className="text-sm text-[#7A756F]">
+          Waiting for AI reasoning stream...
+        </p>
+      </div>
     );
+  }
+
+  const sanitizedContent = sanitizeAIContent(content);
+
+  return (
+    <div
+      ref={scrollRef}
+      className="p-5 overflow-y-auto max-h-[400px] font-mono text-sm text-[#4A453F] leading-7 style-scroll"
+    >
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
+          li: ({ children }) => (
+            <li className="ml-4 list-disc marker:text-[#B8860B]">{children}</li>
+          ),
+          strong: ({ children }) => (
+            <strong className="font-bold text-[#1A1612]">{children}</strong>
+          ),
+          code: ({ children }) => (
+            <code className="bg-[#F5EFE7] px-1 py-0.5 rounded text-xs">{children}</code>
+          ),
+        }}
+      >
+        {sanitizedContent}
+      </ReactMarkdown>
+      {isActive && (
+        <span className="inline-block w-1.5 h-4 bg-[#B8860B] animate-pulse ml-1" />
+      )}
+    </div>
+  );
 });
 
 export const UnifiedAIPanel = memo(function UnifiedAIPanel({
-    thinking,
-    stageHistory,
-    context,
-    isActive,
-    stage,
-    allCandidates,
-    displayedCandidate,
-    onSelectCandidate,
-    calculationLogs,
-    unifiedMode = true,
-    isComplete = false,
+  thinking,
+  stageHistory,
+  isActive,
+  stage,
+  allCandidates,
+  displayedCandidate,
+  onSelectCandidate,
+  candidateScores,
+  unifiedMode = true,
+  isComplete = false,
 }: UnifiedAIPanelProps) {
-    const currentStage = thinking?.stage || stage || 2;
-    const [expandedStages, setExpandedStages] = useState<number[]>([currentStage]);
-    const [localDisplayedCandidate, setLocalDisplayedCandidate] = useState<string | null>(null);
-    const panelId = useId();
+  const panelId = useId();
+  const [localSelectedCandidate, setLocalSelectedCandidate] = useState<string | null>(null);
 
-    const effectiveDisplayedCandidate = displayedCandidate || localDisplayedCandidate;
+  const currentStage = thinking?.stage || stage || 2;
 
-    const toggleStage = useCallback((stageId: number) => {
-        setExpandedStages(prev => prev.includes(stageId) ? prev.filter(id => id !== stageId) : [...prev, stageId]);
-    }, []);
+  const effectiveSelectedCandidate = displayedCandidate || localSelectedCandidate;
 
-    const handleCandidateClick = useCallback((time: string) => {
-        if (onSelectCandidate) {
-            onSelectCandidate(time);
-        } else {
-            setLocalDisplayedCandidate(time);
-        }
-    }, [onSelectCandidate]);
+  const groupedCandidates = useMemo(
+    () => groupCandidatesByScore(allCandidates, candidateScores),
+    [allCandidates, candidateScores]
+  );
 
-    useEffect(() => {
-        if (!expandedStages.includes(currentStage)) {
-            setExpandedStages(prev => [...prev, currentStage]);
-        }
-    }, [currentStage, expandedStages]);
+  const candidatesList = useMemo(
+    () => Array.from(allCandidates?.keys() || []),
+    [allCandidates]
+  );
 
-    const STAGES = useMemo(() => [
-        { id: 2, name: 'Coarse Elimination', level: 1, color: 'orange', accuracy: '60 → 15' },
-        { id: 4, name: 'Deep Analysis', level: 2, color: 'blue', accuracy: '100 → 7' },
-        { id: 6, name: 'Final Precision', level: 3, color: 'purple', accuracy: '77 → 1' },
-    ], []);
-
-    const getDisplayedContent = useCallback(() => {
-        if (allCandidates && effectiveDisplayedCandidate) {
-            const candidateData = allCandidates.get(effectiveDisplayedCandidate);
-            if (candidateData) return sanitizeAIContent(candidateData.fullText);
-        }
-        return thinking ? sanitizeAIContent(thinking.fullText) : '';
-    }, [allCandidates, effectiveDisplayedCandidate, thinking]);
-
-    const unifiedContent = useMemo(() => {
-        let content = '';
-        STAGES.forEach(s => {
-            const hist = stageHistory?.get(s.id);
-            if (hist) {
-                content += `\n--- STAGE ${s.id}: ${s.name} ---\n${sanitizeAIContent(hist)}\n`;
-            } else if (s.id === currentStage) {
-                const currentContent = getDisplayedContent();
-                if (currentContent) {
-                    content += `\n--- STAGE ${s.id}: ${s.name} [ACTIVE] ---\n${currentContent}`;
-                }
-            }
-        });
-        return content || getDisplayedContent();
-    }, [STAGES, stageHistory, currentStage, getDisplayedContent]);
-
-    const isStreaming = useCallback((time: string) =>
-        thinking?.candidateTime === time && isActive,
-        [thinking?.candidateTime, isActive]
-    );
-
-    const groupedCandidates = useMemo(() => {
-        if (!allCandidates || allCandidates.size === 0) {
-            return thinking?.candidateTime ? new Map([[2, [thinking]]]) : new Map();
-        }
-        const groups = new Map<number, AIThinking[]>();
-        allCandidates.forEach((candidate) => {
-            const stageId = candidate.stage <= 2 ? 2 : candidate.stage === 4 ? 4 : 6;
-            const existing = groups.get(stageId) || [];
-            existing.push(candidate);
-            groups.set(stageId, existing);
-        });
-        return groups;
-    }, [allCandidates, thinking]);
-
-    const candidatesList = useMemo(() => Array.from(allCandidates?.keys() || []), [allCandidates]);
-
-    if (unifiedMode) {
-        const currentStageConfig = STAGES.find(s => s.id === currentStage) || STAGES[0];
-        const activeContent = unifiedContent;
-
-        return (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6" role="region" aria-labelledby={`${panelId}-title`}>
-
-                {/* 1. Reasoning Container (Bifurcated by Stage) */}
-                <div className="rounded-2xl border border-[#D4A853]/50 bg-white shadow-[0_0_20px_rgba(184,134,11,0.1)] overflow-hidden">
-                    {/* Header */}
-                    <div className="bg-[#FAF8F5] px-6 py-4 border-b border-[#F0E8DE] flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-[#B8860B]/10 rounded-lg">
-                                <Brain className="w-5 h-5 text-[#B8860B]" />
-                            </div>
-                            <div>
-                                <h3 id={`${panelId}-title`} className="text-lg font-bold text-[#1A1612]">AI Reasoning Stream</h3>
-                                <p className="text-xs text-[#7A756F]">Live cognitive analysis of authorized candidates</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            {/* Stage Indicators */}
-                            {STAGES.map((s) => (
-                                <div key={s.id} className={`px-3 py-1 rounded-full text-[10px] font-bold border transition-all ${currentStage === s.id
-                                    ? `bg-${s.color}-50 text-${s.color}-700 border-${s.color}-200 shadow-sm`
-                                    : 'bg-white text-stone-400 border-stone-100 opacity-60'
-                                    }`}>
-                                    {s.name}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Content Area - Auto-scrolls to latest */}
-                    <div className="relative min-h-[300px] max-h-[500px] bg-white">
-                        {(candidatesList.length > 0 || thinking) && effectiveDisplayedCandidate ? (
-                            <div className="flex flex-col h-full">
-                                {/* Candidate Focus Header */}
-                                <div className="px-6 py-3 bg-[#FCFBF9] border-b border-[#F0E8DE] flex items-center justify-between">
-                                    <div className="flex items-center gap-2">
-                                        <span className="flex h-2 w-2 relative">
-                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                                        </span>
-                                        <span className="text-xs font-bold text-[#1A1612] font-mono">
-                                            ANALYZING: <span className="text-[#B8860B]">{effectiveDisplayedCandidate}</span>
-                                        </span>
-                                    </div>
-                                    <span className="text-[10px] text-stone-400 font-mono">
-                                        {activeContent.length} TOKENS STREAMED
-                                    </span>
-                                </div>
-
-                                {/* Scrollable Text */}
-                                <div className="flex-1 p-6 overflow-y-auto style-scroll font-mono text-sm text-[#4A453F] leading-7 space-y-4">
-                                    {activeContent ? (
-                                        <ReactMarkdown
-                                            remarkPlugins={[remarkGfm]}
-                                            components={{
-                                                p: ({ node, ...props }) => <p className="mb-4 last:mb-0" {...props} />,
-                                                li: ({ node, ...props }) => <li className="ml-4 list-disc marker:text-[#B8860B]" {...props} />,
-                                                strong: ({ node, ...props }) => <strong className="font-bold text-[#1A1612]" {...props} />
-                                            }}
-                                        >
-                                            {activeContent}
-                                        </ReactMarkdown>
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center h-[200px] text-stone-400 italic gap-2">
-                                            <Activity className="w-6 h-6 opacity-20" />
-                                            <span>Waiting for analysis stream...</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center h-[400px] text-center p-8">
-                                <motion.div
-                                    animate={{ scale: [1, 1.05, 1], opacity: [0.5, 0.8, 0.5] }}
-                                    transition={{ duration: 3, repeat: Infinity }}
-                                    className="w-24 h-24 rounded-full bg-[#B8860B]/5 flex items-center justify-center mb-4"
-                                >
-                                    <Brain className="w-10 h-10 text-[#B8860B]/40" />
-                                </motion.div>
-                                <h3 className="text-lg font-bold text-[#1A1612] mb-2">Neural Engine Initialized</h3>
-                                <p className="text-sm text-[#7A756F] max-w-md">
-                                    The AI Pandit is preparing to process astrological data.
-                                    Real-time reasoning will appear here shortly.
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* 2. Ranking Container (Live Leaderboard) */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-3">
-                        <CandidateScoreTable scores={allCandidates} />
-                    </div>
-                </div>
-
-            </motion.div>
-        );
+  const handleCandidateSelect = useCallback((time: string) => {
+    if (onSelectCandidate) {
+      onSelectCandidate(time);
+    } else {
+      setLocalSelectedCandidate(time);
     }
+  }, [onSelectCandidate]);
 
-    // Accordion mode - collapsible stages
+  const displayedContent = useMemo(() => {
+    if (allCandidates && effectiveSelectedCandidate) {
+      const candidateData = allCandidates.get(effectiveSelectedCandidate);
+      if (candidateData?.fullText) {
+        return sanitizeAIContent(candidateData.fullText);
+      }
+    }
+    return thinking ? sanitizeAIContent(thinking.fullText) : '';
+  }, [allCandidates, effectiveSelectedCandidate, thinking]);
+
+  if (!unifiedMode) {
     return (
-        <div className="space-y-3" role="region" aria-labelledby={`${panelId}-accordion-title`}>
-            <h2 id={`${panelId}-accordion-title`} className="sr-only">
-                AI Analysis Stages
-            </h2>
-            {STAGES.map((stageConfig) => {
-                const isExpanded = expandedStages.includes(stageConfig.id);
-                const stageContent = stageHistory?.get(stageConfig.id);
-                const isCurrentStage = stageConfig.id === currentStage;
-                const stageCandidates = groupedCandidates.get(stageConfig.id) || [];
-                const hasContent = !!stageContent || (isCurrentStage && thinking);
-
-                return (
-                    <motion.div
-                        key={stageConfig.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`rounded-xl border overflow-hidden transition-all ${isCurrentStage
-                            ? 'border-[#B8860B]/50 bg-white shadow-lg'
-                            : 'border-[#F0E8DE] bg-[#FEFDFB]'
-                            }`}
-                    >
-                        {/* Accordion Header */}
-                        <button
-                            onClick={() => toggleStage(stageConfig.id)}
-                            className={`w-full flex items-center justify-between p-3 sm:p-4 transition-colors ${isCurrentStage ? 'bg-[#B8860B]/5' : 'hover:bg-[#FDF8F3]'
-                                }`}
-                            aria-expanded={isExpanded}
-                            aria-controls={`${panelId}-stage-${stageConfig.id}-content`}
-                        >
-                            <div className="flex items-center gap-2 sm:gap-3">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isCurrentStage
-                                    ? 'bg-[#B8860B]/20 text-[#B8860B]'
-                                    : hasContent
-                                        ? 'bg-[#2D7A5C]/10 text-[#2D7A5C]'
-                                        : 'bg-[#F0E8DE] text-[#A8A39D]'
-                                    }`}>
-                                    {stageConfig.id === 2 && <Users className="w-4 h-4" />}
-                                    {stageConfig.id === 4 && <Activity className="w-4 h-4" />}
-                                    {stageConfig.id === 6 && <Zap className="w-4 h-4" />}
-                                </div>
-                                <div className="text-left">
-                                    <p className={`font-medium text-sm ${isCurrentStage ? 'text-[#B8860B]' : 'text-[#1A1612]'
-                                        }`}>
-                                        Stage {stageConfig.id}: {stageConfig.name}
-                                    </p>
-                                    <p className="text-xs text-[#A8A39D]">
-                                        {stageCandidates.length} candidates • {stageConfig.accuracy}
-                                    </p>
-                                </div>
-                                {isCurrentStage && isActive && (
-                                    <span className="ml-2 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider bg-[#B8860B] text-white rounded-full animate-pulse">
-                                        Live
-                                    </span>
-                                )}
-                            </div>
-                            {isExpanded ? (
-                                <ChevronUp className="w-5 h-5 text-[#A8A39D]" />
-                            ) : (
-                                <ChevronDown className="w-5 h-5 text-[#A8A39D]" />
-                            )}
-                        </button>
-
-                        {/* Accordion Content */}
-                        <AnimatePresence>
-                            {isExpanded && (
-                                <motion.div
-                                    id={`${panelId}-stage-${stageConfig.id}-content`}
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: 'auto', opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="overflow-hidden"
-                                >
-                                    <div className="p-3 sm:p-4 border-t border-[#F0E8DE]">
-                                        {/* Candidate tabs if multiple */}
-                                        {stageCandidates.length > 1 && (
-                                            <div className="flex flex-wrap gap-1.5 mb-3 pb-3 border-b border-[#F0E8DE]">
-                                                {stageCandidates.filter(c => c?.candidateTime).map((candidate, idx) => (
-                                                    <CandidateTabButton
-                                                        key={candidate.candidateTime || `candidate-${idx}`}
-                                                        time={candidate.candidateTime || ''}
-                                                        isSelected={effectiveDisplayedCandidate === candidate.candidateTime}
-                                                        isLive={isStreaming(candidate.candidateTime || '')}
-                                                        onClick={() => handleCandidateClick(candidate.candidateTime || '')}
-                                                    />
-                                                ))}
-                                            </div>
-                                        )}
-
-                                        {/* Content display */}
-                                        <div className="font-mono text-xs sm:text-sm text-[#4A453F] leading-relaxed max-h-[300px] overflow-y-auto custom-scrollbar">
-                                            {stageContent ? (
-                                                formatStructuredSections(stageContent)
-                                            ) : isCurrentStage && thinking ? (
-                                                <>
-                                                    {formatStructuredSections(thinking.fullText)}
-                                                    {isActive && (
-                                                        <span className="inline-block w-1.5 h-4 bg-[#B8860B] animate-pulse ml-1" />
-                                                    )}
-                                                </>
-                                            ) : (
-                                                <p className="text-[#A8A39D] italic text-center py-4">
-                                                    Waiting for analysis to reach this stage...
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </motion.div>
-                );
-            })}
-        </div>
+      <div className="space-y-3" role="region" aria-labelledby={`${panelId}-title`}>
+        <p className="text-sm text-[#7A756F]">Accordion mode not implemented</p>
+      </div>
     );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-2xl border border-[#D4A853]/40 shadow-[0_0_20px_rgba(184,134,11,0.08)] overflow-hidden"
+      role="region"
+      aria-labelledby={`${panelId}-title`}
+    >
+      <div className="bg-gradient-to-r from-[#FAF8F5] to-white px-5 py-4 border-b border-[#F0E8DE] flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-[#B8860B]/10 rounded-lg">
+            <Brain className="w-5 h-5 text-[#B8860B]" />
+          </div>
+          <div>
+            <h3 id={`${panelId}-title`} className="text-base font-bold text-[#1A1612]">
+              AI Reasoning Stream
+            </h3>
+            <p className="text-[10px] text-[#7A756F]">
+              {isActive ? 'Live analysis in progress' : 'Analysis results'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {isActive && (
+            <motion.div
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="flex items-center gap-1.5 px-2 py-1 bg-[#2D7A5C]/10 rounded-full"
+            >
+              <Activity className="w-3 h-3 text-[#2D7A5C]" />
+              <span className="text-[10px] font-bold text-[#2D7A5C]">LIVE</span>
+            </motion.div>
+          )}
+          <div className="text-[10px] text-[#7A756F] font-mono">
+            {candidatesList.length} candidates
+          </div>
+        </div>
+      </div>
+
+      {candidatesList.length > 0 && (
+        <CandidateTabsSection
+          groupedCandidates={groupedCandidates}
+          selectedCandidate={effectiveSelectedCandidate || null}
+          liveCandidate={thinking?.candidateTime || null}
+          onSelect={handleCandidateSelect}
+        />
+      )}
+
+      {effectiveSelectedCandidate && (
+        <div className="px-5 py-2 bg-[#FCFBF9] border-b border-[#F0E8DE] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 relative">
+              {isActive && thinking?.candidateTime === effectiveSelectedCandidate && (
+                <>
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500" />
+                </>
+              )}
+              {!isActive && (
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#B8860B]" />
+              )}
+            </span>
+            <span className="text-xs font-bold text-[#1A1612] font-mono">
+              {effectiveSelectedCandidate}
+            </span>
+          </div>
+          <span className="text-[10px] text-[#7A756F] font-mono">
+            {displayedContent.length.toLocaleString()} chars
+          </span>
+        </div>
+      )}
+
+      <ReasoningContent content={displayedContent} isActive={isActive} />
+    </motion.div>
+  );
 });
 
 export default UnifiedAIPanel;

@@ -1,0 +1,130 @@
+'use client';
+
+import React, { memo, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { CheckCircle, Circle, Loader2 } from 'lucide-react';
+
+interface StageConfig {
+  id: number;
+  name: string;
+  shortName: string;
+}
+
+const STAGES: StageConfig[] = [
+  { id: 0, name: 'Initialization', shortName: 'Init' },
+  { id: 1, name: 'Grid Generation', shortName: 'Grid' },
+  { id: 2, name: 'Coarse Elimination', shortName: 'Eliminate' },
+  { id: 3, name: 'Refinement', shortName: 'Refine' },
+  { id: 4, name: 'Deep Analysis', shortName: 'Analyze' },
+  { id: 5, name: 'Micro Precision', shortName: 'Precision' },
+  { id: 6, name: 'Final Verdict', shortName: 'Final' },
+];
+
+interface SimplifiedPipelineProps {
+  currentStage: number;
+  isComplete: boolean;
+  isConnected: boolean;
+  aiModel?: string;
+}
+
+export const SimplifiedPipeline = memo(function SimplifiedPipeline({
+  currentStage,
+  isComplete,
+  isConnected,
+  aiModel,
+}: SimplifiedPipelineProps) {
+  const stageStates = useMemo(() => {
+    return STAGES.map((stage, index) => {
+      if (isComplete) return 'completed';
+      if (index < currentStage) return 'completed';
+      if (index === currentStage) return 'active';
+      return 'pending';
+    });
+  }, [currentStage, isComplete]);
+
+  const completedCount = stageStates.filter(s => s === 'completed').length;
+  const progressPercent = Math.round((completedCount / STAGES.length) * 100);
+
+  return (
+    <div className="bg-white border border-[#F0E8DE] rounded-xl p-4 sm:p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#2D7A5C] animate-pulse' : 'bg-[#C65D3B]'}`} />
+          <span className="text-xs font-medium text-[#7A756F]">
+            {isConnected ? 'Processing' : 'Reconnecting'}
+          </span>
+        </div>
+        {aiModel && (
+          <span className="text-[10px] text-[#7A756F] font-mono">
+            Engine: <span className="text-[#B8860B]">{aiModel}</span>
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-center gap-1 sm:gap-2">
+        {STAGES.map((stage, index) => {
+          const state = stageStates[index];
+          const isLast = index === STAGES.length - 1;
+
+          return (
+            <React.Fragment key={stage.id}>
+              <motion.div
+                initial={false}
+                animate={{
+                  scale: state === 'active' ? 1.05 : 1,
+                }}
+                className={`
+                  flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg shrink-0
+                  transition-colors duration-300
+                  ${state === 'completed' ? 'bg-[#2D7A5C] text-white' : ''}
+                  ${state === 'active' ? 'bg-[#B8860B] text-white ring-2 ring-[#B8860B]/30 ring-offset-1' : ''}
+                  ${state === 'pending' ? 'bg-[#F5EFE7] text-[#A8A39D]' : ''}
+                `}
+                title={stage.name}
+              >
+                {state === 'completed' && <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />}
+                {state === 'active' && <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />}
+                {state === 'pending' && <Circle className="w-3 h-3 sm:w-4 sm:h-4" />}
+              </motion.div>
+
+              {!isLast && (
+                <div className="flex-1 h-0.5 bg-[#F0E8DE] rounded-full overflow-hidden min-w-[4px] sm:min-w-[8px]">
+                  <motion.div
+                    className="h-full bg-[#2D7A5C]"
+                    initial={{ width: 0 }}
+                    animate={{ width: stageStates[index] === 'completed' ? '100%' : '0%' }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </div>
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#F0E8DE]">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-[#7A756F]">Stage</span>
+          <span className="text-sm font-bold text-[#1A1612]">
+            {isComplete ? 'Complete' : STAGES[currentStage]?.name || 'Unknown'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-1.5 w-20 sm:w-32 bg-[#F5EFE7] rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-gradient-to-r from-[#B8860B] to-[#2D7A5C] rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPercent}%` }}
+              transition={{ duration: 0.5 }}
+            />
+          </div>
+          <span className="text-xs font-mono font-bold text-[#B8860B]">
+            {progressPercent}%
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+export default SimplifiedPipeline;

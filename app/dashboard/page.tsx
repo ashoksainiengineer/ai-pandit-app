@@ -9,13 +9,13 @@ import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@/database/drizzle';
 import { sessions, users } from '@/database/schema';
 import { eq, desc } from 'drizzle-orm';
-import { isEncrypted, parseSensitiveField } from '@/lib/crypto';
+import { isEncrypted, parseSensitiveField, initializeEncryption } from '@/lib/crypto';
 import { DashboardSession } from '@/lib/dashboard/types';
 import { DashboardClient } from './DashboardClient';
 import Layout from '@/components/Layout';
 
-// Initialized in layout or root if needed, but we ensure it's loaded here
-// initializeEncryption(process.env.ENCRYPTION_SECRET);
+// Initialize encryption for server-side decryption
+initializeEncryption(process.env.ENCRYPTION_SECRET || process.env.CLERK_ENCRYPTION_KEY);
 
 // Loading skeleton for the dashboard
 function DashboardSkeleton() {

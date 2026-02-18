@@ -323,12 +323,23 @@ export function useStreamProgress(
                         chunks: [...existing.chunks, chunk]
                     };
 
+                    // 🔧 FIX: Sync allCandidates Map for UI tabs
+                    const newAllCandidates = new Map(prev.allCandidates);
+                    newAllCandidates.set(candidateTime, updatedThinking);
+
+                    // 🔧 FIX: Sync stageHistory Map for stage-based display
+                    const newStageHistory = new Map(prev.stageHistory);
+                    const existingStageText = newStageHistory.get(stage) || '';
+                    newStageHistory.set(stage, existingStageText + chunk);
+
                     return {
                         ...prev,
                         aiThinking: {
                             ...prev.aiThinking,
                             [candidateTime]: updatedThinking
                         },
+                        allCandidates: newAllCandidates,
+                        stageHistory: newStageHistory,
                         displayedCandidate: candidateTime,
                     };
                 }
@@ -636,46 +647,41 @@ export function useStreamProgress(
                 if (!mountedRef.current || currentSessionRef.current !== sid) return;
                 try {
                     const data = JSON.parse(event.data);
+                    
+                    // 🔧 FIX: Handle auth errors sent as regular messages
+                    if (data.type === 'error' && (data.code === 'AUTH_FAILED' || data.code === 'UNAUTHORIZED')) {
+                        console.error('🔥 [SSE] Auth error received:', data);
+                        
+                        if (!authRetryRef.current) {
+                            console.warn('🔄 [SSE] Authentication failed. Attempting one-time token refresh...');
+                            authRetryRef.current = true;
+                            cleanup();
+                            setTimeout(() => connect(sid, { skipCache: true }), 500);
+                            return;
+                        }
+                        
+                        // Terminal error after retry
+                        cleanup();
+                        setState(prev => ({
+                            ...prev,
+                            error: data.error || 'Authentication failed',
+                            isConnected: false
+                        }));
+                        setConnectionState({
+                            status: 'error',
+                            url: '',
+                            lastError: data.error || 'Authentication failed'
+                        });
+                        return;
+                    }
+                    
                     handleEvent(data);
                 } catch (e) {
                     logger.warn('Failed to parse SSE message');
                 }
             };
 
-            // Listen for named 'error' events (custom backend events)
-            sse.addEventListener('error', (event: any) => {
-                if (!mountedRef.current || currentSessionRef.current !== sid) return;
-                try {
-                    const errorData = JSON.parse(event.data);
-                    console.error('🔥 [SSE] Received named error event:', errorData);
-
-                    if (errorData.code === 'AUTH_FAILED' && !authRetryRef.current) {
-                        console.warn('🔄 [SSE] Authentication failed. Attempting one-time token refresh...');
-                        authRetryRef.current = true;
-                        cleanup();
-                        // Small delay before reconnecting with fresh token
-                        setTimeout(() => connect(sid, { skipCache: true }), 500);
-                        return;
-                    }
-
-                    // Terminal error
-                    cleanup();
-                    setState(prev => ({
-                        ...prev,
-                        error: errorData.error || 'Authentication failed',
-                        isConnected: false
-                    }));
-                    setConnectionState({
-                        status: 'error',
-                        url: '',
-                        lastError: errorData.error || 'Authentication failed'
-                    });
-                } catch (e) {
-                    logger.warn('Failed to parse SSE error event data');
-                }
-            });
-
-            sse.onerror = (err) => {
+            sse.onerror = (err: any) => {
                 if (!mountedRef.current || currentSessionRef.current !== sid) return;
 
                 // Check if we already received a terminal state - if so, this error is expected
@@ -685,21 +691,38 @@ export function useStreamProgress(
                     return;
                 }
 
-                console.error('❌ [SSE] Connection generic ERROR occurred', err);
+                // 🔧 FIX: Check for HTTP error status from EventSource
+                // EventSource readyState: 0=CONNECTING, 1=OPEN, 2=CLOSED
+                const readyState = sse.readyState;
+                console.error(`❌ [SSE] Connection error (readyState: ${readyState})`, err);
 
-                if (sseConnected) {
-                    console.warn('⚠️ [SSE] Lost connection, browser will handle auto-retry...');
+                if (sseConnected && readyState === EventSource.OPEN) {
+                    console.warn('⚠️ [SSE] Transient error, browser will auto-retry...');
+                } else if (readyState === EventSource.CLOSED) {
+                    // Connection was closed - check if we need to retry with fresh token
+                    if (!authRetryRef.current) {
+                        console.warn('🔄 [SSE] Connection closed. Attempting one-time token refresh and reconnect...');
+                        authRetryRef.current = true;
+                        cleanup();
+                        setTimeout(() => connect(sid, { skipCache: true }), 1000);
+                        return;
+                    }
+                    
+                    // Already retried - fall back to polling
+                    console.error('🔥 [SSE] Connection failed after retry. Switching to polling...');
+                    cleanup();
+                    setConnectionState({ status: 'polling', url: '', lastError: 'SSE connection failed, using polling' });
+                    poll(sid);
                 } else {
-                    // Only switch to polling if it's NOT a terminal named error (caught above)
-                    // and we haven't already started a retry/cleanup.
+                    // Still connecting - wait a bit before deciding
                     setTimeout(() => {
                         if (mountedRef.current && currentSessionRef.current === sid && !sseSourceRef.current && !terminalStateReceivedRef.current) {
-                            console.error('🔥 [SSE] Initial connection failed. Switching to polling...');
+                             console.error('🔥 [SSE] Initial connection timeout. Switching to polling...');
                             cleanup();
-                            setConnectionState({ status: 'polling', url: '', lastError: 'Initial SSE connection failed' });
+                            setConnectionState({ status: 'polling', url: '', lastError: 'SSE timeout' });
                             poll(sid);
                         }
-                    }, 100);
+                    }, 500);
                 }
             };
 

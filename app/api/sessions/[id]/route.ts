@@ -3,7 +3,9 @@ import { db } from '@/database/drizzle';
 import { sessions, users } from '@/database/schema';
 import { eq, and } from 'drizzle-orm';
 import { auth } from '@clerk/nextjs/server';
-import { encrypt, decrypt, isEncrypted, parseSensitiveField } from '@/lib/crypto';
+import { encrypt, decrypt, isEncrypted, parseSensitiveField, initializeEncryption } from '@/lib/crypto';
+
+initializeEncryption(process.env.ENCRYPTION_SECRET || process.env.CLERK_ENCRYPTION_KEY);
 
 // Redundant local helper removed as per implementation plan
 

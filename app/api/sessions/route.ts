@@ -3,7 +3,9 @@ import { db } from '@/database/drizzle';
 import { sessions, users } from '@/database/schema';
 import { eq, desc } from 'drizzle-orm';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { parseSensitiveField } from '@/lib/crypto';
+import { parseSensitiveField, encrypt, initializeEncryption } from '@/lib/crypto';
+
+initializeEncryption(process.env.ENCRYPTION_SECRET || process.env.CLERK_ENCRYPTION_KEY);
 
 export async function GET(req: NextRequest) {
     try {
@@ -94,30 +96,30 @@ export async function POST(req: NextRequest) {
         const newSessionId = crypto.randomUUID();
         const bd = body.birthData;
 
-        // 2. Prepare Session Object (Flattened & Stringified)
+        // 2. Prepare Session Object (Flattened & Encrypted)
         const newSession = {
             id: newSessionId,
             userId: user!.id,
             clerkId: clerkId,
 
-            // Flattened Birth Data
-            fullName: bd.fullName || 'Unknown',
-            dateOfBirth: bd.dateOfBirth,
-            tentativeTime: bd.tentativeTime,
-            birthPlace: bd.birthPlace,
+            // Flattened Birth Data (Encrypted)
+            fullName: encrypt(bd.fullName || 'Unknown'),
+            dateOfBirth: encrypt(bd.dateOfBirth || ''),
+            tentativeTime: encrypt(bd.tentativeTime || ''),
+            birthPlace: encrypt(bd.birthPlace || ''),
             latitude: bd.latitude || 0,
             longitude: bd.longitude || 0,
             timezone: String(bd.timezone || 5.5),
             gender: bd.gender || 'male',
 
-            // Stringified JSON fields
-            lifeEvents: body.lifeEvents ? JSON.stringify(body.lifeEvents) : JSON.stringify([]),
-            spouseData: body.spouseData ? JSON.stringify(body.spouseData) : null,
-            forensicTraits: body.forensicTraits ? JSON.stringify(body.forensicTraits) : null,
-            offsetConfig: body.offsetConfig ? JSON.stringify(body.offsetConfig) : null,
+            // Encrypted JSON fields
+            lifeEvents: body.lifeEvents ? encrypt(JSON.stringify(body.lifeEvents)) : encrypt('[]'),
+            spouseData: body.spouseData ? encrypt(JSON.stringify(body.spouseData)) : null,
+            forensicTraits: body.forensicTraits ? encrypt(JSON.stringify(body.forensicTraits)) : null,
+            offsetConfig: body.offsetConfig ? encrypt(JSON.stringify(body.offsetConfig)) : null,
 
             status: 'draft',
-            isEncrypted: false, // Start unencrypted for simplicity in hybrid mode (or handle encryption if needed)
+            isEncrypted: true,
 
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()

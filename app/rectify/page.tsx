@@ -115,12 +115,26 @@ function RectifyPageContent() {
     const [draftSessionId, setDraftSessionId] = useState<string | null>(null);
     const [cloudSaveStatus, setCloudSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [lastSavedData, setLastSavedData] = useState<string>('');
+    const [draftLoaded, setDraftLoaded] = useState(false);
 
     // 🔥 WAKE UP ENGINE: Pre-warm Hugging Face backends
     useWarmup();
 
     const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
     const [maxUnlockedStep, setMaxUnlockedStep] = useState(1);
+
+    // Clear draft if ?new=true
+    useEffect(() => {
+        if (isNewPerson) {
+            localStorage.removeItem('btr_draft_id');
+            setDraftSessionId(null);
+            setBirthData(initialBirthData);
+            setLifeEvents([]);
+            setForensicTraits(initialForensicTraits);
+            setSpouseData(initialSpouseData);
+            setDraftLoaded(true);
+        }
+    }, [isNewPerson]);
 
     const validateStep1 = useCallback((): StepValidation => {
         const errors: string[] = [];
@@ -189,10 +203,8 @@ function RectifyPageContent() {
         try {
             const token = await getToken();
             const backendUrl = env.api.backendUrl.replace(/\/$/, '');
-            let submitUrl = `${backendUrl}/api/calculate`;
 
-            // Full payload for calculate
-            let payload: any = {
+            const payload = {
                 birthData,
                 lifeEvents,
                 forensicTraits,
@@ -203,18 +215,18 @@ function RectifyPageContent() {
 
             let result;
             if (draftSessionId) {
-                // 1. Force save to ensure backend sees latest data in Turso (Local API)
+                // 1. Force save to Vercel (same Turso DB) to ensure latest data is persisted
                 await fetch(`/api/sessions/${draftSessionId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig })
                 });
 
-                // 2. Trigger Requeue (Restart Analysis on existing ID)
+                // 2. Trigger Requeue on HF Backend (reads from same Turso DB)
                 result = await APIClient.post(`${backendUrl}/api/queue/requeue`, { sessionId: draftSessionId }, getToken);
             } else {
-                // 3. Normal Calculate
-                result = await APIClient.post(`${backendUrl}/api/calculate`, payload, getToken);
+                // 3. Normal Calculate - Submit to HF Backend Queue
+                result = await APIClient.post(`${backendUrl}/api/queue`, payload, getToken);
             }
             localStorage.removeItem('btr_draft_id');
 
@@ -249,16 +261,16 @@ function RectifyPageContent() {
         }
     }, [step]);
 
-    // Loading state
+    // Loading state - wait for draft to load if applicable
     useEffect(() => {
-        // Simplified loading - just set to false after a brief delay
+        if (isNewPerson) {
+            setIsLoading(false);
+            return;
+        }
         const timer = setTimeout(() => setIsLoading(false), 100);
         return () => clearTimeout(timer);
-    }, []);
+    }, [isNewPerson]);
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // AUTO-SAVE: Save draft to database every 5 seconds when data changes
-    // ═══════════════════════════════════════════════════════════════════════════════
     // ═══════════════════════════════════════════════════════════════════════════════
     // AUTO-SAVE: Save draft to database every 5 seconds when data changes
     // ═══════════════════════════════════════════════════════════════════════════════
@@ -317,7 +329,8 @@ function RectifyPageContent() {
     // Load existing draft on mount
     useEffect(() => {
         const loadDraft = async () => {
-            const savedDraftId = localStorage.getItem('btr_draft_id');
+            // Priority: URL param > localStorage
+            const savedDraftId = draftIdFromUrl || localStorage.getItem('btr_draft_id');
             if (!savedDraftId) return;
 
             try {
@@ -334,8 +347,10 @@ function RectifyPageContent() {
                         const session = result.data;
 
                         setDraftSessionId(savedDraftId);
+                        localStorage.setItem('btr_draft_id', savedDraftId);
+                        
                         if (session.birthData) setBirthData(session.birthData);
-                        if (session.lifeEvents?.length) setLifeEvents(session.lifeEvents);
+                        if (session.lifeEvents && Array.isArray(session.lifeEvents)) setLifeEvents(session.lifeEvents);
                         if (session.forensicTraits) setForensicTraits(session.forensicTraits);
                         if (session.spouseData) setSpouseData(session.spouseData);
 
@@ -352,17 +367,24 @@ function RectifyPageContent() {
                             spouseData: session.spouseData,
                             offsetConfig: session.offsetConfig
                         }));
+                        
+                        setDraftLoaded(true);
+                        console.log('✅ Draft loaded successfully:', savedDraftId);
                     }
                 }
             } catch (err) {
                 console.error('Failed to load draft:', err);
+                setDraftLoaded(true); // Still mark as loaded to prevent infinite loading
             }
         };
 
-        loadDraft();
-    }, [getToken]);
+        // Only load if not a new person
+        if (!isNewPerson) {
+            loadDraft();
+        }
+    }, [getToken, draftIdFromUrl, isNewPerson]);
 
-    if (isLoading) {
+    if (isLoading || (!isNewPerson && !draftLoaded)) {
         return <RectifyPageSkeleton />;
     }
 

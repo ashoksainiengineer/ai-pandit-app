@@ -1,20 +1,18 @@
 'use client';
 
-// app/rectify/[id]/edit/page.tsx
-// Edit existing session data and re-submit for analysis
-
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { UserButton, useAuth } from '@clerk/nextjs';
+import { useAuth } from '@clerk/nextjs';
 import { APIClient } from '@/lib/api-client';
-import { BirthData, LifeEvent, TimeOffsetConfig, PhysicalTraits } from '@/lib/types';
+import { BirthData, LifeEvent, TimeOffsetConfig, PhysicalTraits, SpouseData, ForensicTraits } from '@/lib/types';
 import { env } from '@/lib/config';
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
 import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
 import Step2ForensicTraits from '@/components/rectify/Step2ForensicTraits';
 import Step3PhysicalTraits from '@/components/rectify/Step3PhysicalTraits';
 import Step4Review from '@/components/rectify/Step4Review';
+import Layout from '@/components/Layout';
 
 const initialPhysicalTraits: PhysicalTraits = {
     height: { cm: 165, feet: 5, inches: 5 },
@@ -25,7 +23,27 @@ const initialPhysicalTraits: PhysicalTraits = {
     hairColor: 'black'
 };
 
-export default function EditSessionPage() {
+const initialForensicTraits: ForensicTraits = {
+    physical: {
+        facialStructure: { forehead: '', eyeShape: '', noseType: '', teethAlignment: '', voicePitch: '' },
+        skinHair: { texture: '', hairType: '', complexion: '', marks: [] },
+        build: '',
+        height: { cm: 0, feet: 0, inches: 0 }
+    },
+    psychographic: { speechStyle: '', decisionMaking: '', stressResponse: '', sleepCycle: '', temperament: '' },
+    biological: { prakriti: '', sensitivity: { heat: '', cold: '' }, recurringHealthIssues: [] },
+    family: { siblingPosition: '', brotherCount: 0, sisterCount: 0, fatherStatusAtBirth: '', motherHealthAtBirth: '' }
+};
+
+const initialSpouseData: SpouseData = {
+    dateOfBirth: '',
+    birthTime: '',
+    latitude: 0,
+    longitude: 0,
+    timezone: 5.5
+};
+
+function EditSessionContent() {
     const params = useParams();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -34,45 +52,46 @@ export default function EditSessionPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    // Read initial step from URL query param, default to 1
     const getInitialStep = () => {
         const urlStep = searchParams.get('step');
         if (urlStep) {
             const parsed = parseInt(urlStep, 10);
-            if (parsed >= 1 && parsed <= 5) {
-                return parsed;
-            }
+            if (parsed >= 1 && parsed <= 5) return parsed;
         }
         return 1;
     };
-    const [step, setStep] = useState(getInitialStep());
-
-    // Update URL when step changes
-    const updateStep = (newStep: number) => {
-        setStep(newStep);
-        const params = new URLSearchParams(searchParams.toString());
-        params.set('step', newStep.toString());
-        router.replace(`/rectify/${sessionId}/edit?${params.toString()}`, { scroll: false });
-    };
+    
+    const [step, setStep] = useState(getInitialStep);
     const [birthData, setBirthData] = useState<BirthData | null>(null);
     const [lifeEvents, setLifeEvents] = useState<LifeEvent[]>([]);
     const [physicalTraits, setPhysicalTraits] = useState<PhysicalTraits>(initialPhysicalTraits);
     const [offsetConfig, setOffsetConfig] = useState<any>({ preset: '1hour', customMinutes: 60, description: '±1 hour' });
-    const [forensicTraits, setForensicTraits] = useState<any>(null); // Forensic traits from database
+    const [forensicTraits, setForensicTraits] = useState<ForensicTraits>(initialForensicTraits);
+    const [spouseData, setSpouseData] = useState<SpouseData>(initialSpouseData);
     const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // Auto-save state
     const [isLoaded, setIsLoaded] = useState(false);
     const [savingStatus, setSavingStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+    const { getToken } = useAuth();
+
+    const updateStep = (newStep: number) => {
+        setStep(newStep);
+        const urlParams = new URLSearchParams(searchParams.toString());
+        urlParams.set('step', newStep.toString());
+        router.replace(`/rectify/${sessionId}/edit?${urlParams.toString()}`, { scroll: false });
+    };
 
     // Load existing session data
     useEffect(() => {
         async function fetchSession() {
             try {
+                const token = await getToken();
                 // Hybrid: Load from Local Vercel API (Turso DB)
                 const localUrl = `/api/sessions/${sessionId}`;
                 console.warn(`🔱 [GOD-MODE] Loading session from: ${localUrl}`);
-                const res = await fetch(localUrl);
+                const res = await fetch(localUrl, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
                 const data = await res.json();
                 console.warn(`🔱 [GOD-MODE] Session Load Result:`, { status: res.status, success: data.success });
 
@@ -82,16 +101,12 @@ export default function EditSessionPage() {
                     return;
                 }
 
-                // Data mapping from local DB format
                 const session = data.data;
                 setBirthData(session.birthData);
-                setLifeEvents(session.lifeEvents || []);
-                if (session.physicalTraits) {
-                    setPhysicalTraits(session.physicalTraits);
-                }
-                if (session.forensicTraits) {
-                    setForensicTraits(session.forensicTraits);
-                }
+                setLifeEvents(session.lifeEvents && Array.isArray(session.lifeEvents) ? session.lifeEvents : []);
+                if (session.physicalTraits) setPhysicalTraits(session.physicalTraits);
+                if (session.forensicTraits) setForensicTraits(session.forensicTraits);
+                if (session.spouseData) setSpouseData(session.spouseData);
                 if (session.offsetConfig) {
                     setOffsetConfig(typeof session.offsetConfig === 'string' ? JSON.parse(session.offsetConfig) : session.offsetConfig);
                 }
@@ -104,7 +119,7 @@ export default function EditSessionPage() {
         }
 
         fetchSession();
-    }, [sessionId]);
+    }, [sessionId, getToken]);
 
     // Auto-save effect with debounce
     const [lastSavedData, setLastSavedData] = useState<string>('');
@@ -113,23 +128,22 @@ export default function EditSessionPage() {
         if (!isLoaded || !birthData) return;
         if (!birthData.fullName || birthData.fullName.trim().length < 2) return;
 
-        const currentData = JSON.stringify({ birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig });
+        const currentData = JSON.stringify({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig });
         if (currentData === lastSavedData) return;
 
         const saveDraft = async () => {
             setSavingStatus('saving');
             try {
-                // Hybrid: Save to Local Vercel API
+                const token = await getToken();
                 await fetch(`/api/sessions/${sessionId}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({
                         birthData,
                         lifeEvents,
-                        physicalTraits,
                         forensicTraits,
-                        offsetConfig,
-                        isDraft: true
+                        spouseData,
+                        offsetConfig
                     })
                 });
 
@@ -142,9 +156,9 @@ export default function EditSessionPage() {
             }
         };
 
-        const timer = setTimeout(saveDraft, 3000);
+        const timer = setTimeout(saveDraft, 5000);
         return () => clearTimeout(timer);
-    }, [birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig, isLoaded, sessionId, lastSavedData]);
+    }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, isLoaded, sessionId, lastSavedData, getToken]);
 
     const handleNext = () => {
         setError(null);
@@ -176,8 +190,8 @@ export default function EditSessionPage() {
             case 3:
                 return true;
             case 4:
-                if (lifeEvents.length < 5) {
-                    setError("Please add at least 5 life events");
+                if (lifeEvents.length < 3) {
+                    setError(`Please add at least 3 life events. Currently: ${lifeEvents.length}`);
                     return false;
                 }
                 return true;
@@ -187,7 +201,6 @@ export default function EditSessionPage() {
     };
 
 
-    const { getToken } = useAuth();
     const handleSubmit = async () => {
         if (!birthData) return;
 
@@ -195,15 +208,17 @@ export default function EditSessionPage() {
         setError(null);
 
         try {
+            const token = await getToken();
+            
             // 1. Update Local DB (Vercel)
             const updateRes = await fetch(`/api/sessions/${sessionId}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({
                     birthData,
                     lifeEvents,
-                    physicalTraits,
                     forensicTraits,
+                    spouseData,
                     offsetConfig
                 })
             });
@@ -215,41 +230,15 @@ export default function EditSessionPage() {
                 return;
             }
 
-            // 2. Trigger Requeue on Backend (Remote Engine) - IN-DEPTH TRACING
+            // 2. Trigger Requeue on Backend (Remote Engine)
             const backendUrl = env.api.backendUrl.replace(/\/$/, '');
-            console.warn('🔱 [GOD-MODE] Initiating Requeue Trace...');
+            console.warn('🔱 [GOD-MODE] Initiating Requeue...');
 
             try {
-                const token = await getToken();
-                console.warn(`🔑 [GOD-MODE] Clerk Token: ${token ? `FOUND (len: ${token.length})` : 'MISSING'}`);
-
-                if (token) {
-                    console.log(`🔑 [GOD-MODE] Token Prefix: ${token.substring(0, 15)}...`);
-                }
-
-                // DUAL-CHANNEL AUTH (Header + Query)
-                const targetUrl = `${backendUrl}/api/queue/requeue${token ? `?token=${encodeURIComponent(token)}` : ''}`;
-
-                console.warn(`🚀 [GOD-MODE] Fetching: ${targetUrl.split('?')[0]}...`);
-
-                const queueRes = await fetch(targetUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': token ? `Bearer ${token}` : 'Bearer missing'
-                    },
-                    body: JSON.stringify({ sessionId }),
-                    credentials: 'include'
-                });
-
-                const queueResult = await queueRes.json();
-                console.warn(`📩 [GOD-MODE] Result Status: ${queueRes.status}`, queueResult);
-
-                if (!queueResult.success) {
-                    console.warn('Re-queue warning:', queueResult.error);
-                }
+                const result = await APIClient.post(`${backendUrl}/api/queue/requeue`, { sessionId }, getToken);
+                console.warn('📩 [GOD-MODE] Requeue result:', result);
             } catch (err: any) {
-                console.error('🔥 [GOD-MODE] Re-queue logic failed:', err.message);
+                console.error('🔥 [GOD-MODE] Re-queue failed:', err.message);
             }
 
             // Redirect to progress page
@@ -263,32 +252,37 @@ export default function EditSessionPage() {
 
     if (loading) {
         return (
-            <main className="min-h-screen bg-[#FFFCF8] flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-[#B8860B] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-[#7A756F]">Loading session data...</p>
+            <Layout hideFooter>
+                <div className="min-h-screen flex items-center justify-center">
+                    <div className="text-center">
+                        <div className="w-16 h-16 border-4 border-[#B8860B] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                        <p className="text-[#7A756F]">Loading session data...</p>
+                    </div>
                 </div>
-            </main>
+            </Layout>
         );
     }
 
     if (error && !birthData) {
         return (
-            <main className="min-h-screen bg-[#FFFCF8] flex items-center justify-center">
-                <div className="text-center max-w-md px-6">
-                    <div className="text-6xl mb-4">❌</div>
-                    <h1 className="text-2xl font-bold text-[#1A1612] mb-2">Could not load session</h1>
-                    <p className="text-[#7A756F] mb-6">{error}</p>
-                    <Link href="/dashboard" className="inline-block px-6 py-3 bg-[#B8860B] text-white rounded-lg font-bold hover:bg-[#D4A853] transition-colors">
-                        Back to Dashboard
-                    </Link>
+            <Layout hideFooter>
+                <div className="min-h-screen flex items-center justify-center">
+                    <div className="text-center max-w-md px-6">
+                        <div className="text-6xl mb-4">❌</div>
+                        <h1 className="text-2xl font-bold text-[#1A1612] mb-2">Could not load session</h1>
+                        <p className="text-[#7A756F] mb-6">{error}</p>
+                        <Link href="/dashboard" className="inline-block px-6 py-3 bg-[#B8860B] text-white rounded-lg font-bold hover:bg-[#D4A853] transition-colors">
+                            Back to Dashboard
+                        </Link>
+                    </div>
                 </div>
-            </main>
+            </Layout>
         );
     }
 
     return (
-        <main className="min-h-screen bg-[#FFFCF8] text-[#1A1612]">
+        <Layout hideFooter>
+            <main className="min-h-screen bg-[#FFFCF8] text-[#1A1612] pt-16">
             {/* Header */}
             <nav className="sticky top-0 z-50 bg-[#FFFCF8]/90 backdrop-blur-xl border-b border-[#F0E8DE]">
                 <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
@@ -373,49 +367,21 @@ export default function EditSessionPage() {
                     )}
                     {step === 2 && (
                         <Step3PhysicalTraits
-                            physicalTraits={forensicTraits?.physical || {
-                                facialStructure: {},
-                                skinHair: { marks: [] },
-                                build: '',
-                                height: { cm: 0, feet: 0, inches: 0 }
-                            }}
+                            physicalTraits={forensicTraits.physical}
                             updateTraits={(p) => {
-                                // Update forensic traits storage
-                                setForensicTraits((prev: any) => ({
+                                setForensicTraits(prev => ({
                                     ...prev,
-                                    physical: { ...(prev?.physical || {}), ...p }
+                                    physical: { ...prev.physical, ...p }
                                 }));
-                                // Also sync legacy physicalTraits state for Review step compatibility
-                                setPhysicalTraits((prev) => ({
-                                    ...prev,
-                                    ...p
-                                }));
+                                setPhysicalTraits(prev => ({ ...prev, ...p }));
                             }}
                         />
                     )}
                     {step === 3 && (
                         <Step2ForensicTraits
-                            traits={forensicTraits || {
-                                physical: {
-                                    facialStructure: { forehead: '', eyeShape: '', noseType: '', teethAlignment: '', voicePitch: '' },
-                                    skinHair: { texture: '', hairType: '', complexion: '', marks: [] },
-                                    build: '',
-                                    height: { cm: 0, feet: 0, inches: 0 }
-                                },
-                                psychographic: { speechStyle: '', decisionMaking: '', stressResponse: '', sleepCycle: '', temperament: '' },
-                                biological: { prakriti: '', sensitivity: { heat: '', cold: '' }, recurringHealthIssues: [] },
-                                family: { siblingPosition: '', brotherCount: 0, sisterCount: 0, fatherStatusAtBirth: '', motherHealthAtBirth: '' }
-                            }}
+                            traits={forensicTraits}
                             updateTraits={(updates) => {
-                                setForensicTraits(prev => {
-                                    const current = prev || {
-                                        physical: { facialStructure: {}, skinHair: {}, build: '', height: { cm: 0, feet: 0, inches: 0 } },
-                                        psychographic: {},
-                                        biological: {},
-                                        family: {}
-                                    };
-                                    return { ...current, ...updates };
-                                });
+                                setForensicTraits(prev => ({ ...prev, ...updates }));
                             }}
                         />
                     )}
@@ -431,18 +397,7 @@ export default function EditSessionPage() {
                             data={birthData}
                             events={lifeEvents}
                             traits={physicalTraits}
-                            forensicTraits={forensicTraits || {
-                                physical: {
-                                    facialStructure: {},
-                                    skinHair: { marks: [] },
-                                    height: typeof physicalTraits.height === 'object' && physicalTraits.height !== null
-                                        ? physicalTraits.height as { cm: number; feet: number; inches: number }
-                                        : { cm: 168, feet: 5, inches: 6 }
-                                },
-                                psychographic: {},
-                                biological: { sensitivity: {} },
-                                family: { brotherCount: 0, sisterCount: 0 }
-                            }}
+                            forensicTraits={forensicTraits}
                             onSubmit={handleSubmit}
                             isSubmitting={isSubmitting}
                             onEdit={updateStep}
@@ -474,6 +429,25 @@ export default function EditSessionPage() {
                     </div>
                 )}
             </div>
-        </main>
+            </main>
+        </Layout>
+    );
+}
+
+function EditPageSkeleton() {
+    return (
+        <Layout hideFooter>
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="w-16 h-16 border-4 border-[#B8860B] border-t-transparent rounded-full animate-spin" />
+            </div>
+        </Layout>
+    );
+}
+
+export default function EditSessionPage() {
+    return (
+        <Suspense fallback={<EditPageSkeleton />}>
+            <EditSessionContent />
+        </Suspense>
     );
 }
