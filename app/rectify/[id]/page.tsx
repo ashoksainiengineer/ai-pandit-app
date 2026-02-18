@@ -150,11 +150,15 @@ function useETACalculator(analyzedCount: number, totalCandidates: number, starte
 export default function AnalysisPage() {
   const params = useParams();
   const router = useRouter();
-  const { getToken } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
   const sessionId = params.id as string;
   const pageTitleId = useId();
 
-  const streamData = useStreamProgress(sessionId, undefined, getToken);
+  const streamData = useStreamProgress(
+    isLoaded && isSignedIn ? sessionId : null,
+    undefined,
+    getToken
+  );
 
   const {
     isConnected, isComplete, error: streamError, progress, aiThinking, aiContext,
@@ -247,6 +251,15 @@ export default function AnalysisPage() {
   }, [connectionState.status]);
 
   const isLive = connectionState.status === 'streaming' || connectionState.status === 'polling';
+
+  if (!isLoaded) {
+    return <LoadingState />;
+  }
+
+  if (!isSignedIn) {
+    router.push('/sign-in');
+    return <LoadingState />;
+  }
 
   if (!isConnected && !hasError && !result && connectionState.status !== 'polling' && connectionState.status !== 'connecting') {
     return <LoadingState />;
