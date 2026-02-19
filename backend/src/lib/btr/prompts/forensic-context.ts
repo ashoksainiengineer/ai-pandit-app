@@ -15,11 +15,15 @@ import { ForensicTraits } from '../../../types/index.js';
  * @returns Formatted physical DNA context string
  */
 function formatPhysicalDNA(physical: ForensicTraits['physical']): string {
+  const facial = physical?.facialStructure;
+  const skinHair = physical?.skinHair;
+  const heightFeet = physical?.height?.feet ?? '?';
+  const heightInches = physical?.height?.inches ?? '?';
   return `┌── FORENSIC PHYSICAL DNA (Varga Markers) ──
-│ Facial: ${physical.facialStructure.forehead} forehead, ${physical.facialStructure.eyeShape} eyes, ${physical.facialStructure.noseShape || physical.facialStructure.noseType} nose, ${physical.facialStructure.jawLine || 'average'} jaw, ${physical.facialStructure.teethAlignment} teeth, ${physical.facialStructure.voicePitch} voice
-│ Hair/Skin: ${physical.skinHair.hairType} hair, ${physical.skinHair.texture} skin, ${physical.skinHair.complexion} complexion
-│ Special Marks: ${physical.skinHair.marks.join(', ') || 'None reported'}
-│ Build: ${physical.build} (${physical.height?.feet}'${physical.height?.inches}")`;
+│ Facial: ${facial?.forehead ?? 'unknown'} forehead, ${facial?.eyeShape ?? 'unknown'} eyes, ${facial?.noseShape ?? facial?.noseType ?? 'unknown'} nose, ${facial?.jawLine ?? 'average'} jaw, ${facial?.teethAlignment ?? 'unknown'} teeth, ${facial?.voicePitch ?? 'unknown'} voice
+│ Hair/Skin: ${skinHair?.hairType ?? 'unknown'} hair, ${skinHair?.texture ?? 'unknown'} skin, ${skinHair?.complexion ?? 'unknown'} complexion
+│ Special Marks: ${skinHair?.marks?.join(', ') || 'None reported'}
+│ Build: ${physical?.build ?? 'unknown'} (${heightFeet}'${heightInches}")`;
 }
 
 /**
@@ -30,9 +34,9 @@ function formatPhysicalDNA(physical: ForensicTraits['physical']): string {
  */
 function formatPsychographicDNA(psychographic: ForensicTraits['psychographic']): string {
   return `┌── PSYCHOGRAPHIC DNA (Temperament) ──
-│ Speech: ${psychographic.speechStyle} | Decisions: ${psychographic.decisionMaking}
-│ Stress: ${psychographic.stressResponse} | Sleep: ${psychographic.sleepCycle}
-│ Temperament: ${psychographic.temperament}`;
+│ Speech: ${psychographic?.speechStyle ?? 'unknown'} | Decisions: ${psychographic?.decisionMaking ?? 'unknown'}
+│ Stress: ${psychographic?.stressResponse ?? 'unknown'} | Sleep: ${psychographic?.sleepCycle ?? 'unknown'}
+│ Temperament: ${psychographic?.temperament ?? 'unknown'}`;
 }
 
 /**
@@ -42,10 +46,12 @@ function formatPsychographicDNA(psychographic: ForensicTraits['psychographic']):
  * @returns Formatted biological markers context string
  */
 function formatBiologicalMarkers(biological: ForensicTraits['biological']): string {
+  const heat = biological?.sensitivity?.heat ?? 'unknown';
+  const cold = biological?.sensitivity?.cold ?? 'unknown';
   return `┌── BIOLOGICAL MARKERS (Ayurvedic) ──
-│ Prakriti: ${biological.prakriti.toUpperCase()}
-│ Sensitivity: Heat=${biological.sensitivity.heat} | Cold=${biological.sensitivity.cold}
-│ Health Issues: ${biological.recurringHealthIssues.join(', ') || 'None'}`;
+│ Prakriti: ${biological?.prakriti?.toUpperCase() ?? 'Unknown'}
+│ Sensitivity: Heat=${heat} | Cold=${cold}
+│ Health Issues: ${biological?.recurringHealthIssues?.join(', ') || 'None'}`;
 }
 
 /**
@@ -56,10 +62,10 @@ function formatBiologicalMarkers(biological: ForensicTraits['biological']): stri
  */
 function formatFamilyNarrative(family: ForensicTraits['family']): string {
   let result = `┌── FAMILY NARRATIVE MATRIX ──
-│ Position: ${family.siblingPosition} (${family.brotherCount} brothers, ${family.sisterCount} sisters)
-│ Birth Status: Father status was "${family.fatherStatusAtBirth}", Mother health was "${family.motherHealthAtBirth}"`;
+│ Position: ${family?.siblingPosition ?? 'unknown'} (${family?.brotherCount ?? 0} brothers, ${family?.sisterCount ?? 0} sisters)
+│ Birth Status: Father status was "${family?.fatherStatusAtBirth ?? 'unknown'}", Mother health was "${family?.motherHealthAtBirth ?? 'unknown'}"`;
 
-  if (family.firstChildInfo) {
+  if (family?.firstChildInfo) {
     result += `\n│ First Child: ${family.firstChildInfo.gender} born in ${family.firstChildInfo.yearOfBirth}`;
   }
 
@@ -79,6 +85,9 @@ function formatFamilyNarrative(family: ForensicTraits['family']): string {
  * // Returns formatted context with all forensic sections
  */
 export function buildForensicContext(forensicTraits: ForensicTraits): string {
+  if (!forensicTraits) {
+    return 'No forensic traits provided';
+  }
   const sections = [
     formatPhysicalDNA(forensicTraits.physical),
     formatPsychographicDNA(forensicTraits.psychographic),
@@ -96,11 +105,26 @@ export function buildForensicContext(forensicTraits: ForensicTraits): string {
  * @returns Compact forensic DNA summary string
  */
 export function buildForensicDNASummary(forensicTraits: ForensicTraits): string {
+  if (!forensicTraits) {
+    return '🧬 MANDATORY FORENSIC CORRELATION MATRIX: No forensic traits provided';
+  }
   const f = forensicTraits;
+  const prakriti = f?.biological?.prakriti?.toUpperCase() ?? 'Unknown';
+  const healthIssues = f?.biological?.recurringHealthIssues?.join(', ') ?? 'None';
+  const temperament = f?.psychographic?.temperament ?? 'unknown';
+  const decisions = f?.psychographic?.decisionMaking ?? 'unknown';
+  const speech = f?.psychographic?.speechStyle ?? 'unknown';
+  const forehead = f?.physical?.facialStructure?.forehead ?? 'unknown';
+  const eyes = f?.physical?.facialStructure?.eyeShape ?? 'unknown';
+  const nose = f?.physical?.facialStructure?.noseShape ?? f?.physical?.facialStructure?.noseType ?? 'unknown';
+  const jaw = f?.physical?.facialStructure?.jawLine ?? 'average';
+  const voice = f?.physical?.facialStructure?.voicePitch ?? 'unknown';
+  const siblingPos = f?.family?.siblingPosition ?? 'unknown';
+  const fatherStatus = f?.family?.fatherStatusAtBirth ?? 'unknown';
 
   return `🧬 MANDATORY FORENSIC CORRELATION MATRIX:
-    - Biological: ${f.biological.prakriti.toUpperCase()} | Health: ${f.biological.recurringHealthIssues.join(', ')}
-    - Psychographic: ${f.psychographic.temperament} | Decisions: ${f.psychographic.decisionMaking} | Speech: ${f.psychographic.speechStyle}
-    - Varga Signs: Forehead: ${f.physical.facialStructure.forehead} | Eyes: ${f.physical.facialStructure.eyeShape} | Nose: ${f.physical.facialStructure.noseShape || f.physical.facialStructure.noseType} | Jaw: ${f.physical.facialStructure.jawLine || 'average'} | Voice: ${f.physical.facialStructure.voicePitch}
-    - Family Karma: ${f.family.siblingPosition} child | Father Status: ${f.family.fatherStatusAtBirth}`;
+    - Biological: ${prakriti} | Health: ${healthIssues}
+    - Psychographic: ${temperament} | Decisions: ${decisions} | Speech: ${speech}
+    - Varga Signs: Forehead: ${forehead} | Eyes: ${eyes} | Nose: ${nose} | Jaw: ${jaw} | Voice: ${voice}
+    - Family Karma: ${siblingPos} child | Father Status: ${fatherStatus}`;
 }

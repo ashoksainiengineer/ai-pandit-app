@@ -650,7 +650,9 @@ export function mapQuizResultsToLegacyTraits(results: QuizResults) {
         biological: {
             prakriti: results.prakriti.secondary
                 ? `${results.prakriti.primary}-${results.prakriti.secondary}`
-                : results.prakriti.primary
+                : results.prakriti.primary,
+            sensitivity: { heat: 'medium', cold: 'medium' },
+            recurringHealthIssues: []
         },
         psychographic: {
             speechStyle: mapSpeechToLegacy(results.speech.type),

@@ -8,7 +8,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useCallback, Suspense, useRef } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, useRef, useMemo, memo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { APIClient } from '@/lib/api-client';
@@ -266,12 +266,23 @@ function RectifyPageContent() {
     }, []);
 
     const updateForensicTraits = useCallback((updates: Partial<ForensicTraits>) => {
-        setForensicTraits(prev => ({ ...prev, ...updates }));
+        setForensicTraits(prev => ({
+            ...prev,
+            ...updates,
+            physical: { ...prev.physical, ...updates.physical },
+            biological: { ...prev.biological, ...updates.biological },
+            psychographic: { ...prev.psychographic, ...updates.psychographic },
+            family: { ...prev.family, ...updates.family }
+        }));
     }, []);
 
     const updateSpouseData = useCallback((updates: Partial<SpouseData>) => {
         setSpouseData(prev => ({ ...prev, ...updates }));
     }, []);
+
+    const updatePhysicalTraits = useCallback((p: any) => {
+        updateForensicTraits({ physical: { ...forensicTraits.physical, ...p } });
+    }, [forensicTraits.physical, updateForensicTraits]);
 
     const handleBack = useCallback(() => {
         if (step > 1) {
@@ -322,13 +333,16 @@ function RectifyPageContent() {
         }
     }, []);
 
+    const currentDataString = useMemo(() => 
+        JSON.stringify({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig }),
+        [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig]
+    );
+
     // Main autosave with retry logic
     useEffect(() => {
         // Only save if user has entered meaningful data
         if (!birthData.fullName || birthData.fullName.trim().length < 2) return;
         if (!userId) return;
-
-        const currentDataString = JSON.stringify({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig });
         
         // Skip if nothing changed
         if (currentDataString === lastSavedData) return;
@@ -414,7 +428,7 @@ function RectifyPageContent() {
                 clearTimeout(pendingSaveRef.current);
             }
         };
-    }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, draftSessionId, userId, getToken, lastSavedData, saveToLocalStorage]);
+    }, [currentDataString, draftSessionId, userId, getToken, lastSavedData, saveToLocalStorage]); // eslint-disable-line react-hooks/exhaustive-deps -- Using memoized currentDataString instead of individual deps
 
     // Load existing draft on mount
     useEffect(() => {
@@ -516,7 +530,7 @@ function RectifyPageContent() {
                     {/* Progress Indicator and other UI elements */}
                     <div className="min-h-[400px]">
                         {step === 1 && <Step1BirthDetails data={birthData} updateData={updateBirthData} offsetConfig={offsetConfig} updateOffset={setOffsetConfig} spouseData={spouseData} updateSpouse={updateSpouseData} />}
-                        {step === 2 && <Step3PhysicalTraits physicalTraits={forensicTraits.physical} updateTraits={(p) => updateForensicTraits({ physical: { ...forensicTraits.physical, ...p } })} />}
+                        {step === 2 && <Step3PhysicalTraits physicalTraits={forensicTraits.physical} updateTraits={updatePhysicalTraits} />}
                         {step === 3 && <Step2ForensicTraits traits={forensicTraits} updateTraits={updateForensicTraits} gender={birthData.gender as Gender} onNext={handleNext} />}
                         {step === 4 && <Step3LifeEvents lifeEvents={lifeEvents} updateEvents={setLifeEvents} offsetConfig={offsetConfig} />}
                         {step === 5 && <Step4Review data={birthData} events={lifeEvents} traits={forensicTraits.physical} forensicTraits={forensicTraits} onSubmit={handleSubmit} isSubmitting={isSubmitting} onEdit={setStep} offsetConfig={offsetConfig} />}

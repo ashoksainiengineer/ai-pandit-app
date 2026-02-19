@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -52,7 +52,7 @@ const sortOptions: { value: SortField; label: string }[] = [
   { value: 'accuracy', label: 'Accuracy' },
 ];
 
-export function SearchFilterBar({
+export const SearchFilterBar = memo(function SearchFilterBar({
   filterState,
   sortState,
   onFilterChange,
@@ -80,13 +80,15 @@ export function SearchFilterBar({
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  const hasActiveFilters = 
+  const hasActiveFilters = useMemo(() => 
     filterState.statusFilter.length > 0 ||
     filterState.confidenceFilter.length > 0 ||
     filterState.dateRange.from ||
     filterState.dateRange.to ||
     filterState.hasResults !== null ||
-    filterState.favoritesOnly;
+    filterState.favoritesOnly,
+    [filterState]
+  );
 
   const toggleStatus = useCallback((status: SessionStatus) => {
     const newStatuses = filterState.statusFilter.includes(status)
@@ -297,4 +299,4 @@ export function SearchFilterBar({
       </div>
     </div>
   );
-}
+});

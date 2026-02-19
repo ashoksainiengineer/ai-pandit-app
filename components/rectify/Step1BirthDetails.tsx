@@ -75,6 +75,13 @@ const getDaysForMonth = (month: string, year: string): string[] => {
 
 const HOURS = Array.from({ length: 12 }, (_, i) => (i + 1).toString().padStart(2, '0'));
 const MINUTES = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
+const AM_PM_OPTIONS = ['AM', 'PM'] as const;
+
+const GENDER_OPTIONS = [
+  { value: 'male', label: 'Male', icon: '👨' },
+  { value: 'female', label: 'Female', icon: '👩' },
+  { value: 'other', label: 'Other', icon: '🧑' }
+] as const;
 
 // Sanitize input to prevent XSS
 const sanitizeInput = (input: string): string => {
@@ -421,7 +428,7 @@ export default function Step1BirthDetails({
               {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
             </select>
             <div className="flex bg-white rounded-lg overflow-hidden border border-[#E8E0D5] h-11">
-              {['AM', 'PM'].map((p) => (
+              {AM_PM_OPTIONS.map((p) => (
                 <button
                   key={p}
                   type="button"
@@ -519,7 +526,7 @@ export default function Step1BirthDetails({
         <div className="pt-4 border-t border-[#F0E8DE]">
           <FormField label="Gender">
             <div className="grid grid-cols-3 gap-3">
-              {[{ value: 'male', label: 'Male', icon: '👨' }, { value: 'female', label: 'Female', icon: '👩' }, { value: 'other', label: 'Other', icon: '🧑' }].map((g) => (
+              {GENDER_OPTIONS.map((g) => (
                 <button
                   key={g.value}
                   type="button"

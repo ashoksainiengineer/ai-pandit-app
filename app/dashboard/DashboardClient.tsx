@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Sparkles, Search, BarChart3, CheckCircle2, Activity } from 'lucide-react';
@@ -39,6 +39,30 @@ function calculateStats(sessions: DashboardSession[]): DashboardStats {
   };
 }
 
+const StatCard = memo(function StatCard({
+  icon,
+  value,
+  label
+}: {
+  icon: React.ReactNode;
+  value: number | string;
+  label: string;
+}) {
+  return (
+    <div className="bg-white border border-[#F0E8DE] rounded-xl p-3 sm:p-4">
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div className="p-1.5 sm:p-2 bg-[#F5EFE7] rounded-lg">
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <div className="text-lg sm:text-2xl font-bold text-[#1A1612]">{value}</div>
+          <div className="text-xs sm:text-sm text-[#7A756F] truncate">{label}</div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
 export function DashboardClient({ initialSessions, userName }: DashboardClientProps) {
   const [sessions, setSessions] = useState(initialSessions);
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,9 +70,9 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
 
   const stats = useMemo(() => calculateStats(sessions), [sessions]);
 
-  const handleDeleteSession = (deletedId: string) => {
+  const handleDeleteSession = useCallback((deletedId: string) => {
     setSessions(prev => prev.filter(s => s.id !== deletedId));
-  };
+  }, []);
 
   const filteredSessions = useMemo(() => {
     if (!searchQuery.trim()) return sessions;
@@ -64,10 +88,14 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
     currentPage * ITEMS_PER_PAGE
   );
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1);
-  };
+  }, []);
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pt-20 sm:pt-24">
@@ -210,7 +238,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
             <button
               key={page}
-              onClick={() => setCurrentPage(page)}
+              onClick={() => handlePageChange(page)}
               className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                 currentPage === page
                   ? 'bg-[#B8860B] text-white'
@@ -231,31 +259,6 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
           </button>
         </div>
       )}
-    </div>
-  );
-}
-
-// Stat Card Component - Mobile Responsive
-function StatCard({
-  icon,
-  value,
-  label
-}: {
-  icon: React.ReactNode;
-  value: number | string;
-  label: string;
-}) {
-  return (
-    <div className="bg-white border border-[#F0E8DE] rounded-xl p-3 sm:p-4">
-      <div className="flex items-center gap-2 sm:gap-3">
-        <div className="p-1.5 sm:p-2 bg-[#F5EFE7] rounded-lg">
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <div className="text-lg sm:text-2xl font-bold text-[#1A1612]">{value}</div>
-          <div className="text-xs sm:text-sm text-[#7A756F] truncate">{label}</div>
-        </div>
-      </div>
     </div>
   );
 }

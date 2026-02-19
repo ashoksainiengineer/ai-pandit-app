@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useCallback, memo } from 'react';
 import { LifeEvent } from '@/lib/types';
 
 interface TimelineVisualizerProps {
@@ -9,7 +9,33 @@ interface TimelineVisualizerProps {
     selectedEventId?: string;
 }
 
-export default function TimelineVisualizer({ events, onSelectEvent, selectedEventId }: TimelineVisualizerProps) {
+const IMPORTANCE_COLORS: Record<string, string> = {
+    critical: 'bg-[#2D7A5C]',
+    high: 'bg-[#8B5CF6]',
+    default: 'bg-[#D4AF37]',
+};
+
+const MONTHS_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+const formatDisplayDate = (event: LifeEvent): string => {
+    if (!event.eventDate) return 'Unknown';
+    const precision = event.datePrecision;
+    const start = event.eventDate;
+    const end = event.endDate;
+    if (precision === 'year_range') return end ? `${start} → ${end}` : start;
+    if (precision === 'month_year' || precision === 'month_range') {
+        const formatMonth = (d: string) => { const [y, m] = d.split('-'); return m ? `${MONTHS_SHORT[parseInt(m) - 1]} ${y}` : y; };
+        return end ? `${formatMonth(start)} → ${formatMonth(end)}` : formatMonth(start);
+    }
+    const formatExact = (d: string) => { const [y, m, day] = d.split('-'); if (!m) return y; return `${day || ''} ${MONTHS_SHORT[parseInt(m) - 1]} ${y}`.trim(); };
+    return end ? `${formatExact(start)} → ${formatExact(end)}` : formatExact(start);
+};
+
+const getImportanceColor = (importance: string): string => {
+    return IMPORTANCE_COLORS[importance] || IMPORTANCE_COLORS.default;
+};
+
+const TimelineVisualizer = memo(function TimelineVisualizer({ events, onSelectEvent, selectedEventId }: TimelineVisualizerProps) {
     const sortedEvents = useMemo(() => {
         return [...events].filter(e => e.eventDate).sort((a, b) => {
             const dateA = a.eventDate?.split('-')[0] || '0';
@@ -18,27 +44,9 @@ export default function TimelineVisualizer({ events, onSelectEvent, selectedEven
         });
     }, [events]);
 
-    const formatDisplayDate = (event: LifeEvent): string => {
-        if (!event.eventDate) return 'Unknown';
-        const precision = event.datePrecision;
-        const start = event.eventDate;
-        const end = event.endDate;
-        if (precision === 'year_range') return end ? `${start} → ${end}` : start;
-        if (precision === 'month_year' || precision === 'month_range') {
-            const formatMonth = (d: string) => { const [y, m] = d.split('-'); const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; return m ? `${months[parseInt(m) - 1]} ${y}` : y; };
-            return end ? `${formatMonth(start)} → ${formatMonth(end)}` : formatMonth(start);
-        }
-        const formatExact = (d: string) => { const [y, m, day] = d.split('-'); if (!m) return y; const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']; return `${day || ''} ${months[parseInt(m) - 1]} ${y}`.trim(); };
-        return end ? `${formatExact(start)} → ${formatExact(end)}` : formatExact(start);
-    };
-
-    const getImportanceColor = (importance: string) => {
-        switch (importance) {
-            case 'critical': return 'bg-[#2D7A5C]';
-            case 'high': return 'bg-[#8B5CF6]';
-            default: return 'bg-[#D4AF37]';
-        }
-    };
+    const handleEventClick = useCallback((id: string) => {
+        onSelectEvent?.(id);
+    }, [onSelectEvent]);
 
     if (events.length === 0) {
         return (
@@ -71,7 +79,7 @@ export default function TimelineVisualizer({ events, onSelectEvent, selectedEven
                         const isFirst = index === 0;
                         const isLast = index === sortedEvents.length - 1;
                         return (
-                            <div key={event.id} onClick={() => onSelectEvent?.(event.id)} className={`relative group cursor-pointer transition-all duration-300 ${isSelected ? 'scale-[1.02]' : 'hover:scale-[1.01]'}`}>
+                            <div key={event.id} onClick={() => handleEventClick(event.id)} className={`relative group cursor-pointer transition-all duration-300 ${isSelected ? 'scale-[1.02]' : 'hover:scale-[1.01]'}`}>
                                 <div className={`absolute -left-6 top-4 w-5 h-5 rounded-full ${getImportanceColor(event.importance)} shadow-lg transition-transform ${isSelected ? 'scale-125 ring-4 ring-[#D4AF37]/30' : ''}`} />
                                 <div className={`ml-4 p-5 rounded-xl border-2 transition-all ${isSelected ? 'bg-[#D4AF37]/10 border-[#D4AF37]/50 shadow-lg' : 'bg-[#F5EFE7] border-transparent hover:border-[#D4AF37]/30'}`}>
                                     <div className="flex items-start gap-4">
@@ -112,4 +120,6 @@ export default function TimelineVisualizer({ events, onSelectEvent, selectedEven
             {sortedEvents.length >= 10 && <div className="mt-6 p-4 bg-[#2D7A5C]/10 border border-[#2D7A5C]/30 rounded-xl flex items-center gap-3"><span className="text-3xl">🏆</span><p className="text-sm text-[#2D7A5C] font-medium">Excellent! Your timeline is comprehensive for maximum accuracy!</p></div>}
         </div>
     );
-}
+});
+
+export default TimelineVisualizer;

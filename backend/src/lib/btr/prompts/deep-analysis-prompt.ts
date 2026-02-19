@@ -59,10 +59,10 @@ export function getDeepAnalysisPrompt(
 
   const forensicContext = `
     [FORENSIC DNA DOSSIER]
-    - PHYSICAL: ${f.physical.facialStructure.forehead} forehead, ${f.physical.facialStructure.eyeShape} eyes, ${f.physical.facialStructure.voicePitch} voice, Marks: ${f.physical.skinHair.marks.join(', ')}
-    - TEMPERAMENT: ${f.psychographic.temperament}, ${f.psychographic.speechStyle} speech, ${f.psychographic.decisionMaking} judgment
-        - FAMILY: ${f.family.siblingPosition} child, ${f.family.brotherCount} B / ${f.family.sisterCount} S, Father at birth: ${f.family.fatherStatusAtBirth}
-    - BIOLOGICAL: ${f.biological.prakriti.toUpperCase()}, Heat sensitivity: ${f.biological.sensitivity.heat}, Chronic: ${f.biological.recurringHealthIssues.join(', ')}
+    - PHYSICAL: ${f?.physical?.facialStructure?.forehead ?? 'unknown'} forehead, ${f?.physical?.facialStructure?.eyeShape ?? 'unknown'} eyes, ${f?.physical?.facialStructure?.voicePitch ?? 'unknown'} voice, Marks: ${f?.physical?.skinHair?.marks?.join(', ') ?? 'none'}
+    - TEMPERAMENT: ${f?.psychographic?.temperament ?? 'unknown'}, ${f?.psychographic?.speechStyle ?? 'unknown'} speech, ${f?.psychographic?.decisionMaking ?? 'unknown'} judgment
+    - FAMILY: ${f?.family?.siblingPosition ?? 'unknown'} child, ${f?.family?.brotherCount ?? 0} B / ${f?.family?.sisterCount ?? 0} S, Father at birth: ${f?.family?.fatherStatusAtBirth ?? 'unknown'}
+    - BIOLOGICAL: ${f?.biological?.prakriti?.toUpperCase() ?? 'Unknown'}, Heat sensitivity: ${f?.biological?.sensitivity?.heat ?? 'unknown'}, Chronic: ${f?.biological?.recurringHealthIssues?.join(', ') ?? 'none'}
     `;
   // Anti-bias: Shuffle to prevent positional bias
   const filteredCandidates = candidates.filter(c => c.time);

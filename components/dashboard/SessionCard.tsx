@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo, memo } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useAuth } from '@clerk/nextjs';
@@ -97,7 +97,7 @@ const confidenceConfig = {
   'low': { color: '#C65D3B', label: 'LOW' },
 };
 
-export function SessionCard({
+export const SessionCard = memo(function SessionCard({
   session,
   isSelected,
   isFavorite,
@@ -116,31 +116,36 @@ export function SessionCard({
 
   const isLive = ['processing', 'pending', 'queued'].includes(session.status);
 
-  const getSessionUrl = () => {
+  const sessionUrl = useMemo(() => {
     if (session.status === 'complete') return `/rectify/${session.id}/results`;
     if (isLive) return `/rectify/${session.id}`;
     return `/rectify/${session.id}/edit`;
-  };
+  }, [session.status, session.id, isLive]);
 
-  const formattedDate = new Date(session.createdAt).toLocaleDateString('en-US', {
+  const formattedDate = useMemo(() => new Date(session.createdAt).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
-  });
+  }), [session.createdAt]);
 
-  const handleFavoriteClick = (e: React.MouseEvent) => {
+  const handleFavoriteClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     onFavorite?.(session.id);
-  };
+  }, [onFavorite, session.id]);
 
-  const handleDeleteClick = (e: React.MouseEvent) => {
+  const handleDeleteClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setShowDeleteConfirm(true);
-  };
+  }, []);
 
-  const handleConfirmDelete = async () => {
+  const handleCloseDelete = useCallback(() => {
+    setShowDeleteConfirm(false);
+    setDeleteError(null);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
     setIsDeleting(true);
     setDeleteError(null);
 
@@ -150,7 +155,7 @@ export function SessionCard({
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` // Ensure token is passed if available
+          'Authorization': `Bearer ${token}`
         },
       });
 
@@ -167,7 +172,7 @@ export function SessionCard({
     } finally {
       setIsDeleting(false);
     }
-  };
+  }, [getToken, session.id, onDelete]);
 
   // Compact View
   if (viewMode === 'compact') {
@@ -241,7 +246,7 @@ export function SessionCard({
         </button>
 
         {/* Content */}
-        <Link href={getSessionUrl()}>
+        <Link href={sessionUrl}>
           <div className="pt-8">
             {/* Status Badge */}
             <div className={`
@@ -362,7 +367,7 @@ export function SessionCard({
 
       {/* Main Content */}
       <Link
-        href={getSessionUrl()}
+        href={sessionUrl}
         className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-4 items-start sm:items-center"
       >
         {/* Name & Status - Desktop Only */}
@@ -468,7 +473,7 @@ export function SessionCard({
         </button>
 
         <Link
-          href={getSessionUrl()}
+          href={sessionUrl}
           className="p-1.5 sm:p-2 text-[#A8A39D] hover:text-[#B8860B] rounded-lg transition-colors"
         >
           <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -487,10 +492,7 @@ export function SessionCard({
       {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
         isOpen={showDeleteConfirm}
-        onClose={() => {
-          setShowDeleteConfirm(false);
-          setDeleteError(null);
-        }}
+        onClose={handleCloseDelete}
         onConfirm={handleConfirmDelete}
         session={session}
         isDeleting={isDeleting}
@@ -498,4 +500,4 @@ export function SessionCard({
       />
     </motion.div>
   );
-}
+});

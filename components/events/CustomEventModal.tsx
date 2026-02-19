@@ -1,6 +1,7 @@
 /**
  * CustomEventModal Component
  * Modal for creating custom events and categories
+ * Note: Importance is selected later when user enters time/date
  */
 
 'use client';
@@ -8,7 +9,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, AlertCircle, Sparkles } from 'lucide-react';
-import { EventCategory, EventImportance, IMPORTANCE_OPTIONS } from '@/lib/events/types';
+import { EventCategory, EventImportance } from '@/lib/events/types';
 import { validateCustomEvent } from '@/lib/events/utils';
 
 interface CustomEventModalProps {
@@ -34,7 +35,6 @@ export default function CustomEventModal({
 }: CustomEventModalProps) {
   const [eventName, setEventName] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [importance, setImportance] = useState<EventImportance>('medium');
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryIcon, setNewCategoryIcon] = useState('📌');
@@ -57,7 +57,6 @@ export default function CustomEventModal({
   const resetForm = useCallback(() => {
     setEventName('');
     setSelectedCategory('');
-    setImportance('medium');
     setIsCreatingCategory(false);
     setNewCategoryName('');
     setNewCategoryIcon('📌');
@@ -97,7 +96,7 @@ export default function CustomEventModal({
         onCreateEvent({
           label: eventName.trim(),
           categoryId: isCreatingCategory ? 'custom' : selectedCategory,
-          importance,
+          importance: 'medium',
           isNewCategory: isCreatingCategory,
           newCategoryName: isCreatingCategory ? newCategoryName.trim() : undefined,
         });
@@ -112,7 +111,6 @@ export default function CustomEventModal({
     [
       eventName,
       selectedCategory,
-      importance,
       isCreatingCategory,
       newCategoryName,
       onCreateEvent,
@@ -267,61 +265,10 @@ export default function CustomEventModal({
                 )}
               </div>
 
-              {/* Importance Selection - Compact */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-[#1A1612]">
-                  Event Importance <span className="text-[#C65D3B]">*</span>
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {IMPORTANCE_OPTIONS.map((option) => (
-                    <button
-                      key={option.level}
-                      type="button"
-                      onClick={() => setImportance(option.level)}
-                      className={`p-2.5 rounded-lg text-left transition-all border ${importance === option.level
-                        ? 'bg-[#B8860B]/10 border-[#B8860B]'
-                        : 'bg-white border-[#E8E0D5] hover:border-[#D4A853]/50'
-                        }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${importance === option.level
-                            ? 'border-[#B8860B] bg-[#B8860B]'
-                            : 'border-[#A8A39D]'
-                            }`}
-                        >
-                          {importance === option.level && (
-                            <span className="text-white text-[10px]">✓</span>
-                          )}
-                        </span>
-                        <div className="min-w-0">
-                          <div
-                            className={`font-medium text-xs ${importance === option.level
-                              ? 'text-[#1A1612]'
-                              : 'text-[#4A453F]'
-                              }`}
-                          >
-                            {option.icon} {option.label}
-                          </div>
-                          <div
-                            className={`text-[10px] leading-tight ${importance === option.level
-                              ? 'text-[#B8860B]'
-                              : 'text-[#7A756F]'
-                              }`}
-                          >
-                            {option.desc}
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Tips - Compact */}
               <div className="p-3 bg-[#2D7A5C]/5 border border-[#2D7A5C]/20 rounded-lg">
                 <p className="text-xs text-[#2D7A5C]">
-                  <strong>💡</strong> Critical events provide highest BTR accuracy
+                  <strong>💡</strong> Set event importance after adding time &amp; date
                 </p>
               </div>
             </form>

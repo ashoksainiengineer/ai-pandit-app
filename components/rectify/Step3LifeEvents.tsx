@@ -51,11 +51,12 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 
 const HOURS = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
 const MINUTES = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
 
-// Generate unique ID with counter to prevent duplicates
-let idCounter = 0;
+// Generate unique ID using crypto.randomUUID for SSR safety
 const generateEventId = (): string => {
-  idCounter += 1;
-  return `evt_${Date.now()}_${idCounter}`;
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return `evt_${crypto.randomUUID()}`;
+  }
+  return `evt_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 };
 
 // Sanitize description
@@ -235,7 +236,7 @@ export default function Step3LifeEvents({
     if (data.isNewCategory && data.newCategoryName) {
       // Create new category
       const newCategory: EventCategory = {
-        id: `custom_${Date.now()}_${idCounter++}`,
+        id: `custom_${crypto.randomUUID ? crypto.randomUUID() : Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
         icon: '📌',
         label: data.newCategoryName,
         color: '#B8860B',

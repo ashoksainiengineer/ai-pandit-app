@@ -549,9 +549,13 @@ export function useDashboard(initialSessions: DashboardSession[]): UseDashboardR
 }
 
 export function useKeyboardShortcuts(shortcuts: { key: string; ctrl?: boolean; action: () => void }[]) {
+  const shortcutsKey = shortcuts.map(s => s.key + (s.ctrl ? '-ctrl' : '')).join(',');
+  
+  const memoizedShortcuts = useMemo(() => shortcuts, [shortcutsKey]); // eslint-disable-line react-hooks/exhaustive-deps -- shortcutsKey is derived from shortcuts
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      shortcuts.forEach(({ key, ctrl, action }) => {
+      memoizedShortcuts.forEach(({ key, ctrl, action }) => {
         if (e.key.toLowerCase() === key.toLowerCase() && (!ctrl || e.ctrlKey || e.metaKey)) {
           e.preventDefault();
           action();
@@ -561,7 +565,7 @@ export function useKeyboardShortcuts(shortcuts: { key: string; ctrl?: boolean; a
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [shortcuts]);
+  }, [memoizedShortcuts]);
 }
 
 export function useScrollPosition() {

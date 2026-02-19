@@ -6,19 +6,45 @@
  * - Static generation for instant load
  * - ISR for automatic updates every hour
  * - No server-side computation on request
+ * - Dynamic imports for below-fold content
  */
 
 import { Metadata } from 'next';
-import Hero from '@/components/landing/Hero';
-import Problem from '@/components/landing/Problem';
-import Solution from '@/components/landing/Solution';
-import { AccuracyShowcase } from '@/components/landing/AccuracyShowcase';
-import { FinalCTA } from '@/components/landing/FinalCTA';
-import TestimonialsSection from '@/components/landing/Testimonials';
-import Pricing from '@/components/landing/Pricing';
-import FAQ from '@/components/landing/FAQ';
+import dynamic from 'next/dynamic';
 import Navbar from '@/components/landing/Navbar';
-import Footer from '@/components/landing/Footer';
+import Hero from '@/components/landing/Hero';
+
+const Problem = dynamic(() => import('@/components/landing/Problem'), {
+  loading: () => <section className="min-h-[400px] bg-[#FFFCF8]" />,
+  ssr: true
+});
+const Solution = dynamic(() => import('@/components/landing/Solution'), {
+  loading: () => <section className="min-h-[400px] bg-[#FFFCF8]" />,
+  ssr: true
+});
+const AccuracyShowcase = dynamic(() => import('@/components/landing/AccuracyShowcase').then(mod => ({ default: mod.AccuracyShowcase })), {
+  loading: () => <section className="min-h-[400px] bg-[#FFFCF8]" />,
+  ssr: true
+});
+const TestimonialsSection = dynamic(() => import('@/components/landing/Testimonials'), {
+  loading: () => <section className="min-h-[400px] bg-[#FFFCF8]" />,
+  ssr: true
+});
+const Pricing = dynamic(() => import('@/components/landing/Pricing'), {
+  loading: () => <section className="min-h-[400px] bg-[#FFFCF8]" />,
+  ssr: true
+});
+const FAQ = dynamic(() => import('@/components/landing/FAQ'), {
+  loading: () => <section className="min-h-[400px] bg-[#FFFCF8]" />,
+  ssr: true
+});
+const FinalCTA = dynamic(() => import('@/components/landing/FinalCTA').then(mod => ({ default: mod.FinalCTA })), {
+  loading: () => <section className="min-h-[200px] bg-[#FFFCF8]" />,
+  ssr: true
+});
+const Footer = dynamic(() => import('@/components/landing/Footer'), {
+  ssr: true
+});
 
 // ISR: Revalidate every hour to refresh content without full rebuild
 export const revalidate = 3600;

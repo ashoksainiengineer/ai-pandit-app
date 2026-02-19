@@ -68,13 +68,13 @@ export default function EventSelector({
     [existingEvents]
   );
 
-  const toggleImportance = (importance: EventImportance) => {
+  const toggleImportance = useCallback((importance: EventImportance) => {
     setImportanceFilter((prev) =>
       prev.includes(importance)
         ? prev.filter((i) => i !== importance)
         : [...prev, importance]
     );
-  };
+  }, []);
 
   return (
     <div className="space-y-6">
