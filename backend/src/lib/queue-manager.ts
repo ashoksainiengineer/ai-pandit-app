@@ -850,6 +850,12 @@ async function processSessionAsync(sessionId: string): Promise<void> {
         // Status already set to 'failed' by cancelSession, no need to update
       } else {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        const errorStack = error instanceof Error ? error.stack : undefined;
+        logger.error('[PROCESSING ERROR] Session failed during processing', { 
+          sessionId, 
+          errorMsg, 
+          errorStack: errorStack?.substring(0, 500)
+        });
         await markAsFailed(sessionId, errorMsg);
         cleanupController(sessionId);
       }

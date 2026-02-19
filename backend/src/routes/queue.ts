@@ -363,6 +363,14 @@ async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionId
 
         const now = new Date().toISOString();
 
+        const previousStatus = session[0].status;
+        const previousError = session[0].errorMessage;
+        logger.info('[REQUEUE] Starting requeue', { 
+            sessionId, 
+            previousStatus, 
+            previousError: previousError?.substring(0, 100) 
+        });
+
         // 1. Reset session state
         await executeWithRetry(() =>
             db.update(sessions)
@@ -383,7 +391,27 @@ async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionId
         // 2. Clear event buffers 
         cleanupSession(sessionId);
 
-        // 3. Add back to queue
+        // 3. Verify the status was updated before adding to queue
+        const verifySession = await executeWithRetry(() =>
+            db.select({ status: sessions.status, errorMessage: sessions.errorMessage })
+                .from(sessions)
+                .where(eq(sessions.id, sessionId))
+                .limit(1)
+        );
+        
+        if (verifySession.length === 0 || verifySession[0].status !== 'pending') {
+            logger.error('[REQUEUE] Status verification failed', { 
+                sessionId, 
+                expectedStatus: 'pending', 
+                actualStatus: verifySession[0]?.status 
+            });
+            res.status(500).json({ success: false, error: 'Failed to reset session state' });
+            return;
+        }
+        
+        logger.info('[REQUEUE] Status verified as pending', { sessionId });
+
+        // 4. Add back to queue
         const queueResult = await addToQueue(sessionId);
 
         if (!queueResult.success) {

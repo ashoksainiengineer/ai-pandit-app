@@ -76,8 +76,6 @@ export function buildVimshottariDasha(
   }
 
   if (result.length === 0) {
-    console.warn(`[DASHA-BUILDER] No dasha entries built for cutoff. VimDashas Count: ${vimDashas.length}`);
-
     // 🛡️ FALLBACK: If we have no entries but we HAVE vimDashas, at least add the first Mahadasha/Antardasha 
     // This prevents the "Missing Vimshottari Dasha" fatal error in builder
     if (vimDashas.length > 0) {

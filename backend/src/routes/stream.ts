@@ -70,6 +70,7 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
             userId: sessions.userId,
             clerkId: sessions.clerkId,
             errorMessage: sessions.errorMessage,
+            updatedAt: sessions.updatedAt,
         })
             .from(sessions)
             .where(eq(sessions.id, sessionId))
@@ -110,7 +111,10 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
         // NOTE: cancelSession() sets status to 'failed' with errorMessage 'Cancelled by user'
         const terminalStates = ['cancelled', 'error', 'failed', 'complete'];
         if (terminalStates.includes(currentStatus)) {
-            logger.info(`[SSE] Session ${sessionId} is in terminal state: ${currentStatus}`);
+            logger.info(`[SSE] Session ${sessionId} is in terminal state: ${currentStatus}`, {
+                errorMessage: session[0].errorMessage?.substring(0, 200),
+                updatedAt: session[0].updatedAt
+            });
 
             // Set all SSE headers for proper EventSource handling
             res.setHeader('Content-Type', 'text/event-stream');
