@@ -5,7 +5,7 @@ import { db, executeWithRetry } from '../database/drizzle.js';
 import { sessions, users } from '../database/schema.js';
 import { eq } from 'drizzle-orm';
 import { logger } from '../lib/logger.js';
-import { addToQueue, getQueueStatus, startQueueProcessor, cancelSession } from '../lib/queue-manager.js';
+import { addToQueue, getQueueStatus, startQueueProcessor, cancelSession, flushSessionTrash } from '../lib/queue-manager.js';
 import { validateOffsetConfig, TimeOffsetConfig } from '../lib/time-offset-manager.js';
 import { BirthData, LifeEvent } from '../lib/types.js';
 import { encryptData, safeDecrypt, safeDecryptWithFallback } from '../lib/encryption/index.js';
@@ -365,10 +365,10 @@ async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionId
 
         const previousStatus = session[0].status;
         const previousError = session[0].errorMessage;
-        logger.info('[REQUEUE] Starting requeue', { 
-            sessionId, 
-            previousStatus, 
-            previousError: previousError?.substring(0, 100) 
+        logger.info('[REQUEUE] Starting requeue', {
+            sessionId,
+            previousStatus,
+            previousError: previousError?.substring(0, 100)
         });
 
         // 1. Reset session state
@@ -388,8 +388,8 @@ async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionId
                 .where(eq(sessions.id, sessionId))
         );
 
-        // 2. Clear event buffers 
-        cleanupSession(sessionId);
+        // 2. Clear event buffers and abort zombie engine
+        await flushSessionTrash(sessionId);
 
         // 3. Verify the status was updated before adding to queue
         const verifySession = await executeWithRetry(() =>
@@ -398,17 +398,17 @@ async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionId
                 .where(eq(sessions.id, sessionId))
                 .limit(1)
         );
-        
+
         if (verifySession.length === 0 || verifySession[0].status !== 'pending') {
-            logger.error('[REQUEUE] Status verification failed', { 
-                sessionId, 
-                expectedStatus: 'pending', 
-                actualStatus: verifySession[0]?.status 
+            logger.error('[REQUEUE] Status verification failed', {
+                sessionId,
+                expectedStatus: 'pending',
+                actualStatus: verifySession[0]?.status
             });
             res.status(500).json({ success: false, error: 'Failed to reset session state' });
             return;
         }
-        
+
         logger.info('[REQUEUE] Status verified as pending', { sessionId });
 
         // 4. Add back to queue

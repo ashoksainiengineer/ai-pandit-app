@@ -332,8 +332,24 @@ export function useStreamProgress(
                     const existingStageText = newStageHistory.get(stage) || '';
                     newStageHistory.set(stage, existingStageText + chunk);
 
+                    // 🔱 SYNC UI STAGE WITH REASONING
+                    // Map AI stage (1-6) to progress stepIndex (1-6)
+                    const currentStepIndex = prev.progress?.stepIndex || 0;
+                    const targetStepIndex = stage;
+
+                    let updatedProgress = prev.progress;
+                    if (prev.progress && targetStepIndex > currentStepIndex && targetStepIndex <= prev.progress.totalSteps) {
+                        updatedProgress = {
+                            ...prev.progress,
+                            stepIndex: targetStepIndex,
+                            step: prev.progress.totalSteps > targetStepIndex ? 'advancing...' : prev.progress.step,
+                            message: `AI Processing: Stage ${stage}`
+                        };
+                    }
+
                     return {
                         ...prev,
+                        progress: updatedProgress,
                         aiThinking: {
                             ...prev.aiThinking,
                             [candidateTime]: updatedThinking
@@ -428,7 +444,22 @@ export function useStreamProgress(
 
                 case 'metadata': {
                     const metadata = (data.data as StreamMetadata) || (data as unknown as StreamMetadata);
-                    return { ...prev, metadata: metadata };
+
+                    // 🔱 RESET STATE ON REQUEUE
+                    // If the status changes back to pending or queued, it's a new run.
+                    const isReset = metadata.status === 'pending' || metadata.status === 'queued';
+
+                    return {
+                        ...prev,
+                        metadata: metadata,
+                        ...(isReset ? {
+                            aiThinking: {},
+                            stageHistory: new Map(),
+                            candidateScores: [],
+                            allCandidates: new Map(),
+                            decisions: []
+                        } : {})
+                    };
                 }
 
                 case 'complete':
@@ -647,11 +678,11 @@ export function useStreamProgress(
                 if (!mountedRef.current || currentSessionRef.current !== sid) return;
                 try {
                     const data = JSON.parse(event.data);
-                    
+
                     // 🔧 FIX: Handle auth errors sent as regular messages
                     if (data.type === 'error' && (data.code === 'AUTH_FAILED' || data.code === 'UNAUTHORIZED')) {
                         console.error('🔥 [SSE] Auth error received:', data);
-                        
+
                         if (!authRetryRef.current) {
                             console.warn('🔄 [SSE] Authentication failed. Attempting one-time token refresh...');
                             authRetryRef.current = true;
@@ -659,7 +690,7 @@ export function useStreamProgress(
                             setTimeout(() => connect(sid, { skipCache: true }), 500);
                             return;
                         }
-                        
+
                         // Terminal error after retry
                         cleanup();
                         setState(prev => ({
@@ -674,7 +705,7 @@ export function useStreamProgress(
                         });
                         return;
                     }
-                    
+
                     handleEvent(data);
                 } catch (e) {
                     logger.warn('Failed to parse SSE message');
@@ -707,7 +738,7 @@ export function useStreamProgress(
                         setTimeout(() => connect(sid, { skipCache: true }), 1000);
                         return;
                     }
-                    
+
                     // Already retried - fall back to polling
                     console.error('🔥 [SSE] Connection failed after retry. Switching to polling...');
                     cleanup();
@@ -717,7 +748,7 @@ export function useStreamProgress(
                     // Still connecting - wait a bit before deciding
                     setTimeout(() => {
                         if (mountedRef.current && currentSessionRef.current === sid && !sseSourceRef.current && !terminalStateReceivedRef.current) {
-                             console.error('🔥 [SSE] Initial connection timeout. Switching to polling...');
+                            console.error('🔥 [SSE] Initial connection timeout. Switching to polling...');
                             cleanup();
                             setConnectionState({ status: 'polling', url: '', lastError: 'SSE timeout' });
                             poll(sid);
