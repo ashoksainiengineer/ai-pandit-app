@@ -347,7 +347,7 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                 Dashboard
               </Link>
               <Link
-                href="/rectify"
+                href="/rectify?new=true"
                 className="text-sm font-medium transition-colors hover:text-[#B8860B]"
                 style={{ color: THEME.textSecondary }}
               >

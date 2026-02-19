@@ -18,7 +18,11 @@ import { ForensicTraits } from '@/lib/types';
 import { Gender } from '@/lib/forensic-emojis';
 import { QuizResults } from '@/lib/forensic-quiz/types';
 import { mapQuizResultsToLegacyTraits } from '@/lib/forensic-quiz/scoring';
-import { QUIZ_METADATA, FORENSIC_QUIZ_QUESTIONS } from '@/lib/forensic-quiz/questions';
+import {
+    QUIZ_METADATA,
+    FORENSIC_ONLY_QUESTIONS as FORENSIC_QUIZ_QUESTIONS,
+    FORENSIC_ONLY_METADATA
+} from '@/lib/forensic-quiz/questions';
 import WhyForensicTraits from './WhyForensicTraits';
 import ForensicQuizEngine from './ForensicQuizEngine';
 
@@ -161,8 +165,8 @@ export default function Step2ForensicTraits({
                                 Vedic Forensic Assessment
                             </h2>
                             <p className="text-[#7A756F] max-w-md mx-auto">
-                                Answer {QUIZ_METADATA.totalQuestions} simple questions about your physical traits and behaviors.
-                                Our system will determine your cosmic imprint for precise birth time rectification.
+                                Answer {QUIZ_METADATA.totalQuestions} questions about your body constitution (prakriti), behavior patterns, decision-making style, temperament, and family background.
+                                Physical appearance is covered in a separate section.
                             </p>
                         </div>
 

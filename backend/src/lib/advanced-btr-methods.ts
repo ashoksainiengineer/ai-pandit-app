@@ -415,6 +415,25 @@ export function calculateD60(longitude: number): { sign: string; degree: number 
 }
 
 /**
+ * Calculate D12 (Dwadasamsha) Chart - Parents/Ancestry
+ * Each sign divided into 12 parts (2.5° each)
+ * Critical for verifying parent-related events
+ */
+export function calculateD12(longitude: number): { sign: string; degree: number } {
+    const signIndex = Math.floor(longitude / 30);
+    const degreeInSign = longitude % 30;
+    const dwadasamshaSpan = 30 / 12;
+    const dwadasamshaNum = Math.floor(degreeInSign / dwadasamshaSpan);
+
+    const d12SignIndex = (signIndex + dwadasamshaNum) % 12;
+
+    return {
+        sign: ZODIAC_SIGNS[d12SignIndex],
+        degree: (degreeInSign % dwadasamshaSpan) * 12,
+    };
+}
+
+/**
  * Calculate D150 (Nadi Ansha) - The Ultimate Precision Division
  * Each sign divided into 150 parts (12 minutes of arc / 0.2° each)
  * Changes every ~48 seconds of birth time.

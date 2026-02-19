@@ -167,7 +167,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
             </p>
             {!searchQuery && (
               <Link
-                href="/rectify"
+                href="/rectify?new=true"
                 className="inline-flex items-center gap-2 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity"
               >
                 <Sparkles className="w-5 h-5" />

@@ -517,6 +517,7 @@ export function getOffsetConfigDescription(config: TimeOffsetConfig): string {
 export function validateOffsetConfig(config: TimeOffsetConfig): {
   valid: boolean;
   error?: string;
+  warning?: string;
 } {
   if (!config.preset && config.customMinutes === undefined) {
     return {
@@ -532,16 +533,24 @@ export function validateOffsetConfig(config: TimeOffsetConfig): {
         error: 'Custom offset must be at least 1 minute',
       };
     }
-    if (config.customMinutes > 1440) {
+    if (config.customMinutes > 720) {
       return {
         valid: false,
-        error: 'Offset cannot exceed 24 hours',
+        error: 'Offset cannot exceed ±12 hours (720 minutes). Maximum allowed offset covers the full 24-hour day.',
+      };
+    }
+    if (config.customMinutes > 360) {
+      return {
+        valid: true,
+        warning: 'Large offset range selected. Consider narrowing down if possible for better precision.',
       };
     }
   }
 
   return { valid: true };
 }
+
+export const MAX_OFFSET_MINUTES = 720;
 
 // ═════════════════════════════════════════════════════════════════════════
 // Calculate Tournament Rounds

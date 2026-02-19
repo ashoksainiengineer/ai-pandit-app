@@ -3,6 +3,10 @@
 // lib/ai-client.ts
 // Production AI Thinking API Client
 // Optimized for maximum accuracy in birth time rectification
+//
+// 🔱 WEIGHTS: All scoring weights are centralized in btr/god-tier-weights.ts
+// The weights shown in prompts below are documentation for the AI model.
+// Actual code weights MUST use the god-tier-weights.ts constants.
 
 import { logger } from './logger.js';
 import { config } from '../config/index.js';

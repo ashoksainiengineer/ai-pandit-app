@@ -3,6 +3,9 @@
  *
  * Generates AI prompts for Stage 6 final seconds-level precision judgment.
  * Creates the ultimate forensic prompt for selecting the single best birth time.
+ * 
+ * 🔱 AI-DRIVEN FLEXIBLE WEIGHTING SYSTEM:
+ * AI has FULL FREEDOM to adjust weights for SECONDS-LEVEL precision.
  */
 
 import { CandidateDataPackage } from '../types.js';
@@ -10,6 +13,31 @@ import { LifeEvent, ForensicTraits } from '../../../types/index.js';
 import { formatLifeEventForAI } from './life-event-formatter.js';
 import { buildForensicDNASummary } from './forensic-context.js';
 import { randomSort } from '../../utils/index.js';
+
+/**
+ * Get event importance summary for AI
+ */
+function getEventImportanceSummary(events: LifeEvent[]): string {
+  const critical = events.filter(e => e.importance === 'critical');
+  const high = events.filter(e => e.importance === 'high');
+  const medium = events.filter(e => e.importance === 'medium');
+  const low = events.filter(e => e.importance === 'low');
+  
+  let summary = '';
+  if (critical.length > 0) {
+    summary += `CRITICAL (${critical.length}): ${critical.map(e => e.eventType).join(', ')}\n`;
+  }
+  if (high.length > 0) {
+    summary += `HIGH (${high.length}): ${high.map(e => e.eventType).join(', ')}\n`;
+  }
+  if (medium.length > 0) {
+    summary += `MEDIUM (${medium.length}): ${medium.map(e => e.eventType).join(', ')}\n`;
+  }
+  if (low.length > 0) {
+    summary += `LOW (${low.length}): ${low.map(e => e.eventType).join(', ')}`;
+  }
+  return summary;
+}
 
 /**
  * Generates final precision prompt for Stage 6
@@ -43,38 +71,50 @@ export function getFinalPrecisionPrompt(
     rahu?: string;
   } | undefined;
 
-  return `BIRTH TIME RECTIFICATION - FINAL STAGE(Seconds Precision)
+  return `BIRTH TIME RECTIFICATION - FINAL STAGE (Seconds Precision)
 
 ════════════════════════════════════════════════════════════════════════════════
-⚖️ ANTI - BIAS & OBJECTIVITY RULES:
-    1. TOTAL NEUTRALITY: You are a cold, mathematical evaluator.
+🎯 AI-DRIVEN FLEXIBLE SCORING - FINAL SECONDS PRECISION
+════════════════════════════════════════════════════════════════════════════════
+
+YOU HAVE FULL FREEDOM TO ADJUST WEIGHTS! This is the FINAL judgment - be precise:
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  METHOD          │ REFERENCE │  PRECISION    │ FINAL STAGE FOCUS          │
+│                  │  WEIGHT   │               │                            │
+├──────────────────┼───────────┼───────────────┼────────────────────────────┤
+│  D150 Nadi       │   2.5     │  48 seconds   │ CRITICAL for seconds!      │
+│  KP Sub-Lord     │   2.3     │  seconds      │ 4-level precision          │
+│  Vimshottari     │   2.0     │  hours        │ Prana Dasha level          │
+│  Varga (D60)     │   1.8     │  2 minutes    │ Karma Lagna changes        │
+│  Transit         │   1.5     │  days         │ Final verification         │
+│  Kalachakra      │   1.3     │  days         │ Cross-check                │
+│  Shadbala        │   1.0     │  N/A          │ Strength context           │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+⚠️ FOR SECONDS PRECISION - FOCUS ON:
+• D150 Nadi Amsha - Changes every 48 seconds!
+• KP Sub-Sub-Sub-Lord - 4th level precision
+• Vimshottari Prana Dasha - Hour-level refinement
+• D60 Lagna - Changes every 2 minutes
+
+════════════════════════════════════════════════════════════════════════════════
+📊 USER'S EVENT IMPORTANCE SELECTIONS
+════════════════════════════════════════════════════════════════════════════════
+
+${getEventImportanceSummary(events)}
+
+════════════════════════════════════════════════════════════════════════════════
+⚖️ FINAL JUDGMENT RULES
+════════════════════════════════════════════════════════════════════════════════
+
+1. TOTAL NEUTRALITY: You are a cold, mathematical evaluator.
 2. NO POSITIONAL BIAS: Candidate #1 is NOT more likely than Candidate #N.
-3. MANDATORY PROOF: Every point in SCORE must be backed by a Technical Proof(e.g.D60 Lagna).
-════════════════════════════════════════════════════════════════════════════════
+3. MANDATORY PROOF: Every score must be backed by technical proof.
+4. FOCUS ON D60: Even 10 seconds can change D60 Lagna!
+5. NADI AMSHA (D150): Changes every 48 seconds - THIS IS THE KEY!
+6. BIO-VEDIC LOCK: Time must match Life Events + Forensic DNA + Family Karma.
 
-⚠️ GOD - TIER PRECISION RULES:
-    1. FOCUS ON D60(SHASHTYAMSA): Even 10 seconds can change D60 Lagna.
-2. NARRATIVE SYNC: The rectified time MUST explain the "NARRATIVE EXPERIENCE" describing the flavor of the life event(e.g. "sudden surgery" implies Mars / Ketu in 8th or 6th).
-3. VERIFY PRANADASHAS: Use Vimshottari logic down to the finest level. Note that PD typically changes every few hours, but NADI ANSHA changes every ~48 seconds.
-4. NADI ANSHA (D150) DNA: Use D150 Nadi names/indices to find the "Signature of the Soul". Even a 48-second shift moves the Nadi Ansha.
-5. BIO-VEDIC IDENTITY LOCK: The chosen time must represent the ONLY logical intersection of the Life Events, Forensic DNA, and Family Karma. A "Pitta" constitution with heat sensitivity MUST have Sun/Mars influence on Lagna or Lagna Lord in D1/D9.
-6. 🔱 MAHAKALA ULTIMATE PRECISION (The Soul's Signature):
-   - TATWA SHUDDHI: Determine if the candidate's 'Five Element' flavor (Earth, Water, etc.) matches the visceral reality of the birth moment.
-   - KUNDA LAGNA: This is your absolute geometric anchor. A 'Matches Moon' status is the highest signal of structural validity for the time.
-   - NADI ANSHA (D150): Use this 48-second sensitive signature to differentiate between nearly identical finalists.
-7. ⚛️ THE MAHAKALA SCORING MATRIX:
-   - DEEP-KARMA (+50): Life-altering events (Birth/Death/Major Accident).
-   - DHARMA SHIFTS (+30): Marriage/Career.
-   - x3.0 MULTIPLIER: Nadi Ansha resonance + Kunda Lagna match + Varga-Dasha alignment.
-   - VETO: Immediate exclusion if physical DNA is inverted or family markers are structurally impossible.
-8. 🚨🚨🚨 SECONDS-LEVEL FORENSIC AUDIT 🚨🚨🚨: Finalize your analysis with a summary ASCII box:
-============================
-  METHODOLOGICAL AUDIT
-----------------------------
-  [Detail 1]
-  [Detail 2]
-============================
-List specific Varga nuances or high-precision metrics missing for "Absolute God-Tier" 100% precision.
 ════════════════════════════════════════════════════════════════════════════════
 ════════════════════════════════════════════════════════════════════════════════
 
@@ -133,6 +173,35 @@ ${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:
 │ Tatwa Shuddhi: ${c.vedicSignals.tatwa?.name} (${c.vedicSignals.tatwa?.element}) | Auspicious: ${c.vedicSignals.tatwa?.isAuspicious}
 │ Kunda Lagna: ${c.vedicSignals.kundaLagna?.sign} ${c.vedicSignals.kundaLagna?.degree.toFixed(2)}° | Matches Moon: ${c.vedicSignals.kundaLagna?.matchesMoon ? 'YES 🔥' : 'NO'}
 │ Parivartana: ${c.vedicSignals.parivartana?.map((ex: any) => `L${ex.houses[0]}↔L${ex.houses[1]}`).join(', ') || 'None'}` : ''}
+${c.kalachakraDasha ? `├ KALACHAKRA DASHA (Savya/Apasavya):
+${c.kalachakraDasha.slice(0, 12).map(k => `│ ${k.sign} (${k.lord}): ${k.startDate.toISOString().split('T')[0]} to ${k.endDate.toISOString().split('T')[0]} (${k.durationYears.toFixed(1)}y) [${k.kalachakraType}]`).join('\n')}` : ''}
+${c.shadbalaSummary ? `├ SHADBALA SUMMARY (6-Source Strength):
+│ Strongest: ${c.shadbalaSummary.strongestPlanet?.toUpperCase()} | Weakest: ${c.shadbalaSummary.weakestPlanet?.toUpperCase()} | Avg: ${c.shadbalaSummary?.averageStrength}
+│ Strong Benefics: ${c.shadbalaSummary.benifics?.strong?.join(', ') || 'None'} | Weak Benefics: ${c.shadbalaSummary.benifics?.weak?.join(', ') || 'None'}
+│ Strong Malefics: ${c.shadbalaSummary.malefics?.strong?.join(', ') || 'None'} | Weak Malefics: ${c.shadbalaSummary.malefics?.weak?.join(', ') || 'None'}` : ''}
+${c.nadiData ? `├ D150 NADI AMSHA (48-Second Precision DNA - THE SOUL SIGNATURE):
+│ Ascendant: ${c.nadiData.ascendant?.nadiName} | Deity: ${c.nadiData.ascendant?.deity} | Phala: ${c.nadiData.ascendant?.phala}
+│ Moon: ${c.nadiData.moon?.nadiName} | Deity: ${c.nadiData.moon?.deity} | Karmic: ${c.nadiData.moon?.karmicSignificance}
+│ Sun: ${c.nadiData.sun?.nadiName} | Deity: ${c.nadiData.sun?.deity}
+│ Time Resolution: ~${c.nadiData.ascendant?.timeResolution} seconds per Nadi shift` : ''}
+${c.nadiAnalysis?.length ? `├ D150 EVENT CORRELATION:
+${c.nadiAnalysis.map(n => `│ ${n.eventCategory}: Score ${n.overallScore}/100 (${n.confidence}) | Rec: ${n.recommendations?.join('; ')}`).join('\n')}` : ''}
+${c.spouseD9Verification ? `├ FINAL SPOUSE D9 VERIFICATION:
+│ Score: ${c.spouseD9Verification.score}/100 | Verified: ${c.spouseD9Verification.verified ? 'YES ✓' : 'NO ✗'} | Confidence: ${c.spouseD9Verification.confidence?.toUpperCase()}
+│ Matches: ${c.spouseD9Verification.matches?.map((m: any) => m.description).join('; ') || 'None'}
+│ Mismatches: ${c.spouseD9Verification.mismatches?.map((m: any) => m.description).join('; ') || 'None'}
+│ Recommendations: ${c.spouseD9Verification.recommendations?.join('; ')}` : ''}
+${c.gandantaAnalysis && c.gandantaAnalysis.severity !== 'none' ? `├ ⚠️ GANDANTA KARMIC KNOT (CRITICAL):
+│ Lagna Gandanta: ${c.gandantaAnalysis.isLagnaGandanta ? 'YES ⚠️' : 'NO'} | Moon Gandanta: ${c.gandantaAnalysis.isMoonGandanta ? 'YES ⚠️' : 'NO'}
+│ Severity: ${c.gandantaAnalysis.severity.toUpperCase()} | Distance: ${c.gandantaAnalysis.distanceToGandanta.toFixed(4)}°
+│ Type: ${c.gandantaAnalysis.lagnaGandantaType || c.gandantaAnalysis.moonGandantaType || 'N/A'}
+│ Interpretation: ${c.gandantaAnalysis.interpretation.substring(0, 100)}...
+│ Recommendations: ${c.gandantaAnalysis.recommendations.slice(0, 2).join('; ')}` : ''}
+${c.pakshiAnalysis ? `├ PANCHA-PAKSHI SHASTRA (Five Birds System):
+│ Ruling Bird: ${c.pakshiAnalysis.rulingBird.name} (${c.pakshiAnalysis.rulingBird.sanskritName}) | Element: ${c.pakshiAnalysis.rulingBird.element}
+│ Strength: ${c.pakshiAnalysis.birdStrength.toUpperCase()} | Quality: ${c.pakshiAnalysis.birthTimeQuality.substring(0, 50)}...
+│ Dominant Activities: ${c.pakshiAnalysis.activityStrengths.slice(0, 3).join(', ')}
+│ Verification: ${c.pakshiAnalysis.verificationNotes.substring(0, 80)}...` : ''}
 ${transitData ? `├ PRESENT DAY ANCHOR (2026 Transits):
 │ [Dasha Now]: ${transitData.dashaAtNow}
 │ [Planets Now]: Ju=${transitData.jupiter}, Sa=${transitData.saturn}, Ra=${transitData.rahu}` : ''}

@@ -26,8 +26,8 @@ import {
     QuizProgress
 } from '@/lib/forensic-quiz/types';
 import {
-    FORENSIC_QUIZ_QUESTIONS,
-    QUIZ_METADATA,
+    FORENSIC_ONLY_QUESTIONS as FORENSIC_QUIZ_QUESTIONS,
+    FORENSIC_ONLY_METADATA as QUIZ_METADATA,
     validateAnswer
 } from '@/lib/forensic-quiz/questions';
 import {

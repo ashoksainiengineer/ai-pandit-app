@@ -3,6 +3,12 @@
  *
  * Generates AI prompts for Stage 2 batch tournament analysis.
  * Creates comprehensive prompts with forensic context and candidate data.
+ * 
+ * 🔱 AI-DRIVEN FLEXIBLE WEIGHTING SYSTEM:
+ * AI has FULL FREEDOM to adjust method weights based on:
+ * - User's event importance selections
+ * - Data quality for each method
+ * - Case-specific context
  */
 
 import { CandidateDataPackage } from '../types.js';
@@ -10,6 +16,31 @@ import { LifeEvent, ForensicTraits } from '../../../types/index.js';
 import { formatLifeEventForAI } from './life-event-formatter.js';
 import { buildForensicContext } from './forensic-context.js';
 import { randomSort } from '../../utils/index.js';
+
+/**
+ * Get event importance summary for AI
+ */
+function getEventImportanceSummary(events: LifeEvent[]): string {
+  const critical = events.filter(e => e.importance === 'critical');
+  const high = events.filter(e => e.importance === 'high');
+  const medium = events.filter(e => e.importance === 'medium');
+  const low = events.filter(e => e.importance === 'low');
+  
+  let summary = '';
+  if (critical.length > 0) {
+    summary += `CRITICAL (${critical.length}): ${critical.map(e => e.eventType).join(', ')}\n`;
+  }
+  if (high.length > 0) {
+    summary += `HIGH (${high.length}): ${high.map(e => e.eventType).join(', ')}\n`;
+  }
+  if (medium.length > 0) {
+    summary += `MEDIUM (${medium.length}): ${medium.map(e => e.eventType).join(', ')}\n`;
+  }
+  if (low.length > 0) {
+    summary += `LOW (${low.length}): ${low.map(e => e.eventType).join(', ')}`;
+  }
+  return summary;
+}
 
 /**
  * Generates batch analysis prompt for Stage 2 tournament
@@ -42,44 +73,77 @@ export function getBatchPrompt(
   return `BIRTH TIME RECTIFICATION - STAGE 2 (Batch ${batchNumber}/${totalBatches})
 
 ════════════════════════════════════════════════════════════════════════════════
+🎯 AI-DRIVEN FLEXIBLE SCORING SYSTEM
+════════════════════════════════════════════════════════════════════════════════
+
+YOU HAVE FULL FREEDOM TO ADJUST WEIGHTS! Here are REFERENCE weights - you MAY change them:
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  METHOD          │ REFERENCE │  PRECISION    │ WHEN TO INCREASE           │
+│                  │  WEIGHT   │               │                            │
+├──────────────────┼───────────┼───────────────┼────────────────────────────┤
+│  D150 Nadi       │   2.0     │  48 seconds   │ Critical events, good data │
+│  KP Sub-Lord     │   2.0     │  seconds      │ Marriage, career events    │
+│  Vimshottari     │   1.8     │  hours        │ All timing, strong match   │
+│  Varga (D60)     │   1.7     │  2 minutes    │ Karma events, D60 clear    │
+│  Transit         │   1.5     │  days         │ Double transit confirmed   │
+│  Kalachakra      │   1.2     │  days         │ Cross-verification         │
+│  Shadbala        │   1.0     │  N/A          │ Weak/strong planets        │
+│  AI Judgment     │   0.5     │  N/A          │ Pattern recognition        │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+WEIGHT ADJUSTMENT RULES:
+• If user marked event as CRITICAL → Give MORE weight to precision methods (Nadi, KP)
+• If D60 data is incomplete → REDUCE Varga weight
+• If no spouse data → IGNORE spouseD9 method
+• If forensic traits don't match → INCREASE forensic penalty
+• YOU decide the final weights for each candidate!
+
+════════════════════════════════════════════════════════════════════════════════
+📊 USER'S EVENT IMPORTANCE SELECTIONS
+════════════════════════════════════════════════════════════════════════════════
+
+${getEventImportanceSummary(events)}
+
+⚠️ User's importance selections MUST be respected in your scoring!
+   - CRITICAL events = 5x weight in final score
+   - HIGH events = 3x weight
+   - MEDIUM events = 2x weight
+   - LOW events = 1x weight
+
+════════════════════════════════════════════════════════════════════════════════
 ⚖️ ANTI-BIAS PROTOCOL:
+════════════════════════════════════════════════════════════════════════════════
+
 1. TOTAL NEUTRALITY: Treat all provided times as equally likely candidates.
 2. ZERO TENTATIVE BIAS: Do not favor times just because they are closer to the "original" time.
-3. DATA-DRIVEN SCORE: Your score must reflect mathematical alignment only.
-4. NARRATIVE PRIMACY: The user's "SITUATIONAL NARRATIVE" is the ultimate source of truth. If a user describes a "sudden, shocking loss," prioritize candidates where Rahu/Ketu/8th house are activated in that dasha, even if raw scores are lower.
-5. FORENSIC CORRELATION: For EACH candidate, verify if their Varga markers (D1, D9, D60) align with the PHYSICAL and PSYCHOGRAPHIC DNA. A "measured_soft" speaker cannot have a Mercury-Mars lagna with heavy Agni influence unless strong Saturn control exists.
-════════════════════════════════════════════════════════════════════════════════
+3. DATA-DRIVEN SCORE: Your score must reflect astrological alignment only.
+4. NARRATIVE PRIMACY: The user's "SITUATIONAL NARRATIVE" is the ultimate source of truth.
+5. FORENSIC CORRELATION: Verify Varga markers align with PHYSICAL and PSYCHOGRAPHIC DNA.
 
 ════════════════════════════════════════════════════════════════════════════════
 ⚠️ CRITICAL GOD-TIER RULES:
-1. USE PRE-CALCULATED DATA ONLY. Do not compute positions.
-2. FUNCTIONAL NATURE MATTERS: A planet ruling 6/8/12 is malefic for this Ascendant.
-3. DIGNITY MATTERS: Exalted/Own planets give strong results; Debilitated giving mixed/weak.
-4. HOUSE LORDSHIP IS KEY: Event X (e.g., Marriage) MUST activate relevant house lords (e.g., 7th Lord).
-5. BIO-VEDIC MAPPING: Treat Forensic Traits as "Biological Anchors". If the user is an "eldest" child, the 3rd house (younger siblings) in D1/D9 must reflect this karma (e.g., 3rd lord in 12th or malefic aspect).
-6. 🔱 MAHAKALA INFINITE PRECISION:
-   - TATWA SHUDDHI: Verify if the Element (Earth/Water/etc.) aligns with the user's fundamental nature.
-   - KUNDA LAGNA: This is a 1-second sensitive multiplier. A 'Matches Moon' status is a strong indicator of structural correctness.
-   - BOUNDARY LOCKS: If a candidate's offset description says "Boundary Lock", pay special attention. These represent the EXACT moment a Lagna, Navamsha, or Shashtiamsha changes. The truth often lies exactly at these boundaries.
-7. 🚨🚨🚨 FORENSIC DATA GAP AUDIT 🚨🚨🚨: At the end of your reasoning, you MUST include a summary box with this EXACT format:
-============================
-  METHODOLOGICAL AUDIT
-----------------------------
-  [Point 1]
-  [Point 2]
-============================
-List every technical metric (e.g. D60 Degrees, Vimsopaka strength) that was missing but required for 100% mathematical certainty.
-
-7. ️ THE TRI-PRONGED LAGNA VERIFICATION (Human Factor Safety):
-   If forensic traits feel generic or "unreliable", do NOT eliminate based on looks alone. Use the "Triple Check":
-   A. PHYSICAL/SOFT: Check Sign Element (Fire/Water etc.).
-   B. NARRATIVE/HARD: Check family positioning (e.g., eldest sibling, parents' status). This is less subjective.
-   C. LORDSHIP/MATH: The 1st Lord's placement must align with the user's primary "Vibe". A 1st Lord in the 12th house (isolation/spirituality) vs 10th house (fame/public life).
-   - ONLY ELIMINATE if 2 out of 3 prongs show a CRITICAL CONTRADICTION.
-   - If in doubt, KEEP the candidate for Deep Analysis. Better to have 10 finalists than to lose the truth.
 ════════════════════════════════════════════════════════════════════════════════
 
-    TASK: Rank ${candidates.length} candidates using Bio-Vedic Forensic Mapping and Dasha - Event correlation.
+1. USE PRE-CALCULATED DATA ONLY. Do not compute positions.
+2. FUNCTIONAL NATURE MATTERS: A planet ruling 6/8/12 is malefic for this Ascendant.
+3. DIGNITY MATTERS: Exalted/Own planets give strong results; Debilitated give mixed/weak.
+4. HOUSE LORDSHIP IS KEY: Event MUST activate relevant house lords.
+5. BIO-VEDIC MAPPING: Treat Forensic Traits as "Biological Anchors".
+6. MAHAKALA PRECISION:
+   - TATWA SHUDDHI: Verify Element aligns with user's nature.
+   - KUNDA LAGNA: 'Matches Moon' = strong structural indicator.
+   - BOUNDARY LOCKS: Pay special attention - truth often lies at boundaries.
+
+════════════════════════════════════════════════════════════════════════════════
+
+    TASK: Rank ${candidates.length} candidates using your EXPERT ASTROLOGICAL JUDGMENT.
+    
+    For EACH candidate, you MUST:
+    1. Calculate score for EACH method (0-100)
+    2. Apply YOUR chosen weights (can differ per candidate!)
+    3. Provide reasoning for weight adjustments
+    4. Give final weighted score
 
 LIFE EVENTS:
 ${eventsText}
@@ -141,6 +205,26 @@ ${c.vedicSignals ? `VEDIC HIGH-SIGNALS:
 │ Tatwa Shuddhi: ${c.vedicSignals.tatwa?.name} (${c.vedicSignals.tatwa?.element}) | Auspicious: ${c.vedicSignals.tatwa?.isAuspicious}
 │ Kunda Lagna: ${c.vedicSignals.kundaLagna?.sign} ${c.vedicSignals.kundaLagna?.degree.toFixed(2)}° | Matches Moon: ${c.vedicSignals.kundaLagna?.matchesMoon ? 'YES 🔥' : 'NO'}
 │ Parivartana: ${c.vedicSignals.parivartana?.map((ex: any) => `L${ex.houses[0]}↔L${ex.houses[1]}`).join(', ') || 'None'}` : ''}
+${c.kalachakraDasha ? `├ KALACHAKRA DASHA (Savya/Apasavya):
+${c.kalachakraDasha.slice(0, 8).map(k => `│ ${k.sign} (${k.lord}): ${k.durationYears.toFixed(1)}y [${k.kalachakraType}]`).join('\n')}` : ''}
+${c.shadbalaSummary ? `├ SHADBALA SUMMARY (6-Source Strength):
+│ Strongest: ${c.shadbalaSummary.strongestPlanet?.toUpperCase()} | Weakest: ${c.shadbalaSummary.weakestPlanet?.toUpperCase()} | Avg: ${c.shadbalaSummary?.averageStrength}
+│ Strong Benefics: ${c.shadbalaSummary.benifics?.strong?.join(', ') || 'None'} | Strong Malefics: ${c.shadbalaSummary.malefics?.strong?.join(', ') || 'None'}` : ''}
+${c.nadiData ? `├ D150 NADI AMSHA (48-Second Precision DNA):
+│ Ascendant: ${c.nadiData.ascendant?.nadiName} | Deity: ${c.nadiData.ascendant?.deity} | Phala: ${c.nadiData.ascendant?.phala}
+│ Moon: ${c.nadiData.moon?.nadiName} | Deity: ${c.nadiData.moon?.deity} | Karmic: ${c.nadiData.moon?.karmicSignificance}` : ''}
+${c.spouseD9Verification ? `├ SPOUSE D9 VERIFICATION:
+│ Score: ${c.spouseD9Verification.score}/100 | Verified: ${c.spouseD9Verification.verified ? 'YES' : 'NO'} | Confidence: ${c.spouseD9Verification.confidence?.toUpperCase()}
+│ Matches: ${c.spouseD9Verification.matches?.map((m: any) => m.description).join('; ') || 'None'}` : ''}
+${c.gandantaAnalysis && c.gandantaAnalysis.severity !== 'none' ? `├ ⚠️ GANDANTA DETECTION (Karmic Knot):
+│ Lagna Gandanta: ${c.gandantaAnalysis.isLagnaGandanta ? 'YES' : 'NO'} | Moon Gandanta: ${c.gandantaAnalysis.isMoonGandanta ? 'YES' : 'NO'}
+│ Severity: ${c.gandantaAnalysis.severity.toUpperCase()} | Distance: ${c.gandantaAnalysis.distanceToGandanta.toFixed(3)}°
+│ Type: ${c.gandantaAnalysis.lagnaGandantaType || c.gandantaAnalysis.moonGandantaType || 'N/A'}
+│ ${c.gandantaAnalysis.interpretation.substring(0, 150)}...` : ''}
+${c.pakshiAnalysis ? `├ PANCHA-PAKSHI SHASTRA (Five Birds System):
+│ Ruling Bird: ${c.pakshiAnalysis.rulingBird.name} (${c.pakshiAnalysis.rulingBird.element}) | Strength: ${c.pakshiAnalysis.birdStrength.toUpperCase()}
+│ Sanskrit: ${c.pakshiAnalysis.rulingBird.sanskritName} | Quality: ${c.pakshiAnalysis.birthTimeQuality.substring(0, 60)}...
+│ Dominant Activities: ${c.pakshiAnalysis.activityStrengths.slice(0, 3).join(', ')}` : ''}
 ${c.vimsopakaBala ? `├ VIM SOPAKA BALA (Total Shodashvarga Strength - 0-20):
 │ ${Object.entries(c.vimsopakaBala).map(([n, s]) => `${n}:${s}`).join(' | ')}` : ''}
 ${c.chalitDiscrepancies?.length ? `├ BHAVA CHALIT DISCREPANCIES:
@@ -149,30 +233,55 @@ ${c.spouseMatch ? `├ SPOUSE SYNASTRY MATCH:
 │ ${c.spouseMatch.reason} (Synastry Score: ${c.spouseMatch.score})` : ''}
 ${c.lifecycleShifts?.length ? `├ LIFECYCLE CHRONOLOGY (Major Sign Ingresses):
 ${c.lifecycleShifts.slice(0, 15).map(s => `│ [${s.date}]: ${s.event}`).join('\n')}` : ''}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `).join('')
     }
 
-⚖️ THE MAHAKALA SCORING MATRIX (STRICT VEDIC LOGIC):
-1. HIERARCHICAL WEIGHTING (Base Points per Match):
-   - DEEP-KARMA EVENTS (+50): Death of Parent, Birth of Child, Life-Threatening Accident.
-   - DHARMA SHIFTS (+30): Marriage, Divorce, Major Career Pivot.
-   - ARTHA/KAMA EVENTS (+15): Buying Property, Casual Job Change, Short Travel.
+════════════════════════════════════════════════════════════════════════════════
+🎯 YOUR SCORING OUTPUT FORMAT (REQUIRED)
+════════════════════════════════════════════════════════════════════════════════
 
-2. SYNERGY MULTIPLIERS:
-   - x2.0 Varga-Dasha Mirror: Dasha lord rules the event house in BOTH D1 and the specific Varga (D9, D10, D7 etc.).
-   - x1.5 Mahakala Kunda Match: The candidate's Kunda Lagna 'Matches Moon'.
-   - x1.3 Nadi Ansha Resonance: D150 Nadi name aligns with the visceral flavor of the life events.
+For EACH candidate, provide THIS EXACT FORMAT:
 
-3. FORENSIC VETOES (Immediate -50 or ELIMINATE):
-   - Lagna Mismatch: physical/psychographic profile directly contradicts the Ascendant sign element/modality.
-   - Structural Contradiction: e.g., Siblings exist but 3rd house in D1/D9 is utterly barren/weak.
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CANDIDATE: [HH:MM:SS]                                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ METHOD SCORES (0-100 each):                                                 │
+│ • D150 Nadi:    [score]  (weight: [your chosen weight])                    │
+│ • KP Sub-Lord:  [score]  (weight: [your chosen weight])                    │
+│ • Vimshottari:  [score]  (weight: [your chosen weight])                    │
+│ • Varga (D60):  [score]  (weight: [your chosen weight])                    │
+│ • Transit:      [score]  (weight: [your chosen weight])                    │
+│ • Kalachakra:   [score]  (weight: [your chosen weight])                    │
+│ • Shadbala:     [score]  (weight: [your chosen weight])                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ WEIGHT ADJUSTMENTS: [Explain WHY you changed weights, if you did]          │
+│ FINAL WEIGHTED SCORE: [0-100]                                               │
+│ VERDICT: KEEP / ELIMINATE                                                    │
+│ KEY REASON: [One-line astrological reason]                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-OUTPUT FORMAT(one line per candidate):
-    [TIME] | SCORE: [0 - 100] | VERDICT: KEEP / ELIMINATE | REASON: [Explicit Astrological Reason e.g. "Venus is 7th Lord"]
+FINAL LINE (required):
+TOP_SURVIVORS: [comma-separated list of ${survivorsNeeded} best times]
 
-FINAL LINE(required):
-    TOP_SURVIVORS: [comma - separated list of ${survivorsNeeded} best times]`;
+EXAMPLE OUTPUT:
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CANDIDATE: 14:35:22                                                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ METHOD SCORES:                                                              │
+│ • D150 Nadi:    92  (weight: 2.2 - increased for critical marriage event)  │
+│ • KP Sub-Lord:  88  (weight: 2.0)                                           │
+│ • Vimshottari:  85  (weight: 1.9 - Venus MD matches marriage significator)  │
+│ • Varga (D60):  78  (weight: 1.7)                                           │
+│ • Transit:      75  (weight: 1.5)                                           │
+│ • Kalachakra:   70  (weight: 1.2)                                           │
+│ • Shadbala:     80  (weight: 1.0)                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ WEIGHT ADJUSTMENTS: Increased Nadi weight because marriage is CRITICAL     │
+│ FINAL WEIGHTED SCORE: 82                                                    │
+│ VERDICT: KEEP                                                               │
+│ KEY REASON: Venus MD + KP Sub-Lord match for marriage event                 │
+└─────────────────────────────────────────────────────────────────────────────┘`;
 }
 
 function getSignElement(sign: string): string {

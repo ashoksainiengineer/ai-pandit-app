@@ -432,8 +432,8 @@ function RectifyPageContent() {
                     {/* Progress Indicator and other UI elements */}
                     <div className="min-h-[400px]">
                         {step === 1 && <Step1BirthDetails data={birthData} updateData={updateBirthData} offsetConfig={offsetConfig} updateOffset={setOffsetConfig} spouseData={spouseData} updateSpouse={updateSpouseData} />}
-                        {step === 2 && <Step2ForensicTraits traits={forensicTraits} updateTraits={updateForensicTraits} gender={birthData.gender as Gender} onNext={handleNext} />}
-                        {step === 3 && <Step3PhysicalTraits physicalTraits={forensicTraits.physical} updateTraits={(p) => updateForensicTraits({ physical: { ...forensicTraits.physical, ...p } })} />}
+                        {step === 2 && <Step3PhysicalTraits physicalTraits={forensicTraits.physical} updateTraits={(p) => updateForensicTraits({ physical: { ...forensicTraits.physical, ...p } })} />}
+                        {step === 3 && <Step2ForensicTraits traits={forensicTraits} updateTraits={updateForensicTraits} gender={birthData.gender as Gender} onNext={handleNext} />}
                         {step === 4 && <Step3LifeEvents lifeEvents={lifeEvents} updateEvents={setLifeEvents} offsetConfig={offsetConfig} />}
                         {step === 5 && <Step4Review data={birthData} events={lifeEvents} traits={forensicTraits.physical} forensicTraits={forensicTraits} onSubmit={handleSubmit} isSubmitting={isSubmitting} onEdit={setStep} offsetConfig={offsetConfig} />}
                     </div>

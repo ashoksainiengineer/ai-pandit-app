@@ -3,12 +3,40 @@
  *
  * Generates AI prompts for Stage 4 deep multi-dasha analysis.
  * Creates detailed forensic prompts for final candidate verification.
+ * 
+ * 🔱 AI-DRIVEN FLEXIBLE WEIGHTING SYSTEM:
+ * AI has FULL FREEDOM to adjust method weights based on case context.
  */
 
 import { CandidateDataPackage } from '../types.js';
 import { LifeEvent, ForensicTraits } from '../../../types/index.js';
 import { formatLifeEventForAI } from './life-event-formatter.js';
 import { randomSort } from '../../utils/index.js';
+
+/**
+ * Get event importance summary for AI
+ */
+function getEventImportanceSummary(events: LifeEvent[]): string {
+  const critical = events.filter(e => e.importance === 'critical');
+  const high = events.filter(e => e.importance === 'high');
+  const medium = events.filter(e => e.importance === 'medium');
+  const low = events.filter(e => e.importance === 'low');
+  
+  let summary = '';
+  if (critical.length > 0) {
+    summary += `CRITICAL (${critical.length}): ${critical.map(e => e.eventType).join(', ')}\n`;
+  }
+  if (high.length > 0) {
+    summary += `HIGH (${high.length}): ${high.map(e => e.eventType).join(', ')}\n`;
+  }
+  if (medium.length > 0) {
+    summary += `MEDIUM (${medium.length}): ${medium.map(e => e.eventType).join(', ')}\n`;
+  }
+  if (low.length > 0) {
+    summary += `LOW (${low.length}): ${low.map(e => e.eventType).join(', ')}`;
+  }
+  return summary;
+}
 
 /**
  * Generates deep analysis prompt for Stage 4
@@ -40,35 +68,51 @@ export function getDeepAnalysisPrompt(
   const filteredCandidates = candidates.filter(c => c.time);
   const shuffledCandidates = randomSort(filteredCandidates);
 
-  return `BIRTH TIME RECTIFICATION - STAGE 4(Deep Multi - Dasha Analysis)
+  return `BIRTH TIME RECTIFICATION - STAGE 4 (Deep Multi-Dasha Analysis)
 
 ════════════════════════════════════════════════════════════════════════════════
-⚖️ ANTI - BIAS PROTOCOLS:
-    1. BLIND EVALUATION: Treat ALL candidates as equally probable. 
-2. ZERO TENTATIVE BIAS: Do not favor times closest to the "original" tentative time.
-3. DATA - ONLY VERDICT: If candidates are technically equal, say so.Do not guess.
+🎯 AI-DRIVEN FLEXIBLE SCORING - DEEP ANALYSIS
 ════════════════════════════════════════════════════════════════════════════════
 
-⚠️ ANALYSIS RULES(PURE VEDIC ASTROLOGY):
-    1. RELY ONLY ON THE PROVIDED MATHEMATICAL DATA.Do not hallucinate planetary positions.
-2. NARRATIVE PRIMACY: Qualitative experiences(SITUATIONAL NARRATIVE) outrank generic scoring.Match the flavor of the experience(e.g. "intense struggle" vs "smooth success") to the specific planetary dignity and aspects provided.
-3. FORENSIC CORRELATION: For EACH candidate, verify if their Varga markers(D1 Lagna, D60 Deity, Navamsa Lord) align with the PHYSICAL and PSYCHOGRAPHIC data provided.A "measured_soft" speaker cannot have a Mercury - Mars lagna with heavy Agni influence unless strong Saturn control exists.
-4. BIO - VEDIC MAPPING: Treat Forensic Traits as "Biological Anchors". If the user is an "eldest" child, the 3rd house(younger siblings) in D1 / D9 must reflect this karma(e.g., 3rd lord in 12th or malefic aspect).
-6. 🔱 PROJECT MAHAKALA (Infinite Precision):
-   - TATWA SHUDDHI: Does the candidate's active Tatwa (Element) match the user's BIOLOGICAL and TEMPERAMENTAL profile? (e.g., Earth for structured/physical, Fire for intense/driven).
-   - KUNDA LAGNA: Check for 'Matches Moon' status. This is a 1-second sensitive geometric anchor. If multiple candidates have similar dasha alignments, prioritize the one with a verified Kunda match.
-   - DIVISIONAL BOUNDARIES: Some candidates represent 'Boundary Locks'. These are structural inflection points where charts switch. Evaluate if the life reality drastically changes across these boundaries.
-7. ⚡⚡⚡ CRITICAL METHODOLOGICAL AUDIT ⚡⚡⚡: Group all missing technical data into a stylized ASCII box:
-============================
-  METHODOLOGICAL AUDIT
-----------------------------
-  [Metric 1]
-  [Metric 2]
-============================
-This must be the final section of your reasoning.
+YOU HAVE FULL FREEDOM TO ADJUST WEIGHTS! Reference weights - ADJUST as needed:
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  METHOD          │ REFERENCE │  PRECISION    │ ADJUST FOR                  │
+│                  │  WEIGHT   │               │                             │
+├──────────────────┼───────────┼───────────────┼─────────────────────────────┤
+│  D150 Nadi       │   2.0     │  48 seconds   │ Critical events + good data │
+│  KP Sub-Lord     │   2.0     │  seconds      │ Precise cuspal data         │
+│  Vimshottari     │   1.8     │  hours        │ Full MD-AD-PD sequence      │
+│  Varga (D60)     │   1.7     │  2 minutes    │ D60 deity clear             │
+│  Transit         │   1.5     │  days         │ Double transit matches      │
+│  Kalachakra      │   1.2     │  days         │ Cross-verification          │
+│  Shadbala        │   1.0     │  N/A          │ Planet strength context     │
+│  Yogini Dasha    │   0.9     │  months       │ Secondary verification      │
+│  Chara Dasha     │   0.9     │  months       │ Jaimini cross-check         │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+════════════════════════════════════════════════════════════════════════════════
+📊 USER'S EVENT IMPORTANCE SELECTIONS
 ════════════════════════════════════════════════════════════════════════════════
 
-    TASK: Perform a deep multi - varga forensic audit on ${shuffledCandidates.length} finalists.
+${getEventImportanceSummary(events)}
+
+════════════════════════════════════════════════════════════════════════════════
+⚖️ ANALYSIS RULES (PURE VEDIC ASTROLOGY)
+════════════════════════════════════════════════════════════════════════════════
+
+1. RELY ONLY ON PROVIDED MATHEMATICAL DATA - Do not hallucinate positions.
+2. NARRATIVE PRIMACY: Match event "flavor" to planetary dignity and aspects.
+3. FORENSIC CORRELATION: Varga markers must align with physical/psychographic data.
+4. BIO-VEDIC MAPPING: Forensic traits are "Biological Anchors".
+5. PROJECT MAHAKALA:
+   - TATWA SHUDDHI: Element matches biological/temperamental profile?
+   - KUNDA LAGNA: 'Matches Moon' = strong structural indicator.
+   - DIVISIONAL BOUNDARIES: Truth often lies at boundaries.
+
+════════════════════════════════════════════════════════════════════════════════
+
+    TASK: Deep multi-varga forensic audit on ${shuffledCandidates.length} finalists.
 
 USER FORENSIC DATA:
 ${forensicContext}
@@ -126,6 +170,28 @@ ${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:
 │ Tatwa Shuddhi: ${c.vedicSignals.tatwa?.name} (${c.vedicSignals.tatwa?.element}) | Auspicious: ${c.vedicSignals.tatwa?.isAuspicious}
 │ Kunda Lagna: ${c.vedicSignals.kundaLagna?.sign} ${c.vedicSignals.kundaLagna?.degree.toFixed(2)}° | Matches Moon: ${c.vedicSignals.kundaLagna?.matchesMoon ? 'YES 🔥' : 'NO'}
 │ Parivartana: ${c.vedicSignals.parivartana?.map((ex: any) => `L${ex.houses[0]}↔L${ex.houses[1]}`).join(', ') || 'None'}` : ''}
+${c.kalachakraDasha ? `├ KALACHAKRA DASHA (Savya/Apasavya):
+${c.kalachakraDasha.slice(0, 10).map(k => `│ ${k.sign} (${k.lord}): ${k.startDate.toISOString().split('T')[0]} to ${k.endDate.toISOString().split('T')[0]} (${k.durationYears.toFixed(1)}y) [${k.kalachakraType}]`).join('\n')}` : ''}
+${c.shadbalaSummary ? `├ SHADBALA SUMMARY (6-Source Strength):
+│ Strongest: ${c.shadbalaSummary.strongestPlanet?.toUpperCase()} | Weakest: ${c.shadbalaSummary.weakestPlanet?.toUpperCase()} | Avg: ${c.shadbalaSummary?.averageStrength}
+│ Strong Benefics: ${c.shadbalaSummary.benifics?.strong?.join(', ') || 'None'} | Weak Benefics: ${c.shadbalaSummary.benifics?.weak?.join(', ') || 'None'}
+│ Strong Malefics: ${c.shadbalaSummary.malefics?.strong?.join(', ') || 'None'} | Weak Malefics: ${c.shadbalaSummary.malefics?.weak?.join(', ') || 'None'}` : ''}
+${c.nadiData ? `├ D150 NADI AMSHA (48-Second Precision DNA):
+│ Ascendant: ${c.nadiData.ascendant?.nadiName} (${c.nadiData.ascendant?.deity}) | Phala: ${c.nadiData.ascendant?.phala}
+│ Moon: ${c.nadiData.moon?.nadiName} (${c.nadiData.moon?.deity}) | Karmic: ${c.nadiData.moon?.karmicSignificance}
+│ Sun: ${c.nadiData.sun?.nadiName} (${c.nadiData.sun?.deity}) | Resolution: ~${c.nadiData.ascendant?.timeResolution}s` : ''}
+${c.nadiAnalysis?.length ? `├ D150 EVENT ANALYSIS:
+${c.nadiAnalysis.slice(0, 5).map(n => `│ ${n.eventCategory}: Score ${n.overallScore}/100 (${n.confidence})`).join('\n')}` : ''}
+${c.spouseD9Verification ? `├ SPOUSE D9 VERIFICATION:
+│ Score: ${c.spouseD9Verification.score}/100 | Verified: ${c.spouseD9Verification.verified ? 'YES' : 'NO'} | Confidence: ${c.spouseD9Verification.confidence?.toUpperCase()}
+│ Matches: ${c.spouseD9Verification.matches?.map((m: any) => m.description).join('; ') || 'None'}
+│ Mismatches: ${c.spouseD9Verification.mismatches?.map((m: any) => m.description).join('; ') || 'None'}` : ''}
+${c.gandantaAnalysis && c.gandantaAnalysis.severity !== 'none' ? `├ ⚠️ GANDANTA KARMIC KNOT:
+│ Lagna: ${c.gandantaAnalysis.isLagnaGandanta ? 'YES' : 'NO'} | Moon: ${c.gandantaAnalysis.isMoonGandanta ? 'YES' : 'NO'}
+│ Severity: ${c.gandantaAnalysis.severity.toUpperCase()} | Distance: ${c.gandantaAnalysis.distanceToGandanta.toFixed(3)}°
+│ Type: ${c.gandantaAnalysis.lagnaGandantaType || c.gandantaAnalysis.moonGandantaType || 'N/A'}` : ''}
+${c.pakshiAnalysis ? `├ PANCHA-PAKSHI (Five Birds):
+│ Bird: ${c.pakshiAnalysis.rulingBird.name} (${c.pakshiAnalysis.rulingBird.element}) | Strength: ${c.pakshiAnalysis.birdStrength.toUpperCase()}` : ''}
 ${c.spouseMatch ? `├ SPOUSE SYNASTRY CORRELATION:
 │ ${c.spouseMatch.reason}` : ''}
 ${c.lifecycleShifts?.length ? `├ LIFECYCLE CHRONOLOGY (SATURN/JUPITER INGRESS):
@@ -133,25 +199,35 @@ ${c.lifecycleShifts.map(s => `│ [${s.date}]: ${s.event} (Dasha: ${s.dasha})`).
 └──────────────────────────────────────────────────────────────`).join('\n')
     }
 
-    ⚖️ THE MAHAKALA SCORING MATRIX (DEEP FORENSIC AUDIT):
-    1. HIERARCHICAL WEIGHTING (Base Points):
-       - DEEP-KARMA (+50): Parent Death, Child Birth, Life-Threatening Event.
-       - DHARMA SHIFTS (+30): Marriage/Divorce, Major Career Transition.
-       - ARTHA/KAMA (+15): Minor Ingress, casual job shift, relocation.
+════════════════════════════════════════════════════════════════════════════════
+🎯 YOUR DEEP ANALYSIS OUTPUT FORMAT (REQUIRED)
+════════════════════════════════════════════════════════════════════════════════
 
-    2. VEDIC SYNERGY MULTIPLIERS:
-       - x2.5 Varga-Dasha Mirror: Dasha lord rules the event house in BOTH D1 and the specific Varga (D9, D10, D7 etc.).
-       - x2.0 Double Transit Lock: Confirmed Jupiter/Saturn dual aspect on event house/lord.
-       - x1.5 Mahakala Kunda Match: Geometric alignment confirmed.
-       - x1.3 Nadi Ansha Resonance: Soul-flavor alignment in D150.
+For EACH finalist candidate:
 
-    3. FORENSIC VETOES (Immediate ELIMINATION):
-       - Primary Lagna Inversion: Physical DNA (e.g. Pitta/Fire) contradicts Lagna elements.
-       - Structural Contradiction: Family karma markers (siblings/parents) in D1/D9/D12 are critically mismatched.
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CANDIDATE: [HH:MM:SS]                                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ DETAILED METHOD ANALYSIS:                                                   │
+│ ┌─────────────────────────────────────────────────────────────────────┐     │
+│ │ METHOD        │ SCORE │ WEIGHT │ KEY FINDING                        │     │
+│ ├───────────────┼───────┼────────┼────────────────────────────────────┤     │
+│ │ D150 Nadi     │   XX  │  X.X   │ [Match/Mismatch description]       │     │
+│ │ KP Sub-Lord   │   XX  │  X.X   │ [Cuspal analysis]                  │     │
+│ │ Vimshottari   │   XX  │  X.X   │ [Dasha alignment]                  │     │
+│ │ Varga (D60)   │   XX  │  X.X   │ [Karma verification]               │     │
+│ │ Transit       │   XX  │  X.X   │ [Double transit status]            │     │
+│ │ Kalachakra    │   XX  │  X.X   │ [Cycle verification]               │     │
+│ │ Yogini        │   XX  │  X.X   │ [Secondary confirmation]           │     │
+│ │ Chara         │   XX  │  X.X   │ [Jaimini check]                    │     │
+│ └─────────────────────────────────────────────────────────────────────┘     │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ WEIGHT ADJUSTMENTS: [Why you changed weights]                              │
+│ FINAL WEIGHTED SCORE: [0-100]                                               │
+│ VERDICT: KEEP / DROP                                                         │
+│ KEY EVIDENCE: [Top 2-3 astrological reasons]                               │
+└─────────────────────────────────────────────────────────────────────────────┘
 
-        OUTPUT(for each candidate):
-            [TIME] | REASONING: [Brief 1 - liner] | VERDICT: [KEEP / DROP] | SCORE: [0 - 100]
-
-    FINAL:
-    TOP_SURVIVORS: [time1], [time2], [time3]`;
+FINAL:
+TOP_SURVIVORS: [time1], [time2], [time3]`;
 }

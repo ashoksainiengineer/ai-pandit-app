@@ -53,6 +53,8 @@ export interface ForensicTraits {
       jawLine?: string;
       teethAlignment?: string;
       voicePitch?: string;
+      ears?: string;
+      lips?: string;
     };
     skinHair?: {
       texture?: string;
@@ -62,6 +64,7 @@ export interface ForensicTraits {
     };
     build?: string;
     height?: { cm: number; feet: number; inches: number };
+    voicePitch?: string;
   };
   psychographic?: {
     speechStyle?: string;

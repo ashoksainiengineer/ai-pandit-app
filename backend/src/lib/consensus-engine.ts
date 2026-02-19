@@ -35,6 +35,11 @@ import type {
   ConsensusResult,
   ValidationInput
 } from '../types/index.js';
+import { 
+  METHOD_WEIGHTS, 
+  CONFIDENCE_THRESHOLDS,
+  calculateWeightedAverage 
+} from './btr/god-tier-weights.js';
 
 // Re-export types for backwards compatibility
 export type {
@@ -46,23 +51,8 @@ export type {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// WEIGHTS (Method Importance in Final Score)
+// METHOD WEIGHTS NOW IMPORTED FROM GOD-TIER-WEIGHTS.TS
 // ═══════════════════════════════════════════════════════════════════════════════
-
-const METHOD_WEIGHTS: Record<keyof ConsensusScores, number> = {
-  vimshottari: 1.5,    // Primary dasha system - highest weight
-  yogini: 1.0,         // Secondary dasha
-  chara: 1.0,          // Rashi dasha
-  kalachakra: 1.2,     // Advanced lunar timing
-  kp: 1.5,             // Precision timing (matches Vimshottari)
-  ashtakavarga: 1.0,   // Strength verification
-  varga: 1.2,          // Divisional charts (D9, D10, D60)
-  transit: 1.0,        // Double transit
-  forensic: 1.3,       // Physical/psychological match
-  ai: 0.8              // AI reasoning (supportive, not primary)
-};
-
-const TOTAL_WEIGHT = Object.values(METHOD_WEIGHTS).reduce((a, b) => a + b, 0);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // VALIDATION FUNCTIONS
@@ -577,16 +567,20 @@ function validateAI(input: ValidationInput): ValidationDetail {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function calculateWeightedConsensus(scores: ConsensusScores): number {
-  let weightedSum = 0;
-  let totalWeight = 0;
-  
-  for (const [method, score] of Object.entries(scores)) {
-    const weight = METHOD_WEIGHTS[method as keyof ConsensusScores];
-    weightedSum += score * weight;
-    totalWeight += weight;
-  }
-  
-  return totalWeight > 0 ? weightedSum / totalWeight : 0;
+  const scoresRecord: Record<string, number> = { ...scores };
+  const methodWeights: Record<string, number> = {
+    vimshottari: METHOD_WEIGHTS.vimshottari,
+    yogini: METHOD_WEIGHTS.yogini,
+    chara: METHOD_WEIGHTS.chara,
+    kalachakra: METHOD_WEIGHTS.kalachakra,
+    kp: METHOD_WEIGHTS.kp,
+    ashtakavarga: METHOD_WEIGHTS.ashtakavarga,
+    varga: METHOD_WEIGHTS.varga,
+    transit: METHOD_WEIGHTS.transit,
+    forensic: METHOD_WEIGHTS.forensic,
+    ai: METHOD_WEIGHTS.ai,
+  };
+  return calculateWeightedAverage(scoresRecord, methodWeights);
 }
 
 function determineConfidenceLevel(
@@ -595,6 +589,7 @@ function determineConfidenceLevel(
   redFlags: RedFlags
 ): ConsensusResult['confidenceLevel'] {
   const scoreValues = Object.values(scores);
+  const thresholds = CONFIDENCE_THRESHOLDS;
   
   // Check for critical red flags
   if (redFlags.gandanta || redFlags.d60Instability) {
@@ -602,22 +597,26 @@ function determineConfidenceLevel(
   }
   
   // GOD_TIER: All methods >= 90, no red flags
-  if (scoreValues.every(s => s >= 90) && overall >= 95 && !redFlags.conflictingMethods) {
+  if (scoreValues.every(s => s >= thresholds.god_tier.allMethodsAbove) && 
+      overall >= thresholds.god_tier.minScore && 
+      !redFlags.conflictingMethods) {
     return 'GOD_TIER';
   }
   
   // VERY_HIGH: All methods >= 80
-  if (scoreValues.every(s => s >= 80) && overall >= 85) {
+  if (scoreValues.every(s => s >= thresholds.very_high.allMethodsAbove) && 
+      overall >= thresholds.very_high.minScore) {
     return 'VERY_HIGH';
   }
   
   // HIGH: Overall >= 75, no method < 60
-  if (overall >= 75 && scoreValues.every(s => s >= 60)) {
+  if (overall >= thresholds.high.minScore && 
+      scoreValues.every(s => s >= thresholds.high.allMethodsAbove)) {
     return 'HIGH';
   }
   
   // MEDIUM: Overall >= 60
-  if (overall >= 60) {
+  if (overall >= thresholds.medium.minScore) {
     return 'MEDIUM';
   }
   

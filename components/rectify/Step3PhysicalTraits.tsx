@@ -1,12 +1,17 @@
 /**
  * Step3PhysicalTraits - Samudrika Shastra Biometric Verification
- * Part of the God-Tier 5-Step Rectification Flow
- * Sacred Ivory Light Theme - Production Grade
+ * God-Tier UX Design - Crystal Clear Visual Selection
+ * 
+ * Key Features:
+ * - Visual side-by-side comparisons
+ * - Clear "how to check" instructions
+ * - Mirror check guide with photos
+ * - Zero ambiguity design
  */
 
 'use client';
 
-import React, { useState, useMemo, useCallback, memo, useEffect } from 'react';
+import React, { useState, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ForensicTraits } from '@/lib/types';
 import {
@@ -19,7 +24,13 @@ import {
     Ruler,
     Sparkles,
     CheckCircle2,
-    Wind
+    Wind,
+    ChevronDown,
+    HelpCircle,
+    X,
+    Info,
+    ArrowRight,
+    Glasses
 } from 'lucide-react';
 
 interface Step3Props {
@@ -28,122 +39,273 @@ interface Step3Props {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// TYPES & CONSTANTS
+// GOD TIER TRAIT DEFINITIONS - CRYSTAL CLEAR WITH VISUAL GUIDES
 // ═════════════════════════════════════════════════════════════════════════════
 
-interface TraitOption {
+interface TraitDefinition {
+    id: string;
+    name: string;
+    sanskrit: string;
+    icon: React.ElementType;
+    howToCheck: string;
+    whyItMatters: string;
+    visualOptions: VisualOption[];
+}
+
+interface VisualOption {
     value: string;
     label: string;
-    emoji: string;
-    guide: string;
+    visual: string;
+    description: string;
+    astrologicalMeaning: string;
+    example: string;
 }
 
-const TABS = [
-    { id: 'face', label: 'Mukha (Face)', icon: ScanFace },
-    { id: 'structure', label: 'Deha (Structure)', icon: Activity },
-    { id: 'details', label: 'Lakshan (Details)', icon: Fingerprint },
-] as const;
-
-type TabId = typeof TABS[number]['id'];
-
-const EYE_SHAPES: TraitOption[] = [
-    { value: 'almond', label: 'Almond', emoji: '👁️', guide: 'Tapered ends, balanced.' },
-    { value: 'round', label: 'Round/Large', emoji: '👀', guide: 'Open, expressive gaze.' },
-    { value: 'deep_set', label: 'Deep Set', emoji: '🕶️', guide: 'Prominent brow, shadowed.' },
-    { value: 'hooded', label: 'Hooded', emoji: '😑', guide: 'Upper lid covers crease.' },
-    { value: 'average', label: 'Average/Balanced', emoji: '🧿', guide: 'Standard shape, no extreme features.' },
-];
-
-const FOREHEAD_TYPES: TraitOption[] = [
-    { value: 'high', label: 'High/Broad', emoji: '🧠', guide: 'Logical and expansive.' },
-    { value: 'narrow', label: 'Narrow', emoji: '🤏', guide: 'Focused and practical.' },
-    { value: 'rounded', label: 'Rounded', emoji: '🌕', guide: 'Imaginative and soft.' },
-    { value: 'average', label: 'Average', emoji: '👤', guide: 'Standard width and height.' },
-];
-
-const JAW_TYPES: TraitOption[] = [
-    { value: 'strong', label: 'Strong/Square', emoji: '⬛', guide: 'Willpower, determination.' },
-    { value: 'pointed', label: 'Pointed', emoji: '🔻', guide: 'Quick wit, sharp speech.' },
-    { value: 'round', label: 'Soft/Round', emoji: '⚪', guide: 'Gentle, peace-loving.' },
-    { value: 'average', label: 'Average', emoji: '🧔', guide: 'Slightly defined, balanced.' },
-];
-
-const HEIGHT_OPTIONS: TraitOption[] = [
-    { value: 'short', label: 'Short', emoji: '🧒', guide: 'Below average stature.' },
-    { value: 'medium', label: 'Average', emoji: '🧑', guide: 'Standard height.' },
-    { value: 'tall', label: 'Tall', emoji: '🧍', guide: 'Noticeably tall.' },
-];
-
-const BUILD_OPTIONS: TraitOption[] = [
-    { value: 'slim', label: 'Slim (Vata)', emoji: '🦴', guide: 'Thin, light-boned.' },
-    { value: 'athletic', label: 'Athletic (Pitta)', emoji: '🔥', guide: 'Medium, muscular build.' },
-    { value: 'heavy', label: 'Solid (Kapha)', emoji: '🐘', guide: 'Broad, heavy frame.' },
-];
-
-const NOSE_TYPES: TraitOption[] = [
-    { value: 'sharp', label: 'Sharp/Straight', emoji: '👃', guide: 'Keen intelligence, focused.' },
-    { value: 'aquiline', label: 'Hooked/Aquiline', emoji: '🦅', guide: 'Strategic thinking, ambitious.' },
-    { value: 'blunt', label: 'Blunt/Round', emoji: '⏺️', guide: 'Practical, stable, earthy.' },
-    { value: 'small', label: 'Small/Upturned', emoji: '🔼', guide: 'Curious, cheerful, youthful.' },
-];
-
-const HAIR_OPTIONS: TraitOption[] = [
-    { value: 'straight', label: 'Straight', emoji: '⬇️', guide: 'Flat or smooth texture.' },
-    { value: 'wavy', label: 'Wavy', emoji: '〰️', guide: 'Soft S-shaped waves.' },
-    { value: 'curly', label: 'Curly', emoji: '🌀', guide: 'Tight coils or curls.' },
-    { value: 'thick', label: 'Thick', emoji: '🌿', guide: 'Dense and full volume.' },
-    { value: 'unknown', label: 'Not Sure', emoji: '🤷', guide: 'Variable or mixed texture.' },
+// Crystal clear visual options for each trait
+const TRAIT_DEFINITIONS: TraitDefinition[] = [
+    {
+        id: 'eyes',
+        name: 'Your Eyes',
+        sanskrit: 'Netra - नेत्र',
+        icon: Eye,
+        howToCheck: 'Look straight at a mirror. Compare your eye shape to the pictures below.',
+        whyItMatters: 'Eyes reveal your emotional nature (Moon) and mental state. Round eyes = emotional, almond = balanced, deep-set = private.',
+        visualOptions: [
+            { value: 'almond', label: 'Almond', visual: '👁️', description: 'Like an almond - tapered corners, iris partially visible', astrologicalMeaning: 'Moon well-placed - balanced emotions', example: 'Most Indian celebrities have almond eyes' },
+            { value: 'round', label: 'Round', visual: '👀', description: 'Circular, fully visible iris, big appearance', astrologicalMeaning: 'Strong Moon influence - expressive, emotional', example: 'Like a curious child\'s eyes' },
+            { value: 'deep_set', label: 'Deep Set', visual: '🕶️', description: 'Set back in skull, shadow under brow bone', astrologicalMeaning: 'Private, keeps emotions hidden', example: 'Like Hollywood actors often have' },
+            { value: 'hooded', label: 'Hooded', visual: '😑', description: 'Upper lid covers the crease when open', astrologicalMeaning: 'Practical, protective of emotions', example: 'Look at your forehead - does lid cover crease?' },
+            { value: 'protruding', label: 'Protruding', visual: '😮', description: 'Bulging outward, prominent', astrologicalMeaning: 'Emotional turbulence, artistic nature', example: 'Like a surprised expression always' },
+        ]
+    },
+    {
+        id: 'nose',
+        name: 'Your Nose',
+        sanskrit: 'Nakha - नाक',
+        icon: Wind,
+        howToCheck: 'Profile view in mirror. Look at the bridge and tip shape.',
+        whyItMatters: 'Nose shows vitality (Mars), personality (Sun), and spouse relationships (7th house).',
+        visualOptions: [
+            { value: 'straight', label: 'Straight', visual: '📏', description: 'Perfectly straight bridge from brow to tip', astrologicalMeaning: 'Strong Mars - leadership quality', example: 'Like a model\'s nose' },
+            { value: 'aquiline', label: 'Aquiline (Hooked)', visual: '🦅', description: 'Bridge curves like an eagle\'s beak', astrologicalMeaning: 'Ambitious, strategic thinker', example: 'Like Indian royal portraits' },
+            { value: 'button', label: 'Button', visual: '🔴', description: 'Small, rounded tip, upturned', astrologicalMeaning: 'Venus influence - charming', example: 'Cute, button-like tip' },
+            { value: 'snub', label: 'Snub', visual: '🔼', description: 'Tip turned up, short bridge', astrologicalMeaning: 'Optimistic, lucky', example: 'Pug nose style' },
+            { value: 'broad', label: 'Broad/Wide', visual: '👃', description: 'Wide base, large nostrils', astrologicalMeaning: 'Mars strong - energetic', example: 'Wide at the bottom' },
+        ]
+    },
+    {
+        id: 'forehead',
+        name: 'Your Forehead',
+        sanskrit: 'Lalat - ललाट',
+        icon: Brain,
+        howToCheck: 'Side profile in mirror. Measure width and check for bumps.',
+        whyItMatters: 'Forehead represents intellect (Mercury) and wisdom (Jupiter). Broad = smart.',
+        visualOptions: [
+            { value: 'high', label: 'High', visual: '🧠', description: 'From eyebrow to hairline is tall', astrologicalMeaning: 'Jupiter-Mercury - scholarly', example: 'High forehead = more智慧' },
+            { value: 'broad', label: 'Broad', visual: '🌉', description: 'Wide from temple to temple', astrologicalMeaning: 'Logical, broad thinking', example: 'Wide across top' },
+            { value: 'medium', label: 'Medium', visual: '👤', description: 'Average height and width', astrologicalMeaning: 'Balanced Mercury', example: 'Standard size' },
+            { value: 'narrow', label: 'Narrow', visual: '🤏', description: 'Constricted, pointed at temples', astrologicalMeaning: 'Focused, practical', example: 'Narrower than average' },
+            { value: 'rounded', label: 'Rounded/Mounds', visual: '🌙', description: 'Visible brow ridges or bumps', astrologicalMeaning: 'Moon influence - imaginative', example: 'Brow ridges visible' },
+        ]
+    },
+    {
+        id: 'jaw',
+        name: 'Your Jawline',
+        sanskrit: 'Hanu - हनु',
+        icon: User,
+        howToCheck: 'Look down at mirror or take a chin-up photo. Square vs round vs pointed.',
+        whyItMatters: 'Jaw shows will power (Mars) and career success (10th house).',
+        visualOptions: [
+            { value: 'square', label: 'Square', visual: '⬛', description: 'Wide jaw, 90-degree angle at corners', astrologicalMeaning: 'Strong Mars - determined leader', example: 'Like famous male actors' },
+            { value: 'round', label: 'Rounded', visual: '⚪', description: 'Soft curve, no sharp angles', astrologicalMeaning: 'Moon-Venus - artistic, peaceful', example: 'Soft, gentle face' },
+            { value: 'pointed', label: 'Pointed', visual: '🔻', description: 'Narrow at chin, triangular', astrologicalMeaning: 'Mercury - quick thinker', example: 'V-shaped face' },
+            { value: 'double', label: 'With Dimple', visual: '👤', description: 'Has chin cleft or dimples', astrologicalMeaning: 'Venus blessing - charming', example: 'Dimple on chin' },
+            { value: 'medium', label: 'Medium', visual: '🧔', description: 'Neither square nor round', astrologicalMeaning: 'Balanced Mars', example: 'Average jawline' },
+        ]
+    },
+    {
+        id: 'lips',
+        name: 'Your Lips',
+        sanskrit: 'Osthau - ओष्ठ',
+        icon: Sparkles,
+        howToCheck: 'Natural smile in mirror. Observe thickness and shape.',
+        whyItMatters: 'Lips represent speech (Mercury) and sensuality (Venus).',
+        visualOptions: [
+            { value: 'full', label: 'Full/Thick', visual: '👄', description: 'Voluminous, prominent lips', astrologicalMeaning: 'Venus strong - romantic', example: 'Full lips like film stars' },
+            { value: 'thin', label: 'Thin', visual: '😗', description: 'Minimal width, pressed line', astrologicalMeaning: 'Mercury sharp - critical', example: 'Thin, precise lips' },
+            { value: 'medium', label: 'Medium', visual: '😊', description: 'Balanced, neither thick nor thin', astrologicalMeaning: 'Balanced Mercury', example: 'Most common type' },
+            { value: 'downturned', label: 'Downturned', visual: '😔', description: 'Corners point down naturally', astrologicalMeaning: 'Saturn-Moon - thoughtful', example: 'Serious expression' },
+            { value: 'uptuned', label: 'Upturned/Smiling', visual: '😄', description: 'Corners naturally curve up', astrologicalMeaning: 'Jupiter - optimistic', example: 'Always looks happy' },
+        ]
+    },
+    {
+        id: 'ears',
+        name: 'Your Ears',
+        sanskrit: 'Karna - कर्ण',
+        icon: Brain,
+        howToCheck: 'Look in mirror - where do ears sit compared to eyes? High or low?',
+        whyItMatters: 'Ears show inherited traits and early life fortune.',
+        visualOptions: [
+            { value: 'large', label: 'Large', visual: '👂', description: 'Big, prominent ears', astrologicalMeaning: 'Strong family fortune', example: 'Ears bigger than average' },
+            { value: 'small', label: 'Small', visual: '🫣', description: 'Tiny, close to head', astrologicalMeaning: 'Self-made, early struggles', example: 'Small, neat ears' },
+            { value: 'low_set', label: 'Low Set', visual: '⬇️', description: 'Below eye level', astrologicalMeaning: 'Rahu - unconventional', example: 'Ears sit lower on head' },
+            { value: 'high_set', label: 'High Set', visual: '⬆️', description: 'Above eye level', astrologicalMeaning: 'Jupiter - spiritual', example: 'Ears high on head' },
+            { value: 'detached', label: 'Detached Lobe', visual: '🔌', description: 'Lobe not attached to head', astrologicalMeaning: 'Venus - freedom, artistic', example: 'Can wiggle ears' },
+        ]
+    },
+    {
+        id: 'voice',
+        name: 'Your Voice',
+        sanskrit: 'Swara - स्वर',
+        icon: Activity,
+        howToCheck: 'Record yourself speaking. Listen to pitch and tone.',
+        whyItMatters: 'Voice shows communication style (Mercury) and energy (Mars).',
+        visualOptions: [
+            { value: 'deep', label: 'Deep/Gravelly', visual: '🎸', description: 'Low pitch, rumbling', astrologicalMeaning: 'Saturn-Mars - authority', example: 'Like movie narrators' },
+            { value: 'soft', label: 'Soft/Melodious', visual: '🎵', description: 'Gentle, pleasant tone', astrologicalMeaning: 'Venus-Moon', example: 'Soothing voice' },
+            { value: 'loud', label: 'Loud/Booming', visual: '📢', description: 'High volume, projects well', astrologicalMeaning: 'Mars strong', example: 'Voice fills room' },
+            { value: 'fast', label: 'Fast/Rapid', visual: '⚡', description: 'Quick, energetic speech', astrologicalMeaning: 'Mercury-Rahu', example: 'Talks quickly' },
+            { value: 'clear', label: 'Clear/Resonant', visual: '🔔', description: 'Crystal clear, rings', astrologicalMeaning: 'Well-aspected Mercury', example: 'Radio voice' },
+        ]
+    },
+    {
+        id: 'skin',
+        name: 'Your Skin',
+        sanskrit: 'Twak - त्वचा',
+        icon: Sparkles,
+        howToCheck: 'Look at bare face in natural light. Note color and texture.',
+        whyItMatters: 'Skin shows Sun (radiance) and health. Color matters in astrology.',
+        visualOptions: [
+            { value: 'fair', label: 'Fair/Florid', visual: '✨', description: 'Light, rosy complexion', astrologicalMeaning: 'Venus-Moon - attractive', example: 'Fair skin tone' },
+            { value: 'wheatish', label: 'Wheatish', visual: '🌾', description: 'Golden-brown, warm', astrologicalMeaning: 'Sun-Mars', example: 'Common Indian skin' },
+            { value: 'dark', label: 'Dark/Dusky', visual: '🌙', description: 'Rich, deep complexion', astrologicalMeaning: 'Saturn - mature', example: 'Beautiful dark skin' },
+            { value: 'oily', label: 'Oily/Shiny', visual: '💧', description: 'Glossy, especially T-zone', astrologicalMeaning: 'Moon-Venus', example: 'Shiny by afternoon' },
+            { value: 'dry', label: 'Dry/Matte', visual: '🏜️', description: 'Matte, sometimes flaky', astrologicalMeaning: 'Vata-Saturn', example: 'Feels tight often' },
+        ]
+    },
+    {
+        id: 'hair',
+        name: 'Your Hair',
+        sanskrit: 'Kesha - केश',
+        icon: ScanFace,
+        howToCheck: 'Air dried, natural state. Observe texture and volume.',
+        whyItMatters: 'Hair represents Saturn (texture) and Venus (beauty).',
+        visualOptions: [
+            { value: 'straight', label: 'Straight', visual: '⬇️', description: 'Flat, falls straight', astrologicalMeaning: 'Venus - graceful', example: 'Falls flat without styling' },
+            { value: 'wavy', label: 'Wavy', visual: '〰️', description: 'Soft S-curves', astrologicalMeaning: 'Moon - creative', example: 'Natural waves' },
+            { value: 'curly', label: 'Curly', visual: '🌀', description: 'Tight curls or coils', astrologicalMeaning: 'Mars-Rahu', example: 'Bouncy curls' },
+            { value: 'thick', label: 'Thick', visual: '🌿', description: 'Dense, full volume', astrologicalMeaning: 'Venus - fortunate', example: 'Lots of hair' },
+            { value: 'thin', label: 'Thin/Sparse', visual: '🍃', description: 'Less density', astrologicalMeaning: 'Saturn', example: 'See scalp through hair' },
+        ]
+    },
+    {
+        id: 'build',
+        name: 'Your Body Build',
+        sanskrit: 'Sharira - शरीर',
+        icon: Ruler,
+        howToCheck: 'Look at yourself. Are bones visible? Muscular? Rounded?',
+        whyItMatters: 'Body type relates to doshas - Vata (thin), Pitta (medium), Kapha (heavy).',
+        visualOptions: [
+            { value: 'slim', label: 'Slim (Vata)', visual: '🦴', description: 'Thin bones, visible veins, hard to gain weight', astrologicalMeaning: 'Vata dominant - quick mind, restless', example: 'Can eat anything, stay thin' },
+            { value: 'athletic', label: 'Athletic (Pitta)', visual: '🔥', description: 'Medium, muscular, defined', astrologicalMeaning: 'Pitta - ambitious, competitive', example: 'Builds muscle easily' },
+            { value: 'heavy', label: 'Solid (Kapha)', visual: '🐘', description: 'Broad, gains weight easily', astrologicalMeaning: 'Kapha - calm, patient, loyal', example: 'Big frame, stores energy' },
+            { value: 'average', label: 'Average', visual: '🧑', description: 'Balanced, normal build', astrologicalMeaning: 'Balanced doshas', example: 'Neither thin nor heavy' },
+        ]
+    },
+    {
+        id: 'height',
+        name: 'Your Height',
+        sanskrit: 'Ayu - आयु',
+        icon: Ruler,
+        howToCheck: 'Compare to average. Short = below 5\'6", Tall = above 5\'10".',
+        whyItMatters: 'Height relates to Jupiter (tall) and Saturn (short).',
+        visualOptions: [
+            { value: 'short', label: 'Short', visual: '📏', description: 'Below 5\'4"', astrologicalMeaning: 'Saturn prominent', example: 'Smaller than average' },
+            { value: 'average', label: 'Average', visual: '🧑', description: '5\'4" to 5\'10"', astrologicalMeaning: 'Balanced', example: 'Most common height' },
+            { value: 'tall', label: 'Tall', visual: '🗼', description: 'Above 5\'10"', astrologicalMeaning: 'Jupiter well-placed', example: 'Above average' },
+        ]
+    },
 ];
 
 // ═════════════════════════════════════════════════════════════════════════════
-// HELPER COMPONENTS (Memoized)
+// COMPONENTS
 // ═════════════════════════════════════════════════════════════════════════════
 
-interface TraitSelectorProps {
-    label: string;
-    icon: React.ElementType;
-    options: TraitOption[];
-    value: string | undefined;
+interface VisualSelectorProps {
+    definition: TraitDefinition;
+    value: string;
     onChange: (val: string) => void;
-    description?: string;
-    grid?: 3 | 4;
 }
 
-const TraitSelector = memo(({ label, icon: Icon, options, value, onChange, description, grid = 3 }: TraitSelectorProps) => (
-    <div className="space-y-4">
-        <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-[#B8860B]/5 border border-[#B8860B]/10">
-                <Icon className="w-5 h-5 text-[#B8860B]" />
-            </div>
+const VisualSelector = memo(({ definition, value, onChange }: VisualSelectorProps) => (
+    <div className="space-y-6">
+        {/* How to Check */}
+        <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
+            <Glasses className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
             <div>
-                <h3 className="font-[family-name:var(--font-cormorant)] text-lg font-bold text-[#1A1612] leading-none mb-1">{label}</h3>
-                {description && <p className="text-[10px] text-[#7A756F] uppercase tracking-wider font-semibold">{description}</p>}
+                <div className="font-semibold text-blue-800 text-sm">How to check:</div>
+                <div className="text-blue-700 text-sm">{definition.howToCheck}</div>
             </div>
         </div>
 
-        <div className={`grid gap-3 ${grid === 4 ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 md:grid-cols-3'}`}>
-            {options.map((opt) => (
+        {/* Why it Matters */}
+        <div className="flex items-start gap-3 p-4 bg-purple-50 rounded-xl border border-purple-100">
+            <Info className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
+            <div>
+                <div className="font-semibold text-purple-800 text-sm">Why it matters:</div>
+                <div className="text-purple-700 text-sm">{definition.whyItMatters}</div>
+            </div>
+        </div>
+
+        {/* Visual Options - Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {definition.visualOptions.map((option) => (
                 <button
-                    key={opt.value}
+                    key={option.value}
                     type="button"
-                    onClick={() => onChange(opt.value)}
-                    className={`relative p-4 rounded-xl border text-left transition-all duration-200 group ${value === opt.value
-                        ? 'bg-gradient-to-br from-[#FDF8F3] to-white border-[#B8860B] shadow-md ring-1 ring-[#B8860B]'
-                        : 'bg-white border-[#F0E8DE] hover:border-[#B8860B]/30 hover:bg-[#FDF8F3]/30'
+                    onClick={() => onChange(option.value)}
+                    className={`relative p-5 rounded-2xl border-2 text-left transition-all duration-200 group ${value === option.value
+                        ? 'bg-gradient-to-br from-[#FDF8F3] to-white border-[#B8860B] shadow-lg ring-2 ring-[#B8860B]'
+                        : 'bg-white border-gray-100 hover:border-[#B8860B]/30 hover:bg-[#FDF8F3]/30'
                         }`}
                 >
-                    <div className="flex justify-between items-start mb-2">
-                        <span className="text-2xl">{opt.emoji}</span>
-                        {value === opt.value && <CheckCircle2 className="w-4 h-4 text-[#B8860B]" />}
+                    {value === option.value && (
+                        <div className="absolute top-3 right-3 w-6 h-6 bg-[#B8860B] rounded-full flex items-center justify-center">
+                            <CheckCircle2 className="w-4 h-4 text-white" />
+                        </div>
+                    )}
+                    
+                    {/* Visual Icon - Big and Clear */}
+                    <div className="text-5xl text-center mb-3">{option.visual}</div>
+                    
+                    {/* Label */}
+                    <div className="font-bold text-[#1A1612] text-lg text-center mb-2">{option.label}</div>
+                    
+                    {/* Clear Description */}
+                    <div className="text-sm text-[#7A756F] text-center mb-3">{option.description}</div>
+                    
+                    {/* Example */}
+                    <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded text-center">
+                        {option.example}
                     </div>
-                    <div className="font-bold text-[#1A1612] text-sm mb-1">{opt.label}</div>
-                    <div className="text-[10px] text-[#7A756F] italic leading-tight">{opt.guide}</div>
                 </button>
             ))}
         </div>
+
+        {/* Not Sure Option */}
+        <button
+            type="button"
+            onClick={() => onChange('skip')}
+            className={`w-full p-4 rounded-xl border-2 text-center transition-all ${value === 'skip'
+                ? 'bg-amber-50 border-amber-400 text-amber-800'
+                : 'border-dashed border-gray-300 text-gray-500 hover:border-amber-300 hover:bg-amber-50'
+                }`}
+        >
+            <span className="font-medium">↪ Not sure / Cannot determine</span>
+        </button>
     </div>
 ));
-TraitSelector.displayName = 'TraitSelector';
+VisualSelector.displayName = 'VisualSelector';
 
 interface SpecialMarksInputProps {
     value: string[];
@@ -151,21 +313,10 @@ interface SpecialMarksInputProps {
 }
 
 const SpecialMarksInput = memo(({ value, onChange }: SpecialMarksInputProps) => {
-    // Local state for smooth typing
     const [localValue, setLocalValue] = useState(value.join(', '));
-
-    // Update local state when parent value changes externally (rare but good practice)
-    useEffect(() => {
-        setLocalValue(value.join(', '));
-    }, [value]);
-
-    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setLocalValue(e.target.value);
-    };
 
     const handleBlur = () => {
         const marks = localValue.split(',').map(s => s.trim()).filter(s => s.length > 0);
-        // Only update parent if actually changed to avoid cycles
         if (JSON.stringify(marks) !== JSON.stringify(value)) {
             onChange(marks);
         }
@@ -174,16 +325,19 @@ const SpecialMarksInput = memo(({ value, onChange }: SpecialMarksInputProps) => 
     return (
         <div className="space-y-4">
             <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-[#B8860B]/5 border border-[#B8860B]/10">
+                <div className="p-2 rounded-lg bg-[#B8860B]/10">
                     <Fingerprint className="w-5 h-5 text-[#B8860B]" />
                 </div>
-                <h3 className="font-[family-name:var(--font-cormorant)] text-lg font-bold text-[#1A1612]">Special Marks</h3>
+                <div>
+                    <h3 className="font-[family-name:var(--font-cormorant)] text-lg font-bold text-[#1A1612]">Special Marks (Optional)</h3>
+                    <p className="text-xs text-[#7A756F]">Birthmarks, moles, scars - these help with accuracy</p>
+                </div>
             </div>
             <textarea
-                className="w-full min-h-[120px] p-4 rounded-xl border border-[#F0E8DE] bg-white focus:ring-1 focus:ring-[#B8860B] focus:border-[#B8860B] outline-none text-sm transition-all shadow-sm italic placeholder:text-stone-300"
-                placeholder="Scars, birthmarks, or distinctive physical features (separate with commas)..."
+                className="w-full min-h-[100px] p-4 rounded-xl border border-[#F0E8DE] bg-white focus:ring-2 focus:ring-[#B8860B]/20 focus:border-[#B8860B] outline-none text-sm"
+                placeholder="Mole on left cheek, scar on right arm, birthmark on back..."
                 value={localValue}
-                onChange={handleChange}
+                onChange={(e) => setLocalValue(e.target.value)}
                 onBlur={handleBlur}
             />
         </div>
@@ -196,212 +350,160 @@ SpecialMarksInput.displayName = 'SpecialMarksInput';
 // ═════════════════════════════════════════════════════════════════════════════
 
 export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: Step3Props) {
-    const [activeTab, setActiveTab] = useState<TabId>('face');
+    const [activeTraitId, setActiveTraitId] = useState<string>(TRAIT_DEFINITIONS[0].id);
 
-    // Helper: Safely calculate height category from CM
-    const currentHeightCategory = useMemo(() => {
-        // Handle legacy string/number height format if necessary (though type says object)
-        const heightData = physicalTraits.height;
-        let cm = 168; // Default fallback
+    const activeDefinition = TRAIT_DEFINITIONS.find(d => d.id === activeTraitId)!;
 
-        if (typeof heightData === 'object' && heightData !== null && 'cm' in heightData) {
-            cm = (heightData as { cm: number }).cm;
-        } else if (typeof heightData === 'number') {
-            cm = heightData;
+    // Get current value for a trait
+    const getValue = (traitId: string): string => {
+        const traits = physicalTraits || {};
+        switch (traitId) {
+            case 'eyes': return traits?.facialStructure?.eyeShape || '';
+            case 'nose': return traits?.facialStructure?.noseShape || '';
+            case 'forehead': return traits?.facialStructure?.forehead || '';
+            case 'jaw': return traits?.facialStructure?.jawLine || '';
+            case 'lips': return traits?.facialStructure?.lips || '';
+            case 'ears': return traits?.facialStructure?.ears || '';
+            case 'voice': return traits?.facialStructure?.voicePitch || '';
+            case 'skin': return traits?.skinHair?.complexion || '';
+            case 'hair': return traits?.skinHair?.hairType || '';
+            case 'build': return traits?.build || '';
+            case 'height':
+                const h = traits?.height;
+                if (typeof h === 'object' && h?.cm) {
+                    if (h.cm < 163) return 'short';
+                    if (h.cm > 178) return 'tall';
+                    return 'average';
+                }
+                return '';
+            default: return '';
         }
+    };
 
-        if (cm < 162) return 'short';
-        if (cm > 178) return 'tall';
-        return 'medium';
-    }, [physicalTraits.height]);
+    const handleChange = useCallback((val: string) => {
+        switch (activeTraitId) {
+            case 'eyes': updateTraits({ facialStructure: { ...physicalTraits?.facialStructure, eyeShape: val } }); break;
+            case 'nose': updateTraits({ facialStructure: { ...physicalTraits?.facialStructure, noseShape: val } }); break;
+            case 'forehead': updateTraits({ facialStructure: { ...physicalTraits?.facialStructure, forehead: val } }); break;
+            case 'jaw': updateTraits({ facialStructure: { ...physicalTraits?.facialStructure, jawLine: val } }); break;
+            case 'lips': updateTraits({ facialStructure: { ...physicalTraits?.facialStructure, lips: val } }); break;
+            case 'ears': updateTraits({ facialStructure: { ...physicalTraits?.facialStructure, ears: val } }); break;
+            case 'voice': updateTraits({ facialStructure: { ...physicalTraits?.facialStructure, voicePitch: val } }); break;
+            case 'skin': updateTraits({ skinHair: { ...physicalTraits?.skinHair, complexion: val } }); break;
+            case 'hair': updateTraits({ skinHair: { ...physicalTraits?.skinHair, hairType: val } }); break;
+            case 'build': updateTraits({ build: val }); break;
+            case 'height':
+                const cm = val === 'short' ? 155 : val === 'tall' ? 183 : 170;
+                updateTraits({ height: { cm, feet: Math.floor(cm / 30.48), inches: Math.round((cm % 30.48) / 2.54) } });
+                break;
+        }
+    }, [activeTraitId, physicalTraits, updateTraits]);
 
-    const handleHeightChange = useCallback((val: string) => {
-        const cm = val === 'short' ? 155 : val === 'tall' ? 180 : 168;
-        updateTraits({
-            height: {
-                cm,
-                feet: Math.floor(cm / 30.48),
-                inches: Math.round((cm % 30.48) / 2.54)
-            }
-        });
-    }, [updateTraits]);
-
-    // Memoized update handlers
-    const updateEyeShape = useCallback((val: string) => {
-        updateTraits({ facialStructure: { ...physicalTraits.facialStructure, eyeShape: val } });
-    }, [updateTraits, physicalTraits.facialStructure]);
-
-    const updateForehead = useCallback((val: string) => {
-        updateTraits({ facialStructure: { ...physicalTraits.facialStructure, forehead: val } });
-    }, [updateTraits, physicalTraits.facialStructure]);
-
-    const updateJawLine = useCallback((val: string) => {
-        updateTraits({ facialStructure: { ...physicalTraits.facialStructure, jawLine: val } });
-    }, [updateTraits, physicalTraits.facialStructure]);
-
-    const updateNoseShape = useCallback((val: string) => {
-        updateTraits({ facialStructure: { ...physicalTraits.facialStructure, noseShape: val } });
-    }, [updateTraits, physicalTraits.facialStructure]);
-
-    const updateBuild = useCallback((val: string) => {
-        updateTraits({ build: val });
-    }, [updateTraits]);
-
-    const updateHairType = useCallback((val: string) => {
-        updateTraits({ skinHair: { ...physicalTraits.skinHair, hairType: val } });
-    }, [updateTraits, physicalTraits.skinHair]);
-
-    const updateMarks = useCallback((marks: string[]) => {
-        updateTraits({ skinHair: { ...physicalTraits.skinHair, marks } });
-    }, [updateTraits, physicalTraits.skinHair]);
+    // Calculate progress
+    const answeredCount = TRAIT_DEFINITIONS.filter(d => getValue(d.id) && getValue(d.id) !== 'skip').length;
+    const progress = Math.round((answeredCount / TRAIT_DEFINITIONS.length) * 100);
 
     return (
-        <div className="w-full max-w-3xl mx-auto pb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Security Badge */}
-            <div className="flex items-center justify-center gap-2 text-xs text-[#2D7A5C] bg-[#2D7A5C]/5 py-2.5 px-4 rounded-full border border-[#2D7A5C]/10 mb-8">
-                <ScanFace className="w-4 h-4" />
-                <span className="font-medium">🔐 Biometric DNA Analysis Engaged</span>
+        <div className="w-full max-w-4xl mx-auto pb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* Progress */}
+            <div className="flex items-center justify-center gap-3 mb-6">
+                <div className="flex-1 max-w-xs h-2 bg-[#F0E8DE] rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-[#B8860B] to-[#D4A853] transition-all duration-500" style={{ width: `${progress}%` }} />
+                </div>
+                <span className="text-xs font-medium text-[#7A756F] whitespace-nowrap">{answeredCount}/{TRAIT_DEFINITIONS.length} done</span>
             </div>
 
             {/* Header */}
-            <div className="mb-10 text-center">
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FDF8F3] to-white border border-[#F0E8DE] rounded-full text-xs mb-6 shadow-sm"
-                >
-                    <span className="text-[#B8860B] font-medium tracking-wider uppercase">Step 2 of 5</span>
-                </motion.div>
-                <h1 className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-[#1A1612] leading-tight mb-2">
-                    Samudrika <span className="text-gradient-gold">Biometrics</span>
+            <div className="mb-6 text-center">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#FDF8F3] to-white border border-[#F0E8DE] rounded-full text-xs mb-4">
+                    <span className="text-[#B8860B] font-medium">Step 2 of 5</span>
+                </div>
+                <h1 className="font-[family-name:var(--font-cormorant)] text-3xl font-semibold text-[#1A1612] mb-2">
+                    Physical <span className="text-gradient-gold">Appearance</span>
                 </h1>
-                <p className="text-sm text-[#7A756F] max-w-md mx-auto italic">
-                    Mapping the vertical and horizontal dimensions of your physical karma.
+                <p className="text-sm text-[#7A756F] max-w-md mx-auto">
+                    Look in a mirror and select what matches you best. No astrology knowledge needed - just honest self-observation.
                 </p>
             </div>
 
-            {/* Navigation Tabs */}
-            <div className="flex p-1 bg-[#F5EFE7]/50 border border-[#F0E8DE] rounded-xl mb-10 overflow-x-auto no-scrollbar">
-                {TABS.map((tab) => {
-                    const TabIcon = tab.icon;
-                    const isActive = activeTab === tab.id;
-                    return (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-lg text-xs font-bold uppercase tracking-widest transition-all duration-300 ${isActive
-                                ? 'bg-white text-[#B8860B] shadow-sm border border-[#F0E8DE]'
-                                : 'text-[#7A756F] hover:text-[#1A1612]'
-                                }`}
-                        >
-                            <TabIcon className="w-4 h-4" />
-                            <span className="whitespace-nowrap">{tab.label}</span>
-                        </button>
-                    );
-                })}
+            {/* Trait Selector Tabs */}
+            <div className="mb-6">
+                <div className="flex flex-wrap gap-2 justify-center">
+                    {TRAIT_DEFINITIONS.map((def) => {
+                        const Icon = def.icon;
+                        const isActive = activeTraitId === def.id;
+                        const isAnswered = getValue(def.id) && getValue(def.id) !== 'skip';
+                        return (
+                            <button
+                                key={def.id}
+                                onClick={() => setActiveTraitId(def.id)}
+                                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive
+                                    ? 'bg-[#B8860B] text-white shadow-md'
+                                    : isAnswered
+                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                        : 'bg-white text-[#7A756F] border border-[#F0E8DE] hover:border-[#B8860B]/30'
+                                    }`}
+                            >
+                                <Icon className="w-4 h-4" />
+                                <span className="hidden sm:inline">{def.name}</span>
+                                {isAnswered && <CheckCircle2 className="w-3 h-3" />}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
 
-            {/* Tab Content */}
-            <div className="min-h-[400px]">
+            {/* Main Content Area */}
+            <div className="bg-white rounded-2xl border border-[#F0E8DE] p-6 shadow-sm">
+                {/* Trait Header */}
+                <div className="flex items-center gap-3 mb-6 pb-6 border-b border-[#F0E8DE]">
+                    <div className="p-3 rounded-xl bg-[#B8860B]/10">
+                        {React.createElement(activeDefinition.icon, { className: 'w-6 h-6 text-[#B8860B]' })}
+                    </div>
+                    <div>
+                        <h2 className="font-[family-name:var(--font-cormorant)] text-xl font-bold text-[#1A1612]">
+                            {activeDefinition.name}
+                        </h2>
+                        <p className="text-xs text-[#7A756F]">{activeDefinition.sanskrit}</p>
+                    </div>
+                </div>
+
+                {/* Visual Selector */}
                 <AnimatePresence mode="wait">
-                    {activeTab === 'face' && (
-                        <motion.div
-                            key="face"
-                            initial={{ opacity: 0, scale: 0.99 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.99 }}
-                            transition={{ duration: 0.2 }}
-                            className="space-y-10"
-                        >
-                            <TraitSelector
-                                label="Netra (Eyes)"
-                                icon={Eye}
-                                description="Window to the Chandra (Moon) influence"
-                                options={EYE_SHAPES}
-                                value={physicalTraits.facialStructure.eyeShape}
-                                onChange={updateEyeShape}
-                                grid={4}
-                            />
-                            <TraitSelector
-                                label="Lalat (Forehead)"
-                                icon={Brain}
-                                description="Seat of Mercury/Jupiter intellect"
-                                options={FOREHEAD_TYPES}
-                                value={physicalTraits.facialStructure.forehead}
-                                onChange={updateForehead}
-                            />
-                            <TraitSelector
-                                label="Hanu (Jawline)"
-                                icon={User}
-                                description="Willpower and Mars vitality indicator"
-                                options={JAW_TYPES}
-                                value={physicalTraits.facialStructure.jawLine || ''}
-                                onChange={updateJawLine}
-                            />
-                            <TraitSelector
-                                label="Nasika (Nose)"
-                                icon={Wind}
-                                description="Personality and prosperity indicator"
-                                options={NOSE_TYPES}
-                                value={physicalTraits.facialStructure.noseShape || ''}
-                                onChange={updateNoseShape}
-                            />
-                        </motion.div>
-                    )}
-
-                    {activeTab === 'structure' && (
-                        <motion.div
-                            key="structure"
-                            initial={{ opacity: 0, scale: 0.99 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.99 }}
-                            transition={{ duration: 0.2 }}
-                            className="space-y-10"
-                        >
-                            <TraitSelector
-                                label="Deha (Height)"
-                                icon={Ruler}
-                                description="The vertical dimension of build"
-                                options={HEIGHT_OPTIONS}
-                                value={currentHeightCategory}
-                                onChange={handleHeightChange}
-                            />
-                            <TraitSelector
-                                label="Sharira (Build)"
-                                icon={Activity}
-                                description="Constitution (Dosha Body Type)"
-                                options={BUILD_OPTIONS}
-                                value={physicalTraits.build}
-                                onChange={updateBuild}
-                            />
-                        </motion.div>
-                    )}
-
-                    {activeTab === 'details' && (
-                        <motion.div
-                            key="details"
-                            initial={{ opacity: 0, scale: 0.99 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.99 }}
-                            transition={{ duration: 0.2 }}
-                            className="space-y-10"
-                        >
-                            <TraitSelector
-                                label="Kesha (Hair)"
-                                icon={Sparkles}
-                                description="Subtle texture markers (Saturn/Venus)"
-                                options={HAIR_OPTIONS}
-                                value={physicalTraits.skinHair.hairType}
-                                onChange={updateHairType}
-                                grid={4}
-                            />
-                            <SpecialMarksInput
-                                value={physicalTraits.skinHair.marks || []}
-                                onChange={updateMarks}
-                            />
-                        </motion.div>
-                    )}
+                    <motion.div
+                        key={activeTraitId}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        <VisualSelector
+                            definition={activeDefinition}
+                            value={getValue(activeTraitId)}
+                            onChange={handleChange}
+                        />
+                    </motion.div>
                 </AnimatePresence>
+
+                {/* Special Marks */}
+                <div className="mt-8 pt-6 border-t border-[#F0E8DE]">
+                    <SpecialMarksInput
+                        value={physicalTraits?.skinHair?.marks || []}
+                        onChange={(marks) => updateTraits({ skinHair: { ...physicalTraits?.skinHair, marks } })}
+                    />
+                </div>
+            </div>
+
+            {/* Navigation Hint */}
+            <div className="mt-6 flex justify-between items-center text-sm">
+                <div className="text-[#7A756F]">
+                    {progress < 100 && (
+                        <span>Tip: You can skip traits you're unsure about</span>
+                    )}
+                </div>
+                <div className="text-[#B8860B] font-medium">
+                    {progress === 100 ? '✓ All traits selected!' : `${100 - progress}% remaining`}
+                </div>
             </div>
         </div>
     );

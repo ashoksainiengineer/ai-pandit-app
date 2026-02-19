@@ -33,6 +33,13 @@ import { capitalizeFirstLetter } from '../utils/index.js';
 import { buildVimshottariDasha, buildYoginiDasha, buildCharaDasha } from './dasha-builder.js';
 import { enrichPlanets, extractIshtaKashtaPhala } from './planet-enricher.js';
 import { buildTransitData } from './transit-builder.js';
+import { calculateKalachakraDasha, correlateKalachakraWithEvents } from '../kalachakra-dasha.js';
+import { calculateFullShadbala } from '../shadbala.js';
+import { calculateD150ForAllPlanets, analyzeD150ForEvents } from '../nadi-amsha.js';
+import { performSpouseVerification, extractNativeD9Positions, verifyD9WithSpouse, calculateSpousePositions } from '../spouse-d9-verification.js';
+import { detectGandanta } from '../gandanta-detection.js';
+import { analyzePakshi } from '../pancha-pakshi.js';
+import { calculateD12 } from '../advanced-btr-methods.js';
 
 export interface PackageBuildOptions {
   includeFullData?: boolean;
@@ -142,6 +149,69 @@ export async function buildCandidateDataPackage(
     pkg.vedicSignals.kundaLagna = calculateKundaLagna(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
   } catch (err) {
     logger.error('Mahakala indicator calculation failed', err);
+  }
+
+  // 🔱 GOD-TIER ENHANCEMENT: Kalachakra, Shadbala, Nadi, Spouse D9
+  try {
+    pkg.kalachakraDasha = calculateKalachakraDasha(moonLong, birthDate);
+  } catch (err) {
+    logger.error('Kalachakra Dasha calculation failed', err);
+  }
+
+  try {
+    pkg.shadbalaSummary = calculateFullShadbala(ephemeris);
+  } catch (err) {
+    logger.error('Shadbala calculation failed', err);
+  }
+
+  try {
+    pkg.nadiData = calculateD150ForAllPlanets(ephemeris);
+    if (input.lifeEvents && input.lifeEvents.length > 0) {
+      pkg.nadiAnalysis = analyzeD150ForEvents(pkg.nadiData, input.lifeEvents.map(e => ({
+        category: e.eventType || 'general'
+      })));
+    }
+  } catch (err) {
+    logger.error('Nadi Amsha calculation failed', err);
+  }
+
+  if (input.spouseData?.dateOfBirth) {
+    try {
+      pkg.spouseD9Verification = await performSpouseVerification(ephemeris, {
+        dateOfBirth: input.spouseData.dateOfBirth,
+        birthTime: input.spouseData.birthTime || '12:00:00',
+        latitude: input.spouseData.latitude || 0,
+        longitude: input.spouseData.longitude || 0,
+        timezone: input.spouseData.timezone || 0
+      });
+    } catch (err) {
+      logger.error('Spouse D9 verification failed', err);
+    }
+  }
+
+  // 🔱 GANDANTA DETECTION (Karmic Knot Points)
+  try {
+    pkg.gandantaAnalysis = detectGandanta(
+      ephemeris.ascendant.longitude,
+      ephemeris.planets.moon.longitude
+    );
+  } catch (err) {
+    logger.error('Gandanta detection failed', err);
+  }
+
+  // 🔱 PANCHA-PAKSHI SHASTRA (Five Birds System)
+  try {
+    const birthDate = new Date(input.dateOfBirth);
+    const [hours, minutes] = time.split(':').map(Number);
+    pkg.pakshiAnalysis = analyzePakshi(
+      hours,
+      minutes,
+      birthDate.getDay(),
+      ephemeris.ascendant.sign,
+      ephemeris.planets.moon.sign
+    );
+  } catch (err) {
+    logger.error('Pancha-Pakshi analysis failed', err);
   }
 
   // Add extended data for later stages

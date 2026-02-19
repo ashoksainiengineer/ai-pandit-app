@@ -1303,6 +1303,23 @@ export const QUIZ_METADATA = {
     ]
 };
 
+// Categories to exclude from forensic quiz (they're covered in physical traits section)
+export const EXCLUDED_FORENSIC_CATEGORIES = ['forehead', 'eyes', 'voice', 'marks'];
+
+// Filtered forensic questions - excludes physical traits (handled in separate Physical Traits section)
+export const FORENSIC_ONLY_QUESTIONS = FORENSIC_QUIZ_QUESTIONS.filter(
+    q => !EXCLUDED_FORENSIC_CATEGORIES.includes(q.category)
+);
+
+// Filtered metadata for forensic quiz
+export const FORENSIC_ONLY_METADATA = {
+    totalQuestions: FORENSIC_ONLY_QUESTIONS.length,
+    estimatedTimeMinutes: 4,
+    categories: QUIZ_METADATA.categories.filter(
+        cat => !EXCLUDED_FORENSIC_CATEGORIES.includes(cat.id)
+    )
+};
+
 // Helper: Get category by question ID
 export function getCategoryByQuestionId(questionId: string): string | undefined {
     const question = FORENSIC_QUIZ_QUESTIONS.find(q => q.id === questionId);
