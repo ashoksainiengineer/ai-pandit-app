@@ -63,3 +63,38 @@ export const DEFAULT_SUGGESTION_CONFIG: SuggestionConfig = {
   importanceWeight: 0.2,
   recencyWeight: 0.2,
 };
+
+export const IMPORTANCE_OPTIONS: {
+  level: EventImportance;
+  label: string;
+  icon: string;
+  desc: string;
+  weight: number;
+}[] = [
+  { level: 'critical', label: 'Life Defining', icon: '⚡', desc: 'Transformed your life', weight: 5.0 },
+  { level: 'high', label: 'Major Milestone', icon: '⭐', desc: 'Significant turning point', weight: 3.0 },
+  { level: 'medium', label: 'Important', icon: '●', desc: 'Notable life event', weight: 2.0 },
+  { level: 'low', label: 'Minor', icon: '○', desc: 'Routine occurrence', weight: 1.0 },
+];
+
+export const getImportanceLabel = (level: EventImportance): string => {
+  return IMPORTANCE_OPTIONS.find(opt => opt.level === level)?.label || level;
+};
+
+export const getImportanceIcon = (level: EventImportance): string => {
+  return IMPORTANCE_OPTIONS.find(opt => opt.level === level)?.icon || '●';
+};
+
+export const getImportanceWeight = (level: EventImportance): number => {
+  return IMPORTANCE_OPTIONS.find(opt => opt.level === level)?.weight || 1.0;
+};
+
+export const getImportanceColor = (level: EventImportance): string => {
+  switch (level) {
+    case 'critical': return 'bg-[#2D7A5C]/20 text-[#2D7A5C]';
+    case 'high': return 'bg-[#8B5CF6]/20 text-[#8B5CF6]';
+    case 'medium': return 'bg-[#D4AF37]/20 text-[#D4AF37]';
+    case 'low': return 'bg-[#7A756F]/20 text-[#7A756F]';
+    default: return 'bg-[#7A756F]/20 text-[#7A756F]';
+  }
+};

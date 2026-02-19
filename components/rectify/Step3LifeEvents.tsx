@@ -18,7 +18,7 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LifeEvent, TimeOffsetConfig } from '@/lib/types';
-import { EventCategory, EventTemplate, EventImportance } from '@/lib/events/types';
+import { EventCategory, EventTemplate, EventImportance, IMPORTANCE_OPTIONS, getImportanceColor } from '@/lib/events/types';
 import { EVENT_CATEGORIES as ENHANCED_CATEGORIES } from '@/lib/events/categories';
 import { getCategoryById } from '@/lib/events/utils';
 import { FormCard } from '@/components/ui/form/FormCard';
@@ -45,13 +45,6 @@ const DATE_OPTIONS = [
   { value: 'month_year' as DatePrecision, label: 'Month & Year', desc: 'MM/YYYY' },
   { value: 'month_range' as DatePrecision, label: 'Month Range', desc: 'MM/YYYY → MM/YYYY' },
   { value: 'year_range' as DatePrecision, label: 'Year Range', desc: 'YYYY → YYYY' },
-];
-
-const IMPORTANCE_OPTIONS: { level: ImportanceLevel; label: string; icon: string; desc: string; weight: number }[] = [
-  { level: 'critical', label: 'Life Defining', icon: '⚡', desc: 'Transformed your life', weight: 3.0 },
-  { level: 'high', label: 'Major Milestone', icon: '⭐', desc: 'Significant turning point', weight: 2.0 },
-  { level: 'medium', label: 'Important', icon: '●', desc: 'Notable life event', weight: 1.0 },
-  { level: 'low', label: 'Minor', icon: '○', desc: 'Routine occurrence', weight: 0.5 },
 ];
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];

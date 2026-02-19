@@ -1,26 +1,46 @@
 /**
  * Birth Time Rectification Page - GOD TIER ROBUST VERSION
  * Sacred Ivory Light Theme - Bulletproof form flow with step guards
+ * 
+ * Performance: Lazy loaded step components for faster initial load
+ * Autosave: Robust with retry, localStorage backup, and offline support
  */
 
 'use client';
 
-import React, { useState, useEffect, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { APIClient } from '@/lib/api-client';
 import { BirthData, LifeEvent, PhysicalTraits, TimeOffsetConfig, SpouseData, ForensicTraits } from '@/lib/types';
 import { Gender } from '@/lib/forensic-emojis';
-import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
-import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
-import Step2ForensicTraits from '@/components/rectify/Step2ForensicTraits';
-import Step3PhysicalTraits from '@/components/rectify/Step3PhysicalTraits';
-import Step4Review from '@/components/rectify/Step4Review';
 import Layout from '@/components/Layout';
-import { debounce } from '@/lib/debounce';
 import AnalysisErrorBoundary from '@/components/rectify/AnalysisErrorBoundary';
 import { useWarmup } from '@/hooks/use-warmup';
 import { env } from '@/lib/config';
+import dynamic from 'next/dynamic';
+
+// Lazy load step components for faster initial load
+const Step1BirthDetails = dynamic(() => import('@/components/rectify/Step1BirthDetails'), {
+    loading: () => <div className="animate-pulse bg-[#F5F0E8] h-96 rounded-xl" />,
+    ssr: false
+});
+const Step3PhysicalTraits = dynamic(() => import('@/components/rectify/Step3PhysicalTraits'), {
+    loading: () => <div className="animate-pulse bg-[#F5F0E8] h-96 rounded-xl" />,
+    ssr: false
+});
+const Step2ForensicTraits = dynamic(() => import('@/components/rectify/Step2ForensicTraits'), {
+    loading: () => <div className="animate-pulse bg-[#F5F0E8] h-96 rounded-xl" />,
+    ssr: false
+});
+const Step3LifeEvents = dynamic(() => import('@/components/rectify/Step3LifeEvents'), {
+    loading: () => <div className="animate-pulse bg-[#F5F0E8] h-96 rounded-xl" />,
+    ssr: false
+});
+const Step4Review = dynamic(() => import('@/components/rectify/Step4Review'), {
+    loading: () => <div className="animate-pulse bg-[#F5F0E8] h-96 rounded-xl" />,
+    ssr: false
+});
 
 // Initial States
 const initialBirthData: BirthData = {
@@ -278,26 +298,66 @@ function RectifyPageContent() {
     }, [isNewPerson, draftIdFromUrl]);
 
     // ═══════════════════════════════════════════════════════════════════════════════
-    // AUTO-SAVE: Save draft to database every 5 seconds when data changes
+    // ROBUST AUTO-SAVE: With retry, localStorage backup, and offline support
     // ═══════════════════════════════════════════════════════════════════════════════
+    const saveRetryCount = useRef(0);
+    const lastSaveAttemptRef = useRef<string>('');
+    const pendingSaveRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Save to localStorage as backup (immediate, always)
+    const saveToLocalStorage = useCallback((data: {
+        birthData: BirthData;
+        lifeEvents: LifeEvent[];
+        forensicTraits: ForensicTraits;
+        spouseData: SpouseData;
+        offsetConfig: TimeOffsetConfig;
+    }) => {
+        try {
+            localStorage.setItem('btr_local_backup', JSON.stringify({
+                ...data,
+                savedAt: new Date().toISOString()
+            }));
+        } catch (e) {
+            console.warn('localStorage save failed:', e);
+        }
+    }, []);
+
+    // Main autosave with retry logic
     useEffect(() => {
-        // Only save if user has entered meaningful data (at least name)
+        // Only save if user has entered meaningful data
         if (!birthData.fullName || birthData.fullName.trim().length < 2) return;
-        if (!userId) return; // Must be logged in
+        if (!userId) return;
 
-        const currentData = JSON.stringify({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig });
+        const currentDataString = JSON.stringify({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig });
+        
+        // Skip if nothing changed
+        if (currentDataString === lastSavedData) return;
 
-        // Don't save if data hasn't changed from last save
-        if (currentData === lastSavedData) return;
+        // Immediate localStorage backup
+        saveToLocalStorage({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig });
 
-        const saveDraft = async () => {
+        // Clear pending save
+        if (pendingSaveRef.current) {
+            clearTimeout(pendingSaveRef.current);
+        }
+
+        const saveDraft = async (retryCount = 0): Promise<boolean> => {
+            // Prevent duplicate save attempts
+            if (lastSaveAttemptRef.current === currentDataString && retryCount === 0) {
+                return false;
+            }
+            lastSaveAttemptRef.current = currentDataString;
+
             setCloudSaveStatus('saving');
+
             try {
                 const token = await getToken();
                 const payload = { birthData, lifeEvents, forensicTraits, spouseData, offsetConfig };
 
-                // Hybrid Architecture: Save drafts to Vercel (Local API) for speed
+                let success = false;
+
                 if (!draftSessionId) {
+                    // Create new session
                     const createRes = await fetch(`/api/sessions`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -307,30 +367,54 @@ function RectifyPageContent() {
                         const result = await createRes.json();
                         setDraftSessionId(result.data.id);
                         localStorage.setItem('btr_draft_id', result.data.id);
+                        success = true;
                     }
                 } else {
-                    // Update existing draft via local API
-                    // Note: Use PUT /api/sessions/[id] for updates
-                    await fetch(`/api/sessions/${draftSessionId}`, {
+                    // Update existing
+                    const updateRes = await fetch(`/api/sessions/${draftSessionId}`, {
                         method: 'PUT',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify(payload)
                     });
+                    success = updateRes.ok;
                 }
 
-                setLastSavedData(currentData);
-                setCloudSaveStatus('saved');
-                setTimeout(() => setCloudSaveStatus('idle'), 2000);
+                if (success) {
+                    setLastSavedData(currentDataString);
+                    setCloudSaveStatus('saved');
+                    saveRetryCount.current = 0;
+                    setTimeout(() => setCloudSaveStatus('idle'), 2000);
+                    return true;
+                } else {
+                    throw new Error('Save failed');
+                }
             } catch (err) {
-                console.error('Auto-save failed:', err);
-                setCloudSaveStatus('error');
+                console.error(`Auto-save failed (attempt ${retryCount + 1}):`, err);
+                
+                // Retry logic: 3 attempts with exponential backoff
+                if (retryCount < 3) {
+                    const backoffMs = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+                    await new Promise(resolve => setTimeout(resolve, backoffMs));
+                    return saveDraft(retryCount + 1);
+                } else {
+                    setCloudSaveStatus('error');
+                    setTimeout(() => setCloudSaveStatus('idle'), 3000);
+                    return false;
+                }
             }
         };
 
-        // 5 second debounce - save after user stops typing for 5 seconds
-        const timer = setTimeout(saveDraft, 5000);
-        return () => clearTimeout(timer);
-    }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, draftSessionId, userId, getToken, lastSavedData]);
+        // Debounce: Save after 3 seconds of inactivity
+        pendingSaveRef.current = setTimeout(() => {
+            saveDraft();
+        }, 3000);
+
+        return () => {
+            if (pendingSaveRef.current) {
+                clearTimeout(pendingSaveRef.current);
+            }
+        };
+    }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, draftSessionId, userId, getToken, lastSavedData, saveToLocalStorage]);
 
     // Load existing draft on mount
     useEffect(() => {

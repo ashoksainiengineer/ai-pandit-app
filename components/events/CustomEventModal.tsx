@@ -8,8 +8,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Plus, AlertCircle, Sparkles } from 'lucide-react';
-import { EventCategory, EventImportance } from '@/lib/events/types';
-import { validateCustomEvent, getImportanceLabel, getImportanceColor } from '@/lib/events/utils';
+import { EventCategory, EventImportance, IMPORTANCE_OPTIONS } from '@/lib/events/types';
+import { validateCustomEvent } from '@/lib/events/utils';
 
 interface CustomEventModalProps {
   isOpen: boolean;
@@ -24,29 +24,6 @@ interface CustomEventModalProps {
     newCategoryName?: string;
   }) => void;
 }
-
-const IMPORTANCE_OPTIONS: { value: EventImportance; label: string; description: string }[] = [
-  {
-    value: 'critical',
-    label: 'Critical',
-    description: 'Life-transforming events (marriage, birth, near-death)',
-  },
-  {
-    value: 'high',
-    label: 'High',
-    description: 'Major milestones (job change, property purchase)',
-  },
-  {
-    value: 'medium',
-    label: 'Medium',
-    description: 'Notable events (education, travel)',
-  },
-  {
-    value: 'low',
-    label: 'Low',
-    description: 'Minor occurrences',
-  },
-];
 
 export default function CustomEventModal({
   isOpen,
@@ -298,41 +275,41 @@ export default function CustomEventModal({
                 <div className="grid grid-cols-2 gap-2">
                   {IMPORTANCE_OPTIONS.map((option) => (
                     <button
-                      key={option.value}
+                      key={option.level}
                       type="button"
-                      onClick={() => setImportance(option.value)}
-                      className={`p-2.5 rounded-lg text-left transition-all border ${importance === option.value
+                      onClick={() => setImportance(option.level)}
+                      className={`p-2.5 rounded-lg text-left transition-all border ${importance === option.level
                         ? 'bg-[#B8860B]/10 border-[#B8860B]'
                         : 'bg-white border-[#E8E0D5] hover:border-[#D4A853]/50'
                         }`}
                     >
                       <div className="flex items-center gap-2">
                         <span
-                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${importance === option.value
+                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${importance === option.level
                             ? 'border-[#B8860B] bg-[#B8860B]'
                             : 'border-[#A8A39D]'
                             }`}
                         >
-                          {importance === option.value && (
+                          {importance === option.level && (
                             <span className="text-white text-[10px]">✓</span>
                           )}
                         </span>
                         <div className="min-w-0">
                           <div
-                            className={`font-medium text-xs ${importance === option.value
+                            className={`font-medium text-xs ${importance === option.level
                               ? 'text-[#1A1612]'
                               : 'text-[#4A453F]'
                               }`}
                           >
-                            {option.label}
+                            {option.icon} {option.label}
                           </div>
                           <div
-                            className={`text-[10px] leading-tight ${importance === option.value
+                            className={`text-[10px] leading-tight ${importance === option.level
                               ? 'text-[#B8860B]'
                               : 'text-[#7A756F]'
                               }`}
                           >
-                            {option.description}
+                            {option.desc}
                           </div>
                         </div>
                       </div>
