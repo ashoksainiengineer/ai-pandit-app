@@ -498,7 +498,7 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
             <div className="mt-6 flex justify-between items-center text-sm">
                 <div className="text-[#7A756F]">
                     {progress < 100 && (
-                        <span>Tip: You can skip traits you're unsure about</span>
+                        <span>Tip: You can skip traits you&apos;re unsure about</span>
                     )}
                 </div>
                 <div className="text-[#B8860B] font-medium">
