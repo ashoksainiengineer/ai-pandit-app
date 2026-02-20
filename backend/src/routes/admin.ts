@@ -138,6 +138,11 @@ router.get('/metrics', authMiddleware, async (req: AuthenticatedRequest, res: Re
  * GET /api/admin/db-check
  * Industrial diagnostic for Turso connectivity and session sync
  */
+// Intercept HEAD requests (used by uptime bots) to prevent auth warning logs
+router.head('/db-check', (req: Request, res: Response) => {
+  res.status(200).end();
+});
+
 router.get('/db-check', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
   try {
