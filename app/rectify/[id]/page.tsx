@@ -134,18 +134,7 @@ const AnalysisTimer = memo(({ startedAt, isComplete, updatedAt }: { startedAt: s
 });
 AnalysisTimer.displayName = 'AnalysisTimer';
 
-function useETACalculator(analyzedCount: number, totalCandidates: number, startedAt: string | undefined) {
-  return useMemo(() => {
-    if (!startedAt || analyzedCount === 0 || totalCandidates === 0) return 0;
-
-    const elapsed = Date.now() - new Date(startedAt).getTime();
-    const msPerCandidate = elapsed / analyzedCount;
-    const remaining = totalCandidates - analyzedCount;
-    const estimatedMs = msPerCandidate * remaining;
-
-    return Math.max(0, Math.min(estimatedMs, 30 * 60 * 1000));
-  }, [analyzedCount, totalCandidates, startedAt]);
-}
+// (Removed broken local ETA calculator)
 
 export default function AnalysisPage() {
   const params = useParams();
@@ -163,8 +152,8 @@ export default function AnalysisPage() {
   const {
     isConnected, isComplete, error: streamError, progress, aiThinking, aiContext,
     candidateScores, advancedSignals, result, startedAt, allSteps, metadata,
-    connectionState, persistentCandidates, allCandidates, stageHistory,
-    analyzedCount, totalCandidates, displayedCandidate,
+    connectionState, persistentCandidates, allCandidates, candidatesByStage, stageHistory,
+    analyzedCount, totalCandidates, displayedCandidate, estimatedTimeRemaining,
   } = streamData;
 
   const [isCancelling, setIsCancelling] = useState(false);
@@ -228,7 +217,7 @@ export default function AnalysisPage() {
     return Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000);
   }, [startedAt]);
 
-  const estimatedSecondsRemaining = useETACalculator(analyzedCount, totalCandidates, startedAt);
+  const estimatedSecondsRemaining = estimatedTimeRemaining || 0;
 
   const sortedCandidateScores = useMemo(() => {
     if (!candidateScores || candidateScores.length === 0) return [];
@@ -273,7 +262,7 @@ export default function AnalysisPage() {
     <AnalysisErrorBoundary sectionName="Analysis Page">
       <GlobalStyles />
       <main className="min-h-screen font-sans" style={{ backgroundColor: THEME.bg }} aria-labelledby={pageTitleId}>
-        
+
         <header className="sticky top-0 z-40 border-b backdrop-blur-md bg-white/80" style={{ borderColor: THEME.border }} role="banner">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
             <Breadcrumbs items={[
@@ -281,7 +270,7 @@ export default function AnalysisPage() {
               { label: 'Dashboard', href: '/dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
               { label: 'Analysis', icon: <Activity className="w-4 h-4" /> },
             ]} />
-            
+
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mt-2">
               <div>
                 <h1 id={pageTitleId} className="text-lg sm:text-xl font-bold flex items-center gap-2" style={{ color: THEME.textPrimary }}>
@@ -291,10 +280,10 @@ export default function AnalysisPage() {
                   </span>
                 </h1>
               </div>
-              
+
               <div className="flex items-center gap-2 sm:gap-3">
                 <AnalysisTimer startedAt={startedAt || null} updatedAt={metadata?.updatedAt} isComplete={isComplete} />
-                
+
                 {!isComplete && !cancelled && (
                   <div className="relative">
                     {showCancelConfirm ? (
@@ -319,14 +308,14 @@ export default function AnalysisPage() {
         </header>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
-          
+
           <AnalysisStatusBanner
             currentStage={progress?.stepIndex ?? 0}
             candidateCount={candidateScores.length}
             totalCandidates={totalCandidates || 100}
             analyzedCount={analyzedCount}
             elapsedSeconds={elapsedSeconds}
-            estimatedSecondsRemaining={Math.floor(estimatedSecondsRemaining / 1000)}
+            estimatedSecondsRemaining={estimatedSecondsRemaining}
             isConnected={isConnected}
             isComplete={isComplete}
           />
@@ -392,19 +381,48 @@ export default function AnalysisPage() {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-            <div className="lg:col-span-2">
+            <div className="lg:col-span-2 space-y-4 sm:space-y-6">
               {(aiThinking || (progress?.stepIndex ?? 0) >= 1) && !isComplete && !cancelled && (
                 <SectionErrorBoundary sectionName="AI Reasoning" icon={<Brain className="w-5 h-5" />}>
-                  <UnifiedAIPanel
-                    thinking={aiThinking ? (Object.values(aiThinking)[0] as any) : null}
-                    stageHistory={stageHistory}
-                    isActive={isConnected && !isComplete}
-                    stage={progress?.stepIndex}
-                    allCandidates={allCandidates}
-                    displayedCandidate={displayedCandidate}
-                    candidateScores={candidateScores}
-                    unifiedMode={true}
-                  />
+                  {(() => {
+                    const currentStageIndex = progress?.stepIndex ?? 0;
+                    // Only show reasoning stages (indexes 1 to 5, inclusive of init if needed)
+                    // Ensure we have an array of stages that have started
+                    const activeStages = allSteps.filter((step, index) => index >= 1 && index <= currentStageIndex);
+
+                    if (activeStages.length === 0 && currentStageIndex > 0) {
+                      // Fallback if steps filtering misses
+                      activeStages.push(allSteps[currentStageIndex] || { id: 'processing', name: `Stage ${currentStageIndex}` });
+                    }
+
+                    // Render them in reverse so the newest is at the top, as per the mockup.
+                    return activeStages.reverse().map((step, idx) => {
+                      // The step logic: allSteps[0] is init, so step index in pipeline is `allSteps.indexOf(step)`.
+                      const stageNum = allSteps.indexOf(step);
+                      // 🔱 Get specific candidates for this stage
+                      const stageCandidates = candidatesByStage?.get(stageNum) || (stageNum === currentStageIndex ? allCandidates : new Map());
+                      const isStageCompleted = stageNum < currentStageIndex;
+
+                      if (stageCandidates.size === 0 && !isStageCompleted && stageNum !== currentStageIndex) return null;
+
+                      return (
+                        <div key={step.id} className="mb-6 last:mb-0">
+                          <UnifiedAIPanel
+                            thinking={!isStageCompleted && aiThinking ? (Object.values(aiThinking)[0] as any) : null}
+                            stageHistory={stageHistory}
+                            isActive={isConnected && !isComplete && !isStageCompleted}
+                            stage={stageNum}
+                            allCandidates={stageCandidates}
+                            displayedCandidate={displayedCandidate}
+                            candidateScores={candidateScores}
+                            unifiedMode={true}
+                            title={step.name}
+                            isCompleted={isStageCompleted}
+                          />
+                        </div>
+                      );
+                    });
+                  })()}
                 </SectionErrorBoundary>
               )}
             </div>
@@ -412,7 +430,8 @@ export default function AnalysisPage() {
             <div className="space-y-4 sm:space-y-6">
               {!isComplete && !cancelled && candidateScores.length > 0 && (
                 <SectionErrorBoundary sectionName="Leaderboard" icon={<Activity className="w-5 h-5" />}>
-                  <CandidateScoreTable scores={allCandidates} />
+                  {/* 🔧 FIX: Pass candidateScores array instead of allCandidates Map */}
+                  <CandidateScoreTable scores={candidateScores} />
                 </SectionErrorBoundary>
               )}
 

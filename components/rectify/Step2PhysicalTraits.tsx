@@ -250,7 +250,7 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
                                 options={HEIGHT_OPTIONS}
                                 value={(() => {
                                     const height = physicalTraits.height;
-                                    const cm = typeof height === 'object' && height !== null ? height.cm : 168;
+                                    const cm = typeof height === 'number' ? height : (typeof height === 'object' && height !== null ? height.cm : 168);
                                     return (cm || 168) < 162 ? 'short' : (cm || 168) > 178 ? 'tall' : 'medium';
                                 })()}
                                 onChange={(val: any) => {

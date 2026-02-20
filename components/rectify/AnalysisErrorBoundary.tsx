@@ -330,7 +330,7 @@ function ErrorFallback({
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface SectionErrorBoundaryProps {
-    children: ReactNode;
+    children?: ReactNode;
     sectionName: string;
     icon?: ReactNode;
 }

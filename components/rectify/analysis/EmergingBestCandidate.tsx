@@ -89,7 +89,7 @@ export const EmergingBestCandidate = memo(function EmergingBestCandidate({
           </span>
         </div>
         {gapInfo && !isComplete && (
-          <span className={`text-xs font-medium ${gapInfo.color} flex items-center gap-1`}>
+          <span className={`text-[10px] font-bold uppercase tracking-wider ${gapInfo.color} bg-white px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1`}>
             <TrendingUp className="w-3 h-3" />
             {gapInfo.text}
           </span>
@@ -99,11 +99,11 @@ export const EmergingBestCandidate = memo(function EmergingBestCandidate({
       <AnimatePresence mode="wait">
         <motion.div
           key={topCandidate.time}
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 10 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.2 }}
-          className="bg-white rounded-lg p-4 border border-white/50 shadow-sm"
+          className="bg-white rounded-xl p-5 border shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)]"
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -147,11 +147,11 @@ export const EmergingBestCandidate = memo(function EmergingBestCandidate({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: idx * 0.1 }}
-                  className="bg-white/60 rounded-lg p-2.5 flex items-center justify-between"
+                  className="bg-white rounded-lg p-3 flex items-center justify-between border shadow-sm hover:shadow-md transition-shadow"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-[#7A756F] font-bold">#{idx + 2}</span>
-                    <span className="text-sm font-mono font-medium text-[#1A1612]">
+                    <span className="text-[10px] text-stone-400 font-bold bg-stone-100 px-1.5 py-0.5 rounded">#{idx + 2}</span>
+                    <span className="text-sm font-mono font-bold text-[#1A1612]">
                       {candidate.time}
                     </span>
                   </div>
@@ -160,7 +160,7 @@ export const EmergingBestCandidate = memo(function EmergingBestCandidate({
                       {candidate.score.toFixed(1)}%
                     </span>
                     {topCandidate && (
-                      <ChevronDown className="w-3 h-3 text-[#7A756F]" />
+                      <ChevronDown className="w-3 h-3 text-red-400" />
                     )}
                   </div>
                 </motion.div>

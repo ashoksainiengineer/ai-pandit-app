@@ -142,6 +142,7 @@ export interface StreamState {
     result: StreamResult | null;
     metadata?: StreamMetadata;
     allCandidates: Map<string, AIThinking>;
+    candidatesByStage: Map<number, Map<string, AIThinking>>; // 🔱 NEW: Store candidates keyed by stage
     displayedCandidate: string | null;
     persistentCandidates: any[]; // Bulletproof accumulator for parallel batches
     stageHistory: Map<number, string>;
@@ -201,6 +202,7 @@ function createInitialState(): StreamState {
         result: null,
         metadata: undefined,
         allCandidates: new Map(),
+        candidatesByStage: new Map(), // 🔱 NEW
         displayedCandidate: null,
         persistentCandidates: [],
         stageHistory: new Map(),
@@ -309,7 +311,9 @@ export function useStreamProgress(
                     const stage = thinkingEvent?.stage || 1;
                     const candidateTime = thinkingEvent?.candidateTime || 'general';
 
-                    const existing = prev.aiThinking[candidateTime] || {
+                    // 1. Get isolated state FOR THIS STAGE
+                    const currentStageMap = prev.candidatesByStage.get(stage) || new Map();
+                    const existingInStage = currentStageMap.get(candidateTime) || {
                         stage,
                         candidateTime,
                         chunks: [],
@@ -317,15 +321,26 @@ export function useStreamProgress(
                     };
 
                     const updatedThinking: AIThinking = {
-                        ...existing,
-                        stage,
-                        fullText: existing.fullText + chunk,
-                        chunks: [...existing.chunks, chunk]
+                        ...existingInStage,
+                        fullText: existingInStage.fullText + chunk,
+                        chunks: [...existingInStage.chunks, chunk]
                     };
 
-                    // 🔧 FIX: Sync allCandidates Map for UI tabs
+                    // 2. Sync candidatesByStage for multi-stage view
+                    const newCandidatesByStage = new Map(prev.candidatesByStage);
+                    const newStageCandidates = new Map(currentStageMap);
+                    newStageCandidates.set(candidateTime, updatedThinking);
+                    newCandidatesByStage.set(stage, newStageCandidates);
+
+                    // 3. Sync allCandidates Map (latest view)
                     const newAllCandidates = new Map(prev.allCandidates);
                     newAllCandidates.set(candidateTime, updatedThinking);
+
+                    // 4. Update aiThinking (latest view)
+                    const newAiThinking = {
+                        ...prev.aiThinking,
+                        [candidateTime]: updatedThinking
+                    };
 
                     // 🔧 FIX: Sync stageHistory Map for stage-based display
                     const newStageHistory = new Map(prev.stageHistory);
@@ -355,6 +370,7 @@ export function useStreamProgress(
                             [candidateTime]: updatedThinking
                         },
                         allCandidates: newAllCandidates,
+                        candidatesByStage: newCandidatesByStage, // 🔱 NEW
                         stageHistory: newStageHistory,
                         displayedCandidate: candidateTime,
                     };
@@ -457,6 +473,7 @@ export function useStreamProgress(
                             stageHistory: new Map(),
                             candidateScores: [],
                             allCandidates: new Map(),
+                            candidatesByStage: new Map(), // 🔱 NEW
                             decisions: []
                         } : {})
                     };

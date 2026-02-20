@@ -137,13 +137,12 @@ class SessionEventManager {
         }
 
         const sessionBufferMap = this.thinkingBuffers.get(sessionId)!;
-        const current = sessionBufferMap.get(candidateTime);
+        const key = `${stage}_${candidateTime}`;
+        const current = sessionBufferMap.get(key);
 
-        // If new stage or no buffer for this candidate, start fresh
-        if (!current || current.stage !== stage) {
-            sessionBufferMap.set(candidateTime, { stage, text, candidateTime });
+        if (!current) {
+            sessionBufferMap.set(key, { stage, text, candidateTime });
         } else {
-            // Append to existing candidate buffer
             current.text += text;
         }
     }

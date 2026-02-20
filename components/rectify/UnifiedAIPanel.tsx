@@ -48,6 +48,8 @@ interface UnifiedAIPanelProps {
   candidateScores?: CandidateScore[];
   unifiedMode?: boolean;
   isComplete?: boolean;
+  title?: string;      // 🔱 NEW: Stage title for header
+  isCompleted?: boolean; // 🔱 NEW: If this specific stage is done
 }
 
 type ScoreTier = 'top' | 'promising' | 'exploring';
@@ -188,26 +190,35 @@ const ReasoningCard = memo(function ReasoningCard({
       whileHover={{ y: -4, scale: 1.02 }}
       onClick={onClick}
       className={`
-        cursor-pointer relative p-4 rounded-xl border transition-all duration-300
+        cursor-pointer relative p-5 rounded-xl border transition-all duration-300 flex flex-col h-[180px]
         ${isLive
-          ? 'bg-amber-50/50 border-amber-200 shadow-[0_4px_12px_rgba(184,134,11,0.1)]'
-          : 'bg-white border-[#F0E8DE] hover:border-amber-400 hover:shadow-md'}
+          ? 'bg-amber-50/50 border-amber-300 shadow-[0_4px_15px_rgba(184,134,11,0.15)] ring-1 ring-amber-400/30'
+          : 'bg-white border-[#F0E8DE] hover:border-amber-400 hover:shadow-md hover:-translate-y-1'
+        }
       `}
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-amber-500 animate-pulse' : 'bg-stone-300'}`} />
-          <span className="text-[11px] font-bold text-[#1A1612] font-mono">{title}</span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-amber-500 animate-pulse' : 'bg-stone-300'}`} />
+            <span className="text-[12px] font-bold text-[#1A1612]">Batch {batchIndex + 1}</span>
+          </div>
+          <span className="text-[10px] font-mono text-[#7A756F] bg-stone-100 px-1.5 py-0.5 rounded truncate max-w-[120px]">
+            {title}
+          </span>
         </div>
         {isLive && (
-          <span className="text-[9px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded uppercase tracking-tighter">
-            Live
+          <span className="text-[9px] font-bold text-amber-700 bg-amber-100/80 border border-amber-200 px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1">
+            <Radio className="w-2.5 h-2.5 animate-pulse" /> Live
           </span>
         )}
       </div>
 
-      <div className="text-[10px] text-[#4A453F] leading-relaxed line-clamp-4 font-mono overflow-hidden">
-        {preview || 'Initializing batch calculations...'}
+      <div className="text-[11px] text-[#4A453F] leading-relaxed line-clamp-4 font-mono overflow-hidden flex-grow style-scroll relative">
+        {preview || <span className="text-stone-400 italic">Evaluating celestial coordinates...</span>}
+        {/* Adds a slight fade effect at the bottom if content is long */}
+        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent pointer-events-none rounded-b-lg"
+          style={{ display: isLive ? 'none' : 'block' }} />
       </div>
 
       <div className="mt-4 pt-3 border-t border-dashed border-stone-100 flex items-center justify-between">
@@ -237,7 +248,7 @@ const ReasoningGrid = memo(function ReasoningGrid({
   if (entries.length === 0) return null;
 
   return (
-    <div className="p-5 flex flex-col gap-4 max-h-[800px] overflow-y-auto style-scroll bg-[#FAF8F5]/30">
+    <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[800px] overflow-y-auto style-scroll bg-[#FAF8F5]/30">
       {entries.map(([time, data], idx) => (
         <ReasoningCard
           key={time}
@@ -426,6 +437,8 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
   candidateScores,
   unifiedMode = true,
   isComplete = false,
+  title = 'Intelligence Grid',
+  isCompleted = false,
 }: UnifiedAIPanelProps) {
   const panelId = useId();
   const [localSelectedCandidate, setLocalSelectedCandidate] = useState<string | null>(null);
@@ -483,17 +496,22 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
       aria-labelledby={`${panelId}-title`}
     >
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#FAF8F5] to-white px-5 py-4 border-b border-[#F0E8DE] flex items-center justify-between">
+      <div className={`px-5 py-4 border-b flex items-center justify-between transition-colors
+        ${isCompleted
+          ? 'bg-[#FAF8F5] border-[#E8E2D9]'
+          : 'bg-gradient-to-r from-[#FAF8F5] to-white border-[#F0E8DE]'
+        }`}
+      >
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-[#B8860B]/10 rounded-lg">
-            <Brain className="w-5 h-5 text-[#B8860B]" />
+          <div className={`p-2 rounded-lg ${isCompleted ? 'bg-stone-100' : 'bg-[#B8860B]/10'}`}>
+            <Brain className={`w-5 h-5 ${isCompleted ? 'text-stone-400' : 'text-[#B8860B]'}`} />
           </div>
           <div>
-            <h3 id={`${panelId}-title`} className="text-base font-bold text-[#1A1612]">
-              Intelligence Grid
+            <h3 id={`${panelId}-title`} className={`text-base font-bold ${isCompleted ? 'text-[#4A453F]' : 'text-[#1A1612]'}`}>
+              {title}
             </h3>
             <p className="text-[10px] text-[#7A756F]">
-              {isActive ? 'Simultaneous processing' : 'Multi-stream history'}
+              {isCompleted ? 'Stage processing completed' : (isActive ? 'Simultaneous processing' : 'Multi-stream history')}
             </p>
           </div>
         </div>

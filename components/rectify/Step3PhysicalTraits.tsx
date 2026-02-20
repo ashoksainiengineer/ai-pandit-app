@@ -274,16 +274,16 @@ const VisualSelector = memo(({ definition, value, onChange }: VisualSelectorProp
                             <CheckCircle2 className="w-4 h-4 text-white" />
                         </div>
                     )}
-                    
+
                     {/* Visual Icon - Big and Clear */}
                     <div className="text-5xl text-center mb-3">{option.visual}</div>
-                    
+
                     {/* Label */}
                     <div className="font-bold text-[#1A1612] text-lg text-center mb-2">{option.label}</div>
-                    
+
                     {/* Clear Description */}
                     <div className="text-sm text-[#7A756F] text-center mb-3">{option.description}</div>
-                    
+
                     {/* Example */}
                     <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded text-center">
                         {option.example}
@@ -370,9 +370,10 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
             case 'build': return traits?.build || '';
             case 'height':
                 const h = traits?.height;
-                if (typeof h === 'object' && h?.cm) {
-                    if (h.cm < 163) return 'short';
-                    if (h.cm > 178) return 'tall';
+                const cmValue = typeof h === 'number' ? h : (typeof h === 'object' && h !== null ? h.cm : null);
+                if (cmValue !== null) {
+                    if (cmValue < 163) return 'short';
+                    if (cmValue > 178) return 'tall';
                     return 'average';
                 }
                 return '';

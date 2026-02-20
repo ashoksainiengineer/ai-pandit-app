@@ -23,7 +23,8 @@ COPY package*.json ./
 COPY drizzle.config.* ./
 
 # Install all dependencies (including devDependencies for build)
-RUN npm install
+# Suppress harmless deprecation warnings from transitive dependencies
+RUN npm install --loglevel=error --no-audit --no-fund
 
 # Copy source code and build
 COPY src/ ./src/
