@@ -10,7 +10,8 @@ WORKDIR /app
 # Copy root package files (for swisseph-wasm and shared deps)
 COPY package.json package-lock.json* ./
 # Suppress harmless deprecation warnings from transitive dependencies
-RUN npm ci --omit=dev --ignore-scripts --loglevel=error --no-audit --no-fund
+# Using npm install instead of npm ci because there may not be a root package-lock.json
+RUN npm install --omit=dev --ignore-scripts --loglevel=error --no-audit --no-fund
 
 # Copy backend source only (no frontend)
 COPY backend/ ./backend/
@@ -38,10 +39,8 @@ COPY ephe/* /app/ephe/
 # Copy built backend and its production dependencies
 COPY --from=builder /app/backend/dist ./backend/dist
 COPY --from=builder /app/backend/package*.json ./backend/
-# Copy root node_modules for shared libs like swisseph-wasm
-COPY --from=builder /app/node_modules ./node_modules
 
-# Install backend-specific production dependencies
+# Install backend-specific production dependencies only (no root node_modules needed)
 RUN cd backend && npm install --omit=dev --ignore-scripts --loglevel=error --no-audit --no-fund
 
 EXPOSE 7860
