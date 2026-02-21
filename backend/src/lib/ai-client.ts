@@ -391,61 +391,81 @@ export async function callAIWithStream(
             let emitBuffer = '';
             let lastEmitTime = Date.now();
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+            // 🔱 Network Resilience: Idle Timeout
+            let idleTimeoutId = setTimeout(() => {
+                logger.error('🔱 AI Stream idle timeout reached (60s without chunks). Aborting socket.', { sessionId, stage });
+                controller.abort();
+            }, 60000);
 
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
 
-                for (const line of lines) {
-                    if (!line.startsWith('data: ')) continue;
-                    const data = line.slice(6);
-                    if (data === '[DONE]') continue;
+                    // Reset idle timeout on every successful read
+                    clearTimeout(idleTimeoutId);
+                    if (!done) {
+                        idleTimeoutId = setTimeout(() => {
+                            logger.error('🔱 AI Stream idle timeout reached (60s without chunks). Aborting socket.', { sessionId, stage });
+                            controller.abort();
+                        }, 60000);
+                    }
 
-                    try {
-                        const parsed = JSON.parse(data);
-                        const delta = parsed.choices?.[0]?.delta;
+                    if (done) break;
 
-                        const reasoningChunk = delta?.reasoning || delta?.reasoning_content;
-                        let chunkToProcess = '';
-                        let isReasoning = false;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
 
-                        if (reasoningChunk) {
-                            fullThinking += reasoningChunk;
-                            chunkToProcess = reasoningChunk;
-                            isReasoning = true;
-                        } else if (delta?.content) {
-                            fullContent += delta.content;
-                            chunkToProcess = delta.content;
-                        }
+                    for (const line of lines) {
+                        if (!line.startsWith('data: ')) continue;
+                        const data = line.slice(6);
+                        if (data === '[DONE]') continue;
 
-                        if (chunkToProcess) {
-                            emitBuffer += chunkToProcess;
+                        try {
+                            const parsed = JSON.parse(data);
+                            const delta = parsed.choices?.[0]?.delta;
 
-                            // 🚀 THROTTLE: Emit only if buffer > 20 chars or > 20ms elapsed
-                            const now = Date.now();
-                            if (emitBuffer.length > 20 || (now - lastEmitTime > 20)) {
-                                emitAIThinking(sessionId, emitBuffer, stage, options?.candidateTime);
+                            const reasoningChunk = delta?.reasoning || delta?.reasoning_content;
+                            let chunkToProcess = '';
+                            let isReasoning = false;
 
-                                if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
-                                    options.progressTracker.updateAIThinking(emitBuffer, stage, options?.candidateTime).catch(() => { });
+                            if (reasoningChunk) {
+                                fullThinking += reasoningChunk;
+                                chunkToProcess = reasoningChunk;
+                                isReasoning = true;
+                            } else if (delta?.content) {
+                                fullContent += delta.content;
+                                chunkToProcess = delta.content;
+                            }
+
+                            if (chunkToProcess) {
+                                emitBuffer += chunkToProcess;
+
+                                // 🚀 THROTTLE: Emit only if buffer > 20 chars or > 20ms elapsed
+                                const now = Date.now();
+                                if (emitBuffer.length > 20 || (now - lastEmitTime > 20)) {
+                                    emitAIThinking(sessionId, emitBuffer, stage, options?.candidateTime);
+
+                                    if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
+                                        options.progressTracker.updateAIThinking(emitBuffer, stage, options?.candidateTime).catch(() => { });
+                                    }
+
+                                    emitBuffer = '';
+                                    lastEmitTime = now;
                                 }
 
-                                emitBuffer = '';
-                                lastEmitTime = now;
+                                // Heartbeat logic
+                                if ((isReasoning ? fullThinking.length : fullContent.length) % 500 < chunkToProcess.length) {
+                                    options?.onToken?.(isReasoning ? fullThinking : fullContent, isReasoning);
+                                }
                             }
-
-                            // Heartbeat logic
-                            if ((isReasoning ? fullThinking.length : fullContent.length) % 500 < chunkToProcess.length) {
-                                options?.onToken?.(isReasoning ? fullThinking : fullContent, isReasoning);
-                            }
+                        } catch {
+                            // Ignore parse errors
                         }
-                    } catch {
-                        // Ignore parse errors
                     }
                 }
+            } finally {
+                clearTimeout(idleTimeoutId);
             }
 
             // Flush remaining buffer

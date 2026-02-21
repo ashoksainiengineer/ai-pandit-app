@@ -13,6 +13,8 @@ import { LifeEvent, ForensicTraits } from '../../../types/index.js';
 import { formatLifeEventForAI } from './life-event-formatter.js';
 import { buildForensicDNASummary } from './forensic-context.js';
 import { randomSort } from '../../utils/index.js';
+import { validateCandidateDataForAI } from '../schemas.js';
+import { logger } from '../../logger.js';
 
 /**
  * Get event importance summary for AI
@@ -22,7 +24,7 @@ function getEventImportanceSummary(events: LifeEvent[]): string {
   const high = events.filter(e => e.importance === 'high');
   const medium = events.filter(e => e.importance === 'medium');
   const low = events.filter(e => e.importance === 'low');
-  
+
   let summary = '';
   if (critical.length > 0) {
     summary += `CRITICAL (${critical.length}): ${critical.map(e => e.eventType).join(', ')}\n`;
@@ -56,6 +58,20 @@ export function getFinalPrecisionPrompt(
   spouseData: unknown,
   currentTransits?: unknown
 ): string {
+  // 🛡️ ZERO-TRUST VALIDATION GATE
+  candidates.filter(c => c.time).forEach(c => {
+    try {
+      validateCandidateDataForAI(c);
+    } catch (err: any) {
+      if (err.errors) {
+        logger.error(`[VALIDATION-GATE] Candidate ${c.time} failed Zod schema validation:`, JSON.stringify(err.errors));
+      } else {
+        logger.error(`[VALIDATION-GATE] Candidate ${c.time} failed validation:`, err);
+      }
+      throw new Error(`Data Pipeline Contract Violation: Candidate ${c.time} is missing required data for AI analysis.`);
+    }
+  });
+
   const eventsText = events.map(formatLifeEventForAI).join('\n');
   const spouseText = spouseData ? JSON.stringify(spouseData, null, 2) : 'N/A';
 

@@ -9,6 +9,14 @@ import { calculateEphemeris } from '../ephemeris.js';
 import { getDashaForDate, verifyDoubleTransit } from '../vedic-astrology-engine.js';
 import { capitalizeFirstLetter } from '../utils/index.js';
 import { LifeEvent } from '../../types/index.js';
+import { ZODIAC_SIGNS } from './types.js';
+
+/**
+ * Calculate relative house position
+ */
+function calculateRelativeHouse(targetSign: string, ascendantSign: string): number {
+  return ((ZODIAC_SIGNS.indexOf(targetSign) - ZODIAC_SIGNS.indexOf(ascendantSign) + 12) % 12) + 1;
+}
 
 /**
  * Calculate Kakshya (8 sub-divisions of a sign, 3°45' each)
@@ -61,7 +69,7 @@ export async function buildTransitData(
         input,
         vedicSignals
       });
-      
+
       if (entry) {
         transitData[event.eventDate] = entry;
       }
@@ -109,7 +117,7 @@ async function buildSingleEventTransit(
 
   // Build event signatures
   const signatures: string[] = [];
-  
+
   // Add Dasha-Varga synergy signature
   const dashaSignature = buildDashaSignature(event, dashaAtEvent, ephemeris);
   if (dashaSignature) signatures.push(dashaSignature);
@@ -137,7 +145,7 @@ async function buildSingleEventTransit(
   return {
     dasha: dashaSequence,
     signatures,
-    planets: formatPlanetPositions(eventEph.planets),
+    planets: formatPlanetPositions(eventEph.planets, ephemeris.ascendant.sign),
     doubleTransit: dtResult
   };
 }
@@ -147,7 +155,7 @@ async function buildSingleEventTransit(
  */
 function formatDashaSequence(dashaAtEvent: any): string {
   if (!dashaAtEvent) return 'Unknown';
-  
+
   return `${dashaAtEvent.mahadasha}-${dashaAtEvent.antardasha}-${dashaAtEvent.pratyantardasha}-${dashaAtEvent.sukshmadasha}-${dashaAtEvent.pranadasha}`;
 }
 
@@ -195,13 +203,13 @@ function buildDoubleTransitSignature(
     marriage: 7, career: 10, education: 4, family: 2, children: 5, health: 6, travel: 9
   };
   const targetHouse = houseMap[event.category as keyof typeof houseMap] || 1;
-  
+
   const dtResult = verifyDoubleTransit(eventEph, baseEphemeris.ascendant.sign, targetHouse);
-  
+
   if (dtResult.isTriggered) {
     return `🔱 DOUBLE TRANSIT active in H${targetHouse}`;
   }
-  
+
   return null;
 }
 
@@ -239,13 +247,14 @@ function buildJaiminiSignature(
 /**
  * Format planet positions for transit data
  */
-function formatPlanetPositions(planets: Record<string, any>): Record<string, string> {
+function formatPlanetPositions(planets: Record<string, any>, natalAscendantSign: string): Record<string, string> {
   const formatted: Record<string, string> = {};
-  
+
   for (const [name, p] of Object.entries(planets)) {
     const retroMarker = p.retro ? '(R)' : '';
-    formatted[capitalizeFirstLetter(name)] = `${p.sign} ${p.degree.toFixed(1)}°${retroMarker}`;
+    const house = calculateRelativeHouse(p.sign, natalAscendantSign);
+    formatted[capitalizeFirstLetter(name)] = `${p.sign} ${p.degree.toFixed(1)}°${retroMarker} | H${house}`;
   }
-  
+
   return formatted;
 }

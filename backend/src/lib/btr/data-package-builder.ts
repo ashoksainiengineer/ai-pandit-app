@@ -265,6 +265,22 @@ function validateDataPackage(pkg: CandidateDataPackage): string[] {
     errors.push('Missing house lords');
   }
 
+  // 🛡️ ZERO-TRUST VALIDATION GATE: Check Transit Data
+  if (pkg.transitData) {
+    for (const [date, transit] of Object.entries(pkg.transitData)) {
+      if (!transit.dasha || transit.dasha === 'Unknown') {
+        errors.push(`CRITICAL: Transit on ${date} has Unknown Dasha. Pipeline failed to pass vimshottariDashas.`);
+      }
+      if (transit.planets) {
+        for (const [planet, pos] of Object.entries(transit.planets)) {
+          if (!pos.includes('| H')) {
+            errors.push(`CRITICAL: Transit ${planet} on ${date} missing house position (Found: ${pos}). Pipeline failed to compute relative house.`);
+          }
+        }
+      }
+    }
+  }
+
   return errors;
 }
 
@@ -468,7 +484,7 @@ async function addExtendedData(
   // Build transit data
   pkg.transitData = await buildTransitData({
     lifeEvents: input.lifeEvents,
-    vimshottariDashas: [],
+    vimshottariDashas: pkg.vimshottariDasha,
     ephemeris,
     input: {
       dateOfBirth: input.dateOfBirth,
