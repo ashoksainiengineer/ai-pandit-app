@@ -6,7 +6,7 @@
  */
 
 import { calculateEphemeris } from '../ephemeris.js';
-import { getDashaForDate, verifyDoubleTransit } from '../vedic-astrology-engine.js';
+import { getDashaForDate, verifyDoubleTransit, calculateVimshottariDasha } from '../vedic-astrology-engine.js';
 import { capitalizeFirstLetter } from '../utils/index.js';
 import { LifeEvent } from '../../types/index.js';
 import { ZODIAC_SIGNS } from './types.js';
@@ -39,7 +39,8 @@ export interface TransitDataEntry {
 
 export interface TransitBuildOptions {
   lifeEvents: LifeEvent[];
-  vimshottariDashas: any[];
+  moonLongitude: number;
+  birthDate: string | Date;
   ephemeris: any;
   input: {
     dateOfBirth: string;
@@ -58,8 +59,11 @@ export interface TransitBuildOptions {
 export async function buildTransitData(
   options: TransitBuildOptions
 ): Promise<Record<string, TransitDataEntry>> {
-  const { lifeEvents, vimshottariDashas, ephemeris, input, vedicSignals } = options;
+  const { lifeEvents, moonLongitude, birthDate, ephemeris, input, vedicSignals } = options;
   const transitData: Record<string, TransitDataEntry> = {};
+
+  // Compute the native Dasha tree for accurate date intersection logic (UI arrays fail here)
+  const vimshottariDashas = calculateVimshottariDasha(moonLongitude, new Date(birthDate), 4);
 
   for (const event of lifeEvents) {
     try {

@@ -484,7 +484,8 @@ async function addExtendedData(
   // Build transit data
   pkg.transitData = await buildTransitData({
     lifeEvents: input.lifeEvents,
-    vimshottariDashas: pkg.vimshottariDasha,
+    moonLongitude: moonLong,
+    birthDate,
     ephemeris,
     input: {
       dateOfBirth: input.dateOfBirth,
