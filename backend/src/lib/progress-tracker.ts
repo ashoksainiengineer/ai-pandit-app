@@ -410,7 +410,8 @@ export class ProgressTracker {
             score.time,
             score.score,
             score.stage,
-            score.rank
+            score.rank,
+            score.minifiedEph
         );
 
         await this.saveProgress();

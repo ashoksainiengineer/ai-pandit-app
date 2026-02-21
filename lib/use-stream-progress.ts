@@ -195,10 +195,29 @@ export function useStreamProgress(
                 const isComplete = ['complete', 'success', 'finished'].includes(status);
                 const isFailed = ['failed', 'error', 'cancelled'].includes(status);
 
-                handleEvent({
-                    type: isComplete ? 'complete' : 'progress',
-                    data: result.data || result,
-                });
+                // ═══════════════════════════════════════════════════════════════
+                // INDUSTRY FIX: Extract result.progress (the actual ProgressData)
+                // Polling returns {sessionId, status, progress:{currentStep,...}, metadata:{...}}
+                // The store expects PollingProgressData shape at the top level,
+                // not the entire polling response wrapper.
+                // ═══════════════════════════════════════════════════════════════
+                const progressPayload = result.progress || result.data?.progress || result.data || result;
+
+                // Always send progress data first (has candidateScores, startedAt, etc.)
+                handleEvent({ type: 'progress', data: progressPayload });
+
+                if (isComplete) {
+                    // For complete: the StreamResult (rectifiedTime, etc.) comes from SSE.
+                    // In polling mode, we mark complete to trigger redirect to results page.
+                    handleEvent({ type: 'complete', data: progressPayload });
+                }
+
+                if (isFailed) {
+                    handleEvent({
+                        type: 'terminal_state',
+                        data: { status, message: result.errorMessage || `Session ${status}` },
+                    });
+                }
 
                 if (result.metadata) {
                     handleEvent({ type: 'metadata', data: result.metadata });

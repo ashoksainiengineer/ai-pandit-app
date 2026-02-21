@@ -72,7 +72,7 @@ export const CandidateScoreTable = memo(({ scores }: { scores: CandidateScore[] 
                 </div>
             </div>
 
-            <div className="overflow-hidden rounded-xl border border-[#F0E8DE] bg-white shadow-sm overflow-x-auto max-h-[350px] style-scroll">
+            <div className="rounded-xl border border-[#F0E8DE] bg-white shadow-sm overflow-x-auto overflow-y-auto max-h-[350px] style-scroll">
                 {filteredScores.length > 0 ? (
                     <table className="min-w-full divide-y divide-[#F0E8DE]">
                         <thead className="bg-[#FAF8F5]">

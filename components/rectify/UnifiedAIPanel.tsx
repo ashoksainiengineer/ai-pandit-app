@@ -240,7 +240,7 @@ const ReasoningCard = memo(function ReasoningCard({
       {/* Content */}
       <div
         ref={scrollRef}
-        className="text-[10px] text-[#4A453F] leading-relaxed font-mono overflow-hidden flex-grow relative"
+        className="text-[10px] text-[#4A453F] leading-relaxed font-mono overflow-y-auto flex-grow relative"
       >
         {!sanitized ? (
           <span className="text-stone-400 italic text-[9px]">Evaluating...</span>
@@ -275,11 +275,13 @@ const ReasoningGrid = memo(function ReasoningGrid({
   liveCandidate,
   onFocus,
   isStageCompleted,
+  isStageActive,
 }: {
   candidates: Record<string, AIThinking>;
   liveCandidate: string | null;
   onFocus: (time: string) => void;
   isStageCompleted?: boolean;
+  isStageActive?: boolean;
 }) {
   const entries = Object.entries(candidates);
 
@@ -292,7 +294,7 @@ const ReasoningGrid = memo(function ReasoningGrid({
           key={time}
           title={data.candidateTime || time}
           content={data.fullText}
-          isLive={!isStageCompleted && liveCandidate === time}
+          isLive={!isStageCompleted && !!isStageActive && data.fullText.length > 0}
           batchIndex={idx}
           onClick={() => onFocus(time)}
         />
@@ -482,21 +484,22 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
   // (which happens every 150ms from the throttled buffer).
   const lastAutoFocusedRef = useRef<string | null>(null);
   useEffect(() => {
-    // 🔱 STRICT FIX: If the stage is completed, never jump to focus view automatically.
+    // Don't auto-focus if stage is completed
     if (isCompleted) return;
     if (!displayedCandidate) return;
+    // DON'T override user's selection when they're in focus view
+    if (isFocused) return;
     // Skip if we already auto-focused this same candidate
     if (lastAutoFocusedRef.current === displayedCandidate) return;
 
     if (allCandidates && displayedCandidate in allCandidates) {
       lastAutoFocusedRef.current = displayedCandidate;
       setLocalSelectedCandidate(displayedCandidate);
-      // Don't auto-open focus view — let user click to expand
     } else if (thinking?.candidateTime === displayedCandidate) {
       lastAutoFocusedRef.current = displayedCandidate;
       setLocalSelectedCandidate(displayedCandidate);
     }
-  }, [displayedCandidate, allCandidates, thinking, isCompleted]);
+  }, [displayedCandidate, allCandidates, thinking, isCompleted, isFocused]);
 
   const currentStage = thinking?.stage || stage || 2;
   const effectiveSelectedCandidate = localSelectedCandidate;
@@ -611,7 +614,8 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
               candidates={allCandidates || {}}
               liveCandidate={thinking?.candidateTime || null}
               onFocus={handleCandidateSelect}
-              isStageCompleted={isCompleted} // 🔱 Pass the guard prop down
+              isStageCompleted={isCompleted}
+              isStageActive={isActive}
             />
 
             {candidatesList.length === 0 && (

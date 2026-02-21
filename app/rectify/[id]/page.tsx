@@ -200,19 +200,26 @@ export default function AnalysisPage() {
   }, [metadata?.status]);
 
   useEffect(() => {
-    if (isComplete && result) {
-      try {
-        localStorage.setItem(`rectification_result_${sessionId}`, JSON.stringify({
-          rectifiedTime: result.rectifiedTime,
-          accuracy: result.accuracy,
-          confidence: result.confidence,
-        }));
-      } catch { /* localStorage unavailable */ }
+    if (isComplete) {
+      // Guard: Don't redirect if store rehydrated stale isComplete from localStorage
+      // Wait until we have an actual connection before trusting isComplete
+      if (connectionState.status === 'idle' || connectionState.status === 'connecting') return;
+
+      // Save result to localStorage if available (SSE provides it, polling may not)
+      if (result) {
+        try {
+          localStorage.setItem(`rectification_result_${sessionId}`, JSON.stringify({
+            rectifiedTime: result.rectifiedTime,
+            accuracy: result.accuracy,
+            confidence: result.confidence,
+          }));
+        } catch { /* localStorage unavailable */ }
+      }
 
       const timer = setTimeout(() => router.push(`/rectify/${sessionId}/results`), 2000);
       return () => clearTimeout(timer);
     }
-  }, [isComplete, result, sessionId, router]);
+  }, [isComplete, result, sessionId, router, connectionState.status]);
 
   const handleCancel = useCallback(async () => {
     if (isCancelling || cancelled) return;
@@ -252,12 +259,21 @@ export default function AnalysisPage() {
     }
   }, [sessionId, getToken]);
 
-  const elapsedSeconds = useMemo(() => {
-    if (!startedAt) return 0;
-    return Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000);
+  // Live elapsed timer — updates every second
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  useEffect(() => {
+    if (!startedAt) { setElapsedSeconds(0); return; }
+    const startMs = new Date(startedAt).getTime();
+    if (isNaN(startMs)) { setElapsedSeconds(0); return; }
+    // Set initial value immediately
+    setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
+    const interval = setInterval(() => {
+      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
+    }, 1000);
+    return () => clearInterval(interval);
   }, [startedAt]);
 
-  const estimatedSecondsRemaining = estimatedTimeRemaining || 0;
+  const estimatedSecondsRemaining = Math.max(0, estimatedTimeRemaining || 0);
 
   const sortedCandidateScores = useMemo(() => {
     if (!candidateScores || candidateScores.length === 0) return [];

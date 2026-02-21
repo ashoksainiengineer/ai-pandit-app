@@ -322,6 +322,7 @@ export interface CandidateScore {
   score: number;
   stage: number;
   rank?: number;
+  minifiedEph?: { sun: string; moon: string; ascendant: string };
 }
 
 /**

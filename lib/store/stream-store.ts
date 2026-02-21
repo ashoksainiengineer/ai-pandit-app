@@ -225,9 +225,9 @@ export const useStreamStore = create<StreamStore>()(
                 set((prev) => {
                     switch (type) {
                         case 'initial_state': {
-                            // BUG FIX: Use `payload` (after data.data unwrap), not raw `data`
+                            // initial_state sends {type:'initial_state', progress: ProgressData}
                             const progressData = (payload as any).progress as PollingProgressData;
-                            return {
+                            const updates: Partial<StreamState> = {
                                 progress: progressData ? {
                                     step: progressData.steps?.[progressData.currentStep || 0]?.id || 'unknown',
                                     stepIndex: progressData.currentStep || 0,
@@ -238,31 +238,56 @@ export const useStreamStore = create<StreamStore>()(
                                 } : prev.progress,
                                 candidateScores: progressData?.candidateScores || prev.candidateScores,
                                 startedAt: progressData?.startedAt || prev.startedAt,
-                                estimatedTimeRemaining: progressData?.estimatedTimeRemaining || prev.estimatedTimeRemaining
+                                estimatedTimeRemaining: progressData?.estimatedTimeRemaining || prev.estimatedTimeRemaining,
                             };
+                            // INDUSTRY FIX: Populate allSteps from ProgressData.steps[]
+                            if (progressData?.steps && progressData.steps.length > 0) {
+                                updates.allSteps = progressData.steps.map((s: any) => ({
+                                    id: s.id || 'unknown',
+                                    name: s.name || s.id || 'Unknown Stage',
+                                    icon: s.icon,
+                                }));
+                            }
+                            return updates;
                         }
 
                         case 'progress': {
-                            const progressData = payload as PollingProgressData;
-                            // BUG FIX: Also extract candidateScores, startedAt, ETA from polling data
+                            // ═══════════════════════════════════════════════════════════════
+                            // INDUSTRY FIX: Handle BOTH SSE flat shape AND polling PollingProgressData
+                            // SSE sends:    {type:'progress', stepIndex:2, message:'...'}
+                            // Polling sends: {currentStep:2, steps:[], liveMessage:'...'}
+                            // ═══════════════════════════════════════════════════════════════
+                            const p = payload as any;
+                            const stepIndex = p.stepIndex ?? p.currentStep ?? 0;
+                            const message = p.message || p.liveMessage || '';
+                            const steps = p.steps as Array<{ id: string; name: string; details?: string[]; icon?: string }> | undefined;
+
                             const updates: Partial<StreamState> = {
                                 progress: {
-                                    step: progressData.steps?.[progressData.currentStep || 0]?.id || 'unknown',
-                                    stepIndex: progressData.currentStep || 0,
-                                    totalSteps: progressData.totalSteps || 7,
-                                    percentage: progressData.percentage || 0,
-                                    message: progressData.message || progressData.liveMessage || '',
-                                    details: progressData.steps?.[progressData.currentStep || 0]?.details || []
+                                    step: steps?.[stepIndex]?.id || p.step || 'unknown',
+                                    stepIndex,
+                                    totalSteps: p.totalSteps || 7,
+                                    percentage: p.percentage || 0,
+                                    message,
+                                    details: steps?.[stepIndex]?.details || p.details || []
                                 }
                             };
-                            if (progressData.candidateScores && progressData.candidateScores.length > 0) {
-                                updates.candidateScores = progressData.candidateScores;
+                            // Populate allSteps if available (from polling ProgressData)
+                            if (steps && steps.length > 0 && prev.allSteps.length === 0) {
+                                updates.allSteps = steps.map((s: any) => ({
+                                    id: s.id || 'unknown',
+                                    name: s.name || s.id || 'Unknown Stage',
+                                    icon: s.icon,
+                                }));
                             }
-                            if (progressData.startedAt) {
-                                updates.startedAt = progressData.startedAt;
+                            if (p.candidateScores && p.candidateScores.length > 0) {
+                                updates.candidateScores = p.candidateScores;
                             }
-                            if (progressData.estimatedTimeRemaining !== undefined) {
-                                updates.estimatedTimeRemaining = progressData.estimatedTimeRemaining;
+                            if (p.startedAt) {
+                                updates.startedAt = p.startedAt;
+                            }
+                            if (p.estimatedTimeRemaining !== undefined) {
+                                updates.estimatedTimeRemaining = p.estimatedTimeRemaining;
                             }
                             return updates;
                         }
@@ -288,7 +313,13 @@ export const useStreamStore = create<StreamStore>()(
                             if (!score || !score.time) return {};
                             const exists = prev.candidateScores.some(s => s.time === score.time && s.stage === score.stage);
                             if (exists) return {};
-                            return { candidateScores: [...prev.candidateScores, score] };
+                            const newScores = [...prev.candidateScores, score];
+                            // Track unique times analyzed
+                            const uniqueTimes = new Set(newScores.map(s => s.time));
+                            return {
+                                candidateScores: newScores,
+                                analyzedCount: uniqueTimes.size,
+                            };
                         }
 
                         case 'candidate_scores': {
@@ -318,7 +349,10 @@ export const useStreamStore = create<StreamStore>()(
                             } else {
                                 newStats = prev.stageStats;
                             }
-                            return { stageStats: newStats };
+                            // Derive totalCandidates from the first stage's candidateCount (the initial grid size)
+                            const firstStageStat = newStats.find(s => s.stage === 1) || newStats[0];
+                            const totalCandidates = firstStageStat?.candidateCount || prev.totalCandidates;
+                            return { stageStats: newStats, totalCandidates };
                         }
 
                         case 'advanced_signals': {
@@ -380,17 +414,19 @@ export const useStreamStore = create<StreamStore>()(
                         }
 
                         case 'terminal_state': {
-                            // BUG FIX: Clean up thinking buffer on terminal state
+                            // Clean up thinking buffer on terminal state
                             if (thinkingBuffer.rafId) {
                                 cancelAnimationFrame(thinkingBuffer.rafId);
                                 thinkingBuffer.rafId = null;
                             }
                             thinkingBuffer.chunks.clear();
 
-                            const isErr = payload.status === 'failed' || payload.status === 'error' || payload.status === 'cancelled';
+                            const termStatus = payload.status;
+                            const isCompleted = termStatus === 'complete';
+                            const isErr = termStatus === 'failed' || termStatus === 'error' || termStatus === 'cancelled';
                             return {
-                                isComplete: !isErr,
-                                error: isErr ? (payload.errorMessage || payload.message || `Session is ${payload.status}`) : null,
+                                isComplete: isCompleted,
+                                error: isErr ? (payload.errorMessage || payload.message || `Session is ${termStatus}`) : null,
                                 result: payload.result || prev.result,
                             };
                         }
