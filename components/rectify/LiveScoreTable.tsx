@@ -6,7 +6,7 @@
 
 import React, { memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { CandidateScore } from '@/lib/use-stream-progress';
+import { CandidateScore } from '@/lib/store/stream-types';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES

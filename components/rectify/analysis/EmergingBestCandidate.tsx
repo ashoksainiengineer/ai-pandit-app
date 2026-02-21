@@ -3,17 +3,10 @@
 import React, { memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trophy, TrendingUp, Clock, Target, ChevronUp, ChevronDown } from 'lucide-react';
-
-interface TopCandidate {
-  time: string;
-  score: number;
-  stage: number;
-  rank?: number;
-  minifiedEph?: { sun: string; moon: string; ascendant: string };
-}
+import type { CandidateScore } from '@/lib/store/stream-types';
 
 interface EmergingBestCandidateProps {
-  candidates: TopCandidate[];
+  candidates: CandidateScore[];
   isVisible: boolean;
   isComplete: boolean;
 }

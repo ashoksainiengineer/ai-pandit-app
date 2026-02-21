@@ -1,0 +1,132 @@
+import type { IAdvancedSignals } from '@/components/rectify/advanced-signals/types';
+
+export interface StreamProgress {
+    step: string;
+    stepIndex: number;
+    totalSteps: number;
+    percentage: number;
+    message: string;
+    details?: string[];
+    calculationLogs?: any[]; // For LiveCalculationPanel
+}
+
+export interface AIThinking {
+    stage: number;
+    candidateTime?: string;
+    chunks: string[];
+    fullText: string;
+}
+
+export interface AIThinkingEventData {
+    chunk: string;
+    stage: number;
+    candidateTime?: string;
+}
+
+export interface PollingProgressData {
+    currentStep: number;
+    totalSteps: number;
+    percentage: number;
+    liveMessage?: string;
+    message?: string;
+    steps?: Array<{
+        id: string;
+        name: string;
+        details?: string[];
+    }>;
+    candidateScores?: CandidateScore[];
+    startedAt?: string;
+    estimatedTimeRemaining?: number;
+}
+
+export interface AIContextData {
+    stage: number;
+    candidateTime: string;
+    planetaryInfo?: { sun: string; moon: string; ascendant: string };
+    dasha?: string;
+    divCharts?: string;
+    candidatesInBatch?: number | Array<{
+        time: string;
+        ascendant?: string;
+        moon?: string;
+    }>;
+    lifeEventsCount?: number;
+    hasForensicTraits?: boolean;
+}
+
+export interface CandidateScore {
+    time: string;
+    score: number;
+    stage: number;
+    rank?: number;
+    offsetMinutes?: number;
+    minifiedEph?: { sun: string; moon: string; ascendant: string };
+}
+
+export interface StageStat {
+    stage: number;
+    candidateCount: number;
+    description: string;
+}
+
+export interface AnalysisDecision {
+    stage: number;
+    time: string;
+    verdict: 'promoted' | 'rejected';
+    score: number;
+    reason: string;
+    batch?: number;
+}
+
+export interface StreamResult {
+    rectifiedTime: string;
+    accuracy: number;
+    confidence: string;
+}
+
+export interface StreamMetadata {
+    fullName?: string;
+    dateOfBirth?: string;
+    tentativeTime?: string;
+    birthPlace?: string;
+    timezone?: string;
+    status?: string;
+    errorMessage?: string;
+    lifeEvents?: unknown[];
+    physicalTraits?: unknown;
+    offsetConfig?: { preset: string; customMinutes?: number; minutes?: number };
+    aiModel?: string;
+    updatedAt?: string;
+}
+
+export interface StreamStep {
+    id: string;
+    name: string;
+    icon?: string;
+}
+
+export interface StreamState {
+    sessionId: string | null;
+    isComplete: boolean;
+    error: string | null;
+    progress: StreamProgress | null;
+    aiThinking: Record<string, AIThinking>;
+    aiContext: AIContextData | null;
+    candidateScores: CandidateScore[];
+    stageStats: StageStat[];
+    result: StreamResult | null;
+    metadata?: StreamMetadata;
+    // Map is heavily serialized/deserialized in localStorage, sticking to Record/Arrays where optimal.
+    allCandidates: Record<string, AIThinking>;
+    candidatesByStage: Record<number, Record<string, AIThinking>>;
+    displayedCandidate: string | null;
+    persistentCandidates: any[];
+    stageHistory: Record<number, string>;
+    analyzedCount: number;
+    totalCandidates: number;
+    startedAt?: string;
+    estimatedTimeRemaining?: number;
+    allSteps: StreamStep[];
+    advancedSignals: IAdvancedSignals | null;
+    decisions: AnalysisDecision[];
+}

@@ -13,7 +13,7 @@
  * @version 7.0.0 - Bulletproof rewrite
  */
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import { logger } from './secure-logger';
 import { env } from './config';
 import { getTokenWithRetry } from './auth-utils';
@@ -23,60 +23,11 @@ import type { IAdvancedSignals } from '@/components/rectify/advanced-signals/typ
 // TYPES
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export interface StreamProgress {
-    step: string;
-    stepIndex: number;
-    totalSteps: number;
-    percentage: number;
-    message: string;
-    details?: string[];
-    calculationLogs?: any[]; // For LiveCalculationPanel
-}
-
 export interface AIThinking {
     stage: number;
     candidateTime?: string;
     chunks: string[];
     fullText: string;
-}
-
-// Data coming from SSE 'ai_thinking' event
-interface AIThinkingEventData {
-    chunk: string;
-    stage: number;
-    candidateTime?: string;
-}
-
-// Data coming from polling progress endpoint
-interface PollingProgressData {
-    currentStep: number;
-    totalSteps: number;
-    percentage: number;
-    liveMessage?: string;
-    message?: string;
-    steps?: Array<{
-        id: string;
-        name: string;
-        details?: string[];
-    }>;
-    candidateScores?: CandidateScore[];
-    startedAt?: string;
-    estimatedTimeRemaining?: number;
-}
-
-export interface AIContextData {
-    stage: number;
-    candidateTime: string;
-    planetaryInfo?: { sun: string; moon: string; ascendant: string };
-    dasha?: string;
-    divCharts?: string;
-    candidatesInBatch?: number | Array<{
-        time: string;
-        ascendant?: string;
-        moon?: string;
-    }>;
-    lifeEventsCount?: number;
-    hasForensicTraits?: boolean;
 }
 
 export interface CandidateScore {
@@ -88,73 +39,6 @@ export interface CandidateScore {
     minifiedEph?: { sun: string; moon: string; ascendant: string };
 }
 
-export interface StageStat {
-    stage: number;
-    candidateCount: number;
-    description: string;
-}
-
-export interface AnalysisDecision {
-    stage: number;
-    time: string;
-    verdict: 'promoted' | 'rejected';
-    score: number;
-    reason: string;
-    batch?: number;
-}
-
-export interface StreamResult {
-    rectifiedTime: string;
-    accuracy: number;
-    confidence: string;
-}
-
-export interface StreamMetadata {
-    fullName?: string;
-    dateOfBirth?: string;
-    tentativeTime?: string;
-    birthPlace?: string;
-    timezone?: string;
-    status?: string;
-    errorMessage?: string;
-    lifeEvents?: unknown[];
-    physicalTraits?: unknown;
-    offsetConfig?: { preset: string; customMinutes?: number; minutes?: number };
-    aiModel?: string; // Added dynamic AI model name
-    updatedAt?: string; // 🛡️ Added for robust timer fallback
-}
-
-export interface StreamStep {
-    id: string;
-    name: string;
-    icon?: string;
-}
-
-export interface StreamState {
-    isConnected: boolean;
-    isComplete: boolean;
-    error: string | null;
-    progress: StreamProgress | null;
-    aiThinking: Record<string, AIThinking>; // Changed to record for multi-stream
-    aiContext: AIContextData | null;
-    candidateScores: CandidateScore[];
-    stageStats: StageStat[];
-    result: StreamResult | null;
-    metadata?: StreamMetadata;
-    allCandidates: Map<string, AIThinking>;
-    candidatesByStage: Map<number, Map<string, AIThinking>>; // 🔱 NEW: Store candidates keyed by stage
-    displayedCandidate: string | null;
-    persistentCandidates: any[]; // Bulletproof accumulator for parallel batches
-    stageHistory: Map<number, string>;
-    analyzedCount: number;
-    totalCandidates: number;
-    startedAt?: string;
-    estimatedTimeRemaining?: number;
-    allSteps: StreamStep[];
-    advancedSignals: IAdvancedSignals | null;
-    decisions: AnalysisDecision[];
-}
-
 type ConnectionStatus = 'idle' | 'connecting' | 'streaming' | 'polling' | 'rate_limited' | 'finished' | 'error';
 
 interface ConnectionState {
@@ -164,19 +48,6 @@ interface ConnectionState {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CONSTANTS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-const DEFAULT_STEPS: StreamStep[] = [
-    { id: 'init', name: 'Initializing Engine' },
-    { id: 'grid', name: 'Stage 1: Grid Generation' },
-    { id: 'coarse', name: 'Stage 2: Batch Tournament' },
-    { id: 'fine', name: 'Stage 3: Refinement Grid' },
-    { id: 'deep', name: 'Stage 4: Deep Analysis' },
-    { id: 'micro', name: 'Stage 5: Micro Precision' },
-    { id: 'final', name: 'Final Verdict' },
-];
-
 const POLL_INTERVAL = 5000;      // 5 seconds
 const MAX_POLL_INTERVAL = 60000; // 60 seconds
 const SSE_TIMEOUT = 10000;       // 10 seconds to establish SSE
@@ -186,47 +57,22 @@ const RATE_LIMIT_WAIT = 30000;   // 30 seconds on 429
 const BACKEND_URL = env.api.backendUrl.replace(/\/$/, '');
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// INITIAL STATE
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function createInitialState(): StreamState {
-    return {
-        isConnected: false,
-        isComplete: false,
-        error: null,
-        progress: null,
-        aiThinking: {},
-        aiContext: null,
-        candidateScores: [],
-        stageStats: [],
-        result: null,
-        metadata: undefined,
-        allCandidates: new Map(),
-        candidatesByStage: new Map(), // 🔱 NEW
-        displayedCandidate: null,
-        persistentCandidates: [],
-        stageHistory: new Map(),
-        analyzedCount: 0,
-        totalCandidates: 0,
-        startedAt: undefined,
-        estimatedTimeRemaining: undefined,
-        allSteps: DEFAULT_STEPS,
-        advancedSignals: null,
-        decisions: [],
-    };
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
 // HOOK
 // ═══════════════════════════════════════════════════════════════════════════════
+
+import { useStreamStore } from './store/stream-store';
 
 export function useStreamProgress(
     sessionId: string | null,
     backendUrl: string = BACKEND_URL,
     getToken?: () => Promise<string | null>
-): StreamState & { connectionState: ConnectionState } {
+): { connectionState: ConnectionState } {
 
-    const [state, setState] = useState<StreamState>(createInitialState);
+    const dispatchStreamEvent = useStreamStore(state => state.dispatchStreamEvent);
+    const setSessionId = useStreamStore(state => state.setSessionId);
+    const forceError = useStreamStore(state => state.forceError);
+    const markComplete = useStreamStore(state => state.markComplete);
+
     const [connectionState, setConnectionState] = useState<ConnectionState>({
         status: 'idle',
         url: '',
@@ -263,275 +109,33 @@ export function useStreamProgress(
     // Handle incoming event data
     const handleEvent = (data: Record<string, unknown>) => {
         if (!mountedRef.current) return;
-
         const type = String(data.type || '');
 
-        setState(prev => {
-            switch (type) {
-                case 'initial_state': {
-                    const progressData = data.progress as PollingProgressData;
-                    return {
-                        ...prev,
-                        isConnected: true,
-                        progress: progressData ? {
-                            step: progressData.steps?.[progressData.currentStep || 0]?.id || 'unknown',
-                            stepIndex: progressData.currentStep || 0,
-                            totalSteps: progressData.totalSteps || 7,
-                            percentage: progressData.percentage || 0,
-                            message: progressData.message || progressData.liveMessage || '',
-                            details: progressData.steps?.[progressData.currentStep || 0]?.details || []
-                        } : prev.progress,
-                        candidateScores: progressData?.candidateScores || prev.candidateScores,
-                        startedAt: progressData?.startedAt || prev.startedAt,
-                        estimatedTimeRemaining: progressData?.estimatedTimeRemaining || prev.estimatedTimeRemaining
-                    };
-                }
+        // Push payload to Zustand instantly
+        dispatchStreamEvent(type, data);
 
-                case 'connected':
-                    return { ...prev, isConnected: true };
-
-                case 'progress': {
-                    const progressData = (data.data as PollingProgressData) || (data as unknown as PollingProgressData);
-                    return {
-                        ...prev,
-                        progress: {
-                            step: progressData.steps?.[progressData.currentStep || 0]?.id || 'unknown',
-                            stepIndex: progressData.currentStep || 0,
-                            totalSteps: progressData.totalSteps || 7,
-                            percentage: progressData.percentage || 0,
-                            message: progressData.message || progressData.liveMessage || '',
-                            details: progressData.steps?.[progressData.currentStep || 0]?.details || []
-                        }
-                    };
-                }
-
-                case 'ai_thinking': {
-                    const thinkingEvent = (data.data as AIThinkingEventData) || (data as unknown as AIThinkingEventData);
-                    const chunk = thinkingEvent?.chunk || '';
-                    const stage = thinkingEvent?.stage || 1;
-                    const candidateTime = thinkingEvent?.candidateTime || 'general';
-
-                    // 1. Get isolated state FOR THIS STAGE
-                    const currentStageMap = prev.candidatesByStage.get(stage) || new Map();
-                    const existingInStage = currentStageMap.get(candidateTime) || {
-                        stage,
-                        candidateTime,
-                        chunks: [],
-                        fullText: ''
-                    };
-
-                    const updatedThinking: AIThinking = {
-                        ...existingInStage,
-                        fullText: existingInStage.fullText + chunk,
-                        chunks: [...existingInStage.chunks, chunk]
-                    };
-
-                    // 2. Sync candidatesByStage for multi-stage view
-                    const newCandidatesByStage = new Map(prev.candidatesByStage);
-                    const newStageCandidates = new Map(currentStageMap);
-                    newStageCandidates.set(candidateTime, updatedThinking);
-                    newCandidatesByStage.set(stage, newStageCandidates);
-
-                    // 3. Sync allCandidates Map (latest view)
-                    const newAllCandidates = new Map(prev.allCandidates);
-                    newAllCandidates.set(candidateTime, updatedThinking);
-
-                    // 4. Update aiThinking (latest view)
-                    const newAiThinking = {
-                        ...prev.aiThinking,
-                        [candidateTime]: updatedThinking
-                    };
-
-                    // 🔧 FIX: Sync stageHistory Map for stage-based display
-                    const newStageHistory = new Map(prev.stageHistory);
-                    const existingStageText = newStageHistory.get(stage) || '';
-                    newStageHistory.set(stage, existingStageText + chunk);
-
-                    // 🔱 SYNC UI STAGE WITH REASONING
-                    // Map AI stage (1-6) to progress stepIndex (1-6)
-                    const currentStepIndex = prev.progress?.stepIndex || 0;
-                    const targetStepIndex = stage;
-
-                    let updatedProgress = prev.progress;
-                    if (prev.progress && targetStepIndex > currentStepIndex && targetStepIndex <= prev.progress.totalSteps) {
-                        updatedProgress = {
-                            ...prev.progress,
-                            stepIndex: targetStepIndex,
-                            step: prev.progress.totalSteps > targetStepIndex ? 'advancing...' : prev.progress.step,
-                            message: `AI Processing: Stage ${stage}`
-                        };
-                    }
-
-                    return {
-                        ...prev,
-                        progress: updatedProgress,
-                        aiThinking: {
-                            ...prev.aiThinking,
-                            [candidateTime]: updatedThinking
-                        },
-                        allCandidates: newAllCandidates,
-                        candidatesByStage: newCandidatesByStage, // 🔱 NEW
-                        stageHistory: newStageHistory,
-                        displayedCandidate: candidateTime,
-                    };
-                }
-
-                case 'ai_context': {
-                    const context = (data.data as AIContextData) || (data as unknown as AIContextData);
-                    let updatedPersistent = prev.persistentCandidates;
-
-                    if (context?.candidatesInBatch && Array.isArray(context.candidatesInBatch)) {
-                        const incoming = context.candidatesInBatch as Array<{ time: string; ascendant?: string; moon?: string }>;
-                        const now = Date.now();
-                        const newMap = new Map<string, any>();
-                        // Add old ones
-                        prev.persistentCandidates.forEach(c => newMap.set(c.time, c));
-                        // Add/overwrite incoming
-                        incoming.forEach(c => newMap.set(c.time, { ...c, lastUpdated: now }));
-                        // Sort by lastUpdated desc
-                        updatedPersistent = Array.from(newMap.values()).sort((a, b) => (b.lastUpdated || 0) - (a.lastUpdated || 0));
-                    }
-
-                    return { ...prev, aiContext: context, persistentCandidates: updatedPersistent };
-                }
-
-                case 'candidate_score':
-                case 'candidate_score_v2': {
-                    const score = (data.data as CandidateScore) || (data as unknown as CandidateScore);
-                    if (!score || !score.time) return prev;
-
-                    // Ensure we don't add duplicates for the same time and stage
-                    const exists = prev.candidateScores.some(s => s.time === score.time && s.stage === score.stage);
-                    if (exists) return prev;
-
-                    return {
-                        ...prev,
-                        candidateScores: [...prev.candidateScores, score]
-                    };
-                }
-
-                case 'candidate_scores': {
-                    const scores = (data.data as CandidateScore[]) || (data as unknown as CandidateScore[]);
-                    return { ...prev, candidateScores: scores };
-                }
-
-                case 'decision': {
-                    const decision = (data.data as AnalysisDecision) || (data as unknown as AnalysisDecision);
-                    if (!decision || !decision.time) return prev;
-
-                    // Deduplicate and keep most recent
-                    const filtered = prev.decisions.filter(d => !(d.time === decision.time && d.stage === decision.stage));
-                    return {
-                        ...prev,
-                        decisions: [...filtered, decision]
-                    };
-                }
-
-                case 'estimated_time': {
-                    const d = (data.data as any) || data;
-                    return { ...prev, estimatedTimeRemaining: d?.seconds || 0 };
-                }
-
-                case 'stage_stats': {
-                    const payload = (data.data as any) || data;
-                    let newStats: StageStat[] = [];
-
-                    if (Array.isArray(payload)) {
-                        newStats = payload as StageStat[];
-                    } else if (payload && typeof payload === 'object') {
-                        // Single stat update
-                        const stat = payload as StageStat;
-                        const exists = prev.stageStats.some(s => s.stage === stat.stage);
-                        if (exists) {
-                            newStats = prev.stageStats.map(s => s.stage === stat.stage ? stat : s);
-                        } else {
-                            newStats = [...prev.stageStats, stat];
-                        }
-                    } else {
-                        newStats = prev.stageStats;
-                    }
-                    return { ...prev, stageStats: newStats };
-                }
-
-                case 'advanced_signals': {
-                    const signals = (data.data as IAdvancedSignals) || (data as unknown as IAdvancedSignals);
-                    return { ...prev, advancedSignals: signals };
-                }
-
-                case 'metadata': {
-                    const metadata = (data.data as StreamMetadata) || (data as unknown as StreamMetadata);
-
-                    // 🔱 RESET STATE ON REQUEUE
-                    // If the status changes back to pending or queued, it's a new run.
-                    const isReset = metadata.status === 'pending' || metadata.status === 'queued';
-
-                    return {
-                        ...prev,
-                        metadata: metadata,
-                        ...(isReset ? {
-                            aiThinking: {},
-                            stageHistory: new Map(),
-                            candidateScores: [],
-                            allCandidates: new Map(),
-                            candidatesByStage: new Map(), // 🔱 NEW
-                            decisions: []
-                        } : {})
-                    };
-                }
-
-                case 'complete':
-                case 'result': {
-                    const resData = (data.data as StreamResult) || (data as unknown as StreamResult);
-                    cleanup();
-                    setConnectionState(cs => ({ ...cs, status: 'finished' }));
-                    return {
-                        ...prev,
-                        isComplete: true,
-                        isConnected: false,
-                        result: resData,
-                    };
-                }
-
-                case 'error':
-                    cleanup();
-                    setConnectionState(cs => ({
-                        ...cs,
-                        status: 'error',
-                        lastError: String(data.message || 'Unknown error'),
-                    }));
-                    return {
-                        ...prev,
-                        error: String(data.message || 'Unknown error'),
-                        isConnected: false,
-                    };
-
-                case 'terminal_state': {
-                    const termData = (data.data as any) || data;
-                    // Mark that we received terminal state so onerror doesn't show spurious error
-                    terminalStateReceivedRef.current = true;
-                    cleanup();
-                    // If it's complete, show result. If failed/cancelled, show error.
-                    const isErr = termData.status === 'failed' || termData.status === 'error' || termData.status === 'cancelled';
-
-                    setConnectionState(cs => ({
-                        ...cs,
-                        status: isErr ? 'error' : 'finished',
-                        lastError: isErr ? (termData.errorMessage || termData.message) : null
-                    }));
-
-                    return {
-                        ...prev,
-                        isConnected: false,
-                        isComplete: !isErr,
-                        error: isErr ? (termData.errorMessage || termData.message || `Session is ${termData.status}`) : null,
-                        result: termData.result || prev.result, // Use existing result if none provided
-                    };
-                }
-
-                default:
-                    return prev;
-            }
-        });
+        // Update local connector connection status UI
+        if (type === 'complete' || type === 'result') {
+            cleanup();
+            setConnectionState(cs => ({ ...cs, status: 'finished' }));
+        } else if (type === 'error') {
+            cleanup();
+            setConnectionState(cs => ({
+                ...cs,
+                status: 'error',
+                lastError: String(data.message || 'Unknown error'),
+            }));
+        } else if (type === 'terminal_state') {
+            const termData = (data.data as any) || data;
+            terminalStateReceivedRef.current = true;
+            cleanup();
+            const isErr = termData.status === 'failed' || termData.status === 'error' || termData.status === 'cancelled';
+            setConnectionState(cs => ({
+                ...cs,
+                status: isErr ? 'error' : 'finished',
+                lastError: isErr ? (termData.errorMessage || termData.message) : null
+            }));
+        }
     };
 
     // Single polling function
@@ -564,7 +168,7 @@ export function useStreamProgress(
             if (res.status === 404) {
                 logger.warn('Session not found in queue (404)');
                 setConnectionState({ status: 'error', url: '', lastError: 'Session not found - analysis may have already completed' });
-                setState(prev => ({ ...prev, error: 'Session not found. Start a new analysis.', isConnected: false }));
+                forceError('Session not found. Start a new analysis.');
                 return; // Stop polling
             }
 
@@ -614,7 +218,7 @@ export function useStreamProgress(
             const err = error as Error;
             const stackMsg = err.message + (err.stack ? '\n' + err.stack : '');
             if (err.name === 'RangeError' || err.message.includes('Invalid time value')) {
-                setState(prev => ({ ...prev, error: stackMsg }));
+                forceError(stackMsg);
             }
 
             // Retry with backoff
@@ -687,7 +291,7 @@ export function useStreamProgress(
                 sseConnected = true;
                 clearTimeout(timeout);
                 console.log('✅ [SSE] Connection OPENED successfully');
-                setState(prev => ({ ...prev, isConnected: true }));
+                dispatchStreamEvent('connected', {});
                 setConnectionState({ status: 'streaming', url, lastError: null });
             };
 
@@ -710,11 +314,7 @@ export function useStreamProgress(
 
                         // Terminal error after retry
                         cleanup();
-                        setState(prev => ({
-                            ...prev,
-                            error: data.error || 'Authentication failed',
-                            isConnected: false
-                        }));
+                        forceError(data.error || 'Authentication failed');
                         setConnectionState({
                             status: 'error',
                             url: '',
@@ -780,7 +380,7 @@ export function useStreamProgress(
             const err = error as Error;
             const stackMsg = err.message + (err.stack ? '\n' + err.stack : '');
             if (err.name === 'RangeError' || err.message.includes('Invalid time value')) {
-                setState(prev => ({ ...prev, error: stackMsg }));
+                forceError(stackMsg);
             }
 
             setConnectionState({ status: 'polling', url: '', lastError: 'Connection failed' });
@@ -796,25 +396,29 @@ export function useStreamProgress(
         if (!sessionId) {
             cleanup();
             currentSessionRef.current = null;
-            setState(createInitialState());
             setConnectionState({ status: 'idle', url: '', lastError: null });
             return;
         }
 
-        // Connect after a small delay to debounce
-        const timer = setTimeout(() => {
-            if (mountedRef.current && !connectionAttemptedRef.current) {
-                connect(sessionId);
-            }
-        }, 300);
+        // Initialize Store State
+        setSessionId(sessionId);
+
+        // Don't start a new connection if we already have one for the same session
+        if (connectionAttemptedRef.current && currentSessionRef.current === sessionId) {
+            return;
+        }
+
+        connectionAttemptedRef.current = true;
+
+        // Start Connection
+        connect(sessionId, { skipCache: false });
 
         return () => {
-            clearTimeout(timer);
             mountedRef.current = false;
-            currentSessionRef.current = null;
             cleanup();
         };
-    }, [sessionId]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [sessionId, backendUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+
     // 🛡️ PROACTIVE TOKEN REFRESH (God-Tier Fix)
     // Long-running analysis (20+ mins) can cause tokens to expire silently.
     // We refresh the token every 45 minutes to ensure the session remains valid.
@@ -837,10 +441,7 @@ export function useStreamProgress(
         return () => clearInterval(interval);
     }, [getToken]);
 
-    return useMemo(() => ({
-        ...state,
-        connectionState,
-    }), [state, connectionState]);
+    return { connectionState };
 }
 
 export default useStreamProgress;

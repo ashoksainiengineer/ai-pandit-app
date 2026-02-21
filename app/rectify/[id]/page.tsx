@@ -10,7 +10,9 @@ import {
   Brain, Clock, Activity, Home, LayoutDashboard, AlertCircle, Gem,
   CheckCircle, RefreshCw, XCircle, ChevronRight
 } from 'lucide-react';
-import { useStreamProgress, type CandidateScore } from '@/lib/use-stream-progress';
+import { useStreamProgress } from '@/lib/use-stream-progress';
+import { useStreamStore } from '@/lib/store/stream-store';
+import type { CandidateScore } from '@/lib/store/stream-types';
 import { logger } from '@/lib/secure-logger';
 import { env } from '@/lib/config';
 import { AnalysisErrorBoundary, SectionErrorBoundary } from '@/components/rectify/AnalysisErrorBoundary';
@@ -143,18 +145,31 @@ export default function AnalysisPage() {
   const sessionId = params.id as string;
   const pageTitleId = useId();
 
-  const streamData = useStreamProgress(
+  const { connectionState } = useStreamProgress(
     isLoaded && isSignedIn ? sessionId : null,
     undefined,
     getToken
   );
 
-  const {
-    isConnected, isComplete, error: streamError, progress, aiThinking, aiContext,
-    candidateScores, advancedSignals, result, startedAt, allSteps, metadata,
-    connectionState, persistentCandidates, allCandidates, candidatesByStage, stageHistory,
-    analyzedCount, totalCandidates, displayedCandidate, estimatedTimeRemaining,
-  } = streamData;
+  const isComplete = useStreamStore(state => state.isComplete);
+  const streamError = useStreamStore(state => state.error);
+  const progress = useStreamStore(state => state.progress);
+  const aiThinking = useStreamStore(state => state.aiThinking);
+  const candidateScores = useStreamStore(state => state.candidateScores);
+  const advancedSignals = useStreamStore(state => state.advancedSignals);
+  const result = useStreamStore(state => state.result);
+  const startedAt = useStreamStore(state => state.startedAt);
+  const allSteps = useStreamStore(state => state.allSteps);
+  const metadata = useStreamStore(state => state.metadata);
+  const allCandidates = useStreamStore(state => state.allCandidates);
+  const candidatesByStage = useStreamStore(state => state.candidatesByStage);
+  const stageHistory = useStreamStore(state => state.stageHistory);
+  const displayedCandidate = useStreamStore(state => state.displayedCandidate);
+  const estimatedTimeRemaining = useStreamStore(state => state.estimatedTimeRemaining);
+  const analyzedCount = useStreamStore(state => state.analyzedCount);
+  const totalCandidates = useStreamStore(state => state.totalCandidates);
+
+  const isConnected = connectionState.status === 'streaming';
 
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelled, setCancelled] = useState(false);
@@ -380,8 +395,8 @@ export default function AnalysisPage() {
             </SectionErrorBoundary>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-            <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+          <div className="flex flex-col gap-6 lg:gap-8">
+            <div className="space-y-4 sm:space-y-6">
               {(aiThinking || (progress?.stepIndex ?? 0) >= 1) && !isComplete && !cancelled && (
                 <SectionErrorBoundary sectionName="AI Reasoning" icon={<Brain className="w-5 h-5" />}>
                   {(() => {
@@ -400,10 +415,10 @@ export default function AnalysisPage() {
                       // The step logic: allSteps[0] is init, so step index in pipeline is `allSteps.indexOf(step)`.
                       const stageNum = allSteps.indexOf(step);
                       // 🔱 Get specific candidates for this stage
-                      const stageCandidates = candidatesByStage?.get(stageNum) || (stageNum === currentStageIndex ? allCandidates : new Map());
+                      const stageCandidates = candidatesByStage?.[stageNum] || (stageNum === currentStageIndex ? allCandidates : {});
                       const isStageCompleted = stageNum < currentStageIndex;
 
-                      if (stageCandidates.size === 0 && !isStageCompleted && stageNum !== currentStageIndex) return null;
+                      if (Object.keys(stageCandidates || {}).length === 0 && !isStageCompleted && stageNum !== currentStageIndex) return null;
 
                       return (
                         <div key={step.id} className="mb-6 last:mb-0">
@@ -427,7 +442,7 @@ export default function AnalysisPage() {
               )}
             </div>
 
-            <div className="space-y-4 sm:space-y-6">
+            <div className="space-y-4 sm:space-y-6 w-full">
               {!isComplete && !cancelled && candidateScores.length > 0 && (
                 <SectionErrorBoundary sectionName="Leaderboard" icon={<Activity className="w-5 h-5" />}>
                   {/* 🔧 FIX: Pass candidateScores array instead of allCandidates Map */}

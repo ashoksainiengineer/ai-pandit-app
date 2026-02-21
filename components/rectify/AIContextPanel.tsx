@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AIContextData } from '@/lib/use-stream-progress';
+import { AIContextData } from '@/lib/store/stream-types';
 import { Sparkles, Activity, ShieldCheck } from 'lucide-react';
 
 interface AIContextPanelProps {

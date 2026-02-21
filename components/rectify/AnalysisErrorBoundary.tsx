@@ -13,7 +13,7 @@ import Link from 'next/link';
 // ═══════════════════════════════════════════════════════════════════════════════
 
 interface ErrorBoundaryProps {
-    children: ReactNode;
+    children?: ReactNode;
     fallback?: ReactNode;
     sectionName?: string;
     onError?: (error: Error, errorInfo: ErrorInfo) => void;

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Filter, Target, ChevronDown, ChevronUp, Clock, Zap, Brain } from 'lucide-react';
-import { AIContextData } from '@/lib/use-stream-progress';
+import { AIContextData } from '@/lib/store/stream-types';
 
 interface Candidate {
     time: string;

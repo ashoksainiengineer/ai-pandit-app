@@ -39,10 +39,10 @@ interface CandidateScore {
 
 interface UnifiedAIPanelProps {
   thinking: AIThinking | null;
-  stageHistory?: Map<number, string>;
+  stageHistory?: Record<number, string>;
   isActive: boolean;
   stage?: number;
-  allCandidates?: Map<string, AIThinking>;
+  allCandidates?: Record<string, AIThinking>;
   displayedCandidate?: string | null;
   onSelectCandidate?: (time: string) => void;
   candidateScores?: CandidateScore[];
@@ -85,12 +85,12 @@ const TIER_CONFIG: Record<ScoreTier, { label: string; color: string; bgColor: st
 };
 
 function groupCandidatesByScore(
-  candidates: Map<string, AIThinking> | undefined,
+  candidates: Record<string, AIThinking> | undefined,
   scores: CandidateScore[] | undefined
 ): GroupedCandidates {
   const result: GroupedCandidates = { top: [], promising: [], exploring: [] };
 
-  if (!candidates || candidates.size === 0) return result;
+  if (!candidates || Object.keys(candidates).length === 0) return result;
 
   const scoreMap = new Map<string, number>();
   if (scores) {
@@ -102,7 +102,7 @@ function groupCandidatesByScore(
     });
   }
 
-  candidates.forEach((_, time) => {
+  Object.entries(candidates).forEach(([time, _]) => {
     const score = scoreMap.get(time) ?? 0;
     const entry = { time, score };
 
@@ -166,7 +166,7 @@ const CandidatePill = memo(function CandidatePill({
   );
 });
 
-// 🔱 NEW: Reasoning Card for Grid View
+// 🔱 NEW: Reasoning Card for Grid View (Live Streaming Markdown Enabled)
 const ReasoningCard = memo(function ReasoningCard({
   title,
   content,
@@ -180,24 +180,28 @@ const ReasoningCard = memo(function ReasoningCard({
   onClick: () => void;
   batchIndex: number;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
   const sanitized = sanitizeAIContent(content);
-  // Get first 150 chars for preview
-  const preview = sanitized.length > 150 ? sanitized.substring(0, 150) + '...' : sanitized;
+
+  // Auto-scroll the individual card if it's currently receiving live stream tokens
+  useEffect(() => {
+    if (scrollRef.current && isLive) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [content, isLive]);
 
   return (
     <motion.div
       layoutId={`reasoning-card-${title}`}
-      whileHover={{ y: -4, scale: 1.02 }}
-      onClick={onClick}
       className={`
-        cursor-pointer relative p-5 rounded-xl border transition-all duration-300 flex flex-col h-[180px]
+        relative p-5 rounded-xl border transition-all duration-300 flex flex-col h-[260px]
         ${isLive
           ? 'bg-amber-50/50 border-amber-300 shadow-[0_4px_15px_rgba(184,134,11,0.15)] ring-1 ring-amber-400/30'
-          : 'bg-white border-[#F0E8DE] hover:border-amber-400 hover:shadow-md hover:-translate-y-1'
+          : 'bg-white border-[#F0E8DE] hover:border-amber-400 hover:shadow-md'
         }
       `}
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 shrink-0">
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 shrink-0">
             <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-amber-500 animate-pulse' : 'bg-stone-300'}`} />
@@ -214,20 +218,41 @@ const ReasoningCard = memo(function ReasoningCard({
         )}
       </div>
 
-      <div className="text-[11px] text-[#4A453F] leading-relaxed line-clamp-4 font-mono overflow-hidden flex-grow style-scroll relative">
-        {preview || <span className="text-stone-400 italic">Evaluating celestial coordinates...</span>}
-        {/* Adds a slight fade effect at the bottom if content is long */}
-        <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent pointer-events-none rounded-b-lg"
-          style={{ display: isLive ? 'none' : 'block' }} />
+      <div
+        ref={scrollRef}
+        className="text-[11px] text-[#4A453F] leading-relaxed font-mono overflow-y-auto flex-grow style-scroll relative pr-1"
+      >
+        {!sanitized ? (
+          <span className="text-stone-400 italic">Evaluating celestial coordinates...</span>
+        ) : (
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              p: ({ children }) => <span className="mb-2 block">{children}</span>,
+              li: ({ children }) => <li className="ml-3 list-disc marker:text-[#B8860B]">{children}</li>,
+              strong: ({ children }) => <strong className="font-bold text-[#1A1612]">{children}</strong>,
+              code: ({ children }) => <code className="bg-[#F5EFE7] px-1 py-0.5 rounded text-[10px]">{children}</code>,
+            }}
+          >
+            {sanitized}
+          </ReactMarkdown>
+        )}
+        {/* Adds a slight fade effect at the bottom if content is long and not live */}
+        {!isLive && content.length > 200 && (
+          <div className="sticky bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent pointer-events-none rounded-b-lg" />
+        )}
       </div>
 
-      <div className="mt-4 pt-3 border-t border-dashed border-stone-100 flex items-center justify-between">
+      <div className="mt-4 pt-3 border-t border-dashed border-stone-200 flex items-center justify-between shrink-0">
         <span className="text-[9px] text-stone-400 font-mono">
           {content.length.toLocaleString()} chars
         </span>
-        <span className="text-[9px] text-amber-700 font-bold hover:underline">
-          View Full Reasoning →
-        </span>
+        <button
+          onClick={onClick}
+          className="text-[10px] font-bold text-[#B8860B] bg-[#FAF8F5] px-3 py-1.5 rounded-lg border border-[#F0E8DE] hover:bg-[#F0E8DE] transition-colors"
+        >
+          View Full Context →
+        </button>
       </div>
     </motion.div>
   );
@@ -238,12 +263,14 @@ const ReasoningGrid = memo(function ReasoningGrid({
   candidates,
   liveCandidate,
   onFocus,
+  isStageCompleted, // Added guard prop
 }: {
-  candidates: Map<string, AIThinking>;
+  candidates: Record<string, AIThinking>;
   liveCandidate: string | null;
   onFocus: (time: string) => void;
+  isStageCompleted?: boolean;
 }) {
-  const entries = Array.from(candidates.entries());
+  const entries = Object.entries(candidates);
 
   if (entries.length === 0) return null;
 
@@ -254,7 +281,7 @@ const ReasoningGrid = memo(function ReasoningGrid({
           key={time}
           title={data.candidateTime || time}
           content={data.fullText}
-          isLive={liveCandidate === time}
+          isLive={!isStageCompleted && liveCandidate === time} // 🔱 STRICT GUARD
           batchIndex={idx}
           onClick={() => onFocus(time)}
         />
@@ -444,13 +471,24 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
   const [localSelectedCandidate, setLocalSelectedCandidate] = useState<string | null>(null);
   const [isFocused, setIsFocused] = useState(false);
 
-  // Sync focus if displayedCandidate changes externally
+  // Sync focus if displayedCandidate changes externally AND belongs to this stage
   useEffect(() => {
+    // 🔱 STRICT FIX: If the stage is completed, never jump to focus view automatically.
+    if (isCompleted) return;
+
     if (displayedCandidate) {
-      setLocalSelectedCandidate(displayedCandidate);
-      setIsFocused(true);
+      // 🔱 FIX: Only auto-focus if this specific stage's Candidate Map actually contains this candidate!
+      // Otherwise, the Stage 1 panel opens up Batch 6 even though Batch 6 is exclusively in Stage 2.
+      if (allCandidates && displayedCandidate in allCandidates) {
+        setLocalSelectedCandidate(displayedCandidate);
+        setIsFocused(true);
+      } else if (thinking?.candidateTime === displayedCandidate) {
+        // Fallback for live general thinking object belonging to THIS active stage
+        setLocalSelectedCandidate(displayedCandidate);
+        setIsFocused(true);
+      }
     }
-  }, [displayedCandidate]);
+  }, [displayedCandidate, allCandidates, thinking, isCompleted]);
 
   const currentStage = thinking?.stage || stage || 2;
   const effectiveSelectedCandidate = localSelectedCandidate;
@@ -461,7 +499,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
   );
 
   const candidatesList = useMemo(
-    () => Array.from(allCandidates?.keys() || []),
+    () => Object.keys(allCandidates || {}),
     [allCandidates]
   );
 
@@ -473,7 +511,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
 
   const displayedContent = useMemo(() => {
     if (allCandidates && effectiveSelectedCandidate) {
-      const candidateData = allCandidates.get(effectiveSelectedCandidate);
+      const candidateData = allCandidates[effectiveSelectedCandidate];
       return candidateData?.fullText ? sanitizeAIContent(candidateData.fullText) : '';
     }
     return thinking ? sanitizeAIContent(thinking.fullText) : '';
@@ -548,7 +586,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
             transition={{ duration: 0.2 }}
           >
             {/* Top General Overview if available */}
-            {thinking?.candidateTime === 'general' && (
+            {!isCompleted && thinking?.candidateTime === 'general' && (
               <div className="px-5 py-3 bg-[#FCFBF9] border-b border-[#F0E8DE]">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
@@ -562,13 +600,14 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
 
             {/* Grid of Batches */}
             <ReasoningGrid
-              candidates={allCandidates || new Map()}
+              candidates={allCandidates || {}}
               liveCandidate={thinking?.candidateTime || null}
               onFocus={handleCandidateSelect}
+              isStageCompleted={isCompleted} // 🔱 Pass the guard prop down
             />
 
             {candidatesList.length === 0 && (
-              <ReasoningContent content="" isActive={isActive} />
+              <ReasoningContent content="" isActive={isActive && !isCompleted} />
             )}
           </motion.div>
         ) : (

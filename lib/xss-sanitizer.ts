@@ -6,11 +6,9 @@
  */
 export function sanitizeAIContent(text: string): string {
   if (!text) return '';
-  // Basic sanitization: escape HTML special characters
+  // Basic sanitization: escape HTML tags but preserve markdown characters
+  // ReactMarkdown safely handles the rest
   return text
-    .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/>/g, '&gt;');
 }

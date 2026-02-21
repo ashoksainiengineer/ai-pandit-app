@@ -2,15 +2,7 @@
 
 import React, { memo, useState, useEffect, useMemo } from 'react';
 import { Activity } from 'lucide-react';
-
-export interface CandidateScore {
-    time: string;
-    score: number;
-    stage: number;
-    rank?: number;
-    offsetMinutes?: number;
-    minifiedEph?: { sun: string; moon: string; ascendant: string };
-}
+import type { CandidateScore } from '@/lib/store/stream-types';
 
 export const CandidateScoreTable = memo(({ scores }: { scores: CandidateScore[] | Map<string, any> }) => {
     // Handle Map or Array input for robustness
@@ -50,7 +42,7 @@ export const CandidateScoreTable = memo(({ scores }: { scores: CandidateScore[] 
     }, [scoreArray, activeTab]);
 
     const stages = useMemo(() => {
-        const uniqueStages = Array.from(new Set(scoreArray.map(s => s.stage))).sort((a, b) => a - b);
+        const uniqueStages = Array.from(new Set(scoreArray.map(s => s.stage))).sort((a: number, b: number) => a - b);
         return uniqueStages;
     }, [scoreArray]);
 

@@ -118,19 +118,30 @@ export function calculateVimshottariDasha(
     const birthNakshatraLord = NAKSHATRA_LORDS[nakshatraIndex];
     const positionInNakshatra = (moonLongitude % NAKSHATRA_SPAN) / NAKSHATRA_SPAN;
     const birthDashaYears = DASHA_YEARS[birthNakshatraLord];
-    const remainingYears = birthDashaYears - (positionInNakshatra * birthDashaYears);
+    const elapsedYears = positionInNakshatra * birthDashaYears;
+    const remainingYears = birthDashaYears - elapsedYears;
 
     const periods: DashaPeriod[] = [];
     let currentDate = new Date(birthDate);
     let dashaIndex = DASHA_SEQUENCE.indexOf(birthNakshatraLord);
 
+    const fullStartDate = addYears(currentDate, -elapsedYears);
     const firstEndDate = addYears(currentDate, remainingYears);
+    const fullEndDate = addYears(fullStartDate, birthDashaYears);
+
     periods.push({
         lord: birthNakshatraLord,
         startDate: new Date(currentDate),
         endDate: firstEndDate,
         durationYears: remainingYears,
-        subPeriods: calculateSubDashas(birthNakshatraLord, currentDate, firstEndDate, maxLevel, positionInNakshatra),
+        subPeriods: calculateSubDashas(
+            birthNakshatraLord,
+            fullStartDate,
+            fullEndDate,
+            maxLevel,
+            new Date(currentDate),
+            firstEndDate
+        ),
     });
     currentDate = firstEndDate;
     dashaIndex = (dashaIndex + 1) % 9;
@@ -150,7 +161,7 @@ export function calculateVimshottariDasha(
             startDate: new Date(currentDate),
             endDate,
             durationYears: years,
-            subPeriods: calculateSubDashas(lord, currentDate, endDate, maxLevel, 0),
+            subPeriods: calculateSubDashas(lord, currentDate, endDate, maxLevel, new Date(currentDate), endDate),
         });
 
         currentDate = endDate;
@@ -165,39 +176,49 @@ export function calculateVimshottariDasha(
  */
 function calculateSubDashas(
     parentLord: string,
-    startDate: Date,
-    endDate: Date,
+    fullStartDate: Date,
+    fullEndDate: Date,
     maxLevel: number,
-    startOffset: number = 0, // 0-1, amount of the first period already elapsed
+    clipStartDate: Date,
+    clipEndDate: Date,
     currentLevel: number = 2
 ): DashaPeriod[] {
     if (currentLevel > maxLevel) return [];
 
-    const totalDurationMs = endDate.getTime() - startDate.getTime();
+    const totalDurationMs = fullEndDate.getTime() - fullStartDate.getTime();
     const subPeriods: DashaPeriod[] = [];
-    let currentDate = new Date(startDate);
+    let currentSubStart = new Date(fullStartDate);
     let startIndex = DASHA_SEQUENCE.indexOf(parentLord);
 
     for (let i = 0; i < 9; i++) {
         const lord = DASHA_SEQUENCE[(startIndex + i) % 9];
         const proportion = DASHA_YEARS[lord] / TOTAL_DASHA_YEARS;
-        let subDurationMs = totalDurationMs * proportion;
+        const subDurationMs = totalDurationMs * proportion;
+        const currentSubEnd = new Date(currentSubStart.getTime() + subDurationMs);
 
-        if (i === 0 && startOffset > 0) {
-            subDurationMs *= (1 - startOffset);
+        // Check if this subperiod overlaps with the clipped visible window
+        if (currentSubStart < clipEndDate && currentSubEnd > clipStartDate) {
+            const effectiveStart = new Date(Math.max(currentSubStart.getTime(), clipStartDate.getTime()));
+            const effectiveEnd = new Date(Math.min(currentSubEnd.getTime(), clipEndDate.getTime()));
+
+            subPeriods.push({
+                lord,
+                startDate: effectiveStart,
+                endDate: effectiveEnd,
+                durationYears: (effectiveEnd.getTime() - effectiveStart.getTime()) / (365.25 * 24 * 60 * 60 * 1000),
+                subPeriods: calculateSubDashas(
+                    lord,
+                    currentSubStart,
+                    currentSubEnd,
+                    maxLevel,
+                    effectiveStart,
+                    effectiveEnd,
+                    currentLevel + 1
+                )
+            });
         }
 
-        if (subDurationMs < 1) continue;
-
-        const subEndDate = new Date(currentDate.getTime() + subDurationMs);
-        subPeriods.push({
-            lord,
-            startDate: new Date(currentDate),
-            endDate: subEndDate,
-            durationYears: subDurationMs / (365.25 * 24 * 60 * 60 * 1000),
-            subPeriods: calculateSubDashas(lord, currentDate, subEndDate, maxLevel, 0, currentLevel + 1)
-        });
-        currentDate = subEndDate;
+        currentSubStart = currentSubEnd;
     }
 
     return subPeriods;

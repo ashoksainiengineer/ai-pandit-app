@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef, memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { StageStat } from '@/lib/use-stream-progress';
+import { StageStat } from '@/lib/store/stream-types';
 import { Settings } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -143,7 +143,7 @@ export const AnalysisPipelineTracker = memo(function AnalysisPipelineTracker({
     'aria-label': ariaLabel = 'Analysis Pipeline',
 }: AnalysisPipelineTrackerProps) {
     const [load, setLoad] = useState(0);
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
         if (isComplete) {
