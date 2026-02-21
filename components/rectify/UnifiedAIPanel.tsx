@@ -187,7 +187,7 @@ const CandidatePill = memo(function CandidatePill({
   );
 });
 
-// 🔱 NEW: Reasoning Card for Grid View (Live Streaming Markdown Enabled)
+// Compact Reasoning Card — 4 per row, live typing effect
 const ReasoningCard = memo(function ReasoningCard({
   title,
   content,
@@ -204,7 +204,7 @@ const ReasoningCard = memo(function ReasoningCard({
   const scrollRef = useRef<HTMLDivElement>(null);
   const sanitized = sanitizeAIContent(content);
 
-  // Auto-scroll the individual card if it's currently receiving live stream tokens
+  // Auto-scroll when live
   useEffect(() => {
     if (scrollRef.current && isLive) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -212,81 +212,69 @@ const ReasoningCard = memo(function ReasoningCard({
   }, [content, isLive]);
 
   return (
-    <motion.div
-      layoutId={`reasoning-card-${title}`}
+    <div
+      onClick={onClick}
       className={`
-        relative p-5 rounded-xl border transition-all duration-300 flex flex-col h-[260px]
+        relative p-3 rounded-lg border cursor-pointer transition-all duration-200 flex flex-col h-[180px]
         ${isLive
-          ? 'bg-amber-50/50 border-amber-300 shadow-[0_4px_15px_rgba(184,134,11,0.15)] ring-1 ring-amber-400/30'
-          : 'bg-white border-[#F0E8DE] hover:border-amber-400 hover:shadow-md'
+          ? 'bg-amber-50/60 border-amber-300 shadow-sm ring-1 ring-amber-300/40'
+          : 'bg-white border-[#F0E8DE] hover:border-amber-400 hover:shadow-sm'
         }
       `}
     >
-      <div className="flex items-center justify-between mb-4 shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 shrink-0">
-            <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-amber-500 animate-pulse' : 'bg-stone-300'}`} />
-            <span className="text-[12px] font-bold text-[#1A1612]">Batch {batchIndex + 1}</span>
-          </div>
-          <span className="text-[10px] font-mono text-[#7A756F] bg-stone-100 px-1.5 py-0.5 rounded truncate max-w-[120px]">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-2 shrink-0">
+        <div className="flex items-center gap-1.5">
+          <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-amber-500 animate-pulse' : 'bg-stone-300'}`} />
+          <span className="text-[10px] font-mono text-[#7A756F] truncate max-w-[100px]">
             {title}
           </span>
         </div>
         {isLive && (
-          <span className="text-[9px] font-bold text-amber-700 bg-amber-100/80 border border-amber-200 px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1">
-            <Radio className="w-2.5 h-2.5 animate-pulse" /> Live
+          <span className="text-[8px] font-bold text-amber-700 bg-amber-100/80 px-1.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-0.5">
+            <Radio className="w-2 h-2 animate-pulse" /> Live
           </span>
         )}
       </div>
 
+      {/* Content */}
       <div
         ref={scrollRef}
-        className="text-[11px] text-[#4A453F] leading-relaxed font-mono overflow-y-auto flex-grow style-scroll relative pr-1"
+        className="text-[10px] text-[#4A453F] leading-relaxed font-mono overflow-hidden flex-grow relative"
       >
         {!sanitized ? (
-          <span className="text-stone-400 italic">Evaluating celestial coordinates...</span>
-        ) : isLive ? (
-          /* ⚡ PERF: During live streaming, use lightweight pre-formatted text
-             instead of full ReactMarkdown parsing on every chunk update */
-          <pre className="whitespace-pre-wrap break-words font-mono text-[11px] text-[#4A453F] leading-relaxed">
-            {sanitized}
-            <span className="inline-block w-1.5 h-4 bg-[#B8860B] animate-pulse ml-0.5 align-middle" />
-          </pre>
+          <span className="text-stone-400 italic text-[9px]">Evaluating...</span>
         ) : (
-          <ReactMarkdown
-            remarkPlugins={REMARK_PLUGINS}
-            components={MARKDOWN_COMPONENTS_CARD}
-          >
+          <pre className="whitespace-pre-wrap break-words font-mono text-[10px] text-[#4A453F] leading-relaxed">
             {sanitized}
-          </ReactMarkdown>
+            {isLive && (
+              <span className="inline-block w-1 h-3 bg-[#B8860B] animate-pulse ml-0.5 align-middle" />
+            )}
+          </pre>
         )}
-        {/* Adds a slight fade effect at the bottom if content is long and not live */}
-        {!isLive && content.length > 200 && (
-          <div className="sticky bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-white to-transparent pointer-events-none rounded-b-lg" />
-        )}
+        {/* Gradient fade at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
       </div>
 
-      <div className="mt-4 pt-3 border-t border-dashed border-stone-200 flex items-center justify-between shrink-0">
-        <span className="text-[9px] text-stone-400 font-mono">
-          {content.length.toLocaleString()} chars
+      {/* Footer */}
+      <div className="mt-1.5 pt-1.5 border-t border-stone-100 flex items-center justify-between shrink-0">
+        <span className="text-[8px] text-stone-400 font-mono">
+          {content.length > 0 ? `${(content.length / 1000).toFixed(1)}k` : '0'}
         </span>
-        <button
-          onClick={onClick}
-          className="text-[10px] font-bold text-[#B8860B] bg-[#FAF8F5] px-3 py-1.5 rounded-lg border border-[#F0E8DE] hover:bg-[#F0E8DE] transition-colors"
-        >
-          View Full Context →
-        </button>
+        <span className="text-[8px] font-bold text-[#B8860B]">
+          View →
+        </span>
       </div>
-    </motion.div>
+    </div>
   );
 });
 
-// 🔱 NEW: Reasoning Grid
+// Reasoning Grid — 4 columns, compact cards
 const ReasoningGrid = memo(function ReasoningGrid({
   candidates,
   liveCandidate,
   onFocus,
-  isStageCompleted, // Added guard prop
+  isStageCompleted,
 }: {
   candidates: Record<string, AIThinking>;
   liveCandidate: string | null;
@@ -298,13 +286,13 @@ const ReasoningGrid = memo(function ReasoningGrid({
   if (entries.length === 0) return null;
 
   return (
-    <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[800px] overflow-y-auto style-scroll bg-[#FAF8F5]/30">
+    <div className="p-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[600px] overflow-y-auto style-scroll bg-[#FAF8F5]/30">
       {entries.map(([time, data], idx) => (
         <ReasoningCard
           key={time}
           title={data.candidateTime || time}
           content={data.fullText}
-          isLive={!isStageCompleted && liveCandidate === time} // 🔱 STRICT GUARD
+          isLive={!isStageCompleted && liveCandidate === time}
           batchIndex={idx}
           onClick={() => onFocus(time)}
         />

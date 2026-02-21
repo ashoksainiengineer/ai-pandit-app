@@ -158,7 +158,9 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
             allCandidates: newAllCandidates,
             candidatesByStage: newCandidatesByStage,
             stageHistory: newStageHistory,
-            displayedCandidate: latestCandidate,
+            // BUG FIX: Only update displayedCandidate when it actually changed
+            // Prevents unnecessary re-renders in UnifiedAIPanel on every rAF flush
+            ...(latestCandidate !== prev.displayedCandidate ? { displayedCandidate: latestCandidate } : {}),
         };
     });
 }
@@ -223,7 +225,8 @@ export const useStreamStore = create<StreamStore>()(
                 set((prev) => {
                     switch (type) {
                         case 'initial_state': {
-                            const progressData = data.progress as PollingProgressData;
+                            // BUG FIX: Use `payload` (after data.data unwrap), not raw `data`
+                            const progressData = (payload as any).progress as PollingProgressData;
                             return {
                                 progress: progressData ? {
                                     step: progressData.steps?.[progressData.currentStep || 0]?.id || 'unknown',
@@ -241,7 +244,8 @@ export const useStreamStore = create<StreamStore>()(
 
                         case 'progress': {
                             const progressData = payload as PollingProgressData;
-                            return {
+                            // BUG FIX: Also extract candidateScores, startedAt, ETA from polling data
+                            const updates: Partial<StreamState> = {
                                 progress: {
                                     step: progressData.steps?.[progressData.currentStep || 0]?.id || 'unknown',
                                     stepIndex: progressData.currentStep || 0,
@@ -251,6 +255,16 @@ export const useStreamStore = create<StreamStore>()(
                                     details: progressData.steps?.[progressData.currentStep || 0]?.details || []
                                 }
                             };
+                            if (progressData.candidateScores && progressData.candidateScores.length > 0) {
+                                updates.candidateScores = progressData.candidateScores;
+                            }
+                            if (progressData.startedAt) {
+                                updates.startedAt = progressData.startedAt;
+                            }
+                            if (progressData.estimatedTimeRemaining !== undefined) {
+                                updates.estimatedTimeRemaining = progressData.estimatedTimeRemaining;
+                            }
+                            return updates;
                         }
 
                         case 'ai_context': {
@@ -335,8 +349,14 @@ export const useStreamStore = create<StreamStore>()(
                                 cancelAnimationFrame(thinkingBuffer.rafId);
                                 thinkingBuffer.rafId = null;
                             }
+
+                            // BUG FIX: Robustly extract StreamResult from multiple possible shapes
+                            // Backend may send: {rectifiedTime, accuracy, confidence}
+                            // Or polling may send: {status:'complete', result:{...}, data:{...}}
+                            const extractedResult: StreamResult | null =
+                                (payload?.rectifiedTime ? payload : payload?.result || prev.result) as StreamResult | null;
+
                             if (thinkingBuffer.chunks.size > 0) {
-                                // We can't call flushThinkingBuffer inside set(), so we handle inline
                                 const newAiThinking = { ...prev.aiThinking };
                                 const newAllCandidates = { ...prev.allCandidates };
                                 thinkingBuffer.chunks.forEach(({ stage, candidateTime, text }) => {
@@ -348,18 +368,25 @@ export const useStreamStore = create<StreamStore>()(
                                 thinkingBuffer.chunks.clear();
                                 return {
                                     isComplete: true,
-                                    result: payload as StreamResult,
+                                    result: extractedResult,
                                     aiThinking: newAiThinking,
                                     allCandidates: newAllCandidates,
                                 };
                             }
                             return {
                                 isComplete: true,
-                                result: payload as StreamResult,
+                                result: extractedResult,
                             };
                         }
 
                         case 'terminal_state': {
+                            // BUG FIX: Clean up thinking buffer on terminal state
+                            if (thinkingBuffer.rafId) {
+                                cancelAnimationFrame(thinkingBuffer.rafId);
+                                thinkingBuffer.rafId = null;
+                            }
+                            thinkingBuffer.chunks.clear();
+
                             const isErr = payload.status === 'failed' || payload.status === 'error' || payload.status === 'cancelled';
                             return {
                                 isComplete: !isErr,

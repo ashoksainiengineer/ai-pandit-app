@@ -422,38 +422,38 @@ export default function AnalysisPage() {
 
           <div className="flex flex-col gap-6 lg:gap-8 w-full">
             <div className="space-y-4 sm:space-y-6">
-              {(aiThinking || (progress?.stepIndex ?? 0) >= 1) && !isComplete && !cancelled && (
+              {(Object.keys(aiThinking).length > 0 || (progress?.stepIndex ?? 0) >= 1) && !isComplete && !cancelled && (
                 <SectionErrorBoundary sectionName="AI Reasoning" icon={<Brain className="w-5 h-5" />}>
                   {(() => {
                     const currentStageIndex = progress?.stepIndex ?? 0;
-                    // Only show reasoning stages (indexes 1 to 5, inclusive of init if needed)
-                    // Ensure we have an array of stages that have started
                     const activeStages = allSteps.filter((step, index) => index >= 1 && index <= currentStageIndex);
 
                     if (activeStages.length === 0 && currentStageIndex > 0) {
-                      // Fallback if steps filtering misses
                       activeStages.push(allSteps[currentStageIndex] || { id: 'processing', name: `Stage ${currentStageIndex}` });
                     }
 
-                    // Render them in reverse so the newest is at the top, as per the mockup.
-                    return activeStages.reverse().map((step, idx) => {
-                      // The step logic: allSteps[0] is init, so step index in pipeline is `allSteps.indexOf(step)`.
+                    return activeStages.reverse().map((step) => {
                       const stageNum = allSteps.indexOf(step);
-                      // 🔱 Get specific candidates for this stage
-                      const stageCandidates = candidatesByStage?.[stageNum] || (stageNum === currentStageIndex ? allCandidates : {});
+                      const stageCandidates = candidatesByStage?.[stageNum] || {};
                       const isStageCompleted = stageNum < currentStageIndex;
+                      const candidateCount = Object.keys(stageCandidates || {}).length;
 
-                      if (Object.keys(stageCandidates || {}).length === 0 && !isStageCompleted && stageNum !== currentStageIndex) return null;
+                      // 🔱 BUG FIX #4: Don't render containers for stages with NO AI thinking data
+                      if (candidateCount === 0) return null;
+
+                      // 🔱 BUG FIX #2: Pass actual displayed candidate as the live candidate
+                      // so the card can match and show the typing effect
+                      const isCurrentStage = stageNum === currentStageIndex;
 
                       return (
-                        <div key={step.id} className="mb-6 last:mb-0">
+                        <div key={step.id} className="mb-4 last:mb-0">
                           <UnifiedAIPanel
-                            thinking={!isStageCompleted && aiThinking ? (Object.values(aiThinking)[0] as any) : null}
+                            thinking={isCurrentStage && !isStageCompleted && aiThinking ? (Object.values(aiThinking)[Object.values(aiThinking).length - 1] as any) : null}
                             stageHistory={stageHistory}
-                            isActive={isConnected && !isComplete && !isStageCompleted}
+                            isActive={isConnected && !isComplete && isCurrentStage && !isStageCompleted}
                             stage={stageNum}
                             allCandidates={stageCandidates}
-                            displayedCandidate={displayedCandidate}
+                            displayedCandidate={isCurrentStage ? displayedCandidate : null}
                             candidateScores={candidateScores}
                             unifiedMode={true}
                             title={step.name}
@@ -468,9 +468,8 @@ export default function AnalysisPage() {
             </div>
 
             <div className="space-y-4 sm:space-y-6 w-full">
-              {!isComplete && !cancelled && candidateScores.length > 0 && (
+              {!cancelled && candidateScores.length > 0 && (
                 <SectionErrorBoundary sectionName="Leaderboard" icon={<Activity className="w-5 h-5" />}>
-                  {/* 🔧 FIX: Pass candidateScores array instead of allCandidates Map */}
                   <CandidateScoreTable scores={candidateScores} />
                 </SectionErrorBoundary>
               )}
