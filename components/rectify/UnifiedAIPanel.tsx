@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, Radio, Activity, Users, ChevronDown, ChevronUp } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { sanitizeAIContent } from '@/lib/xss-sanitizer';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -188,6 +189,7 @@ const CandidatePill = memo(function CandidatePill({
 });
 
 // Compact Reasoning Card — 4 per row, live typing effect
+// PERF: Custom comparator — only re-render when THIS card's content actually changes
 const ReasoningCard = memo(function ReasoningCard({
   title,
   content,
@@ -237,7 +239,7 @@ const ReasoningCard = memo(function ReasoningCard({
         )}
       </div>
 
-      {/* Content */}
+      {/* Content — TRUNCATED preview only */}
       <div
         ref={scrollRef}
         className="text-[10px] text-[#4A453F] leading-relaxed font-mono overflow-y-auto flex-grow relative"
@@ -267,9 +269,27 @@ const ReasoningCard = memo(function ReasoningCard({
       </div>
     </div>
   );
+}, (prev, next) => {
+  // INDUSTRY PATTERN: Custom memo comparator (Figma/VS Code pattern)
+  // Only re-render when THIS card's props actually changed
+  return (
+    prev.content === next.content &&
+    prev.isLive === next.isLive &&
+    prev.title === next.title
+  );
 });
 
-// Reasoning Grid — 4 columns, compact cards
+// PERF CONSTANT: Only show last N chars in card preview to keep DOM lightweight
+const CARD_PREVIEW_CHARS = 300;
+
+// ROW HEIGHT: card height (180px) + gap (12px)
+const VIRTUAL_ROW_HEIGHT = 192;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INDUSTRY PATTERN: Virtualized Grid (Discord/Slack/Linear pattern)
+// Only renders rows visible in viewport. 50 cards → ~4 visible rows = 16 DOM nodes.
+// Uses @tanstack/react-virtual for row virtualization with responsive columns.
+// ═══════════════════════════════════════════════════════════════════════════════
 const ReasoningGrid = memo(function ReasoningGrid({
   candidates,
   liveCandidate,
@@ -283,22 +303,82 @@ const ReasoningGrid = memo(function ReasoningGrid({
   isStageCompleted?: boolean;
   isStageActive?: boolean;
 }) {
-  const entries = Object.entries(candidates);
+  const parentRef = useRef<HTMLDivElement>(null);
+  const entries = useMemo(() => Object.entries(candidates), [candidates]);
+
+  // Responsive column count via container width
+  const [columns, setColumns] = useState(4);
+  useEffect(() => {
+    const el = parentRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((resizeEntries) => {
+      const width = resizeEntries[0]?.contentRect.width || 0;
+      if (width >= 1024) setColumns(4);
+      else if (width >= 768) setColumns(3);
+      else setColumns(2);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const rowCount = Math.ceil(entries.length / columns);
+
+  const virtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => VIRTUAL_ROW_HEIGHT,
+    overscan: 2, // Render 2 extra rows above/below for smooth scrolling
+  });
 
   if (entries.length === 0) return null;
 
   return (
-    <div className="p-3 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[600px] overflow-y-auto style-scroll bg-[#FAF8F5]/30">
-      {entries.map(([time, data], idx) => (
-        <ReasoningCard
-          key={time}
-          title={data.candidateTime || time}
-          content={data.fullText}
-          isLive={!isStageCompleted && !!isStageActive && data.fullText.length > 0}
-          batchIndex={idx}
-          onClick={() => onFocus(time)}
-        />
-      ))}
+    <div
+      ref={parentRef}
+      className="p-3 max-h-[600px] overflow-y-auto style-scroll bg-[#FAF8F5]/30"
+    >
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          width: '100%',
+          position: 'relative',
+        }}
+      >
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const startIdx = virtualRow.index * columns;
+          const rowEntries = entries.slice(startIdx, startIdx + columns);
+
+          return (
+            <div
+              key={virtualRow.key}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+              className={`grid gap-3 ${columns === 4 ? 'grid-cols-4' :
+                columns === 3 ? 'grid-cols-3' : 'grid-cols-2'
+                }`}
+            >
+              {rowEntries.map(([time, data], idx) => (
+                <ReasoningCard
+                  key={time}
+                  title={data.candidateTime || time}
+                  content={data.fullText.length > CARD_PREVIEW_CHARS
+                    ? data.fullText.slice(-CARD_PREVIEW_CHARS)
+                    : data.fullText}
+                  isLive={!isStageCompleted && !!isStageActive && liveCandidate === time}
+                  batchIndex={startIdx + idx}
+                  onClick={() => onFocus(time)}
+                />
+              ))}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 });

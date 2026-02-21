@@ -261,6 +261,7 @@ export function useStreamProgress(
         currentSessionRef.current = sid;
         setConnectionState({ status: 'connecting', url: '', lastError: null });
         terminalStateReceivedRef.current = false; // Reset for new connection
+        authRetryRef.current = false; // Reset auth retry flag for new connection attempt
 
         try {
             // RETRY TOKEN ACQUISITION

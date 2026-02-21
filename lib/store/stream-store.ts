@@ -93,50 +93,41 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
     if (buffered.size === 0) return;
 
     set((prev) => {
-        // Single-pass atomic update — one set() call for ALL buffered chunks
-        const newAiThinking = { ...prev.aiThinking };
-        const newAllCandidates = { ...prev.allCandidates };
-        const newCandidatesByStage = { ...prev.candidatesByStage };
-        const newStageHistory = { ...prev.stageHistory };
+        // ═══════════════════════════════════════════════════════════════════
+        // PHASE 1: Collect all changes into lightweight lookup maps.
+        //          No object spreading yet — just pure computation.
+        // ═══════════════════════════════════════════════════════════════════
+        const changedEntries: Record<string, any> = {};
+        const stageChanges: Record<number, Record<string, any>> = {};
+        const historyAppends: Record<number, string> = {};
         let latestCandidate = prev.displayedCandidate;
         let updatedProgress = prev.progress;
+        let progressChanged = false;
 
         buffered.forEach(({ stage, candidateTime, text }) => {
-            const existing = newAllCandidates[candidateTime] || {
+            // Use already-changed entry if same candidate appeared multiple times in buffer
+            const existing = changedEntries[candidateTime] || prev.allCandidates[candidateTime] || {
                 stage,
                 candidateTime,
                 chunks: [],
                 fullText: ''
             };
 
-            // Memory cap: truncate if text exceeds limit
+            // Append text with memory cap (sliding window)
             let newFullText = existing.fullText + text;
             if (newFullText.length > MAX_FULLTEXT_CHARS) {
-                // Keep the last MAX_FULLTEXT_CHARS characters (sliding window)
                 newFullText = newFullText.slice(-MAX_FULLTEXT_CHARS);
             }
 
-            const updated = {
-                ...existing,
-                fullText: newFullText,
-            };
+            const updated = { ...existing, fullText: newFullText };
+            changedEntries[candidateTime] = updated;
 
-            newAiThinking[candidateTime] = updated;
-            newAllCandidates[candidateTime] = updated;
+            // Group changes by stage for candidatesByStage
+            if (!stageChanges[stage]) stageChanges[stage] = {};
+            stageChanges[stage][candidateTime] = updated;
 
-            // Stage-level map
-            if (!newCandidatesByStage[stage]) newCandidatesByStage[stage] = {};
-            newCandidatesByStage[stage] = {
-                ...newCandidatesByStage[stage],
-                [candidateTime]: updated
-            };
-
-            // Stage history — capped to same limit
-            const existingHistory = newStageHistory[stage] || '';
-            const newHistory = existingHistory + text;
-            newStageHistory[stage] = newHistory.length > MAX_FULLTEXT_CHARS
-                ? newHistory.slice(-MAX_FULLTEXT_CHARS)
-                : newHistory;
+            // Accumulate history appends per stage (avoid multiple string concats on prev)
+            historyAppends[stage] = (historyAppends[stage] || '') + text;
 
             latestCandidate = candidateTime;
 
@@ -149,19 +140,64 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
                     step: 'advancing...',
                     message: `AI Processing: Stage ${stage}`
                 };
+                progressChanged = true;
             }
         });
 
-        return {
-            progress: updatedProgress,
+        // ═══════════════════════════════════════════════════════════════════
+        // PHASE 2: One merge per map — structural sharing.
+        //          Unchanged entries keep SAME object references.
+        //          React sees same ref → skips re-render for those entries.
+        // ═══════════════════════════════════════════════════════════════════
+
+        // aiThinking & allCandidates: single Object.assign merges only changed keys
+        const newAiThinking = Object.assign({}, prev.aiThinking, changedEntries);
+        const newAllCandidates = Object.assign({}, prev.allCandidates, changedEntries);
+
+        // candidatesByStage: only create new sub-objects for stages that had changes
+        const changedStageNumbers = Object.keys(stageChanges);
+        let newCandidatesByStage = prev.candidatesByStage;
+        if (changedStageNumbers.length > 0) {
+            newCandidatesByStage = { ...prev.candidatesByStage };
+            for (const stageStr of changedStageNumbers) {
+                const stageNum = Number(stageStr);
+                newCandidatesByStage[stageNum] = Object.assign(
+                    {},
+                    prev.candidatesByStage[stageNum] || {},
+                    stageChanges[stageNum]
+                );
+            }
+        }
+
+        // stageHistory: only touch changed stages
+        const changedHistoryStages = Object.keys(historyAppends);
+        let newStageHistory = prev.stageHistory;
+        if (changedHistoryStages.length > 0) {
+            newStageHistory = { ...prev.stageHistory };
+            for (const stageStr of changedHistoryStages) {
+                const stageNum = Number(stageStr);
+                const existingHistory = prev.stageHistory[stageNum] || '';
+                const appended = existingHistory + historyAppends[stageNum];
+                newStageHistory[stageNum] = appended.length > MAX_FULLTEXT_CHARS
+                    ? appended.slice(-MAX_FULLTEXT_CHARS)
+                    : appended;
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // PHASE 3: Return minimal diff — only include fields that changed.
+        // ═══════════════════════════════════════════════════════════════════
+        const result: Partial<StreamState> = {
             aiThinking: newAiThinking,
             allCandidates: newAllCandidates,
             candidatesByStage: newCandidatesByStage,
             stageHistory: newStageHistory,
-            // BUG FIX: Only update displayedCandidate when it actually changed
-            // Prevents unnecessary re-renders in UnifiedAIPanel on every rAF flush
-            ...(latestCandidate !== prev.displayedCandidate ? { displayedCandidate: latestCandidate } : {}),
         };
+
+        if (progressChanged) result.progress = updatedProgress;
+        if (latestCandidate !== prev.displayedCandidate) result.displayedCandidate = latestCandidate;
+
+        return result;
     });
 }
 
