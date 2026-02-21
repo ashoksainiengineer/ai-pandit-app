@@ -188,7 +188,7 @@ export default function AnalysisPage() {
     displayedCandidate: state.displayedCandidate,
   })));
 
-  const isConnected = connectionState.status === 'streaming';
+  const isConnected = connectionState.status === 'streaming' || connectionState.status === 'polling';
 
   const [isCancelling, setIsCancelling] = useState(false);
   const [cancelled, setCancelled] = useState(false);
@@ -306,7 +306,9 @@ export default function AnalysisPage() {
     return <LoadingState />;
   }
 
-  if (!isConnected && !hasError && !result && connectionState.status !== 'polling' && connectionState.status !== 'connecting') {
+  // Guard: Show loading ONLY if we have NO data at all AND no active/recovering connection
+  const hasData = progress || candidateScores.length > 0 || Object.keys(aiThinking).length > 0;
+  if (!isConnected && !hasError && !result && !hasData && connectionState.status !== 'polling' && connectionState.status !== 'connecting') {
     return <LoadingState />;
   }
 
@@ -464,7 +466,13 @@ export default function AnalysisPage() {
                       return (
                         <div key={step.id} className="mb-4 last:mb-0">
                           <UnifiedAIPanel
-                            thinking={isCurrentStage && !isStageCompleted && aiThinking ? (Object.values(aiThinking)[Object.values(aiThinking).length - 1] as any) : null}
+                            thinking={isCurrentStage && !isStageCompleted && stageCandidates
+                              ? (() => {
+                                // Get the latest thinking entry for THIS stage's candidates only
+                                const entries = Object.values(stageCandidates);
+                                return entries.length > 0 ? entries[entries.length - 1] as any : null;
+                              })()
+                              : null}
                             stageHistory={stageHistory}
                             isActive={isConnected && !isComplete && isCurrentStage && !isStageCompleted}
                             stage={stageNum}
