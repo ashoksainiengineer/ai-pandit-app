@@ -395,7 +395,7 @@ export default function AnalysisPage() {
             </SectionErrorBoundary>
           )}
 
-          <div className="flex flex-col gap-6 lg:gap-8">
+          <div className="flex flex-col gap-6 lg:gap-8 w-full">
             <div className="space-y-4 sm:space-y-6">
               {(aiThinking || (progress?.stepIndex ?? 0) >= 1) && !isComplete && !cancelled && (
                 <SectionErrorBoundary sectionName="AI Reasoning" icon={<Brain className="w-5 h-5" />}>

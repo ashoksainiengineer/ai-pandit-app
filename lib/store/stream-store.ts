@@ -273,20 +273,16 @@ export const useStreamStore = create<StreamStore>()(
             name: 'ai-pandit-stream-store',
             storage: createJSONStorage(() => localStorage),
             partialize: (state) => ({
-                // ⚠️ DONT PERSIST TRANSIENT UI STATE LIKE ERRORS 
+                // ⚠️ ONLY persist lightweight recovery data. 
+                // DO NOT persist aiThinking/allCandidates/stageHistory —
+                // they update ~10x/sec and serializing megabytes of JSON per write freezes the browser.
                 sessionId: state.sessionId,
                 isComplete: state.isComplete,
                 progress: state.progress,
-                aiThinking: state.aiThinking,
-                aiContext: state.aiContext,
                 candidateScores: state.candidateScores,
                 stageStats: state.stageStats,
                 result: state.result,
                 metadata: state.metadata,
-                allCandidates: state.allCandidates,
-                candidatesByStage: state.candidatesByStage,
-                persistentCandidates: state.persistentCandidates,
-                stageHistory: state.stageHistory,
                 advancedSignals: state.advancedSignals,
                 decisions: state.decisions
             })
