@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useStreamProgress } from '@/lib/use-stream-progress';
 import { useStreamStore } from '@/lib/store/stream-store';
+import { useShallow } from 'zustand/react/shallow';
 import type { CandidateScore } from '@/lib/store/stream-types';
 import { logger } from '@/lib/secure-logger';
 import { env } from '@/lib/config';
@@ -151,23 +152,41 @@ export default function AnalysisPage() {
     getToken
   );
 
-  const isComplete = useStreamStore(state => state.isComplete);
-  const streamError = useStreamStore(state => state.error);
-  const progress = useStreamStore(state => state.progress);
-  const aiThinking = useStreamStore(state => state.aiThinking);
-  const candidateScores = useStreamStore(state => state.candidateScores);
-  const advancedSignals = useStreamStore(state => state.advancedSignals);
-  const result = useStreamStore(state => state.result);
-  const startedAt = useStreamStore(state => state.startedAt);
-  const allSteps = useStreamStore(state => state.allSteps);
-  const metadata = useStreamStore(state => state.metadata);
-  const allCandidates = useStreamStore(state => state.allCandidates);
-  const candidatesByStage = useStreamStore(state => state.candidatesByStage);
-  const stageHistory = useStreamStore(state => state.stageHistory);
-  const displayedCandidate = useStreamStore(state => state.displayedCandidate);
-  const estimatedTimeRemaining = useStreamStore(state => state.estimatedTimeRemaining);
-  const analyzedCount = useStreamStore(state => state.analyzedCount);
-  const totalCandidates = useStreamStore(state => state.totalCandidates);
+  // ═══════════════════════════════════════════════════════════════════════════
+  // INDUSTRY PATTERN: Batched shallow selectors (Linear/Vercel/Figma pattern)
+  // Instead of 17 individual subscriptions each triggering independent re-renders,
+  // we use 2 batched selectors with shallow equality comparison.
+  // React only re-renders when actual VALUES change, not object identity.
+  // ═══════════════════════════════════════════════════════════════════════════
+  const {
+    isComplete, error: streamError, progress, aiThinking,
+    candidateScores, advancedSignals, result, startedAt,
+    allSteps, metadata, estimatedTimeRemaining,
+    analyzedCount, totalCandidates,
+  } = useStreamStore(useShallow(state => ({
+    isComplete: state.isComplete,
+    error: state.error,
+    progress: state.progress,
+    aiThinking: state.aiThinking,
+    candidateScores: state.candidateScores,
+    advancedSignals: state.advancedSignals,
+    result: state.result,
+    startedAt: state.startedAt,
+    allSteps: state.allSteps,
+    metadata: state.metadata,
+    estimatedTimeRemaining: state.estimatedTimeRemaining,
+    analyzedCount: state.analyzedCount,
+    totalCandidates: state.totalCandidates,
+  })));
+
+  const {
+    allCandidates, candidatesByStage, stageHistory, displayedCandidate,
+  } = useStreamStore(useShallow(state => ({
+    allCandidates: state.allCandidates,
+    candidatesByStage: state.candidatesByStage,
+    stageHistory: state.stageHistory,
+    displayedCandidate: state.displayedCandidate,
+  })));
 
   const isConnected = connectionState.status === 'streaming';
 
@@ -217,6 +236,12 @@ export default function AnalysisPage() {
     try {
       const backendUrl = env.api.backendUrl.replace(/\/$/, '');
       await APIClient.post(`${backendUrl}/api/queue/requeue`, { sessionId }, getToken);
+
+      // 🔱 CRITICAL: Clear the Zustand store BEFORE reload so stale
+      // isComplete/error/cancelled state doesn't rehydrate from localStorage
+      // and block the new SSE connection from starting.
+      useStreamStore.getState().clearStore();
+
       setCancelled(false);
       window.location.reload();
     } catch (err: any) {

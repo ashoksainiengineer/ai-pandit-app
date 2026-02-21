@@ -15,6 +15,27 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { sanitizeAIContent } from '@/lib/xss-sanitizer';
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// INDUSTRY PATTERN: Stable component references (React best practice)
+// Defining these outside the render function prevents React from creating
+// new component objects on every re-render, reducing GC pressure.
+// ═══════════════════════════════════════════════════════════════════════════════
+const MARKDOWN_COMPONENTS_CARD = {
+  p: ({ children }: any) => <span className="mb-2 block">{children}</span>,
+  li: ({ children }: any) => <li className="ml-3 list-disc marker:text-[#B8860B]">{children}</li>,
+  strong: ({ children }: any) => <strong className="font-bold text-[#1A1612]">{children}</strong>,
+  code: ({ children }: any) => <code className="bg-[#F5EFE7] px-1 py-0.5 rounded text-[10px]">{children}</code>,
+};
+
+const MARKDOWN_COMPONENTS_FOCUS = {
+  p: ({ children }: any) => <p className="mb-4 last:mb-0">{children}</p>,
+  li: ({ children }: any) => <li className="ml-4 list-disc marker:text-[#B8860B]">{children}</li>,
+  strong: ({ children }: any) => <strong className="font-bold text-[#1A1612]">{children}</strong>,
+  code: ({ children }: any) => <code className="bg-[#F5EFE7] px-1 py-0.5 rounded text-xs">{children}</code>,
+};
+
+const REMARK_PLUGINS = [remarkGfm];
+
 interface PlanetaryInfo {
   sun: string;
   moon: string;
@@ -224,15 +245,17 @@ const ReasoningCard = memo(function ReasoningCard({
       >
         {!sanitized ? (
           <span className="text-stone-400 italic">Evaluating celestial coordinates...</span>
+        ) : isLive ? (
+          /* ⚡ PERF: During live streaming, use lightweight pre-formatted text
+             instead of full ReactMarkdown parsing on every chunk update */
+          <pre className="whitespace-pre-wrap break-words font-mono text-[11px] text-[#4A453F] leading-relaxed">
+            {sanitized}
+            <span className="inline-block w-1.5 h-4 bg-[#B8860B] animate-pulse ml-0.5 align-middle" />
+          </pre>
         ) : (
           <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              p: ({ children }) => <span className="mb-2 block">{children}</span>,
-              li: ({ children }) => <li className="ml-3 list-disc marker:text-[#B8860B]">{children}</li>,
-              strong: ({ children }) => <strong className="font-bold text-[#1A1612]">{children}</strong>,
-              code: ({ children }) => <code className="bg-[#F5EFE7] px-1 py-0.5 rounded text-[10px]">{children}</code>,
-            }}
+            remarkPlugins={REMARK_PLUGINS}
+            components={MARKDOWN_COMPONENTS_CARD}
           >
             {sanitized}
           </ReactMarkdown>
@@ -429,25 +452,19 @@ const ReasoningContent = memo(function ReasoningContent({
       ref={scrollRef}
       className="p-5 overflow-y-auto max-h-[400px] font-mono text-sm text-[#4A453F] leading-7 style-scroll"
     >
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
-          li: ({ children }) => (
-            <li className="ml-4 list-disc marker:text-[#B8860B]">{children}</li>
-          ),
-          strong: ({ children }) => (
-            <strong className="font-bold text-[#1A1612]">{children}</strong>
-          ),
-          code: ({ children }) => (
-            <code className="bg-[#F5EFE7] px-1 py-0.5 rounded text-xs">{children}</code>
-          ),
-        }}
-      >
-        {sanitizedContent}
-      </ReactMarkdown>
-      {isActive && (
-        <span className="inline-block w-1.5 h-4 bg-[#B8860B] animate-pulse ml-1" />
+      {isActive ? (
+        /* ⚡ PERF: During live streaming, use lightweight pre-formatted text */
+        <pre className="whitespace-pre-wrap break-words font-mono text-sm text-[#4A453F] leading-7">
+          {sanitizedContent}
+          <span className="inline-block w-1.5 h-4 bg-[#B8860B] animate-pulse ml-0.5 align-middle" />
+        </pre>
+      ) : (
+        <ReactMarkdown
+          remarkPlugins={REMARK_PLUGINS}
+          components={MARKDOWN_COMPONENTS_FOCUS}
+        >
+          {sanitizedContent}
+        </ReactMarkdown>
       )}
     </div>
   );
@@ -472,21 +489,24 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
   const [isFocused, setIsFocused] = useState(false);
 
   // Sync focus if displayedCandidate changes externally AND belongs to this stage
+  // ⚡ PERF: Use a ref to track the last auto-focused candidate so we don't
+  // trigger redundant setState calls every time displayedCandidate updates
+  // (which happens every 150ms from the throttled buffer).
+  const lastAutoFocusedRef = useRef<string | null>(null);
   useEffect(() => {
     // 🔱 STRICT FIX: If the stage is completed, never jump to focus view automatically.
     if (isCompleted) return;
+    if (!displayedCandidate) return;
+    // Skip if we already auto-focused this same candidate
+    if (lastAutoFocusedRef.current === displayedCandidate) return;
 
-    if (displayedCandidate) {
-      // 🔱 FIX: Only auto-focus if this specific stage's Candidate Map actually contains this candidate!
-      // Otherwise, the Stage 1 panel opens up Batch 6 even though Batch 6 is exclusively in Stage 2.
-      if (allCandidates && displayedCandidate in allCandidates) {
-        setLocalSelectedCandidate(displayedCandidate);
-        setIsFocused(true);
-      } else if (thinking?.candidateTime === displayedCandidate) {
-        // Fallback for live general thinking object belonging to THIS active stage
-        setLocalSelectedCandidate(displayedCandidate);
-        setIsFocused(true);
-      }
+    if (allCandidates && displayedCandidate in allCandidates) {
+      lastAutoFocusedRef.current = displayedCandidate;
+      setLocalSelectedCandidate(displayedCandidate);
+      // Don't auto-open focus view — let user click to expand
+    } else if (thinking?.candidateTime === displayedCandidate) {
+      lastAutoFocusedRef.current = displayedCandidate;
+      setLocalSelectedCandidate(displayedCandidate);
     }
   }, [displayedCandidate, allCandidates, thinking, isCompleted]);
 

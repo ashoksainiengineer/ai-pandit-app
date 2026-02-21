@@ -82,7 +82,7 @@ export function useStreamProgress(
     // Refs for cleanup
     const mountedRef = useRef(true);
     const sseSourceRef = useRef<EventSource | null>(null);
-    const pollTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const connectionAttemptedRef = useRef<boolean>(false);
     const streamCleanupRef = useRef<boolean>(false);
     const currentSessionRef = useRef<string | null>(null);
