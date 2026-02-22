@@ -33,7 +33,7 @@ const LifeEventSchema = z.object({
         .min(1, "Event type is required")
         .max(100, "Event type must be less than 100 characters")
         .transform(sanitizeString),
-    category: z.enum(['career', 'marriage', 'education', 'health', 'family', 'travel', 'other', 'financial', 'relocation', 'childbirth']),
+    category: z.string(), // String instead of enum to support custom Categories
     eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD required)"),
     eventTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM required)").optional().nullable(),
     endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid end date format").optional().nullable(),
@@ -43,10 +43,10 @@ const LifeEventSchema = z.object({
         .transform(sanitizeString)
         .optional()
         .nullable(),
-    importance: z.enum(['high', 'medium', 'low']).default('medium'),
+    importance: z.enum(['high', 'medium', 'low', 'critical']).default('medium'),
     createdAt: z.string().datetime().optional(),
     updatedAt: z.string().datetime().optional(),
-});
+}).passthrough();
 
 // Birth Data validation schema
 const BirthDataSchema = z.object({

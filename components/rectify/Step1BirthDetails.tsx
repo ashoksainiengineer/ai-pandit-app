@@ -31,9 +31,11 @@ interface Step1Props {
 
 const OFFSET_PRESETS: { value: OffsetPreset; label: string; minutes: number }[] = [
   { value: '30min', label: '±30 min', minutes: 30 },
-  { value: '1hour', label: '±1 hour', minutes: 60 },
-  { value: '2hours', label: '±2 hours', minutes: 120 },
-  { value: '4hours', label: '±4 hours', minutes: 240 },
+  { value: '1hour', label: '±1 hr', minutes: 60 },
+  { value: '2hours', label: '±2 hrs', minutes: 120 },
+  { value: '4hours', label: '±4 hrs', minutes: 240 },
+  { value: '6hours', label: '±6 hrs', minutes: 360 },
+  { value: '12hours', label: '±12 hrs', minutes: 720 },
   { value: 'custom', label: 'Custom', minutes: 0 },
 ];
 

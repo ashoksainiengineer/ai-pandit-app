@@ -63,7 +63,8 @@ export function getBatchPrompt(
   batchNumber: number,
   totalBatches: number,
   survivorsNeeded: number,
-  spouseData?: any
+  spouseData?: any,
+  offsetMinutes: number = 60
 ): string {
   // 🛡️ ZERO-TRUST VALIDATION GATE: Ensure all candidates strictly meet contract before AI sees them
   candidates.forEach(c => {
@@ -151,6 +152,30 @@ ${getEventImportanceSummary(events)}
    - KUNDA LAGNA: 'Matches Moon' = strong structural indicator.
    - BOUNDARY LOCKS: Pay special attention - truth often lies at boundaries.
 
+${offsetMinutes > 120 ? `════════════════════════════════════════════════════════════════════════════════
+🪐 PHASE A: THE MACRO SWEEP PROTOCOL (Offset is > 2 Hours)
+════════════════════════════════════════════════════════════════════════════════
+The time uncertainty is MASSIVE (±${offsetMinutes} mins). Your SOLE astrological objective is to identify the correct Lagna (D1) and Moon position.
+- IGNORE D9, D10, D60, and Vimshottari pratyantar precision. (At this offset, micro-charts are mathematical noise).
+- STRICTLY EVALUATE Tattwa (Element) compatibility. Does the Lagna Element match their physical build/complexion forensic data?
+- PENALIZE candidates where Biological/Forensic markers drastically contradict the planetary alignments.
+- ALLOW candidates with 'mediocre' D1 charts to survive IF their Tattwa precisely matches the human forensic data (Assume true time is between grids).`
+      : offsetMinutes > 15 ? `════════════════════════════════════════════════════════════════════════════════
+🪐 PHASE B: THE MESO SWEEP PROTOCOL (Offset is Medium: ±${offsetMinutes} mins)
+════════════════════════════════════════════════════════════════════════════════
+The Lagna is likely fixed. Your objective is hunting the correct Navamsha (D9) and Dasamsha (D10).
+- HEAVILY SCRUTINIZE the D9 Lagna and D9 7th house. Cross-reference with the user's spouse descriptions.
+- EVALUATE D10 for career alignments and timing.
+- ELIMINATE candidates where the D9 completely fails the reality of the user's marriage/relationship narrative.
+- USE Vimshottari Antar Dasha for timing verification.`
+        : `════════════════════════════════════════════════════════════════════════════════
+🪐 PHASE C: THE MICRO SWEEP PROTOCOL (Offset is Tight: ±${offsetMinutes} mins)
+════════════════════════════════════════════════════════════════════════════════
+We are in the terminal varga zones. We are hunting exact D60 / D150 alignments.
+- ANALYZE Vimshottari down to Pratyantar / Sookshma levels.
+- USE D60 deities and configurations to map traumatic or sudden events.
+- Your final judgment MUST hinge on mathematical precision in the micro-charts matching the situational narrative.`}
+
 ════════════════════════════════════════════════════════════════════════════════
 
     TASK: Rank ${candidates.length} candidates using your EXPERT ASTROLOGICAL JUDGMENT.
@@ -158,7 +183,7 @@ ${getEventImportanceSummary(events)}
     For EACH candidate, you MUST:
     1. Calculate score for EACH method (0-100)
     2. Apply YOUR chosen weights (can differ per candidate!)
-    3. Provide reasoning for weight adjustments
+    3. Provide reasoning for weight adjustments (CRITICAL: You MUST explicitly reference the user's "SITUATIONAL NARRATIVE & EXPERIENCE" to show how the planetary geometry caused their specific life event experience).
     4. Give final weighted score
 
 LIFE EVENTS:
@@ -180,21 +205,21 @@ ${c.sandhiZones?.length ? `⚠️ SANDHI WARNING: ${c.sandhiZones.join(' | ')}\n
 
 PLANETARY MATRIX (Verified Swiss Eph Positions):
 ${Object.entries(c.planets).map(([name, p]) => {
-    const caps = name.charAt(0).toUpperCase() + name.slice(1);
-    const sav = c.ashtakavarga?.SAVSigns?.[p.sign] || '?';
-    const aspects = p.aspects?.filter((a: any) => a.isHit).map((a: any) => `${a.type}→${a.targetPlanet || 'H' + a.targetHouse}`).join(', ') || 'None';
-    const avastha = p.avastha || 'Unknown';
-    const deity = p.d60Deity || 'Unknown';
-    const ikp = p.ishtaKashtaPhala ? `${p.ishtaKashtaPhala.ishta}/${p.ishtaKashtaPhala.kashta}` : '?';
-    const sambandha = p.compoundDignity || 'Sama';
-    const sh = p.shadbalaBreakdown;
-    const shStr = sh ? `Sum:${sh.total} (S:${sh.sthana} D:${sh.dig} K:${sh.kaala})` : '?';
-    const statusFlags: string[] = [];
-    if (p.isRetro) statusFlags.push('R');
-    if (p.isCombust) statusFlags.push('C');
-    const statusStr = statusFlags.length > 0 ? `[${statusFlags.join(',')}]` : '';
-    return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${String(p.house).padEnd(2)} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${shStr.padEnd(25)} | SAV:${String(sav).padEnd(2)} ${statusStr.padEnd(5)} | ${aspects}`;
-  }).join('\n')}
+          const caps = name.charAt(0).toUpperCase() + name.slice(1);
+          const sav = c.ashtakavarga?.SAVSigns?.[p.sign] || '?';
+          const aspects = p.aspects?.filter((a: any) => a.isHit).map((a: any) => `${a.type}→${a.targetPlanet || 'H' + a.targetHouse}`).join(', ') || 'None';
+          const avastha = p.avastha || 'Unknown';
+          const deity = p.d60Deity || 'Unknown';
+          const ikp = p.ishtaKashtaPhala ? `${p.ishtaKashtaPhala.ishta}/${p.ishtaKashtaPhala.kashta}` : '?';
+          const sambandha = p.compoundDignity || 'Sama';
+          const sh = p.shadbalaBreakdown;
+          const shStr = sh ? `Sum:${sh.total} (S:${sh.sthana} D:${sh.dig} K:${sh.kaala})` : '?';
+          const statusFlags: string[] = [];
+          if (p.isRetro) statusFlags.push('R');
+          if (p.isCombust) statusFlags.push('C');
+          const statusStr = statusFlags.length > 0 ? `[${statusFlags.join(',')}]` : '';
+          return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${String(p.house).padEnd(2)} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${shStr.padEnd(25)} | SAV:${String(sav).padEnd(2)} ${statusStr.padEnd(5)} | ${aspects}`;
+        }).join('\n')}
 
 ${c.vargaDegrees ? `VARGA DEGREES (Forensic Resolution):
 │ D9 Navamsa: Asc=${c.vargaDegrees.D9?.Ascendant} | ${Object.entries(c.vargaDegrees.D9 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
@@ -212,7 +237,7 @@ ${c.yoginiDasha ? `\nYOGINI DASHA: ${c.yoginiDasha.slice(0, 20).map(d => `${d.lo
 
 ${c.transitData ? `TRANSITS & DASHAS ON EVENTS (Full Matrix):
 ${Object.entries(c.transitData).map(([date, t]: [string, any]) =>
-    `│ [${date}]: Dasha=${t.dasha}
+          `│ [${date}]: Dasha=${t.dasha}
 │   Transits: ${Object.entries(t.planets || {}).map(([p, pos]) => `${p}:${pos}`).join(' | ')}
 │   Signatures: ${t.signatures?.join(', ') || 'None'}`).join('\n')}` : ''}
 ${c.vedicSignals ? `VEDIC HIGH-SIGNALS:

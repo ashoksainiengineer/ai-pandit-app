@@ -15,6 +15,7 @@ export interface AIThinking {
     candidateTime?: string;
     chunks: string[];
     fullText: string;
+    updatedAt?: number; // 🔱 NEW: Stable sorting & live tracking
 }
 
 export interface AIThinkingEventData {
@@ -126,6 +127,7 @@ export interface StreamState {
     totalCandidates: number;
     startedAt?: string;
     estimatedTimeRemaining?: number;
+    activeAIStage: number | null;
     allSteps: StreamStep[];
     advancedSignals: IAdvancedSignals | null;
     decisions: AnalysisDecision[];

@@ -51,9 +51,18 @@ export async function stage4DeepAnalysis(
     let currentCandidates = [...candidates];
     let allReasoning = '';
 
+    // Get offset from config for dynamic batch sizing
+    const offsetMinutes = input.offsetConfig.customMinutes ||
+        (input.offsetConfig.preset === '30min' ? 30 :
+            input.offsetConfig.preset === '1hour' ? 60 :
+                input.offsetConfig.preset === '2hours' ? 120 :
+                    input.offsetConfig.preset === '4hours' ? 240 :
+                        input.offsetConfig.preset === '6hours' ? 360 :
+                            input.offsetConfig.preset === '12hours' ? 720 : 60);
+
     const batchSize = MAX_BATCH_SIZE;
-    // FIXED: Use getDynamicSurvivors for consistent tournament logic
-    const survivorsPerBatch = getDynamicSurvivors(batchSize, false);
+    // FIXED: Use getDynamicSurvivors for consistent tournament logic with Elasticity
+    const survivorsPerBatch = getDynamicSurvivors(batchSize, offsetMinutes, false);
 
     const getMinifiedEphemerisInline = (c: CandidateDataPackage) => ({
         sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
@@ -95,7 +104,7 @@ export async function stage4DeepAnalysis(
                 input.sessionId,
                 4,
                 'You are the GOD-TIER VEDIC ANALYST. Perform deep forensic multi-dasha verification.',
-                getDeepAnalysisPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData),
+                getDeepAnalysisPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData, offsetMinutes),
                 {
                     candidateTime: `Batch ${i + 1}`,
                     progressTracker: progress
@@ -161,7 +170,7 @@ export async function stage4DeepAnalysis(
             })
         ));
 
-        const prompt = getDeepAnalysisPrompt(finalBatchData, input.lifeEvents, forensicTraits, input.spouseData);
+        const prompt = getDeepAnalysisPrompt(finalBatchData, input.lifeEvents, forensicTraits, input.spouseData, offsetMinutes);
 
         const response = await callAIWithStream(
             input.sessionId,

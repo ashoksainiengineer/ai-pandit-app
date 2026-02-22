@@ -65,9 +65,9 @@ export async function stage2BatchTournament(
     // Dynamic batch size based on offset
     const batchSize = getDynamicBatchSize(candidates.length, offsetMinutes);
 
-    // GOD-TIER SAFETY: First round keeps more survivors (30% vs 20%)
+    // GOD-TIER ELASTICITY: First round keeps more survivors, wider offsets keep more survivors
     const isFirstRound = roundNumber === 0;
-    const survivorsPerBatch = getDynamicSurvivors(batchSize, isFirstRound);
+    const survivorsPerBatch = getDynamicSurvivors(batchSize, offsetMinutes, isFirstRound);
 
     logger.info('🔱 Stage 2: Starting batch tournament', {
         totalCandidates: currentCandidates.length,
@@ -120,7 +120,7 @@ export async function stage2BatchTournament(
                 input.sessionId,
                 2,
                 'You are the SUPREME VEDIC ASTROLOGER. Analyze candidate birth times for primary alignment using forensic markers.',
-                getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch, input.spouseData),
+                getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch, input.spouseData, offsetMinutes),
                 {
                     candidateTime: `Batch ${i + 1}`,
                     progressTracker: progress
@@ -260,7 +260,7 @@ export async function stage2BatchTournament(
                 input.sessionId,
                 2,
                 'You are the SUPREME VEDIC ASTROLOGER. Tournament analysis: prune based on forensic alignment.',
-                getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch, input.spouseData),
+                getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch, input.spouseData, offsetMinutes),
                 { candidateTime: `Batch ${i + 1}`, progressTracker: progress }
             );
 

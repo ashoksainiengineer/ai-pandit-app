@@ -2,7 +2,7 @@
 
 import React, { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, Clock, Zap, Brain, Filter, Target } from 'lucide-react';
+import { Activity, Clock, Zap, Brain, Filter, Target, CheckCircle } from 'lucide-react';
 
 interface StageInfo {
   id: number;
@@ -31,6 +31,8 @@ interface AnalysisStatusBannerProps {
   estimatedSecondsRemaining: number;
   isConnected: boolean;
   isComplete: boolean;
+  activeAIStage?: number | null;
+  offsetMinutes?: number; // 🔱 NEW: God-Tier offset config
 }
 
 function formatTime(seconds: number): string {
@@ -49,8 +51,24 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
   estimatedSecondsRemaining,
   isConnected,
   isComplete,
+  activeAIStage,
+  offsetMinutes = 60,
 }: AnalysisStatusBannerProps) {
-  const stage = STAGE_CONFIG[currentStage] ?? STAGE_CONFIG[0];
+  // Use activeAIStage mapping like SimplifiedPipeline does if available
+  const aiStageToIndex: Record<number, number> = { 2: 2, 3: 3, 4: 4, 5: 5, 6: 6 };
+  const effectiveStageIndex = activeAIStage && aiStageToIndex[activeAIStage] !== undefined
+    ? Math.max(currentStage, aiStageToIndex[activeAIStage])
+    : currentStage;
+
+  const stage = STAGE_CONFIG[effectiveStageIndex] ?? STAGE_CONFIG[0];
+
+  const gearNumber = useMemo(() => {
+    if (offsetMinutes <= 30) return 1;
+    if (offsetMinutes <= 60) return 2;
+    if (offsetMinutes <= 120) return 3;
+    if (offsetMinutes <= 240) return 4;
+    return 5;
+  }, [offsetMinutes]);
 
   const progressPercent = useMemo(() => {
     if (totalCandidates <= 0) return 0;
@@ -59,95 +77,98 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
 
   const stageProgress = useMemo(() => {
     if (isComplete) return { current: 7, total: 7 };
-    return { current: currentStage + 1, total: 7 };
-  }, [currentStage, isComplete]);
+    return { current: effectiveStageIndex + 1, total: 7 };
+  }, [effectiveStageIndex, isComplete]);
 
-  if (isComplete) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-[#2D7A5C]/10 to-[#2D7A5C]/5 border border-[#2D7A5C]/30 rounded-xl p-4"
-      >
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#2D7A5C]/20 flex items-center justify-center">
-            <Target className="w-5 h-5 text-[#2D7A5C]" />
+  const statusContent = useMemo(() => {
+    if (isComplete) {
+      return (
+        <div className="flex items-center gap-3 flex-1">
+          <div className="w-10 h-10 rounded-xl bg-[#2D7A5C]/20 flex items-center justify-center shrink-0">
+            <CheckCircle className="w-5 h-5 text-[#2D7A5C]" />
           </div>
-          <div className="flex-1">
+          <div>
             <p className="font-bold text-[#1A1612]">Analysis Complete</p>
-            <p className="text-sm text-[#4A453F]">Total time: {formatTime(elapsedSeconds)}</p>
+            <p className="text-xs text-[#2D7A5C] font-medium">Results verified & finalized</p>
           </div>
         </div>
-      </motion.div>
+      );
+    }
+    return (
+      <div className="flex items-center gap-3 flex-1">
+        <div className="w-10 h-10 rounded-xl bg-[#B8860B]/20 flex items-center justify-center shrink-0">
+          <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>
+            {stage.icon}
+          </motion.div>
+        </div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="font-bold text-[#1A1612] text-sm sm:text-base">{stage.name}</p>
+            {/* Phase Label Logic */}
+            {(() => {
+              const stageNum = effectiveStageIndex;
+              let phaseLabel = '';
+              if (stageNum <= 2) phaseLabel = offsetMinutes > 120 ? 'Phase A: Macro Sweep' : (offsetMinutes > 15 ? 'Phase B: Meso Sweep' : 'Phase C: Micro Sweep');
+              else if (stageNum === 4) phaseLabel = 'Phase B: Meso Sweep';
+              else if (stageNum >= 5) phaseLabel = 'Phase C: Micro Sweep';
+              if (!phaseLabel) return null;
+              return (
+                <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#2D7A5C]/10 text-[#2D7A5C] font-bold border border-[#2D7A5C]/20">
+                  🪐 {phaseLabel}
+                </span>
+              );
+            })()}
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#B8860B]/20 text-[#B8860B] font-bold">
+              Step {stageProgress.current} of {stageProgress.total}
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-[#4A453F] mt-0.5 truncate">{stage.description}</p>
+        </div>
+      </div>
     );
-  }
+  }, [isComplete, stage, effectiveStageIndex, offsetMinutes, stageProgress]);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-r from-[#B8860B]/10 via-[#B8860B]/5 to-transparent border border-[#B8860B]/20 rounded-xl p-4 sm:p-5"
+      className={`bg-gradient-to-r ${isComplete ? 'from-[#2D7A5C]/10 to-transparent border-[#2D7A5C]/20' : 'from-[#B8860B]/10 via-[#B8860B]/5 to-transparent border-[#B8860B]/20'} border rounded-xl p-4 sm:p-5`}
     >
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-        <div className="flex items-center gap-3 flex-1">
-          <div className="w-10 h-10 rounded-xl bg-[#B8860B]/20 flex items-center justify-center shrink-0">
-            <motion.div
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              {stage.icon}
-            </motion.div>
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <p className="font-bold text-[#1A1612] text-sm sm:text-base">
-                {stage.name}
-              </p>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#B8860B]/20 text-[#B8860B] font-bold">
-                Step {stageProgress.current} of {stageProgress.total}
-              </span>
-            </div>
-            <p className="text-xs sm:text-sm text-[#4A453F] mt-0.5 truncate">
-              {stage.description}
-            </p>
-          </div>
-        </div>
+        {statusContent}
 
         <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#2D7A5C] animate-pulse' : 'bg-[#C65D3B]'}`} />
+            <div className={`w-2 h-2 rounded-full ${isComplete ? 'bg-[#2D7A5C]' : (isConnected ? 'bg-[#2D7A5C] animate-pulse' : 'bg-[#C65D3B]')}`} />
             <span className="text-xs font-medium text-[#4A453F]">
-              {isConnected ? 'Live' : 'Reconnecting'}
+              {isComplete ? 'Finalized' : (isConnected ? 'Live' : 'Reconnecting')}
             </span>
           </div>
 
           <div className="text-center">
             <p className="text-[10px] text-[#7A756F] uppercase tracking-wider">Candidates</p>
-            <p className="text-sm font-bold text-[#B8860B] font-mono">
-              {candidateCount.toLocaleString()}
-            </p>
+            <p className="text-sm font-bold text-[#B8860B] font-mono">{candidateCount.toLocaleString()}</p>
           </div>
 
           <div className="text-center">
             <p className="text-[10px] text-[#7A756F] uppercase tracking-wider">Elapsed</p>
-            <p className="text-sm font-bold text-[#1A1612] font-mono">
-              {formatTime(elapsedSeconds)}
-            </p>
+            <p className="text-sm font-bold text-[#1A1612] font-mono">{formatTime(elapsedSeconds)}</p>
           </div>
 
-          <div className="text-center">
-            <p className="text-[10px] text-[#7A756F] uppercase tracking-wider flex items-center gap-1 justify-center">
-              <Clock className="w-3 h-3" />
-              ETA
-            </p>
-            <p className="text-sm font-bold text-[#B8860B] font-mono">
-              {estimatedSecondsRemaining > 0 ? `~${formatTime(estimatedSecondsRemaining)}` : 'Calculating...'}
-            </p>
-          </div>
+          {!isComplete && (
+            <div className="text-center">
+              <p className="text-[10px] text-[#7A756F] uppercase tracking-wider flex items-center gap-1 justify-center">
+                <Clock className="w-3 h-3" /> ETA
+              </p>
+              <p className="text-sm font-bold text-[#B8860B] font-mono">
+                {estimatedSecondsRemaining > 0 ? `~${formatTime(estimatedSecondsRemaining)}` : 'Calculating...'}
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
-      {progressPercent > 0 && (
+      {!isComplete && progressPercent > 0 && (
         <div className="mt-3 pt-3 border-t border-[#B8860B]/10">
           <div className="flex items-center justify-between text-xs text-[#7A756F] mb-1">
             <span>Stage Progress</span>

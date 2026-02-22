@@ -135,6 +135,8 @@ ${getEventImportanceSummary(events)}
 ════════════════════════════════════════════════════════════════════════════════
 
     TASK: Solve the Bio - Vedic Identity Matrix.Select THE SINGLE BEST birth time from ${shuffledCandidates.length} finalists.
+    
+    CRITICAL: In your final judgment reasoning, you MUST explicitly quote or reference the user's "SITUATIONAL NARRATIVE & EXPERIENCE" and explain how the precise micro-astrological markers (like Nadi Amsha or D60 Lagna) perfectly align with the user's described life events.
 
 USER FORENSIC DOSSIER:
 ${forensicDNA}

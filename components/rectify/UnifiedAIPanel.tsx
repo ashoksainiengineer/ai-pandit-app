@@ -48,6 +48,7 @@ interface AIThinking {
   candidateTime?: string;
   chunks?: string[];
   fullText: string;
+  updatedAt?: number; // 🔱 NEW: Stable sorting & live tracking
 }
 
 interface CandidateScore {
@@ -72,6 +73,7 @@ interface UnifiedAIPanelProps {
   isComplete?: boolean;
   title?: string;      // 🔱 NEW: Stage title for header
   isCompleted?: boolean; // 🔱 NEW: If this specific stage is done
+  offsetMinutes?: number; // 🔱 NEW: God-Tier architecture time offset
 }
 
 type ScoreTier = 'top' | 'promising' | 'exploring';
@@ -347,6 +349,8 @@ const ReasoningGrid = memo(function ReasoningGrid({
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const startIdx = virtualRow.index * columns;
           const rowEntries = entries.slice(startIdx, startIdx + columns);
+          const now = Date.now();
+          const ACTIVE_THRESHOLD_MS = 3000; // 🔱 Consider "Live" if updated in last 3s
 
           return (
             <div
@@ -363,18 +367,25 @@ const ReasoningGrid = memo(function ReasoningGrid({
                 columns === 3 ? 'grid-cols-3' : 'grid-cols-2'
                 }`}
             >
-              {rowEntries.map(([time, data], idx) => (
-                <ReasoningCard
-                  key={time}
-                  title={data.candidateTime || time}
-                  content={data.fullText.length > CARD_PREVIEW_CHARS
-                    ? data.fullText.slice(-CARD_PREVIEW_CHARS)
-                    : data.fullText}
-                  isLive={!isStageCompleted && !!isStageActive && liveCandidate === time}
-                  batchIndex={startIdx + idx}
-                  onClick={() => onFocus(time)}
-                />
-              ))}
+              {rowEntries.map(([time, data], idx) => {
+                // 🔱 Multi-Stream logic: a card is live if it was recently updated
+                // OR if it's explicitly identified as the liveCandidate from the store dispatch
+                const isRecentlyUpdated = data.updatedAt && (now - data.updatedAt < ACTIVE_THRESHOLD_MS);
+                const isPulseActive = !isStageCompleted && !!isStageActive && (liveCandidate === time || isRecentlyUpdated);
+
+                return (
+                  <ReasoningCard
+                    key={time}
+                    title={data.candidateTime || time}
+                    content={data.fullText.length > CARD_PREVIEW_CHARS
+                      ? data.fullText.slice(-CARD_PREVIEW_CHARS)
+                      : data.fullText}
+                    isLive={isPulseActive}
+                    batchIndex={startIdx + idx}
+                    onClick={() => onFocus(time)}
+                  />
+                );
+              })}
             </div>
           );
         })}
@@ -553,10 +564,21 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
   isComplete = false,
   title = 'Intelligence Grid',
   isCompleted = false,
+  offsetMinutes = 60,
 }: UnifiedAIPanelProps) {
   const panelId = useId();
   const [localSelectedCandidate, setLocalSelectedCandidate] = useState<string | null>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(isCompleted);
+
+  // Auto-collapse when completed
+  useEffect(() => {
+    if (isCompleted && !isActive) {
+      setIsCollapsed(true);
+    } else if (isActive) {
+      setIsCollapsed(false);
+    }
+  }, [isCompleted, isActive]);
 
   // Sync focus if displayedCandidate changes externally AND belongs to this stage
   // ⚡ PERF: Use a ref to track the last auto-focused candidate so we don't
@@ -601,12 +623,22 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
   }, [onSelectCandidate]);
 
   const displayedContent = useMemo(() => {
+    // 1. If user has manually selected a candidate, show THAT reasoning
     if (allCandidates && effectiveSelectedCandidate) {
       const candidateData = allCandidates[effectiveSelectedCandidate];
       return candidateData?.fullText ? sanitizeAIContent(candidateData.fullText) : '';
     }
+
+    // 2. Otherwise, show the CUMULATIVE stage history (concatenated chunks)
+    // This provides a stable "Stage Narrative" even with multiple parallel batch streams
+    const stageNum = stage || currentStage;
+    if (stageHistory && stageHistory[stageNum]) {
+      return sanitizeAIContent(stageHistory[stageNum]);
+    }
+
+    // 3. Fallback to the latest live 'thinking' object
     return thinking ? sanitizeAIContent(thinking.fullText) : '';
-  }, [allCandidates, effectiveSelectedCandidate, thinking]);
+  }, [allCandidates, effectiveSelectedCandidate, thinking, stageHistory, stage, currentStage]);
 
   if (!unifiedMode) {
     return (
@@ -619,8 +651,15 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl border border-[#D4A853]/40 shadow-[0_0_20px_rgba(184,134,11,0.08)] overflow-hidden"
+      animate={{
+        opacity: 1,
+        y: 0,
+        boxShadow: isActive
+          ? '0 0 30px rgba(184, 134, 11, 0.15)'
+          : '0 0 20px rgba(184, 134, 11, 0.08)'
+      }}
+      className={`bg-white rounded-2xl border transition-all duration-500 overflow-hidden ${isActive ? 'border-[#D4A853]' : 'border-[#D4A853]/40 shadow-sm'
+        }`}
       role="region"
       aria-labelledby={`${panelId}-title`}
     >
@@ -636,9 +675,31 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
             <Brain className={`w-5 h-5 ${isCompleted ? 'text-stone-400' : 'text-[#B8860B]'}`} />
           </div>
           <div>
-            <h3 id={`${panelId}-title`} className={`text-base font-bold ${isCompleted ? 'text-[#4A453F]' : 'text-[#1A1612]'}`}>
-              {title}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 id={`${panelId}-title`} className={`text-base font-bold ${isCompleted ? 'text-[#4A453F]' : 'text-[#1A1612]'}`}>
+                {title}
+              </h3>
+              {(() => {
+                // 🔱 God-Tier Telescopic Varga Funnel UI Badge
+                const stageNum = currentStage;
+                let phaseLabel = '';
+                if (stageNum <= 2) {
+                  phaseLabel = offsetMinutes > 120 ? 'Phase A: Macro Sweep' : (offsetMinutes > 15 ? 'Phase B: Meso Sweep' : 'Phase C: Micro Sweep');
+                } else if (stageNum === 4) {
+                  phaseLabel = 'Phase B: Meso Sweep';
+                } else if (stageNum >= 5) {
+                  phaseLabel = 'Phase C: Micro Sweep';
+                }
+
+                if (!phaseLabel) return null;
+                return (
+                  <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${isCompleted ? 'bg-stone-200 text-stone-500' : 'bg-[#B8860B]/20 text-[#B8860B]'
+                    }`}>
+                    🪐 {phaseLabel}
+                  </span>
+                );
+              })()}
+            </div>
             <p className="text-[10px] text-[#7A756F]">
               {isCompleted ? 'Stage processing completed' : (isActive ? 'Simultaneous processing' : 'Multi-stream history')}
             </p>
@@ -664,72 +725,102 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
               <span className="text-[10px] font-bold text-[#2D7A5C]">LIVE</span>
             </motion.div>
           )}
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-1.5 rounded-lg hover:bg-stone-200/50 text-stone-400 transition-colors"
+          >
+            {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+          </button>
         </div>
       </div>
 
-      <AnimatePresence mode="wait">
-        {!isFocused ? (
+      <AnimatePresence>
+        {!isCollapsed && (
           <motion.div
-            key="grid-view"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.02 }}
-            transition={{ duration: 0.2 }}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="overflow-hidden"
           >
-            {/* Top General Overview if available */}
-            {!isCompleted && thinking?.candidateTime === 'general' && (
-              <div className="px-5 py-3 bg-[#FCFBF9] border-b border-[#F0E8DE]">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                  <span className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Global Reasoning</span>
-                </div>
-                <div className="text-[11px] text-[#4A453F] line-clamp-2 italic font-mono">
-                  {thinking.fullText}
-                </div>
-              </div>
-            )}
+            <AnimatePresence mode="wait">
+              {!isFocused ? (
+                <motion.div
+                  key="grid-view"
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 1.02 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {/* Top General Overview if available */}
+                  {!isCompleted && thinking?.candidateTime === 'general' && (
+                    <div className="px-5 py-3 bg-[#FCFBF9] border-b border-[#F0E8DE]">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                        <span className="text-[10px] font-bold text-amber-700 uppercase tracking-widest">Global Reasoning</span>
+                      </div>
+                      <div className="text-[11px] text-[#4A453F] line-clamp-2 italic font-mono">
+                        {thinking.fullText}
+                      </div>
+                    </div>
+                  )}
 
-            {/* Grid of Batches */}
-            <ReasoningGrid
-              candidates={allCandidates || {}}
-              liveCandidate={thinking?.candidateTime || null}
-              onFocus={handleCandidateSelect}
-              isStageCompleted={isCompleted}
-              isStageActive={isActive}
-            />
+                  {/* Grid of Batches */}
+                  <ReasoningGrid
+                    candidates={allCandidates || {}}
+                    liveCandidate={thinking?.candidateTime || null}
+                    onFocus={handleCandidateSelect}
+                    isStageCompleted={isCompleted}
+                    isStageActive={isActive}
+                  />
 
-            {candidatesList.length === 0 && (
-              <ReasoningContent content="" isActive={isActive && !isCompleted} />
-            )}
-          </motion.div>
-        ) : (
-          <motion.div
-            key="focus-view"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
-          >
-            {/* Context Info for Focused View */}
-            <div className="px-5 py-3 bg-amber-50/30 border-b border-amber-100 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-[#1A1612] font-mono flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${thinking?.candidateTime === effectiveSelectedCandidate ? 'bg-green-500 animate-pulse' : 'bg-[#B8860B]'}`} />
-                  {effectiveSelectedCandidate}
-                </span>
-                <span className="text-[9px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded font-bold uppercase">
-                  Technical Reasoning
-                </span>
-              </div>
-              <button
-                onClick={() => setIsFocused(false)}
-                className="text-[10px] text-[#7A756F] hover:text-[#1A1612] transition-colors"
-              >
-                Close Full View ×
-              </button>
-            </div>
+                  {candidatesList.length === 0 && (
+                    <ReasoningContent content="" isActive={isActive && !isCompleted} />
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="focus-view"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  {/* Context Info for Focused View */}
+                  <div className="px-5 py-3 bg-amber-50/30 border-b border-amber-100 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold text-[#1A1612] font-mono flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${thinking?.candidateTime === effectiveSelectedCandidate ? 'bg-green-500 animate-pulse' : 'bg-[#B8860B]'}`} />
+                        {effectiveSelectedCandidate}
+                      </span>
+                      <span className="text-[9px] text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded font-bold uppercase">
+                        Technical Reasoning
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setIsFocused(false)}
+                      className="text-[10px] text-[#7A756F] hover:text-[#1A1612] transition-colors"
+                    >
+                      Close Full View ×
+                    </button>
+                  </div>
 
-            <ReasoningContent content={displayedContent} isActive={isActive && thinking?.candidateTime === effectiveSelectedCandidate} />
+                  <ReasoningContent
+                    content={displayedContent}
+                    isActive={(() => {
+                      if (!isActive || isCompleted) return false;
+                      if (thinking?.candidateTime === effectiveSelectedCandidate) return true;
+
+                      // 🔱 Multi-Stream logic: also active if recently updated in store
+                      const data = effectiveSelectedCandidate ? allCandidates?.[effectiveSelectedCandidate] : null;
+                      if (data?.updatedAt && (Date.now() - data.updatedAt < 3000)) return true;
+
+                      return false;
+                    })()}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>

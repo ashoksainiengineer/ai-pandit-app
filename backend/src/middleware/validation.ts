@@ -24,19 +24,15 @@ export const BirthDataSchema = z.object({
 
 export const LifeEventSchema = z.object({
     id: z.string().optional(),
-    category: z.enum([
-        'education', 'career', 'marriage', 'children', 'family',
-        'health', 'financial', 'travel', 'spiritual', 'legal',
-        'public_life', 'karmic_events', 'identity_shifts', 'other'
-    ]),
+    category: z.string(), // changed from enum to string to support custom categories
     eventType: z.string().min(1),
     datePrecision: z.enum(['exact_date_time', 'exact_date', 'date_range', 'month_year', 'month_range', 'year_range']),
     eventDate: z.string(),
     endDate: z.string().optional(),
     eventTime: z.string().optional(),
-    description: z.string().max(500).optional(),
+    description: z.string().max(2000).optional(),
     importance: z.enum(['low', 'medium', 'high', 'critical']),
-});
+}).passthrough();
 
 export const ForensicTraitsSchema = z.object({
     physical: z.object({

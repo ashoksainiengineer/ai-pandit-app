@@ -7,8 +7,23 @@ import { useAuth } from '@clerk/nextjs';
 import { APIClient } from '@/lib/api-client';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Brain, Clock, Activity, Home, LayoutDashboard, AlertCircle, Gem,
-  CheckCircle, RefreshCw, XCircle, ChevronRight
+  Activity,
+  Brain,
+  Clock,
+  Search,
+  Target,
+  Zap,
+  TrendingUp,
+  CheckCircle,
+  XCircle,
+  RefreshCw,
+  Home,
+  ChevronRight,
+  ArrowRight,
+  Sparkles,
+  Gem,
+  AlertCircle,
+  LayoutDashboard
 } from 'lucide-react';
 import { useStreamProgress } from '@/lib/use-stream-progress';
 import { useStreamStore } from '@/lib/store/stream-store';
@@ -24,6 +39,7 @@ import {
   AnalysisStatusBanner,
   EmergingBestCandidate,
   SimplifiedPipeline,
+  StageLeaderboard,
 } from '@/components/rectify/analysis';
 
 const GlobalStyles = memo(() => (
@@ -162,7 +178,7 @@ export default function AnalysisPage() {
     isComplete, error: streamError, progress, aiThinking,
     candidateScores, advancedSignals, result, startedAt,
     allSteps, metadata, estimatedTimeRemaining,
-    analyzedCount, totalCandidates,
+    analyzedCount, totalCandidates, activeAIStage,
   } = useStreamStore(useShallow(state => ({
     isComplete: state.isComplete,
     error: state.error,
@@ -175,6 +191,7 @@ export default function AnalysisPage() {
     allSteps: state.allSteps,
     metadata: state.metadata,
     estimatedTimeRemaining: state.estimatedTimeRemaining,
+    activeAIStage: state.activeAIStage,
     analyzedCount: state.analyzedCount,
     totalCandidates: state.totalCandidates,
   })));
@@ -194,6 +211,17 @@ export default function AnalysisPage() {
   const [cancelled, setCancelled] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
+  // 🔱 God-Tier Telescopic Varga Funnel State sync
+  const offsetMinutes = useMemo(() => {
+    return metadata?.offsetConfig?.customMinutes ??
+      (metadata?.offsetConfig?.preset === '30min' ? 30 :
+        metadata?.offsetConfig?.preset === '1hour' ? 60 :
+          metadata?.offsetConfig?.preset === '2hours' ? 120 :
+            metadata?.offsetConfig?.preset === '4hours' ? 240 :
+              metadata?.offsetConfig?.preset === '6hours' ? 360 :
+                metadata?.offsetConfig?.preset === '12hours' ? 720 : 60);
+  }, [metadata?.offsetConfig]);
+
   useEffect(() => {
     if (metadata?.status === 'cancelled') setCancelled(true);
     else if (metadata?.status && ['pending', 'queued', 'processing'].includes(metadata.status)) setCancelled(false);
@@ -201,8 +229,7 @@ export default function AnalysisPage() {
 
   useEffect(() => {
     if (isComplete) {
-      // Guard: Don't redirect if store rehydrated stale isComplete from localStorage
-      // Wait until we have an actual connection before trusting isComplete
+      // Guard: Don't process if store rehydrated stale isComplete from localStorage
       if (connectionState.status === 'idle' || connectionState.status === 'connecting') return;
 
       // Save result to localStorage if available (SSE provides it, polling may not)
@@ -216,10 +243,11 @@ export default function AnalysisPage() {
         } catch { /* localStorage unavailable */ }
       }
 
-      const timer = setTimeout(() => router.push(`/rectify/${sessionId}/results`), 2000);
-      return () => clearTimeout(timer);
+      // 🔱 God-Tier: We no longer auto-redirect. 
+      // User stays on this page to review all reasoning stages.
+      logger.info('Analysis complete. Staying on page for review.', { sessionId });
     }
-  }, [isComplete, result, sessionId, router, connectionState.status]);
+  }, [isComplete, result, sessionId, connectionState.status]);
 
   const handleCancel = useCallback(async () => {
     if (isCancelling || cancelled) return;
@@ -277,7 +305,27 @@ export default function AnalysisPage() {
 
   const sortedCandidateScores = useMemo(() => {
     if (!candidateScores || candidateScores.length === 0) return [];
-    return [...candidateScores].sort((a, b) => b.score - a.score);
+
+    // 🔱 God-Tier: Prioritize the LATEST stage that has scores
+    // This ensures that Stage 4/6 precision results "win" over Stage 2 coarse results
+    const maxStage = Math.max(...candidateScores.map(s => s.stage));
+
+    // Filter for unique candidates in the latest stage
+    // (If latest stage only has a few, we might want to fallback, but typically 
+    // the backend emits scores for all batch survivors)
+    const uniqueMap = new Map<string, CandidateScore>();
+
+    // Strategy: Take scores from the highest stage only to avoid apples-to-oranges comparisons
+    const latestStageScores = candidateScores.filter(s => s.stage === maxStage);
+
+    latestStageScores.forEach(s => {
+      const existing = uniqueMap.get(s.time);
+      if (!existing || s.score > existing.score) {
+        uniqueMap.set(s.time, s);
+      }
+    });
+
+    return Array.from(uniqueMap.values()).sort((a, b) => b.score - a.score);
   }, [candidateScores]);
 
   const hasError = streamError || connectionState.status === 'error';
@@ -376,6 +424,8 @@ export default function AnalysisPage() {
             estimatedSecondsRemaining={estimatedSecondsRemaining}
             isConnected={isConnected}
             isComplete={isComplete}
+            activeAIStage={activeAIStage}
+            offsetMinutes={offsetMinutes}
           />
 
           <AnimatePresence>
@@ -402,33 +452,64 @@ export default function AnalysisPage() {
 
           <AnimatePresence>
             {isComplete && result && (
-              <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-xl border p-5 flex flex-col sm:flex-row items-center justify-between gap-4 bg-green-50 border-green-200">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-8 h-8 text-green-600" />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl border-2 p-6 flex flex-col md:flex-row items-center justify-between gap-6 bg-gradient-to-br from-[#2D7A5C]/10 to-white border-[#2D7A5C]/30 shadow-lg shadow-[#2D7A5C]/5"
+              >
+                <div className="flex items-center gap-5">
+                  <div className="w-16 h-16 rounded-2xl bg-[#2D7A5C]/20 flex items-center justify-center shrink-0">
+                    <CheckCircle className="w-8 h-8 text-[#2D7A5C]" />
+                  </div>
                   <div>
-                    <h2 className="text-lg font-bold text-green-900">Analysis Complete!</h2>
-                    <p className="text-sm text-green-700">Rectified: <strong>{result.rectifiedTime}</strong> · Confidence: <strong>{result.confidence}</strong></p>
+                    <h2 className="text-xl font-black text-[#1A1612] mb-1">Analysis Successfully Randomized</h2>
+                    <p className="text-sm text-[#4A453F] flex flex-wrap items-center gap-x-3 gap-y-1">
+                      <span className="flex items-center gap-1.5 font-bold text-[#2D7A5C]">
+                        <Activity className="w-4 h-4" /> {result.rectifiedTime}
+                      </span>
+                      <span className="w-1 h-1 rounded-full bg-stone-300" />
+                      <span className="flex items-center gap-1.5 font-bold text-[#B8860B]">
+                        <Zap className="w-4 h-4" /> {result.confidence} Confidence
+                      </span>
+                      <span className="w-1 h-1 rounded-full bg-stone-300" />
+                      <span className="text-stone-500">
+                        Accuracy: {result.accuracy}%
+                      </span>
+                    </p>
                   </div>
                 </div>
-                <div className="text-sm text-green-600 font-medium animate-pulse flex items-center gap-2">
-                  Finalizing... <ChevronRight className="w-4 h-4" />
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <Link
+                    href={`/rectify/${sessionId}/results`}
+                    className="flex-1 md:flex-none px-6 py-3 bg-[#1A1612] text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-stone-800 transition-colors shadow-md"
+                  >
+                    View Official Report <ChevronRight className="w-4 h-4" />
+                  </Link>
+                  <button
+                    onClick={() => window.scrollTo({ top: 800, behavior: 'smooth' })}
+                    className="flex-1 md:flex-none px-6 py-3 bg-white border border-stone-200 text-stone-600 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-stone-50 transition-colors"
+                  >
+                    Quick Review
+                  </button>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {!isComplete && !cancelled && (
+          {!cancelled && (
             <SectionErrorBoundary sectionName="Pipeline" icon={<Activity className="w-5 h-5" />}>
               <SimplifiedPipeline
                 currentStage={progress?.stepIndex ?? 0}
                 isComplete={isComplete}
                 isConnected={isConnected}
                 aiModel={metadata?.aiModel}
+                activeAIStage={activeAIStage}
+                offsetMinutes={offsetMinutes}
               />
             </SectionErrorBoundary>
           )}
 
-          {!isComplete && !cancelled && sortedCandidateScores.length > 0 && (
+          {!cancelled && sortedCandidateScores.length > 0 && (
             <SectionErrorBoundary sectionName="Top Candidate" icon={<Brain className="w-5 h-5" />}>
               <EmergingBestCandidate
                 candidates={sortedCandidateScores}
@@ -440,37 +521,51 @@ export default function AnalysisPage() {
 
           <div className="flex flex-col gap-6 lg:gap-8 w-full">
             <div className="space-y-4 sm:space-y-6">
-              {(Object.keys(aiThinking).length > 0 || (progress?.stepIndex ?? 0) >= 1) && !isComplete && !cancelled && (
+              {(Object.keys(aiThinking).length > 0 || (progress?.stepIndex ?? 0) >= 1) && !cancelled && (
                 <SectionErrorBoundary sectionName="AI Reasoning" icon={<Brain className="w-5 h-5" />}>
                   {(() => {
+                    // INDUSTRY: Render stages from actual data, not positional index (Vercel Build Log pattern)
                     const currentStageIndex = progress?.stepIndex ?? 0;
-                    const activeStages = allSteps.filter((step, index) => index >= 1 && index <= currentStageIndex);
 
-                    if (activeStages.length === 0 && currentStageIndex > 0) {
-                      activeStages.push(allSteps[currentStageIndex] || { id: 'processing', name: `Stage ${currentStageIndex}` });
-                    }
+                    // Get all stage numbers that have data or are targets for high-fidelity rendering
+                    // 🔱 God-Tier: We now show ALL stages [1, 2, 3, 4, 5, 6] if they are active or have past data
+                    const incomingStageNumbers = Object.keys(candidatesByStage).map(Number).filter(n => n > 0);
+                    const activeStageNumbers = new Set([1, 2, 3, 4, 5, 6].filter(n => n <= currentStageIndex || incomingStageNumbers.includes(n)));
 
-                    return activeStages.reverse().map((step) => {
-                      const stageNum = allSteps.indexOf(step);
+                    const sortedStages = Array.from(activeStageNumbers).sort((a, b) => b - a);
+
+                    return sortedStages.map((stageNum) => {
                       const stageCandidates = candidatesByStage?.[stageNum] || {};
                       const isStageCompleted = stageNum < currentStageIndex;
-                      const candidateCount = Object.keys(stageCandidates || {}).length;
-
-                      // 🔱 BUG FIX #4: Don't render containers for stages with NO AI thinking data
-                      if (candidateCount === 0) return null;
-
-                      // 🔱 BUG FIX #2: Pass actual displayed candidate as the live candidate
-                      // so the card can match and show the typing effect
+                      const candidateCount = Object.keys(stageCandidates).length;
                       const isCurrentStage = stageNum === currentStageIndex;
 
+                      // Fallback stage name if not found in allSteps
+                      const stepDef = allSteps[stageNum] || { id: `stage-${stageNum}`, name: `Stage ${stageNum}` };
+
+                      // Skip rendering future stages that haven't started and have no data
+                      if (candidateCount === 0 && !isCurrentStage && !isStageCompleted) return null;
+
                       return (
-                        <div key={step.id} className="mb-4 last:mb-0">
+                        <div key={stepDef.id} className="mb-8 last:mb-0 border-l-2 border-stone-100 pl-4 sm:pl-6 py-2">
+                          <div className="flex items-center gap-2 mb-4 -ml-7 sm:-ml-9">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-colors duration-500 ${isCurrentStage ? 'bg-amber-500 border-amber-200 text-white animate-pulse' :
+                              isStageCompleted ? 'bg-[#2D7A5C] border-[#2D7A5C]/20 text-white' : 'bg-white border-stone-200 text-stone-400'
+                              }`}>
+                              {stageNum}
+                            </div>
+                            <h3 className={`text-xs font-bold uppercase tracking-widest ${isCurrentStage ? 'text-amber-700' : 'text-stone-500'}`}>
+                              {stepDef.name}
+                            </h3>
+                          </div>
+
                           <UnifiedAIPanel
                             thinking={isCurrentStage && !isStageCompleted && stageCandidates
                               ? (() => {
-                                // Get the latest thinking entry for THIS stage's candidates only
-                                const entries = Object.values(stageCandidates);
-                                return entries.length > 0 ? entries[entries.length - 1] as any : null;
+                                // 🔱 God-Tier: Sort by updatedAt to get the TRULY active stream
+                                const entries = Object.values(stageCandidates) as any[];
+                                if (entries.length === 0) return null;
+                                return entries.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
                               })()
                               : null}
                             stageHistory={stageHistory}
@@ -480,7 +575,14 @@ export default function AnalysisPage() {
                             displayedCandidate={isCurrentStage ? displayedCandidate : null}
                             candidateScores={candidateScores}
                             unifiedMode={true}
-                            title={step.name}
+                            title={stepDef.name}
+                            isCompleted={isStageCompleted}
+                            offsetMinutes={offsetMinutes}
+                          />
+
+                          <StageLeaderboard
+                            stage={stageNum}
+                            scores={candidateScores.filter(s => s.stage === stageNum)}
                             isCompleted={isStageCompleted}
                           />
                         </div>

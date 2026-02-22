@@ -51,29 +51,36 @@ export function getDynamicBatchSize(totalCandidates: number, offsetMinutes: numb
 }
 
 /**
- * Get dynamic survivors count based on batch size
- * 🔱 GOD-TIER SAFETY: More survivors to prevent actual birth time elimination
- * Research shows: With DeepSeek R1's reasoning, we can safely analyze more candidates
+ * 🔱 GOD-TIER ELASTICITY: Dynamic survival rate based on offset range
+ * Wide offsets (±12h) need high survival rates (50-60%) to prevent true time from slipping between grid cracks.
+ * Tight offsets (±30m) can use strict elimination (25-30%) because the grid is already hitting D9/D60 boundaries.
  *
  * @param batchSize Current batch size
+ * @param offsetMinutes The offset range in minutes
  * @param isFirstRound If true, preserves more candidates (safety net for tentative time)
- * @returns Number of survivors to select
  */
-export function getDynamicSurvivors(batchSize: number, isFirstRound: boolean = false): number {
-  // 🔱 SAFETY NET: In first round, always keep at least 30% of candidates
-  // This ensures actual birth time doesn't get eliminated early
+export function getDynamicSurvivors(batchSize: number, offsetMinutes: number, isFirstRound: boolean = false): number {
+  let survivalRate = 0.35; // Base fallback
+
+  // ⚙️ Determine base survival rate by Gear
+  if (offsetMinutes > 360) survivalRate = 0.60; // Gear 5 (Keep 60%)
+  else if (offsetMinutes > 120) survivalRate = 0.50; // Gear 4 (Keep 50%)
+  else if (offsetMinutes > 30) survivalRate = 0.40; // Gear 3 (Keep 40%)
+  else if (offsetMinutes > 15) survivalRate = 0.30; // Gear 2 (Keep 30%)
+  else survivalRate = 0.25; // Gear 1 (Keep 25%)
+
+  // 🔱 FIRST ROUND SAFETY NET: Add 10% elasticity
   if (isFirstRound) {
-    return Math.max(5, Math.ceil(batchSize * 0.3));
+    survivalRate = Math.min(survivalRate + 0.10, 0.70);
   }
 
-  // For batch of 5-6 → 3 survivors (50% survive)
-  if (batchSize <= 6) return 3;
+  let survivors = Math.ceil(batchSize * survivalRate);
 
-  // For batch of 7-8 → 4 survivors (50% survive)
-  if (batchSize <= 8) return 4;
+  // Guarantee minimums for sufficient tournament flow
+  if (batchSize >= 4 && survivors < 2) survivors = 2;
+  if (batchSize >= 2 && survivors < 1) survivors = 1;
 
-  // For batch of 9-10 → 5 survivors (50-55% survive)
-  return Math.min(5, Math.ceil(batchSize * 0.35));
+  return survivors;
 }
 
 // ═════════════════════════════════════════════════════════════════════════
@@ -89,27 +96,27 @@ const OFFSET_PRESETS: Record<OffsetPreset, { label: string; minutes: number; int
   '1hour': {
     label: '±1 hour',
     minutes: 60,
-    interval: 1, // 1 min = 120 candidates
+    interval: 1.5, // 90 seconds = 80 candidates (Avoids 2m D60 blindspot)
   },
   '2hours': {
     label: '±2 hours',
     minutes: 120,
-    interval: 2, // 2 min = 120 candidates
+    interval: 1.5, // 90 seconds = 160 candidates
   },
   '4hours': {
     label: '±4 hours',
     minutes: 240,
-    interval: 4, // 4 min = 120 candidates
+    interval: 3, // 3 min = 160 candidates
   },
   '6hours': {
     label: '±6 hours',
     minutes: 360,
-    interval: 5, // 5 min = 144 candidates
+    interval: 4, // 4 min = 180 candidates
   },
   '12hours': {
     label: '±12 hours',
     minutes: 720,
-    interval: 10, // 10 min = 144 candidates
+    interval: 5, // 5 min = 288 candidates (Never use 10m to avoid D12 skips)
   },
   'seconds-30': {
     label: '±5 minutes (30-sec intervals)',
@@ -138,46 +145,23 @@ const OFFSET_PRESETS: Record<OffsetPreset, { label: string; minutes: number; int
 // For larger offsets: COARSER grid aligned with Lagna boundaries
 
 export function getAdaptiveInterval(offsetMinutes: number): number {
-  // ═══════════════════════════════════════════════════════════════════════
-  // VEDIC PRINCIPLE: Smaller offsets need FINER precision
-  // ═══════════════════════════════════════════════════════════════════════
+  // 🔱 GEAR 1: Extreme Precision (D150/D60 Capture)
+  if (offsetMinutes <= 5) return 0.25; // 15 seconds
+  if (offsetMinutes <= 15) return 0.5; // 30 seconds
 
-  // ±5 minutes → 15 seconds (D60 level precision, ~40 candidates)
-  if (offsetMinutes <= 5) return 0.25;
+  // 🔱 GEAR 2: Standard Window (D9 Capture)
+  if (offsetMinutes <= 30) return 1; // 60 seconds
 
-  // ±10 minutes → 30 seconds (~40 candidates)
-  if (offsetMinutes <= 10) return 0.5;
+  // 🔱 GEAR 3: Wide Window (D1/D9 Baseline, avoiding 2m D60 blindspot)
+  if (offsetMinutes <= 120) return 1.5; // 90 seconds
 
-  // ±15 minutes → 30 seconds (~60 candidates)
-  if (offsetMinutes <= 15) return 0.5;
+  // 🔱 GEAR 4: Massive Window (Strict D1 Mapping)
+  if (offsetMinutes <= 240) return 3; // 3 minutes
+  if (offsetMinutes <= 360) return 4; // 4 minutes
 
-  // ±30 minutes → 1 minute (D9 level, ~60 candidates)
-  if (offsetMinutes <= 30) return 1;
-
-  // ±1 hour → 1 minute (~120 candidates for thorough D9 coverage)
-  if (offsetMinutes <= 60) return 1;
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // VEDIC PRINCIPLE: Larger offsets use LAGNA-aware intervals
-  // Lagna changes every ~2 hours = ~120 min
-  // Ensure 3-4 samples per Lagna sign
-  // ═══════════════════════════════════════════════════════════════════════
-
-  // ±2 hours → 2 minutes (~120 candidates, 30+ per Lagna)
-  if (offsetMinutes <= 120) return 2;
-
-  // ±4 hours → 4 minutes (~120 candidates, 15 per Lagna)
-  if (offsetMinutes <= 240) return 4;
-
-  // ±6 hours → 5 minutes (~144 candidates, 12 per Lagna)
-  if (offsetMinutes <= 360) return 5;
-
-  // ±12 hours → 10 minutes (~144 candidates, 6 per Lagna)
-  // This ensures at least 6 samples during each 2-hour Lagna window
-  if (offsetMinutes <= 720) return 10;
-
-  // Beyond 12 hours → 15 minutes (rare case)
-  return 15;
+  // 🔱 GEAR 5: Absolute Unknown (Strict D1 Quadrant)
+  // Maximum 5 minutes to ensure we never completely step over D10 (12m) or D12 (10m) signs
+  return 5;
 }
 
 /**

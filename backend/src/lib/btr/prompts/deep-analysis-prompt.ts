@@ -53,7 +53,8 @@ export function getDeepAnalysisPrompt(
   candidates: CandidateDataPackage[],
   events: LifeEvent[],
   forensicTraits: ForensicTraits,
-  spouseData: unknown
+  spouseData: unknown,
+  offsetMinutes: number = 30
 ): string {
   // 🛡️ ZERO-TRUST VALIDATION GATE
   candidates.filter(c => c.time).forEach(c => {
@@ -126,9 +127,27 @@ ${getEventImportanceSummary(events)}
    - KUNDA LAGNA: 'Matches Moon' = strong structural indicator.
    - DIVISIONAL BOUNDARIES: Truth often lies at boundaries.
 
+${offsetMinutes > 15 ? `════════════════════════════════════════════════════════════════════════════════
+🪐 PHASE B: THE MESO SWEEP PROTOCOL (Offset: ±${offsetMinutes} mins)
+════════════════════════════════════════════════════════════════════════════════
+You are in Stage 4. The Lagna is fixed. Your objective is hunting the correct Navamsha (D9) and Dasamsha (D10).
+- HEAVILY SCRUTINIZE the D9 Lagna and D9 7th house. Cross-reference with the user's spouse descriptions.
+- EVALUATE D10 for career alignments and timing.
+- ELIMINATE candidates where the D9 completely fails the reality of the user's marriage/relationship narrative.
+- USE Vimshottari Antar Dasha for timing verification.`
+      : `════════════════════════════════════════════════════════════════════════════════
+🪐 PHASE C: THE MICRO SWEEP PROTOCOL (Offset: ±${offsetMinutes} mins)
+════════════════════════════════════════════════════════════════════════════════
+We are in the terminal varga zones. We are hunting exact D60 / D150 alignments.
+- ANALYZE Vimshottari down to Pratyantar / Sookshma levels.
+- USE D60 deities and configurations to map traumatic or sudden events.
+- Your final judgment MUST hinge on mathematical precision in the micro-charts matching the situational narrative.`}
+
 ════════════════════════════════════════════════════════════════════════════════
 
     TASK: Deep multi-varga forensic audit on ${shuffledCandidates.length} finalists.
+    
+    For EACH candidate, your reasoning MUST explicitly quote or reference the user's "SITUATIONAL NARRATIVE & EXPERIENCE" to demonstrate exactly how the planetary conditions (D1, D9, D10, transits) manifested that specific real-world event.
 
 USER FORENSIC DATA:
 ${forensicContext}
@@ -146,21 +165,21 @@ ${shuffledCandidates.map(c => `
 ├ HOUSE LORDS: ${[...Array(12)].map((_, i) => `${i + 1}=${c.houseLords[i + 1]}`).join(' | ')}
 ├ PLANETARY MATRIX (Full Vedic Metrics):
 ${Object.entries(c.planets).map(([name, p]) => {
-    const caps = name.charAt(0).toUpperCase() + name.slice(1);
-    const sav = c.ashtakavarga?.SAVSigns?.[p.sign] || '?';
-    const aspects = p.aspects?.filter((a: any) => a.isHit).map((a: any) => `${a.type}→${a.targetPlanet || 'H' + a.targetHouse}`).join(', ') || 'None';
-    const avastha = p.avastha || 'Unknown';
-    const deity = p.d60Deity || 'Unknown';
-    const ikp = p.ishtaKashtaPhala ? `${p.ishtaKashtaPhala.ishta}/${p.ishtaKashtaPhala.kashta}` : '?';
-    const sambandha = p.compoundDignity || 'Sama';
-    const sh = p.shadbalaBreakdown;
-    const shStr = sh ? `Sum:${sh.total} (S:${sh.sthana} D:${sh.dig} K:${sh.kaala})` : '?';
-    const statusFlags: string[] = [];
-    if (p.isRetro) statusFlags.push('R');
-    if (p.isCombust) statusFlags.push('C');
-    const statusStr = statusFlags.length > 0 ? `[${statusFlags.join(',')}]` : '';
-    return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${String(p.house).padEnd(2)} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${shStr.padEnd(25)} | SAV:${String(sav).padEnd(2)} ${statusStr.padEnd(5)} | ${aspects}`;
-  }).join('\n')}
+        const caps = name.charAt(0).toUpperCase() + name.slice(1);
+        const sav = c.ashtakavarga?.SAVSigns?.[p.sign] || '?';
+        const aspects = p.aspects?.filter((a: any) => a.isHit).map((a: any) => `${a.type}→${a.targetPlanet || 'H' + a.targetHouse}`).join(', ') || 'None';
+        const avastha = p.avastha || 'Unknown';
+        const deity = p.d60Deity || 'Unknown';
+        const ikp = p.ishtaKashtaPhala ? `${p.ishtaKashtaPhala.ishta}/${p.ishtaKashtaPhala.kashta}` : '?';
+        const sambandha = p.compoundDignity || 'Sama';
+        const sh = p.shadbalaBreakdown;
+        const shStr = sh ? `Sum:${sh.total} (S:${sh.sthana} D:${sh.dig} K:${sh.kaala})` : '?';
+        const statusFlags: string[] = [];
+        if (p.isRetro) statusFlags.push('R');
+        if (p.isCombust) statusFlags.push('C');
+        const statusStr = statusFlags.length > 0 ? `[${statusFlags.join(',')}]` : '';
+        return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${String(p.house).padEnd(2)} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${shStr.padEnd(25)} | SAV:${String(sav).padEnd(2)} ${statusStr.padEnd(5)} | ${aspects}`;
+      }).join('\n')}
 ├ YOGAS: ${c.yogas?.map((y: any) => y.name).join(', ') || 'None'}
 ├ DIVISIONAL CHARTS (Detailed Degrees):
 │ D9 Navamsa: Asc=${c.vargaDegrees?.D9?.Ascendant} | ${Object.entries(c.vargaDegrees?.D9 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
@@ -177,7 +196,7 @@ ${c.lifecycleShifts?.map(s => `│ [${s.date}]: ${s.event} (Dasha: ${s.dasha})`)
 ├ ASHTAKAVARGA SAV: ${c.ashtakavarga ? `[${Object.entries(c.ashtakavarga).map(([k, v]) => `${k}:${v}`).join(', ')}]` : 'N/A'}
 ${c.transitData ? `├ TRANSITS & DASHAS ON ALL EVENTS (Full Planetary Matrix):
 ${Object.entries(c.transitData).map(([date, t]: [string, any]) =>
-    `│ [${date}]: Dasha=${t.dasha}
+        `│ [${date}]: Dasha=${t.dasha}
 │   Transits: ${Object.entries(t.planets || {}).map(([p, pos]) => `${p}:${pos}`).join(' | ')}
 │   Signals: ${t.signatures?.join(', ') || 'Regular Period'}`).join('\n')}` : ''}
 ${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:

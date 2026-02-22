@@ -10,7 +10,8 @@ import {
     AnalysisDecision,
     StageStat,
     StreamResult,
-    StreamMetadata
+    StreamMetadata,
+    AIThinking
 } from './stream-types';
 
 const DEFAULT_STEPS: StreamStep[] = [
@@ -43,6 +44,7 @@ export const createInitialState = (): StreamState => ({
     totalCandidates: 0,
     startedAt: undefined,
     estimatedTimeRemaining: undefined,
+    activeAIStage: null, // Tracks the actual AI stage (2, 4, or 6)
     allSteps: DEFAULT_STEPS,
     advancedSignals: null,
     decisions: [],
@@ -105,8 +107,11 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
         let progressChanged = false;
 
         buffered.forEach(({ stage, candidateTime, text }) => {
+            // INDUSTRY PATTERN: Composite key prevents cross-stage data collision
+            const stageKey = `s${stage}_${candidateTime}`;
+
             // Use already-changed entry if same candidate appeared multiple times in buffer
-            const existing = changedEntries[candidateTime] || prev.allCandidates[candidateTime] || {
+            const existing = changedEntries[stageKey] || prev.allCandidates[stageKey] || {
                 stage,
                 candidateTime,
                 chunks: [],
@@ -119,10 +124,11 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
                 newFullText = newFullText.slice(-MAX_FULLTEXT_CHARS);
             }
 
-            const updated = { ...existing, fullText: newFullText };
-            changedEntries[candidateTime] = updated;
+            const updated = { ...existing, fullText: newFullText, updatedAt: Date.now() };
+            changedEntries[stageKey] = updated;
 
             // Group changes by stage for candidatesByStage
+            // Note: we still use candidateTime as the key inside the stage map for easy lookup
             if (!stageChanges[stage]) stageChanges[stage] = {};
             stageChanges[stage][candidateTime] = updated;
 
@@ -234,7 +240,7 @@ export const useStreamStore = create<StreamStore>()(
                 // ═══════════════════════════════════════════════════════════════
                 // HOT PATH: ai_thinking events — throttled via buffer
                 // ═══════════════════════════════════════════════════════════════
-                if (type === 'ai_thinking') {
+                if (type === 'ai_thinking' && payload.chunk !== undefined) { // Only buffer chunked ai_thinking events
                     const thinkingEvent = payload as AIThinkingEventData;
                     const chunk = thinkingEvent?.chunk || '';
                     const stage = thinkingEvent?.stage || 1;
@@ -340,27 +346,45 @@ export const useStreamStore = create<StreamStore>()(
                                 incoming.forEach(c => newMap.set(c.time, { ...c, lastUpdated: now }));
                                 updatedPersistent = Array.from(newMap.values()).sort((a, b) => (b.lastUpdated || 0) - (a.lastUpdated || 0));
                             }
-                            return { aiContext: context, persistentCandidates: updatedPersistent };
+
+                            return {
+                                aiContext: context,
+                                persistentCandidates: updatedPersistent,
+                                activeAIStage: context.stage || prev.activeAIStage // Sync active stage
+                            };
                         }
 
                         case 'candidate_score':
                         case 'candidate_score_v2': {
                             const score = payload as CandidateScore;
                             if (!score || !score.time) return {};
-                            const exists = prev.candidateScores.some(s => s.time === score.time && s.stage === score.stage);
-                            if (exists) return {};
-                            const newScores = [...prev.candidateScores, score];
-                            // Track unique times analyzed
-                            const uniqueTimes = new Set(newScores.map(s => s.time));
+
+                            // INDUSTRY PATTERN: Upsert — replace existing score for the same (time, stage) tuple
+                            const filtered = prev.candidateScores.filter(s => !(s.time === score.time && s.stage === score.stage));
+                            const newScores = [...filtered, score];
+
+                            // 🔱 God-Tier: Progress tracking MUST be stage-aware
+                            // Use the maximum stage found in the scores to determine current stage progress
+                            const maxStage = Math.max(...newScores.map(s => s.stage));
+                            const analyzedCount = new Set(newScores.filter(s => s.stage === maxStage).map(s => s.time)).size;
+
                             return {
                                 candidateScores: newScores,
-                                analyzedCount: uniqueTimes.size,
+                                analyzedCount,
                             };
                         }
 
                         case 'candidate_scores': {
                             const scores = payload as CandidateScore[];
-                            return { candidateScores: scores };
+                            if (!scores || scores.length === 0) return { candidateScores: [] };
+
+                            const maxStage = Math.max(...scores.map(s => s.stage));
+                            const analyzedCount = new Set(scores.filter(s => s.stage === maxStage).map(s => s.time)).size;
+
+                            return {
+                                candidateScores: scores,
+                                analyzedCount
+                            };
                         }
 
                         case 'decision': {
@@ -393,6 +417,34 @@ export const useStreamStore = create<StreamStore>()(
 
                         case 'advanced_signals': {
                             return { advancedSignals: payload };
+                        }
+
+                        case 'ai_thinking': { // This case handles full AIThinking objects, not chunks
+                            const data = payload as AIThinking;
+                            const stageStr = data.stage?.toString() || '0';
+
+                            // Map AI stage number (2, 4, 6) back to progress step index (2, 4, 5) for UI syncing if needed
+                            // Stage 2 = index 2 (Coarse Elimination)
+                            // Stage 4 = index 4 (Deep Analysis)
+                            // Stage 6 = index 5 (Micro Precision)  -- wait, stage 6 is Final Verdict (index 6). The mapping is complex.
+
+                            const newThinkingData = {
+                                ...prev.aiThinking,
+                                [stageStr]: data
+                            };
+
+                            const updates: Partial<StreamState> = { aiThinking: newThinkingData, activeAIStage: data.stage || prev.activeAIStage };
+
+                            // Only push to details if it's the current step
+                            if (prev.progress?.stepIndex === data.stage && data.fullText) {
+                                const paragraphs = data.fullText.split('\n\n').filter(Boolean);
+                                const lastFive = paragraphs.slice(-5);
+                                updates.progress = {
+                                    ...prev.progress,
+                                    details: lastFive
+                                };
+                            }
+                            return updates;
                         }
 
                         case 'metadata': {

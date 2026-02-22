@@ -25,6 +25,8 @@ interface SimplifiedPipelineProps {
   isComplete: boolean;
   isConnected: boolean;
   aiModel?: string;
+  activeAIStage?: number | null;
+  offsetMinutes?: number; // 🔱 NEW: God-Tier offset config
 }
 
 export const SimplifiedPipeline = memo(function SimplifiedPipeline({
@@ -32,15 +34,29 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
   isComplete,
   isConnected,
   aiModel,
+  activeAIStage,
+  offsetMinutes = 60,
 }: SimplifiedPipelineProps) {
+  const aiStageToIndex: Record<number, number> = {
+    2: 2, // Backend Stage 2 -> UI Index 2 (Coarse Elimination)
+    3: 3, // Backend Stage 3 -> UI Index 3 (Refinement Grid)
+    4: 4, // Backend Stage 4 -> UI Index 4 (Deep Analysis)
+    5: 5, // Backend Stage 5 -> UI Index 5 (Micro Precision)
+    6: 6, // Backend Stage 6 -> UI Index 6 (Final Verdict)
+  };
+
+  const effectiveStageIndex = activeAIStage && aiStageToIndex[activeAIStage] !== undefined
+    ? Math.max(currentStage, aiStageToIndex[activeAIStage])
+    : currentStage;
+
   const stageStates = useMemo(() => {
     return STAGES.map((stage, index) => {
       if (isComplete) return 'completed';
-      if (index < currentStage) return 'completed';
-      if (index === currentStage) return 'active';
+      if (index < effectiveStageIndex) return 'completed';
+      if (index === effectiveStageIndex) return 'active';
       return 'pending';
     });
-  }, [currentStage, isComplete]);
+  }, [currentStage, isComplete, activeAIStage, effectiveStageIndex]);
 
   const completedCount = stageStates.filter(s => s === 'completed').length;
   const progressPercent = Math.round((completedCount / STAGES.length) * 100);
@@ -104,10 +120,31 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
 
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#F0E8DE]">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-[#7A756F]">Stage</span>
-          <span className="text-sm font-bold text-[#1A1612]">
-            {isComplete ? 'Complete' : STAGES[currentStage]?.name || 'Unknown'}
-          </span>
+          <div className="flex flex-col items-start">
+            <span className="text-xs text-[#7A756F]">Stage</span>
+            <span className="text-sm font-bold text-[#1A1612]">
+              {isComplete ? 'Complete' : STAGES[currentStage]?.name || 'Unknown'}
+            </span>
+          </div>
+          {(() => {
+            // 🔱 God-Tier Phase logic
+            const stageNum = effectiveStageIndex;
+            let phaseLabel = '';
+            if (stageNum <= 2) {
+              phaseLabel = offsetMinutes > 120 ? 'Macro' : (offsetMinutes > 15 ? 'Meso' : 'Micro');
+            } else if (stageNum === 4) {
+              phaseLabel = 'Meso';
+            } else if (stageNum >= 5) {
+              phaseLabel = 'Micro';
+            }
+
+            if (!phaseLabel) return null;
+            return (
+              <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#F5EFE7] text-[#B8860B] border border-[#B8860B]/10 font-bold uppercase mt-1">
+                {phaseLabel}
+              </span>
+            );
+          })()}
         </div>
         <div className="flex items-center gap-2">
           <div className="h-1.5 w-20 sm:w-32 bg-[#F5EFE7] rounded-full overflow-hidden">
