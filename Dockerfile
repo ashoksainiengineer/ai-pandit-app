@@ -21,7 +21,6 @@ WORKDIR /app
 
 # First install dependencies (cache layer)
 COPY --from=pruner /app/out/json/ .
-COPY package-lock.json ./
 RUN npm install --ignore-scripts --no-audit --no-fund --loglevel=error
 
 # Copy source code of isolated workspace
