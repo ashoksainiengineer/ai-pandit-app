@@ -1,9 +1,28 @@
 {
     "$schema": "https://turbo.build/schema.json",
+    "globalEnv": [
+        "NODE_ENV",
+        "TURSO_DATABASE_URL",
+        "TURSO_AUTH_TOKEN",
+        "CLERK_SECRET_KEY",
+        "ENCRYPTION_SECRET",
+        "CLERK_WEBHOOK_SECRET",
+        "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+        "NEXT_PUBLIC_BACKEND_URL"
+    ],
     "tasks": {
         "build": {
             "dependsOn": [
                 "^build"
+            ],
+            "env": [
+                "TURSO_DATABASE_URL",
+                "TURSO_AUTH_TOKEN",
+                "CLERK_SECRET_KEY",
+                "ENCRYPTION_SECRET",
+                "CLERK_WEBHOOK_SECRET",
+                "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+                "NEXT_PUBLIC_BACKEND_URL"
             ],
             "outputs": [
                 ".next/**",
