@@ -23,6 +23,45 @@ export function extractBatchSurvivors(
 ): { time: string; score: number; reason: string }[] {
   const scores: { time: string; score: number; reason: string }[] = [];
 
+  // ==========================================
+  // PRIORITY 1: XML TAG EXTRACTION (Immediate Standard)
+  // ==========================================
+  const xmlMatch = aiContent.match(/<FINAL_SCORES>([\s\S]*?)<\/FINAL_SCORES>/i);
+  if (xmlMatch) {
+    try {
+      const jsonStr = xmlMatch[1].trim();
+      // Find the array boundaries in case the model dropped some extra text inside the tags
+      const jsonStart = jsonStr.indexOf('[');
+      const jsonEnd = jsonStr.lastIndexOf(']') + 1;
+
+      if (jsonStart !== -1 && jsonEnd !== -1) {
+        const cleanJson = jsonStr.substring(jsonStart, jsonEnd);
+        const parsedArray = JSON.parse(cleanJson) as { time: string; score: number; reason: string }[];
+
+        // Safely map the JSON back to the strict `candidateTimes` array
+        for (const time of candidateTimes) {
+          const matchedItem = parsedArray.find(p => p.time && (p.time === time || p.time.includes(time) || time.includes(p.time)));
+          if (matchedItem) {
+            scores.push({
+              time,
+              score: Number(matchedItem.score) || 50,
+              reason: matchedItem.reason ? String(matchedItem.reason).trim() : "XML Context analysis"
+            });
+          } else {
+            console.warn(`[EXTRACTOR] Candidate ${time} missing from XML JSON payload.`);
+            scores.push({ time, score: 50, reason: "Contextual alignment analysis (Missing from XML)" });
+          }
+        }
+        return scores; // Successfully mapped using XML Structured Data!
+      }
+    } catch (e) {
+      console.error("🔴 [EXTRACTOR] Failed to parse XML FINAL_SCORES block. Falling back to Regex.", e);
+    }
+  }
+
+  // ==========================================
+  // PRIORITY 2: REGEX FALLBACK (Legacy)
+  // ==========================================
   for (const time of candidateTimes) {
     const escapedTime = time.replace(/:/g, '[:\\s]?');
     // Extracts score and preceding context as reason
@@ -32,10 +71,10 @@ export function extractBatchSurvivors(
     // key parts: time (bracketed or not), score (near keyword), reason (context)
     const combinedPattern = new RegExp(
       `(?:CANDIDATE[:\\s]*)?\\[?${escapedTime}\\]?` + // Time match
-      `[\\s\\S]{0,400}` + // Gap
+      `[\\s\\S]{0,2500}` + // Gap (Expanded heavily to allow for large AI ASCII tables)
       `SCORE[:\\s]*(\\d+)` + // Score match
-      `[\\s\\S]{0,200}` + // Gap
-      `(?:JUSTIFICATION|REASON|ANALYSIS|VERDICT)?[:\\s]*` + // Optional reason label
+      `[\\s\\S]{0,400}` + // Gap to reason
+      `(?:JUSTIFICATION|REASON|ANALYSIS|VERDICT|EVIDENCE)?[:\\s]*` + // Optional reason label
       `([^\\n]+)`, // Capture reason (one line generally)
       'i'
     );
@@ -44,7 +83,7 @@ export function extractBatchSurvivors(
 
     // Fallback specific pattern for just score if complex match fails
     const simplePattern = new RegExp(
-      `(?:CANDIDATE[:\\s]*)?\\[?${escapedTime}\\]?[\\s\\S]{0,150}SCORE[:\\s]*(\\d+)`,
+      `(?:CANDIDATE[:\\s]*)?\\[?${escapedTime}\\]?[\\s\\S]{0,2500}SCORE[:\\s]*(\\d+)`,
       'i'
     );
 
@@ -93,6 +132,35 @@ export function extractBatchSurvivors(
  * // Returns: { time: "12:30:45", accuracy: 95, confidence: "HIGH", margin: 2 }
  */
 export function extractFinalVerdict(aiContent: string): FinalVerdict | null {
+  // ==========================================
+  // PRIORITY 1: XML TAG EXTRACTION
+  // ==========================================
+  const xmlMatch = aiContent.match(/<FINAL_VERDICT>([\s\S]*?)<\/FINAL_VERDICT>/i);
+  if (xmlMatch) {
+    try {
+      const jsonStr = xmlMatch[1].trim();
+      const jsonStart = jsonStr.indexOf('{');
+      const jsonEnd = jsonStr.lastIndexOf('}') + 1;
+
+      if (jsonStart !== -1 && jsonEnd !== -1) {
+        const cleanJson = jsonStr.substring(jsonStart, jsonEnd);
+        const parsed = JSON.parse(cleanJson);
+
+        return {
+          time: String(parsed.time).trim(),
+          accuracy: Number(parsed.accuracy) || 85,
+          confidence: parsed.confidence ? String(parsed.confidence).toUpperCase() : 'MEDIUM',
+          margin: Number(parsed.margin) || 5
+        };
+      }
+    } catch (e) {
+      console.error("🔴 [EXTRACTOR] Failed to parse XML FINAL_VERDICT block. Falling back to Regex.", e);
+    }
+  }
+
+  // ==========================================
+  // PRIORITY 2: REGEX FALLBACK (Legacy)
+  // ==========================================
   // Robust Regex: Handles various formats
   const timeMatch = aiContent.match(
     /(?:BEST[ _]TIME|RECTIFIED[ _]TIME)[:\s]*\[?(\d{2}:\d{2}:\d{2})\]?/i

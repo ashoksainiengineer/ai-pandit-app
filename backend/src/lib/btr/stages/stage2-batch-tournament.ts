@@ -76,12 +76,23 @@ export async function stage2BatchTournament(
         survivorsPerBatch
     });
 
-    // Inline helper for minified ephemeris
+    // Inline helpers for ephemeris payloads
     const getMinifiedEphemerisInline = (c: CandidateDataPackage) => ({
         sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
         moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
         ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
     });
+
+    const getFullEphemerisPayload = (c: CandidateDataPackage) => {
+        const payload: Record<string, string> = {};
+        // 🔱 GOD-TIER PRECISION: All 9 planets at 4-decimal precision
+        for (const [name, p] of Object.entries(c.planets)) {
+            const pKey = name.charAt(0).toUpperCase() + name.slice(1);
+            payload[pKey] = `${p.sign} ${p.degree}`;
+        }
+        payload.Lagna = `${c.ascendant.sign} ${c.ascendant.degree}`;
+        return payload;
+    };
 
     // FORCED FIRST ROUND
     if (roundNumber === 0 && currentCandidates.length > 0) {
@@ -153,7 +164,7 @@ export async function stage2BatchTournament(
                     }
 
                     // IMMEDIATE EMIT - SYNCED WITH AI
-                    emitCandidateScore(input.sessionId, candidate.time, score, 2, undefined, getMinifiedEphemerisInline(candidate));
+                    emitCandidateScore(input.sessionId, candidate.time, score, 2, undefined, getMinifiedEphemerisInline(candidate), getFullEphemerisPayload(candidate));
                     emitDecision(input.sessionId, {
                         stage: 2,
                         time: candidate.time,
@@ -295,7 +306,7 @@ export async function stage2BatchTournament(
                     roundSurvivors.push(originalTimeInfo);
                 }
 
-                emitCandidateScore(input.sessionId, candidate.time, score, 2, undefined, getMinifiedEphemerisInline(candidate));
+                emitCandidateScore(input.sessionId, candidate.time, score, 2, undefined, getMinifiedEphemerisInline(candidate), getFullEphemerisPayload(candidate));
                 emitDecision(input.sessionId, {
                     stage: 2,
                     time: candidate.time,

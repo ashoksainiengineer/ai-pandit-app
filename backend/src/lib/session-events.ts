@@ -315,7 +315,8 @@ export function emitCandidateScore(
     score: number,
     stage: number,
     rank?: number,
-    minifiedEph?: { sun: string; moon: string; ascendant: string }
+    minifiedEph?: { sun: string; moon: string; ascendant: string },
+    fullEph?: Record<string, string>
 ): void {
     console.log(`⚡ Emit Candidate Score: ${sessionId} | ${time} | ${score}`);
     sessionEvents.emit(sessionId, {
@@ -325,6 +326,7 @@ export function emitCandidateScore(
         stage,
         rank,
         minifiedEph,
+        fullEph,
     });
 }
 

@@ -40,6 +40,8 @@ import {
   EmergingBestCandidate,
   SimplifiedPipeline,
   StageLeaderboard,
+  TechnicalMethodology,
+  TechnicalMasterGrid,
 } from '@/components/rectify/analysis';
 
 const GlobalStyles = memo(() => (
@@ -177,7 +179,7 @@ export default function AnalysisPage() {
   const {
     isComplete, error: streamError, progress, aiThinking,
     candidateScores, advancedSignals, result, startedAt,
-    allSteps, metadata, estimatedTimeRemaining,
+    allSteps, metadata,
     analyzedCount, totalCandidates, activeAIStage,
   } = useStreamStore(useShallow(state => ({
     isComplete: state.isComplete,
@@ -190,7 +192,6 @@ export default function AnalysisPage() {
     startedAt: state.startedAt,
     allSteps: state.allSteps,
     metadata: state.metadata,
-    estimatedTimeRemaining: state.estimatedTimeRemaining,
     activeAIStage: state.activeAIStage,
     analyzedCount: state.analyzedCount,
     totalCandidates: state.totalCandidates,
@@ -198,11 +199,13 @@ export default function AnalysisPage() {
 
   const {
     allCandidates, candidatesByStage, stageHistory, displayedCandidate,
+    setDisplayedCandidate
   } = useStreamStore(useShallow(state => ({
     allCandidates: state.allCandidates,
     candidatesByStage: state.candidatesByStage,
     stageHistory: state.stageHistory,
     displayedCandidate: state.displayedCandidate,
+    setDisplayedCandidate: state.setDisplayedCandidate,
   })));
 
   const isConnected = connectionState.status === 'streaming' || connectionState.status === 'polling';
@@ -301,7 +304,6 @@ export default function AnalysisPage() {
     return () => clearInterval(interval);
   }, [startedAt]);
 
-  const estimatedSecondsRemaining = Math.max(0, estimatedTimeRemaining || 0);
 
   const sortedCandidateScores = useMemo(() => {
     if (!candidateScores || candidateScores.length === 0) return [];
@@ -421,12 +423,13 @@ export default function AnalysisPage() {
             totalCandidates={totalCandidates || 100}
             analyzedCount={analyzedCount}
             elapsedSeconds={elapsedSeconds}
-            estimatedSecondsRemaining={estimatedSecondsRemaining}
             isConnected={isConnected}
             isComplete={isComplete}
             activeAIStage={activeAIStage}
             offsetMinutes={offsetMinutes}
           />
+
+          <TechnicalMethodology offsetMinutes={offsetMinutes} />
 
           <AnimatePresence>
             {(cancelled || metadata?.status === 'failed') && (
@@ -520,6 +523,7 @@ export default function AnalysisPage() {
           )}
 
           <div className="flex flex-col gap-6 lg:gap-8 w-full">
+            <TechnicalMasterGrid />
             <div className="space-y-4 sm:space-y-6">
               {(Object.keys(aiThinking).length > 0 || (progress?.stepIndex ?? 0) >= 1) && !cancelled && (
                 <SectionErrorBoundary sectionName="AI Reasoning" icon={<Brain className="w-5 h-5" />}>
@@ -543,6 +547,9 @@ export default function AnalysisPage() {
                       // Fallback stage name if not found in allSteps
                       const stepDef = allSteps[stageNum] || { id: `stage-${stageNum}`, name: `Stage ${stageNum}` };
 
+                      // 🔱 God-Tier Filtering: Distinguish between AI Reasoning and Structural Calculus
+                      const isAIStage = [2, 4, 6].includes(stageNum);
+
                       // Skip rendering future stages that haven't started and have no data
                       if (candidateCount === 0 && !isCurrentStage && !isStageCompleted) return null;
 
@@ -559,32 +566,49 @@ export default function AnalysisPage() {
                             </h3>
                           </div>
 
-                          <UnifiedAIPanel
-                            thinking={isCurrentStage && !isStageCompleted && stageCandidates
-                              ? (() => {
-                                // 🔱 God-Tier: Sort by updatedAt to get the TRULY active stream
-                                const entries = Object.values(stageCandidates) as any[];
-                                if (entries.length === 0) return null;
-                                return entries.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
-                              })()
-                              : null}
-                            stageHistory={stageHistory}
-                            isActive={isConnected && !isComplete && isCurrentStage && !isStageCompleted}
-                            stage={stageNum}
-                            allCandidates={stageCandidates}
-                            displayedCandidate={isCurrentStage ? displayedCandidate : null}
-                            candidateScores={candidateScores}
-                            unifiedMode={true}
-                            title={stepDef.name}
-                            isCompleted={isStageCompleted}
-                            offsetMinutes={offsetMinutes}
-                          />
+                          {isAIStage ? (
+                            <UnifiedAIPanel
+                              thinking={isCurrentStage && !isStageCompleted && stageCandidates
+                                ? (() => {
+                                  // 🔱 God-Tier: Sort by updatedAt to get the TRULY active stream
+                                  const entries = Object.values(stageCandidates) as any[];
+                                  if (entries.length === 0) return null;
+                                  return entries.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
+                                })()
+                                : null}
+                              stageHistory={stageHistory}
+                              isActive={isCurrentStage && !isStageCompleted}
+                              isCompleted={isStageCompleted}
+                              stage={stageNum}
+                              allCandidates={stageCandidates}
+                              displayedCandidate={displayedCandidate}
+                              onSelectCandidate={setDisplayedCandidate}
+                              candidateScores={candidateScores}
+                              title={stepDef.name}
+                              offsetMinutes={offsetMinutes}
+                            />
+                          ) : (
+                            /* 🔱 Lightweight Calculation Card for Stages 1, 3, 5 */
+                            <div className="bg-white/50 rounded-xl border border-stone-100 p-4 shadow-sm">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-2 h-2 rounded-full ${isCurrentStage ? 'bg-blue-500 animate-pulse' : 'bg-stone-300'}`} />
+                                  <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
+                                    {isCurrentStage ? 'Computing Mathematical Grids...' : 'Computation Complete'}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-mono text-stone-400">
+                                  {candidateCount} variations generated
+                                </span>
+                              </div>
 
-                          <StageLeaderboard
-                            stage={stageNum}
-                            scores={candidateScores.filter(s => s.stage === stageNum)}
-                            isCompleted={isStageCompleted}
-                          />
+                              <StageLeaderboard
+                                stage={stageNum}
+                                scores={candidateScores.filter(s => s.stage === stageNum)}
+                                isCompleted={isStageCompleted}
+                              />
+                            </div>
+                          )}
                         </div>
                       );
                     });

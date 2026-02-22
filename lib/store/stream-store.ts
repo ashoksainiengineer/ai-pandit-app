@@ -43,7 +43,6 @@ export const createInitialState = (): StreamState => ({
     analyzedCount: 0,
     totalCandidates: 0,
     startedAt: undefined,
-    estimatedTimeRemaining: undefined,
     activeAIStage: null, // Tracks the actual AI stage (2, 4, or 6)
     allSteps: DEFAULT_STEPS,
     advancedSignals: null,
@@ -56,6 +55,7 @@ interface StreamStore extends StreamState {
     dispatchStreamEvent: (type: string, payload: any) => void;
     forceError: (msg: string) => void;
     markComplete: () => void;
+    setDisplayedCandidate: (id: string | null) => void;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -118,8 +118,18 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
                 fullText: ''
             };
 
-            // Append text with memory cap (sliding window)
-            let newFullText = existing.fullText + text;
+            // 🔱 Zero-Trust De-duplication: Prevent doubling text during backend replays
+            if (existing.fullText && text) {
+                if (existing.fullText.includes(text)) {
+                    // This chunk is already accounted for (likely a replay)
+                    return;
+                }
+                // If the existing text is a subset of the new chunk (rare, but possible if store is lagging)
+                if (text.startsWith(existing.fullText)) {
+                    newFullText = text;
+                }
+            }
+
             if (newFullText.length > MAX_FULLTEXT_CHARS) {
                 newFullText = newFullText.slice(-MAX_FULLTEXT_CHARS);
             }
@@ -128,12 +138,15 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
             changedEntries[stageKey] = updated;
 
             // Group changes by stage for candidatesByStage
-            // Note: we still use candidateTime as the key inside the stage map for easy lookup
             if (!stageChanges[stage]) stageChanges[stage] = {};
             stageChanges[stage][candidateTime] = updated;
 
-            // Accumulate history appends per stage (avoid multiple string concats on prev)
-            historyAppends[stage] = (historyAppends[stage] || '') + text;
+            // Accumulate history appends per stage
+            // Similar de-dupe for stageHistory
+            const existingHistory = prev.stageHistory[stage] || '';
+            if (!existingHistory.includes(text)) {
+                historyAppends[stage] = (historyAppends[stage] || '') + text;
+            }
 
             latestCandidate = candidateTime;
 
@@ -234,6 +247,8 @@ export const useStreamStore = create<StreamStore>()(
                 set({ isComplete: true });
             },
 
+            setDisplayedCandidate: (id) => set({ displayedCandidate: id }),
+
             dispatchStreamEvent: (type: string, data: any) => {
                 const payload = data.data || data;
 
@@ -324,12 +339,12 @@ export const useStreamStore = create<StreamStore>()(
                             }
                             if (p.candidateScores && p.candidateScores.length > 0) {
                                 updates.candidateScores = p.candidateScores;
+                                // Sync analyzedCount
+                                const maxStage = Math.max(...p.candidateScores.map((s: any) => s.stage));
+                                updates.analyzedCount = new Set(p.candidateScores.filter((s: any) => s.stage === maxStage).map((s: any) => s.time)).size;
                             }
                             if (p.startedAt) {
                                 updates.startedAt = p.startedAt;
-                            }
-                            if (p.estimatedTimeRemaining !== undefined) {
-                                updates.estimatedTimeRemaining = p.estimatedTimeRemaining;
                             }
                             return updates;
                         }
@@ -395,7 +410,7 @@ export const useStreamStore = create<StreamStore>()(
                         }
 
                         case 'estimated_time': {
-                            return { estimatedTimeRemaining: payload?.seconds || 0 };
+                            return {}; // Logic removed as per God-Tier de-cluttering
                         }
 
                         case 'stage_stats': {
@@ -529,9 +544,10 @@ export const useStreamStore = create<StreamStore>()(
             name: 'ai-pandit-stream-store',
             storage: createJSONStorage(() => localStorage),
             partialize: (state) => ({
-                // ⚠️ ONLY persist lightweight recovery data.
-                // DO NOT persist aiThinking/allCandidates/stageHistory —
-                // they update ~10x/sec and serializing megabytes of JSON per write freezes the browser.
+                // 🔱 God-Tier Persistence Policy:
+                // We persist stageHistory because it's the "Narrative Summary" that users
+                // value most on refresh. Large individual candidate thinking is ephemeral
+                // and restored via backend SSE replay.
                 sessionId: state.sessionId,
                 isComplete: state.isComplete,
                 progress: state.progress,
@@ -540,7 +556,10 @@ export const useStreamStore = create<StreamStore>()(
                 result: state.result,
                 metadata: state.metadata,
                 advancedSignals: state.advancedSignals,
-                decisions: state.decisions
+                decisions: state.decisions,
+                stageHistory: state.stageHistory,
+                analyzedCount: state.analyzedCount,
+                totalCandidates: state.totalCandidates,
             })
         }
     )

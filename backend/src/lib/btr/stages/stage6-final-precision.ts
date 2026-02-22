@@ -169,6 +169,16 @@ export async function stage6FinalPrecision(
                 ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
             });
 
+            const getFullEphemerisPayload = (c: CandidateDataPackage) => {
+                const payload: Record<string, string> = {};
+                for (const [name, p] of Object.entries(c.planets)) {
+                    const pKey = name.charAt(0).toUpperCase() + name.slice(1);
+                    payload[pKey] = `${p.sign} ${p.degree}`;
+                }
+                payload.Lagna = `${c.ascendant.sign} ${c.ascendant.degree}`;
+                return payload;
+            };
+
             for (let j = 0; j < fullBatchData.length; j++) {
                 const candidate = fullBatchData[j];
                 const originalTimeInfo = batchTimes[j];
@@ -181,7 +191,7 @@ export async function stage6FinalPrecision(
                     batchWinners.push(originalTimeInfo);
                 }
 
-                emitCandidateScore(input.sessionId, candidate.time, score, 6, undefined, getMinifiedEphemerisInline(candidate));
+                emitCandidateScore(input.sessionId, candidate.time, score, 6, undefined, getMinifiedEphemerisInline(candidate), getFullEphemerisPayload(candidate));
             }
         }
 
@@ -315,9 +325,19 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.godTier?.consensus.overa
         ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
     });
 
+    const getFullEphemerisPayload = (c: CandidateDataPackage) => {
+        const payload: Record<string, string> = {};
+        for (const [name, p] of Object.entries(c.planets)) {
+            const pKey = name.charAt(0).toUpperCase() + name.slice(1);
+            payload[pKey] = `${p.sign} ${p.degree}`;
+        }
+        payload.Lagna = `${c.ascendant.sign} ${c.ascendant.degree}`;
+        return payload;
+    };
+
     const winnerPkg = finalBatch.find(c => c.time === finalTime) || finalBatch[0];
 
-    emitCandidateScore(input.sessionId, finalTime, accuracy, 6, 1, winnerPkg ? getMinifiedEphemerisInline(winnerPkg) : undefined);
+    emitCandidateScore(input.sessionId, finalTime, accuracy, 6, 1, winnerPkg ? getMinifiedEphemerisInline(winnerPkg) : undefined, winnerPkg ? getFullEphemerisPayload(winnerPkg) : undefined);
 
     await progress.completeStep('final', [`FINAL: ${finalTime} (${confidence})`]);
 

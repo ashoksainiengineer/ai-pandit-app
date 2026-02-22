@@ -14,12 +14,12 @@ interface StageInfo {
 
 const STAGE_CONFIG: Record<number, StageInfo> = {
   0: { id: 0, name: 'Initialization', description: 'Preparing analysis engine and loading birth data', icon: <Activity className="w-4 h-4" />, candidateRange: '---' },
-  1: { id: 1, name: 'Grid Generation', description: 'Creating time candidates based on your precision settings', icon: <Target className="w-4 h-4" />, candidateRange: '1 → 60' },
-  2: { id: 2, name: 'Coarse Elimination', description: 'Eliminating low-probability times using quick astrological checks', icon: <Filter className="w-4 h-4" />, candidateRange: '60 → 15' },
-  3: { id: 3, name: 'Refinement Grid', description: 'Fine-tuning remaining candidates with precise calculations', icon: <Activity className="w-4 h-4" />, candidateRange: '15 → 10' },
-  4: { id: 4, name: 'Deep Analysis', description: 'AI analyzing top candidates against your life events', icon: <Brain className="w-4 h-4" />, candidateRange: '10 → 5' },
-  5: { id: 5, name: 'Micro Precision', description: 'Second-level accuracy refinement for final candidates', icon: <Zap className="w-4 h-4" />, candidateRange: '5 → 3' },
-  6: { id: 6, name: 'Final Verdict', description: 'Computing confidence scores and preparing results', icon: <Target className="w-4 h-4" />, candidateRange: '3 → 1' },
+  1: { id: 1, name: 'Rashi Grid Synthesis', description: 'Synthesis of primary astrological grids based on Rashi and Nakshatra placements', icon: <Target className="w-4 h-4" />, candidateRange: '1 → 61' },
+  2: { id: 2, name: 'Amsha-Varga Elimination', description: 'Recursive elimination of low-probability candidates using Varga-displacement logic', icon: <Filter className="w-4 h-4" />, candidateRange: '61 → 15' },
+  3: { id: 3, name: 'Temporal Refinement', description: 'Dynamic resolution adjustment for high-density temporal search windows', icon: <Activity className="w-4 h-4" />, candidateRange: '15 → 10' },
+  4: { id: 4, name: 'Divisional Analysis', description: 'Advanced AI evaluation of Navamsha (D9) and Dashamsha (D10) lifecycle events', icon: <Brain className="w-4 h-4" />, candidateRange: '10 → 5' },
+  5: { id: 5, name: 'Nadi-Amsha Convergence', description: 'Convergent validation across Shashtiamsha (D60) and 48-second Nadi-Amsha windows', icon: <Zap className="w-4 h-4" />, candidateRange: '5 → 3' },
+  6: { id: 6, name: 'Prana-Dasha Verdict', description: 'Final synthesis of Pancha-Dasha subdivisions and forensic event alignment', icon: <Target className="w-4 h-4" />, candidateRange: '3 → 1' },
 };
 
 interface AnalysisStatusBannerProps {
@@ -28,7 +28,6 @@ interface AnalysisStatusBannerProps {
   totalCandidates: number;
   analyzedCount: number;
   elapsedSeconds: number;
-  estimatedSecondsRemaining: number;
   isConnected: boolean;
   isComplete: boolean;
   activeAIStage?: number | null;
@@ -48,7 +47,6 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
   totalCandidates,
   analyzedCount,
   elapsedSeconds,
-  estimatedSecondsRemaining,
   isConnected,
   isComplete,
   activeAIStage,
@@ -154,17 +152,6 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
             <p className="text-[10px] text-[#7A756F] uppercase tracking-wider">Elapsed</p>
             <p className="text-sm font-bold text-[#1A1612] font-mono">{formatTime(elapsedSeconds)}</p>
           </div>
-
-          {!isComplete && (
-            <div className="text-center">
-              <p className="text-[10px] text-[#7A756F] uppercase tracking-wider flex items-center gap-1 justify-center">
-                <Clock className="w-3 h-3" /> ETA
-              </p>
-              <p className="text-sm font-bold text-[#B8860B] font-mono">
-                {estimatedSecondsRemaining > 0 ? `~${formatTime(estimatedSecondsRemaining)}` : 'Calculating...'}
-              </p>
-            </div>
-          )}
         </div>
       </div>
 

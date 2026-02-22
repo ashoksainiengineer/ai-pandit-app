@@ -323,6 +323,7 @@ export interface CandidateScore {
   stage: number;
   rank?: number;
   minifiedEph?: { sun: string; moon: string; ascendant: string };
+  fullEph?: Record<string, string>; // 🔱 NEW: High-precision Swiss Ephemeris data
 }
 
 /**
@@ -393,6 +394,7 @@ export interface CandidateScoreEvent {
   stage: number;
   rank?: number;
   minifiedEph?: { sun: string; moon: string; ascendant: string };
+  fullEph?: Record<string, string>; // 🔱 NEW: High-precision Swiss Ephemeris data
 }
 
 /**

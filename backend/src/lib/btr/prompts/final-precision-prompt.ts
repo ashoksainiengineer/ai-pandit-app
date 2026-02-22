@@ -231,7 +231,7 @@ ${c.lifecycleShifts.map(s => `│ [${s.date}]: ${s.event}`).join('\n')}` : ''}
     }
 
 FINAL VERDICT(required format):
-BEST TIME: [HH: MM: SS]
+BEST TIME: [HH:MM:SS]
     REASONING: [Explicitly cite D60 Lagna, Dasha Connection, Synastry Match(if any), and Lifecycle Chronology.No generic text.]
     CONFIDENCE: [0 - 100]
     ACCURACY: [0 - 100] %
@@ -243,5 +243,16 @@ BEST TIME: [HH: MM: SS]
     2.[Event - Dasha Link]
 
     RUNNER_UP: [second best time]
+
+At the VERY END of your response, you MUST output the final verdict in a structured JSON object enclosed in <FINAL_VERDICT> tags.
+
+<FINAL_VERDICT>
+{
+  "time": "14:35:22",
+  "accuracy": 95,
+  "confidence": "HIGH",
+  "margin": 15
+}
+</FINAL_VERDICT>
 ═══════════════════════════════════════════════════════════════════════════════`;
 }

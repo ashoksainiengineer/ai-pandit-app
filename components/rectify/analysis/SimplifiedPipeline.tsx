@@ -12,12 +12,12 @@ interface StageConfig {
 
 const STAGES: StageConfig[] = [
   { id: 0, name: 'Initialization', shortName: 'Init' },
-  { id: 1, name: 'Grid Generation', shortName: 'Grid' },
-  { id: 2, name: 'Coarse Elimination', shortName: 'Eliminate' },
-  { id: 3, name: 'Refinement', shortName: 'Refine' },
-  { id: 4, name: 'Deep Analysis', shortName: 'Analyze' },
-  { id: 5, name: 'Micro Precision', shortName: 'Precision' },
-  { id: 6, name: 'Final Verdict', shortName: 'Final' },
+  { id: 1, name: 'Rashi Grid Synthesis', shortName: 'Rashi' },
+  { id: 2, name: 'Amsha-Varga Elimination', shortName: 'Amsha' },
+  { id: 3, name: 'Temporal Refinement', shortName: 'Zoom' },
+  { id: 4, name: 'Divisional Analysis', shortName: 'Varga' },
+  { id: 5, name: 'Nadi-Amsha Convergence', shortName: 'Nadi' },
+  { id: 6, name: 'Prana-Dasha Verdict', shortName: 'Prana' },
 ];
 
 interface SimplifiedPipelineProps {

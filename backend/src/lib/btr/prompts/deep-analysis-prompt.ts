@@ -263,6 +263,15 @@ For EACH finalist candidate:
 │ KEY EVIDENCE: [Top 2-3 astrological reasons]                               │
 └─────────────────────────────────────────────────────────────────────────────┘
 
+At the VERY END of your response, you MUST output the final scores for ALL candidates in a structured JSON array enclosed in <FINAL_SCORES> tags. 
+
+<FINAL_SCORES>
+[
+  { "time": "14:35:22", "score": 92, "reason": "Terminal D150 match with exact Dasha" },
+  { "time": "10:30:00", "score": 55, "reason": "Failed D60 alignment" }
+]
+</FINAL_SCORES>
+
 FINAL:
 TOP_SURVIVORS: [time1], [time2], [time3]`;
 }

@@ -282,7 +282,7 @@ ${c.lifecycleShifts.slice(0, 15).map(s => `│ [${s.date}]: ${s.event}`).join('\
 🎯 YOUR SCORING OUTPUT FORMAT (REQUIRED)
 ════════════════════════════════════════════════════════════════════════════════
 
-For EACH candidate, provide THIS EXACT FORMAT:
+For EACH candidate, provide THIS EXACT FORMAT for your working:
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ CANDIDATE: [HH:MM:SS]                                                       │
@@ -302,27 +302,17 @@ For EACH candidate, provide THIS EXACT FORMAT:
 │ KEY REASON: [One-line astrological reason]                                   │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-FINAL LINE (required):
-TOP_SURVIVORS: [comma-separated list of ${survivorsNeeded} best times]
+At the VERY END of your response, you MUST output the final scores for ALL candidates in a structured JSON array enclosed in <FINAL_SCORES> tags. 
 
-EXAMPLE OUTPUT:
-┌─────────────────────────────────────────────────────────────────────────────┐
-│ CANDIDATE: 14:35:22                                                         │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ METHOD SCORES:                                                              │
-│ • D150 Nadi:    92  (weight: 2.2 - increased for critical marriage event)  │
-│ • KP Sub-Lord:  88  (weight: 2.0)                                           │
-│ • Vimshottari:  85  (weight: 1.9 - Venus MD matches marriage significator)  │
-│ • Varga (D60):  78  (weight: 1.7)                                           │
-│ • Transit:      75  (weight: 1.5)                                           │
-│ • Kalachakra:   70  (weight: 1.2)                                           │
-│ • Shadbala:     80  (weight: 1.0)                                           │
-├─────────────────────────────────────────────────────────────────────────────┤
-│ WEIGHT ADJUSTMENTS: Increased Nadi weight because marriage is CRITICAL     │
-│ FINAL WEIGHTED SCORE: 82                                                    │
-│ VERDICT: KEEP                                                               │
-│ KEY REASON: Venus MD + KP Sub-Lord match for marriage event                 │
-└─────────────────────────────────────────────────────────────────────────────┘`;
+<FINAL_SCORES>
+[
+  { "time": "14:35:22", "score": 82, "reason": "Venus MD + KP Sub-Lord match for marriage event" },
+  { "time": "10:30:00", "score": 45, "reason": "Mismatch on D9" }
+]
+</FINAL_SCORES>
+
+FINAL LINE (required):
+TOP_SURVIVORS: [comma-separated list of ${survivorsNeeded} best times]`;
 }
 
 function getSignElement(sign: string): string {

@@ -62,6 +62,7 @@ export interface CandidateScore {
     rank?: number;
     offsetMinutes?: number;
     minifiedEph?: { sun: string; moon: string; ascendant: string };
+    fullEph?: Record<string, string>; // 🔱 NEW: High-precision technical coordinates
 }
 
 export interface StageStat {

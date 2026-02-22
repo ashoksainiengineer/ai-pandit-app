@@ -70,6 +70,16 @@ export async function stage4DeepAnalysis(
         ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
     });
 
+    const getFullEphemerisPayload = (c: CandidateDataPackage) => {
+        const payload: Record<string, string> = {};
+        for (const [name, p] of Object.entries(c.planets)) {
+            const pKey = name.charAt(0).toUpperCase() + name.slice(1);
+            payload[pKey] = `${p.sign} ${p.degree}`;
+        }
+        payload.Lagna = `${c.ascendant.sign} ${c.ascendant.degree}`;
+        return payload;
+    };
+
     while (currentCandidates.length > batchSize) {
         const batches = splitIntoBatches(currentCandidates, batchSize);
         const batchSurvivors: CandidateTime[] = [];
@@ -138,7 +148,7 @@ export async function stage4DeepAnalysis(
                     }
 
                     // IMMEDIATE EMIT - SYNCED WITH AI
-                    emitCandidateScore(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEphemerisInline(candidate));
+                    emitCandidateScore(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEphemerisInline(candidate), getFullEphemerisPayload(candidate));
                     emitDecision(input.sessionId, {
                         stage: 4,
                         time: candidate.time,
@@ -207,7 +217,7 @@ export async function stage4DeepAnalysis(
 
             if (isSurvivor) survivors.push(originalTimeInfo);
 
-            emitCandidateScore(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEphemerisInline(candidate));
+            emitCandidateScore(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEphemerisInline(candidate), getFullEphemerisPayload(candidate));
             emitDecision(input.sessionId, {
                 stage: 4,
                 time: candidate.time,
