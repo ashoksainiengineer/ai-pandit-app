@@ -1,0 +1,20 @@
+{
+    "name": "@ai-pandit/shared",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": "./src/index.ts",
+        "./schemas": "./src/schemas.ts",
+        "./types": "./src/types.ts"
+    },
+    "scripts": {
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "zod": "^3.22.4"
+    },
+    "devDependencies": {
+        "typescript": "^5.4.5"
+    }
+}

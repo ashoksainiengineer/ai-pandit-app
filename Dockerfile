@@ -1,49 +1,56 @@
 # ═══════════════════════════════════════════════════════════════════════════
 # AI Pandit - BTR Engine (Hugging Face Backend Only)
-# Multi-stage build optimized for Hugging Face Spaces Free Tier (16GB RAM)
+# Multi-stage Turborepo build optimized for HF Spaces Free Tier (16GB RAM)
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Stage 1: Build Backend Only
-FROM node:20-alpine AS builder
+FROM node:20-alpine AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
+
+# 1. Prune the workspace to extract only @ai-pandit/api and its dependencies
+FROM base AS pruner
+WORKDIR /app
+RUN npm install -g turbo
+COPY . .
+RUN turbo prune @ai-pandit/api --docker
+
+# 2. Install dependencies & Build
+FROM base AS builder
 WORKDIR /app
 
-# Copy root package files (for swisseph-wasm and shared deps)
-COPY package.json package-lock.json* ./
-# Suppress harmless deprecation warnings from transitive dependencies
-# Using npm install instead of npm ci because there may not be a root package-lock.json
-RUN npm install --omit=dev --ignore-scripts --loglevel=error --no-audit --no-fund
+# First install dependencies (cache layer)
+COPY --from=pruner /app/out/json/ .
+COPY package-lock.json ./
+RUN npm install --ignore-scripts --no-audit --no-fund --loglevel=error
 
-# Copy backend source only (no frontend)
-COPY backend/ ./backend/
-COPY ephe/ ./ephe/
+# Copy source code of isolated workspace
+COPY --from=pruner /app/out/full/ .
+COPY turbo.json turbo.json
 
-# Build Backend
-RUN cd backend && npm install --loglevel=error --no-audit --no-fund && npm run build
+# Build the API and any shared packages it depends on
+RUN npx turbo run build --filter=@ai-pandit/api...
 
-# Stage 2: Minimal Runtime
-FROM node:20-alpine AS runner
+# 3. Final Minimal Runtime Image
+FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=7860
-ENV CACHE_BUST=2026-02-20-T16-20
+ENV CACHE_BUST=2026-02-22-T16-52
 ENV SWISSEPH_PATH=/app/ephe
 
-# Install minimal runtime dependencies for WASM/Node
+# Install minimal runtime dependencies for Swiss Eph WASM/Node
 RUN apk add --no-cache libstdc++ libgcc
 
 # Ephemeris Data
 RUN mkdir -p /app/ephe
 COPY ephe/* /app/ephe/
 
-# Copy built backend and its production dependencies
-COPY --from=builder /app/backend/dist ./backend/dist
-COPY --from=builder /app/backend/package*.json ./backend/
-
-# Install backend-specific production dependencies only (no root node_modules needed)
-RUN cd backend && npm install --omit=dev --ignore-scripts --loglevel=error --no-audit --no-fund
+# Copy the built application
+COPY --from=builder /app/ .
 
 EXPOSE 7860
 
-# Start the backend engine directly
-CMD ["node", "backend/dist/server.js"]
+# Start the backend engine
+CMD ["node", "apps/api/dist/server.js"]

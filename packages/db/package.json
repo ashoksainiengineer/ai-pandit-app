@@ -1,0 +1,26 @@
+{
+    "name": "@ai-pandit/db",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "exports": {
+        ".": "./src/drizzle.ts",
+        "./schema": "./src/schema.ts"
+    },
+    "scripts": {
+        "db:generate": "drizzle-kit generate",
+        "db:push": "drizzle-kit push",
+        "db:studio": "drizzle-kit studio",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "@libsql/client": "^0.17.0",
+        "drizzle-orm": "^0.45.1",
+        "uuid": "^9.0.1"
+    },
+    "devDependencies": {
+        "drizzle-kit": "^0.31.8",
+        "typescript": "^5.4.5",
+        "@types/node": "^20.14.0"
+    }
+}
