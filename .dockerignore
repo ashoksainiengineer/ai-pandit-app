@@ -24,3 +24,11 @@ logs
 .vscode
 .idea
 .DS_Store
+
+# Tests (Keep on GitHub, exclude from build)
+**/__tests__/**
+**/coverage/**
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
