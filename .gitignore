@@ -1,5 +1,7 @@
-.next
 node_modules
+**/coverage/**
+**/.next/**
+apps/api/ephe/
 sweph.tar.gz
 # clerk configuration (can include secrets)
 /.clerk/
