@@ -145,10 +145,58 @@ We are in the terminal varga zones. We are hunting exact D60 / D150 alignments.
 
 ════════════════════════════════════════════════════════════════════════════════
 
-    TASK: Deep multi-varga forensic audit on ${shuffledCandidates.length} finalists.
-    
-    For EACH candidate, your reasoning MUST explicitly quote or reference the user's "SITUATIONAL NARRATIVE & EXPERIENCE" to demonstrate exactly how the planetary conditions (D1, D9, D10, transits) manifested that specific real-world event.
+    TASK: Execution of 'Deep Multi-Varga Forensic Audit' on ${shuffledCandidates.length} finalist candidates.
 
+## Step 1: Forensic DNA Synchronization
+- Physical Alignment: @ForensicTraits.physical
+- Temperamental Mapping: @ForensicTraits.psychographic
+- Biological Anchor Status: @ForensicTraits.biological
+- Family Karma Matrix: @ForensicTraits.family
+
+## Step 2: Implementation of Deep Audit
+Implement the following comprehensive verification sequence for EACH candidate:
+
+1. **Varga Boundary Scrutiny**
+   - Audit D9 and D10 Ascendant degrees. 
+   - Identify if the candidate sits on a 'Terminal Varga Zone' (Boundary Lock).
+
+2. **Bio-Vedic Mapping Verification**
+   - Match @ForensicTraits to specific Varga deities and planetary configurations.
+   - Verify if Tattwa Shuddhi aligns with the user's temperamental profile.
+
+3. **Multi-Dasha Chronology (1999-2026)**
+   - Correlate Vimshottari MD-AD-PD-SD sequence with real-world events.
+   - Cross-verify timing using Yogini and Chara Dashas for redundant proof.
+
+4. **Karmic Knot (Gandanta) Analysis**
+   - Assess severity of Lagna/Moon Gandanta if present.
+   - Map traumatic/life-defining events to these karmic boundaries.
+
+5. **Spouse/Synastry Lock**
+   - Run D9 verification against @SpouseData.
+   - Lock time based on 7th house and Venus/Jupiter configurations.
+
+6. **Lifecycle Shift Audit**
+   - Map major Saturn/Jupiter sign ingresses to the user's chronology.
+   - Verify if "flavor" of life shifts matches the planetary transitions.
+
+7. **Cuspal (KP) Precision**
+   - Audit Sub-Lord and Sub-Sub-Lord positions for event triggers.
+   - Verify 1st House Sub-Lord supports physical @ForensicTraits.
+
+8. **Pancha-Pakshi Activity Mapping**
+   - Verify 'Ruling Bird' activities align with event results.
+   - Confirm birth time quality via bird strength.
+
+9. **Terminal Precision (D60/D150)**
+   - Audit D60 Karma deities for forensic alignment.
+   - Review D150 Nadi Amsha for seconds-level resolution.
+
+10. **Final Forensic Verdict**
+    - Apply weighted scoring based on narrative match.
+    - Select survivors for the Final Stage.
+
+════════════════════════════════════════════════════════════════════════════════
 USER FORENSIC DATA:
 ${forensicContext}
 SPOUSE DATA: ${spouseText}

@@ -41,6 +41,7 @@ export class ProgressTracker {
 
     private candidateBuffers: Map<string, string> = new Map();
     private lastPulseTime: number = 0;
+    private lastSaveTime: number = 0; // Separated throttle for DB saves
 
     constructor(sessionId: string) {
         this.sessionId = sessionId;
@@ -138,7 +139,7 @@ export class ProgressTracker {
         const now = Date.now();
         if (now - this.lastPulseTime > 30000) {
             this.lastPulseTime = now;
-            this.pulse().catch(err => console.error('Heartbeat pulse failed:', err));
+            this.saveProgress(true).catch(err => console.error('Heartbeat pulse failed:', err)); // Persist progress explicitly
         }
     }
 
@@ -427,12 +428,12 @@ export class ProgressTracker {
             // On HF Free Tier, Turso DB round-trips are expensive.
             // We only flush if:
             // 1. It's a major flush (includeThinking = true)
-            // 2. 10 seconds have passed since last write
-            if (!includeThinking && Date.now() - this.lastPulseTime < 10000) {
-                return; // Skip minor update to save IO
+            // Throttle regular saves (non-thinking checkpoints) to 10s to reduce DB load
+            if (!includeThinking && Date.now() - this.lastSaveTime < 10000) {
+                return;
             }
 
-            this.lastPulseTime = Date.now();
+            this.lastSaveTime = Date.now();
 
             // 🛡️ [TURSO OPTIMIZED] Data Persistence with Volatile Reasoning
             // We persist everything except AI thinking logs (stageHistory and lastAIThinking)

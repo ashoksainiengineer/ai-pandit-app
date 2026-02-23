@@ -50,6 +50,11 @@ export async function stage6FinalPrecision(
     finalists: Array<{ time: string; score: number; ephemeris?: any }>;
     stageResult: StageResult;
 }> {
+    if (!candidates || candidates.length === 0) {
+        logger.error('🔱 [STAGE-6] FAILED: No candidates provided for final precision judgment');
+        throw new Error('AI_OUT_OF_CANDIDATES: No birth time candidates survived the previous analysis stages. This usually happens when life events and forensic traits are highly contradictory.');
+    }
+
     const now = new Date();
     const currentEph = await calculateEphemeris(
         now.toISOString().split('T')[0],
@@ -60,6 +65,15 @@ export async function stage6FinalPrecision(
     );
 
     const getPresentTransitData = (c: CandidateDataPackage) => {
+        if (!c || !c.rawVimshottari) {
+            logger.warn('🔱 [STAGE-6] Missing rawVimshottari in candidate for transit calculation');
+            return {
+                dashaAtNow: 'Unknown',
+                jupiter: 'Unknown',
+                saturn: 'Unknown',
+                rahu: 'Unknown',
+            };
+        }
         const dashaAtNow = getDashaForDate(c.rawVimshottari as any, now);
         return {
             dashaAtNow: dashaAtNow ? `${dashaAtNow.mahadasha}-${dashaAtNow.antardasha}-${dashaAtNow.pratyantardasha}` : 'Unknown',
@@ -140,6 +154,12 @@ export async function stage6FinalPrecision(
                 })
             ));
             batchDataMap.set(i, batchEnriched);
+
+            if (batchEnriched.length === 0) {
+                logger.error(`🔱 [STAGE-6] Batch ${i + 1} enrichment returned no data`);
+                return { success: false, error: 'Enrichment failed', content: '' };
+            }
+
             const presentAnchor = getPresentTransitData(batchEnriched[0]);
 
             return callAIWithStream(
@@ -241,6 +261,12 @@ export async function stage6FinalPrecision(
             lifecycleShifts: globalLifecycle
         })
     ));
+
+    if (finalBatch.length === 0) {
+        logger.error('🔱 [STAGE-6] FAILED: No candidates survived final building phase');
+        throw new Error('AI_ANALYSIS_FAILED: Unable to build final candidate data. Please check your internet connection and retry.');
+    }
+
     const finalAnchor = getPresentTransitData(finalBatch[0]);
     let prompt = getFinalPrecisionPrompt(finalBatch, input.lifeEvents, forensicTraits, input.spouseData, finalAnchor);
 

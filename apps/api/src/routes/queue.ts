@@ -90,10 +90,17 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
             }
         }
 
-        // Validate date
-        const birthDate = new Date(birthData.dateOfBirth);
-        if (isNaN(birthDate.getTime())) {
-            res.status(400).json({ success: false, error: 'Invalid date of birth' });
+        // Validate strict date format
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(birthData.dateOfBirth)) {
+            res.status(400).json({ success: false, error: 'dateOfBirth must be strictly in YYYY-MM-DD format.' });
+            return;
+        }
+
+        const [year, month, day] = birthData.dateOfBirth.split('-').map(Number);
+        const birthDate = new Date(Date.UTC(year, month - 1, day));
+
+        if (birthDate.getUTCFullYear() !== year || birthDate.getUTCMonth() + 1 !== month || birthDate.getUTCDate() !== day) {
+            res.status(400).json({ success: false, error: 'Invalid date of birth (silent overflow detected)' });
             return;
         }
 

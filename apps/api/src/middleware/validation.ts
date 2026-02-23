@@ -14,7 +14,7 @@ export const TimeOffsetConfigSchema = z.object({
 export const BirthDataSchema = z.object({
     fullName: z.string().min(1, 'Full name is required').max(100),
     dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
-    tentativeTime: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, 'Time must be HH:MM or HH:MM:SS'),
+    tentativeTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/, 'Time must be a valid HH:MM or HH:MM:SS format'),
     birthPlace: z.string().min(1).max(200),
     latitude: z.number().min(-90).max(90),
     longitude: z.number().min(-180).max(180),

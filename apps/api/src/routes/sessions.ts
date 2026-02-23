@@ -180,7 +180,7 @@ router.put('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Respon
             updateData.spouseData = encryptData(JSON.stringify(body.spouseData), clerkId);
         }
         if (body.offsetConfig !== undefined) {
-            updateData.offsetConfig = JSON.stringify(body.offsetConfig);
+            updateData.offsetConfig = encryptData(JSON.stringify(body.offsetConfig), clerkId);
         }
 
         // Update

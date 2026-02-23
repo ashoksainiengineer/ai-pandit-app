@@ -135,9 +135,11 @@ function sendToRemoteLog(level: LogLevel, message: string, meta?: Record<string,
 
 class SecureLogger {
     private config: LoggerConfig;
+    private baseMeta: Record<string, unknown>;
 
-    constructor(config: Partial<LoggerConfig> = {}) {
+    constructor(config: Partial<LoggerConfig> = {}, baseMeta: Record<string, unknown> = {}) {
         this.config = { ...DEFAULT_CONFIG, ...config };
+        this.baseMeta = baseMeta;
     }
 
     private shouldLog(level: LogLevel): boolean {
@@ -147,9 +149,10 @@ class SecureLogger {
     private formatMessage(level: LogLevel, message: string, meta?: Record<string, unknown>): string {
         const timestamp = new Date().toISOString();
         const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
+        const mergedMeta = { ...this.baseMeta, ...meta };
 
-        if (meta && Object.keys(meta).length > 0) {
-            return `${prefix} ${message} ${JSON.stringify(meta)}`;
+        if (Object.keys(mergedMeta).length > 0) {
+            return `${prefix} ${message} ${JSON.stringify(mergedMeta)}`;
         }
 
         return `${prefix} ${message}`;
@@ -250,9 +253,10 @@ class SecureLogger {
 
     // Create child logger with additional context
     child(context: Record<string, unknown>): SecureLogger {
-        return new SecureLogger({
-            ...this.config,
-        });
+        return new SecureLogger(
+            { ...this.config },
+            { ...this.baseMeta, ...context }
+        );
     }
 }
 

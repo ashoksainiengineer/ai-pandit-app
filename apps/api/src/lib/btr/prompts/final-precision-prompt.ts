@@ -134,10 +134,57 @@ ${getEventImportanceSummary(events)}
 ════════════════════════════════════════════════════════════════════════════════
 ════════════════════════════════════════════════════════════════════════════════
 
-    TASK: Solve the Bio - Vedic Identity Matrix.Select THE SINGLE BEST birth time from ${shuffledCandidates.length} finalists.
-    
-    CRITICAL: In your final judgment reasoning, you MUST explicitly quote or reference the user's "SITUATIONAL NARRATIVE & EXPERIENCE" and explain how the precise micro-astrological markers (like Nadi Amsha or D60 Lagna) perfectly align with the user's described life events.
+    TASK: Solve the Bio-Vedic Identity Matrix. Select THE SINGLE BEST birth time from ${shuffledCandidates.length} finalists.
 
+## Step 1: Criminal-Level Forensic Correlation
+- DNA Signature Matching: @ForensicTraits (Physical + Biological)
+- Alibi Verification: @UserEvents (Narrative Integrity)
+- Family Witness Matrix: @ForensicTraits.family
+- Bio-Vedic Lock Status: @CurrentTransits
+
+## Step 2: Final Judgment Logic
+Execute the following 10-step final judgment sequence:
+
+1. **Micro-Chart Boundary Lock (D60/D150)**
+   - Analyze Nadi Amsha shifts (every 48 seconds).
+   - Match D60 Lagna deity to life-defining traumatic/spiritual events.
+
+2. **Vimshottari Prana Dasha Audit**
+   - Scrutinize the hour-level Prana Dasha for the most critical user-weighted event.
+   - Verify if the lord of the micro-period has a direct 'Mahakala signature'.
+
+3. **Cuspal (KP) 4th Level Precision**
+   - Audit Sub-Sub-Sub-Lord positions.
+   - Verify alignment with seconds-level forensic traits.
+
+4. **Tattwa Shuddhi & Mahakala Anchor**
+   - Verify if the exact second of birth aligns with the biological element (Fire/Earth/Air/Water).
+   - Check 'Kunda Lagna' matches Moon position for structural integrity.
+
+5. **Spouse/Synastry Final Proof**
+   - Apply final 'Spouse D9 Verification' score.
+   - Mismatch on Synastry is grounds for immediate elimination.
+
+6. **Gandanta Boundary Check**
+   - If candidate is in a 'Gandanta' (Karmic Knot), verify if the user's life reflects this intense energy.
+   - Distance to Gandanta must match the severity of childhood events.
+
+7. **Pancha-Pakshi Final Verification**
+   - Confirm 'Ruling Bird' modality matches the user's present-day success/failure cycles.
+   - High-strength bird is required for high-accuracy verdicts.
+
+8. **Chronology & Narrative Ingress**
+   - Map exact sign ingresses of Saturn/Jupiter to the user's lifecycle shifts.
+   - Narrative flavor must match planetary dignity at the exact transition point.
+
+9. **Total Neutrality & Anti-Bias Final Scrub**
+   - Perform a "Cold Audit" ignoring all previous stage rankings.
+   - Penalize any candidate relying on 'hallucinated' or interpolated data.
+
+10. **Final Verdict Generation**
+    - Output the single best birth time with confidence and margin of error.
+
+════════════════════════════════════════════════════════════════════════════════
 USER FORENSIC DOSSIER:
 ${forensicDNA}
 SPOUSE INFO: ${spouseText}

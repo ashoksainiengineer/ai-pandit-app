@@ -12,6 +12,7 @@ import { SecondsPrecisionInput } from '@ai-pandit/shared';
 import { CandidateTime, generateRefinementGrid } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { StageResult } from '@ai-pandit/shared';
+import { logger } from '../../logger.js';
 
 /**
  * Stage 5: Generate micro-precision grid around Stage 4 survivors
@@ -28,6 +29,11 @@ export async function stage5MicroGrid(
     progress: ProgressTracker
 ): Promise<{ candidates: CandidateTime[]; stageResult: StageResult }> {
     await progress.startStep('micro', 'Stage 5: Micro-precision grid (D150 Nadi Resolution)...');
+
+    if (!survivors || survivors.length === 0) {
+        logger.error('🔱 [STAGE-5] FAILED: No survivors provided for micro-grid generation');
+        throw new Error('AI_OUT_OF_CANDIDATES: No birth time candidates survived the previous analysis stages. This usually happens when life events and forensic traits are highly contradictory.');
+    }
 
     const microCandidates: CandidateTime[] = [];
 

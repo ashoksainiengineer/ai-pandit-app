@@ -34,9 +34,17 @@ services:
       # Bind mount for hot reload (optional, but good for dev)
       - ./src:/app/src
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 14G
+        reservations:
+          cpus: '1'
+          memory: 8G
     healthcheck:
-      test: [ "CMD", "curl", "-fsS", "http://localhost:7860/api/health" ]
-      interval: 10s
-      timeout: 5s
+      test: [ "CMD", "node", "-e", "fetch('http://localhost:7860/api/health').then(r => r.ok ? process.exit(0) : process.exit(1))" ]
+      interval: 15s
+      timeout: 10s
       retries: 5
-      start_period: 20s
+      start_period: 30s

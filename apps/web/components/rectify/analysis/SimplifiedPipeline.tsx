@@ -70,28 +70,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
             {isConnected ? 'Processing' : 'Reconnecting'}
           </span>
         </div>
-        <div className="flex items-center gap-3">
-          {aiModel && (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-amber-50 border border-amber-100">
-              <Cpu className="w-2.5 h-2.5 text-[#B8860B]" />
-              <span className="text-[9px] text-[#B8860B] font-mono leading-none font-bold">
-                {aiModel}
-              </span>
-            </div>
-          )}
-          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-100">
-            <Shield className="w-2.5 h-2.5 text-[#2D7A5C]" />
-            <span className="text-[9px] text-[#2D7A5C] font-mono leading-none font-bold uppercase tracking-tighter">
-              E2E Encrypted
-            </span>
-          </div>
-          <div className="hidden sm:flex items-center gap-1.5 px-2 py-0.5 rounded bg-stone-50 border border-stone-100">
-            <Zap className="w-2.5 h-2.5 text-stone-400" />
-            <span className="text-[9px] text-stone-500 font-mono leading-none font-bold uppercase tracking-tighter">
-              Node.js Edge
-            </span>
-          </div>
-        </div>
+
       </div>
 
       <div className="flex items-center gap-1 sm:gap-2">

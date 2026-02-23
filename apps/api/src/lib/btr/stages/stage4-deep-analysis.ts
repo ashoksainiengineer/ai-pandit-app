@@ -168,6 +168,11 @@ export async function stage4DeepAnalysis(
         // Flatten array of survivor arrays
         const roundSurvivors = results.flat();
         currentCandidates = roundSurvivors;
+
+        if (currentCandidates.length === 0) {
+            logger.error('🔱 [STAGE-4] FAILED: All candidates rejected in internal tournament rounds');
+            throw new Error('AI_OUT_OF_CANDIDATES: The analysis narrowed down candidates and eventually found no suitable matches for the provided life events. Please verify the event dates and try again.');
+        }
     }
 
     // Final deep analysis on remaining candidates
@@ -228,6 +233,11 @@ export async function stage4DeepAnalysis(
             });
         }
         currentCandidates = survivors;
+    }
+
+    if (currentCandidates.length === 0) {
+        logger.error('🔱 [STAGE-4] FAILED: No survivors found after final deep verification');
+        throw new Error('AI_OUT_OF_CANDIDATES: No birth time candidates survived the deep multi-dasha analysis. This often happens if the birth time offset requested doesn\'t contain the actual birth time, or if life event data is inaccurate.');
     }
 
     await sleep(2000);

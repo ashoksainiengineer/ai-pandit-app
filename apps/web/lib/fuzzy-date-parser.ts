@@ -28,19 +28,7 @@ export function parseFuzzyDate(input: string, birthDate: string): ParsedFuzzyDat
         };
     }
 
-    // 2. Year-only: "In 1995", "1995"
-    const yearMatch = text.match(/\b(19\d{2}|20\d{2})\b/);
-    if (yearMatch) {
-        const year = yearMatch[1];
-        return {
-            startDate: `${year}-01-01`,
-            endDate: `${year}-12-31`,
-            precision: 'year',
-            confidence: 1.0
-        };
-    }
-
-    // 3. Season-based: "Winter 2005", "Monsoon 1998"
+    // 2. Season-based: "Winter 2005", "Monsoon 1998"
     const seasonMatch = text.match(/(winter|summer|monsoon|spring|autumn)\s*(\d{4})/);
     if (seasonMatch) {
         const season = seasonMatch[1];
@@ -124,6 +112,19 @@ export function parseFuzzyDate(input: string, birthDate: string): ParsedFuzzyDat
             endDate: `${centerYear + 1}-12-31`,
             precision: 'approx',
             confidence: 0.7
+        };
+    }
+
+    // 8. Catch-all Year-Only: "In 1995", "1995"
+    // MUST be at the bottom so it doesn't swallow "Spring 1995"
+    const yearMatch = text.match(/\b(19\d{2}|20\d{2})\b/);
+    if (yearMatch) {
+        const year = yearMatch[1];
+        return {
+            startDate: `${year}-01-01`,
+            endDate: `${year}-12-31`,
+            precision: 'year',
+            confidence: 1.0
         };
     }
 }

@@ -34,7 +34,9 @@ export async function authMiddleware(
             `Method: ${req.method}\n` +
             `Query: ${JSON.stringify(req.query)}\n` +
             `Headers: ${JSON.stringify(req.headers, null, 2)}\n`;
-        fs.appendFileSync(LOG_FILE, logEntry);
+        if (process.env.NODE_ENV === 'development') {
+            fs.appendFileSync(LOG_FILE, logEntry);
+        }
 
         const isStreamRequest = req.originalUrl.includes('/stream');
         let token = '';
@@ -55,7 +57,7 @@ export async function authMiddleware(
         });
 
         if (authHeader && authHeader.startsWith('Bearer ')) {
-            token = authHeader.split(' ')[1];
+            token = authHeader.substring(7).trim();
         } else if (queryToken) {
             token = queryToken;
             logger.info('🔑 [Auth] Using query parameter token');
@@ -84,10 +86,10 @@ export async function authMiddleware(
                 res.setHeader('Connection', 'keep-alive');
                 res.setHeader('X-Accel-Buffering', 'no');
                 res.flushHeaders();
-                
+
                 // Preamble for proxy buffer bypass
                 res.write(':' + ' '.repeat(1024) + '\n\n');
-                
+
                 // Send as regular data message (not named event)
                 res.write(`data: ${JSON.stringify({
                     type: 'error',
@@ -95,7 +97,7 @@ export async function authMiddleware(
                     code: 'UNAUTHORIZED',
                     isAuthError: true
                 })}\n\n`);
-                
+
                 if ((res as any).flush) (res as any).flush();
                 res.end();
             } else {
@@ -148,17 +150,17 @@ export async function authMiddleware(
                 res.setHeader('Cache-Control', 'no-cache');
                 res.setHeader('X-Accel-Buffering', 'no');
                 res.flushHeaders();
-                
+
                 // Preamble for proxy buffer bypass
                 res.write(':' + ' '.repeat(1024) + '\n\n');
-                
+
                 res.write(`data: ${JSON.stringify({
                     type: 'error',
                     error: 'Authentication failed',
                     code: 'AUTH_FAILED',
                     details: clerkError.message
                 })}\n\n`);
-                
+
                 if ((res as any).flush) (res as any).flush();
                 res.end();
             } else {

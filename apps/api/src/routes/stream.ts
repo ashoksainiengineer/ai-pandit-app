@@ -80,10 +80,10 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('X-Accel-Buffering', 'no');
-            res.flushHeaders();
+            if (typeof (res as any).flushHeaders === 'function') (res as any).flushHeaders();
             res.write(': ping\n\n');
             sendEvent(res, { type: 'error', error: 'Session not found', code: 'NOT_FOUND' });
-            if ((res as any).flush) (res as any).flush();
+            if (typeof (res as any).flush === 'function') (res as any).flush();
             res.end();
             return;
         }
@@ -94,10 +94,10 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('X-Accel-Buffering', 'no');
-            res.flushHeaders();
+            if (typeof (res as any).flushHeaders === 'function') (res as any).flushHeaders();
             res.write(': ping\n\n');
             sendEvent(res, { type: 'error', error: 'Access denied', code: 'FORBIDDEN' });
-            if ((res as any).flush) (res as any).flush();
+            if (typeof (res as any).flush === 'function') (res as any).flush();
             res.end();
             return;
         }
@@ -121,11 +121,11 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
             res.setHeader('Cache-Control', 'no-cache, no-transform, no-store, must-revalidate, private');
             res.setHeader('Connection', 'keep-alive');
             res.setHeader('X-Accel-Buffering', 'no');
-            res.flushHeaders();
+            if (typeof (res as any).flushHeaders === 'function') (res as any).flushHeaders();
 
             // Send preamble to ensure event is delivered through proxies
             res.write(':' + ' '.repeat(1024) + '\n\n');
-            if ((res as any).flush) (res as any).flush();
+            if (typeof (res as any).flush === 'function') (res as any).flush();
 
             sendEvent(res, {
                 type: 'terminal_state',
@@ -136,12 +136,12 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
                 errorMessage: session[0].errorMessage || undefined,
             });
 
-            // Flush before closing
-            if ((res as any).flush) (res as any).flush();
+            if (typeof (res as any).flush === 'function') (res as any).flush();
             res.end();
             return;
         }
     } catch (error) {
+        console.error('TEST DEBUG ERROR:', error);
         logger.error(`[SSE] Error checking session for ${sessionId}:`, error);
         res.setHeader('Content-Type', 'text/event-stream');
         sendEvent(res, { type: 'error', error: 'Internal server error', code: 'INTERNAL_ERROR' });
@@ -171,7 +171,7 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
     }
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Last-Event-ID, Authorization');
-    res.flushHeaders();
+    if (typeof (res as any).flushHeaders === 'function') (res as any).flushHeaders();
 
     logger.info(`[SSE] Headers flushed for ${sessionId}`);
 
@@ -180,7 +180,7 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
     // to ensure real-time delivery of the next events.
     res.write(':' + ' '.repeat(2048) + '\n\n');
 
-    if ((res as any).flush) (res as any).flush();
+    if (typeof (res as any).flush === 'function') (res as any).flush();
     logger.info(`[SSE] 2KB Preamble sent for ${sessionId}`);
 
     // Send initial connection event
@@ -342,7 +342,7 @@ function sendEvent(res: Response, data: unknown): void {
         res.write(`data: ${jsonData}\n\n`);
 
         // Aggressive flush for real-time tokens
-        if ((res as any).flush) {
+        if (typeof (res as any).flush === 'function') {
             (res as any).flush();
         }
     } catch (error) {

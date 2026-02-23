@@ -173,14 +173,57 @@ We are in the terminal varga zones. We are hunting exact D60 / D150 alignments.
 
 ════════════════════════════════════════════════════════════════════════════════
 
-    TASK: Rank ${candidates.length} candidates using your EXPERT ASTROLOGICAL JUDGMENT.
-    
-    For EACH candidate, you MUST:
-    1. Calculate score for EACH method (0-100)
-    2. Apply YOUR chosen weights (can differ per candidate!)
-    3. Provide reasoning for weight adjustments (CRITICAL: You MUST explicitly reference the user's "SITUATIONAL NARRATIVE & EXPERIENCE" to show how the planetary geometry caused their specific life event experience).
-    4. Give final weighted score
+    TASK: Execution of the 'Astrological Forensic Tournament' for ${candidates.length} candidates.
 
+## Step 1: Current Case Analysis
+- Application of Bio-Vedic Context: @ForensicTraits
+- Event Importance Matrix: @UserEvents
+- Narrative Integrity Check: @SituationalNarrative
+
+## Step 2: Implementation of Technical Audit
+Implement the following 10-step forensic audit for EACH candidate:
+
+1. **Lagna & Element Verification**
+   - Correlate Ascendant element with @ForensicTraits (Physical/Temperamental DNA).
+   - Verify if Lagna Lord's strength supports the user's vitality narrative.
+
+2. **D1 Planetary Matrix Audit**
+   - Assess planetary dignity (Exaltation/Debilitation) for all major planets.
+   - Map 6/8/12 house activations against the "flavor" of life events.
+
+3. **Vimshottari Dasha Chronology**
+   - Link MD-AD-PD periods to major lifecycle markers.
+   - Verify if the "Lord of the Period" has a functional relationship with the event house.
+
+4. **Varga (Navamsa/Dasamsa) Cross-Check**
+   - Scrutinize D9 for marriage/relationship narratives.
+   - Audit D10 for professional peaks and career transitions.
+
+5. **Micro-Precision (D60/Nadi) Assessment**
+   - Evaluate D60 deities for "Karmic Weight" on critical events.
+   - Check Nadi Amsha shifts for seconds-level resolution if offset is tight.
+
+6. **Transit & Double-Transit Verification**
+   - Confirm Jupiter/Saturn transits confirm major life shifts.
+   - Apply 'Mahakala Precision' for current present-day anchors.
+
+7. **Vedic High-Signals Audit**
+   - Verify Pushkar, Vargottama, and Parivartana strengths.
+   - Run Tattwa Shuddhi check for biological alignment.
+
+8. **Pancha-Pakshi & Shadbala Context**
+   - Use 'Ruling Bird' behavior to verify birth time quality.
+   - Adjust weights based on total Shadbala strength.
+
+9. **Macro/Meso/Micro Protocol Application**
+   - Apply specific rules for the current offset (±${offsetMinutes} mins).
+   - Penalize mathematical noise in micro-charts for large offsets.
+
+10. **Final Score Aggregation & Verification**
+    - Compile weighted scores based on method reliability.
+    - Select survivors for the next precision stage.
+
+════════════════════════════════════════════════════════════════════════════════
 LIFE EVENTS:
 ${eventsText}
 
@@ -297,7 +340,7 @@ For EACH candidate, provide THIS EXACT FORMAT for your working:
 │ KEY REASON: [One-line astrological reason]                                   │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-For EACH candidate analysis, your reasoning must be detailed and follow a structured format. 
+For EACH candidate analysis, your reasoning must be detailed and follow a structured format based on the 10-step audit. 
 
 📢 **IMPORTANT UI RENDERING RULE**: 
 Wrap your detailed reasoning/analysis for EACH candidate inside a markdown code block (\`\`\`) to ensure it renders correctly in the technical dashboard.

@@ -8,12 +8,12 @@ export const PlanetDataSchema = z.object({
 }).passthrough();
 
 export const VimshottariDashaEntrySchema = z.object({
-    maha: z.string(),
-    antar: z.string(),
-    pratyantar: z.string(),
-    sukshma: z.string(),
-    prana: z.string(),
-    startEnd: z.string(),
+    maha: z.string().min(1),
+    antar: z.string().min(1),
+    pratyantar: z.string().min(1),
+    sukshma: z.string().min(1),
+    prana: z.string().min(1),
+    startEnd: z.string().min(1),
 });
 
 // ZERO-TRUST Transit Validation

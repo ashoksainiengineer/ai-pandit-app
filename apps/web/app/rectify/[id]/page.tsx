@@ -559,16 +559,27 @@ export default function AnalysisPage() {
                       const stepDef = allSteps[stageNum] || { id: `stage-${stageNum}`, name: `Stage ${stageNum}` };
 
                       // 🔱 God-Tier Filtering: Distinguish between AI Reasoning and Structural Calculus
-                      const isAIStage = [2, 4, 6].includes(stageNum);
+                      // 🔱 God-Tier: All stages from Batch Tournament onwards are AI-driven
+                      const isAIStage = [2, 3, 4, 5, 6].includes(stageNum);
 
                       // Skip rendering future stages that haven't started and have no data
                       if (candidateCount === 0 && !isCurrentStage && !isStageCompleted) return null;
 
                       return (
-                        <div key={stepDef.id} className="mb-8 last:mb-0 border-l-2 border-stone-100 pl-4 sm:pl-6 py-2">
+                        <div
+                          key={stepDef.id}
+                          className={`mb-12 last:mb-0 border-l-2 pl-4 sm:pl-6 py-2 transition-colors duration-500 relative
+                            ${isCurrentStage ? 'border-amber-200 bg-amber-50/5' : 'border-stone-100'}
+                          `}
+                          style={{ contain: 'paint', minHeight: isCurrentStage ? '400px' : 'auto' }}
+                        >
                           <div className="flex items-center gap-2 mb-4 -ml-7 sm:-ml-9">
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-colors duration-500 ${isCurrentStage ? 'bg-amber-500 border-amber-200 text-white animate-pulse' :
-                              isStageCompleted ? 'bg-[#2D7A5C] border-[#2D7A5C]/20 text-white' : 'bg-white border-stone-200 text-stone-400'
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border-2 transition-all duration-500
+                              ${isCurrentStage
+                                ? 'bg-amber-500 border-amber-200 text-white shadow-sm ring-4 ring-amber-500/10'
+                                : isStageCompleted
+                                  ? 'bg-[#2D7A5C] border-[#2D7A5C]/20 text-white'
+                                  : 'bg-white border-stone-200 text-stone-400'
                               }`}>
                               {stageNum}
                             </div>

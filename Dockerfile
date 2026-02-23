@@ -34,22 +34,28 @@ RUN npx turbo run build --filter=@ai-pandit/api...
 FROM base AS runner
 WORKDIR /app
 
+# Hardening: Run as non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nodejs
+USER nodejs
+
 ENV NODE_ENV=production
 ENV PORT=7860
-ENV CACHE_BUST=2026-02-22-T16-52
+ENV CACHE_BUST=2026-02-23-T15-00
 ENV SWISSEPH_PATH=/app/ephe
 
-# Install minimal runtime dependencies for Swiss Eph WASM/Node
-RUN apk add --no-cache libstdc++ libgcc
-
-# Ephemeris Data
+# Ephemeris Data (Restricted Permissions)
 RUN mkdir -p /app/ephe
-COPY ephe/* /app/ephe/
+COPY --chown=nodejs:nodejs ephe/* /app/ephe/
 
-# Copy the built application
-COPY --from=builder /app/ .
+# Copy the built application with proper ownership
+COPY --from=builder --chown=nodejs:nodejs /app/ .
 
 EXPOSE 7860
+
+# Health check integration
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD node -e "fetch('http://localhost:7860/api/health').then(r => r.ok ? process.exit(0) : process.exit(1))"
 
 # Start the backend engine
 CMD ["node", "apps/api/dist/server.js"]

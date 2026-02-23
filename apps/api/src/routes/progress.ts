@@ -102,7 +102,7 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
         // Include session metadata for frontend "Blueprint" display
         metadata: {
             fullName: parseSensitiveField(queueStatus.session?.fullName, clerkId, internalUserId!),
-            dateOfBirth: queueStatus.session?.dateOfBirth,
+            dateOfBirth: parseSensitiveField(queueStatus.session?.dateOfBirth, clerkId, internalUserId!),
             tentativeTime: queueStatus.session?.tentativeTime,
             birthPlace: queueStatus.session?.birthPlace,
             offsetConfig: parseSensitiveField(queueStatus.session?.offsetConfig, clerkId, internalUserId!),

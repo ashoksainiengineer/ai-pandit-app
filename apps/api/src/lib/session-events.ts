@@ -160,11 +160,15 @@ class SessionEventManager {
      * Append to calculation log buffer (Keep last 50)
      */
     appendToCalculationBuffer(sessionId: string, log: CalculationLogEvent): void {
+        this.touch(sessionId);
         if (!this.calculationLogBuffers.has(sessionId)) {
             this.calculationLogBuffers.set(sessionId, []);
         }
         const buffer = this.calculationLogBuffers.get(sessionId)!;
         buffer.push(log);
+        if (buffer.length > 50) {
+            buffer.shift();
+        }
     }
 
     /**
@@ -193,7 +197,12 @@ class SessionEventManager {
         if (!this.decisionBuffers.has(sessionId)) {
             this.decisionBuffers.set(sessionId, []);
         }
-        this.decisionBuffers.get(sessionId)!.push(decision);
+        const buffer = this.decisionBuffers.get(sessionId)!;
+        buffer.push(decision);
+        // Limit to last 200 decisions to prevent unbounded memory growth
+        if (buffer.length > 200) {
+            buffer.shift();
+        }
     }
 
     /**

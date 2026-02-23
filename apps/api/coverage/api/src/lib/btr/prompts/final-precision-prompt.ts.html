@@ -1,0 +1,1018 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for api/src/lib/btr/prompts/final-precision-prompt.ts</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../../../prettify.css" />
+    <link rel="stylesheet" href="../../../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../../../../index.html">All files</a> / <a href="index.html">api/src/lib/btr/prompts</a> final-precision-prompt.ts</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/311</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/311</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a>
+<a name='L122'></a><a href='#L122'>122</a>
+<a name='L123'></a><a href='#L123'>123</a>
+<a name='L124'></a><a href='#L124'>124</a>
+<a name='L125'></a><a href='#L125'>125</a>
+<a name='L126'></a><a href='#L126'>126</a>
+<a name='L127'></a><a href='#L127'>127</a>
+<a name='L128'></a><a href='#L128'>128</a>
+<a name='L129'></a><a href='#L129'>129</a>
+<a name='L130'></a><a href='#L130'>130</a>
+<a name='L131'></a><a href='#L131'>131</a>
+<a name='L132'></a><a href='#L132'>132</a>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a>
+<a name='L136'></a><a href='#L136'>136</a>
+<a name='L137'></a><a href='#L137'>137</a>
+<a name='L138'></a><a href='#L138'>138</a>
+<a name='L139'></a><a href='#L139'>139</a>
+<a name='L140'></a><a href='#L140'>140</a>
+<a name='L141'></a><a href='#L141'>141</a>
+<a name='L142'></a><a href='#L142'>142</a>
+<a name='L143'></a><a href='#L143'>143</a>
+<a name='L144'></a><a href='#L144'>144</a>
+<a name='L145'></a><a href='#L145'>145</a>
+<a name='L146'></a><a href='#L146'>146</a>
+<a name='L147'></a><a href='#L147'>147</a>
+<a name='L148'></a><a href='#L148'>148</a>
+<a name='L149'></a><a href='#L149'>149</a>
+<a name='L150'></a><a href='#L150'>150</a>
+<a name='L151'></a><a href='#L151'>151</a>
+<a name='L152'></a><a href='#L152'>152</a>
+<a name='L153'></a><a href='#L153'>153</a>
+<a name='L154'></a><a href='#L154'>154</a>
+<a name='L155'></a><a href='#L155'>155</a>
+<a name='L156'></a><a href='#L156'>156</a>
+<a name='L157'></a><a href='#L157'>157</a>
+<a name='L158'></a><a href='#L158'>158</a>
+<a name='L159'></a><a href='#L159'>159</a>
+<a name='L160'></a><a href='#L160'>160</a>
+<a name='L161'></a><a href='#L161'>161</a>
+<a name='L162'></a><a href='#L162'>162</a>
+<a name='L163'></a><a href='#L163'>163</a>
+<a name='L164'></a><a href='#L164'>164</a>
+<a name='L165'></a><a href='#L165'>165</a>
+<a name='L166'></a><a href='#L166'>166</a>
+<a name='L167'></a><a href='#L167'>167</a>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a>
+<a name='L171'></a><a href='#L171'>171</a>
+<a name='L172'></a><a href='#L172'>172</a>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a>
+<a name='L184'></a><a href='#L184'>184</a>
+<a name='L185'></a><a href='#L185'>185</a>
+<a name='L186'></a><a href='#L186'>186</a>
+<a name='L187'></a><a href='#L187'>187</a>
+<a name='L188'></a><a href='#L188'>188</a>
+<a name='L189'></a><a href='#L189'>189</a>
+<a name='L190'></a><a href='#L190'>190</a>
+<a name='L191'></a><a href='#L191'>191</a>
+<a name='L192'></a><a href='#L192'>192</a>
+<a name='L193'></a><a href='#L193'>193</a>
+<a name='L194'></a><a href='#L194'>194</a>
+<a name='L195'></a><a href='#L195'>195</a>
+<a name='L196'></a><a href='#L196'>196</a>
+<a name='L197'></a><a href='#L197'>197</a>
+<a name='L198'></a><a href='#L198'>198</a>
+<a name='L199'></a><a href='#L199'>199</a>
+<a name='L200'></a><a href='#L200'>200</a>
+<a name='L201'></a><a href='#L201'>201</a>
+<a name='L202'></a><a href='#L202'>202</a>
+<a name='L203'></a><a href='#L203'>203</a>
+<a name='L204'></a><a href='#L204'>204</a>
+<a name='L205'></a><a href='#L205'>205</a>
+<a name='L206'></a><a href='#L206'>206</a>
+<a name='L207'></a><a href='#L207'>207</a>
+<a name='L208'></a><a href='#L208'>208</a>
+<a name='L209'></a><a href='#L209'>209</a>
+<a name='L210'></a><a href='#L210'>210</a>
+<a name='L211'></a><a href='#L211'>211</a>
+<a name='L212'></a><a href='#L212'>212</a>
+<a name='L213'></a><a href='#L213'>213</a>
+<a name='L214'></a><a href='#L214'>214</a>
+<a name='L215'></a><a href='#L215'>215</a>
+<a name='L216'></a><a href='#L216'>216</a>
+<a name='L217'></a><a href='#L217'>217</a>
+<a name='L218'></a><a href='#L218'>218</a>
+<a name='L219'></a><a href='#L219'>219</a>
+<a name='L220'></a><a href='#L220'>220</a>
+<a name='L221'></a><a href='#L221'>221</a>
+<a name='L222'></a><a href='#L222'>222</a>
+<a name='L223'></a><a href='#L223'>223</a>
+<a name='L224'></a><a href='#L224'>224</a>
+<a name='L225'></a><a href='#L225'>225</a>
+<a name='L226'></a><a href='#L226'>226</a>
+<a name='L227'></a><a href='#L227'>227</a>
+<a name='L228'></a><a href='#L228'>228</a>
+<a name='L229'></a><a href='#L229'>229</a>
+<a name='L230'></a><a href='#L230'>230</a>
+<a name='L231'></a><a href='#L231'>231</a>
+<a name='L232'></a><a href='#L232'>232</a>
+<a name='L233'></a><a href='#L233'>233</a>
+<a name='L234'></a><a href='#L234'>234</a>
+<a name='L235'></a><a href='#L235'>235</a>
+<a name='L236'></a><a href='#L236'>236</a>
+<a name='L237'></a><a href='#L237'>237</a>
+<a name='L238'></a><a href='#L238'>238</a>
+<a name='L239'></a><a href='#L239'>239</a>
+<a name='L240'></a><a href='#L240'>240</a>
+<a name='L241'></a><a href='#L241'>241</a>
+<a name='L242'></a><a href='#L242'>242</a>
+<a name='L243'></a><a href='#L243'>243</a>
+<a name='L244'></a><a href='#L244'>244</a>
+<a name='L245'></a><a href='#L245'>245</a>
+<a name='L246'></a><a href='#L246'>246</a>
+<a name='L247'></a><a href='#L247'>247</a>
+<a name='L248'></a><a href='#L248'>248</a>
+<a name='L249'></a><a href='#L249'>249</a>
+<a name='L250'></a><a href='#L250'>250</a>
+<a name='L251'></a><a href='#L251'>251</a>
+<a name='L252'></a><a href='#L252'>252</a>
+<a name='L253'></a><a href='#L253'>253</a>
+<a name='L254'></a><a href='#L254'>254</a>
+<a name='L255'></a><a href='#L255'>255</a>
+<a name='L256'></a><a href='#L256'>256</a>
+<a name='L257'></a><a href='#L257'>257</a>
+<a name='L258'></a><a href='#L258'>258</a>
+<a name='L259'></a><a href='#L259'>259</a>
+<a name='L260'></a><a href='#L260'>260</a>
+<a name='L261'></a><a href='#L261'>261</a>
+<a name='L262'></a><a href='#L262'>262</a>
+<a name='L263'></a><a href='#L263'>263</a>
+<a name='L264'></a><a href='#L264'>264</a>
+<a name='L265'></a><a href='#L265'>265</a>
+<a name='L266'></a><a href='#L266'>266</a>
+<a name='L267'></a><a href='#L267'>267</a>
+<a name='L268'></a><a href='#L268'>268</a>
+<a name='L269'></a><a href='#L269'>269</a>
+<a name='L270'></a><a href='#L270'>270</a>
+<a name='L271'></a><a href='#L271'>271</a>
+<a name='L272'></a><a href='#L272'>272</a>
+<a name='L273'></a><a href='#L273'>273</a>
+<a name='L274'></a><a href='#L274'>274</a>
+<a name='L275'></a><a href='#L275'>275</a>
+<a name='L276'></a><a href='#L276'>276</a>
+<a name='L277'></a><a href='#L277'>277</a>
+<a name='L278'></a><a href='#L278'>278</a>
+<a name='L279'></a><a href='#L279'>279</a>
+<a name='L280'></a><a href='#L280'>280</a>
+<a name='L281'></a><a href='#L281'>281</a>
+<a name='L282'></a><a href='#L282'>282</a>
+<a name='L283'></a><a href='#L283'>283</a>
+<a name='L284'></a><a href='#L284'>284</a>
+<a name='L285'></a><a href='#L285'>285</a>
+<a name='L286'></a><a href='#L286'>286</a>
+<a name='L287'></a><a href='#L287'>287</a>
+<a name='L288'></a><a href='#L288'>288</a>
+<a name='L289'></a><a href='#L289'>289</a>
+<a name='L290'></a><a href='#L290'>290</a>
+<a name='L291'></a><a href='#L291'>291</a>
+<a name='L292'></a><a href='#L292'>292</a>
+<a name='L293'></a><a href='#L293'>293</a>
+<a name='L294'></a><a href='#L294'>294</a>
+<a name='L295'></a><a href='#L295'>295</a>
+<a name='L296'></a><a href='#L296'>296</a>
+<a name='L297'></a><a href='#L297'>297</a>
+<a name='L298'></a><a href='#L298'>298</a>
+<a name='L299'></a><a href='#L299'>299</a>
+<a name='L300'></a><a href='#L300'>300</a>
+<a name='L301'></a><a href='#L301'>301</a>
+<a name='L302'></a><a href='#L302'>302</a>
+<a name='L303'></a><a href='#L303'>303</a>
+<a name='L304'></a><a href='#L304'>304</a>
+<a name='L305'></a><a href='#L305'>305</a>
+<a name='L306'></a><a href='#L306'>306</a>
+<a name='L307'></a><a href='#L307'>307</a>
+<a name='L308'></a><a href='#L308'>308</a>
+<a name='L309'></a><a href='#L309'>309</a>
+<a name='L310'></a><a href='#L310'>310</a>
+<a name='L311'></a><a href='#L311'>311</a>
+<a name='L312'></a><a href='#L312'>312</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >/**<span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ></span></span></span>
+<span class="cstat-no" title="statement not covered" > * Final Precision Prompt Generator</span>
+<span class="cstat-no" title="statement not covered" > *</span>
+<span class="cstat-no" title="statement not covered" > * Generates AI prompts for Stage 6 final seconds-level precision judgment.</span>
+<span class="cstat-no" title="statement not covered" > * Creates the ultimate forensic prompt for selecting the single best birth time.</span>
+<span class="cstat-no" title="statement not covered" > * </span>
+<span class="cstat-no" title="statement not covered" > * 🔱 AI-DRIVEN FLEXIBLE WEIGHTING SYSTEM:</span>
+<span class="cstat-no" title="statement not covered" > * AI has FULL FREEDOM to adjust weights for SECONDS-LEVEL precision.</span>
+<span class="cstat-no" title="statement not covered" > */</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >import { CandidateDataPackage } from '@ai-pandit/shared';</span>
+<span class="cstat-no" title="statement not covered" >import { LifeEvent, ForensicTraits } from '@ai-pandit/shared';</span>
+<span class="cstat-no" title="statement not covered" >import { formatLifeEventForAI } from './life-event-formatter.js';</span>
+<span class="cstat-no" title="statement not covered" >import { buildForensicDNASummary } from './forensic-context.js';</span>
+<span class="cstat-no" title="statement not covered" >import { randomSort } from '../../utils/index.js';</span>
+<span class="cstat-no" title="statement not covered" >import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';</span>
+<span class="cstat-no" title="statement not covered" >import { logger } from '../../logger.js';</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >/**</span>
+<span class="cstat-no" title="statement not covered" > * Get event importance summary for AI</span>
+<span class="cstat-no" title="statement not covered" > */</span>
+<span class="cstat-no" title="statement not covered" >function getEventImportanceSummary(events: LifeEvent[]): string {</span>
+<span class="cstat-no" title="statement not covered" >  const critical = events.filter(e =&gt; e.importance === 'critical');</span>
+<span class="cstat-no" title="statement not covered" >  const high = events.filter(e =&gt; e.importance === 'high');</span>
+<span class="cstat-no" title="statement not covered" >  const medium = events.filter(e =&gt; e.importance === 'medium');</span>
+<span class="cstat-no" title="statement not covered" >  const low = events.filter(e =&gt; e.importance === 'low');</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >  let summary = '';</span>
+<span class="cstat-no" title="statement not covered" >  if (critical.length &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >    summary += `CRITICAL (${critical.length}): ${critical.map(e =&gt; e.eventType).join(', ')}\n`;</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+<span class="cstat-no" title="statement not covered" >  if (high.length &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >    summary += `HIGH (${high.length}): ${high.map(e =&gt; e.eventType).join(', ')}\n`;</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+<span class="cstat-no" title="statement not covered" >  if (medium.length &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >    summary += `MEDIUM (${medium.length}): ${medium.map(e =&gt; e.eventType).join(', ')}\n`;</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+<span class="cstat-no" title="statement not covered" >  if (low.length &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >    summary += `LOW (${low.length}): ${low.map(e =&gt; e.eventType).join(', ')}`;</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+<span class="cstat-no" title="statement not covered" >  return summary;</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >/**</span>
+<span class="cstat-no" title="statement not covered" > * Generates final precision prompt for Stage 6</span>
+<span class="cstat-no" title="statement not covered" > *</span>
+<span class="cstat-no" title="statement not covered" > * @param candidates - Finalist candidate data packages</span>
+<span class="cstat-no" title="statement not covered" > * @param events - User's life events</span>
+<span class="cstat-no" title="statement not covered" > * @param forensicTraits - User's forensic traits</span>
+<span class="cstat-no" title="statement not covered" > * @param spouseData - Optional spouse data for synastry</span>
+<span class="cstat-no" title="statement not covered" > * @param currentTransits - Optional present-day transit data</span>
+<span class="cstat-no" title="statement not covered" > * @returns Complete AI prompt string for final judgment</span>
+<span class="cstat-no" title="statement not covered" > */</span>
+<span class="cstat-no" title="statement not covered" >export function getFinalPrecisionPrompt(</span>
+<span class="cstat-no" title="statement not covered" >  candidates: CandidateDataPackage[],</span>
+<span class="cstat-no" title="statement not covered" >  events: LifeEvent[],</span>
+<span class="cstat-no" title="statement not covered" >  forensicTraits: ForensicTraits,</span>
+<span class="cstat-no" title="statement not covered" >  spouseData: unknown,</span>
+<span class="cstat-no" title="statement not covered" >  currentTransits?: unknown</span>
+<span class="cstat-no" title="statement not covered" >): string {</span>
+<span class="cstat-no" title="statement not covered" >  // 🛡️ ZERO-TRUST VALIDATION GATE</span>
+<span class="cstat-no" title="statement not covered" >  candidates.filter(c =&gt; c.time).forEach(c =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    try {</span>
+<span class="cstat-no" title="statement not covered" >      validateCandidateDataForAI(c);</span>
+<span class="cstat-no" title="statement not covered" >    } catch (err: any) {</span>
+<span class="cstat-no" title="statement not covered" >      if (err.errors) {</span>
+<span class="cstat-no" title="statement not covered" >        logger.error(`[VALIDATION-GATE] Candidate ${c.time} failed Zod schema validation:`, JSON.stringify(err.errors));</span>
+<span class="cstat-no" title="statement not covered" >      } else {</span>
+<span class="cstat-no" title="statement not covered" >        logger.error(`[VALIDATION-GATE] Candidate ${c.time} failed validation:`, err);</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" >      throw new Error(`Data Pipeline Contract Violation: Candidate ${c.time} is missing required data for AI analysis.`);</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+<span class="cstat-no" title="statement not covered" >  });</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >  const eventsText = events.map(formatLifeEventForAI).join('\n');</span>
+<span class="cstat-no" title="statement not covered" >  const spouseText = spouseData ? JSON.stringify(spouseData, null, 2) : 'N/A';</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >  const forensicDNA = buildForensicDNASummary(forensicTraits);</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >  // Anti-bias: Final shuffling</span>
+<span class="cstat-no" title="statement not covered" >  const shuffledCandidates = randomSort(candidates);</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >  const transitData = currentTransits as {</span>
+<span class="cstat-no" title="statement not covered" >    dashaAtNow?: string;</span>
+<span class="cstat-no" title="statement not covered" >    jupiter?: string;</span>
+<span class="cstat-no" title="statement not covered" >    saturn?: string;</span>
+<span class="cstat-no" title="statement not covered" >    rahu?: string;</span>
+<span class="cstat-no" title="statement not covered" >  } | undefined;</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >  return `BIRTH TIME RECTIFICATION - FINAL STAGE (Seconds Precision)</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >════════════════════════════════════════════════════════════════════════════════</span>
+<span class="cstat-no" title="statement not covered" >🎯 AI-DRIVEN FLEXIBLE SCORING - FINAL SECONDS PRECISION</span>
+<span class="cstat-no" title="statement not covered" >════════════════════════════════════════════════════════════════════════════════</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >YOU HAVE FULL FREEDOM TO ADJUST WEIGHTS! This is the FINAL judgment - be precise:</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >┌─────────────────────────────────────────────────────────────────────────────┐</span>
+<span class="cstat-no" title="statement not covered" >│  METHOD          │ REFERENCE │  PRECISION    │ FINAL STAGE FOCUS          │</span>
+<span class="cstat-no" title="statement not covered" >│                  │  WEIGHT   │               │                            │</span>
+<span class="cstat-no" title="statement not covered" >├──────────────────┼───────────┼───────────────┼────────────────────────────┤</span>
+<span class="cstat-no" title="statement not covered" >│  D150 Nadi       │   2.5     │  48 seconds   │ CRITICAL for seconds!      │</span>
+<span class="cstat-no" title="statement not covered" >│  KP Sub-Lord     │   2.3     │  seconds      │ 4-level precision          │</span>
+<span class="cstat-no" title="statement not covered" >│  Vimshottari     │   2.0     │  hours        │ Prana Dasha level          │</span>
+<span class="cstat-no" title="statement not covered" >│  Varga (D60)     │   1.8     │  2 minutes    │ Karma Lagna changes        │</span>
+<span class="cstat-no" title="statement not covered" >│  Transit         │   1.5     │  days         │ Final verification         │</span>
+<span class="cstat-no" title="statement not covered" >│  Kalachakra      │   1.3     │  days         │ Cross-check                │</span>
+<span class="cstat-no" title="statement not covered" >│  Shadbala        │   1.0     │  N/A          │ Strength context           │</span>
+<span class="cstat-no" title="statement not covered" >└─────────────────────────────────────────────────────────────────────────────┘</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >⚠️ FOR SECONDS PRECISION - FOCUS ON:</span>
+<span class="cstat-no" title="statement not covered" >• D150 Nadi Amsha - Changes every 48 seconds!</span>
+<span class="cstat-no" title="statement not covered" >• KP Sub-Sub-Sub-Lord - 4th level precision</span>
+<span class="cstat-no" title="statement not covered" >• Vimshottari Prana Dasha - Hour-level refinement</span>
+<span class="cstat-no" title="statement not covered" >• D60 Lagna - Changes every 2 minutes</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >════════════════════════════════════════════════════════════════════════════════</span>
+<span class="cstat-no" title="statement not covered" >📊 USER'S EVENT IMPORTANCE SELECTIONS</span>
+<span class="cstat-no" title="statement not covered" >════════════════════════════════════════════════════════════════════════════════</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >${getEventImportanceSummary(events)}</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >════════════════════════════════════════════════════════════════════════════════</span>
+<span class="cstat-no" title="statement not covered" >⚖️ FINAL JUDGMENT RULES</span>
+<span class="cstat-no" title="statement not covered" >════════════════════════════════════════════════════════════════════════════════</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >1. TOTAL NEUTRALITY: You are a cold, mathematical evaluator.</span>
+<span class="cstat-no" title="statement not covered" >2. NO POSITIONAL BIAS: Candidate #1 is NOT more likely than Candidate #N.</span>
+<span class="cstat-no" title="statement not covered" >3. MANDATORY PROOF: Every score must be backed by technical proof.</span>
+<span class="cstat-no" title="statement not covered" >4. FOCUS ON D60: Even 10 seconds can change D60 Lagna!</span>
+<span class="cstat-no" title="statement not covered" >5. NADI AMSHA (D150): Changes every 48 seconds - THIS IS THE KEY!</span>
+<span class="cstat-no" title="statement not covered" >6. BIO-VEDIC LOCK: Time must match Life Events + Forensic DNA + Family Karma.</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >════════════════════════════════════════════════════════════════════════════════</span>
+<span class="cstat-no" title="statement not covered" >════════════════════════════════════════════════════════════════════════════════</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >    TASK: Solve the Bio-Vedic Identity Matrix. Select THE SINGLE BEST birth time from ${shuffledCandidates.length} finalists.</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >## Step 1: Criminal-Level Forensic Correlation</span>
+<span class="cstat-no" title="statement not covered" >- DNA Signature Matching: @ForensicTraits (Physical + Biological)</span>
+<span class="cstat-no" title="statement not covered" >- Alibi Verification: @UserEvents (Narrative Integrity)</span>
+<span class="cstat-no" title="statement not covered" >- Family Witness Matrix: @ForensicTraits.family</span>
+<span class="cstat-no" title="statement not covered" >- Bio-Vedic Lock Status: @CurrentTransits</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >## Step 2: Final Judgment Logic</span>
+<span class="cstat-no" title="statement not covered" >Execute the following 10-step final judgment sequence:</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >1. **Micro-Chart Boundary Lock (D60/D150)**</span>
+<span class="cstat-no" title="statement not covered" >   - Analyze Nadi Amsha shifts (every 48 seconds).</span>
+<span class="cstat-no" title="statement not covered" >   - Match D60 Lagna deity to life-defining traumatic/spiritual events.</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >2. **Vimshottari Prana Dasha Audit**</span>
+<span class="cstat-no" title="statement not covered" >   - Scrutinize the hour-level Prana Dasha for the most critical user-weighted event.</span>
+<span class="cstat-no" title="statement not covered" >   - Verify if the lord of the micro-period has a direct 'Mahakala signature'.</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >3. **Cuspal (KP) 4th Level Precision**</span>
+<span class="cstat-no" title="statement not covered" >   - Audit Sub-Sub-Sub-Lord positions.</span>
+<span class="cstat-no" title="statement not covered" >   - Verify alignment with seconds-level forensic traits.</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >4. **Tattwa Shuddhi &amp; Mahakala Anchor**</span>
+<span class="cstat-no" title="statement not covered" >   - Verify if the exact second of birth aligns with the biological element (Fire/Earth/Air/Water).</span>
+<span class="cstat-no" title="statement not covered" >   - Check 'Kunda Lagna' matches Moon position for structural integrity.</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >5. **Spouse/Synastry Final Proof**</span>
+<span class="cstat-no" title="statement not covered" >   - Apply final 'Spouse D9 Verification' score.</span>
+<span class="cstat-no" title="statement not covered" >   - Mismatch on Synastry is grounds for immediate elimination.</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >6. **Gandanta Boundary Check**</span>
+<span class="cstat-no" title="statement not covered" >   - If candidate is in a 'Gandanta' (Karmic Knot), verify if the user's life reflects this intense energy.</span>
+<span class="cstat-no" title="statement not covered" >   - Distance to Gandanta must match the severity of childhood events.</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >7. **Pancha-Pakshi Final Verification**</span>
+<span class="cstat-no" title="statement not covered" >   - Confirm 'Ruling Bird' modality matches the user's present-day success/failure cycles.</span>
+<span class="cstat-no" title="statement not covered" >   - High-strength bird is required for high-accuracy verdicts.</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >8. **Chronology &amp; Narrative Ingress**</span>
+<span class="cstat-no" title="statement not covered" >   - Map exact sign ingresses of Saturn/Jupiter to the user's lifecycle shifts.</span>
+<span class="cstat-no" title="statement not covered" >   - Narrative flavor must match planetary dignity at the exact transition point.</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >9. **Total Neutrality &amp; Anti-Bias Final Scrub**</span>
+<span class="cstat-no" title="statement not covered" >   - Perform a "Cold Audit" ignoring all previous stage rankings.</span>
+<span class="cstat-no" title="statement not covered" >   - Penalize any candidate relying on 'hallucinated' or interpolated data.</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >10. **Final Verdict Generation**</span>
+<span class="cstat-no" title="statement not covered" >    - Output the single best birth time with confidence and margin of error.</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >════════════════════════════════════════════════════════════════════════════════</span>
+<span class="cstat-no" title="statement not covered" >USER FORENSIC DOSSIER:</span>
+<span class="cstat-no" title="statement not covered" >${forensicDNA}</span>
+<span class="cstat-no" title="statement not covered" >SPOUSE INFO: ${spouseText}</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >LIFE EVENTS:</span>
+<span class="cstat-no" title="statement not covered" >${eventsText}</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >FINALIST CANDIDATES(100 % COMPLETE MATHEMATICAL DATA):</span>
+<span class="cstat-no" title="statement not covered" >${shuffledCandidates.map((c, i) =&gt; `</span>
+<span class="cstat-no" title="statement not covered" >#${i + 1} [${c.time}]</span>
+<span class="cstat-no" title="statement not covered" >┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})</span>
+<span class="cstat-no" title="statement not covered" >├ PANCHANGA: ${c.panchanga?.tithi} | ${c.panchanga?.vara}</span>
+<span class="cstat-no" title="statement not covered" >├ ARUDHAS: AL=${c.specialPoints?.AL.sign} | UL=${c.specialPoints?.UL.sign}</span>
+<span class="cstat-no" title="statement not covered" >├ HOUSE LORDS: ${[...Array(12)].map((_, i) =&gt; `${i + 1}=${c.houseLords[i + 1]}`).join(' | ')}</span>
+<span class="cstat-no" title="statement not covered" >├ D60 (Karma Lagna): ${c.d60Sign || 'N/A'}</span>
+<span class="cstat-no" title="statement not covered" >├ PLANETARY STRENGTH MATRIX (Full Forensic Data):</span>
+<span class="cstat-no" title="statement not covered" >${Object.entries(c.planets).map(([name, p]) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    const caps = name.charAt(0).toUpperCase() + name.slice(1);</span>
+<span class="cstat-no" title="statement not covered" >    const sav = c.ashtakavarga?.SAVSigns?.[p.sign] || '?';</span>
+<span class="cstat-no" title="statement not covered" >    const avastha = p.avastha || 'Unknown';</span>
+<span class="cstat-no" title="statement not covered" >    const deity = p.d60Deity || 'Unknown';</span>
+<span class="cstat-no" title="statement not covered" >    const ikp = p.ishtaKashtaPhala ? `${p.ishtaKashtaPhala.ishta}/${p.ishtaKashtaPhala.kashta}` : '?';</span>
+<span class="cstat-no" title="statement not covered" >    const sambandha = p.compoundDignity || 'Sama';</span>
+<span class="cstat-no" title="statement not covered" >    const sh = p.shadbalaBreakdown;</span>
+<span class="cstat-no" title="statement not covered" >    const shStr = sh ? `Sum:${sh.total} (S:${sh.sthana} D:${sh.dig} K:${sh.kaala} C:${sh.cheshta})` : '?';</span>
+<span class="cstat-no" title="statement not covered" >    const aspects = p.aspects?.filter((a: any) =&gt; a.isHit).map((a: any) =&gt; `${a.type}`).join(', ') || 'None';</span>
+<span class="cstat-no" title="statement not covered" >    const statusFlags: string[] = [];</span>
+<span class="cstat-no" title="statement not covered" >    if (p.isRetro) statusFlags.push('R');</span>
+<span class="cstat-no" title="statement not covered" >    if (p.isCombust) statusFlags.push('C');</span>
+<span class="cstat-no" title="statement not covered" >    const statusStr = statusFlags.length &gt; 0 ? `[${statusFlags.join(',')}]` : '';</span>
+<span class="cstat-no" title="statement not covered" >    return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} [H${String(p.house).padEnd(2)}, ${avastha}, ${deity}, I/K:${ikp}, ${sambandha}, Sh:${shStr}, SAV:${sav}] ${statusStr} | Asp: ${aspects}`;</span>
+<span class="cstat-no" title="statement not covered" >  }).join('\n')}</span>
+<span class="cstat-no" title="statement not covered" >├ YOGAS: ${c.yogas?.map((y: any) =&gt; y.name).join(', ') || 'N/A'}</span>
+<span class="cstat-no" title="statement not covered" >├ DIVISIONAL CHARTS (Detailed Degrees):</span>
+<span class="cstat-no" title="statement not covered" >│ D9 Navamsa: Asc=${c.vargaDegrees?.D9?.Ascendant} | ${Object.entries(c.vargaDegrees?.D9 || {}).filter(([k]) =&gt; k !== 'Ascendant').map(([k, v]) =&gt; `${k.substring(0, 2)}=${v}`).join(' ')}</span>
+<span class="cstat-no" title="statement not covered" >│ D10 Dasamsa: Asc=${c.vargaDegrees?.D10?.Ascendant} | ${Object.entries(c.vargaDegrees?.D10 || {}).filter(([k]) =&gt; k !== 'Ascendant').map(([k, v]) =&gt; `${k.substring(0, 2)}=${v}`).join(' ')}</span>
+<span class="cstat-no" title="statement not covered" >│ D60 Shashtyamsa: Asc=${c.vargaDegrees?.D60?.Ascendant} | Deities=${Object.entries(c.d60Planets || {}).map(([k, v]) =&gt; `${k.substring(0, 2)}=${v.deity}`).join(' ')}</span>
+<span class="cstat-no" title="statement not covered" >│ D150 Nadi Ansha: Asc=${c.vargaDegrees?.D150?.Ascendant} | ${Object.entries(c.vargaDegrees?.D150 || {}).filter(([k]) =&gt; k !== 'Ascendant').map(([k, v]) =&gt; `${k.substring(0, 2)}=${v}`).join(' ')}</span>
+<span class="cstat-no" title="statement not covered" >├ D60 PLANETARY MATRIX:</span>
+<span class="cstat-no" title="statement not covered" >${Object.entries(c.d60Planets || {}).map(([name, data]) =&gt; `│ ${name.padEnd(7)}: ${data.sign} ${data.degree} | DEITY: ${data.deity}`).join('\n')}</span>
+<span class="cstat-no" title="statement not covered" >├ VIMSHOTTARI SEQUENCE (Forensic Accuracy):</span>
+<span class="cstat-no" title="statement not covered" >${c.vimshottariDasha.map(d =&gt; `│ ${d.maha} -&gt; ${d.antar} -&gt; ${d.pratyantar}${d.sukshma !== '-' ? ` -&gt; ${d.sukshma}` : ''}${d.prana !== '-' ? ` -&gt; ${d.prana}` : ''} : ${d.startEnd}`).join('\n')}</span>
+<span class="cstat-no" title="statement not covered" >${c.transitData ? `├ TRANSITS &amp; DASHAS ON ALL EVENTS (Full Forensic Matrix):</span>
+<span class="cstat-no" title="statement not covered" >${Object.entries(c.transitData).map(([date, t]: [string, any]) =&gt;</span>
+<span class="cstat-no" title="statement not covered" >    `│ [${date}]: Dasha=${t.dasha}</span>
+<span class="cstat-no" title="statement not covered" >│   Transits: ${Object.entries(t.planets || {}).map(([p, pos]) =&gt; `${p}:${pos}`).join(' | ')}</span>
+<span class="cstat-no" title="statement not covered" >│   Signals: ${t.signatures?.join(', ') || 'Regular Period'}`).join('\n')}` : ''}</span>
+<span class="cstat-no" title="statement not covered" >${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:</span>
+<span class="cstat-no" title="statement not covered" >│ Vargottama: ${c.vedicSignals.vargottama?.join(', ') || 'None'}</span>
+<span class="cstat-no" title="statement not covered" >│ Pushkar: ${c.vedicSignals.pushkar?.join(', ') || 'None'}</span>
+<span class="cstat-no" title="statement not covered" >│ Tatwa Shuddhi: ${c.vedicSignals.tatwa?.name} (${c.vedicSignals.tatwa?.element}) | Auspicious: ${c.vedicSignals.tatwa?.isAuspicious}</span>
+<span class="cstat-no" title="statement not covered" >│ Kunda Lagna: ${c.vedicSignals.kundaLagna?.sign} ${c.vedicSignals.kundaLagna?.degree.toFixed(2)}° | Matches Moon: ${c.vedicSignals.kundaLagna?.matchesMoon ? 'YES 🔥' : 'NO'}</span>
+<span class="cstat-no" title="statement not covered" >│ Parivartana: ${c.vedicSignals.parivartana?.map((ex: any) =&gt; `L${ex.houses[0]}↔L${ex.houses[1]}`).join(', ') || 'None'}` : ''}</span>
+<span class="cstat-no" title="statement not covered" >${c.kalachakraDasha ? `├ KALACHAKRA DASHA (Savya/Apasavya):</span>
+<span class="cstat-no" title="statement not covered" >${c.kalachakraDasha.slice(0, 12).map(k =&gt; `│ ${k.sign} (${k.lord}): ${k.startDate.toISOString().split('T')[0]} to ${k.endDate.toISOString().split('T')[0]} (${k.durationYears.toFixed(1)}y) [${k.kalachakraType}]`).join('\n')}` : ''}</span>
+<span class="cstat-no" title="statement not covered" >${c.shadbalaSummary ? `├ SHADBALA SUMMARY (6-Source Strength):</span>
+<span class="cstat-no" title="statement not covered" >│ Strongest: ${c.shadbalaSummary.strongestPlanet?.toUpperCase()} | Weakest: ${c.shadbalaSummary.weakestPlanet?.toUpperCase()} | Avg: ${c.shadbalaSummary?.averageStrength}</span>
+<span class="cstat-no" title="statement not covered" >│ Strong Benefics: ${c.shadbalaSummary.benifics?.strong?.join(', ') || 'None'} | Weak Benefics: ${c.shadbalaSummary.benifics?.weak?.join(', ') || 'None'}</span>
+<span class="cstat-no" title="statement not covered" >│ Strong Malefics: ${c.shadbalaSummary.malefics?.strong?.join(', ') || 'None'} | Weak Malefics: ${c.shadbalaSummary.malefics?.weak?.join(', ') || 'None'}` : ''}</span>
+<span class="cstat-no" title="statement not covered" >${c.nadiData ? `├ D150 NADI AMSHA (48-Second Precision DNA - THE SOUL SIGNATURE):</span>
+<span class="cstat-no" title="statement not covered" >│ Ascendant: ${c.nadiData.ascendant?.nadiName} | Deity: ${c.nadiData.ascendant?.deity} | Phala: ${c.nadiData.ascendant?.phala}</span>
+<span class="cstat-no" title="statement not covered" >│ Moon: ${c.nadiData.moon?.nadiName} | Deity: ${c.nadiData.moon?.deity} | Karmic: ${c.nadiData.moon?.karmicSignificance}</span>
+<span class="cstat-no" title="statement not covered" >│ Sun: ${c.nadiData.sun?.nadiName} | Deity: ${c.nadiData.sun?.deity}</span>
+<span class="cstat-no" title="statement not covered" >│ Time Resolution: ~${c.nadiData.ascendant?.timeResolution} seconds per Nadi shift` : ''}</span>
+<span class="cstat-no" title="statement not covered" >${c.nadiAnalysis?.length ? `├ D150 EVENT CORRELATION:</span>
+<span class="cstat-no" title="statement not covered" >${c.nadiAnalysis.map(n =&gt; `│ ${n.eventCategory}: Score ${n.overallScore}/100 (${n.confidence}) | Rec: ${n.recommendations?.join('; ')}`).join('\n')}` : ''}</span>
+<span class="cstat-no" title="statement not covered" >${c.spouseD9Verification ? `├ FINAL SPOUSE D9 VERIFICATION:</span>
+<span class="cstat-no" title="statement not covered" >│ Score: ${c.spouseD9Verification.score}/100 | Verified: ${c.spouseD9Verification.verified ? 'YES ✓' : 'NO ✗'} | Confidence: ${c.spouseD9Verification.confidence?.toUpperCase()}</span>
+<span class="cstat-no" title="statement not covered" >│ Matches: ${c.spouseD9Verification.matches?.map((m: any) =&gt; m.description).join('; ') || 'None'}</span>
+<span class="cstat-no" title="statement not covered" >│ Mismatches: ${c.spouseD9Verification.mismatches?.map((m: any) =&gt; m.description).join('; ') || 'None'}</span>
+<span class="cstat-no" title="statement not covered" >│ Recommendations: ${c.spouseD9Verification.recommendations?.join('; ')}` : ''}</span>
+<span class="cstat-no" title="statement not covered" >${c.gandantaAnalysis &amp;&amp; c.gandantaAnalysis.severity !== 'none' ? `├ ⚠️ GANDANTA KARMIC KNOT (CRITICAL):</span>
+<span class="cstat-no" title="statement not covered" >│ Lagna Gandanta: ${c.gandantaAnalysis.isLagnaGandanta ? 'YES ⚠️' : 'NO'} | Moon Gandanta: ${c.gandantaAnalysis.isMoonGandanta ? 'YES ⚠️' : 'NO'}</span>
+<span class="cstat-no" title="statement not covered" >│ Severity: ${c.gandantaAnalysis.severity.toUpperCase()} | Distance: ${c.gandantaAnalysis.distanceToGandanta.toFixed(4)}°</span>
+<span class="cstat-no" title="statement not covered" >│ Type: ${c.gandantaAnalysis.lagnaGandantaType || c.gandantaAnalysis.moonGandantaType || 'N/A'}</span>
+<span class="cstat-no" title="statement not covered" >│ Interpretation: ${c.gandantaAnalysis.interpretation.substring(0, 100)}...</span>
+<span class="cstat-no" title="statement not covered" >│ Recommendations: ${c.gandantaAnalysis.recommendations.slice(0, 2).join('; ')}` : ''}</span>
+<span class="cstat-no" title="statement not covered" >${c.pakshiAnalysis ? `├ PANCHA-PAKSHI SHASTRA (Five Birds System):</span>
+<span class="cstat-no" title="statement not covered" >│ Ruling Bird: ${c.pakshiAnalysis.rulingBird.name} (${c.pakshiAnalysis.rulingBird.sanskritName}) | Element: ${c.pakshiAnalysis.rulingBird.element}</span>
+<span class="cstat-no" title="statement not covered" >│ Strength: ${c.pakshiAnalysis.birdStrength.toUpperCase()} | Quality: ${c.pakshiAnalysis.birthTimeQuality.substring(0, 50)}...</span>
+<span class="cstat-no" title="statement not covered" >│ Dominant Activities: ${c.pakshiAnalysis.activityStrengths.slice(0, 3).join(', ')}</span>
+<span class="cstat-no" title="statement not covered" >│ Verification: ${c.pakshiAnalysis.verificationNotes.substring(0, 80)}...` : ''}</span>
+<span class="cstat-no" title="statement not covered" >${transitData ? `├ PRESENT DAY ANCHOR (2026 Transits):</span>
+<span class="cstat-no" title="statement not covered" >│ [Dasha Now]: ${transitData.dashaAtNow}</span>
+<span class="cstat-no" title="statement not covered" >│ [Planets Now]: Ju=${transitData.jupiter}, Sa=${transitData.saturn}, Ra=${transitData.rahu}` : ''}</span>
+<span class="cstat-no" title="statement not covered" >${c.spouseMatch ? `├ FINAL SPOUSE SYNASTRY PROOF:</span>
+<span class="cstat-no" title="statement not covered" >│ ${c.spouseMatch.reason} | Multiplier: ${c.spouseMatch.lagnaMatch ? 'HIGH' : 'LOW'}` : ''}</span>
+<span class="cstat-no" title="statement not covered" >${c.lifecycleShifts?.length ? `├ FINAL CHRONOLOGY VERIFICATION:</span>
+<span class="cstat-no" title="statement not covered" >${c.lifecycleShifts.map(s =&gt; `│ [${s.date}]: ${s.event}`).join('\n')}` : ''}</span>
+<span class="cstat-no" title="statement not covered" >└ BOUNDARY CHECK: ${parseFloat(c.ascendant.degree) &lt; 1 || parseFloat(c.ascendant.degree) &gt; 29 ? '⚠️ EDGE' : 'SAFE'}`).join('\n')</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >FINAL VERDICT (required format):</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >📢 **IMPORTANT UI RENDERING RULE**: </span>
+<span class="cstat-no" title="statement not covered" >Wrap your final reasoning and evidence inside a markdown code block (\`\`\`) to ensure it renders correctly in the results dashboard.</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >\`\`\`</span>
+<span class="cstat-no" title="statement not covered" >BEST TIME: [HH:MM:SS]</span>
+<span class="cstat-no" title="statement not covered" >REASONING: [Explicitly cite D60 Lagna, Dasha Connection, Synastry Match (if any), and Lifecycle Chronology. No generic text.]</span>
+<span class="cstat-no" title="statement not covered" >CONFIDENCE SCORE: [0-100]</span>
+<span class="cstat-no" title="statement not covered" >ACCURACY: [0-100]%</span>
+<span class="cstat-no" title="statement not covered" >CONFIDENCE LEVEL: [HIGH / MEDIUM / LOW]</span>
+<span class="cstat-no" title="statement not covered" >MARGIN_OF_ERROR: ±[seconds] seconds</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >EVIDENCE:</span>
+<span class="cstat-no" title="statement not covered" >1. [D60 Justification]</span>
+<span class="cstat-no" title="statement not covered" >2. [Event-Dasha Link]</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >RUNNER_UP: [second best time]</span>
+<span class="cstat-no" title="statement not covered" >\`\`\`</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >At the VERY END of your response, you MUST output the final verdict in a structured JSON object enclosed in &lt;FINAL_VERDICT&gt; tags.</span>
+<span class="cstat-no" title="statement not covered" ></span>
+<span class="cstat-no" title="statement not covered" >&lt;FINAL_VERDICT&gt;</span>
+<span class="cstat-no" title="statement not covered" >{</span>
+<span class="cstat-no" title="statement not covered" >  "time": "14:35:22",</span>
+<span class="cstat-no" title="statement not covered" >  "accuracy": 95,</span>
+<span class="cstat-no" title="statement not covered" >  "confidence": "HIGH",</span>
+<span class="cstat-no" title="statement not covered" >  "margin": 15</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+<span class="cstat-no" title="statement not covered" >&lt;/FINAL_VERDICT&gt;</span>
+<span class="cstat-no" title="statement not covered" >═══════════════════════════════════════════════════════════════════════════════`;</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-02-23T11:24:49.884Z
+            </div>
+        <script src="../../../../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../../../../sorter.js"></script>
+        <script src="../../../../../block-navigation.js"></script>
+    </body>
+</html>
+    

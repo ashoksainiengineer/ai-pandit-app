@@ -264,12 +264,15 @@ export const useStreamStore = create<StreamStore>()(
                     const stage = thinkingEvent?.stage || 1;
                     const candidateTime = thinkingEvent?.candidateTime || 'general';
 
-                    // Append to buffer (coalesce multiple chunks for same candidate)
-                    const existing = thinkingBuffer.chunks.get(candidateTime);
+                    // 🔱 God-Tier Fix: Buffer key must include stage to prevent cross-stage contamination
+                    // (e.g., Stage 2 'general' vs Stage 3 'general')
+                    const bufferKey = `${stage}_${candidateTime}`;
+                    const existing = thinkingBuffer.chunks.get(bufferKey);
+
                     if (existing) {
                         existing.text += chunk;
                     } else {
-                        thinkingBuffer.chunks.set(candidateTime, { stage, candidateTime, text: chunk });
+                        thinkingBuffer.chunks.set(bufferKey, { stage, candidateTime, text: chunk });
                     }
 
                     // Schedule rAF flush if not already pending
@@ -467,7 +470,11 @@ export const useStreamStore = create<StreamStore>()(
 
                         case 'metadata': {
                             const metadata = payload as StreamMetadata;
-                            const isReset = metadata.status === 'pending' || metadata.status === 'queued';
+                            // 🔱 Robustness: Only wipe on status RESET if we don't have active progress
+                            // OR if status explicitly transition from complete/failed back to pending
+                            const isReset = (metadata.status === 'pending' || metadata.status === 'queued') &&
+                                (prev.isComplete || !!prev.error || !prev.sessionId);
+
                             if (isReset) {
                                 return {
                                     metadata,

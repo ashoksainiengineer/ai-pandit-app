@@ -201,12 +201,7 @@ export const AnalysisPipelineTracker = memo(function AnalysisPipelineTracker({
                         </span>
                     </div>
 
-                    <div className="text-right">
-                        <div className="text-[10px] text-[#7A756F] uppercase tracking-wider mb-0.5">Active Engine</div>
-                        <div className="text-xs font-bold text-[#B8860B]">
-                            {currentStage >= 0 ? (isAIStage ? (aiModel || 'MiniMax 2.5') : 'Swiss Ephemeris') : 'Idle'}
-                        </div>
-                    </div>
+
                 </div>
             </div>
 
