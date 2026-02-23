@@ -13,17 +13,26 @@ import { Breadcrumbs, predefinedBreadcrumbs } from '@/components/ui/Breadcrumbs'
 // Initialize encryption for server-side decryption
 initializeEncryption(process.env.ENCRYPTION_SECRET || process.env.CLERK_ENCRYPTION_KEY);
 
-const getSessionResults = cache(async (sessionId: string, userId: string) => {
+const getSessionResults = cache(async (sessionId: string, userId: string): Promise<any> => {
     try {
-        const session = await db.query.sessions.findFirst({
+        // 1. Primary Query
+        let session = await db.query.sessions.findFirst({
             where: eq(sessions.id, sessionId),
         });
+
+        // 2. SQL Fallback
+        if (!session) {
+            const results = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+            if (results && results.length > 0) {
+                session = results[0] as any;
+            }
+        }
 
         if (!session || session.clerkId !== userId) {
             return null;
         }
 
-        // Parse sensitive fields for display
+        // 3. GOD-TIER Robust Data Reconstruction
         const birthData = {
             fullName: parseSensitiveField(session.fullName, 'Unencryptable Session'),
             dateOfBirth: parseSensitiveField(session.dateOfBirth, 'Not set'),
@@ -35,8 +44,9 @@ const getSessionResults = cache(async (sessionId: string, userId: string) => {
             gender: session.gender || 'male',
         };
 
-        const analysisResult = session.analysisResult ? (typeof session.analysisResult === 'string' ? JSON.parse(session.analysisResult) : session.analysisResult) : null;
-        const reasoningLogs = session.reasoningLogs ? (typeof session.reasoningLogs === 'string' ? JSON.parse(session.reasoningLogs) : session.reasoningLogs) : null;
+        // Use parseSensitiveField for complex JSON structures
+        const analysisResult = parseSensitiveField(session.analysisResult, null);
+        const reasoningLogs = parseSensitiveField(session.reasoningLogs, null);
 
         return {
             ...session,
@@ -48,7 +58,7 @@ const getSessionResults = cache(async (sessionId: string, userId: string) => {
             confidence: session.confidence || analysisResult?.confidence,
         };
     } catch (error) {
-        console.error('Error fetching session results:', error);
+        console.error('CRITICAL: Error in getSessionResults:', error);
         return null;
     }
 });

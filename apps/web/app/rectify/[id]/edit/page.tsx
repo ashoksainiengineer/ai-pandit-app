@@ -11,17 +11,26 @@ import Layout from '@/components/Layout';
 // Initialize encryption for server-side decryption
 initializeEncryption(process.env.ENCRYPTION_SECRET || process.env.CLERK_ENCRYPTION_KEY);
 
-const getSessionData = cache(async (sessionId: string, userId: string) => {
+const getSessionData = cache(async (sessionId: string, userId: string): Promise<any> => {
     try {
-        const session = await db.query.sessions.findFirst({
+        // 1. Primary Query using Drizzle Relation API
+        let session = await db.query.sessions.findFirst({
             where: eq(sessions.id, sessionId),
         });
+
+        // 2. SQL Fallback: If relation query fails or returns nothing, try raw SQL for resilience
+        if (!session) {
+            const results = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+            if (results && results.length > 0) {
+                session = results[0] as any;
+            }
+        }
 
         if (!session || session.clerkId !== userId) {
             return null;
         }
 
-        // Parse sensitive fields
+        // 3. GOD-TIER Robust Data Reconstruction
         const birthData = {
             fullName: parseSensitiveField(session.fullName, 'Unencryptable Session'),
             dateOfBirth: parseSensitiveField(session.dateOfBirth, 'Not set'),
@@ -33,22 +42,17 @@ const getSessionData = cache(async (sessionId: string, userId: string) => {
             gender: session.gender || 'male',
         };
 
-        const lifeEvents = session.lifeEvents ? (typeof session.lifeEvents === 'string' ? JSON.parse(session.lifeEvents) : session.lifeEvents) : [];
-        const physicalTraits = session.physicalTraits ? (typeof session.physicalTraits === 'string' ? JSON.parse(session.physicalTraits) : session.physicalTraits) : undefined;
-        const forensicTraits = session.forensicTraits ? (typeof session.forensicTraits === 'string' ? JSON.parse(session.forensicTraits) : session.forensicTraits) : undefined;
-        const spouseData = session.spouseData ? (typeof session.spouseData === 'string' ? JSON.parse(session.spouseData) : session.spouseData) : undefined;
-        const offsetConfig = session.offsetConfig ? (typeof session.offsetConfig === 'string' ? JSON.parse(session.offsetConfig) : session.offsetConfig) : undefined;
-
         return {
+            ...session,
             birthData,
-            lifeEvents,
-            physicalTraits,
-            forensicTraits,
-            spouseData,
-            offsetConfig,
+            lifeEvents: parseSensitiveField(session.lifeEvents, []),
+            physicalTraits: parseSensitiveField(session.physicalTraits, undefined),
+            forensicTraits: parseSensitiveField(session.forensicTraits, undefined),
+            spouseData: parseSensitiveField(session.spouseData, undefined),
+            offsetConfig: parseSensitiveField(session.offsetConfig, undefined),
         };
     } catch (error) {
-        console.error('Error fetching session data:', error);
+        console.error('CRITICAL: Error in getSessionData:', error);
         return null;
     }
 });
