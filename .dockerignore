@@ -7,40 +7,20 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Source control
+# Source and Build context
 .git
 .gitignore
-
-# Frontend Next.js build and cache
 .next
 out
-public
-app
-components
-lib
-hooks
-styles
-*.ts
-*.tsx
-next.config.js
-tailwind.config.ts
-postcss.config.js
-
-# Build artifacts (built in container)
+node_modules
 dist
 build
 *.tsbuildinfo
-
-# Environment (secrets injected at runtime)
 .env
 .env.*
 .vercel
-
-# Logs
 logs
 *.log
-
-# IDE
 .vscode
 .idea
 .DS_Store

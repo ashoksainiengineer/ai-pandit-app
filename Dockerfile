@@ -41,7 +41,7 @@ USER nodejs
 
 ENV NODE_ENV=production
 ENV PORT=7860
-ENV CACHE_BUST=2026-02-23-T15-00
+ENV CACHE_BUST=2026-02-23-T21-40
 ENV SWISSEPH_PATH=/app/ephe
 
 # Ephemeris Data (Restricted Permissions)

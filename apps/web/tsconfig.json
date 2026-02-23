@@ -48,6 +48,6 @@
     "reset-session.ts",
     "debug*.ts",
     "inspect*.ts",
-    "**/__tests__/*"
+    "**/__tests__/**"
   ]
 }
