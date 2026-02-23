@@ -36,16 +36,18 @@ WORKDIR /app
 
 # Hardening: Run as non-root user
 RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nodejs
+    adduser --system --uid 1001 nodejs && \
+    mkdir -p /app/ephe && \
+    chown -R nodejs:nodejs /app
+
 USER nodejs
 
 ENV NODE_ENV=production
 ENV PORT=7860
-ENV CACHE_BUST=2026-02-23-T21-40
+ENV CACHE_BUST=2026-02-23-T22-00
 ENV SWISSEPH_PATH=/app/ephe
 
 # Ephemeris Data (Restricted Permissions)
-RUN mkdir -p /app/ephe
 COPY --chown=nodejs:nodejs ephe/* /app/ephe/
 
 # Copy the built application with proper ownership
