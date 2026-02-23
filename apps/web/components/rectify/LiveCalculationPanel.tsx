@@ -43,12 +43,12 @@ export const LiveCalculationPanel = memo<LiveCalculationPanelProps>(({
     };
 
     return (
-        <div className="rounded-xl border border-[#F0E8DE] bg-[#1e1e1e] text-white shadow-sm overflow-hidden flex flex-col h-[300px]">
+        <div className="rounded-xl border border-[#F0E8DE] bg-white text-[#1A1612] shadow-sm overflow-hidden flex flex-col h-[300px]">
             {/* Header */}
-            <div className="bg-[#2d2d2d] px-4 py-2 border-b border-[#3e3e3e] flex items-center justify-between shrink-0">
+            <div className="bg-[#FAF8F5] px-4 py-2 border-b border-[#F0E8DE] flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-2">
-                    <Terminal className="w-4 h-4 text-emerald-400" />
-                    <span className="text-xs font-bold text-gray-300 tracking-wider">LIVE CALCULATION LOGS</span>
+                    <Terminal className="w-4 h-4 text-[#B8860B]" />
+                    <span className="text-xs font-bold text-[#4A453F] tracking-wider">LIVE CALCULATION LOGS</span>
                 </div>
                 <div className="flex items-center gap-4">
                     {latency > 0 && (
@@ -61,7 +61,7 @@ export const LiveCalculationPanel = memo<LiveCalculationPanelProps>(({
                         <Server className="w-3 h-3" />
                         {logs.length > 0 ? `${logs.length} OPS_LOGGED` : 'SYSTEM_READY'}
                     </span>
-                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-black/20 border border-white/10">
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-stone-100 border border-[#F0E8DE]">
                         <Cpu className="w-3 h-3 text-[#B8860B]" />
                         <span className="text-[9px] font-bold text-stone-400">{engineName}</span>
                     </div>
@@ -72,11 +72,11 @@ export const LiveCalculationPanel = memo<LiveCalculationPanelProps>(({
             <div
                 ref={scrollRef}
                 onScroll={handleScroll}
-                className="flex-1 overflow-y-auto p-4 font-mono text-[10px] space-y-1 scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent"
+                className="flex-1 overflow-y-auto p-4 font-mono text-[10px] space-y-1 scrollbar-thin scrollbar-thumb-stone-200 scrollbar-track-transparent"
             >
                 <AnimatePresence initial={false}>
                     {logs.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-gray-600 space-y-2 opacity-50">
+                        <div className="h-full flex flex-col items-center justify-center text-stone-300 space-y-2">
                             <Activity className="w-8 h-8 animate-pulse" />
                             <p>Waiting for calculation stream...</p>
                         </div>
@@ -86,12 +86,12 @@ export const LiveCalculationPanel = memo<LiveCalculationPanelProps>(({
                                 key={i}
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                className="grid grid-cols-[80px_1fr] gap-3 hover:bg-white/5 px-2 py-0.5 rounded transition-colors"
+                                className="grid grid-cols-[80px_1fr] gap-3 hover:bg-stone-50 px-2 py-0.5 rounded transition-colors border-b border-stone-50 last:border-0"
                             >
-                                <span className="text-emerald-500/80 font-bold border-r border-white/10 pr-2 truncate">
+                                <span className="text-[#B8860B] font-bold border-r border-[#F0E8DE] pr-2 truncate">
                                     {log.candidateTime || log.time || '-'}
                                 </span>
-                                <span className="text-gray-300 break-all leading-relaxed">
+                                <span className="text-[#4A453F] break-all leading-relaxed">
                                     {log.log || log.message || JSON.stringify(log)}
                                 </span>
                             </motion.div>
@@ -101,9 +101,9 @@ export const LiveCalculationPanel = memo<LiveCalculationPanelProps>(({
             </div>
 
             {/* Footer Status */}
-            <div className="bg-[#252526] px-3 py-1 border-t border-[#3e3e3e] flex justify-between items-center text-[9px] text-gray-500 shrink-0">
+            <div className="bg-[#FAF8F5] px-3 py-1 border-t border-[#F0E8DE] flex justify-between items-center text-[9px] text-[#7A756F] shrink-0">
                 <span className="flex items-center gap-1.5">
-                    <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-[#2D7A5C] animate-pulse' : 'bg-[#C65D3B]'}`} />
                     {isConnected ? 'STREAM_ACTIVE' : 'DISCONNECTED'}
                 </span>
                 <span className="font-mono">

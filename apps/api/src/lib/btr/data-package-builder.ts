@@ -470,9 +470,9 @@ async function addExtendedData(
 ) {
   const now = Date.now();
   const dayMs = 24 * 60 * 60 * 1000;
-  const eventDates = input.lifeEvents.map(e => new Date(e.eventDate).getTime());
-  const minDate = Math.min(...eventDates, now) - (365 * dayMs);
-  const maxDate = Math.max(...eventDates, now) + (365 * dayMs);
+  const birthTimeMs = birthDate.getTime();
+  const minDate = birthTimeMs - (30 * dayMs); // Buffed to birth
+  const maxDate = now + (5 * 365 * dayMs); // Fixed 5-year future window
 
   // Add filtered Dasha sequences
   pkg.yoginiDasha = buildYoginiDasha(moonLong, birthDate, minDate, maxDate);

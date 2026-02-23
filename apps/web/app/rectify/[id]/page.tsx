@@ -35,14 +35,12 @@ import { AnalysisErrorBoundary, SectionErrorBoundary } from '@/components/rectif
 import AdvancedSignalsDashboard from '@/components/rectify/advanced-signals/AdvancedSignalsDashboard';
 import { UnifiedAIPanel } from '@/components/rectify/UnifiedAIPanel';
 import { CandidateScoreTable } from '@/components/rectify/CandidateScoreTable';
-import {
-  AnalysisStatusBanner,
-  EmergingBestCandidate,
-  SimplifiedPipeline,
-  StageLeaderboard,
-  TechnicalMethodology,
-  TechnicalMasterGrid,
-} from '@/components/rectify/analysis';
+import { AnalysisStatusBanner } from '@/components/rectify/analysis/AnalysisStatusBanner';
+import { EmergingBestCandidate } from '@/components/rectify/analysis/EmergingBestCandidate';
+import { SimplifiedPipeline } from '@/components/rectify/analysis/SimplifiedPipeline';
+import { StageLeaderboard } from '@/components/rectify/analysis/StageLeaderboard';
+import { TechnicalMethodology } from '@/components/rectify/analysis/TechnicalMethodology';
+import { TechnicalMasterGrid } from '@/components/rectify/analysis/TechnicalMasterGrid';
 
 const GlobalStyles = memo(() => (
   <style jsx global>{`
@@ -81,7 +79,7 @@ const ErrorDisplay = memo(({ error, onRetry }: { error: string; onRetry: () => v
     <AlertCircle className="w-16 h-16 text-red-500" />
     <h1 className="text-2xl font-bold mt-6 text-red-700">Connection Error</h1>
     <p className="text-xs text-red-600 mt-2 max-w-2xl bg-red-50 p-4 rounded border border-red-200">{error}</p>
-    <button onClick={onRetry} className="mt-8 px-6 py-3 rounded-xl font-semibold text-white bg-gray-800 flex items-center gap-2 hover:opacity-90">
+    <button onClick={onRetry} className="mt-8 px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-[#B8860B] to-[#D4A853] shadow-md flex items-center gap-2 hover:shadow-lg transition-all">
       <RefreshCw className="w-4 h-4" /> Retry
     </button>
   </div>
@@ -176,14 +174,24 @@ export default function AnalysisPage() {
   // we use 2 batched selectors with shallow equality comparison.
   // React only re-renders when actual VALUES change, not object identity.
   // ═══════════════════════════════════════════════════════════════════════════
+  // 🔱 Batched shallow selectors (Elite Pattern)
   const {
-    isComplete, error: streamError, progress, aiThinking,
-    candidateScores, advancedSignals, result, startedAt,
-    allSteps, metadata,
-    analyzedCount, totalCandidates, activeAIStage,
+    isComplete,
+    streamError,
+    progress,
+    aiThinking,
+    candidateScores,
+    advancedSignals,
+    result,
+    startedAt,
+    allSteps,
+    metadata,
+    activeAIStage,
+    analyzedCount,
+    totalCandidates
   } = useStreamStore(useShallow(state => ({
     isComplete: state.isComplete,
-    error: state.error,
+    streamError: state.error,
     progress: state.progress,
     aiThinking: state.aiThinking,
     candidateScores: state.candidateScores,
@@ -198,7 +206,10 @@ export default function AnalysisPage() {
   })));
 
   const {
-    allCandidates, candidatesByStage, stageHistory, displayedCandidate,
+    allCandidates,
+    candidatesByStage,
+    stageHistory,
+    displayedCandidate,
     setDisplayedCandidate
   } = useStreamStore(useShallow(state => ({
     allCandidates: state.allCandidates,
@@ -484,7 +495,7 @@ export default function AnalysisPage() {
                 <div className="flex items-center gap-3 w-full md:w-auto">
                   <Link
                     href={`/rectify/${sessionId}/results`}
-                    className="flex-1 md:flex-none px-6 py-3 bg-[#1A1612] text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-stone-800 transition-colors shadow-md"
+                    className="flex-1 md:flex-none px-6 py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:shadow-lg transition-all shadow-md"
                   >
                     View Official Report <ChevronRight className="w-4 h-4" />
                   </Link>
@@ -588,9 +599,8 @@ export default function AnalysisPage() {
                               offsetMinutes={offsetMinutes}
                             />
                           ) : (
-                            /* 🔱 Lightweight Calculation Card for Stages 1, 3, 5 */
                             <div className="bg-white/50 rounded-xl border border-stone-100 p-4 shadow-sm">
-                              <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                   <div className={`w-2 h-2 rounded-full ${isCurrentStage ? 'bg-blue-500 animate-pulse' : 'bg-stone-300'}`} />
                                   <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">
@@ -601,12 +611,6 @@ export default function AnalysisPage() {
                                   {candidateCount} variations generated
                                 </span>
                               </div>
-
-                              <StageLeaderboard
-                                stage={stageNum}
-                                scores={candidateScores.filter(s => s.stage === stageNum)}
-                                isCompleted={isStageCompleted}
-                              />
                             </div>
                           )}
                         </div>
@@ -618,12 +622,6 @@ export default function AnalysisPage() {
             </div>
 
             <div className="space-y-4 sm:space-y-6 w-full">
-              {!cancelled && candidateScores.length > 0 && (
-                <SectionErrorBoundary sectionName="Leaderboard" icon={<Activity className="w-5 h-5" />}>
-                  <CandidateScoreTable scores={candidateScores} />
-                </SectionErrorBoundary>
-              )}
-
               {advancedSignals && (
                 <SectionErrorBoundary sectionName="Advanced Signals" icon={<Gem className="w-5 h-5" />}>
                   <AdvancedSignalsDashboard signals={advancedSignals} isComplete={isComplete} />
@@ -634,6 +632,6 @@ export default function AnalysisPage() {
 
         </div>
       </main>
-    </AnalysisErrorBoundary>
+    </AnalysisErrorBoundary >
   );
 }

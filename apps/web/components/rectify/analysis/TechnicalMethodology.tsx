@@ -9,7 +9,7 @@ import {
 
 export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: number }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    const [activeTab, setActiveTab] = useState<'blueprint' | 'vargas' | 'logic'>('blueprint');
+    const [activeTab, setActiveTab] = useState<'blueprint' | 'vargas' | 'logic' | 'specs'>('blueprint');
 
     const precisionLayers = [
         {
@@ -95,7 +95,8 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                             {[
                                 { id: 'blueprint', label: 'The Funnel', icon: BookOpen },
                                 { id: 'vargas', label: 'Precision Layers', icon: Target },
-                                { id: 'logic', label: 'Integrity', icon: ShieldCheck }
+                                { id: 'logic', label: 'Integrity', icon: ShieldCheck },
+                                { id: 'specs', label: 'AI Specs', icon: Activity }
                             ].map(tab => (
                                 <button
                                     key={tab.id}
@@ -198,6 +199,54 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                                         <p className="text-[11px] text-[#4A453F] leading-relaxed">
                                             Every candidate undergoes a full **Bhava-Chalit** recalculation to ensure house-shifts are accurately captured. This replaces generic approximations with exact astronomical coordinates.
                                         </p>
+                                    </div>
+                                </motion.div>
+                            )}
+
+                            {activeTab === 'specs' && (
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="space-y-4"
+                                >
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="p-3 bg-black/[0.02] rounded-lg border border-black/5">
+                                            <div className="text-[9px] font-bold text-stone-400 uppercase mb-1">Primary Model</div>
+                                            <div className="font-mono text-[11px] font-bold text-stone-700">OpenAI o3-mini-high</div>
+                                        </div>
+                                        <div className="p-3 bg-black/[0.02] rounded-lg border border-black/5">
+                                            <div className="text-[9px] font-bold text-stone-400 uppercase mb-1">Reasoning Mode</div>
+                                            <div className="font-mono text-[11px] font-bold text-[#B8860B]">Chain-of-Thought</div>
+                                        </div>
+                                        <div className="p-3 bg-black/[0.02] rounded-lg border border-black/5">
+                                            <div className="text-[9px] font-bold text-stone-400 uppercase mb-1">Context Length</div>
+                                            <div className="font-mono text-[11px] font-bold text-stone-700">200k Tokens</div>
+                                        </div>
+                                        <div className="p-3 bg-black/[0.02] rounded-lg border border-black/5">
+                                            <div className="text-[9px] font-bold text-stone-400 uppercase mb-1">Quantization</div>
+                                            <div className="font-mono text-[11px] font-bold text-[#2D7A5C]">BF16 Precision</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="p-3 bg-stone-50 rounded-xl border border-stone-200">
+                                        <h5 className="font-bold text-[10px] text-stone-500 uppercase flex items-center gap-2 mb-2">
+                                            <Layers className="w-3 h-3" />
+                                            Pipeline Architecture
+                                        </h5>
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between text-[10px]">
+                                                <span className="text-stone-600">Recursive Iterations (Avg)</span>
+                                                <span className="font-mono font-bold">~2,400</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-[10px]">
+                                                <span className="text-stone-600">Forensic Trait Matching</span>
+                                                <span className="font-mono font-bold text-[#B8860B]">Enabled (v2.1)</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-[10px]">
+                                                <span className="text-stone-600">Inference Latency</span>
+                                                <span className="font-mono font-bold">Streaming (Live)</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </motion.div>
                             )}

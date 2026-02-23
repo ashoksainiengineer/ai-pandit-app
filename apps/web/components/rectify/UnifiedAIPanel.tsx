@@ -581,9 +581,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
   }, [isCompleted, isActive]);
 
   // Sync focus if displayedCandidate changes externally AND belongs to this stage
-  // ⚡ PERF: Use a ref to track the last auto-focused candidate so we don't
-  // trigger redundant setState calls every time displayedCandidate updates
-  // (which happens every 150ms from the throttled buffer).
+  // ⚡ PERF: Use a ref to track the last auto-focused candidate
   const lastAutoFocusedRef = useRef<string | null>(null);
   useEffect(() => {
     // Don't auto-focus if stage is completed
@@ -594,14 +592,20 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
     // Skip if we already auto-focused this same candidate
     if (lastAutoFocusedRef.current === displayedCandidate) return;
 
-    if (allCandidates && displayedCandidate in allCandidates) {
-      lastAutoFocusedRef.current = displayedCandidate;
-      setLocalSelectedCandidate(displayedCandidate);
-    } else if (thinking?.candidateTime === displayedCandidate) {
-      lastAutoFocusedRef.current = displayedCandidate;
-      setLocalSelectedCandidate(displayedCandidate);
+    // 🔱 Stage-Aware Focus Check
+    // displayedCandidate is now stage-qualified (e.g., 's2_10:30:00')
+    const currentStagePrefix = `s${stage}_`;
+    if (displayedCandidate.startsWith(currentStagePrefix)) {
+      const candidateTime = displayedCandidate.replace(currentStagePrefix, '');
+      if (allCandidates && candidateTime in allCandidates) {
+        lastAutoFocusedRef.current = displayedCandidate;
+        setLocalSelectedCandidate(candidateTime);
+      } else if (thinking?.candidateTime === candidateTime) {
+        lastAutoFocusedRef.current = displayedCandidate;
+        setLocalSelectedCandidate(candidateTime);
+      }
     }
-  }, [displayedCandidate, allCandidates, thinking, isCompleted, isFocused]);
+  }, [displayedCandidate, allCandidates, thinking, isCompleted, isFocused, stage]);
 
   const currentStage = thinking?.stage || stage || 2;
   const effectiveSelectedCandidate = localSelectedCandidate;
@@ -775,7 +779,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                   />
 
                   {candidatesList.length === 0 && (
-                    <ReasoningContent content="" isActive={isActive && !isCompleted} />
+                    <ReasoningContent content={displayedContent} isActive={isActive && !isCompleted} />
                   )}
                 </motion.div>
               ) : (

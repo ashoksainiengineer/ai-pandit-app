@@ -114,12 +114,12 @@ const StageStep = memo(function StageStep({
                 </div>
 
                 {stat?.description && (
-                    <div className="absolute top-full mt-2 left-0 w-56 p-3 bg-stone-900 text-white text-[11px] rounded-xl opacity-0 invisible group-hover/step:opacity-100 group-hover/step:visible transition-all z-50 shadow-2xl border border-white/10 backdrop-blur-sm">
-                        <div className="font-bold mb-1.5 text-[#B8860B] border-b border-white/10 pb-1.5 flex items-center gap-2">
+                    <div className="absolute top-full mt-2 left-0 w-56 p-3 bg-white text-[#1A1612] text-[11px] rounded-xl opacity-0 invisible group-hover/step:opacity-100 group-hover/step:visible transition-all z-50 shadow-2xl border border-[#F0E8DE]">
+                        <div className="font-bold mb-1.5 text-[#B8860B] border-b border-[#F0E8DE] pb-1.5 flex items-center gap-2">
                             <Settings className="w-3 h-3" />
                             {step.name}
                         </div>
-                        <p className="leading-relaxed opacity-90">{stat.description}</p>
+                        <p className="leading-relaxed text-[#4A453F]">{stat.description}</p>
                         <div className="mt-2 text-[9px] text-[#B8860B] font-bold uppercase tracking-tighter">Click to view stage details</div>
                     </div>
                 )}

@@ -150,7 +150,8 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
                 historyAppends[stage] = (historyAppends[stage] || '') + text;
             }
 
-            latestCandidate = candidateTime;
+            // 🔱 Focus Logic: Set focus to CURRENT stage candidate
+            latestCandidate = stageKey;
 
             // Advance progress if stage jumped
             const currentStepIndex = updatedProgress?.stepIndex || 0;
@@ -499,10 +500,11 @@ export const useStreamStore = create<StreamStore>()(
                                 const newAiThinking = { ...prev.aiThinking };
                                 const newAllCandidates = { ...prev.allCandidates };
                                 thinkingBuffer.chunks.forEach(({ stage, candidateTime, text }) => {
-                                    const existing = newAllCandidates[candidateTime] || { stage, candidateTime, chunks: [], fullText: '' };
+                                    const stageKey = `s${stage}_${candidateTime}`;
+                                    const existing = newAllCandidates[stageKey] || { stage, candidateTime, chunks: [], fullText: '' };
                                     const updated = { ...existing, fullText: existing.fullText + text };
-                                    newAiThinking[candidateTime] = updated;
-                                    newAllCandidates[candidateTime] = updated;
+                                    newAiThinking[stageKey] = updated;
+                                    newAllCandidates[stageKey] = updated;
                                 });
                                 thinkingBuffer.chunks.clear();
                                 return {

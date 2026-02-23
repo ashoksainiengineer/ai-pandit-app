@@ -50,7 +50,7 @@ export function buildVimshottariDasha(
 
   const result: VimshottariDashaEntry[] = [];
 
-  const CUTOFF_YEARS = 3;
+  const CUTOFF_YEARS = 5;
   const cutoffDate = now + (CUTOFF_YEARS * 365 * DAY_MS);
 
   for (const maha of vimDashas) {
@@ -98,7 +98,7 @@ export function buildVimshottariDasha(
 /**
  * Process Pratyantar level and deeper if configured
  */
-function processPratyantarLevel(
+export function processPratyantarLevel(
   maha: any,
   antar: any,
   prat: any,
@@ -108,6 +108,7 @@ function processPratyantarLevel(
 ): VimshottariDashaEntry[] {
   const result: VimshottariDashaEntry[] = [];
 
+  // HYBRID STRATEGY: Always include Pratyantar to maintain the timeline!
   if (dashaDepth === 3) {
     result.push(createDashaEntry(maha.lord, antar.lord, prat.lord, '-', '-',
       formatDateRange(prat.startDate, prat.endDate)));
@@ -158,14 +159,20 @@ function processSukshmaLevel(
       return sukshStart <= paddedEnd && sukshEnd >= paddedStart;
     });
 
-    if (isNearEvent) {
+    const nowTime = Date.now();
+    const isCurrent = nowTime >= sukshStart && nowTime <= sukshEnd;
+
+    if (isNearEvent || isCurrent) {
       for (const prana of suksh.subPeriods) {
         result.push(createDashaEntry(
           maha.lord, antar.lord, prat.lord, suksh.lord, prana.lord,
           formatTimeRange(prana.startDate, prana.endDate, prana.startDate)
         ));
       }
-    } else {
+    } else if (dashaDepth >= 4) {
+      // If we are at depth 4+, we still want to show the Sukshma if it's the current one, 
+      // but if we are here it means depth is 5+. 
+      // If not near event, we just show the Sukshma entry without Pranas.
       result.push(createDashaEntry(maha.lord, antar.lord, prat.lord, suksh.lord, '-',
         formatDate(suksh.startDate)));
     }

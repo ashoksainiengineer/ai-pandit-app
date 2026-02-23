@@ -4,7 +4,6 @@ import React, { useState, memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp, Cpu, Table, Globe, Clock } from 'lucide-react';
 import { useStreamStore } from '@/lib/store/stream-store';
-import { useShallow } from 'zustand/react/shallow';
 import type { CandidateScore } from '@/lib/store/stream-types';
 
 const PLANET_ORDER = ['Lagna', 'Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu'];
@@ -12,10 +11,8 @@ const PLANET_ORDER = ['Lagna', 'Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Ven
 export const TechnicalMasterGrid = memo(function TechnicalMasterGrid() {
     const [isExpanded, setIsExpanded] = useState(false);
 
-    const { candidateScores, activeAIStage } = useStreamStore(useShallow(state => ({
-        candidateScores: state.candidateScores,
-        activeAIStage: state.activeAIStage
-    })));
+    const candidateScores = useStreamStore(state => state.candidateScores);
+    const activeAIStage = useStreamStore(state => state.activeAIStage);
 
     // Group candidates by stage and time
     const groupedData = useMemo(() => {
@@ -61,20 +58,20 @@ export const TechnicalMasterGrid = memo(function TechnicalMasterGrid() {
         <div className="w-full mb-6">
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="w-full flex items-center justify-between p-4 bg-[#1A1612] border border-[#3D352C] rounded-xl hover:bg-[#251F19] transition-all duration-300 group shadow-lg"
+                className="w-full flex items-center justify-between p-4 bg-white border border-[#F0E8DE] rounded-xl hover:bg-[#FAF8F5] transition-all duration-300 group shadow-sm"
             >
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-[#B8860B]/20 rounded-lg group-hover:bg-[#B8860B]/30 transition-colors">
+                    <div className="p-2 bg-[#B8860B]/10 rounded-lg group-hover:bg-[#B8860B]/20 transition-colors">
                         <Cpu className="w-5 h-5 text-[#D4AF37]" />
                     </div>
                     <div className="text-left">
-                        <h3 className="text-sm font-bold text-stone-100 uppercase tracking-widest flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-[#1A1612] uppercase tracking-widest flex items-center gap-2">
                             Swiss Ephemeris Master Log
-                            <span className="text-[10px] bg-[#D4AF37]/10 text-[#D4AF37] px-2 py-0.5 rounded-full border border-[#D4AF37]/20 uppercase">
+                            <span className="text-[10px] bg-[#B8860B]/10 text-[#B8860B] px-2 py-0.5 rounded-full border border-[#B8860B]/20 uppercase">
                                 4-Decimal Precision
                             </span>
                         </h3>
-                        <p className="text-[11px] text-[#A8A39D] font-medium">Real-time planetary coordinates for {candidateScores.length} candidates</p>
+                        <p className="text-[11px] text-[#7A756F] font-medium">Real-time planetary coordinates for {candidateScores.length} candidates</p>
                     </div>
                 </div>
                 {isExpanded ? <ChevronUp className="w-5 h-5 text-[#A8A39D]" /> : <ChevronDown className="w-5 h-5 text-[#A8A39D]" />}
@@ -86,19 +83,19 @@ export const TechnicalMasterGrid = memo(function TechnicalMasterGrid() {
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden bg-[#1A1612]/95 border-x border-b border-[#3D352C] rounded-b-xl backdrop-blur-md"
+                        className="overflow-hidden bg-[#FFFCF8] border-x border-b border-[#F0E8DE] rounded-b-xl"
                     >
                         <div className="p-1 space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
                             {groupedData.map(group => (
-                                <div key={group.stage} className="border-t border-[#3D352C]/50 pt-2 first:border-0 first:pt-0">
-                                    <div className="px-4 py-2 bg-[#251F19]/50 flex items-center justify-between sticky top-0 z-10">
+                                <div key={group.stage} className="border-t border-[#F0E8DE] pt-2 first:border-0 first:pt-0">
+                                    <div className="px-4 py-2 bg-[#FAF8F5] flex items-center justify-between sticky top-0 z-10 border-b border-[#F0E8DE]">
                                         <div className="flex items-center gap-2">
-                                            <Globe className="w-3.5 h-3.5 text-[#D4AF37]" />
-                                            <span className="text-[10px] font-black text-[#D4AF37] uppercase tracking-tighter">
+                                            <Globe className="w-3.5 h-3.5 text-[#B8860B]" />
+                                            <span className="text-[10px] font-black text-[#B8860B] uppercase tracking-tighter">
                                                 {getStageName(group.stage)}
                                             </span>
                                         </div>
-                                        <span className="text-[9px] font-mono font-bold text-[#A8A39D]">
+                                        <span className="text-[9px] font-mono font-bold text-[#7A756F]">
                                             {group.candidates.length} Candidates Logged
                                         </span>
                                     </div>
@@ -106,30 +103,30 @@ export const TechnicalMasterGrid = memo(function TechnicalMasterGrid() {
                                     <div className="overflow-x-auto overflow-y-visible">
                                         <table className="w-full text-left border-collapse min-w-[1000px]">
                                             <thead>
-                                                <tr className="border-b border-[#3D352C]">
-                                                    <th className="px-4 py-3 text-[10px] font-bold text-stone-400 uppercase tracking-widest font-mono sticky left-0 bg-[#1A1612] z-20">Time (UTC)</th>
-                                                    <th className="px-4 py-3 text-[10px] font-bold text-stone-400 uppercase tracking-widest font-mono text-center">Score</th>
+                                                <tr className="border-b border-[#F0E8DE]">
+                                                    <th className="px-4 py-3 text-[10px] font-bold text-[#7A756F] uppercase tracking-widest font-mono sticky left-0 bg-[#FAF8F5] z-20">Time (UTC)</th>
+                                                    <th className="px-4 py-3 text-[10px] font-bold text-[#7A756F] uppercase tracking-widest font-mono text-center bg-[#FAF8F5]">Score</th>
                                                     {PLANET_ORDER.map(p => (
-                                                        <th key={p} className="px-4 py-3 text-[10px] font-bold text-stone-400 uppercase tracking-widest font-mono text-center">
+                                                        <th key={p} className="px-4 py-3 text-[10px] font-bold text-[#7A756F] uppercase tracking-widest font-mono text-center bg-[#FAF8F5]">
                                                             {p}
                                                         </th>
                                                     ))}
                                                 </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-[#3D352C]/30">
+                                            <tbody className="divide-y divide-[#F0E8DE]">
                                                 {group.candidates.map(c => (
-                                                    <tr key={`${group.stage}_${c.time}`} className="hover:bg-white/5 transition-colors group/row">
-                                                        <td className="px-4 py-2 bg-[#1A1612] sticky left-0 z-10 border-r border-[#3D352C]/50 group-hover/row:bg-[#251F19] transition-colors">
+                                                    <tr key={`${group.stage}_${c.time}`} className="hover:bg-stone-50 transition-colors group/row">
+                                                        <td className="px-4 py-2 bg-white sticky left-0 z-10 border-r border-[#F0E8DE] group-hover/row:bg-stone-50 transition-colors">
                                                             <div className="flex items-center gap-2">
-                                                                <Clock className="w-3 h-3 text-[#D4AF37]/60" />
-                                                                <span className="text-[11px] font-mono font-bold text-stone-200">
+                                                                <Clock className="w-3 h-3 text-[#B8860B]/60" />
+                                                                <span className="text-[11px] font-mono font-bold text-[#1A1612]">
                                                                     {c.time}
                                                                 </span>
                                                             </div>
                                                         </td>
-                                                        <td className="px-4 py-2 text-center">
-                                                            <span className={`text-[10px] font-bold font-mono ${c.score > 85 ? 'text-green-400' :
-                                                                    c.score > 60 ? 'text-amber-400' : 'text-red-400'
+                                                        <td className="px-4 py-2 text-center bg-white group-hover/row:bg-stone-50 transition-colors">
+                                                            <span className={`text-[10px] font-bold font-mono ${c.score > 85 ? 'text-[#2D7A5C]' :
+                                                                c.score > 60 ? 'text-[#B8860B]' : 'text-stone-500'
                                                                 }`}>
                                                                 {c.score.toFixed(1)}%
                                                             </span>
@@ -138,16 +135,16 @@ export const TechnicalMasterGrid = memo(function TechnicalMasterGrid() {
                                                             const val = c.fullEph?.[p] || '---';
                                                             const [sign, degree] = val.split(' ');
                                                             return (
-                                                                <td key={p} className="px-4 py-2 text-center whitespace-nowrap">
+                                                                <td key={p} className="px-4 py-2 text-center whitespace-nowrap bg-white group-hover/row:bg-stone-50 transition-colors">
                                                                     {val !== '---' ? (
                                                                         <div className="flex flex-col items-center">
-                                                                            <span className="text-[9px] font-bold text-stone-300 uppercase leading-none mb-0.5">{sign}</span>
-                                                                            <span className="text-[11px] font-mono font-medium text-amber-500/90 leading-none tabular-nums tracking-tighter">
+                                                                            <span className="text-[9px] font-bold text-[#7A756F] uppercase leading-none mb-0.5">{sign}</span>
+                                                                            <span className="text-[11px] font-mono font-medium text-[#B8860B] leading-none tabular-nums tracking-tighter">
                                                                                 {degree || '0.0000°'}
                                                                             </span>
                                                                         </div>
                                                                     ) : (
-                                                                        <span className="text-stone-600 font-mono text-[10px]">---</span>
+                                                                        <span className="text-stone-400 font-mono text-[10px]">---</span>
                                                                     )}
                                                                 </td>
                                                             );
@@ -172,11 +169,11 @@ export const TechnicalMasterGrid = memo(function TechnicalMasterGrid() {
                     background: transparent;
                 }
                 .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: #3D352C;
+                    background: #F0E8DE;
                     border-radius: 10px;
                 }
                 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: #D4AF37;
+                    background: #B8860B;
                 }
             `}</style>
         </div>

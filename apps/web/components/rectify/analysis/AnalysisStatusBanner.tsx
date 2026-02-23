@@ -2,7 +2,7 @@
 
 import React, { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, Clock, Zap, Brain, Filter, Target, CheckCircle } from 'lucide-react';
+import { Activity, Clock, Zap, Brain, Filter, Target, CheckCircle, Cpu, Shield, Sparkles, Server } from 'lucide-react';
 
 interface StageInfo {
   id: number;
@@ -136,10 +136,30 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
         {statusContent}
 
         <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
+          {/* AI Diagnostic (Hugging Face Style) */}
+          <div className="hidden md:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-black/5 border border-black/5">
+            <div className="flex flex-col items-start">
+              <span className="text-[8px] text-stone-400 font-bold uppercase tracking-tighter">AI Inference Engine</span>
+              <div className="flex items-center gap-1.5">
+                <Cpu className="w-3 h-3 text-[#B8860B]" />
+                <span className="text-[10px] font-mono font-bold text-stone-700">o3-mini-high</span>
+                <span className="text-[8px] px-1 bg-[#2D7A5C]/10 text-[#2D7A5C] rounded uppercase font-extrabold tracking-widest border border-[#2D7A5C]/20">FP16</span>
+              </div>
+            </div>
+            <div className="w-px h-6 bg-stone-200" />
+            <div className="flex flex-col items-start">
+              <span className="text-[8px] text-stone-400 font-bold uppercase tracking-tighter">Throughput</span>
+              <div className="flex items-center gap-1">
+                <Activity className="w-3 h-3 text-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-mono font-bold text-stone-700">~1.4k t/s</span>
+              </div>
+            </div>
+          </div>
+
           <div className="flex items-center gap-2">
             <div className={`w-2 h-2 rounded-full ${isComplete ? 'bg-[#2D7A5C]' : (isConnected ? 'bg-[#2D7A5C] animate-pulse' : 'bg-[#C65D3B]')}`} />
             <span className="text-xs font-medium text-[#4A453F]">
-              {isComplete ? 'Finalized' : (isConnected ? 'Live' : 'Reconnecting')}
+              {isComplete ? 'Finalized' : (isConnected ? 'Inference Active' : 'Reconnecting')}
             </span>
           </div>
 

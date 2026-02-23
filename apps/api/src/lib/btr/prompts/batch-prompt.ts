@@ -110,23 +110,18 @@ YOU HAVE FULL FREEDOM TO ADJUST WEIGHTS! Here are REFERENCE weights - you MAY ch
 └─────────────────────────────────────────────────────────────────────────────┘
 
 WEIGHT ADJUSTMENT RULES:
-• If user marked event as CRITICAL → Give MORE weight to precision methods (Nadi, KP)
-• If D60 data is incomplete → REDUCE Varga weight
-• If no spouse data → IGNORE spouseD9 method
-• If forensic traits don't match → INCREASE forensic penalty
-• YOU decide the final weights for each candidate!
+• CRITICAL events → Up-weight precision (Nadi, KP)
+• Incomplete D60 → Down-weight Varga
+• No spouse data → Ignore spouseD9
+• Forensic mismatch → Increase penalty
 
 ════════════════════════════════════════════════════════════════════════════════
-📊 USER'S EVENT IMPORTANCE SELECTIONS
+📊 EVENT IMPORTANCE
 ════════════════════════════════════════════════════════════════════════════════
 
 ${getEventImportanceSummary(events)}
 
-⚠️ User's importance selections MUST be respected in your scoring!
-   - CRITICAL events = 5x weight in final score
-   - HIGH events = 3x weight
-   - MEDIUM events = 2x weight
-   - LOW events = 1x weight
+⚠️ Multipliers: CRITICAL (5x) | HIGH (3x) | MEDIUM (2x) | LOW (1x)
 
 ════════════════════════════════════════════════════════════════════════════════
 ⚖️ ANTI-BIAS PROTOCOL:
@@ -301,6 +296,20 @@ For EACH candidate, provide THIS EXACT FORMAT for your working:
 │ VERDICT: KEEP / ELIMINATE                                                    │
 │ KEY REASON: [One-line astrological reason]                                   │
 └─────────────────────────────────────────────────────────────────────────────┘
+
+For EACH candidate analysis, your reasoning must be detailed and follow a structured format. 
+
+📢 **IMPORTANT UI RENDERING RULE**: 
+Wrap your detailed reasoning/analysis for EACH candidate inside a markdown code block (\`\`\`) to ensure it renders correctly in the technical dashboard.
+
+Example:
+Candidate [10:30:00]:
+\`\`\`
+ASTROLOGICAL ANALYSIS:
+- Lagna Match: [Detail]
+- Dasha Check: [Detail]
+- Verdict: [Score]
+\`\`\`
 
 At the VERY END of your response, you MUST output the final scores for ALL candidates in a structured JSON array enclosed in <FINAL_SCORES> tags. 
 

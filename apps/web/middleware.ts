@@ -17,11 +17,10 @@ const isPublicRoute = createRouteMatcher([
   '/sitemap.xml'
 ]);
 
-export default clerkMiddleware(async (auth, req) => {
+export default clerkMiddleware((auth, req) => {
   if (isPublicRoute(req)) {
     return NextResponse.next();
   }
-  return NextResponse.next();
 });
 
 export const config = {

@@ -6,11 +6,16 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import DashboardLayout from '@/app/components/dashboard/DashboardLayout';
 import StatsCard from '@/app/components/dashboard/StatsCard';
 import ChartCard from '@/app/components/dashboard/ChartCard';
 import RecentReadingsTable from '@/app/components/dashboard/RecentReadingsTable';
-import ReadingsChart from '@/app/components/dashboard/charts/ReadingsChart';
+
+const ReadingsChart = dynamic(() => import('@/app/components/dashboard/charts/ReadingsChart'), {
+  ssr: false,
+  loading: () => <div className="h-64 rounded-xl bg-[#FDF8F3] animate-pulse" />
+});
 import {
   Activity,
   Users,

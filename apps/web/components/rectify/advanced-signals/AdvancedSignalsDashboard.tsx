@@ -6,10 +6,24 @@ import { motion } from 'framer-motion';
 import { SectionErrorBoundary } from '@/components/rectify/AnalysisErrorBoundary';
 import { Gem } from 'lucide-react';
 
-// 1. Import the real components and types
-import AshtakavargaChart from './signal-cards/AshtakavargaChart';
-import ParivartanaYogaCard from './signal-cards/ParivartanaYogaCard';
-import YoginiDashaTimeline from './signal-cards/YoginiDashaTimeline';
+import dynamic from 'next/dynamic';
+
+// 1. Dynamic imports for heavy charting components to optimize initial bundle size
+const AshtakavargaChart = dynamic(() => import('./signal-cards/AshtakavargaChart'), {
+  loading: () => <div className="h-[300px] animate-pulse bg-stone-100 rounded-xl border border-stone-200" />,
+  ssr: false
+});
+
+const ParivartanaYogaCard = dynamic(() => import('./signal-cards/ParivartanaYogaCard'), {
+  loading: () => <div className="h-[200px] animate-pulse bg-stone-100 rounded-xl border border-stone-200" />,
+  ssr: false
+});
+
+const YoginiDashaTimeline = dynamic(() => import('./signal-cards/YoginiDashaTimeline'), {
+  loading: () => <div className="h-[400px] animate-pulse bg-stone-100 rounded-xl border border-stone-200" />,
+  ssr: false
+});
+
 import { IAdvancedSignals } from './types';
 
 // Main Dashboard Component

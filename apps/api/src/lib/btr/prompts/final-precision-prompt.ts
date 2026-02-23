@@ -230,19 +230,25 @@ ${c.lifecycleShifts.map(s => `│ [${s.date}]: ${s.event}`).join('\n')}` : ''}
 └ BOUNDARY CHECK: ${parseFloat(c.ascendant.degree) < 1 || parseFloat(c.ascendant.degree) > 29 ? '⚠️ EDGE' : 'SAFE'}`).join('\n')
     }
 
-FINAL VERDICT(required format):
+FINAL VERDICT (required format):
+
+📢 **IMPORTANT UI RENDERING RULE**: 
+Wrap your final reasoning and evidence inside a markdown code block (\`\`\`) to ensure it renders correctly in the results dashboard.
+
+\`\`\`
 BEST TIME: [HH:MM:SS]
-    REASONING: [Explicitly cite D60 Lagna, Dasha Connection, Synastry Match(if any), and Lifecycle Chronology.No generic text.]
-    CONFIDENCE: [0 - 100]
-    ACCURACY: [0 - 100] %
-        CONFIDENCE: [HIGH / MEDIUM / LOW]
-    MARGIN_OF_ERROR: ±[seconds] seconds
+REASONING: [Explicitly cite D60 Lagna, Dasha Connection, Synastry Match (if any), and Lifecycle Chronology. No generic text.]
+CONFIDENCE SCORE: [0-100]
+ACCURACY: [0-100]%
+CONFIDENCE LEVEL: [HIGH / MEDIUM / LOW]
+MARGIN_OF_ERROR: ±[seconds] seconds
 
-    EVIDENCE:
-    1.[D60 Justification]
-    2.[Event - Dasha Link]
+EVIDENCE:
+1. [D60 Justification]
+2. [Event-Dasha Link]
 
-    RUNNER_UP: [second best time]
+RUNNER_UP: [second best time]
+\`\`\`
 
 At the VERY END of your response, you MUST output the final verdict in a structured JSON object enclosed in <FINAL_VERDICT> tags.
 

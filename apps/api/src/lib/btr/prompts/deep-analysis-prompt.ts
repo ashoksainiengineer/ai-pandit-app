@@ -240,6 +240,18 @@ ${c.lifecycleShifts.map(s => `│ [${s.date}]: ${s.event} (Dasha: ${s.dasha})`).
 
 For EACH finalist candidate:
 
+📢 **IMPORTANT UI RENDERING RULE**: 
+Wrap the entire analysis block (from CANDIDATE to the closing box border) inside a markdown code block (\`\`\`) to ensure the ASCII tables render correctly in the dashboard.
+
+Example:
+\`\`\`
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ CANDIDATE: [HH:MM:SS]                                                       │
+├─────────────────────────────────────────────────────────────────────────────┤
+... [Full Analysis Table] ...
+└─────────────────────────────────────────────────────────────────────────────┘
+\`\`\`
+
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │ CANDIDATE: [HH:MM:SS]                                                       │
 ├─────────────────────────────────────────────────────────────────────────────┤
