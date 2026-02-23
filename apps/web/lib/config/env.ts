@@ -9,8 +9,8 @@ function getEnvVar(value: string | undefined, key: string, defaultValue?: string
       return defaultValue;
     }
     // BUILD-TIME WORKAROUND: Prevent crashes during static generation
-    if (process.env.NODE_ENV === 'production') {
-      console.warn(`⚠️ Environment variable ${key} is missing during build. Using placeholder.`);
+    if (process.env.NODE_ENV === 'production' || process.env.NEXT_PHASE === 'phase-production-build') {
+      // Silence placeholder warnings during build if they are repetitive
       return `placeholder_${key}`;
     }
     // In production, throwing here prevents the app from loading if critical keys are missing
@@ -43,11 +43,14 @@ function validateEnv(): void {
   const missing = requiredVars.filter((item) => !item.value);
 
   if (missing.length > 0) {
-    console.warn('⚠️ Missing environment variables (Optional during build):');
-    missing.forEach((item) => console.warn(`  • ${item.key}`));
+    const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
+    if (!isBuildPhase) {
+      console.warn('⚠️ Missing environment variables (Optional during build):');
+      missing.forEach((item) => console.warn(`  • ${item.key}`));
+    }
 
     // We don't throw during build to allow static generation to complete
-    if (process.env.NODE_ENV === 'production' && !process.env.NEXT_PHASE) {
+    if (process.env.NODE_ENV === 'production' && !isBuildPhase) {
       // Only throw in true PRODUCTION runtime, not during build
       // Note: Next.js doesn't always set NEXT_PHASE correctly here, but we can assume
       // if we are here and it's production, it might be build.

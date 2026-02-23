@@ -79,7 +79,9 @@ try {
   const finalUrl = CONNECTION_CONFIG.syncUrl || 'file::memory:';
 
   if (!CONNECTION_CONFIG.syncUrl) {
-    console.warn('⚠️ TURSO_DATABASE_URL is missing - using memory-based fallback client');
+    if (process.env.NEXT_PHASE !== 'phase-production-build') {
+      console.warn('⚠️ TURSO_DATABASE_URL is missing - using memory-based fallback client');
+    }
   }
 
   client = createClient({

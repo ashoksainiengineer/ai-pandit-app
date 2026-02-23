@@ -56,7 +56,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
       if (index === effectiveStageIndex) return 'active';
       return 'pending';
     });
-  }, [currentStage, isComplete, activeAIStage, effectiveStageIndex]);
+  }, [isComplete, effectiveStageIndex]);
 
   const completedCount = stageStates.filter(s => s === 'completed').length;
   const progressPercent = Math.round((completedCount / STAGES.length) * 100);

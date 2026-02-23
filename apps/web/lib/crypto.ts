@@ -45,9 +45,14 @@ let ENCRYPTION_SECRET = process.env.ENCRYPTION_SECRET || process.env.CLERK_ENCRY
 
 // Auto-initialize on first use
 if (ENCRYPTION_SECRET) {
-  console.log('[Crypto] Encryption secret loaded');
+    if (process.env.NEXT_PHASE !== 'phase-production-build') {
+        console.log('[Crypto] Encryption secret loaded');
+    }
 } else {
-  console.warn('[Crypto] WARNING: No encryption secret found!');
+    // Silence warning during build as secrets are injected at runtime
+    if (process.env.NEXT_PHASE !== 'phase-production-build') {
+        console.warn('[Crypto] WARNING: No encryption secret found!');
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -60,7 +65,9 @@ if (ENCRYPTION_SECRET) {
  */
 export function initializeEncryption(secret: string | undefined) {
     if (!secret) {
-        console.error("CRITICAL: ENCRYPTION_SECRET is not set. Encryption will fail.");
+        if (process.env.NEXT_PHASE !== 'phase-production-build') {
+            console.error("CRITICAL: ENCRYPTION_SECRET is not set. Encryption will fail.");
+        }
         // In a real production environment, you might want to throw an error and prevent startup.
         // For this context, we will allow it to proceed but log a severe warning.
         ENCRYPTION_SECRET = undefined;

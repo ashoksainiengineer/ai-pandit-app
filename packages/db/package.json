@@ -3,11 +3,14 @@
     "version": "1.0.0",
     "private": true,
     "type": "module",
+    "main": "./dist/drizzle.js",
+    "types": "./dist/drizzle.d.ts",
     "exports": {
-        ".": "./src/drizzle.ts",
-        "./schema": "./src/schema.ts"
+        ".": "./dist/drizzle.js",
+        "./schema": "./dist/schema.js"
     },
     "scripts": {
+        "build": "tsc",
         "db:generate": "drizzle-kit generate",
         "db:push": "drizzle-kit push",
         "db:studio": "drizzle-kit studio",

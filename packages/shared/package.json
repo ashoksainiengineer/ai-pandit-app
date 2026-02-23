@@ -3,12 +3,15 @@
     "version": "1.0.0",
     "private": true,
     "type": "module",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
     "exports": {
-        ".": "./src/index.ts",
-        "./schemas": "./src/schemas.ts",
-        "./types": "./src/types.ts"
+        ".": "./dist/index.js",
+        "./schemas": "./dist/schemas.js",
+        "./types": "./dist/types.js"
     },
     "scripts": {
+        "build": "tsc",
         "typecheck": "tsc --noEmit"
     },
     "dependencies": {
