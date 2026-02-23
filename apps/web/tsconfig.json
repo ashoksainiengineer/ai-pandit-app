@@ -47,6 +47,7 @@
     "drizzle.config.ts",
     "reset-session.ts",
     "debug*.ts",
-    "inspect*.ts"
+    "inspect*.ts",
+    "**/__tests__/*"
   ]
 }
