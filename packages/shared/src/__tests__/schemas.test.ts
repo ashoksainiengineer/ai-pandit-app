@@ -12,7 +12,7 @@ import {
     TransitDataEntrySchema,
     CandidateDataPackageSchema,
     validateCandidateDataForAI,
-} from '../schemas';
+} from '../schemas.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // PlanetDataSchema

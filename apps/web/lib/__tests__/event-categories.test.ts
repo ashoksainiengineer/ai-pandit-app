@@ -3,8 +3,8 @@
  * Tests getCategoryById, getAllEventTemplates, templateToLifeEvent
  */
 import { describe, it, expect } from 'vitest';
-import { getCategoryById, getAllEventTemplates, templateToLifeEvent } from '../event-categories';
-import EVENT_CATEGORIES from '../event-categories';
+import { getCategoryById, getAllEventTemplates, templateToLifeEvent } from '../event-categories.js';
+import EVENT_CATEGORIES from '../event-categories.js';
 
 describe('Event Categories - Structure', () => {
     it('should have at least 5 categories', () => {

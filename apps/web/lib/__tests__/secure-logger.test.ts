@@ -12,7 +12,7 @@ vi.mock('react', () => ({
 }));
 
 // Import after mocking
-import logger, { streamLogger } from '../../lib/secure-logger';
+import logger, { streamLogger } from '../../lib/secure-logger.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LOG LEVEL FILTERING

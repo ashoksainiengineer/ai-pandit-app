@@ -4,7 +4,7 @@
  * getQuizProgress, getNextQuestion, formatQuizResults, mapQuizResultsToLegacyTraits
  */
 import { describe, it, expect } from 'vitest';
-import { FORENSIC_QUIZ_QUESTIONS } from '../forensic-quiz/questions';
+import { FORENSIC_QUIZ_QUESTIONS } from '../forensic-quiz/questions.js';
 import {
     calculateQuizResults,
     calculatePrakriti,
@@ -13,8 +13,8 @@ import {
     getNextQuestion,
     formatQuizResults,
     mapQuizResultsToLegacyTraits,
-} from '../forensic-quiz/scoring';
-import type { QuizAnswer, QuizResults } from '../forensic-quiz/types';
+} from '../forensic-quiz/scoring.js';
+import type { QuizAnswer, QuizResults } from '../forensic-quiz/types.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CALCULATE PRAKRITI (DOSHA)

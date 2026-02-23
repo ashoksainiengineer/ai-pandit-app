@@ -3,7 +3,7 @@
  * Tests debounce with cancel, flush, and timer behavior.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { debounce } from '../debounce';
+import { debounce } from '../debounce.js';
 
 describe('Debounce - Basic Behavior', () => {
     beforeEach(() => {

@@ -11,7 +11,7 @@ import {
     DEFAULT_PAGE,
     DEFAULT_LIMIT,
     MAX_LIMIT,
-} from '../pagination';
+} from '../pagination.js';
 
 describe('Pagination - Constants', () => {
     it('should have sensible defaults', () => {

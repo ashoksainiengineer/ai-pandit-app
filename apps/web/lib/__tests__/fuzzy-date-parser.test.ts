@@ -9,7 +9,7 @@
  * This is tracked in TESTING_FINDINGS.md.
  */
 import { describe, it, expect } from 'vitest';
-import { parseFuzzyDate, parseRelativeDate } from '../fuzzy-date-parser';
+import { parseFuzzyDate, parseRelativeDate } from '../fuzzy-date-parser.js';
 
 const BIRTH_DATE = '1990-05-15';
 

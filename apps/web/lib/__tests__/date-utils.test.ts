@@ -31,7 +31,7 @@ import {
     generateDays,
     isPrecisionSatisfied,
     DATE_CONSTANTS,
-} from '../date-utils';
+} from '../date-utils.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // LEAP YEAR

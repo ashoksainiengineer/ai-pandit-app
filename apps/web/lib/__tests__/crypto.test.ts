@@ -11,7 +11,7 @@ import {
     isEncrypted,
     parseSensitiveField,
     initializeEncryption,
-} from '../crypto';
+} from '../crypto.js';
 
 // Ensure encryption secret is loaded
 beforeAll(() => {

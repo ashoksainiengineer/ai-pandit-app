@@ -3,7 +3,7 @@
  * Industry-standard security testing for HTML/XSS sanitization.
  */
 import { describe, it, expect } from 'vitest';
-import { sanitizeAIContent } from '../xss-sanitizer';
+import { sanitizeAIContent } from '../xss-sanitizer.js';
 
 describe('XSS Sanitizer - sanitizeAIContent', () => {
     // ═══════════════════════════════════════════════════════════════════

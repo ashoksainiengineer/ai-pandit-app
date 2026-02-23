@@ -3,7 +3,7 @@
  * Tests validation and preset-to-minutes conversion.
  */
 import { describe, it, expect } from 'vitest';
-import { validateOffsetConfig, offsetConfigToMinutes, type TimeOffsetConfig } from '../time-offset-manager';
+import { validateOffsetConfig, offsetConfigToMinutes, type TimeOffsetConfig } from '../time-offset-manager.js';
 
 describe('Time Offset Manager - validateOffsetConfig', () => {
     it('should accept valid preset "2hours"', () => {
