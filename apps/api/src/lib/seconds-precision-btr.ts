@@ -151,7 +151,9 @@ export async function processSecondsPrecisionBTR(
         // STAGE 1: EXHAUSTIVE DATA GENERATION
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
+        logger.info('🔱 [PIPELINE] Entering Stage 1: Exhaustive Data Generation');
         const stage1 = await stage1ExhaustiveDataGeneration(input, progress);
+        logger.info(`🔱 [PIPELINE] Stage 1 Complete: ${stage1.candidates.length} candidates generated`);
         stageHistory[1] = stage1.stageResult;
         emitStageStats(input.sessionId, 1, stage1.stageResult.candidatesOut, `Generated ${stage1.stageResult.candidatesOut} candidates`);
         await progress.flush("Stage 1 finalized. Preparing for tournament...");
@@ -161,7 +163,9 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(480);
+        logger.info('🔱 [PIPELINE] Entering Stage 2: Batch Tournament');
         const stage2 = await stage2BatchTournament(input, stage1.candidates, progress, input.forensicTraits, globalLifecycle);
+        logger.info(`🔱 [PIPELINE] Stage 2 Complete: ${stage2.survivors.length} survivors`);
         stageHistory[2] = stage2.stageResult;
         emitStageStats(input.sessionId, 2, stage2.stageResult.candidatesOut,
             `Tournament: ${stage2.rounds.length} rounds, ${stage2.survivors.length} survivors`);
@@ -172,7 +176,9 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(360);
+        logger.info('🔱 [PIPELINE] Entering Stage 3: Refinement Grid');
         const stage3 = await stage3RefinementGrid(input, stage2.survivors, progress);
+        logger.info(`🔱 [PIPELINE] Stage 3 Complete: ${stage3.candidates.length} candidates refined`);
         stageHistory[3] = stage3.stageResult;
         emitStageStats(input.sessionId, 3, stage3.stageResult.candidatesOut, `Refined to ${stage3.stageResult.candidatesOut}`);
         await progress.flush("Stage 3 finalized. Starting multi-dasha analysis...");
@@ -182,7 +188,9 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(240);
+        logger.info('🔱 [PIPELINE] Entering Stage 4: Deep Analysis');
         const stage4 = await stage4DeepAnalysis(input, stage3.candidates, progress, input.forensicTraits, globalLifecycle);
+        logger.info(`🔱 [PIPELINE] Stage 4 Complete: ${stage4.survivors.length} deep survivors`);
         stageHistory[4] = stage4.stageResult;
         emitStageStats(input.sessionId, 4, stage4.stageResult.candidatesOut, `Deep: ${stage4.survivors.length} survivors`);
         await progress.flush("Stage 4 finalized. Entering micro-precision phase...");
@@ -192,7 +200,9 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(120);
+        logger.info('🔱 [PIPELINE] Entering Stage 5: Micro Grid');
         const stage5 = await stage5MicroGrid(input, stage4.survivors, progress);
+        logger.info(`🔱 [PIPELINE] Stage 5 Complete: ${stage5.candidates.length} micro candidates`);
         stageHistory[5] = stage5.stageResult;
         emitStageStats(input.sessionId, 5, stage5.stageResult.candidatesOut, `Micro: ${stage5.candidates.length}`);
         await progress.flush("Stage 5 finalized. Running final seconds-level synthesis...");
@@ -202,7 +212,9 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(60);
+        logger.info('🔱 [PIPELINE] Entering Stage 6: Final Precision');
         const stage6 = await stage6FinalPrecision(input, stage5.candidates, progress, input.forensicTraits, globalLifecycle);
+        logger.info('🔱 [PIPELINE] Stage 6 Complete: Final Verdict reached');
         stageHistory[6] = stage6.stageResult;
         emitStageStats(input.sessionId, 6, 1, 'FINAL TIME DETERMINED');
         await progress.flush("All analysis stages complete. Generating final report...");
@@ -276,7 +288,8 @@ export async function processSecondsPrecisionBTR(
             stageHistory: Object.fromEntries(
                 Object.entries(stageHistory).map(([k, v]) => [k, {
                     candidatesIn: v.candidatesIn,
-                    candidatesOut: v.candidatesOut
+                    candidatesOut: v.candidatesOut,
+                    aiReasoning: v.aiReasoning
                 }])
             ),
             // 📝 PERSIST FULL REASONING LOGS

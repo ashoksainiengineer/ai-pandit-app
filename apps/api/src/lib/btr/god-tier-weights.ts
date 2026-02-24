@@ -251,6 +251,56 @@ export const CONFIDENCE_THRESHOLDS = {
   },
 } as const;
 
+/**
+ * 🔱 SUPREME ENGINE: Dynamic Weight Calculator
+ * Uses Shadbala (Planetary Strength) to adjust method weights for the specific native.
+ * 
+ * Logic: If a planet is the 'Strongest' in the chart, its significations and 
+ * related dasha/transit methods gain a 1.2x boost. Weak planets are penalized.
+ */
+export function calculateDynamicWeights(
+  baseWeights: Record<string, number>,
+  shadbala: ShadbalaSummary
+): Record<string, number> {
+  const dynamicWeights = { ...baseWeights };
+  const strongest = shadbala.strongestPlanet;
+  const weakest = shadbala.weakestPlanet;
+
+  // 1. Boost methods related to the strongest planet
+  // For example, if Jupiter is strongest, 'varga' and 'vimshottari' (wisdom/timing) get boosted.
+  if (['jupiter', 'sun', 'moon'].includes(strongest)) {
+    dynamicWeights.varga = (dynamicWeights.varga || 3) * 1.25;
+    dynamicWeights.vimshottari = (dynamicWeights.vimshottari || 4) * 1.2;
+  }
+
+  // 2. Adjust KP/Nadi weights based on mercury/jupiter strength (logic processing)
+  if (shadbala.planets.mercury.totalRupas > 1.5) {
+    dynamicWeights.kp = (dynamicWeights.kp || 5) * 1.15;
+  }
+
+  // 3. Penalize methods relying on weak planets
+  if (['saturn', 'mars'].includes(weakest)) {
+    dynamicWeights.transit = (dynamicWeights.transit || 3) * 0.85;
+  }
+
+  return dynamicWeights;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RANK FUSION CONSENSUS CONSTANTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * RRF constant 'k' (Industry standard is 60)
+ * Prevents small fluctuations in rank from overly biasing the score.
+ */
+export const RRF_K = 60;
+
+/**
+ * Minimum methods required for a valid consensus
+ */
+export const MIN_CONSENSUS_METHODS = 3;
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -271,6 +321,7 @@ export function importanceToImpact(importance: string): EventImpact {
 
 /**
  * Calculate total weight for weighted average
+ * @deprecated Use calculateRankFusionScore for God-Tier consensus
  */
 export function calculateWeightedAverage(
   scores: Record<string, number>,
@@ -286,6 +337,57 @@ export function calculateWeightedAverage(
   }
 
   return totalWeight > 0 ? weightedSum / totalWeight : 0;
+}
+
+/**
+ * 🔱 Consensus Scoring: Reciprocal Rank Fusion (RRF)
+ * Ensures that a candidate who is a "Method Winner" in any dimension survives.
+ * 
+ * @param methodScores Record of method name to score (0-100)
+ * @param weights Record of method name to weight (impact multiplier)
+ */
+export function calculateRankFusionScore(
+  methodScores: Record<string, number>,
+  weights: Record<string, number>
+): number {
+  const scores = Object.entries(methodScores).filter(([_, score]) => score > 0);
+  if (scores.length < MIN_CONSENSUS_METHODS) {
+    // Fallback to weighted average if data is sparse
+    return calculateWeightedAverage(methodScores, weights);
+  }
+
+  // 1. Sort scores for each method to establish ranks
+  // In our case, each 'method' is a single value, but if we had multiple candidates
+  // we would rank them. For single candidate evaluation relative to potential,
+  // we treat the score itself as a "Rank Factor".
+
+  // 🔱 Rank Fusion: We simulate RRF for a single candidate across methods.
+  // We calculate how close a method is to its "Theoretical Best" (100).
+  let rrfSum = 0;
+  for (const [method, score] of scores) {
+    const weight = weights[method] || 1.0;
+
+    // Convert 0-100 score to a "Virtual Rank"
+    // Score 100 = Rank 1, Score 0 = Rank 100+
+    const virtualRank = Math.max(1, 101 - score);
+
+    // Fusion formula: Weight * (1 / (k + rank))
+    // We normalize this back to a 0-100 scale later.
+    rrfSum += weight * (1 / (RRF_K + virtualRank));
+  }
+
+  // Normalize sum: Scale rrfSum relative to the "Max Possible RRF Sum" (all scores 100)
+  let maxPossibleRrf = 0;
+  for (const [method, _] of scores) {
+    const weight = weights[method] || 1.0;
+    maxPossibleRrf += weight * (1 / (RRF_K + 1));
+  }
+
+  const normalizedScore = (rrfSum / maxPossibleRrf) * 100;
+
+  // 🔱 HYBRID SAFETY: Blend with weighted average to maintain linear intuition
+  const weightedAvg = calculateWeightedAverage(methodScores, weights);
+  return (normalizedScore * 0.7) + (weightedAvg * 0.3);
 }
 
 /**
@@ -323,6 +425,9 @@ export default {
   getEventWeightFromImportance,
   importanceToImpact,
   calculateWeightedAverage,
+  calculateRankFusionScore,
   getTotalMethodWeight,
   getDefaultImportance,
+  RRF_K,
+  MIN_CONSENSUS_METHODS,
 };

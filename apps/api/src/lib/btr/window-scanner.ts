@@ -40,6 +40,7 @@ import {
   METHOD_WEIGHTS,
   KP_SCORES,
   DASHA_MATCH_SCORES,
+  calculateRankFusionScore,
   calculateWeightedAverage
 } from './god-tier-weights.js';
 import { logger } from '../logger.js';
@@ -129,18 +130,77 @@ export async function scanBirthTimeWindow(input: ScannerInput): Promise<ScanResu
       stepSeconds: input.stepSeconds || 60
     };
 
+    // 🔱 Adaptive Resolution Scanning
+    // First pass with base resolution
     const candidates = await generateCandidates(timeWindow, context);
-
-    const scoredCandidates = await Promise.all(
+    let scoredCandidates = await Promise.all(
       candidates.map(c => scoreCandidate(c, context))
     );
 
-    const validCandidates = scoredCandidates
-      .filter(c => c.overallScore! >= config.minConsensusScore)
-      .sort((a, b) => b.overallScore! - a.overallScore!)
-      .slice(0, config.maxCandidates);
+    // 🔱 Adaptive Precision: Peak Zooming
+    // If we find very high scores, zoom in around them with 5-second precision
+    const highPotentialCandidates = scoredCandidates.filter(c => c.overallScore! >= 80);
+    if (highPotentialCandidates.length > 0 && timeWindow.stepSeconds > 10) {
+      logger.info(`[SCANNER] 🔱 Peak Zooming detected ${highPotentialCandidates.length} high-potential zones`);
 
-    const bestCandidate = validCandidates[0] || null;
+      const zoomPromises = highPotentialCandidates.map(async (peak) => {
+        const zoomWindow: TimeWindow = {
+          baseTime: peak.time as Date,
+          rangeMinutes: 1, // 1 minute window
+          stepSeconds: 5   // 5 second resolution (Seconds precision)
+        };
+        const zoomCandidates = await generateCandidates(zoomWindow, context);
+        return Promise.all(zoomCandidates.map(c => scoreCandidate(c, context)));
+      });
+
+      const zoomedResults = (await Promise.all(zoomPromises)).flat();
+      scoredCandidates = [...scoredCandidates, ...zoomedResults];
+    }
+
+    // 🔱 Diverse Selection Policy
+    // Instead of just taking Top-K overall, we ensure Method Winners survive.
+    const selectionSet = new Set<string>();
+    const diverseSurvivors: CandidateScore[] = [];
+    const maxSurvivors = config.maxCandidates || DEFAULT_SCAN_CONFIG.maxCandidates;
+
+    // 1. Add overall Top-K
+    const sortedOverall = [...scoredCandidates].sort((a, b) => (b.overallScore || 0) - (a.overallScore || 0));
+    sortedOverall.slice(0, Math.floor(maxSurvivors * 0.6)).forEach(c => {
+      if (c.timeString && !selectionSet.has(c.timeString)) {
+        diverseSurvivors.push(c);
+        selectionSet.add(c.timeString);
+      }
+    });
+
+    // 2. Add Top-3 from EACH major method (Safety Net)
+    const majorMethods: Array<keyof MethodScores> = ['kp', 'vimshottari', 'varga', 'nadi', 'transit'];
+    majorMethods.forEach(method => {
+      const methodWinners = [...scoredCandidates]
+        .sort((a, b) => (b.methodScores?.[method] || 0) - (a.methodScores?.[method] || 0))
+        .slice(0, 3);
+
+      methodWinners.forEach(c => {
+        if (c.timeString && !selectionSet.has(c.timeString) && diverseSurvivors.length < maxSurvivors) {
+          diverseSurvivors.push(c);
+          selectionSet.add(c.timeString);
+          logger.debug(`[SCANNER] 🔱 Diverse Selection: Kept ${c.timeString} as ${method} winner`);
+        }
+      });
+    });
+
+    // 3. 🔱 Boundary Protection: Always keep candidates near dangerous boundaries
+    scoredCandidates.forEach(c => {
+      if (c.timeString &&
+        c.redFlags?.some(f => f.includes('boundary') || f.includes('Gandanta')) &&
+        !selectionSet.has(c.timeString) &&
+        diverseSurvivors.length < maxSurvivors) {
+        diverseSurvivors.push(c);
+        selectionSet.add(c.timeString);
+        logger.debug(`[SCANNER] 🔱 Sandhi Survival: Kept ${c.timeString} near critical boundary`);
+      }
+    });
+
+    const bestCandidate = diverseSurvivors.sort((a, b) => b.overallScore! - a.overallScore!)[0] || null;
 
     if (bestCandidate) {
       generateFinalRecommendations(bestCandidate, context, recommendations);
@@ -149,8 +209,8 @@ export async function scanBirthTimeWindow(input: ScannerInput): Promise<ScanResu
     const duration = Date.now() - startTime;
 
     return {
-      success: validCandidates.length > 0,
-      candidates: validCandidates,
+      success: diverseSurvivors.length > 0,
+      candidates: diverseSurvivors,
       bestCandidate,
       totalScanned: scoredCandidates.length,
       scanDurationMs: duration,
@@ -207,7 +267,7 @@ async function generateCandidates(
           timeString,
           context.latitude,
           context.longitude,
-          context.timezone
+          context.timezone as string | number
         );
         if (context.config.cacheEphemeris) {
           ephemerisCache.set(cacheKey, ephemeris);
@@ -309,7 +369,8 @@ async function scoreCandidate(
   const weights = METHOD_WEIGHTS;
 
   const scoresRecord: Record<string, number> = { ...methodScores };
-  const overallScore = calculateWeightedAverage(scoresRecord, weights);
+  // 🔱 Rank Fusion: Use Reciprocal Rank Fusion for mathematically robust consensus
+  const overallScore = calculateRankFusionScore(scoresRecord, weights);
 
   extractKeyEvidence(candidate, methodScores, eventMatches, keyEvidence);
 
@@ -640,6 +701,9 @@ function getPlanetHouse(planetName: string, ephemeris: any): number {
 }
 
 function parseTime(timeStr: string, dateStr: string, timezone: string | number): Date {
+  if (!timeStr || !dateStr) {
+    throw new Error('Missing time or date string for parsing');
+  }
   return convertToUTC(dateStr, timeStr, timezone);
 }
 

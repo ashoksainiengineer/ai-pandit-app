@@ -10,7 +10,7 @@ import React, {
   useId,
 } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Radio, Activity, Users, ChevronDown, ChevronUp } from 'lucide-react';
+import { Brain, Radio, Activity, Users, ChevronDown, ChevronUp, ChevronRight, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -29,10 +29,13 @@ const MARKDOWN_COMPONENTS_CARD = {
 };
 
 const MARKDOWN_COMPONENTS_FOCUS = {
-  p: ({ children }: any) => <p className="mb-4 last:mb-0">{children}</p>,
-  li: ({ children }: any) => <li className="ml-4 list-disc marker:text-[#B8860B]">{children}</li>,
+  p: ({ children }: any) => <p className="mb-4 last:mb-0 text-sm leading-7">{children}</p>,
+  li: ({ children }: any) => <li className="ml-5 list-disc marker:text-[#B8860B] mb-2 text-sm leading-7">{children}</li>,
   strong: ({ children }: any) => <strong className="font-bold text-[#1A1612]">{children}</strong>,
-  code: ({ children }: any) => <code className="bg-[#F5EFE7] px-1 py-0.5 rounded text-xs">{children}</code>,
+  code: ({ children }: any) => <code className="bg-[#F5EFE7] px-1.5 py-0.5 rounded text-xs font-mono">{children}</code>,
+  h1: ({ children }: any) => <h1 className="text-lg font-bold text-[#1A1612] mb-4 mt-6 first:mt-0">{children}</h1>,
+  h2: ({ children }: any) => <h2 className="text-base font-bold text-[#1A1612] mb-3 mt-5">{children}</h2>,
+  h3: ({ children }: any) => <h3 className="text-sm font-bold text-[#1A1612] mb-2 mt-4">{children}</h3>,
 };
 
 const REMARK_PLUGINS = [remarkGfm];
@@ -74,6 +77,7 @@ interface UnifiedAIPanelProps {
   title?: string;      // 🔱 NEW: Stage title for header
   isCompleted?: boolean; // 🔱 NEW: If this specific stage is done
   offsetMinutes?: number; // 🔱 NEW: God-Tier architecture time offset
+  hideLiveReasoning?: boolean; // 🔱 NEW: Hide streaming for Stage 4 & 6
 }
 
 type ScoreTier = 'top' | 'promising' | 'exploring';
@@ -206,7 +210,6 @@ const ReasoningCard = memo(function ReasoningCard({
   batchIndex: number;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const sanitized = sanitizeAIContent(content);
 
   // Auto-scroll when live
   useEffect(() => {
@@ -215,14 +218,19 @@ const ReasoningCard = memo(function ReasoningCard({
     }
   }, [content, isLive]);
 
+  // 🔱 Strip raw think tags for cleaner card preview
+  const displayContent = useMemo(() => {
+    return content.replace(/<\/?think>/gi, '').trim();
+  }, [content]);
+
   return (
     <div
       onClick={onClick}
       className={`
-        relative p-3 rounded-lg border cursor-pointer transition-all duration-200 flex flex-col h-[180px]
+        relative p-3 rounded-lg border cursor-pointer transition-all duration-300 flex flex-col h-[200px]
         ${isLive
-          ? 'bg-amber-50/60 border-amber-300 shadow-sm ring-1 ring-amber-300/40'
-          : 'bg-white border-[#F0E8DE] hover:border-amber-400 hover:shadow-sm'
+          ? 'bg-amber-50/40 border-amber-300 shadow-sm ring-1 ring-amber-300/30'
+          : 'bg-white border-[#F0E8DE] hover:border-amber-400 hover:shadow-md'
         }
       `}
     >
@@ -230,13 +238,13 @@ const ReasoningCard = memo(function ReasoningCard({
       <div className="flex items-center justify-between mb-2 shrink-0">
         <div className="flex items-center gap-1.5">
           <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-amber-500 animate-pulse' : 'bg-stone-300'}`} />
-          <span className="text-[10px] font-mono text-[#7A756F] truncate max-w-[100px]">
+          <span className="text-[10px] font-mono text-[#7A756F] truncate max-w-[100px] font-bold">
             {title}
           </span>
         </div>
         {isLive && (
           <span className="text-[8px] font-bold text-amber-700 bg-amber-100/80 px-1.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-0.5">
-            <Radio className="w-2 h-2 animate-pulse" /> Live
+            <Radio className="w-2 h-2 animate-pulse" /> LIVE
           </span>
         )}
       </div>
@@ -244,21 +252,21 @@ const ReasoningCard = memo(function ReasoningCard({
       {/* Content — TRUNCATED preview only */}
       <div
         ref={scrollRef}
-        className="text-[10px] text-[#4A453F] leading-relaxed font-mono overflow-y-auto flex-grow relative"
+        className="text-[10px] text-[#4A453F] leading-relaxed font-mono overflow-y-auto flex-grow relative style-scroll-mini"
       >
-        {!sanitized ? (
-          <span className="text-stone-400 italic text-[9px]">Evaluating...</span>
+        {!content ? (
+          <span className="text-stone-400 italic text-[9px]">Analyzing...</span>
         ) : (
           <pre className="whitespace-pre-wrap break-words font-mono text-[10px] text-[#4A453F] leading-relaxed">
-            {sanitized}
+            {sanitizeAIContent(displayContent)}
             {isLive && (
               <span className="inline-block w-1 h-3 bg-[#B8860B] animate-pulse ml-0.5 align-middle" />
             )}
           </pre>
         )}
-        {/* Gradient fade at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
       </div>
+      {/* Gradient fade at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
 
       {/* Footer */}
       <div className="mt-1.5 pt-1.5 border-t border-stone-100 flex items-center justify-between shrink-0">
@@ -526,26 +534,29 @@ const ReasoningContent = memo(function ReasoningContent({
     );
   }
 
-  const sanitizedContent = sanitizeAIContent(content);
+  // 🔱 Strip raw think tags for consistent rendering
+  const displayContent = content.replace(/<\/?think>/gi, '').trim();
+  const sanitizedContent = sanitizeAIContent(displayContent);
 
   return (
     <div
       ref={scrollRef}
-      className="p-5 overflow-y-auto max-h-[400px] font-mono text-sm text-[#4A453F] leading-7 style-scroll"
+      className="p-6 overflow-y-auto max-h-[500px] font-sans text-sm text-[#4A453F] leading-relaxed style-scroll bg-white"
     >
       {isActive ? (
-        /* ⚡ PERF: During live streaming, use lightweight pre-formatted text */
-        <pre className="whitespace-pre-wrap break-words font-mono text-sm text-[#4A453F] leading-7">
+        <pre className="whitespace-pre-wrap break-words font-sans text-[14px] text-[#1A1612] leading-7">
           {sanitizedContent}
           <span className="inline-block w-1.5 h-4 bg-[#B8860B] animate-pulse ml-0.5 align-middle" />
         </pre>
       ) : (
-        <ReactMarkdown
-          remarkPlugins={REMARK_PLUGINS}
-          components={MARKDOWN_COMPONENTS_FOCUS}
-        >
-          {sanitizedContent}
-        </ReactMarkdown>
+        <div className="prose prose-stone max-w-none">
+          <ReactMarkdown
+            remarkPlugins={REMARK_PLUGINS}
+            components={MARKDOWN_COMPONENTS_FOCUS}
+          >
+            {sanitizedContent}
+          </ReactMarkdown>
+        </div>
       )}
     </div>
   );
@@ -565,6 +576,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
   title = 'Intelligence Grid',
   isCompleted = false,
   offsetMinutes = 60,
+  hideLiveReasoning = false,
 }: UnifiedAIPanelProps) {
   const panelId = useId();
   const [localSelectedCandidate, setLocalSelectedCandidate] = useState<string | null>(null);
@@ -770,16 +782,45 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                   )}
 
                   {/* Grid of Batches */}
-                  <ReasoningGrid
-                    candidates={allCandidates || {}}
-                    liveCandidate={thinking?.candidateTime || null}
-                    onFocus={handleCandidateSelect}
-                    isStageCompleted={isCompleted}
-                    isStageActive={isActive}
-                  />
+                  {hideLiveReasoning && isActive && !isCompleted ? (
+                    <div className="flex flex-col">
+                      <div className="flex flex-col items-center justify-center h-[180px] text-center p-6 bg-[#FAF8F5]/30 border-b border-[#F0E8DE]/50">
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                          className="w-10 h-10 rounded-full border-2 border-amber-500/20 border-t-amber-500 flex items-center justify-center mb-3"
+                        />
+                        <p className="text-xs font-bold text-amber-700 uppercase tracking-widest animate-pulse">
+                          Analyzing Temporal Patterns...
+                        </p>
+                        <p className="text-[10px] text-stone-500 mt-2 max-w-[250px]">
+                          Processing high-fidelity synthesis chunks...
+                        </p>
+                      </div>
+                      <ReasoningContent content={displayedContent} isActive={isActive && !isCompleted} />
+                    </div>
+                  ) : (
+                    <>
+                      <ReasoningGrid
+                        candidates={allCandidates || {}}
+                        liveCandidate={thinking?.candidateTime || null}
+                        onFocus={handleCandidateSelect}
+                        isStageCompleted={isCompleted}
+                        isStageActive={isActive}
+                      />
 
-                  {candidatesList.length === 0 && (
-                    <ReasoningContent content={displayedContent} isActive={isActive && !isCompleted} />
+                      {/* Always show the narrative/overview at the bottom of the grid or as the primary content if no candidates */}
+                      {displayedContent && (
+                        <div className={candidatesList.length > 0 ? "mt-4 pt-4 border-t border-[#F0E8DE]" : ""}>
+                          {candidatesList.length > 0 && (
+                            <div className="px-5 mb-2">
+                              <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Stage Narrative</span>
+                            </div>
+                          )}
+                          <ReasoningContent content={displayedContent} isActive={isActive && !isCompleted} />
+                        </div>
+                      )}
+                    </>
                   )}
                 </motion.div>
               ) : (

@@ -38,6 +38,7 @@ import type {
 import {
   METHOD_WEIGHTS,
   CONFIDENCE_THRESHOLDS,
+  calculateRankFusionScore,
   calculateWeightedAverage
 } from './btr/god-tier-weights.js';
 
@@ -580,7 +581,9 @@ function calculateWeightedConsensus(scores: ConsensusScores): number {
     forensic: METHOD_WEIGHTS.forensic,
     ai: METHOD_WEIGHTS.ai,
   };
-  return calculateWeightedAverage(scoresRecord, methodWeights);
+
+  // 🔱 Consensus Engine: Use Rank Fusion for mathematically robust judgment
+  return calculateRankFusionScore(scoresRecord, methodWeights);
 }
 
 function determineConfidenceLevel(

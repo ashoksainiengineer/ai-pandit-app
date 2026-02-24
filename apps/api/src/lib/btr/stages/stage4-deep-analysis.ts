@@ -127,47 +127,67 @@ export async function stage4DeepAnalysis(
 
             // PROCESS BATCH IMMEDIATELY
             const batchSurvivors: any[] = [];
-            if (response.success) {
-                const aiContent = response.content || response.thinking || '';
-                const aiScores = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), survivorsPerBatch);
-                const survivorTimes = aiScores
+            const aiContent = response.success ? (response.content || response.thinking || '') : '';
+            const aiScores = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), survivorsPerBatch);
+
+            // 🔱 RESILIENT FALLBACK: If AI fails or returns empty, preserve the first N candidates
+            let survivorTimes: string[] = [];
+            if (!response.success || aiScores.length === 0) {
+                logger.warn(`🔱 [STAGE-4] Batch ${i + 1} AI verdict failed (Success: ${response.success}, Scores: ${aiScores.length}). FALLBACK: Preserving top candidates.`);
+                survivorTimes = batchTimes.slice(0, survivorsPerBatch).map(c => c.time);
+            } else {
+                survivorTimes = aiScores
                     .sort((a, b) => b.score - a.score)
                     .slice(0, survivorsPerBatch)
                     .map(s => s.time);
-
-                for (let j = 0; j < batchEnriched.length; j++) {
-                    const candidate = batchEnriched[j];
-                    const originalTimeInfo = batchTimes[j];
-                    const isSurvivor = survivorTimes.includes(candidate.time);
-                    const scoreObj = aiScores.find(s => s.time === candidate.time);
-                    const score = scoreObj ? scoreObj.score : (isSurvivor ? 90 : 60);
-                    const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Matched core forensic dasha markers" : "Failed deep multi-dasha verification");
-
-                    if (isSurvivor) {
-                        batchSurvivors.push(originalTimeInfo);
-                    }
-
-                    // IMMEDIATE EMIT - SYNCED WITH AI
-                    emitCandidateScore(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEphemerisInline(candidate), getFullEphemerisPayload(candidate));
-                    emitDecision(input.sessionId, {
-                        stage: 4,
-                        time: candidate.time,
-                        verdict: isSurvivor ? 'promoted' : 'rejected',
-                        score,
-                        reason,
-                        batch: i + 1
-                    });
-                }
             }
 
-            return batchSurvivors;
+            for (let j = 0; j < batchEnriched.length; j++) {
+                const candidate = batchEnriched[j];
+                const originalTimeInfo = batchTimes[j];
+                const isSurvivor = survivorTimes.includes(candidate.time);
+
+                // If AI failed, use fallback scores
+                const scoreObj = aiScores.find(s => s.time === candidate.time);
+                const score = scoreObj ? scoreObj.score : (isSurvivor ? 85 : 60);
+                const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Preserved via technical fallback" : "Failed deep multi-dasha verification");
+
+                if (isSurvivor) {
+                    batchSurvivors.push(originalTimeInfo);
+                }
+
+                // IMMEDIATE EMIT - SYNCED WITH AI
+                emitCandidateScore(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEphemerisInline(candidate), getFullEphemerisPayload(candidate));
+                emitDecision(input.sessionId, {
+                    stage: 4,
+                    time: candidate.time,
+                    verdict: isSurvivor ? 'promoted' : 'rejected',
+                    score,
+                    reason,
+                    batch: i + 1
+                });
+            }
+
+            return { batchSurvivors, aiContent };
         });
 
         const results = await executeAIInParallel(tasks, config.ai.maxConcurrency, config.ai.staggerMs);
 
-        // Flatten array of survivor arrays
-        const roundSurvivors = results.flat();
+        // Flatten survivors and accumulate reasoning
+        const roundSurvivors = results.flatMap(r => r.batchSurvivors);
+        allReasoning += results.map(r => r.aiContent).filter(Boolean).join('\n\n---\n\n');
+
         currentCandidates = roundSurvivors;
+
+        // 🔱 TENTATIVE TIME SAFETY: Ensure it survives the rounds
+        const hasTentative = currentCandidates.some(c => c.time === input.tentativeTime);
+        if (!hasTentative) {
+            const tentativeCandidate = candidates.find(c => c.time === input.tentativeTime);
+            if (tentativeCandidate) {
+                currentCandidates.push(tentativeCandidate);
+                logger.info(`🔱 [STAGE-4] Round safety net: Restored tentative time ${input.tentativeTime}`);
+            }
+        }
 
         if (currentCandidates.length === 0) {
             logger.error('🔱 [STAGE-4] FAILED: All candidates rejected in internal tournament rounds');
@@ -204,12 +224,19 @@ export async function stage4DeepAnalysis(
         const aiContent = response.success ? (response.content || response.thinking || '') : '';
         allReasoning += aiContent;
 
-        // FIXED: Use survivorsPerBatch variable instead of hardcoded 7
         const aiScores = extractBatchSurvivors(aiContent, currentCandidates.map(c => c.time), survivorsPerBatch);
-        const survivorTimes = aiScores
-            .sort((a, b) => b.score - a.score)
-            .slice(0, survivorsPerBatch)
-            .map(s => s.time);
+
+        // 🔱 FINAL ROUND FALLBACK: If AI fails or returns empty, preserve everyone (don't eliminate)
+        let survivorTimes: string[] = [];
+        if (!response.success || aiScores.length === 0) {
+            logger.warn(`🔱 [STAGE-4] Final verification AI failed. FALLBACK: Promoting all current candidates.`);
+            survivorTimes = currentCandidates.map(c => c.time);
+        } else {
+            survivorTimes = aiScores
+                .sort((a, b) => b.score - a.score)
+                .slice(0, survivorsPerBatch)
+                .map(s => s.time);
+        }
 
         const survivors: CandidateTime[] = [];
         for (let j = 0; j < finalBatchData.length; j++) {
@@ -249,7 +276,8 @@ export async function stage4DeepAnalysis(
             stageNumber: 4,
             stageName: 'Deep Multi-Dasha Analysis',
             candidatesIn: candidates.length,
-            candidatesOut: Math.min(currentCandidates.length, 7)
+            candidatesOut: Math.min(currentCandidates.length, 7),
+            aiReasoning: allReasoning
         },
         aiReasoning: allReasoning
     };

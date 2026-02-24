@@ -107,10 +107,12 @@ const Breadcrumbs = memo(({ items }: { items: { label: string; href?: string; ic
 Breadcrumbs.displayName = 'Breadcrumbs';
 
 const AnalysisTimer = memo(({ startedAt, isComplete, updatedAt }: { startedAt: string | null; isComplete: boolean; updatedAt?: string }) => {
+  const [mounted, setMounted] = useState(false);
   const [duration, setDuration] = useState(0);
   const finalDurationRef = useRef<number | null>(null);
 
   useEffect(() => {
+    setMounted(true);
     const effectiveStart = startedAt || updatedAt;
     if (!effectiveStart) return;
 
@@ -131,7 +133,7 @@ const AnalysisTimer = memo(({ startedAt, isComplete, updatedAt }: { startedAt: s
     return () => clearInterval(interval);
   }, [startedAt, updatedAt, isComplete]);
 
-  if (!startedAt && !updatedAt) {
+  if (!mounted || (!startedAt && !updatedAt)) {
     return (
       <div className="flex items-center gap-1.5 font-mono text-sm bg-stone-100 px-3 py-1.5 rounded-lg border border-stone-200">
         <Clock className="w-3.5 h-3.5 text-[#7A756F]" />
@@ -556,7 +558,7 @@ export default function AnalysisPage() {
                       const isCurrentStage = stageNum === currentStageIndex;
 
                       // Fallback stage name if not found in allSteps
-                      const stepDef = allSteps[stageNum] || { id: `stage-${stageNum}`, name: `Stage ${stageNum}` };
+                      const stepDef = (typeof allSteps !== 'undefined' && allSteps?.[stageNum]) ? allSteps[stageNum] : { id: `stage-${stageNum}`, name: `Stage ${stageNum}` };
 
                       // 🔱 God-Tier Filtering: Distinguish between AI Reasoning and Structural Calculus
                       // 🔱 God-Tier: All stages from Batch Tournament onwards are AI-driven
@@ -608,6 +610,7 @@ export default function AnalysisPage() {
                               candidateScores={candidateScores}
                               title={stepDef.name}
                               offsetMinutes={offsetMinutes}
+                              hideLiveReasoning={stageNum === 4 || stageNum === 6}
                             />
                           ) : (
                             <div className="bg-white/50 rounded-xl border border-stone-100 p-4 shadow-sm">

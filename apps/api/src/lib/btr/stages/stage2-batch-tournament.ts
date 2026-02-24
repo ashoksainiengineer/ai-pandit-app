@@ -133,7 +133,7 @@ export async function stage2BatchTournament(
                 'You are the SUPREME VEDIC ASTROLOGER. Analyze candidate birth times for primary alignment using forensic markers.',
                 getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch, input.spouseData, offsetMinutes),
                 {
-                    candidateTime: `Batch ${i + 1}`,
+                    candidateTime: `R${roundNumber}-B${i + 1}`,
                     progressTracker: progress
                 }
             );
@@ -143,37 +143,45 @@ export async function stage2BatchTournament(
 
             // PROCESS BATCH IMMEDIATELY AND EMIT SCORES
             const batchSurvivors: any[] = [];
-            if (response.success) {
-                const aiContent = response.content || response.thinking || '';
-                const aiScores = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), Math.min(batchTimes.length, survivorsPerBatch));
-                const survivorTimes = aiScores
+            const aiContent = response.success ? (response.content || response.thinking || '') : '';
+            const aiScores = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), Math.min(batchTimes.length, survivorsPerBatch));
+
+            // 🔱 RESILIENT FALLBACK: If AI fails or returns empty, preserve the first N candidates
+            let survivorTimes: string[] = [];
+            if (!response.success || aiScores.length === 0) {
+                logger.warn(`🔱 [STAGE-2] Batch ${i + 1} AI verdict failed. FALLBACK: Preserving top candidates.`);
+                survivorTimes = batchTimes.slice(0, survivorsPerBatch).map(c => c.time);
+            } else {
+                survivorTimes = aiScores
                     .sort((a, b) => b.score - a.score)
                     .slice(0, Math.min(batchTimes.length, survivorsPerBatch))
                     .map(s => s.time);
+            }
 
-                for (let j = 0; j < batchEnriched.length; j++) {
-                    const candidate = batchEnriched[j];
-                    const originalTimeInfo = batchTimes[j];
-                    const isSurvivor = survivorTimes.includes(candidate.time);
-                    const scoreObj = aiScores.find(s => s.time === candidate.time);
-                    const score = scoreObj ? scoreObj.score : (isSurvivor ? 85 : 40);
-                    const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Meets primary alignment criteria" : "Low forensic match score");
+            for (let j = 0; j < batchEnriched.length; j++) {
+                const candidate = batchEnriched[j];
+                const originalTimeInfo = batchTimes[j];
+                const isSurvivor = survivorTimes.includes(candidate.time);
 
-                    if (isSurvivor) {
-                        batchSurvivors.push(originalTimeInfo);
-                    }
+                // If AI failed, use fallback scores
+                const scoreObj = aiScores.find(s => s.time === candidate.time);
+                const score = scoreObj ? scoreObj.score : (isSurvivor ? 85 : 40);
+                const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Meets primary alignment criteria (Fallback)" : "Low forensic match score");
 
-                    // IMMEDIATE EMIT - SYNCED WITH AI
-                    emitCandidateScore(input.sessionId, candidate.time, score, 2, undefined, getMinifiedEphemerisInline(candidate), getFullEphemerisPayload(candidate));
-                    emitDecision(input.sessionId, {
-                        stage: 2,
-                        time: candidate.time,
-                        verdict: isSurvivor ? 'promoted' : 'rejected',
-                        score,
-                        reason,
-                        batch: i + 1
-                    });
+                if (isSurvivor) {
+                    batchSurvivors.push(originalTimeInfo);
                 }
+
+                // IMMEDIATE EMIT - SYNCED WITH AI
+                emitCandidateScore(input.sessionId, candidate.time, score, 2, undefined, getMinifiedEphemerisInline(candidate), getFullEphemerisPayload(candidate));
+                emitDecision(input.sessionId, {
+                    stage: 2,
+                    time: candidate.time,
+                    verdict: isSurvivor ? 'promoted' : 'rejected',
+                    score,
+                    reason,
+                    batch: i + 1
+                });
             }
 
             return batchSurvivors;
@@ -272,7 +280,7 @@ export async function stage2BatchTournament(
                 2,
                 'You are the SUPREME VEDIC ASTROLOGER. Tournament analysis: prune based on forensic alignment.',
                 getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch, input.spouseData, offsetMinutes),
-                { candidateTime: `Batch ${i + 1}`, progressTracker: progress }
+                { candidateTime: `R${roundNumber}-B${i + 1}`, progressTracker: progress }
             );
 
             completedBatches++;
@@ -289,18 +297,28 @@ export async function stage2BatchTournament(
             const fullBatchData = batchDataMap.get(i) || [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
             const aiScores = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), survivorsPerBatch);
-            const survivorTimes = aiScores
-                .sort((a, b) => b.score - a.score)
-                .slice(0, survivorsPerBatch)
-                .map(s => s.time);
+
+            // 🔱 RESILIENT FALLBACK: If AI fails or returns empty, preserve the first N candidates
+            let survivorTimes: string[] = [];
+            if (!response.success || aiScores.length === 0) {
+                logger.warn(`🔱 [STAGE-2] Tournament batch ${i + 1} verdict failed. FALLBACK: Preserving top candidates.`);
+                survivorTimes = batchTimes.slice(0, survivorsPerBatch).map(c => c.time);
+            } else {
+                survivorTimes = aiScores
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, survivorsPerBatch)
+                    .map(s => s.time);
+            }
 
             for (let j = 0; j < fullBatchData.length; j++) {
                 const candidate = fullBatchData[j];
                 const originalTimeInfo = batchTimes[j];
                 const isSurvivor = survivorTimes.includes(candidate.time);
+
+                // If AI failed, use fallback scores
                 const scoreObj = aiScores.find(s => s.time === candidate.time);
                 const score = scoreObj ? scoreObj.score : (isSurvivor ? 88 : 30);
-                const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Superior alignment in tournament round" : "Eliminated in batch tournament");
+                const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Superior alignment in tournament round (Fallback)" : "Eliminated in batch tournament");
 
                 if (isSurvivor) {
                     roundSurvivors.push(originalTimeInfo);
