@@ -3,6 +3,7 @@
 
 import { EventEmitter } from 'events';
 import crypto from 'crypto';
+import { logger } from '../utils/logger.js';
 import type {
     ProgressEvent,
     AIThinkingEvent,
@@ -38,6 +39,14 @@ export type {
 // GLOBAL SESSION EVENT EMITTER
 // ═════════════════════════════════════════════════════════════════════════════
 
+// Max events to retain per session for Last-Event-ID replay
+const MAX_EVENT_LOG_SIZE = 2000;
+
+interface SequencedEvent {
+    seq: number;
+    event: SessionEvent;
+}
+
 class SessionEventManager {
     private emitters: Map<string, EventEmitter> = new Map();
     private lastContexts: Map<string, AIContextEvent> = new Map();
@@ -52,9 +61,74 @@ class SessionEventManager {
     // ⏱️ Track last activity for garbage collection
     private lastActive: Map<string, number> = new Map();
 
+    // ═══ LAST-EVENT-ID PROTOCOL (Industry SSE Standard) ═══
+    // Per-session monotonic sequence counter for event ordering
+    private eventSequences: Map<string, number> = new Map();
+    // Per-session ordered event log for reconnection replay
+    private eventLogs: Map<string, SequencedEvent[]> = new Map();
+
     constructor() {
         // Run garbage collection every 10 minutes
         setInterval(() => this.garbageCollect(), 10 * 60 * 1000);
+    }
+
+    /**
+     * Get the next sequence number for a session (monotonically increasing)
+     */
+    getNextSeq(sessionId: string): number {
+        const current = this.eventSequences.get(sessionId) || 0;
+        const next = current + 1;
+        this.eventSequences.set(sessionId, next);
+        return next;
+    }
+
+    /**
+     * Get current sequence number without incrementing
+     */
+    getCurrentSeq(sessionId: string): number {
+        return this.eventSequences.get(sessionId) || 0;
+    }
+
+    /**
+     * Log an event with its sequence number for replay on reconnect.
+     * Capped at MAX_EVENT_LOG_SIZE to prevent unbounded memory growth.
+     * Lightweight events (pings, connected) are NOT logged.
+     */
+    logEvent(sessionId: string, seq: number, event: SessionEvent): void {
+        if (!this.eventLogs.has(sessionId)) {
+            this.eventLogs.set(sessionId, []);
+        }
+        const log = this.eventLogs.get(sessionId)!;
+        log.push({ seq, event });
+
+        // Evict oldest events when over capacity
+        if (log.length > MAX_EVENT_LOG_SIZE) {
+            // Remove oldest 20% to avoid frequent shifts
+            const evictCount = Math.floor(MAX_EVENT_LOG_SIZE * 0.2);
+            log.splice(0, evictCount);
+        }
+    }
+
+    /**
+     * Get all events after a given sequence number (for Last-Event-ID replay).
+     * Returns events in order, starting from lastSeq + 1.
+     */
+    getEventsSince(sessionId: string, lastSeq: number): SequencedEvent[] {
+        const log = this.eventLogs.get(sessionId);
+        if (!log || log.length === 0) return [];
+
+        // Binary search for the first event with seq > lastSeq
+        // Log is always sorted by seq (appended monotonically)
+        let lo = 0, hi = log.length;
+        while (lo < hi) {
+            const mid = (lo + hi) >>> 1;
+            if (log[mid].seq <= lastSeq) {
+                lo = mid + 1;
+            } else {
+                hi = mid;
+            }
+        }
+        return log.slice(lo);
     }
 
     /**
@@ -97,7 +171,7 @@ class SessionEventManager {
      * Clean up emitter when session completes
      */
     cleanup(sessionId: string): void {
-        console.log(`🧹 Cleaning up session resources: ${sessionId?.slice(0, 8)}`);
+        logger.info(`Cleaning up session resources: ${sessionId?.slice(0, 8)}`);
         const emitter = this.emitters.get(sessionId);
         if (emitter) {
             emitter.removeAllListeners();
@@ -109,6 +183,9 @@ class SessionEventManager {
         this.candidateScoreBuffers.delete(sessionId);
         this.decisionBuffers.delete(sessionId);
         this.lastActive.delete(sessionId);
+        // Last-Event-ID cleanup
+        this.eventSequences.delete(sessionId);
+        this.eventLogs.delete(sessionId);
     }
 
     /**
@@ -246,13 +323,13 @@ class SessionEventManager {
         let cleaned = 0;
         for (const [sessionId, lastActive] of this.lastActive.entries()) {
             if (now - lastActive > timeout) {
-                console.log(`🗑️ Robust Garbage Collection: Removing stale session ${sessionId?.slice(0, 8)}`);
+                logger.info(`GC: Removing stale session ${sessionId?.slice(0, 8)}`);
                 this.cleanup(sessionId);
                 cleaned++;
             }
         }
         if (cleaned > 0) {
-            console.log(`🧹 GC Complete: Cleaned ${cleaned} stale sessions.`);
+            logger.info(`GC Complete: Cleaned ${cleaned} stale sessions.`);
         }
     }
 }
@@ -327,7 +404,7 @@ export function emitCandidateScore(
     minifiedEph?: { sun: string; moon: string; ascendant: string },
     fullEph?: Record<string, string>
 ): void {
-    console.log(`⚡ Emit Candidate Score: ${sessionId} | ${time} | ${score}`);
+    logger.info(`Emit Candidate Score: ${sessionId?.slice(0, 8)} | ${time} | ${score}`);
     sessionEvents.emit(sessionId, {
         type: 'candidate_score_v2',
         time,
@@ -345,7 +422,7 @@ export function emitComplete(
     accuracy: number,
     confidence: string
 ): void {
-    console.log('🎉 emitComplete CALLED:', { sessionId: sessionId?.slice(0, 8), rectifiedTime, accuracy, confidence });
+    logger.info('emitComplete called', { sessionId: sessionId?.slice(0, 8), rectifiedTime, accuracy, confidence });
     sessionEvents.emit(sessionId, {
         type: 'complete',
         rectifiedTime,

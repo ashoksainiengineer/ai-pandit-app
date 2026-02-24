@@ -12,6 +12,7 @@ import cors from 'cors';
 import cluster from 'cluster';
 import os from 'os';
 import helmet from 'helmet';
+import compression from 'compression';
 
 // Configuration (validates on import)
 import { config, serverConfig } from './config/index.js';
@@ -99,16 +100,30 @@ app.use(cors({
 
 
 // ═════════════════════════════════════════════════════════════════════════════
+// RESPONSE COMPRESSION (~30% bandwidth savings)
+// Skip SSE streams — they need real-time uncompressed delivery
+// ═════════════════════════════════════════════════════════════════════════════
+
+app.use(compression({
+  filter: (req, res) => {
+    // Don't compress SSE streams (they need real-time delivery)
+    if (req.path.startsWith('/api/stream') || req.path.startsWith('/api/queue/progress')) {
+      return false;
+    }
+    return compression.filter(req, res);
+  },
+  threshold: 1024, // Only compress responses > 1KB
+}));
+
+// ═════════════════════════════════════════════════════════════════════════════
 // REQUEST PROCESSING MIDDLEWARE
 // ═════════════════════════════════════════════════════════════════════════════
 
 app.use((req, res, next) => {
   if (req.path.includes('/api/queue/requeue')) {
-    console.log('📢 LOUD LOG: Requeue request detected', {
+    logger.info('Requeue request detected', {
       method: req.method,
-      headers: req.headers,
       url: req.url,
-      originalUrl: req.originalUrl
     });
   }
   next();

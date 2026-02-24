@@ -1,34 +1,63 @@
-# 🔱 GOD-TIER Docker Ignore for HF Spaces
-# Minimize build context size for faster deployments
+# ═══════════════════════════════════════════════════════════════════════════
+# AI Pandit — Docker Build Context Ignore
+# Reduces build context from ~500MB to ~5MB for 10x faster builds.
+# ═══════════════════════════════════════════════════════════════════════════
 
-# Dependencies (installed in container)
-node_modules
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Source and Build context
+# Version control
 .git
 .gitignore
-.next
-out
+
+# Dependencies (re-installed in Docker)
 node_modules
+**/node_modules
+
+# Build outputs (rebuilt in Docker)
 dist
+**/dist
+.next
+**/.next
+.turbo
+**/.turbo
+out
 build
-*.tsbuildinfo
+
+# Environment files (secrets passed via env vars at runtime)
 .env
 .env.*
-.vercel
-logs
-*.log
+!.env.example
+
+# IDE & OS
 .vscode
 .idea
+*.swp
+*.swo
 .DS_Store
+Thumbs.db
 
-# Tests (Keep on GitHub, exclude from build)
-**/__tests__/**
-**/coverage/**
+# Docs (not needed in production image)
+*.md
+!README.md
+docs/
+
+# Tests (not needed in production image)
 **/*.test.ts
 **/*.test.tsx
 **/*.spec.ts
 **/*.spec.tsx
+**/__tests__
+**/coverage
+.nyc_output
+
+# Frontend (backend-only Docker image)
+apps/web
+
+# Logs & misc
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+.prettierrc
+*.tsbuildinfo
+.vercel

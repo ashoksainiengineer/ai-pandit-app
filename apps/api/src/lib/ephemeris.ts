@@ -4,6 +4,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { EphemerisData, PlanetPosition, HousePosition } from '@ai-pandit/shared';
+import { logger } from './logger.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MEMORY-EFFICIENT SWISS EPHEMERIS
@@ -32,7 +33,7 @@ export async function initSwissEph(): Promise<boolean> {
   isInitializing = true;
   initPromise = (async () => {
     try {
-      console.log('🔭 [EPHEMERIS] WASM init started...');
+      logger.info('[EPHEMERIS] WASM init started');
       // 1. Dynamic import of the ESM wrapper class from swisseph-wasm
       const { default: SwissEph } = await import('swisseph-wasm');
 
@@ -68,9 +69,9 @@ export async function initSwissEph(): Promise<boolean> {
       };
 
       useSwissEph = true;
-      console.log('✅ [EPHEMERIS] Swiss Ephemeris WASM initialized successfully');
+      logger.info('[EPHEMERIS] Swiss Ephemeris WASM initialized successfully');
     } catch (error) {
-      console.warn('⚠️ [EPHEMERIS] Swiss Ephemeris WASM failed - Fallback to algorithmic', error);
+      logger.warn('[EPHEMERIS] Swiss Ephemeris WASM failed - Fallback to algorithmic', error);
       useSwissEph = false;
     } finally {
       isInitialized = true;
@@ -92,7 +93,7 @@ function getSwissEphStatus(): boolean {
 async function ensureInit(): Promise<boolean> {
   if (isInitialized) return useSwissEph;
   if (isInitializing && initPromise) {
-    console.log('⏳ [EPHEMERIS] Calculation requested while warming up, waiting 5s...');
+    logger.info('[EPHEMERIS] Calculation requested while warming up, waiting...');
     // Wait up to 10s for the existing init to finish
     const timeout = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 10000));
     return Promise.race([initPromise, timeout]);
@@ -220,7 +221,7 @@ function getTzOffset(dateStr: string, timeStr: string, timeZone: string): number
       }
     }
   } catch (e) {
-    console.warn(`Timezone lookup failed for ${timeZone}, falling back to 0:`, e);
+    logger.warn(`Timezone lookup failed for ${timeZone}, falling back to 0`, e);
   }
 
   return 0;
@@ -364,7 +365,7 @@ export async function calculateEphemeris(
   // FIXED: More precise cache key including timezone
   const cacheKey = `${birthDate}_${birthTime}_${latitude.toFixed(6)}_${longitude.toFixed(6)}_${typeof timezone === 'string' ? timezone : timezone.toFixed(2)}`;
   if (EPH_CACHE.has(cacheKey)) {
-    console.log('📦 [EPHEMERIS] Cache hit for', cacheKey);
+    // Cache hit — skip logging in production for perf
     return EPH_CACHE.get(cacheKey)!;
   }
 
@@ -403,7 +404,7 @@ export async function calculateEphemeris(
       const sunResult = swe.swe_calc_ut(jd, SE.SUN, SEFLG_SIDEREAL | SEFLG_SPEED);
       sunLng = sunResult.longitude;
     } catch (e) {
-      console.error('🔴 [EPHEMERIS] Failed to calculate Sun position:', e);
+      logger.error('[EPHEMERIS] Failed to calculate Sun position', e);
       throw new Error('Swiss Ephemeris calculation failed for Sun');
     }
 
@@ -427,7 +428,7 @@ export async function calculateEphemeris(
           house: 0 // Will be set after ascendant is calculated
         };
       } catch (e) {
-        console.error(`🔴 [EPHEMERIS] Failed to calculate ${planetNames[i]}:`, e);
+        logger.error(`[EPHEMERIS] Failed to calculate ${planetNames[i]}`, e);
         // Use algorithmic fallback for this planet
         const algoResult = calcPlanet(jd, planetNames[i]);
         const lng = algoResult.longitude;
@@ -504,7 +505,7 @@ export async function calculateEphemeris(
   } else {
     // ══════ ALGORITHMIC MODE ══════
     // Pure calculations, no data files, ~0.01-0.1° accuracy
-    console.log('📐 Using algorithmic calculations (no ephemeris data)');
+    logger.info('[EPHEMERIS] Using algorithmic calculations (no ephemeris data)');
 
     // Sun & Moon (custom high-accuracy formulas)
     const sunLng = calcSun(jd);

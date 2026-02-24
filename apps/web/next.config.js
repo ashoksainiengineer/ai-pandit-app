@@ -20,7 +20,14 @@ const nextConfig = {
   // ═══════════════════════════════════════════════════════════════════════════════
   experimental: {
     // cpus limit removed for faster builds (PERF7)
-    optimizePackageImports: ['framer-motion', 'lucide-react'], // Reduce bundle impact
+    optimizePackageImports: [
+      'framer-motion',
+      'lucide-react',
+      'date-fns',
+      'react-markdown',
+      'recharts',
+      '@tanstack/react-virtual',
+    ],
   },
 
   transpilePackages: ['@ai-pandit/shared', '@ai-pandit/db'],

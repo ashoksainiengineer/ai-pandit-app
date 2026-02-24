@@ -7,6 +7,7 @@ import { useAuth } from '@clerk/nextjs';
 import { BirthData, LifeEvent, PhysicalTraits, SpouseData, ForensicTraits } from '@/lib/types';
 import { env } from '@/lib/config';
 import { APIClient } from '@/lib/api-client';
+import { useStreamStore } from '@/lib/store/stream-store';
 
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
 import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
@@ -196,6 +197,11 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
             } catch (err: any) {
                 console.error('Re-queue failed:', err.message);
             }
+
+            // CRITICAL: Clear stale Zustand store before navigating to analysis page.
+            // Without this, localStorage-persisted state (isComplete, empty candidatesByStage)
+            // from the previous analysis rehydrates and causes empty containers.
+            useStreamStore.getState().clearStore();
 
             router.push(`/rectify/${sessionId}`);
 

@@ -293,9 +293,7 @@ export async function callAIWithStream(
     // Retry Loop for Streaming resilience
     for (let attempt = 1; attempt <= AI_CONFIG.retryAttempts; attempt++) {
         try {
-            // 🚀 Debug: Log function entry
-            const entryMsg = `🚀 callAIWithStream ATTEMPT ${attempt}/${AI_CONFIG.retryAttempts}: sessionId=${sessionId?.slice(0, 8)}, stage=${stage}\n`;
-            console.log(entryMsg);
+            logger.info(`callAIWithStream attempt ${attempt}/${AI_CONFIG.retryAttempts}`, { sessionId: sessionId?.slice(0, 8), stage });
 
             logger.info('Calling AI with streaming', {
                 sessionId,

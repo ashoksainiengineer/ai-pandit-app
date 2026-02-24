@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
+import { get, set, del } from 'idb-keyval';
 import {
     StreamState,
     StreamStep,
@@ -13,6 +14,23 @@ import {
     StreamMetadata,
     AIThinking
 } from './stream-types';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INDUSTRY PATTERN: IndexedDB Storage Adapter for Zustand (Notion/Linear pattern)
+// Provides 50MB+ storage vs localStorage's 5MB limit.
+// Wraps idb-keyval's async API into Zustand's StateStorage interface.
+// ═══════════════════════════════════════════════════════════════════════════════
+const idbStorage: StateStorage = {
+    getItem: async (name: string): Promise<string | null> => {
+        return (await get(name)) ?? null;
+    },
+    setItem: async (name: string, value: string): Promise<void> => {
+        await set(name, value);
+    },
+    removeItem: async (name: string): Promise<void> => {
+        await del(name);
+    },
+};
 
 const DEFAULT_STEPS: StreamStep[] = [
     { id: 'init', name: 'Initializing Engine' },
@@ -47,6 +65,7 @@ export const createInitialState = (): StreamState => ({
     allSteps: DEFAULT_STEPS,
     advancedSignals: null,
     decisions: [],
+    lastEventId: 0,
 });
 
 interface StreamStore extends StreamState {
@@ -87,6 +106,10 @@ const thinkingBuffer: ThinkingBuffer = {
 // 500KB per candidate is generous — most AI reasoning text is ~50-100KB total
 const MAX_FULLTEXT_CHARS = 500_000;
 
+// Per-stage set of candidate keys that have already contributed to stageHistory
+// This prevents the old bug where includes() dropped chunks with common AI preambles
+const stageHistoryContributors: Record<number, Set<string>> = {};
+
 function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamState>) => void) {
     const buffered = new Map(thinkingBuffer.chunks);
     thinkingBuffer.chunks.clear();
@@ -115,21 +138,45 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
                 stage,
                 candidateTime,
                 chunks: [],
-                fullText: ''
+                fullText: '',
+                startedAt: Date.now()
             };
 
-            let newFullText = existing.fullText + text;
+            let newFullText: string;
 
-            // Robust De-duplication: Prevent doubling text during backend replays
+            // ═══════════════════════════════════════════════════════════════
+            // INDUSTRY FIX: Suffix-overlap de-duplication
+            // On reconnect, backend replays full accumulated buffer.
+            // Old `.includes()` approach was O(n) and broke when
+            // persisted text (10KB capped) didn't contain the full replay (50KB).
+            //
+            // New approach: Find the longest suffix of `existing.fullText`
+            // that matches a prefix of `text`, then skip that overlap.
+            // ═══════════════════════════════════════════════════════════════
             if (existing.fullText && text) {
-                if (existing.fullText.includes(text)) {
-                    // This chunk is already accounted for (likely a replay)
-                    return;
+                // Case 1: Incoming text is entirely within existing (exact duplicate)
+                if (existing.fullText.endsWith(text)) {
+                    return; // Nothing new
                 }
-                // If the existing text is a subset of the new chunk (rare, but possible if store is lagging)
+                // Case 2: Existing text is a prefix of incoming (reconnect replay with full buffer)
                 if (text.startsWith(existing.fullText)) {
-                    newFullText = text;
+                    newFullText = text; // Incoming is a superset — just replace
+                } else {
+                    // Case 3: Partial overlap — find the longest suffix-prefix match
+                    // Check if the END of existing text overlaps with START of new text
+                    const maxCheck = Math.min(existing.fullText.length, text.length, 2000); // Cap check at 2KB
+                    let overlapLen = 0;
+                    for (let len = maxCheck; len > 0; len--) {
+                        const suffix = existing.fullText.slice(-len);
+                        if (text.startsWith(suffix)) {
+                            overlapLen = len;
+                            break;
+                        }
+                    }
+                    newFullText = existing.fullText + text.slice(overlapLen);
                 }
+            } else {
+                newFullText = existing.fullText + text;
             }
 
             if (newFullText.length > MAX_FULLTEXT_CHARS) {
@@ -144,10 +191,23 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
             stageChanges[stage][candidateTime] = updated;
 
             // Accumulate history appends per stage
-            // Similar de-dupe for stageHistory
-            const existingHistory = prev.stageHistory[stage] || '';
-            if (!existingHistory.includes(text)) {
+            // INDUSTRY FIX: Use per-candidate contributor tracking instead of
+            // substring includes() which dropped valid chunks with identical AI preambles
+            if (!stageHistoryContributors[stage]) {
+                stageHistoryContributors[stage] = new Set();
+            }
+            const contributorKey = `${stage}_${candidateTime}`;
+            if (!stageHistoryContributors[stage].has(contributorKey)) {
+                // First time this candidate contributes to this stage's history
+                stageHistoryContributors[stage].add(contributorKey);
                 historyAppends[stage] = (historyAppends[stage] || '') + text;
+            } else {
+                // Candidate already contributed — only append genuinely new text
+                const existingHistory = prev.stageHistory[stage] || '';
+                if (text.length > 50 && !existingHistory.endsWith(text.slice(-50))) {
+                    // New content detected (last 50 chars don't match) — append
+                    historyAppends[stage] = (historyAppends[stage] || '') + text;
+                }
             }
 
             // Selection Logic: Set focus to CURRENT stage candidate
@@ -553,24 +613,50 @@ export const useStreamStore = create<StreamStore>()(
         }),
         {
             name: 'ai-pandit-stream-store',
-            storage: createJSONStorage(() => localStorage),
+            // ═══════════════════════════════════════════════════════════════
+            // INDUSTRY UPGRADE: IndexedDB storage (50MB+ vs localStorage 5MB)
+            // Uses idb-keyval for async key-value access to IndexedDB.
+            // Zustand's createJSONStorage adapter handles serialization.
+            // This enables FULL reasoning text persistence for multi-hour
+            // analyses without the old 10KB/candidate text cap.
+            // ═══════════════════════════════════════════════════════════════
+            storage: createJSONStorage(() => idbStorage),
             partialize: (state) => ({
-                // Persistence Policy:
-                // We persist stageHistory because it's the "Narrative Summary" that users
-                // value most on refresh. Large individual candidate thinking is ephemeral
-                // and restored via backend SSE replay.
+                // ═══════════════════════════════════════════════════════════════
+                // PERSISTENCE POLICY: What survives page refresh
+                // ═══════════════════════════════════════════════════════════════
+                // Core session state
                 sessionId: state.sessionId,
                 isComplete: state.isComplete,
                 progress: state.progress,
-                candidateScores: state.candidateScores,
-                stageStats: state.stageStats,
                 result: state.result,
                 metadata: state.metadata,
-                advancedSignals: state.advancedSignals,
-                decisions: state.decisions,
-                stageHistory: state.stageHistory,
+                startedAt: state.startedAt,
+
+                // Scoring & stats (tables, emerging candidates, leaderboard)
+                candidateScores: state.candidateScores,
+                stageStats: state.stageStats,
                 analyzedCount: state.analyzedCount,
                 totalCandidates: state.totalCandidates,
+                decisions: state.decisions,
+
+                // Advanced data
+                advancedSignals: state.advancedSignals,
+                stageHistory: state.stageHistory,
+
+                // UI state
+                activeAIStage: state.activeAIStage,
+                displayedCandidate: state.displayedCandidate,
+                persistentCandidates: state.persistentCandidates,
+
+                // Reasoning cards — IndexedDB has 50MB+ capacity,
+                // so we persist FULL text without any truncation.
+                // No more 10KB cap — multi-hour analyses fully preserved.
+                allCandidates: state.allCandidates,
+                candidatesByStage: state.candidatesByStage,
+
+                // SSE Last-Event-ID: persisted so native EventSource can send it on reconnect
+                lastEventId: state.lastEventId,
             })
         }
     )

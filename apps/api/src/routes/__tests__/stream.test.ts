@@ -76,7 +76,7 @@ vi.mock('../../lib/logger.js', () => ({
 }));
 
 vi.mock('../../lib/progress-tracker.js', () => ({
-    getSessionProgress: vi.fn(() => ({ currentStep: 1 })),
+    getSessionProgress: vi.fn(() => ({ currentStep: 1, totalSteps: 7, percentage: 14 })),
 }));
 
 vi.mock('../../lib/queue-manager.js', () => ({
@@ -109,6 +109,8 @@ vi.mock('../../lib/session-events.js', () => ({
         getCalculationBuffer: vi.fn(() => []),
         getCandidateScoreBuffer: vi.fn(() => []),
         getDecisionBuffer: vi.fn(() => []),
+        getNextSeq: vi.fn(() => 1),
+        logEvent: vi.fn(),
     },
 }));
 
@@ -221,21 +223,35 @@ describe('GET /api/stream/:sessionId', () => {
                 .set('Authorization', 'Bearer VALID')
                 .buffer()
                 .parse((res, cb) => {
-                    res.on('data', chunk => responseText += chunk.toString());
+                    let chunkCount = 0;
+                    res.on('data', chunk => {
+                        const chunkStr = chunk.toString();
+                        responseText += chunkStr;
+
+                        // Count data events to know when initialization is done
+                        if (chunkStr.includes('data: ')) {
+                            chunkCount += (chunkStr.match(/data:/g) || []).length;
+                        }
+
+                        // Once we receive connected, initial_state, and metadata (3 events),
+                        // we can trigger the complete event to close the stream.
+                        if (chunkCount >= 3) {
+                            mockEmitter.emit('event', { type: 'complete', time: '12:00' });
+                        }
+                    });
                     res.on('end', () => cb(null, responseText));
                 });
 
             req.end((err, res) => {
                 responseHeaders = res.headers;
-                // res.text is undefined for streaming responses
                 if (res.text) { responseText = res.text; }
                 resolve();
             });
 
-            // Emit a complete event through our mock emitter to close the stream beautifully
+            // Fallback timeout just in case it hangs
             setTimeout(() => {
                 mockEmitter.emit('event', { type: 'complete', time: '12:00' });
-            }, 100);
+            }, 1000);
         });
 
         // 1. Check SSE Headers

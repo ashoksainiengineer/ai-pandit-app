@@ -243,6 +243,17 @@ export default function AnalysisPage() {
     else if (metadata?.status && ['pending', 'queued', 'processing'].includes(metadata.status)) setCancelled(false);
   }, [metadata?.status]);
 
+  // SAFETY GUARD: Detect stale localStorage rehydration
+  // If store says isComplete but live connection shows session is pending/queued,
+  // the store has stale data from a previous completed analysis. Force-clear it.
+  useEffect(() => {
+    if (isComplete && metadata?.status && ['pending', 'queued', 'processing'].includes(metadata.status)) {
+      logger.info('[AnalysisPage] Detected stale isComplete with active session. Clearing store.', { sessionId, status: metadata.status });
+      useStreamStore.getState().clearStore();
+      useStreamStore.getState().setSessionId(sessionId);
+    }
+  }, [isComplete, metadata?.status, sessionId]);
+
   useEffect(() => {
     if (isComplete) {
       // Guard: Don't process if store rehydrated stale isComplete from localStorage
@@ -610,7 +621,7 @@ export default function AnalysisPage() {
                               candidateScores={candidateScores}
                               title={stepDef.name}
                               offsetMinutes={offsetMinutes}
-                              hideLiveReasoning={stageNum === 4 || stageNum === 6}
+                              hideLiveReasoning={false}
                             />
                           ) : (
                             <div className="bg-white/50 rounded-xl border border-stone-100 p-4 shadow-sm">

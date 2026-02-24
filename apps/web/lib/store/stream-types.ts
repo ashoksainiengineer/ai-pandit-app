@@ -16,6 +16,7 @@ export interface AIThinking {
     chunks: string[];
     fullText: string;
     updatedAt?: number; // Higher-precision sorting and live tracking
+    startedAt?: number; // Tracks when reasoning started for the timer
 }
 
 export interface AIThinkingEventData {
@@ -132,4 +133,6 @@ export interface StreamState {
     allSteps: StreamStep[];
     advancedSignals: IAdvancedSignals | null;
     decisions: AnalysisDecision[];
+    // SSE Last-Event-ID: tracks the last sequence number received from the backend
+    lastEventId: number;
 }

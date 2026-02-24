@@ -9,7 +9,7 @@ import type { CandidateScore } from '@/lib/store/stream-types';
 const PLANET_ORDER = ['Lagna', 'Sun', 'Moon', 'Mars', 'Mercury', 'Jupiter', 'Venus', 'Saturn', 'Rahu', 'Ketu'];
 
 export const TechnicalMasterGrid = memo(function TechnicalMasterGrid() {
-    const [isExpanded, setIsExpanded] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(true);
 
     const candidateScores = useStreamStore(state => state.candidateScores);
     const activeAIStage = useStreamStore(state => state.activeAIStage);

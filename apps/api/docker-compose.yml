@@ -3,13 +3,15 @@ version: '3.8'
 services:
   backend-engine:
     build:
-      context: .
+      context: ../..
       dockerfile: Dockerfile
+      args:
+        CACHE_BUST: "${CACHE_BUST:-0}"
     container_name: ai_pandit_backend
     ports:
       - "7860:7860"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
       - PORT=7860
       - EPHE_PATH=/app/ephe
       # Database
@@ -22,29 +24,41 @@ services:
       # App Config
       - REQUEST_TIMEOUT_MS=300000
       - MAX_CONCURRENT_SESSIONS=3
+      # Memory Thresholds (aligned with container limits)
       - HEAP_THRESHOLD_GB=8
       - RSS_THRESHOLD_GB=10
+      # Auth & Security
       - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
       - ENCRYPTION_SECRET=${ENCRYPTION_SECRET}
+      # Rate Limiting
       - RATE_LIMIT_WINDOW_MS=60000
       - RATE_LIMIT_MAX_REQUESTS=100
     volumes:
       - ./ephe:/app/ephe:ro
-      - ./logs:/app/logs
-      # Bind mount for hot reload (optional, but good for dev)
-      - ./src:/app/src
+      - app-logs:/app/logs
     restart: unless-stopped
+    # ═══════════════════════════════════════════════════════════════
+    # RESOURCE LIMITS: Tuned for HF Spaces Free Tier (16GB total)
+    # Reserve 4GB for OS + buffer, give 12GB to container
+    # ═══════════════════════════════════════════════════════════════
     deploy:
       resources:
         limits:
           cpus: '2'
-          memory: 14G
+          memory: 12G
         reservations:
           cpus: '1'
-          memory: 8G
+          memory: 6G
     healthcheck:
-      test: [ "CMD", "node", "-e", "fetch('http://localhost:7860/api/health').then(r => r.ok ? process.exit(0) : process.exit(1))" ]
+      test: [ "CMD", "wget", "-q", "--spider", "http://localhost:7860/api/health" ]
       interval: 15s
       timeout: 10s
       retries: 5
       start_period: 30s
+    # Graceful shutdown: Give 30s for running analyses to drain
+    stop_grace_period: 30s
+
+# Named volume for logs (survives container recreates)
+volumes:
+  app-logs:
+    driver: local

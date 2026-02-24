@@ -320,6 +320,15 @@ export function useStreamProgress(
                 try {
                     const data = JSON.parse(event.data);
 
+                    // INDUSTRY SSE: Track Last-Event-ID for reconnection replay
+                    // Native EventSource auto-sends this as header on reconnect
+                    if (event.lastEventId) {
+                        const seq = parseInt(event.lastEventId, 10);
+                        if (!isNaN(seq)) {
+                            useStreamStore.getState().lastEventId = seq;
+                        }
+                    }
+
                     // 🔧 FIX: Handle auth errors sent as regular messages
                     if (data.type === 'error' && (data.code === 'AUTH_FAILED' || data.code === 'UNAUTHORIZED')) {
                         console.error('🔥 [SSE] Auth error received:', data);
