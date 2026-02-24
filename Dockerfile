@@ -38,8 +38,8 @@ COPY turbo.json turbo.json
 # Build the API and any shared packages it depends on
 RUN npx turbo run build --filter=@ai-pandit/api...
 
-# Prune devDependencies after build (shrink node_modules for runtime)
-RUN npm prune --production --ignore-scripts 2>/dev/null || true
+# Prune devDependencies (Disabled: In npm workspaces, pruning at the root deletes hoisted workspace dependencies)
+# RUN npm prune --production --ignore-scripts
 
 # ─── Stage 3: Minimal Runtime Image ──────────────────────────────────────
 FROM node:20-alpine AS runner
@@ -61,12 +61,15 @@ COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 # 2. Built API dist
 COPY --from=builder --chown=nodejs:nodejs /app/apps/api/dist ./apps/api/dist
 COPY --from=builder --chown=nodejs:nodejs /app/apps/api/package.json ./apps/api/package.json
+# 🔱 Copy nested node_modules for unhoisted dependencies
+COPY --from=builder --chown=nodejs:nodejs /app/apps/api/node_modules* ./apps/api/node_modules/
 
 # 3. Root package.json (needed for module resolution in monorepo)
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./package.json
 
 # 4. Shared packages (if any are built and referenced)
-COPY --from=builder --chown=nodejs:nodejs /app/packages/ ./packages/ 2>/dev/null || true
+# 🔱 Use glob pattern to prevent failure, as Docker COPY does not support `2>/dev/null`
+COPY --from=builder --chown=nodejs:nodejs /app/packages* ./packages/
 
 # 5. Ephemeris data (read-only)
 COPY --chown=nodejs:nodejs ephe/* /app/ephe/
