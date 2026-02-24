@@ -1,5 +1,5 @@
 /**
- * 🔱 AI-Pandit Unified Configuration System
+ * Professional AI-Pandit Unified Configuration System
  * ==========================================
  * Centralized, type-safe configuration with validation.
  * Follows 12-factor app principles with environment-based config.
@@ -55,7 +55,7 @@ const envSchema = z.object({
 
   // Feature Flags
   ENABLE_DETAILED_LOGGING: z.string().transform((v) => v === 'true').default('false'),
-  ENABLE_GOD_TIER_ENHANCEMENT: z.string().transform((v) => v === 'true').default('true'),
+  ENABLE_PRECISION_ENHANCEMENT: z.string().transform((v) => v === 'true').default('true'),
 
   // Rate Limiting
   RATE_LIMIT_WINDOW_MS: z.string().min(1, 'RATE_LIMIT_WINDOW_MS is required').transform(Number),
@@ -190,7 +190,7 @@ export const encryptionConfig = {
 
 export const featureFlags = {
   enableDetailedLogging: env.ENABLE_DETAILED_LOGGING,
-  enableGodTierEnhancement: env.ENABLE_GOD_TIER_ENHANCEMENT,
+  enablePrecisionEnhancement: env.ENABLE_PRECISION_ENHANCEMENT,
 } as const;
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -219,8 +219,8 @@ export const btrConfig = {
   ] as const,
 
   // God-Tier thresholds
-  godTierMinConsensus: 85,
-  godTierConfidenceLevel: 'VERY_HIGH' as const,
+  precisionMinConsensus: 85,
+  precisionConfidenceLevel: 'VERY_HIGH' as const,
 } as const;
 
 // ═════════════════════════════════════════════════════════════════════════════

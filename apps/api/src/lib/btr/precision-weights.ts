@@ -1,9 +1,9 @@
 /**
- * 🔱 GOD-TIER UNIFIED WEIGHTING SYSTEM
- * =====================================
+ * PRECISION WEIGHTING SYSTEM
+ * ==========================
  *
- * Single source of truth for all BTR weighting calculations.
- * Based on Vedic Astrology principles for seconds-level precision.
+ * Primary configuration for BTR scoring logic.
+ * Based on Vedic Astrology principles for high-precision rectification.
  *
  * HIERARCHY:
  * 1. Precision Layer (D150, KP, Prana) - Highest impact on seconds accuracy
@@ -12,6 +12,8 @@
  * 4. Supporting Layer (Shadbala, Ashtakavarga, Yogini, Chara, Pakshi)
  * 5. Quality Control Layer (Tatwa, Boundary, AI)
  */
+
+import { ShadbalaSummary } from '../shadbala.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // METHOD WEIGHTS - For overall candidate scoring
@@ -224,10 +226,10 @@ export const DATE_PRECISION_MULTIPLIERS = {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const CONFIDENCE_THRESHOLDS = {
-  god_tier: {
+  standard_precision: {
     minScore: 95,
     allMethodsAbove: 90,
-    description: 'All methods converge, seconds-level precision achieved',
+    description: 'All methods converge, high precision achieved',
   },
   very_high: {
     minScore: 85,
@@ -252,7 +254,7 @@ export const CONFIDENCE_THRESHOLDS = {
 } as const;
 
 /**
- * 🔱 SUPREME ENGINE: Dynamic Weight Calculator
+ * CORE SCORING ENGINE: Dynamic Weight Calculator
  * Uses Shadbala (Planetary Strength) to adjust method weights for the specific native.
  * 
  * Logic: If a planet is the 'Strongest' in the chart, its significations and 
@@ -321,7 +323,7 @@ export function importanceToImpact(importance: string): EventImpact {
 
 /**
  * Calculate total weight for weighted average
- * @deprecated Use calculateRankFusionScore for God-Tier consensus
+ * @deprecated Use calculateRankFusionScore for consensus validation
  */
 export function calculateWeightedAverage(
   scores: Record<string, number>,
@@ -340,7 +342,7 @@ export function calculateWeightedAverage(
 }
 
 /**
- * 🔱 Consensus Scoring: Reciprocal Rank Fusion (RRF)
+ * Consensus Scoring: Reciprocal Rank Fusion (RRF)
  * Ensures that a candidate who is a "Method Winner" in any dimension survives.
  * 
  * @param methodScores Record of method name to score (0-100)
@@ -361,7 +363,7 @@ export function calculateRankFusionScore(
   // we would rank them. For single candidate evaluation relative to potential,
   // we treat the score itself as a "Rank Factor".
 
-  // 🔱 Rank Fusion: We simulate RRF for a single candidate across methods.
+  // Rank Fusion: We simulate RRF for a single candidate across methods.
   // We calculate how close a method is to its "Theoretical Best" (100).
   let rrfSum = 0;
   for (const [method, score] of scores) {
@@ -385,7 +387,7 @@ export function calculateRankFusionScore(
 
   const normalizedScore = (rrfSum / maxPossibleRrf) * 100;
 
-  // 🔱 HYBRID SAFETY: Blend with weighted average to maintain linear intuition
+  // HYBRID SAFETY: Blend with weighted average to maintain linear intuition
   const weightedAvg = calculateWeightedAverage(methodScores, weights);
   return (normalizedScore * 0.7) + (weightedAvg * 0.3);
 }

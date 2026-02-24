@@ -1,8 +1,8 @@
 /**
- * 🔱 BTR GOD-TIER INTEGRATOR
- * ==========================
+ * BTR PRECISION INTEGRATOR
+ * =======================
  * 
- * Bridges the existing BTR system with new God-Tier components:
+ * Bridges the existing BTR system with new precision components:
  * - KP Sub-Lord calculations
  * - Multi-method Consensus Validation
  * - Enhanced validation pipeline
@@ -14,34 +14,34 @@
 import { calculateKPSubLords, KPCuspalData, calculateKPCuspalSubLords } from './kp-sublords.js';
 import { calculateConsensus, ConsensusResult, ValidationInput } from './consensus-engine.js';
 import { logger } from './logger.js';
-import type { GodTierEnhancement, CandidateWithGodTierData } from '@ai-pandit/shared';
+import type { PrecisionEnhancement, CandidateWithPrecisionData } from '@ai-pandit/shared';
 
 // Re-export types for backwards compatibility
-export type { GodTierEnhancement, CandidateWithGodTierData };
+export type { PrecisionEnhancement, CandidateWithPrecisionData };
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // ENHANCEMENT FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Enhance a candidate with God-Tier KP and Consensus data.
+ * Enhance a candidate with precision KP and Consensus data.
  * This is the main integration point for existing BTR pipeline.
  */
-export function enhanceCandidateWithGodTierData(
-  candidate: CandidateWithGodTierData,
+export function enhanceCandidateWithPrecisionData(
+  candidate: CandidateWithPrecisionData,
   events: any[],
   forensicProfile: any,
   tentativeTime: string
-): CandidateWithGodTierData {
+): CandidateWithPrecisionData {
   const startTime = Date.now();
-  
+
   try {
     // Step 1: Calculate KP Sub-Lords for all planets
     const kpSubLords = calculateKPSubLordsForCandidate(candidate);
-    
+
     // Step 2: Calculate KP Cuspal Sub-Lords for houses
     const cuspalSubLords = calculateCuspalSubLordsForCandidate(candidate);
-    
+
     // Step 3: Prepare validation input
     const validationInput: ValidationInput = {
       candidate: {
@@ -58,47 +58,47 @@ export function enhanceCandidateWithGodTierData(
       forensicProfile,
       tentativeTime
     };
-    
+
     // Step 4: Calculate multi-method consensus
     const consensus = calculateConsensus(validationInput);
-    
-    // Step 5: Determine God-Tier status
-    const isGodTier = consensus.confidenceLevel === 'GOD_TIER' || 
-                      consensus.confidenceLevel === 'VERY_HIGH';
-    
+
+    // Step 5: Determine precision status
+    const isPrecisionStandard = consensus.confidenceLevel === 'STANDARD_PRECISION' ||
+      consensus.confidenceLevel === 'VERY_HIGH';
+
     // Step 6: Determine recommended precision
     const recommendedPrecision = determineRecommendedPrecision(consensus);
-    
+
     const duration = Date.now() - startTime;
-    logger.debug(`God-Tier enhancement completed for ${candidate.time} in ${duration}ms`, {
+    logger.debug(`Precision enhancement completed for ${candidate.time} in ${duration}ms`, {
       consensus: consensus.overallConsensus,
       level: consensus.confidenceLevel
     });
-    
+
     return {
       ...candidate,
       kpData: {
         planetSubLords: kpSubLords,
         cuspalSubLords
       },
-      godTier: {
+      precision: {
         kpSubLords,
         cuspalSubLords,
         consensus,
-        isGodTier,
+        isPrecisionStandard,
         recommendedPrecision
       }
     };
   } catch (error) {
-    logger.error(`God-Tier enhancement failed for ${candidate.time}`, error);
+    logger.error(`Precision enhancement failed for ${candidate.time}`, error);
     // Return original candidate with error flag
     return {
       ...candidate,
-      godTier: {
+      precision: {
         kpSubLords: {},
         cuspalSubLords: {},
         consensus: createErrorConsensus(),
-        isGodTier: false,
+        isPrecisionStandard: false,
         recommendedPrecision: 'minutes'
       }
     };
@@ -106,49 +106,49 @@ export function enhanceCandidateWithGodTierData(
 }
 
 /**
- * Batch enhance multiple candidates with God-Tier data.
+ * Batch enhance multiple candidates with precision data.
  * Optimized for performance with parallel processing.
  */
 export function enhanceCandidatesBatch(
-  candidates: CandidateWithGodTierData[],
+  candidates: CandidateWithPrecisionData[],
   events: any[],
   forensicProfile: any,
   tentativeTime: string,
   options: { parallel?: boolean; maxConcurrency?: number } = {}
-): CandidateWithGodTierData[] {
+): CandidateWithPrecisionData[] {
   const { parallel = true, maxConcurrency = 5 } = options;
-  
+
   if (!parallel) {
     // Sequential processing
-    return candidates.map(c => 
-      enhanceCandidateWithGodTierData(c, events, forensicProfile, tentativeTime)
+    return candidates.map(c =>
+      enhanceCandidateWithPrecisionData(c, events, forensicProfile, tentativeTime)
     );
   }
-  
+
   // For true parallel, use Promise.all with chunks
   const chunks = chunkArray(candidates, maxConcurrency);
-  const results: CandidateWithGodTierData[] = [];
-  
+  const results: CandidateWithPrecisionData[] = [];
+
   for (const chunk of chunks) {
-    const chunkResults = chunk.map(c => 
-      enhanceCandidateWithGodTierData(c, events, forensicProfile, tentativeTime)
+    const chunkResults = chunk.map(c =>
+      enhanceCandidateWithPrecisionData(c, events, forensicProfile, tentativeTime)
     );
     results.push(...chunkResults);
   }
-  
+
   return results;
 }
 
 /**
- * Rank candidates using God-Tier consensus scores.
+ * Rank candidates using precision consensus scores.
  * Returns candidates sorted by consensus score (highest first).
  */
-export function rankCandidatesByGodTierConsensus(
-  candidates: CandidateWithGodTierData[]
-): CandidateWithGodTierData[] {
+export function rankCandidatesByPrecisionConsensus(
+  candidates: CandidateWithPrecisionData[]
+): CandidateWithPrecisionData[] {
   return [...candidates].sort((a, b) => {
-    const scoreA = a.godTier?.consensus.overallConsensus || 0;
-    const scoreB = b.godTier?.consensus.overallConsensus || 0;
+    const scoreA = a.precision?.consensus.overallConsensus || 0;
+    const scoreB = b.precision?.consensus.overallConsensus || 0;
     return scoreB - scoreA;
   });
 }
@@ -158,31 +158,31 @@ export function rankCandidatesByGodTierConsensus(
  * Removes candidates that don't meet the quality bar.
  */
 export function filterByConsensusThreshold(
-  candidates: CandidateWithGodTierData[],
+  candidates: CandidateWithPrecisionData[],
   minConsensus: number = 70
-): CandidateWithGodTierData[] {
-  return candidates.filter(c => 
-    (c.godTier?.consensus.overallConsensus || 0) >= minConsensus
+): CandidateWithPrecisionData[] {
+  return candidates.filter(c =>
+    (c.precision?.consensus.overallConsensus || 0) >= minConsensus
   );
 }
 
 /**
- * Get the best candidate based on God-Tier analysis.
+ * Get the best candidate based on precision analysis.
  */
 export function selectBestCandidate(
-  candidates: CandidateWithGodTierData[]
-): CandidateWithGodTierData | null {
+  candidates: CandidateWithPrecisionData[]
+): CandidateWithPrecisionData | null {
   if (candidates.length === 0) return null;
-  
-  const ranked = rankCandidatesByGodTierConsensus(candidates);
+
+  const ranked = rankCandidatesByPrecisionConsensus(candidates);
   return ranked[0];
 }
 
 /**
- * Generate God-Tier validation report for a candidate.
+ * Generate precision validation report for a candidate.
  */
-export function generateGodTierReport(
-  candidate: CandidateWithGodTierData
+export function generatePrecisionReport(
+  candidate: CandidateWithPrecisionData
 ): {
   summary: string;
   methodScores: Record<string, number>;
@@ -191,11 +191,11 @@ export function generateGodTierReport(
   confidenceLevel: string;
   marginOfError: string;
 } {
-  const consensus = candidate.godTier?.consensus;
-  
+  const consensus = candidate.precision?.consensus;
+
   if (!consensus) {
     return {
-      summary: 'God-Tier analysis not available',
+      summary: 'Precision analysis not available',
       methodScores: {},
       redFlags: ['Analysis incomplete'],
       recommendations: ['Re-run analysis'],
@@ -203,11 +203,11 @@ export function generateGodTierReport(
       marginOfError: 'N/A'
     };
   }
-  
+
   const redFlagsList = Object.entries(consensus.redFlags)
     .filter(([, value]) => value)
     .map(([key]) => key);
-  
+
   return {
     summary: `Overall Consensus: ${consensus.overallConsensus.toFixed(1)}% - ${consensus.confidenceLevel}`,
     methodScores: {
@@ -230,11 +230,11 @@ export function generateGodTierReport(
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function calculateKPSubLordsForCandidate(
-  candidate: CandidateWithGodTierData
+  candidate: CandidateWithPrecisionData
 ): Record<string, { starLord: string; subLord: string; subSubLord: string; subSubSubLord: string }> {
   const planets = candidate.ephemeris?.planets || {};
   const result: Record<string, { starLord: string; subLord: string; subSubLord: string; subSubSubLord: string }> = {};
-  
+
   for (const [name, data] of Object.entries(planets)) {
     const longitude = (data as any).longitude;
     if (longitude !== undefined) {
@@ -247,18 +247,18 @@ function calculateKPSubLordsForCandidate(
       };
     }
   }
-  
+
   return result;
 }
 
 function calculateCuspalSubLordsForCandidate(
-  candidate: CandidateWithGodTierData
+  candidate: CandidateWithPrecisionData
 ): Record<number, { house: number; cusp: number; sign: string; starLord: string; subLord: string; subSubLord: string }> {
   const houses = candidate.ephemeris?.houses || [];
   const cuspLongitudes = houses.map((h: any) => h.cusp || 0);
-  
+
   const cuspalData = calculateKPCuspalSubLords(cuspLongitudes);
-  
+
   return Object.fromEntries(
     cuspalData.map(c => [c.house, c])
   );
@@ -286,7 +286,7 @@ function createErrorConsensus(): ConsensusResult {
       d60Instability: false, forensicMismatch: false
     },
     keyEvidence: [],
-    recommendations: ['Error in God-Tier analysis'],
+    recommendations: ['Error in precision analysis'],
     validatedAt: new Date()
   };
 }
@@ -304,52 +304,54 @@ function chunkArray<T>(array: T[], size: number): T[][] {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * Generate enhanced AI prompt with God-Tier KP and Consensus data.
+ * Generate enhanced AI prompt with precision KP and Consensus data.
  */
-export function generateGodTierAIPrompt(
-  candidate: CandidateWithGodTierData,
+export function generatePrecisionAIPrompt(
+  candidate: CandidateWithPrecisionData,
   basePrompt: string
 ): string {
-  const godTier = candidate.godTier;
-  
-  if (!godTier) {
+  const precision = candidate.precision;
+
+  if (!precision) {
     return basePrompt;
   }
-  
+
   const kpSection = `
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ 🔱 GOD-TIER KP SUB-LORD DATA                                  ┃
+┃ PRECISION KP SUB-LORD DATA                                   ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 PLANETARY SUB-LORDS (4-Level Hierarchy):
-${Object.entries(godTier.kpSubLords).map(([planet, kp]) => 
-  `  ${planet.toUpperCase().padEnd(7)}: Star=${kp.starLord.padEnd(8)} | Sub=${kp.subLord.padEnd(8)} | Sub-Sub=${kp.subSubLord.padEnd(8)} | Sub-Sub-Sub=${kp.subSubSubLord}`
-).join('\n')}
+${Object.entries(precision.kpSubLords).map(([planet, kp]) => {
+    const k = kp as { starLord: string; subLord: string; subSubLord: string; subSubSubLord: string };
+    return `  ${planet.toUpperCase().padEnd(7)}: Star=${k.starLord.padEnd(8)} | Sub=${k.subLord.padEnd(8)} | Sub-Sub=${k.subSubLord.padEnd(8)} | Sub-Sub-Sub=${k.subSubSubLord}`;
+  }).join('\n')}
 
 CUSPAL SUB-LORDS (House Cusp Precision):
-${Object.entries(godTier.cuspalSubLords).map(([house, cusp]) => 
-  `  House ${String(house).padStart(2)}: ${cusp.sign.padEnd(10)} | Star=${cusp.starLord.padEnd(8)} | Sub=${cusp.subLord.padEnd(8)} | Sub-Sub=${cusp.subSubLord}`
-).join('\n')}
+${Object.entries(precision.cuspalSubLords).map(([house, cusp]) => {
+    const c = cusp as { sign: string; starLord: string; subLord: string; subSubLord: string };
+    return `  House ${String(house).padStart(2)}: ${c.sign.padEnd(10)} | Star=${c.starLord.padEnd(8)} | Sub=${c.subLord.padEnd(8)} | Sub-Sub=${c.subSubLord}`;
+  }).join('\n')}
 `;
 
   const consensusSection = `
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃ 🔱 MULTI-METHOD CONSENSUS SCORES                              ┃
+┃ MULTI-METHOD CONSENSUS SCORES                                 ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-OVERALL CONSENSUS: ${godTier.consensus.overallConsensus.toFixed(1)}%
-CONFIDENCE LEVEL: ${godTier.consensus.confidenceLevel}
-MARGIN OF ERROR: ±${godTier.consensus.marginOfError} seconds
+OVERALL CONSENSUS: ${precision.consensus.overallConsensus.toFixed(1)}%
+CONFIDENCE LEVEL: ${precision.consensus.confidenceLevel}
+MARGIN OF ERROR: ±${precision.consensus.marginOfError} seconds
 
 METHOD SCORES:
-  Vimshottari Dasha: ${String(godTier.consensus.scores.vimshottari).padStart(3)}% ${getScoreBar(godTier.consensus.scores.vimshottari)}
-  KP Sub-Lords:      ${String(godTier.consensus.scores.kp).padStart(3)}% ${getScoreBar(godTier.consensus.scores.kp)}
-  Divisional Charts: ${String(godTier.consensus.scores.varga).padStart(3)}% ${getScoreBar(godTier.consensus.scores.varga)}
-  Transit Analysis:  ${String(godTier.consensus.scores.transit).padStart(3)}% ${getScoreBar(godTier.consensus.scores.transit)}
-  Forensic Match:    ${String(godTier.consensus.scores.forensic).padStart(3)}% ${getScoreBar(godTier.consensus.scores.forensic)}
-  AI Reasoning:      ${String(godTier.consensus.scores.ai).padStart(3)}% ${getScoreBar(godTier.consensus.scores.ai)}
+  Vimshottari Dasha: ${String(precision.consensus.scores.vimshottari).padStart(3)}% ${getScoreBar(precision.consensus.scores.vimshottari)}
+  KP Sub-Lords:      ${String(precision.consensus.scores.kp).padStart(3)}% ${getScoreBar(precision.consensus.scores.kp)}
+  Divisional Charts: ${String(precision.consensus.scores.varga).padStart(3)}% ${getScoreBar(precision.consensus.scores.varga)}
+  Transit Analysis:  ${String(precision.consensus.scores.transit).padStart(3)}% ${getScoreBar(precision.consensus.scores.transit)}
+  Forensic Match:    ${String(precision.consensus.scores.forensic).padStart(3)}% ${getScoreBar(precision.consensus.scores.forensic)}
+  AI Reasoning:      ${String(precision.consensus.scores.ai).padStart(3)}% ${getScoreBar(precision.consensus.scores.ai)}
 
-${godTier.consensus.redFlags.conflictingMethods ? '⚠️ WARNING: Methods show significant disagreement' : '✅ All methods in agreement'}
+${precision.consensus.redFlags.conflictingMethods ? '⚠️ WARNING: Methods show significant disagreement' : '✅ All methods in agreement'}
 `;
 
   return `${basePrompt}\n\n${kpSection}\n${consensusSection}`;
@@ -365,12 +367,12 @@ function getScoreBar(score: number): string {
 // EXPORT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export const GodTierIntegrator = {
-  enhanceCandidate: enhanceCandidateWithGodTierData,
+export const PrecisionIntegrator = {
+  enhanceCandidate: enhanceCandidateWithPrecisionData,
   enhanceBatch: enhanceCandidatesBatch,
-  rankByConsensus: rankCandidatesByGodTierConsensus,
+  rankByConsensus: rankCandidatesByPrecisionConsensus,
   filterByThreshold: filterByConsensusThreshold,
   selectBest: selectBestCandidate,
-  generateReport: generateGodTierReport,
-  generateAIPrompt: generateGodTierAIPrompt
+  generateReport: generatePrecisionReport,
+  generateAIPrompt: generatePrecisionAIPrompt
 };

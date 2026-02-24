@@ -15,7 +15,7 @@ export interface AIThinking {
     candidateTime?: string;
     chunks: string[];
     fullText: string;
-    updatedAt?: number; // 🔱 NEW: Stable sorting & live tracking
+    updatedAt?: number; // Higher-precision sorting and live tracking
 }
 
 export interface AIThinkingEventData {
@@ -62,7 +62,7 @@ export interface CandidateScore {
     rank?: number;
     offsetMinutes?: number;
     minifiedEph?: { sun: string; moon: string; ascendant: string };
-    fullEph?: Record<string, string>; // 🔱 NEW: High-precision technical coordinates
+    fullEph?: Record<string, string>; // High-precision technical coordinates
 }
 
 export interface StageStat {

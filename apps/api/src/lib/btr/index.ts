@@ -6,42 +6,42 @@
  */
 
 // Core Orchestrator
-export { GodTierBTR } from './orchestrator.js';
-export type { 
-  RectificationInput, 
-  DetailedResult 
+export { ProfessionalBTR } from './orchestrator.js';
+export type {
+  RectificationInput,
+  DetailedResult
 } from './orchestrator.js';
 
 // Window Scanner
 export { WindowScanner } from './window-scanner.js';
-export type { 
-  ScannerInput, 
+export type {
+  ScannerInput,
   ScannerContext,
-  CandidateAnalysis 
+  CandidateAnalysis
 } from './window-scanner.js';
 
 // Tatwa Shuddhi
 export { TatwaShuddhi } from './tatwa-shuddhi.js';
-export type { 
+export type {
   TatwaCalculationOptions,
-  TatwaCorrectionResult 
+  TatwaCorrectionResult
 } from './tatwa-shuddhi.js';
 
 // Transit Analyzer
 export { TransitAnalyzer } from './transit-analyzer.js';
-export type { 
+export type {
   TransitAnalysisOptions,
   ComprehensiveTransitResult,
   DoubleTransitResult,
-  TransitPosition 
+  TransitPosition
 } from './transit-analyzer.js';
 
 // Event Scorer
 export { EventScorer } from './event-scorer.js';
-export type { 
+export type {
   EventScoringOptions,
   ScoredEvent,
-  EventScoreSummary 
+  EventScoreSummary
 } from './event-scorer.js';
 
 // Types
@@ -91,31 +91,31 @@ export type { TransitDataEntry, TransitBuildOptions } from './transit-builder.js
 
 // New God-Tier modules
 export { Kalachakra } from '../kalachakra-dasha.js';
-export type { 
-  KalachakraPeriod, 
+export type {
+  KalachakraPeriod,
   KalachakraSequence,
   KalachakraType,
-  KalachakraEventMatch 
+  KalachakraEventMatch
 } from '../kalachakra-dasha.js';
 
 export { Shadbala } from '../shadbala.js';
-export type { 
-  ShadbalaResult, 
-  ShadbalaSummary 
+export type {
+  ShadbalaResult,
+  ShadbalaSummary
 } from '../shadbala.js';
 
 export { NadiAmsha } from '../nadi-amsha.js';
-export type { 
-  NadiAmshaData, 
+export type {
+  NadiAmshaData,
   NadiMatchResult,
-  D150EventAnalysis 
+  D150EventAnalysis
 } from '../nadi-amsha.js';
 
 export { SpouseD9Verification } from '../spouse-d9-verification.js';
-export type { 
-  SpouseData, 
+export type {
+  SpouseData,
   SpouseChartPositions,
   D9VerificationResult,
   D9Match,
-  D9Mismatch 
+  D9Mismatch
 } from '../spouse-d9-verification.js';

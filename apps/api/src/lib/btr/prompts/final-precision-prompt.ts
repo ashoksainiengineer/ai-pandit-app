@@ -4,7 +4,7 @@
  * Generates AI prompts for Stage 6 final seconds-level precision judgment.
  * Creates the ultimate forensic prompt for selecting the single best birth time.
  * 
- * 🔱 AI-DRIVEN FLEXIBLE WEIGHTING SYSTEM:
+ * AI-DRIVEN FLEXIBLE WEIGHTING SYSTEM:
  * AI has FULL FREEDOM to adjust weights for SECONDS-LEVEL precision.
  */
 
@@ -90,7 +90,7 @@ export function getFinalPrecisionPrompt(
   return `BIRTH TIME RECTIFICATION - FINAL STAGE (Seconds Precision)
 
 ════════════════════════════════════════════════════════════════════════════════
-🎯 AI-DRIVEN FLEXIBLE SCORING - FINAL SECONDS PRECISION
+🎯 AI-DRIVEN SCORING - FINAL SECONDS PRECISION
 ════════════════════════════════════════════════════════════════════════════════
 
 YOU HAVE FULL FREEDOM TO ADJUST WEIGHTS! This is the FINAL judgment - be precise:

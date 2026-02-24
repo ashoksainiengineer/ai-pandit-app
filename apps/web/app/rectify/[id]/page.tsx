@@ -176,7 +176,7 @@ export default function AnalysisPage() {
   // we use 2 batched selectors with shallow equality comparison.
   // React only re-renders when actual VALUES change, not object identity.
   // ═══════════════════════════════════════════════════════════════════════════
-  // 🔱 Batched shallow selectors (Elite Pattern)
+  // Batched shallow selectors (Standardized Pattern)
   const {
     isComplete,
     streamError,
@@ -227,7 +227,7 @@ export default function AnalysisPage() {
   const [cancelled, setCancelled] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
-  // 🔱 God-Tier Telescopic Varga Funnel State sync
+  // High-precision Varga state synchronization
   const offsetMinutes = useMemo(() => {
     return metadata?.offsetConfig?.customMinutes ??
       (metadata?.offsetConfig?.preset === '30min' ? 30 :
@@ -259,7 +259,7 @@ export default function AnalysisPage() {
         } catch { /* localStorage unavailable */ }
       }
 
-      // 🔱 God-Tier: We no longer auto-redirect. 
+      // Standard: We no longer auto-redirect.
       // User stays on this page to review all reasoning stages.
       logger.info('Analysis complete. Staying on page for review.', { sessionId });
     }
@@ -288,7 +288,7 @@ export default function AnalysisPage() {
       const backendUrl = env.api.backendUrl.replace(/\/$/, '');
       await APIClient.post(`${backendUrl}/api/queue/requeue`, { sessionId }, getToken);
 
-      // 🔱 CRITICAL: Clear the Zustand store BEFORE reload so stale
+      // IMPORTANT: Clear the Zustand store BEFORE reload so stale
       // isComplete/error/cancelled state doesn't rehydrate from localStorage
       // and block the new SSE connection from starting.
       useStreamStore.getState().clearStore();
@@ -321,7 +321,7 @@ export default function AnalysisPage() {
   const sortedCandidateScores = useMemo(() => {
     if (!candidateScores || candidateScores.length === 0) return [];
 
-    // 🔱 God-Tier: Prioritize the LATEST stage that has scores
+    // Standard: Prioritize the LATEST stage that has scores
     // This ensures that Stage 4/6 precision results "win" over Stage 2 coarse results
     const maxStage = Math.max(...candidateScores.map(s => s.stage));
 
@@ -478,7 +478,7 @@ export default function AnalysisPage() {
                     <CheckCircle className="w-8 h-8 text-[#2D7A5C]" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-black text-[#1A1612] mb-1">Analysis Successfully Randomized</h2>
+                    <h2 className="text-xl font-black text-[#1A1612] mb-1">Analysis Successfully Completed</h2>
                     <p className="text-sm text-[#4A453F] flex flex-wrap items-center gap-x-3 gap-y-1">
                       <span className="flex items-center gap-1.5 font-bold text-[#2D7A5C]">
                         <Activity className="w-4 h-4" /> {result.rectifiedTime}
@@ -545,7 +545,7 @@ export default function AnalysisPage() {
                     const currentStageIndex = progress?.stepIndex ?? 0;
 
                     // Get all stage numbers that have data or are targets for high-fidelity rendering
-                    // 🔱 God-Tier: We now show ALL stages [1, 2, 3, 4, 5, 6] if they are active or have past data
+                    // Standard: We now show ALL stages [1, 2, 3, 4, 5, 6] if they are active or have past data
                     const incomingStageNumbers = Object.keys(candidatesByStage).map(Number).filter(n => n > 0);
                     const activeStageNumbers = new Set([1, 2, 3, 4, 5, 6].filter(n => n <= currentStageIndex || incomingStageNumbers.includes(n)));
 
@@ -560,8 +560,8 @@ export default function AnalysisPage() {
                       // Fallback stage name if not found in allSteps
                       const stepDef = (typeof allSteps !== 'undefined' && allSteps?.[stageNum]) ? allSteps[stageNum] : { id: `stage-${stageNum}`, name: `Stage ${stageNum}` };
 
-                      // 🔱 God-Tier Filtering: Distinguish between AI Reasoning and Structural Calculus
-                      // 🔱 God-Tier: All stages from Batch Tournament onwards are AI-driven
+                      // Standard Filtering: Distinguish between AI Reasoning and Structural Calculus
+                      // Standard: All stages from Batch Tournament onwards are AI-driven
                       const isAIStage = [2, 3, 4, 5, 6].includes(stageNum);
 
                       // Skip rendering future stages that haven't started and have no data
@@ -594,7 +594,7 @@ export default function AnalysisPage() {
                             <UnifiedAIPanel
                               thinking={isCurrentStage && !isStageCompleted && stageCandidates
                                 ? (() => {
-                                  // 🔱 God-Tier: Sort by updatedAt to get the TRULY active stream
+                                  // Standard: Sort by updatedAt to get the TRULY active stream
                                   const entries = Object.values(stageCandidates) as any[];
                                   if (entries.length === 0) return null;
                                   return entries.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];

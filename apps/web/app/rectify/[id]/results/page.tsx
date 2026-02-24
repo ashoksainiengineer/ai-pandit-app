@@ -32,7 +32,7 @@ const getSessionResults = cache(async (sessionId: string, userId: string): Promi
             return null;
         }
 
-        // 3. GOD-TIER Robust Data Reconstruction
+        // 3. Robust Data Reconstruction
         const birthData = {
             fullName: parseSensitiveField(session.fullName, 'Unencryptable Session'),
             dateOfBirth: parseSensitiveField(session.dateOfBirth, 'Not set'),

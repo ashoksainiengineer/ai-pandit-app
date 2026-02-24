@@ -1,7 +1,7 @@
 import 'dotenv/config';
 
 /**
- * 🔱 AI-Pandit BTR Engine Server
+ * Professional AI-Pandit BTR Engine Server
  * ===============================
  * Production-grade Express server with comprehensive middleware stack.
  * Version 3.0.0 - Refactored with new infrastructure
@@ -214,7 +214,7 @@ let queueStarted = false;
 const numCPUs = 1; // Force single process for memory consistency (SSE/Progress)
 
 async function bootstrap(): Promise<void> {
-  // 🚀 GOD-TIER STABILITY: Disable clustering for HF Spaces
+  // PRODUCTION STABILITY: Disable clustering for HF Spaces
   // In-memory state (SSE emitters, ProgressTracker) is NOT shared across workers.
   // We run as a single process to ensure real-time consistency.
   logger.info(`🚀 Starting engine in single-process mode for memory consistency`);
@@ -235,7 +235,7 @@ async function startWorkerServer() {
     logger.info('⚙️ Configuration loaded', {
       maxConcurrent: config.queue.maxConcurrent,
       aiModel: config.ai.model,
-      enableGodTier: config.features.enableGodTierEnhancement,
+      enablePrecisionEnhancement: config.features.enablePrecisionEnhancement,
     });
 
     // Start HTTP server

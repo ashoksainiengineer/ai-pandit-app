@@ -1,10 +1,10 @@
 /**
- * 🔱 CONSENSUS VALIDATION ENGINE (Multi-Method Verification)
+ * CONSENSUS VALIDATION ENGINE (Multi-Method Verification)
  * ==========================================================
  * 
- * The divine judgment system that verifies birth time candidates across
+ * The validation system that verifies birth time candidates across
  * multiple Vedic astrology methods. Only when ALL methods converge
- * do we achieve God-Tier (>99%) confidence.
+ * do we achieve high (>99%) confidence.
  * 
  * VALIDATION METHODS:
  * 1. Vimshottari Dasha - Primary timing system
@@ -19,7 +19,7 @@
  * 10. AI Reasoning - Deep pattern analysis
  * 
  * CONSENSUS RULES:
- * - GOD_TIER: All 10 methods > 90% agreement
+ * - STANDARD_PRECISION: All 10 methods > 90% agreement
  * - VERY_HIGH: All 10 methods > 80% agreement
  * - HIGH: Overall average > 75%, no method < 60%
  * - MEDIUM: Overall average > 60%
@@ -40,7 +40,7 @@ import {
   CONFIDENCE_THRESHOLDS,
   calculateRankFusionScore,
   calculateWeightedAverage
-} from './btr/god-tier-weights.js';
+} from './btr/precision-weights.js';
 
 // Re-export types for backwards compatibility
 export type {
@@ -52,7 +52,7 @@ export type {
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// METHOD WEIGHTS NOW IMPORTED FROM GOD-TIER-WEIGHTS.TS
+// METHOD WEIGHTS NOW IMPORTED FROM PRECISION-WEIGHTS.TS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -582,7 +582,7 @@ function calculateWeightedConsensus(scores: ConsensusScores): number {
     ai: METHOD_WEIGHTS.ai,
   };
 
-  // 🔱 Consensus Engine: Use Rank Fusion for mathematically robust judgment
+  // Consensus Engine: Use Rank Fusion for mathematically robust judgment
   return calculateRankFusionScore(scoresRecord, methodWeights);
 }
 
@@ -599,11 +599,11 @@ function determineConfidenceLevel(
     return 'LOW';
   }
 
-  // GOD_TIER: All methods >= 90, no red flags
-  if (scoreValues.every(s => s >= thresholds.god_tier.allMethodsAbove) &&
-    overall >= thresholds.god_tier.minScore &&
+  // STANDARD_PRECISION: All methods >= 90, no red flags
+  if (scoreValues.every(s => s >= thresholds.standard_precision.allMethodsAbove) &&
+    overall >= thresholds.standard_precision.minScore &&
     !redFlags.conflictingMethods) {
-    return 'GOD_TIER';
+    return 'STANDARD_PRECISION';
   }
 
   // VERY_HIGH: All methods >= 80

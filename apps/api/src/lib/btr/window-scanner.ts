@@ -42,7 +42,7 @@ import {
   DASHA_MATCH_SCORES,
   calculateRankFusionScore,
   calculateWeightedAverage
-} from './god-tier-weights.js';
+} from './precision-weights.js';
 import { logger } from '../logger.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -130,18 +130,18 @@ export async function scanBirthTimeWindow(input: ScannerInput): Promise<ScanResu
       stepSeconds: input.stepSeconds || 60
     };
 
-    // 🔱 Adaptive Resolution Scanning
+    // Adaptive Resolution Scanning
     // First pass with base resolution
     const candidates = await generateCandidates(timeWindow, context);
     let scoredCandidates = await Promise.all(
       candidates.map(c => scoreCandidate(c, context))
     );
 
-    // 🔱 Adaptive Precision: Peak Zooming
+    // Adaptive Precision: Peak Zooming
     // If we find very high scores, zoom in around them with 5-second precision
     const highPotentialCandidates = scoredCandidates.filter(c => c.overallScore! >= 80);
     if (highPotentialCandidates.length > 0 && timeWindow.stepSeconds > 10) {
-      logger.info(`[SCANNER] 🔱 Peak Zooming detected ${highPotentialCandidates.length} high-potential zones`);
+      logger.info(`[SCANNER] Peak Zooming detected ${highPotentialCandidates.length} high-potential zones`);
 
       const zoomPromises = highPotentialCandidates.map(async (peak) => {
         const zoomWindow: TimeWindow = {
@@ -157,7 +157,7 @@ export async function scanBirthTimeWindow(input: ScannerInput): Promise<ScanResu
       scoredCandidates = [...scoredCandidates, ...zoomedResults];
     }
 
-    // 🔱 Diverse Selection Policy
+    // Diverse Selection Policy
     // Instead of just taking Top-K overall, we ensure Method Winners survive.
     const selectionSet = new Set<string>();
     const diverseSurvivors: CandidateScore[] = [];
@@ -183,12 +183,12 @@ export async function scanBirthTimeWindow(input: ScannerInput): Promise<ScanResu
         if (c.timeString && !selectionSet.has(c.timeString) && diverseSurvivors.length < maxSurvivors) {
           diverseSurvivors.push(c);
           selectionSet.add(c.timeString);
-          logger.debug(`[SCANNER] 🔱 Diverse Selection: Kept ${c.timeString} as ${method} winner`);
+          logger.debug(`[SCANNER] Diverse Selection: Kept ${c.timeString} as ${method} winner`);
         }
       });
     });
 
-    // 3. 🔱 Boundary Protection: Always keep candidates near dangerous boundaries
+    // Boundary Protection: Always keep candidates near dangerous boundaries
     scoredCandidates.forEach(c => {
       if (c.timeString &&
         c.redFlags?.some(f => f.includes('boundary') || f.includes('Gandanta')) &&
@@ -196,7 +196,7 @@ export async function scanBirthTimeWindow(input: ScannerInput): Promise<ScanResu
         diverseSurvivors.length < maxSurvivors) {
         diverseSurvivors.push(c);
         selectionSet.add(c.timeString);
-        logger.debug(`[SCANNER] 🔱 Sandhi Survival: Kept ${c.timeString} near critical boundary`);
+        logger.debug(`[SCANNER] Sandhi Survival: Kept ${c.timeString} near critical boundary`);
       }
     });
 
@@ -369,7 +369,7 @@ async function scoreCandidate(
   const weights = METHOD_WEIGHTS;
 
   const scoresRecord: Record<string, number> = { ...methodScores };
-  // 🔱 Rank Fusion: Use Reciprocal Rank Fusion for mathematically robust consensus
+  // Rank Fusion: Use Reciprocal Rank Fusion for mathematically robust consensus
   const overallScore = calculateRankFusionScore(scoresRecord, weights);
 
   extractKeyEvidence(candidate, methodScores, eventMatches, keyEvidence);
@@ -417,12 +417,12 @@ function scoreVimshottariMatch(
 
     let eventScore = 0;
 
-    // 🔱 MAHADASHA MATCH (Weight: 0.15 of total dasha influence)
+    // MAHADASHA MATCH (Weight: 0.15 of total dasha influence)
     if (significators.includes(dashaLord)) {
       eventScore += DASHA_MATCH_SCORES.mahadashaSignificator;
     }
 
-    // 🔱 MAHADASHA HOUSE PLACEMENT
+    // MAHADASHA HOUSE PLACEMENT
     const targetHouse = EVENT_HOUSE_MAP[event.category] || 1;
     const dashaLordHouse = getPlanetHouse(dashaLord, candidate.ephemeris);
     const antarLordHouse = getPlanetHouse(antarLord, candidate.ephemeris);
@@ -431,7 +431,7 @@ function scoreVimshottariMatch(
       eventScore += DASHA_MATCH_SCORES.mahadashaHouseMatch;
     }
 
-    // 🔱 ANTARDASHA MATCH (Weight: 0.25 of total dasha influence)
+    // ANTARDASHA MATCH (Weight: 0.25 of total dasha influence)
     if (significators.includes(antarLord)) {
       eventScore += DASHA_MATCH_SCORES.antardashaSignificator;
     }
@@ -440,19 +440,19 @@ function scoreVimshottariMatch(
       eventScore += DASHA_MATCH_SCORES.antardashaHouseMatch;
     }
 
-    // 🔱 PRATYANTARDASHA (if available) - Week-level precision
+    // PRATYANTARDASHA (if available) - Week-level precision
     const pratyantardasha = (dashaAtEvent as any).pratyantardasha;
     if (pratyantardasha && significators.includes(pratyantardasha)) {
       eventScore += DASHA_MATCH_SCORES.pratyantardashaMatch;
     }
 
-    // 🔱 SUKSHMA DASHA (if available) - Day-level precision
+    // SUKSHMA DASHA (if available) - Day-level precision
     const sukshma = (dashaAtEvent as any).sukshma;
     if (sukshma && significators.includes(sukshma)) {
       eventScore += DASHA_MATCH_SCORES.sukshmaMatch;
     }
 
-    // 🔱 PRANA DASHA (if available) - Hour-level precision (SECONDS POSSIBLE!)
+    // PRANA DASHA (if available) - Hour-level precision (SECONDS POSSIBLE!)
     const prana = (dashaAtEvent as any).prana;
     if (prana && significators.includes(prana)) {
       eventScore += DASHA_MATCH_SCORES.pranaMatch;
@@ -503,27 +503,27 @@ function scoreKPMatch(
     const dashaLord = dashaAtEvent.mahadasha.toLowerCase();
     const significators = EVENT_SIGNIFICATORS[event.category] || [];
 
-    // 🔱 KP SUB-LORD MATCH - Primary significator (95 points)
+    // KP SUB-LORD MATCH - Primary significator (95 points)
     if (cuspKP.subLord.toLowerCase() === dashaLord) {
       eventScore = KP_SCORES.subLordMatch;
     }
-    // 🔱 KP STAR-LORD MATCH - Source of event (80 points)
+    // KP STAR-LORD MATCH - Source of event (80 points)
     else if (cuspKP.starLord.toLowerCase() === dashaLord) {
       eventScore = KP_SCORES.starLordMatch;
     }
-    // 🔱 KP SUB-SUB-LORD MATCH - Mode of delivery (70 points)
+    // KP SUB-SUB-LORD MATCH - Mode of delivery (70 points)
     else if (cuspKP.subSubLord?.toLowerCase() === dashaLord) {
       eventScore = KP_SCORES.subSubLordMatch;
     }
-    // 🔱 KP SUB-SUB-SUB-LORD - Fine detail (60 points) - SECONDS precision
+    // KP SUB-SUB-SUB-LORD - Fine detail (60 points) - SECONDS precision
     else if ((cuspKP as any).subSubSubLord?.toLowerCase() === dashaLord) {
       eventScore = KP_SCORES.subSubSubLordMatch;
     }
-    // 🔱 SIGNIFICATOR MATCH - A/B/C planet (40 points)
+    // SIGNIFICATOR MATCH - A/B/C planet (40 points)
     else if (significators.some(s => s.toLowerCase() === cuspKP.subLord.toLowerCase())) {
       eventScore = KP_SCORES.significatorMatch;
     }
-    // 🔱 NO MATCH - But still possible (10 points)
+    // NO MATCH - But still possible (10 points)
     else {
       eventScore = KP_SCORES.noMatch;
     }

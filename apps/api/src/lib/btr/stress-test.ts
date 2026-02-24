@@ -1,14 +1,14 @@
-import { calculateWeightedAverage, calculateRankFusionScore } from './god-tier-weights.js';
+import { calculateWeightedAverage, calculateRankFusionScore } from './precision-weights.js';
 
 /**
- * 🔱 STRESS TEST: RANK FUSION VS WEIGHTED AVERAGE
+ * STRESS TEST: RANK FUSION VS WEIGHTED AVERAGE
  * 
  * Scenario: The "Needle in a Haystack"
  * A candidate is the ABSOLUTE WINNER in one critical method (KP), 
  * but has mediocre or poor scores in others due to noisy data.
  */
 function runRankFusionStressTest() {
-    console.log("🔱 RUNNING STRESS TEST: RANK FUSION VS WEIGHTED AVERAGE\n");
+    console.log("RUNNING STRESS TEST: RANK FUSION VS WEIGHTED AVERAGE\n");
 
     const methodWeights = {
         kp: 5,
@@ -75,7 +75,7 @@ function runRankFusionStressTest() {
     console.log("\n💡 ANALYSIS:");
     console.log("- Notice how the 'Hidden Gem' has a low Weighted Average because of the 20% Transit score.");
     console.log("- Rank Fusion rewards the 98% in KP more heavily, ensuring this candidate SURVIVES.");
-    console.log("- This is why the new algorithm is UNSTOPPABLE. It respects mastery over mediocrity.");
+    console.log("- This is why the algorithm is highly effective. It respects mastery over mediocrity.");
 }
 
 runRankFusionStressTest();

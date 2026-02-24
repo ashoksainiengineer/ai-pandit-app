@@ -240,11 +240,11 @@ export interface FinalVerdict {
   margin: number;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// GOD-TIER BTR ENHANCEMENT TYPES
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═════════════════════════════════════════════════════════════════════════════
+// PRECISION BTR ENHANCEMENT TYPES
+// ═════════════════════════════════════════════════════════════════════════════
 
-export type ConfidenceLevel = 'GOD_TIER' | 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type ConfidenceLevel = 'STANDARD_PRECISION' | 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW';
 
 export type EventSource = 'document' | 'memory' | 'approximate' | 'calculated';
 

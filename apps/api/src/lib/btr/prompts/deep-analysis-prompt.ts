@@ -4,7 +4,7 @@
  * Generates AI prompts for Stage 4 deep multi-dasha analysis.
  * Creates detailed forensic prompts for final candidate verification.
  * 
- * 🔱 AI-DRIVEN FLEXIBLE WEIGHTING SYSTEM:
+ * AI-DRIVEN FLEXIBLE WEIGHTING SYSTEM:
  * AI has FULL FREEDOM to adjust method weights based on case context.
  */
 
@@ -88,7 +88,7 @@ export function getDeepAnalysisPrompt(
   return `BIRTH TIME RECTIFICATION - STAGE 4 (Deep Multi-Dasha Analysis)
 
 ════════════════════════════════════════════════════════════════════════════════
-🎯 AI-DRIVEN FLEXIBLE SCORING - DEEP ANALYSIS
+🎯 AI-DRIVEN SCORING - DEEP ANALYSIS
 ════════════════════════════════════════════════════════════════════════════════
 
 YOU HAVE FULL FREEDOM TO ADJUST WEIGHTS! Reference weights - ADJUST as needed:

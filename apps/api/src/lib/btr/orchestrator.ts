@@ -1,5 +1,5 @@
 /**
- * God-Tier BTR Orchestrator
+ * Professional BTR Orchestrator
  *
  * Main entry point that integrates all BTR enhancement modules:
  * - Window Scanner: Iterative time grid analysis
@@ -58,7 +58,7 @@ export interface DetailedResult extends RectificationResult {
 }
 
 /**
- * Main rectification function - God-Tier BTR
+ * Main rectification function - Professional BTR
  */
 export async function rectifyBirthTime(input: RectificationInput): Promise<DetailedResult> {
   const startTime = Date.now();
@@ -457,7 +457,7 @@ function generateRecommendations(
   return recs;
 }
 
-export const GodTierBTR = {
+export const ProfessionalBTR = {
   rectify: rectifyBirthTime,
   quickRectify,
   validateEvents,

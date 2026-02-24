@@ -46,10 +46,10 @@ import { SecondsPrecisionInput, SecondsPrecisionResult } from '@ai-pandit/shared
 import { throwIfCancelled, isCancellationError } from './cancellation-manager.js';
 import { emitCandidateScore, emitAIContext, emitCalculationLog, emitStageStats } from './session-events.js';
 import {
-    enhanceCandidateWithGodTierData,
-    generateGodTierAIPrompt,
-    CandidateWithGodTierData,
-} from './btr-god-tier-integrator.js';
+    enhanceCandidateWithPrecisionData,
+    generatePrecisionAIPrompt,
+    CandidateWithPrecisionData,
+} from './btr-precision-integrator.js';
 import { getMinifiedEphemeris } from './utils/index.js';
 
 // Import from modular BTR components
@@ -102,7 +102,7 @@ export async function processSecondsPrecisionBTR(
 
     try {
         await progress.updateETA(600);
-        await progress.startStep('init', '🔱 Initializing God-Tier BTR v7.0 (Batch Tournament)...');
+        await progress.startStep('init', 'Initializing Professional BTR v7.0 (Batch Tournament)...');
 
         // 🦾 Pre-calculate Global Lifecycle Shifts
         const globalLifecycle: any[] = [];
@@ -141,7 +141,7 @@ export async function processSecondsPrecisionBTR(
             logger.warn('Global lifecycle calculation failed', e);
         }
 
-        logger.info('🔱 Starting GOD-TIER BTR v7.0 (Batch Tournament)', {
+        logger.info('Starting Professional BTR v7.0 (Batch Tournament)', {
             sessionId: input.sessionId,
             dateOfBirth: input.dateOfBirth,
             globalLifecycleItems: globalLifecycle.length
@@ -151,9 +151,9 @@ export async function processSecondsPrecisionBTR(
         // STAGE 1: EXHAUSTIVE DATA GENERATION
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
-        logger.info('🔱 [PIPELINE] Entering Stage 1: Exhaustive Data Generation');
+        logger.info('[PIPELINE] Entering Stage 1: Exhaustive Data Generation');
         const stage1 = await stage1ExhaustiveDataGeneration(input, progress);
-        logger.info(`🔱 [PIPELINE] Stage 1 Complete: ${stage1.candidates.length} candidates generated`);
+        logger.info(`[PIPELINE] Stage 1 Complete: ${stage1.candidates.length} candidates generated`);
         stageHistory[1] = stage1.stageResult;
         emitStageStats(input.sessionId, 1, stage1.stageResult.candidatesOut, `Generated ${stage1.stageResult.candidatesOut} candidates`);
         await progress.flush("Stage 1 finalized. Preparing for tournament...");
@@ -163,9 +163,9 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(480);
-        logger.info('🔱 [PIPELINE] Entering Stage 2: Batch Tournament');
+        logger.info('[PIPELINE] Entering Stage 2: Batch Tournament');
         const stage2 = await stage2BatchTournament(input, stage1.candidates, progress, input.forensicTraits, globalLifecycle);
-        logger.info(`🔱 [PIPELINE] Stage 2 Complete: ${stage2.survivors.length} survivors`);
+        logger.info(`[PIPELINE] Stage 2 Complete: ${stage2.survivors.length} survivors`);
         stageHistory[2] = stage2.stageResult;
         emitStageStats(input.sessionId, 2, stage2.stageResult.candidatesOut,
             `Tournament: ${stage2.rounds.length} rounds, ${stage2.survivors.length} survivors`);
@@ -176,9 +176,9 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(360);
-        logger.info('🔱 [PIPELINE] Entering Stage 3: Refinement Grid');
+        logger.info('[PIPELINE] Entering Stage 3: Refinement Grid');
         const stage3 = await stage3RefinementGrid(input, stage2.survivors, progress);
-        logger.info(`🔱 [PIPELINE] Stage 3 Complete: ${stage3.candidates.length} candidates refined`);
+        logger.info(`[PIPELINE] Stage 3 Complete: ${stage3.candidates.length} candidates refined`);
         stageHistory[3] = stage3.stageResult;
         emitStageStats(input.sessionId, 3, stage3.stageResult.candidatesOut, `Refined to ${stage3.stageResult.candidatesOut}`);
         await progress.flush("Stage 3 finalized. Starting multi-dasha analysis...");
@@ -188,9 +188,9 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(240);
-        logger.info('🔱 [PIPELINE] Entering Stage 4: Deep Analysis');
+        logger.info('[PIPELINE] Entering Stage 4: Deep Analysis');
         const stage4 = await stage4DeepAnalysis(input, stage3.candidates, progress, input.forensicTraits, globalLifecycle);
-        logger.info(`🔱 [PIPELINE] Stage 4 Complete: ${stage4.survivors.length} deep survivors`);
+        logger.info(`[PIPELINE] Stage 4 Complete: ${stage4.survivors.length} deep survivors`);
         stageHistory[4] = stage4.stageResult;
         emitStageStats(input.sessionId, 4, stage4.stageResult.candidatesOut, `Deep: ${stage4.survivors.length} survivors`);
         await progress.flush("Stage 4 finalized. Entering micro-precision phase...");
@@ -200,9 +200,9 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(120);
-        logger.info('🔱 [PIPELINE] Entering Stage 5: Micro Grid');
+        logger.info('[PIPELINE] Entering Stage 5: Micro Grid');
         const stage5 = await stage5MicroGrid(input, stage4.survivors, progress);
-        logger.info(`🔱 [PIPELINE] Stage 5 Complete: ${stage5.candidates.length} micro candidates`);
+        logger.info(`[PIPELINE] Stage 5 Complete: ${stage5.candidates.length} micro candidates`);
         stageHistory[5] = stage5.stageResult;
         emitStageStats(input.sessionId, 5, stage5.stageResult.candidatesOut, `Micro: ${stage5.candidates.length}`);
         await progress.flush("Stage 5 finalized. Running final seconds-level synthesis...");
@@ -212,9 +212,9 @@ export async function processSecondsPrecisionBTR(
         // ═══════════════════════════════════════════════════════════════════════
         await throwIfCancelled(input.sessionId, input.abortSignal);
         await progress.updateETA(60);
-        logger.info('🔱 [PIPELINE] Entering Stage 6: Final Precision');
+        logger.info('[PIPELINE] Entering Stage 6: Final Precision');
         const stage6 = await stage6FinalPrecision(input, stage5.candidates, progress, input.forensicTraits, globalLifecycle);
-        logger.info('🔱 [PIPELINE] Stage 6 Complete: Final Verdict reached');
+        logger.info('[PIPELINE] Stage 6 Complete: Final Verdict reached');
         stageHistory[6] = stage6.stageResult;
         emitStageStats(input.sessionId, 6, 1, 'FINAL TIME DETERMINED');
         await progress.flush("All analysis stages complete. Generating final report...");
@@ -263,7 +263,7 @@ export async function processSecondsPrecisionBTR(
                 vimsopakaAvg: winnerPkg?.vimsopakaBala ?
                     Object.values(winnerPkg.vimsopakaBala).reduce((a: number, b: number) => a + b, 0) / 7 : 0
             },
-            godTierData: {
+            precisionData: {
                 ephemeris: finalEphemeris,
                 divCharts,
                 boundarySafety: boundary,
@@ -310,7 +310,7 @@ export async function processSecondsPrecisionBTR(
         };
 
     } catch (error) {
-        logger.error('GOD-TIER BTR v7.0 FAILED', error);
+        logger.error('Professional BTR v7.0 FAILED', error);
         if (isCancellationError(error)) {
             throw error;
         }

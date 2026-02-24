@@ -1,7 +1,7 @@
 /**
  * Stage 6: Final Precision Judgement
  *
- * Final seconds-level precision determination using God-Tier integration.
+ * Final seconds-level precision determination using Precision integration.
  * Performs the ultimate AI analysis to determine the exact birth time.
  */
 
@@ -17,10 +17,10 @@ import { getFinalPrecisionPrompt } from '../prompts/index.js';
 import { extractFinalVerdict } from '../extractors/index.js';
 import { CandidateDataPackage, StageResult } from '@ai-pandit/shared';
 import {
-    enhanceCandidateWithGodTierData,
-    generateGodTierAIPrompt,
-    CandidateWithGodTierData,
-} from '../../btr-god-tier-integrator.js';
+    enhanceCandidateWithPrecisionData,
+    generatePrecisionAIPrompt,
+    CandidateWithPrecisionData,
+} from '../../btr-precision-integrator.js';
 import { logger } from '../../logger.js';
 import { config } from '../../../config/index.js';
 
@@ -84,11 +84,11 @@ export async function stage6FinalPrecision(
         };
     };
 
-    // GOD-TIER ENHANCEMENT: Enhance finalists with KP and Consensus data
-    let godTierEnhancedCandidates: Array<CandidateWithGodTierData & { time: string; offsetMinutes: number }> = [];
+    // PRECISION ENHANCEMENT: Enhance finalists with KP and Consensus data
+    let godTierEnhancedCandidates: Array<CandidateWithPrecisionData & { time: string; offsetMinutes: number }> = [];
 
     // FIXED: Log candidate data state before enhancement
-    logger.info('🔱 [STAGE-6] Starting final precision judgment', {
+    logger.info('[STAGE-6] Starting final precision judgment', {
         candidatesIn: candidates.length,
         sampleTime: candidates[0]?.time,
         lifeEventsCount: input.lifeEvents?.length,
@@ -108,7 +108,7 @@ export async function stage6FinalPrecision(
                 lifecycleShifts: globalLifecycle
             });
 
-            const baseCandidate: CandidateWithGodTierData = {
+            const baseCandidate: CandidateWithPrecisionData = {
                 time: candidate.time,
                 offsetMinutes: candidate.offsetMinutes,
                 ephemeris: pkg,
@@ -121,7 +121,7 @@ export async function stage6FinalPrecision(
                 kpData: {}
             };
 
-            const enhanced = enhanceCandidateWithGodTierData(
+            const enhanced = enhanceCandidateWithPrecisionData(
                 baseCandidate,
                 input.lifeEvents,
                 input.forensicTraits,
@@ -140,8 +140,8 @@ export async function stage6FinalPrecision(
 
     let finalists = [...candidates];
 
-    const godTierCount = godTierEnhancedCandidates.filter(c => c.godTier?.isGodTier).length;
-    logger.info(`🔱 Stage 6: ${godTierCount}/${godTierEnhancedCandidates.length} candidates achieved God-Tier status`);
+    const godTierCount = godTierEnhancedCandidates.filter(c => c.precision?.isPrecisionStandard).length;
+    logger.info(`Stage 6: ${godTierCount}/${godTierEnhancedCandidates.length} candidates achieved High-Precision status`);
 
     while (finalists.length > MAX_BATCH_SIZE) {
         const batches = splitIntoBatches(finalists, MAX_BATCH_SIZE);
@@ -243,7 +243,7 @@ export async function stage6FinalPrecision(
 
     // Final judgement with God-Tier prompt enhancement
     // FIXED: Enhance ALL finalists with God-Tier data for comprehensive judgment
-    const enhancedFinalBatch: Array<CandidateWithGodTierData & { time: string; offsetMinutes: number }> = [];
+    const enhancedFinalBatch: Array<CandidateWithPrecisionData & { time: string; offsetMinutes: number }> = [];
 
     for (const finalist of finalists) {
         const existingEnhanced = godTierEnhancedCandidates.find(ge => ge.time === finalist.time);
@@ -258,7 +258,7 @@ export async function stage6FinalPrecision(
                     pranaWindowDays: 5,
                     lifecycleShifts: globalLifecycle
                 });
-                const baseCandidate: CandidateWithGodTierData = {
+                const baseCandidate: CandidateWithPrecisionData = {
                     time: finalist.time,
                     offsetMinutes: finalist.offsetMinutes,
                     ephemeris: pkg,
@@ -266,7 +266,7 @@ export async function stage6FinalPrecision(
                     vargas: { D9: pkg.d9Chart, D10: pkg.d10Chart, D60: pkg.d60Sign },
                     kpData: {}
                 };
-                const enhanced = enhanceCandidateWithGodTierData(
+                const enhanced = enhanceCandidateWithPrecisionData(
                     baseCandidate, input.lifeEvents, input.forensicTraits, input.tentativeTime
                 );
                 enhancedFinalBatch.push({ ...enhanced, time: finalist.time, offsetMinutes: finalist.offsetMinutes });
@@ -295,11 +295,11 @@ export async function stage6FinalPrecision(
 
     // FIXED: Aggregate God-Tier data from ALL finalists for comprehensive prompt
     // This provides the AI with consensus patterns across all finalists
-    const validEnhanced = enhancedFinalBatch.filter(e => e.godTier?.consensus);
+    const validEnhanced = enhancedFinalBatch.filter(e => e.precision?.consensus);
     if (validEnhanced.length > 0) {
         // Use the candidate with highest consensus for main enhancement
         const bestEnhanced = validEnhanced.reduce((best, current) =>
-            (current.godTier?.consensus?.overallConsensus ?? 0) > (best.godTier?.consensus?.overallConsensus ?? 0)
+            (current.precision?.consensus?.overallConsensus ?? 0) > (best.precision?.consensus?.overallConsensus ?? 0)
                 ? current : best
         );
 
@@ -309,17 +309,17 @@ export async function stage6FinalPrecision(
 ┃ 🔱 FINALIST CONSENSUS COMPARISON (${validEnhanced.length} candidates)           ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 ${validEnhanced.map((c, i) =>
-            `  ${i + 1}. ${c.time}: ${c.godTier?.consensus.overallConsensus.toFixed(1)}% (${c.godTier?.consensus.confidenceLevel})`
+            `  ${i + 1}. ${c.time}: ${c.precision?.consensus.overallConsensus.toFixed(1)}% (${c.precision?.consensus.confidenceLevel})`
         ).join('\n')}
 
-Consensus Range: ${Math.min(...validEnhanced.map(c => c.godTier?.consensus.overallConsensus ?? 0)).toFixed(1)}% - ${Math.max(...validEnhanced.map(c => c.godTier?.consensus.overallConsensus ?? 0)).toFixed(1)}%
+Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.overallConsensus ?? 0)).toFixed(1)}% - ${Math.max(...validEnhanced.map(c => c.precision?.consensus.overallConsensus ?? 0)).toFixed(1)}%
 `;
 
-        prompt = generateGodTierAIPrompt(bestEnhanced, prompt) + comparativeAnalysis;
-        logger.info('🔱 God-Tier AI prompt enhancement applied with comparative analysis', {
+        prompt = generatePrecisionAIPrompt(bestEnhanced, prompt) + comparativeAnalysis;
+        logger.info('Precision AI prompt enhancement applied with comparative analysis', {
             finalistCount: validEnhanced.length,
-            bestConsensus: bestEnhanced.godTier?.consensus.overallConsensus,
-            confidenceLevel: bestEnhanced.godTier?.consensus.confidenceLevel
+            bestConsensus: bestEnhanced.precision?.consensus.overallConsensus,
+            confidenceLevel: bestEnhanced.precision?.consensus.confidenceLevel
         });
     }
 

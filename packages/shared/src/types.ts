@@ -99,7 +99,7 @@ export interface PhysicalTraits {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// FORENSIC TRAITS TYPES (God-Tier)
+// FORENSIC TRAITS TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
 /**
@@ -328,7 +328,7 @@ export interface CandidateScore {
   // Advanced God-Tier Properties
   timeString?: string;
   overallScore?: number;
-  confidenceLevel?: 'GOD_TIER' | 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW' | string;
+  confidenceLevel?: 'STANDARD_PRECISION' | 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW' | string;
   marginOfErrorSeconds?: number;
   methodScores?: any;
   eventMatches?: any[];
@@ -725,7 +725,7 @@ export interface RedFlags {
 export interface ConsensusResult {
   scores: ConsensusScores;
   overallConsensus: number;
-  confidenceLevel: 'GOD_TIER' | 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW';
+  confidenceLevel: 'STANDARD_PRECISION' | 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW';
   marginOfError: number;
   validationDetails: ValidationDetail[];
   redFlags: RedFlags;
@@ -753,13 +753,13 @@ export interface ValidationInput {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// GOD-TIER BTR TYPES
+// PRECISION BTR TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
 /**
- * God-Tier enhancement data
+ * Precision enhancement data
  */
-export interface GodTierEnhancement {
+export interface PrecisionEnhancement {
   kpSubLords: Record<string, {
     starLord: string;
     subLord: string;
@@ -775,21 +775,21 @@ export interface GodTierEnhancement {
     subSubLord: string;
   }>;
   consensus: ConsensusResult;
-  isGodTier: boolean;
+  isPrecisionStandard: boolean;
   recommendedPrecision: 'seconds' | 'sub-seconds' | 'minutes';
 }
 
 /**
- * Candidate with God-Tier data
+ * Candidate with Precision data
  */
-export interface CandidateWithGodTierData {
+export interface CandidateWithPrecisionData {
   time: string;
   offsetMinutes: number;
   ephemeris: any;
   dasha: any;
   vargas: any;
   kpData: any;
-  godTier?: GodTierEnhancement;
+  precision?: PrecisionEnhancement;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

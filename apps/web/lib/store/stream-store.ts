@@ -120,7 +120,7 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
 
             let newFullText = existing.fullText + text;
 
-            // 🔱 Zero-Trust De-duplication: Prevent doubling text during backend replays
+            // Robust De-duplication: Prevent doubling text during backend replays
             if (existing.fullText && text) {
                 if (existing.fullText.includes(text)) {
                     // This chunk is already accounted for (likely a replay)
@@ -150,7 +150,7 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
                 historyAppends[stage] = (historyAppends[stage] || '') + text;
             }
 
-            // 🔱 Focus Logic: Set focus to CURRENT stage candidate
+            // Selection Logic: Set focus to CURRENT stage candidate
             latestCandidate = stageKey;
 
             // Advance progress if stage jumped
@@ -264,7 +264,7 @@ export const useStreamStore = create<StreamStore>()(
                     const stage = thinkingEvent?.stage || 1;
                     const candidateTime = thinkingEvent?.candidateTime || 'general';
 
-                    // 🔱 God-Tier Fix: Buffer key must include stage to prevent cross-stage contamination
+                    // Precision Fix: Buffer key must include stage to prevent cross-stage contamination
                     // (e.g., Stage 2 'general' vs Stage 3 'general')
                     const bufferKey = `${stage}_${candidateTime}`;
                     const existing = thinkingBuffer.chunks.get(bufferKey);
@@ -384,7 +384,7 @@ export const useStreamStore = create<StreamStore>()(
                             const filtered = prev.candidateScores.filter(s => !(s.time === score.time && s.stage === score.stage));
                             const newScores = [...filtered, score];
 
-                            // 🔱 God-Tier: Progress tracking MUST be stage-aware
+                            // Standard: Progress tracking must be stage-aware
                             // Use the maximum stage found in the scores to determine current stage progress
                             const maxStage = Math.max(...newScores.map(s => s.stage));
                             const analyzedCount = new Set(newScores.filter(s => s.stage === maxStage).map(s => s.time)).size;
@@ -416,7 +416,7 @@ export const useStreamStore = create<StreamStore>()(
                         }
 
                         case 'estimated_time': {
-                            return {}; // Logic removed as per God-Tier de-cluttering
+                            return {}; // Logic removed as per de-cluttering policy
                         }
 
                         case 'stage_stats': {
@@ -470,7 +470,7 @@ export const useStreamStore = create<StreamStore>()(
 
                         case 'metadata': {
                             const metadata = payload as StreamMetadata;
-                            // 🔱 Robustness: Only wipe on status RESET if we don't have active progress
+                            // Backend Robustness: Only wipe on status RESET if we don't have active progress
                             // OR if status explicitly transition from complete/failed back to pending
                             const isReset = (metadata.status === 'pending' || metadata.status === 'queued') &&
                                 (prev.isComplete || !!prev.error || !prev.sessionId);
@@ -555,7 +555,7 @@ export const useStreamStore = create<StreamStore>()(
             name: 'ai-pandit-stream-store',
             storage: createJSONStorage(() => localStorage),
             partialize: (state) => ({
-                // 🔱 God-Tier Persistence Policy:
+                // Persistence Policy:
                 // We persist stageHistory because it's the "Narrative Summary" that users
                 // value most on refresh. Large individual candidate thinking is ephemeral
                 // and restored via backend SSE replay.

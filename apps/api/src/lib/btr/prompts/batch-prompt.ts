@@ -4,7 +4,7 @@
  * Generates AI prompts for Stage 2 batch tournament analysis.
  * Creates comprehensive prompts with forensic context and candidate data.
  * 
- * 🔱 AI-DRIVEN FLEXIBLE WEIGHTING SYSTEM:
+ * AI-DRIVEN FLEXIBLE WEIGHTING SYSTEM:
  * AI has FULL FREEDOM to adjust method weights based on:
  * - User's event importance selections
  * - Data quality for each method
@@ -90,7 +90,7 @@ export function getBatchPrompt(
   return `BIRTH TIME RECTIFICATION - STAGE 2 (Batch ${batchNumber}/${totalBatches})
 
 ════════════════════════════════════════════════════════════════════════════════
-🎯 AI-DRIVEN FLEXIBLE SCORING SYSTEM
+🎯 AI-DRIVEN SCORING SYSTEM
 ════════════════════════════════════════════════════════════════════════════════
 
 YOU HAVE FULL FREEDOM TO ADJUST WEIGHTS! Here are REFERENCE weights - you MAY change them:
@@ -134,7 +134,7 @@ ${getEventImportanceSummary(events)}
 5. FORENSIC CORRELATION: Verify Varga markers align with PHYSICAL and PSYCHOGRAPHIC DNA.
 
 ════════════════════════════════════════════════════════════════════════════════
-⚠️ CRITICAL GOD-TIER RULES:
+⚠️ CRITICAL SCORING RULES:
 ════════════════════════════════════════════════════════════════════════════════
 
 1. USE PRE-CALCULATED DATA ONLY. Do not compute positions.

@@ -439,7 +439,7 @@ export function useStreamProgress(
         };
     }, [sessionId, backendUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // 🛡️ PROACTIVE TOKEN REFRESH (God-Tier Fix)
+    // PROACTIVE TOKEN REFRESH (Standard Session Maintenance)
     // Long-running analysis (20+ mins) can cause tokens to expire silently.
     // We refresh the token every 45 minutes to ensure the session remains valid.
     useEffect(() => {
