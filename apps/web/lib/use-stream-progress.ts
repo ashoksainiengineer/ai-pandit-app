@@ -220,7 +220,27 @@ export function useStreamProgress(
                 }
 
                 if (result.metadata) {
-                    handleEvent({ type: 'metadata', data: result.metadata });
+                    // 🔧 FIX: Merge top-level status and error into metadata payload
+                    // This ensures store's metadata.status is preserved during polling
+                    const enrichedMetadata = {
+                        ...result.metadata,
+                        status: result.status,
+                        errorMessage: result.errorMessage || result.metadata.errorMessage,
+                        updatedAt: result.metadata.updatedAt || result.updatedAt || new Date().toISOString()
+                    };
+                    handleEvent({ type: 'metadata', data: enrichedMetadata });
+                }
+
+                // 🔧 FIX: Also dispatch terminal_state if polling detects end of session
+                // This syncs state.isComplete and state.error store-wide
+                if (['complete', 'failed', 'cancelled'].includes(result.status)) {
+                    handleEvent({
+                        type: 'terminal_state',
+                        data: {
+                            status: result.status,
+                            errorMessage: result.errorMessage || result.metadata?.errorMessage
+                        }
+                    });
                 }
 
                 // Stop if complete or failed

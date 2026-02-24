@@ -243,17 +243,6 @@ export default function AnalysisPage() {
     else if (metadata?.status && ['pending', 'queued', 'processing'].includes(metadata.status)) setCancelled(false);
   }, [metadata?.status]);
 
-  // SAFETY GUARD: Detect stale localStorage rehydration
-  // If store says isComplete but live connection shows session is pending/queued,
-  // the store has stale data from a previous completed analysis. Force-clear it.
-  useEffect(() => {
-    if (isComplete && metadata?.status && ['pending', 'queued', 'processing'].includes(metadata.status)) {
-      logger.info('[AnalysisPage] Detected stale isComplete with active session. Clearing store.', { sessionId, status: metadata.status });
-      useStreamStore.getState().clearStore();
-      useStreamStore.getState().setSessionId(sessionId);
-    }
-  }, [isComplete, metadata?.status, sessionId]);
-
   useEffect(() => {
     if (isComplete) {
       // Guard: Don't process if store rehydrated stale isComplete from localStorage
@@ -553,7 +542,8 @@ export default function AnalysisPage() {
                 <SectionErrorBoundary sectionName="AI Reasoning" icon={<Brain className="w-5 h-5" />}>
                   {(() => {
                     // INDUSTRY: Render stages from actual data, not positional index (Vercel Build Log pattern)
-                    const currentStageIndex = progress?.stepIndex ?? 0;
+                    // Fallback to activeAIStage (emitted directly by ai_thinking payload) if progress lags
+                    const currentStageIndex = Math.max(progress?.stepIndex ?? 0, activeAIStage ?? 0);
 
                     // Get all stage numbers that have data or are targets for high-fidelity rendering
                     // Standard: We now show ALL stages [1, 2, 3, 4, 5, 6] if they are active or have past data
@@ -566,7 +556,7 @@ export default function AnalysisPage() {
                       const stageCandidates = candidatesByStage?.[stageNum] || {};
                       const isStageCompleted = stageNum < currentStageIndex;
                       const candidateCount = Object.keys(stageCandidates).length;
-                      const isCurrentStage = stageNum === currentStageIndex;
+                      const isCurrentStage = stageNum === currentStageIndex || (!isStageCompleted && incomingStageNumbers.includes(stageNum));
 
                       // Fallback stage name if not found in allSteps
                       const stepDef = (typeof allSteps !== 'undefined' && allSteps?.[stageNum]) ? allSteps[stageNum] : { id: `stage-${stageNum}`, name: `Stage ${stageNum}` };
@@ -621,7 +611,7 @@ export default function AnalysisPage() {
                               candidateScores={candidateScores}
                               title={stepDef.name}
                               offsetMinutes={offsetMinutes}
-                              hideLiveReasoning={false}
+                              hideLiveReasoning={stageNum === 4 || stageNum === 6}
                             />
                           ) : (
                             <div className="bg-white/50 rounded-xl border border-stone-100 p-4 shadow-sm">

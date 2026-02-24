@@ -154,26 +154,22 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
             // that matches a prefix of `text`, then skip that overlap.
             // ═══════════════════════════════════════════════════════════════
             if (existing.fullText && text) {
-                // Case 1: Incoming text is entirely within existing (exact duplicate)
+                // Case 1: Incoming text is already at the end of existing (duplicate recent chunk)
                 if (existing.fullText.endsWith(text)) {
-                    return; // Nothing new
+                    // It's a duplicate chunk, ignore it entirely
+                    newFullText = existing.fullText;
                 }
-                // Case 2: Existing text is a prefix of incoming (reconnect replay with full buffer)
-                if (text.startsWith(existing.fullText)) {
-                    newFullText = text; // Incoming is a superset — just replace
-                } else {
-                    // Case 3: Partial overlap — find the longest suffix-prefix match
-                    // Check if the END of existing text overlaps with START of new text
-                    const maxCheck = Math.min(existing.fullText.length, text.length, 2000); // Cap check at 2KB
-                    let overlapLen = 0;
-                    for (let len = maxCheck; len > 0; len--) {
-                        const suffix = existing.fullText.slice(-len);
-                        if (text.startsWith(suffix)) {
-                            overlapLen = len;
-                            break;
-                        }
-                    }
-                    newFullText = existing.fullText + text.slice(overlapLen);
+                // Case 2: Replay - Incoming text starts with the existing text (superset)
+                else if (text.startsWith(existing.fullText)) {
+                    newFullText = text;
+                }
+                // Case 3: Replay - Existing text starts with the incoming text (but incoming is longer or equal)
+                else if (existing.fullText.startsWith(text)) {
+                    newFullText = existing.fullText; // Already have it
+                }
+                // Case 4: Default - Pure append
+                else {
+                    newFullText = existing.fullText + text;
                 }
             } else {
                 newFullText = existing.fullText + text;
@@ -202,10 +198,12 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
                 stageHistoryContributors[stage].add(contributorKey);
                 historyAppends[stage] = (historyAppends[stage] || '') + text;
             } else {
-                // Candidate already contributed — only append genuinely new text
+                // Candidate already contributed
                 const existingHistory = prev.stageHistory[stage] || '';
-                if (text.length > 50 && !existingHistory.endsWith(text.slice(-50))) {
-                    // New content detected (last 50 chars don't match) — append
+                // Deduplicate massive full-buffer replays, but allow small streaming chunks directly
+                if (text.length > 50 && existingHistory.endsWith(text.slice(-50))) {
+                    // Duplicate replay, ignore
+                } else {
                     historyAppends[stage] = (historyAppends[stage] || '') + text;
                 }
             }
