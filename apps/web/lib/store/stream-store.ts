@@ -47,13 +47,11 @@ export const createInitialState = (): StreamState => ({
     isComplete: false,
     error: null,
     progress: null,
-    aiThinking: {},
     aiContext: null,
     candidateScores: [],
     stageStats: [],
     result: null,
     metadata: undefined,
-    allCandidates: {},
     candidatesByStage: {},
     displayedCandidate: null,
     persistentCandidates: [],
@@ -61,7 +59,7 @@ export const createInitialState = (): StreamState => ({
     analyzedCount: 0,
     totalCandidates: 0,
     startedAt: undefined,
-    activeAIStage: null, // Tracks the actual AI stage (2, 4, or 6)
+    activeAIStage: null,
     allSteps: DEFAULT_STEPS,
     advancedSignals: null,
     decisions: [],
@@ -102,12 +100,68 @@ const thinkingBuffer: ThinkingBuffer = {
     rafId: null,
 };
 
-// INDUSTRY PATTERN: Memory cap per candidate (prevents OOM on long analyses)
-// 500KB per candidate is generous — most AI reasoning text is ~50-100KB total
+// ═══════════════════════════════════════════════════════════════════════════════
+// INDUSTRY PATTERN: Tiered Memory Limits (Score-Based)
+// ═══════════════════════════════════════════════════════════════════════════════
+// Top candidates (score >= 85): Full 500KB - they're potential winners
+// Good candidates (score >= 70): 100KB - still in running
+// Promising candidates (score >= 50): 20KB - keep some context
+// Low candidates (score < 50): 5KB - just enough for preview
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const getCharLimitForScore = (score: number | undefined): number => {
+    if (score === undefined) return 100_000; // Unknown score - medium
+    if (score >= 85) return 500_000; // Top tier - full text
+    if (score >= 70) return 100_000; // Good - 100KB
+    if (score >= 50) return 20_000;  // Promising - 20KB
+    return 5_000; // Low - 5KB only
+};
+
+// Helper to get score from candidateScores for a given candidate time
+function getScoreForCandidate(candidateTime: string, scores: CandidateScore[]): number | undefined {
+    return scores.find(s => s.time === candidateTime)?.score;
+}
+
+// Legacy constant for backward compatibility with stageHistory
 const MAX_FULLTEXT_CHARS = 500_000;
 
+// INDUSTRY PATTERN: Candidate Pruning
+// When stage completes, remove candidates below threshold to free memory
+const PRUNE_THRESHOLD_SCORE = 50;
+const MAX_CANDIDATES_PER_STAGE = 30;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INDUSTRY PATTERN: pruneStageCandidates (Discord/Slack)
+// Called when stage advances to remove low-scoring candidates and enforce limits
+// ═══════════════════════════════════════════════════════════════════════════════
+function pruneStageCandidates(
+    stageCandidates: Record<string, any>,
+    scores: CandidateScore[],
+    maxKeep: number = MAX_CANDIDATES_PER_STAGE
+): Record<string, any> {
+    const entries = Object.entries(stageCandidates);
+    if (entries.length <= maxKeep) return stageCandidates;
+
+    const scoreMap = new Map(scores.map(s => [s.time, s.score] as [string, number]));
+    
+    const sorted = entries.sort((a, b) => 
+        (scoreMap.get(b[0]) || 0) - (scoreMap.get(a[0]) || 1)
+    );
+
+    const kept: Record<string, any> = {};
+    for (let i = 0; i < Math.min(sorted.length, maxKeep); i++) {
+        const [time, data] = sorted[i];
+        const score = scoreMap.get(time);
+        const limit = getCharLimitForScore(score);
+        kept[time] = {
+            ...data,
+            fullText: data.fullText.slice(-limit)
+        };
+    }
+    return kept;
+}
+
 // Per-stage set of candidate keys that have already contributed to stageHistory
-// This prevents the old bug where includes() dropped chunks with common AI preambles
 const stageHistoryContributors: Record<number, Set<string>> = {};
 
 function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamState>) => void) {
@@ -134,7 +188,7 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
             const stageKey = `s${stage}_${candidateTime}`;
 
             // Use already-changed entry if same candidate appeared multiple times in buffer
-            const existing = changedEntries[stageKey] || prev.allCandidates[stageKey] || {
+            const existing = changedEntries[stageKey] || prev.candidatesByStage[stage]?.[candidateTime] || {
                 stage,
                 candidateTime,
                 chunks: [],
@@ -175,8 +229,15 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
                 newFullText = existing.fullText + text;
             }
 
-            if (newFullText.length > MAX_FULLTEXT_CHARS) {
-                newFullText = newFullText.slice(-MAX_FULLTEXT_CHARS);
+            // ═══════════════════════════════════════════════════════════════
+            // INDUSTRY PATTERN: Score-Based Tiered Storage
+            // Get score for this candidate and apply appropriate char limit
+            // ═══════════════════════════════════════════════════════════════
+            const score = getScoreForCandidate(candidateTime, prev.candidateScores);
+            const charLimit = getCharLimitForScore(score);
+
+            if (newFullText.length > charLimit) {
+                newFullText = newFullText.slice(-charLimit);
             }
 
             const updated = { ...existing, fullText: newFullText, updatedAt: Date.now() };
@@ -230,10 +291,6 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
         //          React sees same ref → skips re-render for those entries.
         // ═══════════════════════════════════════════════════════════════════
 
-        // aiThinking & allCandidates: single Object.assign merges only changed keys
-        const newAiThinking = Object.assign({}, prev.aiThinking, changedEntries);
-        const newAllCandidates = Object.assign({}, prev.allCandidates, changedEntries);
-
         // candidatesByStage: only create new sub-objects for stages that had changes
         const changedStageNumbers = Object.keys(stageChanges);
         let newCandidatesByStage = prev.candidatesByStage;
@@ -268,8 +325,6 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
         // PHASE 3: Return minimal diff — only include fields that changed.
         // ═══════════════════════════════════════════════════════════════════
         const result: Partial<StreamState> = {
-            aiThinking: newAiThinking,
-            allCandidates: newAllCandidates,
             candidatesByStage: newCandidatesByStage,
             stageHistory: newStageHistory,
         };
@@ -291,12 +346,12 @@ export const useStreamStore = create<StreamStore>()(
             setSessionId: (id) => set({ sessionId: id }),
 
             clearStore: () => {
-                // Cancel any pending rAF flush
                 if (thinkingBuffer.rafId) {
                     cancelAnimationFrame(thinkingBuffer.rafId);
                     thinkingBuffer.rafId = null;
                 }
                 thinkingBuffer.chunks.clear();
+                Object.keys(stageHistoryContributors).forEach(k => delete stageHistoryContributors[Number(k)]);
                 set({ ...createInitialState() });
             },
 
@@ -500,19 +555,22 @@ export const useStreamStore = create<StreamStore>()(
 
                         case 'ai_thinking': { // This case handles full AIThinking objects, not chunks
                             const data = payload as AIThinking;
-                            const stageStr = data.stage?.toString() || '0';
+                            const stageNum = data.stage || 0;
+                            const candidateTime = data.candidateTime || 'general';
 
-                            // Map AI stage number (2, 4, 6) back to progress step index (2, 4, 5) for UI syncing if needed
-                            // Stage 2 = index 2 (Coarse Elimination)
-                            // Stage 4 = index 4 (Deep Analysis)
-                            // Stage 6 = index 5 (Micro Precision)  -- wait, stage 6 is Final Verdict (index 6). The mapping is complex.
-
-                            const newThinkingData = {
-                                ...prev.aiThinking,
-                                [stageStr]: data
+                            const newCandidatesByStage = { ...prev.candidatesByStage };
+                            if (!newCandidatesByStage[stageNum]) {
+                                newCandidatesByStage[stageNum] = {};
+                            }
+                            newCandidatesByStage[stageNum] = {
+                                ...newCandidatesByStage[stageNum],
+                                [candidateTime]: data
                             };
 
-                            const updates: Partial<StreamState> = { aiThinking: newThinkingData, activeAIStage: data.stage || prev.activeAIStage };
+                            const updates: Partial<StreamState> = { 
+                                candidatesByStage: newCandidatesByStage, 
+                                activeAIStage: data.stage || prev.activeAIStage 
+                            };
 
                             // Only push to details if it's the current step
                             if (prev.progress?.stepIndex === data.stage && data.fullText) {
@@ -536,10 +594,8 @@ export const useStreamStore = create<StreamStore>()(
                             if (isReset) {
                                 return {
                                     metadata,
-                                    aiThinking: {},
                                     stageHistory: {},
                                     candidateScores: [],
-                                    allCandidates: {},
                                     candidatesByStage: {},
                                     decisions: []
                                 };
@@ -562,21 +618,20 @@ export const useStreamStore = create<StreamStore>()(
                                 (payload?.rectifiedTime ? payload : payload?.result || prev.result) as StreamResult | null;
 
                             if (thinkingBuffer.chunks.size > 0) {
-                                const newAiThinking = { ...prev.aiThinking };
-                                const newAllCandidates = { ...prev.allCandidates };
+                                const newCandidatesByStage = { ...prev.candidatesByStage };
                                 thinkingBuffer.chunks.forEach(({ stage, candidateTime, text }) => {
-                                    const stageKey = `s${stage}_${candidateTime}`;
-                                    const existing = newAllCandidates[stageKey] || { stage, candidateTime, chunks: [], fullText: '' };
+                                    if (!newCandidatesByStage[stage]) {
+                                        newCandidatesByStage[stage] = {};
+                                    }
+                                    const existing = newCandidatesByStage[stage][candidateTime] || { stage, candidateTime, chunks: [], fullText: '' };
                                     const updated = { ...existing, fullText: existing.fullText + text };
-                                    newAiThinking[stageKey] = updated;
-                                    newAllCandidates[stageKey] = updated;
+                                    newCandidatesByStage[stage][candidateTime] = updated;
                                 });
                                 thinkingBuffer.chunks.clear();
                                 return {
                                     isComplete: true,
                                     result: extractedResult,
-                                    aiThinking: newAiThinking,
-                                    allCandidates: newAllCandidates,
+                                    candidatesByStage: newCandidatesByStage,
                                 };
                             }
                             return {
@@ -647,11 +702,8 @@ export const useStreamStore = create<StreamStore>()(
                 displayedCandidate: state.displayedCandidate,
                 persistentCandidates: state.persistentCandidates,
 
-                // Reasoning cards — IndexedDB has 50MB+ capacity,
-                // so we persist FULL text without any truncation.
-                // No more 10KB cap — multi-hour analyses fully preserved.
-                allCandidates: state.allCandidates,
-                candidatesByStage: state.candidatesByStage,
+                // candidatesByStage NOT persisted - SSE replay handles refresh
+                // Avoids duplicate text from truncated suffix vs full replay mismatch
 
                 // SSE Last-Event-ID: persisted so native EventSource can send it on reconnect
                 lastEventId: state.lastEventId,

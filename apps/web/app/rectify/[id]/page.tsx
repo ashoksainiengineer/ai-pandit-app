@@ -10,20 +10,18 @@ import {
   Activity,
   Brain,
   Clock,
-  Search,
-  Target,
   Zap,
-  TrendingUp,
   CheckCircle,
   XCircle,
   RefreshCw,
   Home,
   ChevronRight,
-  ArrowRight,
-  Sparkles,
   Gem,
   AlertCircle,
-  LayoutDashboard
+  LayoutDashboard,
+  Calendar,
+  MapPin,
+  Timer
 } from 'lucide-react';
 import { useStreamProgress } from '@/lib/use-stream-progress';
 import { useStreamStore } from '@/lib/store/stream-store';
@@ -34,13 +32,11 @@ import { env } from '@/lib/config';
 import { AnalysisErrorBoundary, SectionErrorBoundary } from '@/components/rectify/AnalysisErrorBoundary';
 import AdvancedSignalsDashboard from '@/components/rectify/advanced-signals/AdvancedSignalsDashboard';
 import { UnifiedAIPanel } from '@/components/rectify/UnifiedAIPanel';
-import { CandidateScoreTable } from '@/components/rectify/CandidateScoreTable';
 import { AnalysisStatusBanner } from '@/components/rectify/analysis/AnalysisStatusBanner';
-import { EmergingBestCandidate } from '@/components/rectify/analysis/EmergingBestCandidate';
+import { TopCandidate } from '@/components/rectify/analysis/TopCandidate';
 import { SimplifiedPipeline } from '@/components/rectify/analysis/SimplifiedPipeline';
-import { StageLeaderboard } from '@/components/rectify/analysis/StageLeaderboard';
 import { TechnicalMethodology } from '@/components/rectify/analysis/TechnicalMethodology';
-import { TechnicalMasterGrid } from '@/components/rectify/analysis/TechnicalMasterGrid';
+import { ScoreGrid } from '@/components/rectify/analysis/ScoreGrid';
 
 const GlobalStyles = memo(() => (
   <style jsx global>{`
@@ -68,7 +64,7 @@ const LoadingState = memo(() => (
     <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
       <Gem className="w-16 h-16 text-[#B8860B]" />
     </motion.div>
-    <h1 className="text-2xl font-bold mt-6 text-[#1A1612]">Initiating Analysis Engine</h1>
+    <h1 className="text-2xl font-bold mt-6 text-[#1A1612]">Starting Analysis...</h1>
     <p className="text-lg text-[#7A756F] mt-2">Establishing secure connection...</p>
   </div>
 ));
@@ -181,7 +177,6 @@ export default function AnalysisPage() {
     isComplete,
     streamError,
     progress,
-    aiThinking,
     candidateScores,
     advancedSignals,
     result,
@@ -195,7 +190,6 @@ export default function AnalysisPage() {
     isComplete: state.isComplete,
     streamError: state.error,
     progress: state.progress,
-    aiThinking: state.aiThinking,
     candidateScores: state.candidateScores,
     advancedSignals: state.advancedSignals,
     result: state.result,
@@ -208,13 +202,11 @@ export default function AnalysisPage() {
   })));
 
   const {
-    allCandidates,
     candidatesByStage,
     stageHistory,
     displayedCandidate,
     setDisplayedCandidate
   } = useStreamStore(useShallow(state => ({
-    allCandidates: state.allCandidates,
     candidatesByStage: state.candidatesByStage,
     stageHistory: state.stageHistory,
     displayedCandidate: state.displayedCandidate,
@@ -241,7 +233,12 @@ export default function AnalysisPage() {
   useEffect(() => {
     if (metadata?.status === 'cancelled') setCancelled(true);
     else if (metadata?.status && ['pending', 'queued', 'processing'].includes(metadata.status)) setCancelled(false);
-  }, [metadata?.status]);
+
+    if (isComplete && metadata?.status && ['pending', 'queued', 'processing'].includes(metadata.status)) {
+      logger.warn('Detected stale isComplete with active metadata.status - clearing store', { status: metadata.status });
+      useStreamStore.getState().clearStore();
+    }
+  }, [metadata?.status, isComplete]);
 
   useEffect(() => {
     if (isComplete) {
@@ -370,7 +367,7 @@ export default function AnalysisPage() {
   }
 
   // Guard: Show loading ONLY if we have NO data at all AND no active/recovering connection
-  const hasData = progress || candidateScores.length > 0 || Object.keys(aiThinking).length > 0;
+  const hasData = progress || candidateScores.length > 0 || Object.keys(candidatesByStage).length > 0;
   if (!isConnected && !hasError && !result && !hasData && connectionState.status !== 'polling' && connectionState.status !== 'connecting') {
     return <LoadingState />;
   }
@@ -400,6 +397,35 @@ export default function AnalysisPage() {
                     {sessionId.slice(0, 8)}
                   </span>
                 </h1>
+                
+                {/* Birth Details */}
+                {(metadata?.dateOfBirth || metadata?.tentativeTime || metadata?.birthPlace || metadata?.offsetConfig) && (
+                  <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-[#7A756F]">
+                    {metadata?.dateOfBirth && (
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span>{metadata.dateOfBirth}</span>
+                      </div>
+                    )}
+                    {metadata?.tentativeTime && (
+                      <div className="flex items-center gap-1.5">
+                        <Timer className="w-3.5 h-3.5" />
+                        <span className="font-mono font-semibold">{metadata.tentativeTime}</span>
+                        {metadata.offsetConfig && (
+                          <span className="text-[#B8860B] font-medium">
+                            ±{metadata.offsetConfig.customMinutes ?? metadata.offsetConfig.minutes ?? 60}min
+                          </span>
+                        )}
+                      </div>
+                    )}
+                    {metadata?.birthPlace && (
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span>{metadata.birthPlace}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-2 sm:gap-3">
@@ -527,7 +553,7 @@ export default function AnalysisPage() {
 
           {!cancelled && sortedCandidateScores.length > 0 && (
             <SectionErrorBoundary sectionName="Top Candidate" icon={<Brain className="w-5 h-5" />}>
-              <EmergingBestCandidate
+              <TopCandidate
                 candidates={sortedCandidateScores}
                 isVisible={sortedCandidateScores.length > 0}
                 isComplete={isComplete}
@@ -536,9 +562,9 @@ export default function AnalysisPage() {
           )}
 
           <div className="flex flex-col gap-6 lg:gap-8 w-full">
-            <TechnicalMasterGrid />
+            <ScoreGrid />
             <div className="space-y-4 sm:space-y-6">
-              {(Object.keys(aiThinking).length > 0 || (progress?.stepIndex ?? 0) >= 1) && !cancelled && (
+              {(Object.keys(candidatesByStage).length > 0 || (progress?.stepIndex ?? 0) >= 1) && !cancelled && (
                 <SectionErrorBoundary sectionName="AI Reasoning" icon={<Brain className="w-5 h-5" />}>
                   {(() => {
                     // INDUSTRY: Render stages from actual data, not positional index (Vercel Build Log pattern)
@@ -563,7 +589,7 @@ export default function AnalysisPage() {
 
                       // Standard Filtering: Distinguish between AI Reasoning and Structural Calculus
                       // Standard: All stages from Batch Tournament onwards are AI-driven
-                      const isAIStage = [2, 3, 4, 5, 6].includes(stageNum);
+                      const isAIStage = [2, 4, 6].includes(stageNum);
 
                       // Skip rendering future stages that haven't started and have no data
                       if (candidateCount === 0 && !isCurrentStage && !isStageCompleted) return null;
@@ -593,26 +619,24 @@ export default function AnalysisPage() {
 
                           {isAIStage ? (
                             <UnifiedAIPanel
-                              thinking={isCurrentStage && !isStageCompleted && stageCandidates
-                                ? (() => {
-                                  // Standard: Sort by updatedAt to get the TRULY active stream
-                                  const entries = Object.values(stageCandidates) as any[];
-                                  if (entries.length === 0) return null;
-                                  return entries.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
-                                })()
-                                : null}
-                              stageHistory={stageHistory}
-                              isActive={isCurrentStage && !isStageCompleted}
-                              isCompleted={isStageCompleted}
-                              stage={stageNum}
-                              allCandidates={stageCandidates}
-                              displayedCandidate={displayedCandidate}
-                              onSelectCandidate={setDisplayedCandidate}
-                              candidateScores={candidateScores}
-                              title={stepDef.name}
-                              offsetMinutes={offsetMinutes}
-                              hideLiveReasoning={stageNum === 4 || stageNum === 6}
-                            />
+                               thinking={isCurrentStage && !isStageCompleted && stageCandidates
+                                 ? (() => {
+                                   const entries = Object.values(stageCandidates) as any[];
+                                   if (entries.length === 0) return null;
+                                   return entries.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
+                                 })()
+                                 : null}
+                               stageHistory={stageHistory}
+                               isActive={isCurrentStage && !isStageCompleted}
+                               isCompleted={isStageCompleted}
+                               stage={stageNum}
+                               allCandidates={stageCandidates}
+                               displayedCandidate={displayedCandidate}
+                               onSelectCandidate={setDisplayedCandidate}
+                               candidateScores={candidateScores}
+                               title={stepDef.name}
+                               offsetMinutes={offsetMinutes}
+                             />
                           ) : (
                             <div className="bg-white/50 rounded-xl border border-stone-100 p-4 shadow-sm">
                               <div className="flex items-center justify-between">

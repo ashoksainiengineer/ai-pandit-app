@@ -64,7 +64,7 @@ export const StageLeaderboard = memo(function StageLeaderboard({
                     </thead>
                     <tbody className="divide-y divide-stone-50">
                         {stageScores.map((s, idx) => (
-                            <tr key={s.time} className="hover:bg-amber-50/30 transition-colors">
+                            <tr key={`s${stage}_${s.time}`} className="hover:bg-amber-50/30 transition-colors">
                                 <td className="px-4 py-1.5 whitespace-nowrap">
                                     <div className="flex items-center gap-2">
                                         <span className={`text-[10px] sm:text-xs font-mono font-bold ${idx === 0 ? 'text-amber-600' : 'text-stone-700'

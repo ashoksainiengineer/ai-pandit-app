@@ -1,13 +1,14 @@
 import React from 'react';
 import { Compass, Table } from 'lucide-react';
+import type { EphemerisData, DivisionalChart, PlanetPosition } from '@ai-pandit/shared';
 
 interface PlanetaryProps {
-    ephemeris: any;
-    divCharts: any;
+    ephemeris: EphemerisData;
+    divCharts: Record<string, DivisionalChart>;
 }
 
 export const PlanetaryVitals: React.FC<PlanetaryProps> = ({ ephemeris, divCharts }) => {
-    const planets = Object.entries(ephemeris.planets);
+    const planets = Object.entries(ephemeris.planets) as [string, PlanetPosition][];
 
     return (
         <div className="bg-white border border-[#F0E8DE] rounded-xl p-6 h-full">
@@ -33,7 +34,7 @@ export const PlanetaryVitals: React.FC<PlanetaryProps> = ({ ephemeris, divCharts
                             <td className="py-3 text-right text-[#7A756F]">{(ephemeris.ascendant.longitude % 30).toFixed(6)}°</td>
                             <td className="py-3 text-right text-[#1A1612]">{divCharts.D9.ascendant.sign.slice(0, 3)}</td>
                         </tr>
-                        {planets.map(([name, data]: [string, any]) => (
+                        {planets.map(([name, data]) => (
                             <tr key={name} className="border-b border-[#F0E8DE]/50 hover:bg-[#F5EFE7]">
                                 <td className="py-2 text-[#1A1612] capitalize">{name}</td>
                                 <td className="py-2 text-[#7A756F]">{data.sign}</td>

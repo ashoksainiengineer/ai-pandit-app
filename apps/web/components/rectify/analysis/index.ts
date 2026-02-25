@@ -1,6 +1,6 @@
 export { AnalysisStatusBanner } from './AnalysisStatusBanner';
-export { EmergingBestCandidate } from './EmergingBestCandidate';
+export { TopCandidate } from './TopCandidate';
 export { SimplifiedPipeline } from './SimplifiedPipeline';
 export { StageLeaderboard } from './StageLeaderboard';
 export { TechnicalMethodology } from './TechnicalMethodology';
-export { TechnicalMasterGrid } from './TechnicalMasterGrid';
+export { ScoreGrid } from './ScoreGrid';

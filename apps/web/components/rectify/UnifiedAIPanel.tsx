@@ -53,7 +53,6 @@ interface UnifiedAIPanelProps {
   title?: string;
   isCompleted?: boolean;
   offsetMinutes?: number;
-  hideLiveReasoning?: boolean;
 }
 
 type ScoreTier = 'top' | 'promising' | 'exploring';
@@ -106,7 +105,8 @@ function groupCandidatesByScore(
     });
   }
 
-  Object.entries(candidates).forEach(([time, _]) => {
+  Object.entries(candidates).forEach(([key, data]) => {
+    const time = data.candidateTime || key.split('_').pop() || key;
     const score = scoreMap.get(time) ?? 0;
     const entry = { time, score };
 
@@ -333,6 +333,7 @@ const ReasoningGrid = memo(function ReasoningGrid({
   isStageCompleted,
   isStageActive,
   candidateScores,
+  stage,
 }: {
   candidates: Record<string, AIThinking>;
   liveCandidate: string | null;
@@ -340,6 +341,7 @@ const ReasoningGrid = memo(function ReasoningGrid({
   isStageCompleted?: boolean;
   isStageActive?: boolean;
   candidateScores?: CandidateScore[];
+  stage?: number;
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
   const entries = useMemo(() => Object.entries(candidates), [candidates]);
@@ -431,8 +433,8 @@ const ReasoningGrid = memo(function ReasoningGrid({
                 const isWinner = isStageCompleted && score !== undefined && score === maxScore && score >= 85;
 
                 return (
-                  <ReasoningCard
-                    key={time}
+                   <ReasoningCard
+                    key={`s${stage ?? 0}_${time}`}
                     title={data.candidateTime || time}
                     content={data.fullText.length > CARD_PREVIEW_CHARS
                       ? data.fullText.slice(-CARD_PREVIEW_CHARS)
@@ -460,11 +462,13 @@ const CandidateTabsSection = memo(function CandidateTabsSection({
   selectedCandidate,
   liveCandidate,
   onSelect,
+  stage,
 }: {
   groupedCandidates: GroupedCandidates;
   selectedCandidate: string | null;
   liveCandidate: string | null;
   onSelect: (time: string) => void;
+  stage?: number;
 }) {
   const [expandedTiers, setExpandedTiers] = useState<Set<ScoreTier>>(new Set(['top', 'promising']));
 
@@ -529,7 +533,7 @@ const CandidateTabsSection = memo(function CandidateTabsSection({
               <div className="flex flex-wrap gap-1.5">
                 {candidates.slice(0, displayedCount).map(({ time, score }) => (
                   <CandidatePill
-                    key={time}
+                    key={`s${stage}_${time}`}
                     time={time}
                     score={score}
                     tier={tier}
@@ -850,6 +854,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                     isStageCompleted={isCompleted}
                     isStageActive={isActive}
                     candidateScores={candidateScores}
+                    stage={stage}
                   />
 
                   {candidatesList.length === 0 && (

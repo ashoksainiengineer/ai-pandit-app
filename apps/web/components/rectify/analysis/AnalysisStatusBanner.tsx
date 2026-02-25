@@ -53,7 +53,7 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
   offsetMinutes = 60,
 }: AnalysisStatusBannerProps) {
   // Use activeAIStage mapping like SimplifiedPipeline does if available
-  const aiStageToIndex: Record<number, number> = { 2: 2, 3: 3, 4: 4, 5: 5, 6: 6 };
+  const aiStageToIndex: Record<number, number> = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6 };
   const effectiveStageIndex = activeAIStage && aiStageToIndex[activeAIStage] !== undefined
     ? Math.max(currentStage, aiStageToIndex[activeAIStage])
     : currentStage;

@@ -113,14 +113,11 @@ export interface StreamState {
     isComplete: boolean;
     error: string | null;
     progress: StreamProgress | null;
-    aiThinking: Record<string, AIThinking>;
     aiContext: AIContextData | null;
     candidateScores: CandidateScore[];
     stageStats: StageStat[];
     result: StreamResult | null;
     metadata?: StreamMetadata;
-    // Map is heavily serialized/deserialized in localStorage, sticking to Record/Arrays where optimal.
-    allCandidates: Record<string, AIThinking>;
     candidatesByStage: Record<number, Record<string, AIThinking>>;
     displayedCandidate: string | null;
     persistentCandidates: any[];
@@ -133,6 +130,5 @@ export interface StreamState {
     allSteps: StreamStep[];
     advancedSignals: IAdvancedSignals | null;
     decisions: AnalysisDecision[];
-    // SSE Last-Event-ID: tracks the last sequence number received from the backend
     lastEventId: number;
 }

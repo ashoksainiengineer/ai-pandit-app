@@ -129,12 +129,12 @@ export function SwissEphPanel({
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="border-t border-[#F0E8DE]"
+                        className="border-t border-[#F0E8DE] max-h-[500px] overflow-y-auto"
                     >
                         <div className="p-4 space-y-4">
                             {/* Ascendant */}
                             {(ascendant || minifiedEph?.ascendant) && (
-                                <div className="bg-[#FDF8F3] rounded-lg p-3 border border-[#D4AF37]/30">
+                                <div className="bg-[#FDF8F3] rounded-lg p-3 border border-[#D4AF37]/30 shrink-0">
                                     <div className="flex items-center gap-2 mb-2">
                                         <Star className="w-4 h-4 text-[#D4AF37]" />
                                         <span className="text-[10px] text-[#7A756F] uppercase tracking-wider font-bold">Ascendant (Lagna)</span>
@@ -159,7 +159,7 @@ export function SwissEphPanel({
                                         return (
                                             <div
                                                 key={key}
-                                                className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE] hover:border-[#D4AF37]/30 transition-colors"
+                                                className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE] hover:border-[#D4AF37]/30 transition-colors shrink-0"
                                             >
                                                 <div className="flex items-center gap-1.5 mb-1">
                                                     <span className={`text-lg ${config.color}`}>{config.symbol}</span>
@@ -180,21 +180,21 @@ export function SwissEphPanel({
                                 </div>
                             ) : minifiedEph && (
                                 <div className="grid grid-cols-3 gap-2">
-                                    <div className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE]">
+                                    <div className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE] shrink-0">
                                         <div className="flex items-center gap-1.5 mb-1">
                                             <span className="text-lg text-orange-600">☉</span>
                                             <span className="text-[10px] text-[#7A756F] uppercase font-bold">Sun</span>
                                         </div>
                                         <div className="text-xs font-mono text-[#1A1612]">{minifiedEph.sun}</div>
                                     </div>
-                                    <div className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE]">
+                                    <div className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE] shrink-0">
                                         <div className="flex items-center gap-1.5 mb-1">
                                             <span className="text-lg text-blue-600">☽</span>
                                             <span className="text-[10px] text-[#7A756F] uppercase font-bold">Moon</span>
                                         </div>
                                         <div className="text-xs font-mono text-[#1A1612]">{minifiedEph.moon}</div>
                                     </div>
-                                    <div className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE]">
+                                    <div className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE] shrink-0">
                                         <div className="flex items-center gap-1.5 mb-1">
                                             <span className="text-lg text-[#D4AF37]">↑</span>
                                             <span className="text-[10px] text-[#7A756F] uppercase font-bold">Asc</span>
@@ -211,14 +211,14 @@ export function SwissEphPanel({
                                         <Home className="w-4 h-4 text-[#7A756F]" />
                                         <span className="text-[10px] text-[#7A756F] uppercase tracking-wider font-bold">Houses</span>
                                     </div>
-                                    <div className="grid grid-cols-6 gap-1.5">
+                                    <div className="grid grid-cols-6 gap-2">
                                         {houses.map((house) => (
                                             <div
                                                 key={house.number}
-                                                className="bg-[#FDF8F3] rounded p-1.5 text-center border border-[#F0E8DE]"
+                                                className="bg-[#FDF8F3] rounded-lg p-2 text-center border border-[#F0E8DE] shrink-0"
                                             >
-                                                <div className="text-[9px] text-[#7A756F]">{house.number}H</div>
-                                                <div className="text-[10px] font-mono text-[#1A1612]">{house.sign}</div>
+                                                <div className="text-[10px] font-bold text-[#7A756F]">{house.number}H</div>
+                                                <div className="text-[11px] font-mono text-[#1A1612]">{house.sign}</div>
                                             </div>
                                         ))}
                                     </div>
@@ -227,7 +227,7 @@ export function SwissEphPanel({
 
                             {/* Dasha */}
                             {dasha && (
-                                <div className="bg-[#FDF8F3] rounded-lg p-3 border border-emerald-500/30">
+                                <div className="bg-[#FDF8F3] rounded-lg p-3 border border-emerald-500/30 shrink-0">
                                     <div className="flex items-center gap-2 mb-1">
                                         <Sparkles className="w-4 h-4 text-emerald-600" />
                                         <span className="text-[10px] text-[#7A756F] uppercase tracking-wider font-bold">Active Dasha</span>

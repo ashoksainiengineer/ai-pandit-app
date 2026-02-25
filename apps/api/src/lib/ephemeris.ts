@@ -18,9 +18,14 @@ let isInitialized = false;
 let isInitializing = false;
 let initPromise: Promise<boolean> | null = null;
 
-// Calculation Cache (LRU-like simple Map)
-const EPH_CACHE = new Map<string, EphemerisData>();
+// Calculation Cache (LRU-like simple Map with TTL)
+interface CacheEntry {
+  data: EphemerisData;
+  timestamp: number;
+}
+const EPH_CACHE = new Map<string, CacheEntry>();
 const MAX_CACHE_SIZE = 300;
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours (ephemeris data is immutable)
 
 /**
  * Initializes the Swiss Ephemeris WASM module (Prolaxu version)
@@ -364,9 +369,14 @@ export async function calculateEphemeris(
 ): Promise<EphemerisData> {
   // FIXED: More precise cache key including timezone
   const cacheKey = `${birthDate}_${birthTime}_${latitude.toFixed(6)}_${longitude.toFixed(6)}_${typeof timezone === 'string' ? timezone : timezone.toFixed(2)}`;
-  if (EPH_CACHE.has(cacheKey)) {
-    // Cache hit — skip logging in production for perf
-    return EPH_CACHE.get(cacheKey)!;
+  
+  // Check cache with TTL
+  const cached = EPH_CACHE.get(cacheKey);
+  if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
+    return cached.data;
+  }
+  if (cached) {
+    EPH_CACHE.delete(cacheKey); // Remove expired entry
   }
 
   // Validate
@@ -428,7 +438,7 @@ export async function calculateEphemeris(
           house: 0 // Will be set after ascendant is calculated
         };
       } catch (e) {
-        logger.error(`[EPHEMERIS] Failed to calculate ${planetNames[i]}`, e);
+        logger.warn(`[EPHEMERIS] ⚠️ Swiss Ephemeris failed for ${planetNames[i]}, using algorithmic fallback (~0.1° accuracy)`);
         // Use algorithmic fallback for this planet
         const algoResult = calcPlanet(jd, planetNames[i]);
         const lng = algoResult.longitude;
@@ -505,7 +515,7 @@ export async function calculateEphemeris(
   } else {
     // ══════ ALGORITHMIC MODE ══════
     // Pure calculations, no data files, ~0.01-0.1° accuracy
-    logger.info('[EPHEMERIS] Using algorithmic calculations (no ephemeris data)');
+    logger.warn('[EPHEMERIS] ⚠️ Using ALGORITHMIC mode (~0.1° accuracy) - Swiss Ephemeris data not available');
 
     // Sun & Moon (custom high-accuracy formulas)
     const sunLng = calcSun(jd);
@@ -595,12 +605,12 @@ export async function calculateEphemeris(
 
     const result = { planets: planets as any, ascendant, houses: houseList };
 
-    // Save to cache
+    // Save to cache with timestamp
     if (EPH_CACHE.size >= MAX_CACHE_SIZE) {
       const firstKey = EPH_CACHE.keys().next().value;
       if (firstKey !== undefined) EPH_CACHE.delete(firstKey);
     }
-    EPH_CACHE.set(cacheKey, result);
+    EPH_CACHE.set(cacheKey, { data: result, timestamp: Date.now() });
 
     return result;
   }

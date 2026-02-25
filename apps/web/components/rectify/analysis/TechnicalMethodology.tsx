@@ -53,7 +53,7 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                                 <Activity className="w-5 h-5 text-white" />
                             </div>
                             <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-bold text-[#1A1612]">
-                                Technical Methodology: Varga-Temporal Convergence
+                                Analysis Method
                             </h3>
                         </div>
                         <p className="text-sm text-[#4A453F] leading-relaxed">
@@ -73,10 +73,10 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                 <div className="mt-4 flex items-center gap-3">
                     <div className="px-3 py-1.5 rounded-full text-xs font-bold bg-[#B8860B]/10 text-[#B8860B] border border-[#B8860B]/20">
                         <Clock className="w-3.5 h-3.5 inline mr-1" />
-                        ±{offsetMinutes}m Temporal Search Space
+                        ±{offsetMinutes}m Search Range
                     </div>
                     <div className="text-[10px] text-[#A8A39D] uppercase tracking-widest font-bold">
-                        Precision Mode: {offsetMinutes > 120 ? 'Ashtakavarga Macro' : 'Sub-Navamsha Micro'}
+                        Precision Mode: {offsetMinutes > 120 ? 'Standard' : 'High Precision'}
                     </div>
                 </div>
             </div>
@@ -126,7 +126,7 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                                     <div className="p-4 bg-gradient-to-br from-[#B8860B]/10 to-[#D4A853]/10 rounded-xl border border-[#B8860B]/20">
                                         <h4 className="font-bold text-[#1A1612] mb-2 flex items-center gap-2 text-sm">
                                             <Sparkles className="w-4 h-4 text-[#B8860B]" />
-                                            Amsha-Varga Reduction Logic
+                                            Reduction Logic
                                         </h4>
                                         <p className="text-xs text-[#4A453F] leading-relaxed">
                                             Instead of a simple linear search, the algorithm performs a **systematic reduction** of time-steps. It evaluates candidates through the prism of the Shodashvarga, progressively narrowing the search from Rashi levels down to the exact 48-second Nadi-Amsha window.
@@ -135,9 +135,9 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
 
                                     <div className="relative pl-6 space-y-4 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-[#F0E8DE]">
                                         {[
-                                            { step: 'Stage 1-2', label: 'Macro Sweep', desc: 'Rashi elements & Nakshatra-Pada verification.' },
-                                            { step: 'Stage 3-4', label: 'Meso Sweep', desc: 'Navamsha (D9) & Dwadashamsha (D12) event alignment.' },
-                                            { step: 'Stage 5-6', label: 'Micro Sweep', desc: 'Shashtiamsha (D60) & Pancha-Dasha precision.' }
+                                            { step: 'Stage 1-2', label: 'Level 1: Initial', desc: 'Rashi elements & Nakshatra-Pada verification.' },
+                                            { step: 'Stage 3-4', label: 'Level 2: Deep', desc: 'Navamsha (D9) & Dwadashamsha (D12) event alignment.' },
+                                            { step: 'Stage 5-6', label: 'Level 3: Final', desc: 'Shashtiamsha (D60) & Dasha precision.' }
                                         ].map((step, i) => (
                                             <div key={i} className="relative">
                                                 <div className="absolute -left-[19px] top-1 w-2.5 h-2.5 rounded-full bg-[#B8860B] border-2 border-white shadow-sm" />
@@ -183,12 +183,12 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                                 >
                                     <div className="grid grid-cols-2 gap-3">
                                         <div className="p-3 bg-stone-50 rounded-lg border border-stone-100">
-                                            <div className="text-[10px] font-bold text-stone-400 uppercase mb-1">Sphuta Calculation</div>
+                                            <div className="text-[10px] font-bold text-stone-400 uppercase mb-1">Position Calculation</div>
                                             <p className="text-[11px] text-stone-600 italic">27 planetary degrees calculated per candidate.</p>
                                         </div>
                                         <div className="p-3 bg-stone-50 rounded-lg border border-stone-100">
                                             <div className="text-[10px] font-bold text-stone-400 uppercase mb-1">Dasha Depth</div>
-                                            <p className="text-[11px] text-stone-600 italic">5-level Vimshottari refinement (Prana Dasha).</p>
+                                            <p className="text-[11px] text-stone-600 italic">5-level Vimshottari refinement (Dasha Sub-division).</p>
                                         </div>
                                     </div>
                                     <div className="p-3 bg-[#2D7A5C]/5 border border-[#2D7A5C]/10 rounded-xl">
@@ -239,7 +239,7 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                                                 <span className="font-mono font-bold">~2,400</span>
                                             </div>
                                             <div className="flex items-center justify-between text-[10px]">
-                                                <span className="text-stone-600">Forensic Trait Matching</span>
+                                                <span className="text-stone-600">Event Matching</span>
                                                 <span className="font-mono font-bold text-[#B8860B]">Enabled (v2.1)</span>
                                             </div>
                                             <div className="flex items-center justify-between text-[10px]">

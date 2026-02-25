@@ -223,7 +223,6 @@ app.use(errorHandlerMiddleware());
 // SERVER STARTUP
 // ═════════════════════════════════════════════════════════════════════════════
 
-let swissEphReady = false;
 let queueStarted = false;
 
 const numCPUs = 1; // Force single process for memory consistency (SSE/Progress)
@@ -253,7 +252,23 @@ async function startWorkerServer() {
       enablePrecisionEnhancement: config.features.enablePrecisionEnhancement,
     });
 
-    // Start HTTP server
+    // Initialize Swiss Ephemeris FIRST (blocking with timeout)
+    logger.info('🔭 Initializing Swiss Ephemeris...');
+    const swissEphTimeout = new Promise<boolean>((resolve) => 
+      setTimeout(() => resolve(false), 15000)
+    );
+    try {
+      const ready = await Promise.race([initSwissEph(), swissEphTimeout]);
+      if (ready) {
+        logger.info('✅ Swiss Ephemeris ready');
+      } else {
+        logger.warn('⚠️ Swiss Ephemeris init timed out (15s), using algorithmic fallback');
+      }
+    } catch (err) {
+      logger.warn('⚠️ Swiss Ephemeris init failed, using algorithmic fallback', { error: String(err) });
+    }
+
+    // Start HTTP server AFTER ephemeris is ready
     const server = app.listen(serverConfig.port, '0.0.0.0', () => {
       logger.info('✅ Server listening', { port: serverConfig.port });
     });
@@ -276,17 +291,6 @@ async function startWorkerServer() {
 
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-
-    // Initialize Swiss Ephemeris (non-blocking)
-    logger.info('🔭 Initializing Swiss Ephemeris...');
-    initSwissEph()
-      .then((ready) => {
-        swissEphReady = ready;
-        logger.info('✅ Swiss Ephemeris ready', { ready });
-      })
-      .catch((err) => {
-        logger.error('❌ Swiss Ephemeris init failed', err);
-      });
 
     // Cleanup and start queue
     logger.info('🧹 Cleaning up zombie sessions...');

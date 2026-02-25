@@ -38,11 +38,12 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
   offsetMinutes = 60,
 }: SimplifiedPipelineProps) {
   const aiStageToIndex: Record<number, number> = {
-    2: 2, // Backend Stage 2 -> UI Index 2 (Coarse Elimination)
-    3: 3, // Backend Stage 3 -> UI Index 3 (Refinement Grid)
-    4: 4, // Backend Stage 4 -> UI Index 4 (Deep Analysis)
-    5: 5, // Backend Stage 5 -> UI Index 5 (Micro Precision)
-    6: 6, // Backend Stage 6 -> UI Index 6 (Final Verdict)
+    1: 1,
+    2: 2,
+    3: 3,
+    4: 4,
+    5: 5,
+    6: 6,
   };
 
   const effectiveStageIndex = activeAIStage && aiStageToIndex[activeAIStage] !== undefined
