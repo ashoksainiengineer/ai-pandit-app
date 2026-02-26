@@ -13,11 +13,11 @@ export const VedicShuddhiRadar: React.FC<ShuddhiProps> = ({ shuddhi }) => {
     return (
         <div className="bg-white border border-[#F0E8DE] rounded-xl p-6 relative overflow-hidden">
             <div className="absolute top-0 right-0 p-4 opacity-10">
-                <ShieldCheck className="w-24 h-24 text-[#D4AF37]" />
+                <ShieldCheck className="w-24 h-24 text-[#78611D]" />
             </div>
 
             <h4 className="text-[#1A1612] font-bold mb-6 flex items-center gap-2">
-                <Zap className="w-4 h-4 text-[#D4AF37]" />
+                <Zap className="w-4 h-4 text-[#78611D]" />
                 Divine Purification (Shuddhi)
             </h4>
 
@@ -26,13 +26,13 @@ export const VedicShuddhiRadar: React.FC<ShuddhiProps> = ({ shuddhi }) => {
                 <div>
                     <div className="flex justify-between text-xs mb-2">
                         <span className="text-[#7A756F] uppercase font-mono">Kunda (Lunar-Asc) Alignment</span>
-                        <span className="text-[#D4AF37] font-bold">{shuddhi.kunda.score}%</span>
+                        <span className="text-[#78611D] font-bold">{shuddhi.kunda.score}%</span>
                     </div>
                     <div className="h-2 bg-[#F5EFE7] rounded-full overflow-hidden border border-[#F0E8DE]">
                         <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${shuddhi.kunda.score}%` }}
-                            className="h-full bg-gradient-to-r from-[#D4AF37]/40 to-[#D4AF37]"
+                            className="h-full bg-gradient-to-r from-[#78611D]/40 to-[#78611D]"
                         />
                     </div>
                     <p className="text-[10px] text-[#7A756F] mt-2 font-mono italic">
@@ -44,13 +44,13 @@ export const VedicShuddhiRadar: React.FC<ShuddhiProps> = ({ shuddhi }) => {
                 <div>
                     <div className="flex justify-between text-xs mb-2">
                         <span className="text-[#7A756F] uppercase font-mono">Tatwa (Elemental Path)</span>
-                        <span className="text-[#D4AF37] font-bold">{shuddhi.tatwa.score}%</span>
+                        <span className="text-[#78611D] font-bold">{shuddhi.tatwa.score}%</span>
                     </div>
                     <div className="h-2 bg-[#F5EFE7] rounded-full overflow-hidden border border-[#F0E8DE]">
                         <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${shuddhi.tatwa.score}%` }}
-                            className="h-full bg-gradient-to-r from-[#D4AF37]/40 to-[#D4AF37]"
+                            className="h-full bg-gradient-to-r from-[#78611D]/40 to-[#78611D]"
                         />
                     </div>
                     <p className="text-[10px] text-[#7A756F] mt-2 font-mono italic">

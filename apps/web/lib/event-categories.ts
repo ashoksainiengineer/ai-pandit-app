@@ -41,7 +41,7 @@ export const EVENT_CATEGORIES: EventCategory[] = [
         id: 'career',
         icon: '💼',
         label: 'Career & Work',
-        color: '#D4AF37', // Gold
+        color: '#78611D', // Gold
         description: 'Jobs, promotions, business, professional achievements',
         events: [
             { id: 'first_job', label: 'First job / Started working', importance: 'critical' },
@@ -222,7 +222,7 @@ export function templateToLifeEvent(
         description: description || template.label,
         importance: template.importance,
         icon: category?.icon || '📌',
-        color: category?.color || '#D4AF37',
+        color: category?.color || '#78611D',
     };
 }
 

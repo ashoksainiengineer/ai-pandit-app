@@ -30,7 +30,7 @@ export function ViewToggle({ currentView, onChange }: ViewToggleProps) {
             flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm
             transition-all duration-200
             ${currentView === mode
-              ? 'bg-[#D4AF37]/20 text-[#D4AF37]'
+              ? 'bg-[#78611D]/20 text-[#78611D]'
               : 'text-[#7A756F] hover:text-[#4A453F]'
             }
           `}

@@ -48,7 +48,7 @@ const coreStats = [
 
 // Anti-Gravity: Hoisted static icons to prevent re-allocation
 const SecurityShieldIcon = () => (
-  <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
   </svg>
 );
@@ -125,7 +125,7 @@ export default function Hero() {
               <motion.button
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
-                className="group relative px-10 py-4 bg-gradient-to-r from-[#B8860B] via-[#D4A853] to-[#E5C880]
+                className="group relative px-10 py-4 bg-gradient-to-r from-[#B8860B] via-[#78611D] to-[#E5C880]
                            text-white font-semibold text-base rounded-xl shadow-lg shadow-amber-500/25
                            overflow-hidden transition-all duration-300"
               >
@@ -150,7 +150,7 @@ export default function Hero() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: 0.4 + index * 0.05 }}
                   className="group relative p-5 bg-white border border-[#F0E8DE] rounded-2xl
-                             hover:border-[#D4A853]/30 hover:shadow-lg transition-all duration-300"
+                             hover:border-[#78611D]/30 hover:shadow-lg transition-all duration-300"
                 >
                   <div
                     className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
@@ -203,7 +203,7 @@ export default function Hero() {
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#D4A853] text-[#B8860B]
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#78611D] text-[#78611D]
                          text-sm rounded-lg hover:bg-[#FDF8F3] transition-colors"
             >
               <Play className="w-4 h-4" />

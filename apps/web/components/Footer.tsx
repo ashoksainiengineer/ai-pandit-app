@@ -50,7 +50,7 @@ export default function Footer() {
           >
             <Link href="/" className="flex items-center gap-3 mb-4 group">
               <div>
-                <span className="text-xl font-bold bg-gradient-to-r from-[#B8860B] to-[#D4A853] bg-clip-text text-transparent font-[family-name:var(--font-cormorant)]">
+                <span className="text-xl font-bold bg-gradient-to-r from-[#B8860B] to-[#78611D] bg-clip-text text-transparent font-[family-name:var(--font-cormorant)]">
                   AI Pandit
                 </span>
                 <span className="block text-xs text-[#7A756F]">Vedic BTR Engine</span>

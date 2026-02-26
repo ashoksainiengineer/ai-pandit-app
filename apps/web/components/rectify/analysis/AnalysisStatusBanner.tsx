@@ -82,12 +82,12 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
     if (isComplete) {
       return (
         <div className="flex items-center gap-3 flex-1">
-          <div className="w-10 h-10 rounded-xl bg-[#2D7A5C]/20 flex items-center justify-center shrink-0">
-            <CheckCircle className="w-5 h-5 text-[#2D7A5C]" />
+          <div className="w-10 h-10 rounded-xl bg-[#184131]/20 flex items-center justify-center shrink-0">
+            <CheckCircle className="w-5 h-5 text-[#184131]" />
           </div>
           <div>
             <p className="font-bold text-[#1A1612]">Analysis Complete</p>
-            <p className="text-xs text-[#2D7A5C] font-medium">Results verified & finalized</p>
+            <p className="text-xs text-[#184131] font-medium">Results verified & finalized</p>
           </div>
         </div>
       );
@@ -111,7 +111,7 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
               else if (stageNum >= 5) phaseLabel = 'Phase C: Micro Sweep';
               if (!phaseLabel) return null;
               return (
-                <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#2D7A5C]/10 text-[#2D7A5C] font-bold border border-[#2D7A5C]/20">
+                <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#184131]/10 text-[#184131] font-bold border border-[#184131]/20">
                   🪐 {phaseLabel}
                 </span>
               );
@@ -130,7 +130,7 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`bg-gradient-to-r ${isComplete ? 'from-[#2D7A5C]/10 to-transparent border-[#2D7A5C]/20' : 'from-[#B8860B]/10 via-[#B8860B]/5 to-transparent border-[#B8860B]/20'} border rounded-xl p-4 sm:p-5`}
+      className={`bg-gradient-to-r ${isComplete ? 'from-[#184131]/10 to-transparent border-[#184131]/20' : 'from-[#B8860B]/10 via-[#B8860B]/5 to-transparent border-[#B8860B]/20'} border rounded-xl p-4 sm:p-5`}
     >
       <div className="flex flex-col sm:flex-row sm:items-center gap-4">
         {statusContent}
@@ -139,7 +139,7 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
 
 
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${isComplete ? 'bg-[#2D7A5C]' : (isConnected ? 'bg-[#2D7A5C] animate-pulse' : 'bg-[#C65D3B]')}`} />
+            <div className={`w-2 h-2 rounded-full ${isComplete ? 'bg-[#184131]' : (isConnected ? 'bg-[#184131] animate-pulse' : 'bg-[#C65D3B]')}`} />
             <span className="text-xs font-medium text-[#4A453F]">
               {isComplete ? 'Finalized' : (isConnected ? 'Inference Active' : 'Reconnecting')}
             </span>
@@ -165,7 +165,7 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
           </div>
           <div className="h-1.5 bg-[#F0E8DE] rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-gradient-to-r from-[#B8860B] to-[#D4A853] rounded-full"
+              className="h-full bg-gradient-to-r from-[#B8860B] to-[#78611D] rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 0.5 }}

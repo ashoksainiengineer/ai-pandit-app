@@ -166,7 +166,7 @@ export default function AIThinkingStream({ thinking, isActive, stage, analyzedCo
                         {displayedText.length.toLocaleString()} characters
                     </span>
                     <span className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#2D7A5C]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#184131]" />
                         DeepSeek {[2, 5, 7].includes(thinking?.stage || 0) ? 'Reasoner (R1)' : 'V3'}
                     </span>
                 </div>

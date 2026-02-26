@@ -13,7 +13,7 @@ export const PlanetaryVitals: React.FC<PlanetaryProps> = ({ ephemeris, divCharts
     return (
         <div className="bg-white border border-[#F0E8DE] rounded-xl p-6 h-full">
             <h4 className="text-[#1A1612] font-bold mb-6 flex items-center gap-2">
-                <Compass className="w-4 h-4 text-[#D4AF37]" />
+                <Compass className="w-4 h-4 text-[#78611D]" />
                 Planetary Vitals (Nirayana)
             </h4>
 
@@ -29,7 +29,7 @@ export const PlanetaryVitals: React.FC<PlanetaryProps> = ({ ephemeris, divCharts
                     </thead>
                     <tbody>
                         <tr className="border-b border-[#F0E8DE]/50 hover:bg-[#F5EFE7]">
-                            <td className="py-3 text-[#D4AF37] font-bold">ASCENDANT</td>
+                            <td className="py-3 text-[#78611D] font-bold">ASCENDANT</td>
                             <td className="py-3 text-[#1A1612]">{ephemeris.ascendant.sign}</td>
                             <td className="py-3 text-right text-[#7A756F]">{(ephemeris.ascendant.longitude % 30).toFixed(6)}°</td>
                             <td className="py-3 text-right text-[#1A1612]">{divCharts.D9.ascendant.sign.slice(0, 3)}</td>

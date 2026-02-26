@@ -72,7 +72,7 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
         {/* Logo */}
         <div className="h-16 flex items-center px-6 border-b border-[#F0E8DE]">
           <Link href="/admin/dashboard" className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#B8860B] to-[#D4A853] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#B8860B] to-[#78611D] flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
             <span className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-[#1A1612]">
@@ -114,7 +114,7 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
         {/* User Section */}
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-[#F0E8DE]">
           <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#FDF8F3]">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#B8860B] to-[#D4A853] flex items-center justify-center text-white font-medium">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#B8860B] to-[#78611D] flex items-center justify-center text-white font-medium">
               {user?.name?.charAt(0) || 'A'}
             </div>
             <div className="flex-1 min-w-0">

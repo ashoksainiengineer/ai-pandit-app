@@ -100,7 +100,7 @@ const pipelineSteps = [
     technologies: ['Session Manager', 'Event Emitter', 'Database'],
     metrics: { label: 'Report', value: '23 pages' },
     icon: Zap,
-    color: '#D4A853'
+    color: '#78611D'
   }
 ];
 
@@ -111,7 +111,7 @@ const architectureLayers = [
   { name: 'BTR Engine', tech: 'Pipeline Processor', status: '6 Stages', color: '#4A7C6F' },
   { name: 'Ephemeris', tech: 'Swiss Ephemeris', status: 'High Precision', color: '#C65D3B' },
   { name: 'AI Service', tech: 'DeepSeek R1', status: 'Connected', color: '#4A7C6F' },
-  { name: 'Database', tech: 'Turso', status: 'Synced', color: '#D4A853' },
+  { name: 'Database', tech: 'Turso', status: 'Synced', color: '#78611D' },
   { name: 'Progress', tech: 'Progress Tracker', status: 'Active', color: '#B8A1C9' },
 ];
 
@@ -171,7 +171,7 @@ export default function Solution() {
                 className="group"
               >
                 <div className="relative bg-white border border-[#F0E8DE] rounded-2xl p-6 
-                                hover:border-[#D4A853]/30 hover:shadow-lg transition-all duration-300">
+                                hover:border-[#78611D]/30 hover:shadow-lg transition-all duration-300">
                   <div className="flex flex-col lg:flex-row lg:items-center gap-6">
                     {/* Icon & Number */}
                     <div className="flex items-center gap-4 lg:w-72 shrink-0">
@@ -270,7 +270,7 @@ export default function Solution() {
                 transition={{ delay: index * 0.05 }}
                 viewport={{ once: true }}
                 className="group p-4 bg-[#FDF8F3] rounded-xl border border-[#F0E8DE] 
-                           hover:border-[#D4A853]/30 transition-all duration-300"
+                           hover:border-[#78611D]/30 transition-all duration-300"
               >
                 <div className="text-[10px] uppercase tracking-[0.15em] mb-3" style={{ color: layer.color }}>
                   {layer.name}

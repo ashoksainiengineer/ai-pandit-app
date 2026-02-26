@@ -20,7 +20,7 @@ const THEME = {
     textSecondary: '#4A453F',
     textMuted: '#7A756F',
     gold: '#B8860B',
-    success: '#2D7A5C',
+    success: '#184131',
     error: '#C65D3B',
 } as const;
 
@@ -51,7 +51,7 @@ const ScanLine = memo(function ScanLine() {
 
 const CheckCircleIcon = memo(function CheckCircleIcon() {
     return (
-        <svg className="w-4 h-4 text-[#2D7A5C]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-4 h-4 text-[#184131]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
     );
@@ -106,7 +106,7 @@ const StageStep = memo(function StageStep({
                     {stat ? (
                         <span className="text-[#B8860B] font-bold text-xs sm:text-sm">{stat.candidateCount}</span>
                     ) : isActive ? (
-                        <span className="text-[#2D7A5C] animate-pulse text-[9px] sm:text-xs font-medium">Processing</span>
+                        <span className="text-[#184131] animate-pulse text-[9px] sm:text-xs font-medium">Processing</span>
                     ) : (
                         <span className="text-[#D0CBC5]">---</span>
                     )}
@@ -195,8 +195,8 @@ export const AnalysisPipelineTracker = memo(function AnalysisPipelineTracker({
 
                 <div className="flex items-center gap-4 sm:gap-6">
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-[#FDF8F3] rounded-lg border border-[#F0E8DE]">
-                        <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#2D7A5C]' : 'bg-[#C65D3B]'} animate-pulse`} />
-                        <span className={`text-xs font-semibold ${isConnected ? 'text-[#2D7A5C]' : 'text-[#C65D3B]'}`}>
+                        <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#184131]' : 'bg-[#C65D3B]'} animate-pulse`} />
+                        <span className={`text-xs font-semibold ${isConnected ? 'text-[#184131]' : 'text-[#C65D3B]'}`}>
                             {isConnected ? 'Online' : 'Reconnecting'}
                         </span>
                     </div>

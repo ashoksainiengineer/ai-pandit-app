@@ -57,8 +57,8 @@ export function LiveGodModeTerminal({
             {/* Header */}
             <div className="bg-[#FDF8F3] px-4 py-3 flex items-center justify-between border-b border-[#F0E8DE]">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#D4AF37]/10 flex items-center justify-center">
-                        <Target className="w-4 h-4 text-[#D4AF37]" />
+                    <div className="w-8 h-8 rounded-lg bg-[#78611D]/10 flex items-center justify-center">
+                        <Target className="w-4 h-4 text-[#78611D]" />
                     </div>
                     <div>
                         <h3 className="text-sm font-bold text-[#1A1612]">Candidate Funnel</h3>
@@ -70,9 +70,9 @@ export function LiveGodModeTerminal({
 
                 {/* Current Candidate Indicator */}
                 {currentCandidate && (
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-[#D4AF37]/10 rounded-lg border border-[#D4AF37]/30">
-                        <Brain className="w-4 h-4 text-[#D4AF37] animate-pulse" />
-                        <span className="text-xs font-bold text-[#D4AF37]">Analyzing: {currentCandidate}</span>
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-[#78611D]/10 rounded-lg border border-[#78611D]/30">
+                        <Brain className="w-4 h-4 text-[#78611D] animate-pulse" />
+                        <span className="text-xs font-bold text-[#78611D]">Analyzing: {currentCandidate}</span>
                     </div>
                 )}
 
@@ -125,13 +125,13 @@ export function LiveGodModeTerminal({
             {calculationLogs.length > 0 && (
                 <div className="border-t border-[#F0E8DE] bg-[#FFFCF8] px-4 py-3">
                     <div className="flex items-center gap-2 mb-2">
-                        <Zap className="w-3 h-3 text-[#D4AF37]" />
+                        <Zap className="w-3 h-3 text-[#78611D]" />
                         <span className="text-xs font-bold text-[#4A453F]">Recent Activity</span>
                     </div>
                     <div className="space-y-1 max-h-[80px] overflow-y-auto">
                         {calculationLogs.slice(-3).filter(log => log?.candidateTime).map((log, i) => (
                             <div key={`log-${i}`} className="text-xs text-[#4A453F] flex gap-2">
-                                <span className="text-[#D4AF37] font-mono w-16 shrink-0">{log.candidateTime || '-'}</span>
+                                <span className="text-[#78611D] font-mono w-16 shrink-0">{log.candidateTime || '-'}</span>
                                 <span className="truncate">{log.log}</span>
                             </div>
                         ))}
@@ -180,10 +180,10 @@ function LevelSection({
             icon: 'text-blue-600'
         },
         gold: {
-            bg: 'bg-[#D4AF37]/10',
-            border: 'border-[#D4AF37]/30',
-            text: 'text-[#D4AF37]',
-            icon: 'text-[#D4AF37]'
+            bg: 'bg-[#78611D]/10',
+            border: 'border-[#78611D]/30',
+            text: 'text-[#78611D]',
+            icon: 'text-[#78611D]'
         }
     };
 
@@ -237,13 +237,13 @@ function LevelSection({
                                     key={c.time}
                                     className={`
                                         grid grid-cols-[15%_35%_25%_25%] px-4 py-2 border-b border-[#F0E8DE]/50 items-center text-xs transition-colors
-                                        ${c.time === currentCandidate ? 'bg-[#D4AF37]/10' : 'hover:bg-[#F5EFE7]'}
+                                        ${c.time === currentCandidate ? 'bg-[#78611D]/10' : 'hover:bg-[#F5EFE7]'}
                                     `}
                                 >
-                                    <span className={`font-mono ${idx < 3 ? 'text-[#D4AF37] font-bold' : 'text-[#4A453F]'}`}>
+                                    <span className={`font-mono ${idx < 3 ? 'text-[#78611D] font-bold' : 'text-[#4A453F]'}`}>
                                         #{idx + 1}
                                     </span>
-                                    <span className={`font-mono font-bold ${c.time === currentCandidate ? 'text-[#D4AF37]' : 'text-[#1A1612]'}`}>
+                                    <span className={`font-mono font-bold ${c.time === currentCandidate ? 'text-[#78611D]' : 'text-[#1A1612]'}`}>
                                         {c.time}
                                     </span>
                                     <div className="flex items-center gap-2">
@@ -259,7 +259,7 @@ function LevelSection({
                                     </div>
                                     <div className="text-right">
                                         {c.time === currentCandidate ? (
-                                            <span className="text-[10px] text-[#D4AF37] font-bold animate-pulse">ANALYZING</span>
+                                            <span className="text-[10px] text-[#78611D] font-bold animate-pulse">ANALYZING</span>
                                         ) : c.reasoning ? (
                                             <span className="text-[10px] text-emerald-600/80">VERIFIED</span>
                                         ) : (

@@ -409,7 +409,7 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
             {/* Progress */}
             <div className="flex items-center justify-center gap-3 mb-6">
                 <div className="flex-1 max-w-xs h-2 bg-[#F0E8DE] rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-[#B8860B] to-[#D4A853] transition-all duration-500" style={{ width: `${progress}%` }} />
+                    <div className="h-full bg-gradient-to-r from-[#B8860B] to-[#78611D] transition-all duration-500" style={{ width: `${progress}%` }} />
                 </div>
                 <span className="text-xs font-medium text-[#7A756F] whitespace-nowrap">{answeredCount}/{TRAIT_DEFINITIONS.length} done</span>
             </div>

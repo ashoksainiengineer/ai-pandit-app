@@ -721,7 +721,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
           ? '0 0 30px rgba(184, 134, 11, 0.15)'
           : '0 0 20px rgba(184, 134, 11, 0.08)'
       }}
-      className={`bg-white rounded-2xl border transition-all duration-500 overflow-hidden ${isActive ? 'border-[#D4A853]' : 'border-[#D4A853]/40 shadow-sm'
+      className={`bg-white rounded-2xl border transition-all duration-500 overflow-hidden ${isActive ? 'border-[#78611D]' : 'border-[#78611D]/40 shadow-sm'
         }`}
       role="region"
       aria-labelledby={`${panelId}-title`}
@@ -775,7 +775,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.min(100, (candidatesList.length / 100) * 100)}%` }}
-                    className="h-full bg-gradient-to-r from-[#D4A853] to-[#B8860B]"
+                    className="h-full bg-gradient-to-r from-[#78611D] to-[#B8860B]"
                   />
                 </div>
               </div>
@@ -800,10 +800,10 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
             <motion.div
               animate={{ opacity: [0.5, 1, 0.5] }}
               transition={{ duration: 1.5, repeat: Infinity }}
-              className="flex items-center gap-1.5 px-2 py-1 bg-[#2D7A5C]/10 rounded-full"
+              className="flex items-center gap-1.5 px-2 py-1 bg-[#184131]/10 rounded-full"
             >
-              <Activity className="w-3 h-3 text-[#2D7A5C]" />
-              <span className="text-[10px] font-bold text-[#2D7A5C]">LIVE</span>
+              <Activity className="w-3 h-3 text-[#184131]" />
+              <span className="text-[10px] font-bold text-[#184131]">LIVE</span>
             </motion.div>
           )}
           <button

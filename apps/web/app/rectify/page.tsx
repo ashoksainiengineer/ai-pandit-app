@@ -537,7 +537,7 @@ function RectifyPageContent() {
                     </div>
                     <div className="flex justify-between items-center mt-12 pt-6 border-t border-[#F0E8DE]">
                         <button onClick={handleBack} disabled={step === 1} className={`px-6 py-3 rounded-xl font-semibold transition-colors ${step === 1 ? 'opacity-0' : 'border-2 border-[#B8860B]/50 text-[#B8860B] hover:bg-[#B8860B]/10'}`}>← Back</button>
-                        {step < 5 && <button onClick={handleNext} className="px-8 py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-semibold hover:shadow-lg transition-all">Next Step →</button>}
+                        {step < 5 && <button onClick={handleNext} className="px-8 py-3 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white rounded-xl font-semibold hover:shadow-lg transition-all">Next Step →</button>}
                     </div>
                 </div>
             </AnalysisErrorBoundary>

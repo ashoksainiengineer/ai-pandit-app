@@ -34,12 +34,11 @@ interface Step2Props {
     onNext?: () => void;
 }
 
-// Check if traits are already populated
+// Check if traits are already populated by the quiz (not manual Step 2)
 function hasExistingTraits(traits: ForensicTraits): boolean {
     return !!(
         traits.biological?.prakriti ||
-        traits.physical?.facialStructure?.forehead ||
-        traits.physical?.facialStructure?.eyeShape ||
+        traits.psychographic?.speechStyle ||
         traits.family?.siblingPosition
     );
 }
@@ -107,13 +106,13 @@ export default function Step2ForensicTraits({
             <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-center gap-2 text-xs text-[#2D7A5C] bg-[#2D7A5C]/5 py-2.5 px-4 rounded-full border border-[#2D7A5C]/10 mb-4"
+                className="flex items-center justify-center gap-2 text-xs text-[#184131] bg-[#184131]/5 py-2.5 px-4 rounded-full border border-[#184131]/10 mb-4"
             >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
                 <span className="font-medium">🔐 End-to-End Encrypted</span>
-                <span className="text-[#2D7A5C]/60">•</span>
+                <span className="text-[#184131]/60">•</span>
                 <span className="text-[#7A756F]">Nobody can read your data except you</span>
             </motion.div>
 
@@ -156,7 +155,7 @@ export default function Step2ForensicTraits({
                 {!showQuiz && !quizCompleted && !hasExistingData && (
                     <div className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl border border-[#B8860B]/30 p-8 shadow-lg">
                         <div className="text-center mb-6">
-                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#B8860B] to-[#D4A853] mb-4">
+                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#B8860B] to-[#78611D] mb-4">
                                 <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                                 </svg>
@@ -203,7 +202,7 @@ export default function Step2ForensicTraits({
 
                         <button
                             onClick={handleStartAssessment}
-                            className="w-full py-4 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white font-bold rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                            className="w-full py-4 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white font-bold rounded-xl hover:shadow-lg transition-all flex items-center justify-center gap-2"
                         >
                             Start Assessment
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -215,9 +214,9 @@ export default function Step2ForensicTraits({
 
                 {/* Existing Data View - Show summary with option to retake */}
                 {!showQuiz && !quizCompleted && hasExistingData && (
-                    <div className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl border border-[#2D7A5C]/30 p-8 shadow-lg">
+                    <div className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl border border-[#184131]/30 p-8 shadow-lg">
                         <div className="text-center mb-6">
-                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#2D7A5C] to-[#4ADE80] mb-4">
+                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#184131] to-[#4ADE80] mb-4">
                                 <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                 </svg>
@@ -262,7 +261,7 @@ export default function Step2ForensicTraits({
                             </button>
                             <button
                                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                                className="flex-1 py-3 bg-gradient-to-r from-[#2D7A5C] to-[#4ADE80] text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+                                className="flex-1 py-3 bg-gradient-to-r from-[#184131] to-[#4ADE80] text-white rounded-xl font-semibold hover:shadow-lg transition-all"
                             >
                                 Continue to Next Step
                             </button>
@@ -281,8 +280,8 @@ export default function Step2ForensicTraits({
 
                 {/* Quiz Completed View */}
                 {quizCompleted && (
-                    <div className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl border border-[#2D7A5C]/30 p-8 shadow-lg text-center">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#2D7A5C] to-[#4ADE80] mb-4">
+                    <div className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl border border-[#184131]/30 p-8 shadow-lg text-center">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#184131] to-[#4ADE80] mb-4">
                             <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                             </svg>
@@ -326,7 +325,7 @@ export default function Step2ForensicTraits({
                             </button>
                             <button
                                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                                className="flex-1 py-3 bg-gradient-to-r from-[#2D7A5C] to-[#4ADE80] text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+                                className="flex-1 py-3 bg-gradient-to-r from-[#184131] to-[#4ADE80] text-white rounded-xl font-semibold hover:shadow-lg transition-all"
                             >
                                 Continue to Next Step
                             </button>

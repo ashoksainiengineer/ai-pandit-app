@@ -21,7 +21,7 @@ interface LoggerConfig {
 const DEFAULT_CONFIG: LoggerConfig = {
     level: process.env.NODE_ENV === 'production' ? 'warn' : 'debug',
     enableConsole: process.env.NODE_ENV !== 'production',
-    enableRemote: process.env.NODE_ENV === 'production',
+    enableRemote: process.env.NODE_ENV === 'production' || (typeof window !== 'undefined' && (window as any).isTestEnv),
     redactPatterns: [
         // Email addresses
         /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,

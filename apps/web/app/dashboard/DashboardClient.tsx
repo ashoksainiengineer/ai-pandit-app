@@ -126,7 +126,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
           </Link>
           <Link
             href="/rectify"
-            className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-[#B8860B]/20 transition-all text-sm sm:text-base"
+            className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-[#B8860B]/20 transition-all text-sm sm:text-base"
           >
             <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
             Continue Analysis
@@ -147,7 +147,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
           label="Total"
         />
         <StatCard
-          icon={<CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#2D7A5C]" />}
+          icon={<CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-[#184131]" />}
           value={stats.completed}
           label="Done"
         />
@@ -171,7 +171,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
           placeholder="Search by name..."
           value={searchQuery}
           onChange={handleSearch}
-          className="w-full pl-12 pr-4 py-3 bg-white border border-[#E8E0D5] rounded-xl text-[#1A1612] placeholder-[#A8A39D] focus:border-[#D4A853] focus:ring-2 focus:ring-[#D4A853]/10 outline-none transition-all"
+          className="w-full pl-12 pr-4 py-3 bg-white border border-[#E8E0D5] rounded-xl text-[#1A1612] placeholder-[#A8A39D] focus:border-[#78611D] focus:ring-2 focus:ring-[#78611D]/10 outline-none transition-all"
         />
       </motion.div>
 
@@ -196,7 +196,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
             {!searchQuery && (
               <Link
                 href="/rectify?new=true"
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white px-6 py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity"
               >
                 <Sparkles className="w-5 h-5" />
                 Start First Analysis

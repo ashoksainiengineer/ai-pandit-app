@@ -127,7 +127,7 @@ export async function buildCandidateDataPackage(
     moonNakshatra: ephemeris.planets.moon.nakshatra,
     vimshottariDasha,
     ashtakavarga: ephemeris.ashtakavarga,
-    panchanga: calculatePanchanga(calculateJulianDay(birthDate), ephemeris.planets.sun.longitude, moonLong),
+    panchanga: calculatePanchanga(calculateJulianDay(birthDate), ephemeris.planets.sun.longitude, moonLong, birthDate),
     lifecycleShifts,
     vimsopakaBala: calculateVimsopakaBala(ephemeris),
     chalitDiscrepancies: detectBhavaChalitDiscrepancy(ephemeris),

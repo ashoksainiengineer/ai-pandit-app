@@ -146,8 +146,13 @@ export default function Step1BirthDetails({
   spouseData,
   updateSpouse
 }: Step1Props) {
+  const [isMounted, setIsMounted] = useState(false);
   const [showSpouse, setShowSpouse] = useState(false);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Parse date of birth
   const [dobParts, setDobParts] = useState({
@@ -315,13 +320,13 @@ export default function Step1BirthDetails({
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-center gap-2 text-xs text-[#2D7A5C] bg-[#2D7A5C]/5 py-2 px-4 rounded-full border border-[#2D7A5C]/10"
+        className="flex items-center justify-center gap-2 text-xs text-[#184131] bg-[#184131]/5 py-2 px-4 rounded-full border border-[#184131]/10"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
         <span className="font-medium">🔐 End-to-End Encrypted</span>
-        <span className="text-[#2D7A5C]/60">•</span>
+        <span className="text-[#184131]/60">•</span>
         <span className="text-[#7A756F]">Nobody can read your data except you</span>
       </motion.div>
 
@@ -364,7 +369,7 @@ export default function Step1BirthDetails({
               updateData({ fullName: sanitizeInput(e.target.value) });
             }}
             placeholder="Enter your full name"
-            className="w-full h-11 px-4 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm placeholder-[#A8A39D] focus:border-[#D4A853] focus:ring-2 focus:ring-[#D4A853]/10 outline-none transition-all"
+            className="w-full h-11 px-4 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm placeholder-[#A8A39D] focus:border-[#78611D] focus:ring-2 focus:ring-[#78611D]/10 outline-none transition-all"
             maxLength={100}
           />
         </FormField>
@@ -380,7 +385,7 @@ export default function Step1BirthDetails({
             <select
               value={dobParts.day}
               onChange={(e) => handleDateChange('day', e.target.value)}
-              className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm focus:border-[#D4A853] outline-none cursor-pointer"
+              className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm focus:border-[#78611D] outline-none cursor-pointer"
             >
               <option value="">Day</option>
               {availableDays.map(d => <option key={d} value={d}>{d}</option>)}
@@ -388,7 +393,7 @@ export default function Step1BirthDetails({
             <select
               value={dobParts.month}
               onChange={(e) => handleDateChange('month', e.target.value)}
-              className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm focus:border-[#D4A853] outline-none cursor-pointer"
+              className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm focus:border-[#78611D] outline-none cursor-pointer"
             >
               <option value="">Month</option>
               {MONTHS.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
@@ -396,7 +401,7 @@ export default function Step1BirthDetails({
             <select
               value={dobParts.year}
               onChange={(e) => handleDateChange('year', e.target.value)}
-              className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm focus:border-[#D4A853] outline-none cursor-pointer"
+              className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm focus:border-[#78611D] outline-none cursor-pointer"
             >
               <option value="">Year</option>
               {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
@@ -415,7 +420,7 @@ export default function Step1BirthDetails({
             <select
               value={timeParts.hour}
               onChange={(e) => handleTimeChange('hour', e.target.value)}
-              className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center focus:border-[#D4A853] outline-none"
+              className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center focus:border-[#78611D] outline-none"
             >
               <option value="">HH</option>
               {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
@@ -424,7 +429,7 @@ export default function Step1BirthDetails({
             <select
               value={timeParts.minute}
               onChange={(e) => handleTimeChange('minute', e.target.value)}
-              className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center focus:border-[#D4A853] outline-none"
+              className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center focus:border-[#78611D] outline-none"
             >
               <option value="">MM</option>
               {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}
@@ -533,7 +538,7 @@ export default function Step1BirthDetails({
                   key={g.value}
                   type="button"
                   onClick={() => updateData({ gender: g.value as any })}
-                  className={`p-4 rounded-xl text-center transition-all border ${data.gender === g.value ? 'bg-[#B8860B]/10 border-[#B8860B] shadow-sm' : 'bg-white border-[#E8E0D5] hover:border-[#D4A853]/50'}`}
+                  className={`p-4 rounded-xl text-center transition-all border ${data.gender === g.value ? 'bg-[#B8860B]/10 border-[#B8860B] shadow-sm' : 'bg-white border-[#E8E0D5] hover:border-[#78611D]/50'}`}
                 >
                   <span className="text-2xl mb-1 block">{g.icon}</span>
                   <div className="text-xs text-[#1A1612] font-medium">{g.label}</div>
@@ -572,7 +577,7 @@ export default function Step1BirthDetails({
                 <select
                   value={spouseDobParts.day}
                   onChange={(e) => handleSpouseDateChange('day', e.target.value)}
-                  className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853]"
+                  className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#78611D]"
                 >
                   <option value="">Day</option>
                   {spouseAvailableDays.map(d => <option key={d} value={d}>{d}</option>)}
@@ -580,7 +585,7 @@ export default function Step1BirthDetails({
                 <select
                   value={spouseDobParts.month}
                   onChange={(e) => handleSpouseDateChange('month', e.target.value)}
-                  className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853]"
+                  className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#78611D]"
                 >
                   <option value="">Month</option>
                   {MONTHS.map(m => <option key={m.val} value={m.val}>{m.label}</option>)}
@@ -588,7 +593,7 @@ export default function Step1BirthDetails({
                 <select
                   value={spouseDobParts.year}
                   onChange={(e) => handleSpouseDateChange('year', e.target.value)}
-                  className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#D4A853]"
+                  className="h-11 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm outline-none focus:border-[#78611D]"
                 >
                   <option value="">Year</option>
                   {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
@@ -601,7 +606,7 @@ export default function Step1BirthDetails({
                 <select
                   value={spouseTimeParts.hour}
                   onChange={(e) => handleSpouseTimeChange('hour', e.target.value)}
-                  className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center outline-none focus:border-[#D4A853]"
+                  className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center outline-none focus:border-[#78611D]"
                 >
                   <option value="">HH</option>
                   {HOURS.map(h => <option key={h} value={h}>{h}</option>)}
@@ -610,7 +615,7 @@ export default function Step1BirthDetails({
                 <select
                   value={spouseTimeParts.minute}
                   onChange={(e) => handleSpouseTimeChange('minute', e.target.value)}
-                  className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center outline-none focus:border-[#D4A853]"
+                  className="h-11 w-20 px-2 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-base text-center outline-none focus:border-[#78611D]"
                 >
                   <option value="">MM</option>
                   {MINUTES.map(m => <option key={m} value={m}>{m}</option>)}

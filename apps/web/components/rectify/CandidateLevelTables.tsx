@@ -86,7 +86,7 @@ function StageTable({ stage, candidateScores, onSelectCandidate }: {
                             <select
                                 value={settings.showCount}
                                 onChange={(e) => setSettings(prev => ({ ...prev, showCount: e.target.value === 'All' ? 'All' as const : parseInt(e.target.value) as 5 | 10 | 20 }))}
-                                className="appearance-none bg-[#FDF8F3] border border-[#F0E8DE] rounded-lg px-2 py-1 text-[10px] text-[#7A756F] cursor-pointer hover:border-[#D4AF37]/50 transition-colors pr-6"
+                                className="appearance-none bg-[#FDF8F3] border border-[#F0E8DE] rounded-lg px-2 py-1 text-[10px] text-[#7A756F] cursor-pointer hover:border-[#78611D]/50 transition-colors pr-6"
                             >
                                 {SHOW_OPTIONS.map(opt => <option key={opt} value={opt}>Top {opt}</option>)}
                             </select>
@@ -104,11 +104,11 @@ function StageTable({ stage, candidateScores, onSelectCandidate }: {
                         <thead className="bg-[#FDF8F3] sticky top-0 z-10">
                             <tr className="text-[#7A756F]">
                                 <th className="px-3 py-2.5 text-left font-bold uppercase tracking-widest text-[9px] border-b border-[#F0E8DE] w-12">#</th>
-                                <th onClick={() => toggleSort('time')} className="px-3 py-2.5 text-left font-bold uppercase tracking-widest text-[9px] border-b border-[#F0E8DE] cursor-pointer hover:text-[#D4AF37] transition-colors group">
-                                    <div className="flex items-center gap-1">Time <ArrowUpDown className={`w-3 h-3 opacity-50 group-hover:opacity-100 ${settings.sortField === 'time' ? 'text-[#D4AF37]' : ''}`} /></div>
+                                <th onClick={() => toggleSort('time')} className="px-3 py-2.5 text-left font-bold uppercase tracking-widest text-[9px] border-b border-[#F0E8DE] cursor-pointer hover:text-[#78611D] transition-colors group">
+                                    <div className="flex items-center gap-1">Time <ArrowUpDown className={`w-3 h-3 opacity-50 group-hover:opacity-100 ${settings.sortField === 'time' ? 'text-[#78611D]' : ''}`} /></div>
                                 </th>
-                                <th onClick={() => toggleSort('score')} className="px-3 py-2.5 text-center font-bold uppercase tracking-widest text-[9px] border-b border-[#F0E8DE] cursor-pointer hover:text-[#D4AF37] transition-colors group">
-                                    <div className="flex items-center justify-center gap-1">Score <ArrowUpDown className={`w-3 h-3 opacity-50 group-hover:opacity-100 ${settings.sortField === 'score' ? 'text-[#D4AF37]' : ''}`} /></div>
+                                <th onClick={() => toggleSort('score')} className="px-3 py-2.5 text-center font-bold uppercase tracking-widest text-[9px] border-b border-[#F0E8DE] cursor-pointer hover:text-[#78611D] transition-colors group">
+                                    <div className="flex items-center justify-center gap-1">Score <ArrowUpDown className={`w-3 h-3 opacity-50 group-hover:opacity-100 ${settings.sortField === 'score' ? 'text-[#78611D]' : ''}`} /></div>
                                 </th>
                                 <th className="px-3 py-2.5 text-left font-bold uppercase tracking-widest text-[9px] border-b border-[#F0E8DE]">Key Reason</th>
                                 <th className="px-3 py-2.5 text-center font-bold uppercase tracking-widest text-[9px] border-b border-[#F0E8DE] w-10"></th>
@@ -117,9 +117,9 @@ function StageTable({ stage, candidateScores, onSelectCandidate }: {
                         <tbody className="divide-y divide-[#F0E8DE]">
                             <AnimatePresence>
                                 {results.map((c, idx) => (
-                                    <motion.tr layout key={`${c.time}-${idx}`} className={`group hover:bg-[#F5EFE7] transition-all duration-300 ${settings.expandedRow === c.time ? 'bg-[#D4AF37]/5' : ''}`}>
+                                    <motion.tr layout key={`${c.time}-${idx}`} className={`group hover:bg-[#F5EFE7] transition-all duration-300 ${settings.expandedRow === c.time ? 'bg-[#78611D]/5' : ''}`}>
                                         <td className="px-3 py-2.5 text-[#7A756F] font-mono text-[10px]">{idx + 1}</td>
-                                        <td onClick={() => onSelectCandidate?.(c.time)} className="px-3 py-2.5 font-mono text-[#1A1612] font-bold text-sm tracking-tighter cursor-pointer hover:text-[#D4AF37]">
+                                        <td onClick={() => onSelectCandidate?.(c.time)} className="px-3 py-2.5 font-mono text-[#1A1612] font-bold text-sm tracking-tighter cursor-pointer hover:text-[#78611D]">
                                             <div className="flex flex-col"><span>{c.time}</span>{c.offsetMinutes !== undefined && <span className="text-[9px] text-[#7A756F]">{c.offsetMinutes >= 0 ? '+' : ''}{c.offsetMinutes.toFixed(1)}m</span>}</div>
                                         </td>
                                         <td className="px-3 py-2.5">
@@ -133,7 +133,7 @@ function StageTable({ stage, candidateScores, onSelectCandidate }: {
                                         <td className="px-3 py-2.5 text-[10px] text-[#4A453F] max-w-[200px]"><span className="line-clamp-2" title={c.reason || 'No detailed reason'}>{c.reason || 'Vedic correlation identified'}</span></td>
                                         <td className="px-3 py-2.5 text-center">
                                             <button onClick={() => setSettings(p => ({ ...p, expandedRow: p.expandedRow === c.time ? null : c.time }))} className="p-1 rounded hover:bg-[#F5EFE7] transition-colors">
-                                                {settings.expandedRow === c.time ? <ChevronUp className="w-4 h-4 text-[#D4AF37]" /> : <ChevronDown className="w-4 h-4 text-[#7A756F]" />}
+                                                {settings.expandedRow === c.time ? <ChevronUp className="w-4 h-4 text-[#78611D]" /> : <ChevronDown className="w-4 h-4 text-[#7A756F]" />}
                                             </button>
                                         </td>
                                     </motion.tr>
@@ -145,7 +145,7 @@ function StageTable({ stage, candidateScores, onSelectCandidate }: {
                     <div className="h-[200px] flex flex-col items-center justify-center text-[#7A756F] text-[10px] uppercase font-bold tracking-[0.2em] bg-gradient-to-b from-transparent to-[#FDF8F3]/40">
                         <div className="w-12 h-12 border border-[#F0E8DE] rounded-full flex items-center justify-center mb-4 relative">
                             <Zap className="w-5 h-5 text-[#E8E0D5] animate-pulse" />
-                            <div className="absolute inset-0 border-t-2 border-[#D4AF37]/30 rounded-full animate-spin" />
+                            <div className="absolute inset-0 border-t-2 border-[#78611D]/30 rounded-full animate-spin" />
                         </div>
                         <span className="animate-pulse">Awaiting Stage {stage.id} Analysis</span>
                     </div>

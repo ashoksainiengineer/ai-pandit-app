@@ -502,6 +502,11 @@ export async function callAIWithStream(
             lastError = error instanceof Error ? error : new Error(String(error));
             logger.warn(`Streaming attempt ${attempt} failed: ${lastError.message}`);
 
+            // 🔱 CRITICAL: Do not retry if the user explicitly aborted
+            if (lastError.name === 'AbortError' || lastError.message.includes('aborted')) {
+                break;
+            }
+
             // Wait with backoff before retry
             if (attempt < AI_CONFIG.retryAttempts) {
                 await sleep(AI_CONFIG.retryDelayMs * attempt);

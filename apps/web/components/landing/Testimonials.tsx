@@ -14,7 +14,7 @@ export default function TestimonialsSection() {
 
     const renderStars = (rating: number) => {
         return Array.from({ length: 5 }, (_, i) => (
-            <span key={i} className={i < rating ? 'text-[#D4AF37]' : 'text-[#F0E8DE]'}>
+            <span key={i} className={i < rating ? 'text-[#78611D]' : 'text-[#F0E8DE]'}>
                 ★
             </span>
         ));
@@ -28,7 +28,7 @@ export default function TestimonialsSection() {
             <div className="max-w-7xl mx-auto px-6 relative">
                 {/* Section Header */}
                 <div className="text-center mb-16">
-                    <span className="inline-block px-4 py-2 bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-full text-[#D4AF37] text-sm font-medium mb-6">
+                    <span className="inline-block px-4 py-2 bg-[#78611D]/10 border border-[#78611D]/30 rounded-full text-[#78611D] text-sm font-medium mb-6">
                         ⭐ {getAverageRating()}/5 Average Rating from {getTotalTestimonials()} Users
                     </span>
                     <h2 className="text-4xl md:text-5xl font-bold text-[#1A1612] mb-4">
@@ -57,7 +57,7 @@ export default function TestimonialsSection() {
                     <div className="text-center">
                         <button
                             onClick={() => setShowAll(true)}
-                            className="px-8 py-3 border-2 border-[#D4AF37]/50 text-[#D4AF37] rounded-xl font-semibold hover:bg-[#D4AF37]/10 transition-all"
+                            className="px-8 py-3 border-2 border-[#78611D]/50 text-[#78611D] rounded-xl font-semibold hover:bg-[#78611D]/10 transition-all"
                         >
                             View All {TESTIMONIALS.length} Reviews →
                         </button>
@@ -68,7 +68,7 @@ export default function TestimonialsSection() {
                     <div className="text-center">
                         <button
                             onClick={() => setShowAll(false)}
-                            className="px-8 py-3 text-[#7A756F] hover:text-[#D4AF37] transition-colors"
+                            className="px-8 py-3 text-[#7A756F] hover:text-[#78611D] transition-colors"
                         >
                             Show Less
                         </button>
@@ -93,8 +93,8 @@ function TestimonialCard({ testimonial, isExpanded, onToggle, renderStars }: Tes
             <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                     {/* Avatar with initials */}
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#D4AF37]/30 to-[#6A0572]/30 flex items-center justify-center">
-                        <span className="text-[#D4AF37] font-bold text-lg">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#78611D]/30 to-[#6A0572]/30 flex items-center justify-center">
+                        <span className="text-[#78611D] font-bold text-lg">
                             {testimonial.name.split(' ').map(n => n[0]).join('')}
                         </span>
                     </div>
@@ -107,7 +107,7 @@ function TestimonialCard({ testimonial, isExpanded, onToggle, renderStars }: Tes
                 <div className="text-right">
                     <div className="text-sm">{renderStars(testimonial.rating)}</div>
                     {testimonial.verified && (
-                        <span className="text-xs text-[#2D7A5C] flex items-center gap-1 justify-end mt-1">
+                        <span className="text-xs text-[#184131] flex items-center gap-1 justify-end mt-1">
                             <span>✓</span> Verified
                         </span>
                     )}
@@ -127,14 +127,14 @@ function TestimonialCard({ testimonial, isExpanded, onToggle, renderStars }: Tes
                     <span className="text-xs text-[#7A756F] block">Original</span>
                     <span className="text-sm font-mono text-red-600 line-through">{testimonial.result.originalTime}</span>
                 </div>
-                <span className="text-[#D4AF37]">→</span>
-                <div className="px-3 py-1.5 bg-[#2D7A5C]/20 rounded-lg border border-[#2D7A5C]/30">
-                    <span className="text-xs text-[#2D7A5C] block">Rectified</span>
-                    <span className="text-sm font-mono text-[#2D7A5C] font-bold">{testimonial.result.rectifiedTime}</span>
+                <span className="text-[#78611D]">→</span>
+                <div className="px-3 py-1.5 bg-[#184131]/20 rounded-lg border border-[#184131]/30">
+                    <span className="text-xs text-[#184131] block">Rectified</span>
+                    <span className="text-sm font-mono text-[#184131] font-bold">{testimonial.result.rectifiedTime}</span>
                 </div>
-                <div className="px-3 py-1.5 bg-[#D4AF37]/10 rounded-lg">
-                    <span className="text-xs text-[#D4AF37] block">Accuracy</span>
-                    <span className="text-sm font-mono text-[#D4AF37] font-bold">{testimonial.result.accuracyAchieved}%</span>
+                <div className="px-3 py-1.5 bg-[#78611D]/10 rounded-lg">
+                    <span className="text-xs text-[#78611D] block">Accuracy</span>
+                    <span className="text-sm font-mono text-[#78611D] font-bold">{testimonial.result.accuracyAchieved}%</span>
                 </div>
             </div>
 
@@ -148,7 +148,7 @@ function TestimonialCard({ testimonial, isExpanded, onToggle, renderStars }: Tes
             {/* Expand/Collapse Button */}
             <button
                 onClick={onToggle}
-                className="text-sm text-[#D4AF37] hover:text-[#C9A961] transition-colors flex items-center gap-1"
+                className="text-sm text-[#78611D] hover:text-[#C9A961] transition-colors flex items-center gap-1"
             >
                 {isExpanded ? 'Show Less' : 'Read Full Story'}
                 <span className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}>▼</span>

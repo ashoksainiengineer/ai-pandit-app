@@ -48,7 +48,7 @@ export function DeleteConfirmModal({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Decorative Top Border */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#B8860B] via-[#D4A853] to-[#B8860B]" />
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#B8860B] via-[#78611D] to-[#B8860B]" />
 
           {/* Close Button */}
           <button

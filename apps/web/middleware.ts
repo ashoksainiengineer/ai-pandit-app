@@ -6,7 +6,6 @@ const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
-  '/dashboard(.*)',
   '/rectify(.*)',
   '/api/health',
   '/api/ping',
@@ -17,10 +16,11 @@ const isPublicRoute = createRouteMatcher([
   '/sitemap.xml'
 ]);
 
-export default clerkMiddleware((auth, req) => {
-  if (isPublicRoute(req)) {
-    return NextResponse.next();
+export default clerkMiddleware(async (auth, req) => {
+  if (!isPublicRoute(req)) {
+    await auth.protect();
   }
+  return NextResponse.next();
 });
 
 export const config = {

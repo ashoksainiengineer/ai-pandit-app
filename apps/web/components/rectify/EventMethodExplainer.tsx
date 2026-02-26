@@ -25,7 +25,7 @@ export default function EventMethodExplainer({ categoryId, eventType }: EventMet
         return (
             <div className="p-3 bg-[#F5EFE7] rounded-lg mt-2">
                 <div className="flex items-center gap-2">
-                    <span className="text-[#D4AF37]">📊</span>
+                    <span className="text-[#78611D]">📊</span>
                     <span className="text-xs text-[#4A453F]">
                         This event contributes to overall dasha verification
                     </span>
@@ -39,9 +39,9 @@ export default function EventMethodExplainer({ categoryId, eventType }: EventMet
             {/* Accuracy Badge */}
             <div className="flex items-center gap-3">
                 <div className={`px-3 py-1 rounded-full text-xs font-bold ${event.importance === 'critical'
-                        ? 'bg-[#2D7A5C]/20 text-[#2D7A5C] border border-[#2D7A5C]/30'
+                        ? 'bg-[#184131]/20 text-[#184131] border border-[#184131]/30'
                         : event.importance === 'high'
-                            ? 'bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30'
+                            ? 'bg-[#78611D]/20 text-[#78611D] border border-[#78611D]/30'
                             : 'bg-[#8B5CF6]/20 text-[#8B5CF6] border border-[#8B5CF6]/30'
                     }`}>
                     +{event.accuracyBoost}% Accuracy
@@ -60,7 +60,7 @@ export default function EventMethodExplainer({ categoryId, eventType }: EventMet
             >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="text-[#D4AF37]">🔮</span>
+                        <span className="text-[#78611D]">🔮</span>
                         <span className="text-xs text-[#4A453F]">
                             Verifies {event.methods.length} Vedic methods
                         </span>
@@ -82,7 +82,7 @@ export default function EventMethodExplainer({ categoryId, eventType }: EventMet
                         </span>
                     ))}
                     {!isExpanded && event.methods.length > 3 && (
-                        <span className="px-2 py-0.5 bg-white rounded text-[10px] text-[#D4AF37]">
+                        <span className="px-2 py-0.5 bg-white rounded text-[10px] text-[#78611D]">
                             +{event.methods.length - 3} more
                         </span>
                     )}
@@ -107,7 +107,7 @@ export default function EventMethodExplainer({ categoryId, eventType }: EventMet
                                 key={i}
                                 className="flex items-start gap-2 p-2 bg-white rounded"
                             >
-                                <span className="text-[#D4AF37] font-mono text-sm font-bold min-w-[40px]">
+                                <span className="text-[#78611D] font-mono text-sm font-bold min-w-[40px]">
                                     {method.shortName}
                                 </span>
                                 <div>
@@ -126,7 +126,7 @@ export default function EventMethodExplainer({ categoryId, eventType }: EventMet
 // Component to show category requirements summary
 export function CategoryRequirementsSummary() {
     return (
-        <div className="glass-card p-6 mb-8 border border-[#D4AF37]/20 bg-white rounded-xl">
+        <div className="glass-card p-6 mb-8 border border-[#78611D]/20 bg-white rounded-xl">
             <h3 className="text-lg font-bold text-[#1A1612] mb-4 flex items-center gap-2">
                 <span className="text-2xl">🎯</span>
                 Minimum Events for 99%+ Accuracy
@@ -146,13 +146,13 @@ export function CategoryRequirementsSummary() {
                         <div className="flex-1">
                             <div className="flex items-center justify-between">
                                 <h4 className="font-medium text-[#1A1612] text-sm">{category.name}</h4>
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-[#D4AF37]/20 text-[#D4AF37] font-bold">
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-[#78611D]/20 text-[#78611D] font-bold">
                                     Min: {category.minimumEvents}
                                 </span>
                             </div>
                             <p className="text-xs text-[#7A756F] mt-1">{category.description}</p>
                             <div className="flex items-center gap-2 mt-2">
-                                <span className="text-xs text-[#2D7A5C]">
+                                <span className="text-xs text-[#184131]">
                                     +{category.totalAccuracyContribution}% potential accuracy
                                 </span>
                             </div>
@@ -161,8 +161,8 @@ export function CategoryRequirementsSummary() {
                 ))}
             </div>
 
-            <div className="mt-6 p-4 bg-[#2D7A5C]/10 rounded-lg border border-[#2D7A5C]/20">
-                <p className="text-sm text-[#2D7A5C] flex items-center gap-2">
+            <div className="mt-6 p-4 bg-[#184131]/10 rounded-lg border border-[#184131]/20">
+                <p className="text-sm text-[#184131] flex items-center gap-2">
                     <span className="text-lg">✨</span>
                     Aim for at least 12 total events across all categories for maximum rectification precision.
                 </p>

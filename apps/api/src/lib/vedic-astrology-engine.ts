@@ -114,9 +114,12 @@ export function calculateVimshottariDasha(
     birthDate: Date,
     maxLevel: number = 5 // Allow engine-level throttling for memory safety
 ): DashaPeriod[] {
-    const nakshatraIndex = Math.floor(moonLongitude / NAKSHATRA_SPAN);
-    const birthNakshatraLord = NAKSHATRA_LORDS[nakshatraIndex];
-    const positionInNakshatra = (moonLongitude % NAKSHATRA_SPAN) / NAKSHATRA_SPAN;
+    // Normalize longitude to [0, 360)
+    const normalizedMoonLong = ((moonLongitude % 360) + 360) % 360;
+
+    const nakshatraIndex = Math.floor((normalizedMoonLong + 0.000001) / NAKSHATRA_SPAN);
+    const birthNakshatraLord = NAKSHATRA_LORDS[nakshatraIndex % 27];
+    const positionInNakshatra = (normalizedMoonLong % NAKSHATRA_SPAN) / NAKSHATRA_SPAN;
     const birthDashaYears = DASHA_YEARS[birthNakshatraLord];
     const elapsedYears = positionInNakshatra * birthDashaYears;
     const remainingYears = birthDashaYears - elapsedYears;
@@ -431,11 +434,11 @@ export const calculateArudhas = (ephemeris: any): any => {
 /**
  * Calculate Panchanga (Tithi, Yoga, Karana, Vara).
  */
-export const calculatePanchanga = (jd: number, sunLong: number, moonLong: number): any => {
+export const calculatePanchanga = (jd: number, sunLong: number, moonLong: number, birthDate?: Date): any => {
     // The engine expects ephemeris-like object for calcPanchanga, but the stub takes JD/Long
     // We'll normalize this by creating a minimal object
     const mockEph: any = { planets: { sun: { longitude: sunLong }, moon: { longitude: moonLong } } };
-    return calcPanchanga(mockEph, new Date());
+    return calcPanchanga(mockEph, birthDate || new Date());
 };
 
 /**

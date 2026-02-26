@@ -106,7 +106,7 @@ class ResultsPageErrorBoundary extends React.Component<
           <p className="text-[#7A756F] mb-4">Failed to display results. Please try refreshing.</p>
           <button
             onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-[#D4AF37] text-white rounded-lg font-medium"
+            className="px-4 py-2 bg-[#78611D] text-white rounded-lg font-medium"
           >
             Refresh
           </button>
@@ -145,7 +145,7 @@ function CandidateCard({ candidate, rank }: CandidateCardProps) {
   }, [candidate.confidence]);
 
   return (
-    <div className="bg-white rounded-xl border border-[#F0E8DE] p-6 space-y-4 hover:border-[#D4AF37]/30 transition-all">
+    <div className="bg-white rounded-xl border border-[#F0E8DE] p-6 space-y-4 hover:border-[#78611D]/30 transition-all">
       {rank && (
         <p className="text-[10px] font-black text-[#7A756F] uppercase tracking-[0.2em]">
           Priority Sequence Alpha #{rank}
@@ -153,7 +153,7 @@ function CandidateCard({ candidate, rank }: CandidateCardProps) {
       )}
 
       <div className="flex items-center justify-between">
-        <h3 className="text-3xl font-mono font-black text-[#D4AF37] tracking-tighter">
+        <h3 className="text-3xl font-mono font-black text-[#78611D] tracking-tighter">
           {candidate.time}
         </h3>
         <div className="text-right">
@@ -170,7 +170,7 @@ function CandidateCard({ candidate, rank }: CandidateCardProps) {
 
       {candidate.recommendation && (
         <div className="bg-[#F5EFE7] rounded-xl border border-[#F0E8DE] p-6">
-          <p className="text-[10px] font-black text-[#D4AF37] uppercase tracking-widest mb-3">
+          <p className="text-[10px] font-black text-[#78611D] uppercase tracking-widest mb-3">
             Neural Decision
           </p>
           <p className="text-[#4A453F] text-sm leading-relaxed">
@@ -239,7 +239,7 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
         <p className="text-[#7A756F] mb-4">The analysis data is incomplete or corrupted.</p>
         <button
           onClick={handleNewAnalysis}
-          className="px-6 py-3 bg-[#D4AF37] text-white rounded-lg font-bold"
+          className="px-6 py-3 bg-[#78611D] text-white rounded-lg font-bold"
         >
           Start New Analysis
         </button>
@@ -250,12 +250,12 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
   return (
     <div className="max-w-4xl mx-auto space-y-8 text-[#1A1612]">
       {/* Top Recommendation Card */}
-      <div className="bg-white border-2 border-[#D4AF37]/30 rounded-xl p-8 shadow-[0_0_30px_rgba(212,175,55,0.1)]">
+      <div className="bg-white border-2 border-[#78611D]/30 rounded-xl p-8 shadow-[0_0_30px_rgba(212,175,55,0.1)]">
         <div className="text-center">
           <p className="text-[10px] font-black text-[#7A756F] uppercase tracking-[0.3em] mb-4">
             Rectified Birth Time
           </p>
-          <h1 className="text-6xl font-black text-[#D4AF37] font-mono mb-6 tracking-tighter">
+          <h1 className="text-6xl font-black text-[#78611D] font-mono mb-6 tracking-tighter">
             {rectifiedTime}
           </h1>
 
@@ -280,14 +280,14 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
             </div>
           </div>
 
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#D4AF37]/10 border border-[#D4AF37]/50 rounded-full text-[#D4AF37] text-xs font-bold uppercase tracking-widest mb-8">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#78611D]/10 border border-[#78611D]/50 rounded-full text-[#78611D] text-xs font-bold uppercase tracking-widest mb-8">
             <Clock className="w-4 h-4" aria-hidden="true" />
             {sanitizeHtml(topRecommendation.offsetDescription)}
           </div>
 
           <div className="bg-[#F5EFE7] border border-[#F0E8DE] rounded-xl p-8 text-left space-y-6">
             <div>
-              <h3 className="text-[#D4AF37] font-black uppercase tracking-wider text-sm mb-3">
+              <h3 className="text-[#78611D] font-black uppercase tracking-wider text-sm mb-3">
                 Logical Verdict
               </h3>
               <p className="text-[#4A453F] leading-relaxed">
@@ -296,7 +296,7 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
             </div>
 
             <div>
-              <h3 className="text-[#D4AF37] font-black uppercase tracking-wider text-sm mb-3">
+              <h3 className="text-[#78611D] font-black uppercase tracking-wider text-sm mb-3">
                 Precision Strengths
               </h3>
               <p className="text-[#7A756F] text-sm leading-relaxed">
@@ -306,7 +306,7 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
 
             {topRecommendation.dashaAnalysis && (
               <div>
-                <h3 className="text-[#D4AF37] font-black uppercase tracking-wider text-sm mb-3">
+                <h3 className="text-[#78611D] font-black uppercase tracking-wider text-sm mb-3">
                   Vimshottari/Yogini Alignment
                 </h3>
                 <p className="text-[#7A756F] text-sm leading-relaxed">
@@ -327,7 +327,7 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
               onClick={() => setSelectedTab(tab)}
               className={`pb-4 text-xs font-black uppercase tracking-widest transition-all ${
                 selectedTab === tab
-                  ? 'text-[#D4AF37] border-b-2 border-[#D4AF37]'
+                  ? 'text-[#78611D] border-b-2 border-[#78611D]'
                   : 'text-[#7A756F] hover:text-[#1A1612]'
               }`}
               role="tab"
@@ -411,7 +411,7 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
               {statistics.allCandidateScores.map((candidate, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between p-4 bg-white border border-[#F0E8DE] rounded-xl hover:border-[#D4AF37]/30 transition-colors"
+                  className="flex items-center justify-between p-4 bg-white border border-[#F0E8DE] rounded-xl hover:border-[#78611D]/30 transition-colors"
                 >
                   <div>
                     <p className="font-mono text-lg text-[#1A1612]">{candidate.time}</p>
@@ -420,7 +420,7 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xl font-black text-[#D4AF37]">{candidate.quickScore}%</p>
+                    <p className="text-xl font-black text-[#78611D]">{candidate.quickScore}%</p>
                   </div>
                 </div>
               ))}
@@ -431,9 +431,9 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
 
       {/* Statistics Footer */}
       {statistics && (
-        <div className="bg-[#D4AF37]/5 border border-[#D4AF37]/20 rounded-xl p-8 flex items-center justify-between">
+        <div className="bg-[#78611D]/5 border border-[#78611D]/20 rounded-xl p-8 flex items-center justify-between">
           <div>
-            <h3 className="font-black text-[#D4AF37] uppercase tracking-widest text-xs mb-1">
+            <h3 className="font-black text-[#78611D] uppercase tracking-widest text-xs mb-1">
               Compute Latency
             </h3>
             <p className="text-2xl font-black text-[#1A1612] font-mono">
@@ -457,7 +457,7 @@ function ResultsPageContent({ analysisData, onNewAnalysis }: ResultsPageProps) {
         <button
           onClick={handleNewAnalysis}
           disabled={isLoading}
-          className="px-10 py-4 bg-gradient-to-r from-[#D4AF37] to-[#C9A961] text-white rounded-xl font-black uppercase tracking-widest text-sm shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:shadow-[0_15px_40px_rgba(212,175,55,0.3)] hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-10 py-4 bg-gradient-to-r from-[#78611D] to-[#C9A961] text-white rounded-xl font-black uppercase tracking-widest text-sm shadow-[0_10px_30px_rgba(212,175,55,0.2)] hover:shadow-[0_15px_40px_rgba(212,175,55,0.3)] hover:-translate-y-1 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? 'Loading...' : 'Initialize New Matrix'}
         </button>

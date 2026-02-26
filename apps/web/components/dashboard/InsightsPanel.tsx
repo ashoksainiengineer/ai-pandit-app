@@ -44,9 +44,9 @@ const typeConfig = {
   },
   achievement: {
     icon: Trophy,
-    color: 'text-[#D4AF37]',
-    bgColor: 'bg-[#D4AF37]/10',
-    borderColor: 'border-[#D4AF37]/30',
+    color: 'text-[#78611D]',
+    bgColor: 'bg-[#78611D]/10',
+    borderColor: 'border-[#78611D]/30',
   },
 };
 

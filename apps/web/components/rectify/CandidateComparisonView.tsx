@@ -52,7 +52,7 @@ const THEME = {
     textPrimary: '#1A1612',
     textSecondary: '#4A453F',
     textMuted: '#7A756F',
-    gold: '#D4AF37',
+    gold: '#78611D',
     success: '#10B981',
     warning: '#F59E0B',
 } as const;
@@ -110,10 +110,10 @@ const CandidateCard = memo(function CandidateCard({
             tabIndex={0}
             aria-label={`Candidate ${candidate.time}, Rank ${rank}, Score ${candidate.score.toFixed(1)}%${isWinner ? ', Winner' : ''}`}
             className={`
-                bg-[#FDF8F3] rounded-xl p-3 sm:p-4 border cursor-pointer transition-all outline-none focus:ring-2 focus:ring-[#D4AF37]/50
+                bg-[#FDF8F3] rounded-xl p-3 sm:p-4 border cursor-pointer transition-all outline-none focus:ring-2 focus:ring-[#78611D]/50
                 ${isWinner
-                    ? 'border-[#D4AF37]/50 shadow-[0_0_15px_rgba(212,175,55,0.15)]'
-                    : 'border-[#F0E8DE] hover:border-[#D4AF37]/30'
+                    ? 'border-[#78611D]/50 shadow-[0_0_15px_rgba(212,175,55,0.15)]'
+                    : 'border-[#F0E8DE] hover:border-[#78611D]/30'
                 }
             `}
         >
@@ -121,14 +121,14 @@ const CandidateCard = memo(function CandidateCard({
             <div className="flex items-center justify-between mb-2 sm:mb-3">
                 <div className="flex items-center gap-2">
                     {isWinner ? (
-                        <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#D4AF37]" aria-hidden="true" />
+                        <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#78611D]" aria-hidden="true" />
                     ) : (
                         <Medal className="w-4 h-4 sm:w-5 sm:h-5 text-[#7A756F]" aria-hidden="true" />
                     )}
                     <span className="text-[10px] sm:text-xs text-[#7A756F] font-bold uppercase">Rank #{rank}</span>
                 </div>
                 {isWinner && (
-                    <span className="text-[8px] bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 rounded-full font-bold uppercase">
+                    <span className="text-[8px] bg-[#78611D]/20 text-[#78611D] px-2 py-0.5 rounded-full font-bold uppercase">
                         Winner
                     </span>
                 )}
@@ -254,7 +254,7 @@ const CandidateSelect = memo(function CandidateSelect({
                 id={selectId}
                 value={selectedIndex}
                 onChange={(e) => onChange(parseInt(e.target.value, 10))}
-                className="w-full appearance-none bg-[#FDF8F3] border border-[#F0E8DE] rounded-lg px-3 py-2 text-xs sm:text-sm text-[#1A1612] cursor-pointer hover:border-[#D4AF37]/50 transition-colors pr-8 focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/30"
+                className="w-full appearance-none bg-[#FDF8F3] border border-[#F0E8DE] rounded-lg px-3 py-2 text-xs sm:text-sm text-[#1A1612] cursor-pointer hover:border-[#78611D]/50 transition-colors pr-8 focus:outline-none focus:ring-2 focus:ring-[#78611D]/30"
                 aria-label={label}
             >
                 {candidates.map((c, idx) => (
@@ -322,7 +322,7 @@ export const CandidateComparisonView = memo(function CandidateComparisonView({
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-card p-4 sm:p-5 border border-[#D4AF37]/30 overflow-hidden bg-white rounded-xl"
+            className="glass-card p-4 sm:p-5 border border-[#78611D]/30 overflow-hidden bg-white rounded-xl"
             role="region"
             aria-label={ariaLabel}
         >
@@ -420,11 +420,11 @@ export const CandidateComparisonView = memo(function CandidateComparisonView({
             </div>
 
             {/* AI Verdict */}
-            <div className="mt-4 p-3 sm:p-4 bg-[#D4AF37]/10 rounded-xl border border-[#D4AF37]/30">
+            <div className="mt-4 p-3 sm:p-4 bg-[#78611D]/10 rounded-xl border border-[#78611D]/30">
                 <div className="flex items-start gap-3">
-                    <Trophy className="w-5 h-5 text-[#D4AF37] mt-0.5 flex-shrink-0" aria-hidden="true" />
+                    <Trophy className="w-5 h-5 text-[#78611D] mt-0.5 flex-shrink-0" aria-hidden="true" />
                     <div>
-                        <h4 className="text-sm font-bold text-[#D4AF37] mb-1">AI Comparison Verdict</h4>
+                        <h4 className="text-sm font-bold text-[#78611D] mb-1">AI Comparison Verdict</h4>
                         <p className="text-xs text-[#4A453F] leading-relaxed">
                             <span className="font-medium">
                                 {winner === 'left' ? leftCandidate.time : rightCandidate.time}

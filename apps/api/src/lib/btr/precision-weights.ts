@@ -23,7 +23,7 @@ export const METHOD_WEIGHTS = {
   // TIER 1: PRECISION LAYER (Seconds-Level Accuracy)
   nadi: 2.0,           // D150 Nadi Amsha - 48-second precision DNA
   kp: 2.0,             // KP 4-level Sub-Lord hierarchy
-  pranaDasha: 1.8,     // Vimshottari Prana level (hours precision)
+  prana: 1.8,          // Vimshottari Prana level (hours precision)
 
   // TIER 2: CORE TIMING LAYER
   vimshottari: 1.8,    // Primary MD-AD-PD sequence
@@ -333,9 +333,14 @@ export function calculateWeightedAverage(
   let totalWeight = 0;
 
   for (const [method, score] of Object.entries(scores)) {
-    const weight = weights[method] || 1;
-    weightedSum += score * weight;
-    totalWeight += weight;
+    // Only include methods with data (score > 0)
+    // 0 means "No Data" or "Extreme Failure", which shouldn't necessarily
+    // punish the consensus of other highly matching methods in sparse scenarios.
+    if (score > 0) {
+      const weight = weights[method] || 1;
+      weightedSum += score * weight;
+      totalWeight += weight;
+    }
   }
 
   return totalWeight > 0 ? weightedSum / totalWeight : 0;

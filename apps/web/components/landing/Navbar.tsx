@@ -51,7 +51,7 @@ export default function Navbar() {
           {/* Brand - Always visible with logo icon on mobile */}
           <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
             {/* Logo Icon - Visible on all screens */}
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[#B8860B] to-[#D4A853] rounded-lg flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[#B8860B] to-[#78611D] rounded-lg flex items-center justify-center flex-shrink-0" aria-hidden="true">
               <span className="text-white text-sm sm:text-lg font-bold">ॐ</span>
             </div>
             {/* Text - Hidden on very small screens, visible on sm+ */}
@@ -75,7 +75,7 @@ export default function Navbar() {
                            text-sm font-medium relative group"
               >
                 {link.label}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#B8860B] to-[#D4A853] 
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-[#B8860B] to-[#78611D] 
                                  group-hover:w-full transition-all duration-300" />
               </Link>
             ))}
@@ -106,11 +106,12 @@ export default function Navbar() {
             {isSignedIn && <UserButton afterSignOutUrl="/" />}
             <button
               onClick={() => setIsOpen(!isOpen)}
+              aria-label={isOpen ? "Close menu" : "Open menu"}
               className="w-10 h-10 flex items-center justify-center rounded-xl 
                          bg-white border border-[#F0E8DE] text-[#4A453F] hover:text-[#B8860B]
-                         hover:border-[#D4A853]/50 transition-all duration-300"
+                         hover:border-[#78611D]/50 transition-all duration-300"
             >
-              {isOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {isOpen ? <X className="w-5 h-5" aria-hidden="true" /> : <Menu className="w-5 h-5" aria-hidden="true" />}
             </button>
           </div>
         </div>

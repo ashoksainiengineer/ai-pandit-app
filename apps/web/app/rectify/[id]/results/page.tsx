@@ -68,7 +68,7 @@ function ResultsSkeleton() {
         <Layout>
             <div className="min-h-[60vh] flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-2 border-[#D4AF37] border-t-transparent mx-auto mb-4" />
+                    <div className="animate-spin rounded-full h-12 w-12 border-2 border-[#78611D] border-t-transparent mx-auto mb-4" />
                     <p className="text-[#8C7F72]">Loading results...</p>
                 </div>
             </div>
@@ -100,13 +100,13 @@ export default async function ResultsPage({ params }: { params: Promise<{ id: st
                     <div className="flex gap-4">
                         <Link
                             href={`/rectify/${id}`}
-                            className="px-6 py-3 bg-white border border-[#F0E8DE] text-[#1A1612] rounded-xl hover:border-[#D4A853]/50 transition-colors"
+                            className="px-6 py-3 bg-white border border-[#F0E8DE] text-[#1A1612] rounded-xl hover:border-[#78611D]/50 transition-colors"
                         >
                             Check Progress
                         </Link>
                         <Link
                             href="/dashboard"
-                            className="px-6 py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+                            className="px-6 py-3 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white rounded-xl font-semibold hover:shadow-lg transition-all"
                         >
                             Go to Dashboard
                         </Link>

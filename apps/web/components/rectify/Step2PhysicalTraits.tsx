@@ -81,8 +81,8 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
         <div className="space-y-4 animate-fade-in-up">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-[#D4AF37]/10 border border-[#D4AF37]/20">
-                        <Icon className="w-5 h-5 text-[#D4AF37]" />
+                    <div className="p-2 rounded-lg bg-[#78611D]/10 border border-[#78611D]/20">
+                        <Icon className="w-5 h-5 text-[#78611D]" />
                     </div>
                     <div>
                         <h3 className="text-sm font-black text-[#1A1612] uppercase tracking-wide">{label}</h3>
@@ -91,7 +91,7 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
                 </div>
                 <button
                     onClick={() => setActiveHelp(activeHelp === groupId ? null : groupId)}
-                    className={`p-2 rounded-full transition-all ${activeHelp === groupId ? 'bg-[#D4AF37] text-white' : 'hover:bg-[#F5EFE7] text-[#7A756F]'}`}
+                    className={`p-2 rounded-full transition-all ${activeHelp === groupId ? 'bg-[#78611D] text-white' : 'hover:bg-[#F5EFE7] text-[#7A756F]'}`}
                 >
                     <HelpCircle className="w-4 h-4" />
                 </button>
@@ -125,13 +125,13 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
                         type="button"
                         onClick={() => onChange(opt.value)}
                         className={`relative p-4 rounded-xl border text-left transition-all group overflow-hidden ${value === opt.value
-                            ? 'bg-[#D4AF37]/10 border-[#D4AF37] shadow-[0_0_20px_rgba(212,175,55,0.1)]'
-                            : 'bg-white border-[#F0E8DE] hover:border-[#D4AF37]/50'
+                            ? 'bg-[#78611D]/10 border-[#78611D] shadow-[0_0_20px_rgba(212,175,55,0.1)]'
+                            : 'bg-white border-[#F0E8DE] hover:border-[#78611D]/50'
                             }`}
                     >
                         {value === opt.value && (
                             <div className="absolute top-0 right-0 p-2">
-                                <Sparkles className="w-3 h-3 text-[#D4AF37] animate-pulse" />
+                                <Sparkles className="w-3 h-3 text-[#78611D] animate-pulse" />
                             </div>
                         )}
                         <div className="text-2xl mb-2">{opt.emoji}</div>
@@ -152,7 +152,7 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
         <div className="w-full max-w-4xl mx-auto pb-12">
             {/* Header */}
             <div className="mb-8 text-center">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/20 text-[#D4AF37] text-xs font-bold uppercase tracking-widest mb-4">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#78611D]/10 border border-[#78611D]/20 text-[#78611D] text-xs font-bold uppercase tracking-widest mb-4">
                     <ScanFace className="w-3 h-3" />
                     Samudrika Shastra 2.0
                 </div>
@@ -172,7 +172,7 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${isActive
-                                ? 'bg-[#D4AF37] text-white shadow-lg'
+                                ? 'bg-[#78611D] text-white shadow-lg'
                                 : 'text-[#7A756F] hover:text-[#1A1612] hover:bg-white'
                                 }`}
                         >
@@ -292,8 +292,8 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
                             {/* Special Marks */}
                             <div className="space-y-4">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 rounded-lg bg-[#D4AF37]/10 border border-[#D4AF37]/20">
-                                        <Fingerprint className="w-5 h-5 text-[#D4AF37]" />
+                                    <div className="p-2 rounded-lg bg-[#78611D]/10 border border-[#78611D]/20">
+                                        <Fingerprint className="w-5 h-5 text-[#78611D]" />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-black text-[#1A1612] uppercase tracking-wide">Vishesha Lakshan</h3>
@@ -305,10 +305,10 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
                                         value={physicalTraits.specialFeatures || ''}
                                         onChange={(e) => updateTraits({ specialFeatures: e.target.value })}
                                         placeholder="Describe scars, moles (tilaks), or unique physical features..."
-                                        className="w-full h-32 bg-white border border-[#F0E8DE] rounded-xl p-4 text-sm text-[#1A1612] placeholder-[#7A756F] focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] outline-none transition-all resize-none"
+                                        className="w-full h-32 bg-white border border-[#F0E8DE] rounded-xl p-4 text-sm text-[#1A1612] placeholder-[#7A756F] focus:border-[#78611D] focus:ring-1 focus:ring-[#78611D] outline-none transition-all resize-none"
                                     />
                                     <div className="absolute bottom-4 right-4 text-[10px] text-[#7A756F] flex items-center gap-1">
-                                        <Zap className="w-3 h-3 text-[#D4AF37]" />
+                                        <Zap className="w-3 h-3 text-[#78611D]" />
                                         Encrypted
                                     </div>
                                 </div>
@@ -320,9 +320,9 @@ export default function Step2PhysicalTraits({ physicalTraits, updateTraits }: St
 
             {/* Validation Badge */}
             <div className="mt-12 flex justify-center">
-                <div className="flex items-center gap-2 px-4 py-2 bg-[#2D7A5C]/10 border border-[#2D7A5C]/20 rounded-full">
+                <div className="flex items-center gap-2 px-4 py-2 bg-[#184131]/10 border border-[#184131]/20 rounded-full">
                     <div className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse" />
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#2D7A5C]">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#184131]">
                         AI-PANDIT LOGIC SYNC: ACTIVE
                     </span>
                 </div>

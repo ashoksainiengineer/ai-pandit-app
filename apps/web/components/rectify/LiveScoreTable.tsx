@@ -28,7 +28,7 @@ const THEME = {
     bgWarm: '#FDF8F3',
     textPrimary: '#1A1612',
     textMuted: '#7A756F',
-    success: '#2D7A5C',
+    success: '#184131',
     warning: '#E8A849',
     error: '#C65D3B',
     plum: '#6B1F7A',

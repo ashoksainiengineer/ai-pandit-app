@@ -7,9 +7,9 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Scale, 
-  Trophy, 
+import {
+  Scale,
+  Trophy,
   Medal,
   Check,
   AlertTriangle,
@@ -114,8 +114,8 @@ export default function CandidateComparisonTable() {
   const [expandedRows, setExpandedRows] = useState<number[]>([1]);
 
   const toggleRow = (rank: number) => {
-    setExpandedRows(prev => 
-      prev.includes(rank) 
+    setExpandedRows(prev =>
+      prev.includes(rank)
         ? prev.filter(r => r !== rank)
         : [...prev, rank]
     );
@@ -130,7 +130,7 @@ export default function CandidateComparisonTable() {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-[#D4A853]/30 bg-white overflow-hidden shadow-sm"
+      className="rounded-2xl border border-[#78611D]/30 bg-white overflow-hidden shadow-sm"
     >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 bg-[#FDF8F3] border-b border-[#F0E8DE]">
@@ -161,7 +161,7 @@ export default function CandidateComparisonTable() {
             className={`
               bg-[#FDF8F3] rounded-xl p-5 border transition-all
               ${candidate.isWinner
-                ? 'border-[#D4A853]/50 shadow-md'
+                ? 'border-[#78611D]/50 shadow-md'
                 : 'border-[#F0E8DE]'
               }
             `}
@@ -234,7 +234,7 @@ export default function CandidateComparisonTable() {
                   <span className="text-[#4A453F]">{candidate.eventMatches}/{candidate.totalEvents}</span>
                 </div>
                 <div className="w-full bg-[#F0E8DE] rounded-full h-1 overflow-hidden">
-                  <div 
+                  <div
                     className="h-full bg-blue-500 rounded-full"
                     style={{ width: `${(candidate.eventMatches / candidate.totalEvents) * 100}%` }}
                   />
@@ -291,11 +291,10 @@ export default function CandidateComparisonTable() {
           </thead>
           <tbody>
             {candidatesData.map((candidate) => (
-              <tr 
+              <tr
                 key={candidate.rank}
-                className={`border-b border-[#F0E8DE] hover:bg-[#FDF8F3] transition-colors ${
-                  candidate.isWinner ? 'bg-[#B8860B]/5' : ''
-                }`}
+                className={`border-b border-[#F0E8DE] hover:bg-[#FDF8F3] transition-colors ${candidate.isWinner ? 'bg-[#B8860B]/5' : ''
+                  }`}
               >
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
@@ -322,6 +321,7 @@ export default function CandidateComparisonTable() {
                   <button
                     onClick={() => toggleRow(candidate.rank)}
                     className="p-1 hover:bg-[#F0E8DE] rounded transition-colors"
+                    aria-label={expandedRows.includes(candidate.rank) ? "Collapse details" : "Expand details"}
                   >
                     {expandedRows.includes(candidate.rank) ? (
                       <ChevronUp className="w-4 h-4 text-[#7A756F]" />
@@ -339,12 +339,12 @@ export default function CandidateComparisonTable() {
       {/* Expanded Rows Content */}
       {candidatesData.map((candidate) => (
         expandedRows.includes(candidate.rank) && (
-          <div 
+          <div
             key={`expanded-${candidate.rank}`}
             className="px-5 py-4 bg-[#FDF8F3] border-b border-[#F0E8DE]"
           >
             <div className="space-y-2">
-              <div className="text-[10px] text-[#7A756F] uppercase tracking-wider font-bold">AI Analysis Reasons</div>
+              <div className="text-[10px] text-[#5A5550] uppercase tracking-wider font-bold">AI Analysis Reasons</div>
               <ul className="space-y-1">
                 {candidate.reasons.map((reason, i) => (
                   <li key={`reason-${candidate.rank}-${i}`} className="flex items-start gap-2 text-xs text-[#4A453F]">
@@ -355,11 +355,11 @@ export default function CandidateComparisonTable() {
               </ul>
               <div className="flex items-center gap-4 mt-3 pt-2 border-t border-[#F0E8DE]">
                 <div className="text-[10px]">
-                  <span className="text-[#7A756F]">Boundary Distance: </span>
+                  <span className="text-[#5A5550]">Boundary Distance: </span>
                   <span className="text-[#4A453F] font-mono">{candidate.boundaryDistance.toFixed(2)}</span>
                 </div>
                 <div className="text-[10px]">
-                  <span className="text-[#7A756F]">D60: </span>
+                  <span className="text-[#5A5550]">D60: </span>
                   <span className="text-[#B8860B]">{candidate.d60}</span>
                 </div>
               </div>
@@ -369,7 +369,7 @@ export default function CandidateComparisonTable() {
       ))}
 
       {/* AI Verdict */}
-      <div className="p-5 bg-[#B8860B]/10 border-t border-[#D4A853]/30">
+      <div className="p-5 bg-[#B8860B]/10 border-t border-[#78611D]/30">
         <div className="flex items-start gap-3">
           <Trophy className="w-5 h-5 text-[#B8860B] mt-0.5" />
           <div>

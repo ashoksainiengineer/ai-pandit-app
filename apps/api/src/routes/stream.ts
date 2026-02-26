@@ -215,14 +215,19 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
                 // Also send current metadata for status sync
                 const queueStatus = await getQueueStatus(sessionId);
                 if (queueStatus) {
-                    const fullName = parseSensitiveField(queueStatus.session.fullName, clerkId, queueStatus.session.userId);
-                    const offsetConfig = parseSensitiveField(queueStatus.session.offsetConfig, clerkId, queueStatus.session.userId);
+                    const session = queueStatus.session;
                     sendSequencedEvent(res, sessionId, {
                         type: 'metadata',
                         data: {
-                            ...queueStatus.session,
-                            fullName,
-                            offsetConfig,
+                            ...session,
+                            fullName: parseSensitiveField(session.fullName, clerkId, session.userId),
+                            dateOfBirth: parseSensitiveField(session.dateOfBirth, clerkId, session.userId),
+                            tentativeTime: parseSensitiveField(session.tentativeTime, clerkId, session.userId),
+                            birthPlace: parseSensitiveField(session.birthPlace, clerkId, session.userId),
+                            offsetConfig: parseSensitiveField(session.offsetConfig, clerkId, session.userId),
+                            lifeEvents: parseSensitiveField(session.lifeEvents, clerkId, session.userId, []),
+                            physicalTraits: parseSensitiveField(session.physicalTraits, clerkId, session.userId),
+                            forensicTraits: parseSensitiveField(session.forensicTraits, clerkId, session.userId),
                             status: queueStatus.status,
                             aiModel: aiConfig.model,
                         }
@@ -256,18 +261,22 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
                 if (queueStatus) {
                     logger.info(`[SSE] Sending initial metadata for ${sessionId}`);
 
-                    // 🔐 Decrypt fields for the frontend using robust helper
-                    const fullName = parseSensitiveField(queueStatus.session.fullName, clerkId, queueStatus.session.userId);
-                    const offsetConfig = parseSensitiveField(queueStatus.session.offsetConfig, clerkId, queueStatus.session.userId);
+                    const session = queueStatus.session;
 
                     sendSequencedEvent(res, sessionId, {
                         type: 'metadata',
                         data: {
-                            ...queueStatus.session,
-                            fullName, // Send decrypted name
-                            offsetConfig, // Send decrypted config
+                            ...session,
+                            fullName: parseSensitiveField(session.fullName, clerkId, session.userId),
+                            dateOfBirth: parseSensitiveField(session.dateOfBirth, clerkId, session.userId),
+                            tentativeTime: parseSensitiveField(session.tentativeTime, clerkId, session.userId),
+                            birthPlace: parseSensitiveField(session.birthPlace, clerkId, session.userId),
+                            offsetConfig: parseSensitiveField(session.offsetConfig, clerkId, session.userId),
+                            lifeEvents: parseSensitiveField(session.lifeEvents, clerkId, session.userId, []),
+                            physicalTraits: parseSensitiveField(session.physicalTraits, clerkId, session.userId),
+                            forensicTraits: parseSensitiveField(session.forensicTraits, clerkId, session.userId),
                             status: queueStatus.status,
-                            aiModel: aiConfig.model, // Send current AI model from config
+                            aiModel: aiConfig.model,
                         }
                     } as any);
                 }

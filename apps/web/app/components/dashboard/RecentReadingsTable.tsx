@@ -119,7 +119,7 @@ export default function RecentReadingsTable({ readings, loading }: RecentReading
         </h3>
         <Link
           href="/admin/readings"
-          className="text-sm text-[#B8860B] hover:text-[#D4A853] font-medium flex items-center gap-1"
+          className="text-sm text-[#B8860B] hover:text-[#78611D] font-medium flex items-center gap-1"
         >
           View all
           <ChevronRight className="w-4 h-4" />
@@ -141,7 +141,7 @@ export default function RecentReadingsTable({ readings, loading }: RecentReading
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#B8860B]/10 to-[#D4A853]/10 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#B8860B]/10 to-[#78611D]/10 flex items-center justify-center">
                     <User className="w-5 h-5 text-[#B8860B]" />
                   </div>
                   <div>

@@ -21,10 +21,10 @@ interface ActivityHeatmapProps {
 
 const intensityColors = [
   'bg-[#F5EFE7]', // 0 - no activity
-  'bg-[#D4AF37]/30', // 1 - low
-  'bg-[#D4AF37]/50', // 2 - medium
-  'bg-[#D4AF37]/70', // 3 - high
-  'bg-[#D4AF37]', // 4 - very high
+  'bg-[#78611D]/30', // 1 - low
+  'bg-[#78611D]/50', // 2 - medium
+  'bg-[#78611D]/70', // 3 - high
+  'bg-[#78611D]', // 4 - very high
 ];
 
 const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -102,16 +102,16 @@ export function ActivityHeatmap({ data, onDayClick }: ActivityHeatmapProps) {
         </div>
         <div className="flex gap-4 text-sm">
           <div className="text-center">
-            <div className="text-xl font-bold text-[#D4AF37]">{activeDays}</div>
+            <div className="text-xl font-bold text-[#78611D]">{activeDays}</div>
             <div className="text-xs text-[#7A756F]">Active Days</div>
           </div>
           <div className="text-center">
-            <div className="text-xl font-bold text-[#D4AF37]">{streak}</div>
+            <div className="text-xl font-bold text-[#78611D]">{streak}</div>
             <div className="text-xs text-[#7A756F]">Current Streak</div>
           </div>
           {maxDay.count > 0 && (
             <div className="text-center">
-              <div className="text-xl font-bold text-[#D4AF37]">{maxDay.count}</div>
+              <div className="text-xl font-bold text-[#78611D]">{maxDay.count}</div>
               <div className="text-xs text-[#7A756F]">Best Day</div>
             </div>
           )}
@@ -162,7 +162,7 @@ export function ActivityHeatmap({ data, onDayClick }: ActivityHeatmapProps) {
                       className={`
                         w-3 h-3 rounded-sm cursor-pointer
                         ${day.date ? intensityColors[day.intensity] : 'bg-transparent'}
-                        ${day.date ? 'hover:ring-2 hover:ring-[#D4AF37]/50' : ''}
+                        ${day.date ? 'hover:ring-2 hover:ring-[#78611D]/50' : ''}
                         transition-all duration-200
                       `}
                       title={day.date ? `${day.date}: ${day.count} sessions` : ''}

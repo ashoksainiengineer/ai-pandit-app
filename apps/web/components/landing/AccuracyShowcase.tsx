@@ -225,7 +225,7 @@ export function AccuracyShowcase() {
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
                   className="group relative bg-white border border-[#F0E8DE] rounded-2xl p-6 
-                         hover:border-[#D4A853]/30 hover:shadow-lg transition-all duration-300"
+                         hover:border-[#78611D]/30 hover:shadow-lg transition-all duration-300"
                 >
                   {/* Glow effect */}
                   <div

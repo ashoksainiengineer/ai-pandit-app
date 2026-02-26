@@ -157,9 +157,9 @@ router.put('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Respon
         if (body.birthData) {
             const bd = body.birthData;
             if (bd.fullName) updateData.fullName = encryptData(bd.fullName, clerkId);
-            if (bd.dateOfBirth) updateData.dateOfBirth = bd.dateOfBirth;
-            if (bd.tentativeTime) updateData.tentativeTime = bd.tentativeTime;
-            if (bd.birthPlace) updateData.birthPlace = bd.birthPlace;
+            if (bd.dateOfBirth) updateData.dateOfBirth = encryptData(bd.dateOfBirth, clerkId);
+            if (bd.tentativeTime) updateData.tentativeTime = encryptData(bd.tentativeTime, clerkId);
+            if (bd.birthPlace) updateData.birthPlace = encryptData(bd.birthPlace, clerkId);
             if (bd.latitude !== undefined) updateData.latitude = bd.latitude;
             if (bd.longitude !== undefined) updateData.longitude = bd.longitude;
             if (bd.timezone !== undefined) updateData.timezone = String(bd.timezone);

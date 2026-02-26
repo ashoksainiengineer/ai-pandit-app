@@ -135,7 +135,7 @@ export default function EphemerisTable() {
             {activeTab === 'planets' && (
               <>
                 {/* Ascendant Card */}
-                <div className="bg-[#FDF8F3] rounded-xl p-4 border border-[#D4A853]/30">
+                <div className="bg-[#FDF8F3] rounded-xl p-4 border border-[#78611D]/30">
                   <div className="flex items-center gap-2 mb-2">
                     <Star className="w-4 h-4 text-[#B8860B]" />
                     <span className="text-[10px] text-[#7A756F] uppercase tracking-wider font-bold">Ascendant (Lagna)</span>
@@ -153,7 +153,7 @@ export default function EphemerisTable() {
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: index * 0.05 }}
-                      className="bg-[#FDF8F3] rounded-xl p-3 border border-[#F0E8DE] hover:border-[#D4A853]/30 transition-colors"
+                      className="bg-[#FDF8F3] rounded-xl p-3 border border-[#F0E8DE] hover:border-[#78611D]/30 transition-colors"
                     >
                       <div className="flex items-center gap-1.5 mb-1">
                         <span className={`text-lg ${planet.color}`}>{planet.symbol}</span>

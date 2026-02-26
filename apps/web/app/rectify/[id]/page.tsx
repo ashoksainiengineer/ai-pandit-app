@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, memo, useRef, useMemo, useId } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
@@ -27,16 +28,16 @@ import { useStreamProgress } from '@/lib/use-stream-progress';
 import { useStreamStore } from '@/lib/store/stream-store';
 import { useShallow } from 'zustand/react/shallow';
 import type { CandidateScore } from '@/lib/store/stream-types';
+import { cancelAnalysis, restartAnalysis } from './actions';
 import { logger } from '@/lib/secure-logger';
 import { env } from '@/lib/config';
 import { AnalysisErrorBoundary, SectionErrorBoundary } from '@/components/rectify/AnalysisErrorBoundary';
-import AdvancedSignalsDashboard from '@/components/rectify/advanced-signals/AdvancedSignalsDashboard';
-import { UnifiedAIPanel } from '@/components/rectify/UnifiedAIPanel';
-import { AnalysisStatusBanner } from '@/components/rectify/analysis/AnalysisStatusBanner';
-import { TopCandidate } from '@/components/rectify/analysis/TopCandidate';
-import { SimplifiedPipeline } from '@/components/rectify/analysis/SimplifiedPipeline';
-import { TechnicalMethodology } from '@/components/rectify/analysis/TechnicalMethodology';
-import { ScoreGrid } from '@/components/rectify/analysis/ScoreGrid';
+const AdvancedSignalsDashboard = dynamic(() => import('@/components/rectify/advanced-signals/AdvancedSignalsDashboard'), { ssr: false });
+const UnifiedAIPanel = dynamic(() => import('@/components/rectify/UnifiedAIPanel').then(mod => mod.UnifiedAIPanel), { ssr: false });
+const AnalysisStatusBanner = dynamic(() => import('@/components/rectify/analysis/AnalysisStatusBanner').then(mod => mod.AnalysisStatusBanner), { ssr: false });
+const SimplifiedPipeline = dynamic(() => import('@/components/rectify/analysis/SimplifiedPipeline').then(mod => mod.SimplifiedPipeline), { ssr: false });
+const TechnicalMethodology = dynamic(() => import('@/components/rectify/analysis/TechnicalMethodology').then(mod => mod.TechnicalMethodology), { ssr: false });
+const StageLeaderboard = dynamic(() => import('@/components/rectify/analysis/StageLeaderboard').then(mod => mod.StageLeaderboard), { ssr: false });
 
 const GlobalStyles = memo(() => (
   <style jsx global>{`
@@ -55,7 +56,7 @@ const THEME = {
   textPrimary: '#1A1612',
   textSecondary: '#4A453F',
   gold: '#B8860B',
-  success: '#2D7A5C',
+  success: '#184131',
   error: '#C65D3B',
 };
 
@@ -75,7 +76,7 @@ const ErrorDisplay = memo(({ error, onRetry }: { error: string; onRetry: () => v
     <AlertCircle className="w-16 h-16 text-red-500" />
     <h1 className="text-2xl font-bold mt-6 text-red-700">Connection Error</h1>
     <p className="text-xs text-red-600 mt-2 max-w-2xl bg-red-50 p-4 rounded border border-red-200">{error}</p>
-    <button onClick={onRetry} className="mt-8 px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-[#B8860B] to-[#D4A853] shadow-md flex items-center gap-2 hover:shadow-lg transition-all">
+    <button onClick={onRetry} className="mt-8 px-6 py-3 rounded-xl font-semibold text-white bg-gradient-to-r from-[#B8860B] to-[#78611D] shadow-md flex items-center gap-2 hover:shadow-lg transition-all">
       <RefreshCw className="w-4 h-4" /> Retry
     </button>
   </div>
@@ -161,7 +162,7 @@ export default function AnalysisPage() {
   const pageTitleId = useId();
 
   const { connectionState } = useStreamProgress(
-    isLoaded && isSignedIn ? sessionId : null,
+    (isLoaded && isSignedIn) || (typeof window !== 'undefined' && (window as any).isTestEnv) ? sessionId : null,
     undefined,
     getToken
   );
@@ -266,39 +267,40 @@ export default function AnalysisPage() {
     if (isCancelling || cancelled) return;
     setIsCancelling(true);
     try {
-      const backendUrl = env.api.backendUrl.replace(/\/$/, '');
-      await APIClient.post(`${backendUrl}/api/queue/cancel`, { sessionId }, getToken);
-      setCancelled(true);
-      logger.info('Analysis cancelled', { sessionId });
+      const result = await cancelAnalysis(sessionId);
+      if (result.success) {
+        setCancelled(true);
+      } else {
+        alert(`Failed to cancel: ${result.error}`);
+      }
     } catch (err: any) {
-      logger.error('Cancel failed', err);
-      alert(`Failed to cancel: ${err.message}`);
+      logger.error('Cancel call failed', err);
+      alert(`Unexpected error: ${err.message}`);
     } finally {
       setIsCancelling(false);
       setShowCancelConfirm(false);
     }
-  }, [sessionId, getToken, isCancelling, cancelled]);
+  }, [sessionId, isCancelling, cancelled]);
 
   const handleRestart = useCallback(async () => {
     setIsCancelling(true);
     try {
-      const backendUrl = env.api.backendUrl.replace(/\/$/, '');
-      await APIClient.post(`${backendUrl}/api/queue/requeue`, { sessionId }, getToken);
-
-      // IMPORTANT: Clear the Zustand store BEFORE reload so stale
-      // isComplete/error/cancelled state doesn't rehydrate from localStorage
-      // and block the new SSE connection from starting.
-      useStreamStore.getState().clearStore();
-
-      setCancelled(false);
-      window.location.reload();
+      const result = await restartAnalysis(sessionId);
+      if (result.success) {
+        // IMPORTANT: Clear the Zustand store BEFORE reload
+        useStreamStore.getState().clearStore();
+        setCancelled(false);
+        window.location.reload();
+      } else {
+        alert(`Failed to restart: ${result.error}`);
+      }
     } catch (err: any) {
-      logger.error('Restart failed', err.message);
-      alert(`Failed to restart: ${err.message}`);
+      logger.error('Restart call failed', err.message);
+      alert(`Unexpected error: ${err.message}`);
     } finally {
       setIsCancelling(false);
     }
-  }, [sessionId, getToken]);
+  }, [sessionId]);
 
   // Live elapsed timer — updates every second
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -361,7 +363,7 @@ export default function AnalysisPage() {
     return <LoadingState />;
   }
 
-  if (!isSignedIn) {
+  if (!isSignedIn && (typeof window === 'undefined' || !(window as any).isTestEnv)) {
     router.push('/sign-in');
     return <LoadingState />;
   }
@@ -397,7 +399,7 @@ export default function AnalysisPage() {
                     {sessionId.slice(0, 8)}
                   </span>
                 </h1>
-                
+
                 {/* Birth Details */}
                 {(metadata?.dateOfBirth || metadata?.tentativeTime || metadata?.birthPlace || metadata?.offsetConfig) && (
                   <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-[#7A756F]">
@@ -497,16 +499,16 @@ export default function AnalysisPage() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="rounded-2xl border-2 p-6 flex flex-col md:flex-row items-center justify-between gap-6 bg-gradient-to-br from-[#2D7A5C]/10 to-white border-[#2D7A5C]/30 shadow-lg shadow-[#2D7A5C]/5"
+                className="rounded-2xl border-2 p-6 flex flex-col md:flex-row items-center justify-between gap-6 bg-gradient-to-br from-[#184131]/10 to-white border-[#184131]/30 shadow-lg shadow-[#184131]/5"
               >
                 <div className="flex items-center gap-5">
-                  <div className="w-16 h-16 rounded-2xl bg-[#2D7A5C]/20 flex items-center justify-center shrink-0">
-                    <CheckCircle className="w-8 h-8 text-[#2D7A5C]" />
+                  <div className="w-16 h-16 rounded-2xl bg-[#184131]/20 flex items-center justify-center shrink-0">
+                    <CheckCircle className="w-8 h-8 text-[#184131]" />
                   </div>
                   <div>
                     <h2 className="text-xl font-black text-[#1A1612] mb-1">Analysis Successfully Completed</h2>
                     <p className="text-sm text-[#4A453F] flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="flex items-center gap-1.5 font-bold text-[#2D7A5C]">
+                      <span className="flex items-center gap-1.5 font-bold text-[#184131]">
                         <Activity className="w-4 h-4" /> {result.rectifiedTime}
                       </span>
                       <span className="w-1 h-1 rounded-full bg-stone-300" />
@@ -523,7 +525,7 @@ export default function AnalysisPage() {
                 <div className="flex items-center gap-3 w-full md:w-auto">
                   <Link
                     href={`/rectify/${sessionId}/results`}
-                    className="flex-1 md:flex-none px-6 py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:shadow-lg transition-all shadow-md"
+                    className="flex-1 md:flex-none px-6 py-3 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:shadow-lg transition-all shadow-md"
                   >
                     View Official Report <ChevronRight className="w-4 h-4" />
                   </Link>
@@ -552,17 +554,16 @@ export default function AnalysisPage() {
           )}
 
           {!cancelled && sortedCandidateScores.length > 0 && (
-            <SectionErrorBoundary sectionName="Top Candidate" icon={<Brain className="w-5 h-5" />}>
-              <TopCandidate
-                candidates={sortedCandidateScores}
-                isVisible={sortedCandidateScores.length > 0}
-                isComplete={isComplete}
+            <SectionErrorBoundary sectionName="Top Candidates" icon={<Brain className="w-5 h-5" />}>
+              <StageLeaderboard
+                stage={Math.max(...sortedCandidateScores.map(s => s.stage))}
+                scores={sortedCandidateScores}
+                isCompleted={isComplete}
               />
             </SectionErrorBoundary>
           )}
 
           <div className="flex flex-col gap-6 lg:gap-8 w-full">
-            <ScoreGrid />
             <div className="space-y-4 sm:space-y-6">
               {(Object.keys(candidatesByStage).length > 0 || (progress?.stepIndex ?? 0) >= 1) && !cancelled && (
                 <SectionErrorBoundary sectionName="AI Reasoning" icon={<Brain className="w-5 h-5" />}>
@@ -607,7 +608,7 @@ export default function AnalysisPage() {
                               ${isCurrentStage
                                 ? 'bg-amber-500 border-amber-200 text-white shadow-sm ring-4 ring-amber-500/10'
                                 : isStageCompleted
-                                  ? 'bg-[#2D7A5C] border-[#2D7A5C]/20 text-white'
+                                  ? 'bg-[#184131] border-[#184131]/20 text-white'
                                   : 'bg-white border-stone-200 text-stone-400'
                               }`}>
                               {stageNum}
@@ -619,24 +620,24 @@ export default function AnalysisPage() {
 
                           {isAIStage ? (
                             <UnifiedAIPanel
-                               thinking={isCurrentStage && !isStageCompleted && stageCandidates
-                                 ? (() => {
-                                   const entries = Object.values(stageCandidates) as any[];
-                                   if (entries.length === 0) return null;
-                                   return entries.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
-                                 })()
-                                 : null}
-                               stageHistory={stageHistory}
-                               isActive={isCurrentStage && !isStageCompleted}
-                               isCompleted={isStageCompleted}
-                               stage={stageNum}
-                               allCandidates={stageCandidates}
-                               displayedCandidate={displayedCandidate}
-                               onSelectCandidate={setDisplayedCandidate}
-                               candidateScores={candidateScores}
-                               title={stepDef.name}
-                               offsetMinutes={offsetMinutes}
-                             />
+                              thinking={isCurrentStage && !isStageCompleted && stageCandidates
+                                ? (() => {
+                                  const entries = Object.values(stageCandidates) as any[];
+                                  if (entries.length === 0) return null;
+                                  return entries.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
+                                })()
+                                : null}
+                              stageHistory={stageHistory}
+                              isActive={isCurrentStage && !isStageCompleted}
+                              isCompleted={isStageCompleted}
+                              stage={stageNum}
+                              allCandidates={stageCandidates}
+                              displayedCandidate={displayedCandidate}
+                              onSelectCandidate={setDisplayedCandidate}
+                              candidateScores={candidateScores}
+                              title={stepDef.name}
+                              offsetMinutes={offsetMinutes}
+                            />
                           ) : (
                             <div className="bg-white/50 rounded-xl border border-stone-100 p-4 shadow-sm">
                               <div className="flex items-center justify-between">

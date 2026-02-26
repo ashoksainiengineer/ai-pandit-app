@@ -60,13 +60,13 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 
 // Category colors for progress indicators
 const CATEGORY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-    prakriti: { bg: 'bg-[#2D7A5C]', text: 'text-[#2D7A5C]', border: 'border-[#2D7A5C]' },
+    prakriti: { bg: 'bg-[#184131]', text: 'text-[#184131]', border: 'border-[#184131]' },
     forehead: { bg: 'bg-[#B8860B]', text: 'text-[#B8860B]', border: 'border-[#B8860B]' },
     eyes: { bg: 'bg-[#6B9AC4]', text: 'text-[#6B9AC4]', border: 'border-[#6B9AC4]' },
     voice: { bg: 'bg-[#C65D3B]', text: 'text-[#C65D3B]', border: 'border-[#C65D3B]' },
     speech: { bg: 'bg-[#8B5CF6]', text: 'text-[#8B5CF6]', border: 'border-[#8B5CF6]' },
-    decision: { bg: 'bg-[#D4A853]', text: 'text-[#D4A853]', border: 'border-[#D4A853]' },
-    family: { bg: 'bg-[#2D7A5C]', text: 'text-[#2D7A5C]', border: 'border-[#2D7A5C]' },
+    decision: { bg: 'bg-[#78611D]', text: 'text-[#78611D]', border: 'border-[#78611D]' },
+    family: { bg: 'bg-[#184131]', text: 'text-[#184131]', border: 'border-[#184131]' },
     marks: { bg: 'bg-[#7C3AED]', text: 'text-[#7C3AED]', border: 'border-[#7C3AED]' }
 };
 
@@ -475,7 +475,7 @@ export default function ForensicQuizEngine({
             >
                 <div className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl border border-[#B8860B]/30 p-8 shadow-lg">
                     <div className="text-center mb-8">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#B8860B] to-[#D4A853] mb-4">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#B8860B] to-[#78611D] mb-4">
                             <Sparkles className="w-8 h-8 text-white" />
                         </div>
                         <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-bold text-[#1A1612] mb-2">
@@ -485,7 +485,7 @@ export default function ForensicQuizEngine({
                             Discover your cosmic imprint through observable traits
                         </p>
                         {hasSavedProgress && lastSaved && (
-                            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-[#2D7A5C]/10 text-[#2D7A5C] rounded-full text-sm">
+                            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-[#184131]/10 text-[#184131] rounded-full text-sm">
                                 <Save className="w-4 h-4" />
                                 <span>Progress saved from {lastSaved.toLocaleTimeString()}</span>
                             </div>
@@ -494,8 +494,8 @@ export default function ForensicQuizEngine({
 
                     <div className="space-y-4 mb-8">
                         <div className="flex items-center gap-3 p-4 bg-white rounded-xl border border-[#F0E8DE]">
-                            <div className="w-10 h-10 rounded-lg bg-[#2D7A5C]/10 flex items-center justify-center">
-                                <Activity className="w-5 h-5 text-[#2D7A5C]" />
+                            <div className="w-10 h-10 rounded-lg bg-[#184131]/10 flex items-center justify-center">
+                                <Activity className="w-5 h-5 text-[#184131]" />
                             </div>
                             <div>
                                 <div className="font-semibold text-[#1A1612]">{QUIZ_METADATA.totalQuestions} Questions</div>
@@ -513,11 +513,11 @@ export default function ForensicQuizEngine({
                                 const catProg = getCategoryProgress(cat.id);
                                 const isComplete = catProg.answered === catProg.total && catProg.total > 0;
                                 return (
-                                    <div key={cat.id} className={`flex items-center gap-2 p-3 rounded-lg border ${isComplete ? 'bg-[#2D7A5C]/5 border-[#2D7A5C]/30' : 'bg-white border-[#F0E8DE]'
+                                    <div key={cat.id} className={`flex items-center gap-2 p-3 rounded-lg border ${isComplete ? 'bg-[#184131]/5 border-[#184131]/30' : 'bg-white border-[#F0E8DE]'
                                         }`}>
                                         <span className="text-lg">{cat.icon}</span>
                                         <div className="text-sm text-[#4A453F]">{cat.name}</div>
-                                        {isComplete && <CheckCircle className="w-4 h-4 text-[#2D7A5C] ml-auto" />}
+                                        {isComplete && <CheckCircle className="w-4 h-4 text-[#184131] ml-auto" />}
                                     </div>
                                 );
                             })}
@@ -527,7 +527,7 @@ export default function ForensicQuizEngine({
                     <div className="flex gap-3">
                         <button
                             onClick={() => setQuizStarted(true)}
-                            className="w-full py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                            className="w-full py-3 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2"
                         >
                             {hasSavedProgress ? 'Resume Assessment' : 'Start Assessment'}
                             <ChevronRight className="w-4 h-4" />
@@ -560,15 +560,15 @@ export default function ForensicQuizEngine({
             >
                 <div className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl border border-[#B8860B]/30 p-8 shadow-lg">
                     <div className="text-center mb-6">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#2D7A5C] to-[#4ADE80] mb-4">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#184131] to-[#4ADE80] mb-4">
                             <CheckCircle className="w-8 h-8 text-white" />
                         </div>
                         <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-bold text-[#1A1612] mb-2">
                             Assessment Complete
                         </h2>
-                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#2D7A5C]/10 rounded-full">
-                            <Target className="w-4 h-4 text-[#2D7A5C]" />
-                            <span className="text-sm font-semibold text-[#2D7A5C]">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#184131]/10 rounded-full">
+                            <Target className="w-4 h-4 text-[#184131]" />
+                            <span className="text-sm font-semibold text-[#184131]">
                                 {results.overallConfidence}% Confidence
                             </span>
                         </div>
@@ -583,7 +583,7 @@ export default function ForensicQuizEngine({
                                     <span className="text-2xl">🍃</span>
                                     <span className="font-semibold text-[#1A1612]">Body Constitution</span>
                                 </div>
-                                <span className="text-sm font-bold text-[#2D7A5C]">
+                                <span className="text-sm font-bold text-[#184131]">
                                     {results.prakriti.primary.toUpperCase()}
                                     {results.prakriti.secondary && `-${results.prakriti.secondary.toUpperCase()}`}
                                 </span>
@@ -663,7 +663,7 @@ export default function ForensicQuizEngine({
                         )}
 
                         {/* Astro Mapping */}
-                        <div className="p-4 bg-gradient-to-r from-[#B8860B]/10 to-[#D4A853]/10 rounded-xl border border-[#B8860B]/20">
+                        <div className="p-4 bg-gradient-to-r from-[#B8860B]/10 to-[#78611D]/10 rounded-xl border border-[#B8860B]/20">
                             <div className="flex items-center gap-2 mb-2">
                                 <Sparkles className="w-4 h-4 text-[#B8860B]" />
                                 <span className="font-semibold text-[#1A1612]">Vedic Insight</span>
@@ -677,7 +677,7 @@ export default function ForensicQuizEngine({
                         <button
                             onClick={handleComplete}
                             disabled={isSubmitting}
-                            className="w-full py-3 bg-gradient-to-r from-[#2D7A5C] to-[#4ADE80] text-white rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                            className="w-full py-3 bg-gradient-to-r from-[#184131] to-[#4ADE80] text-white rounded-xl font-semibold hover:shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                         >
                             {isSubmitting ? (
                                 <>
@@ -763,8 +763,8 @@ export default function ForensicQuizEngine({
                             )}
                             {saveStatus === 'saved' && (
                                 <>
-                                    <CheckCircle className="w-3 h-3 text-[#2D7A5C]" />
-                                    <span className="text-[#2D7A5C]">Saved</span>
+                                    <CheckCircle className="w-3 h-3 text-[#184131]" />
+                                    <span className="text-[#184131]">Saved</span>
                                 </>
                             )}
                         </div>
@@ -777,7 +777,7 @@ export default function ForensicQuizEngine({
                 {/* Progress Bar */}
                 <div className="h-2 bg-[#F0E8DE] rounded-full overflow-hidden">
                     <motion.div
-                        className="h-full bg-gradient-to-r from-[#B8860B] to-[#D4A853] rounded-full"
+                        className="h-full bg-gradient-to-r from-[#B8860B] to-[#78611D] rounded-full"
                         initial={{ width: 0 }}
                         animate={{ width: `${((currentQuestionIndex + 1) / FORENSIC_QUIZ_QUESTIONS.length) * 100}%` }}
                         transition={{ duration: 0.3 }}
@@ -805,7 +805,7 @@ export default function ForensicQuizEngine({
                                 className={`text-[10px] px-2 py-1 rounded-full transition-colors disabled:opacity-50 ${isActive
                                     ? 'bg-[#B8860B] text-white'
                                     : isComplete
-                                        ? 'bg-[#2D7A5C]/20 text-[#2D7A5C]'
+                                        ? 'bg-[#184131]/20 text-[#184131]'
                                         : 'bg-[#F5EFE7] text-[#7A756F]'
                                     }`}
                             >
@@ -895,7 +895,7 @@ export default function ForensicQuizEngine({
                                     onClick={() => handleSelectOption(option.id)}
                                     className={`w-full p-4 rounded-xl border-2 text-left transition-all ${isSelected
                                         ? 'border-[#B8860B] bg-[#B8860B]/5'
-                                        : 'border-[#F0E8DE] hover:border-[#D4A853]/50 hover:bg-[#F5EFE7]/50'
+                                        : 'border-[#F0E8DE] hover:border-[#78611D]/50 hover:bg-[#F5EFE7]/50'
                                         }`}
                                 >
                                     <div className="flex items-start gap-3">
@@ -979,7 +979,7 @@ export default function ForensicQuizEngine({
                             <button
                                 onClick={handleNext}
                                 disabled={!currentAnswer?.selectedOptions?.length && !currentAnswer?.customAnswer && !currentAnswer?.isNotSure}
-                                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {currentQuestionIndex === FORENSIC_QUIZ_QUESTIONS.length - 1 ? (
                                     <>See Results <Sparkles className="w-4 h-4" /></>
@@ -1003,7 +1003,7 @@ export default function ForensicQuizEngine({
                         <div
                             key={cat.id}
                             className={`w-2 h-2 rounded-full transition-colors ${isComplete
-                                ? 'bg-[#2D7A5C]'
+                                ? 'bg-[#184131]'
                                 : hasStarted
                                     ? 'bg-[#B8860B]'
                                     : 'bg-[#E8E0D5]'

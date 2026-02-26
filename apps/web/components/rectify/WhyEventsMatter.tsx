@@ -37,9 +37,9 @@ const ACCURACY_LEVELS = [
     accuracy: '70-80%',
     precision: '±3-5 minutes',
     label: 'Good Progress',
-    color: 'text-[#D4A853]',
-    bgColor: 'bg-[#D4A853]/10',
-    borderColor: 'border-[#D4A853]/30',
+    color: 'text-[#78611D]',
+    bgColor: 'bg-[#78611D]/10',
+    borderColor: 'border-[#78611D]/30',
     icon: TrendingUp,
     description: 'Professional-grade accuracy'
   },
@@ -48,9 +48,9 @@ const ACCURACY_LEVELS = [
     accuracy: '88-95%',
     precision: '±10-60 seconds',
     label: 'Excellent Dataset',
-    color: 'text-[#2D7A5C]',
-    bgColor: 'bg-[#2D7A5C]/10',
-    borderColor: 'border-[#2D7A5C]/30',
+    color: 'text-[#184131]',
+    bgColor: 'bg-[#184131]/10',
+    borderColor: 'border-[#184131]/30',
     icon: Award,
     description: 'Sub-minute precision achieved'
   },
@@ -60,7 +60,7 @@ const ACCURACY_LEVELS = [
     precision: '±1-10 seconds',
     label: 'God Tier Precision',
     color: 'text-[#B8860B]',
-    bgColor: 'bg-gradient-to-r from-[#B8860B]/15 to-[#D4A853]/15',
+    bgColor: 'bg-gradient-to-r from-[#B8860B]/15 to-[#78611D]/15',
     borderColor: 'border-[#B8860B]/40',
     icon: Sparkles,
     description: 'Research-grade seconds-level accuracy'
@@ -157,7 +157,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl border border-[#D4A853]/30 overflow-hidden shadow-lg shadow-[#D4A853]/5"
+      className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl border border-[#78611D]/30 overflow-hidden shadow-lg shadow-[#78611D]/5"
     >
       {/* Header - Always Visible */}
       <div 
@@ -167,7 +167,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-[#B8860B] to-[#D4A853]">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-[#B8860B] to-[#78611D]">
                 <Target className="w-5 h-5 text-white" />
               </div>
               <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-bold text-[#1A1612]">
@@ -197,7 +197,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
           </div>
           <div className="flex-1 h-2 bg-[#F0E8DE] rounded-full overflow-hidden">
             <motion.div 
-              className="h-full bg-gradient-to-r from-[#B8860B] to-[#D4A853] rounded-full"
+              className="h-full bg-gradient-to-r from-[#B8860B] to-[#78611D] rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${Math.min(100, (currentEventCount / 40) * 100)}%` }}
               transition={{ duration: 1, delay: 0.3 }}
@@ -274,7 +274,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                               isCurrent 
                                 ? `${level.bgColor} ${level.borderColor} border-2` 
                                 : isPast
-                                  ? 'bg-[#2D7A5C]/5 border-[#2D7A5C]/20'
+                                  ? 'bg-[#184131]/5 border-[#184131]/20'
                                   : 'bg-white border-[#F0E8DE] opacity-70'
                             }`}
                           >
@@ -294,7 +294,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                               </div>
                             </div>
                             {isCurrent && (
-                              <div className="mt-2 pt-2 border-t border-[#D4A853]/20">
+                              <div className="mt-2 pt-2 border-t border-[#78611D]/20">
                                 <p className="text-xs text-[#4A453F]">✓ Your current level</p>
                               </div>
                             )}
@@ -311,11 +311,11 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                       <div className="text-[10px] text-[#7A756F] uppercase tracking-wider">Events Added</div>
                     </div>
                     <div className="p-3 bg-white rounded-xl border border-[#F0E8DE] text-center">
-                      <div className="text-2xl font-bold text-[#D4A853]">{categoriesCovered}</div>
+                      <div className="text-2xl font-bold text-[#78611D]">{categoriesCovered}</div>
                       <div className="text-[10px] text-[#7A756F] uppercase tracking-wider">Categories</div>
                     </div>
                     <div className="p-3 bg-white rounded-xl border border-[#F0E8DE] text-center">
-                      <div className="text-2xl font-bold text-[#2D7A5C]">{Math.max(0, 25 - currentEventCount)}</div>
+                      <div className="text-2xl font-bold text-[#184131]">{Math.max(0, 25 - currentEventCount)}</div>
                       <div className="text-[10px] text-[#7A756F] uppercase tracking-wider">To Optimal</div>
                     </div>
                   </div>
@@ -351,7 +351,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                               </span>
                             </div>
                             <p className="text-xs text-[#7A756F] mt-1">{cat.why}</p>
-                            <p className="text-[10px] text-[#2D7A5C] mt-1">Planets: {cat.planets}</p>
+                            <p className="text-[10px] text-[#184131] mt-1">Planets: {cat.planets}</p>
                             <div className="mt-2 flex flex-wrap gap-1">
                               {cat.examples.map((ex, i) => (
                                 <span key={i} className="text-[10px] bg-[#F5EFE7] text-[#4A453F] px-2 py-0.5 rounded">
@@ -378,7 +378,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                     The Mathematics of BTR
                   </h4>
 
-                  <div className="p-4 bg-gradient-to-br from-[#B8860B]/5 to-[#D4A853]/5 rounded-xl border border-[#B8860B]/20">
+                  <div className="p-4 bg-gradient-to-br from-[#B8860B]/5 to-[#78611D]/5 rounded-xl border border-[#B8860B]/20">
                     <h5 className="font-bold text-[#1A1612] mb-2">Why 30+ Events?</h5>
                     <p className="text-sm text-[#4A453F] leading-relaxed">
                       Each life event is triggered by specific planetary periods (Dasha). 
@@ -444,7 +444,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
             </div>
 
             {/* Footer CTA */}
-            <div className="p-4 bg-gradient-to-r from-[#B8860B]/10 to-[#D4A853]/10 border-t border-[#D4A853]/20">
+            <div className="p-4 bg-gradient-to-r from-[#B8860B]/10 to-[#78611D]/10 border-t border-[#78611D]/20">
               <p className="text-sm text-center text-[#1A1612]">
                 <span className="font-bold">💡 Pro Tip:</span> Start with your most memorable life events 
                 across different years. Add events gradually—each one improves accuracy!

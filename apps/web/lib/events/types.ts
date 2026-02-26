@@ -91,9 +91,9 @@ export const getImportanceWeight = (level: EventImportance): number => {
 
 export const getImportanceColor = (level: EventImportance): string => {
   switch (level) {
-    case 'critical': return 'bg-[#2D7A5C]/20 text-[#2D7A5C]';
+    case 'critical': return 'bg-[#184131]/20 text-[#184131]';
     case 'high': return 'bg-[#8B5CF6]/20 text-[#8B5CF6]';
-    case 'medium': return 'bg-[#D4AF37]/20 text-[#D4AF37]';
+    case 'medium': return 'bg-[#78611D]/20 text-[#78611D]';
     case 'low': return 'bg-[#7A756F]/20 text-[#7A756F]';
     default: return 'bg-[#7A756F]/20 text-[#7A756F]';
   }

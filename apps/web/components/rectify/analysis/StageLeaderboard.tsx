@@ -91,13 +91,13 @@ export const StageLeaderboard = memo(function StageLeaderboard({
                                 </td>
                                 <td className="px-4 py-1.5 text-right">
                                     <div className="flex flex-col items-end">
-                                        <span className={`text-[11px] font-bold font-mono ${s.score > 80 ? 'text-[#2D7A5C]' : 'text-[#B8860B]'
+                                        <span className={`text-[11px] font-bold font-mono ${s.score > 80 ? 'text-[#184131]' : 'text-[#B8860B]'
                                             }`}>
                                             {s.score.toFixed(1)}%
                                         </span>
                                         <div className="w-12 h-1 bg-stone-100 rounded-full mt-0.5 overflow-hidden">
                                             <div
-                                                className={`h-full rounded-full ${s.score > 80 ? 'bg-[#2D7A5C]' : 'bg-[#B8860B]'
+                                                className={`h-full rounded-full ${s.score > 80 ? 'bg-[#184131]' : 'bg-[#B8860B]'
                                                     }`}
                                                 style={{ width: `${s.score}%` }}
                                             />

@@ -33,9 +33,9 @@ export default function AccuracyMeter({ lifeEvents, hasPhysicalTraits = false }:
 
     // Determine accuracy level color
     const getAccuracyColor = (accuracy: number) => {
-        if (accuracy >= 97) return '#2D7A5C'; // Green - Excellent
+        if (accuracy >= 97) return '#184131'; // Green - Excellent
         if (accuracy >= 90) return '#10B981'; // Emerald - Very Good
-        if (accuracy >= 80) return '#D4AF37'; // Gold - Good
+        if (accuracy >= 80) return '#78611D'; // Gold - Good
         if (accuracy >= 70) return '#F97316'; // Orange - Fair
         return '#EF4444'; // Red - Needs more data
     };
@@ -51,7 +51,7 @@ export default function AccuracyMeter({ lifeEvents, hasPhysicalTraits = false }:
     const accuracyColor = getAccuracyColor(accuracyData.totalAccuracy);
 
     return (
-        <div className="glass-card p-6 border-2 border-[#D4AF37]/30 mb-8 bg-white rounded-xl">
+        <div className="glass-card p-6 border-2 border-[#78611D]/30 mb-8 bg-white rounded-xl">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-[#1A1612] flex items-center gap-2">
@@ -109,11 +109,11 @@ export default function AccuracyMeter({ lifeEvents, hasPhysicalTraits = false }:
                     </div>
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-[#4A453F]">Minimum Required</span>
-                        <span className="font-mono font-bold text-[#D4AF37]">{requirements.totalMinimumEvents}</span>
+                        <span className="font-mono font-bold text-[#78611D]">{requirements.totalMinimumEvents}</span>
                     </div>
                     <div className="flex items-center justify-between text-sm">
                         <span className="text-[#4A453F]">Target Accuracy</span>
-                        <span className="font-mono font-bold text-[#2D7A5C]">{requirements.targetAccuracy}</span>
+                        <span className="font-mono font-bold text-[#184131]">{requirements.targetAccuracy}</span>
                     </div>
                 </div>
             </div>
@@ -131,21 +131,21 @@ export default function AccuracyMeter({ lifeEvents, hasPhysicalTraits = false }:
                         return (
                             <div
                                 key={category.id}
-                                className={`flex items-center gap-2 p-2 rounded-lg transition-all ${isMet ? 'bg-[#2D7A5C]/10' : 'bg-[#F5EFE7]'
+                                className={`flex items-center gap-2 p-2 rounded-lg transition-all ${isMet ? 'bg-[#184131]/10' : 'bg-[#F5EFE7]'
                                     }`}
                             >
                                 <span className="text-lg">{category.icon}</span>
                                 <div className="flex-1 min-w-0">
                                     <div className="text-xs text-[#4A453F] truncate">{category.name}</div>
                                     <div className="text-xs font-mono">
-                                        <span className={isMet ? 'text-[#2D7A5C]' : 'text-orange-600'}>
+                                        <span className={isMet ? 'text-[#184131]' : 'text-orange-600'}>
                                             {eventsInCategory}
                                         </span>
                                         <span className="text-[#7A756F]">/{category.minimumEvents}</span>
                                     </div>
                                 </div>
                                 {isMet && (
-                                    <span className="text-[#2D7A5C] text-sm">✓</span>
+                                    <span className="text-[#184131] text-sm">✓</span>
                                 )}
                             </div>
                         );
@@ -155,8 +155,8 @@ export default function AccuracyMeter({ lifeEvents, hasPhysicalTraits = false }:
 
             {/* Suggestions */}
             {accuracyData.suggestions.length > 0 && accuracyData.totalAccuracy < 97 && (
-                <div className="mt-4 p-3 bg-[#D4AF37]/10 rounded-lg border border-[#D4AF37]/20">
-                    <h4 className="text-sm font-semibold text-[#D4AF37] mb-2">
+                <div className="mt-4 p-3 bg-[#78611D]/10 rounded-lg border border-[#78611D]/20">
+                    <h4 className="text-sm font-semibold text-[#78611D] mb-2">
                         💡 Boost Your Accuracy
                     </h4>
                     <ul className="space-y-1">
@@ -171,8 +171,8 @@ export default function AccuracyMeter({ lifeEvents, hasPhysicalTraits = false }:
 
             {/* Success Message */}
             {accuracyData.totalAccuracy >= 97 && (
-                <div className="mt-4 p-3 bg-[#2D7A5C]/10 rounded-lg border border-[#2D7A5C]/20">
-                    <p className="text-sm text-[#2D7A5C] flex items-center gap-2">
+                <div className="mt-4 p-3 bg-[#184131]/10 rounded-lg border border-[#184131]/20">
+                    <p className="text-sm text-[#184131] flex items-center gap-2">
                         <span className="text-lg">🎯</span>
                         Excellent! You&apos;ve provided enough data for maximum accuracy rectification.
                     </p>

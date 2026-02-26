@@ -76,8 +76,8 @@ export function BatchActionsToolbar({
         >
           {/* Selection Info */}
           <div className="flex items-center gap-3 pr-4 border-r border-[#F0E8DE]">
-            <div className="w-8 h-8 rounded-xl bg-[#D4AF37]/20 flex items-center justify-center">
-              <CheckSquare className="w-4 h-4 text-[#D4AF37]" />
+            <div className="w-8 h-8 rounded-xl bg-[#78611D]/20 flex items-center justify-center">
+              <CheckSquare className="w-4 h-4 text-[#78611D]" />
             </div>
             <div>
               <span className="text-[#1A1612] font-semibold">{selectedCount}</span>
@@ -92,9 +92,9 @@ export function BatchActionsToolbar({
               onClick={handleFavorite}
               className="
                 flex items-center gap-2 px-4 py-2 rounded-xl
-                bg-[#D4AF37]/10 text-[#D4AF37]
-                hover:bg-[#D4AF37]/20 transition-colors
-                border border-[#D4AF37]/20
+                bg-[#78611D]/10 text-[#78611D]
+                hover:bg-[#78611D]/20 transition-colors
+                border border-[#78611D]/20
               "
             >
               <Star className="w-4 h-4" />
@@ -130,7 +130,7 @@ export function BatchActionsToolbar({
                     className={`
                       px-3 py-1.5 rounded-lg text-sm text-left capitalize
                       ${exportFormat === format 
-                        ? 'bg-[#D4AF37]/20 text-[#D4AF37]' 
+                        ? 'bg-[#78611D]/20 text-[#78611D]' 
                         : 'text-[#7A756F] hover:bg-[#F5EFE7]'
                       }
                     `}

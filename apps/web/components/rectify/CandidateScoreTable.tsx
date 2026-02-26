@@ -98,9 +98,9 @@ export const CandidateScoreTable = memo(({ scores }: { scores: CandidateScore[] 
                                     <td className="px-4 py-2.5 text-center text-[11px] font-medium text-stone-600 font-mono">{s.minifiedEph?.ascendant || '---'}</td>
                                     <td className="px-4 py-3 text-right">
                                         <div className="flex flex-col items-end gap-1.5">
-                                            <span className="text-sm font-bold font-mono text-[#2D7A5C]">{s.score.toFixed(1)}%</span>
+                                            <span className="text-sm font-bold font-mono text-[#184131]">{s.score.toFixed(1)}%</span>
                                             <div className="w-20 h-1.5 bg-stone-100 rounded-full overflow-hidden">
-                                                <div className="h-full bg-[#2D7A5C]" style={{ width: `${s.score}%` }} />
+                                                <div className="h-full bg-[#184131]" style={{ width: `${s.score}%` }} />
                                             </div>
                                         </div>
                                     </td>

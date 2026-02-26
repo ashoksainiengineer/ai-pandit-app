@@ -16,48 +16,48 @@ export const ErrorCodes = {
   INVALID_DATE_FORMAT: 'INVALID_DATE_FORMAT',
   INVALID_COORDINATES: 'INVALID_COORDINATES',
   INSUFFICIENT_LIFE_EVENTS: 'INSUFFICIENT_LIFE_EVENTS',
-  
+
   // Authentication Errors (401)
   UNAUTHORIZED: 'UNAUTHORIZED',
   INVALID_TOKEN: 'INVALID_TOKEN',
   TOKEN_EXPIRED: 'TOKEN_EXPIRED',
-  
+
   // Authorization Errors (403)
   FORBIDDEN: 'FORBIDDEN',
   INSUFFICIENT_PERMISSIONS: 'INSUFFICIENT_PERMISSIONS',
-  
+
   // Not Found Errors (404)
   SESSION_NOT_FOUND: 'SESSION_NOT_FOUND',
   USER_NOT_FOUND: 'USER_NOT_FOUND',
   RESOURCE_NOT_FOUND: 'RESOURCE_NOT_FOUND',
-  
+
   // Conflict Errors (409)
   SESSION_ALREADY_EXISTS: 'SESSION_ALREADY_EXISTS',
   DUPLICATE_REQUEST: 'DUPLICATE_REQUEST',
-  
+
   // Rate Limiting (429)
   RATE_LIMIT_EXCEEDED: 'RATE_LIMIT_EXCEEDED',
-  
+
   // AI Service Errors (502)
   AI_SERVICE_ERROR: 'AI_SERVICE_ERROR',
   AI_TIMEOUT: 'AI_TIMEOUT',
   AI_RATE_LIMIT: 'AI_RATE_LIMIT',
   AI_INVALID_RESPONSE: 'AI_INVALID_RESPONSE',
-  
+
   // Queue Errors (503)
   QUEUE_FULL: 'QUEUE_FULL',
   QUEUE_TIMEOUT: 'QUEUE_TIMEOUT',
   PROCESSING_ERROR: 'PROCESSING_ERROR',
-  
+
   // Database Errors (500)
   DATABASE_ERROR: 'DATABASE_ERROR',
   CONNECTION_ERROR: 'CONNECTION_ERROR',
-  
+
   // Internal Errors (500)
   INTERNAL_ERROR: 'INTERNAL_ERROR',
   CALCULATION_ERROR: 'CALCULATION_ERROR',
   EPHEMERIS_ERROR: 'EPHEMERIS_ERROR',
-  
+
   // Cancellation (499)
   REQUEST_CANCELLED: 'REQUEST_CANCELLED',
 } as const;
@@ -74,39 +74,39 @@ const statusCodeMap: Record<ErrorCode, number> = {
   [ErrorCodes.INVALID_DATE_FORMAT]: 400,
   [ErrorCodes.INVALID_COORDINATES]: 400,
   [ErrorCodes.INSUFFICIENT_LIFE_EVENTS]: 400,
-  
+
   [ErrorCodes.UNAUTHORIZED]: 401,
   [ErrorCodes.INVALID_TOKEN]: 401,
   [ErrorCodes.TOKEN_EXPIRED]: 401,
-  
+
   [ErrorCodes.FORBIDDEN]: 403,
   [ErrorCodes.INSUFFICIENT_PERMISSIONS]: 403,
-  
+
   [ErrorCodes.SESSION_NOT_FOUND]: 404,
   [ErrorCodes.USER_NOT_FOUND]: 404,
   [ErrorCodes.RESOURCE_NOT_FOUND]: 404,
-  
+
   [ErrorCodes.SESSION_ALREADY_EXISTS]: 409,
   [ErrorCodes.DUPLICATE_REQUEST]: 409,
-  
+
   [ErrorCodes.RATE_LIMIT_EXCEEDED]: 429,
-  
+
   [ErrorCodes.AI_SERVICE_ERROR]: 502,
   [ErrorCodes.AI_TIMEOUT]: 504,
   [ErrorCodes.AI_RATE_LIMIT]: 502,
   [ErrorCodes.AI_INVALID_RESPONSE]: 502,
-  
+
   [ErrorCodes.QUEUE_FULL]: 503,
   [ErrorCodes.QUEUE_TIMEOUT]: 504,
   [ErrorCodes.PROCESSING_ERROR]: 500,
-  
+
   [ErrorCodes.DATABASE_ERROR]: 500,
   [ErrorCodes.CONNECTION_ERROR]: 500,
-  
+
   [ErrorCodes.INTERNAL_ERROR]: 500,
   [ErrorCodes.CALCULATION_ERROR]: 500,
   [ErrorCodes.EPHEMERIS_ERROR]: 500,
-  
+
   [ErrorCodes.REQUEST_CANCELLED]: 499,
 };
 
@@ -120,7 +120,7 @@ export class AppError extends Error {
   public readonly isOperational: boolean;
   public readonly details?: Record<string, unknown>;
   public readonly timestamp: string;
-  
+
   constructor(
     code: ErrorCode,
     message: string,
@@ -134,10 +134,10 @@ export class AppError extends Error {
     this.isOperational = isOperational;
     this.details = details;
     this.timestamp = new Date().toISOString();
-    
+
     Error.captureStackTrace(this, this.constructor);
   }
-  
+
   toJSON(): Record<string, unknown> {
     return {
       error: {
@@ -169,6 +169,7 @@ export class InvalidInputError extends AppError {
 }
 
 export class UnauthorizedError extends AppError {
+  /* eslint-disable no-empty */
   constructor(message = 'Authentication required') {
     super(ErrorCodes.UNAUTHORIZED, message);
   }
@@ -292,7 +293,7 @@ export function handleUnknownError(error: unknown): AppError {
   if (isAppError(error)) {
     return error;
   }
-  
+
   if (error instanceof Error) {
     return new AppError(
       ErrorCodes.INTERNAL_ERROR,
@@ -301,7 +302,7 @@ export function handleUnknownError(error: unknown): AppError {
       false
     );
   }
-  
+
   return new AppError(
     ErrorCodes.INTERNAL_ERROR,
     'An unexpected error occurred',

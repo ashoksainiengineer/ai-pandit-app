@@ -39,17 +39,17 @@ export const colors = {
   // Accent colors
   accent: {
     primary: '#B8860B',      // Sacred gold
-    primaryHover: '#D4A853', // Gold hover
+    primaryHover: '#78611D', // Gold hover
     secondary: '#6B1F7A',    // Plum accent
-    tertiary: '#2D7A5C',     // Sage green
+    tertiary: '#184131',     // Sage green
     gold: '#B8860B',         // Traditional gold
-    goldLight: '#D4A853',    // Light gold
+    goldLight: '#78611D',    // Light gold
     goldPale: '#F2E4C6',     // Pale gold
   },
 
   // Semantic colors
   semantic: {
-    success: '#2D7A5C',      // Success green (sage)
+    success: '#184131',      // Success green (sage)
     successLight: '#D4E5DE', // Light success background
     warning: '#E8A849',      // Warning orange
     error: '#C65D3B',        // Error terracotta
@@ -61,14 +61,14 @@ export const colors = {
   border: {
     default: '#F0E8DE',      // Default borders (pearl)
     hover: '#E8E0D5',        // Hover borders
-    accent: '#D4A853',       // Accent borders (gold)
+    accent: '#78611D',       // Accent borders (gold)
     gold: 'rgba(184, 134, 11, 0.2)',  // Gold accent
     goldHover: 'rgba(184, 134, 11, 0.3)',
   },
 
   // Gradients
   gradient: {
-    gold: 'linear-gradient(135deg, #B8860B 0%, #D4A853 50%, #E5C880 100%)',
+    gold: 'linear-gradient(135deg, #B8860B 0%, #78611D 50%, #E5C880 100%)',
     sunset: 'linear-gradient(135deg, #C65D3B 0%, #E08B6E 50%, #F4A896 100%)',
     plum: 'linear-gradient(135deg, #4A0E4E 0%, #6B1F7A 50%, #8B4A9C 100%)',
     sage: 'linear-gradient(135deg, #2D4A3E 0%, #4A7C6F 50%, #8FB3A5 100%)',

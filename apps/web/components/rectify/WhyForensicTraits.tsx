@@ -79,7 +79,7 @@ export default function WhyForensicTraits() {
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <div className="p-2 rounded-lg bg-gradient-to-br from-[#B8860B] to-[#D4A853]">
+              <div className="p-2 rounded-lg bg-gradient-to-br from-[#B8860B] to-[#78611D]">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-bold text-[#1A1612]">
@@ -152,7 +152,7 @@ export default function WhyForensicTraits() {
                   animate={{ opacity: 1 }}
                   className="space-y-4"
                 >
-                  <div className="p-4 bg-gradient-to-br from-[#B8860B]/10 to-[#D4A853]/10 rounded-xl border border-[#B8860B]/20">
+                  <div className="p-4 bg-gradient-to-br from-[#B8860B]/10 to-[#78611D]/10 rounded-xl border border-[#B8860B]/20">
                     <h4 className="font-bold text-[#1A1612] mb-2 flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-[#B8860B]" />
                       The Body is a Cosmic Text
@@ -233,8 +233,8 @@ export default function WhyForensicTraits() {
                             <div className="flex items-center justify-between">
                               <h5 className="font-semibold text-sm text-[#1A1612]">{item.trait}</h5>
                               <span className={`text-[10px] px-2 py-0.5 rounded-full ${item.accuracy === 'Very High'
-                                ? 'bg-[#2D7A5C]/10 text-[#2D7A5C]'
-                                : 'bg-[#D4A853]/10 text-[#B8860B]'
+                                ? 'bg-[#184131]/10 text-[#184131]'
+                                : 'bg-[#78611D]/10 text-[#B8860B]'
                                 }`}>
                                 {item.accuracy} Accuracy
                               </span>
@@ -249,7 +249,7 @@ export default function WhyForensicTraits() {
                               <p className="text-xs text-[#7A756F]">
                                 <span className="text-[#B8860B] font-medium">Meaning:</span> {item.meaning}
                               </p>
-                              <p className="text-[10px] text-[#2D7A5C] bg-[#2D7A5C]/5 p-2 rounded mt-2">
+                              <p className="text-[10px] text-[#184131] bg-[#184131]/5 p-2 rounded mt-2">
                                 <span className="font-medium">Verification:</span> {item.verification}
                               </p>
                             </div>
@@ -264,7 +264,7 @@ export default function WhyForensicTraits() {
             </div>
 
             {/* Footer Quote */}
-            <div className="p-4 bg-gradient-to-r from-[#B8860B]/10 to-[#D4A853]/10 border-t border-[#D4A853]/20">
+            <div className="p-4 bg-gradient-to-r from-[#B8860B]/10 to-[#78611D]/10 border-t border-[#78611D]/20">
               <p className="text-sm text-center text-[#4A453F] italic">
                 &quot;The body never lies. It holds the memory of the stars at birth.
                 Learn to read it, and you hold the key to time itself.&quot;

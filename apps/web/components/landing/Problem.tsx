@@ -132,7 +132,7 @@ const technicalSpecs = [
   { label: 'AI Model', value: 'DeepSeek R1', icon: Brain, color: '#4A7C6F' },
   { label: 'Database', value: 'Turso (libSQL)', icon: Database, color: '#C65D3B' },
   { label: 'ORM', value: 'Drizzle', icon: Layers, color: '#6B1F7A' },
-  { label: 'Cache', value: 'LRU Cache (1000)', icon: Server, color: '#D4A853' },
+  { label: 'Cache', value: 'LRU Cache (1000)', icon: Server, color: '#78611D' },
 ];
 
 const backendComponents = [
@@ -204,7 +204,7 @@ export default function Problem() {
                 transition={{ delay: index * 0.1 }}
                 viewport={{ once: true }}
                 className="group relative p-5 bg-white border border-[#F0E8DE] rounded-2xl 
-                           hover:border-[#D4A853]/30 hover:shadow-lg transition-all duration-300 text-center"
+                           hover:border-[#78611D]/30 hover:shadow-lg transition-all duration-300 text-center"
               >
                 {/* Subtle glow */}
                 <div 
@@ -245,7 +245,7 @@ export default function Problem() {
                 transition={{ delay: index * 0.1 }}
                 viewport={{ once: true }}
                 className="group p-5 bg-white border border-[#F0E8DE] rounded-2xl 
-                           hover:border-[#D4A853]/30 transition-all duration-300"
+                           hover:border-[#78611D]/30 transition-all duration-300"
               >
                 <div className="flex items-center gap-4">
                   <div 
@@ -307,8 +307,8 @@ export default function Problem() {
                 </div>
 
                 {/* AI Method Card */}
-                <div className="relative p-6 lg:p-8 bg-white border-2 border-[#D4A853]/30 rounded-2xl 
-                                overflow-hidden group hover:border-[#D4A853]/50 transition-all duration-300">
+                <div className="relative p-6 lg:p-8 bg-white border-2 border-[#78611D]/30 rounded-2xl 
+                                overflow-hidden group hover:border-[#78611D]/50 transition-all duration-300">
                   {/* Glow effect */}
                   <div 
                     className="absolute top-0 right-0 w-40 h-40 opacity-10 group-hover:opacity-20 transition-opacity"
@@ -385,7 +385,7 @@ export default function Problem() {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="px-8 py-4 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white font-semibold rounded-xl shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-all"
+                className="px-8 py-4 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white font-semibold rounded-xl shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-all"
               >
                 Start Analysis
               </motion.button>

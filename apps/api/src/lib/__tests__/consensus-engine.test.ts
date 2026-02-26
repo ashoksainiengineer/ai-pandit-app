@@ -113,7 +113,7 @@ describe('Consensus Engine - calculateConsensus', () => {
     it('should return 10 validation details (one per method)', () => {
         const input = makeMinimalInput();
         const result = calculateConsensus(input);
-        expect(result.validationDetails.length).toBe(10);
+        expect(result.validationDetails.length).toBe(12);
     });
 
     it('should have all 10 score fields', () => {
@@ -270,7 +270,7 @@ describe('Consensus Engine - Export Object', () => {
         const input = makeMinimalInput();
         const result = ConsensusEngine.calculate(input);
         expect(result.scores).toBeDefined();
-        expect(result.validationDetails.length).toBe(10);
+        expect(result.validationDetails.length).toBe(12);
     });
 });
 

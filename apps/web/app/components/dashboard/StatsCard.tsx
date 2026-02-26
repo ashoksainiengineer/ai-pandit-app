@@ -73,7 +73,7 @@ export default function StatsCard({
       className="bg-white rounded-xl border border-[#F0E8DE] p-6 hover:shadow-lg transition-shadow"
     >
       <div className="flex items-start justify-between mb-4">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#B8860B]/10 to-[#D4A853]/10 flex items-center justify-center text-[#B8860B]">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#B8860B]/10 to-[#78611D]/10 flex items-center justify-center text-[#B8860B]">
           {icon}
         </div>
         {change !== undefined && (

@@ -20,7 +20,7 @@ interface AshtakavargaChartProps {
 // ============================================================================
 
 const getScoreColor = (score: number): string => {
-  if (score >= 6) return '#D4AF37'; // accent-gold
+  if (score >= 6) return '#78611D'; // accent-gold
   if (score === 5) return '#C9A961'; // accent-gold-muted
   if (score === 4) return '#8C7F72'; // text-muted
   if (score >= 2) return '#5A6475'; // text-disabled

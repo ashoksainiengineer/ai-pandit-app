@@ -153,7 +153,7 @@ export default function EventEditor({
       <div className="flex items-center gap-3 pt-2">
         <button
           onClick={handleSave}
-          className="flex-1 h-10 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white font-medium rounded-lg hover:shadow-md transition-all flex items-center justify-center gap-2"
+          className="flex-1 h-10 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white font-medium rounded-lg hover:shadow-md transition-all flex items-center justify-center gap-2"
         >
           <Save className="w-4 h-4" />
           Save Changes

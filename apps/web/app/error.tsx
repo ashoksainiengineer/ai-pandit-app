@@ -86,7 +86,7 @@ export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
           <div className="flex flex-col gap-3">
             <button
               onClick={reset}
-              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white font-medium rounded-xl hover:opacity-90 transition-opacity"
+              className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white font-medium rounded-xl hover:opacity-90 transition-opacity"
             >
               <RefreshCw className="w-4 h-4" />
               Try Again

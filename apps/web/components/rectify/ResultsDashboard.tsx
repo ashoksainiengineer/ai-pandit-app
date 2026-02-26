@@ -657,8 +657,8 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                       {analysisDetails?.godTierData?.ephemeris && (
                         <div className="mt-4">
                           <PlanetaryVitals
-                            ephemeris={analysisDetails.godTierData.ephemeris}
-                            divCharts={analysisDetails.godTierData.divCharts}
+                            ephemeris={analysisDetails.godTierData.ephemeris as any}
+                            divCharts={analysisDetails.godTierData.divCharts as any}
                           />
                         </div>
                       )}

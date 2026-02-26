@@ -69,7 +69,7 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider
-      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_Y2xlcmsuYWktcGFuZGl0LmNvbSQ'}
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
       appearance={{
         baseTheme: undefined,
         variables: {
@@ -82,14 +82,14 @@ export default function RootLayout({
           borderRadius: '16px',
         },
         elements: {
-          formButtonPrimary: 'bg-gradient-to-r from-[#B8860B] to-[#D4A853] hover:opacity-90 text-white font-semibold',
+          formButtonPrimary: 'bg-gradient-to-r from-[#B8860B] to-[#78611D] hover:opacity-90 text-white font-semibold',
           card: 'bg-[#FDF8F3] border border-[#F0E8DE]',
           headerTitle: 'text-[#1A1612] font-[family-name:var(--font-cormorant)]',
           headerSubtitle: 'text-[#4A453F]',
-          socialButtonsBlockButton: 'border-[#D4A853]/30 hover:bg-[#D4A853]/10',
+          socialButtonsBlockButton: 'border-[#78611D]/30 hover:bg-[#78611D]/10',
           formFieldLabel: 'text-[#4A453F]',
-          formFieldInput: 'bg-[#FFFCF8] border-[#F0E8DE] text-[#1A1612] focus:border-[#D4A853]',
-          footerActionLink: 'text-[#B8860B] hover:text-[#D4A853]',
+          formFieldInput: 'bg-[#FFFCF8] border-[#F0E8DE] text-[#1A1612] focus:border-[#78611D]',
+          footerActionLink: 'text-[#B8860B] hover:text-[#78611D]',
         }
       }}
     >

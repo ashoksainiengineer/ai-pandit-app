@@ -45,8 +45,11 @@ jobs:
           git config user.name "GitHub Actions"
           git checkout -b main
           
+          # 3. Exclude non-production files
+          rm -rf **/index.test.ts **/index.test.tsx **/*.test.ts **/*.test.tsx **/__tests__ e2e packages/db/src/__tests__ .agents .gemini .idx docs *.md *.log playwright-report test-results
+          
           git add .
-          git commit -m "Sync whole repo: ${{ github.sha }}"
+          git commit -m "Sync production files: ${{ github.sha }}"
           
           # 3. Push to Hugging Face
           HF_URL="https://ashoksainiengineer:$HF_TOKEN@huggingface.co/spaces/ashoksainiengineer/ai-pandit"

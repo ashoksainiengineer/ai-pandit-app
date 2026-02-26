@@ -95,13 +95,13 @@ export default function Step4Review({
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-center gap-2 text-xs text-[#2D7A5C] bg-[#2D7A5C]/5 py-2.5 px-4 rounded-full border border-[#2D7A5C]/10"
+        className="flex items-center justify-center gap-2 text-xs text-[#184131] bg-[#184131]/5 py-2.5 px-4 rounded-full border border-[#184131]/10"
       >
         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
         </svg>
         <span className="font-medium">🔐 End-to-End Encrypted</span>
-        <span className="text-[#2D7A5C]/60">•</span>
+        <span className="text-[#184131]/60">•</span>
         <span className="text-[#7A756F]">Nobody can read your data except you</span>
       </motion.div>
 
@@ -123,7 +123,7 @@ export default function Step4Review({
       </div>
 
       {/* Accuracy Banner - Compact */}
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="bg-gradient-to-br from-[#FDF8F3] to-white border border-[#D4A853]/30 rounded-xl p-6 text-center">
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.2 }} className="bg-gradient-to-br from-[#FDF8F3] to-white border border-[#78611D]/30 rounded-xl p-6 text-center">
         <div className="font-[family-name:var(--font-cormorant)] text-5xl font-bold text-[#B8860B] mb-1">{accuracy}%</div>
         <div className="text-[#4A453F] text-sm font-medium">Expected Accuracy</div>
         {events.filter(isValidEvent).length < 5 && (
@@ -216,7 +216,7 @@ export default function Step4Review({
                   </div>
                   {e.description && <p className="text-[#7A756F] text-xs mt-1 line-clamp-1 italic">&ldquo;{e.description.slice(0, 100)}{e.description.length > 100 ? '...' : ''}&rdquo;</p>}
                 </div>
-                {isValidEvent(e) ? <span className="text-[#2D7A5C]">✓</span> : <span className="text-[#C65D3B] text-xs">!</span>}
+                {isValidEvent(e) ? <span className="text-[#184131]">✓</span> : <span className="text-[#C65D3B] text-xs">!</span>}
               </div>
             ))}
           </div>
@@ -252,7 +252,7 @@ export default function Step4Review({
             type="checkbox"
             checked={confirmed}
             onChange={(e) => setConfirmed(e.target.checked)}
-            className="mt-0.5 w-5 h-5 rounded border-2 border-[#D4A853] bg-white text-[#B8860B] accent-[#B8860B] cursor-pointer"
+            className="mt-0.5 w-5 h-5 rounded border-2 border-[#78611D] bg-white text-[#B8860B] accent-[#B8860B] cursor-pointer"
           />
           <span className={`text-sm leading-relaxed transition-colors ${confirmed ? 'text-[#1A1612]' : 'text-[#4A453F] group-hover:text-[#B8860B]'}`}>
             I confirm all details are accurate. Incorrect data will affect rectification accuracy.
@@ -264,7 +264,7 @@ export default function Step4Review({
           disabled={isSubmitting || !confirmed || cooldown}
           whileHover={{ scale: confirmed && !isSubmitting && !cooldown ? 1.02 : 1 }}
           whileTap={{ scale: confirmed && !isSubmitting && !cooldown ? 0.98 : 1 }}
-          className={`w-full py-4 font-bold rounded-xl text-lg transition-all flex items-center justify-center gap-2 ${!confirmed || cooldown ? 'bg-[#F0E8DE] text-[#A8A39D] cursor-not-allowed' : 'bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white shadow-lg shadow-[#B8860B]/20 hover:shadow-xl'
+          className={`w-full py-4 font-bold rounded-xl text-lg transition-all flex items-center justify-center gap-2 ${!confirmed || cooldown ? 'bg-[#F0E8DE] text-[#A8A39D] cursor-not-allowed' : 'bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white shadow-lg shadow-[#B8860B]/20 hover:shadow-xl'
             }`}
         >
           {isSubmitting ? <><span className="animate-spin">⏳</span> Processing...</> : cooldown ? <><span className="animate-pulse">⏳</span> Preparing...</> : <><Sparkles className="w-5 h-5" /> Start Analysis (~{estimatedMinutes}m)</>}

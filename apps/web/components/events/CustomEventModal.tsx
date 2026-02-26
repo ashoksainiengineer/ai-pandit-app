@@ -266,8 +266,8 @@ export default function CustomEventModal({
               </div>
 
               {/* Tips - Compact */}
-              <div className="p-3 bg-[#2D7A5C]/5 border border-[#2D7A5C]/20 rounded-lg">
-                <p className="text-xs text-[#2D7A5C]">
+              <div className="p-3 bg-[#184131]/5 border border-[#184131]/20 rounded-lg">
+                <p className="text-xs text-[#184131]">
                   <strong>💡</strong> Set event importance after adding time &amp; date
                 </p>
               </div>
@@ -290,7 +290,7 @@ export default function CustomEventModal({
                   (!isCreatingCategory && !selectedCategory) ||
                   (isCreatingCategory && !newCategoryName.trim())
                 }
-                className="flex-1 h-10 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
+                className="flex-1 h-10 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white font-medium rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm"
               >
                 {isSubmitting ? (
                   <>

@@ -66,7 +66,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
     <div className="bg-white border border-[#F0E8DE] rounded-xl p-4 sm:p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#2D7A5C] animate-pulse' : 'bg-[#C65D3B]'}`} />
+          <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#184131] animate-pulse' : 'bg-[#C65D3B]'}`} />
           <span className="text-xs font-medium text-[#7A756F]">
             {isConnected ? 'Processing' : 'Reconnecting'}
           </span>
@@ -89,7 +89,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
                 className={`
                   flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg shrink-0
                   transition-colors duration-300
-                  ${state === 'completed' ? 'bg-[#2D7A5C] text-white' : ''}
+                  ${state === 'completed' ? 'bg-[#184131] text-white' : ''}
                   ${state === 'active' ? 'bg-[#B8860B] text-white ring-2 ring-[#B8860B]/30 ring-offset-1' : ''}
                   ${state === 'pending' ? 'bg-[#F5EFE7] text-[#A8A39D]' : ''}
                 `}
@@ -103,7 +103,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
               {!isLast && (
                 <div className="flex-1 h-0.5 bg-[#F0E8DE] rounded-full overflow-hidden min-w-[4px] sm:min-w-[8px]">
                   <motion.div
-                    className="h-full bg-[#2D7A5C]"
+                    className="h-full bg-[#184131]"
                     initial={{ width: 0 }}
                     animate={{ width: stageStates[index] === 'completed' ? '100%' : '0%' }}
                     transition={{ duration: 0.3 }}
@@ -146,7 +146,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
         <div className="flex items-center gap-2">
           <div className="h-1.5 w-20 sm:w-32 bg-[#F5EFE7] rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-gradient-to-r from-[#B8860B] to-[#2D7A5C] rounded-full"
+              className="h-full bg-gradient-to-r from-[#B8860B] to-[#184131] rounded-full"
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 0.5 }}

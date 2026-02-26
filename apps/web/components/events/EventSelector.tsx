@@ -117,7 +117,7 @@ export default function EventSelector({
                   onClick={() => handleEventClick(event, event.categoryId)}
                   disabled={added}
                   className={`w-full text-left px-4 py-3 border-b border-[#F0E8DE] last:border-0 transition-colors ${added
-                      ? 'bg-[#2D7A5C]/5 text-[#2D7A5C]'
+                      ? 'bg-[#184131]/5 text-[#184131]'
                       : 'hover:bg-[#F5EFE7]'
                     }`}
                 >
@@ -276,14 +276,14 @@ export default function EventSelector({
                             onClick={() => handleEventClick(event, category.id)}
                             disabled={added}
                             className={`px-3 py-2 rounded-lg text-sm transition-all ${added
-                                ? 'bg-[#2D7A5C]/10 text-[#2D7A5C] cursor-default'
+                                ? 'bg-[#184131]/10 text-[#184131] cursor-default'
                                 : 'bg-[#F5EFE7] text-[#4A453F] hover:bg-[#B8860B]/10 hover:text-[#B8860B] border border-transparent hover:border-[#B8860B]/30'
                               }`}
                           >
                             {added && <span className="mr-1">✓</span>}
                             {event.label}
                             <span
-                              className={`ml-2 text-xs ${added ? 'text-[#2D7A5C]' : 'text-[#A8A39D]'
+                              className={`ml-2 text-xs ${added ? 'text-[#184131]' : 'text-[#A8A39D]'
                                 }`}
                             >
                               {event.importance === 'critical' && '⚡'}

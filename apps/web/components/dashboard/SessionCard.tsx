@@ -46,8 +46,8 @@ const THEME = {
   border: '#F0E8DE',
   borderHover: '#E8E0D5',
   gold: '#B8860B',
-  goldLight: '#D4A853',
-  success: '#2D7A5C',
+  goldLight: '#78611D',
+  success: '#184131',
   error: '#C65D3B',
   info: '#3B82F6',
 } as const;
@@ -55,16 +55,16 @@ const THEME = {
 const statusConfig = {
   complete: {
     label: '✓ Verified',
-    bgColor: 'bg-[#2D7A5C]/10',
-    textColor: 'text-[#2D7A5C]',
-    borderColor: 'border-[#2D7A5C]/30',
+    bgColor: 'bg-[#184131]/10',
+    textColor: 'text-[#184131]',
+    borderColor: 'border-[#184131]/30',
     icon: <CheckCircle2 className="w-3.5 h-3.5" />,
   },
   processing: {
     label: 'Analyzing',
-    bgColor: 'bg-[#D4A853]/10',
+    bgColor: 'bg-[#78611D]/10',
     textColor: 'text-[#B8860B]',
-    borderColor: 'border-[#D4A853]/30',
+    borderColor: 'border-[#78611D]/30',
     icon: <Loader2 className="w-3.5 h-3.5 animate-spin" />,
   },
   pending: {
@@ -92,8 +92,8 @@ const statusConfig = {
 
 const confidenceConfig = {
   'god-tier': { color: '#B8860B', label: 'GOD-TIER' },
-  'high': { color: '#2D7A5C', label: 'HIGH' },
-  'medium': { color: '#D4A853', label: 'MEDIUM' },
+  'high': { color: '#184131', label: 'HIGH' },
+  'medium': { color: '#78611D', label: 'MEDIUM' },
   'low': { color: '#C65D3B', label: 'LOW' },
 };
 
@@ -185,7 +185,7 @@ export const SessionCard = memo(function SessionCard({
           flex items-center gap-3 p-3 rounded-xl border cursor-pointer
           ${isSelected
             ? 'bg-[#B8860B]/5 border-[#B8860B]'
-            : 'bg-white border-[#F0E8DE] hover:border-[#D4A853]/50'
+            : 'bg-white border-[#F0E8DE] hover:border-[#78611D]/50'
           }
           transition-all
         `}
@@ -195,7 +195,7 @@ export const SessionCard = memo(function SessionCard({
           type="checkbox"
           checked={isSelected}
           onChange={() => { }}
-          className="w-4 h-4 rounded border-[#D4A853]/30 text-[#B8860B] focus:ring-[#B8860B]"
+          className="w-4 h-4 rounded border-[#78611D]/30 text-[#B8860B] focus:ring-[#B8860B]"
         />
         <div className={`w-2 h-2 rounded-full ${status.bgColor.replace('/10', '')}`} />
         <span className="flex-1 truncate text-sm text-[#1A1612]">{session.fullName}</span>
@@ -215,7 +215,7 @@ export const SessionCard = memo(function SessionCard({
         className={`
           relative group rounded-2xl border p-5 bg-white
           ${isSelected ? 'border-[#B8860B] ring-1 ring-[#B8860B]' : 'border-[#F0E8DE]'}
-          hover:border-[#D4A853]/50 hover:shadow-lg hover:shadow-[#D4A853]/5
+          hover:border-[#78611D]/50 hover:shadow-lg hover:shadow-[#78611D]/5
           transition-all duration-300
         `}
       >
@@ -226,7 +226,7 @@ export const SessionCard = memo(function SessionCard({
               type="checkbox"
               checked={isSelected}
               onChange={() => onSelect(session.id)}
-              className="w-5 h-5 rounded border-[#D4A853]/30 text-[#B8860B] focus:ring-[#B8860B]"
+              className="w-5 h-5 rounded border-[#78611D]/30 text-[#B8860B] focus:ring-[#B8860B]"
             />
           </div>
         )}
@@ -283,7 +283,7 @@ export const SessionCard = memo(function SessionCard({
 
             {/* Rectified Time */}
             {session.rectifiedTime && (
-              <div className="mt-4 p-3 bg-[#FDF8F3] rounded-xl border border-[#D4A853]/20">
+              <div className="mt-4 p-3 bg-[#FDF8F3] rounded-xl border border-[#78611D]/20">
                 <span className="text-xs text-[#7A756F] uppercase tracking-wider">Rectified Time</span>
                 <p className="text-[#B8860B] font-mono font-bold">{session.rectifiedTime}</p>
               </div>
@@ -328,7 +328,7 @@ export const SessionCard = memo(function SessionCard({
       className={`
         group relative flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-4 rounded-xl border
         ${isSelected ? 'bg-[#B8860B]/5 border-[#B8860B]' : 'bg-white border-[#F0E8DE]'}
-        hover:border-[#D4A853]/50 hover:shadow-sm transition-all
+        hover:border-[#78611D]/50 hover:shadow-sm transition-all
       `}
     >
       {/* Mobile Header Row */}
@@ -339,7 +339,7 @@ export const SessionCard = memo(function SessionCard({
             type="checkbox"
             checked={isSelected}
             onChange={() => onSelect(session.id)}
-            className="w-4 h-4 sm:w-5 sm:h-5 rounded border-[#D4A853]/30 text-[#B8860B] focus:ring-[#B8860B]"
+            className="w-4 h-4 sm:w-5 sm:h-5 rounded border-[#78611D]/30 text-[#B8860B] focus:ring-[#B8860B]"
           />
         )}
 
@@ -434,7 +434,7 @@ export const SessionCard = memo(function SessionCard({
             <div className="flex items-center gap-2">
               <div className="flex-1 h-1.5 bg-[#F0E8DE] rounded-full overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#B8860B] to-[#2D7A5C]"
+                  className="h-full rounded-full bg-gradient-to-r from-[#B8860B] to-[#184131]"
                   style={{ width: `${session.accuracy}%` }}
                 />
               </div>

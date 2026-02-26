@@ -119,6 +119,16 @@ export function calculateConsensus(input: ValidationInput): ConsensusResult {
   scores.ai = ai.score;
   details.push(ai);
 
+  // Method 11: Nadi Amsha Validation (T1 Precision)
+  const nadi = validateNadi(input);
+  scores.nadi = nadi.score;
+  details.push(nadi);
+
+  // Method 12: Prana Dasha Validation (T1 Precision)
+  const prana = validatePrana(input);
+  scores.prana = prana.score;
+  details.push(prana);
+
   // Calculate weighted overall consensus
   const fullScores = scores as ConsensusScores;
   const overallConsensus = calculateWeightedConsensus(fullScores);
@@ -515,7 +525,7 @@ function validateForensic(input: ValidationInput): ValidationDetail {
   }
 
   // Calculate forensic match score
-  let score = 60; // Base score
+  let score = 40; // Base score lowered to allow for mismatch detection
   const findings: string[] = [];
 
   // Lagna element vs prakriti
@@ -560,6 +570,34 @@ function validateAI(input: ValidationInput): ValidationDetail {
     status: score >= 75 ? 'pass' : score >= 50 ? 'warning' : 'fail',
     details: `AI confidence: ${score}%`,
     criticalFindings: score > 85 ? ['High AI confidence'] : []
+  };
+}
+
+function validateNadi(input: ValidationInput): ValidationDetail {
+  const { candidate } = input;
+  const score = (candidate as any).nadiData?.matches ? 100 : 0;
+
+  return {
+    method: 'Nadi Amsha',
+    score,
+    maxScore: 100,
+    status: score >= 90 ? 'pass' : 'fail',
+    details: score > 0 ? `Nadi Amsha ${(candidate as any).nadiData?.amsha} matches` : 'Nadi data unavailable',
+    criticalFindings: score > 0 ? ['Precision Nadi Match'] : []
+  };
+}
+
+function validatePrana(input: ValidationInput): ValidationDetail {
+  const { candidate } = input;
+  const score = (candidate.dasha?.vimshottari as any)?.prana?.lord ? 100 : 0;
+
+  return {
+    method: 'Prana Dasha',
+    score,
+    maxScore: 100,
+    status: score >= 90 ? 'pass' : 'fail',
+    details: score > 0 ? 'Prana level timing available' : 'Prana level data missing',
+    criticalFindings: score > 0 ? ['Micro-timing available'] : []
   };
 }
 

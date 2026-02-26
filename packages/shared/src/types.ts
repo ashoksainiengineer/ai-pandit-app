@@ -692,6 +692,8 @@ export interface ConsensusScores {
   transit: number;
   forensic: number;
   ai: number;
+  nadi?: number;
+  prana?: number;
 }
 
 /**

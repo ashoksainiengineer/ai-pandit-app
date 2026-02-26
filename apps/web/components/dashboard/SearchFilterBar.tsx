@@ -38,7 +38,7 @@ const statusOptions: { value: SessionStatus; label: string; icon: React.ReactNod
 ];
 
 const confidenceOptions = [
-  { value: 'god-tier', label: 'God-Tier', color: 'text-[#D4AF37]' },
+  { value: 'god-tier', label: 'God-Tier', color: 'text-[#78611D]' },
   { value: 'high', label: 'High', color: 'text-green-600' },
   { value: 'medium', label: 'Medium', color: 'text-yellow-600' },
   { value: 'low', label: 'Low', color: 'text-red-600' },
@@ -120,7 +120,7 @@ export const SearchFilterBar = memo(function SearchFilterBar({
               w-full pl-12 pr-4 py-3
               bg-white border border-[#F0E8DE] rounded-xl
               text-[#1A1612] placeholder-[#7A756F]
-              focus:outline-none focus:border-[#D4AF37]/50 focus:ring-2 focus:ring-[#D4AF37]/10
+              focus:outline-none focus:border-[#78611D]/50 focus:ring-2 focus:ring-[#78611D]/10
               transition-all
             "
           />
@@ -135,15 +135,15 @@ export const SearchFilterBar = memo(function SearchFilterBar({
             flex items-center gap-2 px-4 py-3 rounded-xl
             border transition-all duration-200
             ${hasActiveFilters 
-              ? 'bg-[#D4AF37]/20 border-[#D4AF37]/50 text-[#D4AF37]' 
-              : 'bg-white border-[#F0E8DE] text-[#4A453F] hover:border-[#D4AF37]/40'
+              ? 'bg-[#78611D]/20 border-[#78611D]/50 text-[#78611D]' 
+              : 'bg-white border-[#F0E8DE] text-[#4A453F] hover:border-[#78611D]/40'
             }
           `}
         >
           <Filter className="w-5 h-5" />
           <span className="hidden sm:inline">Filters</span>
           {hasActiveFilters && (
-            <span className="ml-1 px-2 py-0.5 text-xs bg-[#D4AF37] text-white rounded-full">
+            <span className="ml-1 px-2 py-0.5 text-xs bg-[#78611D] text-white rounded-full">
               {filterState.statusFilter.length + filterState.confidenceFilter.length + 
                (filterState.favoritesOnly ? 1 : 0) + 
                (filterState.dateRange.from || filterState.dateRange.to ? 1 : 0)}
@@ -157,7 +157,7 @@ export const SearchFilterBar = memo(function SearchFilterBar({
             field: sortState.field, 
             order: sortState.order === 'asc' ? 'desc' : 'asc' 
           })}
-          className="px-4 py-3 rounded-xl bg-white border border-[#F0E8DE] text-[#4A453F] hover:border-[#D4AF37]/40 transition-all"
+          className="px-4 py-3 rounded-xl bg-white border border-[#F0E8DE] text-[#4A453F] hover:border-[#78611D]/40 transition-all"
           title={`Sort: ${sortState.order === 'asc' ? 'Ascending' : 'Descending'}`}
         >
           {sortState.order === 'asc' ? '↑' : '↓'}
@@ -186,8 +186,8 @@ export const SearchFilterBar = memo(function SearchFilterBar({
                         flex items-center gap-2 px-3 py-2 rounded-lg text-sm
                         border transition-all duration-200
                         ${filterState.statusFilter.includes(value)
-                          ? `bg-[#D4AF37]/20 border-[#D4AF37]/50 ${color}`
-                          : 'bg-[#F5EFE7] border-[#F0E8DE] text-[#7A756F] hover:border-[#D4AF37]/30'
+                          ? `bg-[#78611D]/20 border-[#78611D]/50 ${color}`
+                          : 'bg-[#F5EFE7] border-[#F0E8DE] text-[#7A756F] hover:border-[#78611D]/30'
                         }
                       `}
                     >
@@ -210,8 +210,8 @@ export const SearchFilterBar = memo(function SearchFilterBar({
                         px-3 py-2 rounded-lg text-sm
                         border transition-all duration-200
                         ${filterState.confidenceFilter.includes(value)
-                          ? `bg-[#D4AF37]/20 border-[#D4AF37]/50 ${color}`
-                          : 'bg-[#F5EFE7] border-[#F0E8DE] text-[#7A756F] hover:border-[#D4AF37]/30'
+                          ? `bg-[#78611D]/20 border-[#78611D]/50 ${color}`
+                          : 'bg-[#F5EFE7] border-[#F0E8DE] text-[#7A756F] hover:border-[#78611D]/30'
                         }
                       `}
                     >
@@ -229,8 +229,8 @@ export const SearchFilterBar = memo(function SearchFilterBar({
                     flex items-center gap-2 px-3 py-2 rounded-lg text-sm
                     border transition-all duration-200
                     ${filterState.favoritesOnly
-                      ? 'bg-[#D4AF37]/20 border-[#D4AF37]/50 text-[#D4AF37]'
-                      : 'bg-[#F5EFE7] border-[#F0E8DE] text-[#7A756F] hover:border-[#D4AF37]/30'
+                      ? 'bg-[#78611D]/20 border-[#78611D]/50 text-[#78611D]'
+                      : 'bg-[#F5EFE7] border-[#F0E8DE] text-[#7A756F] hover:border-[#78611D]/30'
                     }
                   `}
                 >
@@ -246,8 +246,8 @@ export const SearchFilterBar = memo(function SearchFilterBar({
                     flex items-center gap-2 px-3 py-2 rounded-lg text-sm
                     border transition-all duration-200
                     ${filterState.hasResults === true
-                      ? 'bg-[#D4AF37]/20 border-[#D4AF37]/50 text-[#D4AF37]'
-                      : 'bg-[#F5EFE7] border-[#F0E8DE] text-[#7A756F] hover:border-[#D4AF37]/30'
+                      ? 'bg-[#78611D]/20 border-[#78611D]/50 text-[#78611D]'
+                      : 'bg-[#F5EFE7] border-[#F0E8DE] text-[#7A756F] hover:border-[#78611D]/30'
                     }
                   `}
                 >
@@ -262,7 +262,7 @@ export const SearchFilterBar = memo(function SearchFilterBar({
                 <select
                   value={sortState.field}
                   onChange={(e) => onSortChange({ ...sortState, field: e.target.value as SortField })}
-                  className="bg-[#F5EFE7] border border-[#F0E8DE] rounded-lg px-3 py-2 text-sm text-[#4A453F] focus:outline-none focus:border-[#D4AF37]/50"
+                  className="bg-[#F5EFE7] border border-[#F0E8DE] rounded-lg px-3 py-2 text-sm text-[#4A453F] focus:outline-none focus:border-[#78611D]/50"
                 >
                   {sortOptions.map(opt => (
                     <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -292,7 +292,7 @@ export const SearchFilterBar = memo(function SearchFilterBar({
           <span className="text-[#4A453F] font-medium">{totalCount}</span> sessions
         </span>
         {hasActiveFilters && (
-          <span className="text-[#D4AF37]">
+          <span className="text-[#78611D]">
             Filters active
           </span>
         )}

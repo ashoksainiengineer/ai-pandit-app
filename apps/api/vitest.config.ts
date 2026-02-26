@@ -16,6 +16,11 @@ export default defineConfig({
         },
         // Required for Swiss Ephemeris binary initialization in tests
         setupFiles: ['./src/lib/__tests__/setup.ts'],
+        pool: 'forks',
+        // @ts-ignore - Vitest 4 top-level pool options
+        forks: {
+            singleFork: true,
+        },
         env: {
             NODE_ENV: 'test',
             TURSO_DATABASE_URL: 'libsql://test.db',

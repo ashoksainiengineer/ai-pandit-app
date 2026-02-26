@@ -228,7 +228,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                             </Link>
                             <div className="flex items-center gap-2 text-sm">
                                 {savingStatus === 'saving' && <span className="text-[#B8860B] animate-pulse">Saving...</span>}
-                                {savingStatus === 'saved' && <span className="text-[#2D7A5C]">Saved ✓</span>}
+                                {savingStatus === 'saved' && <span className="text-[#184131]">Saved ✓</span>}
                                 {savingStatus === 'error' && <span className="text-[#D64545]">Save Failed</span>}
                                 <span className="text-[#B8860B] font-medium opacity-50">|</span>
                                 <span className="text-[#B8860B] font-medium">✏️ Editing Session</span>
@@ -259,7 +259,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                                 >
                                     <div
                                         className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all border-2 ${s < step
-                                            ? 'bg-[#2D7A5C] border-[#2D7A5C] text-white'
+                                            ? 'bg-[#184131] border-[#184131] text-white'
                                             : s === step
                                                 ? 'bg-white border-[#B8860B] text-[#B8860B] shadow-[0_0_15px_rgba(184,134,11,0.3)]'
                                                 : 'bg-[#F5EFE7] border-[#EBE2D6] text-[#A8A39D]'
@@ -346,7 +346,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
                             <button
                                 onClick={handleNext}
-                                className="px-8 py-3 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white rounded-xl font-semibold hover:shadow-[0_0_15px_rgba(184,134,11,0.4)] transition-all"
+                                className="px-8 py-3 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white rounded-xl font-semibold hover:shadow-[0_0_15px_rgba(184,134,11,0.4)] transition-all"
                             >
                                 Next Step →
                             </button>

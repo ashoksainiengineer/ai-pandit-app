@@ -38,11 +38,11 @@ const colorVariants = {
     glow: 'shadow-[#6B1F7A]/10',
   },
   green: {
-    bg: 'from-[#2D7A5C]/20 to-[#2D7A5C]/5',
-    border: 'border-[#2D7A5C]/30',
-    iconBg: 'bg-[#2D7A5C]/20',
-    text: 'text-[#2D7A5C]',
-    glow: 'shadow-[#2D7A5C]/10',
+    bg: 'from-[#184131]/20 to-[#184131]/5',
+    border: 'border-[#184131]/30',
+    iconBg: 'bg-[#184131]/20',
+    text: 'text-[#184131]',
+    glow: 'shadow-[#184131]/10',
   },
   blue: {
     bg: 'from-[#6B9AC4]/20 to-[#6B9AC4]/5',
@@ -93,7 +93,7 @@ export function StatCard({
       : Minus;
   
   const trendColor = trend && trend.value > 0 
-    ? 'text-[#2D7A5C]' 
+    ? 'text-[#184131]' 
     : trend && trend.value < 0 
       ? 'text-[#C65D3B]' 
       : 'text-[#A8A39D]';

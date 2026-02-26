@@ -943,10 +943,10 @@ export function calculatePanchanga(ephemeris: EphemerisData, birthDate: Date): P
     const sunLong = ephemeris.planets.sun.longitude;
     const moonLong = ephemeris.planets.moon.longitude;
 
-    // Tithi: (Moon - Sun) / 12
+    // Tithi: (Moon - Sun) / 12. Using epsilon to ensure boundaries (like 180) favor the preceding Tithi.
     let tithiDiff = moonLong - sunLong;
     if (tithiDiff < 0) tithiDiff += 360;
-    const tithiNum = Math.floor(tithiDiff / 12) + 1;
+    const tithiNum = Math.floor((tithiDiff - 0.000001) / 12) + 1;
     const tithiPerc = (tithiDiff % 12) / 12 * 100;
 
     // Yoga: (Sun + Moon) / 13°20'

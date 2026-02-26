@@ -103,7 +103,7 @@ export default function Footer() {
                            transition-colors duration-300 text-sm group"
               >
                 <div className="w-10 h-10 rounded-xl bg-white border border-[#F0E8DE] 
-                                flex items-center justify-center group-hover:border-[#D4A853]/50 transition-colors">
+                                flex items-center justify-center group-hover:border-[#78611D]/50 transition-colors">
                   <Mail className="w-4 h-4" />
                 </div>
                 <span>support@aipandit.app</span>

@@ -103,7 +103,7 @@ export const LiveCalculationPanel = memo<LiveCalculationPanelProps>(({
             {/* Footer Status */}
             <div className="bg-[#FAF8F5] px-3 py-1 border-t border-[#F0E8DE] flex justify-between items-center text-[9px] text-[#7A756F] shrink-0">
                 <span className="flex items-center gap-1.5">
-                    <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-[#2D7A5C] animate-pulse' : 'bg-[#C65D3B]'}`} />
+                    <div className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-[#184131] animate-pulse' : 'bg-[#C65D3B]'}`} />
                     {isConnected ? 'STREAM_ACTIVE' : 'DISCONNECTED'}
                 </span>
                 <span className="font-mono">

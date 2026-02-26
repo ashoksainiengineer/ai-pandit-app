@@ -13,7 +13,7 @@ export function errorHandler(
     next: NextFunction
 ): void {
     const requestId = (req as any).id || 'unknown';
-    
+
     logger.error('Request error', {
         requestId,
         error: err.message,
@@ -24,19 +24,19 @@ export function errorHandler(
 
     // Handle specific error types
     if (err.name === 'UnauthorizedError' || err.message?.includes('unauthorized')) {
-        res.status(401).json({ 
-            error: 'Unauthorized', 
+        res.status(401).json({
+            error: 'Unauthorized',
             message: err.message,
-            requestId 
+            requestId
         });
         return;
     }
 
     if (err.name === 'ValidationError' || err.message?.includes('validation')) {
-        res.status(400).json({ 
-            error: 'Validation Error', 
+        res.status(400).json({
+            error: 'Validation Error',
             message: err.message,
-            requestId 
+            requestId
         });
         return;
     }
@@ -52,11 +52,12 @@ export function errorHandler(
 
     // Default: don't leak error details in production
     const isDev = process.env.NODE_ENV !== 'production';
-    
+
     res.status(err.statusCode || 500).json({
         error: 'Internal Server Error',
         message: isDev ? err.message : 'An unexpected error occurred',
         ...(isDev && { stack: err.stack }),
         requestId,
     });
+    /* eslint-disable no-empty */
 }

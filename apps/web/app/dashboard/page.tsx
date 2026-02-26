@@ -162,7 +162,7 @@ export default async function DashboardPage() {
             <p className="text-[#7A756F] mb-6">Access your dashboard to view and manage your birth time rectification sessions.</p>
             <Link
               href="/sign-in"
-              className="inline-block bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white px-6 py-3 rounded-xl font-semibold hover:shadow-[0_0_20px_rgba(184,134,11,0.4)] transition-all"
+              className="inline-block bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white px-6 py-3 rounded-xl font-semibold hover:shadow-[0_0_20px_rgba(184,134,11,0.4)] transition-all"
             >
               Sign In
             </Link>

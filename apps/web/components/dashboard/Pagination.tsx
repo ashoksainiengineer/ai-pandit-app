@@ -103,7 +103,7 @@ export function Pagination({
           className="
             bg-white border border-[#F0E8DE] rounded-lg
             px-3 py-1.5 text-sm text-[#4A453F]
-            focus:outline-none focus:border-[#D4AF37]/50
+            focus:outline-none focus:border-[#78611D]/50
           "
         >
           {pageSizeOptions.map(size => (
@@ -121,7 +121,7 @@ export function Pagination({
           disabled={currentPage === 1}
           className="
             p-2 rounded-lg border border-[#F0E8DE]
-            text-[#7A756F] hover:text-[#D4AF37] hover:border-[#D4AF37]/40
+            text-[#7A756F] hover:text-[#78611D] hover:border-[#78611D]/40
             disabled:opacity-30 disabled:cursor-not-allowed
             transition-colors
           "
@@ -136,7 +136,7 @@ export function Pagination({
           disabled={currentPage === 1}
           className="
             p-2 rounded-lg border border-[#F0E8DE]
-            text-[#7A756F] hover:text-[#D4AF37] hover:border-[#D4AF37]/40
+            text-[#7A756F] hover:text-[#78611D] hover:border-[#78611D]/40
             disabled:opacity-30 disabled:cursor-not-allowed
             transition-colors
           "
@@ -158,8 +158,8 @@ export function Pagination({
                   w-10 h-10 rounded-lg text-sm font-medium
                   transition-all duration-200
                   ${currentPage === page
-                    ? 'bg-[#D4AF37] text-white'
-                    : 'border border-[#F0E8DE] text-[#4A453F] hover:border-[#D4AF37]/40 hover:text-[#D4AF37]'
+                    ? 'bg-[#78611D] text-white'
+                    : 'border border-[#F0E8DE] text-[#4A453F] hover:border-[#78611D]/40 hover:text-[#78611D]'
                   }
                 `}
               >
@@ -175,7 +175,7 @@ export function Pagination({
           disabled={currentPage === totalPages}
           className="
             p-2 rounded-lg border border-[#F0E8DE]
-            text-[#7A756F] hover:text-[#D4AF37] hover:border-[#D4AF37]/40
+            text-[#7A756F] hover:text-[#78611D] hover:border-[#78611D]/40
             disabled:opacity-30 disabled:cursor-not-allowed
             transition-colors
           "
@@ -190,7 +190,7 @@ export function Pagination({
           disabled={currentPage === totalPages}
           className="
             p-2 rounded-lg border border-[#F0E8DE]
-            text-[#7A756F] hover:text-[#D4AF37] hover:border-[#D4AF37]/40
+            text-[#7A756F] hover:text-[#78611D] hover:border-[#78611D]/40
             disabled:opacity-30 disabled:cursor-not-allowed
             transition-colors
           "
@@ -213,7 +213,7 @@ export function Pagination({
               w-16 px-2 py-1.5 text-center
               bg-white border border-[#F0E8DE] rounded-lg
               text-sm text-[#4A453F]
-              focus:outline-none focus:border-[#D4AF37]/50
+              focus:outline-none focus:border-[#78611D]/50
             "
             placeholder="#"
           />

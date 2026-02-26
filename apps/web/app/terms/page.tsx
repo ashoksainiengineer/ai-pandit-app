@@ -29,7 +29,7 @@ export default function TermsPage() {
       {/* Content */}
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="text-center mb-12">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#B8860B] to-[#D4A853] flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#B8860B] to-[#78611D] flex items-center justify-center">
             <Scale className="w-8 h-8 text-white" />
           </div>
           <h1 className="font-[family-name:var(--font-cormorant)] text-4xl font-semibold text-[#1A1612] mb-4">

@@ -143,8 +143,8 @@ function pruneStageCandidates(
     if (entries.length <= maxKeep) return stageCandidates;
 
     const scoreMap = new Map(scores.map(s => [s.time, s.score] as [string, number]));
-    
-    const sorted = entries.sort((a, b) => 
+
+    const sorted = entries.sort((a, b) =>
         (scoreMap.get(b[0]) || 0) - (scoreMap.get(a[0]) || 1)
     );
 
@@ -208,22 +208,30 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
             // that matches a prefix of `text`, then skip that overlap.
             // ═══════════════════════════════════════════════════════════════
             if (existing.fullText && text) {
-                // Case 1: Incoming text is already at the end of existing (duplicate recent chunk)
-                if (existing.fullText.endsWith(text)) {
-                    // It's a duplicate chunk, ignore it entirely
-                    newFullText = existing.fullText;
-                }
-                // Case 2: Replay - Incoming text starts with the existing text (superset)
-                else if (text.startsWith(existing.fullText)) {
+                // INDUSTRY FIX: Robust Suffix-Overlap De-duplication
+                // On reconnect, backend often replays the last few chunks or the full buffer.
+                // We find the longest suffix of existing text that matches the prefix of new text.
+
+                // Case 1: Simple superset (Replay starts from beginning)
+                if (text.startsWith(existing.fullText)) {
                     newFullText = text;
                 }
-                // Case 3: Replay - Existing text starts with the incoming text (but incoming is longer or equal)
-                else if (existing.fullText.startsWith(text)) {
-                    newFullText = existing.fullText; // Already have it
+                // Case 2: Redundant (New text is already at the end)
+                else if (existing.fullText.endsWith(text)) {
+                    newFullText = existing.fullText;
                 }
-                // Case 4: Default - Pure append
+                // Case 3: Suffix Overlap (The real challenge)
+                // e.g., "Hello worl" + "world" -> "Hello world"
                 else {
-                    newFullText = existing.fullText + text;
+                    const maxOverlap = Math.min(existing.fullText.length, text.length, 1024); // Cap search to 1KB for performance
+                    let overlapLen = 0;
+                    for (let len = maxOverlap; len > 0; len--) {
+                        if (existing.fullText.endsWith(text.slice(0, len))) {
+                            overlapLen = len;
+                            break;
+                        }
+                    }
+                    newFullText = existing.fullText + text.slice(overlapLen);
                 }
             } else {
                 newFullText = existing.fullText + text;
@@ -462,6 +470,32 @@ export const useStreamStore = create<StreamStore>()(
                                 const maxStage = Math.max(...p.candidateScores.map((s: any) => s.stage));
                                 updates.analyzedCount = new Set(p.candidateScores.filter((s: any) => s.stage === maxStage).map((s: any) => s.time)).size;
                             }
+
+                            // ═══════════════════════════════════════════════════════════════
+                            // INDUSTRY PATTERN: Candidate Pruning on Stage Advance
+                            // If we just advanced to a new stage, prune historical candidates
+                            // from previous stages to prevent memory bloat in long sessions.
+                            // ═══════════════════════════════════════════════════════════════
+                            if (stepIndex > (prev.progress?.stepIndex || 0)) {
+                                const newCandidatesByStage = { ...prev.candidatesByStage };
+                                let changed = false;
+
+                                // Prune all previous stages
+                                for (let s = 1; s < stepIndex; s++) {
+                                    if (newCandidatesByStage[s]) {
+                                        newCandidatesByStage[s] = pruneStageCandidates(
+                                            newCandidatesByStage[s],
+                                            updates.candidateScores || prev.candidateScores
+                                        );
+                                        changed = true;
+                                    }
+                                }
+
+                                if (changed) {
+                                    updates.candidatesByStage = newCandidatesByStage;
+                                }
+                            }
+
                             if (p.startedAt) {
                                 updates.startedAt = p.startedAt;
                             }
@@ -567,9 +601,9 @@ export const useStreamStore = create<StreamStore>()(
                                 [candidateTime]: data
                             };
 
-                            const updates: Partial<StreamState> = { 
-                                candidatesByStage: newCandidatesByStage, 
-                                activeAIStage: data.stage || prev.activeAIStage 
+                            const updates: Partial<StreamState> = {
+                                candidatesByStage: newCandidatesByStage,
+                                activeAIStage: data.stage || prev.activeAIStage
                             };
 
                             // Only push to details if it's the current step
@@ -638,6 +672,14 @@ export const useStreamStore = create<StreamStore>()(
                                 isComplete: true,
                                 result: extractedResult,
                             };
+                        }
+
+                        case 'error': {
+                            return {
+                                error: payload.message || payload.error || String(payload),
+                                isComplete: false,
+                                status: 'error' // Note: 'status' is not in StreamState but some components check it
+                            } as any;
                         }
 
                         case 'terminal_state': {

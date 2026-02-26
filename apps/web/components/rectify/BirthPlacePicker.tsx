@@ -257,7 +257,7 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
               value={searchQuery}
               onChange={(e) => handleSearchChange(e.target.value)}
               onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
-              className="w-full h-10 px-4 pr-20 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm placeholder-[#A8A39D] focus:border-[#D4A853] focus:ring-2 focus:ring-[#D4A853]/10 outline-none"
+              className="w-full h-10 px-4 pr-20 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm placeholder-[#A8A39D] focus:border-[#78611D] focus:ring-2 focus:ring-[#78611D]/10 outline-none"
               placeholder="Type city name..."
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -304,8 +304,8 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
           )}
 
           {selectedLocation && (
-            <div className="mt-3 p-3 bg-[#2D7A5C]/5 border border-[#2D7A5C]/20 rounded-lg">
-              <div className="flex items-center gap-2 text-[#2D7A5C] text-xs font-semibold mb-2"><span>✓</span><span>Location Selected</span></div>
+            <div className="mt-3 p-3 bg-[#184131]/5 border border-[#184131]/20 rounded-lg">
+              <div className="flex items-center gap-2 text-[#184131] text-xs font-semibold mb-2"><span>✓</span><span>Location Selected</span></div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                 <div><span className="text-[#7A756F]">City:</span><span className="text-[#1A1612] ml-1 font-medium">{selectedLocation.city}</span></div>
                 {selectedLocation.district && (<div><span className="text-[#7A756F]">District:</span><span className="text-[#1A1612] ml-1">{selectedLocation.district}</span></div>)}
@@ -326,16 +326,16 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[10px] text-[#7A756F] mb-1 uppercase tracking-wider">Latitude</label>
-              <input type="number" step="0.0001" min="-90" max="90" value={manualLat} onChange={(e) => setManualLat(e.target.value)} className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm font-mono focus:border-[#D4A853] outline-none" placeholder="28.6139" />
+              <input type="number" step="0.0001" min="-90" max="90" value={manualLat} onChange={(e) => setManualLat(e.target.value)} className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm font-mono focus:border-[#78611D] outline-none" placeholder="28.6139" />
             </div>
             <div>
               <label className="block text-[10px] text-[#7A756F] mb-1 uppercase tracking-wider">Longitude</label>
-              <input type="number" step="0.0001" min="-180" max="180" value={manualLng} onChange={(e) => setManualLng(e.target.value)} className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm font-mono focus:border-[#D4A853] outline-none" placeholder="77.2090" />
+              <input type="number" step="0.0001" min="-180" max="180" value={manualLng} onChange={(e) => setManualLng(e.target.value)} className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm font-mono focus:border-[#78611D] outline-none" placeholder="77.2090" />
             </div>
           </div>
           <div>
             <label className="block text-[10px] text-[#7A756F] mb-1 uppercase tracking-wider">Timezone</label>
-            <select value={manualTimezone} onChange={(e) => setManualTimezone(e.target.value)} className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm focus:border-[#D4A853] outline-none">
+            <select value={manualTimezone} onChange={(e) => setManualTimezone(e.target.value)} className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm focus:border-[#78611D] outline-none">
               <option value="-12">UTC-12:00</option>
               <option value="-11">UTC-11:00</option>
               <option value="-10">UTC-10:00 (Hawaii)</option>
@@ -369,10 +369,10 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
               <option value="12">UTC+12:00 (New Zealand)</option>
             </select>
           </div>
-          <button type="button" onClick={handleManualUpdate} className="w-full h-10 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white font-semibold rounded-lg hover:shadow-md transition-all text-sm">Apply Coordinates</button>
+          <button type="button" onClick={handleManualUpdate} className="w-full h-10 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white font-semibold rounded-lg hover:shadow-md transition-all text-sm">Apply Coordinates</button>
           {latitude !== undefined && longitude !== undefined && latitude !== 0 && longitude !== 0 && (
-            <div className="p-3 bg-[#2D7A5C]/5 border border-[#2D7A5C]/20 rounded-lg text-xs">
-              <span className="text-[#2D7A5C] font-semibold">✓ Current:</span>
+            <div className="p-3 bg-[#184131]/5 border border-[#184131]/20 rounded-lg text-xs">
+              <span className="text-[#184131] font-semibold">✓ Current:</span>
               <span className="text-[#1A1612] ml-2 font-mono">{latitude.toFixed(4)}°, {longitude.toFixed(4)}° (UTC{timezone >= 0 ? '+' : ''}{timezone})</span>
             </div>
           )}
@@ -383,8 +383,8 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
       {mode === 'map' && (
         <div className="space-y-3">
           <div className="flex gap-2">
-            <input type="text" value={mapQuery} onChange={(e) => setMapQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleMapSearch()} className="flex-1 h-10 px-4 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm focus:border-[#D4A853] outline-none" placeholder="Search location..." />
-            <button type="button" onClick={handleMapSearch} className="px-4 h-10 bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white font-semibold rounded-lg hover:shadow-md transition-all text-sm">Search</button>
+            <input type="text" value={mapQuery} onChange={(e) => setMapQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleMapSearch()} className="flex-1 h-10 px-4 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm focus:border-[#78611D] outline-none" placeholder="Search location..." />
+            <button type="button" onClick={handleMapSearch} className="px-4 h-10 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white font-semibold rounded-lg hover:shadow-md transition-all text-sm">Search</button>
           </div>
           <InteractiveMap center={mapCenter} zoom={mapZoom} marker={mapMarker} onLocationSelect={async (lat, lng) => {
             setMapMarker({ lat, lng });
@@ -401,8 +401,8 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
             }
           }} onCenterChange={setMapCenter} />
           {mapMarker && (
-            <div className="p-3 bg-[#2D7A5C]/5 border border-[#2D7A5C]/20 rounded-lg">
-              <div className="flex items-center gap-2 text-[#2D7A5C] text-xs font-semibold mb-1"><MapPin className="w-3.5 h-3.5" /><span>Selected</span></div>
+            <div className="p-3 bg-[#184131]/5 border border-[#184131]/20 rounded-lg">
+              <div className="flex items-center gap-2 text-[#184131] text-xs font-semibold mb-1"><MapPin className="w-3.5 h-3.5" /><span>Selected</span></div>
               <div className="font-mono text-xs text-[#1A1612]">Lat: {mapMarker.lat.toFixed(6)}°, Lng: {mapMarker.lng.toFixed(6)}°</div>
             </div>
           )}

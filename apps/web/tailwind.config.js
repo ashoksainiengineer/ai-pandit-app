@@ -29,12 +29,12 @@ module.exports = {
         'accent-secondary': '#6366F1',
         
         // Gold accent colors
-        'accent-gold': '#D4AF37',
+        'accent-gold': '#78611D',
         'accent-gold-light': '#E8C54D',
         'accent-gold-muted': '#C9A961',
         
         // Semantic colors
-        'success': '#2D7A5C',
+        'success': '#184131',
         'success-light': '#3D9A73',
         'warning': '#E8A849',
         'error': '#EF4444',

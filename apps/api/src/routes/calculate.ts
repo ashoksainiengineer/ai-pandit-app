@@ -9,80 +9,9 @@ import { logger } from '../lib/logger.js';
 import { addToQueue } from '../lib/queue-manager.js';
 import { encryptData } from '../lib/encryption/index.js';
 import { syncUser } from '../lib/user-sync.js';
-import type { BirthData, LifeEvent, TimeOffsetConfig } from '@ai-pandit/shared';
+import { CalculateRequestSchema } from '@ai-pandit/shared';
 
 const router = Router();
-
-// ═════════════════════════════════════════════════════════════════════════════
-// INPUT VALIDATION SCHEMAS (C3 Security - XSS/Injection Prevention)
-// ═════════════════════════════════════════════════════════════════════════════
-
-// Sanitize string to prevent XSS
-const sanitizeString = (val: string) => {
-    return val
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/javascript:/gi, '')
-        .replace(/on\w+\s*=/gi, '')
-        .trim();
-};
-
-// Life Event validation schema with sanitization
-const LifeEventSchema = z.object({
-    id: z.string().uuid().optional(),
-    eventType: z.string()
-        .min(1, "Event type is required")
-        .max(100, "Event type must be less than 100 characters")
-        .transform(sanitizeString),
-    category: z.string(), // String instead of enum to support custom Categories
-    eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD required)"),
-    eventTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM required)").optional().nullable(),
-    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid end date format").optional().nullable(),
-    datePrecision: z.enum(['exact_date_time', 'exact_date', 'month_year', 'month_range', 'year_range', 'date_range']),
-    description: z.string()
-        .max(2000, "Description must be less than 2000 characters")
-        .transform(sanitizeString)
-        .optional()
-        .nullable(),
-    importance: z.enum(['high', 'medium', 'low', 'critical']).default('medium'),
-    createdAt: z.string().datetime().optional(),
-    updatedAt: z.string().datetime().optional(),
-}).passthrough();
-
-// Birth Data validation schema
-const BirthDataSchema = z.object({
-    fullName: z.string()
-        .min(1, "Full name is required")
-        .max(100, "Name must be less than 100 characters")
-        .transform(sanitizeString),
-    dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD required)"),
-    tentativeTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/, "Invalid time format (HH:MM:SS required)"),
-    birthPlace: z.string()
-        .min(1, "Birth place is required")
-        .max(200, "Birth place must be less than 200 characters")
-        .transform(sanitizeString),
-    latitude: z.number().min(-90).max(90),
-    longitude: z.number().min(-180).max(180),
-    timezone: z.number().min(-12).max(14),
-    gender: z.enum(['male', 'female', 'other']).optional(),
-});
-
-// Offset Config validation schema
-const OffsetConfigSchema = z.object({
-    preset: z.enum(['30min', '1hour', '2hours', '4hours', '6hours', '12hours', 'seconds-30', 'seconds-6']),
-    customMinutes: z.number().min(1).max(720).optional(),
-    description: z.string().default(''),
-});
-
-// Main request validation schema
-const CalculateRequestSchema = z.object({
-    birthData: BirthDataSchema,
-    lifeEvents: z.array(LifeEventSchema)
-        .min(3, "At least 3 life events are required")
-        .max(100, "Maximum 100 life events allowed"),
-    physicalTraits: z.record(z.any()).optional().nullable(),
-    forensicTraits: z.record(z.any()).optional().nullable(),
-    offsetConfig: OffsetConfigSchema,
-});
 
 // ═════════════════════════════════════════════════════════════════════════════
 // ROUTE HANDLER
@@ -179,7 +108,7 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
             fullName: encryptedFullName,
             dateOfBirth: encryptedDateOfBirth, // 🔒 Encrypted
             tentativeTime: encryptedTentativeTime, // 🔒 Encrypted
-            birthPlace: birthData.birthPlace,
+            birthPlace: encryptData(birthData.birthPlace, clerkId),
             latitude: birthData.latitude,
             longitude: birthData.longitude,
             timezone: birthData.timezone.toString(),
@@ -187,7 +116,7 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
             physicalTraits: encryptedPhysicalTraits,
             forensicTraits: encryptedForensicTraits,
             lifeEvents: encryptedLifeEvents,
-            offsetConfig: JSON.stringify(offsetConfig),
+            offsetConfig: encryptData(JSON.stringify(offsetConfig), clerkId),
             status: 'pending',
             createdAt: now,
             updatedAt: now,
@@ -230,10 +159,12 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
         });
 
     } catch (error) {
+        console.error('DEBUG: Calculate endpoint error caught:', error);
         logger.error('Calculate endpoint error', error);
         res.status(500).json({
             success: false,
             error: error instanceof Error ? error.message : 'Internal server error',
+            stack: error instanceof Error ? error.stack : undefined,
         });
     }
 });

@@ -134,12 +134,12 @@ export function SwissEphPanel({
                         <div className="p-4 space-y-4">
                             {/* Ascendant */}
                             {(ascendant || minifiedEph?.ascendant) && (
-                                <div className="bg-[#FDF8F3] rounded-lg p-3 border border-[#D4AF37]/30 shrink-0">
+                                <div className="bg-[#FDF8F3] rounded-lg p-3 border border-[#78611D]/30 shrink-0">
                                     <div className="flex items-center gap-2 mb-2">
-                                        <Star className="w-4 h-4 text-[#D4AF37]" />
+                                        <Star className="w-4 h-4 text-[#78611D]" />
                                         <span className="text-[10px] text-[#7A756F] uppercase tracking-wider font-bold">Ascendant (Lagna)</span>
                                     </div>
-                                    <div className="text-lg font-bold text-[#D4AF37] font-mono">
+                                    <div className="text-lg font-bold text-[#78611D] font-mono">
                                         {ascendant ? (
                                             <span>{ascendant.sign} {formatDegree(ascendant.degree)} ({ascendant.nakshatra})</span>
                                         ) : (
@@ -159,7 +159,7 @@ export function SwissEphPanel({
                                         return (
                                             <div
                                                 key={key}
-                                                className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE] hover:border-[#D4AF37]/30 transition-colors shrink-0"
+                                                className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE] hover:border-[#78611D]/30 transition-colors shrink-0"
                                             >
                                                 <div className="flex items-center gap-1.5 mb-1">
                                                     <span className={`text-lg ${config.color}`}>{config.symbol}</span>
@@ -196,7 +196,7 @@ export function SwissEphPanel({
                                     </div>
                                     <div className="bg-[#FDF8F3] rounded-lg p-2.5 border border-[#F0E8DE] shrink-0">
                                         <div className="flex items-center gap-1.5 mb-1">
-                                            <span className="text-lg text-[#D4AF37]">↑</span>
+                                            <span className="text-lg text-[#78611D]">↑</span>
                                             <span className="text-[10px] text-[#7A756F] uppercase font-bold">Asc</span>
                                         </div>
                                         <div className="text-xs font-mono text-[#1A1612]">{minifiedEph.ascendant}</div>
@@ -261,7 +261,7 @@ export function SwissEphMini({ sun, moon, ascendant }: { sun?: string; moon?: st
             )}
             {ascendant && (
                 <div className="flex items-center gap-1">
-                    <span className="text-[#D4AF37]">↑</span>
+                    <span className="text-[#78611D]">↑</span>
                     <span className="text-[#4A453F]">{ascendant}</span>
                 </div>
             )}

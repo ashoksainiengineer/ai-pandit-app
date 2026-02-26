@@ -49,7 +49,7 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                            <div className="p-2 rounded-lg bg-gradient-to-br from-[#B8860B] to-[#D4A853]">
+                            <div className="p-2 rounded-lg bg-gradient-to-br from-[#B8860B] to-[#78611D]">
                                 <Activity className="w-5 h-5 text-white" />
                             </div>
                             <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-bold text-[#1A1612]">
@@ -123,7 +123,7 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                                     animate={{ opacity: 1 }}
                                     className="space-y-4"
                                 >
-                                    <div className="p-4 bg-gradient-to-br from-[#B8860B]/10 to-[#D4A853]/10 rounded-xl border border-[#B8860B]/20">
+                                    <div className="p-4 bg-gradient-to-br from-[#B8860B]/10 to-[#78611D]/10 rounded-xl border border-[#B8860B]/20">
                                         <h4 className="font-bold text-[#1A1612] mb-2 flex items-center gap-2 text-sm">
                                             <Sparkles className="w-4 h-4 text-[#B8860B]" />
                                             Reduction Logic
@@ -191,8 +191,8 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                                             <p className="text-[11px] text-stone-600 italic">5-level Vimshottari refinement (Dasha Sub-division).</p>
                                         </div>
                                     </div>
-                                    <div className="p-3 bg-[#2D7A5C]/5 border border-[#2D7A5C]/10 rounded-xl">
-                                        <h5 className="font-bold text-xs text-[#2D7A5C] flex items-center gap-2 mb-1">
+                                    <div className="p-3 bg-[#184131]/5 border border-[#184131]/10 rounded-xl">
+                                        <h5 className="font-bold text-xs text-[#184131] flex items-center gap-2 mb-1">
                                             <ShieldCheck className="w-3.5 h-3.5" />
                                             Mathematical Integrity
                                         </h5>
@@ -224,7 +224,7 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                                         </div>
                                         <div className="p-3 bg-black/[0.02] rounded-lg border border-black/5">
                                             <div className="text-[9px] font-bold text-stone-400 uppercase mb-1">Quantization</div>
-                                            <div className="font-mono text-[11px] font-bold text-[#2D7A5C]">BF16 Precision</div>
+                                            <div className="font-mono text-[11px] font-bold text-[#184131]">BF16 Precision</div>
                                         </div>
                                     </div>
 
@@ -253,7 +253,7 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                         </div>
 
                         {/* Footer Quote */}
-                        <div className="p-4 bg-gradient-to-r from-[#B8860B]/10 to-[#D4A853]/10 border-t border-[#D4A853]/20">
+                        <div className="p-4 bg-gradient-to-r from-[#B8860B]/10 to-[#78611D]/10 border-t border-[#78611D]/20">
                             <p className="text-xs text-center text-[#4A453F] italic">
                                 &quot;The singular truth of time is encoded across 16 dimensions of Varga.
                                 Absolute convergence is the goal of this engine.&quot;

@@ -79,9 +79,9 @@ function NotFoundIllustration() {
       </div>
       
       {/* Decorative dots */}
-      <div className="absolute top-4 right-4 w-3 h-3 rounded-full bg-[#D4A853]/30" />
+      <div className="absolute top-4 right-4 w-3 h-3 rounded-full bg-[#78611D]/30" />
       <div className="absolute bottom-8 left-6 w-2 h-2 rounded-full bg-[#6B1F7A]/20" />
-      <div className="absolute top-1/2 -right-2 w-2 h-2 rounded-full bg-[#2D7A5C]/20" />
+      <div className="absolute top-1/2 -right-2 w-2 h-2 rounded-full bg-[#184131]/20" />
     </div>
   );
 }
@@ -106,8 +106,8 @@ function CTALink({ href, label, description, icon: Icon, variant }: CTALinkProps
       className={`
         group flex items-center gap-4 p-4 rounded-xl border transition-all duration-300
         ${isPrimary 
-          ? 'bg-gradient-to-r from-[#B8860B] to-[#D4A853] text-white border-transparent shadow-lg shadow-[#B8860B]/20 hover:shadow-xl hover:shadow-[#B8860B]/30 hover:-translate-y-0.5' 
-          : 'bg-white border-[#F0E8DE] hover:border-[#D4A853]/50 hover:bg-[#FDF8F3]'
+          ? 'bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white border-transparent shadow-lg shadow-[#B8860B]/20 hover:shadow-xl hover:shadow-[#B8860B]/30 hover:-translate-y-0.5' 
+          : 'bg-white border-[#F0E8DE] hover:border-[#78611D]/50 hover:bg-[#FDF8F3]'
         }
       `}
     >
@@ -159,7 +159,7 @@ function SearchSuggestions() {
           <Link
             key={suggestion.href}
             href={suggestion.href}
-            className="px-4 py-2 text-sm text-[#4A453F] bg-white border border-[#F0E8DE] rounded-full hover:border-[#D4A853]/50 hover:text-[#B8860B] transition-colors"
+            className="px-4 py-2 text-sm text-[#4A453F] bg-white border border-[#F0E8DE] rounded-full hover:border-[#78611D]/50 hover:text-[#B8860B] transition-colors"
           >
             {suggestion.label}
           </Link>

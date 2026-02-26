@@ -1,0 +1,212 @@
+
+--- 2026-02-25T19:38:48.074Z ---
+URL: /
+OriginalURL: /api/queue
+Method: POST
+Query: {}
+Headers: {
+  "host": "localhost:8080",
+  "connection": "keep-alive",
+  "content-length": "1842",
+  "pragma": "no-cache",
+  "cache-control": "no-cache",
+  "sec-ch-ua-platform": "\"Windows\"",
+  "authorization": "Bearer missing",
+  "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.7632.6 Safari/537.36",
+  "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"HeadlessChrome\";v=\"145\", \"Chromium\";v=\"145\"",
+  "content-type": "application/json",
+  "sec-ch-ua-mobile": "?0",
+  "accept-language": "en-US",
+  "accept": "*/*",
+  "origin": "http://localhost:3000",
+  "sec-fetch-site": "same-site",
+  "sec-fetch-mode": "cors",
+  "sec-fetch-dest": "empty",
+  "referer": "http://localhost:3000/",
+  "accept-encoding": "gzip, deflate, br, zstd",
+  "cookie": "__clerk_db_jwt=dvb_3AAve1baavD5upxBvdTTWeZ7aFY; __clerk_db_jwt_rg-cX-Jh=dvb_3AAve1baavD5upxBvdTTWeZ7aFY; __client_uat_rg-cX-Jh=0; __client_uat=0",
+  "x-request-id": "6261d6c9-25cf-4021-b728-1e39f1cf14e7"
+}
+
+--- 2026-02-25T19:44:00.468Z ---
+URL: /
+OriginalURL: /api/queue
+Method: POST
+Query: {}
+Headers: {
+  "host": "localhost:8080",
+  "connection": "keep-alive",
+  "content-length": "1842",
+  "pragma": "no-cache",
+  "cache-control": "no-cache",
+  "sec-ch-ua-platform": "\"Windows\"",
+  "authorization": "Bearer missing",
+  "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.7632.6 Safari/537.36",
+  "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"HeadlessChrome\";v=\"145\", \"Chromium\";v=\"145\"",
+  "content-type": "application/json",
+  "sec-ch-ua-mobile": "?0",
+  "accept-language": "en-US",
+  "accept": "*/*",
+  "origin": "http://localhost:3000",
+  "sec-fetch-site": "same-site",
+  "sec-fetch-mode": "cors",
+  "sec-fetch-dest": "empty",
+  "referer": "http://localhost:3000/",
+  "accept-encoding": "gzip, deflate, br, zstd",
+  "cookie": "__clerk_db_jwt=dvb_3AAwIK08AkD3vYxUHbiv1se97sT; __clerk_db_jwt_rg-cX-Jh=dvb_3AAwIK08AkD3vYxUHbiv1se97sT; __client_uat_rg-cX-Jh=0; __client_uat=0",
+  "x-request-id": "27b72128-b3f8-449e-b0c5-b59ed50f7b27"
+}
+
+--- 2026-02-26T11:37:09.620Z ---
+URL: /audit-session-999?token=mock-token
+OriginalURL: /api/stream/audit-session-999?token=mock-token
+Method: GET
+Query: {"token":"mock-token"}
+Headers: {
+  "host": "localhost:8080",
+  "connection": "keep-alive",
+  "pragma": "no-cache",
+  "cache-control": "no-cache",
+  "sec-ch-ua-platform": "\"Windows\"",
+  "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.7632.6 Safari/537.36",
+  "accept": "text/event-stream",
+  "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"HeadlessChrome\";v=\"145\", \"Chromium\";v=\"145\"",
+  "accept-language": "en-US",
+  "sec-ch-ua-mobile": "?0",
+  "origin": "http://localhost:3000",
+  "sec-fetch-site": "same-site",
+  "sec-fetch-mode": "cors",
+  "sec-fetch-dest": "empty",
+  "referer": "http://localhost:3000/",
+  "accept-encoding": "gzip, deflate, br, zstd",
+  "x-request-id": "5c9927a2-de30-4013-947a-0a5c39464486"
+}
+
+--- 2026-02-26T11:37:48.485Z ---
+URL: /
+OriginalURL: /api/queue
+Method: POST
+Query: {}
+Headers: {
+  "host": "localhost:8080",
+  "connection": "keep-alive",
+  "content-length": "1842",
+  "pragma": "no-cache",
+  "cache-control": "no-cache",
+  "sec-ch-ua-platform": "\"Windows\"",
+  "authorization": "Bearer missing",
+  "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.7632.6 Safari/537.36",
+  "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"HeadlessChrome\";v=\"145\", \"Chromium\";v=\"145\"",
+  "content-type": "application/json",
+  "sec-ch-ua-mobile": "?0",
+  "accept-language": "en-US",
+  "accept": "*/*",
+  "origin": "http://localhost:3000",
+  "sec-fetch-site": "same-site",
+  "sec-fetch-mode": "cors",
+  "sec-fetch-dest": "empty",
+  "referer": "http://localhost:3000/",
+  "accept-encoding": "gzip, deflate, br, zstd",
+  "cookie": "__clerk_db_jwt=dvb_3ACoG2FP3In94jcSm6nOSBToHUl; __clerk_db_jwt_rg-cX-Jh=dvb_3ACoG2FP3In94jcSm6nOSBToHUl; __client_uat_rg-cX-Jh=0; __client_uat=0",
+  "x-request-id": "4fd5d57c-c3b3-41d2-83af-a5c0b201a4a2"
+}
+
+--- 2026-02-26T12:11:03.473Z ---
+URL: /audit-session-999?token=mock-token
+OriginalURL: /api/stream/audit-session-999?token=mock-token
+Method: GET
+Query: {"token":"mock-token"}
+Headers: {
+  "host": "localhost:8080",
+  "connection": "keep-alive",
+  "pragma": "no-cache",
+  "cache-control": "no-cache",
+  "sec-ch-ua-platform": "\"Windows\"",
+  "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.7632.6 Safari/537.36",
+  "accept": "text/event-stream",
+  "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"HeadlessChrome\";v=\"145\", \"Chromium\";v=\"145\"",
+  "accept-language": "en-US",
+  "sec-ch-ua-mobile": "?0",
+  "origin": "http://localhost:3000",
+  "sec-fetch-site": "same-site",
+  "sec-fetch-mode": "cors",
+  "sec-fetch-dest": "empty",
+  "referer": "http://localhost:3000/",
+  "accept-encoding": "gzip, deflate, br, zstd",
+  "x-request-id": "8ef3af08-8d50-482d-bb6b-ece6c8a363f4"
+}
+
+--- 2026-02-26T12:11:04.011Z ---
+URL: /audit-session-999?token=mock-token
+OriginalURL: /api/stream/audit-session-999?token=mock-token
+Method: GET
+Query: {"token":"mock-token"}
+Headers: {
+  "host": "localhost:8080",
+  "connection": "keep-alive",
+  "pragma": "no-cache",
+  "cache-control": "no-cache",
+  "sec-ch-ua-platform": "\"Windows\"",
+  "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.7632.6 Safari/537.36",
+  "accept": "text/event-stream",
+  "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"HeadlessChrome\";v=\"145\", \"Chromium\";v=\"145\"",
+  "accept-language": "en-US",
+  "sec-ch-ua-mobile": "?0",
+  "origin": "http://localhost:3000",
+  "sec-fetch-site": "same-site",
+  "sec-fetch-mode": "cors",
+  "sec-fetch-dest": "empty",
+  "referer": "http://localhost:3000/",
+  "accept-encoding": "gzip, deflate, br, zstd",
+  "x-request-id": "a27106a6-3398-4e4e-bba0-465a4ec82619"
+}
+
+--- 2026-02-26T12:11:18.248Z ---
+URL: /audit-session-999?token=mock-token
+OriginalURL: /api/stream/audit-session-999?token=mock-token
+Method: GET
+Query: {"token":"mock-token"}
+Headers: {
+  "host": "localhost:8080",
+  "connection": "keep-alive",
+  "pragma": "no-cache",
+  "cache-control": "no-cache",
+  "sec-ch-ua-platform": "\"Windows\"",
+  "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.7632.6 Safari/537.36",
+  "accept": "text/event-stream",
+  "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"HeadlessChrome\";v=\"145\", \"Chromium\";v=\"145\"",
+  "accept-language": "en-US",
+  "sec-ch-ua-mobile": "?0",
+  "origin": "http://localhost:3000",
+  "sec-fetch-site": "same-site",
+  "sec-fetch-mode": "cors",
+  "sec-fetch-dest": "empty",
+  "referer": "http://localhost:3000/",
+  "accept-encoding": "gzip, deflate, br, zstd",
+  "x-request-id": "8dcce30b-b61b-408f-b682-f6da1f0f40ae"
+}
+
+--- 2026-02-26T12:11:18.828Z ---
+URL: /audit-session-999?token=mock-token
+OriginalURL: /api/stream/audit-session-999?token=mock-token
+Method: GET
+Query: {"token":"mock-token"}
+Headers: {
+  "host": "localhost:8080",
+  "connection": "keep-alive",
+  "pragma": "no-cache",
+  "cache-control": "no-cache",
+  "sec-ch-ua-platform": "\"Windows\"",
+  "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.7632.6 Safari/537.36",
+  "accept": "text/event-stream",
+  "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"HeadlessChrome\";v=\"145\", \"Chromium\";v=\"145\"",
+  "accept-language": "en-US",
+  "sec-ch-ua-mobile": "?0",
+  "origin": "http://localhost:3000",
+  "sec-fetch-site": "same-site",
+  "sec-fetch-mode": "cors",
+  "sec-fetch-dest": "empty",
+  "referer": "http://localhost:3000/",
+  "accept-encoding": "gzip, deflate, br, zstd",
+  "x-request-id": "91896a7b-ac68-48a8-bcf4-4e3200159040"
+}
