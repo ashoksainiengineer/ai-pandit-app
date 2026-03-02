@@ -7,11 +7,12 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Download, CheckCircle, Clock, FileText, Share2, Award, Zap, Compass, ShieldCheck,
   User, MapPin, Calendar, Target, Trophy, Scale, Orbit, ChevronDown, ChevronUp,
-  Copy, ExternalLink, Filter, Sparkles, Activity, AlertTriangle
+  Copy, ExternalLink, Filter, Sparkles, Activity, AlertTriangle, CopyPlus
 } from 'lucide-react';
 import { VedicShuddhiRadar } from './VedicShuddhiRadar';
 import { PlanetaryVitals } from './PlanetaryVitals';
@@ -102,7 +103,9 @@ class ResultsErrorBoundary extends React.Component<
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: ResultsDashboardProps) {
+  const router = useRouter();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isCloning, setIsCloning] = useState(false);
   const [activeTab, setActiveTab] = useState<'summary' | 'audit' | 'comparison' | 'logs'>('summary');
   const [analysisDetails, setAnalysisDetails] = useState<AnalysisDetails | null>(null);
   const [copied, setCopied] = useState(false);
@@ -121,6 +124,26 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
       setAnalysisDetails(null);
     }
   }, [data.analysisResult]);
+
+  // Clone session
+  const handleClone = useCallback(async () => {
+    setIsCloning(true);
+    try {
+      const res = await fetch(`/api/sessions/${sessionId}/clone`, {
+        method: 'POST',
+      });
+      const result = await res.json();
+      if (result.success && result.data?.id) {
+        router.push(`/rectify/${result.data.id}/edit`);
+      } else {
+        throw new Error(result.error || 'Failed to clone session');
+      }
+    } catch (err) {
+      console.error('Clone failed:', err);
+      alert('Failed to duplicate session. Please try again.');
+      setIsCloning(false); // Only unset on error since successful routing unmounts
+    }
+  }, [sessionId, router]);
 
   // Copy share link
   const copyShareLink = useCallback(async () => {
@@ -357,6 +380,25 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              onClick={handleClone}
+              disabled={isCloning}
+              className="px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 hover:shadow-md disabled:opacity-50"
+              style={{
+                backgroundColor: `${THEME.gold}10`,
+                border: `1px solid ${THEME.gold}50`,
+                color: THEME.gold
+              }}
+              aria-label="Duplicate and edit this analysis"
+            >
+              {isCloning ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#B8860B] border-t-transparent" aria-hidden="true" />
+              ) : (
+                <CopyPlus className="w-4 h-4" aria-hidden="true" />
+              )}
+              <span className="hidden sm:inline">Duplicate & Edit</span>
+            </button>
+
             <button
               onClick={copyShareLink}
               className="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 hover:shadow-md"
@@ -646,9 +688,9 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                         candidateTime={data.rectifiedTime}
                         minifiedEph={analysisDetails?.godTierData?.ephemeris?.planets ? {
                           // FIXED: Correct degree calculation with proper parentheses
-                          sun: `${analysisDetails.godTierData.ephemeris.planets.sun?.sign || 'N/A'} ${((analysisDetails.godTierData.ephemeris.planets.sun?.longitude || 0) % 30).toFixed(1)}°`,
-                          moon: `${analysisDetails.godTierData.ephemeris.planets.moon?.sign || 'N/A'} ${((analysisDetails.godTierData.ephemeris.planets.moon?.longitude || 0) % 30).toFixed(1)}°`,
-                          ascendant: `${analysisDetails.godTierData.ephemeris.ascendant?.sign || 'N/A'} ${((analysisDetails.godTierData.ephemeris.ascendant?.longitude || 0) % 30).toFixed(1)}°`
+                          sun: `${analysisDetails.godTierData.ephemeris.planets.sun?.sign || 'N/A'} ${((analysisDetails.godTierData.ephemeris.planets.sun?.longitude || 0) % 30).toFixed(4)}°`,
+                          moon: `${analysisDetails.godTierData.ephemeris.planets.moon?.sign || 'N/A'} ${((analysisDetails.godTierData.ephemeris.planets.moon?.longitude || 0) % 30).toFixed(4)}°`,
+                          ascendant: `${analysisDetails.godTierData.ephemeris.ascendant?.sign || 'N/A'} ${((analysisDetails.godTierData.ephemeris.ascendant?.longitude || 0) % 30).toFixed(4)}°`
                         } : undefined}
                         dasha={analysisDetails?.godTierData?.dasha || 'Venus MD / Jupiter AD / Moon PD'}
                         defaultExpanded={true}
