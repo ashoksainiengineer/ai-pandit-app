@@ -205,7 +205,7 @@ export const SessionCard = memo(function SessionCard({
     } finally {
       setIsCloning(false);
     }
-  }, [session.id, onDuplicate]);
+  }, [getToken, session.id, onDuplicate]);
 
   // Compact View
   if (viewMode === 'compact') {
