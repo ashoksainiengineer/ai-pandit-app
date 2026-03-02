@@ -33,7 +33,11 @@ import {
   EVENT_HOUSE_MAP,
   EVENT_SIGNIFICATORS
 } from '@ai-pandit/shared';
-import { TatwaShuddhi, calculateTatwaAtTime } from './tatwa-shuddhi.js';
+import {
+  TatwaShuddhi,
+  calculateTatwaAtTime,
+  FULL_CYCLE_MINUTES
+} from './tatwa-shuddhi.js';
 import { TransitAnalyzer } from './transit-analyzer.js';
 import { EventScorer, ScoredEvent } from './event-scorer.js';
 import {
@@ -71,6 +75,7 @@ export interface ScannerContext {
   totalEventWeight: number;
   sunriseTime: Date | null;
   config: ScanConfiguration;
+  knownTatwa?: string;
 }
 
 export interface CandidateAnalysis {
@@ -121,7 +126,8 @@ export async function scanBirthTimeWindow(input: ScannerInput): Promise<ScanResu
       scoredEvents,
       totalEventWeight,
       sunriseTime,
-      config
+      config,
+      knownTatwa: input.knownTatwa
     };
 
     const timeWindow: TimeWindow = {
@@ -812,7 +818,6 @@ function generateFinalRecommendations(
   }
 }
 
-const FULL_CYCLE_MINUTES = 130;
 
 export const WindowScanner = {
   scan: scanBirthTimeWindow,

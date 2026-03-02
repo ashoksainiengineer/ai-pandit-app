@@ -16,7 +16,7 @@ import {
   calculateIshtaKashtaPhala,
 } from '../vedic-astrology-engine.js';
 import { ZODIAC_SIGNS, PlanetData } from '@ai-pandit/shared';
-import { capitalizeFirstLetter } from '../utils/index.js';
+import { capitalizeFirstLetter, decimalToDMS } from '../utils/index.js';
 
 export interface EnrichmentContext {
   ascendantSign: string;
@@ -59,11 +59,11 @@ export function enrichPlanets(
  */
 function extractPlanetLongitudes(planets: Record<string, any>): Record<string, number> {
   const longitudes: Record<string, number> = {};
-  
+
   for (const [key, p] of Object.entries(planets)) {
     longitudes[capitalizeFirstLetter(key)] = p.longitude;
   }
-  
+
   return longitudes;
 }
 
@@ -111,7 +111,7 @@ function enrichSinglePlanet(
  * Format longitude as degree string
  */
 function formatDegree(longitude: number): string {
-  return (longitude % 30).toFixed(4) + '°';
+  return decimalToDMS(longitude);
 }
 
 /**

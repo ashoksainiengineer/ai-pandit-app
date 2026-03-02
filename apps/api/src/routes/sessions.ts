@@ -9,6 +9,7 @@ import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { logger } from '../lib/logger.js';
 import { encryptData, safeDecrypt, safeDecryptWithFallback, parseSensitiveField } from '../lib/encryption/index.js';
 import { syncUser } from '../lib/user-sync.js';
+import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
@@ -225,6 +226,91 @@ router.delete('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Res
         res.json({ success: true, message: 'Session deleted' });
     } catch (error: any) {
         logger.error('Delete session error', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * POST /api/sessions/:id/clone - Duplicate an existing session (inputs only)
+ */
+router.post('/:id/clone', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+        const clerkId = req.clerkId!;
+        const sessionId = req.params.id;
+
+        if (!sessionId) {
+            res.status(400).json({ success: false, error: 'Session ID required' });
+            return;
+        }
+
+        // 1. Fetch original session
+        const originalSession = await executeWithRetry(() =>
+            db.query.sessions.findFirst({
+                where: and(eq(sessions.id, sessionId), eq(sessions.clerkId, clerkId))
+            })
+        );
+
+        if (!originalSession) {
+            res.status(404).json({ success: false, error: 'Session not found' });
+            return;
+        }
+
+        // 2. Generate new ID
+        const newSessionId = uuidv4();
+
+        // 3. Create clone payload omitting results
+        const clonePayload = {
+            id: newSessionId,
+            userId: originalSession.userId,
+            clerkId: originalSession.clerkId,
+
+            // Core Date (Encrypted)
+            fullName: originalSession.fullName,
+            dateOfBirth: originalSession.dateOfBirth,
+            tentativeTime: originalSession.tentativeTime,
+            birthPlace: originalSession.birthPlace,
+            latitude: originalSession.latitude,
+            longitude: originalSession.longitude,
+            timezone: originalSession.timezone,
+            gender: originalSession.gender,
+
+            // Traits (Encrypted)
+            physicalTraits: originalSession.physicalTraits,
+            forensicTraits: originalSession.forensicTraits,
+            lifeEvents: originalSession.lifeEvents,
+            spouseData: originalSession.spouseData,
+
+            // Configuration
+            offsetConfig: originalSession.offsetConfig,
+
+            // Status and Reset fields
+            status: 'draft',
+            rectifiedTime: null,
+            accuracy: null,
+            confidence: null,
+            analysisResult: null,
+            progressData: null,
+            reasoningLogs: null,
+            errorMessage: null,
+            errorCode: null,
+
+            // Audit/Timestamps
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+
+        // 4. Insert clone
+        await executeWithRetry(() =>
+            db.insert(sessions).values(clonePayload as any)
+        );
+
+        res.status(201).json({
+            success: true,
+            message: 'Session cloned successfully',
+            data: { id: newSessionId }
+        });
+    } catch (error: any) {
+        logger.error('Clone session error', error);
         res.status(500).json({ success: false, error: error.message });
     }
 });

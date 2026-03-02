@@ -464,7 +464,7 @@ export function getTithiPraveshaForYear(
 export function formatCharaKarakas(karakas: CharaKaraka[]): string {
     const lines = ['CHARA KARAKAS (Jaimini Significators):'];
     for (const k of karakas) {
-        lines.push(`${k.karakaName} (${k.planet.toUpperCase()}): ${k.sign} ${k.degree.toFixed(1)}°`);
+        lines.push(`${k.karakaName} (${k.planet.toUpperCase()}): ${k.sign} ${k.degree.toFixed(4)}°`);
     }
     return lines.join('\n');
 }
@@ -638,5 +638,5 @@ export function calculateBhriguBindu(ephemeris: EphemerisData): {
 }
 
 export function formatBhriguBindu(data: { sign: string; degree: number }): string {
-    return `BHRIGU BINDU (Destiny Point): ${data.sign} ${data.degree.toFixed(2)}°`;
+    return `BHRIGU BINDU (Destiny Point): ${data.sign} ${data.degree.toFixed(4)}°`;
 }

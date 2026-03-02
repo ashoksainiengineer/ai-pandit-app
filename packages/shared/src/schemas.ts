@@ -13,8 +13,7 @@ export const VimshottariDashaEntrySchema = z.object({
     pratyantar: z.string(),
     sukshma: z.string().optional(),
     prana: z.string().optional(),
-    start: z.string(),
-    end: z.string()
+    startEnd: z.string()
 });
 
 // ZERO-TRUST Transit Validation
@@ -127,5 +126,12 @@ export const CalculateRequestSchema = z.object({
 });
 
 export function validateCandidateDataForAI(pkg: any) {
-    return CandidateDataPackageSchema.parse(pkg);
+    try {
+        return CandidateDataPackageSchema.parse(pkg);
+    } catch (err: any) {
+        if (err.errors) {
+            console.error('[ZOD-DEBUG] Validation Errors:', JSON.stringify(err.errors, null, 2));
+        }
+        throw err;
+    }
 }

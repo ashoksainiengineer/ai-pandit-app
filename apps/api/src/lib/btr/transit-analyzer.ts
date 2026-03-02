@@ -11,18 +11,16 @@
  */
 
 import { calculateEphemeris, convertToUTC, calculateJulianDay } from '../ephemeris.js';
-import { 
-  TransitMatchResult, 
-  PARASHARI_ASPECTS, 
+import {
+  TransitMatchResult,
+  PARASHARI_ASPECTS,
   EVENT_HOUSE_MAP,
-  ZODIAC_SIGNS 
+  ZODIAC_SIGNS,
+  SIGN_LORDS
 } from '@ai-pandit/shared';
 import { logger } from '../logger.js';
 
-const ZODIAC: readonly string[] = [
-  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
-];
+const ZODIAC = ZODIAC_SIGNS;
 
 export interface TransitPosition {
   planet: string;
@@ -84,7 +82,7 @@ export async function calculateTransitPositions(
   try {
     const ephemeris = await calculateEphemeris(date, time, latitude, longitude, timezone);
     const positions: TransitPosition[] = [];
-    
+
     for (const [name, data] of Object.entries(ephemeris.planets)) {
       const planetData = data as any;
       positions.push({
@@ -95,7 +93,7 @@ export async function calculateTransitPositions(
         isRetrograde: planetData.retro || false
       });
     }
-    
+
     return positions;
   } catch (error) {
     logger.error('[TRANSIT] Failed to calculate positions', { date, error });
@@ -115,15 +113,15 @@ export function calculateAspects(
   const aspects: TransitAspect[] = [];
   const planetIndex = ZODIAC.indexOf(planetSign);
   const ascIndex = ZODIAC.indexOf(ascendantSign);
-  
+
   if (planetIndex === -1 || ascIndex === -1) return aspects;
-  
+
   const planetHouse = ((planetIndex - ascIndex + 12) % 12) + 1;
   const specialAspects = PARASHARI_ASPECTS[planet.toLowerCase()] || [7];
-  
+
   for (const aspectHouse of specialAspects) {
     const aspectedHouse = ((planetHouse + aspectHouse - 1 - 1 + 12) % 12) + 1;
-    
+
     if (aspectedHouse === targetHouse) {
       aspects.push({
         planet: capitalizeFirst(planet),
@@ -133,7 +131,7 @@ export function calculateAspects(
       });
     }
   }
-  
+
   return aspects;
 }
 
@@ -150,10 +148,10 @@ export function checkDoubleTransit(
   let rahuInfluence = false;
   let ketuInfluence = false;
   const details: string[] = [];
-  
+
   for (const transit of transitPositions) {
     const aspects = calculateAspects(transit.planet, transit.sign, targetHouse, ascendantSign);
-    
+
     for (const aspect of aspects) {
       if (aspect.planet.toLowerCase() === 'saturn') {
         saturnAspect = true;
@@ -164,7 +162,7 @@ export function checkDoubleTransit(
         details.push(`Jupiter aspects ${targetHouse}th house from ${transit.sign}`);
       }
     }
-    
+
     if (transit.planet.toLowerCase() === 'rahu') {
       const rahuHouse = getHouseFromSign(transit.sign, ascendantSign);
       if (rahuHouse === targetHouse || Math.abs(rahuHouse - targetHouse) <= 2) {
@@ -172,7 +170,7 @@ export function checkDoubleTransit(
         details.push(`Rahu in ${transit.sign} (${rahuHouse}th house) - transformation influence`);
       }
     }
-    
+
     if (transit.planet.toLowerCase() === 'ketu') {
       const ketuHouse = getHouseFromSign(transit.sign, ascendantSign);
       if (ketuHouse === targetHouse || Math.abs(ketuHouse - targetHouse) <= 2) {
@@ -181,16 +179,16 @@ export function checkDoubleTransit(
       }
     }
   }
-  
+
   const isTriggered = saturnAspect && jupiterAspect;
-  
+
   let score = 0;
   if (saturnAspect) score += 40;
   if (jupiterAspect) score += 40;
   if (isTriggered) score += 20;
   if (rahuInfluence) score += 10;
   if (ketuInfluence) score += 5;
-  
+
   return {
     isTriggered,
     saturnAspect,
@@ -217,7 +215,7 @@ export async function analyzeTransitForEvent(
     birthTimezone,
     birthAscendantSign
   } = options;
-  
+
   const targetHouse = EVENT_HOUSE_MAP[eventCategory.toLowerCase()] || 1;
   const transits = await calculateTransitPositions(
     eventDate,
@@ -226,17 +224,17 @@ export async function analyzeTransitForEvent(
     birthLongitude,
     birthTimezone
   );
-  
+
   const aspects: TransitAspect[] = [];
   for (const transit of transits) {
     const transitAspects = calculateAspects(transit.planet, transit.sign, targetHouse, birthAscendantSign);
     aspects.push(...transitAspects);
   }
-  
+
   const doubleTransit = checkDoubleTransit(transits, targetHouse, birthAscendantSign);
-  
+
   const significances = extractSignificances(transits, eventCategory, targetHouse);
-  
+
   return {
     eventDate: new Date(eventDate),
     eventCategory,
@@ -266,7 +264,7 @@ export async function batchAnalyzeTransits(
   }
 ): Promise<Map<string, ComprehensiveTransitResult>> {
   const results = new Map<string, ComprehensiveTransitResult>();
-  
+
   for (const event of events) {
     try {
       const analysis = await analyzeTransitForEvent({
@@ -278,13 +276,13 @@ export async function batchAnalyzeTransits(
         birthTimezone: birthData.timezone,
         birthAscendantSign: birthData.ascendantSign
       });
-      
+
       results.set(event.date, analysis);
     } catch (error) {
       logger.warn('[TRANSIT] Failed to analyze event', { event, error });
     }
   }
-  
+
   return results;
 }
 
@@ -297,35 +295,35 @@ function extractSignificances(
   targetHouse: number
 ): string[] {
   const significances: string[] = [];
-  
+
   for (const transit of transits) {
     const planet = transit.planet.toLowerCase();
-    
+
     if (planet === 'saturn' && ['career', 'property', 'legal'].includes(eventCategory)) {
       significances.push(`Saturn transit relevant for ${eventCategory}`);
     }
-    
+
     if (planet === 'jupiter' && ['marriage', 'children', 'education', 'spiritual'].includes(eventCategory)) {
       significances.push(`Jupiter transit beneficial for ${eventCategory}`);
     }
-    
+
     if (planet === 'venus' && ['marriage', 'finance'].includes(eventCategory)) {
       significances.push(`Venus transit supports ${eventCategory}`);
     }
-    
+
     if (planet === 'mars' && ['accident', 'surgery', 'property'].includes(eventCategory)) {
       significances.push(`Mars transit significant for ${eventCategory}`);
     }
-    
+
     if (planet === 'rahu' && ['travel', 'foreign', 'technology'].includes(eventCategory)) {
       significances.push(`Rahu transit indicates ${eventCategory}`);
     }
-    
+
     if (planet === 'ketu' && ['spiritual', 'hospital', 'separation'].includes(eventCategory)) {
       significances.push(`Ketu transit indicates ${eventCategory}`);
     }
   }
-  
+
   return significances;
 }
 
@@ -342,7 +340,7 @@ export async function calculateTransitMatchScore(
   }
 ): Promise<TransitMatchResult[]> {
   const results: TransitMatchResult[] = [];
-  
+
   for (const event of events) {
     try {
       const analysis = await analyzeTransitForEvent({
@@ -354,7 +352,7 @@ export async function calculateTransitMatchScore(
         birthTimezone: birthData.timezone,
         birthAscendantSign: birthData.ascendantSign
       });
-      
+
       results.push({
         eventId: event.id,
         eventDate: new Date(event.date),
@@ -370,7 +368,7 @@ export async function calculateTransitMatchScore(
       logger.warn('[TRANSIT] Failed to calculate match for event', { event, error });
     }
   }
-  
+
   return results;
 }
 
@@ -380,9 +378,9 @@ export async function calculateTransitMatchScore(
 function getHouseFromSign(sign: string, ascendantSign: string): number {
   const signIndex = ZODIAC.indexOf(sign);
   const ascIndex = ZODIAC.indexOf(ascendantSign);
-  
+
   if (signIndex === -1 || ascIndex === -1) return 1;
-  
+
   return ((signIndex - ascIndex + 12) % 12) + 1;
 }
 

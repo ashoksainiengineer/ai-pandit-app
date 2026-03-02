@@ -24,6 +24,16 @@ export const ZODIAC_SIGNS: readonly string[] = [
   'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
 ];
 
+/** Mapping of signs to their traditional lords */
+export const SIGN_LORDS: Record<string, string> = {
+  Aries: 'mars', Taurus: 'venus', Gemini: 'mercury', Cancer: 'moon',
+  Leo: 'sun', Virgo: 'mercury', Libra: 'venus', Scorpio: 'mars',
+  Sagittarius: 'jupiter', Capricorn: 'saturn', Aquarius: 'saturn', Pisces: 'jupiter'
+};
+
+/** Sequence of Tatwas in a cycle */
+export const TATWA_SEQUENCE: string[] = ['prithvi', 'jala', 'agni', 'vayu', 'akasha'];
+
 /** Zodiac Signs Type */
 export type ZodiacSign = (typeof ZODIAC_SIGNS)[number];
 

@@ -22,6 +22,8 @@ export {
   padZero,
 } from './formatting.js';
 
+export { decimalToDMS } from './dms-formatter.js';
+
 // Ephemeris data formatting utilities
 export {
   getMinifiedEphemeris,

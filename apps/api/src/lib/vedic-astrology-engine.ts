@@ -384,9 +384,11 @@ import {
     calculateArudhaLagna,
     calculatePanchanga as calcPanchanga,
     calculateAdvancedAspects as calcAspects,
-    calculateBoundarySafety
+    calculateBoundarySafety,
+    detectParivartana,
 } from './advanced-btr-methods.js';
 import { calculateCharaKarakas as calcCK } from './jaimini-astrology.js';
+import { TransitAnalyzer } from './btr/transit-analyzer.js';
 
 /**
  * Calculate all divisional charts for the given ephemeris data.
@@ -419,8 +421,20 @@ export const calculateShadbala = (ephemeris: any): any => {
  * Detect yogas and planetary combinations.
  */
 export const detectYogas = (ephemeris: any): any[] => {
-    // Current detection logic is distributed, returning empty for now but as a valid array
-    return [];
+    const yogas: any[] = [];
+
+    // 1. Detect Parivartana Yoga
+    const parivartanas = detectParivartana(ephemeris);
+    for (const p of parivartanas) {
+        yogas.push({
+            name: 'Parivartana Yoga',
+            description: `Exchange of lords between house ${p.houses[0]} and ${p.houses[1]}`,
+            significance: 'Strengthens both houses involved',
+            planetsInvolved: p.planets
+        });
+    }
+
+    return yogas;
 };
 
 /**
@@ -542,5 +556,23 @@ export const calculateIshtaKashtaPhala = (arg1: any, arg2?: any): any => {
  * Verify Double Transit (Jupiter + Saturn aspecting a house).
  */
 export const verifyDoubleTransit = (ephemeris: any, ascendantSign: string, targetHouse?: number): { isTriggered: boolean; details: any[] } => {
-    return { isTriggered: false, details: [] };
+    const transitPositions: any[] = [];
+    for (const [name, data] of Object.entries(ephemeris.planets)) {
+        const planetData = data as any;
+        transitPositions.push({
+            planet: name,
+            sign: planetData.sign,
+            degree: planetData.degree,
+            longitude: planetData.longitude,
+            isRetrograde: planetData.retro || false
+        });
+    }
+
+    const house = targetHouse || 1; // Default to 1st house if not specified
+    const result = TransitAnalyzer.checkDoubleTransit(transitPositions, house, ascendantSign);
+
+    return {
+        isTriggered: result.isTriggered,
+        details: result.details.split('; ').map(d => ({ message: d }))
+    };
 };

@@ -11,11 +11,10 @@
  * - Case-specific context
  */
 
-import { CandidateDataPackage } from '@ai-pandit/shared';
-import { LifeEvent, ForensicTraits } from '@ai-pandit/shared';
+import { CandidateDataPackage, LifeEvent, ForensicTraits } from '@ai-pandit/shared';
 import { formatLifeEventForAI } from './life-event-formatter.js';
 import { buildForensicContext } from './forensic-context.js';
-import { randomSort } from '../../utils/index.js';
+import { randomSort, decimalToDMS } from '../../utils/index.js';
 import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';
 import { logger } from '../../logger.js';
 
@@ -73,10 +72,11 @@ export function getBatchPrompt(
     } catch (err: any) {
       if (err.errors) {
         logger.error(`[VALIDATION-GATE] Candidate ${c.time} failed Zod schema validation:`, JSON.stringify(err.errors));
+        throw new Error(`Data Pipeline Contract Violation: Candidate ${c.time} failed Zod validation: ${JSON.stringify(err.errors, null, 2)}`);
       } else {
         logger.error(`[VALIDATION-GATE] Candidate ${c.time} failed validation:`, err);
+        throw new Error(`Data Pipeline Contract Violation: Candidate ${c.time} is missing required data for AI analysis.`);
       }
-      throw new Error(`Data Pipeline Contract Violation: Candidate ${c.time} is missing required data for AI analysis.`);
     }
   });
 
@@ -235,7 +235,7 @@ ${shuffledCandidates.map(c => `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CANDIDATE: ${c.time}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PANCHANGA: Day=${c.panchanga?.vara} | Tithi=${c.panchanga?.tithi} | Yoga=${c.panchanga?.yoga} | Karana=${c.panchanga?.karana}
+PANCHANGA: Day=${c.panchanga?.vara || 'N/A'} | Tithi=${typeof c.panchanga?.tithi === 'object' ? JSON.stringify(c.panchanga.tithi) : c.panchanga?.tithi || 'N/A'} | Yoga=${typeof c.panchanga?.yoga === 'object' ? JSON.stringify(c.panchanga.yoga) : c.panchanga?.yoga || 'N/A'} | Karana=${typeof c.panchanga?.karana === 'object' ? JSON.stringify(c.panchanga.karana) : c.panchanga?.karana || 'N/A'}
 SPECIAL POINTS: AL (Arudha Lagna)=${c.specialPoints?.AL.sign} | UL (Upapada Lagna)=${c.specialPoints?.UL.sign}
 LAGNA (Ascendant): ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
 ► ELEMENT: ${getSignElement(c.ascendant.sign)} | MODALITY: ${getSignModality(c.ascendant.sign)} | LORD: ${c.houseLords[1]}
@@ -282,7 +282,7 @@ ${c.vedicSignals ? `VEDIC HIGH-SIGNALS:
 │ Vargottama: ${c.vedicSignals.vargottama?.join(', ') || 'None'}
 │ Pushkar: ${c.vedicSignals.pushkar?.join(', ') || 'None'}
 │ Tatwa Shuddhi: ${c.vedicSignals.tatwa?.name} (${c.vedicSignals.tatwa?.element}) | Auspicious: ${c.vedicSignals.tatwa?.isAuspicious}
-│ Kunda Lagna: ${c.vedicSignals.kundaLagna?.sign} ${c.vedicSignals.kundaLagna?.degree.toFixed(2)}° | Matches Moon: ${c.vedicSignals.kundaLagna?.matchesMoon ? 'YES 🔥' : 'NO'}
+│ Kunda Lagna: ${c.vedicSignals.kundaLagna?.sign} ${c.vedicSignals.kundaLagna?.degree !== undefined ? decimalToDMS(c.vedicSignals.kundaLagna.degree) : 'N/A'} | Matches Moon: ${c.vedicSignals.kundaLagna?.matchesMoon ? 'YES 🔥' : 'NO'}
 │ Parivartana: ${c.vedicSignals.parivartana?.map((ex: any) => `L${ex.houses[0]}↔L${ex.houses[1]}`).join(', ') || 'None'}` : ''}
 ${c.kalachakraDasha ? `├ KALACHAKRA DASHA (Savya/Apasavya):
 ${c.kalachakraDasha.slice(0, 8).map(k => `│ ${k.sign} (${k.lord}): ${k.durationYears.toFixed(1)}y [${k.kalachakraType}]`).join('\n')}` : ''}
@@ -297,7 +297,7 @@ ${c.spouseD9Verification ? `├ SPOUSE D9 VERIFICATION:
 │ Matches: ${c.spouseD9Verification.matches?.map((m: any) => m.description).join('; ') || 'None'}` : ''}
 ${c.gandantaAnalysis && c.gandantaAnalysis.severity !== 'none' ? `├ ⚠️ GANDANTA DETECTION (Karmic Knot):
 │ Lagna Gandanta: ${c.gandantaAnalysis.isLagnaGandanta ? 'YES' : 'NO'} | Moon Gandanta: ${c.gandantaAnalysis.isMoonGandanta ? 'YES' : 'NO'}
-│ Severity: ${c.gandantaAnalysis.severity.toUpperCase()} | Distance: ${c.gandantaAnalysis.distanceToGandanta.toFixed(3)}°
+│ Severity: ${c.gandantaAnalysis.severity.toUpperCase()} | Distance: ${c.gandantaAnalysis.distanceToGandanta !== undefined ? decimalToDMS(c.gandantaAnalysis.distanceToGandanta) : 'N/A'}
 │ Type: ${c.gandantaAnalysis.lagnaGandantaType || c.gandantaAnalysis.moonGandantaType || 'N/A'}
 │ ${c.gandantaAnalysis.interpretation.substring(0, 150)}...` : ''}
 ${c.pakshiAnalysis ? `├ PANCHA-PAKSHI SHASTRA (Five Birds System):

@@ -8,10 +8,9 @@
  * AI has FULL FREEDOM to adjust method weights based on case context.
  */
 
-import { CandidateDataPackage } from '@ai-pandit/shared';
-import { LifeEvent, ForensicTraits } from '@ai-pandit/shared';
+import { CandidateDataPackage, LifeEvent, ForensicTraits } from '@ai-pandit/shared';
 import { formatLifeEventForAI } from './life-event-formatter.js';
-import { randomSort } from '../../utils/index.js';
+import { randomSort, decimalToDMS } from '../../utils/index.js';
 import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';
 import { logger } from '../../logger.js';
 
@@ -208,7 +207,7 @@ ${eventsText}
 ${shuffledCandidates.map(c => `
 [${c.time}]
 ┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
-├ PANCHANGA: Tithi=${c.panchanga?.tithi} | Vara=${c.panchanga?.vara} | Yoga=${c.panchanga?.yoga}
+├ PANCHANGA: Tithi=${typeof c.panchanga?.tithi === 'object' ? JSON.stringify(c.panchanga.tithi) : c.panchanga?.tithi || 'N/A'} | Vara=${c.panchanga?.vara || 'N/A'} | Yoga=${typeof c.panchanga?.yoga === 'object' ? JSON.stringify(c.panchanga.yoga) : c.panchanga?.yoga || 'N/A'}
 ├ ARUDHAS: AL=${c.specialPoints?.AL.sign} | UL=${c.specialPoints?.UL.sign}
 ├ HOUSE LORDS: ${[...Array(12)].map((_, i) => `${i + 1}=${c.houseLords[i + 1]}`).join(' | ')}
 ├ PLANETARY MATRIX (Full Vedic Metrics):
@@ -251,7 +250,7 @@ ${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:
 │ Vargottama: ${c.vedicSignals.vargottama?.join(', ') || 'None'}
 │ Pushkar: ${c.vedicSignals.pushkar?.join(', ') || 'None'}
 │ Tatwa Shuddhi: ${c.vedicSignals.tatwa?.name} (${c.vedicSignals.tatwa?.element}) | Auspicious: ${c.vedicSignals.tatwa?.isAuspicious}
-│ Kunda Lagna: ${c.vedicSignals.kundaLagna?.sign} ${c.vedicSignals.kundaLagna?.degree.toFixed(2)}° | Matches Moon: ${c.vedicSignals.kundaLagna?.matchesMoon ? 'YES 🔥' : 'NO'}
+│ Kunda Lagna: ${c.vedicSignals.kundaLagna?.sign} ${c.vedicSignals.kundaLagna?.degree !== undefined ? decimalToDMS(c.vedicSignals.kundaLagna.degree) : 'N/A'} | Matches Moon: ${c.vedicSignals.kundaLagna?.matchesMoon ? 'YES 🔥' : 'NO'}
 │ Parivartana: ${c.vedicSignals.parivartana?.map((ex: any) => `L${ex.houses[0]}↔L${ex.houses[1]}`).join(', ') || 'None'}` : ''}
 ${c.kalachakraDasha ? `├ KALACHAKRA DASHA (Savya/Apasavya):
 ${c.kalachakraDasha.slice(0, 10).map(k => `│ ${k.sign} (${k.lord}): ${k.startDate.toISOString().split('T')[0]} to ${k.endDate.toISOString().split('T')[0]} (${k.durationYears.toFixed(1)}y) [${k.kalachakraType}]`).join('\n')}` : ''}
@@ -271,7 +270,7 @@ ${c.spouseD9Verification ? `├ SPOUSE D9 VERIFICATION:
 │ Mismatches: ${c.spouseD9Verification.mismatches?.map((m: any) => m.description).join('; ') || 'None'}` : ''}
 ${c.gandantaAnalysis && c.gandantaAnalysis.severity !== 'none' ? `├ ⚠️ GANDANTA KARMIC KNOT:
 │ Lagna: ${c.gandantaAnalysis.isLagnaGandanta ? 'YES' : 'NO'} | Moon: ${c.gandantaAnalysis.isMoonGandanta ? 'YES' : 'NO'}
-│ Severity: ${c.gandantaAnalysis.severity.toUpperCase()} | Distance: ${c.gandantaAnalysis.distanceToGandanta.toFixed(3)}°
+│ Severity: ${c.gandantaAnalysis.severity.toUpperCase()} | Distance: ${c.gandantaAnalysis.distanceToGandanta !== undefined ? decimalToDMS(c.gandantaAnalysis.distanceToGandanta) : 'N/A'}
 │ Type: ${c.gandantaAnalysis.lagnaGandantaType || c.gandantaAnalysis.moonGandantaType || 'N/A'}` : ''}
 ${c.pakshiAnalysis ? `├ PANCHA-PAKSHI (Five Birds):
 │ Bird: ${c.pakshiAnalysis.rulingBird.name} (${c.pakshiAnalysis.rulingBird.element}) | Strength: ${c.pakshiAnalysis.birdStrength.toUpperCase()}` : ''}

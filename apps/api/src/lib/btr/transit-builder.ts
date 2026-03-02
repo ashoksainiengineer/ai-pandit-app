@@ -257,7 +257,7 @@ function formatPlanetPositions(planets: Record<string, any>, natalAscendantSign:
   for (const [name, p] of Object.entries(planets)) {
     const retroMarker = p.retro ? '(R)' : '';
     const house = calculateRelativeHouse(p.sign, natalAscendantSign);
-    formatted[capitalizeFirstLetter(name)] = `${p.sign} ${p.degree.toFixed(1)}°${retroMarker} | H${house}`;
+    formatted[capitalizeFirstLetter(name)] = `${p.sign} ${p.degree.toFixed(4)}°${retroMarker} | H${house}`;
   }
 
   return formatted;

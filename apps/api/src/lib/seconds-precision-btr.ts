@@ -270,7 +270,7 @@ export async function processSecondsPrecisionBTR(
                 shuddhi: {
                     kunda: {
                         score: winnerPkg.vedicSignals?.kundaLagna?.matchesMoon ? 100 : 40,
-                        details: `Kunda Lagna: ${winnerPkg.vedicSignals?.kundaLagna?.sign} ${winnerPkg.vedicSignals?.kundaLagna?.degree.toFixed(2)}° | ${winnerPkg.vedicSignals?.kundaLagna?.matchesMoon ? 'Matches Moon Nakshatra' : 'Genetic Offset Detected'}`
+                        details: `Kunda Lagna: ${winnerPkg.vedicSignals?.kundaLagna?.sign} ${winnerPkg.vedicSignals?.kundaLagna?.degree.toFixed(4)}° | ${winnerPkg.vedicSignals?.kundaLagna?.matchesMoon ? 'Matches Moon Nakshatra' : 'Genetic Offset Detected'}`
                     },
                     tatwa: {
                         score: winnerPkg.vedicSignals?.tatwa?.isAuspicious ? 100 : 20,

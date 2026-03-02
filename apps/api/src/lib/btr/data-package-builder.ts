@@ -22,14 +22,15 @@ import {
   detectVargottama,
   detectParivartana,
   detectPushkarNavamsa,
-  calculateTatwaShuddhi,
   calculateKundaLagna,
 } from '../advanced-btr-methods.js';
+import { calculateTatwaAtTime } from './tatwa-shuddhi.js';
 import { calculateCharaKarakas, calculateBhriguBindu } from '../jaimini-astrology.js';
-import { CandidateDataPackage, ZODIAC_SIGNS } from '@ai-pandit/shared';
 import { SecondsPrecisionInput } from '@ai-pandit/shared';
 import { logger } from '../logger.js';
 import { capitalizeFirstLetter } from '../utils/index.js';
+import { decimalToDMS } from '../utils/dms-formatter.js';
+import { CandidateDataPackage, ZODIAC_SIGNS } from '@ai-pandit/shared';
 import { buildVimshottariDasha, buildYoginiDasha, buildCharaDasha } from './dasha-builder.js';
 import { enrichPlanets, extractIshtaKashtaPhala } from './planet-enricher.js';
 import { buildTransitData } from './transit-builder.js';
@@ -145,7 +146,12 @@ export async function buildCandidateDataPackage(
     // Ensure vedicSignals is initialized
     if (!pkg.vedicSignals) pkg.vedicSignals = {};
 
-    pkg.vedicSignals.tatwa = calculateTatwaShuddhi(candidateUTC, sunriseDate);
+    const tatwaResult = calculateTatwaAtTime(sunriseDate, candidateUTC);
+    pkg.vedicSignals.tatwa = {
+      name: capitalizeFirstLetter(tatwaResult.tatwa),
+      element: tatwaResult.element,
+      isAuspicious: true
+    };
     pkg.vedicSignals.kundaLagna = calculateKundaLagna(ephemeris.ascendant.longitude, ephemeris.planets.moon.longitude);
   } catch (err) {
     logger.error('Mahakala indicator calculation failed', err);
@@ -315,17 +321,17 @@ function buildSpecialPoints(ephemeris: any) {
   return {
     AL: {
       sign: arudhas.AL,
-      degree: '0.00°',
+      degree: "0° 00' 00\"",
       house: calculateRelativeHouse(arudhas.AL, ascSign)
     },
     UL: {
       sign: arudhas.UL,
-      degree: '0.00°',
+      degree: "0° 00' 00\"",
       house: calculateRelativeHouse(arudhas.UL, ascSign)
     },
     BB: {
       sign: bb.sign,
-      degree: `${bb.degree.toFixed(2)}°`,
+      degree: decimalToDMS(bb.degree),
       house: 0
     }
   };
@@ -356,12 +362,12 @@ function buildVargaData(ephemeris: any) {
 
     try {
       vargaDegrees[varga] = {
-        Ascendant: `${chart.ascendant.sign || 'Unknown'} ${(chart.ascendant.degree || 0).toFixed(2)}°`
+        Ascendant: `${chart.ascendant.sign || 'Unknown'} ${decimalToDMS(chart.ascendant.degree || 0)}`
       };
 
       for (const [pName, pPos] of Object.entries(chart.planets) as [string, any][]) {
         if (!pPos || !pPos.sign) continue;
-        vargaDegrees[varga][capitalizeFirstLetter(pName)] = `${pPos.sign || 'Unknown'} ${(pPos.degree || 0).toFixed(2)}°`;
+        vargaDegrees[varga][capitalizeFirstLetter(pName)] = `${pPos.sign || 'Unknown'} ${decimalToDMS(pPos.degree || 0)}`;
 
         if (varga === 'D60') {
           // Calculate D60 deity based on planet's D60 longitude
@@ -370,7 +376,7 @@ function buildVargaData(ephemeris: any) {
           const deity = getD60Deity(d60Longitude);
           d60Planets[capitalizeFirstLetter(pName)] = {
             sign: pPos.sign || 'Unknown',
-            degree: (pPos.degree || 0).toFixed(2) + '°',
+            degree: decimalToDMS(pPos.degree || 0),
             deity: deity || 'Unknown'
           };
         }
@@ -398,14 +404,14 @@ function detectSandhiZones(ephemeris: any): string[] {
 
   // Check ascendant
   if (ephemeris.ascendant.degree < 1 || ephemeris.ascendant.degree > 29) {
-    zones.push(`Ascendant in Sandhi (${ephemeris.ascendant.degree.toFixed(2)}°)`);
+    zones.push(`Ascendant in Sandhi (${decimalToDMS(ephemeris.ascendant.degree)})`);
   }
 
   // Check planets
   for (const [name, p] of Object.entries(ephemeris.planets) as [string, any][]) {
     const deg = p.longitude % 30;
     if (deg < 0.5 || deg > 29.5) {
-      zones.push(`${capitalizeFirstLetter(name)} in Deep Sandhi (${deg.toFixed(2)}°)`);
+      zones.push(`${capitalizeFirstLetter(name)} in Deep Sandhi (${decimalToDMS(deg)})`);
     }
   }
 
@@ -535,7 +541,7 @@ function buildDivisionalCharts(pkg: CandidateDataPackage, ephemeris: any) {
  * Format longitude as degree string
  */
 function formatDegree(longitude: number): string {
-  return (longitude % 30).toFixed(4) + '°';
+  return decimalToDMS(longitude);
 }
 
 /**

@@ -68,6 +68,10 @@ vi.mock('../../lib/user-sync.js', () => ({
     syncUser: vi.fn().mockResolvedValue('internal_user_id'),
 }));
 
+vi.mock('uuid', () => ({
+    v4: vi.fn(() => 'mock-uuid-1234'),
+}));
+
 import sessionsRouter from '../../routes/sessions.js';
 import { db, executeWithRetry } from '@ai-pandit/db';
 
@@ -208,5 +212,62 @@ describe('Sessions Route - DELETE /api/sessions/:id', () => {
         const res = await request(app).delete('/api/sessions/session-1');
         expect(res.status).toBe(200);
         expect(res.body.success).toBe(true);
+    });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// POST /api/sessions/:id/clone - CLONE
+// ═══════════════════════════════════════════════════════════════════════════
+
+describe('Sessions Route - POST /api/sessions/:id/clone', () => {
+    let app: express.Express;
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        app = createApp();
+    });
+
+    it('should return 404 if original session not found', async () => {
+        (db.query.sessions.findFirst as any).mockResolvedValueOnce(null);
+        const res = await request(app).post('/api/sessions/nonexistent-id/clone');
+        expect(res.status).toBe(404);
+    });
+
+    it('should clone session successfully omitting result fields', async () => {
+        const mockOriginal = {
+            id: 'original-id',
+            userId: 'user-id',
+            clerkId: 'test_clerk_id',
+            fullName: 'encrypted_Ashok',
+            dateOfBirth: 'encrypted_1990',
+            tentativeTime: 'encrypted_10:00',
+            birthPlace: 'encrypted_Delhi',
+            latitude: 28.6,
+            longitude: 77.2,
+            timezone: '5.5',
+            gender: 'male',
+            status: 'completed',
+            rectifiedTime: '10:05:00',
+            accuracy: 95,
+            confidence: 'HIGH'
+        };
+        (db.query.sessions.findFirst as any).mockResolvedValueOnce(mockOriginal);
+
+        const res = await request(app).post('/api/sessions/original-id/clone');
+
+        expect(res.status).toBe(201);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data.id).toBe('mock-uuid-1234');
+
+        // Check if insert was called with status 'draft' and null results
+        expect(db.insert).toHaveBeenCalled();
+        expect(db.values).toHaveBeenCalledWith(expect.objectContaining({
+            userId: 'user-id',
+            status: 'draft',
+            rectifiedTime: null,
+            accuracy: null,
+            confidence: null,
+            fullName: 'encrypted_Ashok'
+        }));
     });
 });

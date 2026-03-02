@@ -2,7 +2,7 @@
 // Advanced Vedic Astrology Methods for 99%+ BTR Accuracy
 // Includes: Yogini Dasha, Divisional Charts, Physical Traits, Advanced Aspects, Arudha Lagna
 
-import { EphemerisData, PlanetPosition, LifeEvent } from '@ai-pandit/shared';
+import { EphemerisData, PlanetPosition, LifeEvent, ZODIAC_SIGNS, SIGN_LORDS } from '@ai-pandit/shared';
 import { calculateEphemeris } from './ephemeris.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -215,10 +215,7 @@ export function yoginiSupportsEvent(
 // DIVISIONAL CHARTS (D2, D7, D9, D10, D30)
 // ═════════════════════════════════════════════════════════════════════════════
 
-const ZODIAC_SIGNS = [
-    'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-    'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
-];
+// ZODIAC_SIGNS moved to shared
 
 /**
  * Calculate D2 (Hora) Chart - Wealth/Health
@@ -798,11 +795,7 @@ export function calculateAdvancedAspects(ephemeris: EphemerisData): AspectData[]
 // ARUDHA LAGNA CALCULATION
 // ═════════════════════════════════════════════════════════════════════════════
 
-const SIGN_LORDS: Record<string, string> = {
-    Aries: 'mars', Taurus: 'venus', Gemini: 'mercury', Cancer: 'moon',
-    Leo: 'sun', Virgo: 'mercury', Libra: 'venus', Scorpio: 'mars',
-    Sagittarius: 'jupiter', Capricorn: 'saturn', Aquarius: 'saturn', Pisces: 'jupiter',
-};
+// SIGN_LORDS moved to shared
 
 /**
  * Calculate Arudha Lagna (AL) - Shows public image and career success
@@ -1047,10 +1040,10 @@ export function formatDivisionalCharts(charts: Record<string, DivisionalChart>):
 
     for (const [chartName, chart] of Object.entries(charts)) {
         lines.push(`\n${chartName} CHART (${getChartPurpose(chartName)}):`);
-        lines.push(`Ascendant: ${chart.ascendant.sign} ${chart.ascendant.degree.toFixed(1)}°`);
+        lines.push(`Ascendant: ${chart.ascendant.sign} ${chart.ascendant.degree.toFixed(4)}°`);
 
         for (const [planet, pos] of Object.entries(chart.planets)) {
-            lines.push(`${planet.toUpperCase()}: ${pos.sign} ${pos.degree.toFixed(1)}° (House ${pos.house})`);
+            lines.push(`${planet.toUpperCase()}: ${pos.sign} ${pos.degree.toFixed(4)}° (House ${pos.house})`);
         }
     }
 
@@ -1149,9 +1142,9 @@ export function calculateGhatiLagna(
 
 export function formatSpecialLagnas(hl: SpecialLagna, gl: SpecialLagna): string {
     return `SPECIAL LAGNAS:
-1. Hora Lagna (Wealth/Status): ${hl.sign} at ${hl.degree.toFixed(2)}°
+1. Hora Lagna (Wealth/Status): ${hl.sign} at ${hl.degree.toFixed(4)}°
    Verification: Check HL house placements for major financial gains/losses.
-2. Ghati Lagna (Power/Authority): ${gl.sign} at ${gl.degree.toFixed(2)}°
+2. Ghati Lagna (Power/Authority): ${gl.sign} at ${gl.degree.toFixed(4)}°
    Verification: Check GL house/lord strength for promotions, authority, or leadership.`;
 }
 

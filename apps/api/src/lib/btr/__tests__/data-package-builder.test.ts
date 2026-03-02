@@ -11,8 +11,8 @@ import * as ephemeris from '../../ephemeris.js';
 vi.mock('../../ephemeris.js', () => ({
     calculateEphemeris: vi.fn(),
     calculateJulianDay: vi.fn(),
-    calculateSunrise: vi.fn(),
-    convertToUTC: vi.fn(),
+    calculateSunrise: vi.fn().mockResolvedValue(new Date('1990-01-01T06:00:00Z')),
+    convertToUTC: vi.fn().mockReturnValue(new Date('1990-01-01T12:00:00Z')),
 }));
 
 vi.mock('../../vedic-astrology-engine.js', () => ({
@@ -75,7 +75,8 @@ describe('🧠 Phase L: AI Transformation & Resilience — Data Package Builder'
         const pkg = await buildCandidateDataPackage('12:00:00', 0, mockInput as any);
 
         expect(pkg).toBeDefined();
-        expect(pkg.planets.sun.degree).toBe('0.0001°');
+        // 0.0001 degrees -> 0 degrees, 0 minutes, 0 seconds
+        expect(pkg.planets.sun.degree).toBe("0° 00' 00\"");
         expect(pkg.planets.sun.sign).toBe('Aries');
     });
 

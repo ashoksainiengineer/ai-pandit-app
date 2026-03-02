@@ -66,7 +66,7 @@ export function getMinifiedEphemeris(candidate: CandidateData): MinifiedEphemeri
  * formatPlanetPosition('Aries', 15.5) // 'Aries 15.50°'
  */
 export function formatPlanetPosition(sign: string, degree: number): string {
-  return `${sign} ${degree.toFixed(2)}°`;
+  return `${sign} ${degree.toFixed(4)}°`;
 }
 
 /**
