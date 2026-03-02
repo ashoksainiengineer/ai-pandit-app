@@ -20,6 +20,7 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader2,
+  CopyPlus,
 } from 'lucide-react';
 import { DashboardSession } from '@/lib/dashboard/types';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
@@ -105,11 +106,13 @@ export const SessionCard = memo(function SessionCard({
   onSelect,
   onFavorite,
   onDelete,
+  onDuplicate,
 }: SessionCardProps) {
   const { getToken } = useAuth();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isCloning, setIsCloning] = useState(false);
 
   const status = statusConfig[session.status as keyof typeof statusConfig] || statusConfig.draft;
   const confidence = session.confidence ? confidenceConfig[session.confidence as keyof typeof confidenceConfig] : null;
@@ -173,6 +176,36 @@ export const SessionCard = memo(function SessionCard({
       setIsDeleting(false);
     }
   }, [getToken, session.id, onDelete]);
+
+  const handleCloneClick = useCallback(async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsCloning(true);
+
+    try {
+      const token = await getToken();
+      const response = await fetch(`/api/sessions/${session.id}/clone`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success && data.data?.id) {
+        onDuplicate?.(data.data.id);
+        window.location.href = `/rectify/${data.data.id}/edit`;
+      } else {
+        console.error(data.error || 'Failed to clone session');
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsCloning(false);
+    }
+  }, [session.id, onDuplicate]);
 
   // Compact View
   if (viewMode === 'compact') {
@@ -478,6 +511,16 @@ export const SessionCard = memo(function SessionCard({
         >
           <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5" />
         </Link>
+
+        {/* Duplicate Button */}
+        <button
+          onClick={handleCloneClick}
+          disabled={isCloning}
+          className="p-1.5 sm:p-2 text-[#A8A39D] hover:text-[#B8860B] disabled:opacity-50 rounded-lg transition-colors"
+          title="Duplicate session"
+        >
+          {isCloning ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <CopyPlus className="w-4 h-4 sm:w-5 sm:h-5" />}
+        </button>
 
         {/* Delete Button */}
         <button
