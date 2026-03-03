@@ -61,8 +61,10 @@ RUN addgroup --system --gid 1001 nodejs && \
 # This ensures all symlinks and hoisted packages are preserved exactly as installed
 COPY --from=prod-deps --chown=nodejs:nodejs /app ./
 
-# Copy compiled source from builder
+# Copy compiled source from builder for the API and internal packages
 COPY --from=builder --chown=nodejs:nodejs /app/apps/api/dist ./apps/api/dist
+COPY --from=builder --chown=nodejs:nodejs /app/packages/db/dist ./packages/db/dist
+COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/dist ./packages/shared/dist
 
 # Copy ephemeris data (the only heavy asset)
 COPY --chown=nodejs:nodejs ephe/* /app/ephe/
