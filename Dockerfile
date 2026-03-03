@@ -36,9 +36,10 @@ COPY turbo.json turbo.json
 RUN turbo run build --filter=@ai-pandit/api...
 
 # ─── Stage 3: Production Dependencies ──────────────────────────────────────
-# Install ONLY production dependencies in a clean environment
+# Install ONLY production dependencies. 
+# We copy FULL pruned source to ensure local workspace links are valid.
 FROM base AS prod-deps
-COPY --from=pruner /app/out/json/ .
+COPY --from=pruner /app/out/full/ .
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 RUN npm ci --omit=dev --loglevel=error
 
@@ -56,15 +57,12 @@ RUN addgroup --system --gid 1001 nodejs && \
     mkdir -p /app/ephe /app/logs && \
     chown -R nodejs:nodejs /app
 
-# Copy ALL production node_modules from the pruned environment
-# Captures both root-level and workspace-level dependencies
-COPY --from=prod-deps --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=prod-deps --chown=nodejs:nodejs /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=prod-deps --chown=nodejs:nodejs /app/packages ./packages
+# Copy ALL production node_modules and workspaces from prod-deps stage
+# This ensures all symlinks and hoisted packages are preserved exactly as installed
+COPY --from=prod-deps --chown=nodejs:nodejs /app ./
 
+# Copy compiled source from builder
 COPY --from=builder --chown=nodejs:nodejs /app/apps/api/dist ./apps/api/dist
-COPY --from=builder --chown=nodejs:nodejs /app/apps/api/package.json ./apps/api/package.json
-COPY --from=builder --chown=nodejs:nodejs /app/package.json ./package.json
 
 # Copy ephemeris data (the only heavy asset)
 COPY --chown=nodejs:nodejs ephe/* /app/ephe/
