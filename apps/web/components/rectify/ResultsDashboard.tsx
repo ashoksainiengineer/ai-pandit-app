@@ -30,6 +30,9 @@ import { TechnicalMetrics } from './dashboard/TechnicalMetrics';
 import { StageJourneyFunnel } from './dashboard/StageJourneyFunnel';
 import { EventMatchGrid } from './dashboard/EventMatchGrid';
 import { FormattedAIReasoning } from './dashboard/FormattedAIReasoning';
+import { APIClient } from '@/lib/api-client';
+import { useAuth } from '@clerk/nextjs';
+import { useClipboard } from '@/hooks/useClipboard';
 
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -108,7 +111,9 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
   const [isCloning, setIsCloning] = useState(false);
   const [activeTab, setActiveTab] = useState<'summary' | 'audit' | 'comparison' | 'logs'>('summary');
   const [analysisDetails, setAnalysisDetails] = useState<AnalysisDetails | null>(null);
-  const [copied, setCopied] = useState(false);
+
+  const { getToken } = useAuth();
+  const { copyToClipboard, hasCopied } = useClipboard();
 
   // Parse analysis result safely
   useEffect(() => {
@@ -125,14 +130,10 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
     }
   }, [data.analysisResult]);
 
-  // Clone session
   const handleClone = useCallback(async () => {
     setIsCloning(true);
     try {
-      const res = await fetch(`/api/sessions/${sessionId}/clone`, {
-        method: 'POST',
-      });
-      const result = await res.json();
+      const result = await APIClient.post(`/api/sessions/${sessionId}/clone`, {}, getToken);
       if (result.success && result.data?.id) {
         router.push(`/rectify/${result.data.id}/edit`);
       } else {
@@ -143,20 +144,16 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
       alert('Failed to duplicate session. Please try again.');
       setIsCloning(false); // Only unset on error since successful routing unmounts
     }
-  }, [sessionId, router]);
+  }, [sessionId, router, getToken]);
 
   // Copy share link
   const copyShareLink = useCallback(async () => {
-    try {
-      const url = `${window.location.origin}/rectify/${sessionId}/results`;
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy link:', err);
+    const url = `${window.location.origin}/rectify/${sessionId}/results`;
+    const success = await copyToClipboard(url);
+    if (!success) {
       alert('Failed to copy link to clipboard');
     }
-  }, [sessionId]);
+  }, [sessionId, copyToClipboard]);
 
   // Export JSON
   const exportJSON = useCallback(() => {
@@ -407,14 +404,14 @@ function ResultsDashboardContent({ sessionId, data, birthData, reasoningLogs }: 
                 border: `1px solid ${THEME.border}`,
                 color: THEME.textSecondary
               }}
-              aria-label={copied ? 'Link copied' : 'Copy share link'}
+              aria-label={hasCopied ? 'Link copied' : 'Copy share link'}
             >
-              {copied ? (
+              {hasCopied ? (
                 <CheckCircle className="w-4 h-4" style={{ color: THEME.success }} aria-hidden="true" />
               ) : (
                 <Copy className="w-4 h-4" aria-hidden="true" />
               )}
-              <span className="hidden sm:inline">{copied ? 'Copied!' : 'Share'}</span>
+              <span className="hidden sm:inline">{hasCopied ? 'Copied!' : 'Share'}</span>
             </button>
 
             <button

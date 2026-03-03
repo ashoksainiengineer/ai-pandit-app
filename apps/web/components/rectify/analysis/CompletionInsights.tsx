@@ -1,9 +1,11 @@
 import React from 'react';
 import { Brain, Trophy, CheckCircle2, Copy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useClipboard } from '@/hooks/useClipboard';
 
 export function CompletionInsights({ result, sessionId }: { result: any, sessionId: string }) {
     const router = useRouter();
+    const { copyToClipboard, hasCopied } = useClipboard();
 
     return (
         <div className="mt-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
@@ -49,10 +51,14 @@ export function CompletionInsights({ result, sessionId }: { result: any, session
                             {result.rectifiedTime}
                             <button
                                 className="p-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700 transition-colors opacity-0 group-hover:opacity-100 border border-zinc-700"
-                                onClick={() => navigator.clipboard.writeText(result.rectifiedTime)}
-                                title="Copy to clipboard"
+                                onClick={() => copyToClipboard(result.rectifiedTime)}
+                                title={hasCopied ? "Copied!" : "Copy to clipboard"}
                             >
-                                <Copy className="w-5 h-5 text-zinc-400 hover:text-white" />
+                                {hasCopied ? (
+                                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                                ) : (
+                                    <Copy className="w-5 h-5 text-zinc-400 hover:text-white" />
+                                )}
                             </button>
                         </div>
 

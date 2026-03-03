@@ -15,11 +15,21 @@ import {
   Sparkles,
   ChevronDown
 } from 'lucide-react';
-import { Suspense, lazy } from 'react';
 
-const AIThinkingBox = lazy(() => import('./AIThinkingBox'));
-const EphemerisTable = lazy(() => import('./EphemerisTable'));
-const CandidateComparisonTable = lazy(() => import('./CandidateComparisonTable'));
+import dynamic from 'next/dynamic';
+
+const AIThinkingBox = dynamic(() => import('./AIThinkingBox'), {
+  ssr: false,
+  loading: () => <div className="h-40 bg-white rounded-2xl animate-pulse border border-[#F0E8DE] flex items-center justify-center"><div className="text-[#A8A39D] text-xs font-mono">Initializing AI Thinking...</div></div>,
+});
+const EphemerisTable = dynamic(() => import('./EphemerisTable'), {
+  ssr: false,
+  loading: () => <div className="h-32 bg-white rounded-2xl animate-pulse border border-[#F0E8DE] flex items-center justify-center"><div className="text-[#A8A39D] text-xs font-mono">Loading Ephemeris Data...</div></div>,
+});
+const CandidateComparisonTable = dynamic(() => import('./CandidateComparisonTable'), {
+  ssr: false,
+  loading: () => <div className="h-48 bg-white rounded-2xl animate-pulse border border-[#F0E8DE] flex items-center justify-center"><div className="text-[#A8A39D] text-xs font-mono">Preparing Comparison Matrix...</div></div>,
+});
 
 // Core stats with warm colors
 const coreStats = [
@@ -212,29 +222,9 @@ export default function Hero() {
           </div>
 
           {/* Analysis Components */}
-          <Suspense fallback={
-            <div className="h-40 bg-white rounded-2xl animate-pulse border border-[#F0E8DE] flex items-center justify-center">
-              <div className="text-[#A8A39D] text-xs font-mono">Initializing AI Thinking...</div>
-            </div>
-          }>
-            <AIThinkingBox />
-          </Suspense>
-
-          <Suspense fallback={
-            <div className="h-32 bg-white rounded-2xl animate-pulse border border-[#F0E8DE] flex items-center justify-center">
-              <div className="text-[#A8A39D] text-xs font-mono">Loading Ephemeris Data...</div>
-            </div>
-          }>
-            <EphemerisTable />
-          </Suspense>
-
-          <Suspense fallback={
-            <div className="h-48 bg-white rounded-2xl animate-pulse border border-[#F0E8DE] flex items-center justify-center">
-              <div className="text-[#A8A39D] text-xs font-mono">Preparing Comparison Matrix...</div>
-            </div>
-          }>
-            <CandidateComparisonTable />
-          </Suspense>
+          <AIThinkingBox />
+          <EphemerisTable />
+          <CandidateComparisonTable />
         </div>
 
         {/* Scroll Indicator */}

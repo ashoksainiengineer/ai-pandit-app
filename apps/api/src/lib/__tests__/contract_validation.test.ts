@@ -24,8 +24,7 @@ describe('Phase E: Industrial Contract Validation', () => {
                     maha: 'Rahu',
                     antar: 'Jupiter',
                     pratyantar: 'Saturn',
-                    start: '2024-01-01',
-                    end: '2024-06-01'
+                    startEnd: '2024-01-01 to 2024-06-01'
                 }
             ],
             transitData: {

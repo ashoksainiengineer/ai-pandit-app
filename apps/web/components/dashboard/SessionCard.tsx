@@ -25,6 +25,7 @@ import {
 import { DashboardSession } from '@/lib/dashboard/types';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { ClientOnly } from '@/components/ui/ClientOnly';
+import { APIClient } from '@/lib/api-client';
 
 interface SessionCardProps {
   session: DashboardSession;
@@ -183,18 +184,9 @@ export const SessionCard = memo(function SessionCard({
     setIsCloning(true);
 
     try {
-      const token = await getToken();
-      const response = await fetch(`/api/sessions/${session.id}/clone`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-      });
+      const data = await APIClient.post(`/api/sessions/${session.id}/clone`, {}, getToken);
 
-      const data = await response.json();
-
-      if (response.ok && data.success && data.data?.id) {
+      if (data.success && data.data?.id) {
         onDuplicate?.(data.data.id);
         window.location.href = `/rectify/${data.data.id}/edit`;
       } else {

@@ -225,7 +225,7 @@ ${Object.entries(c.planets).map(([name, p]) => {
 ├ D60 PLANETARY MATRIX:
 ${Object.entries(c.d60Planets || {}).map(([name, data]) => `│ ${name.padEnd(7)}: ${data.sign} ${data.degree} | DEITY: ${data.deity}`).join('\n')}
 ├ VIMSHOTTARI SEQUENCE (Forensic Accuracy):
-${c.vimshottariDasha.map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar}${d.sukshma !== '-' ? ` -> ${d.sukshma}` : ''}${d.prana !== '-' ? ` -> ${d.prana}` : ''} : ${d.startEnd}`).join('\n')}
+${c.vimshottariDasha.map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar}${d.sukshma && d.sukshma !== '-' ? ` -> ${d.sukshma}` : ''}${d.prana && d.prana !== '-' ? ` -> ${d.prana}` : ''} : ${d.startEnd}`).join('\n')}
 ${c.transitData ? `├ TRANSITS & DASHAS ON ALL EVENTS (Full Forensic Matrix):
 ${Object.entries(c.transitData).map(([date, t]: [string, any]) =>
     `│ [${date}]: Dasha=${t.dasha}

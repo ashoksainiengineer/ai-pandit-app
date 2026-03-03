@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { SecurityGuard } from '../security-guard.js';
+import { SecurityGuard } from '../../security-guard.js';
 
 describe('Cybersecurity: AI Prompt Injection Guardrails', () => {
 
