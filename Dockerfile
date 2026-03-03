@@ -57,14 +57,14 @@ RUN addgroup --system --gid 1001 nodejs && \
     mkdir -p /app/ephe /app/logs && \
     chown -R nodejs:nodejs /app
 
-# Copy ALL production node_modules and workspaces from prod-deps stage
-# This ensures all symlinks and hoisted packages are preserved exactly as installed
-COPY --from=prod-deps --chown=nodejs:nodejs /app ./
+# Copy production dependencies from prod-deps stage
+COPY --from=prod-deps --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=prod-deps --chown=nodejs:nodejs /app/package.json ./package.json
 
-# Copy compiled source from builder for the API and internal packages
-COPY --from=builder --chown=nodejs:nodejs /app/apps/api/dist ./apps/api/dist
-COPY --from=builder --chown=nodejs:nodejs /app/packages/db/dist ./packages/db/dist
-COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/dist ./packages/shared/dist
+# Copy the entire workspaces from builder (includes compiled dist and package metadata)
+# This ensures symlinks in node_modules/ point to valid folders with compiled artifacts
+COPY --from=builder --chown=nodejs:nodejs /app/apps/api ./apps/api
+COPY --from=builder --chown=nodejs:nodejs /app/packages ./packages
 
 # Copy ephemeris data (the only heavy asset)
 COPY --chown=nodejs:nodejs ephe/* /app/ephe/

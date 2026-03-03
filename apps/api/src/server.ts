@@ -100,34 +100,55 @@ app.use(cors({
 
 
 // ═════════════════════════════════════════════════════════════════════════════
+// GLOBAL ROUTE DEBUGGER & LOGGING
+// ═════════════════════════════════════════════════════════════════════════════
+
+app.use((req, res, next) => {
+  const start = Date.now();
+  const requestId = req.headers['x-request-id'] || 'no-id';
+
+  // Detailed logging for ALL requests hitting the server
+  // This is critical for debugging 404s on HF Spaces
+  logger.info(`✨ [API] ${req.method} ${req.originalUrl}`, {
+    requestId,
+    ip: req.ip,
+    userAgent: req.get('user-agent')?.substring(0, 50),
+    authHeader: req.headers.authorization ? 'PRESENT' : 'MISSING',
+    query: Object.keys(req.query),
+  });
+
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    if (res.statusCode >= 400) {
+      logger.warn(`🛑 [API] Error ${res.statusCode} on ${req.method} ${req.originalUrl}`, {
+        duration: `${duration}ms`,
+        requestId,
+      });
+    } else {
+      logger.debug(`✅ [API] Success ${res.statusCode} on ${req.method} ${req.originalUrl}`, {
+        duration: `${duration}ms`,
+      });
+    }
+  });
+  next();
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
 // RESPONSE COMPRESSION (~30% bandwidth savings)
 // Skip SSE streams — they need real-time uncompressed delivery
 // ═════════════════════════════════════════════════════════════════════════════
 
 app.use(compression({
   filter: (req, res) => {
-    // Don't compress SSE streams (they need real-time delivery)
-    if (req.path.startsWith('/api/stream') || req.path.startsWith('/api/queue/progress')) {
+    // Don't compress SSE streams or polling progress (they need real-time delivery)
+    const path = req.originalUrl;
+    if (path.includes('/stream') || path.includes('/queue/progress')) {
       return false;
     }
     return compression.filter(req, res);
   },
-  threshold: 1024, // Only compress responses > 1KB
+  threshold: 1024,
 }));
-
-// ═════════════════════════════════════════════════════════════════════════════
-// REQUEST PROCESSING MIDDLEWARE
-// ═════════════════════════════════════════════════════════════════════════════
-
-app.use((req, res, next) => {
-  if (req.path.includes('/api/queue/requeue')) {
-    logger.info('Requeue request detected', {
-      method: req.method,
-      url: req.url,
-    });
-  }
-  next();
-});
 
 // Body parsing with limits
 app.use(express.json({
@@ -254,7 +275,7 @@ async function startWorkerServer() {
 
     // Initialize Swiss Ephemeris FIRST (blocking with timeout)
     logger.info('🔭 Initializing Swiss Ephemeris...');
-    const swissEphTimeout = new Promise<boolean>((resolve) => 
+    const swissEphTimeout = new Promise<boolean>((resolve) =>
       setTimeout(() => resolve(false), 15000)
     );
     try {
