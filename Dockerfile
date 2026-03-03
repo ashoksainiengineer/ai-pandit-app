@@ -56,14 +56,15 @@ RUN addgroup --system --gid 1001 nodejs && \
     mkdir -p /app/ephe /app/logs && \
     chown -R nodejs:nodejs /app
 
-# Copy ONLY necessary files for runtime
+# Copy ALL production node_modules from the pruned environment
+# Captures both root-level and workspace-level dependencies
 COPY --from=prod-deps --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=prod-deps --chown=nodejs:nodejs /app/apps/api/node_modules ./apps/api/node_modules
+COPY --from=prod-deps --chown=nodejs:nodejs /app/packages ./packages
+
 COPY --from=builder --chown=nodejs:nodejs /app/apps/api/dist ./apps/api/dist
 COPY --from=builder --chown=nodejs:nodejs /app/apps/api/package.json ./apps/api/package.json
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./package.json
-
-# Copy local workspace packages (e.g., @ai-pandit/shared)
-COPY --from=builder --chown=nodejs:nodejs /app/packages ./packages
 
 # Copy ephemeris data (the only heavy asset)
 COPY --chown=nodejs:nodejs ephe/* /app/ephe/
