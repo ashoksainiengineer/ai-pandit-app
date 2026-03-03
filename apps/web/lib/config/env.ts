@@ -85,6 +85,7 @@ export const env = {
 
       return (url || 'http://localhost:8080').replace(/\/$/, '');
     })(),
+    huggingFaceToken: getEnvVarOptional(process.env.NEXT_PUBLIC_HF_TOKEN),
     internalApiKey: getEnvVarOptional(process.env.INTERNAL_API_KEY),
   },
 

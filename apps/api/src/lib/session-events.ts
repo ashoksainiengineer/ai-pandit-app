@@ -58,6 +58,11 @@ class SessionEventManager {
     private candidateScoreBuffers: Map<string, CandidateScoreEvent[]> = new Map();
     // ⚖️ Store decision logs for "Funnel of Truth"
     private decisionBuffers: Map<string, DecisionEvent[]> = new Map();
+    // 秤 Batch Buffers for performance (Industry Standard for Free Tiers)
+    private thinkingBroadcastBuffer: Map<string, Array<{ chunk: string; stage: number; candidateTime?: string }>> = new Map();
+    private scoreBroadcastBuffer: Map<string, CandidateScoreEvent[]> = new Map();
+    private updateIntervals: Map<string, NodeJS.Timeout> = new Map();
+
     // ⏱️ Track last activity for garbage collection
     private lastActive: Map<string, number> = new Map();
 
@@ -168,10 +173,97 @@ class SessionEventManager {
     }
 
     /**
+     * Start the broadcast interval for a session if not already running
+     */
+    private startBroadcastLoop(sessionId: string): void {
+        if (this.updateIntervals.has(sessionId)) return;
+
+        const interval = setInterval(() => {
+            this.flushBroadcastBuffers(sessionId);
+        }, 200); // 200ms batching window (Industry Standard balance)
+
+        this.updateIntervals.set(sessionId, interval);
+    }
+
+    /**
+     * Flush all batched events to the frontend
+     */
+    private flushBroadcastBuffers(sessionId: string): void {
+        // 1. Flush AI Thinking
+        const thinkingBatch = this.thinkingBroadcastBuffer.get(sessionId);
+        if (thinkingBatch && thinkingBatch.length > 0) {
+            // Group by candidateTime and stage to send fewer messages
+            const grouped = new Map<string, { chunk: string; stage: number; candidateTime?: string }>();
+            for (const item of thinkingBatch) {
+                const key = `${item.stage}_${item.candidateTime || 'general'}`;
+                const existing = grouped.get(key);
+                if (existing) {
+                    existing.chunk += item.chunk;
+                } else {
+                    grouped.set(key, { ...item });
+                }
+            }
+
+            // Emit merged chunks
+            for (const merged of grouped.values()) {
+                this.emit(sessionId, {
+                    type: 'ai_thinking',
+                    ...merged
+                });
+            }
+            this.thinkingBroadcastBuffer.set(sessionId, []);
+        }
+
+        // 2. Flush Scores
+        const scoreBatch = this.scoreBroadcastBuffer.get(sessionId);
+        if (scoreBatch && scoreBatch.length > 0) {
+            this.emit(sessionId, {
+                type: 'candidate_scores',
+                data: scoreBatch
+            } as any);
+            this.scoreBroadcastBuffer.set(sessionId, []);
+        }
+    }
+
+    /**
+     * Buffer a thinking chunk for later broadcast
+     */
+    bufferThinking(sessionId: string, chunk: string, stage: number, candidateTime?: string): void {
+        this.touch(sessionId);
+        this.startBroadcastLoop(sessionId);
+
+        if (!this.thinkingBroadcastBuffer.has(sessionId)) {
+            this.thinkingBroadcastBuffer.set(sessionId, []);
+        }
+        this.thinkingBroadcastBuffer.get(sessionId)!.push({ chunk, stage, candidateTime });
+    }
+
+    /**
+     * Buffer a candidate score for later broadcast
+     */
+    bufferScore(sessionId: string, score: CandidateScoreEvent): void {
+        this.touch(sessionId);
+        this.startBroadcastLoop(sessionId);
+
+        if (!this.scoreBroadcastBuffer.has(sessionId)) {
+            this.scoreBroadcastBuffer.set(sessionId, []);
+        }
+        this.scoreBroadcastBuffer.get(sessionId)!.push(score);
+    }
+
+    /**
      * Clean up emitter when session completes
      */
     cleanup(sessionId: string): void {
         logger.info(`Cleaning up session resources: ${sessionId?.slice(0, 8)}`);
+
+        // Stop broadcast loop
+        const interval = this.updateIntervals.get(sessionId);
+        if (interval) {
+            clearInterval(interval);
+            this.updateIntervals.delete(sessionId);
+        }
+
         const emitter = this.emitters.get(sessionId);
         if (emitter) {
             emitter.removeAllListeners();
@@ -370,13 +462,7 @@ export function emitAIThinking(
     candidateTime?: string
 ): void {
     sessionEvents.appendToThinkingBuffer(sessionId, stage, chunk, candidateTime);
-
-    sessionEvents.emit(sessionId, {
-        type: 'ai_thinking',
-        chunk,
-        stage,
-        candidateTime,
-    });
+    sessionEvents.bufferThinking(sessionId, chunk, stage, candidateTime);
 }
 
 export function emitEphemeris(
@@ -404,8 +490,8 @@ export function emitCandidateScore(
     minifiedEph?: { sun: string; moon: string; ascendant: string },
     fullEph?: Record<string, string>
 ): void {
-    logger.info(`Emit Candidate Score: ${sessionId?.slice(0, 8)} | ${time} | ${score}`);
-    sessionEvents.emit(sessionId, {
+    logger.info(`Buffer Candidate Score: ${sessionId?.slice(0, 8)} | ${time} | ${score}`);
+    sessionEvents.bufferScore(sessionId, {
         type: 'candidate_score_v2',
         time,
         score,

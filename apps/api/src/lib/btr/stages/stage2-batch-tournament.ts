@@ -172,8 +172,14 @@ export async function stage2BatchTournament(
                     batchSurvivors.push(originalTimeInfo);
                 }
 
-                // IMMEDIATE EMIT - SYNCED WITH AI
-                emitCandidateScore(input.sessionId, candidate.time, score, 2, undefined, getMinifiedEphemerisInline(candidate), getFullEphemerisPayload(candidate));
+                // IMMEDIATE EMIT & PERSIST - SYNCED WITH AI
+                await progress.addCandidateScore({
+                    time: candidate.time,
+                    score,
+                    stage: 2,
+                    minifiedEph: getMinifiedEphemerisInline(candidate),
+                    fullEph: getFullEphemerisPayload(candidate)
+                });
                 emitDecision(input.sessionId, {
                     stage: 2,
                     time: candidate.time,
@@ -324,7 +330,13 @@ export async function stage2BatchTournament(
                     roundSurvivors.push(originalTimeInfo);
                 }
 
-                emitCandidateScore(input.sessionId, candidate.time, score, 2, undefined, getMinifiedEphemerisInline(candidate), getFullEphemerisPayload(candidate));
+                await progress.addCandidateScore({
+                    time: candidate.time,
+                    score,
+                    stage: 2,
+                    minifiedEph: getMinifiedEphemerisInline(candidate),
+                    fullEph: getFullEphemerisPayload(candidate)
+                });
                 emitDecision(input.sessionId, {
                     stage: 2,
                     time: candidate.time,

@@ -36,15 +36,20 @@ Thumbs.db
 
 # Docs (not needed in production image)
 *.md
-!README.md
+**/*.md
 docs/
 
 # Tests (not needed in production image)
 **/*.test.ts
 **/*.test.tsx
+**/*.test.js
+**/*.test.jsx
 **/*.spec.ts
 **/*.spec.tsx
+**/*.spec.js
+**/*.spec.jsx
 **/__tests__
+**/tests
 **/coverage
 .nyc_output
 

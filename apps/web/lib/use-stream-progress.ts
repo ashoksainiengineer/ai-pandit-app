@@ -152,6 +152,15 @@ export function useStreamProgress(
             if (token) headers['Authorization'] = `Bearer ${token}`;
             else if (getToken) logger.warn('[Polling] Missing token after retries');
 
+            // Add HF Token for private space access
+            const hfToken = env.api.huggingFaceToken;
+            if (hfToken) {
+                (headers as Record<string, string>)['X-HF-Token'] = hfToken;
+                // Some proxy configs might prefer Authorization for the Space itself
+                // but since we already use Authorization for app-token, we use X-HF-Token
+                // or add it to the URL.
+            }
+
             const sseBaseUrl = backendUrl || BACKEND_URL;
             if (!sseBaseUrl) {
                 throw new Error('Backend URL not configured');
@@ -299,7 +308,11 @@ export function useStreamProgress(
                 logger.warn('Token acquisition failed after maximum retries');
             }
 
-            const query = token ? `?token=${encodeURIComponent(token)}` : '';
+            const hfToken = env.api.huggingFaceToken;
+            let query = token ? `?token=${encodeURIComponent(token)}` : '';
+            if (hfToken) {
+                query += (query ? '&' : '?') + `hf_token=${encodeURIComponent(hfToken)}`;
+            }
 
             // Direct connection to backend — no Vercel proxy, no timeout limit
             const sseBaseUrl = backendUrl || BACKEND_URL;

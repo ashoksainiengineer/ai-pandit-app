@@ -228,7 +228,13 @@ export async function stage6FinalPrecision(
                     batchWinners.push(originalTimeInfo);
                 }
 
-                emitCandidateScore(input.sessionId, candidate.time, score, 6, undefined, getMinifiedEphemerisInline(candidate), getFullEphemerisPayload(candidate));
+                await progress.addCandidateScore({
+                    time: candidate.time,
+                    score,
+                    stage: 6,
+                    minifiedEph: getMinifiedEphemerisInline(candidate),
+                    fullEph: getFullEphemerisPayload(candidate)
+                });
             }
         }
 
@@ -411,7 +417,14 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
 
     const winnerPkg = finalBatch.find(c => c.time === finalTime) || finalBatch[0];
 
-    emitCandidateScore(input.sessionId, finalTime, accuracy, 6, 1, winnerPkg ? getMinifiedEphemerisInline(winnerPkg) : undefined, winnerPkg ? getFullEphemerisPayload(winnerPkg) : undefined);
+    await progress.addCandidateScore({
+        time: finalTime,
+        score: accuracy,
+        stage: 6,
+        rank: 1,
+        minifiedEph: winnerPkg ? getMinifiedEphemerisInline(winnerPkg) : undefined,
+        fullEph: winnerPkg ? getFullEphemerisPayload(winnerPkg) : undefined
+    });
 
     await progress.completeStep('final', [`FINAL: ${finalTime} (${confidence})`]);
 

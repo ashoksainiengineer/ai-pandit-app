@@ -20,14 +20,54 @@ import {
 // Provides 50MB+ storage vs localStorage's 5MB limit.
 // Wraps idb-keyval's async API into Zustand's StateStorage interface.
 // ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════════
+// INDUSTRY PATTERN: Archive Low-Scored Candidates (Linear/Notion)
+// Keeps the active list lean for high-performance rendering.
+// ═══════════════════════════════════════════════════════════════════════════════
+export function archiveCandidates(scores: CandidateScore[]): CandidateScore[] {
+    const MAX_ACTIVE_ALL = 500; // Hard cap on active leaderboard
+
+    if (scores.length <= MAX_ACTIVE_ALL) return scores;
+
+    // Keep top winners up to the cap
+    return [...scores]
+        .sort((a, b) => b.score - a.score)
+        .slice(0, MAX_ACTIVE_ALL);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INDUSTRY PATTERN: Debounced IndexedDB Adapter
+// Prevents UI stutter by batching the I/O operations.
+// ═══════════════════════════════════════════════════════════════════════════════
+const debounceMap = new Map<string, ReturnType<typeof setTimeout>>();
+
 const idbStorage: StateStorage = {
     getItem: async (name: string): Promise<string | null> => {
         return (await get(name)) ?? null;
     },
-    setItem: async (name: string, value: string): Promise<void> => {
-        await set(name, value);
+    setItem: (name: string, value: string): void => {
+        // Clear existing timer for this key
+        if (debounceMap.has(name)) {
+            clearTimeout(debounceMap.get(name));
+        }
+
+        // Debounce write by 2 seconds — ensures we don't bombard I/O during rapid SSE
+        const timer = setTimeout(async () => {
+            try {
+                await set(name, value);
+                debounceMap.delete(name);
+            } catch (err) {
+                console.warn('[IDB] Failed to persist state:', err);
+            }
+        }, 2000);
+
+        debounceMap.set(name, timer);
     },
     removeItem: async (name: string): Promise<void> => {
+        if (debounceMap.has(name)) {
+            clearTimeout(debounceMap.get(name));
+            debounceMap.delete(name);
+        }
         await del(name);
     },
 };
@@ -529,7 +569,7 @@ export const useStreamStore = create<StreamStore>()(
 
                             // INDUSTRY PATTERN: Upsert — replace existing score for the same (time, stage) tuple
                             const filtered = prev.candidateScores.filter(s => !(s.time === score.time && s.stage === score.stage));
-                            const newScores = [...filtered, score];
+                            const newScores = archiveCandidates([...filtered, score]);
 
                             // Standard: Progress tracking must be stage-aware
                             // Use the maximum stage found in the scores to determine current stage progress
@@ -628,6 +668,8 @@ export const useStreamStore = create<StreamStore>()(
                             if (isReset) {
                                 return {
                                     metadata,
+                                    isComplete: false,
+                                    error: null,
                                     stageHistory: {},
                                     candidateScores: [],
                                     candidatesByStage: {},

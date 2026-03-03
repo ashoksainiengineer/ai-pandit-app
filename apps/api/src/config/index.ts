@@ -64,6 +64,7 @@ const envSchema = z.object({
   // Provider Optimization
   AI_PROVIDER_ORDER: z.string().default('Google Vertex,Together,DeepInfra').transform(s => s.split(',')),
   AI_MAX_CONCURRENCY: z.string().optional().transform((v) => v ? Number(v) : undefined),
+  AI_REASONER_IDENTIFIERS: z.string().default('reasoner,r1,gpt-oss,oss,o1,o3').transform(s => s.split(',')),
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -136,6 +137,9 @@ export const aiConfig = {
   // Use AI_MAX_CONCURRENCY if set, otherwise fallback to environment defaults
   maxConcurrency: env.AI_MAX_CONCURRENCY ?? (env.NODE_ENV === 'production' ? 10 : 5),
   staggerMs: 500,
+
+  // Reasoner model identifiers for special protocol handling
+  reasonerIdentifiers: env.AI_REASONER_IDENTIFIERS,
 } as const;
 
 export const queueConfig = {

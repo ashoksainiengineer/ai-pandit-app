@@ -146,8 +146,18 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
           </div>
 
           <div className="text-center">
-            <p className="text-[10px] text-[#7A756F] uppercase tracking-wider">Candidates</p>
-            <p className="text-sm font-bold text-[#B8860B] font-mono">{candidateCount.toLocaleString()}</p>
+            <p className="text-[10px] text-[#7A756F] uppercase tracking-wider">Inference</p>
+            <p className="text-sm font-bold text-[#184131] font-mono">
+              {(() => {
+                if (elapsedSeconds <= 0) return '0.0';
+                const throughput = analyzedCount / elapsedSeconds;
+                return throughput.toFixed(1);
+              })()}
+              <span className="text-[8px] ml-0.5 opacity-60">c/s</span>
+            </p>
+            <p className="text-[9px] text-[#B8860B] font-bold mt-0.5">
+              {candidateCount.toLocaleString()} <span className="text-[7px] uppercase opacity-60">Variations</span>
+            </p>
           </div>
 
           <div className="text-center">

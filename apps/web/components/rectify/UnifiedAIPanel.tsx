@@ -344,9 +344,20 @@ const ReasoningGrid = memo(function ReasoningGrid({
   stage?: number;
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
-  const entries = useMemo(() => Object.entries(candidates), [candidates]);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  // Score mapping for winners and bars
+  const filteredEntries = useMemo(() => {
+    let result = Object.entries(candidates);
+    if (!searchQuery) return result;
+
+    const query = searchQuery.toLowerCase();
+    return result.filter(([time, data]) =>
+      time.toLowerCase().includes(query) ||
+      data.candidateTime?.toLowerCase().includes(query) ||
+      data.fullText.toLowerCase().includes(query)
+    );
+  }, [candidates, searchQuery]);
+
   const scoreMap = useMemo(() => {
     const map = new Map<string, number>();
     if (!candidateScores) return map;
@@ -379,7 +390,7 @@ const ReasoningGrid = memo(function ReasoningGrid({
     return () => observer.disconnect();
   }, []);
 
-  const rowCount = Math.ceil(entries.length / columns);
+  const rowCount = Math.ceil(filteredEntries.length / columns);
 
   const virtualizer = useVirtualizer({
     count: rowCount,
@@ -388,13 +399,39 @@ const ReasoningGrid = memo(function ReasoningGrid({
     overscan: 2, // Render 2 extra rows above/below for smooth scrolling
   });
 
-  if (entries.length === 0) return null;
+  if (filteredEntries.length === 0 && !searchQuery) return null;
 
   return (
     <div
       ref={parentRef}
       className="p-3 max-h-[600px] overflow-y-auto style-scroll bg-[#FAF8F5]/30"
     >
+      {/* 🔱 Search Interface */}
+      <div className="sticky top-0 z-10 mb-3">
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search candidates, times, or reasoning..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-3 py-2 text-xs bg-white/90 backdrop-blur-sm border border-[#F0E8DE] rounded-xl focus:ring-2 focus:ring-[#B8860B]/20 outline-none transition-all pr-8"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-1"
+            >
+              ×
+            </button>
+          )}
+        </div>
+        {searchQuery && (
+          <div className="mt-1 text-[9px] text-stone-500 font-bold uppercase tracking-wider px-1">
+            Found {filteredEntries.length} results
+          </div>
+        )}
+      </div>
+
       <div
         style={{
           height: `${virtualizer.getTotalSize()}px`,
@@ -404,7 +441,7 @@ const ReasoningGrid = memo(function ReasoningGrid({
       >
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const startIdx = virtualRow.index * columns;
-          const rowEntries = entries.slice(startIdx, startIdx + columns);
+          const rowEntries = filteredEntries.slice(startIdx, startIdx + columns);
           const now = Date.now();
           const ACTIVE_THRESHOLD_MS = 3000; // 🔱 Consider "Live" if updated in last 3s
 
@@ -433,7 +470,7 @@ const ReasoningGrid = memo(function ReasoningGrid({
                 const isWinner = isStageCompleted && score !== undefined && score === maxScore && score >= 85;
 
                 return (
-                   <ReasoningCard
+                  <ReasoningCard
                     key={`s${stage ?? 0}_${time}`}
                     title={data.candidateTime || time}
                     content={data.fullText.length > CARD_PREVIEW_CHARS

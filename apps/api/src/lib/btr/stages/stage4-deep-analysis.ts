@@ -156,8 +156,14 @@ export async function stage4DeepAnalysis(
                     batchSurvivors.push(originalTimeInfo);
                 }
 
-                // IMMEDIATE EMIT - SYNCED WITH AI
-                emitCandidateScore(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEphemerisInline(candidate), getFullEphemerisPayload(candidate));
+                // IMMEDIATE EMIT & PERSIST - SYNCED WITH AI
+                await progress.addCandidateScore({
+                    time: candidate.time,
+                    score,
+                    stage: 4,
+                    minifiedEph: getMinifiedEphemerisInline(candidate),
+                    fullEph: getFullEphemerisPayload(candidate)
+                });
                 emitDecision(input.sessionId, {
                     stage: 4,
                     time: candidate.time,
@@ -249,7 +255,13 @@ export async function stage4DeepAnalysis(
 
             if (isSurvivor) survivors.push(originalTimeInfo);
 
-            emitCandidateScore(input.sessionId, candidate.time, score, 4, undefined, getMinifiedEphemerisInline(candidate), getFullEphemerisPayload(candidate));
+            await progress.addCandidateScore({
+                time: candidate.time,
+                score,
+                stage: 4,
+                minifiedEph: getMinifiedEphemerisInline(candidate),
+                fullEph: getFullEphemerisPayload(candidate)
+            });
             emitDecision(input.sessionId, {
                 stage: 4,
                 time: candidate.time,

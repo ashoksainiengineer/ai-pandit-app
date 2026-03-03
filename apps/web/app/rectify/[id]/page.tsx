@@ -302,6 +302,20 @@ export default function AnalysisPage() {
     }
   }, [sessionId]);
 
+  const handleStageClick = useCallback((stageId: number) => {
+    const el = document.getElementById(`stage-${stageId}`);
+    if (el) {
+      const headerOffset = 100;
+      const elementPosition = el.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  }, []);
+
   // Live elapsed timer — updates every second
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   useEffect(() => {
@@ -549,6 +563,7 @@ export default function AnalysisPage() {
                 aiModel={metadata?.aiModel}
                 activeAIStage={activeAIStage}
                 offsetMinutes={offsetMinutes}
+                onStageClick={handleStageClick}
               />
             </SectionErrorBoundary>
           )}
@@ -598,6 +613,7 @@ export default function AnalysisPage() {
                       return (
                         <div
                           key={stepDef.id}
+                          id={`stage-${stageNum}`}
                           className={`mb-12 last:mb-0 border-l-2 pl-4 sm:pl-6 py-2 transition-colors duration-500 relative
                             ${isCurrentStage ? 'border-amber-200 bg-amber-50/5' : 'border-stone-100'}
                           `}

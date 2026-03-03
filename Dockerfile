@@ -14,84 +14,74 @@
 
 # ─── Stage 0: Base ────────────────────────────────────────────────────────
 FROM node:20-alpine AS base
-RUN corepack enable
-
-# ─── Stage 1: Prune monorepo (extract @ai-pandit/api workspace) ──────────
-FROM base AS pruner
-WORKDIR /app
+RUN apk add --no-cache libc6-compat
 RUN npm install -g turbo@^2
+WORKDIR /app
+
+# ─── Stage 1: Prune ────────────────────────────────────────────────────────
+# This stage isolates the API workspace to create a minimal build context
+FROM base AS pruner
 COPY . .
 RUN turbo prune @ai-pandit/api --docker
 
-# ─── Stage 2: Install dependencies + Build ───────────────────────────────
+# ─── Stage 2: Builder ──────────────────────────────────────────────────────
+# Install ALL dependencies and build the source
 FROM base AS builder
-WORKDIR /app
-
-# Install dependencies first (cache layer — only invalidated if lockfile changes)
 COPY --from=pruner /app/out/json/ .
-RUN npm ci --ignore-scripts --no-audit --no-fund --loglevel=error
+COPY --from=pruner /app/out/package-lock.json ./package-lock.json
+RUN npm ci --loglevel=error
 
-# Copy source code of isolated workspace
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
+RUN turbo run build --filter=@ai-pandit/api...
 
-# Build the API and any shared packages it depends on
-RUN npx turbo run build --filter=@ai-pandit/api...
+# ─── Stage 3: Production Dependencies ──────────────────────────────────────
+# Install ONLY production dependencies in a clean environment
+FROM base AS prod-deps
+COPY --from=pruner /app/out/json/ .
+COPY --from=pruner /app/out/package-lock.json ./package-lock.json
+RUN npm ci --omit=dev --loglevel=error
 
-# Prune devDependencies (Disabled: In npm workspaces, pruning at the root deletes hoisted workspace dependencies)
-# RUN npm prune --production --ignore-scripts
-
-# ─── Stage 3: Minimal Runtime Image ──────────────────────────────────────
+# ─── Stage 4: Runner ───────────────────────────────────────────────────────
+# Final lean production image
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-# Install wget for lightweight health checks (tiny: ~400KB)
+# Install security patches and tools
 RUN apk add --no-cache wget
 
-# Security: Non-root user
+# Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nodejs && \
     mkdir -p /app/ephe /app/logs && \
     chown -R nodejs:nodejs /app
 
-# ── Copy ONLY production artifacts (not the entire /app/) ──
-# 1. Production node_modules (devDeps already pruned)
-COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
-
-# 2. Built API dist
+# Copy ONLY necessary files for runtime
+COPY --from=prod-deps --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/apps/api/dist ./apps/api/dist
 COPY --from=builder --chown=nodejs:nodejs /app/apps/api/package.json ./apps/api/package.json
-# 🔱 Copy nested node_modules for unhoisted dependencies
-COPY --from=builder --chown=nodejs:nodejs /app/apps/api/node_modules* ./apps/api/node_modules/
-
-# 3. Root package.json (needed for module resolution in monorepo)
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./package.json
 
-# 4. Shared packages (if any are built and referenced)
-# 🔱 Use glob pattern to prevent failure, as Docker COPY does not support `2>/dev/null`
-COPY --from=builder --chown=nodejs:nodejs /app/packages* ./packages/
+# Copy local workspace packages (e.g., @ai-pandit/shared)
+COPY --from=builder --chown=nodejs:nodejs /app/packages ./packages
 
-# 5. Ephemeris data (read-only)
+# Copy ephemeris data (the only heavy asset)
 COPY --chown=nodejs:nodejs ephe/* /app/ephe/
 
 USER nodejs
 
-# ── Environment ──
+# Standard Production Environment
 ENV NODE_ENV=production
 ENV PORT=7860
 ENV SWISSEPH_PATH=/app/ephe
 
-# Build-time cache bust (pass via --build-arg CACHE_BUST=$(date +%s))
-ARG CACHE_BUST=0
-ENV CACHE_BUST=${CACHE_BUST}
+# V8 Optimization for memory-heavy astrology logic (HF 16GB RAM)
+# Allow 12GB heap, leaving room for system/other processes
+ENV NODE_OPTIONS="--max-old-space-size=12288 --expose-gc"
 
 EXPOSE 7860
 
-# ── Health Check: Lightweight wget (no Node.js process spawn overhead) ──
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=15s \
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
     CMD wget -q --spider http://localhost:7860/api/health || exit 1
 
-# ── Start with V8 memory tuning for long-running analyses ──
-# --max-old-space-size=12288  → Allow V8 heap up to 12GB (default ~1.5GB)
-# --expose-gc                 → Enable manual GC in code if needed
-CMD ["node", "--max-old-space-size=12288", "--expose-gc", "apps/api/dist/server.js"]
+CMD ["node", "apps/api/dist/server.js"]

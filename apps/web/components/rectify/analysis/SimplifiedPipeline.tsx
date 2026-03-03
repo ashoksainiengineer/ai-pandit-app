@@ -8,16 +8,17 @@ interface StageConfig {
   id: number;
   name: string;
   shortName: string;
+  description: string;
 }
 
 const STAGES: StageConfig[] = [
-  { id: 0, name: 'Initialization', shortName: 'Init' },
-  { id: 1, name: 'Rashi Grid Synthesis', shortName: 'Rashi' },
-  { id: 2, name: 'Amsha-Varga Elimination', shortName: 'Amsha' },
-  { id: 3, name: 'Temporal Refinement', shortName: 'Zoom' },
-  { id: 4, name: 'Divisional Analysis', shortName: 'Varga' },
-  { id: 5, name: 'Nadi-Amsha Convergence', shortName: 'Nadi' },
-  { id: 6, name: 'Prana-Dasha Verdict', shortName: 'Prana' },
+  { id: 0, name: 'Initialization', shortName: 'Init', description: 'Preparing analysis engine and loading birth data' },
+  { id: 1, name: 'Rashi Grid Synthesis', shortName: 'Rashi', description: 'Synthesis of primary astrological grids based on Rashi and Nakshatra placements' },
+  { id: 2, name: 'Amsha-Varga Elimination', shortName: 'Amsha', description: 'Recursive elimination of low-probability candidates using Varga-displacement logic' },
+  { id: 3, name: 'Temporal Refinement', shortName: 'Zoom', description: 'Dynamic resolution adjustment for high-density temporal search windows' },
+  { id: 4, name: 'Divisional Analysis', shortName: 'Varga', description: 'Advanced AI evaluation of Navamsha (D9) and Dashamsha (D10) lifecycle events' },
+  { id: 5, name: 'Nadi-Amsha Convergence', shortName: 'Nadi', description: 'Convergent validation across Shashtiamsha (D60) and 48-second Nadi-Amsha windows' },
+  { id: 6, name: 'Prana-Dasha Verdict', shortName: 'Prana', description: 'Final synthesis of Pancha-Dasha subdivisions and forensic event alignment' },
 ];
 
 interface SimplifiedPipelineProps {
@@ -27,6 +28,7 @@ interface SimplifiedPipelineProps {
   aiModel?: string;
   activeAIStage?: number | null;
   offsetMinutes?: number; // 🔱 NEW: God-Tier offset config
+  onStageClick?: (stageId: number) => void;
 }
 
 export const SimplifiedPipeline = memo(function SimplifiedPipeline({
@@ -36,6 +38,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
   aiModel,
   activeAIStage,
   offsetMinutes = 60,
+  onStageClick,
 }: SimplifiedPipelineProps) {
   const aiStageToIndex: Record<number, number> = {
     1: 1,
@@ -81,15 +84,16 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
 
           return (
             <React.Fragment key={stage.id}>
-              <motion.div
+              <motion.button
                 initial={false}
                 animate={{
                   scale: state === 'active' ? 1.05 : 1,
                 }}
+                onClick={() => onStageClick?.(stage.id)}
                 className={`
                   flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-lg shrink-0
-                  transition-colors duration-300
-                  ${state === 'completed' ? 'bg-[#184131] text-white' : ''}
+                  transition-all duration-300 group relative
+                  ${state === 'completed' ? 'bg-[#184131] text-white hover:bg-[#184131]/90' : ''}
                   ${state === 'active' ? 'bg-[#B8860B] text-white ring-2 ring-[#B8860B]/30 ring-offset-1' : ''}
                   ${state === 'pending' ? 'bg-[#F5EFE7] text-[#A8A39D]' : ''}
                 `}
@@ -98,7 +102,14 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
                 {state === 'completed' && <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />}
                 {state === 'active' && <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />}
                 {state === 'pending' && <Circle className="w-3 h-3 sm:w-4 sm:h-4" />}
-              </motion.div>
+
+                {/* Industrial Tooltip */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-[#1A1612] text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl">
+                  <div className="font-bold mb-1">{stage.name}</div>
+                  <div className="text-white/70 leading-relaxed">{(stage as any).description}</div>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-[#1A1612]" />
+                </div>
+              </motion.button>
 
               {!isLast && (
                 <div className="flex-1 h-0.5 bg-[#F0E8DE] rounded-full overflow-hidden min-w-[4px] sm:min-w-[8px]">

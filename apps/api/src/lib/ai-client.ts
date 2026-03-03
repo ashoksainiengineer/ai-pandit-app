@@ -115,7 +115,7 @@ export async function callAI(
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), AI_CONFIG.timeoutMs);
 
-            const isReasonerModel = configLocal.model.includes('reasoner') || configLocal.model.includes('r1');
+            const isReasonerModel = config.ai.reasonerIdentifiers.some(id => configLocal.model.toLowerCase().includes(id.toLowerCase()));
 
             const isOpenRouter = AI_CONFIG.baseUrl.includes('openrouter');
 
@@ -314,7 +314,7 @@ export async function callAIWithStream(
                 });
             }
 
-            const isReasonerModel = configLocal.model.includes('reasoner') || configLocal.model.includes('r1');
+            const isReasonerModel = config.ai.reasonerIdentifiers.some(id => configLocal.model.toLowerCase().includes(id.toLowerCase()));
 
             const isOpenRouter = AI_CONFIG.baseUrl.includes('openrouter');
 
