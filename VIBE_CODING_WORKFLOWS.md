@@ -13,6 +13,29 @@
 
 ---
 
+## ⚠️ GOLDEN RULES (MUST READ)
+
+### 🚫 Rule #1: NEVER Commit/Push Without Permission
+```
+❌ NEVER run: git commit / git push without asking user first
+✅ ALWAYS ask: "Should I commit and push these changes?"
+```
+
+**Why?**
+- User may want to review changes first
+- User may want to modify commit message
+- User may want to split into multiple commits
+- User may want to test before pushing
+
+### 🤖 AI Assistant Workflow
+1. Make changes
+2. Show summary of changes
+3. **ASK** before committing
+4. **ASK** before pushing
+5. Wait for user confirmation
+
+---
+
 ## 📋 Table of Contents
 
 1. [The Problem with Large Codebases](#the-problem)

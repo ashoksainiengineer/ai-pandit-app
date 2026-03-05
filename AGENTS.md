@@ -2,6 +2,31 @@
 
 Production-grade BTR system that determines exact birth time (to seconds precision) using Swiss Ephemeris calculations, Vedic astrology engines, and AI-driven multi-stage analysis.
 
+---
+
+## ⚠️ GOLDEN RULES FOR AI ASSISTANTS
+
+### 🚫 Rule #1: NEVER Commit/Push Without Permission
+```
+❌ NEVER run: git commit / git push without asking user first
+✅ ALWAYS ask: "Should I commit and push these changes?"
+```
+
+**Why?**
+- User may want to review changes first
+- User may want to modify commit message
+- User may want to split into multiple commits
+- User may want to test before pushing
+
+### 🤖 AI Assistant Workflow
+1. Make changes
+2. Show summary of changes
+3. **ASK** before committing: "Should I commit these changes?"
+4. **ASK** before pushing: "Should I push to remote?"
+5. Wait for user confirmation
+
+---
+
 ## Architecture
 
 Turborepo monorepo with npm workspaces:
