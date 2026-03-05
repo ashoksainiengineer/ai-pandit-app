@@ -39,3 +39,21 @@ build/
 .eslintcache
 .agents/
 .vercel
+
+# Test artifacts
+playwright-report/
+test-results/
+
+# Backup files
+*.backup
+*.bak
+*.old
+*.original
+
+# Debug files in wrong locations (should be in scripts/)
+apps/api/test-*.ts
+apps/api/check-*.ts
+apps/api/src/check-*.ts
+apps/api/src/debug-*.ts
+apps/api/src/test-*.ts
+apps/api/src/requeue-*.ts
