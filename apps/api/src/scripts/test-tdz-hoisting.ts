@@ -2,9 +2,9 @@
 // This script specifically imports the stages that previously had the TDZ
 // 'getMinifiedEphemerisInline' bug to ensure they initialize cleanly.
 
-import { runAnalysisStage2 } from './src/lib/btr/stages/stage2-batch-tournament.js';
-import { runAnalysisStage4 } from './src/lib/btr/stages/stage4-deep-analysis.js';
-import { runAnalysisStage6 } from './src/lib/btr/stages/stage6-final-precision.js';
+import { runAnalysisStage2 } from '../lib/btr/stages/stage2-batch-tournament.js';
+import { runAnalysisStage4 } from '../lib/btr/stages/stage4-deep-analysis.js';
+import { runAnalysisStage6 } from '../lib/btr/stages/stage6-final-precision.js';
 
 console.log("✅ Stage 2 imported successfully without TDZ crash.");
 console.log("✅ Stage 4 imported successfully without TDZ crash.");

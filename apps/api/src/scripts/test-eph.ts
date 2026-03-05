@@ -1,4 +1,4 @@
-import { initSwissEph, calculateEphemeris } from './src/lib/ephemeris.js';
+import { initSwissEph, calculateEphemeris } from '../lib/ephemeris.js';
 
 async function test() {
   console.log("Starting test...");

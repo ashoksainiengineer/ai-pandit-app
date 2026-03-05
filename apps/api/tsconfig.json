@@ -28,6 +28,7 @@
         "src/**/*"
     ],
     "exclude": [
+        "src/scripts/**/*",
         "node_modules",
         "dist",
         "**/__tests__/**"

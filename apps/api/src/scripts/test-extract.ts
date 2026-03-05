@@ -1,4 +1,4 @@
-import { extractBatchSurvivors, extractFinalVerdict } from './src/lib/btr/extractors/ai-response-extractors.js';
+import { extractBatchSurvivors, extractFinalVerdict } from '../lib/btr/extractors/ai-response-extractors.js';
 
 const mockAiBatch = `
 Here is my analysis:

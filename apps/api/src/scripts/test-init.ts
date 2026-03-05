@@ -1,4 +1,4 @@
-import { initSwissEph } from './src/lib/ephemeris.js';
+import { initSwissEph } from '../lib/ephemeris.js';
 
 async function test() {
   const success = await initSwissEph();
