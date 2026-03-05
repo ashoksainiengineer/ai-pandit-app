@@ -18,6 +18,7 @@ import { extractBatchSurvivors } from '../extractors/index.js';
 import { CandidateDataPackage, StageResult } from '@ai-pandit/shared';
 import { config } from '../../../config/index.js';
 import { logger } from '../../logger.js';
+import { getMinifiedEphemerisInline, getFullEphemerisPayload } from './_utils.js';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -60,25 +61,12 @@ export async function stage4DeepAnalysis(
                         input.offsetConfig.preset === '6hours' ? 360 :
                             input.offsetConfig.preset === '12hours' ? 720 : 60);
 
-    const batchSize = MAX_BATCH_SIZE;
+    // STUNNING FIX: Reducing batch size and dasha depth to prevent OpenRouter/Groq context window overflow
+    const batchSize = 6;
     // FIXED: Use getDynamicSurvivors for consistent tournament logic with Elasticity
     const survivorsPerBatch = getDynamicSurvivors(batchSize, offsetMinutes, false);
 
-    const getMinifiedEphemerisInline = (c: CandidateDataPackage) => ({
-        sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
-        moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
-        ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
-    });
-
-    const getFullEphemerisPayload = (c: CandidateDataPackage) => {
-        const payload: Record<string, string> = {};
-        for (const [name, p] of Object.entries(c.planets)) {
-            const pKey = name.charAt(0).toUpperCase() + name.slice(1);
-            payload[pKey] = `${p.sign} ${p.degree}`;
-        }
-        payload.Lagna = `${c.ascendant.sign} ${c.ascendant.degree}`;
-        return payload;
-    };
+    let roundNumber = 1;
 
     while (currentCandidates.length > batchSize) {
         const batches = splitIntoBatches(currentCandidates, batchSize);
@@ -90,7 +78,7 @@ export async function stage4DeepAnalysis(
             const batchEnriched = await Promise.all(batchTimes.map(ct =>
                 buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
                     includeFullData: true,
-                    dashaDepth: 5, // God-Tier Precision (Prana Dasha)
+                    dashaDepth: 4, // High Precision (Sookshma Dasha)
                     lifecycleShifts: globalLifecycle
                 })
             ));
@@ -98,7 +86,7 @@ export async function stage4DeepAnalysis(
 
             emitAIContext(input.sessionId, {
                 stage: 4,
-                candidateTime: `Deep Batch ${i + 1}/${batches.length}`,
+                candidateTime: `Deep R${roundNumber}-B${i + 1}/${batches.length}`,
                 batch: i + 1,
                 totalBatches: batches.length,
                 candidatesInBatch: batchEnriched.map(c => ({
@@ -116,8 +104,9 @@ export async function stage4DeepAnalysis(
                 'You are the GOD-TIER VEDIC ANALYST. Perform deep forensic multi-dasha verification.',
                 getDeepAnalysisPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData, offsetMinutes),
                 {
-                    candidateTime: `Batch ${i + 1}`,
-                    progressTracker: progress
+                    candidateTime: `R${roundNumber}-B${i + 1}`,
+                    progressTracker: progress,
+                    maxTokens: 16384, // Reduced from 32K — deep prompts + 32K completion exceeds Groq context
                 }
             );
 
@@ -161,6 +150,7 @@ export async function stage4DeepAnalysis(
                     time: candidate.time,
                     score,
                     stage: 4,
+                    batch: i + 1,
                     minifiedEph: getMinifiedEphemerisInline(candidate),
                     fullEph: getFullEphemerisPayload(candidate)
                 });
@@ -177,7 +167,7 @@ export async function stage4DeepAnalysis(
             return { batchSurvivors, aiContent };
         });
 
-        const results = await executeAIInParallel(tasks, config.ai.maxConcurrency, config.ai.staggerMs);
+        const results = await executeAIInParallel(tasks, 2, 2000);
 
         // Flatten survivors and accumulate reasoning
         const roundSurvivors = results.flatMap(r => r.batchSurvivors);
@@ -199,6 +189,8 @@ export async function stage4DeepAnalysis(
             logger.error('🔱 [STAGE-4] FAILED: All candidates rejected in internal tournament rounds');
             throw new Error('AI_OUT_OF_CANDIDATES: The analysis narrowed down candidates and eventually found no suitable matches for the provided life events. Please verify the event dates and try again.');
         }
+
+        roundNumber++;
     }
 
     // Final deep analysis on remaining candidates
@@ -220,7 +212,8 @@ export async function stage4DeepAnalysis(
             prompt,
             {
                 candidateTime: 'Deep Final',
-                progressTracker: progress
+                progressTracker: progress,
+                maxTokens: 16384,
             }
         );
 
@@ -259,6 +252,7 @@ export async function stage4DeepAnalysis(
                 time: candidate.time,
                 score,
                 stage: 4,
+                batch: 0,
                 minifiedEph: getMinifiedEphemerisInline(candidate),
                 fullEph: getFullEphemerisPayload(candidate)
             });

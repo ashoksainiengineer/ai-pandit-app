@@ -66,7 +66,7 @@ describe('APIClient - Unit Tests', () => {
             await APIClient.post('/api/test', {}, getToken);
 
             const [url] = mockFetch.mock.calls[0];
-            expect(url).toContain('token=');
+            expect(url).toContain('sid=');
         });
 
 

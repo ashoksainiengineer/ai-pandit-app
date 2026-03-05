@@ -53,8 +53,8 @@ app.use(helmet({
   },
 }));
 
-// CORS with strict origin validation
-const allowedOrigins = [
+// CORS with strict origin validation (deduped via Set to prevent log noise)
+const allowedOrigins = Array.from(new Set([
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:5173',
@@ -63,7 +63,7 @@ const allowedOrigins = [
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
   // Additional frontend URLs from environment (comma-separated)
   ...(process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || []),
-].filter((origin): origin is string => Boolean(origin));
+].filter((origin): origin is string => Boolean(origin))));
 
 // Match any *.vercel.app deployment (production, preview, etc.)
 const isVercelOrigin = (origin: string): boolean =>
@@ -101,20 +101,23 @@ app.use(cors({
 
 // ═════════════════════════════════════════════════════════════════════════════
 // GLOBAL ROUTE DEBUGGER & LOGGING
+// Consolidated single logger — covers ALL requests including real-time endpoints
 // ═════════════════════════════════════════════════════════════════════════════
 
 app.use((req, res, next) => {
   const start = Date.now();
   const requestId = req.headers['x-request-id'] || 'no-id';
+  const path = req.path;
+  const isRealtime = path.startsWith('/api/stream') || path.startsWith('/api/queue/progress');
 
-  // Detailed logging for ALL requests hitting the server
-  // This is critical for debugging 404s on HF Spaces
+  // Log request start
   logger.info(`✨ [API] ${req.method} ${req.originalUrl}`, {
     requestId,
     ip: req.ip,
     userAgent: req.get('user-agent')?.substring(0, 50),
     authHeader: req.headers.authorization ? 'PRESENT' : 'MISSING',
     query: Object.keys(req.query),
+    ...(isRealtime ? { type: 'realtime' } : {}),
   });
 
   res.on('finish', () => {
@@ -124,8 +127,9 @@ app.use((req, res, next) => {
         duration: `${duration}ms`,
         requestId,
       });
-    } else {
-      logger.debug(`✅ [API] Success ${res.statusCode} on ${req.method} ${req.originalUrl}`, {
+    } else if (isRealtime) {
+      logger.info(`📡 Real-time request finished: ${req.method} ${path}`, {
+        status: res.statusCode,
         duration: `${duration}ms`,
       });
     }
@@ -164,32 +168,6 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(requestIdMiddleware());
 app.use(requestContextMiddleware());
 app.use(performanceMiddleware());
-
-// Enhanced Request Logger for HF Observability
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-
-  // Log real-time endpoint starts
-  if (path.startsWith('/api/stream') || path.startsWith('/api/queue/progress')) {
-    logger.info(`📡 Real-time request started: ${req.method} ${path}`, {
-      sessionId: req.query.sessionId || req.params.sessionId,
-      ip: req.ip,
-      userAgent: req.get('user-agent'),
-    });
-  }
-
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    if (path.startsWith('/api/stream') || path.startsWith('/api/queue/progress')) {
-      logger.info(`📡 Real-time request finished: ${req.method} ${path}`, {
-        status: res.statusCode,
-        duration: `${duration}ms`,
-      });
-    }
-  });
-  next();
-});
 
 // Rate limiting - selective application
 // SSE stream and polling endpoints have their own dedicated limiters in routes/index.ts
@@ -245,8 +223,6 @@ app.use(errorHandlerMiddleware());
 // ═════════════════════════════════════════════════════════════════════════════
 
 let queueStarted = false;
-
-const numCPUs = 1; // Force single process for memory consistency (SSE/Progress)
 
 async function bootstrap(): Promise<void> {
   // PRODUCTION STABILITY: Disable clustering for HF Spaces

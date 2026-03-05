@@ -66,7 +66,7 @@ function createMockRes(): Response {
 // ═══════════════════════════════════════════════════════════════════════════
 
 describe('Auth Middleware - Token Extraction', () => {
-    const next = vi.fn() as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -109,7 +109,7 @@ describe('Auth Middleware - Token Extraction', () => {
 
         const req = createMockReq({
             headers: {} as any,
-            query: { token: 'query_token_456' } as any,
+            query: { sid: 'query_token_456' } as any,
         });
         const res = createMockRes();
 
@@ -125,7 +125,7 @@ describe('Auth Middleware - Token Extraction', () => {
 
         const req = createMockReq({
             headers: { authorization: 'Bearer header_token' } as any,
-            query: { token: 'query_token' } as any,
+            query: { sid: 'query_token' } as any,
         });
         const res = createMockRes();
 
@@ -136,7 +136,7 @@ describe('Auth Middleware - Token Extraction', () => {
 });
 
 describe('Auth Middleware - Malformed Token Handling', () => {
-    const next = vi.fn() as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -196,7 +196,7 @@ describe('Auth Middleware - Malformed Token Handling', () => {
 });
 
 describe('Auth Middleware - Clerk Verification Failures', () => {
-    const next = vi.fn() as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -253,7 +253,7 @@ describe('Auth Middleware - Clerk Verification Failures', () => {
 });
 
 describe('Auth Middleware - Stream Request Special Handling', () => {
-    const next = vi.fn() as NextFunction;
+    const next = vi.fn() as unknown as NextFunction;
 
     beforeEach(() => {
         vi.clearAllMocks();

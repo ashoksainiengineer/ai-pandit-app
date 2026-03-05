@@ -166,7 +166,7 @@ export function useStreamProgress(
                 throw new Error('Backend URL not configured');
             }
             const separator = '&'; // sessionId is already there
-            const pollUrl = `${sseBaseUrl}/api/queue/progress?sessionId=${sid}${token ? `${separator}token=${encodeURIComponent(token)}` : ''}`;
+            const pollUrl = `${sseBaseUrl}/api/queue/progress?sessionId=${sid}${token ? `${separator}sid=${encodeURIComponent(token)}` : ''}`;
 
             const res = await fetch(pollUrl, {
                 headers,
@@ -287,6 +287,15 @@ export function useStreamProgress(
         // This ensures retries (which call cleanup() first) aren't blocked
         streamCleanupRef.current = false;
 
+        // 🧪 E2E HYDRATION BYPASS: If SKIP_SSE is set, fall back to polling immediately
+        if (typeof window !== 'undefined' && (window as any).SKIP_SSE) {
+            console.log('🧪 [E2E] SKIP_SSE detected, falling back to polling...');
+            cleanup();
+            setConnectionState({ status: 'polling', url: '', lastError: 'E2E Polling Mode' });
+            poll(sid);
+            return;
+        }
+
         // Guard against stale connections during rapid navigation/unmount
         if (!mountedRef.current) {
             logger.debug('[SSE] Ignoring stale connection attempt', { sid, mounted: mountedRef.current });
@@ -309,7 +318,7 @@ export function useStreamProgress(
             }
 
             const hfToken = env.api.huggingFaceToken;
-            let query = token ? `?token=${encodeURIComponent(token)}` : '';
+            let query = token ? `?sid=${encodeURIComponent(token)}` : '';
             if (hfToken) {
                 query += (query ? '&' : '?') + `hf_token=${encodeURIComponent(hfToken)}`;
             }
@@ -321,9 +330,11 @@ export function useStreamProgress(
             }
             const url = `${sseBaseUrl}/api/stream/${sid}${query}`;
 
-            logger.info('Opening direct SSE connection', {
-                url: url.replace(/token=[^&]+/, 'token=***'),
-                sessionId: sid
+            logger.info('🚀 [DEBUG] STARTING SSE CONNECTION', {
+                rawUrl: url,
+                maskedUrl: url.replace(/sid=[^&]+/, 'sid=***'),
+                sid: sid,
+                backendUrlConfig: BACKEND_URL
             });
 
             const sse = new EventSource(url);

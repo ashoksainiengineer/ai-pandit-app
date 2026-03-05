@@ -4,22 +4,7 @@ import React, { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle, Circle, Loader2, Cpu, Shield, Zap, Info } from 'lucide-react';
 
-interface StageConfig {
-  id: number;
-  name: string;
-  shortName: string;
-  description: string;
-}
-
-const STAGES: StageConfig[] = [
-  { id: 0, name: 'Initialization', shortName: 'Init', description: 'Preparing analysis engine and loading birth data' },
-  { id: 1, name: 'Rashi Grid Synthesis', shortName: 'Rashi', description: 'Synthesis of primary astrological grids based on Rashi and Nakshatra placements' },
-  { id: 2, name: 'Amsha-Varga Elimination', shortName: 'Amsha', description: 'Recursive elimination of low-probability candidates using Varga-displacement logic' },
-  { id: 3, name: 'Temporal Refinement', shortName: 'Zoom', description: 'Dynamic resolution adjustment for high-density temporal search windows' },
-  { id: 4, name: 'Divisional Analysis', shortName: 'Varga', description: 'Advanced AI evaluation of Navamsha (D9) and Dashamsha (D10) lifecycle events' },
-  { id: 5, name: 'Nadi-Amsha Convergence', shortName: 'Nadi', description: 'Convergent validation across Shashtiamsha (D60) and 48-second Nadi-Amsha windows' },
-  { id: 6, name: 'Prana-Dasha Verdict', shortName: 'Prana', description: 'Final synthesis of Pancha-Dasha subdivisions and forensic event alignment' },
-];
+import { STAGES, type StageConfig } from '@/lib/constants/stages';
 
 interface SimplifiedPipelineProps {
   currentStage: number;
@@ -139,11 +124,11 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
             const stageNum = effectiveStageIndex;
             let phaseLabel = '';
             if (stageNum <= 2) {
-              phaseLabel = offsetMinutes > 120 ? 'Macro' : (offsetMinutes > 15 ? 'Meso' : 'Micro');
+              phaseLabel = offsetMinutes > 120 ? 'Macro Phase: Broad scanning of large time ranges.' : (offsetMinutes > 15 ? 'Meso Phase: Intermediate narrowing of candidate groups.' : 'Micro Phase: Extreme precision testing of remaining winners.');
             } else if (stageNum === 4) {
-              phaseLabel = 'Meso';
+              phaseLabel = 'Meso Phase: Intermediate narrowing of candidate groups.';
             } else if (stageNum >= 5) {
-              phaseLabel = 'Micro';
+              phaseLabel = 'Micro Phase: Extreme precision testing of remaining winners.';
             }
 
             if (!phaseLabel) return null;

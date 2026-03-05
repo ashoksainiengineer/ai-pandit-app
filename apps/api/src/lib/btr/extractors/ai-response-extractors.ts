@@ -92,8 +92,9 @@ export function extractBatchSurvivors(
   // ==========================================
   const foundPairs: Map<string, { score: number; reason: string }> = new Map();
 
-  // Non-greedy gap [\s\S]{0,300}? to match the CLOSEST score to the time
-  const timeScorePattern = /(?:CANDIDATE|TIME|BIRTH|RESULT|RECTIFIED)?[:\s]*\[?(\d{2}:\d{2}:?\d{0,2})\]?[\s\S]{0,300}?SCORE[:\s]*(\d+)/gi;
+  // Non-greedy gap [\s\S]{0,1000}? to match the CLOSEST score to the time
+  // Increased from 300 to 1000 because AI reasoning blocks can be very long
+  const timeScorePattern = /(?:CANDIDATE|TIME|BIRTH|RESULT|RECTIFIED)[\]\|\s:-]*\[?(\d{2}:\d{2}:?\d{0,2})\]?[\s\S]{0,1000}?(?:FINAL W?E?I?G?H?T?E?D? SCORE|SCORE)[=:;>|]*\s*(\d+)/gi;
 
   let m;
   while ((m = timeScorePattern.exec(aiContent)) !== null) {
@@ -106,7 +107,7 @@ export function extractBatchSurvivors(
   }
 
   // Same for reverse pattern
-  const scoreTimePattern = /SCORE[:\s]*(\d+)[\s\S]{0,150}?(?:for|at|time|candidate)[:\s]*\[?(\d{2}:\d{2}:?\d{0,2})\]?/gi;
+  const scoreTimePattern = /(?:FINAL W?E?I?G?H?T?E?D? SCORE|SCORE)[=:;>|]*\s*(\d+)[\s\S]{0,500}?(?:for|at|time|candidate)[\]\|\s:-]*\[?(\d{2}:\d{2}:?\d{0,2})\]?/gi;
   while ((m = scoreTimePattern.exec(aiContent)) !== null) {
     const score = parseInt(m[1], 10);
     const rawTime = m[2];
@@ -123,7 +124,7 @@ export function extractBatchSurvivors(
       for (const candTime of candidateTimes) {
         const escaped = candTime.replace(/:/g, '[:\\s]?');
         if (new RegExp(`\\[?${escaped}\\]?`, 'i').test(line)) {
-          const scoreMatch = line.match(/SCORE[:\s]*(\d+)/i);
+          const scoreMatch = line.match(/(?:FINAL SCORE|FINAL WEIGHTED SCORE|SCORE)[=:\s>|]*(\d+)/i);
           if (scoreMatch) {
             // Line match overrides generic regex match for reasons
             foundPairs.set(candTime, {
@@ -145,7 +146,7 @@ export function extractBatchSurvivors(
       scores.push({
         time,
         score: 50,
-        reason: "Contextual alignment analysis"
+        reason: "AI Extraction Failed - Applying Neutral Baseline"
       });
     }
   }

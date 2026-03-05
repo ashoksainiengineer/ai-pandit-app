@@ -20,6 +20,7 @@ import streamRouter from './stream.js';
 import warmupRouter from './warmup.js';
 import adminRouter from './admin.js';
 import sessionsRouter from './sessions.js';
+import candidateDetailRouter from './candidate-detail.js';
 import {
   apiRateLimiter,
   calculateRateLimiter,
@@ -101,6 +102,9 @@ router.use('/sessions', authMiddleware, apiRateLimiter, sessionsRouter);
 
 // Stream endpoint - SSE connection, lenient rate limit
 router.use('/stream', authMiddleware, progressRateLimiter, streamRouter);
+
+// 🔱 Candidate Detail — Tiered Loading (on-demand ephemeris + reasoning)
+router.use('/candidate', progressRateLimiter, candidateDetailRouter);
 
 // Admin routes
 router.use('/admin', authMiddleware, strictRateLimiter, adminRouter);

@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * AI Pandit - Shared Layout Component
  * Sacred Ivory Light Theme - Consistent with landing page
@@ -17,7 +19,9 @@
  */
 
 import React from 'react';
-import Navbar from './Navbar';
+import dynamic from 'next/dynamic';
+
+const Navbar = dynamic(() => import('./Navbar'), { ssr: false });
 import Footer from './Footer';
 
 interface LayoutProps {
@@ -86,7 +90,7 @@ export function CenteredLayout({
       </div>
 
       {!hideNavbar && <Navbar />}
-      
+
       <main className={`flex-1 flex items-center justify-center p-4 relative z-10 ${className}`}>
         <div className="w-full max-w-md">
           {children}
@@ -120,14 +124,14 @@ export function DashboardLayout({
       </div>
 
       <Navbar />
-      
+
       <div className="flex-1 flex relative z-10">
         {sidebar && (
           <aside className="hidden lg:block w-64 border-r border-[#F0E8DE] bg-[#FDF8F3]">
             {sidebar}
           </aside>
         )}
-        
+
         <main className={`flex-1 ${className}`}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             {children}

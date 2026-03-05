@@ -1,142 +1,129 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { UnifiedAIPanel } from '../UnifiedAIPanel';
+import React from 'react';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// MOCKS
-// ═══════════════════════════════════════════════════════════════════════════
-
-// 1. Mock ResizeObserver for virtualization/responsive logic
-global.ResizeObserver = class ResizeObserver {
-    observe() { }
-    unobserve() { }
-    disconnect() { }
-};
-
-// 2. Mock lucide-react icons
-vi.mock('lucide-react', () => ({
-    Brain: () => <svg data-testid="icon-brain" />,
-    Radio: () => <svg data-testid="icon-radio" />,
-    Activity: () => <svg data-testid="icon-activity" />,
-    Users: () => <svg data-testid="icon-users" />,
-    ChevronDown: () => <svg data-testid="icon-chevrondown" />,
-    ChevronUp: () => <svg data-testid="icon-chevronup" />,
-}));
-
-// 3. Mock framework to prevent layout warnings in JSDOM
+// Mock framer-motion
 vi.mock('framer-motion', () => ({
     motion: {
-        div: ({ children, ...props }: any) => <div {...props}>{children}</div>,
-        span: ({ children, ...props }: any) => <span {...props}>{children}</span>,
+        div: ({ children, className, ...props }: any) => (
+            <div className={className} data-testid="motion-div" {...props}>
+                {children}
+            </div>
+        ),
     },
     AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
-// 4. Mock @tanstack/react-virtual to bypass complex DOM measuring in jsdom
-vi.mock('@tanstack/react-virtual', () => {
-    return {
-        useVirtualizer: () => ({
-            getVirtualItems: () => [
-                { index: 0, start: 0, size: 200, key: 'mock-0' }
-            ],
-            getTotalSize: () => 200,
-        }),
+// Mock @tanstack/react-virtual
+vi.mock('@tanstack/react-virtual', () => ({
+    useVirtualizer: () => ({
+        getVirtualItems: () => [
+            { index: 0, start: 0, size: 200, key: '0' },
+            { index: 1, start: 200, size: 200, key: '1' }
+        ],
+        getTotalSize: () => 400,
+    }),
+}));
+
+describe('UnifiedAIPanel (Heavy Testing)', () => {
+    const generateHeavyCandidates = (count: number) => {
+        const candidates: Record<string, any> = {};
+        for (let i = 0; i < count; i++) {
+            const time = `12:${i.toString().padStart(2, '0')}`;
+            candidates[time] = {
+                stage: 2,
+                candidateTime: time,
+                fullText: `Heavy reasoning data for ${time}. `.repeat(100),
+                updatedAt: Date.now() - (i * 1000),
+            };
+        }
+        return candidates;
     };
-});
 
-// ═══════════════════════════════════════════════════════════════════════════
-// FIXTURES
-// ═══════════════════════════════════════════════════════════════════════════
-
-const mockThinking = {
-    stage: 2,
-    candidateTime: '12:00',
-    fullText: 'Analyzed grid parameters...',
-    startedAt: Date.now() - 1000,
-    updatedAt: Date.now(),
-};
-
-const mockCandidates = {
-    '12:00': mockThinking,
-    '13:30': { ...mockThinking, candidateTime: '13:30', fullText: 'Alternative grid...' }
-};
-
-const mockScores = [
-    { time: '12:00', score: 90, stage: 2 },
-    { time: '13:30', score: 65, stage: 2 },
-];
-
-describe('UnifiedAIPanel', () => {
+    const defaultProps = {
+        thinking: null,
+        isActive: true,
+        stage: 2,
+        allCandidates: {},
+        candidateScores: [],
+        title: 'Test AI Panel',
+        isCompleted: false,
+    };
 
     beforeEach(() => {
         vi.clearAllMocks();
+
+        window.IntersectionObserver = vi.fn().mockImplementation(function () {
+            return {
+                observe: vi.fn(),
+                unobserve: vi.fn(),
+                disconnect: vi.fn()
+            };
+        });
+
+        window.ResizeObserver = vi.fn().mockImplementation(function () {
+            return {
+                observe: vi.fn(),
+                unobserve: vi.fn(),
+                disconnect: vi.fn()
+            };
+        });
     });
 
-    it('renders the title and stage information safely', () => {
-        render(
-            <UnifiedAIPanel
-                thinking={mockThinking}
-                isActive={true}
-                stage={2}
-                title="Test Intelligence Grid"
-            />
-        );
+    it('renders the header and progress bar with heavy candidate load', () => {
+        const heavyCandidates = generateHeavyCandidates(100);
+        render(<UnifiedAIPanel {...defaultProps} allCandidates={heavyCandidates} />);
 
-        expect(screen.getByText('Test Intelligence Grid')).toBeInTheDocument();
+        expect(screen.getByText('Test AI Panel')).toBeInTheDocument();
+        expect(screen.getByText('100 Processed')).toBeInTheDocument();
+        expect(screen.getByText('LIVE')).toBeInTheDocument();
     });
 
-    it('renders candidate cards in the virtual grid', () => {
-        render(
-            <UnifiedAIPanel
-                thinking={mockThinking}
-                allCandidates={mockCandidates}
-                candidateScores={mockScores}
-                isActive={true}
-                stage={2}
-            />
-        );
+    it('renders candidates in the grid (first row mock)', () => {
+        const heavyCandidates = generateHeavyCandidates(10);
+        render(<UnifiedAIPanel {...defaultProps} allCandidates={heavyCandidates} />);
 
-        // 90 score -> '12:00' card title should be present
+        // Since columns is 4 and mocked rowCount is 2, it should show 8 cards
+        // 12:00 to 12:07
         expect(screen.getByText('12:00')).toBeInTheDocument();
-
-        // 65 score -> '13:30' card title should be present
-        expect(screen.getByText('13:30')).toBeInTheDocument();
+        expect(screen.getByText('12:07')).toBeInTheDocument();
     });
 
-    it('triggers onSelectCandidate when a candidate card is clicked', () => {
-        const handleSelect = vi.fn();
+    it('renders active search and filters candidates', () => {
+        const heavyCandidates = generateHeavyCandidates(10);
 
         render(
             <UnifiedAIPanel
-                thinking={mockThinking}
-                allCandidates={mockCandidates}
-                candidateScores={mockScores}
-                isActive={true}
-                stage={2}
-                onSelectCandidate={handleSelect}
+                {...defaultProps}
+                allCandidates={heavyCandidates}
             />
         );
 
-        // Click the 13:30 card (clicking its title bubbles up)
-        const element = screen.getByText('13:30');
-        fireEvent.click(element);
+        const searchInput = screen.getByPlaceholderText(/Search candidates/i);
+        fireEvent.change(searchInput, { target: { value: '12:05' } });
 
-        expect(handleSelect).toHaveBeenCalledWith('13:30');
+        expect(screen.getByText(/Found 1 results/i)).toBeInTheDocument();
     });
 
-    it('auto-collapses when isCompleted is true and isActive is false', () => {
-        render(
-            <UnifiedAIPanel
-                thinking={null}
-                isActive={false}
-                isCompleted={true}
-                stage={2}
-            />
-        );
+    it('switches to focused view when a candidate is clicked', () => {
+        const heavyCandidates = generateHeavyCandidates(4);
+        render(<UnifiedAIPanel {...defaultProps} allCandidates={heavyCandidates} />);
 
-        expect(screen.getByTestId('icon-brain')).toBeInTheDocument();
-        // Since it's collapsed, "Stage processing completed" should be visible
-        expect(screen.getByText('Stage processing completed')).toBeInTheDocument();
+        const card = screen.getByText('12:01');
+        fireEvent.click(card);
+
+        // Should show the "Back to Grid" button and the focused time
+        expect(screen.getByText(/Back to Grid/i)).toBeInTheDocument();
+
+        // Check if the full text is rendered in its sanitized form
+        // The "ReasoningContent" component renders it
+        expect(screen.getByText(/Heavy reasoning data for 12:01/i)).toBeInTheDocument();
     });
 
+    it('collapses content when isCompleted is true and isActive is false', () => {
+        render(<UnifiedAIPanel {...defaultProps} isCompleted={true} isActive={false} />);
+        const titleElement = screen.getByText(/Test AI Panel/i);
+        expect(titleElement).toHaveClass('text-[#4A453F]');
+    });
 });

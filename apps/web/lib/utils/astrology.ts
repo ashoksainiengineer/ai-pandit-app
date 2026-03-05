@@ -26,12 +26,24 @@ export function formatDMS(decimalDegrees: number | string): string {
 export function formatSignDegree(value: string): string {
     if (!value) return '-';
 
-    // Split "Aries 15.2345"
+    // Split "Aries 15.2345" or "Aries 23° 14' 04\""
     const parts = value.split(' ');
     if (parts.length < 2) return value;
 
     const sign = parts[0];
-    const degree = parts[1];
+    const rest = parts.slice(1).join(' ');
 
-    return `${sign} ${formatDMS(degree)}`;
+    // If already contains degree symbols (°, ', "), it's pre-formatted DMS
+    if (rest.includes('°') || rest.includes("'") || rest.includes('"')) {
+        return `${sign} ${rest}`;
+    }
+
+    // Try to parse as decimal degree
+    const num = Number(rest);
+    if (isNaN(num)) {
+        // Can't parse — return as-is
+        return value;
+    }
+
+    return `${sign} ${formatDMS(num)}`;
 }

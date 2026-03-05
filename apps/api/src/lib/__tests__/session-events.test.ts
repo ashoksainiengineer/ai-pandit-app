@@ -238,13 +238,22 @@ describe('SessionEventManager - Helper Emit Functions', () => {
     });
 
     it('emitAIThinking should emit and buffer thinking', () => {
+        vi.useFakeTimers();
         const emitter = sessionEvents.getEmitter(SESSION_ID);
         const received: any[] = [];
         emitter.on('event', (e: any) => received.push(e));
 
         emitAIThinking(SESSION_ID, 'Reasoning about dasha...', 2, '14:30:00');
+
+        // Should be buffered, not yet emitted
+        expect(received.length).toBe(0);
+
+        // Advance timers to trigger flush (200ms)
+        vi.advanceTimersByTime(200);
+
         expect(received.length).toBe(1);
         expect(received[0].type).toBe('ai_thinking');
+        vi.useRealTimers();
     });
 
     it('emitComplete should emit complete event', () => {
@@ -268,15 +277,24 @@ describe('SessionEventManager - Helper Emit Functions', () => {
     });
 
     it('emitCandidateScore should emit and buffer score', () => {
+        vi.useFakeTimers();
         const emitter = sessionEvents.getEmitter(SESSION_ID);
         const received: any[] = [];
         emitter.on('event', (e: any) => received.push(e));
 
         emitCandidateScore(SESSION_ID, '14:30', 88, 2, 1);
+
+        // Should be buffered
+        expect(received.length).toBe(0);
+
+        // Trigger flush
+        vi.advanceTimersByTime(200);
+
         expect(received.length).toBe(1);
-        expect(received[0].type).toBe('candidate_score_v2');
+        expect(received[0].type).toBe('candidate_scores'); // v2 is now buffered into 'candidate_scores' batch
         const scores = sessionEvents.getCandidateScoreBuffer(SESSION_ID);
         expect(scores!.length).toBe(1);
+        vi.useRealTimers();
     });
 });
 
@@ -286,13 +304,13 @@ describe('SessionEventManager - Helper Emit Functions', () => {
 
 describe('SessionEventManager - Garbage Collection', () => {
     it('should not throw during GC', () => {
-        expect(() => sessionEvents.garbageCollect()).not.toThrow();
+        expect(() => (sessionEvents as any).garbageCollect()).not.toThrow();
     });
 
     it('should update timestamp via touch()', () => {
         const SESSION_ID = 'test-gc-touch';
         sessionEvents.getEmitter(SESSION_ID);
-        expect(() => sessionEvents.touch(SESSION_ID)).not.toThrow();
+        expect(() => (sessionEvents as any).touch(SESSION_ID)).not.toThrow();
         sessionEvents.cleanup(SESSION_ID);
     });
 });

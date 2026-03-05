@@ -23,6 +23,26 @@ import {
 } from '../../btr-precision-integrator.js';
 import { logger } from '../../logger.js';
 import { config } from '../../../config/index.js';
+import { getMinifiedEphemerisInline, getFullEphemerisPayload } from './_utils.js';
+
+function getPresentTransitData(c: CandidateDataPackage, currentEph: any, now: Date) {
+    if (!c || !c.rawVimshottari) {
+        logger.warn('🔱 [STAGE-6] Missing rawVimshottari in candidate for transit calculation');
+        return {
+            dashaAtNow: 'Unknown',
+            jupiter: 'Unknown',
+            saturn: 'Unknown',
+            rahu: 'Unknown',
+        };
+    }
+    const dashaAtNow = getDashaForDate(c.rawVimshottari as any, now);
+    return {
+        dashaAtNow: dashaAtNow ? `${dashaAtNow.mahadasha}-${dashaAtNow.antardasha}-${dashaAtNow.pratyantardasha}` : 'Unknown',
+        jupiter: `${currentEph.planets.jupiter.sign}${currentEph.planets.jupiter.retro ? ' (R)' : ''}`,
+        saturn: `${currentEph.planets.saturn.sign}${currentEph.planets.saturn.retro ? ' (R)' : ''}`,
+        rahu: `${currentEph.planets.rahu.sign}${currentEph.planets.rahu.retro ? ' (R)' : ''}`
+    };
+}
 
 /**
  * Stage 6: Final seconds-level precision judgement
@@ -65,24 +85,7 @@ export async function stage6FinalPrecision(
         input.timezone
     );
 
-    const getPresentTransitData = (c: CandidateDataPackage) => {
-        if (!c || !c.rawVimshottari) {
-            logger.warn('🔱 [STAGE-6] Missing rawVimshottari in candidate for transit calculation');
-            return {
-                dashaAtNow: 'Unknown',
-                jupiter: 'Unknown',
-                saturn: 'Unknown',
-                rahu: 'Unknown',
-            };
-        }
-        const dashaAtNow = getDashaForDate(c.rawVimshottari as any, now);
-        return {
-            dashaAtNow: dashaAtNow ? `${dashaAtNow.mahadasha}-${dashaAtNow.antardasha}-${dashaAtNow.pratyantardasha}` : 'Unknown',
-            jupiter: `${currentEph.planets.jupiter.sign}${currentEph.planets.jupiter.retro ? ' (R)' : ''}`,
-            saturn: `${currentEph.planets.saturn.sign}${currentEph.planets.saturn.retro ? ' (R)' : ''}`,
-            rahu: `${currentEph.planets.rahu.sign}${currentEph.planets.rahu.retro ? ' (R)' : ''}`,
-        };
-    };
+    // Removed orphaned getPresentTransitData block
 
     // PRECISION ENHANCEMENT: Enhance finalists with KP and Consensus data
     let godTierEnhancedCandidates: Array<CandidateWithPrecisionData & { time: string; offsetMinutes: number }> = [];
@@ -143,8 +146,10 @@ export async function stage6FinalPrecision(
     const godTierCount = godTierEnhancedCandidates.filter(c => c.precision?.isPrecisionStandard).length;
     logger.info(`Stage 6: ${godTierCount}/${godTierEnhancedCandidates.length} candidates achieved High-Precision status`);
 
-    while (finalists.length > MAX_BATCH_SIZE) {
-        const batches = splitIntoBatches(finalists, MAX_BATCH_SIZE);
+    let roundNumber = 1;
+
+    while (finalists.length > 6) {
+        const batches = splitIntoBatches(finalists, 6);
         const batchWinners: CandidateTime[] = [];
         const batchDataMap = new Map<number, CandidateDataPackage[]>();
 
@@ -152,7 +157,7 @@ export async function stage6FinalPrecision(
             const batchEnriched = await Promise.all(batchTimes.map(ct =>
                 buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
                     includeFullData: true,
-                    dashaDepth: 5,
+                    dashaDepth: 4,
                     pranaWindowDays: 3,
                     lifecycleShifts: globalLifecycle
                 })
@@ -164,7 +169,7 @@ export async function stage6FinalPrecision(
                 return { success: false, error: 'Enrichment failed', content: '' };
             }
 
-            const presentAnchor = getPresentTransitData(batchEnriched[0]);
+            const presentAnchor = getPresentTransitData(batchEnriched[0], currentEph, now);
 
             const resp = await callAIWithStream(
                 input.sessionId,
@@ -172,8 +177,9 @@ export async function stage6FinalPrecision(
                 'FINAL FORENSIC JUDGEMENT. Pick THE ONE based on bio-Vedic alignment.',
                 getFinalPrecisionPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData, presentAnchor),
                 {
-                    candidateTime: `Batch ${i + 1}`,
-                    progressTracker: progress
+                    candidateTime: `R${roundNumber}-B${i + 1}`,
+                    progressTracker: progress,
+                    maxTokens: 16384,
                 }
             );
 
@@ -181,7 +187,7 @@ export async function stage6FinalPrecision(
             return { response: resp, aiContent };
         });
 
-        const results = await executeAIInParallel(tasks, config.ai.maxConcurrency, config.ai.staggerMs);
+        const results = await executeAIInParallel(tasks, 2, 2000); // Reduced concurrency for Groq TPM limit
 
         // Accumulate reasoning from batches
         allReasoning += results.map(r => r.aiContent).filter(Boolean).join('\n\n---\n\n');
@@ -197,22 +203,6 @@ export async function stage6FinalPrecision(
             const fullBatchData = batchDataMap.get(i) || [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
             const verdict = extractFinalVerdict(aiContent);
-
-            const getMinifiedEphemerisInline = (c: CandidateDataPackage) => ({
-                sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
-                moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
-                ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
-            });
-
-            const getFullEphemerisPayload = (c: CandidateDataPackage) => {
-                const payload: Record<string, string> = {};
-                for (const [name, p] of Object.entries(c.planets)) {
-                    const pKey = name.charAt(0).toUpperCase() + name.slice(1);
-                    payload[pKey] = `${p.sign} ${p.degree}`;
-                }
-                payload.Lagna = `${c.ascendant.sign} ${c.ascendant.degree}`;
-                return payload;
-            };
 
             for (let j = 0; j < fullBatchData.length; j++) {
                 const candidate = fullBatchData[j];
@@ -232,6 +222,7 @@ export async function stage6FinalPrecision(
                     time: candidate.time,
                     score,
                     stage: 6,
+                    batch: i + 1,
                     minifiedEph: getMinifiedEphemerisInline(candidate),
                     fullEph: getFullEphemerisPayload(candidate)
                 });
@@ -239,6 +230,7 @@ export async function stage6FinalPrecision(
         }
 
         finalists = batchWinners;
+        roundNumber++;
     }
 
     // 🔱 EMERGENCY FALLBACK: If all finalists vanish (critical glitch), restore original candidates
@@ -296,7 +288,7 @@ export async function stage6FinalPrecision(
         throw new Error('AI_ANALYSIS_FAILED: Unable to build final candidate data. Please check your internet connection and retry.');
     }
 
-    const finalAnchor = getPresentTransitData(finalBatch[0]);
+    const finalAnchor = getPresentTransitData(finalBatch[0], currentEph, now);
     let prompt = getFinalPrecisionPrompt(finalBatch, input.lifeEvents, forensicTraits, input.spouseData, finalAnchor);
 
     // FIXED: Aggregate God-Tier data from ALL finalists for comprehensive prompt
@@ -399,28 +391,13 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
     const confidence = verdict.confidence ?? 'MEDIUM';
     const margin = verdict.margin ?? 5;
 
-    const getMinifiedEphemerisInline = (c: CandidateDataPackage) => ({
-        sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
-        moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
-        ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
-    });
-
-    const getFullEphemerisPayload = (c: CandidateDataPackage) => {
-        const payload: Record<string, string> = {};
-        for (const [name, p] of Object.entries(c.planets)) {
-            const pKey = name.charAt(0).toUpperCase() + name.slice(1);
-            payload[pKey] = `${p.sign} ${p.degree}`;
-        }
-        payload.Lagna = `${c.ascendant.sign} ${c.ascendant.degree}`;
-        return payload;
-    };
-
     const winnerPkg = finalBatch.find(c => c.time === finalTime) || finalBatch[0];
 
     await progress.addCandidateScore({
         time: finalTime,
         score: accuracy,
         stage: 6,
+        batch: 0,
         rank: 1,
         minifiedEph: winnerPkg ? getMinifiedEphemerisInline(winnerPkg) : undefined,
         fullEph: winnerPkg ? getFullEphemerisPayload(winnerPkg) : undefined

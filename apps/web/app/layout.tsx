@@ -93,7 +93,7 @@ export default function RootLayout({
         }
       }}
     >
-      <html lang="en" className={`${inter.variable} ${cormorant.variable} ${playfair.variable} ${jetbrainsMono.variable}`}>
+      <html lang="en" suppressHydrationWarning className={`${inter.variable} ${cormorant.variable} ${playfair.variable} ${jetbrainsMono.variable}`}>
         <head>
           <link rel="manifest" href="/manifest.json" />
         </head>

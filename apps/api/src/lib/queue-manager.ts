@@ -267,7 +267,8 @@ async function getNextInQueue(): Promise<string | null> {
         .where(
           or(
             eq(sessions.status, 'pending'),
-            eq(sessions.status, 'queued')
+            eq(sessions.status, 'queued'),
+            eq(sessions.status, 'local-test')
           )
         )
         .orderBy(asc(sessions.createdAt))
@@ -526,9 +527,11 @@ function isRetryableError(error: unknown): boolean {
  * Process session with retry logic (C4 Fix)
  */
 async function processSessionWithRetry(sessionId: string, attempt: number = 0): Promise<void> {
+  console.log(`🔍 [QUEUE-DEBUG] processSessionWithRetry called: ${sessionId}, attempt: ${attempt}`);
   try {
     await processSessionAsync(sessionId);
 
+    console.log(`🔍 [QUEUE-DEBUG] processSessionAsync completed successfully: ${sessionId}`);
     // Success - reset failure counter
     if (consecutiveFailures > 0) {
       logger.info(`Session ${sessionId} succeeded after ${consecutiveFailures} previous failures. Resetting counter.`);
@@ -660,13 +663,17 @@ async function processQueue(): Promise<void> {
         continue;
       }
 
+      console.log(`\n🔍 [QUEUE-DEBUG] Found session: ${nextId}`);
+
       // Mark as processing
       await markAsProcessing(nextId);
+      console.log(`🔍 [QUEUE-DEBUG] Marked as processing: ${nextId}`);
 
       // ⚡ C4 FIX: Use retry wrapper instead of direct call
       // Fire and loop back immediately to pick up next task if slot available
       processSessionWithRetry(nextId).catch(err => {
         // Final safety net - should not reach here due to internal error handling
+        console.error(`🔴 [QUEUE-DEBUG] UNHANDLED ERROR in processSessionWithRetry: ${nextId}`, err);
         logger.error(`🔴 CRITICAL: Unhandled error in processSessionWithRetry for ${nextId}`, err);
         consecutiveFailures++;
         lastFailureTime = Date.now();
@@ -689,7 +696,9 @@ async function processQueue(): Promise<void> {
  * Process a single session (async worker)
  */
 async function processSessionAsync(sessionId: string): Promise<void> {
+  console.log(`🔍 [QUEUE-DEBUG] processSessionAsync ENTERED: ${sessionId}`);
   try {
+    console.log(`🔍 [QUEUE-DEBUG] Inside try block, about to query DB: ${sessionId}`);
     logger.info('Starting to process request', { sessionId });
 
     // Get session data
@@ -851,9 +860,9 @@ async function processSessionAsync(sessionId: string): Promise<void> {
       } else {
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';
         const errorStack = error instanceof Error ? error.stack : undefined;
-        logger.error('[PROCESSING ERROR] Session failed during processing', { 
-          sessionId, 
-          errorMsg, 
+        logger.error('[PROCESSING ERROR] Session failed during processing', {
+          sessionId,
+          errorMsg,
           errorStack: errorStack?.substring(0, 500)
         });
         await markAsFailed(sessionId, errorMsg);
@@ -966,28 +975,53 @@ function sleep(ms: number): Promise<void> {
 
 /**
  * Cleanup processing sessions on startup (Zombie killer)
- * Resets any session stuck in 'processing' state to 'failed'
+ * Two strategies:
+ * 1. STALE: Sessions stuck in 'processing' for > 10 minutes (time-based)
+ * 2. ORPHAN: Sessions marked 'processing' in DB but NOT in activeProcessingIds
+ *    (lost during dev hot-reloads or crash — the real zombie killer)
  */
 export async function cleanupZombiesOnStartup(): Promise<void> {
   try {
-    // 🛡️ [STABILITY] Only cleanup 'processing' sessions that are truly stale
-    // (Older than 10 minutes) at startup. This prevents a new instance from
-    // killing jobs that might still be active in a parallel instance or
-    // during a very fast restart.
+    // Strategy 1: Time-based stale detection (production-safe)
     const staleThreshold = new Date(Date.now() - 10 * 60 * 1000).toISOString();
 
-    const zombies = await db.select({ id: sessions.id })
+    const staleZombies = await db.select({ id: sessions.id })
       .from(sessions)
       .where(and(
         eq(sessions.status, 'processing'),
         lt(sessions.updatedAt, staleThreshold)
       ));
 
-    if (zombies.length > 0) {
-      logger.warn(`Found ${zombies.length} stale zombie sessions at startup. Cleaning up...`);
-
-      for (const zombie of zombies) {
+    if (staleZombies.length > 0) {
+      logger.warn(`Found ${staleZombies.length} stale zombie sessions (>10min). Cleaning up...`);
+      for (const zombie of staleZombies) {
         await markAsFailed(zombie.id, 'Process interrupted (Stale Session at Startup)');
+      }
+    }
+
+    // Strategy 2: Orphan detection (dev-mode hot-reload safety net)
+    // On fresh startup, activeProcessingIds is EMPTY. Any DB session showing
+    // 'processing' is a guaranteed orphan — its worker died with the old process.
+    const allProcessing = await db.select({ id: sessions.id })
+      .from(sessions)
+      .where(eq(sessions.status, 'processing'));
+
+    const orphans = allProcessing.filter(s => !activeProcessingIds.has(s.id));
+
+    if (orphans.length > 0) {
+      logger.warn(`🧟 Found ${orphans.length} orphaned zombie sessions (processing in DB but no active worker). Resetting to pending...`);
+      for (const orphan of orphans) {
+        // Reset to 'pending' so queue processor picks them up again
+        await executeWithRetry(() =>
+          db.update(sessions)
+            .set({
+              status: 'pending',
+              errorMessage: null,
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(sessions.id, orphan.id))
+        );
+        logger.info(`🧟 Orphan ${orphan.id} reset to pending for re-processing`);
       }
     }
   } catch (error) {

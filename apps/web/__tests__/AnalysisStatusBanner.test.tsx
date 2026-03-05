@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act, fireEvent } from '@testing-library/react';
 
 // Setup jest-dom matchers with vitest expect
-globalThis.expect = expect;
+(globalThis as any).expect = expect;
 import '@testing-library/jest-dom';
 import { AnalysisStatusBanner } from '../components/rectify/analysis/AnalysisStatusBanner';
 import { useStreamStore } from '../lib/store/stream-store';
@@ -42,9 +42,9 @@ describe('Dimension 1: AnalysisStatusBanner (State & Rendering)', () => {
             />
         );
 
-        expect(screen.getByText('Initialization')).toBeInTheDocument();
-        expect(screen.getByText('Preparing analysis engine and loading birth data')).toBeInTheDocument();
-        expect(screen.getByText('Inference Active')).toBeInTheDocument();
+        expect(screen.getByText(/Initialization/i)).toBeInTheDocument();
+        expect(screen.getByText(/Preparing analysis engine/i)).toBeInTheDocument();
+        expect(screen.getByText(/Inference Active/i)).toBeInTheDocument();
     });
 
     it('updates stage details and phase indicators accurately based on offset', () => {
@@ -57,12 +57,12 @@ describe('Dimension 1: AnalysisStatusBanner (State & Rendering)', () => {
                 elapsedSeconds={120}
                 isConnected={true}
                 isComplete={false}
-                offsetMinutes={240} // > 120 triggers 'Phase A: Macro Sweep'
+                offsetMinutes={240} // > 120 triggers 'Macro Phase: Broad scanning of large time ranges.'
             />
         );
 
-        expect(screen.getByText('Amsha-Varga Elimination')).toBeInTheDocument();
-        expect(screen.getByText('🪐 Phase A: Macro Sweep')).toBeInTheDocument();
+        expect(screen.getByText(/Amsha-Varga Elimination/i)).toBeInTheDocument();
+        expect(screen.getByText(/Macro Phase: Broad scanning of large time ranges./i)).toBeInTheDocument();
         expect(screen.getByText('45')).toBeInTheDocument(); // Candidate count
         expect(screen.getByText('02:00')).toBeInTheDocument(); // Elapsed formatted
         expect(screen.getByText('55%')).toBeInTheDocument(); // Progress % Math.round((55/100)*100)

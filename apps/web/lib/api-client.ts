@@ -27,7 +27,7 @@ export class APIClient {
 
     // DUAL-CHANNEL AUTH: Header + Query Param
     const separator = url.includes('?') ? '&' : '?';
-    const finalUrl = token ? `${url}${separator}token=${encodeURIComponent(token)}` : url;
+    const finalUrl = token ? `${url}${separator}sid=${encodeURIComponent(token)}` : url;
 
     try {
       const res = await fetch(finalUrl, {
@@ -63,7 +63,7 @@ export class APIClient {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
         const separator = url.includes('?') ? '&' : '?';
-        finalUrl = `${url}${separator}token=${encodeURIComponent(token)}`;
+        finalUrl = `${url}${separator}sid=${encodeURIComponent(token)}`;
         console.warn(`✅ [DEBUG] Token acquired for GET (prefix: ${token.substring(0, 10)}...)`);
       } else {
         console.warn(`⚠️ [DEBUG] Token retrieval failed for GET: ${url}`);

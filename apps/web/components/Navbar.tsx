@@ -1,14 +1,8 @@
-/**
- * Navbar - Sacred Ivory Light Theme
- * Unified navigation component for all pages
- */
-
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Sparkles } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { UserButton, useUser } from '@clerk/nextjs';
 
 interface NavbarProps {
@@ -23,27 +17,42 @@ const navLinks = [
 export default function Navbar({ transparent = false }: NavbarProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const { isSignedIn } = useUser();
+  const [mounted, setMounted] = useState(false);
+  const { isSignedIn, isLoaded } = useUser();
 
   useEffect(() => {
+    setMounted(true);
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
     };
+    handleScroll();
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  if (!mounted) {
+    return (
+      <nav className={`fixed top-0 w-full z-50 h-16 sm:h-20 ${transparent ? 'bg-transparent' : 'bg-[#FFFCF8]/80'}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-full">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-[#B8860B] rounded-lg" />
+            <div className="h-6 w-24 bg-[#B8860B]/10 rounded" />
+          </div>
+        </div>
+      </nav>
+    );
+  }
+
   return (
     <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${scrolled
-        ? 'bg-white/90 backdrop-blur-xl border-b border-[#F0E8DE] shadow-sm'
-        : transparent ? 'bg-transparent' : 'bg-[#FFFCF8]/80 backdrop-blur-sm'
+      ? 'bg-white/90 backdrop-blur-xl border-b border-[#F0E8DE] shadow-sm'
+      : transparent ? 'bg-transparent' : 'bg-[#FFFCF8]/80 backdrop-blur-sm'
       }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
-          {/* Brand - Always visible on mobile */}
+          {/* Brand */}
           <Link href="/" className="flex items-center gap-2 sm:gap-3 group">
             <div className="flex items-center gap-2">
-              {/* Mobile Logo Icon */}
               <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[#B8860B] to-[#78611D] rounded-lg flex items-center justify-center flex-shrink-0">
                 <span className="text-white text-sm sm:text-lg font-bold">ॐ</span>
               </div>
@@ -77,26 +86,24 @@ export default function Navbar({ transparent = false }: NavbarProps) {
           {/* CTA & Auth */}
           <div className="hidden md:flex items-center gap-4">
             <Link href="/dashboard">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+              <button
                 className="px-6 py-2.5 bg-gradient-to-r from-[#6B1F7A] to-[#8B4A9C] text-white 
                            font-medium text-sm rounded-xl shadow-lg shadow-purple-500/20
                            hover:shadow-purple-500/30 transition-shadow duration-300"
               >
                 Dashboard
-              </motion.button>
+              </button>
             </Link>
-            {isSignedIn && (
+            {isLoaded && isSignedIn && (
               <div className="border border-[#F0E8DE] rounded-xl p-1 bg-white">
-                <UserButton />
+                <UserButton afterSignOutUrl="/" />
               </div>
             )}
           </div>
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center gap-3">
-            {isSignedIn && <UserButton afterSignOutUrl="/" />}
+            {isLoaded && isSignedIn && <UserButton afterSignOutUrl="/" />}
             <button
               onClick={() => setIsOpen(!isOpen)}
               className="w-10 h-10 flex items-center justify-center rounded-xl 
@@ -110,49 +117,38 @@ export default function Navbar({ transparent = false }: NavbarProps) {
       </div>
 
       {/* Mobile Menu */}
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="md:hidden bg-white/98 backdrop-blur-xl border-t border-[#F0E8DE]"
-          >
-            <div className="px-6 py-6 space-y-4">
-              {navLinks.map((link, index) => (
-                <motion.div
-                  key={link.href}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <Link
-                    href={link.href}
-                    onClick={() => setIsOpen(false)}
-                    className="block px-4 py-3 text-[#4A453F] hover:text-[#B8860B] 
-                               hover:bg-[#FDF8F3] rounded-xl transition-all duration-300"
-                  >
-                    {link.label}
-                  </Link>
-                </motion.div>
-              ))}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: navLinks.length * 0.1 }}
+      {isOpen && (
+        <div
+          className="md:hidden bg-white/98 backdrop-blur-xl border-t border-[#F0E8DE]"
+        >
+          <div className="px-6 py-6 space-y-4">
+            {navLinks.map((link, index) => (
+              <div
+                key={link.href}
               >
-                <Link href="/dashboard" onClick={() => setIsOpen(false)}>
-                  <button className="w-full mt-2 px-4 py-3 bg-gradient-to-r from-[#6B1F7A] to-[#8B4A9C] 
-                                     text-white font-medium rounded-xl">
-                    Dashboard
-                  </button>
+                <Link
+                  href={link.href}
+                  onClick={() => setIsOpen(false)}
+                  className="block px-4 py-3 text-[#4A453F] hover:text-[#B8860B] 
+                             hover:bg-[#FDF8F3] rounded-xl transition-all duration-300"
+                >
+                  {link.label}
                 </Link>
-              </motion.div>
+              </div>
+            ))}
+            <div>
+              <Link href="/dashboard" onClick={() => setIsOpen(false)}>
+                <button className="w-full mt-2 px-4 py-3 bg-gradient-to-r from-[#6B1F7A] to-[#8B4A9C] 
+                                   text-white font-medium rounded-xl">
+                  Dashboard
+                </button>
+              </Link>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
+
+

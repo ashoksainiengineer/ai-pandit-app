@@ -413,7 +413,8 @@ export class ProgressTracker {
             score.stage || 0,
             score.rank,
             score.minifiedEph,
-            score.fullEph
+            score.fullEph,
+            score.batch
         );
 
         await this.saveProgress();
@@ -488,6 +489,35 @@ export class ProgressTracker {
      */
     getStageHistory(): Record<number, string> | undefined {
         return this.progress.stageHistory;
+    }
+
+    /**
+     * 🔱 TIERED LOADING: Get AI reasoning log for a specific candidate
+     * Used by candidate-detail API for on-demand loading
+     */
+    getCandidateLog(candidateTime: string): string | undefined {
+        return this.candidateLogs.get(candidateTime);
+    }
+
+    /**
+     * 🔱 TIERED LOADING: Get score data for a specific candidate
+     */
+    getCandidateScoreByTime(candidateTime: string, stage?: number): CandidateScore | undefined {
+        if (stage !== undefined) {
+            return this.progress.candidateScores.find(
+                s => s.time === candidateTime && s.stage === stage
+            );
+        }
+        // Return the highest-stage score for this time
+        const matches = this.progress.candidateScores.filter(s => s.time === candidateTime);
+        return matches.sort((a, b) => (b.stage || 0) - (a.stage || 0))[0];
+    }
+
+    /**
+     * 🔱 TIERED LOADING: Get all candidate times that have reasoning logs
+     */
+    getAllCandidateLogTimes(): string[] {
+        return Array.from(this.candidateLogs.keys());
     }
 }
 

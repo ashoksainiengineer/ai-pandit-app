@@ -19,6 +19,7 @@ import { extractBatchSurvivors } from '../extractors/index.js';
 import { CandidateDataPackage, StageResult, TournamentRound } from '@ai-pandit/shared';
 import { logger } from '../../logger.js';
 import { config } from '../../../config/index.js';
+import { getMinifiedEphemerisInline, getFullEphemerisPayload } from './_utils.js';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -75,24 +76,6 @@ export async function stage2BatchTournament(
         batchSize,
         survivorsPerBatch
     });
-
-    // Inline helpers for ephemeris payloads
-    const getMinifiedEphemerisInline = (c: CandidateDataPackage) => ({
-        sun: `${c.planets.sun.sign} ${c.planets.sun.degree}`,
-        moon: `${c.planets.moon.sign} ${c.planets.moon.degree}`,
-        ascendant: `${c.ascendant.sign} ${c.ascendant.degree}`
-    });
-
-    const getFullEphemerisPayload = (c: CandidateDataPackage) => {
-        const payload: Record<string, string> = {};
-        // 🔱 GOD-TIER PRECISION: All 9 planets at 4-decimal precision
-        for (const [name, p] of Object.entries(c.planets)) {
-            const pKey = name.charAt(0).toUpperCase() + name.slice(1);
-            payload[pKey] = `${p.sign} ${p.degree}`;
-        }
-        payload.Lagna = `${c.ascendant.sign} ${c.ascendant.degree}`;
-        return payload;
-    };
 
     // FORCED FIRST ROUND
     if (roundNumber === 0 && currentCandidates.length > 0) {
@@ -173,10 +156,16 @@ export async function stage2BatchTournament(
                 }
 
                 // IMMEDIATE EMIT & PERSIST - SYNCED WITH AI
+                // 🔱 UX SMOOTHING: Stagger emissions in first round to prevent "leaderboard pop"
+                if (roundNumber === 1 && j > 0) {
+                    await sleep(100);
+                }
+
                 await progress.addCandidateScore({
                     time: candidate.time,
                     score,
                     stage: 2,
+                    batch: i + 1,
                     minifiedEph: getMinifiedEphemerisInline(candidate),
                     fullEph: getFullEphemerisPayload(candidate)
                 });
@@ -193,7 +182,7 @@ export async function stage2BatchTournament(
             return batchSurvivors;
         });
 
-        const results = await executeAIInParallel(tasks, config.ai.maxConcurrency, config.ai.staggerMs);
+        const results = await executeAIInParallel(tasks, 2, 2000);
 
         // Flatten array of survivor arrays
         let nextCandidates = results.flat();
@@ -295,7 +284,7 @@ export async function stage2BatchTournament(
             return response;
         });
 
-        const results = await executeAIInParallel(tasks, 10, 100);
+        const results = await executeAIInParallel(tasks, 2, 2000);
 
         for (let i = 0; i < batches.length; i++) {
             const batchTimes = batches[i];
@@ -334,6 +323,7 @@ export async function stage2BatchTournament(
                     time: candidate.time,
                     score,
                     stage: 2,
+                    batch: i + 1,
                     minifiedEph: getMinifiedEphemerisInline(candidate),
                     fullEph: getFullEphemerisPayload(candidate)
                 });

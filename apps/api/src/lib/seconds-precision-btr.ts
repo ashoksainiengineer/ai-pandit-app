@@ -156,7 +156,7 @@ export async function processSecondsPrecisionBTR(
         logger.info(`[PIPELINE] Stage 1 Complete: ${stage1.candidates.length} candidates generated`);
         stageHistory[1] = stage1.stageResult;
         emitStageStats(input.sessionId, 1, stage1.stageResult.candidatesOut, `Generated ${stage1.stageResult.candidatesOut} candidates`);
-        await progress.flush("Stage 1 finalized. Preparing for tournament...");
+        await progress.flush("Initiating Forensic Evaluation: Pruning non-matching paths...");
 
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 2: BATCH TOURNAMENT

@@ -40,10 +40,13 @@ interface AICompletionRequest {
     model: string;
     messages: { role: string; content: string }[];
     max_tokens?: number;
+    max_completion_tokens?: number; // Some reasoning models prefer this
     temperature?: number;
     stream?: boolean;
     use_search?: boolean;
     include_reasoning?: boolean;
+    reasoning_format?: 'raw' | 'parsed' | 'hidden';
+    reasoning_effort?: 'low' | 'medium' | 'high' | 'default';
     provider?: {
         order?: string[];
         allow_fallbacks?: boolean;
@@ -148,15 +151,31 @@ export async function callAI(
                 requestBody.use_search = false; // Disable search for faster response
             }
 
-            // Detect models that require reasoning protocol (OpenRouter specifically)
-            const isKimi = configLocal.model.includes('kimi');
+            const isGroqNative = AI_CONFIG.baseUrl.toLowerCase().includes('groq.com');
+            const isKimi = configLocal.model.toLowerCase().includes('kimi');
             const isDeepSeekR1 = isReasonerModel;
-            const isV3Model = configLocal.model.includes('v3') || configLocal.model.includes('terminus');
-            const isGrok = configLocal.model.includes('grok');
+            const isV3Model = configLocal.model.toLowerCase().includes('v3') || configLocal.model.toLowerCase().includes('terminus');
+            const isGrok = configLocal.model.toLowerCase().includes('grok');
+            const isGptOss = configLocal.model.toLowerCase().includes('gpt-oss');
+            const isGroqKeyword = configLocal.model.toLowerCase().includes('groq');
 
-            // Add reasoning parameter for OpenRouter models that support it
-            if (isOpenRouter && (isKimi || isDeepSeekR1 || isV3Model || isGrok)) {
-                requestBody.include_reasoning = true;
+            // 🚀 PROPER REASONING CONFIGURATION (DYNAMIC)
+            if (isOpenRouter) {
+                // OpenRouter standard
+                if (isKimi || isDeepSeekR1 || isV3Model || isGrok || isGroqKeyword || isGptOss) {
+                    requestBody.include_reasoning = true;
+                }
+            } else if (isGroqNative) {
+                // Groq Native standard
+                if (isGptOss) {
+                    // gpt-oss models use include_reasoning
+                    requestBody.include_reasoning = true;
+                } else if (isDeepSeekR1 || isV3Model || isGroqKeyword || configLocal.model.includes('qwen')) {
+                    // Other reasoning models on Groq use reasoning_format
+                    requestBody.reasoning_format = 'raw';
+                    // Reasoning models prefer max_completion_tokens
+                    requestBody.max_completion_tokens = requestBody.max_tokens;
+                }
             }
 
             const response = await fetch(`${AI_CONFIG.baseUrl}/chat/completions`, {
@@ -205,11 +224,11 @@ export async function callAI(
                 thinking = message.reasoning_content;
             }
 
-            // Check for thinking markers in content
-            const thinkingMatch = content.match(/<thinking>([\s\S]*?)<\/thinking>/i);
+            // Check for thinking markers in content (common in many models)
+            const thinkingMatch = content.match(/<(?:thinking|think|thought)>([\s\S]*?)<\/(?:thinking|think|thought)>/i);
             if (thinkingMatch) {
                 thinking = thinkingMatch[1].trim();
-                content = content.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '').trim();
+                content = content.replace(/<(?:thinking|think|thought)>[\s\S]*?<\/(?:thinking|think|thought)>/gi, '').trim();
             }
 
             logger.info('AI response received', {
@@ -341,15 +360,28 @@ export async function callAIWithStream(
                 requestBody.temperature = configLocal.temperature;
             }
 
-            // Detect models that require reasoning protocol (OpenRouter specifically)
-            const isKimi = configLocal.model.includes('kimi');
+            const isGroqNative = AI_CONFIG.baseUrl.toLowerCase().includes('groq.com');
+            const isKimi = configLocal.model.toLowerCase().includes('kimi');
             const isDeepSeekR1 = isReasonerModel;
-            const isV3Model = configLocal.model.includes('v3') || configLocal.model.includes('terminus');
-            const isGrok = configLocal.model.includes('grok');
+            const isV3Model = configLocal.model.toLowerCase().includes('v3') || configLocal.model.toLowerCase().includes('terminus');
+            const isGrok = configLocal.model.toLowerCase().includes('grok');
+            const isGptOss = configLocal.model.toLowerCase().includes('gpt-oss');
+            const isGroqKeyword = configLocal.model.toLowerCase().includes('groq');
 
-            // Add reasoning parameter for OpenRouter models that support it
-            if (isOpenRouter && (isKimi || isDeepSeekR1 || isV3Model || isGrok)) {
-                requestBody.include_reasoning = true;
+            // 🚀 PROPER REASONING CONFIGURATION (DYNAMIC)
+            if (isOpenRouter) {
+                // OpenRouter standard
+                if (isKimi || isDeepSeekR1 || isV3Model || isGrok || isGroqKeyword || isGptOss) {
+                    requestBody.include_reasoning = true;
+                }
+            } else if (isGroqNative) {
+                // Groq Native standard
+                if (isGptOss) {
+                    requestBody.include_reasoning = true;
+                } else if (isDeepSeekR1 || isV3Model || isGroqKeyword || configLocal.model.includes('qwen')) {
+                    requestBody.reasoning_format = 'raw';
+                    requestBody.max_completion_tokens = requestBody.max_tokens;
+                }
             }
 
             const response = await fetch(`${AI_CONFIG.baseUrl}/chat/completions`, {
@@ -370,7 +402,17 @@ export async function callAIWithStream(
 
             if (!response.ok) {
                 const errorText = await response.text();
-                // 429 = Rate Limit -> Retry
+
+                // 🔱 RATE LIMIT HANDLING: Extract retry-after time from Groq's 429 response
+                if (response.status === 429) {
+                    // Parse wait time from Groq error: "Please try again in 2.15544s"
+                    const waitMatch = errorText.match(/try again in ([\d.]+)s/i);
+                    const waitMs = waitMatch ? Math.ceil(parseFloat(waitMatch[1]) * 1000) + 1000 : 5000;
+                    logger.warn(`🔱 Rate limit hit (429). Waiting ${waitMs}ms before retry ${attempt}/${AI_CONFIG.retryAttempts}`, { sessionId, stage });
+                    await sleep(waitMs);
+                    throw new Error(`API error 429 (rate limited, waited ${waitMs}ms): ${errorText}`);
+                }
+
                 // 5xx = Server Error -> Retry
                 throw new Error(`API error ${response.status}: ${errorText}`);
             }
@@ -445,7 +487,7 @@ export async function callAIWithStream(
                                     emitAIThinking(sessionId, emitBuffer, stage, options?.candidateTime);
 
                                     if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
-                                        options.progressTracker.updateAIThinking(emitBuffer, stage, options?.candidateTime).catch(() => { });
+                                        options.progressTracker.updateAIThinking(emitBuffer, stage, options?.candidateTime).catch((err: unknown) => { logger.warn('updateAIThinking emission failed', { stage, error: String(err) }); });
                                     }
 
                                     emitBuffer = '';
@@ -470,7 +512,7 @@ export async function callAIWithStream(
             if (emitBuffer) {
                 emitAIThinking(sessionId, emitBuffer, stage, options?.candidateTime);
                 if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
-                    options.progressTracker.updateAIThinking(emitBuffer, stage, options?.candidateTime).catch(() => { });
+                    options.progressTracker.updateAIThinking(emitBuffer, stage, options?.candidateTime).catch((err: unknown) => { logger.warn('updateAIThinking emission failed', { stage, error: String(err) }); });
                 }
             }
 
@@ -485,11 +527,11 @@ export async function callAIWithStream(
                 throw new Error('Empty response from AI provider');
             }
 
-            // 🛡️ SECURITY: Strip <think> tags if they leaked into content
-            const thinkMatch = fullContent.match(/<think>([\s\S]*?)<\/think>/i);
+            // 🛡️ SECURITY: Strip thinking tags if they leaked into content
+            const thinkMatch = fullContent.match(/<(?:thinking|think|thought)>([\s\S]*?)<\/(?:thinking|think|thought)>/i);
             if (thinkMatch) {
                 fullThinking += "\n" + thinkMatch[1];
-                fullContent = fullContent.replace(/<think>[\s\S]*?<\/think>/i, '').trim();
+                fullContent = fullContent.replace(/<(?:thinking|think|thought)>[\s\S]*?<\/(?:thinking|think|thought)>/gi, '').trim();
             }
 
             return {

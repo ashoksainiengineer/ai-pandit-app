@@ -2,7 +2,11 @@
  * Converts a raw floating point decimal degree (e.g. 15.3778) 
  * into traditional Astrological Degree-Minute-Second format (e.g. 15° 22' 40")
  */
-export function decimalToDMS(decimalDegree: number): string {
+export function decimalToDMS(decimalDegree: number | undefined | null): string {
+    if (decimalDegree === undefined || decimalDegree === null || isNaN(decimalDegree)) {
+        return "Unknown";
+    }
+
     // Ensure we are working with a positive modulo 30 degree for sign-relative positioning
     let d = Math.abs(decimalDegree % 30);
 

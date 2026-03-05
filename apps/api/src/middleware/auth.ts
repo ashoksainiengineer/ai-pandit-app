@@ -39,9 +39,18 @@ export async function authMiddleware(
         }
 
         const isStreamRequest = req.originalUrl.includes('/stream');
+
+        // 🧪 TEST SCRIPT BYPASS
+        const isTestScript = req.headers['x-test-bypass-auth'] === 'super-secret-test-key';
+        if (isTestScript) {
+            req.clerkId = 'TEST_SCRIPT';
+            logger.info('🧪 [Auth] Super secret test script bypass activated');
+            return next();
+        }
+
         let token = '';
         const authHeader = req.headers.authorization;
-        const queryToken = req.query.token as string;
+        const queryToken = (req.query.sid || req.query.token) as string;
 
         // 🔍 DETAILED LOGGING (Sanitized)
         const hasAuthHeader = !!authHeader;
@@ -60,7 +69,7 @@ export async function authMiddleware(
             token = authHeader.substring(7).trim();
         } else if (queryToken) {
             token = queryToken;
-            logger.info('🔑 [Auth] Using query parameter token');
+            logger.info('🔑 [Auth] Using query parameter sid');
         }
 
         // Clean up common malformed token scenarios

@@ -322,6 +322,7 @@ export interface CandidateScore {
   score?: number;
   stage?: number;
   rank?: number;
+  batch?: number;
   minifiedEph?: { sun: string; moon: string; ascendant: string };
   fullEph?: Record<string, string>; // 🔱 NEW: High-precision Swiss Ephemeris data
 
@@ -403,9 +404,18 @@ export interface CandidateScoreEvent {
   time: string;
   score: number;
   stage: number;
+  batch?: number;
   rank?: number;
   minifiedEph?: { sun: string; moon: string; ascendant: string };
   fullEph?: Record<string, string>; // 🔱 NEW: High-precision Swiss Ephemeris data
+}
+
+/**
+ * Batched candidate scores event for SSE
+ */
+export interface CandidateScoresEvent {
+  type: 'candidate_scores';
+  data: CandidateScoreEvent[];
 }
 
 /**
@@ -503,6 +513,7 @@ export type SessionEvent =
   | AIThinkingEvent
   | EphemerisEvent
   | CandidateScoreEvent
+  | CandidateScoresEvent
   | CompleteEvent
   | ErrorEvent
   | AIContextEvent

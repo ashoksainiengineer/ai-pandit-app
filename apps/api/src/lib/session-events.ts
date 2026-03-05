@@ -167,6 +167,10 @@ class SessionEventManager {
         if (event.type === 'candidate_score_v2' || event.type === 'candidate_score') {
             this.appendToCandidateScoreBuffer(sessionId, event as CandidateScoreEvent);
         }
+        if (event.type === 'candidate_scores') {
+            const batch = (event as any).data as CandidateScoreEvent[];
+            batch.forEach(score => this.appendToCandidateScoreBuffer(sessionId, score));
+        }
         if (event.type === 'decision') {
             this.appendToDecisionBuffer(sessionId, event as DecisionEvent);
         }
@@ -488,7 +492,8 @@ export function emitCandidateScore(
     stage: number,
     rank?: number,
     minifiedEph?: { sun: string; moon: string; ascendant: string },
-    fullEph?: Record<string, string>
+    fullEph?: Record<string, string>,
+    batch?: number
 ): void {
     logger.info(`Buffer Candidate Score: ${sessionId?.slice(0, 8)} | ${time} | ${score}`);
     sessionEvents.bufferScore(sessionId, {
@@ -496,6 +501,7 @@ export function emitCandidateScore(
         time,
         score,
         stage,
+        batch,
         rank,
         minifiedEph,
         fullEph,

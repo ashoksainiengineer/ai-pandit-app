@@ -4,6 +4,8 @@ import React, { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Activity, Clock, Zap, Brain, Filter, Target, CheckCircle, Cpu, Shield, Sparkles, Server } from 'lucide-react';
 
+import { STAGES } from '@/lib/constants/stages';
+
 interface StageInfo {
   id: number;
   name: string;
@@ -13,13 +15,13 @@ interface StageInfo {
 }
 
 const STAGE_CONFIG: Record<number, StageInfo> = {
-  0: { id: 0, name: 'Initialization', description: 'Preparing analysis engine and loading birth data', icon: <Activity className="w-4 h-4" />, candidateRange: '---' },
-  1: { id: 1, name: 'Rashi Grid Synthesis', description: 'Synthesis of primary astrological grids based on Rashi and Nakshatra placements', icon: <Target className="w-4 h-4" />, candidateRange: '1 → 61' },
-  2: { id: 2, name: 'Amsha-Varga Elimination', description: 'Recursive elimination of low-probability candidates using Varga-displacement logic', icon: <Filter className="w-4 h-4" />, candidateRange: '61 → 15' },
-  3: { id: 3, name: 'Temporal Refinement', description: 'Dynamic resolution adjustment for high-density temporal search windows', icon: <Activity className="w-4 h-4" />, candidateRange: '15 → 10' },
-  4: { id: 4, name: 'Divisional Analysis', description: 'Advanced AI evaluation of Navamsha (D9) and Dashamsha (D10) lifecycle events', icon: <Brain className="w-4 h-4" />, candidateRange: '10 → 5' },
-  5: { id: 5, name: 'Nadi-Amsha Convergence', description: 'Convergent validation across Shashtiamsha (D60) and 48-second Nadi-Amsha windows', icon: <Zap className="w-4 h-4" />, candidateRange: '5 → 3' },
-  6: { id: 6, name: 'Prana-Dasha Verdict', description: 'Final synthesis of Pancha-Dasha subdivisions and forensic event alignment', icon: <Target className="w-4 h-4" />, candidateRange: '3 → 1' },
+  0: { id: 0, name: STAGES[0].name, description: STAGES[0].description, icon: <Activity className="w-4 h-4" />, candidateRange: '---' },
+  1: { id: 1, name: STAGES[1].name, description: STAGES[1].description, icon: <Target className="w-4 h-4" />, candidateRange: '1 → 61' },
+  2: { id: 2, name: STAGES[2].name, description: STAGES[2].description, icon: <Filter className="w-4 h-4" />, candidateRange: '61 → 15' },
+  3: { id: 3, name: STAGES[3].name, description: STAGES[3].description, icon: <Activity className="w-4 h-4" />, candidateRange: '15 → 10' },
+  4: { id: 4, name: STAGES[4].name, description: STAGES[4].description, icon: <Brain className="w-4 h-4" />, candidateRange: '10 → 5' },
+  5: { id: 5, name: STAGES[5].name, description: STAGES[5].description, icon: <Zap className="w-4 h-4" />, candidateRange: '5 → 3' },
+  6: { id: 6, name: STAGES[6].name, description: STAGES[6].description, icon: <Target className="w-4 h-4" />, candidateRange: '3 → 1' },
 };
 
 interface AnalysisStatusBannerProps {
@@ -106,9 +108,9 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
             {(() => {
               const stageNum = effectiveStageIndex;
               let phaseLabel = '';
-              if (stageNum <= 2) phaseLabel = offsetMinutes > 120 ? 'Phase A: Macro Sweep' : (offsetMinutes > 15 ? 'Phase B: Meso Sweep' : 'Phase C: Micro Sweep');
-              else if (stageNum === 4) phaseLabel = 'Phase B: Meso Sweep';
-              else if (stageNum >= 5) phaseLabel = 'Phase C: Micro Sweep';
+              if (stageNum <= 2) phaseLabel = offsetMinutes > 120 ? 'Macro Phase: Broad scanning of large time ranges.' : (offsetMinutes > 15 ? 'Meso Phase: Intermediate narrowing of candidate groups.' : 'Micro Phase: Extreme precision testing of remaining winners.');
+              else if (stageNum === 4) phaseLabel = 'Meso Phase: Intermediate narrowing of candidate groups.';
+              else if (stageNum >= 5) phaseLabel = 'Micro Phase: Extreme precision testing of remaining winners.';
               if (!phaseLabel) return null;
               return (
                 <span className="text-[9px] px-2 py-0.5 rounded-full bg-[#184131]/10 text-[#184131] font-bold border border-[#184131]/20">

@@ -72,19 +72,8 @@ export const env = {
   },
 
   api: {
-    backendUrl: (() => {
-      const url = process.env.NEXT_PUBLIC_BACKEND_URL;
-
-      if (process.env.NODE_ENV === 'production' && !process.env.NEXT_PHASE) {
-        if (!url) {
-          console.warn('⚠️ NEXT_PUBLIC_BACKEND_URL is missing during build.');
-        } else if (!url.startsWith('http')) {
-          console.warn('⚠️ NEXT_PUBLIC_BACKEND_URL is not an absolute URL.');
-        }
-      }
-
-      return (url || 'http://localhost:8080').replace(/\/$/, '');
-    })(),
+    // Priority: Env Var > Default Localhost
+    backendUrl: getEnvVar(process.env.NEXT_PUBLIC_BACKEND_URL, 'NEXT_PUBLIC_BACKEND_URL', 'http://localhost:3001'),
     huggingFaceToken: getEnvVarOptional(process.env.NEXT_PUBLIC_HF_TOKEN),
     internalApiKey: getEnvVarOptional(process.env.INTERNAL_API_KEY),
   },

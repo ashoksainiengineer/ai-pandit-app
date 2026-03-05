@@ -13,6 +13,7 @@ import {
 } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { emitCalculationLog } from '../../session-events.js';
+import { cleanup } from '../../ephemeris.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
 import { StageResult } from '@ai-pandit/shared';
 import { logger } from '../../logger.js';
@@ -104,6 +105,19 @@ export async function stage1ExhaustiveDataGeneration(
 
       processed++;
 
+      // 🔱 UI SYNC: Emit "ghost" scores to populate the frontend grid in real-time
+      await progress.addCandidateScore({
+        time: raw.time,
+        score: 0, // No score yet in Stage 1
+        stage: 1,
+        minifiedEph: {
+          sun: `${pkg.planets.sun.sign} ${pkg.planets.sun.degree}`,
+          moon: `${pkg.planets.moon.sign} ${pkg.planets.moon.degree}`,
+          ascendant: `${pkg.ascendant.sign} ${pkg.ascendant.degree}`
+        },
+        fullEph: undefined // Keep Stage 1 payload light
+      });
+
       // Emit aggregated log entry (simplified)
       if (processed % 5 === 0) {
         emitCalculationLog(input.sessionId, {
@@ -120,6 +134,9 @@ export async function stage1ExhaustiveDataGeneration(
 
     // GC breathing room and prevent event loop starvation
     await sleep(20);
+    if (processed % 100 === 0) {
+      cleanup(); // Force V8 to clear WASM memory buffers periodically
+    }
   }
 
   await progress.completeStep('grid', [

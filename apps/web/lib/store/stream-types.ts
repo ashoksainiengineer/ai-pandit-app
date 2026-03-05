@@ -54,6 +54,8 @@ export interface AIContextData {
     }>;
     lifeEventsCount?: number;
     hasForensicTraits?: boolean;
+    batch?: number;
+    totalBatches?: number;
 }
 
 export interface CandidateScore {
@@ -61,6 +63,7 @@ export interface CandidateScore {
     score: number;
     stage: number;
     rank?: number;
+    batch?: number;
     offsetMinutes?: number;
     minifiedEph?: { sun: string; moon: string; ascendant: string };
     fullEph?: Record<string, string>; // High-precision technical coordinates
@@ -108,6 +111,19 @@ export interface StreamStep {
     icon?: string;
 }
 
+/**
+ * 🔱 TIERED LOADING: On-demand data for an expanded candidate card
+ * Only ONE candidate's heavy data is in memory at any time.
+ */
+export interface ExpandedCandidateData {
+    time: string;
+    stage: number;
+    fullEph?: Record<string, string>;
+    reasoning?: string;
+    loading: boolean;
+    error?: string;
+}
+
 export interface StreamState {
     sessionId: string | null;
     isComplete: boolean;
@@ -131,4 +147,6 @@ export interface StreamState {
     advancedSignals: IAdvancedSignals | null;
     decisions: AnalysisDecision[];
     lastEventId: number;
+    /** 🔱 TIERED LOADING: Currently expanded candidate's heavy data */
+    expandedCandidate: ExpandedCandidateData | null;
 }

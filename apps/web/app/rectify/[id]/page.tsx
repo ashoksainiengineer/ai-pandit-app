@@ -206,12 +206,14 @@ export default function AnalysisPage() {
     candidatesByStage,
     stageHistory,
     displayedCandidate,
-    setDisplayedCandidate
+    setDisplayedCandidate,
+    stageStats
   } = useStreamStore(useShallow(state => ({
     candidatesByStage: state.candidatesByStage,
     stageHistory: state.stageHistory,
     displayedCandidate: state.displayedCandidate,
     setDisplayedCandidate: state.setDisplayedCandidate,
+    stageStats: state.stageStats,
   })));
 
   const isConnected = connectionState.status === 'streaming' || connectionState.status === 'polling';
@@ -574,6 +576,7 @@ export default function AnalysisPage() {
                 stage={Math.max(...sortedCandidateScores.map(s => s.stage))}
                 scores={sortedCandidateScores}
                 isCompleted={isComplete}
+                sessionId={sessionId}
               />
             </SectionErrorBoundary>
           )}
@@ -597,7 +600,8 @@ export default function AnalysisPage() {
                     return sortedStages.map((stageNum) => {
                       const stageCandidates = candidatesByStage?.[stageNum] || {};
                       const isStageCompleted = stageNum < currentStageIndex;
-                      const candidateCount = Object.keys(stageCandidates).length;
+                      const actualCandidatesOut = stageStats?.find(s => s.stage === stageNum)?.candidateCount || 0;
+                      const candidateCount = Object.keys(stageCandidates).length || actualCandidatesOut;
                       const isCurrentStage = stageNum === currentStageIndex || (!isStageCompleted && incomingStageNumbers.includes(stageNum));
 
                       // Fallback stage name if not found in allSteps

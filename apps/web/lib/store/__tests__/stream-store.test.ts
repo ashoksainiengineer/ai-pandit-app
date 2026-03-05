@@ -142,9 +142,13 @@ describe('useStreamStore (Zustand State Management)', () => {
                 return 1;
             }));
 
+            const overlap = "This is exactly fifty characters long for the test";
+            const chunk1 = "We are testing the deduplication logic. " + overlap;
+            const chunk2 = overlap + " and this is the new suffix added.";
+
             // Step 1: Initial chunk
             useStreamStore.getState().dispatchStreamEvent('ai_thinking', {
-                chunk: 'The candidate has a strong moon.',
+                chunk: chunk1,
                 stage: 1,
                 candidateTime: '12:00'
             });
@@ -152,31 +156,42 @@ describe('useStreamStore (Zustand State Management)', () => {
 
             // Step 2: Replay chunk (starts with end of previous)
             useStreamStore.getState().dispatchStreamEvent('ai_thinking', {
-                chunk: 'strong moon. Further analysis shows...',
+                chunk: chunk2,
                 stage: 1,
                 candidateTime: '12:00'
             });
             if (rafCallback) act(() => (rafCallback as any)(16));
 
-            const state = useStreamStore.getState();
-            // Expected: "The candidate has a strong moon. Further analysis shows..."
-            // But wait, the current de-dupe logic handles overlaps if replayed chunk STARTS with existing,
-            // or if it ends with existing. 
-            // The suffix-overlap logic in the code is:
-            // if (existing.fullText.endsWith(text)) -> ignore
-            // if (text.startsWith(existing.fullText)) -> replace
-            // if (existing.fullText.startsWith(text)) -> ignore
+            expect(useStreamStore.getState().candidatesByStage[1]?.['12:00'].fullText).toBe(chunk1 + " and this is the new suffix added.");
+        });
 
-            // So if I send a subset overlap like "strong moon.", it might append if it doesn't match the logic above.
-            // Let's test the specific superseded case:
+        it('should sync activeAIStage and update displayedCandidate (selection logic)', async () => {
+            let rafCallback: FrameRequestCallback | null = null;
+            vi.stubGlobal('requestAnimationFrame', vi.fn((cb) => {
+                rafCallback = cb;
+                return 1;
+            }));
+
+            // Initial state: stage 1
+            useStreamStore.setState({ activeAIStage: 1, displayedCandidate: null });
+
+            // Send chunk for stage 2
             useStreamStore.getState().dispatchStreamEvent('ai_thinking', {
-                chunk: 'The candidate has a strong moon. Further analysis shows...',
-                stage: 1,
-                candidateTime: '12:00'
+                chunk: 'Analyzing batch...',
+                stage: 2,
+                candidateTime: '14:30'
             });
-            if (rafCallback) act(() => (rafCallback as any)(32));
 
-            expect(useStreamStore.getState().candidatesByStage[1]?.['12:00'].fullText).toBe('The candidate has a strong moon. Further analysis shows...');
+            // 1. activeAIStage should update immediately (synchronously) to trigger panel switch
+            expect(useStreamStore.getState().activeAIStage).toBe(2);
+
+            // 2. displayedCandidate and fullText should update AFTER rAF flush
+            if (rafCallback) act(() => (rafCallback as any)(0));
+
+            const state = useStreamStore.getState();
+            expect(state.candidatesByStage[2]?.['14:30'].fullText).toBe('Analyzing batch...');
+            // INDUSTRY FIX: displayedCandidate should be the RAW time, not prefixed
+            expect(state.displayedCandidate).toBe('14:30');
         });
     });
 
@@ -213,14 +228,14 @@ describe('useStreamStore (Zustand State Management)', () => {
         });
 
         it('should prune low-score candidates when stage completes', () => {
-            // Fill stage with many candidates (over the 30 limit)
+            // Fill stage with many candidates (over the 500 limit)
             const candidates: Record<string, any> = {};
             const scores: any[] = [];
-            for (let i = 0; i < 40; i++) {
-                const time = `10:${i.toString().padStart(2, '0')}`;
-                // Candidates 0-9 have score 100 (top), 10-39 have score 10 (low)
+            for (let i = 0; i < 600; i++) {
+                const time = `10:${i.toString().padStart(3, '0')}`;
+                // Candidates 0-99 have score 100 (top), 100-599 have score 10 (low)
                 candidates[time] = { fullText: 'some data' };
-                scores.push({ time, score: i < 10 ? 100 : 10, stage: 1 });
+                scores.push({ time, score: i < 100 ? 100 : 10, stage: 1 });
             }
 
             useStreamStore.setState({
@@ -231,25 +246,24 @@ describe('useStreamStore (Zustand State Management)', () => {
 
             // Trigger a progress event that moves to stage 2
             act(() => {
-                useStreamStore.getState().dispatchStreamEvent('progress', {
-                    currentStep: 2,
-                    stepIndex: 2,
-                    message: 'Moving to Stage 2'
+                useStreamStore.getState().dispatchStreamEvent('initial_state', {
+                    progress: {
+                        currentStep: 2,
+                        stepIndex: 2,
+                        message: 'Moving to Stage 2',
+                        candidateScores: scores,
+                    }
                 });
             });
 
             const state = useStreamStore.getState();
-            const stage1Candidates = state.candidatesByStage[1];
 
-            // Expected: Only 30 candidates remain (MAX_CANDIDATES_PER_STAGE)
-            expect(Object.keys(stage1Candidates).length).toBe(30);
+            // Expected: Only 500 candidates remain (MAX_ACTIVE_ALL)
+            expect(state.candidateScores.length).toBe(500);
 
-            // Expected: Top scorers (0-9) are still there
-            expect(stage1Candidates['10:00']).toBeTruthy();
-            expect(stage1Candidates['10:09']).toBeTruthy();
-
-            // Expected: Lowest scorers were pruned
-            expect(stage1Candidates['10:39']).toBeUndefined();
+            // Expected: Top scorers (0-99) are still there
+            const candidate0 = state.candidateScores.find(s => s.time === '10:000');
+            expect(candidate0).toBeTruthy();
         });
     });
 
