@@ -57,6 +57,9 @@ const progressRateLimiter = createRateLimiter({
 const selectiveApiRateLimiter = (req: Request, res: Response, next: NextFunction) => {
   const path = req.path;
 
+  // 🔍 DEBUG: Log path for debugging 404s
+  logger.info(`[Router] Incoming path: ${path} (original: ${req.originalUrl})`);
+
   // Skip rate limiting for real-time endpoints (they have their own limiters below)
   if (path.startsWith('/stream') ||
     path.startsWith('/queue/progress') ||
@@ -108,5 +111,14 @@ router.use('/candidate', progressRateLimiter, candidateDetailRouter);
 
 // Admin routes
 router.use('/admin', authMiddleware, strictRateLimiter, adminRouter);
+
+// Routes testing
+router.get('/routes-test', (req, res) => {
+  res.json({
+    success: true,
+    message: 'API sub-router reached',
+    path: req.path
+  });
+});
 
 export { router as routes };

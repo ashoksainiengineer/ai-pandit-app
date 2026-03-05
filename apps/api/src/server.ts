@@ -206,6 +206,19 @@ app.get('/', (req, res) => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
+// DIAGNOSTIC ENDPOINT (Troubleshoot 404s)
+// ═════════════════════════════════════════════════════════════════════════════
+app.get('/api/debug-routes', (req, res) => {
+  res.json({
+    message: 'API Router is mounted correctly',
+    path: req.path,
+    url: req.url,
+    originalUrl: req.originalUrl,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// ═════════════════════════════════════════════════════════════════════════════
 // API ROUTES
 // ═════════════════════════════════════════════════════════════════════════════
 
