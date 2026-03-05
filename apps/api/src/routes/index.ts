@@ -29,6 +29,7 @@ import {
   createRateLimiter,
 } from '../middleware/rate-limit.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 
