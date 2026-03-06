@@ -36,7 +36,7 @@ export const ReasoningGrid = memo(function ReasoningGrid({
             data.candidateTime?.toLowerCase().includes(query) ||
             data.fullText.toLowerCase().includes(query)
         );
-    }, [candidates, searchQuery]);
+    }, [candidates, searchQuery, stage]);
 
     const scoreMap = useMemo(() => {
         const map = new Map<string, number>();
