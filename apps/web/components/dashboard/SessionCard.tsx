@@ -188,12 +188,19 @@ export const SessionCard = memo(function SessionCard({
 
       if (data.success && data.data?.id) {
         onDuplicate?.(data.data.id);
+        
+        // Wait for database replication before redirecting
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Use router.push instead of window.location for better handling
         window.location.href = `/rectify/${data.data.id}/edit`;
       } else {
         console.error(data.error || 'Failed to clone session');
+        alert('Failed to clone session: ' + (data.error || 'Unknown error'));
       }
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error('Clone error:', error);
+      alert('Clone failed: ' + error.message);
     } finally {
       setIsCloning(false);
     }
