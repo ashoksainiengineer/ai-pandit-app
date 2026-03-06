@@ -72,5 +72,5 @@ describe('🏆 GOD-TIER PROOF: Synthetic Birth Time Recovery', () => {
         const trueSeconds = 4 * 3600 + 30 * 60 + 0;
 
         expect(Math.abs(rectifiedSeconds - trueSeconds)).toBeLessThanOrEqual(1200);
-    });
+    }, 60000); // 1 minute timeout for Vitest 4
 });

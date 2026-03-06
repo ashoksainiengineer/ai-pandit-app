@@ -50,15 +50,15 @@
         "@types/uuid": "^9.0.8",
         "@typescript-eslint/eslint-plugin": "^7.0.0",
         "@typescript-eslint/parser": "^7.0.0",
-        "@vitest/coverage-v8": "^1.6.1",
-        "@vitest/ui": "^1.6.1",
+        "@vitest/coverage-v8": "^4.0.18",
+        "@vitest/ui": "^4.0.18",
         "drizzle-kit": "^0.31.8",
         "eslint": "^8.57.0",
         "eslint-plugin-security": "^1.7.1",
         "supertest": "^7.2.2",
         "tsx": "^4.7.0",
         "typescript": "^5.4.5",
-        "vitest": "^1.6.1"
+        "vitest": "^4.0.18"
     },
     "engines": {
         "node": ">=20.0.0"
