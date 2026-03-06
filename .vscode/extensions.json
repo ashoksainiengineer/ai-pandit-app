@@ -1,0 +1,22 @@
+{
+  "recommendations": [
+    // React Debugging
+    "ms-vscode.vscode-typescript-next",
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    
+    // Node.js Debugging
+    "ms-vscode.js-debug",
+    "ms-vscode.vscode-json",
+    
+    // Performance
+    "ms-vscode.vscode-js-profile-flame",
+    
+    // General
+    "eamodio.gitlens",
+    "formulahendry.auto-rename-tag",
+    "christian-kohler.path-intellisense",
+    "streetsidesoftware.code-spell-checker"
+  ]
+}

@@ -7,7 +7,7 @@ import { defineConfig } from 'drizzle-kit';
  * This provides native support for Turso's libSQL protocol
  */
 export default defineConfig({
-    schema: './src/database/schema.ts',
+    schema: '../../packages/db/src/schema.ts',
     out: './drizzle',
     dialect: 'turso',
     dbCredentials: {

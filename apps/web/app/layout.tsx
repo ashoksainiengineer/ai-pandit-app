@@ -5,6 +5,7 @@
 
 import { ClerkProvider } from '@clerk/nextjs';
 import { Inter, Cormorant_Garamond, Playfair_Display, JetBrains_Mono } from 'next/font/google';
+import { DebugProvider } from '@/components/providers/debug-provider';
 import './globals.css';
 
 const inter = Inter({
@@ -102,9 +103,11 @@ export default function RootLayout({
           <div className="fixed inset-0 pointer-events-none z-0 bg-sacred-pattern" />
 
           {/* Main Content */}
-          <div className="relative z-10">
-            {children}
-          </div>
+          <DebugProvider>
+            <div className="relative z-10">
+              {children}
+            </div>
+          </DebugProvider>
         </body>
       </html>
     </ClerkProvider>
