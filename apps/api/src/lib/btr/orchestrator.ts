@@ -301,7 +301,7 @@ async function buildContext(input: RectificationInput): Promise<RectificationCon
       input.timezone
     );
   } catch (e) {
-    logger.warn('[BTR] Could not calculate sunrise', e);
+    logger.warn('[BTR] Could not calculate sunrise', { error: (e as any)?.message || e });
   }
 
   const scoredEvents = EventScorer.scoreEvents(input.events);
@@ -341,7 +341,7 @@ async function buildTransitAnalysis(
       }
     );
   } catch (e) {
-    logger.warn('[BTR] Transit analysis failed', e);
+    logger.warn('[BTR] Transit analysis failed', { error: (e as any)?.message || e });
     return new Map();
   }
 }

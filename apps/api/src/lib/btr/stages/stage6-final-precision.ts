@@ -6,7 +6,7 @@
  */
 
 import { SecondsPrecisionInput, ForensicTraits } from '@ai-pandit/shared';
-import { CandidateTime, MAX_BATCH_SIZE, splitIntoBatches } from '../../time-offset-manager.js';
+import { CandidateTime, getDynamicBatchSize, getDynamicSurvivors, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { callAIWithStream, executeAIInParallel } from '../../ai-client.js';
 import { emitCandidateScore, emitAIContext } from '../../session-events.js';
@@ -71,10 +71,24 @@ export async function stage6FinalPrecision(
     finalists: Array<{ time: string; score: number; ephemeris?: any }>;
     stageResult: StageResult;
 }> {
+    await progress.startStep('final', 'Stage 6: Final precision filtering...');
+
     if (!candidates || candidates.length === 0) {
         logger.error('🔱 [STAGE-6] FAILED: No candidates provided for final precision judgment');
         throw new Error('AI_OUT_OF_CANDIDATES: No birth time candidates survived the previous analysis stages. This usually happens when life events and forensic traits are highly contradictory.');
     }
+
+    // Get offset from config for dynamic batch sizing
+    const offsetMinutes = input.offsetConfig.customMinutes ||
+        (input.offsetConfig.preset === '30min' ? 30 :
+            input.offsetConfig.preset === '1hour' ? 60 :
+                input.offsetConfig.preset === '2hours' ? 120 :
+                    input.offsetConfig.preset === '4hours' ? 240 :
+                        input.offsetConfig.preset === '6hours' ? 360 :
+                            input.offsetConfig.preset === '12hours' ? 720 : 60);
+
+    const batchSize = getDynamicBatchSize(candidates.length, offsetMinutes);
+    const survivorsPerBatch = getDynamicSurvivors(batchSize, offsetMinutes, false);
 
     const now = new Date();
     const currentEph = await calculateEphemeris(
@@ -136,8 +150,8 @@ export async function stage6FinalPrecision(
                 time: candidate.time,
                 offsetMinutes: candidate.offsetMinutes
             });
-        } catch (error) {
-            logger.warn(`Failed to enhance candidate ${candidate.time} with God-Tier data`, error);
+        } catch (error: any) {
+            logger.warn(`Failed to enhance candidate ${candidate.time} with God-Tier data`, { error: error?.message || error });
         }
     }
 
@@ -147,9 +161,11 @@ export async function stage6FinalPrecision(
     logger.info(`Stage 6: ${godTierCount}/${godTierEnhancedCandidates.length} candidates achieved High-Precision status`);
 
     let roundNumber = 1;
+    const MAX_ROUNDS = config.btr.stage6MaxRounds;
 
-    while (finalists.length > 6) {
-        const batches = splitIntoBatches(finalists, 6);
+    while (finalists.length > batchSize && roundNumber <= MAX_ROUNDS) {
+        const initialFinalistsCount = finalists.length;
+        const batches = splitIntoBatches(finalists, batchSize);
         const batchWinners: CandidateTime[] = [];
         const batchDataMap = new Map<number, CandidateDataPackage[]>();
 
@@ -177,9 +193,9 @@ export async function stage6FinalPrecision(
                 'FINAL FORENSIC JUDGEMENT. Pick THE ONE based on bio-Vedic alignment.',
                 getFinalPrecisionPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData, presentAnchor),
                 {
-                    candidateTime: `R${roundNumber}-B${i + 1}`,
+                    candidateTime: `R1-B${i + 1}`,
                     progressTracker: progress,
-                    maxTokens: 16384,
+                    maxTokens: config.ai.stage6MaxTokens // Driven by AI_STAGE6_MAX_TOKENS
                 }
             );
 
@@ -187,7 +203,7 @@ export async function stage6FinalPrecision(
             return { response: resp, aiContent };
         });
 
-        const results = await executeAIInParallel(tasks, 2, 2000); // Reduced concurrency for Groq TPM limit
+        const results = await executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs); // Configurable concurrency/stagger
 
         // Accumulate reasoning from batches
         allReasoning += results.map(r => r.aiContent).filter(Boolean).join('\n\n---\n\n');
@@ -229,8 +245,19 @@ export async function stage6FinalPrecision(
             }
         }
 
+        // Break early if we made no progress cutting down candidates
+        if (batchWinners.length >= initialFinalistsCount) {
+            logger.warn(`🔱 [STAGE-6] Round ${roundNumber} failed to reduce candidate pool. Breaking loop.`);
+            break;
+        }
+
         finalists = batchWinners;
         roundNumber++;
+    }
+
+    if (finalists.length > batchSize) {
+        logger.warn(`🔱 [STAGE-6] Truncating remaining ${finalists.length} candidates down to ${batchSize} after hitting max rounds.`);
+        finalists = finalists.slice(0, batchSize);
     }
 
     // 🔱 EMERGENCY FALLBACK: If all finalists vanish (critical glitch), restore original candidates
@@ -268,8 +295,8 @@ export async function stage6FinalPrecision(
                     baseCandidate, input.lifeEvents, input.forensicTraits, input.tentativeTime
                 );
                 enhancedFinalBatch.push({ ...enhanced, time: finalist.time, offsetMinutes: finalist.offsetMinutes });
-            } catch (error) {
-                logger.warn(`Failed to enhance finalist ${finalist.time}`, error);
+            } catch (error: any) {
+                logger.warn(`Failed to enhance finalist ${finalist.time}`, { error: error?.message || error });
             }
         }
     }
@@ -342,7 +369,8 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
         {
             candidateTime: 'FINAL VERDICT',
             progressTracker: progress,
-            timeoutMs: 120000
+            timeoutMs: 120000,
+            maxTokens: config.ai.stage6MaxTokens // Driven by AI_STAGE6_MAX_TOKENS
         }
     );
 
@@ -364,9 +392,9 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
             return {
                 finalTime: fallbackWinner.time,
                 accuracy: 80,
-                confidence: 'LOW (FALLBACK)',
+                confidence: '⚠️ LOW (AI Unavailable)',
                 margin: 60,
-                aiReasoning: response.content || 'AI analysis failed but pipeline recovered using the highest weighted candidate.',
+                aiReasoning: response.content || '⚠️ AI analysis failed — result based on weighted estimation, not AI verification.',
                 thinking: response.thinking,
                 finalists: finalBatch.map(c => ({
                     time: c.time,
@@ -414,7 +442,7 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
         thinking: response.thinking,
         finalists: finalBatch.map(c => ({
             time: c.time,
-            score: c.time === finalTime ? accuracy : 70, // Basic score for runner-ups if not specified
+            score: c.time === finalTime ? accuracy : config.btr.fallbackRejectedScore + 30, // Basic score for runner-ups if not specified
             ephemeris: getMinifiedEphemerisInline(c)
         })),
         stageResult: {

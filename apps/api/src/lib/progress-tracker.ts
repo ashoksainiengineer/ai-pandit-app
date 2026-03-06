@@ -112,6 +112,13 @@ export class ProgressTracker {
         // 🏛️ Real-time memory sync for stage history
         if (!this.progress.stageHistory) this.progress.stageHistory = {};
 
+        // Memory logging for diagnosis
+        if (Math.random() < 0.05) {
+            let totalMemoryEstimate = 0;
+            this.candidateLogs.forEach(v => { totalMemoryEstimate += v.length; });
+            console.log(`[ProgressTracker] Stage ${stage} Memory: ~${Math.round(totalMemoryEstimate / 1024)}KB for ${this.candidateLogs.size} candidates in memory.`);
+        }
+
         // 🔥 GOD-TIER MEMORY PROTECTION: Cap thinking and stage history
         // Increased for Deep Results Archive (100KB per stage)
         const MEMORY_LIMIT = 100000;

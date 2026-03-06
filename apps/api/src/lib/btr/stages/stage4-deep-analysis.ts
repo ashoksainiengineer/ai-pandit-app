@@ -6,7 +6,7 @@
  */
 
 import { SecondsPrecisionInput, ForensicTraits } from '@ai-pandit/shared';
-import { CandidateTime, MAX_BATCH_SIZE, getDynamicSurvivors, splitIntoBatches } from '../../time-offset-manager.js';
+import { CandidateTime, getDynamicBatchSize, getDynamicSurvivors, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { callAIWithStream, executeAIInParallel } from '../../ai-client.js';
 import { emitCandidateScore, emitAIContext, emitDecision } from '../../session-events.js';
@@ -61,8 +61,8 @@ export async function stage4DeepAnalysis(
                         input.offsetConfig.preset === '6hours' ? 360 :
                             input.offsetConfig.preset === '12hours' ? 720 : 60);
 
-    // STUNNING FIX: Reducing batch size and dasha depth to prevent OpenRouter/Groq context window overflow
-    const batchSize = 6;
+    // STUNNING FIX: Using dynamic batch sizing driven by environment bounds
+    const batchSize = getDynamicBatchSize(currentCandidates.length, offsetMinutes);
     // FIXED: Use getDynamicSurvivors for consistent tournament logic with Elasticity
     const survivorsPerBatch = getDynamicSurvivors(batchSize, offsetMinutes, false);
 
@@ -106,7 +106,7 @@ export async function stage4DeepAnalysis(
                 {
                     candidateTime: `R${roundNumber}-B${i + 1}`,
                     progressTracker: progress,
-                    maxTokens: 16384, // Reduced from 32K — deep prompts + 32K completion exceeds Groq context
+                    maxTokens: config.ai.stage4MaxTokens, // Driven by AI_STAGE4_MAX_TOKENS
                 }
             );
 
@@ -136,10 +136,11 @@ export async function stage4DeepAnalysis(
                 const originalTimeInfo = batchTimes[j];
                 const isSurvivor = survivorTimes.includes(candidate.time);
 
-                // If AI failed, use fallback scores
+                // If AI failed, use fallback scores — mark as isFallback for transparency
                 const scoreObj = aiScores.find(s => s.time === candidate.time);
-                const score = scoreObj ? scoreObj.score : (isSurvivor ? 85 : 60);
-                const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Preserved via technical fallback" : "Failed deep multi-dasha verification");
+                const isFallback = !scoreObj;
+                const score = scoreObj ? scoreObj.score : (isSurvivor ? config.btr.fallbackPromotedScore : config.btr.fallbackRejectedScore + 20);
+                const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "⚠️ AI unavailable — estimated score (preserved)" : "⚠️ AI unavailable — estimated score");
 
                 if (isSurvivor) {
                     batchSurvivors.push(originalTimeInfo);
@@ -167,7 +168,7 @@ export async function stage4DeepAnalysis(
             return { batchSurvivors, aiContent };
         });
 
-        const results = await executeAIInParallel(tasks, 2, 2000);
+        const results = await executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
 
         // Flatten survivors and accumulate reasoning
         const roundSurvivors = results.flatMap(r => r.batchSurvivors);
@@ -213,7 +214,7 @@ export async function stage4DeepAnalysis(
             {
                 candidateTime: 'Deep Final',
                 progressTracker: progress,
-                maxTokens: 16384,
+                maxTokens: config.ai.stage4MaxTokens, // Driven by AI_STAGE4_MAX_TOKENS
             }
         );
 
@@ -243,8 +244,9 @@ export async function stage4DeepAnalysis(
             const originalTimeInfo = currentCandidates[j];
             const isSurvivor = survivorTimes.includes(candidate.time);
             const scoreObj = aiScores.find(s => s.time === candidate.time);
-            const score = scoreObj ? scoreObj.score : (isSurvivor ? 95 : 65);
-            const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Superior alignment in final deep analysis" : "Low confidence in multi-dasha alignment");
+            const isFallback = !scoreObj;
+            const score = scoreObj ? scoreObj.score : (isSurvivor ? config.btr.fallbackPromotedScore + 10 : config.btr.fallbackRejectedScore + 25);
+            const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "⚠️ AI unavailable — estimated score" : "⚠️ AI unavailable — low estimated confidence");
 
             if (isSurvivor) survivors.push(originalTimeInfo);
 

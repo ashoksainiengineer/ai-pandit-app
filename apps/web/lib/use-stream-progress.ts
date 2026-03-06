@@ -99,6 +99,8 @@ export function useStreamProgress(
 
         // Mark as cleaned up to prevent async connect() from opening new ones
         streamCleanupRef.current = true;
+        // Also mark connection as not attempted so a fresh connect() can reset it
+        connectionAttemptedRef.current = false;
 
         if (pollTimerRef.current) {
             clearTimeout(pollTimerRef.current);
@@ -302,6 +304,19 @@ export function useStreamProgress(
             return;
         }
 
+        // 🔱 BUG FIX: Guard against duplicate connections (React StrictMode double-mount).
+        // If an SSE connection already exists for this session, skip.
+        if (sseSourceRef.current && currentSessionRef.current === sid) {
+            logger.debug('[SSE] Connection already exists for this session, skipping duplicate', { sid });
+            return;
+        }
+
+        // 🔱 BUG FIX: Don't reconnect if we already received a terminal state.
+        if (terminalStateReceivedRef.current) {
+            logger.debug('[SSE] Terminal state already received, not reconnecting', { sid });
+            return;
+        }
+
         cleanup(); // Clean up any previous connections for this hook instance
         currentSessionRef.current = sid;
         setConnectionState({ status: 'connecting', url: '', lastError: null });
@@ -412,15 +427,15 @@ export function useStreamProgress(
             sse.onerror = (err: any) => {
                 if (!mountedRef.current || currentSessionRef.current !== sid) return;
 
-                // Check if we already received a terminal state - if so, this error is expected
-                // Use ref instead of state to avoid stale closure issues
+                // 🔱 BUG FIX: Check if we already received a terminal state - if so, this error is expected
+                // This is the PRIMARY fix for the reconnect storm. After 'complete' or 'failed',
+                // EventSource fires onerror when the server closes. We must NOT reconnect.
                 if (terminalStateReceivedRef.current) {
                     console.log('📤 [SSE] Connection closed after terminal state (expected)');
+                    cleanup();
                     return;
                 }
 
-                // 🔧 FIX: Check for HTTP error status from EventSource
-                // EventSource readyState: 0=CONNECTING, 1=OPEN, 2=CLOSED
                 const readyState = sse.readyState;
                 console.error(`❌ [SSE] Connection error (readyState: ${readyState})`, err);
 
@@ -436,18 +451,16 @@ export function useStreamProgress(
                         return;
                     }
 
-                    // Already retried - fall back to polling
+                    // Already retried - fall back to polling (but NOT if terminal)
                     console.error('🔥 [SSE] Connection failed after retry. Switching to polling...');
                     cleanup();
                     setConnectionState({ status: 'polling', url: '', lastError: 'SSE connection failed, using polling' });
                     poll(sid);
                 } else {
                     // Still connecting - wait a bit before deciding
-                    // @ts-ignore - sse.onerror closure can outlive sid if we don't guard sid
                     setTimeout(() => {
                         if (mountedRef.current && currentSessionRef.current === sid && !sseSourceRef.current && !terminalStateReceivedRef.current) {
                             console.error('🔥 [SSE] Initial connection timeout. Switching to polling...');
-                            // INDUSTRY FIX: Clean up ALL pending SSE timeouts before fallback
                             // @ts-ignore
                             if (typeof connectionTimeout !== 'undefined') clearTimeout(connectionTimeout);
                             cleanup();
@@ -477,6 +490,9 @@ export function useStreamProgress(
     // Main effect
     useEffect(() => {
         mountedRef.current = true;
+        // 🔱 BUG FIX: Reset connectionAttemptedRef on each mount to handle StrictMode.
+        // StrictMode unmounts then re-mounts, so cleanup sets this to false,
+        // and we need to allow the second mount to establish the connection.
         connectionAttemptedRef.current = false;
 
         if (!sessionId) {

@@ -115,7 +115,7 @@ export async function scanBirthTimeWindow(input: ScannerInput): Promise<ScanResu
         input.timezone
       );
     } catch (e) {
-      logger.warn('[SCANNER] Could not calculate sunrise', e);
+      logger.warn('[SCANNER] Could not calculate sunrise', { error: (e as any)?.message || e });
     }
 
     const context: ScannerContext = {
@@ -227,7 +227,7 @@ export async function scanBirthTimeWindow(input: ScannerInput): Promise<ScanResu
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     errors.push(`Scanner error: ${errorMessage}`);
-    logger.error('[SCANNER] Fatal error', error);
+    logger.error('[SCANNER] Fatal error', { error: (error as any)?.message || error });
 
     return {
       success: false,
@@ -302,7 +302,7 @@ async function generateCandidates(
       });
 
     } catch (error) {
-      logger.debug(`[SCANNER] Failed to analyze candidate ${timeString}`, error);
+      logger.debug(`[SCANNER] Failed to analyze candidate ${timeString}`, { error: (error as any)?.message || error });
     }
 
     if (candidates.length >= context.config.maxCandidates * 2) {
@@ -369,7 +369,7 @@ async function scoreCandidate(
     transitMatches.push(...transitResults);
     methodScores.transit = calculateAverageScore(transitResults.map(t => t.score));
   } catch (e) {
-    logger.debug('[SCANNER] Transit calculation failed', e);
+    logger.debug('[SCANNER] Transit calculation failed', { error: (e as any)?.message || e });
   }
 
   const weights = METHOD_WEIGHTS;

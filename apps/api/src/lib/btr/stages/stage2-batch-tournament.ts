@@ -77,6 +77,8 @@ export async function stage2BatchTournament(
         survivorsPerBatch
     });
 
+    const MAX_ROUNDS = config.btr.stage2MaxRounds;
+
     // FORCED FIRST ROUND
     if (roundNumber === 0 && currentCandidates.length > 0) {
         roundNumber++;
@@ -117,7 +119,8 @@ export async function stage2BatchTournament(
                 getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch, input.spouseData, offsetMinutes),
                 {
                     candidateTime: `R${roundNumber}-B${i + 1}`,
-                    progressTracker: progress
+                    progressTracker: progress,
+                    maxTokens: config.ai.stage2MaxTokens // Driven by AI_STAGE2_MAX_TOKENS
                 }
             );
 
@@ -148,7 +151,7 @@ export async function stage2BatchTournament(
 
                 // If AI failed, use fallback scores
                 const scoreObj = aiScores.find(s => s.time === candidate.time);
-                const score = scoreObj ? scoreObj.score : (isSurvivor ? 85 : 40);
+                const score = scoreObj ? scoreObj.score : (isSurvivor ? config.btr.fallbackPromotedScore : config.btr.fallbackRejectedScore);
                 const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Meets primary alignment criteria (Fallback)" : "Low forensic match score");
 
                 if (isSurvivor) {
@@ -182,14 +185,14 @@ export async function stage2BatchTournament(
             return batchSurvivors;
         });
 
-        const results = await executeAIInParallel(tasks, 2, 2000);
+        const results = await executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
 
         // Flatten array of survivor arrays
         let nextCandidates = results.flat();
 
         // 🔱 SAFETY NET 2.0: Cluster-Aware Survival
-        // If candidates are very close (within 2 mins), keep both if one is a survivor
-        const clusterThreshold = 2; // minutes
+        // If candidates are very close (within specified threshold), keep both if one is a survivor
+        const clusterThreshold = config.btr.clusterThreshold; // minutes
         const additionalSurvivors: CandidateTime[] = [];
         for (const s of nextCandidates) {
             const nearby = currentCandidates.filter(c =>
@@ -241,7 +244,8 @@ export async function stage2BatchTournament(
     }
 
     // Continue tournament for larger sets
-    while (currentCandidates.length > batchSize) {
+    while (currentCandidates.length > batchSize && roundNumber <= MAX_ROUNDS) {
+        const initialCount = currentCandidates.length;
         roundNumber++;
         const batches = splitIntoBatches(currentCandidates, batchSize);
         const roundSurvivors: CandidateTime[] = [];
@@ -275,7 +279,11 @@ export async function stage2BatchTournament(
                 2,
                 'You are the SUPREME VEDIC ASTROLOGER. Tournament analysis: prune based on forensic alignment.',
                 getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch, input.spouseData, offsetMinutes),
-                { candidateTime: `R${roundNumber}-B${i + 1}`, progressTracker: progress }
+                {
+                    candidateTime: `R${roundNumber}-B${i + 1}`,
+                    progressTracker: progress,
+                    maxTokens: config.ai.stage2MaxTokens // Driven by AI_STAGE2_MAX_TOKENS
+                }
             );
 
             completedBatches++;
@@ -284,7 +292,7 @@ export async function stage2BatchTournament(
             return response;
         });
 
-        const results = await executeAIInParallel(tasks, 2, 2000);
+        const results = await executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
 
         for (let i = 0; i < batches.length; i++) {
             const batchTimes = batches[i];
@@ -312,7 +320,7 @@ export async function stage2BatchTournament(
 
                 // If AI failed, use fallback scores
                 const scoreObj = aiScores.find(s => s.time === candidate.time);
-                const score = scoreObj ? scoreObj.score : (isSurvivor ? 88 : 30);
+                const score = scoreObj ? scoreObj.score : (isSurvivor ? config.btr.fallbackPromotedScore + 3 : config.btr.fallbackRejectedScore - 10);
                 const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Superior alignment in tournament round (Fallback)" : "Eliminated in batch tournament");
 
                 if (isSurvivor) {
@@ -348,7 +356,17 @@ export async function stage2BatchTournament(
             candidatesOut: roundSurvivors.length
         });
 
+        if (roundSurvivors.length >= initialCount) {
+            logger.warn(`🔱 [STAGE-2] Round ${roundNumber} failed to reduce candidate pool. Breaking loop early.`);
+            break;
+        }
+
         currentCandidates = roundSurvivors;
+    }
+
+    if (currentCandidates.length > batchSize) {
+        logger.warn(`🔱 [STAGE-2] Truncating remaining ${currentCandidates.length} candidates down to ${batchSize} after hitting max rounds.`);
+        currentCandidates = currentCandidates.slice(0, batchSize);
     }
 
     // GOD-TIER SAFETY: Ensure tentative time and safety net always survive

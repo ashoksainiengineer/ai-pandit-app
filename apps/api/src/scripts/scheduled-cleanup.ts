@@ -59,7 +59,7 @@ async function runScheduledCleanup(): Promise<CleanupJobResult> {
       },
     };
 
-    logger.info('✅ Scheduled cleanup completed', result);
+    logger.info('✅ Scheduled cleanup completed', result as any);
     return result;
   } catch (error) {
     const errorMsg = (error as Error).message;

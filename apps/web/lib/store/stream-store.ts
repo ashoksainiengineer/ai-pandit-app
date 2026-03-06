@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
+import { devtools, persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
 import {
     StreamState,
@@ -165,6 +165,10 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
                 startedAt: Date.now()
             };
 
+            if (existing.fullText.length === 0) {
+                console.log(`[StreamStore] Created new candidate entry for stage ${stage}: ${candidateTime}`);
+            }
+
             let newFullText = existing.fullText;
             if (newFullText.length > 50 && text.length > 50 && newFullText.endsWith(text.slice(0, 50))) {
                 // Duplicate replay check: append only the new portion
@@ -203,6 +207,11 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
             newCandidatesByStage[s] = { ...prev.candidatesByStage[s], ...stageChanges[s] };
         });
 
+        // Throttle this log slightly or log only if there are actual new stage keys created so it doesn't spam at 60fps
+        if (Math.random() < 0.05) { // Log 5% of flushes to see memory size
+            console.log(`[StreamStore] Flush stats: stageChanges keys: ${Object.keys(stageChanges).join(',')}, target candidates count for stage ${latestStage}: ${Object.keys(newCandidatesByStage[latestStage] || {}).length}`);
+        }
+
         const newStageHistory = { ...prev.stageHistory };
         Object.keys(historyAppends).forEach(stageStr => {
             const s = Number(stageStr);
@@ -220,311 +229,314 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
 }
 
 export const useStreamStore = create<StreamStore>()(
-    persist(
-        (set, get) => ({
-            ...createInitialState(),
+    devtools(
+        persist(
+            (set, get) => ({
+                ...createInitialState(),
 
-            setSessionId: (id) => {
-                const currentId = get().sessionId;
-                if (id && id !== currentId) {
-                    get().clearStore();
-                }
-                set({ sessionId: id });
-            },
-
-            clearStore: () => {
-                if (thinkingBuffer.rafId) {
-                    cancelAnimationFrame(thinkingBuffer.rafId);
-                    thinkingBuffer.rafId = null;
-                }
-                thinkingBuffer.chunks.clear();
-                Object.keys(stageHistoryContributors).forEach(k => delete stageHistoryContributors[Number(k)]);
-                set({ ...createInitialState() });
-            },
-
-            forceError: (msg) => set({ error: msg, isComplete: false }),
-
-            markComplete: () => set({ isComplete: true }),
-
-            setDisplayedCandidate: (id) => set({ displayedCandidate: id }),
-
-            // ═══════════════════════════════════════════════════════════════
-            // 🔱 TIERED LOADING ACTIONS
-            // ═══════════════════════════════════════════════════════════════
-
-            clearExpandedCandidate: () => set({ expandedCandidate: null }),
-
-            fetchCandidateEphemeris: async (sessionId: string, time: string, stage: number) => {
-                // Set loading state immediately
-                set({
-                    expandedCandidate: {
-                        time,
-                        stage,
-                        loading: true,
-                    },
-                });
-
-                try {
-                    const token = await (window as any).__clerk?.session?.getToken();
-                    const backendUrl = (await import('@/lib/config')).env.api.backendUrl.replace(/\/$/, '');
-
-                    const res = await fetch(
-                        `${backendUrl}/api/candidate/${sessionId}/${encodeURIComponent(time)}/ephemeris`,
-                        {
-                            headers: {
-                                Authorization: token ? `Bearer ${token}` : '',
-                            },
-                        }
-                    );
-
-                    if (!res.ok) {
-                        set(prev => ({
-                            expandedCandidate: prev.expandedCandidate?.time === time
-                                ? { ...prev.expandedCandidate, loading: false, error: `HTTP ${res.status}` }
-                                : prev.expandedCandidate,
-                        }));
-                        return;
+                setSessionId: (id) => {
+                    const currentId = get().sessionId;
+                    if (id && id !== currentId) {
+                        get().clearStore();
                     }
+                    set({ sessionId: id });
+                },
 
-                    const data = await res.json();
-                    set(prev => ({
-                        expandedCandidate: prev.expandedCandidate?.time === time
-                            ? { ...prev.expandedCandidate, fullEph: data.fullEph, loading: false }
-                            : prev.expandedCandidate,
-                    }));
-                } catch (err) {
-                    set(prev => ({
-                        expandedCandidate: prev.expandedCandidate?.time === time
-                            ? { ...prev.expandedCandidate, loading: false, error: 'Network error' }
-                            : prev.expandedCandidate,
-                    }));
-                }
-            },
-
-            fetchCandidateReasoning: async (sessionId: string, time: string, stage: number) => {
-                // Merge into existing expanded data
-                set(prev => ({
-                    expandedCandidate: {
-                        time,
-                        stage,
-                        fullEph: prev.expandedCandidate?.time === time ? prev.expandedCandidate.fullEph : undefined,
-                        loading: true,
-                    },
-                }));
-
-                try {
-                    const token = await (window as any).__clerk?.session?.getToken();
-                    const backendUrl = (await import('@/lib/config')).env.api.backendUrl.replace(/\/$/, '');
-
-                    const res = await fetch(
-                        `${backendUrl}/api/candidate/${sessionId}/${encodeURIComponent(time)}/reasoning?stage=${stage}`,
-                        {
-                            headers: {
-                                Authorization: token ? `Bearer ${token}` : '',
-                            },
-                        }
-                    );
-
-                    if (!res.ok) {
-                        set(prev => ({
-                            expandedCandidate: prev.expandedCandidate?.time === time
-                                ? { ...prev.expandedCandidate, loading: false, error: `HTTP ${res.status}` }
-                                : prev.expandedCandidate,
-                        }));
-                        return;
+                clearStore: () => {
+                    if (thinkingBuffer.rafId) {
+                        cancelAnimationFrame(thinkingBuffer.rafId);
+                        thinkingBuffer.rafId = null;
                     }
+                    thinkingBuffer.chunks.clear();
+                    Object.keys(stageHistoryContributors).forEach(k => delete stageHistoryContributors[Number(k)]);
+                    set({ ...createInitialState() });
+                },
 
-                    const data = await res.json();
-                    set(prev => ({
-                        expandedCandidate: prev.expandedCandidate?.time === time
-                            ? { ...prev.expandedCandidate, reasoning: data.reasoning, loading: false }
-                            : prev.expandedCandidate,
-                    }));
-                } catch (err) {
-                    set(prev => ({
-                        expandedCandidate: prev.expandedCandidate?.time === time
-                            ? { ...prev.expandedCandidate, loading: false, error: 'Network error' }
-                            : prev.expandedCandidate,
-                    }));
-                }
-            },
+                forceError: (msg) => set({ error: msg, isComplete: false }),
 
-            dispatchStreamEvent: (type: string, data: any) => {
-                const payload = data.data || data;
+                markComplete: () => set({ isComplete: true }),
 
-                if (type === 'ai_thinking' && payload.chunk !== undefined) {
-                    const { chunk, stage, candidateTime = 'general' } = payload as AIThinkingEventData;
-                    const bufferKey = `${stage}_${candidateTime}`;
-                    const existing = thinkingBuffer.chunks.get(bufferKey);
+                setDisplayedCandidate: (id) => set({ displayedCandidate: id }),
 
-                    if (existing) {
-                        existing.text += chunk;
-                    } else {
-                        thinkingBuffer.chunks.set(bufferKey, { stage, candidateTime, text: chunk });
-                    }
+                // ═══════════════════════════════════════════════════════════════
+                // 🔱 TIERED LOADING ACTIONS
+                // ═══════════════════════════════════════════════════════════════
 
-                    if (!thinkingBuffer.rafId) {
-                        thinkingBuffer.rafId = requestAnimationFrame(() => flushThinkingBuffer(set));
-                    }
+                clearExpandedCandidate: () => set({ expandedCandidate: null }),
 
-                    set((prev) => (prev.activeAIStage !== stage ? { activeAIStage: stage } : {}));
-                    return;
-                }
+                fetchCandidateEphemeris: async (sessionId: string, time: string, stage: number) => {
+                    // Set loading state immediately
+                    set({
+                        expandedCandidate: {
+                            time,
+                            stage,
+                            loading: true,
+                        },
+                    });
 
-                set((prev) => {
-                    switch (type) {
-                        case 'initial_state': {
-                            const p = (payload as any).progress as PollingProgressData;
-                            if (!p) return {};
+                    try {
+                        const token = await (window as any).__clerk?.session?.getToken();
+                        const backendUrl = (await import('@/lib/config')).env.api.backendUrl.replace(/\/$/, '');
 
-                            const scoreMap = new Map<string, CandidateScore>();
-                            prev.candidateScores.forEach(s => scoreMap.set(`${s.stage}_${s.time}`, s));
-                            (p.candidateScores || []).forEach(s => scoreMap.set(`${s.stage}_${s.time}`, s));
-
-                            const newScores = archiveCandidates(Array.from(scoreMap.values()));
-                            const maxStage = newScores.length > 0 ? Math.max(...newScores.map(s => s.stage)) : 1;
-
-                            return {
-                                progress: {
-                                    step: p.steps?.find((s: any) => s.status === 'running')?.id || DEFAULT_STEPS[p.currentStep || 0].id,
-                                    stepIndex: p.currentStep || 0,
-                                    totalSteps: p.totalSteps || 7,
-                                    percentage: p.percentage || 0,
-                                    message: p.message || p.liveMessage || '',
-                                    details: p.steps?.[p.currentStep || 0]?.details || []
+                        const res = await fetch(
+                            `${backendUrl}/api/candidate/${sessionId}/${encodeURIComponent(time)}/ephemeris`,
+                            {
+                                headers: {
+                                    Authorization: token ? `Bearer ${token}` : '',
                                 },
-                                candidateScores: newScores,
-                                startedAt: p.startedAt || prev.startedAt,
-                                activeAIStage: maxStage
-                            };
+                            }
+                        );
+
+                        if (!res.ok) {
+                            set(prev => ({
+                                expandedCandidate: prev.expandedCandidate?.time === time
+                                    ? { ...prev.expandedCandidate, loading: false, error: `HTTP ${res.status}` }
+                                    : prev.expandedCandidate,
+                            }));
+                            return;
                         }
 
-                        case 'progress': {
-                            const p = payload as any;
-                            const stepIndex = p.stepIndex ?? p.currentStep ?? 0;
-                            const message = p.message || p.liveMessage || '';
-                            const steps = p.steps as any[];
+                        const data = await res.json();
+                        set(prev => ({
+                            expandedCandidate: prev.expandedCandidate?.time === time
+                                ? { ...prev.expandedCandidate, fullEph: data.fullEph, loading: false }
+                                : prev.expandedCandidate,
+                        }));
+                    } catch (err) {
+                        set(prev => ({
+                            expandedCandidate: prev.expandedCandidate?.time === time
+                                ? { ...prev.expandedCandidate, loading: false, error: 'Network error' }
+                                : prev.expandedCandidate,
+                        }));
+                    }
+                },
 
-                            const updates: Partial<StreamState> = {
-                                progress: {
-                                    step: steps?.[stepIndex]?.id || p.step || DEFAULT_STEPS[stepIndex].id,
-                                    stepIndex,
-                                    totalSteps: p.totalSteps || 7,
-                                    percentage: p.percentage || 0,
-                                    message,
-                                    details: steps?.[stepIndex]?.details || p.details || []
-                                }
-                            };
+                fetchCandidateReasoning: async (sessionId: string, time: string, stage: number) => {
+                    // Merge into existing expanded data
+                    set(prev => ({
+                        expandedCandidate: {
+                            time,
+                            stage,
+                            fullEph: prev.expandedCandidate?.time === time ? prev.expandedCandidate.fullEph : undefined,
+                            loading: true,
+                        },
+                    }));
 
-                            if (p.candidateScores && Array.isArray(p.candidateScores) && p.candidateScores.length > 0) {
+                    try {
+                        const token = await (window as any).__clerk?.session?.getToken();
+                        const backendUrl = (await import('@/lib/config')).env.api.backendUrl.replace(/\/$/, '');
+
+                        const res = await fetch(
+                            `${backendUrl}/api/candidate/${sessionId}/${encodeURIComponent(time)}/reasoning?stage=${stage}`,
+                            {
+                                headers: {
+                                    Authorization: token ? `Bearer ${token}` : '',
+                                },
+                            }
+                        );
+
+                        if (!res.ok) {
+                            set(prev => ({
+                                expandedCandidate: prev.expandedCandidate?.time === time
+                                    ? { ...prev.expandedCandidate, loading: false, error: `HTTP ${res.status}` }
+                                    : prev.expandedCandidate,
+                            }));
+                            return;
+                        }
+
+                        const data = await res.json();
+                        set(prev => ({
+                            expandedCandidate: prev.expandedCandidate?.time === time
+                                ? { ...prev.expandedCandidate, reasoning: data.reasoning, loading: false }
+                                : prev.expandedCandidate,
+                        }));
+                    } catch (err) {
+                        set(prev => ({
+                            expandedCandidate: prev.expandedCandidate?.time === time
+                                ? { ...prev.expandedCandidate, loading: false, error: 'Network error' }
+                                : prev.expandedCandidate,
+                        }));
+                    }
+                },
+
+                dispatchStreamEvent: (type: string, data: any) => {
+                    const payload = data.data || data;
+
+                    if (type === 'ai_thinking' && payload.chunk !== undefined) {
+                        const { chunk, stage, candidateTime = 'general' } = payload as AIThinkingEventData;
+                        const bufferKey = `${stage}_${candidateTime}`;
+                        const existing = thinkingBuffer.chunks.get(bufferKey);
+
+                        if (existing) {
+                            existing.text += chunk;
+                        } else {
+                            thinkingBuffer.chunks.set(bufferKey, { stage, candidateTime, text: chunk });
+                        }
+
+                        if (!thinkingBuffer.rafId) {
+                            thinkingBuffer.rafId = requestAnimationFrame(() => flushThinkingBuffer(set));
+                        }
+
+                        set((prev) => (prev.activeAIStage !== stage ? { activeAIStage: stage } : {}));
+                        return;
+                    }
+
+                    set((prev) => {
+                        switch (type) {
+                            case 'initial_state': {
+                                const p = (payload as any).progress as PollingProgressData;
+                                if (!p) return {};
+
                                 const scoreMap = new Map<string, CandidateScore>();
                                 prev.candidateScores.forEach(s => scoreMap.set(`${s.stage}_${s.time}`, s));
-                                p.candidateScores.forEach(s => scoreMap.set(`${s.stage}_${s.time}`, s));
+                                (p.candidateScores || []).forEach(s => scoreMap.set(`${s.stage}_${s.time}`, s));
 
                                 const newScores = archiveCandidates(Array.from(scoreMap.values()));
-                                updates.candidateScores = newScores;
+                                const maxStage = newScores.length > 0 ? Math.max(...newScores.map(s => s.stage)) : 1;
 
-                                const maxStage = newScores.length > 0 ? Math.max(...newScores.map(s => s.stage)) : stepIndex;
-                                updates.activeAIStage = maxStage;
-                                updates.analyzedCount = new Set(newScores.filter(s => s.stage === maxStage).map(s => s.time)).size;
-                            } else {
-                                // Clamp to navSTAGES logic if needed, but for now just sync
-                                updates.activeAIStage = (stepIndex === 1 || stepIndex === 2 || stepIndex === 4 || stepIndex === 6) ? stepIndex : prev.activeAIStage;
-                            }
-
-                            return updates;
-                        }
-
-                        case 'candidate_score':
-                        case 'candidate_score_v2':
-                        case 'candidate_scores': {
-                            const batch = Array.isArray(payload) ? payload : [payload as CandidateScore];
-                            if (batch.length === 0) return {};
-
-                            const scoreMap = new Map<string, CandidateScore>();
-                            prev.candidateScores.forEach(s => scoreMap.set(`${s.stage}_${s.time}`, s));
-                            batch.forEach(s => {
-                                if (s && s.time) scoreMap.set(`${s.stage}_${s.time}`, s);
-                            });
-
-                            const newScores = archiveCandidates(Array.from(scoreMap.values()));
-                            const maxStage = newScores.length > 0 ? Math.max(...newScores.map(s => s.stage)) : 1;
-                            const analyzedCount = new Set(newScores.filter(s => s.stage === maxStage).map(s => s.time)).size;
-
-                            return {
-                                candidateScores: newScores,
-                                analyzedCount,
-                                activeAIStage: maxStage
-                            };
-                        }
-
-                        case 'ai_context': {
-                            const context = payload as AIContextData;
-                            return {
-                                aiContext: context,
-                                activeAIStage: context.stage || prev.activeAIStage
-                            };
-                        }
-
-                        case 'decision': {
-                            const d = payload as AnalysisDecision;
-                            if (!d || !d.time) return {};
-                            const filtered = prev.decisions.filter(x => !(x.time === d.time && x.stage === d.stage));
-                            // Cap decisions to last 100 to prevent memory blowup
-                            const newDecisions = [...filtered, d].slice(-100);
-                            return { decisions: newDecisions };
-                        }
-
-                        case 'complete':
-                        case 'result': {
-                            const res = (payload?.rectifiedTime ? payload : payload?.result || prev.result) as StreamResult;
-                            return { isComplete: true, result: res };
-                        }
-
-                        case 'error': {
-                            return { error: payload.message || String(payload), isComplete: false };
-                        }
-
-                        case 'stage_stats': {
-                            const stat = payload as StageStat;
-                            const exists = prev.stageStats.findIndex(s => s.stage === stat.stage);
-                            const newStats = exists >= 0
-                                ? prev.stageStats.map((s, i) => i === exists ? stat : s)
-                                : [...prev.stageStats, stat];
-                            return { stageStats: newStats };
-                        }
-
-                        case 'metadata': {
-                            const m = payload as StreamMetadata;
-                            if (m.status === 'pending' || m.status === 'queued') {
                                 return {
-                                    ...createInitialState(),
-                                    metadata: m,
-                                    sessionId: prev.sessionId // Keep sessionId as reset usually happens within a session context
+                                    progress: {
+                                        step: p.steps?.find((s: any) => s.status === 'running')?.id || DEFAULT_STEPS[p.currentStep || 0].id,
+                                        stepIndex: p.currentStep || 0,
+                                        totalSteps: p.totalSteps || 7,
+                                        percentage: p.percentage || 0,
+                                        message: p.message || p.liveMessage || '',
+                                        details: p.steps?.[p.currentStep || 0]?.details || []
+                                    },
+                                    candidateScores: newScores,
+                                    startedAt: p.startedAt || prev.startedAt,
+                                    activeAIStage: maxStage
                                 };
                             }
-                            return { metadata: m };
-                        }
 
-                        default:
-                            return {};
-                    }
-                });
-            }
-        }),
-        {
-            name: 'btr-stream-storage',
-            storage: createJSONStorage(() => idbStorage),
-            // ONLY persist essential fields to prevent IndexedDB blowup
-            partialize: (state) => ({
-                sessionId: state.sessionId,
-                isComplete: state.isComplete,
-                candidateScores: state.candidateScores,
-                progress: state.progress,
-                activeAIStage: state.activeAIStage,
-                result: state.result,
-                startedAt: state.startedAt
+                            case 'progress': {
+                                const p = payload as any;
+                                const stepIndex = p.stepIndex ?? p.currentStep ?? 0;
+                                const message = p.message || p.liveMessage || '';
+                                const steps = p.steps as any[];
+
+                                const updates: Partial<StreamState> = {
+                                    progress: {
+                                        step: steps?.[stepIndex]?.id || p.step || DEFAULT_STEPS[stepIndex].id,
+                                        stepIndex,
+                                        totalSteps: p.totalSteps || 7,
+                                        percentage: p.percentage || 0,
+                                        message,
+                                        details: steps?.[stepIndex]?.details || p.details || []
+                                    }
+                                };
+
+                                if (p.candidateScores && Array.isArray(p.candidateScores) && p.candidateScores.length > 0) {
+                                    const scoreMap = new Map<string, CandidateScore>();
+                                    prev.candidateScores.forEach(s => scoreMap.set(`${s.stage}_${s.time}`, s));
+                                    p.candidateScores.forEach(s => scoreMap.set(`${s.stage}_${s.time}`, s));
+
+                                    const newScores = archiveCandidates(Array.from(scoreMap.values()));
+                                    updates.candidateScores = newScores;
+
+                                    const maxStage = newScores.length > 0 ? Math.max(...newScores.map(s => s.stage)) : stepIndex;
+                                    updates.activeAIStage = maxStage;
+                                    updates.analyzedCount = new Set(newScores.filter(s => s.stage === maxStage).map(s => s.time)).size;
+                                } else {
+                                    // Clamp to navSTAGES logic if needed, but for now just sync
+                                    updates.activeAIStage = (stepIndex === 1 || stepIndex === 2 || stepIndex === 4 || stepIndex === 6) ? stepIndex : prev.activeAIStage;
+                                }
+
+                                return updates;
+                            }
+
+                            case 'candidate_score':
+                            case 'candidate_score_v2':
+                            case 'candidate_scores': {
+                                const batch = Array.isArray(payload) ? payload : [payload as CandidateScore];
+                                if (batch.length === 0) return {};
+
+                                const scoreMap = new Map<string, CandidateScore>();
+                                prev.candidateScores.forEach(s => scoreMap.set(`${s.stage}_${s.time}`, s));
+                                batch.forEach(s => {
+                                    if (s && s.time) scoreMap.set(`${s.stage}_${s.time}`, s);
+                                });
+
+                                const newScores = archiveCandidates(Array.from(scoreMap.values()));
+                                const maxStage = newScores.length > 0 ? Math.max(...newScores.map(s => s.stage)) : 1;
+                                const analyzedCount = new Set(newScores.filter(s => s.stage === maxStage).map(s => s.time)).size;
+
+                                return {
+                                    candidateScores: newScores,
+                                    analyzedCount,
+                                    activeAIStage: maxStage
+                                };
+                            }
+
+                            case 'ai_context': {
+                                const context = payload as AIContextData;
+                                return {
+                                    aiContext: context,
+                                    activeAIStage: context.stage || prev.activeAIStage
+                                };
+                            }
+
+                            case 'decision': {
+                                const d = payload as AnalysisDecision;
+                                if (!d || !d.time) return {};
+                                const filtered = prev.decisions.filter(x => !(x.time === d.time && x.stage === d.stage));
+                                // Cap decisions to last 100 to prevent memory blowup
+                                const newDecisions = [...filtered, d].slice(-100);
+                                return { decisions: newDecisions };
+                            }
+
+                            case 'complete':
+                            case 'result': {
+                                const res = (payload?.rectifiedTime ? payload : payload?.result || prev.result) as StreamResult;
+                                return { isComplete: true, result: res };
+                            }
+
+                            case 'error': {
+                                return { error: payload.message || String(payload), isComplete: false };
+                            }
+
+                            case 'stage_stats': {
+                                const stat = payload as StageStat;
+                                const exists = prev.stageStats.findIndex(s => s.stage === stat.stage);
+                                const newStats = exists >= 0
+                                    ? prev.stageStats.map((s, i) => i === exists ? stat : s)
+                                    : [...prev.stageStats, stat];
+                                return { stageStats: newStats };
+                            }
+
+                            case 'metadata': {
+                                const m = payload as StreamMetadata;
+                                if (m.status === 'pending' || m.status === 'queued') {
+                                    return {
+                                        ...createInitialState(),
+                                        metadata: m,
+                                        sessionId: prev.sessionId // Keep sessionId as reset usually happens within a session context
+                                    };
+                                }
+                                return { metadata: m };
+                            }
+
+                            default:
+                                return {};
+                        }
+                    });
+                }
             }),
-        }
+            {
+                name: 'btr-stream-storage',
+                storage: createJSONStorage(() => idbStorage),
+                // ONLY persist essential fields to prevent IndexedDB blowup
+                partialize: (state) => ({
+                    sessionId: state.sessionId,
+                    isComplete: state.isComplete,
+                    candidateScores: state.candidateScores,
+                    progress: state.progress,
+                    activeAIStage: state.activeAIStage,
+                    result: state.result,
+                    startedAt: state.startedAt
+                }),
+            }
+        ),
+        { name: 'BTR-StreamStore', enabled: process.env.NODE_ENV === 'development' } as any
     )
 );

@@ -64,7 +64,34 @@ const envSchema = z.object({
   // Provider Optimization
   AI_PROVIDER_ORDER: z.string().default('Google Vertex,Together,DeepInfra').transform(s => s.split(',')),
   AI_MAX_CONCURRENCY: z.string().optional().transform((v) => v ? Number(v) : undefined),
-  AI_REASONER_IDENTIFIERS: z.string().default('reasoner,r1,gpt-oss,oss,o1,o3').transform(s => s.split(',')),
+  AI_REASONER_IDENTIFIERS: z.string().default('reasoner,r1,gpt-oss,oss,o1,o3,minimax').transform(s => s.split(',')),
+  // Controls HOW reasoning/thinking is requested from the AI provider.
+  // 'include_reasoning' = OpenRouter/Fireworks style (include_reasoning: true)
+  // 'reasoning_format_raw' = Groq native style (reasoning_format: 'raw')
+  // 'auto' = auto-detect based on model name (legacy behavior)
+  AI_REASONING_MODE: z.enum(['include_reasoning', 'reasoning_format_raw', 'auto']).default('include_reasoning'),
+  // Per-stage output token limits — tune individually for quality vs speed
+  AI_STAGE2_MAX_TOKENS: z.string().transform(Number).default('32768'),
+  AI_STAGE4_MAX_TOKENS: z.string().transform(Number).default('32768'),
+  AI_STAGE6_MAX_TOKENS: z.string().transform(Number).default('32768'),
+
+  // AI Parallelism & Performance
+  AI_PARALLEL_CONCURRENCY: z.string().transform(Number).default('2'),
+  AI_PARALLEL_STAGGER_MS: z.string().transform(Number).default('2000'),
+
+  // BTR Logic Thresholds
+  BTR_STAGE2_MAX_ROUNDS: z.string().transform(Number).default('5'),
+  BTR_STAGE6_MAX_ROUNDS: z.string().transform(Number).default('3'),
+
+  // Dynamic Scaling
+  AI_BATCH_SIZE_MIN: z.string().transform(Number).default('5'),
+  AI_BATCH_SIZE_MAX: z.string().transform(Number).default('10'),
+  AI_SURVIVAL_RATE_BASE: z.string().transform(Number).default('0.35'),
+  AI_SURVIVAL_ELASTICITY_FACTOR: z.string().transform(Number).default('1.1'),
+
+  BTR_CLUSTER_THRESHOLD_MINS: z.string().transform(Number).default('2'),
+  BTR_FALLBACK_PROMOTED_SCORE: z.string().transform(Number).default('85'),
+  BTR_FALLBACK_REJECTED_SCORE: z.string().transform(Number).default('40'),
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -140,6 +167,20 @@ export const aiConfig = {
 
   // Reasoner model identifiers for special protocol handling
   reasonerIdentifiers: env.AI_REASONER_IDENTIFIERS,
+  // How to request reasoning from the provider (configurable, not hardcoded)
+  reasoningMode: env.AI_REASONING_MODE,
+  // Per-stage output token limits
+  stage2MaxTokens: env.AI_STAGE2_MAX_TOKENS,
+  stage4MaxTokens: env.AI_STAGE4_MAX_TOKENS,
+  stage6MaxTokens: env.AI_STAGE6_MAX_TOKENS,
+  // Batching & Scaling
+  batchSizeMin: env.AI_BATCH_SIZE_MIN,
+  batchSizeMax: env.AI_BATCH_SIZE_MAX,
+  survivalRateBase: env.AI_SURVIVAL_RATE_BASE,
+  survivalElasticityFactor: env.AI_SURVIVAL_ELASTICITY_FACTOR,
+  // Parallelism
+  parallelConcurrency: env.AI_PARALLEL_CONCURRENCY,
+  parallelStaggerMs: env.AI_PARALLEL_STAGGER_MS,
 } as const;
 
 export const queueConfig = {
@@ -203,8 +244,12 @@ export const featureFlags = {
 
 export const btrConfig = {
   // Batch processing
-  maxBatchSize: 4,
-  survivorsPerBatch: 3,
+  stage2MaxRounds: env.BTR_STAGE2_MAX_ROUNDS,
+  stage4MaxRounds: 3, // Default for Deep Analysis rounds
+  stage6MaxRounds: env.BTR_STAGE6_MAX_ROUNDS,
+  clusterThreshold: env.BTR_CLUSTER_THRESHOLD_MINS,
+  fallbackPromotedScore: env.BTR_FALLBACK_PROMOTED_SCORE,
+  fallbackRejectedScore: env.BTR_FALLBACK_REJECTED_SCORE,
 
   // Refinement grid
   refinementGridMinutes: 5,

@@ -228,7 +228,7 @@ export async function buildCandidateDataPackage(
   // FIXED: Validate that all critical data is present before returning
   const validationErrors = validateDataPackage(pkg);
   if (validationErrors.length > 0) {
-    logger.warn(`[DATA-PACKAGE] Validation warnings for ${time}:`, validationErrors);
+    logger.warn(`[DATA-PACKAGE] Validation warnings for ${time}:`, { warnings: validationErrors } as any);
   }
 
   return pkg;
@@ -459,7 +459,7 @@ async function buildSpouseMatch(input: SecondsPrecisionInput, ephemeris: any) {
         : (moonSignMatch ? 'Moon signs match!' : 'No direct synastry link')
     };
   } catch (e) {
-    logger.warn('Spouse data calculation failed', e);
+    logger.warn('Spouse data calculation failed', { error: (e as any)?.message || e });
     return undefined;
   }
 }

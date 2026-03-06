@@ -87,7 +87,7 @@ function enrichSinglePlanet(
 
   return {
     sign: rawPlanet.sign,
-    degree: rawPlanet.degree || formatDegree(rawPlanet.longitude),
+    degree: formatDegree(rawPlanet.longitude),
     nakshatra: rawPlanet.nakshatra,
     house: houseNumber,
     dignity: rawPlanet.dignity || getDignity(planetName, rawPlanet.sign),

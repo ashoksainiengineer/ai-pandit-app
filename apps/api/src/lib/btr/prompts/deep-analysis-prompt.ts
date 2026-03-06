@@ -206,10 +206,10 @@ ${eventsText}
     CANDIDATES(100 % VERIFIED MATHEMATICAL DATA):
 ${shuffledCandidates.map(c => `
 [${c.time}]
-┌ LAGNA: ${c.ascendant.sign} ${c.ascendant.degree} (${c.ascendant.nakshatra})
+┌ LAGNA: ${c.ascendant?.sign || 'N/A'} ${c.ascendant?.degree || 'N/A'} (${c.ascendant?.nakshatra || 'N/A'})
 ├ PANCHANGA: Tithi=${typeof c.panchanga?.tithi === 'object' ? JSON.stringify(c.panchanga.tithi) : c.panchanga?.tithi || 'N/A'} | Vara=${c.panchanga?.vara || 'N/A'} | Yoga=${typeof c.panchanga?.yoga === 'object' ? JSON.stringify(c.panchanga.yoga) : c.panchanga?.yoga || 'N/A'}
-├ ARUDHAS: AL=${c.specialPoints?.AL.sign} | UL=${c.specialPoints?.UL.sign}
-├ HOUSE LORDS: ${[...Array(12)].map((_, i) => `${i + 1}=${c.houseLords[i + 1]}`).join(' | ')}
+├ ARUDHAS: AL=${c.specialPoints?.AL?.sign || 'N/A'} | UL=${c.specialPoints?.UL?.sign || 'N/A'}
+├ HOUSE LORDS: ${[...Array(12)].map((_, i) => `${i + 1}=${c.houseLords?.[i + 1] || '?'}`).join(' | ')}
 ├ PLANETARY MATRIX (Full Vedic Metrics):
 ${Object.entries(c.planets).map(([name, p]) => {
         const caps = name.charAt(0).toUpperCase() + name.slice(1);
@@ -249,8 +249,8 @@ ${Object.entries(c.transitData).map(([date, t]: [string, any]) =>
 ${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:
 │ Vargottama: ${c.vedicSignals.vargottama?.join(', ') || 'None'}
 │ Pushkar: ${c.vedicSignals.pushkar?.join(', ') || 'None'}
-│ Tatwa Shuddhi: ${c.vedicSignals.tatwa?.name} (${c.vedicSignals.tatwa?.element}) | Auspicious: ${c.vedicSignals.tatwa?.isAuspicious}
-│ Kunda Lagna: ${c.vedicSignals.kundaLagna?.sign} ${c.vedicSignals.kundaLagna?.degree !== undefined ? decimalToDMS(c.vedicSignals.kundaLagna.degree) : 'N/A'} | Matches Moon: ${c.vedicSignals.kundaLagna?.matchesMoon ? 'YES 🔥' : 'NO'}
+│ Tatwa Shuddhi: ${c.vedicSignals.tatwa?.name || 'N/A'} (${c.vedicSignals.tatwa?.element || 'N/A'}) | Auspicious: ${c.vedicSignals.tatwa?.isAuspicious ?? 'N/A'}
+│ Kunda Lagna: ${c.vedicSignals.kundaLagna?.sign || 'N/A'} ${c.vedicSignals.kundaLagna?.degree !== undefined ? decimalToDMS(c.vedicSignals.kundaLagna.degree) : 'N/A'} | Matches Moon: ${c.vedicSignals.kundaLagna?.matchesMoon ? 'YES 🔥' : 'NO'}
 │ Parivartana: ${c.vedicSignals.parivartana?.map((ex: any) => `L${ex.houses[0]}↔L${ex.houses[1]}`).join(', ') || 'None'}` : ''}
 ${c.kalachakraDasha ? `├ KALACHAKRA DASHA (Savya/Apasavya):
 ${c.kalachakraDasha.slice(0, 10).map(k => `│ ${k.sign} (${k.lord}): ${k.startDate.toISOString().split('T')[0]} to ${k.endDate.toISOString().split('T')[0]} (${k.durationYears.toFixed(1)}y) [${k.kalachakraType}]`).join('\n')}` : ''}

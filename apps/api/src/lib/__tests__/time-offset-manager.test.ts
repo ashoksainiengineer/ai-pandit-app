@@ -26,16 +26,16 @@ describe('Time Offset Manager (BTR Candidate Generation)', () => {
 
         it('should calculate dynamic survivor counts correctly', () => {
             const batchSize = 10;
-            // Gear 1: <= 15m (~25%)
-            expect(getDynamicSurvivors(batchSize, 10)).toBe(3); // ceil(10 * 0.25)
-            // Gear 2: <= 30m (~30%)
-            expect(getDynamicSurvivors(batchSize, 20)).toBe(3); // ceil(10 * 0.30)
-            // Gear 3: <= 120m (~40%)
-            expect(getDynamicSurvivors(batchSize, 60)).toBe(4); // ceil(10 * 0.40)
-            // Gear 4: <= 360m (~50%)
-            expect(getDynamicSurvivors(batchSize, 200)).toBe(5); // ceil(10 * 0.50)
-            // Gear 5: > 360m (~60%)
-            expect(getDynamicSurvivors(batchSize, 400)).toBe(6); // ceil(10 * 0.60)
+            // Gear 1: <= 15m (~28.9% with 0.35 base, 1.1 elasticity)
+            expect(getDynamicSurvivors(batchSize, 10)).toBe(3); // ceil(10 * 0.289)
+            // Gear 2: <= 30m (~31.8% with 0.35 base, 1.1 elasticity)
+            expect(getDynamicSurvivors(batchSize, 20)).toBe(4); // ceil(10 * 0.318)
+            // Gear 3: <= 120m (~35% with 0.35 base, 1.1 elasticity)
+            expect(getDynamicSurvivors(batchSize, 60)).toBe(4); // ceil(10 * 0.35)
+            // Gear 4: <= 360m (~38.5% with 0.35 base, 1.1 elasticity)
+            expect(getDynamicSurvivors(batchSize, 200)).toBe(4); // ceil(10 * 0.385)
+            // Gear 5: > 360m (~42.3% with 0.35 base, 1.1 elasticity)
+            expect(getDynamicSurvivors(batchSize, 400)).toBe(5); // ceil(10 * 0.423)
         });
 
         it('should add elasticity safety net for round 1 survivors', () => {

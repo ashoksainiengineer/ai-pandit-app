@@ -69,7 +69,7 @@ export async function authMiddleware(
             token = authHeader.substring(7).trim();
         } else if (queryToken) {
             token = queryToken;
-            logger.info('🔑 [Auth] Using query parameter sid');
+            logger.info('🔑 [Auth] Using query parameter sid', { rawPrefix: token.substring(0, 15) });
         }
 
         // Clean up common malformed token scenarios
@@ -138,7 +138,7 @@ export async function authMiddleware(
                 next();
             } else {
                 logger.warn('🔒 [Auth] Token verification failed: Invalid or expired session (no sub)', {
-                    tokenPrefix: token.substring(0, 10),
+                    rawPrefix: token.substring(0, 10),
                     path: req.originalUrl
                 });
                 res.status(401).json({
@@ -148,9 +148,15 @@ export async function authMiddleware(
                 });
             }
         } catch (clerkError: any) {
+            const errorStr = clerkError instanceof Error
+                ? clerkError.message
+                : typeof clerkError === 'object'
+                    ? JSON.stringify(clerkError, Object.getOwnPropertyNames(clerkError))
+                    : String(clerkError);
+
             logger.error('🔒 [Auth] Token verification failed', {
-                error: clerkError.message,
-                tokenPrefix: token.substring(0, 10),
+                error: errorStr,
+                rawPrefix: token.substring(0, 10),
                 path: req.originalUrl
             });
             if (isStreamRequest) {
@@ -167,7 +173,7 @@ export async function authMiddleware(
                     type: 'error',
                     error: 'Authentication failed',
                     code: 'AUTH_FAILED',
-                    details: clerkError.message
+                    details: errorStr
                 })}\n\n`);
 
                 if ((res as any).flush) (res as any).flush();
@@ -177,7 +183,7 @@ export async function authMiddleware(
                     success: false,
                     error: 'Authentication failed',
                     code: 'AUTH_FAILED',
-                    details: process.env.NODE_ENV === 'development' ? clerkError.message : undefined
+                    details: process.env.NODE_ENV === 'development' ? (clerkError instanceof Error ? clerkError.message : JSON.stringify(clerkError)) : undefined
                 });
             }
         }

@@ -6,6 +6,13 @@
  */
 
 import { config } from '../config/index.js';
+import fs from 'fs';
+import path from 'path';
+
+const LOG_DIR = path.join(process.cwd(), 'logs');
+if (!fs.existsSync(LOG_DIR)) {
+  fs.mkdirSync(LOG_DIR, { recursive: true });
+}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // LOG LEVELS
@@ -66,12 +73,12 @@ function redactSensitiveData(
   fieldsToRedact: string[]
 ): Record<string, unknown> {
   const redacted: Record<string, unknown> = {};
-  
+
   for (const [key, value] of Object.entries(obj)) {
     const shouldRedact = fieldsToRedact.some(
       (field) => key.toLowerCase().includes(field.toLowerCase())
     );
-    
+
     if (shouldRedact) {
       redacted[key] = '[REDACTED]';
     } else if (value && typeof value === 'object' && !Array.isArray(value)) {
@@ -80,7 +87,7 @@ function redactSensitiveData(
       redacted[key] = value;
     }
   }
-  
+
   return redacted;
 }
 
@@ -92,21 +99,21 @@ class Logger {
   private level: LogLevel;
   private prettyPrint: boolean;
   private redactFields: string[];
-  
+
   constructor(options: LoggerOptions = {}) {
     this.level = options.level || (config.logging.level as LogLevel) || 'info';
     this.prettyPrint = options.prettyPrint ?? (config.logging.format === 'pretty');
     this.redactFields = options.redactFields || [...config.logging.redactFields];
   }
-  
+
   private shouldLog(level: LogLevel): boolean {
     return LOG_LEVELS[level] >= LOG_LEVELS[this.level];
   }
-  
+
   private formatTimestamp(): string {
     return new Date().toISOString();
   }
-  
+
   private formatMessage(
     level: LogLevel,
     message: string,
@@ -114,17 +121,17 @@ class Logger {
   ): string {
     const timestamp = this.formatTimestamp();
     const safeMeta = meta ? redactSensitiveData(meta, this.redactFields) : {};
-    
+
     if (this.prettyPrint) {
       const levelColor = this.getLevelColor(level);
       const resetColor = '\x1b[0m';
-      const metaStr = Object.keys(safeMeta).length > 0 
-        ? '\n' + safeStringify(safeMeta) 
+      const metaStr = Object.keys(safeMeta).length > 0
+        ? '\n' + safeStringify(safeMeta)
         : '';
-      
+
       return `${timestamp} ${levelColor}[${level.toUpperCase()}]${resetColor} ${message}${metaStr}`;
     }
-    
+
     return safeStringify({
       timestamp,
       level: level.toUpperCase(),
@@ -132,7 +139,7 @@ class Logger {
       ...safeMeta,
     });
   }
-  
+
   private getLevelColor(level: LogLevel): string {
     const colors: Record<LogLevel, string> = {
       trace: '\x1b[90m',  // Gray
@@ -144,12 +151,12 @@ class Logger {
     };
     return colors[level] || '\x1b[0m';
   }
-  
+
   private log(level: LogLevel, message: string, meta?: Record<string, unknown>): void {
     if (!this.shouldLog(level)) return;
-    
+
     const formatted = this.formatMessage(level, message, meta);
-    
+
     // Use appropriate output stream
     if (level === 'error' || level === 'fatal') {
       console.error(formatted);
@@ -158,28 +165,58 @@ class Logger {
     } else {
       console.log(formatted);
     }
+
+    this.appendToFile(level, message, meta);
   }
-  
+
+  private appendToFile(level: LogLevel, message: string, meta?: Record<string, unknown>): void {
+    try {
+      const timestamp = this.formatTimestamp();
+      const safeMeta = meta ? redactSensitiveData(meta, this.redactFields) : {};
+
+      let category = 'system';
+      if (meta?.stage) category = `stage-${meta.stage}`;
+      else if (meta?.operation) category = `op-${String(meta.operation).replace(/[^a-zA-Z0-9-]/g, '_')}`;
+      else if (meta?.requestId) category = `req-${meta.requestId}`;
+      else if (meta?.type) category = `type-${meta.type}`;
+
+      const logEntry = JSON.stringify({
+        timestamp,
+        level: level.toUpperCase(),
+        message,
+        ...safeMeta,
+      }) + '\n';
+
+      // Stage specific or category log
+      fs.appendFileSync(path.join(LOG_DIR, `${category}.log`), logEntry);
+
+      // Master log
+      fs.appendFileSync(path.join(LOG_DIR, 'master.log'), logEntry);
+    } catch (err) {
+      // Fail silently to not crash the app
+    }
+  }
+
   // Public API
   trace(message: string, meta?: Record<string, unknown>): void {
     this.log('trace', message, meta);
   }
-  
+
   debug(message: string, meta?: Record<string, unknown>): void {
     this.log('debug', message, meta);
   }
-  
+
   info(message: string, meta?: Record<string, unknown>): void {
     this.log('info', message, meta);
   }
-  
+
   warn(message: string, meta?: Record<string, unknown>): void {
     this.log('warn', message, meta);
   }
-  
+
   error(message: string, error?: Error | unknown, meta?: Record<string, unknown>): void {
     const errorMeta: Record<string, unknown> = { ...meta };
-    
+
     if (error instanceof Error) {
       errorMeta.error = {
         name: error.name,
@@ -189,13 +226,13 @@ class Logger {
     } else if (error !== undefined) {
       errorMeta.error = String(error);
     }
-    
+
     this.log('error', message, errorMeta);
   }
-  
+
   fatal(message: string, error?: Error | unknown, meta?: Record<string, unknown>): void {
     const errorMeta: Record<string, unknown> = { ...meta };
-    
+
     if (error instanceof Error) {
       errorMeta.error = {
         name: error.name,
@@ -205,10 +242,10 @@ class Logger {
     } else if (error !== undefined) {
       errorMeta.error = String(error);
     }
-    
+
     this.log('fatal', message, errorMeta);
   }
-  
+
   // Child logger with bound context
   child(bindings: Record<string, unknown>): Logger {
     const childLogger = new Logger({
@@ -216,13 +253,13 @@ class Logger {
       prettyPrint: this.prettyPrint,
       redactFields: this.redactFields,
     });
-    
+
     // Override log method to include bindings
     const originalLog = this.log.bind(this);
     childLogger.log = (level: LogLevel, message: string, meta?: Record<string, unknown>) => {
       originalLog(level, message, { ...bindings, ...meta });
     };
-    
+
     return childLogger;
   }
 }
@@ -269,28 +306,28 @@ export function logPerformance<T>(
   meta?: Record<string, unknown>
 ): Promise<T> {
   const startTime = process.hrtime.bigint();
-  
+
   const logCompletion = (success: boolean, error?: unknown) => {
     const endTime = process.hrtime.bigint();
     const durationMs = Number(endTime - startTime) / 1_000_000;
-    
+
     const logMeta: Record<string, unknown> = {
       operation,
       durationMs: Math.round(durationMs * 100) / 100,
       success,
       ...meta,
     };
-    
+
     if (error) {
       logMeta.error = error instanceof Error ? error.message : String(error);
     }
-    
+
     logger.debug(`Performance: ${operation}`, logMeta);
   };
-  
+
   try {
     const result = fn();
-    
+
     if (result instanceof Promise) {
       return result
         .then((value) => {
@@ -302,7 +339,7 @@ export function logPerformance<T>(
           throw error;
         });
     }
-    
+
     logCompletion(true);
     return Promise.resolve(result);
   } catch (error) {

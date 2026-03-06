@@ -2,6 +2,7 @@
 // 🔱 GOD-TIER Time Offset Manager with Batch Support
 // Research-backed: Max 10 candidates per AI batch for optimal attention
 
+import { config } from '../config/index.js';
 import { logger } from './logger.js';
 import type { OffsetPreset, TimeOffsetConfig, CandidateTime } from '@ai-pandit/shared';
 
@@ -12,13 +13,11 @@ export type { OffsetPreset, TimeOffsetConfig, CandidateTime };
 // CONSTANTS - RESEARCH-BACKED (Dynamic)
 // ═════════════════════════════════════════════════════════════════════════
 
-// Absolute max candidates per AI call (OpenRouter supports higher concurrency)
-export const MAX_BATCH_SIZE = 10;
+// Absolute max candidates per AI call
+export const MAX_BATCH_SIZE = config.ai.batchSizeMax;
 
 // Survivors per batch for tournament progression
-// 🔱 GOD-TIER SAFETY: Increased from 2 to 5 to prevent actual birth time elimination
-// Research shows: With DeepSeek R1's 64K context, we can analyze more candidates
-export const SURVIVORS_PER_BATCH = 5;
+export const SURVIVORS_PER_BATCH = Math.ceil(config.ai.batchSizeMax * config.ai.survivalRateBase * config.ai.survivalElasticityFactor);
 
 /**
  * 🔱 DYNAMIC BATCH SIZE - Based on offset range
@@ -30,24 +29,17 @@ export const SURVIVORS_PER_BATCH = 5;
  * @returns Optimal batch size (5-10)
  */
 export function getDynamicBatchSize(totalCandidates: number, offsetMinutes: number): number {
-  // For very small offsets (±5-15 min) → 5 candidates per batch
-  // AI can deeply analyze each one
-  if (offsetMinutes <= 15) return 5;
+  const min = config.ai.batchSizeMin;
+  const max = config.ai.batchSizeMax;
 
-  // For small offsets (±30 min) → 6 candidates
-  if (offsetMinutes <= 30) return 6;
+  // Linear scaling between 5 and 360 minutes
+  if (offsetMinutes <= 15) return min;
+  if (offsetMinutes <= 30) return Math.min(min + 1, max);
+  if (offsetMinutes <= 60) return Math.min(min + 2, max);
+  if (offsetMinutes <= 120) return Math.min(min + 3, max);
+  if (offsetMinutes <= 360) return Math.min(min + 4, max);
 
-  // For medium offsets (±1 hour) → 7 candidates
-  if (offsetMinutes <= 60) return 7;
-
-  // For larger offsets (±2 hours) → 8 candidates
-  if (offsetMinutes <= 120) return 8;
-
-  // For big offsets (±4-6 hours) → 9 candidates
-  if (offsetMinutes <= 360) return 9;
-
-  // For very large offsets (±12 hours+) → 10 candidates (max)
-  return MAX_BATCH_SIZE;
+  return max;
 }
 
 /**
@@ -60,14 +52,16 @@ export function getDynamicBatchSize(totalCandidates: number, offsetMinutes: numb
  * @param isFirstRound If true, preserves more candidates (safety net for tentative time)
  */
 export function getDynamicSurvivors(batchSize: number, offsetMinutes: number, isFirstRound: boolean = false): number {
-  let survivalRate = 0.35; // Base fallback
+  const baseRate = config.ai.survivalRateBase;
+  const elasticity = config.ai.survivalElasticityFactor;
+  let survivalRate = baseRate;
 
   // ⚙️ Determine base survival rate by Gear
-  if (offsetMinutes > 360) survivalRate = 0.60; // Gear 5 (Keep 60%)
-  else if (offsetMinutes > 120) survivalRate = 0.50; // Gear 4 (Keep 50%)
-  else if (offsetMinutes > 30) survivalRate = 0.40; // Gear 3 (Keep 40%)
-  else if (offsetMinutes > 15) survivalRate = 0.30; // Gear 2 (Keep 30%)
-  else survivalRate = 0.25; // Gear 1 (Keep 25%)
+  if (offsetMinutes > 360) survivalRate = baseRate * (elasticity ** 2); // Gear 5
+  else if (offsetMinutes > 120) survivalRate = baseRate * elasticity; // Gear 4
+  else if (offsetMinutes > 30) survivalRate = baseRate; // Gear 3
+  else if (offsetMinutes > 15) survivalRate = baseRate * (1 / elasticity); // Gear 2
+  else survivalRate = baseRate * (1 / (elasticity ** 2)); // Gear 1
 
   // 🔱 FIRST ROUND SAFETY NET: Add 10% elasticity
   if (isFirstRound) {

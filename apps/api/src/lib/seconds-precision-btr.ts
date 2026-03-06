@@ -138,7 +138,7 @@ export async function processSecondsPrecisionBTR(
                 if (globalLifecycle.length > 50) break;
             }
         } catch (e) {
-            logger.warn('Global lifecycle calculation failed', e);
+            logger.warn('Global lifecycle calculation failed', { error: (e as any)?.message || e });
         }
 
         logger.info('Starting Professional BTR v7.0 (Batch Tournament)', {
@@ -310,7 +310,7 @@ export async function processSecondsPrecisionBTR(
         };
 
     } catch (error) {
-        logger.error('Professional BTR v7.0 FAILED', error);
+        logger.error('Professional BTR v7.0 FAILED', { error: (error as any)?.message || error });
         if (isCancellationError(error)) {
             throw error;
         }

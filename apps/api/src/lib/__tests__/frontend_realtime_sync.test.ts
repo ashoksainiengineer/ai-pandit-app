@@ -87,11 +87,12 @@ describe('📡 FRONTEND REAL-TIME SYNC AUDIT (SSE)', () => {
         // 4. Engine Stage: Candidate Score
         emitCandidateScore(SESSION_ID, '10:28:00', 95.5, 4, 1);
 
-        // Allow micro-tick for events to fire
-        await new Promise(r => setTimeout(r, 10));
+        // Allow broadcast window (200ms) to flush
+        await new Promise(r => setTimeout(r, 300));
 
         // 5. Assertions on UI Payload Structure
-        expect(receivedEvents.length).toBe(4);
+        // Optimized engine merges 2 thinking chunks into 1 event during the 200ms flush window
+        expect(receivedEvents.length).toBe(3);
 
         // Progress UI Container Payload
         const progressEvent = receivedEvents.find(e => e.type === 'progress');
@@ -102,13 +103,16 @@ describe('📡 FRONTEND REAL-TIME SYNC AUDIT (SSE)', () => {
 
         // AI Terminal/Reasoning UI Container Payload
         const aiEvents = receivedEvents.filter(e => e.type === 'ai_thinking');
-        expect(aiEvents.length).toBe(2);
-        expect(aiEvents[0].chunk).toBe('Analyzing D60 Lagna...');
-        expect(aiEvents[1].chunk).toContain('Gemini');
+        expect(aiEvents.length).toBe(1); // Merged!
+        expect(aiEvents[0].chunk).toContain('Analyzing D60 Lagna...');
+        expect(aiEvents[0].chunk).toContain('Gemini');
         expect(aiEvents[0].candidateTime).toBe('10:28:00');
 
         // Leaderboard UI Container Payload
-        const scoreEvent = receivedEvents.find(e => e.type === 'candidate_score_v2');
+        // Optimized engine sends batched scores under 'candidate_scores' type
+        const batchEvent = receivedEvents.find(e => e.type === 'candidate_scores');
+        expect(batchEvent).toBeDefined();
+        const scoreEvent = (batchEvent as any).data.find((s: any) => s.time === '10:28:00');
         expect(scoreEvent).toBeDefined();
         expect(scoreEvent?.score).toBe(95.5);
     });

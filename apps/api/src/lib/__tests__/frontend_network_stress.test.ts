@@ -64,11 +64,27 @@ describe('🌪️ HEAVY NETWORK STRESS AUDIT (SSE UI STREAMS)', () => {
             let lastSeq = 0;
 
             const req = (reqInst as any).buffer(false).end((err: any, res: any) => {
-                if (err && err.code !== 'ECONNRESET' && err.message !== 'aborted') reject(err);
+                // Suppress aborted/reset errors as they are expected in these stress scenarios
+                if (err && err.code !== 'ECONNRESET' && err.message !== 'aborted' && err.code !== 'ECONNABORTED') {
+                    reject(err);
+                }
             });
-            req.on('error', () => { }); // Suppress expected socket resets when simulating drops
+
+            // CRITICAL: Handle errors on the request object itself to prevent unhandled exceptions
+            req.on('error', (err: any) => {
+                if (err.code !== 'ECONNRESET' && err.message !== 'aborted' && err.code !== 'ECONNABORTED') {
+                    // console.warn('Ignored expected request error:', err.code);
+                }
+            });
 
             req.on('response', (res: any) => {
+                // CRITICAL: Also handle errors on the response stream
+                res.on('error', (err: any) => {
+                    if (err.code !== 'ECONNRESET' && err.message !== 'aborted' && err.code !== 'ECONNABORTED') {
+                        // console.warn('Ignored expected response error:', err.code);
+                    }
+                });
+
                 res.on('data', (chunk: Buffer) => {
                     const text = chunk.toString();
 
@@ -98,13 +114,19 @@ describe('🌪️ HEAVY NETWORK STRESS AUDIT (SSE UI STREAMS)', () => {
                 resolve({
                     events,
                     lastSeq,
-                    endStream: () => req.abort()
+                    endStream: () => {
+                        try {
+                            req.abort();
+                        } catch (e) { /* already aborted */ }
+                    }
                 });
             });
 
             // Auto timeout fallback
             setTimeout(() => {
-                req.abort();
+                try {
+                    req.abort();
+                } catch (e) { /* ignore */ }
                 resolve({ events, lastSeq, endStream: () => { } });
             }, 3000);
         });
@@ -120,7 +142,7 @@ describe('🌪️ HEAVY NETWORK STRESS AUDIT (SSE UI STREAMS)', () => {
         emitAIThinking(SESSION_ID, 'Analyzing planet...', 4, '10:00:00');
         emitCandidateScore(SESSION_ID, '10:00:00', 88, 4);
 
-        await new Promise(r => setTimeout(r, 60)); // Allow flush
+        await new Promise(r => setTimeout(r, 300)); // Allow flush (broadcast window is 200ms)
 
         expect(client1.events.length).toBeGreaterThanOrEqual(3);
         const lastSeq = client1.events[client1.events.length - 1].seq;
@@ -133,8 +155,9 @@ describe('🌪️ HEAVY NETWORK STRESS AUDIT (SSE UI STREAMS)', () => {
         emitCandidateScore(SESSION_ID, '10:00:00', 92, 4);
 
         // 5. User opens new browser window and resumes! (Sends Last-Event-ID)
+        await new Promise(r => setTimeout(r, 300)); // Allow offline events to flush even while user is away
         const client2 = await connectToStream(lastSeq.toString());
-        await new Promise(r => setTimeout(r, 100)); // Allow replay async to process
+        await new Promise(r => setTimeout(r, 300)); // Allow replay async to process
 
         client2.endStream();
 
@@ -155,7 +178,7 @@ describe('🌪️ HEAVY NETWORK STRESS AUDIT (SSE UI STREAMS)', () => {
 
         // Engine emits 1 event
         emitProgress(SESSION_ID, 'deep', 4, 7, 'Deep Analysis Mode');
-        await new Promise(r => setTimeout(r, 60));
+        await new Promise(r => setTimeout(r, 300));
 
         desktop.endStream();
         mobile.endStream();
@@ -176,7 +199,7 @@ describe('🌪️ HEAVY NETWORK STRESS AUDIT (SSE UI STREAMS)', () => {
         db.limit.mockResolvedValue([{ id: SESSION_ID, clerkId: 'stress_tester', status: 'complete' }]);
 
         const client = await connectToStream();
-        await new Promise(r => setTimeout(r, 60));
+        await new Promise(r => setTimeout(r, 300));
 
         client.endStream();
 

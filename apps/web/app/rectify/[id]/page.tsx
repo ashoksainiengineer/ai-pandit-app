@@ -39,6 +39,11 @@ const SimplifiedPipeline = dynamic(() => import('@/components/rectify/analysis/S
 const TechnicalMethodology = dynamic(() => import('@/components/rectify/analysis/TechnicalMethodology').then(mod => mod.TechnicalMethodology), { ssr: false });
 const StageLeaderboard = dynamic(() => import('@/components/rectify/analysis/StageLeaderboard').then(mod => mod.StageLeaderboard), { ssr: false });
 
+// 🔧 Dev-only: SSE Debug Panel for real-time stream inspection
+const SSEDebugPanel = process.env.NODE_ENV === 'development'
+  ? dynamic(() => import('@/components/dev/SSEDebugPanel'), { ssr: false })
+  : () => null;
+
 const GlobalStyles = memo(() => (
   <style jsx global>{`
     .style-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
@@ -237,10 +242,7 @@ export default function AnalysisPage() {
     if (metadata?.status === 'cancelled') setCancelled(true);
     else if (metadata?.status && ['pending', 'queued', 'processing'].includes(metadata.status)) setCancelled(false);
 
-    if (isComplete && metadata?.status && ['pending', 'queued', 'processing'].includes(metadata.status)) {
-      logger.warn('Detected stale isComplete with active metadata.status - clearing store', { status: metadata.status });
-      useStreamStore.getState().clearStore();
-    }
+    // Removed the stale isComplete check that caused the UI to reset back to 'Starting analysis...'
   }, [metadata?.status, isComplete]);
 
   useEffect(() => {
@@ -692,6 +694,8 @@ export default function AnalysisPage() {
 
         </div>
       </main>
+      {/* 🔧 Dev-only: SSE Debug Panel */}
+      <SSEDebugPanel />
     </AnalysisErrorBoundary >
   );
 }

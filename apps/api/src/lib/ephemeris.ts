@@ -76,7 +76,7 @@ export async function initSwissEph(): Promise<boolean> {
       useSwissEph = true;
       logger.info('[EPHEMERIS] Swiss Ephemeris WASM initialized successfully');
     } catch (error) {
-      logger.warn('[EPHEMERIS] Swiss Ephemeris WASM failed - Fallback to algorithmic', error);
+      logger.warn('[EPHEMERIS] Swiss Ephemeris WASM failed - Fallback to algorithmic', { error: (error as any)?.message || error });
       useSwissEph = false;
     } finally {
       isInitialized = true;
@@ -226,7 +226,7 @@ function getTzOffset(dateStr: string, timeStr: string, timeZone: string): number
       }
     }
   } catch (e) {
-    logger.warn(`Timezone lookup failed for ${timeZone}, falling back to 0`, e);
+    logger.warn(`Timezone lookup failed for ${timeZone}, falling back to 0`, { error: (e as any)?.message || e });
   }
 
   return 0;
@@ -369,7 +369,7 @@ export async function calculateEphemeris(
 ): Promise<EphemerisData> {
   // FIXED: More precise cache key including timezone
   const cacheKey = `${birthDate}_${birthTime}_${latitude.toFixed(6)}_${longitude.toFixed(6)}_${typeof timezone === 'string' ? timezone : timezone.toFixed(2)}`;
-  
+
   // Check cache with TTL
   const cached = EPH_CACHE.get(cacheKey);
   if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {

@@ -222,7 +222,7 @@ export const StageLeaderboard = memo(function StageLeaderboard({
                                                     </div>
                                                     <div className="flex items-center gap-1.5 mt-0.5">
                                                         <span className="text-[9px] uppercase font-bold text-stone-400 tracking-wider">
-                                                            ASC: <span className="text-stone-600 font-mono">{s.minifiedEph?.ascendant.split(' ')[0]}</span>
+                                                            ASC: <span className="text-stone-600 font-mono">{s.minifiedEph?.ascendant}</span>
                                                         </span>
                                                         <span className="w-1 h-1 rounded-full bg-stone-200" />
                                                         <span className="text-[9px] uppercase font-bold text-stone-400 tracking-wider">

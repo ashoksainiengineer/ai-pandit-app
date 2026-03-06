@@ -6,6 +6,7 @@
     "main": "dist/server.js",
     "scripts": {
         "dev": "tsx watch src/server.ts",
+        "dev:debug": "node --inspect -r tsx/esm src/server.ts",
         "build": "tsc",
         "start": "node dist/server.js",
         "typecheck": "tsc --noEmit",

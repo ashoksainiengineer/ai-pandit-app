@@ -152,29 +152,23 @@ export async function callAI(
             }
 
             const isGroqNative = AI_CONFIG.baseUrl.toLowerCase().includes('groq.com');
-            const isKimi = configLocal.model.toLowerCase().includes('kimi');
-            const isDeepSeekR1 = isReasonerModel;
-            const isV3Model = configLocal.model.toLowerCase().includes('v3') || configLocal.model.toLowerCase().includes('terminus');
-            const isGrok = configLocal.model.toLowerCase().includes('grok');
-            const isGptOss = configLocal.model.toLowerCase().includes('gpt-oss');
-            const isGroqKeyword = configLocal.model.toLowerCase().includes('groq');
 
-            // 🚀 PROPER REASONING CONFIGURATION (DYNAMIC)
-            if (isOpenRouter) {
-                // OpenRouter standard
-                if (isKimi || isDeepSeekR1 || isV3Model || isGrok || isGroqKeyword || isGptOss) {
+            // 🚀 PROVIDER-AGNOSTIC REASONING CONFIGURATION
+            // Driven entirely by AI_REASONING_MODE env var — no hardcoded provider checks.
+            const reasoningMode = config.ai.reasoningMode;
+            if (isReasonerModel) {
+                if (reasoningMode === 'include_reasoning') {
                     requestBody.include_reasoning = true;
-                }
-            } else if (isGroqNative) {
-                // Groq Native standard
-                if (isGptOss) {
-                    // gpt-oss models use include_reasoning
-                    requestBody.include_reasoning = true;
-                } else if (isDeepSeekR1 || isV3Model || isGroqKeyword || configLocal.model.includes('qwen')) {
-                    // Other reasoning models on Groq use reasoning_format
+                } else if (reasoningMode === 'reasoning_format_raw') {
                     requestBody.reasoning_format = 'raw';
-                    // Reasoning models prefer max_completion_tokens
                     requestBody.max_completion_tokens = requestBody.max_tokens;
+                } else if (reasoningMode === 'auto') {
+                    // Legacy auto-detect: OpenRouter uses include_reasoning, Groq uses reasoning_format
+                    if (isOpenRouter || isGroqNative) {
+                        requestBody.include_reasoning = true;
+                    } else {
+                        requestBody.include_reasoning = true; // Safe default
+                    }
                 }
             }
 
@@ -200,7 +194,30 @@ export async function callAI(
                     await sleep(30000); // Wait 30 seconds
                     continue; // Retry loop
                 }
-                const errorText = await response.text();
+
+                let errorText = '';
+                try {
+                    if (typeof response.text === 'function') {
+                        errorText = await response.text();
+                    } else if (typeof response.json === 'function') {
+                        errorText = JSON.stringify(await response.json());
+                    } else {
+                        errorText = 'Response body not readable (missing text/json methods)';
+                    }
+                } catch (e) {
+                    errorText = `Error unreadable: ${(e as any)?.message || String(e)}`;
+                }
+
+                // 🔱 BUG FIX: 400 errors (context_length_exceeded) are permanent — don't retry
+                if (response.status === 400) {
+                    logger.error(`🔱 Permanent API error 400 (not retryable). Skipping retries.`);
+                    return {
+                        success: false,
+                        content: '',
+                        error: `API error 400 (permanent): ${errorText}`,
+                    };
+                }
+
                 throw new Error(`AI API error ${response.status}: ${errorText}`);
             }
 
@@ -360,27 +377,18 @@ export async function callAIWithStream(
                 requestBody.temperature = configLocal.temperature;
             }
 
-            const isGroqNative = AI_CONFIG.baseUrl.toLowerCase().includes('groq.com');
-            const isKimi = configLocal.model.toLowerCase().includes('kimi');
-            const isDeepSeekR1 = isReasonerModel;
-            const isV3Model = configLocal.model.toLowerCase().includes('v3') || configLocal.model.toLowerCase().includes('terminus');
-            const isGrok = configLocal.model.toLowerCase().includes('grok');
-            const isGptOss = configLocal.model.toLowerCase().includes('gpt-oss');
-            const isGroqKeyword = configLocal.model.toLowerCase().includes('groq');
-
-            // 🚀 PROPER REASONING CONFIGURATION (DYNAMIC)
-            if (isOpenRouter) {
-                // OpenRouter standard
-                if (isKimi || isDeepSeekR1 || isV3Model || isGrok || isGroqKeyword || isGptOss) {
+            // 🚀 PROVIDER-AGNOSTIC REASONING CONFIGURATION
+            // Driven entirely by AI_REASONING_MODE env var — no hardcoded provider checks.
+            const reasoningMode = config.ai.reasoningMode;
+            if (isReasonerModel) {
+                if (reasoningMode === 'include_reasoning') {
                     requestBody.include_reasoning = true;
-                }
-            } else if (isGroqNative) {
-                // Groq Native standard
-                if (isGptOss) {
-                    requestBody.include_reasoning = true;
-                } else if (isDeepSeekR1 || isV3Model || isGroqKeyword || configLocal.model.includes('qwen')) {
+                } else if (reasoningMode === 'reasoning_format_raw') {
                     requestBody.reasoning_format = 'raw';
                     requestBody.max_completion_tokens = requestBody.max_tokens;
+                } else if (reasoningMode === 'auto') {
+                    // Legacy auto-detect fallback
+                    requestBody.include_reasoning = true;
                 }
             }
 
@@ -403,14 +411,21 @@ export async function callAIWithStream(
             if (!response.ok) {
                 const errorText = await response.text();
 
-                // 🔱 RATE LIMIT HANDLING: Extract retry-after time from Groq's 429 response
+                // 🔱 RATE LIMIT HANDLING: Extract retry-after time from error response
                 if (response.status === 429) {
-                    // Parse wait time from Groq error: "Please try again in 2.15544s"
                     const waitMatch = errorText.match(/try again in ([\d.]+)s/i);
                     const waitMs = waitMatch ? Math.ceil(parseFloat(waitMatch[1]) * 1000) + 1000 : 5000;
                     logger.warn(`🔱 Rate limit hit (429). Waiting ${waitMs}ms before retry ${attempt}/${AI_CONFIG.retryAttempts}`, { sessionId, stage });
                     await sleep(waitMs);
                     throw new Error(`API error 429 (rate limited, waited ${waitMs}ms): ${errorText}`);
+                }
+
+                // 🔱 BUG FIX: 400 errors (context_length_exceeded, invalid_request) are PERMANENT.
+                // Do NOT retry — it will fail identically every time, wasting ~6s per candidate.
+                if (response.status === 400) {
+                    logger.error(`🔱 Permanent API error 400 (not retryable). Skipping retries.`, { sessionId, stage });
+                    lastError = new Error(`API error 400 (permanent): ${errorText}`);
+                    break; // Exit retry loop immediately
                 }
 
                 // 5xx = Server Error -> Retry
@@ -525,6 +540,14 @@ export async function callAIWithStream(
             if (!fullThinking && !fullContent) {
                 // If completely empty, treat as failure and retry
                 throw new Error('Empty response from AI provider');
+            }
+
+            // 🔱 BUG FIX: Validate minimum response quality.
+            // Stage 6 once returned thinkingLength=883 (vs normal 10K+) — garbage output.
+            const MIN_THINKING_LENGTH = 1500;
+            if (fullThinking.length > 0 && fullThinking.length < MIN_THINKING_LENGTH && !fullContent.trim()) {
+                logger.warn(`🔱 Suspiciously short AI response (thinking: ${fullThinking.length} chars). Retrying.`, { sessionId, stage });
+                throw new Error(`AI response too short (${fullThinking.length} chars thinking, no content). Likely truncated.`);
             }
 
             // 🛡️ SECURITY: Strip thinking tags if they leaked into content
@@ -881,22 +904,24 @@ export async function executeAIInParallel<T>(
     const queue = tasks.map((task, index) => ({ task, index }));
     let activeCount = 0;
     let nextIndex = 0;
+    let hasFailed = false;
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
         const runNext = () => {
+            if (hasFailed) return;
+
             if (nextIndex >= tasks.length && activeCount === 0) {
                 resolve(results);
                 return;
             }
 
-            while (activeCount < concurrency && nextIndex < tasks.length) {
+            while (activeCount < concurrency && nextIndex < tasks.length && !hasFailed) {
                 const { task, index } = queue[nextIndex++];
                 activeCount++;
 
                 if (staggerMs > 0 && activeCount > 1) {
-                    // Stagger logic is simplified here to avoid blocking loop
                     setTimeout(() => {
-                        processTask(task, index);
+                        if (!hasFailed) processTask(task, index);
                     }, staggerMs * (activeCount - 1));
                 } else {
                     processTask(task, index);
@@ -905,15 +930,18 @@ export async function executeAIInParallel<T>(
         };
 
         const processTask = async (task: () => Promise<T>, index: number) => {
+            if (hasFailed) return;
             try {
                 results[index] = await task();
             } catch (error) {
-                // For now, if a task fails and T is not AIResponse, we might have issues.
-                // But in our case, we handle errors inside the task wrapper in stage2/4.
                 logger.error(`Parallel task failed at index ${index}`, error);
+                hasFailed = true;
+                reject(error);
             } finally {
                 activeCount--;
-                runNext();
+                if (!hasFailed) {
+                    runNext();
+                }
             }
         };
 

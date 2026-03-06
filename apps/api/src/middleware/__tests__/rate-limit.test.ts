@@ -24,6 +24,11 @@ vi.mock('../../config/index.js', () => ({
             heapThresholdGB: 1.0,
             maxConcurrentSessions: 5,
         },
+        logging: {
+            level: 'info',
+            format: 'pretty',
+            redactFields: [],
+        },
         app: { nodeEnv: 'test' },
         ai: { model: 'test' },
     },

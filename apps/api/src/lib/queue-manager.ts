@@ -230,7 +230,7 @@ export async function getQueueStatus(sessionId: string): Promise<QueuePosition |
       session: s,
     };
   } catch (error) {
-    logger.error('Failed to get queue status', error);
+    logger.error('Failed to get queue status', { error: (error as any)?.message || error });
     return null;
   }
 }
@@ -277,7 +277,7 @@ async function getNextInQueue(): Promise<string | null> {
 
     return next.length > 0 ? next[0].id : null;
   } catch (error) {
-    logger.error('Failed to get next in queue', error);
+    logger.error('Failed to get next in queue', { error: (error as any)?.message || error });
     return null;
   }
 }
@@ -449,7 +449,7 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
     logger.info('Session cancelled by user (Full Wipe Complete)', { sessionId });
     return true;
   } catch (error) {
-    logger.error('Failed to cancel session', error);
+    logger.error('Failed to cancel session', { error: (error as any)?.message || error });
     return false;
   }
 }
@@ -680,7 +680,7 @@ async function processQueue(): Promise<void> {
       });
 
     } catch (error) {
-      logger.error('Queue processor error', error);
+      logger.error('Queue processor error', { error: (error as any)?.message || error });
       consecutiveFailures++;
       lastFailureTime = Date.now();
 
@@ -840,7 +840,7 @@ async function processSessionAsync(sessionId: string): Promise<void> {
 
         optimizedAnalysisStr = JSON.stringify(result.analysisResult);
       } catch (e) {
-        logger.warn('Failed to serialize analysis result', e);
+        logger.warn('Failed to serialize analysis result', { error: (e as any)?.message || e });
         optimizedAnalysisStr = JSON.stringify({ error: "Serialization failed" });
       }
 

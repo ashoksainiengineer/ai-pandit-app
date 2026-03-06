@@ -383,7 +383,7 @@ function sendEvent(res: Response, data: unknown): void {
                 });
             }
             if (eventData.type === 'candidate_score') {
-                logger.debug('Sending Candidate Score:', data);
+                logger.debug('Sending Candidate Score:', data as any);
             }
         }
 
@@ -400,19 +400,13 @@ function sendEvent(res: Response, data: unknown): void {
 
 /**
  * Send SSE event with sequence ID (for Last-Event-ID protocol).
- * Assigns a monotonic seq, logs the event for replay, and writes `id:` field.
+ * Uses the monotonic seq assigned by SessionEventManager if available.
  * This is the primary send function for all meaningful events.
  */
 function sendSequencedEvent(res: Response, sessionId: string, event: SessionEvent, existingSeq?: number): void {
     try {
-        const seq = existingSeq ?? sessionEvents.getNextSeq(sessionId);
-
-        // Log to event replay buffer (skip lightweight event types)
-        const skipLogTypes = ['ping', 'connected'];
-        const eventType = (event as any).type || '';
-        if (!skipLogTypes.includes(eventType)) {
-            sessionEvents.logEvent(sessionId, seq, event);
-        }
+        // Use provided seq (replay), or attached seq (from SessionEventManager.emit), or fallback to next
+        const seq = existingSeq ?? (event as any).seq ?? sessionEvents.getNextSeq(sessionId);
 
         // Debug logging
         if (typeof event === 'object' && event !== null) {

@@ -100,6 +100,10 @@ class SessionEventManager {
      * Lightweight events (pings, connected) are NOT logged.
      */
     logEvent(sessionId: string, seq: number, event: SessionEvent): void {
+        const skipLogTypes = ['ping', 'connected'];
+        const eventType = (event as any).type || '';
+        if (skipLogTypes.includes(eventType)) return;
+
         if (!this.eventLogs.has(sessionId)) {
             this.eventLogs.set(sessionId, []);
         }
@@ -150,14 +154,29 @@ class SessionEventManager {
     }
 
     /**
-     * Emit an event for a session
+     * Emit an event for a session.
+     * Automatically handles monotonic sequencing and logging for the Last-Event-ID protocol.
      */
     emit(sessionId: string, event: SessionEvent): void {
         this.touch(sessionId);
+
+        // 1. Assign sequence and log for replay (IF loggable)
+        const skipSeqTypes = ['ping', 'connected'];
+        const eventType = (event as any).type || '';
+
+        if (!skipSeqTypes.includes(eventType)) {
+            const seq = this.getNextSeq(sessionId);
+            (event as any).seq = seq; // Attach sequence to event for easier handling
+            this.logEvent(sessionId, seq, event);
+        }
+
+        // 2. Broadcast to all active SSE listeners
         const emitter = this.emitters.get(sessionId);
         if (emitter) {
             emitter.emit('event', event);
         }
+
+        // 3. Update persistent buffers for fresh connects
         if (event.type === 'ai_context') {
             this.lastContexts.set(sessionId, event as AIContextEvent);
         }
@@ -168,8 +187,8 @@ class SessionEventManager {
             this.appendToCandidateScoreBuffer(sessionId, event as CandidateScoreEvent);
         }
         if (event.type === 'candidate_scores') {
-            const batch = (event as any).data as CandidateScoreEvent[];
-            batch.forEach(score => this.appendToCandidateScoreBuffer(sessionId, score));
+            // Replay from broadcast batch - already appended to buffer via bufferScore()
+            // No action needed here to avoid double-processing
         }
         if (event.type === 'decision') {
             this.appendToDecisionBuffer(sessionId, event as DecisionEvent);
@@ -196,6 +215,9 @@ class SessionEventManager {
         // 1. Flush AI Thinking
         const thinkingBatch = this.thinkingBroadcastBuffer.get(sessionId);
         if (thinkingBatch && thinkingBatch.length > 0) {
+            if (thinkingBatch.length > 50) {
+                logger.info(`[SessionEventManager] High volume flush: ${thinkingBatch.length} thinking chunks for session ${sessionId.slice(0, 8)}`);
+            }
             // Group by candidateTime and stage to send fewer messages
             const grouped = new Map<string, { chunk: string; stage: number; candidateTime?: string }>();
             for (const item of thinkingBatch) {
@@ -243,11 +265,15 @@ class SessionEventManager {
     }
 
     /**
-     * Buffer a candidate score for later broadcast
+     * Buffer a candidate score for later broadcast.
+     * Persistence buffer is updated immediately.
      */
     bufferScore(sessionId: string, score: CandidateScoreEvent): void {
         this.touch(sessionId);
         this.startBroadcastLoop(sessionId);
+
+        // Update persistence buffer immediately so fresh connects get data before flush
+        this.appendToCandidateScoreBuffer(sessionId, score);
 
         if (!this.scoreBroadcastBuffer.has(sessionId)) {
             this.scoreBroadcastBuffer.set(sessionId, []);
@@ -415,6 +441,9 @@ class SessionEventManager {
     private garbageCollect(): void {
         const now = Date.now();
         const timeout = 60 * 60 * 1000; // 1 Hour TTL
+        const memoryUsage = process.memoryUsage();
+
+        logger.info(`[Memory Tracker] GC Run. RSS: ${Math.round(memoryUsage.rss / 1024 / 1024)}MB, Heap Used: ${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB, Active Sessions: ${this.lastActive.size}`);
 
         let cleaned = 0;
         for (const [sessionId, lastActive] of this.lastActive.entries()) {
