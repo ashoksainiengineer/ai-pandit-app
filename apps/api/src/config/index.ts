@@ -17,16 +17,16 @@ const envSchema = z.object({
   PORT: z.string().transform(Number).default('3001'),
   BACKEND_URL: z.string().url().optional(),
   FRONTEND_URL: z.string().url().optional(),
-  ALLOWED_ORIGINS: z.string().optional(), // Comma-separated list of allowed CORS origins
+  ALLOWED_ORIGINS: z.string().trim().optional(), // Comma-separated list of allowed CORS origins
 
   // Database Configuration (Turso)
-  TURSO_DATABASE_URL: z.string().min(1, 'Turso database URL is required'),
-  TURSO_AUTH_TOKEN: z.string().min(1, 'Turso auth token is required'),
+  TURSO_DATABASE_URL: z.string().trim().min(1, 'Turso database URL is required'),
+  TURSO_AUTH_TOKEN: z.string().trim().min(1, 'Turso auth token is required'),
 
   // AI Configuration
-  AI_API_KEY: z.string().min(1, 'AI_API_KEY is required'),
-  AI_BASE_URL: z.string().url().default('https://openrouter.ai/api/v1'),
-  AI_MODEL: z.string().min(1, 'AI_MODEL is required'),
+  AI_API_KEY: z.string().trim().min(1, 'AI_API_KEY is required'),
+  AI_BASE_URL: z.string().trim().url().default('https://openrouter.ai/api/v1'),
+  AI_MODEL: z.string().trim().min(1, 'AI_MODEL is required'),
   AI_MAX_TOKENS: z.string().min(1).transform(Number).default('32768'),
   AI_THINKING_BUDGET: z.string().min(1).transform(Number).default('24576'),
   AI_TEMPERATURE: z.string().min(1).transform(Number).default('0'),
@@ -47,11 +47,11 @@ const envSchema = z.object({
 
   // Security
   INTERNAL_API_KEY: z.string().optional(),
-  CLERK_SECRET_KEY: z.string().min(1, 'Clerk secret key is required'),
-  CLERK_WEBHOOK_SECRET: z.string().optional(),
+  CLERK_SECRET_KEY: z.string().trim().min(1, 'Clerk secret key is required'),
+  CLERK_WEBHOOK_SECRET: z.string().trim().optional(),
 
   // Encryption
-  ENCRYPTION_SECRET: z.string().min(32, 'ENCRYPTION_SECRET must be at least 32 characters'),
+  ENCRYPTION_SECRET: z.string().trim().min(32, 'ENCRYPTION_SECRET must be at least 32 characters'),
 
   // Feature Flags
   ENABLE_DETAILED_LOGGING: z.string().transform((v) => v === 'true').default('false'),
@@ -64,7 +64,7 @@ const envSchema = z.object({
   // Provider Optimization
   AI_PROVIDER_ORDER: z.string().default('Google Vertex,Together,DeepInfra').transform(s => s.split(',')),
   AI_MAX_CONCURRENCY: z.string().optional().transform((v) => v ? Number(v) : undefined),
-  AI_REASONER_IDENTIFIERS: z.string().default('reasoner,r1,gpt-oss,oss,o1,o3,minimax').transform(s => s.split(',')),
+  AI_REASONER_IDENTIFIERS: z.string().trim().default('reasoner,r1,gpt-oss,oss,o1,o3,minimax').transform(s => s.split(',')),
   // Controls HOW reasoning/thinking is requested from the AI provider.
   // 'include_reasoning' = OpenRouter/Fireworks style (include_reasoning: true)
   // 'reasoning_format_raw' = Groq native style (reasoning_format: 'raw')
