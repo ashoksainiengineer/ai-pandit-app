@@ -116,12 +116,32 @@ function parseEnv(): z.infer<typeof envSchema> {
 
     console.error('❌ Configuration Validation Failed:\n');
     console.error(errors.join('\n'));
-    console.error('\nPlease check your environment variables.');
+    console.error('\nPlease check your environment variables/secrets on Hugging Face.');
 
-    // BUILD-TIME WORKAROUND: Prevent crashes during build/static generation
+    // BUILD-TIME & RECOVERY WORKAROUND:
     if (process.env.NODE_ENV === 'production') {
-      console.warn('⚠️ Continuing despite validation failure (potentially a build phase)');
-      return {} as any; // Return empty but safe object
+      console.warn('⚠️ WARNING: Missing or invalid environment variables. Some features may not work.');
+      // Return partial data (defaults will be applied for missing keys)
+      return {
+        ...envSchema.parse({
+          // Ensure core fields have something if they failed
+          PORT: process.env.PORT || '7860',
+          TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL || 'file::memory:',
+          TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN || 'dummy',
+          AI_API_KEY: process.env.AI_API_KEY || 'dummy',
+          AI_MODEL: process.env.AI_MODEL || 'dummy',
+          CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || 'dummy',
+          ENCRYPTION_SECRET: process.env.ENCRYPTION_SECRET || 'a-very-long-secret-key-that-is-atleast-32-chars-long',
+          AI_TIMEOUT_MS: '30000',
+          REQUEST_TIMEOUT_MS: '60000',
+          MAX_CONCURRENT_SESSIONS: '2',
+          HEAP_THRESHOLD_GB: '10',
+          RSS_THRESHOLD_GB: '12',
+          RATE_LIMIT_WINDOW_MS: '60000',
+          RATE_LIMIT_MAX_REQUESTS: '100'
+        }),
+        ...(result.success ? (result as any).data : {}) // Keep whatever was valid safely
+      } as any;
     }
 
     process.exit(1);

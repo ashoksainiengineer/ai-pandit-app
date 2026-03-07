@@ -283,7 +283,7 @@ async function startWorkerServer() {
     // Initialize Swiss Ephemeris FIRST (blocking with timeout)
     logger.info('🔭 Initializing Swiss Ephemeris...');
     const swissEphTimeout = new Promise<boolean>((resolve) =>
-      setTimeout(() => resolve(false), 15000)
+      setTimeout(() => resolve(false), 30000) // Increased to 30s
     );
     try {
       const ready = await Promise.race([initSwissEph(), swissEphTimeout]);
@@ -298,7 +298,11 @@ async function startWorkerServer() {
 
     // Start HTTP server AFTER ephemeris is ready
     const server = app.listen(serverConfig.port, '0.0.0.0', () => {
-      logger.info('✅ Server listening', { port: serverConfig.port });
+      logger.info('✅ Server listening', {
+        port: serverConfig.port,
+        host: '0.0.0.0',
+        url: `http://localhost:${serverConfig.port}`
+      });
     });
 
     // Graceful shutdown

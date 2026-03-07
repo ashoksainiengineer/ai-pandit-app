@@ -57,7 +57,7 @@ export function sendSuccess<T>(
       ...meta,
     },
   };
-  
+
   res.status(statusCode).json(response);
 }
 
@@ -84,7 +84,7 @@ export function sendPaginated<T>(
 ): void {
   const { items, total, page, limit } = data;
   const totalPages = Math.ceil(total / limit);
-  
+
   sendSuccess(res, items, 200, {
     ...meta,
     pagination: {
@@ -107,7 +107,7 @@ export function sendError(
 ): void {
   const statusCode = getErrorStatusCode(error);
   const errorResponse = getErrorResponse(error);
-  
+
   const response: ApiResponse = {
     success: false,
     error: {
@@ -120,7 +120,7 @@ export function sendError(
       requestId,
     },
   };
-  
+
   res.status(statusCode).json(response);
 }
 
@@ -142,7 +142,7 @@ export function sendValidationError(
       requestId,
     },
   };
-  
+
   res.status(400).json(response);
 }
 
@@ -162,7 +162,7 @@ export function sendUnauthorized(
       requestId,
     },
   };
-  
+
   res.status(401).json(response);
 }
 
@@ -182,7 +182,7 @@ export function sendForbidden(
       requestId,
     },
   };
-  
+
   res.status(403).json(response);
 }
 
@@ -204,7 +204,7 @@ export function sendNotFound(
       requestId,
     },
   };
-  
+
   res.status(404).json(response);
 }
 
@@ -226,7 +226,7 @@ export function sendConflict(
       requestId,
     },
   };
-  
+
   res.status(409).json(response);
 }
 
@@ -247,11 +247,11 @@ export function sendRateLimit(
       requestId,
     },
   };
-  
+
   if (retryAfter) {
     res.setHeader('Retry-After', retryAfter);
   }
-  
+
   res.status(429).json(response);
 }
 
@@ -271,7 +271,7 @@ export function sendServiceUnavailable(
       requestId,
     },
   };
-  
+
   res.status(503).json(response);
 }
 

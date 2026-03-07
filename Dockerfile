@@ -35,23 +35,20 @@ COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
 RUN turbo run build --filter=@ai-pandit/api...
 
-# ─── Stage 3: Production Dependencies ──────────────────────────────────────
-# Install ONLY production dependencies. 
-# We copy FULL pruned source to ensure local workspace links are valid.
+# ─── Stage 3: Production Prep ──────────────────────────────────────────────
+# We prepare the production node_modules here to keep the runner stage slim.
 FROM base AS prod-deps
 COPY --from=pruner /app/out/full/ .
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
-RUN npm ci --omit=dev --loglevel=error
-# Remove source files to keep the structure lean for the runner
-RUN find . -name "*.ts" -o -name "*.tsx" -o -name "*.map" -type f -delete 
+RUN npm ci --omit=dev --loglevel=error && \
+    find . -name "*.ts" -o -name "*.tsx" -o -name "*.map" -type f -delete
 
 # ─── Stage 4: Runner ───────────────────────────────────────────────────────
-# Final lean production image
 FROM node:20-alpine AS runner
 WORKDIR /app
 
 # Install security patches and tools
-RUN apk add --no-cache wget
+RUN apk add --no-cache wget libc6-compat
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
@@ -59,15 +56,15 @@ RUN addgroup --system --gid 1001 nodejs && \
     mkdir -p /app/ephe /app/logs && \
     chown -R nodejs:nodejs /app
 
-# Copy everything from prod-deps (includes all node_modules, package.json's, but no source)
+# 1. Copy production dependencies + pruned structure
 COPY --from=prod-deps --chown=nodejs:nodejs /app ./
 
-# Copy compiled artifacts from builder
+# 2. Copy compiled artifacts from builder (overwrites placeholders)
 COPY --from=builder --chown=nodejs:nodejs /app/apps/api/dist ./apps/api/dist
 COPY --from=builder --chown=nodejs:nodejs /app/packages/db/dist ./packages/db/dist
 COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/dist ./packages/shared/dist
 
-# Copy ephemeris data (the only heavy asset)
+# 3. Copy ephemeris data (the only heavy asset)
 COPY --chown=nodejs:nodejs ephe/* /app/ephe/
 
 USER nodejs
@@ -83,7 +80,11 @@ ENV NODE_OPTIONS="--max-old-space-size=12288 --expose-gc"
 
 EXPOSE 7860
 
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=30s \
-    CMD wget -q --spider http://localhost:7860/api/health || exit 1
+# 🛠️ Robust Health Check:
+# - Wait up to 120s for DB cleanup/Init (start-period)
+# - Use direct /health path
+# - Non-blocking wget
+HEALTHCHECK --interval=30s --timeout=15s --retries=3 --start-period=120s \
+    CMD wget -q -O- http://localhost:7860/health || exit 1
 
 CMD ["node", "apps/api/dist/server.js"]
