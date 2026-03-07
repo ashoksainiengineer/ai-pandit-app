@@ -5,6 +5,7 @@
 
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { v4 as uuidv4 } from 'uuid';
 import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
@@ -68,21 +69,28 @@ async function getUserSessions(clerkId: string, clerkUser?: any): Promise<Dashbo
 
     // 🔄 SELF-HEALING: If user doesn't exist in DB, create them now
     if (!user && clerkUser) {
-      console.log(`🔄 [Dashboard] Syncing missing user to DB: ${clerkId}`);
-      const email = clerkUser.emailAddresses[0]?.emailAddress || '';
-      const fullName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null;
+      try {
+        console.log(`🔄 [Dashboard] Syncing missing user to DB: ${clerkId}`);
+        const email = clerkUser.emailAddresses[0]?.emailAddress || '';
+        const fullName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null;
 
-      const newUserId = crypto.randomUUID();
-      await db.insert(users).values({
-        id: newUserId,
-        clerkId: clerkId,
-        email: email,
-        fullName: fullName, // Note: This is plaintext, as per schema design for users table
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+        const newUserId = uuidv4();
+        await db.insert(users).values({
+          id: newUserId,
+          clerkId: clerkId,
+          email: email,
+          fullName: fullName, // Note: This is plaintext, as per schema design for users table
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
 
-      user = { id: newUserId, clerkId, email, fullName } as any;
+        user = { id: newUserId, clerkId, email, fullName } as any;
+      } catch (syncError) {
+        console.error('❌ [Dashboard] User sync failed:', syncError);
+        // If sync fails, we still want to try to continue if user was found in some other way, 
+        // but here user is definitely null, so we'll just return [] to prevent crash.
+        return [];
+      }
     }
 
     if (!user) return [];

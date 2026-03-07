@@ -120,7 +120,8 @@ export async function stage2BatchTournament(
                 {
                     candidateTime: `R${roundNumber}-B${i + 1}`,
                     progressTracker: progress,
-                    maxTokens: config.ai.stage2MaxTokens // Driven by AI_STAGE2_MAX_TOKENS
+                    maxTokens: config.ai.stage2MaxTokens, // Driven by AI_STAGE2_MAX_TOKENS
+                    model: config.ai.model,
                 }
             );
 
@@ -282,7 +283,8 @@ export async function stage2BatchTournament(
                 {
                     candidateTime: `R${roundNumber}-B${i + 1}`,
                     progressTracker: progress,
-                    maxTokens: config.ai.stage2MaxTokens // Driven by AI_STAGE2_MAX_TOKENS
+                    maxTokens: config.ai.stage2MaxTokens, // Driven by AI_STAGE2_MAX_TOKENS
+                    model: config.ai.model,
                 }
             );
 

@@ -89,6 +89,13 @@ try {
     authToken: CONNECTION_CONFIG.authToken,
   });
 
+  // Proactive check in non-build environments
+  if (process.env.NEXT_PHASE !== 'phase-production-build' && CONNECTION_CONFIG.syncUrl) {
+    client.execute('SELECT 1').catch(err => {
+      console.error('❌ Proactive database health check failed:', err.message);
+    });
+  }
+
   db = drizzle(client, { schema });
 
 } catch (error) {
@@ -145,7 +152,7 @@ export async function executeWithTimeout<T>(
 
 export async function executeWithRetry<T>(
   operation: () => Promise<T>,
-  maxRetries: number = 3
+  maxRetries: number = 5
 ): Promise<T> {
   let lastError: Error | undefined;
 
@@ -163,14 +170,19 @@ export async function executeWithRetry<T>(
         errorMessage.includes('econnrefused') ||
         errorMessage.includes('econnreset') ||
         errorMessage.includes('temporarily') ||
-        errorMessage.includes('busy');
+        errorMessage.includes('busy') ||
+        errorMessage.includes('locked');
 
       if (!isTransient || attempt === maxRetries) {
         throw lastError;
       }
 
-      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
-      console.warn(`Query failed (attempt ${attempt}/${maxRetries}), retrying...`, {
+      // Exponential backoff with jitter
+      const baseDelay = 500 * Math.pow(2, attempt - 1);
+      const jitter = Math.random() * 200;
+      const delay = Math.min(baseDelay + jitter, 15000);
+
+      console.warn(`[DB] Operation failed (attempt ${attempt}/${maxRetries}), retrying in ${Math.round(delay)}ms...`, {
         error: lastError.message,
       });
 

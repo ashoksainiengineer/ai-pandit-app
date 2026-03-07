@@ -195,7 +195,8 @@ export async function stage6FinalPrecision(
                 {
                     candidateTime: `R1-B${i + 1}`,
                     progressTracker: progress,
-                    maxTokens: config.ai.stage6MaxTokens // Driven by AI_STAGE6_MAX_TOKENS
+                    maxTokens: config.ai.stage6MaxTokens, // Driven by AI_STAGE6_MAX_TOKENS
+                    model: config.ai.reasonerModel,
                 }
             );
 
@@ -370,7 +371,8 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
             candidateTime: 'FINAL VERDICT',
             progressTracker: progress,
             timeoutMs: 120000,
-            maxTokens: config.ai.stage6MaxTokens // Driven by AI_STAGE6_MAX_TOKENS
+            maxTokens: config.ai.stage6MaxTokens, // Driven by AI_STAGE6_MAX_TOKENS
+            model: config.ai.reasonerModel,
         }
     );
 

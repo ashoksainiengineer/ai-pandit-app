@@ -40,7 +40,7 @@ router.get('/', async (_req: Request, res: Response) => {
   try {
     const health = await performHealthCheck();
     const isHealthy = health.status === 'healthy';
-    
+
     res.status(isHealthy ? 200 : 503).json(health);
   } catch (error) {
     logger.error('Health check failed', error);
@@ -59,23 +59,23 @@ router.get('/', async (_req: Request, res: Response) => {
 router.get('/ready', async (_req: Request, res: Response) => {
   try {
     const dbHealth = await checkDatabaseHealth();
-    
+
     if (dbHealth.healthy) {
-      res.json({ 
-        ready: true, 
+      res.json({
+        ready: true,
         timestamp: new Date().toISOString(),
         dbLatencyMs: dbHealth.latencyMs,
       });
     } else {
-      res.status(503).json({ 
-        ready: false, 
+      res.status(503).json({
+        ready: false,
         error: 'Database not ready',
         timestamp: new Date().toISOString(),
       });
     }
   } catch (error) {
-    res.status(503).json({ 
-      ready: false, 
+    res.status(503).json({
+      ready: false,
       error: 'Readiness check failed',
       timestamp: new Date().toISOString(),
     });
@@ -105,7 +105,7 @@ router.get('/metrics', async (_req: Request, res: Response) => {
       checkDatabaseHealth(),
       collectMetrics(),
     ]);
-    
+
     res.json({
       timestamp: new Date().toISOString(),
       database: {
@@ -126,24 +126,24 @@ router.get('/metrics', async (_req: Request, res: Response) => {
 
 async function performHealthCheck(): Promise<HealthStatus> {
   const startTime = Date.now();
-  
+
   const [dbStatus, memoryStatus] = await Promise.all([
     checkDatabaseComponent(),
     checkMemoryComponent(),
   ]);
-  
+
   const checks = {
     database: dbStatus,
     memory: memoryStatus,
   };
-  
+
   const allUp = Object.values(checks).every((c) => c.status === 'up');
   const anyDown = Object.values(checks).some((c) => c.status === 'down');
-  
+
   let status: HealthStatus['status'] = 'healthy';
   if (anyDown) status = 'unhealthy';
   else if (!allUp) status = 'degraded';
-  
+
   return {
     status,
     timestamp: new Date().toISOString(),
@@ -155,14 +155,14 @@ async function performHealthCheck(): Promise<HealthStatus> {
 
 async function checkDatabaseComponent(): Promise<ComponentStatus> {
   const health = await checkDatabaseHealth();
-  
+
   if (health.healthy) {
     return {
       status: 'up',
       responseTimeMs: health.latencyMs,
     };
   }
-  
+
   return {
     status: 'down',
     message: health.error || 'Database connection failed',
@@ -173,10 +173,10 @@ function checkMemoryComponent(): ComponentStatus {
   const usage = process.memoryUsage();
   const rssGB = usage.rss / 1024 / 1024 / 1024;
   const heapUsedGB = usage.heapUsed / 1024 / 1024 / 1024;
-  
+
   let status: ComponentStatus['status'] = 'up';
   let message: string | undefined;
-  
+
   if (rssGB > config.performance.rssThresholdGB) {
     status = 'degraded';
     message = `High RSS memory: ${rssGB.toFixed(2)}GB`;
@@ -184,7 +184,7 @@ function checkMemoryComponent(): ComponentStatus {
     status = 'degraded';
     message = `High heap memory: ${heapUsedGB.toFixed(2)}GB`;
   }
-  
+
   return {
     status,
     message,
@@ -197,10 +197,13 @@ function checkMemoryComponent(): ComponentStatus {
   };
 }
 
+import { getActiveSseCount } from './stream.js';
+import { getActiveQueueCount } from '../lib/queue-manager.js';
+
 async function collectMetrics(): Promise<Record<string, unknown>> {
   const memoryUsage = process.memoryUsage();
   const cpuUsage = process.cpuUsage();
-  
+
   return {
     memory: {
       rssMB: Math.round(memoryUsage.rss / 1024 / 1024),
@@ -211,6 +214,10 @@ async function collectMetrics(): Promise<Record<string, unknown>> {
     cpu: {
       user: cpuUsage.user,
       system: cpuUsage.system,
+    },
+    realtime: {
+      activeSseConnections: getActiveSseCount(),
+      activeQueueProcessing: getActiveQueueCount(),
     },
     config: {
       nodeEnv: config.app.nodeEnv,

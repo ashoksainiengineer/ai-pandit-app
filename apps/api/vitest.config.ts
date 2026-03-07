@@ -24,7 +24,7 @@ export default defineConfig({
         },
         env: {
             NODE_ENV: 'test',
-            TURSO_DATABASE_URL: 'libsql://test.db',
+            TURSO_DATABASE_URL: 'file:test.db',
             TURSO_AUTH_TOKEN: 'test-token',
             AI_API_KEY: 'test-key',
             AI_MODEL: 'test-model',

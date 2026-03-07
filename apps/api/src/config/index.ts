@@ -5,6 +5,7 @@
  * Follows 12-factor app principles with environment-based config.
  */
 
+
 import { z } from 'zod';
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -27,6 +28,7 @@ const envSchema = z.object({
   AI_API_KEY: z.string().trim().min(1, 'AI_API_KEY is required'),
   AI_BASE_URL: z.string().trim().url().default('https://openrouter.ai/api/v1'),
   AI_MODEL: z.string().trim().min(1, 'AI_MODEL is required'),
+  AI_MODEL_REASONER: z.string().trim().optional().default('accounts/fireworks/models/gpt-oss-120b'),
   AI_MAX_TOKENS: z.string().min(1).transform(Number).default('32768'),
   AI_THINKING_BUDGET: z.string().min(1).transform(Number).default('24576'),
   AI_TEMPERATURE: z.string().min(1).transform(Number).default('0'),
@@ -65,11 +67,11 @@ const envSchema = z.object({
   AI_PROVIDER_ORDER: z.string().default('Google Vertex,Together,DeepInfra').transform(s => s.split(',')),
   AI_MAX_CONCURRENCY: z.string().optional().transform((v) => v ? Number(v) : undefined),
   AI_REASONER_IDENTIFIERS: z.string().trim().default('reasoner,r1,gpt-oss,oss,o1,o3,minimax').transform(s => s.split(',')),
-  // Controls HOW reasoning/thinking is requested from the AI provider.
   // 'include_reasoning' = OpenRouter/Fireworks style (include_reasoning: true)
   // 'reasoning_format_raw' = Groq native style (reasoning_format: 'raw')
   // 'auto' = auto-detect based on model name (legacy behavior)
-  AI_REASONING_MODE: z.enum(['include_reasoning', 'reasoning_format_raw', 'auto']).default('include_reasoning'),
+  // 'none' = do not send any reasoning parameter (useful for some Fireworks models)
+  AI_REASONING_MODE: z.enum(['include_reasoning', 'reasoning_format_raw', 'auto', 'none']).default('include_reasoning'),
   // Per-stage output token limits — tune individually for quality vs speed
   AI_STAGE2_MAX_TOKENS: z.string().transform(Number).default('32768'),
   AI_STAGE4_MAX_TOKENS: z.string().transform(Number).default('32768'),
@@ -81,6 +83,7 @@ const envSchema = z.object({
 
   // BTR Logic Thresholds
   BTR_STAGE2_MAX_ROUNDS: z.string().transform(Number).default('5'),
+  BTR_STAGE4_MAX_ROUNDS: z.string().transform(Number).default('3'),
   BTR_STAGE6_MAX_ROUNDS: z.string().transform(Number).default('3'),
 
   // Dynamic Scaling
@@ -92,6 +95,10 @@ const envSchema = z.object({
   BTR_CLUSTER_THRESHOLD_MINS: z.string().transform(Number).default('2'),
   BTR_FALLBACK_PROMOTED_SCORE: z.string().transform(Number).default('85'),
   BTR_FALLBACK_REJECTED_SCORE: z.string().transform(Number).default('40'),
+
+  // Grid Configuration (Now configurable)
+  BTR_REFINEMENT_GRID_MINS: z.string().transform(Number).default('5'),
+  BTR_MICRO_GRID_MINS: z.string().transform(Number).default('0.5'),
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -148,6 +155,7 @@ export const aiConfig = {
   apiKey: env.AI_API_KEY,
   baseUrl: env.AI_BASE_URL,
   model: env.AI_MODEL,
+  reasonerModel: env.AI_MODEL_REASONER,
   maxTokens: env.AI_MAX_TOKENS,
   thinkingBudget: env.AI_THINKING_BUDGET,
   temperature: env.AI_TEMPERATURE,
@@ -245,17 +253,17 @@ export const featureFlags = {
 export const btrConfig = {
   // Batch processing
   stage2MaxRounds: env.BTR_STAGE2_MAX_ROUNDS,
-  stage4MaxRounds: 3, // Default for Deep Analysis rounds
+  stage4MaxRounds: env.BTR_STAGE4_MAX_ROUNDS,
   stage6MaxRounds: env.BTR_STAGE6_MAX_ROUNDS,
   clusterThreshold: env.BTR_CLUSTER_THRESHOLD_MINS,
   fallbackPromotedScore: env.BTR_FALLBACK_PROMOTED_SCORE,
   fallbackRejectedScore: env.BTR_FALLBACK_REJECTED_SCORE,
 
   // Refinement grid
-  refinementGridMinutes: 5,
-  refinementGridInterval: 60, // 1 minute
-  microGridMinutes: 0.5, // 30 seconds
-  microGridInterval: 6, // 6 seconds
+  refinementGridMinutes: env.BTR_REFINEMENT_GRID_MINS,
+  refinementGridInterval: 60, // 1 minute (fixed internal constant)
+  microGridMinutes: env.BTR_MICRO_GRID_MINS,
+  microGridInterval: 6, // 6 seconds (fixed internal constant)
 
   // Precision levels
   stages: [
@@ -281,7 +289,17 @@ export const loggingConfig = {
   format: env.NODE_ENV === 'production' ? 'json' : 'pretty',
   includeTimestamp: true,
   includeStackTrace: env.NODE_ENV !== 'production',
-  redactFields: ['apiKey', 'authToken', 'password', 'secret', 'token'],
+  redactFields: [
+    'apiKey',
+    'authToken',
+    'password',
+    'secret',
+    'token',
+    'sid',
+    'Authorization',
+    'clerkSecretKey',
+    'internalApiKey'
+  ],
 } as const;
 
 // ═════════════════════════════════════════════════════════════════════════════

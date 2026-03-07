@@ -16,6 +16,13 @@ import { safeDecryptWithFallback, parseSensitiveField } from '../lib/encryption/
 
 const router = Router();
 
+// Track active SSE connections for observability
+let activeSseConnections = 0;
+
+export function getActiveSseCount(): number {
+    return activeSseConnections;
+}
+
 /**
  * OPTIONS /api/stream/:sessionId
  * Handle CORS preflight requests for SSE endpoint
@@ -57,7 +64,8 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
         return;
     }
 
-    logger.info(`[SSE] Connection requested for session ${sessionId} by clerkId ${clerkId.slice(0, 12)}...`);
+    activeSseConnections++;
+    logger.info(`[SSE] Connection requested for session ${sessionId} by clerkId ${clerkId.slice(0, 12)}... | Active: ${activeSseConnections}`);
 
     // ═══════════════════════════════════════════════════════════════════════════════
     // SECURITY: Verify session ownership
@@ -356,13 +364,15 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
 
     // Cleanup on disconnect
     req.on('close', () => {
-        logger.info('SSE connection closed', { sessionId, clerkId: clerkId.slice(0, 12) + '...' });
+        activeSseConnections = Math.max(0, activeSseConnections - 1);
+        logger.info('SSE connection closed', { sessionId, clerkId: clerkId.slice(0, 12) + '...', activeConnections: activeSseConnections });
         emitter.off('event', eventHandler);
         clearInterval(pingInterval);
     });
 
     req.on('error', (error) => {
-        logger.error('SSE connection error', { sessionId, clerkId: clerkId.slice(0, 12) + '...', error });
+        activeSseConnections = Math.max(0, activeSseConnections - 1);
+        logger.error('SSE connection error', { sessionId, clerkId: clerkId.slice(0, 12) + '...', error, activeConnections: activeSseConnections });
         emitter.off('event', eventHandler);
         clearInterval(pingInterval);
     });

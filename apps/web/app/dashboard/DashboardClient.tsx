@@ -2,11 +2,13 @@
 
 import { useState, useMemo, useCallback, memo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 // import { motion } from 'framer-motion';
 import { Sparkles, Search, BarChart3, CheckCircle2, Activity } from 'lucide-react';
 import { DashboardSession } from '@/lib/dashboard/types';
 import { SessionCard } from '@/components/dashboard/SessionCard';
 import { Breadcrumbs, predefinedBreadcrumbs } from '@/components/ui/Breadcrumbs';
+import { LoadingOverlay } from '@/components/ui/LoadingOverlay';
 
 interface DashboardClientProps {
   initialSessions: DashboardSession[];
@@ -62,6 +64,8 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
   const [sessions, setSessions] = useState(initialSessions);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
+  const [isCreatingDraft, setIsCreatingDraft] = useState(false);
+  const router = useRouter();
 
   const stats = useMemo(() => calculateStats(sessions), [sessions]);
 
@@ -92,6 +96,11 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
     setCurrentPage(page);
   }, []);
 
+  const handleNewPerson = useCallback(() => {
+    setIsCreatingDraft(true);
+    router.push('/rectify?new=true');
+  }, [router]);
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pt-20 sm:pt-24">
       {/* Breadcrumbs */}
@@ -111,12 +120,13 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
         </div>
 
         <div className="flex gap-2">
-          <Link
-            href="/rectify?new=true"
-            className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-[#B8860B] text-[#B8860B] rounded-xl font-semibold hover:bg-[#B8860B]/10 transition-all text-xs sm:text-sm"
+          <button
+            onClick={handleNewPerson}
+            disabled={isCreatingDraft}
+            className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-[#B8860B] text-[#B8860B] rounded-xl font-semibold hover:bg-[#B8860B]/10 transition-all text-xs sm:text-sm disabled:opacity-50"
           >
             + New Person
-          </Link>
+          </button>
           <Link
             href="/rectify"
             className="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white rounded-xl font-semibold hover:shadow-lg hover:shadow-[#B8860B]/20 transition-all text-sm sm:text-base"
@@ -240,6 +250,12 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
           </button>
         </div>
       )}
+
+      {/* Draft Creation Overlay */}
+      <LoadingOverlay
+        isVisible={isCreatingDraft}
+        message="Creating your draft..."
+      />
     </div>
   );
 }

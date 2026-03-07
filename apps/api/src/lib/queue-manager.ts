@@ -77,6 +77,11 @@ export type { QueueStatus, QueuePosition, QueueSubmitResult };
 
 // Track multiple concurrent processing IDs
 const activeProcessingIds = new Set<string>();
+
+export function getActiveQueueCount(): number {
+  return activeProcessingIds.size;
+}
+
 const processingStartTimes = new Map<string, number>(); // sessionId -> timestamp
 let isProcessorRunning = false;
 

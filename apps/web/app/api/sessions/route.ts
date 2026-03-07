@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { v4 as uuidv4 } from 'uuid';
 import { db } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { eq, desc } from 'drizzle-orm';
@@ -79,7 +80,7 @@ export async function POST(req: NextRequest) {
         if (!user) {
             const email = clerkUser.emailAddresses[0]?.emailAddress || '';
             const fullName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || 'User';
-            const newUserId = crypto.randomUUID();
+            const newUserId = uuidv4();
 
             await db.insert(users).values({
                 id: newUserId,
@@ -93,7 +94,7 @@ export async function POST(req: NextRequest) {
             user = { id: newUserId, clerkId } as any; // Minimal user object for reference
         }
 
-        const newSessionId = crypto.randomUUID();
+        const newSessionId = uuidv4();
         const bd = body.birthData;
 
         // 2. Prepare Session Object (Flattened & Encrypted)

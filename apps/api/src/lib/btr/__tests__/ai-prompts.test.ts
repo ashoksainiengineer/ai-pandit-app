@@ -12,18 +12,55 @@ describe('AI Prompt DMS Validation', () => {
 
     it('ALL prompts MUST contain Degrees in DMS format (DD° MM\' SS")', async () => {
         const mockInput: SecondsPrecisionInput = {
+            sessionId: 'test-session',
             dateOfBirth: '1990-05-15',
+            tentativeTime: '10:30:00',
             latitude: 19.0760,
             longitude: 72.8777,
             timezone: 5.5,
-            lifeEvents: []
+            lifeEvents: [],
+            offsetConfig: { preset: '30min', description: 'Test offset' },
+            forensicTraits: {
+                physical: {
+                    facialStructure: {
+                        forehead: 'broad',
+                        eyeShape: 'almond',
+                        noseType: 'straight',
+                        teethAlignment: 'perfect',
+                        voicePitch: 'medium'
+                    },
+                    skinHair: {
+                        texture: 'dry',
+                        hairType: 'straight',
+                        complexion: 'medium',
+                        marks: []
+                    },
+                    build: 'medium',
+                    height: { cm: 175, feet: 5, inches: 9 }
+                },
+                psychographic: {
+                    speechStyle: 'measured_soft',
+                    decisionMaking: 'deliberate',
+                    stressResponse: 'calm',
+                    sleepCycle: 'early_bird',
+                    temperament: 'patient'
+                },
+                biological: {
+                    prakriti: 'pitta',
+                    sensitivity: { heat: 'medium', cold: 'medium' },
+                    recurringHealthIssues: []
+                },
+                family: {
+                    siblingPosition: 'eldest',
+                    brotherCount: 1,
+                    sisterCount: 0,
+                    fatherStatusAtBirth: 'stable',
+                    motherHealthAtBirth: 'normal'
+                }
+            }
         };
 
-        const forensicTraits: ForensicTraits = {
-            physical: { facialStructure: { forehead: 'broad', eyeShape: 'almond' } },
-            psychographic: { temperament: 'calm' },
-            biological: { prakriti: 'pitta' }
-        };
+        const forensicTraits = mockInput.forensicTraits;
 
         // 1. Build a real data package
         const dataPackage = await buildCandidateDataPackage(
@@ -40,20 +77,20 @@ describe('AI Prompt DMS Validation', () => {
         const deepPrompt = getDeepAnalysisPrompt(candidates, [], forensicTraits, null);
         const finalPrompt = getFinalPrecisionPrompt(candidates, [], forensicTraits, null);
 
-        // 3. Brutal DMS Assertions
-        const dmsRegex = /\d{1,2}° \d{2}' \d{2}"/;
+        // 3. VSL 4.0 Assertions (DMS is now nested in VSL)
+        const vslRegex = /Su\[[A-Z][a-z]\|\d{1,2}° \d{2}' \d{2}"/; // Matches Sun's VSL entry
 
         // Batch Prompt
-        expect(batchPrompt).toContain('10:30:00');
-        expect(batchPrompt).toMatch(dmsRegex);
+        expect(batchPrompt).toContain('CANDIDATE: 10:30:00');
+        expect(batchPrompt).toMatch(vslRegex);
 
         // Deep Prompt
         expect(deepPrompt).toContain('STAGE 4');
-        expect(deepPrompt).toMatch(dmsRegex);
+        expect(deepPrompt).toMatch(vslRegex);
 
         // Final Prompt
         expect(finalPrompt).toContain('FINAL STAGE');
-        expect(finalPrompt).toMatch(dmsRegex);
+        expect(finalPrompt).toMatch(vslRegex);
 
         // 4. Check for binary/leakage indicators
         const leakage = ['[object Object]', 'undefined', 'NaN'];

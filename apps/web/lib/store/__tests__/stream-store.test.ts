@@ -292,4 +292,221 @@ describe('useStreamStore (Zustand State Management)', () => {
             expect(state.error).toBe('Internal server error while processing');
         });
     });
+
+    // ═════ Dispatch Event (AI Context) ═════
+
+    describe('dispatchStreamEvent - AI Context', () => {
+        it('should handle "ai_context" event and update activeAIStage', () => {
+            useStreamStore.getState().dispatchStreamEvent('ai_context', {
+                stage: 4,
+                candidateTime: '12:30:00',
+                planetaryInfo: { sun: 'Gemini 5°', moon: 'Leo 15°', ascendant: 'Aries 10°' },
+                dasha: 'Rahu-Saturn',
+                lifeEventsCount: 5,
+            });
+
+            const state = useStreamStore.getState();
+            expect(state.aiContext).toBeTruthy();
+            expect(state.aiContext?.stage).toBe(4);
+            expect(state.aiContext?.candidateTime).toBe('12:30:00');
+            expect(state.aiContext?.planetaryInfo?.sun).toBe('Gemini 5°');
+            expect(state.activeAIStage).toBe(4);
+        });
+    });
+
+    // ═════ Dispatch Event (Analysis Decisions) ═════
+
+    describe('dispatchStreamEvent - Decisions', () => {
+        it('should handle "decision" event and append to decisions array', () => {
+            useStreamStore.getState().dispatchStreamEvent('decision', {
+                stage: 2,
+                time: '12:00:00',
+                verdict: 'promoted',
+                score: 85,
+                reason: 'Strong ascendant-dasha correlation'
+            });
+
+            const state = useStreamStore.getState();
+            expect(state.decisions).toHaveLength(1);
+            expect(state.decisions[0].verdict).toBe('promoted');
+            expect(state.decisions[0].reason).toBe('Strong ascendant-dasha correlation');
+        });
+
+        it('should de-duplicate decisions by time+stage (upsert)', () => {
+            const store = useStreamStore.getState();
+
+            store.dispatchStreamEvent('decision', {
+                stage: 2, time: '12:00:00', verdict: 'promoted', score: 85, reason: 'Initial pass'
+            });
+            store.dispatchStreamEvent('decision', {
+                stage: 2, time: '12:00:00', verdict: 'rejected', score: 45, reason: 'Revised after D9'
+            });
+
+            const state = useStreamStore.getState();
+            expect(state.decisions).toHaveLength(1);
+            expect(state.decisions[0].verdict).toBe('rejected');
+            expect(state.decisions[0].reason).toBe('Revised after D9');
+        });
+
+        it('should cap decisions at 100 entries to prevent memory blowup', () => {
+            const store = useStreamStore.getState();
+
+            for (let i = 0; i < 110; i++) {
+                store.dispatchStreamEvent('decision', {
+                    stage: 2, time: `T-${i}`, verdict: 'promoted', score: 50 + i, reason: `Reason ${i}`
+                });
+            }
+
+            const state = useStreamStore.getState();
+            expect(state.decisions).toHaveLength(100);
+            // Oldest 10 should be evicted (T-0 through T-9)
+            expect(state.decisions.find(d => d.time === 'T-0')).toBeUndefined();
+            expect(state.decisions.find(d => d.time === 'T-109')).toBeTruthy();
+        });
+
+        it('should ignore decisions with missing time', () => {
+            useStreamStore.getState().dispatchStreamEvent('decision', {
+                stage: 2, verdict: 'promoted', score: 85, reason: 'No time field'
+            });
+
+            expect(useStreamStore.getState().decisions).toHaveLength(0);
+        });
+    });
+
+    // ═════ Dispatch Event (Stage Stats) ═════
+
+    describe('dispatchStreamEvent - Stage Stats', () => {
+        it('should handle "stage_stats" and add to stageStats array', () => {
+            useStreamStore.getState().dispatchStreamEvent('stage_stats', {
+                stage: 2,
+                candidateCount: 45,
+                description: 'Batch tournament complete: 45 scored'
+            });
+
+            const state = useStreamStore.getState();
+            expect(state.stageStats).toHaveLength(1);
+            expect(state.stageStats[0].stage).toBe(2);
+            expect(state.stageStats[0].candidateCount).toBe(45);
+        });
+
+        it('should upsert stage stats (update existing stage entry)', () => {
+            const store = useStreamStore.getState();
+
+            store.dispatchStreamEvent('stage_stats', {
+                stage: 2, candidateCount: 45, description: 'Initial'
+            });
+            store.dispatchStreamEvent('stage_stats', {
+                stage: 2, candidateCount: 30, description: 'After elimination'
+            });
+
+            const state = useStreamStore.getState();
+            expect(state.stageStats).toHaveLength(1);
+            expect(state.stageStats[0].candidateCount).toBe(30);
+            expect(state.stageStats[0].description).toBe('After elimination');
+        });
+    });
+
+    // ═════ Dispatch Event (Metadata) ═════
+
+    describe('dispatchStreamEvent - Metadata', () => {
+        it('should handle "metadata" event and set session metadata', () => {
+            useStreamStore.getState().dispatchStreamEvent('metadata', {
+                fullName: 'Ashok Saini',
+                dateOfBirth: '1990-05-15',
+                tentativeTime: '14:30:00',
+                birthPlace: 'Jaipur, India',
+                timezone: 'Asia/Kolkata',
+                aiModel: 'gpt-4o',
+            });
+
+            const state = useStreamStore.getState();
+            expect(state.metadata?.fullName).toBe('Ashok Saini');
+            expect(state.metadata?.dateOfBirth).toBe('1990-05-15');
+            expect(state.metadata?.birthPlace).toBe('Jaipur, India');
+            expect(state.metadata?.aiModel).toBe('gpt-4o');
+        });
+
+        it('should reset entire store when metadata status is "pending" (new session)', () => {
+            // First set some existing state
+            useStreamStore.setState({
+                candidateScores: [{ time: '12:00', score: 85, stage: 2 }],
+                analyzedCount: 50,
+                isComplete: true,
+                sessionId: 'existing-session',
+            });
+
+            useStreamStore.getState().dispatchStreamEvent('metadata', {
+                fullName: 'New User',
+                status: 'pending',
+            });
+
+            const state = useStreamStore.getState();
+            // Store should be fully reset except sessionId is preserved
+            expect(state.sessionId).toBe('existing-session');
+            expect(state.candidateScores).toHaveLength(0);
+            expect(state.isComplete).toBe(false);
+            expect(state.analyzedCount).toBe(0);
+            expect(state.metadata?.fullName).toBe('New User');
+        });
+
+        it('should also reset store when metadata status is "queued"', () => {
+            useStreamStore.setState({
+                candidateScores: [{ time: '12:00', score: 85, stage: 2 }],
+                sessionId: 'test-session',
+            });
+
+            useStreamStore.getState().dispatchStreamEvent('metadata', {
+                status: 'queued',
+            });
+
+            const state = useStreamStore.getState();
+            expect(state.sessionId).toBe('test-session');
+            expect(state.candidateScores).toHaveLength(0);
+        });
+    });
+
+    // ═════ Dispatch Event (Batch Candidate Scores) ═════
+
+    describe('dispatchStreamEvent - Candidate Scores (batch variants)', () => {
+        it('should handle "candidate_scores" with array payload', () => {
+            useStreamStore.getState().dispatchStreamEvent('candidate_scores', [
+                { time: '12:00', score: 85, stage: 2 },
+                { time: '12:05', score: 72, stage: 2 },
+                { time: '12:10', score: 91, stage: 2 },
+            ]);
+
+            const state = useStreamStore.getState();
+            expect(state.candidateScores).toHaveLength(3);
+            expect(state.analyzedCount).toBe(3);
+            expect(state.activeAIStage).toBe(2);
+        });
+
+        it('should handle "candidate_score" (singular) with single object payload', () => {
+            useStreamStore.getState().dispatchStreamEvent('candidate_score', {
+                time: '14:30', score: 88, stage: 4
+            });
+
+            const state = useStreamStore.getState();
+            expect(state.candidateScores).toHaveLength(1);
+            expect(state.candidateScores[0].time).toBe('14:30');
+            expect(state.activeAIStage).toBe(4);
+        });
+
+        it('should merge scores across stages without duplicating', () => {
+            const store = useStreamStore.getState();
+
+            store.dispatchStreamEvent('candidate_scores', [
+                { time: '12:00', score: 85, stage: 2 },
+            ]);
+            store.dispatchStreamEvent('candidate_scores', [
+                { time: '12:00', score: 92, stage: 4 }, // Same time, different stage
+                { time: '12:05', score: 78, stage: 4 },
+            ]);
+
+            const state = useStreamStore.getState();
+            expect(state.candidateScores).toHaveLength(3); // 1 from S2, 2 from S4
+            expect(state.candidateScores.find(s => s.time === '12:00' && s.stage === 2)?.score).toBe(85);
+            expect(state.candidateScores.find(s => s.time === '12:00' && s.stage === 4)?.score).toBe(92);
+        });
+    });
 });

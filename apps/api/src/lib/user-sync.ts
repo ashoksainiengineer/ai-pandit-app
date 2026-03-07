@@ -16,6 +16,31 @@ import crypto from 'node:crypto';
  * @throws Error if synchronization fails
  */
 export async function syncUser(clerkId: string): Promise<string> {
+    // 🧪 TEST SCRIPT BYPASS
+    if (clerkId === 'TEST_SCRIPT') {
+        const testUserId = '00000000-0000-0000-0000-000000000000';
+        try {
+            const dbUser = await executeWithRetry(() =>
+                db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
+            );
+            if (dbUser.length === 0) {
+                await executeWithRetry(() =>
+                    db.insert(users).values({
+                        id: testUserId,
+                        clerkId: clerkId,
+                        email: 'test@example.com',
+                        fullName: 'Test User',
+                        createdAt: new Date().toISOString(),
+                        updatedAt: new Date().toISOString(),
+                    })
+                );
+            }
+        } catch (e) {
+            logger.warn('Failed to insert test user', { error: e instanceof Error ? e.message : String(e) });
+        }
+        return testUserId;
+    }
+
     const dbUser = await executeWithRetry(() =>
         db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
     );

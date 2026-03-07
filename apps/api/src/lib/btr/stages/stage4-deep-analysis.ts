@@ -66,9 +66,10 @@ export async function stage4DeepAnalysis(
     // FIXED: Use getDynamicSurvivors for consistent tournament logic with Elasticity
     const survivorsPerBatch = getDynamicSurvivors(batchSize, offsetMinutes, false);
 
+    const MAX_ROUNDS = config.btr.stage4MaxRounds;
     let roundNumber = 1;
 
-    while (currentCandidates.length > batchSize) {
+    while (currentCandidates.length > batchSize && roundNumber <= MAX_ROUNDS) {
         const batches = splitIntoBatches(currentCandidates, batchSize);
         const batchSurvivors: CandidateTime[] = [];
         const batchDataMap = new Map<number, CandidateDataPackage[]>();
@@ -107,6 +108,7 @@ export async function stage4DeepAnalysis(
                     candidateTime: `R${roundNumber}-B${i + 1}`,
                     progressTracker: progress,
                     maxTokens: config.ai.stage4MaxTokens, // Driven by AI_STAGE4_MAX_TOKENS
+                    model: config.ai.reasonerModel,
                 }
             );
 
@@ -215,6 +217,7 @@ export async function stage4DeepAnalysis(
                 candidateTime: 'Deep Final',
                 progressTracker: progress,
                 maxTokens: config.ai.stage4MaxTokens, // Driven by AI_STAGE4_MAX_TOKENS
+                model: config.ai.reasonerModel,
             }
         );
 

@@ -86,16 +86,18 @@ app.use(cors({
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
     'Content-Type',
     'Authorization',
+    'Cache-Control',
+    'Last-Event-ID',
     'X-Request-Id',
     'X-Clerk-Auth-Status',
     'X-Clerk-Auth-Reason',
   ],
-  exposedHeaders: ['X-Request-Id', 'X-Response-Time'],
-  maxAge: 86400,
+  exposedHeaders: ['X-Request-Id', 'X-Response-Time', 'Content-Range', 'X-Session-ID'],
+  maxAge: 86400, // 24 hours
 }));
 
 

@@ -4,19 +4,18 @@
  * Generates AI prompts for Stage 2 batch tournament analysis.
  * Creates comprehensive prompts with forensic context and candidate data.
  * 
- * AI-DRIVEN FLEXIBLE WEIGHTING SYSTEM:
- * AI has FULL FREEDOM to adjust method weights based on:
- * - User's event importance selections
- * - Data quality for each method
- * - Case-specific context
+ * VSL 4.0 INTEGRATION:
+ * This prompt now uses the Vedic Shorthand Language (VSL) 4.0 protocol
+ * for exhaustive, lossless data compaction.
  */
 
 import { CandidateDataPackage, LifeEvent, ForensicTraits } from '@ai-pandit/shared';
 import { formatLifeEventForAI } from './life-event-formatter.js';
 import { buildForensicContext } from './forensic-context.js';
-import { randomSort, decimalToDMS } from '../../utils/index.js';
+import { randomSort } from '../../utils/index.js';
 import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';
 import { logger } from '../../logger.js';
+import { formatCandidateVSL, EnhancedCandidate } from './vsl-formatter.js';
 
 /**
  * Get event importance summary for AI
@@ -230,91 +229,14 @@ ${eventsText}
 ${forensicContext}
 ${spouseText}
 
-CANDIDATES WITH ENRICHED VEDIC DATA(100 % Mathematical Matrix):
+CANDIDATES WITH ENRICHED VEDIC DATA (VSL 4.0 Protocol):
 ${shuffledCandidates.map(c => `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CANDIDATE: ${c.time}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PANCHANGA: Day=${c.panchanga?.vara || 'N/A'} | Tithi=${typeof c.panchanga?.tithi === 'object' ? JSON.stringify(c.panchanga.tithi) : c.panchanga?.tithi || 'N/A'} | Yoga=${typeof c.panchanga?.yoga === 'object' ? JSON.stringify(c.panchanga.yoga) : c.panchanga?.yoga || 'N/A'} | Karana=${typeof c.panchanga?.karana === 'object' ? JSON.stringify(c.panchanga.karana) : c.panchanga?.karana || 'N/A'}
-SPECIAL POINTS: AL (Arudha Lagna)=${c.specialPoints?.AL?.sign || 'N/A'} | UL (Upapada Lagna)=${c.specialPoints?.UL?.sign || 'N/A'}
-LAGNA (Ascendant): ${c.ascendant?.sign || 'N/A'} ${c.ascendant?.degree || 'N/A'} (${c.ascendant?.nakshatra || 'N/A'})
-► ELEMENT: ${c.ascendant?.sign ? getSignElement(c.ascendant.sign) : 'N/A'} | MODALITY: ${c.ascendant?.sign ? getSignModality(c.ascendant.sign) : 'N/A'} | LORD: ${c.houseLords?.[1] || 'N/A'}
-${c.sandhiZones?.length ? `⚠️ SANDHI WARNING: ${c.sandhiZones.join(' | ')}\n(NOTE: If Ascendant is < 1° or > 29°, you MUST evaluate the adjacent sign as a potential candidate.)` : ''}
-
-PLANETARY MATRIX (Verified Swiss Eph Positions):
-${Object.entries(c.planets).map(([name, p]) => {
-          const caps = name.charAt(0).toUpperCase() + name.slice(1);
-          const sav = c.ashtakavarga?.SAVSigns?.[p.sign] || '?';
-          const aspects = p.aspects?.filter((a: any) => a.isHit).map((a: any) => `${a.type}→${a.targetPlanet || 'H' + a.targetHouse}`).join(', ') || 'None';
-          const avastha = p.avastha || 'Unknown';
-          const deity = p.d60Deity || 'Unknown';
-          const ikp = p.ishtaKashtaPhala ? `${p.ishtaKashtaPhala.ishta}/${p.ishtaKashtaPhala.kashta}` : '?';
-          const sambandha = p.compoundDignity || 'Sama';
-          const sh = p.shadbalaBreakdown;
-          const shStr = sh ? `Sum:${sh.total} (S:${sh.sthana} D:${sh.dig} K:${sh.kaala})` : '?';
-          const statusFlags: string[] = [];
-          if (p.isRetro) statusFlags.push('R');
-          if (p.isCombust) statusFlags.push('C');
-          const statusStr = statusFlags.length > 0 ? `[${statusFlags.join(',')}]` : '';
-          return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} | H${String(p.house).padEnd(2)} | ${avastha.padEnd(7)} | ${deity.padEnd(12)} | I/K:${ikp.padEnd(10)} | ${sambandha.padEnd(9)} | Sh:${shStr.padEnd(25)} | SAV:${String(sav).padEnd(2)} ${statusStr.padEnd(5)} | ${aspects}`;
-        }).join('\n')}
-
-${c.vargaDegrees ? `VARGA DEGREES (Forensic Resolution):
-│ D9 Navamsa: Asc=${c.vargaDegrees.D9?.Ascendant} | ${Object.entries(c.vargaDegrees.D9 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
-│ D10 Dasamsa: Asc=${c.vargaDegrees.D10?.Ascendant} | ${Object.entries(c.vargaDegrees.D10 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
-│ D60 Shashtyamsa: Asc=${c.vargaDegrees.D60?.Ascendant}` : ''}
-
-${c.d60Planets ? `D60 PLANETARY DEITIES (The Quantum Decision Layer):
-${Object.entries(c.d60Planets).map(([name, data]) => `│ ${name.padEnd(7)}: ${data.sign} ${data.degree} | DEITY: ${data.deity}`).join('\n')}` : ''}
-
-${c.yogas && c.yogas.length > 0 ? `YOGAS DETECTED: ${c.yogas.map((y: any) => `${y.name} (${y.level})`).join(', ')}` : ''}
-
-VIMSHOTTARI DASHA PERIODS (MD-AD-PD):
-${c.vimshottariDasha.slice(0, 100).map(d => `  • ${d.maha}/${d.antar}/${d.pratyantar} : ${d.startEnd}`).join('\n')}
-${c.yoginiDasha ? `\nYOGINI DASHA: ${c.yoginiDasha.slice(0, 20).map(d => `${d.lord} (${d.startEnd})`).join(' → ')}` : ''}
-
-${c.transitData ? `TRANSITS & DASHAS ON EVENTS (Full Matrix):
-${Object.entries(c.transitData).map(([date, t]: [string, any]) =>
-          `│ [${date}]: Dasha=${t.dasha}
-│   Transits: ${Object.entries(t.planets || {}).map(([p, pos]) => `${p}:${pos}`).join(' | ')}
-│   Signatures: ${t.signatures?.join(', ') || 'None'}`).join('\n')}` : ''}
-${c.vedicSignals ? `VEDIC HIGH-SIGNALS:
-│ Vargottama: ${c.vedicSignals.vargottama?.join(', ') || 'None'}
-│ Pushkar: ${c.vedicSignals.pushkar?.join(', ') || 'None'}
-│ Tatwa Shuddhi: ${c.vedicSignals.tatwa?.name || 'N/A'} (${c.vedicSignals.tatwa?.element || 'N/A'}) | Auspicious: ${c.vedicSignals.tatwa?.isAuspicious ?? 'N/A'}
-│ Kunda Lagna: ${c.vedicSignals.kundaLagna?.sign || 'N/A'} ${c.vedicSignals.kundaLagna?.degree !== undefined ? decimalToDMS(c.vedicSignals.kundaLagna.degree) : 'N/A'} | Matches Moon: ${c.vedicSignals.kundaLagna?.matchesMoon ? 'YES 🔥' : 'NO'}
-│ Parivartana: ${c.vedicSignals.parivartana?.map((ex: any) => `L${ex.houses[0]}↔L${ex.houses[1]}`).join(', ') || 'None'}` : ''}
-${c.kalachakraDasha ? `├ KALACHAKRA DASHA (Savya/Apasavya):
-${c.kalachakraDasha.slice(0, 8).map(k => `│ ${k.sign} (${k.lord}): ${k.durationYears.toFixed(1)}y [${k.kalachakraType}]`).join('\n')}` : ''}
-${c.shadbalaSummary ? `├ SHADBALA SUMMARY (6-Source Strength):
-│ Strongest: ${c.shadbalaSummary.strongestPlanet?.toUpperCase()} | Weakest: ${c.shadbalaSummary.weakestPlanet?.toUpperCase()} | Avg: ${c.shadbalaSummary?.averageStrength}
-│ Strong Benefics: ${c.shadbalaSummary.benifics?.strong?.join(', ') || 'None'} | Strong Malefics: ${c.shadbalaSummary.malefics?.strong?.join(', ') || 'None'}` : ''}
-${c.nadiData ? `├ D150 NADI AMSHA (48-Second Precision DNA):
-│ Ascendant: ${c.nadiData.ascendant?.nadiName} | Deity: ${c.nadiData.ascendant?.deity} | Phala: ${c.nadiData.ascendant?.phala}
-│ Moon: ${c.nadiData.moon?.nadiName} | Deity: ${c.nadiData.moon?.deity} | Karmic: ${c.nadiData.moon?.karmicSignificance}` : ''}
-${c.spouseD9Verification ? `├ SPOUSE D9 VERIFICATION:
-│ Score: ${c.spouseD9Verification.score}/100 | Verified: ${c.spouseD9Verification.verified ? 'YES' : 'NO'} | Confidence: ${c.spouseD9Verification.confidence?.toUpperCase()}
-│ Matches: ${c.spouseD9Verification.matches?.map((m: any) => m.description).join('; ') || 'None'}` : ''}
-${c.gandantaAnalysis && c.gandantaAnalysis.severity !== 'none' ? `├ ⚠️ GANDANTA DETECTION (Karmic Knot):
-│ Lagna Gandanta: ${c.gandantaAnalysis.isLagnaGandanta ? 'YES' : 'NO'} | Moon Gandanta: ${c.gandantaAnalysis.isMoonGandanta ? 'YES' : 'NO'}
-│ Severity: ${c.gandantaAnalysis.severity.toUpperCase()} | Distance: ${c.gandantaAnalysis.distanceToGandanta !== undefined ? decimalToDMS(c.gandantaAnalysis.distanceToGandanta) : 'N/A'}
-│ Type: ${c.gandantaAnalysis.lagnaGandantaType || c.gandantaAnalysis.moonGandantaType || 'N/A'}
-│ ${c.gandantaAnalysis.interpretation.substring(0, 150)}...` : ''}
-${c.pakshiAnalysis ? `├ PANCHA-PAKSHI SHASTRA (Five Birds System):
-│ Ruling Bird: ${c.pakshiAnalysis.rulingBird.name} (${c.pakshiAnalysis.rulingBird.element}) | Strength: ${c.pakshiAnalysis.birdStrength.toUpperCase()}
-│ Sanskrit: ${c.pakshiAnalysis.rulingBird.sanskritName} | Quality: ${c.pakshiAnalysis.birthTimeQuality.substring(0, 60)}...
-│ Dominant Activities: ${c.pakshiAnalysis.activityStrengths.slice(0, 3).join(', ')}` : ''}
-${c.vimsopakaBala ? `├ VIM SOPAKA BALA (Total Shodashvarga Strength - 0-20):
-│ ${Object.entries(c.vimsopakaBala).map(([n, s]) => `${n}:${s}`).join(' | ')}` : ''}
-${c.chalitDiscrepancies?.length ? `├ BHAVA CHALIT DISCREPANCIES:
-${c.chalitDiscrepancies.map((d: any) => `│ ${d.planet}: Rashi-H${d.rasiHouse} ↔ Chalit-H${d.chalitHouse}`).join('\n')}` : ''}
-${c.spouseMatch ? `├ SPOUSE SYNASTRY MATCH:
-│ ${c.spouseMatch.reason} (Synastry Score: ${c.spouseMatch.score})` : ''}
-${c.lifecycleShifts?.length ? `├ LIFECYCLE CHRONOLOGY (Major Sign Ingresses):
-${c.lifecycleShifts.slice(0, 15).map(s => `│ [${s.date}]: ${s.event}`).join('\n')}` : ''}
+${formatCandidateVSL(c as EnhancedCandidate)}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-`).join('')
-    }
+`).join('')}
 
 ════════════════════════════════════════════════════════════════════════════════
 🎯 YOUR SCORING OUTPUT FORMAT (REQUIRED)
@@ -365,24 +287,4 @@ At the VERY END of your response, you MUST output the final scores for ALL candi
 
 FINAL LINE (required):
 TOP_SURVIVORS: [comma-separated list of ${survivorsNeeded} best times]`;
-}
-
-function getSignElement(sign: string): string {
-  const fire = ['Aries', 'Leo', 'Sagittarius'];
-  const earth = ['Taurus', 'Virgo', 'Capricorn'];
-  const air = ['Gemini', 'Libra', 'Aquarius'];
-  const water = ['Cancer', 'Scorpio', 'Pisces'];
-  if (fire.includes(sign)) return 'FIRE (Agni)';
-  if (earth.includes(sign)) return 'EARTH (Prithvi)';
-  if (air.includes(sign)) return 'AIR (Vayu)';
-  return 'WATER (Jala)';
-}
-
-function getSignModality(sign: string): string {
-  const cardinal = ['Aries', 'Cancer', 'Libra', 'Capricorn'];
-  const fixed = ['Taurus', 'Leo', 'Scorpio', 'Aquarius'];
-  const dual = ['Gemini', 'Virgo', 'Sagittarius', 'Pisces'];
-  if (cardinal.includes(sign)) return 'CARDINAL (Chara)';
-  if (fixed.includes(sign)) return 'FIXED (Sthira)';
-  return 'DUAL (Dwisthava)';
 }

@@ -29,7 +29,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
     const panelId = useId();
     const [localSelectedCandidate, setLocalSelectedCandidate] = useState<string | null>(null);
     const [isFocused, setIsFocused] = useState(false);
-    const [isCollapsed, setIsCollapsed] = useState(isCompleted);
+    const [isCollapsed, setIsCollapsed] = useState(false);
 
     useEffect(() => {
         if (stage && [2, 4, 6].includes(stage)) {
@@ -41,32 +41,12 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
         }
     }, [stage, isActive, isCompleted, allCandidates, thinking]);
 
-    // Auto-collapse when completed
-    useEffect(() => {
-        if (isCompleted && !isActive) {
-            setIsCollapsed(true);
-        } else if (isActive) {
-            setIsCollapsed(false);
-        }
-    }, [isCompleted, isActive]);
+    // 🔱 USER PREFERENCE: Auto-collapse on completion removed. 
+    // Panels stay open with card view for manual review.
 
-    const lastAutoFocusedRef = useRef<string | null>(null);
-    useEffect(() => {
-        if (!isActive || isCompleted) return;
-        if (!displayedCandidate) return;
-        if (isFocused) return;
-        if (lastAutoFocusedRef.current === displayedCandidate) return;
-
-        if (allCandidates && displayedCandidate in allCandidates) {
-            lastAutoFocusedRef.current = displayedCandidate;
-            setLocalSelectedCandidate(displayedCandidate);
-            setIsFocused(true);
-        } else if (thinking?.candidateTime === displayedCandidate) {
-            lastAutoFocusedRef.current = displayedCandidate;
-            setLocalSelectedCandidate(displayedCandidate);
-            setIsFocused(true);
-        }
-    }, [displayedCandidate, allCandidates, thinking, isCompleted, isFocused, isActive]);
+    // DELETED: Auto-focus logic removed per user request:
+    // "apne aap card khulna nahi chaiye batch ka, user jab click kare tab hi"
+    // This previously forced the detail view to open whenever a new candidate was processed.
 
     const currentStage = thinking?.stage || stage || 2;
     const effectiveSelectedCandidate = localSelectedCandidate;

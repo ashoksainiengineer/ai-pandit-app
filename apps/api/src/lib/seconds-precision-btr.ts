@@ -51,6 +51,7 @@ import {
     CandidateWithPrecisionData,
 } from './btr-precision-integrator.js';
 import { getMinifiedEphemeris } from './utils/index.js';
+import { logAnalysisContainerAction, clearDebugLog } from '../utils/debug-logger.js';
 
 // Import from modular BTR components
 import {
@@ -145,6 +146,13 @@ export async function processSecondsPrecisionBTR(
             sessionId: input.sessionId,
             dateOfBirth: input.dateOfBirth,
             globalLifecycleItems: globalLifecycle.length
+        });
+
+        // 🔍 DEBUG UI: Clear previous logs and initialize
+        clearDebugLog();
+        logAnalysisContainerAction('INIT', `Starting Professional BTR (Session: ${input.sessionId})`, {
+            input,
+            globalLifecycle
         });
 
         // ═══════════════════════════════════════════════════════════════════════
@@ -296,11 +304,11 @@ export async function processSecondsPrecisionBTR(
             reasoningLogs: progress.getStageHistory()
         };
 
-        return {
+        const resultPayload = {
             rectifiedTime: stage6.finalTime,
             accuracy: stage6.accuracy,
             confidence: stage6.confidence,
-            precisionLevel: 'seconds',
+            precisionLevel: 'seconds' as const,
             marginOfError: stage6.margin,
             stagesCompleted: 6,
             boundaryWarnings: boundary.isDangerous ? ['Near boundary transition'] : [],
@@ -308,6 +316,11 @@ export async function processSecondsPrecisionBTR(
             processingTimeMs: Date.now() - startTime,
             analysisResult: enrichedResult
         };
+
+        // 🔍 DEBUG UI: Log final verdict
+        logAnalysisContainerAction('FINAL', 'Final Verification & Result', resultPayload);
+
+        return resultPayload;
 
     } catch (error) {
         logger.error('Professional BTR v7.0 FAILED', { error: (error as any)?.message || error });

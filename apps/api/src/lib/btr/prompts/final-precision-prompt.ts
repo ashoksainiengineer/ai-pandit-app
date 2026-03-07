@@ -4,16 +4,18 @@
  * Generates AI prompts for Stage 6 final seconds-level precision judgment.
  * Creates the ultimate forensic prompt for selecting the single best birth time.
  * 
- * AI-DRIVEN FLEXIBLE WEIGHTING SYSTEM:
- * AI has FULL FREEDOM to adjust weights for SECONDS-LEVEL precision.
+ * VSL 4.0 INTEGRATION:
+ * This prompt now uses the Vedic Shorthand Language (VSL) 4.0 protocol
+ * for exhaustive, lossless data compaction.
  */
 
 import { CandidateDataPackage, LifeEvent, ForensicTraits } from '@ai-pandit/shared';
 import { formatLifeEventForAI } from './life-event-formatter.js';
 import { buildForensicDNASummary } from './forensic-context.js';
-import { randomSort, decimalToDMS } from '../../utils/index.js';
+import { randomSort } from '../../utils/index.js';
 import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';
 import { logger } from '../../logger.js';
+import { formatCandidateVSL, EnhancedCandidate } from './vsl-formatter.js';
 
 /**
  * Get event importance summary for AI
@@ -191,90 +193,14 @@ SPOUSE INFO: ${spouseText}
 LIFE EVENTS:
 ${eventsText}
 
-FINALIST CANDIDATES(100 % COMPLETE MATHEMATICAL DATA):
-${shuffledCandidates.map((c, i) => `
-#${i + 1} [${c.time}]
-┌ LAGNA: ${c.ascendant?.sign || 'N/A'} ${c.ascendant?.degree || 'N/A'} (${c.ascendant?.nakshatra || 'N/A'})
-├ PANCHANGA: ${typeof c.panchanga?.tithi === 'object' ? JSON.stringify(c.panchanga.tithi) : c.panchanga?.tithi || 'N/A'} | ${c.panchanga?.vara || 'N/A'}
-├ ARUDHAS: AL=${c.specialPoints?.AL?.sign || 'N/A'} | UL=${c.specialPoints?.UL?.sign || 'N/A'}
-├ HOUSE LORDS: ${[...Array(12)].map((_, i) => `${i + 1}=${c.houseLords?.[i + 1] || '?'}`).join(' | ')}
-├ D60 (Karma Lagna): ${c.d60Sign || 'N/A'}
-├ PLANETARY STRENGTH MATRIX (Full Forensic Data):
-${Object.entries(c.planets).map(([name, p]) => {
-    const caps = name.charAt(0).toUpperCase() + name.slice(1);
-    const sav = c.ashtakavarga?.SAVSigns?.[p.sign] || '?';
-    const avastha = p.avastha || 'Unknown';
-    const deity = p.d60Deity || 'Unknown';
-    const ikp = p.ishtaKashtaPhala ? `${p.ishtaKashtaPhala.ishta}/${p.ishtaKashtaPhala.kashta}` : '?';
-    const sambandha = p.compoundDignity || 'Sama';
-    const sh = p.shadbalaBreakdown;
-    const shStr = sh ? `Sum:${sh.total} (S:${sh.sthana} D:${sh.dig} K:${sh.kaala} C:${sh.cheshta})` : '?';
-    const aspects = p.aspects?.filter((a: any) => a.isHit).map((a: any) => `${a.type}`).join(', ') || 'None';
-    const statusFlags: string[] = [];
-    if (p.isRetro) statusFlags.push('R');
-    if (p.isCombust) statusFlags.push('C');
-    const statusStr = statusFlags.length > 0 ? `[${statusFlags.join(',')}]` : '';
-    return `│ ${caps.padEnd(7)}: ${p.sign.padEnd(10)} [H${String(p.house).padEnd(2)}, ${avastha}, ${deity}, I/K:${ikp}, ${sambandha}, Sh:${shStr}, SAV:${sav}] ${statusStr} | Asp: ${aspects}`;
-  }).join('\n')}
-├ YOGAS: ${c.yogas?.map((y: any) => y.name).join(', ') || 'N/A'}
-├ DIVISIONAL CHARTS (Detailed Degrees):
-│ D9 Navamsa: Asc=${c.vargaDegrees?.D9?.Ascendant} | ${Object.entries(c.vargaDegrees?.D9 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
-│ D10 Dasamsa: Asc=${c.vargaDegrees?.D10?.Ascendant} | ${Object.entries(c.vargaDegrees?.D10 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
-│ D60 Shashtyamsa: Asc=${c.vargaDegrees?.D60?.Ascendant} | Deities=${Object.entries(c.d60Planets || {}).map(([k, v]) => `${k.substring(0, 2)}=${v.deity}`).join(' ')}
-│ D150 Nadi Ansha: Asc=${c.vargaDegrees?.D150?.Ascendant} | ${Object.entries(c.vargaDegrees?.D150 || {}).filter(([k]) => k !== 'Ascendant').map(([k, v]) => `${k.substring(0, 2)}=${v}`).join(' ')}
-├ D60 PLANETARY MATRIX:
-${Object.entries(c.d60Planets || {}).map(([name, data]) => `│ ${name.padEnd(7)}: ${data.sign} ${data.degree} | DEITY: ${data.deity}`).join('\n')}
-├ VIMSHOTTARI SEQUENCE (Forensic Accuracy):
-${c.vimshottariDasha.map(d => `│ ${d.maha} -> ${d.antar} -> ${d.pratyantar}${d.sukshma && d.sukshma !== '-' ? ` -> ${d.sukshma}` : ''}${d.prana && d.prana !== '-' ? ` -> ${d.prana}` : ''} : ${d.startEnd}`).join('\n')}
-${c.transitData ? `├ TRANSITS & DASHAS ON ALL EVENTS (Full Forensic Matrix):
-${Object.entries(c.transitData).map(([date, t]: [string, any]) =>
-    `│ [${date}]: Dasha=${t.dasha}
-│   Transits: ${Object.entries(t.planets || {}).map(([p, pos]) => `${p}:${pos}`).join(' | ')}
-│   Signals: ${t.signatures?.join(', ') || 'Regular Period'}`).join('\n')}` : ''}
-${c.vedicSignals ? `├ VEDIC HIGH-SIGNALS:
-│ Vargottama: ${c.vedicSignals.vargottama?.join(', ') || 'None'}
-│ Pushkar: ${c.vedicSignals.pushkar?.join(', ') || 'None'}
-│ Tatwa Shuddhi: ${c.vedicSignals.tatwa?.name || 'N/A'} (${c.vedicSignals.tatwa?.element || 'N/A'}) | Auspicious: ${c.vedicSignals.tatwa?.isAuspicious ?? 'N/A'}
-│ Kunda Lagna: ${c.vedicSignals.kundaLagna?.sign || 'N/A'} ${c.vedicSignals.kundaLagna?.degree !== undefined ? decimalToDMS(c.vedicSignals.kundaLagna.degree) : 'N/A'} | Matches Moon: ${c.vedicSignals.kundaLagna?.matchesMoon ? 'YES 🔥' : 'NO'}
-│ Parivartana: ${c.vedicSignals.parivartana?.map((ex: any) => `L${ex.houses[0]}↔L${ex.houses[1]}`).join(', ') || 'None'}` : ''}
-${c.kalachakraDasha ? `├ KALACHAKRA DASHA (Savya/Apasavya):
-${c.kalachakraDasha.slice(0, 12).map(k => `│ ${k.sign} (${k.lord}): ${k.startDate.toISOString().split('T')[0]} to ${k.endDate.toISOString().split('T')[0]} (${k.durationYears.toFixed(1)}y) [${k.kalachakraType}]`).join('\n')}` : ''}
-${c.shadbalaSummary ? `├ SHADBALA SUMMARY (6-Source Strength):
-│ Strongest: ${c.shadbalaSummary.strongestPlanet?.toUpperCase()} | Weakest: ${c.shadbalaSummary.weakestPlanet?.toUpperCase()} | Avg: ${c.shadbalaSummary?.averageStrength}
-│ Strong Benefics: ${c.shadbalaSummary.benifics?.strong?.join(', ') || 'None'} | Weak Benefics: ${c.shadbalaSummary.benifics?.weak?.join(', ') || 'None'}
-│ Strong Malefics: ${c.shadbalaSummary.malefics?.strong?.join(', ') || 'None'} | Weak Malefics: ${c.shadbalaSummary.malefics?.weak?.join(', ') || 'None'}` : ''}
-${c.nadiData ? `├ D150 NADI AMSHA (48-Second Precision DNA - THE SOUL SIGNATURE):
-│ Ascendant: ${c.nadiData.ascendant?.nadiName} | Deity: ${c.nadiData.ascendant?.deity} | Phala: ${c.nadiData.ascendant?.phala}
-│ Moon: ${c.nadiData.moon?.nadiName} | Deity: ${c.nadiData.moon?.deity} | Karmic: ${c.nadiData.moon?.karmicSignificance}
-│ Sun: ${c.nadiData.sun?.nadiName} | Deity: ${c.nadiData.sun?.deity}
-│ Time Resolution: ~${c.nadiData.ascendant?.timeResolution} seconds per Nadi shift` : ''}
-${c.nadiAnalysis?.length ? `├ D150 EVENT CORRELATION:
-${c.nadiAnalysis.map(n => `│ ${n.eventCategory}: Score ${n.overallScore}/100 (${n.confidence}) | Rec: ${n.recommendations?.join('; ')}`).join('\n')}` : ''}
-${c.spouseD9Verification ? `├ FINAL SPOUSE D9 VERIFICATION:
-│ Score: ${c.spouseD9Verification.score}/100 | Verified: ${c.spouseD9Verification.verified ? 'YES ✓' : 'NO ✗'} | Confidence: ${c.spouseD9Verification.confidence?.toUpperCase()}
-│ Matches: ${c.spouseD9Verification.matches?.map((m: any) => m.description).join('; ') || 'None'}
-│ Mismatches: ${c.spouseD9Verification.mismatches?.map((m: any) => m.description).join('; ') || 'None'}
-│ Recommendations: ${c.spouseD9Verification.recommendations?.join('; ')}` : ''}
-${c.gandantaAnalysis && c.gandantaAnalysis.severity !== 'none' ? `├ ⚠️ GANDANTA KARMIC KNOT (CRITICAL):
-│ Lagna Gandanta: ${c.gandantaAnalysis.isLagnaGandanta ? 'YES ⚠️' : 'NO'} | Moon Gandanta: ${c.gandantaAnalysis.isMoonGandanta ? 'YES ⚠️' : 'NO'}
-│ Severity: ${c.gandantaAnalysis.severity.toUpperCase()} | Distance: ${c.gandantaAnalysis.distanceToGandanta !== undefined ? decimalToDMS(c.gandantaAnalysis.distanceToGandanta) : 'N/A'}°
-│ Type: ${c.gandantaAnalysis.lagnaGandantaType || c.gandantaAnalysis.moonGandantaType || 'N/A'}
-│ Interpretation: ${c.gandantaAnalysis.interpretation.substring(0, 100)}...
-│ Recommendations: ${c.gandantaAnalysis.recommendations.slice(0, 2).join('; ')}` : ''}
-${c.pakshiAnalysis ? `├ PANCHA-PAKSHI SHASTRA (Five Birds System):
-│ Ruling Bird: ${c.pakshiAnalysis.rulingBird.name} (${c.pakshiAnalysis.rulingBird.sanskritName}) | Element: ${c.pakshiAnalysis.rulingBird.element}
-│ Strength: ${c.pakshiAnalysis.birdStrength.toUpperCase()} | Quality: ${c.pakshiAnalysis.birthTimeQuality.substring(0, 50)}...
-│ Dominant Activities: ${c.pakshiAnalysis.activityStrengths.slice(0, 3).join(', ')}
-│ Verification: ${c.pakshiAnalysis.verificationNotes.substring(0, 80)}...` : ''}
-${transitData ? `├ PRESENT DAY ANCHOR (2026 Transits):
-│ [Dasha Now]: ${transitData.dashaAtNow}
-│ [Planets Now]: Ju=${transitData.jupiter}, Sa=${transitData.saturn}, Ra=${transitData.rahu}` : ''}
-${c.spouseMatch ? `├ FINAL SPOUSE SYNASTRY PROOF:
-│ ${c.spouseMatch.reason} | Multiplier: ${c.spouseMatch.lagnaMatch ? 'HIGH' : 'LOW'}` : ''}
-${c.lifecycleShifts?.length ? `├ FINAL CHRONOLOGY VERIFICATION:
-${c.lifecycleShifts.map(s => `│ [${s.date}]: ${s.event}`).join('\n')}` : ''}
-└ BOUNDARY CHECK: ${parseFloat(c.ascendant.degree) < 1 || parseFloat(c.ascendant.degree) > 29 ? '⚠️ EDGE' : 'SAFE'}`).join('\n')
-    }
+CANDIDATES WITH ENRICHED VEDIC DATA (VSL 4.0 Protocol):
+${shuffledCandidates.map(c => `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CANDIDATE: ${c.time}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${formatCandidateVSL(c as EnhancedCandidate)}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`).join('')}
 
 FINAL VERDICT (required format):
 
@@ -296,15 +222,15 @@ EVIDENCE:
 RUNNER_UP: [second best time]
 \`\`\`
 
-At the VERY END of your response, you MUST output the final verdict in a structured JSON object enclosed in <FINAL_VERDICT> tags.
+At the VERY END of your response, you MUST output the final verdict in a structured JSON object enclosed in <FINAL_VERDICT>tags.
 
 <FINAL_VERDICT>
-{
-  "time": "14:35:22",
-  "accuracy": 95,
-  "confidence": "HIGH",
-  "margin": 15
-}
-</FINAL_VERDICT>
+  {
+    "time": "14:35:22",
+      "accuracy": 95,
+        "confidence": "HIGH",
+          "margin": 15
+  }
+  </FINAL_VERDICT>
 ═══════════════════════════════════════════════════════════════════════════════`;
 }

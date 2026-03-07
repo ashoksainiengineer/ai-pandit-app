@@ -11,6 +11,7 @@
 import { logger } from './logger.js';
 import { config } from '../config/index.js';
 import type { AIResponse, AIMessage } from '@ai-pandit/shared';
+import { logAnalysisContainerAction } from '../utils/debug-logger.js';
 
 // Re-export types for backwards compatibility
 export type { AIResponse, AIMessage };
@@ -162,6 +163,9 @@ export async function callAI(
                 } else if (reasoningMode === 'reasoning_format_raw') {
                     requestBody.reasoning_format = 'raw';
                     requestBody.max_completion_tokens = requestBody.max_tokens;
+                } else if (reasoningMode === 'none') {
+                    // Do not add any reasoning parameters - Fireworks thinking models
+                    // provide reasoning_content automatically without flags.
                 } else if (reasoningMode === 'auto') {
                     // Legacy auto-detect: OpenRouter uses include_reasoning, Groq uses reasoning_format
                     if (isOpenRouter || isGroqNative) {
@@ -386,6 +390,8 @@ export async function callAIWithStream(
                 } else if (reasoningMode === 'reasoning_format_raw') {
                     requestBody.reasoning_format = 'raw';
                     requestBody.max_completion_tokens = requestBody.max_tokens;
+                } else if (reasoningMode === 'none') {
+                    // Do not add any reasoning parameters
                 } else if (reasoningMode === 'auto') {
                     // Legacy auto-detect fallback
                     requestBody.include_reasoning = true;
@@ -535,6 +541,16 @@ export async function callAIWithStream(
                 sessionId,
                 stage,
                 thinkingLength: fullThinking.length,
+            });
+
+            // 🔍 DEBUG UI: Log the full container state
+            logAnalysisContainerAction(stage, `Streaming AI Complete - ${configLocal.model}`, {
+                promptLength: userPrompt.length,
+                thinkingLength: fullThinking.length,
+                contentLength: fullContent.length,
+                fullPrompt: userPrompt,
+                fullResponse: fullContent,
+                fullReasoning: fullThinking
             });
 
             if (!fullThinking && !fullContent) {

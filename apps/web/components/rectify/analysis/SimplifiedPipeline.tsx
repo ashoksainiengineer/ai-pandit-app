@@ -116,7 +116,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
           <div className="flex flex-col items-start">
             <span className="text-xs text-[#7A756F]">Stage</span>
             <span className="text-sm font-bold text-[#1A1612]">
-              {isComplete ? 'Complete' : STAGES[currentStage]?.name || 'Unknown'}
+              {isComplete ? 'Complete' : STAGES[effectiveStageIndex]?.name || 'Unknown'}
             </span>
           </div>
           {(() => {

@@ -25,6 +25,7 @@ import {
 import { DashboardSession } from '@/lib/dashboard/types';
 import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { ClientOnly } from '@/components/ui/ClientOnly';
+import { LoadingOverlay } from '@/components/ui/LoadingOverlay';
 import { APIClient } from '@/lib/api-client';
 
 interface SessionCardProps {
@@ -530,6 +531,12 @@ export const SessionCard = memo(function SessionCard({
           <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
         </button>
       </div>
+
+      {/* Duplication Loading Overlay */}
+      <LoadingOverlay
+        isVisible={isCloning}
+        message="Duplicating your session..."
+      />
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmModal

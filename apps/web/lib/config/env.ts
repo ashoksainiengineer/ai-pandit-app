@@ -73,7 +73,7 @@ export const env = {
 
   api: {
     // Priority: Env Var > Default Localhost
-    backendUrl: getEnvVar(process.env.NEXT_PUBLIC_BACKEND_URL, 'NEXT_PUBLIC_BACKEND_URL', 'http://localhost:3001'),
+    backendUrl: getEnvVar(process.env.NEXT_PUBLIC_BACKEND_URL, 'NEXT_PUBLIC_BACKEND_URL', process.env.NODE_ENV === 'production' ? undefined : 'http://localhost:3001'),
     huggingFaceToken: getEnvVarOptional(process.env.NEXT_PUBLIC_HF_TOKEN),
     internalApiKey: getEnvVarOptional(process.env.INTERNAL_API_KEY),
   },

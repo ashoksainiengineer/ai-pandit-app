@@ -110,8 +110,13 @@ router.use('/stream', authMiddleware, progressRateLimiter, streamRouter);
 // 🔱 Candidate Detail — Tiered Loading (on-demand ephemeris + reasoning)
 router.use('/candidate', progressRateLimiter, candidateDetailRouter);
 
+import debugAnalysisRouter from './debug-analysis.js';
+
 // Admin routes
 router.use('/admin', authMiddleware, strictRateLimiter, adminRouter);
+
+// Debug route (Internal UI for Analysis verification)
+router.use('/debug-analysis', debugAnalysisRouter);
 
 // Routes testing
 router.get('/routes-test', (req, res) => {

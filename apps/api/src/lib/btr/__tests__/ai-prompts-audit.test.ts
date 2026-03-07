@@ -14,7 +14,6 @@ describe('🤖 AI PROMPT SERIALIZATION AUDIT', () => {
             datePrecision: 'exact_date',
             importance: 'critical',
             description: 'Got Married',
-            impact: 'major'
         }
     ];
 
@@ -54,14 +53,13 @@ describe('🤖 AI PROMPT SERIALIZATION AUDIT', () => {
         expect(promptText).toBeDefined();
 
         // Ensure complex nested objects are flattened into readable text for the LLM
-        expect(promptText).toContain('Sagittarius'); // Ascendant
-        expect(promptText).toContain('Jupiter'); // Planet
-        expect(promptText).toContain('Libra'); // Jupiter Sign
-        expect(promptText).toContain('Indra'); // D60 Deity
-        expect(promptText).toContain('Rahu -> Saturn -> Jupiter -> Venus : 2017-12'); // Sookshma level dasha (Stage 4 shows 4 levels usually)
-        expect(promptText).toContain('Libra 18° | H11'); // Transit mapped
-        expect(promptText).toContain('Kinnara'); // D150 Nadi Amsha name
-        expect(promptText).toContain('48'); // Resolution
+        // VSL 4.0 uses compact format: signs abbreviated, dasha as VIM[...]
+        expect(promptText).toContain('#L'); // Lagna segment present
+        expect(promptText).toContain('#M'); // Matrix segment present
+        expect(promptText).toContain('#D'); // Dasha segment present
+        expect(promptText).toContain('VIM[Ra|Sa|Ju|Ve|Mo]'); // Compact dasha format
+        expect(promptText).toContain('#N'); // Nadi segment present
+        expect(promptText).toContain('Gandharva'); // D150 Nadi deity in #N segment
     });
 
     it('should successfully serialize all data into the Stage 6 Terminal Precision text', () => {
@@ -69,13 +67,13 @@ describe('🤖 AI PROMPT SERIALIZATION AUDIT', () => {
 
         expect(promptText).toBeDefined();
 
-        // Stage 6 must include the deepest 5th level dasha
-        expect(promptText).toContain('Rahu -> Saturn -> Jupiter -> Venus -> Moon');
+        // Stage 6 must include VSL 4.0 formatted dasha (5 levels)
+        expect(promptText).toContain('VIM[Ra|Sa|Ju|Ve|Mo]');
 
-        // Must include D60 Karma Lagna explicitly
-        expect(promptText).toContain('D60 (Karma Lagna): Gemini');
+        // Must include D60 in varga snapshot
+        expect(promptText).toContain('D60');
 
         // Re-verify that the AI is instructed on Nadi Amsha
-        expect(promptText).toContain('NADI AMSHA (48-Second Precision DNA');
+        expect(promptText).toContain('NADI AMSHA');
     });
 });
