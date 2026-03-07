@@ -124,42 +124,6 @@ function parseEnv(): z.infer<typeof envSchema> {
     console.error(errors.join('\n'));
     console.error('\nPlease check your environment variables/secrets on Hugging Face.');
 
-    // BUILD-TIME & RECOVERY WORKAROUND:
-    if (process.env.NODE_ENV === 'production') {
-      console.warn('⚠️ WARNING: Missing or invalid environment variables. Some features may not work.');
-
-      const fallbackData = {
-        NODE_ENV: 'production', // MUST preserve production
-        PORT: process.env.PORT || '7860',
-        TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL || 'file::memory:',
-        TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN || 'dummy',
-        AI_API_KEY: process.env.AI_API_KEY || 'dummy',
-        AI_MODEL: process.env.AI_MODEL || 'missing',
-        AI_TIMEOUT_MS: '60000',
-        REQUEST_TIMEOUT_MS: '300000',
-        MAX_CONCURRENT_SESSIONS: '5',
-        HEAP_THRESHOLD_GB: '10',
-        RSS_THRESHOLD_GB: '12',
-        RATE_LIMIT_WINDOW_MS: '60000',
-        RATE_LIMIT_MAX_REQUESTS: '1000',
-        ENCRYPTION_SECRET: process.env.ENCRYPTION_SECRET || 'a-very-long-secret-key-that-is-atleast-32-chars-long',
-        CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || 'dummy'
-      };
-
-      // FINAL SAFE PARSE: Combine user env with fallbacks, prioritizing user's model
-      const resultData = {
-        ...envSchema.parse(fallbackData),
-        ...(result.success ? (result as any).data : {})
-      };
-
-      // Ensure AI_MODEL from process.env is honored even if validation failed elsewhere
-      if (process.env.AI_MODEL) {
-        resultData.AI_MODEL = process.env.AI_MODEL;
-      }
-
-      return resultData as any;
-    }
-
     process.exit(1);
   }
 
