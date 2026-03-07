@@ -31,7 +31,7 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
  */
 router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const sessionId = req.query.sessionId as string;
+        const sessionId = (req.query.sessionId as string) || (req.query.sid as string);
         const clerkId = req.clerkId!;
         await handleProgressRequest(sessionId, clerkId, res);
     } catch (error) {

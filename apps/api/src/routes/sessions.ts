@@ -283,6 +283,11 @@ router.post('/:id/clone', authMiddleware, async (req: AuthenticatedRequest, res:
             // Configuration
             offsetConfig: originalSession.offsetConfig,
 
+            // AI Consent & Data Integrity (Preserve from original)
+            aiConsentGiven: originalSession.aiConsentGiven,
+            aiConsentGivenAt: originalSession.aiConsentGivenAt,
+            isEncrypted: originalSession.isEncrypted,
+
             // Status and Reset fields
             status: 'draft',
             rectifiedTime: null,

@@ -208,10 +208,10 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
 router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const clerkId = req.clerkId!;
-        const sessionId = req.query.sessionId as string;
+        const sessionId = (req.query.sessionId as string) || (req.query.sid as string);
 
         if (!sessionId) {
-            res.status(400).json({ success: false, error: 'sessionId is required' });
+            res.status(400).json({ success: false, error: 'sessionId or sid is required' });
             return;
         }
 
@@ -346,7 +346,10 @@ router.post('/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Re
 async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionIdFromPath?: string) {
     try {
         const clerkId = req.clerkId!;
-        const sessionId = sessionIdFromPath || req.body.sessionId;
+        const sessionId = sessionIdFromPath ||
+            req.body.sessionId ||
+            (req.query.sid as string) ||
+            (req.query.sessionId as string);
 
         if (!sessionId) {
             res.status(400).json({ success: false, error: 'sessionId is required' });

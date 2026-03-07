@@ -24,10 +24,10 @@ export function getActiveSseCount(): number {
 }
 
 /**
- * OPTIONS /api/stream/:sessionId
- * Handle CORS preflight requests for SSE endpoint
+ * OPTIONS /api/stream
+ * Handle CORS preflight requests for both path-param and query-param variants
  */
-router.options('/:sessionId', (req, res) => {
+router.options(['/', '/:sessionId'], (req, res) => {
     const requestOrigin = req.headers.origin;
     if (requestOrigin) {
         res.setHeader('Access-Control-Allow-Origin', requestOrigin);
@@ -40,19 +40,24 @@ router.options('/:sessionId', (req, res) => {
 });
 
 /**
+ * GET /api/stream (Support Query Params: sid, sessionId)
  * GET /api/stream/:sessionId
  * Server-Sent Events endpoint for real-time progress updates
  *
  * SECURITY: Requires authentication and session ownership verification
  */
-router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
-    const { sessionId } = req.params;
+router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+    // Robust session ID extraction
+    const sessionId = req.params.sessionId ||
+        (req.query.sid as string) ||
+        (req.query.sessionId as string);
+
     const isTestScript = req.headers['x-test-bypass-auth'] === 'super-secret-test-key';
     const clerkId = req.clerkId || (isTestScript ? 'TEST_SCRIPT' : undefined);
 
     if (!sessionId) {
         res.setHeader('Content-Type', 'text/event-stream');
-        sendEvent(res, { type: 'error', error: 'Session ID required', code: 'BAD_REQUEST' });
+        sendEvent(res, { type: 'error', error: 'Session ID required (path param or ?sid=)', code: 'BAD_REQUEST' });
         res.end();
         return;
     }
