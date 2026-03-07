@@ -23,7 +23,8 @@ build
 
 # Environment files (secrets passed via env vars at runtime)
 .env
-.env.*
+.env.local
+.env.*.local
 !.env.example
 
 # Docs (not needed in production image)
