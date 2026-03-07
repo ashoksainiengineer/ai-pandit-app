@@ -172,7 +172,7 @@ export async function callAI(
                     requestBody.include_reasoning = true;
                 }
 
-                // 🚀 OFFICIAL GROQ GPT-OSS: reasoning_effort (low, medium, high)
+                // 🚀 Reasoning effort configuration (low, medium, high)
                 if (config.ai.reasoningEffort && config.ai.reasoningEffort !== 'default') {
                     requestBody.reasoning_effort = config.ai.reasoningEffort;
                 }

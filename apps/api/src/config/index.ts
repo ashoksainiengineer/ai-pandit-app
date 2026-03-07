@@ -35,7 +35,7 @@ const envSchema = z.object({
 
   // AI Configuration
   AI_API_KEY: z.string().trim().min(1, 'AI_API_KEY is required'),
-  AI_BASE_URL: z.string().trim().url().default('https://openrouter.ai/api/v1'),
+  AI_BASE_URL: z.string().trim().url({ message: "AI_BASE_URL is required (e.g., https://api.groq.com/openai/v1 or https://openrouter.ai/api/v1)" }),
   AI_MODEL: z.string().trim().min(1, 'AI_MODEL is required'),
   AI_MODEL_REASONER: z.string().trim().optional(),
   AI_MAX_TOKENS: z.string().min(1).transform(Number).default('32768'),
@@ -73,13 +73,10 @@ const envSchema = z.object({
   RATE_LIMIT_MAX_REQUESTS: z.string().min(1, 'RATE_LIMIT_MAX_REQUESTS is required').transform(Number),
 
   // Provider Optimization
-  AI_PROVIDER_ORDER: z.string().default('Google Vertex,Together,DeepInfra').transform(s => s.split(',')),
+  AI_PROVIDER_ORDER: z.string().default('').transform(s => s ? s.split(',') : []),
   AI_MAX_CONCURRENCY: z.string().optional().transform((v) => v ? Number(v) : undefined),
-  AI_REASONER_IDENTIFIERS: z.string().trim().default('reasoner,r1,gpt-oss,oss,o1,o3,minimax').transform(s => s.split(',')),
-  // 'include_reasoning' = OpenRouter/Fireworks style (include_reasoning: true)
-  // 'reasoning_format_raw' = Groq native style (reasoning_format: 'raw')
-  // 'auto' = auto-detect based on model name (legacy behavior)
-  // 'none' = do not send any reasoning parameter (useful for some Fireworks models)
+  AI_REASONER_IDENTIFIERS: z.string().trim().default('reasoner,r1').transform(s => s.split(',')),
+  // Reasoning configuration modes
   AI_REASONING_MODE: z.enum(['include_reasoning', 'reasoning_format_raw', 'auto', 'none']).default('include_reasoning'),
   AI_REASONING_EFFORT: z.enum(['low', 'medium', 'high', 'default']).default('medium'),
   // Per-stage output token limits — tune individually for quality vs speed
@@ -137,7 +134,7 @@ function parseEnv(): z.infer<typeof envSchema> {
         TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL || 'file::memory:',
         TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN || 'dummy',
         AI_API_KEY: process.env.AI_API_KEY || 'dummy',
-        AI_MODEL: process.env.AI_MODEL || 'gpt-4o',
+        AI_MODEL: process.env.AI_MODEL || 'missing',
         AI_TIMEOUT_MS: '60000',
         REQUEST_TIMEOUT_MS: '300000',
         MAX_CONCURRENT_SESSIONS: '5',
@@ -149,10 +146,18 @@ function parseEnv(): z.infer<typeof envSchema> {
         CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || 'dummy'
       };
 
-      return {
+      // FINAL SAFE PARSE: Combine user env with fallbacks, prioritizing user's model
+      const resultData = {
         ...envSchema.parse(fallbackData),
-        ...(result.success ? (result as any).data : {}) // Keep whatever was valid safely
-      } as any;
+        ...(result.success ? (result as any).data : {})
+      };
+
+      // Ensure AI_MODEL from process.env is honored even if validation failed elsewhere
+      if (process.env.AI_MODEL) {
+        resultData.AI_MODEL = process.env.AI_MODEL;
+      }
+
+      return resultData as any;
     }
 
     process.exit(1);
