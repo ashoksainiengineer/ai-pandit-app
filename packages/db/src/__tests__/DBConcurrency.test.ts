@@ -31,7 +31,7 @@ describe('Turso DB Concurrency & Atomic Operations', () => {
             return { success: true };
         });
 
-        const result = await executeWithRetry(mockOperation, 5);
+        const result = await executeWithRetry(mockOperation, 5) as any;
 
         expect(result.success).toBe(true);
         expect(attempts).toBe(3);
