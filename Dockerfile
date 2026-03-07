@@ -42,6 +42,8 @@ FROM base AS prod-deps
 COPY --from=pruner /app/out/full/ .
 COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 RUN npm ci --omit=dev --loglevel=error
+# Remove source files to keep the structure lean for the runner
+RUN find . -name "*.ts" -o -name "*.tsx" -o -name "*.map" -type f -delete 
 
 # ─── Stage 4: Runner ───────────────────────────────────────────────────────
 # Final lean production image
@@ -57,14 +59,13 @@ RUN addgroup --system --gid 1001 nodejs && \
     mkdir -p /app/ephe /app/logs && \
     chown -R nodejs:nodejs /app
 
-# Copy production dependencies from prod-deps stage
-COPY --from=prod-deps --chown=nodejs:nodejs /app/node_modules ./node_modules
-COPY --from=prod-deps --chown=nodejs:nodejs /app/package.json ./package.json
+# Copy everything from prod-deps (includes all node_modules, package.json's, but no source)
+COPY --from=prod-deps --chown=nodejs:nodejs /app ./
 
-# Copy the entire workspaces from builder (includes compiled dist and package metadata)
-# This ensures symlinks in node_modules/ point to valid folders with compiled artifacts
-COPY --from=builder --chown=nodejs:nodejs /app/apps/api ./apps/api
-COPY --from=builder --chown=nodejs:nodejs /app/packages ./packages
+# Copy compiled artifacts from builder
+COPY --from=builder --chown=nodejs:nodejs /app/apps/api/dist ./apps/api/dist
+COPY --from=builder --chown=nodejs:nodejs /app/packages/db/dist ./packages/db/dist
+COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/dist ./packages/shared/dist
 
 # Copy ephemeris data (the only heavy asset)
 COPY --chown=nodejs:nodejs ephe/* /app/ephe/
