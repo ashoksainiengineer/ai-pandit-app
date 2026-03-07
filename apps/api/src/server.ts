@@ -54,15 +54,31 @@ app.use(helmet({
 }));
 
 // CORS with strict origin validation (deduped via Set to prevent log noise)
+// Parse ALLOWED_ORIGINS: handle both comma and space separated values
+const parseAllowedOrigins = (envVar: string | undefined): string[] => {
+  if (!envVar) return [];
+  
+  // Split by comma first, then split each by space to handle both formats
+  return envVar
+    .split(',')
+    .flatMap(origin => origin.trim().split(/\s+/))
+    .map(origin => origin.trim().replace(/\/+$/, '')) // Trim trailing slashes
+    .filter(Boolean);
+};
+
 const allowedOrigins = Array.from(new Set([
   'http://localhost:3000',
   'http://localhost:3001',
   'http://localhost:5173',
+  // Production domains
+  'https://aipandit.app',
+  'https://www.aipandit.app',
+  'https://ai-pandit-bay.vercel.app',
   // Trim trailing slash — a common misconfiguration that causes silent CORS failures
   process.env.FRONTEND_URL?.replace(/\/+$/, ''),
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
-  // Additional frontend URLs from environment (comma-separated)
-  ...(process.env.ALLOWED_ORIGINS?.split(',').map(o => o.trim()).filter(Boolean) || []),
+  // Additional frontend URLs from environment (comma or space separated)
+  ...parseAllowedOrigins(process.env.ALLOWED_ORIGINS),
 ].filter((origin): origin is string => Boolean(origin))));
 
 // Match any *.vercel.app deployment (production, preview, etc.)
