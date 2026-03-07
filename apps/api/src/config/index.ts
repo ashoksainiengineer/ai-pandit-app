@@ -72,6 +72,7 @@ const envSchema = z.object({
   // 'auto' = auto-detect based on model name (legacy behavior)
   // 'none' = do not send any reasoning parameter (useful for some Fireworks models)
   AI_REASONING_MODE: z.enum(['include_reasoning', 'reasoning_format_raw', 'auto', 'none']).default('include_reasoning'),
+  AI_REASONING_EFFORT: z.enum(['low', 'medium', 'high', 'default']).default('medium'),
   // Per-stage output token limits — tune individually for quality vs speed
   AI_STAGE2_MAX_TOKENS: z.string().transform(Number).default('32768'),
   AI_STAGE4_MAX_TOKENS: z.string().transform(Number).default('32768'),
@@ -177,6 +178,7 @@ export const aiConfig = {
   reasonerIdentifiers: env.AI_REASONER_IDENTIFIERS,
   // How to request reasoning from the provider (configurable, not hardcoded)
   reasoningMode: env.AI_REASONING_MODE,
+  reasoningEffort: env.AI_REASONING_EFFORT,
   // Per-stage output token limits
   stage2MaxTokens: env.AI_STAGE2_MAX_TOKENS,
   stage4MaxTokens: env.AI_STAGE4_MAX_TOKENS,

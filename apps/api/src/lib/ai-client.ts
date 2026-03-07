@@ -164,15 +164,14 @@ export async function callAI(
                     requestBody.reasoning_format = 'raw';
                     requestBody.max_completion_tokens = requestBody.max_tokens;
                 } else if (reasoningMode === 'none') {
-                    // Do not add any reasoning parameters - Fireworks thinking models
-                    // provide reasoning_content automatically without flags.
+                    requestBody.include_reasoning = false;
                 } else if (reasoningMode === 'auto') {
-                    // Legacy auto-detect: OpenRouter uses include_reasoning, Groq uses reasoning_format
-                    if (isOpenRouter || isGroqNative) {
-                        requestBody.include_reasoning = true;
-                    } else {
-                        requestBody.include_reasoning = true; // Safe default
-                    }
+                    requestBody.include_reasoning = true;
+                }
+
+                // 🚀 OFFICIAL GROQ GPT-OSS: reasoning_effort (low, medium, high)
+                if (config.ai.reasoningEffort && config.ai.reasoningEffort !== 'default') {
+                    requestBody.reasoning_effort = config.ai.reasoningEffort;
                 }
             }
 
@@ -391,10 +390,14 @@ export async function callAIWithStream(
                     requestBody.reasoning_format = 'raw';
                     requestBody.max_completion_tokens = requestBody.max_tokens;
                 } else if (reasoningMode === 'none') {
-                    // Do not add any reasoning parameters
+                    requestBody.include_reasoning = false;
                 } else if (reasoningMode === 'auto') {
-                    // Legacy auto-detect fallback
                     requestBody.include_reasoning = true;
+                }
+
+                // 🚀 OFFICIAL GROQ GPT-OSS: reasoning_effort (low, medium, high)
+                if (config.ai.reasoningEffort && config.ai.reasoningEffort !== 'default') {
+                    requestBody.reasoning_effort = config.ai.reasoningEffort;
                 }
             }
 
