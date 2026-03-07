@@ -114,6 +114,9 @@ export async function callAI(
                 attempt,
                 model: configLocal.model,
                 enableThinking: configLocal.enableThinking,
+                keyLen: AI_CONFIG.apiKey?.length,
+                keyPrefix: AI_CONFIG.apiKey?.substring(0, 10),
+                baseUrl: AI_CONFIG.baseUrl
             });
 
             const controller = new AbortController();
@@ -339,6 +342,9 @@ export async function callAIWithStream(
                 stage,
                 attempt,
                 model: configLocal.model,
+                keyLen: AI_CONFIG.apiKey?.length,
+                keyPrefix: AI_CONFIG.apiKey?.substring(0, 10),
+                baseUrl: AI_CONFIG.baseUrl
             });
 
             // Combine internal timeout with external abort signal

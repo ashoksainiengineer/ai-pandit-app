@@ -57,7 +57,7 @@ app.use(helmet({
 // Parse ALLOWED_ORIGINS: handle both comma and space separated values
 const parseAllowedOrigins = (envVar: string | undefined): string[] => {
   if (!envVar) return [];
-  
+
   // Split by comma first, then split each by space to handle both formats
   return envVar
     .split(',')
@@ -78,7 +78,7 @@ const allowedOrigins = Array.from(new Set([
   process.env.FRONTEND_URL?.replace(/\/+$/, ''),
   process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
   // Additional frontend URLs from environment (comma or space separated)
-  ...parseAllowedOrigins(process.env.ALLOWED_ORIGINS),
+  ...(process.env.ALLOWED_ORIGINS?.split(/[\s,]+/).map(o => o.trim()).filter(Boolean) || []),
 ].filter((origin): origin is string => Boolean(origin))));
 
 // Match any *.vercel.app deployment (production, preview, etc.)
@@ -295,6 +295,17 @@ async function startWorkerServer() {
     } catch (err) {
       logger.warn('⚠️ Swiss Ephemeris init failed, using algorithmic fallback', { error: String(err) });
     }
+
+    // Diagnostic logging for AI API key
+    logger.info('Calling AI Engine', {
+      model: config.ai.model,
+      baseUrl: config.ai.baseUrl,
+      keyInfo: {
+        length: config.ai.apiKey?.length || 0,
+        prefix: config.ai.apiKey ? config.ai.apiKey.substring(0, 7) + '...' : 'N/A',
+        isPlaceholder: config.ai.apiKey === 'dummy'
+      }
+    });
 
     // Start HTTP server AFTER ephemeris is ready
     const server = app.listen(serverConfig.port, '0.0.0.0', () => {

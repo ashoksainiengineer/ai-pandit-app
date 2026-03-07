@@ -15,10 +15,19 @@ import { z } from 'zod';
 const envSchema = z.object({
   // Server Configuration
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.string().transform(Number).default('3001'),
+  PORT: z.string().transform((v) => {
+    // Handle space-separated or multiple ports (HF occasionally passes junk)
+    const first = v.split(/[\s,]/)[0];
+    return Number(first) || 7860;
+  }).default('7860'),
   BACKEND_URL: z.string().url().optional(),
-  FRONTEND_URL: z.string().url().optional(),
-  ALLOWED_ORIGINS: z.string().trim().optional(), // Comma-separated list of allowed CORS origins
+  FRONTEND_URL: z.string().optional().transform(v => {
+    if (!v) return undefined;
+    // If multiple URLs passed (space-separated), take the first valid one
+    const first = v.trim().split(/\s+/)[0];
+    return first;
+  }),
+  ALLOWED_ORIGINS: z.string().trim().optional(),
 
   // Database Configuration (Turso)
   TURSO_DATABASE_URL: z.string().trim().min(1, 'Turso database URL is required'),
@@ -121,25 +130,27 @@ function parseEnv(): z.infer<typeof envSchema> {
     // BUILD-TIME & RECOVERY WORKAROUND:
     if (process.env.NODE_ENV === 'production') {
       console.warn('⚠️ WARNING: Missing or invalid environment variables. Some features may not work.');
-      // Return partial data (defaults will be applied for missing keys)
+
+      const fallbackData = {
+        NODE_ENV: 'production', // MUST preserve production
+        PORT: process.env.PORT || '7860',
+        TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL || 'file::memory:',
+        TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN || 'dummy',
+        AI_API_KEY: process.env.AI_API_KEY || 'dummy',
+        AI_MODEL: process.env.AI_MODEL || 'openai/gpt-oss-120b',
+        AI_TIMEOUT_MS: '60000',
+        REQUEST_TIMEOUT_MS: '300000',
+        MAX_CONCURRENT_SESSIONS: '5',
+        HEAP_THRESHOLD_GB: '10',
+        RSS_THRESHOLD_GB: '12',
+        RATE_LIMIT_WINDOW_MS: '60000',
+        RATE_LIMIT_MAX_REQUESTS: '1000',
+        ENCRYPTION_SECRET: process.env.ENCRYPTION_SECRET || 'a-very-long-secret-key-that-is-atleast-32-chars-long',
+        CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || 'dummy'
+      };
+
       return {
-        ...envSchema.parse({
-          // Ensure core fields have something if they failed
-          PORT: process.env.PORT || '7860',
-          TURSO_DATABASE_URL: process.env.TURSO_DATABASE_URL || 'file::memory:',
-          TURSO_AUTH_TOKEN: process.env.TURSO_AUTH_TOKEN || 'dummy',
-          AI_API_KEY: process.env.AI_API_KEY || 'dummy',
-          AI_MODEL: process.env.AI_MODEL || 'dummy',
-          CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || 'dummy',
-          ENCRYPTION_SECRET: process.env.ENCRYPTION_SECRET || 'a-very-long-secret-key-that-is-atleast-32-chars-long',
-          AI_TIMEOUT_MS: '30000',
-          REQUEST_TIMEOUT_MS: '60000',
-          MAX_CONCURRENT_SESSIONS: '2',
-          HEAP_THRESHOLD_GB: '10',
-          RSS_THRESHOLD_GB: '12',
-          RATE_LIMIT_WINDOW_MS: '60000',
-          RATE_LIMIT_MAX_REQUESTS: '100'
-        }),
+        ...envSchema.parse(fallbackData),
         ...(result.success ? (result as any).data : {}) // Keep whatever was valid safely
       } as any;
     }
