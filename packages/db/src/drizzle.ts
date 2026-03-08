@@ -132,16 +132,14 @@ async function initializeDatabase(): Promise<void> {
   } catch (error) {
     console.error('[DB] Failed to initialize database client:', (error as Error).message);
     
-    // Fallback: create memory-based client to prevent crashes
-    console.warn('[DB] Creating fallback in-memory client...');
-    client = createClient({ url: 'file::memory:' });
-    db = drizzle(client, { schema });
-    
-    if (process.env.NODE_ENV === 'production' && CONNECTION_CONFIG.syncUrl) {
-      console.warn('[DB] Continuing with fallback client - database operations will retry');
-    } else if (!CONNECTION_CONFIG.syncUrl) {
-      // Expected during build time
+    // Only use fallback during build time - NEVER in production runtime
+    if (!CONNECTION_CONFIG.syncUrl || process.env.NEXT_PHASE === 'phase-production-build') {
+      console.warn('[DB] Creating fallback in-memory client for build time...');
+      client = createClient({ url: 'file::memory:' });
+      db = drizzle(client, { schema });
     } else {
+      // In production with valid config, we MUST connect to real database
+      console.error('[DB] CRITICAL: Cannot connect to Turso database in production');
       throw error;
     }
   }
