@@ -47,18 +47,16 @@ RUN npm ci --omit=dev --loglevel=error && \
 FROM node:20-alpine AS runner
 WORKDIR /app
 RUN apk add --no-cache wget libc6-compat
-RUN addgroup --system --gid 1000 nodejs && \
-    adduser --system --uid 1000 nodejs && \
-    mkdir -p /app/ephe /app/logs && \
-    chown -R nodejs:nodejs /app
+RUN mkdir -p /app/ephe /app/logs && \
+    chown -R node:node /app
 
-COPY --from=prod-deps --chown=nodejs:nodejs /app ./
-COPY --from=builder --chown=nodejs:nodejs /app/apps/api/dist ./apps/api/dist
-COPY --from=builder --chown=nodejs:nodejs /app/packages/db/dist ./packages/db/dist
-COPY --from=builder --chown=nodejs:nodejs /app/packages/shared/dist ./packages/shared/dist
-COPY --chown=nodejs:nodejs ephe/* /app/ephe/
+COPY --from=prod-deps --chown=node:node /app ./
+COPY --from=builder --chown=node:node /app/apps/api/dist ./apps/api/dist
+COPY --from=builder --chown=node:node /app/packages/db/dist ./packages/db/dist
+COPY --from=builder --chown=node:node /app/packages/shared/dist ./packages/shared/dist
+COPY --chown=node:node ephe/* /app/ephe/
 
-USER nodejs
+USER node
 ENV NODE_ENV=production
 ENV PORT=7860
 ENV SWISSEPH_PATH=/app/ephe
