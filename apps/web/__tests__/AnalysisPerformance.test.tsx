@@ -11,7 +11,7 @@ import { useStreamStore } from '../lib/store/stream-store';
 // Mock Next.js hooks
 vi.mock('next/navigation', () => ({
     useParams: () => ({ id: 'test-session-123' }),
-    useRouter: () => ({ push: vi.fn() }),
+    useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
 // Mock Clerk

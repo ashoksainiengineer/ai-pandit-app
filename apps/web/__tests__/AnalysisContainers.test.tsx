@@ -20,7 +20,7 @@ import { useStreamProgress } from '../lib/use-stream-progress';
 
 vi.mock('next/navigation', () => ({
     useParams: () => ({ id: 'container-test-session' }),
-    useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+    useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
 }));
 
 vi.mock('@clerk/nextjs', () => ({

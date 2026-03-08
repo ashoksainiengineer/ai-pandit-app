@@ -19,7 +19,7 @@ import { useStreamStore, createInitialState } from '../lib/store/stream-store';
 
 vi.mock('next/navigation', () => ({
     useParams: () => ({ id: 'lifecycle-session-001' }),
-    useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+    useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
 }));
 
 vi.mock('@clerk/nextjs', () => ({

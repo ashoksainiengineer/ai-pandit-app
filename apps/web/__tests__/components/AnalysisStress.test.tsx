@@ -90,19 +90,25 @@ describe('Analysis Page - Stress & Persistence (Heavy Duty)', () => {
             expect(partial.candidateScores[0].score).toBe(95);
         });
 
-        it('discards stale session data on reset', () => {
+        it('keeps completion data when metadata status is pending', () => {
             const store = useStreamStore.getState();
             store.setSessionId('old-session');
             store.markComplete();
+            store.dispatchStreamEvent('candidate_score_v2', {
+                time: '12:30:00',
+                score: 95,
+                stage: 4
+            });
 
-            // Receive a "metadata" reset event (queued status for a finished session)
+            // Metadata updates should merge only, not reset completed state/scores.
             store.dispatchStreamEvent('metadata', {
                 status: 'pending'
             });
 
             const state = useStreamStore.getState();
-            expect(state.isComplete).toBe(false);
-            expect(state.candidateScores).toHaveLength(0);
+            expect(state.isComplete).toBe(true);
+            expect(state.candidateScores).toHaveLength(1);
+            expect(state.metadata?.status).toBe('pending');
         });
     });
 });

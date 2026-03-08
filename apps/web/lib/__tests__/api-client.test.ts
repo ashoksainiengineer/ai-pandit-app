@@ -56,7 +56,7 @@ describe('APIClient - Unit Tests', () => {
             expect(options.headers['Authorization']).toContain('Bearer');
         });
 
-        it('should include token as query parameter (dual-channel auth)', async () => {
+        it('should not include token as query parameter (header-only auth)', async () => {
             mockFetch.mockResolvedValueOnce({
                 status: 200,
                 json: async () => ({ success: true }),
@@ -66,7 +66,7 @@ describe('APIClient - Unit Tests', () => {
             await APIClient.post('/api/test', {}, getToken);
 
             const [url] = mockFetch.mock.calls[0];
-            expect(url).toContain('sid=');
+            expect(url).toBe('/api/test');
         });
 
 
