@@ -99,10 +99,20 @@ async function getUserSessions(clerkId: string, clerkUser?: any): Promise<Dashbo
     let userSessions: DashboardSession[] = [];
 
     try {
-      const result = await db.query.sessions.findMany({
+      // Primary path: sessions keyed by clerkId
+      const byClerkId = await db.query.sessions.findMany({
         where: eq(sessions.clerkId, clerkId),
         orderBy: [desc(sessions.createdAt)],
       });
+
+      // Fallback path: legacy/migrated rows may have reliable userId but stale clerkId
+      const result = (byClerkId.length === 0 && user?.id)
+        ? await db.query.sessions.findMany({
+          where: eq(sessions.userId, user.id),
+          orderBy: [desc(sessions.createdAt)],
+        })
+        : byClerkId;
+
       userSessions = result.map(s => ({
         ...s,
         id: s.id,

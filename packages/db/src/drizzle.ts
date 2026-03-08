@@ -98,15 +98,19 @@ async function createClientWithTimeout(url: string, authToken: string, timeoutMs
 async function initializeDatabase(): Promise<void> {
   console.log('[DB] Initializing database client...');
   const startTime = Date.now();
+  const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
+  const isProductionRuntime = process.env.NODE_ENV === 'production' && !isBuildPhase;
   
   try {
-    // Use a fallback URL if syncUrl is missing (common during Next.js build time)
-    const finalUrl = CONNECTION_CONFIG.syncUrl || 'file::memory:';
+    // In production runtime, missing Turso URL must fail fast (no silent memory DB fallback)
+    if (!CONNECTION_CONFIG.syncUrl && isProductionRuntime) {
+      throw new Error('TURSO_DATABASE_URL is missing in production runtime');
+    }
 
-    if (!CONNECTION_CONFIG.syncUrl) {
-      if (process.env.NEXT_PHASE !== 'phase-production-build') {
-        console.warn('⚠️ TURSO_DATABASE_URL is missing - using memory-based fallback client');
-      }
+    // Use memory fallback only in non-production runtime (dev/test/build)
+    const finalUrl = CONNECTION_CONFIG.syncUrl || 'file::memory:';
+    if (!CONNECTION_CONFIG.syncUrl && !isBuildPhase) {
+      console.warn('⚠️ TURSO_DATABASE_URL is missing - using memory-based fallback client');
     }
 
     // Create client with timeout protection
@@ -114,7 +118,7 @@ async function initializeDatabase(): Promise<void> {
     console.log(`[DB] Client created in ${Date.now() - startTime}ms`);
 
     // Proactive check in non-build environments
-    if (process.env.NEXT_PHASE !== 'phase-production-build' && CONNECTION_CONFIG.syncUrl) {
+    if (!isBuildPhase && CONNECTION_CONFIG.syncUrl) {
       console.log('[DB] Testing connection...');
       const testStart = Date.now();
       try {
@@ -132,9 +136,9 @@ async function initializeDatabase(): Promise<void> {
   } catch (error) {
     console.error('[DB] Failed to initialize database client:', (error as Error).message);
     
-    // Only use fallback during build time - NEVER in production runtime
-    if (!CONNECTION_CONFIG.syncUrl || process.env.NEXT_PHASE === 'phase-production-build') {
-      console.warn('[DB] Creating fallback in-memory client for build time...');
+    // Allow fallback only in non-production runtime for local/dev/test/build ergonomics.
+    if (!isProductionRuntime) {
+      console.warn('[DB] Creating fallback in-memory client for non-production runtime...');
       client = createClient({ url: 'file::memory:' });
       db = drizzle(client, { schema });
     } else {
