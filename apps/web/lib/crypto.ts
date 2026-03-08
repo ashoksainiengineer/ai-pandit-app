@@ -24,6 +24,7 @@
  */
 
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
+import { env } from './config/env';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECURE CRYPTOGRAPHIC CONSTANTS
@@ -40,17 +41,17 @@ const VERSION_PREFIX = 'v3';
 // It is significantly stronger than the older N=16384 standard.
 const SCRYPT_PARAMS = { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
 
-// This will be loaded from environment variables. A default is provided ONLY for local dev.
-let ENCRYPTION_SECRET = process.env.ENCRYPTION_SECRET || process.env.CLERK_ENCRYPTION_KEY;
+// This will be loaded from environment variables.
+let ENCRYPTION_SECRET = env.security.encryptionSecret;
 
 // Auto-initialize on first use
 if (ENCRYPTION_SECRET) {
-    if (process.env.NEXT_PHASE !== 'phase-production-build') {
+    if (env.app.nextPhase !== 'phase-production-build') {
         console.log('[Crypto] Encryption secret loaded');
     }
 } else {
     // Silence warning during build as secrets are injected at runtime
-    if (process.env.NEXT_PHASE !== 'phase-production-build') {
+    if (env.app.nextPhase !== 'phase-production-build') {
         console.warn('[Crypto] WARNING: No encryption secret found!');
     }
 }
@@ -65,7 +66,7 @@ if (ENCRYPTION_SECRET) {
  */
 export function initializeEncryption(secret: string | undefined) {
     if (!secret) {
-        if (process.env.NEXT_PHASE !== 'phase-production-build') {
+        if (env.app.nextPhase !== 'phase-production-build') {
             console.error("CRITICAL: ENCRYPTION_SECRET is not set. Encryption will fail.");
         }
         // In a real production environment, you might want to throw an error and prevent startup.

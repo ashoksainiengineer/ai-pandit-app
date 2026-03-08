@@ -4,6 +4,8 @@
  * Used by cron jobs and health checks to keep functions warm
  */
 
+import { env } from '@/lib/config/env'; // Assuming this import is needed for env.app.region
+
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +14,7 @@ export async function GET(): Promise<Response> {
     {
       status: 'ok',
       timestamp: Date.now(),
-      region: process.env.VERCEL_REGION || 'unknown',
+      region: env.app.region,
     },
     {
       status: 200,

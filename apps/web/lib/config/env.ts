@@ -67,33 +67,42 @@ export const env = {
     publishableKey: getEnvVar(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'),
     signInUrl: getEnvVar(process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL, 'NEXT_PUBLIC_CLERK_SIGN_IN_URL', '/sign-in'),
     signUpUrl: getEnvVar(process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL, 'NEXT_PUBLIC_CLERK_SIGN_UP_URL', '/sign-up'),
-    signInFallbackRedirectUrl: getEnvVar(process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL, 'NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL', '/dashboard'),
-    signUpFallbackRedirectUrl: getEnvVar(process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL, 'NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL', '/dashboard'),
+    signInFallbackRedirectUrl: getEnvVar(process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL, 'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL', '/dashboard'),
+    signUpFallbackRedirectUrl: getEnvVar(process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL, 'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL', '/dashboard'),
+    webhookSecret: process.env.CLERK_WEBHOOK_SECRET,
   },
 
   api: {
     // Priority: Env Var > Default Localhost
-    backendUrl: getEnvVar(process.env.NEXT_PUBLIC_BACKEND_URL, 'NEXT_PUBLIC_BACKEND_URL', process.env.NODE_ENV === 'production' ? undefined : 'http://localhost:3001'),
+    backendUrl: process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3001',
     huggingFaceToken: getEnvVarOptional(process.env.NEXT_PUBLIC_HF_TOKEN),
-    internalApiKey: getEnvVarOptional(process.env.INTERNAL_API_KEY),
+    internalApiKey: undefined, // Removed for security realignment
   },
 
   app: {
-    url: getEnvVarOptional(process.env.NEXT_PUBLIC_APP_URL),
+    url: getEnvVarOptional(process.env.FRONTEND_URL),
     vercelUrl: getEnvVarOptional(process.env.NEXT_PUBLIC_VERCEL_URL),
+    baseUrl: process.env.FRONTEND_URL || (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : 'http://localhost:3000'),
     isProduction: process.env.NODE_ENV === 'production',
     isDevelopment: process.env.NODE_ENV === 'development',
+    isTest: process.env.NODE_ENV === 'test',
+    region: process.env.VERCEL_REGION || 'unknown',
+    nextPhase: process.env.NEXT_PHASE,
+  },
+
+  security: {
+    encryptionSecret: process.env.ENCRYPTION_SECRET,
   },
 
   features: {
-    enableAnalytics: parseBoolean(process.env.NEXT_PUBLIC_ENABLE_ANALYTICS, false),
-    enableDebug: parseBoolean(process.env.NEXT_PUBLIC_ENABLE_DEBUG, false),
+    enableAnalytics: false, // Hardcoded
+    enableDebug: false, // Hardcoded for production stability
   },
 
   warmup: {
-    enabled: parseBoolean(process.env.ENABLE_WARMUP, true),
-    intervalMinutes: parseNumber(process.env.WARMUP_INTERVAL_MINUTES, 2),
-    timeoutMs: parseNumber(process.env.WARMUP_TIMEOUT_MS, 5000),
+    enabled: false, // Hardcoded/Disabled
+    intervalMinutes: 2,
+    timeoutMs: 5000,
     endpoints: ['/api/ping', '/api/health'],
   },
 } as const;

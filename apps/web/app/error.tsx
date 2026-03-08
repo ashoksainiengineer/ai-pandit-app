@@ -5,6 +5,7 @@
 
 'use client';
 
+import { env } from '@/lib/config/env';
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, RefreshCw, Home, Mail, Clipboard } from 'lucide-react';
@@ -32,7 +33,7 @@ export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
     });
 
     // In production, send to error tracking service
-    if (process.env.NODE_ENV === 'production') {
+    if (env.app.isProduction) {
       // TODO: Send to Sentry/LogRocket/error endpoint
       // Example: Sentry.captureException(error, { extra: { errorId } });
     }
@@ -111,7 +112,7 @@ export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
         </div>
 
         {/* Technical Details (Development Only) */}
-        {process.env.NODE_ENV === 'development' && (
+        {!env.app.isProduction && (
           <div className="mt-6 p-4 bg-[#1A1612] rounded-xl overflow-auto">
             <p className="text-xs text-[#A8A39D] uppercase tracking-wider mb-2">Technical Details (Dev Only)</p>
             <pre className="text-xs text-red-400 font-mono whitespace-pre-wrap">

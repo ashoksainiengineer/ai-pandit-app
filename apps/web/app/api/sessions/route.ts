@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { env } from '@/lib/config/env';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
@@ -6,7 +7,7 @@ import { eq, desc } from 'drizzle-orm';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { parseSensitiveField, encrypt, initializeEncryption } from '@/lib/crypto';
 
-initializeEncryption(process.env.ENCRYPTION_SECRET || process.env.CLERK_ENCRYPTION_KEY);
+initializeEncryption(env.security.encryptionSecret);
 
 export async function GET(req: NextRequest) {
     try {

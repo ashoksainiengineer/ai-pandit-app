@@ -7,6 +7,7 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import { AppError, isAppError, handleUnknownError, getErrorStatusCode } from '../errors/index.js';
+import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { sendError } from '../utils/response.js';
 
@@ -48,7 +49,7 @@ export function errorHandlerMiddleware() {
       }
     } else if (appError.statusCode >= 400) {
       // Client errors - log as warn in production, debug in development
-      const level = process.env.NODE_ENV === 'production' ? 'warn' : 'debug';
+      const level = config.app.isProduction ? 'warn' : 'debug';
       if (req.logger) {
         req.logger[level]('Client error', logData);
       }

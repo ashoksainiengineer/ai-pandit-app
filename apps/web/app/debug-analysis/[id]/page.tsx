@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, memo, useRef, useMemo, useId } from 'react';
+import React, { useState, useEffect, useCallback, memo, useRef, useMemo, useId, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -39,7 +39,7 @@ const TechnicalMethodology = dynamic(() => import('@/components/rectify/analysis
 const StageLeaderboard = dynamic(() => import('@/components/rectify/analysis/StageLeaderboard').then(mod => mod.StageLeaderboard), { ssr: false });
 
 // 🔧 Dev-only: SSE Debug Panel for real-time stream inspection
-const SSEDebugPanel = process.env.NODE_ENV === 'development'
+const SSEDebugPanel = env.app.isDevelopment
   ? dynamic(() => import('@/components/dev/SSEDebugPanel'), { ssr: false })
   : () => null;
 

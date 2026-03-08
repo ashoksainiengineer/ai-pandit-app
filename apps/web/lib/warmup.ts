@@ -4,6 +4,7 @@
  */
 
 import { logger } from './logger';
+import { env } from './config/env';
 
 interface WarmupConfig {
   endpoints: string[];
@@ -48,7 +49,7 @@ async function pingEndpoint(url: string, timeoutMs: number): Promise<void> {
  */
 export async function executeWarmup(config: Partial<WarmupConfig> = {}): Promise<void> {
   const mergedConfig = { ...DEFAULT_CONFIG, ...config };
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'http://localhost:3000';
+  const baseUrl = env.app.baseUrl;
 
   const pingPromises = mergedConfig.endpoints.map((endpoint) => {
     const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;

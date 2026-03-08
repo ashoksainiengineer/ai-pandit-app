@@ -202,7 +202,7 @@ class SecureLogger {
 
   constructor(config: Partial<LoggerConfig> = {}) {
     this.config = {
-      minLevel: (process.env.LOG_LEVEL as LogLevel) || 'info',
+      minLevel: 'info',
       redactFields: DEFAULT_REDACT_FIELDS,
       redactionString: '[REDACTED]',
       enableConsole: true,

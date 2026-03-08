@@ -4,6 +4,7 @@
  */
 
 import { ClerkProvider } from '@clerk/nextjs';
+import { env } from '@/lib/config/env';
 import { Inter, Cormorant_Garamond, Playfair_Display, JetBrains_Mono } from 'next/font/google';
 import { DebugProvider } from '@/components/providers/debug-provider';
 import './globals.css';
@@ -70,7 +71,7 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider
-      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+      publishableKey={env.clerk.publishableKey}
       appearance={{
         baseTheme: undefined,
         variables: {

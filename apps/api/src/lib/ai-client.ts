@@ -26,7 +26,6 @@ const AI_CONFIG = {
     apiKey: config.ai.apiKey,
     model: config.ai.model,
     maxTokens: config.ai.maxTokens,
-    thinkingBudget: config.ai.thinkingBudget,
     temperature: config.ai.temperature,
     retryAttempts: config.ai.retryAttempts,
     retryDelayMs: config.ai.retryDelayMs,
@@ -48,11 +47,6 @@ interface AICompletionRequest {
     include_reasoning?: boolean;
     reasoning_format?: 'raw' | 'parsed' | 'hidden';
     reasoning_effort?: 'low' | 'medium' | 'high' | 'default';
-    provider?: {
-        order?: string[];
-        allow_fallbacks?: boolean;
-        data_collection?: string;
-    };
 }
 
 interface AICompletionResponse {
@@ -136,14 +130,7 @@ export async function callAI(
                 stream: false,
             };
 
-            // 🚀 OPENROUTER OPTIMIZATION - Only add for OpenRouter
-            if (isOpenRouter) {
-                requestBody.provider = {
-                    order: config.ai.providerOrder,
-                    allow_fallbacks: config.ai.allowFallbacks,
-                    data_collection: config.ai.dataCollection
-                };
-            }
+            // OpenRouter provider logic removed for simplicity
 
             // DeepSeek Reasoner/R1 doesn't support temperature - only add for non-reasoner models
             if (!isReasonerModel) {
@@ -373,14 +360,7 @@ export async function callAIWithStream(
                 stream: true, // Enable streaming
             };
 
-            // 🚀 OPENROUTER OPTIMIZATION - Only add for OpenRouter
-            if (isOpenRouter) {
-                requestBody.provider = {
-                    order: config.ai.providerOrder,
-                    allow_fallbacks: config.ai.allowFallbacks,
-                    data_collection: config.ai.dataCollection
-                };
-            }
+            // OpenRouter provider logic removed for simplicity
 
             if (!isReasonerModel) {
                 requestBody.temperature = configLocal.temperature;

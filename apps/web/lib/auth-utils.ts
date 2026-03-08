@@ -1,4 +1,5 @@
 import { logger } from './secure-logger';
+import { env } from './config/env';
 
 /**
  * 🔱 GOD-TIER TOKEN RETRIEVAL
@@ -10,8 +11,7 @@ export async function getTokenWithRetry(
     maxRetries = 10
 ): Promise<string | null> {
     const isTest = (typeof window !== 'undefined' && (window as any).isTestEnv === true) ||
-        process.env.NEXT_PUBLIC_APP_ENV === 'test' ||
-        process.env.NODE_ENV === 'test';
+        env.app.isTest;
 
     if (isTest) {
         return 'mock-token-123456789012345678901234567890';

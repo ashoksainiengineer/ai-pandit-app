@@ -15,7 +15,9 @@
  */
 import React from 'react';
 
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+import { env } from './config/env';
+
+if (typeof window !== 'undefined' && env.app.isDevelopment) {
     // Dynamic import to avoid bundling in production
     import('@welldone-software/why-did-you-render').then((whyDidYouRenderModule) => {
         const whyDidYouRender = whyDidYouRenderModule.default;

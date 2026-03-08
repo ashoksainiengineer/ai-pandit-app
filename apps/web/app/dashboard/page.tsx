@@ -7,6 +7,7 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { v4 as uuidv4 } from 'uuid';
 import { currentUser } from '@clerk/nextjs/server';
+import { env } from '@/lib/config/env';
 import { db } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { eq, desc } from 'drizzle-orm';
@@ -16,7 +17,7 @@ import { DashboardClient } from './DashboardClient';
 import Layout from '@/components/Layout';
 
 // Initialize encryption for server-side decryption
-initializeEncryption(process.env.ENCRYPTION_SECRET || process.env.CLERK_ENCRYPTION_KEY);
+initializeEncryption(env.security.encryptionSecret);
 
 // Loading skeleton for the dashboard
 function DashboardSkeleton() {

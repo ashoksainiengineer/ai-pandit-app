@@ -246,6 +246,11 @@ class Logger {
     this.log('fatal', message, errorMeta);
   }
 
+  // 🌐 HTTP Logging for Middleware (Morgan)
+  http(message: string, meta?: Record<string, unknown>): void {
+    this.log('info', `🌐 ${message}`, { ...meta, type: 'http' });
+  }
+
   // Child logger with bound context
   child(bindings: Record<string, unknown>): Logger {
     const childLogger = new Logger({

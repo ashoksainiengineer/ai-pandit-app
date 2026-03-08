@@ -107,13 +107,15 @@ async function bootstrap() {
         // Continue anyway as we have fallback logic in ephemeris.ts
     }
 
+    httpServer.timeout = config.server.requestTimeoutMs;
+
     httpServer.listen(PORT, '0.0.0.0', () => {
         logger.info('🚀 AI Pandit BTR Engine is live', {
             env: config.app.nodeEnv,
             port: PORT,
             nodeVersion: process.version,
             platform: process.platform,
-            swissephPath: process.env.SWISSEPH_PATH || 'ephe/'
+            swissephPath: 'ephe/'
         });
     });
 

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../lib/logger.js';
+import { config } from '../config/index.js';
 
 interface CustomError extends Error {
     statusCode?: number;
@@ -50,8 +51,11 @@ export function errorHandler(
         return;
     }
 
+    // Client errors - log as warn in production, debug in development
+    const level = config.app.nodeEnv === 'production' ? 'warn' : 'debug';
+
     // Default: don't leak error details in production
-    const isDev = process.env.NODE_ENV !== 'production';
+    const isDev = config.app.isDevelopment;
 
     res.status(err.statusCode || 500).json({
         error: 'Internal Server Error',

@@ -19,9 +19,9 @@ interface LoggerConfig {
 }
 
 const DEFAULT_CONFIG: LoggerConfig = {
-    level: process.env.NODE_ENV === 'production' ? 'warn' : 'debug',
-    enableConsole: process.env.NODE_ENV !== 'production',
-    enableRemote: process.env.NODE_ENV === 'production' || (typeof window !== 'undefined' && (window as any).isTestEnv),
+    level: env.app.isProduction ? 'warn' : 'debug',
+    enableConsole: !env.app.isProduction,
+    enableRemote: env.app.isProduction || (typeof window !== 'undefined' && (window as any).isTestEnv),
     redactPatterns: [
         // Email addresses
         /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
@@ -215,7 +215,7 @@ class SecureLogger {
                 ...errorMeta,
                 errorName: error.name,
                 errorMessage: sanitizeMessage(error.message, this.config),
-                errorStack: process.env.NODE_ENV !== 'production' ? error.stack : undefined,
+                errorStack: !env.app.isProduction ? error.stack : undefined,
             };
         } else if (error !== undefined) {
             errorMeta = {
@@ -271,6 +271,8 @@ export const logger = new SecureLogger();
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import { useMemo } from 'react';
+import { env } from './config/env';
+import { logger as baseLogger } from './logger';
 
 export function useLogger(context?: Record<string, unknown>): SecureLogger {
     return useMemo(() => {

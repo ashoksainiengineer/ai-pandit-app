@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { createClerkClient, verifyToken } from '@clerk/backend';
+import { config } from '../config/index.js';
 import { logger } from '../lib/logger.js';
 import fs from 'fs';
 import path from 'path';
@@ -7,7 +8,7 @@ import path from 'path';
 const LOG_FILE = path.join(process.cwd(), 'requeue_debug.txt');
 
 export const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
+    secretKey: config.security.clerkSecretKey,
 });
 
 
@@ -34,7 +35,7 @@ export async function authMiddleware(
             `Method: ${req.method}\n` +
             `Query: ${JSON.stringify(req.query)}\n` +
             `Headers: ${JSON.stringify(req.headers, null, 2)}\n`;
-        if (process.env.NODE_ENV === 'development') {
+        if (config.app.nodeEnv === 'development') {
             fs.appendFileSync(LOG_FILE, logEntry);
         }
 
@@ -122,7 +123,7 @@ export async function authMiddleware(
         // 🛡️ INDUSTRIAL GRADE VERIFICATION
         try {
             const session = await verifyToken(token, {
-                secretKey: process.env.CLERK_SECRET_KEY,
+                secretKey: config.security.clerkSecretKey,
                 clockSkewInMs: 900000, // 15 minutes leeway for clock skew
             });
 
@@ -183,7 +184,7 @@ export async function authMiddleware(
                     success: false,
                     error: 'Authentication failed',
                     code: 'AUTH_FAILED',
-                    details: process.env.NODE_ENV === 'development' ? (clerkError instanceof Error ? clerkError.message : JSON.stringify(clerkError)) : undefined
+                    details: config.app.nodeEnv === 'development' ? (clerkError instanceof Error ? clerkError.message : JSON.stringify(clerkError)) : undefined
                 });
             }
         }

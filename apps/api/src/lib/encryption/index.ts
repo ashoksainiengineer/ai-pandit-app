@@ -1,4 +1,4 @@
-import { getEncryptionSecret, getAllEncryptionSecrets } from './config.js';
+import { config } from '../../config/index.js';
 import {
     encryptData as rawEncryptData,
     decryptData as rawDecryptData,
@@ -8,6 +8,20 @@ import {
     decryptObject as rawDecryptObject,
     isEncrypted,
 } from './DANGER_DO_NOT_MODIFY.js';
+
+/**
+ * 🔒 Internal Helpers
+ * Retrieves the authoritative encryption secrets from the centralized config.
+ */
+function getEncryptionSecret(): string {
+    return config.security.encryptionSecret;
+}
+
+function getAllEncryptionSecrets(): string[] {
+    // Current security policy: ENCRYPTION_SECRET is the sole source of truth.
+    // In future, rotation can be implemented by adding previous secrets to an array.
+    return [config.security.encryptionSecret];
+}
 
 /**
  * 🔴 CRITICAL FUNCTION - DO NOT MODIFY 🔴

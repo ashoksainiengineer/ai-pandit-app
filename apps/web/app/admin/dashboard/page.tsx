@@ -5,7 +5,8 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, use } from 'react';
+import { env } from '@/lib/config/env';
 import dynamic from 'next/dynamic';
 import DashboardLayout from '@/app/components/dashboard/DashboardLayout';
 import StatsCard from '@/app/components/dashboard/StatsCard';
@@ -33,7 +34,7 @@ import type {
 } from '@/app/types/dashboard';
 
 // API client
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const API_BASE_URL = env.app.baseUrl;
 
 async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
   const response = await fetch(`${API_BASE_URL}/api/admin/metrics`, {

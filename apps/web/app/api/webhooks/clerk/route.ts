@@ -1,4 +1,5 @@
 import { Webhook } from 'svix';
+import { env } from '@/lib/config/env';
 import { headers } from 'next/headers';
 import { WebhookEvent } from '@clerk/nextjs/server';
 import { db } from '@ai-pandit/db';
@@ -25,7 +26,7 @@ export async function POST(req: Request) {
     const body = JSON.stringify(payload);
 
     // 4. Create a new Svix instance with your secret.
-    const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
+    const WEBHOOK_SECRET = env.clerk.webhookSecret;
 
     if (!WEBHOOK_SECRET) {
         throw new Error('Please add CLERK_WEBHOOK_SECRET from Clerk Dashboard to .env or .env.local');

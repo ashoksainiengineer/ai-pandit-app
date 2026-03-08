@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { env } from '@/lib/config/env';
 import { db } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { auth } from '@clerk/nextjs/server';
 import { encrypt, decrypt, isEncrypted, parseSensitiveField, initializeEncryption } from '@/lib/crypto';
 
-initializeEncryption(process.env.ENCRYPTION_SECRET || process.env.CLERK_ENCRYPTION_KEY);
+initializeEncryption(env.security.encryptionSecret);
 
 // Redundant local helper removed as per implementation plan
 

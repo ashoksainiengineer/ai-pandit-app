@@ -3,12 +3,13 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { encrypt, encryptObject, initializeEncryption } from '@/lib/crypto';
+import { encrypt, encryptObject, initializeEncryption, decrypt, isEncrypted, parseSensitiveField } from '@/lib/crypto';
 import { parsePaginationParams, createPaginationMeta } from '@/lib/pagination';
 import { logAuditEvent, getRequestMetadata } from '@/lib/audit';
+import { env } from '@/lib/config/env';
 
 // Initialize encryption
-initializeEncryption(process.env.ENCRYPTION_SECRET);
+initializeEncryption(env.security.encryptionSecret);
 
 // ═════════════════════════════════════════════════════════════════════════════
 // DRAFT API - Save form data without starting analysis
@@ -78,7 +79,11 @@ export async function POST(request: NextRequest) {
 
         if (sessionId) {
             const existing = await db.select({ clerkId: sessions.clerkId }).from(sessions).where(eq(sessions.id, sessionId)).limit(1);
-            if (existing.length === 0) return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+            if (existing.length === 0) {
+                if (env.app.isProduction) {
+                    return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+                }
+            }
             if (existing[0].clerkId !== clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
 
             await db.update(sessions).set(draftData).where(eq(sessions.id, sessionId));
@@ -89,10 +94,10 @@ export async function POST(request: NextRequest) {
 
         if (birthData.dateOfBirth) {
             const existingDrafts = await db.select({ id: sessions.id, status: sessions.status, dateOfBirth: sessions.dateOfBirth })
-                                          .from(sessions)
-                                          .where(eq(sessions.userId, internalUserId));
+                .from(sessions)
+                .where(eq(sessions.userId, internalUserId));
             const matchingDraft = existingDrafts.find(d => d.status === 'draft' && d.dateOfBirth === birthData.dateOfBirth);
-            
+
             if (matchingDraft) {
                 await db.update(sessions).set(draftData).where(eq(sessions.id, matchingDraft.id));
                 await logAuditEvent({ userId: clerkId, action: 'DRAFT_UPDATED', resourceType: 'SESSION', resourceId: matchingDraft.id, ipAddress, userAgent, details: { reason: 'Matching birth date' } });
@@ -149,8 +154,8 @@ export async function GET(request: NextRequest) {
             status: sessions.status,
             updatedAt: sessions.updatedAt,
         })
-        .from(sessions)
-        .where(eq(sessions.userId, user.id));
+            .from(sessions)
+            .where(eq(sessions.userId, user.id));
 
         // Filter for sessions that can be continued
         const continuableSessions = allUserSessions.filter(d =>

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, memo, useRef, useMemo, useId } from 'react';
+import { env } from '@/lib/config/env';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -30,7 +31,6 @@ import { useShallow } from 'zustand/react/shallow';
 import type { CandidateScore } from '@/lib/store/stream-types';
 import { cancelAnalysis, restartAnalysis } from './actions';
 import { logger } from '@/lib/secure-logger';
-import { env } from '@/lib/config';
 import { AnalysisErrorBoundary, SectionErrorBoundary } from '@/components/rectify/AnalysisErrorBoundary';
 const AdvancedSignalsDashboard = dynamic(() => import('@/components/rectify/advanced-signals/AdvancedSignalsDashboard'), { ssr: false });
 const UnifiedAIPanel = dynamic(() => import('@/components/rectify/UnifiedAIPanel').then(mod => mod.UnifiedAIPanel), { ssr: false });
@@ -40,7 +40,7 @@ const TechnicalMethodology = dynamic(() => import('@/components/rectify/analysis
 const StageLeaderboard = dynamic(() => import('@/components/rectify/analysis/StageLeaderboard').then(mod => mod.StageLeaderboard), { ssr: false });
 
 // 🔧 Dev-only: SSE Debug Panel for real-time stream inspection
-const SSEDebugPanel = process.env.NODE_ENV === 'development'
+const SSEDebugPanel = env.app.isDevelopment
   ? dynamic(() => import('@/components/dev/SSEDebugPanel'), { ssr: false })
   : () => null;
 

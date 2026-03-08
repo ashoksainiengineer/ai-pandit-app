@@ -146,7 +146,7 @@ export class AppError extends Error {
         statusCode: this.statusCode,
         details: this.details,
         timestamp: this.timestamp,
-        ...(process.env.NODE_ENV === 'development' && { stack: this.stack }),
+        ...(typeof process !== 'undefined' && process.env.NODE_ENV === 'development' && { stack: this.stack }),
       },
     };
   }

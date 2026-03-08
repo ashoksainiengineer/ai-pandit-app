@@ -7,7 +7,8 @@ import { Router, Request, Response } from 'express';
 import { db } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { eq, and, gte, lte, sql, desc, count, SQL } from 'drizzle-orm';
-import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
+import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import { config } from '../config/index.js';
 import { logger } from '../lib/logger.js';
 import { AppError, ErrorCodes } from '../errors/index.js';
 
@@ -166,7 +167,7 @@ router.get('/db-check', authMiddleware, async (req: AuthenticatedRequest, res: R
           users: userCount[0]?.count || 0
         },
         engineVersion: '3.0.0',
-        environment: process.env.NODE_ENV
+        environment: config.app.nodeEnv
       }
     });
   } catch (error: any) {

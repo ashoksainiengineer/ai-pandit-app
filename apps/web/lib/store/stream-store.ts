@@ -1,3 +1,4 @@
+import { env } from '../config/env';
 import { create } from 'zustand';
 import { devtools, persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
@@ -537,6 +538,6 @@ export const useStreamStore = create<StreamStore>()(
                 }),
             }
         ),
-        { name: 'BTR-StreamStore', enabled: process.env.NODE_ENV === 'development' } as any
+        { name: 'BTR-StreamStore', enabled: env.app.isDevelopment } as any
     )
 );

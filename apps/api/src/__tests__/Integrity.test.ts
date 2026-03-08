@@ -56,6 +56,8 @@ describe('🛡️ Configuration Integrity Audit', () => {
         expect(memoryConfig.rssThresholdGB).toBe(12);
         // Pressure should default to 80% of Heap
         expect(memoryConfig.pressureThresholdGB).toBe(8);
+        // GC threshold should be hardcoded to 10
+        expect(memoryConfig.gcThresholdGB).toBe(10);
     });
 
     it('Environment Isolation: Should respect NODE_ENV settings', async () => {

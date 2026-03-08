@@ -4,14 +4,15 @@ import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { parseSensitiveField, initializeEncryption } from '@/lib/crypto';
 import { ResultsDashboardClient } from './ResultsDashboardClient';
 import Layout from '@/components/Layout';
 import Link from 'next/link';
 import { Breadcrumbs, predefinedBreadcrumbs } from '@/components/ui/Breadcrumbs';
+import { env } from '@/lib/config/env';
+import { initializeEncryption, decrypt, parseSensitiveField } from '@/lib/crypto';
 
 // Initialize encryption for server-side decryption
-initializeEncryption(process.env.ENCRYPTION_SECRET || process.env.CLERK_ENCRYPTION_KEY);
+initializeEncryption(env.security.encryptionSecret);
 
 const getSessionResults = cache(async (sessionId: string, userId: string): Promise<any> => {
     try {

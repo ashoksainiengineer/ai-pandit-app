@@ -17,7 +17,7 @@ import calculateRouter from './calculate.js';
 import queueRouter from './queue.js';
 import progressRouter from './progress.js';
 import streamRouter from './stream.js';
-import warmupRouter from './warmup.js';
+// warmupRouter removed for security realignment
 import adminRouter from './admin.js';
 import sessionsRouter from './sessions.js';
 import candidateDetailRouter from './candidate-detail.js';
@@ -82,8 +82,7 @@ router.use(selectiveApiRateLimiter);
 // Health check - own rate limit
 router.use('/health', healthRateLimiter, healthRouter);
 
-// Warmup endpoint for HF Spaces
-router.use('/warmup', healthRateLimiter, warmupRouter);
+// Warmup endpoint removed for security realignment
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // PROTECTED ROUTES (Authentication required)
