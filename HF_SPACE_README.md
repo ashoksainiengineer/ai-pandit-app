@@ -126,6 +126,7 @@ See LICENSE file for details.
 
 ## 📚 Documentation
 
+- [`README.md`](README.md) - Main README
 - [`README_HF.md`](README_HF.md) - Complete environment variable reference
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) - System architecture documentation
 - [`AGENTS.md`](AGENTS.md) - Development guidelines

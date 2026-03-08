@@ -22,6 +22,18 @@ RUN npm ci --loglevel=error
 
 COPY --from=pruner /app/out/full/ .
 COPY turbo.json turbo.json
+
+# Set dummy environment variables for build (HF Spaces only provides secrets at runtime)
+# These values are only used during TypeScript compilation, not at runtime
+ENV NODE_ENV=production
+ENV TURSO_DATABASE_URL=libsql://dummy.turso.io
+ENV TURSO_AUTH_TOKEN=dummy_token
+ENV CLERK_SECRET_KEY=dummy_clerk_secret
+ENV ENCRYPTION_SECRET=dummy_encryption_secret_32_chars_minimum
+ENV CLERK_WEBHOOK_SECRET=dummy_webhook_secret
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=dummy_publishable_key
+ENV NEXT_PUBLIC_BACKEND_URL=http://localhost:7860
+
 RUN turbo run build --filter=@ai-pandit/api...
 
 # ─── Stage 3: Production Prep ──────────────────────────────────────────────
@@ -35,8 +47,8 @@ RUN npm ci --omit=dev --loglevel=error && \
 FROM node:20-alpine AS runner
 WORKDIR /app
 RUN apk add --no-cache wget libc6-compat
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nodejs && \
+RUN addgroup --system --gid 1000 nodejs && \
+    adduser --system --uid 1000 nodejs && \
     mkdir -p /app/ephe /app/logs && \
     chown -R nodejs:nodejs /app
 
