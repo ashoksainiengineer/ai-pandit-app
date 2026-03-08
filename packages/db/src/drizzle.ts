@@ -68,44 +68,92 @@ async function createClientWithRetry(): Promise<Client> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// INITIALIZE CLIENT
+// INITIALIZE CLIENT WITH TIMEOUT PROTECTION
 // ═══════════════════════════════════════════════════════════════════════════════
 
 let client: Client;
 let db: ReturnType<typeof drizzle<typeof schema>>;
 
-try {
-  // Use a fallback URL if syncUrl is missing (common during Next.js build time)
-  const finalUrl = CONNECTION_CONFIG.syncUrl || 'file::memory:';
+/**
+ * Create client with explicit timeout to prevent indefinite hangs
+ * HF Spaces may have restricted network egress causing createClient to hang
+ */
+async function createClientWithTimeout(url: string, authToken: string, timeoutMs: number = 10000): Promise<Client> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Database client creation timed out after ${timeoutMs}ms. Check network egress/Turso connectivity.`));
+    }, timeoutMs);
 
-  if (!CONNECTION_CONFIG.syncUrl) {
-    if (process.env.NEXT_PHASE !== 'phase-production-build') {
-      console.warn('⚠️ TURSO_DATABASE_URL is missing - using memory-based fallback client');
+    try {
+      const newClient = createClient({ url, authToken });
+      clearTimeout(timer);
+      resolve(newClient);
+    } catch (error) {
+      clearTimeout(timer);
+      reject(error);
+    }
+  });
+}
+
+async function initializeDatabase(): Promise<void> {
+  console.log('[DB] Initializing database client...');
+  const startTime = Date.now();
+  
+  try {
+    // Use a fallback URL if syncUrl is missing (common during Next.js build time)
+    const finalUrl = CONNECTION_CONFIG.syncUrl || 'file::memory:';
+
+    if (!CONNECTION_CONFIG.syncUrl) {
+      if (process.env.NEXT_PHASE !== 'phase-production-build') {
+        console.warn('⚠️ TURSO_DATABASE_URL is missing - using memory-based fallback client');
+      }
+    }
+
+    // Create client with timeout protection
+    client = await createClientWithTimeout(finalUrl, CONNECTION_CONFIG.authToken);
+    console.log(`[DB] Client created in ${Date.now() - startTime}ms`);
+
+    // Proactive check in non-build environments
+    if (process.env.NEXT_PHASE !== 'phase-production-build' && CONNECTION_CONFIG.syncUrl) {
+      console.log('[DB] Testing connection...');
+      const testStart = Date.now();
+      try {
+        await client.execute('SELECT 1');
+        console.log(`[DB] Connection verified in ${Date.now() - testStart}ms`);
+      } catch (err) {
+        console.error('❌ Proactive database health check failed:', (err as Error).message);
+        // Continue - let runtime checks handle retries
+      }
+    }
+
+    db = drizzle(client, { schema });
+    console.log('[DB] Database client initialized successfully');
+
+  } catch (error) {
+    console.error('[DB] Failed to initialize database client:', (error as Error).message);
+    
+    // Fallback: create memory-based client to prevent crashes
+    console.warn('[DB] Creating fallback in-memory client...');
+    client = createClient({ url: 'file::memory:' });
+    db = drizzle(client, { schema });
+    
+    if (process.env.NODE_ENV === 'production' && CONNECTION_CONFIG.syncUrl) {
+      console.warn('[DB] Continuing with fallback client - database operations will retry');
+    } else if (!CONNECTION_CONFIG.syncUrl) {
+      // Expected during build time
+    } else {
+      throw error;
     }
   }
+}
 
-  client = createClient({
-    url: finalUrl,
-    authToken: CONNECTION_CONFIG.authToken,
-  });
+// Initialize immediately but don't block on it
+// This prevents module load hangs while still initializing early
+const initPromise = initializeDatabase();
 
-  // Proactive check in non-build environments
-  if (process.env.NEXT_PHASE !== 'phase-production-build' && CONNECTION_CONFIG.syncUrl) {
-    client.execute('SELECT 1').catch(err => {
-      console.error('❌ Proactive database health check failed:', err.message);
-    });
-  }
-
-  db = drizzle(client, { schema });
-
-} catch (error) {
-  console.error('Failed to initialize database client:', error);
-  // During build time, we don't want to crash the process if the DB is unreachable
-  if (process.env.NODE_ENV === 'production') {
-    console.warn('Continuing build despite database initialization error...');
-  } else {
-    throw error;
-  }
+// For backward compatibility: expose a function to ensure init is complete
+export async function ensureDatabaseInitialized(): Promise<void> {
+  await initPromise;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

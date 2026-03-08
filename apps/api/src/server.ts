@@ -5,6 +5,15 @@
  * error handling, and performance monitoring.
  */
 
+// ═════════════════════════════════════════════════════════════════════════════
+// IMMEDIATE STARTUP OBSERVABILITY - Must be first
+// ═════════════════════════════════════════════════════════════════════════════
+console.log(`[STARTUP ${new Date().toISOString()}] Server process starting...`);
+console.log(`[STARTUP] Node version: ${process.version}`);
+console.log(`[STARTUP] Platform: ${process.platform}`);
+console.log(`[STARTUP] Environment: ${process.env.NODE_ENV || 'not set'}`);
+console.log(`[STARTUP] Port: ${process.env.PORT || '7860'}`);
+
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
@@ -86,6 +95,9 @@ export default app;
 // ═════════════════════════════════════════════════════════════════════════════
 
 async function bootstrap() {
+    console.log(`[STARTUP] Bootstrap starting...`);
+    const startTime = Date.now();
+    
     const httpServer = createServer(app);
 
     // Setup uncaught exception handlers before anything else
@@ -97,25 +109,40 @@ async function bootstrap() {
 
     const PORT = config.server.port;
 
+    // Ensure database is initialized before starting server
+    // This prevents race conditions where requests arrive before DB is ready
+    try {
+        console.log('[STARTUP] Waiting for database initialization...');
+        const { ensureDatabaseInitialized } = await import('@ai-pandit/db');
+        await ensureDatabaseInitialized();
+        console.log(`[STARTUP] Database ready in ${Date.now() - startTime}ms`);
+    } catch (error) {
+        console.warn('[STARTUP] Database initialization warning:', (error as Error).message);
+        // Continue - DB will retry on demand
+    }
+
     // Initialize Swiss Ephemeris before listening
     try {
-        logger.info('Initializing Swiss Ephemeris...');
+        console.log('[STARTUP] Initializing Swiss Ephemeris...');
         await initSwissEph();
-        logger.info('✅ Swiss Ephemeris initialized');
+        console.log('[STARTUP] Swiss Ephemeris initialized');
     } catch (error) {
-        logger.error('❌ Failed to initialize Swiss Ephemeris', error);
+        console.error('[STARTUP] Failed to initialize Swiss Ephemeris:', error);
         // Continue anyway as we have fallback logic in ephemeris.ts
     }
 
     httpServer.timeout = config.server.requestTimeoutMs;
 
     httpServer.listen(PORT, '0.0.0.0', () => {
+        const elapsed = Date.now() - startTime;
+        console.log(`[STARTUP] 🚀 AI Pandit BTR Engine is live (${elapsed}ms)`);
         logger.info('🚀 AI Pandit BTR Engine is live', {
             env: config.app.nodeEnv,
             port: PORT,
             nodeVersion: process.version,
             platform: process.platform,
-            swissephPath: 'ephe/'
+            swissephPath: 'ephe/',
+            startupMs: elapsed
         });
     });
 

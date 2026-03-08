@@ -58,7 +58,13 @@ router.get('/', async (_req: Request, res: Response) => {
 
 router.get('/ready', async (_req: Request, res: Response) => {
   try {
-    const dbHealth = await checkDatabaseHealth();
+    // Add timeout to prevent hanging on DB check
+    const dbHealth = await Promise.race([
+      checkDatabaseHealth(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('DB health check timeout')), 5000)
+      ),
+    ]);
 
     if (dbHealth.healthy) {
       res.json({
@@ -74,9 +80,10 @@ router.get('/ready', async (_req: Request, res: Response) => {
       });
     }
   } catch (error) {
+    logger.warn('Readiness check failed', { error: (error as Error).message });
     res.status(503).json({
       ready: false,
-      error: 'Readiness check failed',
+      error: 'Readiness check failed: ' + (error as Error).message,
       timestamp: new Date().toISOString(),
     });
   }
