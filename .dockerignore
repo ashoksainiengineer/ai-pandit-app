@@ -1,89 +1,73 @@
 # ═══════════════════════════════════════════════════════════════════════════
-# AI Pandit — Docker Build Context Ignore
-# Reduces build context from ~500MB to ~5MB for 10x faster builds.
+# AI PANDIT - DOCKER CONTEXT HYGIENE (.dockerignore)
+# Optimized for HF Spaces (Fast builds, small layers, zero secret leakage)
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Version control
+# --- SOURCE CONTROL ---
 .git
 .gitignore
+.dockerignore
+.github/
 
-# Dependencies (re-installed in Docker)
-node_modules
-**/node_modules
+# --- LOCAL DEPENDENCIES ---
+node_modules/
+**/node_modules/
 
-# Build outputs (rebuilt in Docker)
-dist
-**/dist
-.next
-**/.next
-.turbo
-**/.turbo
-out
-build
-
-# Environment files (secrets passed via env vars at runtime)
-.env
-.env.local
-.env.*.local
-!.env.example
-
-# Docs (not needed in production image)
-*.md
-**/*.md
-docs/
-tasks/
-scripts/
-backend/
-ephe/README.md
-
-# Logs & misc
-*.log
-logs/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.eslintcache
-.prettierrc
+# --- LOCAL BUILD ARTIFACTS ---
+dist/
+**/dist/
+build/
+.next/
+**/.next/
+out/
+.turbo/
+**/.turbo/
 *.tsbuildinfo
-.vercel
-.idx
-.gemini
-.vscode
-.cursorrules
+.vercel/
+.agents/
 
-# Tests & IDE
-e2e/
-playwright.config.ts
-vitest.config.ts
-vitest.workspace.ts
-jest.config.js
+# --- SECRETS & LOCAL CONFIG ---
+.env
+.env.*
+!.env.example
+.clerk/
+*.db
+*.sqlite
+
+# --- TOOLS & IDE ---
+.vscode/
+.idea/
+.gemini/
+.idx/
+.cursorrules
 .DS_Store
 Thumbs.db
 
-# Tests (not needed in production image)
+# --- TESTS & COVERAGE ---
+__tests__/
+**/__tests__/
+tests/
+**/tests/
+coverage/
+**/coverage/
+playwright-report/
+test-results/
+.nyc_output
 **/*.test.ts
 **/*.test.tsx
 **/*.test.js
 **/*.test.jsx
 **/*.spec.ts
 **/*.spec.tsx
-**/*.spec.js
-**/*.spec.jsx
-**/__tests__
-**/tests
-**/coverage
-.nyc_output
 
-# Frontend (backend-only Docker image)
-apps/web
+# --- APP SPECIFIC (BACKEND ONLY IMAGE) ---
+apps/web/
+ephe/*.se1  # Huge files are downloaded or copied in separate layers if needed
 
-# Logs & misc
+# --- MISC ---
 *.log
-logs/
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
 .eslintcache
 .prettierrc
-*.tsbuildinfo
-.vercel
+*.md  # Documentation not needed in production container

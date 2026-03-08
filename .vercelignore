@@ -1,0 +1,22 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# AI PANDIT - VERCEL DEPLOYMENT IGNORE (.vercelignore)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Exclude tests from production deployment
+**/__tests__/**
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+coverage/
+playwright-report/
+test-results/
+
+# Exclude IDE/Tooling
+.gemini/
+.idx/
+.vscode/
+
+# Exclude Ephemeris source data
+apps/api/ephe/*.se1
+sweph.tar.gz

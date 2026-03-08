@@ -1,59 +1,70 @@
-node_modules
-**/coverage/**
-**/.next/**
-apps/api/ephe/
-sweph.tar.gz
-# clerk configuration (can include secrets)
-/.clerk/
+# ═══════════════════════════════════════════════════════════════════════════
+# AI PANDIT - REPOSITORY HYGIENE (.gitignore)
+# ═══════════════════════════════════════════════════════════════════════════
 
-# local env files
+# --- DEPENDENCIES ---
+node_modules/
+.pnp
+.pnp.js
+
+# --- ENVIRONMENT & SECRETS ---
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .env*.local
-
-# database
+.clerk/
 *.db
 *.sqlite
 
-# logs
+# --- BUILD OUTPUTS ---
+dist/
+build/
+.next/
+out/
+.turbo/
+*.tsbuildinfo
+.vercel/
+.agents/
+
+# --- LOGS & DIAGNOSTICS ---
 *.log
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
 pnpm-debug.log*
-
-# build outputs
-dist
-backend/dist
-*.tsbuildinfo
-
-.turbo/
-.next/
-dist/
-build/
-.vercel/
-.env.production
-.env.development
-.env.local
-.env.*.local
-*.tsbuildinfo
 .eslintcache
-.agents/
-.vercel
+.stylelintcache
 
-# Test artifacts
+# --- TEST ARTIFACTS ---
+coverage/
 playwright-report/
 test-results/
+.nyc_output
 
-# Backup files
+# --- SYSTEM & IDE ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.project
+.gemini/
+.idx/
 *.backup
 *.bak
 *.old
 *.original
 
-# Debug files in wrong locations (should be in scripts/)
+# --- APP SPECIFIC (NON-SOURCE) ---
+apps/api/ephe/*.se1
+!apps/api/ephe/README.md
+sweph.tar.gz
+
+# --- SCRATCH & DEBUG ---
 apps/api/test-*.ts
 apps/api/check-*.ts
 apps/api/src/check-*.ts
 apps/api/src/debug-*.ts
 apps/api/src/test-*.ts
 apps/api/src/requeue-*.ts
+verify-production.ts
