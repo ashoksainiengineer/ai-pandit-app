@@ -74,7 +74,8 @@ export const env = {
 
   api: {
     // Priority: Env Var > Default Localhost
-    backendUrl: process.env.NODE_ENV === 'production' ? '/api' : 'http://localhost:3001',
+    // In production, use empty string - Next.js rewrites handle /api proxying
+    backendUrl: process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001',
     huggingFaceToken: getEnvVarOptional(process.env.NEXT_PUBLIC_HF_TOKEN),
     internalApiKey: undefined, // Removed for security realignment
   },
