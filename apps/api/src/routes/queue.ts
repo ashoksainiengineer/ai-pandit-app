@@ -11,6 +11,7 @@ import { BirthData, LifeEvent } from '../lib/types.js';
 import { encryptData, safeDecrypt, safeDecryptWithFallback } from '../lib/encryption/index.js';
 import { syncUser } from '../lib/user-sync.js';
 import { cleanupSession } from '../lib/session-events.js';
+import { CalculateRequestSchema } from '@ai-pandit/shared';
 
 const router = Router();
 
@@ -31,14 +32,24 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
         const body: SubmitRequest = req.body;
         const { birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig, consentConfirmed, existingSessionId } = req.body;
 
-        // Validate input
-        if (!birthData) {
-            res.status(400).json({ success: false, error: 'Birth data is required' });
-            return;
-        }
-
-        if (!lifeEvents || lifeEvents.length < 3) {
-            res.status(400).json({ success: false, error: 'At least 3 life events are required' });
+        // Validate core payload using shared contract schema
+        const validationResult = CalculateRequestSchema.safeParse({
+            birthData,
+            lifeEvents,
+            physicalTraits,
+            forensicTraits,
+            offsetConfig,
+        });
+        if (!validationResult.success) {
+            const errors = validationResult.error.errors.map((err) => ({
+                field: err.path.join('.'),
+                message: err.message,
+            }));
+            res.status(400).json({
+                success: false,
+                error: 'Validation failed',
+                details: errors,
+            });
             return;
         }
 
@@ -348,7 +359,6 @@ async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionId
         const clerkId = req.clerkId!;
         const sessionId = sessionIdFromPath ||
             req.body.sessionId ||
-            (req.query.sid as string) ||
             (req.query.sessionId as string);
 
         if (!sessionId) {

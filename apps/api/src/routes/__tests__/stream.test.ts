@@ -49,7 +49,15 @@ vi.mock('@ai-pandit/db', () => {
 });
 
 vi.mock('@ai-pandit/db/schema', () => ({
-    sessions: { id: 'id', status: 'status', userId: 'userId', clerkId: 'clerkId', errorMessage: 'errorMessage', updatedAt: 'updatedAt' },
+    sessions: {
+        id: 'id',
+        status: 'status',
+        userId: 'userId',
+        clerkId: 'clerkId',
+        errorMessage: 'errorMessage',
+        updatedAt: 'updatedAt',
+        analysisResult: 'analysisResult'
+    },
 }));
 
 vi.mock('drizzle-orm', () => ({
@@ -93,6 +101,7 @@ vi.mock('../../lib/queue-manager.js', () => ({
 
 vi.mock('../../lib/encryption/index.js', () => ({
     parseSensitiveField: vi.fn((val) => val === 'encrypted' ? 'decrypted' : val),
+    safeDecryptWithFallback: vi.fn((val) => val),
 }));
 
 import { db } from '@ai-pandit/db';
@@ -165,6 +174,7 @@ describe('GET /api/stream/:sessionId', () => {
         expect(res.headers['content-type']).toContain('text/event-stream');
         expect(sse[0].type).toBe('error');
         expect(sse[0].code).toBe('UNAUTHORIZED');
+        expect(sse[0].message).toBe('Authentication required');
     });
 
     it('should return error if session not found', async () => {
@@ -192,7 +202,18 @@ describe('GET /api/stream/:sessionId', () => {
     });
 
     it('should immediately send terminal_state if session is complete', async () => {
-        setMockResults([[{ clerkId: 'valid-clerk', status: 'complete' }]]);
+        setMockResults([[
+            {
+                clerkId: 'valid-clerk',
+                userId: '1',
+                status: 'complete',
+                analysisResult: JSON.stringify({
+                    rectifiedTime: '12:34:56',
+                    accuracy: 96,
+                    confidence: 'high'
+                })
+            }
+        ]]);
 
         const res = await request(app)
             .get('/api/stream/sess-1')
@@ -201,6 +222,8 @@ describe('GET /api/stream/:sessionId', () => {
         const sse = parseSSE(res.text);
         expect(sse[0].type).toBe('terminal_state');
         expect(sse[0].status).toBe('complete');
+        expect(sse[0].result?.rectifiedTime).toBe('12:34:56');
+        expect(sse[0].rectifiedTime).toBe('12:34:56');
     });
 
     it('should immediately send terminal_state if session is failed', async () => {
@@ -264,6 +287,16 @@ describe('GET /api/stream/:sessionId', () => {
         expect(sse.find(e => e.type === 'initial_state')).toBeDefined();
         expect(sse.find(e => e.type === 'metadata')).toBeDefined();
         expect(sse.find(e => e.type === 'complete')).toBeDefined();
+    });
+
+    it('should not treat sid query parameter as sessionId', async () => {
+        const res = await request(app)
+            .get('/api/stream?sid=token-like-value')
+            .set('Authorization', 'Bearer VALID');
+
+        const sse = parseSSE(res.text);
+        expect(sse[0].type).toBe('error');
+        expect(sse[0].code).toBe('BAD_REQUEST');
     });
 
     describe('Last-Event-ID Reconnection Replay', () => {

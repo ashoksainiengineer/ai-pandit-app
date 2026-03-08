@@ -230,14 +230,16 @@ export function generateCandidateTimes(
     const candidates: CandidateTime[] = [];
 
     // Start from earliest time (negative offset)
-    for (let offset = -offsetMinutes; offset <= offsetMinutes; offset += interval) {
+    const totalSteps = Math.round((offsetMinutes * 2) / interval);
+    for (let step = 0; step <= totalSteps; step++) {
+      const offset = -offsetMinutes + (step * interval);
       const candidateMinutes = baseMinutes + offset;
       const candidate = convertMinutesToTime(candidateMinutes, tentativeTime, offset);
       candidates.push(candidate);
     }
 
     // Ensure tentative time is included if not already
-    const hasTentative = candidates.some(c => c.offsetMinutes === 0);
+    const hasTentative = candidates.some(c => c.time === tentativeTime || Math.abs(c.offsetMinutes) < 1e-9);
     if (!hasTentative) {
       candidates.push({
         time: tentativeTime,
@@ -267,11 +269,55 @@ export function generateCandidateTimes(
 // 🔱 BATCH SPLITTER - Research-backed 10-candidate batches
 // ═════════════════════════════════════════════════════════════════════════
 
-export function splitIntoBatches<T>(candidates: T[], batchSize: number = MAX_BATCH_SIZE): T[][] {
+function hashStringToUint32(input: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function createSeededRng(seed: number): () => number {
+  let state = seed || 1;
+  return () => {
+    state ^= state << 13;
+    state ^= state >>> 17;
+    state ^= state << 5;
+    return (state >>> 0) / 4294967296;
+  };
+}
+
+function getCandidateSeedToken(candidate: unknown, index: number): string {
+  if (typeof candidate === 'object' && candidate !== null) {
+    const maybeCandidate = candidate as Record<string, unknown>;
+    if (typeof maybeCandidate.time === 'string') {
+      return maybeCandidate.time;
+    }
+  }
+  return String(index);
+}
+
+function deterministicShuffle<T>(candidates: T[], seedInput: string): T[] {
+  const shuffled = [...candidates];
+  const random = createSeededRng(hashStringToUint32(seedInput));
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+export function splitIntoBatches<T>(
+  candidates: T[],
+  batchSize: number = MAX_BATCH_SIZE,
+  seedKey?: string
+): T[][] {
   const batches: T[][] = [];
 
-  // Shuffle before splitting to randomize positions (anti-middle-bias)
-  const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+  // Shuffle deterministically to avoid positional bias while keeping runs reproducible.
+  const seedBase = candidates.map((candidate, index) => getCandidateSeedToken(candidate, index)).join('|');
+  const shuffled = deterministicShuffle(candidates, `${seedKey || 'default'}|${batchSize}|${seedBase}`);
 
   for (let i = 0; i < shuffled.length; i += batchSize) {
     batches.push(shuffled.slice(i, i + batchSize));
@@ -378,7 +424,7 @@ function convertMinutesToTimeSafetyNet(
 
   return {
     time: timeString,
-    offsetMinutes: Math.round(offsetMinutes),
+    offsetMinutes: Number(offsetMinutes.toFixed(4)),
     offsetDescription,
   };
 }
@@ -469,7 +515,7 @@ function convertMinutesToTime(
 
   return {
     time: timeString,
-    offsetMinutes: Math.round(offsetFromBase),
+    offsetMinutes: Number(offsetFromBase.toFixed(4)),
     offsetDescription,
   };
 }

@@ -193,9 +193,16 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
             const backendUrl = env.api.backendUrl.replace(/\/$/, '');
             try {
-                await APIClient.post(`${backendUrl}/api/queue/requeue`, { sessionId }, getToken);
+                const requeueResult = await APIClient.post(`${backendUrl}/api/queue/requeue`, { sessionId }, getToken);
+                if (!requeueResult?.success) {
+                    setError(requeueResult?.error || 'Failed to restart analysis');
+                    setIsSubmitting(false);
+                    return;
+                }
             } catch (err: any) {
-                console.error('Re-queue failed:', err.message);
+                setError(err?.message || 'Failed to restart analysis');
+                setIsSubmitting(false);
+                return;
             }
 
             // CRITICAL: Clear stale Zustand store before navigating to analysis page.

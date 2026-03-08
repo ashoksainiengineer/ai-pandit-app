@@ -80,6 +80,7 @@ vi.mock('../cancellation-manager.js', () => ({
 
 vi.mock('../session-events.js', () => ({
     emitComplete: vi.fn(),
+    emitError: vi.fn(),
 }));
 
 vi.mock('../progress-tracker.js', () => ({

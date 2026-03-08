@@ -59,7 +59,7 @@ const selectiveApiRateLimiter = (req: Request, res: Response, next: NextFunction
   const path = req.path;
 
   // 🔍 DEBUG: Log path for debugging 404s
-  logger.info(`[Router] Incoming path: ${path} (original: ${req.originalUrl})`);
+  logger.debug(`[Router] Incoming path: ${path} (original: ${req.originalUrl})`);
 
   // Skip rate limiting for real-time endpoints (they have their own limiters below)
   if (path.startsWith('/stream') ||
@@ -93,10 +93,12 @@ router.use('/calculate', authMiddleware, calculateRateLimiter, calculateRouter);
 
 // Progress endpoint - MUST come before /queue to match correctly
 // Lenient rate limit for frequent polling during analysis
-router.use('/queue/progress', authMiddleware, progressRateLimiter, progressRouter);
+// NOTE: auth is enforced within progressRouter to avoid duplicate auth verification.
+router.use('/queue/progress', progressRateLimiter, progressRouter);
 
 // Queue management - strict rate limit (matches /queue but NOT /queue/progress)
-router.use('/queue', authMiddleware, strictRateLimiter, queueRouter);
+// NOTE: auth is enforced within queueRouter to avoid duplicate auth verification.
+router.use('/queue', strictRateLimiter, queueRouter);
 
 // Sessions CRUD - Kept for internal use / debugging
 // Primary CRUD is now handled by Vercel serverless (Option A Hybrid Architecture)
@@ -104,9 +106,11 @@ router.use('/queue', authMiddleware, strictRateLimiter, queueRouter);
 router.use('/sessions', authMiddleware, apiRateLimiter, sessionsRouter);
 
 // Stream endpoint - SSE connection, lenient rate limit
-router.use('/stream', authMiddleware, progressRateLimiter, streamRouter);
+// NOTE: auth is enforced within streamRouter to avoid duplicate auth verification.
+router.use('/stream', progressRateLimiter, streamRouter);
 
 // 🔱 Candidate Detail — Tiered Loading (on-demand ephemeris + reasoning)
+// NOTE: auth is enforced within candidateDetailRouter to avoid duplicate auth verification.
 router.use('/candidate', progressRateLimiter, candidateDetailRouter);
 
 import debugAnalysisRouter from './debug-analysis.js';
@@ -115,7 +119,7 @@ import debugAnalysisRouter from './debug-analysis.js';
 router.use('/admin', authMiddleware, strictRateLimiter, adminRouter);
 
 // Debug route (Internal UI for Analysis verification)
-router.use('/debug-analysis', debugAnalysisRouter);
+router.use('/debug-analysis', authMiddleware, strictRateLimiter, debugAnalysisRouter);
 
 // Routes testing
 router.get('/routes-test', (req, res) => {

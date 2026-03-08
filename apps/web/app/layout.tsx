@@ -5,36 +5,8 @@
 
 import { ClerkProvider } from '@clerk/nextjs';
 import { env } from '@/lib/config/env';
-import { Inter, Cormorant_Garamond, Playfair_Display, JetBrains_Mono } from 'next/font/google';
 import { DebugProvider } from '@/components/providers/debug-provider';
 import './globals.css';
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-});
-
-const cormorant = Cormorant_Garamond({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-cormorant',
-  display: 'swap',
-});
-
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-playfair',
-  display: 'swap',
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  variable: '--font-mono',
-  display: 'swap',
-});
 
 import type { Metadata, Viewport } from 'next';
 
@@ -95,7 +67,7 @@ export default function RootLayout({
         }
       }}
     >
-      <html lang="en" suppressHydrationWarning className={`${inter.variable} ${cormorant.variable} ${playfair.variable} ${jetbrainsMono.variable}`}>
+      <html lang="en" suppressHydrationWarning>
         <head>
           <link rel="manifest" href="/manifest.json" />
         </head>

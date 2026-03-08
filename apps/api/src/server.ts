@@ -33,6 +33,11 @@ import { initSwissEph } from './lib/ephemeris.js';
 
 export function createApp() {
     const app = express();
+    const configuredOrigins = (config.app.allowedOrigins || '')
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean);
+    const allowAllOrigins = configuredOrigins.includes('*') && config.app.isDevelopment;
 
     // ═══════════════════════════════════════════════════════════════════════════
     // SECURITY & BASIS MIDDLEWARE
@@ -46,7 +51,22 @@ export function createApp() {
     }));
 
     app.use(cors({
-        origin: config.app.allowedOrigins === '*' ? '*' : config.app.allowedOrigins?.split(','),
+        origin: (origin, callback) => {
+            // Allow non-browser clients and same-origin server-to-server calls.
+            if (!origin) {
+                callback(null, true);
+                return;
+            }
+
+            // When wildcard is configured, reflect caller origin instead of returning '*'
+            // so credentialed requests remain standards-compliant.
+            if (allowAllOrigins || configuredOrigins.includes(origin)) {
+                callback(null, true);
+                return;
+            }
+
+            callback(new Error('Not allowed by CORS'));
+        },
         credentials: true,
         maxAge: 86400, // Pre-flight cache
     }));
@@ -166,7 +186,9 @@ async function bootstrap() {
 }
 
 // Ignition
-bootstrap().catch((error) => {
-    logger.error('🔥 CRITICAL: Failed to bootstrap server', error);
-    process.exit(1);
-});
+if (process.env.NODE_ENV !== 'test' && process.env.VITEST !== 'true') {
+    bootstrap().catch((error) => {
+        logger.error('🔥 CRITICAL: Failed to bootstrap server', error);
+        process.exit(1);
+    });
+}

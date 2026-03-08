@@ -9,7 +9,11 @@ function getEnvVar(value: string | undefined, key: string, defaultValue?: string
       return defaultValue;
     }
     // BUILD-TIME WORKAROUND: Prevent crashes during static generation
-    if (process.env.NODE_ENV === 'production' || process.env.NEXT_PHASE === 'phase-production-build') {
+    if (
+      process.env.NODE_ENV === 'production' ||
+      process.env.NODE_ENV === 'test' ||
+      process.env.NEXT_PHASE === 'phase-production-build'
+    ) {
       // Silence placeholder warnings during build if they are repetitive
       return `placeholder_${key}`;
     }
@@ -73,9 +77,9 @@ export const env = {
   },
 
   api: {
-    // Priority: Env Var > Default Localhost
-    // In production, use empty string - Next.js rewrites handle /api proxying
-    backendUrl: process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3001',
+    // Priority: explicit env var, then localhost fallback for local development.
+    // Production must set NEXT_PUBLIC_BACKEND_URL to the deployed backend origin.
+    backendUrl: process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : ''),
     huggingFaceToken: getEnvVarOptional(process.env.NEXT_PUBLIC_HF_TOKEN),
     internalApiKey: undefined, // Removed for security realignment
   },

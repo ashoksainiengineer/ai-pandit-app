@@ -31,16 +31,6 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
     const [isFocused, setIsFocused] = useState(false);
     const [isCollapsed, setIsCollapsed] = useState(false);
 
-    useEffect(() => {
-        if (stage && [2, 4, 6].includes(stage)) {
-            const candidatesCount = allCandidates ? Object.keys(allCandidates).length : 0;
-            console.log(`[UnifiedAIPanel] Stage ${stage} rendering with IsActive: ${isActive}, IsCompleted: ${isCompleted}, Total Candidates: ${candidatesCount}`, {
-                thinkingData: thinking,
-                allCandidatesKeys: allCandidates ? Object.keys(allCandidates) : [],
-            });
-        }
-    }, [stage, isActive, isCompleted, allCandidates, thinking]);
-
     // 🔱 USER PREFERENCE: Auto-collapse on completion removed. 
     // Panels stay open with card view for manual review.
 
@@ -66,13 +56,6 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
         setIsFocused(true);
         if (onSelectCandidate) onSelectCandidate(time);
     }, [onSelectCandidate]);
-
-    useEffect(() => {
-        console.log(`[UnifiedAIPanel] allCandidates updated. Total: ${allCandidates ? Object.keys(allCandidates).length : 0}`, {
-            keys: allCandidates ? Object.keys(allCandidates) : [],
-            firstFew: allCandidates ? Object.values(allCandidates).slice(0, 3).map(c => ({ time: c.candidateTime })) : []
-        });
-    }, [allCandidates, candidateScores]);
 
     const displayedContent = useMemo(() => {
         const getSafeText = (text: string | undefined | null) => {

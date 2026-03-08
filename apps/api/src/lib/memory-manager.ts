@@ -3,6 +3,9 @@
 // Monitors and manages memory usage during BTR calculations
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { config } from '../config/index.js';
+import { logger } from './logger.js';
+
 interface MemoryStats {
     heapUsed: number;
     heapTotal: number;
@@ -12,9 +15,28 @@ interface MemoryStats {
 }
 
 const MB = 1024 * 1024;
-const MAX_HEAP = 1024 * MB; // 1GB - High-Performance AI baseline
-const WARNING_THRESHOLD = 0.80; // 80% of max heap
-const CRITICAL_THRESHOLD = 0.95; // 95% of max heap
+const GB = 1024 * MB;
+const memoryConfig = {
+    heapThresholdGB: config.memory?.heapThresholdGB ?? 12,
+    pressureThresholdGB: config.memory?.pressureThresholdGB ?? 10,
+    criticalThresholdGB: config.memory?.criticalThresholdGB ?? 11,
+    gcThresholdGB: config.memory?.gcThresholdGB ?? 10,
+};
+const queueConfig = {
+    maxConcurrent: config.queue?.maxConcurrent ?? 3,
+};
+const MAX_HEAP = memoryConfig.heapThresholdGB * GB;
+const WARNING_THRESHOLD = memoryConfig.pressureThresholdGB / memoryConfig.heapThresholdGB;
+const CRITICAL_THRESHOLD = memoryConfig.criticalThresholdGB / memoryConfig.heapThresholdGB;
+
+export interface MemoryPressureSnapshot {
+    heapUsedGB: number;
+    heapTotalGB: number;
+    rssGB: number;
+    rssThresholdGB: number;
+    heapThresholdGB: number;
+    isUnderPressure: boolean;
+}
 
 export function getMemoryStats(): MemoryStats {
     const mem = process.memoryUsage();
@@ -33,23 +55,41 @@ export function logMemory(label: string): void {
     const percent = (stats.percentUsed * 100).toFixed(1);
 
     if (stats.percentUsed > CRITICAL_THRESHOLD) {
-        console.error(`🔴 CRITICAL MEMORY [${label}]: ${heapMB}MB (${percent}%)`);
+        logger.error(`🔴 CRITICAL MEMORY [${label}]`, { heapMB, percent });
     } else if (stats.percentUsed > WARNING_THRESHOLD) {
-        console.warn(`🟡 HIGH MEMORY [${label}]: ${heapMB}MB (${percent}%)`);
+        logger.warn(`🟡 HIGH MEMORY [${label}]`, { heapMB, percent });
     } else {
-        console.log(`🟢 Memory [${label}]: ${heapMB}MB (${percent}%)`);
+        logger.debug(`🟢 Memory [${label}]`, { heapMB, percent });
     }
 }
 
 export function checkMemory(): boolean {
-    const stats = getMemoryStats();
-    return stats.percentUsed < CRITICAL_THRESHOLD;
+    const pressure = getMemoryPressureSnapshot();
+    return !pressure.isUnderPressure;
 }
 
 export function triggerGC(): void {
     if (global.gc) {
         global.gc();
-        console.log('🧹 Garbage collection triggered');
+        logger.info('🧹 Garbage collection triggered');
+    }
+}
+
+export function getMemoryPressureSnapshot(): MemoryPressureSnapshot {
+    const memory = process.memoryUsage();
+    const heapUsedGB = memory.heapUsed / GB;
+    const heapTotalGB = memory.heapTotal / GB;
+    const rssGB = memory.rss / GB;
+    const rssThresholdGB = memoryConfig.gcThresholdGB;
+    const heapThresholdGB = memoryConfig.heapThresholdGB;
+
+    return {
+        heapUsedGB,
+        heapTotalGB,
+        rssGB,
+        rssThresholdGB,
+        heapThresholdGB,
+        isUnderPressure: rssGB > rssThresholdGB || heapUsedGB > heapThresholdGB,
     }
 }
 
@@ -79,7 +119,7 @@ export async function withMemoryCheck<T>(
 
 // Queue resource management
 let activeCalculations = 0;
-const MAX_CONCURRENT = 4; // Scaled for high-performance infrastructure
+const MAX_CONCURRENT = queueConfig.maxConcurrent;
 
 export async function withConcurrencyLimit<T>(
     fn: () => Promise<T>

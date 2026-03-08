@@ -248,6 +248,10 @@ function RectifyPageContent() {
                 // 3. Normal Calculate - Submit to HF Backend Queue
                 result = await APIClient.post(`${backendUrl}/api/queue`, payload, getToken);
             }
+
+            if (!result?.success) {
+                throw new Error(result?.error || 'Failed to start analysis');
+            }
             localStorage.removeItem('btr_draft_id');
 
             // Navigate to analysis page (requeue returns sessionId in data)

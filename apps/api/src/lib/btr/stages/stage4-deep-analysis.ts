@@ -70,7 +70,7 @@ export async function stage4DeepAnalysis(
     let roundNumber = 1;
 
     while (currentCandidates.length > batchSize && roundNumber <= MAX_ROUNDS) {
-        const batches = splitIntoBatches(currentCandidates, batchSize);
+        const batches = splitIntoBatches(currentCandidates, batchSize, `${input.sessionId}:stage4:r${roundNumber}`);
         const batchSurvivors: CandidateTime[] = [];
         const batchDataMap = new Map<number, CandidateDataPackage[]>();
 

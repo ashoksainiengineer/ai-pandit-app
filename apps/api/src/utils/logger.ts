@@ -9,6 +9,17 @@ import { config } from '../config/index.js';
 import fs from 'fs';
 import path from 'path';
 
+const defaultLoggingConfig = {
+  level: 'info',
+  format: 'json',
+  redactFields: ['password', 'token', 'secret', 'authorization'],
+  includeStackTrace: true,
+};
+const loggingConfig = {
+  ...defaultLoggingConfig,
+  ...(config as { logging?: Partial<typeof defaultLoggingConfig> }).logging,
+};
+
 const LOG_DIR = path.join(process.cwd(), 'logs');
 if (!fs.existsSync(LOG_DIR)) {
   fs.mkdirSync(LOG_DIR, { recursive: true });
@@ -101,9 +112,9 @@ class Logger {
   private redactFields: string[];
 
   constructor(options: LoggerOptions = {}) {
-    this.level = options.level || (config.logging.level as LogLevel) || 'info';
-    this.prettyPrint = options.prettyPrint ?? (config.logging.format === 'pretty');
-    this.redactFields = options.redactFields || [...config.logging.redactFields];
+    this.level = options.level || (loggingConfig.level as LogLevel) || 'info';
+    this.prettyPrint = options.prettyPrint ?? (loggingConfig.format === 'pretty');
+    this.redactFields = options.redactFields || [...loggingConfig.redactFields];
   }
 
   private shouldLog(level: LogLevel): boolean {
@@ -221,7 +232,7 @@ class Logger {
       errorMeta.error = {
         name: error.name,
         message: error.message,
-        stack: config.logging.includeStackTrace ? error.stack : undefined,
+        stack: loggingConfig.includeStackTrace ? error.stack : undefined,
       };
     } else if (error !== undefined) {
       errorMeta.error = String(error);

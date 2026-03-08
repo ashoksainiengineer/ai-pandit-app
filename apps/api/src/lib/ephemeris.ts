@@ -5,6 +5,7 @@
 
 import { EphemerisData, PlanetPosition, HousePosition } from '@ai-pandit/shared';
 import { logger } from './logger.js';
+import { config } from '../config/index.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MEMORY-EFFICIENT SWISS EPHEMERIS
@@ -232,6 +233,54 @@ function getTzOffset(dateStr: string, timeStr: string, timeZone: string): number
   return 0;
 }
 
+function isValidIsoDate(dateStr: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
+  const [year, month, day] = dateStr.split('-').map(Number);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false;
+  const utc = new Date(Date.UTC(year, month - 1, day));
+  return utc.getUTCFullYear() === year &&
+    utc.getUTCMonth() === month - 1 &&
+    utc.getUTCDate() === day;
+}
+
+function isValidTimeInput(timeStr: string): boolean {
+  const normalized = timeStr.trim().toUpperCase().replace(/\s+/g, ' ');
+  const match = normalized.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s?(AM|PM))?$/);
+  if (!match) return false;
+
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  const seconds = Number(match[3] ?? 0);
+  const period = match[4];
+
+  if (minutes < 0 || minutes > 59 || seconds < 0 || seconds > 59) return false;
+  if (period) {
+    return hours >= 1 && hours <= 12;
+  }
+  return hours >= 0 && hours <= 23;
+}
+
+function isValidTimezoneInput(timezone: number | string): boolean {
+  if (typeof timezone === 'number') {
+    return Number.isFinite(timezone) && timezone >= -14 && timezone <= 14;
+  }
+
+  const trimmed = timezone.trim();
+  if (!trimmed) return false;
+
+  if (/^[+-]?\d+(\.\d+)?$/.test(trimmed)) {
+    const numericOffset = Number(trimmed);
+    return Number.isFinite(numericOffset) && numericOffset >= -14 && numericOffset <= 14;
+  }
+
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: trimmed });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function convertToUTC(date: string, time: string, timezone: number | string): Date {
   const [year, month, day] = date.split('-').map(Number);
 
@@ -367,6 +416,8 @@ export async function calculateEphemeris(
   longitude: number,
   timezone: number | string
 ): Promise<EphemerisData> {
+  const strictMode = config.ephemeris.strictMode;
+
   // FIXED: More precise cache key including timezone
   const cacheKey = `${birthDate}_${birthTime}_${latitude.toFixed(6)}_${longitude.toFixed(6)}_${typeof timezone === 'string' ? timezone : timezone.toFixed(2)}`;
 
@@ -380,11 +431,32 @@ export async function calculateEphemeris(
   }
 
   // Validate
+  if (!isValidIsoDate(birthDate)) {
+    const message = `Invalid birthDate: "${birthDate}". Expected calendar date format YYYY-MM-DD.`;
+    if (strictMode) throw new Error(message);
+    logger.warn(`[EPHEMERIS] ${message} Continuing because strict mode is disabled.`);
+  }
+  if (!isValidTimeInput(birthTime)) {
+    const message = `Invalid birthTime: "${birthTime}". Expected HH:MM[:SS] (24h) or HH:MM[:SS] AM/PM.`;
+    if (strictMode) throw new Error(message);
+    logger.warn(`[EPHEMERIS] ${message} Continuing because strict mode is disabled.`);
+  }
+  if (!isValidTimezoneInput(timezone)) {
+    const message = `Invalid timezone: "${timezone}". Expected numeric offset (-14 to +14) or valid IANA zone.`;
+    if (strictMode) throw new Error(message);
+    logger.warn(`[EPHEMERIS] ${message} Continuing because strict mode is disabled.`);
+  }
   if (latitude < -90 || latitude > 90) throw new Error(`Invalid latitude: ${latitude}. Must be between -90 and 90.`);
   if (longitude < -180 || longitude > 180) throw new Error(`Invalid longitude: ${longitude}. Must be between -180 and 180.`);
 
-  const tz = typeof timezone === 'number' ? timezone : parseFloat(String(timezone)) || 5.5;
-  const utcDate = convertToUTC(birthDate, birthTime, tz);
+  // Pass the original timezone input so IANA zones (e.g. "Asia/Kolkata")
+  // are resolved correctly by convertToUTC/getTzOffset.
+  const utcDate = convertToUTC(birthDate, birthTime, timezone);
+  if (Number.isNaN(utcDate.getTime())) {
+    const message = `Invalid datetime combination: date="${birthDate}", time="${birthTime}", timezone="${timezone}".`;
+    if (strictMode) throw new Error(message);
+    logger.warn(`[EPHEMERIS] ${message} Continuing because strict mode is disabled.`);
+  }
 
   // Ensure initialization is synchronized (God-Tier Rehydration)
   await ensureInit();
@@ -510,7 +582,14 @@ export async function calculateEphemeris(
       p.house = ((pSignIdx - ascSignIdx + 12) % 12) + 1;
     }
 
-    return { planets: planets as any, ascendant, houses: houseList };
+    const result = { planets: planets as any, ascendant, houses: houseList };
+    if (EPH_CACHE.size >= MAX_CACHE_SIZE) {
+      const firstKey = EPH_CACHE.keys().next().value;
+      if (firstKey !== undefined) EPH_CACHE.delete(firstKey);
+    }
+    EPH_CACHE.set(cacheKey, { data: result, timestamp: Date.now() });
+
+    return result;
 
   } else {
     // ══════ ALGORITHMIC MODE ══════

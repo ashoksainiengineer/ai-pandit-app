@@ -4,15 +4,41 @@
  */
 
 import { Router, Request, Response } from 'express';
-import { db } from '@ai-pandit/db';
+import { db, executeWithRetry } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
-import { eq, and, gte, lte, sql, desc, count, SQL } from 'drizzle-orm';
+import { eq, and, gte, sql, desc, count, SQL } from 'drizzle-orm';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 import { config } from '../config/index.js';
 import { logger } from '../lib/logger.js';
-import { AppError, ErrorCodes } from '../errors/index.js';
 
 const router = Router();
+
+async function requireAdmin(req: AuthenticatedRequest, res: Response): Promise<boolean> {
+  const clerkId = req.clerkId;
+  if (!clerkId) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'UNAUTHORIZED', message: 'Authentication required' },
+    });
+    return false;
+  }
+
+  const user = await executeWithRetry(() =>
+    db.query.users.findFirst({
+      where: eq(users.clerkId, clerkId),
+    })
+  );
+
+  if (!user || !user.isActive || user.role !== 'admin') {
+    res.status(403).json({
+      success: false,
+      error: { code: 'FORBIDDEN', message: 'Admin access required' },
+    });
+    return false;
+  }
+
+  return true;
+}
 
 /**
  * GET /api/admin/metrics
@@ -20,7 +46,7 @@ const router = Router();
  */
 router.get('/metrics', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const clerkId = req.clerkId!;
+    if (!(await requireAdmin(req, res))) return;
 
     // Get total readings count
     const totalReadingsResult = await db
@@ -147,8 +173,10 @@ router.head('/db-check', (req: Request, res: Response) => {
 router.get('/db-check', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
   try {
+    if (!(await requireAdmin(req, res))) return;
+
     // 1. Check raw connectivity
-    const dbTest = await db.select({ val: sql`1` }).from(sessions).limit(1);
+    await db.select({ val: sql`1` }).from(sessions).limit(1);
 
     // 2. Check session counts
     const sessionCount = await db.select({ count: count() }).from(sessions);
@@ -186,12 +214,14 @@ router.get('/db-check', authMiddleware, async (req: AuthenticatedRequest, res: R
  */
 router.get('/readings', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    if (!(await requireAdmin(req, res))) return;
+
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const requestedLimit = parseInt(req.query.limit as string, 10) || 10;
+    const limit = Math.min(100, Math.max(1, requestedLimit));
     const status = req.query.status as string | undefined;
     const offset = (page - 1) * limit;
 
-    const clerkId = req.clerkId!;
     const conditions: SQL<unknown>[] = [];
     if (status) {
       conditions.push(eq(sessions.status, status));
@@ -220,37 +250,24 @@ router.get('/readings', authMiddleware, async (req: AuthenticatedRequest, res: R
         completedAt: sessions.completedAt,
         confidence: sessions.accuracy,
         rectifiedTime: sessions.rectifiedTime,
+        userName: users.fullName,
+        userEmail: users.email,
       })
       .from(sessions)
+      .leftJoin(users, eq(users.id, sessions.userId))
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(desc(sessions.createdAt))
       .limit(limit)
       .offset(offset);
 
-    // Get user details for each reading
-    const readingsWithUsers = await Promise.all(
-      readingsData.map(async (reading) => {
-        const userData = await db
-          .select({
-            email: users.email,
-            fullName: users.fullName,
-          })
-          .from(users)
-          .where(eq(users.id, reading.userId))
-          .limit(1);
-
-        const user = userData[0];
-
-        return {
-          ...reading,
-          userName: user?.fullName || reading.fullName || 'Unknown',
-          userEmail: user?.email || 'unknown@email.com',
-          processingDuration: reading.completedAt && reading.createdAt
-            ? Math.round((new Date(reading.completedAt).getTime() - new Date(reading.createdAt).getTime()) / 1000)
-            : undefined,
-        };
-      })
-    );
+    const readingsWithUsers = readingsData.map((reading) => ({
+      ...reading,
+      userName: reading.userName || reading.fullName || 'Unknown',
+      userEmail: reading.userEmail || 'unknown@email.com',
+      processingDuration: reading.completedAt && reading.createdAt
+        ? Math.round((new Date(reading.completedAt).getTime() - new Date(reading.createdAt).getTime()) / 1000)
+        : undefined,
+    }));
 
     res.json({
       success: true,
@@ -284,6 +301,8 @@ router.get('/readings', authMiddleware, async (req: AuthenticatedRequest, res: R
  */
 router.get('/readings/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
+    if (!(await requireAdmin(req, res))) return;
+
     const { id } = req.params;
 
     const readingData = await db
@@ -342,7 +361,9 @@ router.get('/readings/:id', authMiddleware, async (req: AuthenticatedRequest, re
  */
 router.get('/analytics/timeseries', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const days = parseInt(req.query.days as string) || 30;
+    if (!(await requireAdmin(req, res))) return;
+
+    const days = Math.min(365, Math.max(1, parseInt(req.query.days as string, 10) || 30));
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
 

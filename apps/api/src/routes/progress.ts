@@ -1,16 +1,15 @@
-import { Router, Request, Response } from 'express';
+import { Router, Response } from 'express';
 import { getSessionProgress } from '../lib/progress-tracker.js';
 import { getQueueStatus } from '../lib/queue-manager.js';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { db, executeWithRetry } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { safeDecrypt, safeDecryptWithFallback, parseSensitiveField } from '../lib/encryption/index.js';
+import { parseSensitiveField } from '../lib/encryption/index.js';
 import { logger } from '../lib/logger.js';
 
 const router = Router();
-
-console.log('✅ Progress Route Loaded');
+logger.info('Progress route initialized');
 
 /**
  * GET /api/queue/progress/:sessionId - Get detailed progress for a session
@@ -31,7 +30,7 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
  */
 router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
-        const sessionId = (req.query.sessionId as string) || (req.query.sid as string);
+        const sessionId = req.query.sessionId as string;
         const clerkId = req.clerkId!;
         await handleProgressRequest(sessionId, clerkId, res);
     } catch (error) {
@@ -93,20 +92,34 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
 
     // Get detailed progress
     const progress = await getSessionProgress(sessionId);
+    const terminalResult = extractTerminalResult(
+        queueStatus.session?.analysisResult,
+        clerkId,
+        internalUserId!
+    );
+    const isCompleteStatus = ['complete', 'success', 'finished'].includes(queueStatus.status);
 
     res.json({
         sessionId,
         status: queueStatus.status,
         position: queueStatus.position,
         estimatedWaitSeconds: queueStatus.estimatedWaitSeconds,
+        errorMessage: queueStatus.session?.errorMessage || undefined,
+        result: isCompleteStatus ? terminalResult ?? undefined : undefined,
+        rectifiedTime: isCompleteStatus && typeof terminalResult?.rectifiedTime === 'string' ? terminalResult.rectifiedTime : undefined,
+        accuracy: isCompleteStatus && typeof terminalResult?.accuracy === 'number' ? terminalResult.accuracy : undefined,
+        confidence: isCompleteStatus && typeof terminalResult?.confidence === 'string' ? terminalResult.confidence : undefined,
         // Include session metadata for frontend "Blueprint" display
         metadata: {
             fullName: parseSensitiveField(queueStatus.session?.fullName, clerkId, internalUserId!),
             dateOfBirth: parseSensitiveField(queueStatus.session?.dateOfBirth, clerkId, internalUserId!),
-            tentativeTime: queueStatus.session?.tentativeTime,
-            birthPlace: queueStatus.session?.birthPlace,
+            tentativeTime: parseSensitiveField(queueStatus.session?.tentativeTime, clerkId, internalUserId!),
+            birthPlace: parseSensitiveField(queueStatus.session?.birthPlace, clerkId, internalUserId!),
             offsetConfig: parseSensitiveField(queueStatus.session?.offsetConfig, clerkId, internalUserId!),
             timezone: queueStatus.session?.timezone,
+            status: queueStatus.status,
+            errorMessage: queueStatus.session?.errorMessage || undefined,
+            updatedAt: queueStatus.session?.updatedAt || undefined,
         },
         progress: progress || {
             currentStep: 0,
@@ -117,6 +130,36 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
             liveMessage: 'Waiting in queue...',
         },
     });
+}
+
+function extractTerminalResult(
+    rawResult: unknown,
+    clerkId: string,
+    internalUserId: string
+): Record<string, unknown> | null {
+    if (!rawResult) return null;
+    if (typeof rawResult === 'object') {
+        return rawResult as Record<string, unknown>;
+    }
+    if (typeof rawResult !== 'string') return null;
+
+    const decrypted = parseSensitiveField(rawResult, clerkId, internalUserId);
+    if (!decrypted) return null;
+
+    if (typeof decrypted === 'string') {
+        try {
+            const parsed = JSON.parse(decrypted);
+            return typeof parsed === 'object' && parsed !== null
+                ? (parsed as Record<string, unknown>)
+                : null;
+        } catch {
+            return null;
+        }
+    }
+
+    return typeof decrypted === 'object'
+        ? (decrypted as Record<string, unknown>)
+        : null;
 }
 
 export default router;

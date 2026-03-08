@@ -291,6 +291,28 @@ describe('useStreamStore (Zustand State Management)', () => {
             expect(state.isComplete).toBe(false);
             expect(state.error).toBe('Internal server error while processing');
         });
+
+        it('should hydrate terminal complete state from "terminal_state" result payload', () => {
+            useStreamStore.getState().dispatchStreamEvent('terminal_state', {
+                status: 'complete',
+                result: { rectifiedTime: '09:12:44', confidence: 'high', accuracy: 97 }
+            });
+
+            const state = useStreamStore.getState();
+            expect(state.isComplete).toBe(true);
+            expect(state.result?.rectifiedTime).toBe('09:12:44');
+            expect(state.error).toBeNull();
+        });
+
+        it('should fallback to payload.error for "error" event schema compatibility', () => {
+            useStreamStore.getState().dispatchStreamEvent('error', {
+                error: 'Auth expired'
+            });
+
+            const state = useStreamStore.getState();
+            expect(state.error).toBe('Auth expired');
+            expect(state.isComplete).toBe(false);
+        });
     });
 
     // ═════ Dispatch Event (AI Context) ═════
@@ -426,7 +448,7 @@ describe('useStreamStore (Zustand State Management)', () => {
             expect(state.metadata?.aiModel).toBe('gpt-4o');
         });
 
-        it('should reset entire store when metadata status is "pending" (new session)', () => {
+        it('should preserve in-flight state when metadata status is "pending"', () => {
             // First set some existing state
             useStreamStore.setState({
                 candidateScores: [{ time: '12:00', score: 85, stage: 2 }],
@@ -441,15 +463,14 @@ describe('useStreamStore (Zustand State Management)', () => {
             });
 
             const state = useStreamStore.getState();
-            // Store should be fully reset except sessionId is preserved
             expect(state.sessionId).toBe('existing-session');
-            expect(state.candidateScores).toHaveLength(0);
-            expect(state.isComplete).toBe(false);
-            expect(state.analyzedCount).toBe(0);
+            expect(state.candidateScores).toHaveLength(1);
+            expect(state.isComplete).toBe(true);
+            expect(state.analyzedCount).toBe(50);
             expect(state.metadata?.fullName).toBe('New User');
         });
 
-        it('should also reset store when metadata status is "queued"', () => {
+        it('should merge queued metadata without wiping existing scores', () => {
             useStreamStore.setState({
                 candidateScores: [{ time: '12:00', score: 85, stage: 2 }],
                 sessionId: 'test-session',
@@ -461,7 +482,8 @@ describe('useStreamStore (Zustand State Management)', () => {
 
             const state = useStreamStore.getState();
             expect(state.sessionId).toBe('test-session');
-            expect(state.candidateScores).toHaveLength(0);
+            expect(state.candidateScores).toHaveLength(1);
+            expect(state.metadata?.status).toBe('queued');
         });
     });
 

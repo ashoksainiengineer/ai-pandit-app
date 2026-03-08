@@ -84,6 +84,13 @@ describe('Time Offset Manager (BTR Candidate Generation)', () => {
             expect(candidates[0].offsetMinutes).toBe(-60);
         });
 
+        it('should preserve sub-minute offsets without integer rounding loss', () => {
+            const candidates = generateCandidateTimes('10:00:00', { preset: '1hour', description: 'test' });
+            const minusFiftyEightPointFive = candidates.find(c => c.offsetMinutes === -58.5);
+            expect(minusFiftyEightPointFive).toBeDefined();
+            expect(minusFiftyEightPointFive?.time).toBe('09:01:30');
+        });
+
         it('should wrap around days properly when offset goes past midnight', () => {
             const candidates = generateCandidateTimes('00:15:00', { customMinutes: 30, description: 'test' });
             const earliest = candidates[0];
@@ -100,13 +107,23 @@ describe('Time Offset Manager (BTR Candidate Generation)', () => {
     });
 
     describe('splitIntoBatches', () => {
-        it('should randomize and split into chunks of max batch size', () => {
+        it('should deterministically shuffle and split into chunks of max batch size', () => {
             const candidates = Array.from({ length: 25 }, (_, i) => ({ time: `12:${i}:00` }));
             const batches = splitIntoBatches(candidates, 10);
             expect(batches.length).toBe(3);
             expect(batches[0].length).toBe(10);
             expect(batches[1].length).toBe(10);
             expect(batches[2].length).toBe(5);
+        });
+
+        it('should produce stable order for the same seed and different order for different seeds', () => {
+            const candidates = Array.from({ length: 12 }, (_, i) => ({ time: `12:${String(i).padStart(2, '0')}:00` }));
+            const a = splitIntoBatches(candidates, 4, 'session-a');
+            const b = splitIntoBatches(candidates, 4, 'session-a');
+            const c = splitIntoBatches(candidates, 4, 'session-b');
+
+            expect(a).toEqual(b);
+            expect(c).not.toEqual(a);
         });
     });
 

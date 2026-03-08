@@ -25,6 +25,70 @@ import { logger } from '../../logger.js';
 import { config } from '../../../config/index.js';
 import { getMinifiedEphemerisInline, getFullEphemerisPayload } from './_utils.js';
 
+const BATCH_VERDICT_MATCH_THRESHOLD_SECONDS = 8;
+const FINAL_VERDICT_MATCH_THRESHOLD_SECONDS = 12;
+
+function parseTimeToSeconds(time: string): number | null {
+    const match = time.trim().match(/^(\d{2}):(\d{2}):(\d{2})$/);
+    if (!match) return null;
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    const seconds = Number(match[3]);
+    if (hours > 23 || minutes > 59 || seconds > 59) return null;
+    return hours * 3600 + minutes * 60 + seconds;
+}
+
+function circularTimeDiffSeconds(a: string, b: string): number | null {
+    const aSeconds = parseTimeToSeconds(a);
+    const bSeconds = parseTimeToSeconds(b);
+    if (aSeconds === null || bSeconds === null) return null;
+    const diff = Math.abs(aSeconds - bSeconds);
+    return Math.min(diff, 86400 - diff);
+}
+
+function resolveCandidateByVerdictTime(
+    requestedTime: string | undefined,
+    candidates: CandidateTime[],
+    thresholdSeconds: number
+): { match: CandidateTime | null; mappedFrom?: string; diffSeconds?: number } {
+    if (!requestedTime || candidates.length === 0) {
+        return { match: null };
+    }
+
+    const exact = candidates.find(c => c.time === requestedTime);
+    if (exact) {
+        return { match: exact, mappedFrom: requestedTime, diffSeconds: 0 };
+    }
+
+    let best: CandidateTime | null = null;
+    let bestDiff = Number.POSITIVE_INFINITY;
+
+    for (const candidate of candidates) {
+        const diff = circularTimeDiffSeconds(requestedTime, candidate.time);
+        if (diff === null) continue;
+        if (diff < bestDiff) {
+            bestDiff = diff;
+            best = candidate;
+        }
+    }
+
+    if (!best || bestDiff > thresholdSeconds) {
+        return { match: null };
+    }
+
+    return { match: best, mappedFrom: requestedTime, diffSeconds: bestDiff };
+}
+
+function pickDeterministicFallbackWinner(candidates: CandidateTime[]): CandidateTime {
+    return [...candidates].sort((a, b) => {
+        const absOffsetDiff = Math.abs(a.offsetMinutes) - Math.abs(b.offsetMinutes);
+        if (absOffsetDiff !== 0) return absOffsetDiff;
+        const signedOffsetDiff = a.offsetMinutes - b.offsetMinutes;
+        if (signedOffsetDiff !== 0) return signedOffsetDiff;
+        return a.time.localeCompare(b.time);
+    })[0];
+}
+
 function getPresentTransitData(c: CandidateDataPackage, currentEph: any, now: Date) {
     if (!c || !c.rawVimshottari) {
         logger.warn('🔱 [STAGE-6] Missing rawVimshottari in candidate for transit calculation');
@@ -165,7 +229,7 @@ export async function stage6FinalPrecision(
 
     while (finalists.length > batchSize && roundNumber <= MAX_ROUNDS) {
         const initialFinalistsCount = finalists.length;
-        const batches = splitIntoBatches(finalists, batchSize);
+        const batches = splitIntoBatches(finalists, batchSize, `${input.sessionId}:stage6:r${roundNumber}`);
         const batchWinners: CandidateTime[] = [];
         const batchDataMap = new Map<number, CandidateDataPackage[]>();
 
@@ -220,18 +284,29 @@ export async function stage6FinalPrecision(
             const fullBatchData = batchDataMap.get(i) || [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
             const verdict = extractFinalVerdict(aiContent);
+            const resolved = resolveCandidateByVerdictTime(verdict?.time, batchTimes, BATCH_VERDICT_MATCH_THRESHOLD_SECONDS);
+            const selectedWinner = resolved.match;
+
+            if (verdict?.time && !selectedWinner) {
+                logger.warn(`🔱 [STAGE-6] Batch ${i + 1} verdict time "${verdict.time}" not in finalists. Ignoring verdict and using deterministic fallback.`);
+            } else if (selectedWinner && verdict?.time !== selectedWinner.time) {
+                logger.info(`🔱 [STAGE-6] Batch ${i + 1} mapped verdict "${verdict?.time}" -> "${selectedWinner.time}" (${resolved.diffSeconds}s)`);
+            }
+
+            const fallbackWinner = !selectedWinner && batchTimes.length > 0
+                ? pickDeterministicFallbackWinner(batchTimes)
+                : null;
 
             for (let j = 0; j < fullBatchData.length; j++) {
                 const candidate = fullBatchData[j];
                 const originalTimeInfo = batchTimes[j];
-                const isWinner = verdict && candidate.time === verdict.time;
-                const score = isWinner ? (verdict.accuracy || 90) : 60;
+                const winnerTime = selectedWinner?.time || fallbackWinner?.time;
+                const isWinner = !!winnerTime && candidate.time === winnerTime;
+                const score = isWinner
+                    ? (selectedWinner ? (verdict?.accuracy || 90) : config.btr.fallbackPromotedScore)
+                    : 60;
 
                 if (isWinner) {
-                    batchWinners.push(originalTimeInfo);
-                } else if (!verdict && fullBatchData.length > 0 && j === 0) {
-                    // 🔱 FALLBACK: If AI fails to pick a winner in a batch, preserve the first one
-                    logger.warn(`🔱 [STAGE-6] Batch ${i + 1} AI verdict failed. FALLBACK: Preserving ${candidate.time}`);
                     batchWinners.push(originalTimeInfo);
                 }
 
@@ -243,6 +318,10 @@ export async function stage6FinalPrecision(
                     minifiedEph: getMinifiedEphemerisInline(candidate),
                     fullEph: getFullEphemerisPayload(candidate)
                 });
+            }
+
+            if (!selectedWinner && fallbackWinner) {
+                logger.warn(`🔱 [STAGE-6] Batch ${i + 1} fallback winner selected deterministically: ${fallbackWinner.time}`);
             }
         }
 
@@ -379,47 +458,42 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
     const aiContent = response.success ? (response.content || response.thinking || '') : '';
     const verdict = extractFinalVerdict(aiContent);
 
-    // C2 FIX: Proper null handling with GOD-TIER FALLBACK
-    if (!verdict) {
-        logger.error('AI failed to return valid verdict in Stage 6', {
-            sessionId: input.sessionId,
-            responseSuccess: response.success,
-            hasContent: !!response.content,
+    const resolvedFinalWinner = resolveCandidateByVerdictTime(
+        verdict?.time,
+        finalists,
+        FINAL_VERDICT_MATCH_THRESHOLD_SECONDS
+    );
+
+    const usedFallbackWinner = !resolvedFinalWinner.match;
+    const fallbackWinner = usedFallbackWinner ? pickDeterministicFallbackWinner(finalists) : null;
+
+    if (verdict?.time && !resolvedFinalWinner.match) {
+        logger.warn('🔱 [STAGE-6] Final verdict time not found in finalists. Enforcing finalists-only winner selection.', {
+            verdictTime: verdict.time,
+            finalists: finalists.map(f => f.time)
         });
-
-        if (finalBatch.length > 0) {
-            const fallbackWinner = finalBatch[0];
-            logger.warn(`🔱 [STAGE-6] EMERGENCY FALLBACK: Using first candidate ${fallbackWinner.time} as winner`);
-
-            return {
-                finalTime: fallbackWinner.time,
-                accuracy: 80,
-                confidence: '⚠️ LOW (AI Unavailable)',
-                margin: 60,
-                aiReasoning: response.content || '⚠️ AI analysis failed — result based on weighted estimation, not AI verification.',
-                thinking: response.thinking,
-                finalists: finalBatch.map(c => ({
-                    time: c.time,
-                    score: c.time === fallbackWinner.time ? 80 : 70,
-                    ephemeris: getMinifiedEphemerisInline(c)
-                })),
-                stageResult: {
-                    stageNumber: 6,
-                    stageName: 'Final Precision (Fallback)',
-                    candidatesIn: candidates.length,
-                    candidatesOut: 1,
-                    aiReasoning: 'Emergency recovery triggered'
-                }
-            };
-        }
-
-        throw new Error('AI_ANALYSIS_INCOMPLETE: Unable to determine final birth time. Even the recovery system failed. Please check backend logs.');
+    } else if (resolvedFinalWinner.match && verdict?.time !== resolvedFinalWinner.match.time) {
+        logger.info('🔱 [STAGE-6] Final verdict mapped to nearest finalist', {
+            verdictTime: verdict?.time,
+            matchedTime: resolvedFinalWinner.match.time,
+            diffSeconds: resolvedFinalWinner.diffSeconds
+        });
     }
 
-    const finalTime = verdict.time;
-    const accuracy = verdict.accuracy ?? 85;
-    const confidence = verdict.confidence ?? 'MEDIUM';
-    const margin = verdict.margin ?? 5;
+    const finalTime = resolvedFinalWinner.match?.time || fallbackWinner?.time;
+    if (!finalTime) {
+        throw new Error('AI_ANALYSIS_INCOMPLETE: Unable to determine final birth time. No finalists available for fallback winner selection.');
+    }
+
+    const accuracy = usedFallbackWinner
+        ? config.btr.fallbackPromotedScore
+        : (verdict?.accuracy ?? 85);
+    const confidence = usedFallbackWinner
+        ? 'LOW'
+        : (verdict?.confidence ?? 'MEDIUM');
+    const margin = usedFallbackWinner
+        ? 60
+        : (verdict?.margin ?? 5);
 
     const winnerPkg = finalBatch.find(c => c.time === finalTime) || finalBatch[0];
 
@@ -440,7 +514,9 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
         accuracy,
         confidence,
         margin,
-        aiReasoning: aiContent,
+        aiReasoning: usedFallbackWinner
+            ? `${aiContent}\n\n[Fallback] Final verdict was not usable. Deterministic finalist fallback winner selected: ${finalTime}.`
+            : aiContent,
         thinking: response.thinking,
         finalists: finalBatch.map(c => ({
             time: c.time,
@@ -449,7 +525,7 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
         })),
         stageResult: {
             stageNumber: 6,
-            stageName: 'Final Precision',
+            stageName: usedFallbackWinner ? 'Final Precision (Fallback)' : 'Final Precision',
             candidatesIn: candidates.length,
             candidatesOut: 1,
             aiReasoning: allReasoning

@@ -1,9 +1,15 @@
 import { Router } from 'express';
 import { readDebugLog, clearDebugLog } from '../utils/debug-logger.js';
+import { config } from '../config/index.js';
 
 const router = Router();
 
 router.get('/', (req, res) => {
+    if (!config.app.isDevelopment) {
+        res.status(404).json({ success: false, error: 'Not found' });
+        return;
+    }
+
     const logs = readDebugLog();
 
     // Simple Glassmorphism Dark Theme HTML
@@ -117,6 +123,11 @@ router.get('/', (req, res) => {
 });
 
 router.post('/clear', (req, res) => {
+    if (!config.app.isDevelopment) {
+        res.status(404).json({ success: false, error: 'Not found' });
+        return;
+    }
+
     clearDebugLog();
     res.redirect('/api/debug-analysis');
 });

@@ -5,6 +5,7 @@
  */
 
 import { FinalVerdict } from '@ai-pandit/shared';
+import { logger } from '../../logger.js';
 
 /**
  * Finds the nearest candidate time from a list for a given hallucinated time
@@ -83,7 +84,7 @@ export function extractBatchSurvivors(
         if (scores.length > 0) return scores;
       }
     } catch (e) {
-      console.error("🔴 [EXTRACTOR] XML Parse failed", e);
+      logger.warn('🔴 [EXTRACTOR] XML parse failed in FINAL_SCORES block', { error: (e as Error)?.message || e });
     }
   }
 

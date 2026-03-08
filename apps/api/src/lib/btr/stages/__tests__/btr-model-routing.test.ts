@@ -4,6 +4,7 @@ import { stage2BatchTournament } from '../stage2-batch-tournament.js';
 import { stage4DeepAnalysis } from '../stage4-deep-analysis.js';
 import { stage6FinalPrecision } from '../stage6-final-precision.js';
 import * as aiClient from '../../../ai-client.js';
+import * as extractors from '../../extractors/index.js';
 import { config } from '../../../../config/index.js';
 
 // Mock the AI client
@@ -25,12 +26,16 @@ vi.mock('@ai-pandit/shared/schemas', () => ({
 
 // Mock the data builder
 vi.mock('../../data-package-builder.js', () => ({
-    buildCandidateDataPackage: vi.fn().mockResolvedValue({
-        time: '12:00:00',
+    buildCandidateDataPackage: vi.fn().mockImplementation(async (time: string) => ({
+        time,
+        d60Sign: 'Scorpio',
         ascendant: { sign: 'Aries', degree: '10:00:00' },
-        planets: { moon: { sign: 'Taurus', degree: '15:00:00' }, sun: { sign: 'Aries', degree: '10:00:00' } },
+        planets: {
+            moon: { sign: 'Taurus', degree: '15:00:00' },
+            sun: { sign: 'Aries', degree: '10:00:00' }
+        },
         rawVimshottari: []
-    })
+    }))
 }));
 
 // Mock stage utilities
@@ -181,5 +186,61 @@ describe('BTR Stage Model Routing', () => {
                 model: config.ai.reasonerModel
             })
         );
+    });
+
+    it('Stage 6 should map hallucinated final verdict time to nearest finalist candidate', async () => {
+        const input = {
+            sessionId: 'test-session',
+            lifeEvents: [{ eventType: 'Birth', eventDate: '2000-01-01' }],
+            offsetConfig: { preset: '1hour' },
+            latitude: 0,
+            longitude: 0,
+            timezone: 'UTC',
+            tentativeTime: '12:00:00'
+        };
+        const candidates = [
+            { time: '12:00:00', offsetMinutes: 0, offsetDescription: 'Exact' },
+            { time: '12:00:10', offsetMinutes: 0.1667, offsetDescription: '+10s' }
+        ];
+
+        (extractors.extractFinalVerdict as any).mockReturnValue({
+            time: '12:00:07',
+            accuracy: 96,
+            confidence: 'HIGH',
+            margin: 4
+        });
+        (aiClient.callAIWithStream as any).mockResolvedValue({
+            success: true,
+            content: '<FINAL_VERDICT>{"time": "12:00:07"}</FINAL_VERDICT>'
+        });
+
+        const result = await stage6FinalPrecision(input as any, candidates as any, mockProgress as any, {} as any);
+        expect(result.finalTime).toBe('12:00:10');
+    });
+
+    it('Stage 6 should use deterministic fallback winner when verdict is missing', async () => {
+        const input = {
+            sessionId: 'test-session',
+            lifeEvents: [{ eventType: 'Birth', eventDate: '2000-01-01' }],
+            offsetConfig: { preset: '1hour' },
+            latitude: 0,
+            longitude: 0,
+            timezone: 'UTC',
+            tentativeTime: '12:00:00'
+        };
+        const candidates = [
+            { time: '12:00:00', offsetMinutes: 0, offsetDescription: 'Exact' },
+            { time: '11:59:40', offsetMinutes: -0.3333, offsetDescription: '-20s' }
+        ];
+
+        (extractors.extractFinalVerdict as any).mockReturnValue(null);
+        (aiClient.callAIWithStream as any).mockResolvedValue({
+            success: true,
+            content: 'No final verdict returned'
+        });
+
+        const result = await stage6FinalPrecision(input as any, candidates as any, mockProgress as any, {} as any);
+        expect(result.finalTime).toBe('12:00:00');
+        expect(result.confidence).toBe('LOW');
     });
 });

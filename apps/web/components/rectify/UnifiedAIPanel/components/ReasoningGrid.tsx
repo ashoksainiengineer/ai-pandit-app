@@ -27,7 +27,6 @@ export const ReasoningGrid = memo(function ReasoningGrid({
 
     const filteredEntries = useMemo(() => {
         let result = Object.entries(candidates);
-        console.log(`[ReasoningGrid] Stage ${stage} Filter triggered. Total candidates: ${result.length}`, { keys: Object.keys(candidates) });
         if (!searchQuery) return result;
 
         const query = searchQuery.toLowerCase();

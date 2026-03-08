@@ -1,4 +1,5 @@
 import { env } from '../config/env';
+import { logger } from '../secure-logger';
 import { create } from 'zustand';
 import { devtools, persist, createJSONStorage, type StateStorage } from 'zustand/middleware';
 import { get, set, del } from 'idb-keyval';
@@ -40,7 +41,7 @@ const idbStorage: StateStorage = {
                 await set(name, value);
                 debounceMap.delete(name);
             } catch (err) {
-                console.warn('[IDB] Failed to persist state:', err);
+                logger.warn('[IDB] Failed to persist state', err);
             }
         }, 2000);
 
@@ -107,6 +108,7 @@ export const createInitialState = (): StreamState => ({
 
 interface StreamStore extends StreamState {
     setSessionId: (id: string | null) => void;
+    setLastEventId: (seq: number) => void;
     clearStore: () => void;
     dispatchStreamEvent: (type: string, payload: any) => void;
     forceError: (msg: string) => void;
@@ -129,6 +131,22 @@ interface ThinkingBuffer {
 const thinkingBuffer: ThinkingBuffer = {
     chunks: new Map(),
     rafId: null,
+};
+
+const scheduleBufferFlush = (cb: FrameRequestCallback): number => {
+    if (typeof globalThis.requestAnimationFrame === 'function') {
+        return globalThis.requestAnimationFrame(cb);
+    }
+    return setTimeout(() => cb(Date.now()), 16) as unknown as number;
+};
+
+const cancelBufferFlush = (id: number | null): void => {
+    if (id === null) return;
+    if (typeof globalThis.cancelAnimationFrame === 'function') {
+        globalThis.cancelAnimationFrame(id);
+        return;
+    }
+    clearTimeout(id as unknown as ReturnType<typeof setTimeout>);
 };
 
 const getCharLimitForScore = (score: number | undefined): number => {
@@ -165,10 +183,6 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
                 fullText: '',
                 startedAt: Date.now()
             };
-
-            if (existing.fullText.length === 0) {
-                console.log(`[StreamStore] Created new candidate entry for stage ${stage}: ${candidateTime}`);
-            }
 
             let newFullText = existing.fullText;
             if (newFullText.length > 50 && text.length > 50 && newFullText.endsWith(text.slice(0, 50))) {
@@ -208,11 +222,6 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
             newCandidatesByStage[s] = { ...prev.candidatesByStage[s], ...stageChanges[s] };
         });
 
-        // Throttle this log slightly or log only if there are actual new stage keys created so it doesn't spam at 60fps
-        if (Math.random() < 0.05) { // Log 5% of flushes to see memory size
-            console.log(`[StreamStore] Flush stats: stageChanges keys: ${Object.keys(stageChanges).join(',')}, target candidates count for stage ${latestStage}: ${Object.keys(newCandidatesByStage[latestStage] || {}).length}`);
-        }
-
         const newStageHistory = { ...prev.stageHistory };
         Object.keys(historyAppends).forEach(stageStr => {
             const s = Number(stageStr);
@@ -245,13 +254,15 @@ export const useStreamStore = create<StreamStore>()(
 
                 clearStore: () => {
                     if (thinkingBuffer.rafId) {
-                        cancelAnimationFrame(thinkingBuffer.rafId);
+                        cancelBufferFlush(thinkingBuffer.rafId);
                         thinkingBuffer.rafId = null;
                     }
                     thinkingBuffer.chunks.clear();
                     Object.keys(stageHistoryContributors).forEach(k => delete stageHistoryContributors[Number(k)]);
                     set({ ...createInitialState() });
                 },
+
+                setLastEventId: (seq) => set({ lastEventId: seq }),
 
                 forceError: (msg) => set({ error: msg, isComplete: false }),
 
@@ -375,7 +386,7 @@ export const useStreamStore = create<StreamStore>()(
                         }
 
                         if (!thinkingBuffer.rafId) {
-                            thinkingBuffer.rafId = requestAnimationFrame(() => flushThinkingBuffer(set));
+                            thinkingBuffer.rafId = scheduleBufferFlush(() => flushThinkingBuffer(set));
                         }
 
                         set((prev) => (prev.activeAIStage !== stage ? { activeAIStage: stage } : {}));
@@ -488,12 +499,46 @@ export const useStreamStore = create<StreamStore>()(
 
                             case 'complete':
                             case 'result': {
-                                const res = (payload?.rectifiedTime ? payload : payload?.result || prev.result) as StreamResult;
-                                return { isComplete: true, result: res };
+                                const directResult = payload?.rectifiedTime ? payload : null;
+                                const nestedResult = payload?.result?.rectifiedTime ? payload.result : null;
+                                const res = (directResult || nestedResult || prev.result) as StreamResult | null;
+                                return { isComplete: true, result: res, error: null };
+                            }
+
+                            case 'terminal_state': {
+                                const status = payload?.status;
+                                const terminalResult = (
+                                    payload?.result?.rectifiedTime
+                                        ? payload.result
+                                        : payload?.data?.result?.rectifiedTime
+                                            ? payload.data.result
+                                            : payload?.rectifiedTime
+                                                ? payload
+                                                : prev.result
+                                ) as StreamResult | null;
+                                const terminalError = payload?.errorMessage || payload?.error || payload?.message;
+                                const mergedMetadata = payload?.data
+                                    ? { ...(prev.metadata || {}), ...(payload.data as StreamMetadata) }
+                                    : prev.metadata;
+
+                                if (status === 'complete' || status === 'success' || status === 'finished') {
+                                    return {
+                                        isComplete: true,
+                                        result: terminalResult,
+                                        error: null,
+                                        metadata: mergedMetadata
+                                    };
+                                }
+
+                                return {
+                                    isComplete: false,
+                                    error: terminalError || `Session ${status || 'failed'}`,
+                                    metadata: mergedMetadata
+                                };
                             }
 
                             case 'error': {
-                                return { error: payload.message || String(payload), isComplete: false };
+                                return { error: payload.message || payload.error || String(payload), isComplete: false };
                             }
 
                             case 'stage_stats': {
@@ -507,14 +552,7 @@ export const useStreamStore = create<StreamStore>()(
 
                             case 'metadata': {
                                 const m = payload as StreamMetadata;
-                                if (m.status === 'pending' || m.status === 'queued') {
-                                    return {
-                                        ...createInitialState(),
-                                        metadata: m,
-                                        sessionId: prev.sessionId // Keep sessionId as reset usually happens within a session context
-                                    };
-                                }
-                                return { metadata: m };
+                                return { metadata: { ...(prev.metadata || {}), ...m } };
                             }
 
                             default:
@@ -538,6 +576,6 @@ export const useStreamStore = create<StreamStore>()(
                 }),
             }
         ),
-        { name: 'BTR-StreamStore', enabled: env.app.isDevelopment } as any
+        { name: 'BTR-StreamStore', enabled: env.app?.isDevelopment ?? false } as any
     )
 );

@@ -19,8 +19,27 @@ vi.mock('../../config/index.js', () => ({
             heapThresholdGB: 1.0,
             maxConcurrentSessions: 5,
         },
-        app: { nodeEnv: 'test' },
+        app: { nodeEnv: 'test', isTest: true },
         ai: { model: 'test-model' },
+        security: {
+            clerkSecretKey: 'test_secret_key',
+            rateLimitWindowMs: 60000,
+            rateLimitMaxRequests: 100,
+        },
+        queue: {
+            maxConcurrent: 3,
+            pollIntervalMs: 2000,
+            maxSize: 100,
+            staleTimeoutMs: 7200000,
+            baseAnalysisTime: 240,
+            contentionMultiplier: 0.1,
+        },
+        memory: {
+            heapThresholdGB: 1,
+            pressureThresholdGB: 0.8,
+            criticalThresholdGB: 0.95,
+            gcThresholdGB: 1,
+        },
     },
 }));
 

@@ -393,7 +393,12 @@ export default function AnalysisPage() {
   }
 
   if (hasError && !result && connectionState.status === 'error') {
-    return <ErrorDisplay error={errorMessage} onRetry={() => router.push(`/rectify/${sessionId}`)} />;
+    return <ErrorDisplay error={errorMessage} onRetry={() => {
+      router.refresh();
+      if (typeof window !== 'undefined') {
+        window.location.reload();
+      }
+    }} />;
   }
 
   return (

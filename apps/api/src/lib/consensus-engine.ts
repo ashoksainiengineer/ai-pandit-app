@@ -633,40 +633,54 @@ function determineConfidenceLevel(
   const thresholds = CONFIDENCE_THRESHOLDS;
 
   // Check for critical red flags
-  if (redFlags.gandanta || redFlags.d60Instability) {
+  if (redFlags.gandanta) {
     return 'LOW';
   }
+
+  let baseLevel: ConsensusResult['confidenceLevel'] = 'LOW';
 
   // STANDARD_PRECISION: All methods >= 90, no red flags
   if (scoreValues.every(s => s >= thresholds.standard_precision.allMethodsAbove) &&
     overall >= thresholds.standard_precision.minScore &&
     !redFlags.conflictingMethods) {
-    return 'STANDARD_PRECISION';
-  }
-
-  // VERY_HIGH: All methods >= 80
-  if (scoreValues.every(s => s >= thresholds.very_high.allMethodsAbove) &&
+    baseLevel = 'STANDARD_PRECISION';
+  } else if (scoreValues.every(s => s >= thresholds.very_high.allMethodsAbove) &&
     overall >= thresholds.very_high.minScore) {
-    return 'VERY_HIGH';
-  }
-
-  // HIGH: Overall >= 75, no method < 60
-  if (overall >= thresholds.high.minScore &&
+    // VERY_HIGH: All methods >= 80
+    baseLevel = 'VERY_HIGH';
+  } else if (overall >= thresholds.high.minScore &&
     scoreValues.every(s => s >= thresholds.high.allMethodsAbove)) {
-    return 'HIGH';
+    // HIGH: Overall >= 75, no method < 60
+    baseLevel = 'HIGH';
+  } else if (overall >= thresholds.medium.minScore) {
+    // MEDIUM: Overall >= 60
+    baseLevel = 'MEDIUM';
   }
 
-  // MEDIUM: Overall >= 60
-  if (overall >= thresholds.medium.minScore) {
-    return 'MEDIUM';
+  if (!redFlags.d60Instability) {
+    return baseLevel;
   }
 
-  return 'LOW';
+  // D60 instability means micro-boundary sensitivity. Downgrade confidence.
+  switch (baseLevel) {
+    case 'STANDARD_PRECISION':
+      return 'HIGH';
+    case 'VERY_HIGH':
+      return 'HIGH';
+    case 'HIGH':
+      return 'MEDIUM';
+    default:
+      return 'LOW';
+  }
 }
 
 function calculateMarginOfError(scores: ConsensusScores, redFlags: RedFlags): number {
   let baseError = 60; // Base 60 seconds
   let highScoreCount = 0;
+  const scoreValues = Object.values(scores);
+  const scoreMean = scoreValues.reduce((sum, value) => sum + value, 0) / Math.max(1, scoreValues.length);
+  const variance = scoreValues.reduce((sum, value) => sum + ((value - scoreMean) ** 2), 0) / Math.max(1, scoreValues.length);
+  const stdDev = Math.sqrt(variance);
 
   // Reduce error with higher scores - count how many methods are high
   if (scores.kp >= 80) { baseError -= 20; highScoreCount++; }
@@ -685,6 +699,11 @@ function calculateMarginOfError(scores: ConsensusScores, redFlags: RedFlags): nu
   if (redFlags.d60Instability) baseError += 25;
   if (redFlags.conflictingMethods) baseError += 15;
 
+  // Score spread calibration: high disagreement widens uncertainty.
+  if (stdDev >= 25) baseError += 15;
+  else if (stdDev >= 15) baseError += 8;
+  else if (stdDev <= 8) baseError -= 5;
+
   return Math.max(3, baseError); // Minimum 3 seconds
 }
 
@@ -697,7 +716,7 @@ function detectRedFlags(input: ValidationInput, scores: ConsensusScores, details
     dashaSandhi: detectDashaSandhi(candidate),
     conflictingMethods: detectConflicts(scores),
     weakSignificators: detectWeakSignificators(candidate),
-    d60Instability: false, // Would need time window analysis
+    d60Instability: detectD60Instability(candidate),
     forensicMismatch: scores.forensic < 50
   };
 }
@@ -758,6 +777,39 @@ function getTargetHouse(category: string): number {
     spiritual: 9, family: 2, legal: 6
   };
   return map[category] || 1;
+}
+
+function parseD60Degree(candidate: ValidationInput['candidate']): number | null {
+  const d60FromVarga = candidate.ephemeris?.vargaDegrees?.D60?.Ascendant;
+  if (typeof d60FromVarga !== 'string') return null;
+
+  // Example formats: "Scorpio 29°59'12\"" or "Scorpio 29.5"
+  const degreeMatch = d60FromVarga.match(/(\d+(?:\.\d+)?)\s*°?/);
+  if (!degreeMatch) return null;
+
+  const degree = Number(degreeMatch[1]);
+  if (!Number.isFinite(degree)) return null;
+
+  return degree;
+}
+
+function detectD60Instability(candidate: ValidationInput['candidate']): boolean {
+  const d60Sign = candidate.vargas?.d60 || candidate.vargas?.D60 || candidate.ephemeris?.d60Sign;
+  if (!d60Sign || String(d60Sign).toLowerCase() === 'unknown') {
+    return true;
+  }
+
+  const d60Degree = parseD60Degree(candidate);
+  if (d60Degree !== null && (d60Degree <= 0.75 || d60Degree >= 29.25)) {
+    return true;
+  }
+
+  const d60SunDeity = candidate.ephemeris?.d60Planets?.Sun?.deity;
+  if (typeof d60SunDeity === 'string' && d60SunDeity === 'Unknown') {
+    return true;
+  }
+
+  return false;
 }
 
 function correlateYoginiWithEvent(yogini: string, category: string): boolean {

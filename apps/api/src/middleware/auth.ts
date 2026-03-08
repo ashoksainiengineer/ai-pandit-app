@@ -28,21 +28,29 @@ export async function authMiddleware(
     next: NextFunction
 ): Promise<void> {
     try {
+        const safeQuery = { ...req.query } as Record<string, unknown>;
+        if (safeQuery.sid) safeQuery.sid = '[REDACTED]';
+        if (safeQuery.token) safeQuery.token = '[REDACTED]';
+
+        const safeHeaders = { ...req.headers } as Record<string, unknown>;
+        if (safeHeaders.authorization) safeHeaders.authorization = '[REDACTED]';
+        if (safeHeaders.cookie) safeHeaders.cookie = '[REDACTED]';
+
         const timestamp = new Date().toISOString();
         const logEntry = `\n--- ${timestamp} ---\n` +
             `URL: ${req.url}\n` +
             `OriginalURL: ${req.originalUrl}\n` +
             `Method: ${req.method}\n` +
-            `Query: ${JSON.stringify(req.query)}\n` +
-            `Headers: ${JSON.stringify(req.headers, null, 2)}\n`;
+            `Query: ${JSON.stringify(safeQuery)}\n` +
+            `Headers: ${JSON.stringify(safeHeaders, null, 2)}\n`;
         if (config.app.nodeEnv === 'development') {
             fs.appendFileSync(LOG_FILE, logEntry);
         }
 
         const isStreamRequest = req.originalUrl.includes('/stream');
 
-        // 🧪 TEST SCRIPT BYPASS
-        const isTestScript = req.headers['x-test-bypass-auth'] === 'super-secret-test-key';
+        // Allow bypass only inside automated tests.
+        const isTestScript = config.app.isTest && req.headers['x-test-bypass-auth'] === 'super-secret-test-key';
         if (isTestScript) {
             req.clerkId = 'TEST_SCRIPT';
             logger.info('🧪 [Auth] Super secret test script bypass activated');
@@ -103,6 +111,7 @@ export async function authMiddleware(
                 // Send as regular data message (not named event)
                 res.write(`data: ${JSON.stringify({
                     type: 'error',
+                    message: 'Unauthorized: No valid session token',
                     error: 'Unauthorized: No valid session token',
                     code: 'UNAUTHORIZED',
                     isAuthError: true
@@ -172,9 +181,9 @@ export async function authMiddleware(
 
                 res.write(`data: ${JSON.stringify({
                     type: 'error',
+                    message: 'Authentication failed',
                     error: 'Authentication failed',
                     code: 'AUTH_FAILED',
-                    details: errorStr
                 })}\n\n`);
 
                 if ((res as any).flush) (res as any).flush();
@@ -190,7 +199,10 @@ export async function authMiddleware(
         }
 
     } catch (error) {
-        console.error('CRITICAL: Auth middleware error:', error);
+        logger.error('CRITICAL: Auth middleware error', {
+            error: error instanceof Error ? error.message : String(error),
+            path: req.originalUrl
+        });
         res.status(500).json({ success: false, error: 'Internal server error during authentication' });
     }
 }

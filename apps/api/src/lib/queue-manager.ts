@@ -12,11 +12,12 @@ import {
   cleanupController,
   isCancellationError
 } from './cancellation-manager.js';
-import { emitComplete } from './session-events.js';
+import { emitComplete, emitError } from './session-events.js';
 import { ProgressTracker } from './progress-tracker.js';
 import { calculations, sessions } from '@ai-pandit/db/schema';
 import { config } from '../config/index.js';
 import { processSecondsPrecisionBTR } from './seconds-precision-btr.js';
+import { getMemoryPressureSnapshot, triggerGC } from './memory-manager.js';
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -26,23 +27,23 @@ import { processSecondsPrecisionBTR } from './seconds-precision-btr.js';
 const QUEUE_CONFIG = {
   // Default 3 concurrent sessions - can handle up to 3 simultaneous BTR analyses
   // With 16GB RAM, each session gets ~5GB which is sufficient for God-Tier BTR
-  maxConcurrent: config.queue.maxConcurrent,
+  maxConcurrent: config.queue?.maxConcurrent ?? 3,
 
-  pollIntervalMs: config.queue.pollIntervalMs,
-  maxQueueSize: config.queue.maxSize,
+  pollIntervalMs: config.queue?.pollIntervalMs ?? 5000,
+  maxQueueSize: config.queue?.maxSize ?? 100,
 
   // 2 hour timeout for complex BTR analyses with multiple life events
-  staleTimeoutMs: config.queue.staleTimeoutMs,
+  staleTimeoutMs: config.queue?.staleTimeoutMs ?? 7_200_000,
 
   // Base analysis time ~4 minutes per session with DeepSeek R1
-  baseAnalysisTime: config.queue.baseAnalysisTime,
+  baseAnalysisTime: config.queue?.baseAnalysisTime ?? 240,
 
   // Contention factor - minimal overhead per additional concurrent session
-  contentionMultiplier: config.queue.contentionMultiplier,
+  contentionMultiplier: config.queue?.contentionMultiplier ?? 0.1,
 
   // Memory thresholds (in GB) for automatic throttling
-  memoryPressureThresholdGB: config.memory.pressureThresholdGB,
-  memoryCriticalThresholdGB: config.memory.criticalThresholdGB,
+  memoryPressureThresholdGB: config.memory?.pressureThresholdGB ?? 10,
+  memoryCriticalThresholdGB: config.memory?.criticalThresholdGB ?? 11,
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -451,6 +452,7 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
         .where(eq(sessions.id, sessionId))
     );
 
+    emitError(sessionId, 'Cancelled by user', 'cancelled');
     logger.info('Session cancelled by user (Full Wipe Complete)', { sessionId });
     return true;
   } catch (error) {
@@ -532,11 +534,11 @@ function isRetryableError(error: unknown): boolean {
  * Process session with retry logic (C4 Fix)
  */
 async function processSessionWithRetry(sessionId: string, attempt: number = 0): Promise<void> {
-  console.log(`🔍 [QUEUE-DEBUG] processSessionWithRetry called: ${sessionId}, attempt: ${attempt}`);
+  logger.debug('processSessionWithRetry called', { sessionId, attempt });
   try {
     await processSessionAsync(sessionId);
 
-    console.log(`🔍 [QUEUE-DEBUG] processSessionAsync completed successfully: ${sessionId}`);
+    logger.debug('processSessionAsync completed successfully', { sessionId });
     // Success - reset failure counter
     if (consecutiveFailures > 0) {
       logger.info(`Session ${sessionId} succeeded after ${consecutiveFailures} previous failures. Resetting counter.`);
@@ -616,33 +618,21 @@ async function processQueue(): Promise<void> {
       await cleanupStaleRequests();
 
       // 🚀 GOD-TIER: Dynamic Pressure Throttling (HF Spaces Free Tier: 16GB RAM)
-      const memory = process.memoryUsage();
-      const heapUsedGB = memory.heapUsed / 1024 / 1024 / 1024;
-      const heapTotalGB = memory.heapTotal / 1024 / 1024 / 1024;
-      const rssGB = memory.rss / 1024 / 1024 / 1024;
+      const memoryPressure = getMemoryPressureSnapshot();
+      const { heapUsedGB, heapTotalGB, rssGB } = memoryPressure;
       let effectiveMaxConcurrent = QUEUE_CONFIG.maxConcurrent;
-
-      // Pressure restriction triggers when:
-      // RSS > threshold (actual system memory pressure)
-      // OR heapUsed > threshold (Node.js heap getting full)
-      // This ensures stability while utilizing HF Spaces 16GB capacity
-      const RSS_THRESHOLD_GB = config.memory.gcThresholdGB;
-      const HEAP_THRESHOLD_GB = config.memory.heapThresholdGB;
 
       // Only log memory stats every 10 iterations to reduce noise
       if (Math.random() < 0.1) {
         logger.info(`[MEMORY] RSS: ${rssGB.toFixed(2)}GB | Heap: ${heapUsedGB.toFixed(2)}GB / ${heapTotalGB.toFixed(2)}GB | Concurrent: ${activeProcessingIds.size}/${effectiveMaxConcurrent} | Failures: ${consecutiveFailures}`);
       }
 
-      if (rssGB > RSS_THRESHOLD_GB || heapUsedGB > HEAP_THRESHOLD_GB) {
+      if (memoryPressure.isUnderPressure) {
         logger.warn(`[PRESSURE] RAM Pressure detected (RSS: ${rssGB.toFixed(2)}GB, Heap: ${heapUsedGB.toFixed(2)}GB), restricting concurrency from ${effectiveMaxConcurrent} to 1`);
         effectiveMaxConcurrent = 1;
 
         // Trigger GC if available
-        if ((global as any).gc) {
-          logger.info('[MEMORY] Triggering manual GC due to pressure');
-          (global as any).gc();
-        }
+        triggerGC();
       }
 
       // Check concurrent limit
@@ -668,18 +658,17 @@ async function processQueue(): Promise<void> {
         continue;
       }
 
-      console.log(`\n🔍 [QUEUE-DEBUG] Found session: ${nextId}`);
+      logger.debug('Found next queued session', { sessionId: nextId });
 
       // Mark as processing
       await markAsProcessing(nextId);
-      console.log(`🔍 [QUEUE-DEBUG] Marked as processing: ${nextId}`);
+      logger.debug('Marked session as processing', { sessionId: nextId });
 
       // ⚡ C4 FIX: Use retry wrapper instead of direct call
       // Fire and loop back immediately to pick up next task if slot available
       processSessionWithRetry(nextId).catch(err => {
         // Final safety net - should not reach here due to internal error handling
-        console.error(`🔴 [QUEUE-DEBUG] UNHANDLED ERROR in processSessionWithRetry: ${nextId}`, err);
-        logger.error(`🔴 CRITICAL: Unhandled error in processSessionWithRetry for ${nextId}`, err);
+        logger.error('UNHANDLED ERROR in processSessionWithRetry', { sessionId: nextId, error: err });
         consecutiveFailures++;
         lastFailureTime = Date.now();
       });
@@ -701,9 +690,9 @@ async function processQueue(): Promise<void> {
  * Process a single session (async worker)
  */
 async function processSessionAsync(sessionId: string): Promise<void> {
-  console.log(`🔍 [QUEUE-DEBUG] processSessionAsync ENTERED: ${sessionId}`);
+  logger.debug('processSessionAsync entered', { sessionId });
   try {
-    console.log(`🔍 [QUEUE-DEBUG] Inside try block, about to query DB: ${sessionId}`);
+    logger.debug('processSessionAsync querying DB', { sessionId });
     logger.info('Starting to process request', { sessionId });
 
     // Get session data
@@ -1033,4 +1022,3 @@ export async function cleanupZombiesOnStartup(): Promise<void> {
     logger.error('Zombie cleanup failed', error);
   }
 }
-

@@ -105,7 +105,10 @@ describe('Chapter 2.1: BTR Pipeline - Stress & Robustness', () => {
                     ephemeris: {
                         ascendant: { degree: 15 },
                         planets: { sun: { sign: 'Leo' }, moon: { longitude: 100 } },
-                        ashtakavarga: { SAV: Array(12).fill(30) }
+                        ashtakavarga: { SAV: Array(12).fill(30) },
+                        d60Sign: 'Leo',
+                        d60Planets: { Sun: { deity: 'Surya' } },
+                        vargaDegrees: { D60: { Ascendant: 'Leo 15°00\'00"' } }
                     },
                     dasha: {
                         vimshottari: {
@@ -127,13 +130,6 @@ describe('Chapter 2.1: BTR Pipeline - Stress & Robustness', () => {
             };
 
             const result = calculateConsensus(input as any);
-
-            // DEBUG LOGGING
-            console.log('--- DEBUG CONSENSUS ---');
-            console.log('Overall Score:', result.overallConsensus);
-            console.log('Confidence Level:', result.confidenceLevel);
-            console.log('Method Scores:', JSON.stringify(result.scores, null, 2));
-            console.log('-----------------------');
 
             expect(['MEDIUM', 'HIGH', 'VERY_HIGH', 'STANDARD_PRECISION']).toContain(result.confidenceLevel);
         });

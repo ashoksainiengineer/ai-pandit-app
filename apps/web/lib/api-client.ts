@@ -15,37 +15,28 @@ export class APIClient {
    * Authenticated POST request
    */
   public static async post(url: string, body: any, getToken: () => Promise<string | null>) {
-    console.warn(`🚀 [DEBUG] APIClient POST: ${url}`);
     const token = await this.getAuthToken(getToken);
-
-    if (!token) {
-      console.error(`❌ [DEBUG] CRITICAL: Token retrieval FAILED for: ${url}. Request will likely 401.`);
-      // Continue anyway to see backend response, but with loud warning
-    } else {
-      console.warn(`✅ [DEBUG] Token retrieval SUCCESS (len: ${token.length})`);
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    };
+    if (env.api.huggingFaceToken) {
+      (headers as Record<string, string>)['X-HF-Token'] = env.api.huggingFaceToken;
     }
 
-    // DUAL-CHANNEL AUTH: Header + Query Param
-    const separator = url.includes('?') ? '&' : '?';
-    const finalUrl = token ? `${url}${separator}sid=${encodeURIComponent(token)}` : url;
-
     try {
-      const res = await fetch(finalUrl, {
+      const res = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : 'Bearer missing'
-        },
+        headers,
         body: JSON.stringify(body),
         credentials: 'include'
       });
 
       const data = await res.json();
-      console.warn(`📩 [DEBUG] Response Status: ${res.status}`, data);
-
+      logger.debug('[APIClient] POST completed', { path: url, status: res.status });
       return data;
-    } catch (error: any) {
-      console.error(`🔥 [DEBUG] Network error during POST: ${url}`, error.message);
+    } catch (error) {
+      logger.error('[APIClient] POST failed', { path: url, error });
       throw error;
     }
   }
@@ -54,35 +45,30 @@ export class APIClient {
    * Authenticated GET request
    */
   public static async get(url: string, getToken?: () => Promise<string | null>) {
-    console.warn(`🔍 [DEBUG] APIClient GET: ${url}`);
     const headers: HeadersInit = {};
-    let finalUrl = url;
 
     if (getToken) {
       const token = await this.getAuthToken(getToken);
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
-        const separator = url.includes('?') ? '&' : '?';
-        finalUrl = `${url}${separator}sid=${encodeURIComponent(token)}`;
-        console.warn(`✅ [DEBUG] Token acquired for GET (prefix: ${token.substring(0, 10)}...)`);
-      } else {
-        console.warn(`⚠️ [DEBUG] Token retrieval failed for GET: ${url}`);
       }
+    }
+    if (env.api.huggingFaceToken) {
+      (headers as Record<string, string>)['X-HF-Token'] = env.api.huggingFaceToken;
     }
 
     try {
-      const res = await fetch(finalUrl, {
+      const res = await fetch(url, {
         method: 'GET',
         headers,
         credentials: 'include'
       });
 
       const data = await res.json();
-      console.log(`📩 [DEBUG] Response from ${url}:`, { status: res.status });
-
+      logger.debug('[APIClient] GET completed', { path: url, status: res.status });
       return data;
-    } catch (error: any) {
-      console.error(`🔥 [DEBUG] GET failed: ${url}`, error.message);
+    } catch (error) {
+      logger.error('[APIClient] GET failed', { path: url, error });
       throw error;
     }
   }

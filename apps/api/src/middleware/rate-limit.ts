@@ -9,6 +9,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { config } from '../config/index.js';
 import { RateLimitError } from '../errors/index.js';
 import { sendRateLimit } from '../utils/response.js';
+import { logger } from '../lib/logger.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -184,7 +185,10 @@ class RateLimiter {
         next();
       } catch (error) {
         // Fail open - log error but allow request
-        console.error('Rate limiter error:', error);
+        logger.warn('Rate limiter error (fail-open)', {
+          error: error instanceof Error ? error.message : String(error),
+          key
+        });
         next();
       }
     };

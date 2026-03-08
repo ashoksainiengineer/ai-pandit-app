@@ -159,7 +159,6 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
         });
 
     } catch (error) {
-        console.error('DEBUG: Calculate endpoint error caught:', error);
         logger.error('Calculate endpoint error', error);
         res.status(500).json({
             success: false,

@@ -7,10 +7,10 @@ import { z } from 'zod';
 const envSchema = z.object({
     // App Environment
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-    PORT: z.string().transform((v) => v.split(/[\s,]/)[0]).default('7860'),
+    PORT: z.string().transform((v) => Number(v.split(/[\s,]/)[0])).default('7860'),
     BACKEND_URL: z.string().url().optional(),
     FRONTEND_URL: z.string().optional().transform(v => v?.trim().split(/\s+/)[0]),
-    ALLOWED_ORIGINS: z.string().trim().default('*'),
+    ALLOWED_ORIGINS: z.string().trim().default('http://localhost:3000'),
 
     // Database Configuration (Turso)
     TURSO_DATABASE_URL: z.string().min(1, 'TURSO_DATABASE_URL is required'),
@@ -30,10 +30,10 @@ const envSchema = z.object({
     AI_STAGE2_MAX_TOKENS: z.string().transform(Number).default('2048'),
     AI_STAGE4_MAX_TOKENS: z.string().transform(Number).default('8192'),
     AI_STAGE6_MAX_TOKENS: z.string().transform(Number).default('16384'),
-    AI_BATCH_SIZE_MIN: z.string().transform(Number).default('3'),
-    AI_BATCH_SIZE_MAX: z.string().transform(Number).default('12'),
-    AI_SURVIVAL_RATE_BASE: z.string().transform(Number).default('0.4'),
-    AI_SURVIVAL_ELASTICITY_FACTOR: z.string().transform(Number).default('0.2'),
+    AI_BATCH_SIZE_MIN: z.string().transform(Number).default('5'),
+    AI_BATCH_SIZE_MAX: z.string().transform(Number).default('10'),
+    AI_SURVIVAL_RATE_BASE: z.string().transform(Number).default('0.35'),
+    AI_SURVIVAL_ELASTICITY_FACTOR: z.string().transform(Number).default('1.1'),
     AI_PARALLEL_CONCURRENCY: z.string().transform(Number).default('3'),
     AI_PARALLEL_STAGGER_MS: z.string().transform(Number).default('500'),
 
@@ -41,6 +41,10 @@ const envSchema = z.object({
     BTR_STAGE4_MAX_ROUNDS: z.string().transform(Number).default('5'),
     BTR_STAGE6_MAX_ROUNDS: z.string().transform(Number).default('5'),
     BTR_CLUSTER_THRESHOLD_MINS: z.string().transform(Number).default('5'),
+    EPHEMERIS_STRICT_MODE: z
+        .string()
+        .default('true')
+        .transform((v) => ['1', 'true', 'yes', 'on'].includes(v.toLowerCase())),
 
     // Security Configuration
     CLERK_SECRET_KEY: z.string().min(1, 'CLERK_SECRET_KEY is required'),
@@ -71,23 +75,18 @@ function parseEnv() {
         console.error('Check your Hugging Face Space "Secrets" settings:');
         console.error(errors.join('\n'));
         console.error('\n⚠️  ACTION REQUIRED: Ensure all required variables are set correctly in the HF Space console.\n');
-
-        if (process.env.NODE_ENV === 'production') {
-            setTimeout(() => process.exit(1), 1000);
-            return result.data as any;
-        }
-
-        if (process.env.NODE_ENV === 'test') {
-            throw new Error(`Configuration Validation Failed:\n${errors.join('\n')}`);
-        }
-
-        process.exit(1);
+        throw new Error(`Configuration Validation Failed:\n${errors.join('\n')}`);
     }
 
     return result.data;
 }
 
 const env = parseEnv();
+
+// Warn on likely provider/model mismatch to catch misconfigured deployments early.
+if (env.AI_BASE_URL.toLowerCase().includes('groq.com') && env.AI_MODEL === 'gpt-4o') {
+    console.warn('[CONFIG] AI_BASE_URL points to GROQ but AI_MODEL is still default gpt-4o. Set AI_MODEL explicitly for GROQ deployment.');
+}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION OBJECTS
@@ -182,6 +181,9 @@ export const config = {
         clusterThreshold: env.BTR_CLUSTER_THRESHOLD_MINS,
         fallbackPromotedScore: 85, // Hardcoded
         fallbackRejectedScore: 30, // Hardcoded
+    },
+    ephemeris: {
+        strictMode: env.EPHEMERIS_STRICT_MODE,
     },
     timeouts: {
         requestMs: env.AI_TIMEOUT_MS,

@@ -82,7 +82,7 @@ export async function stage2BatchTournament(
     // FORCED FIRST ROUND
     if (roundNumber === 0 && currentCandidates.length > 0) {
         roundNumber++;
-        const batches = splitIntoBatches(currentCandidates, batchSize);
+        const batches = splitIntoBatches(currentCandidates, batchSize, `${input.sessionId}:stage2:r${roundNumber}`);
         const roundSurvivors: CandidateTime[] = [];
 
         await progress.updateMessage(`Base Analysis: Evaluating ${currentCandidates.length} potential paths...`);
@@ -248,7 +248,7 @@ export async function stage2BatchTournament(
     while (currentCandidates.length > batchSize && roundNumber <= MAX_ROUNDS) {
         const initialCount = currentCandidates.length;
         roundNumber++;
-        const batches = splitIntoBatches(currentCandidates, batchSize);
+        const batches = splitIntoBatches(currentCandidates, batchSize, `${input.sessionId}:stage2:r${roundNumber}`);
         const roundSurvivors: CandidateTime[] = [];
 
         await progress.updateMessage(`Tournament Round ${roundNumber}: ${batches.length} batches of ${batchSize}`);

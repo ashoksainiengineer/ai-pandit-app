@@ -11,10 +11,14 @@ const mockDispatchStreamEvent = vi.fn();
 const mockSetSessionId = vi.fn();
 const mockForceError = vi.fn();
 const mockMarkComplete = vi.fn();
+const mockSetLastEventId = vi.fn((seq: number) => {
+    mockState.lastEventId = seq;
+});
 
 const mockState = {
     dispatchStreamEvent: mockDispatchStreamEvent,
     setSessionId: mockSetSessionId,
+    setLastEventId: mockSetLastEventId,
     forceError: mockForceError,
     markComplete: mockMarkComplete,
     lastEventId: 0,
@@ -97,6 +101,7 @@ describe('useStreamProgress Hook', () => {
         vi.clearAllMocks();
         vi.useFakeTimers();
         (global as any).EventSource.instances = [];
+        mockState.lastEventId = 0;
     });
 
     afterEach(() => {
@@ -318,6 +323,68 @@ describe('useStreamProgress Hook', () => {
         // Verify store was updated
         expect(mockDispatchStreamEvent).toHaveBeenNthCalledWith(2, 'progress', expect.objectContaining({ stepIndex: 2 }));
         expect(mockState.lastEventId).toBe(1337);
+        expect(mockSetLastEventId).toHaveBeenCalledWith(1337);
+    });
+
+    it('should hydrate completion result in polling fallback when status is complete', async () => {
+        (global.fetch as any).mockResolvedValueOnce({
+            status: 200,
+            ok: true,
+            json: async () => ({
+                status: 'complete',
+                progress: { currentStep: 7, totalSteps: 7, percentage: 100, steps: [] },
+                result: { rectifiedTime: '12:34:56', accuracy: 98, confidence: 'high' },
+                metadata: { status: 'complete' }
+            }),
+        });
+
+        const { result } = renderHook(() => useStreamProgress('session-poll-complete', 'http://localhost:3001'));
+
+        await act(async () => {
+            vi.advanceTimersByTime(10500); // trigger polling fallback
+        });
+        await act(async () => {
+            vi.advanceTimersByTime(50);
+        });
+
+        expect(result.current.connectionState.status).toBe('finished');
+        expect(mockDispatchStreamEvent).toHaveBeenCalledWith(
+            'complete',
+            expect.objectContaining({
+                data: expect.objectContaining({ rectifiedTime: '12:34:56' })
+            })
+        );
+    });
+
+    it('should clear token cache and retry polling once on 401', async () => {
+        const { getTokenWithRetry } = await import('../auth-utils');
+        (global.fetch as any)
+            .mockResolvedValueOnce({ status: 401, ok: false })
+            .mockResolvedValueOnce({
+                status: 200,
+                ok: true,
+                json: async () => ({
+                    status: 'processing',
+                    progress: { currentStep: 1, totalSteps: 7, percentage: 10, steps: [] },
+                    metadata: { status: 'processing' }
+                }),
+            });
+
+        renderHook(() => useStreamProgress('session-401-retry', 'http://localhost:3001', async () => 'mock-token'));
+
+        await act(async () => {
+            vi.advanceTimersByTime(100);
+        });
+        await act(async () => {
+            vi.advanceTimersByTime(10500);
+        });
+        await act(async () => {
+            vi.advanceTimersByTime(100);
+        });
+
+        expect((global.fetch as any).mock.calls.length).toBe(2);
+        const retryCall = vi.mocked(getTokenWithRetry).mock.calls.find(([, options]) => options?.skipCache === true);
+        expect(retryCall).toBeTruthy();
     });
 
     it('should handle rapid-fire SSE messages without dropping state updates', async () => {

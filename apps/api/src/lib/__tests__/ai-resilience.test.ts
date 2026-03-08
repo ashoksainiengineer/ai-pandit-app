@@ -57,7 +57,7 @@ describe('🧠 Phase L: AI Transformation & Resilience — AI Client Recovery', 
         const callPromise = callAI('System Prompt', 'User Prompt');
 
         // Advance for any retry delays
-        await vi.advanceTimersByTimeAsync(10000);
+        await vi.runAllTimersAsync();
 
         const response = await callPromise;
 
@@ -76,7 +76,7 @@ describe('🧠 Phase L: AI Transformation & Resilience — AI Client Recovery', 
         const callPromise = callAI('System Prompt', 'User Prompt');
 
         // Advance for retry delays
-        await vi.advanceTimersByTimeAsync(10000);
+        await vi.runAllTimersAsync();
 
         const response = await callPromise;
 

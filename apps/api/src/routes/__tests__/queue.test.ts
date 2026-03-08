@@ -118,9 +118,9 @@ const validSubmitBody = {
         gender: 'male',
     },
     lifeEvents: [
-        { eventType: 'marriage', description: 'Got married', date: '2015-01-01' },
-        { eventType: 'career', description: 'First job', date: '2012-06-01' },
-        { eventType: 'health', description: 'Surgery', date: '2018-03-15' },
+        { eventType: 'marriage', category: 'relationship', eventDate: '2015-01-01', datePrecision: 'exact_date', description: 'Got married' },
+        { eventType: 'career', category: 'work', eventDate: '2012-06-01', datePrecision: 'exact_date', description: 'First job' },
+        { eventType: 'health', category: 'health', eventDate: '2018-03-15', datePrecision: 'exact_date', description: 'Surgery' },
     ],
     forensicTraits: { facial: { foreheadSize: 'broad' } },
     offsetConfig: { preset: '2hours' },
@@ -141,7 +141,8 @@ describe('Queue Route - POST /api/queue (Submit)', () => {
     it('should return 400 if birthData is missing', async () => {
         const res = await request(app).post('/api/queue').send({ lifeEvents: [], forensicTraits: {} });
         expect(res.status).toBe(400);
-        expect(res.body.error).toContain('Birth data');
+        expect(res.body.error).toBe('Validation failed');
+        expect(Array.isArray(res.body.details)).toBe(true);
     });
 
     it('should return 400 if lifeEvents < 3', async () => {
@@ -151,7 +152,7 @@ describe('Queue Route - POST /api/queue (Submit)', () => {
             forensicTraits: {},
         });
         expect(res.status).toBe(400);
-        expect(res.body.error).toContain('3 life events');
+        expect(res.body.error).toBe('Validation failed');
     });
 
     it('should return 400 if forensicTraits missing', async () => {
@@ -160,7 +161,7 @@ describe('Queue Route - POST /api/queue (Submit)', () => {
             lifeEvents: validSubmitBody.lifeEvents,
         });
         expect(res.status).toBe(400);
-        expect(res.body.error).toContain('Forensic Traits');
+        expect(res.body.error).toBe('Validation failed');
     });
 
     it('should return 400 for invalid latitude > 90', async () => {
@@ -170,7 +171,7 @@ describe('Queue Route - POST /api/queue (Submit)', () => {
         };
         const res = await request(app).post('/api/queue').send(body);
         expect(res.status).toBe(400);
-        expect(res.body.error).toContain('latitude');
+        expect(res.body.error).toBe('Validation failed');
     });
 
     it('should return 400 for invalid longitude > 180', async () => {
@@ -180,7 +181,7 @@ describe('Queue Route - POST /api/queue (Submit)', () => {
         };
         const res = await request(app).post('/api/queue').send(body);
         expect(res.status).toBe(400);
-        expect(res.body.error).toContain('longitude');
+        expect(res.body.error).toBe('Validation failed');
     });
 
     it('should return 400 for invalid dateOfBirth', async () => {
@@ -190,8 +191,7 @@ describe('Queue Route - POST /api/queue (Submit)', () => {
         };
         const res = await request(app).post('/api/queue').send(body);
         expect(res.status).toBe(400);
-        // Fix from Bug 5: Replaced generic 'Invalid date' with explicit format requirement
-        expect(res.body.error).toContain('strictly in YYYY-MM-DD');
+        expect(res.body.error).toBe('Validation failed');
     });
 
     it('should return 400 for missing required field (fullName)', async () => {
@@ -201,7 +201,7 @@ describe('Queue Route - POST /api/queue (Submit)', () => {
         };
         const res = await request(app).post('/api/queue').send(body);
         expect(res.status).toBe(400);
-        expect(res.body.error).toContain('fullName');
+        expect(res.body.error).toBe('Validation failed');
     });
 
     it('should return 200 with sessionId on valid submission', async () => {

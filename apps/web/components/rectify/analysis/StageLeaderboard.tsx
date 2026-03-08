@@ -226,7 +226,7 @@ export const StageLeaderboard = memo(function StageLeaderboard({
                                                         </span>
                                                         <span className="w-1 h-1 rounded-full bg-stone-200" />
                                                         <span className="text-[9px] uppercase font-bold text-stone-400 tracking-wider">
-                                                            MOON: <span className="text-stone-600 font-mono">{s.minifiedEph?.moon.split(' ')[0]}</span>
+                                                            MOON: <span className="text-stone-600 font-mono">{s.minifiedEph?.moon?.split(' ')[0] ?? '-'}</span>
                                                         </span>
                                                     </div>
                                                 </div>

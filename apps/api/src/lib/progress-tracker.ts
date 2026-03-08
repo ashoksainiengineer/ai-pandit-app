@@ -7,6 +7,7 @@ import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
 import { emitProgress, emitComplete, emitError, emitCandidateScore, emitAIContext, emitEstimatedTime, emitAIThinking } from './session-events.js';
+import { logger } from './logger.js';
 import type { CandidateScore, ProgressStep, AIThinkingData, AIContextData, ProgressData } from '@ai-pandit/shared';
 
 // Re-export types for backwards compatibility
@@ -116,7 +117,11 @@ export class ProgressTracker {
         if (Math.random() < 0.05) {
             let totalMemoryEstimate = 0;
             this.candidateLogs.forEach(v => { totalMemoryEstimate += v.length; });
-            console.log(`[ProgressTracker] Stage ${stage} Memory: ~${Math.round(totalMemoryEstimate / 1024)}KB for ${this.candidateLogs.size} candidates in memory.`);
+            logger.debug('[ProgressTracker] candidate log memory snapshot', {
+                stage,
+                approxKb: Math.round(totalMemoryEstimate / 1024),
+                candidateStreams: this.candidateLogs.size
+            });
         }
 
         // 🔥 GOD-TIER MEMORY PROTECTION: Cap thinking and stage history
@@ -146,7 +151,7 @@ export class ProgressTracker {
         const now = Date.now();
         if (now - this.lastPulseTime > 30000) {
             this.lastPulseTime = now;
-            this.saveProgress(true).catch(err => console.error('Heartbeat pulse failed:', err)); // Persist progress explicitly
+            this.saveProgress(true).catch(err => logger.warn('Heartbeat pulse failed', { error: (err as Error)?.message || err })); // Persist progress explicitly
         }
     }
 
@@ -480,7 +485,10 @@ export class ProgressTracker {
                 })
                 .where(eq(sessions.id, this.sessionId));
         } catch (error) {
-            console.error('Failed to save progress:', error);
+            logger.error('Failed to save progress', { sessionId: this.sessionId, includeThinking, error });
+            if (includeThinking) {
+                throw error;
+            }
         }
     }
 
@@ -557,7 +565,7 @@ export async function getSessionProgress(sessionId: string): Promise<ProgressDat
 
         return JSON.parse(result[0].progressData) as ProgressData;
     } catch (error) {
-        console.error('Failed to get progress:', error);
+        logger.error('Failed to get progress', { sessionId, error });
         return null;
     }
 }

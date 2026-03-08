@@ -64,6 +64,7 @@ vi.mock('../../lib/queue-manager.js', () => ({
             offsetConfig: '{}',
             timezone: '5.5',
             userId: 'internal_id',
+            updatedAt: '2026-03-09T00:00:00.000Z',
         },
     }),
 }));
@@ -142,6 +143,32 @@ describe('Progress Route - GET /:sessionId', () => {
         expect(res.body.progress.currentStep).toBe(0);
         expect(res.body.progress.liveMessage).toContain('queue');
     });
+
+    it('should return terminal result payload for completed sessions', async () => {
+        (db.limit as any).mockResolvedValueOnce([{ id: 'session-3', clerkId: 'test_clerk_id', userId: 'internal_id' }]);
+        vi.mocked(getQueueStatus).mockResolvedValueOnce({
+            status: 'complete',
+            position: 0,
+            estimatedWaitSeconds: 0,
+            session: {
+                fullName: 'Test User',
+                dateOfBirth: '1990-01-01',
+                tentativeTime: '14:30',
+                birthPlace: 'Delhi',
+                offsetConfig: '{}',
+                timezone: '5.5',
+                userId: 'internal_id',
+                analysisResult: JSON.stringify({ rectifiedTime: '12:12:12', accuracy: 98, confidence: 'high' }),
+                updatedAt: '2026-03-09T00:00:00.000Z',
+            },
+        } as any);
+
+        const res = await request(app).get('/api/queue/progress/session-3');
+        expect(res.status).toBe(200);
+        expect(res.body.status).toBe('complete');
+        expect(res.body.result?.rectifiedTime).toBe('12:12:12');
+        expect(res.body.rectifiedTime).toBe('12:12:12');
+    });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -167,5 +194,10 @@ describe('Progress Route - GET /?sessionId=... (Query Param)', () => {
         const res = await request(app).get('/api/queue/progress/?sessionId=session-1');
         expect(res.status).toBe(200);
         expect(res.body.sessionId).toBe('session-1');
+    });
+
+    it('should ignore sid query and require sessionId', async () => {
+        const res = await request(app).get('/api/queue/progress/?sid=token-only');
+        expect(res.status).toBe(400);
     });
 });

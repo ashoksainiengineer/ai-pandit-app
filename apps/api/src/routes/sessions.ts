@@ -13,6 +13,11 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
+function normalizeTimezoneValue(rawTimezone: string): number | string {
+    const numericTimezone = Number(rawTimezone);
+    return Number.isFinite(numericTimezone) ? numericTimezone : rawTimezone;
+}
+
 /**
  * GET /api/sessions - List all user sessions
  */
@@ -111,7 +116,7 @@ router.get('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Respon
                 birthPlace: decryptedSession.birthPlace,
                 latitude: session.latitude,
                 longitude: session.longitude,
-                timezone: Number(session.timezone),
+                timezone: normalizeTimezoneValue(session.timezone),
                 gender: session.gender
             }
         };

@@ -109,7 +109,6 @@ export async function callAI(
                 model: configLocal.model,
                 enableThinking: configLocal.enableThinking,
                 keyLen: AI_CONFIG.apiKey?.length,
-                keyPrefix: AI_CONFIG.apiKey?.substring(0, 10),
                 baseUrl: AI_CONFIG.baseUrl
             });
 
@@ -330,7 +329,6 @@ export async function callAIWithStream(
                 attempt,
                 model: configLocal.model,
                 keyLen: AI_CONFIG.apiKey?.length,
-                keyPrefix: AI_CONFIG.apiKey?.substring(0, 10),
                 baseUrl: AI_CONFIG.baseUrl
             });
 
@@ -537,9 +535,9 @@ export async function callAIWithStream(
                 promptLength: userPrompt.length,
                 thinkingLength: fullThinking.length,
                 contentLength: fullContent.length,
-                fullPrompt: userPrompt,
-                fullResponse: fullContent,
-                fullReasoning: fullThinking
+                promptPreview: userPrompt.slice(0, 200),
+                responsePreview: fullContent.slice(0, 200),
+                reasoningPreview: fullThinking.slice(0, 200)
             });
 
             if (!fullThinking && !fullContent) {

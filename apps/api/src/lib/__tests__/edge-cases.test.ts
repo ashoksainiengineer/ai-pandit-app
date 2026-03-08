@@ -71,9 +71,8 @@ describe('Vedic Engine - Edge Cases (Heavy Duty)', () => {
             .rejects.toThrow(/Invalid latitude/);
     });
 
-    it('should handle malformed date gracefully with NaNs without crashing the thread', async () => {
-        const eph = await calculateEphemeris('invalid-date', '12:00:00', 28, 77, 5.5);
-        expect(eph).toBeDefined();
-        expect(eph.planets.sun.longitude).toBeNaN();
+    it('should hard-fail malformed date input in strict mode', async () => {
+        await expect(calculateEphemeris('invalid-date', '12:00:00', 28, 77, 5.5))
+            .rejects.toThrow(/Invalid birthDate/);
     });
 });

@@ -22,6 +22,7 @@ vi.mock('lucide-react', () => ({
     AlertCircle: () => <div data-testid="icon-alert" />,
     Loader2: () => <div data-testid="icon-loader" />,
     CopyPlus: () => <div data-testid="icon-copy" />,
+    Sparkles: () => <div data-testid="icon-sparkles" />,
 }));
 
 // Mock APIClient

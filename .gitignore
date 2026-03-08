@@ -67,4 +67,6 @@ apps/api/src/check-*.ts
 apps/api/src/debug-*.ts
 apps/api/src/test-*.ts
 apps/api/src/requeue-*.ts
+apps/api/src/scripts/requeue_debug.txt
+logs/debug-analysis.log
 verify-production.ts

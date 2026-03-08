@@ -5,7 +5,7 @@
 import { Router, Response } from 'express';
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { aiConfig } from '../config/index.js';
 import { sessionEvents, SessionEvent } from '../lib/session-events.js';
 import { getSessionProgress } from '../lib/progress-tracker.js';
@@ -40,7 +40,7 @@ router.options(['/', '/:sessionId'], (req, res) => {
 });
 
 /**
- * GET /api/stream (Support Query Params: sid, sessionId)
+ * GET /api/stream (Support Query Params: sessionId)
  * GET /api/stream/:sessionId
  * Server-Sent Events endpoint for real-time progress updates
  *
@@ -49,28 +49,29 @@ router.options(['/', '/:sessionId'], (req, res) => {
 router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     // Robust session ID extraction
     const sessionId = req.params.sessionId ||
-        (req.query.sid as string) ||
         (req.query.sessionId as string);
 
-    const isTestScript = req.headers['x-test-bypass-auth'] === 'super-secret-test-key';
-    const clerkId = req.clerkId || (isTestScript ? 'TEST_SCRIPT' : undefined);
+    const isTestScript = false;
+    const clerkId = req.clerkId;
 
     if (!sessionId) {
         res.setHeader('Content-Type', 'text/event-stream');
-        sendEvent(res, { type: 'error', error: 'Session ID required (path param or ?sid=)', code: 'BAD_REQUEST' });
+        sendEvent(res, { type: 'error', message: 'Session ID required (path param or ?sessionId=)', code: 'BAD_REQUEST' });
         res.end();
         return;
     }
 
     if (!clerkId) {
         res.setHeader('Content-Type', 'text/event-stream');
-        sendEvent(res, { type: 'error', error: 'Authentication required', code: 'UNAUTHORIZED' });
+        sendEvent(res, { type: 'error', message: 'Authentication required', code: 'UNAUTHORIZED' });
         res.end();
         return;
     }
 
-    activeSseConnections++;
-    logger.info(`[SSE] Connection requested for session ${sessionId} by clerkId ${clerkId.slice(0, 12)}... | Active: ${activeSseConnections}`);
+    const trackSseConnection = () => {
+        activeSseConnections++;
+        logger.info(`[SSE] Connection requested for session ${sessionId} by clerkId ${clerkId.slice(0, 12)}... | Active: ${activeSseConnections}`);
+    };
 
     // ═══════════════════════════════════════════════════════════════════════════════
     // SECURITY: Verify session ownership
@@ -85,6 +86,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
             clerkId: sessions.clerkId,
             errorMessage: sessions.errorMessage,
             updatedAt: sessions.updatedAt,
+            analysisResult: sessions.analysisResult,
         })
             .from(sessions)
             .where(eq(sessions.id, sessionId))
@@ -96,7 +98,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
             res.setHeader('X-Accel-Buffering', 'no');
             if (typeof (res as any).flushHeaders === 'function') (res as any).flushHeaders();
             res.write(': ping\n\n');
-            sendEvent(res, { type: 'error', error: 'Session not found', code: 'NOT_FOUND' });
+            sendEvent(res, { type: 'error', message: 'Session not found', code: 'NOT_FOUND' });
             if (typeof (res as any).flush === 'function') (res as any).flush();
             res.end();
             return;
@@ -110,7 +112,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
             res.setHeader('X-Accel-Buffering', 'no');
             if (typeof (res as any).flushHeaders === 'function') (res as any).flushHeaders();
             res.write(': ping\n\n');
-            sendEvent(res, { type: 'error', error: 'Access denied', code: 'FORBIDDEN' });
+            sendEvent(res, { type: 'error', message: 'Access denied', code: 'FORBIDDEN' });
             if (typeof (res as any).flush === 'function') (res as any).flush();
             res.end();
             return;
@@ -130,6 +132,23 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                 updatedAt: session[0].updatedAt
             });
 
+            let terminalResult: Record<string, unknown> | null = null;
+            if (currentStatus === 'complete') {
+                const decryptedResult = safeDecryptWithFallback(session[0].analysisResult, clerkId, userId);
+                if (decryptedResult) {
+                    if (typeof decryptedResult === 'string') {
+                        try {
+                            const parsed = JSON.parse(decryptedResult) as Record<string, unknown>;
+                            terminalResult = parsed;
+                        } catch {
+                            terminalResult = null;
+                        }
+                    } else if (typeof decryptedResult === 'object') {
+                        terminalResult = decryptedResult as Record<string, unknown>;
+                    }
+                }
+            }
+
             // Set all SSE headers for proper EventSource handling
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache, no-transform, no-store, must-revalidate, private');
@@ -148,6 +167,16 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                     ? 'Session already completed'
                     : `Session is in terminal state: ${currentStatus}`,
                 errorMessage: session[0].errorMessage || undefined,
+                result: terminalResult ?? undefined,
+                rectifiedTime: typeof terminalResult?.rectifiedTime === 'string' ? terminalResult.rectifiedTime : undefined,
+                accuracy: typeof terminalResult?.accuracy === 'number' ? terminalResult.accuracy : undefined,
+                confidence: typeof terminalResult?.confidence === 'string' ? terminalResult.confidence : undefined,
+                data: {
+                    status: currentStatus,
+                    updatedAt: session[0].updatedAt,
+                    errorMessage: session[0].errorMessage || undefined,
+                    result: terminalResult ?? undefined,
+                },
             });
 
             if (typeof (res as any).flush === 'function') (res as any).flush();
@@ -155,10 +184,9 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
             return;
         }
     } catch (error) {
-        console.error('TEST DEBUG ERROR:', error);
         logger.error(`[SSE] Error checking session for ${sessionId}:`, error);
         res.setHeader('Content-Type', 'text/event-stream');
-        sendEvent(res, { type: 'error', error: 'Internal server error', code: 'INTERNAL_ERROR' });
+        sendEvent(res, { type: 'error', message: 'Internal server error', code: 'INTERNAL_ERROR' });
         res.end();
         return;
     }
@@ -166,6 +194,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
     // ═══════════════════════════════════════════════════════════════════════════════
     // SSE Setup
     // ═══════════════════════════════════════════════════════════════════════════════
+    trackSseConnection();
 
     // INDUSTRY SSE: Read Last-Event-ID for smart reconnection
     const lastEventId = req.headers['last-event-id'] as string | undefined;
@@ -367,19 +396,36 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
         sendEvent(res, { type: 'ping', timestamp: new Date().toISOString() });
     }, 15000);
 
-    // Cleanup on disconnect
-    req.on('close', () => {
+    let cleanedUp = false;
+    const cleanupConnection = (reason: 'close' | 'error', error?: unknown) => {
+        if (cleanedUp) return;
+        cleanedUp = true;
         activeSseConnections = Math.max(0, activeSseConnections - 1);
-        logger.info('SSE connection closed', { sessionId, clerkId: clerkId.slice(0, 12) + '...', activeConnections: activeSseConnections });
+        if (reason === 'error') {
+            logger.error('SSE connection error', {
+                sessionId,
+                clerkId: clerkId.slice(0, 12) + '...',
+                error,
+                activeConnections: activeSseConnections
+            });
+        } else {
+            logger.info('SSE connection closed', {
+                sessionId,
+                clerkId: clerkId.slice(0, 12) + '...',
+                activeConnections: activeSseConnections
+            });
+        }
         emitter.off('event', eventHandler);
         clearInterval(pingInterval);
+    };
+
+    // Cleanup on disconnect
+    req.on('close', () => {
+        cleanupConnection('close');
     });
 
     req.on('error', (error) => {
-        activeSseConnections = Math.max(0, activeSseConnections - 1);
-        logger.error('SSE connection error', { sessionId, clerkId: clerkId.slice(0, 12) + '...', error, activeConnections: activeSseConnections });
-        emitter.off('event', eventHandler);
-        clearInterval(pingInterval);
+        cleanupConnection('error', error);
     });
 });
 

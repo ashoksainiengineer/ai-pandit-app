@@ -10,6 +10,14 @@ import { CandidateTime, generateRefinementGrid } from '../../time-offset-manager
 import { ProgressTracker } from '../../progress-tracker.js';
 import { StageResult } from '@ai-pandit/shared';
 
+function getStage3FocusCount(offsetMinutes: number, survivorsCount: number): number {
+    if (survivorsCount <= 3) return survivorsCount;
+    if (offsetMinutes <= 30) return Math.min(7, survivorsCount);
+    if (offsetMinutes <= 120) return Math.min(6, survivorsCount);
+    if (offsetMinutes <= 360) return Math.min(5, survivorsCount);
+    return Math.min(4, survivorsCount);
+}
+
 /**
  * Stage 3: Generate refinement grid around Stage 2 survivors
  *
@@ -70,8 +78,18 @@ export async function stage3RefinementGrid(
         intervalSeconds = 60;
     }
 
-    // Generate explicit dynamic grids around top 3 survivors
-    for (const survivor of survivors.slice(0, 3)) {
+    const rankedSurvivors = [...survivors].sort((a, b) => {
+        const absDiff = Math.abs(a.offsetMinutes) - Math.abs(b.offsetMinutes);
+        if (absDiff !== 0) return absDiff;
+        const signedDiff = a.offsetMinutes - b.offsetMinutes;
+        if (signedDiff !== 0) return signedDiff;
+        return a.time.localeCompare(b.time);
+    });
+
+    const focusCount = getStage3FocusCount(offsetMinutes, rankedSurvivors.length);
+
+    // Generate explicit dynamic grids around adaptive top-K survivors
+    for (const survivor of rankedSurvivors.slice(0, focusCount)) {
         const fineGrid = generateRefinementGrid(survivor.time, rangeMinutes, intervalSeconds); // Telescopic Focus
 
         for (const gridPoint of fineGrid) {
@@ -82,7 +100,10 @@ export async function stage3RefinementGrid(
         }
     }
 
-    await progress.completeStep('fine', [`Generated refinement grid: ${refinedCandidates.length} points`]);
+    await progress.completeStep('fine', [
+        `Generated refinement grid: ${refinedCandidates.length} points`,
+        `Adaptive focus: top ${focusCount}/${rankedSurvivors.length} survivors`
+    ]);
 
     return {
         candidates: refinedCandidates,
