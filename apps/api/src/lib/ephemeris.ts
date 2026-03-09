@@ -417,6 +417,7 @@ export async function calculateEphemeris(
   timezone: number | string
 ): Promise<EphemerisData> {
   const strictMode = config.ephemeris.strictMode;
+  const allowAlgorithmicFallback = config.ephemeris.allowAlgorithmicFallback;
 
   // FIXED: More precise cache key including timezone
   const cacheKey = `${birthDate}_${birthTime}_${latitude.toFixed(6)}_${longitude.toFixed(6)}_${typeof timezone === 'string' ? timezone : timezone.toFixed(2)}`;
@@ -463,6 +464,12 @@ export async function calculateEphemeris(
 
   // Use pre-initialized Swiss Ephemeris status
   const highPrecision = getSwissEphStatus();
+  if (!highPrecision && !allowAlgorithmicFallback) {
+    throw new Error(
+      'Swiss Ephemeris is unavailable and algorithmic fallback is disabled. ' +
+      'Enable Swiss Ephemeris or set EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK=true for degraded mode.'
+    );
+  }
 
   // Use high-precision Julian Day if available
   const jd = (highPrecision && swe && (swe as any).swe_julday)
@@ -510,6 +517,11 @@ export async function calculateEphemeris(
           house: 0 // Will be set after ascendant is calculated
         };
       } catch (e) {
+        if (!allowAlgorithmicFallback) {
+          throw new Error(
+            `Swiss Ephemeris failed for ${planetNames[i]} and algorithmic fallback is disabled.`
+          );
+        }
         logger.warn(`[EPHEMERIS] ⚠️ Swiss Ephemeris failed for ${planetNames[i]}, using algorithmic fallback (~0.1° accuracy)`);
         // Use algorithmic fallback for this planet
         const algoResult = calcPlanet(jd, planetNames[i]);

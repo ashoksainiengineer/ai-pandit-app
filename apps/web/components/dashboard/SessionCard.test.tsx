@@ -3,10 +3,18 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { SessionCard } from './SessionCard';
 import React from 'react';
 
+const mockRouterPush = vi.fn();
+
 // Mock Clerk useAuth
 vi.mock('@clerk/nextjs', () => ({
     useAuth: () => ({
         getToken: vi.fn().mockResolvedValue('mock-token'),
+    }),
+}));
+
+vi.mock('next/navigation', () => ({
+    useRouter: () => ({
+        push: mockRouterPush,
     }),
 }));
 
@@ -137,11 +145,10 @@ describe('SessionCard', () => {
             success: true,
             data: { id: 'new-cloned-id' }
         });
-
-        // Mock window.location.href
-        const originalLocation = window.location;
-        delete (window as any).location;
-        (window as any).location = { href: '' } as any;
+        (global.fetch as any).mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ success: true, data: { id: 'new-cloned-id' } }),
+        });
 
         render(
             <SessionCard
@@ -161,11 +168,8 @@ describe('SessionCard', () => {
                 expect.any(Function)
             );
             expect(mockOnDuplicate).toHaveBeenCalledWith('new-cloned-id');
-            expect(window.location.href).toContain('/rectify/new-cloned-id/edit');
+            expect(mockRouterPush).toHaveBeenCalledWith('/rectify/new-cloned-id/edit');
         });
-
-        // Restore location
-        (window as any).location = originalLocation;
     });
 
     it('renders session information correctly in list view', () => {

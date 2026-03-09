@@ -59,12 +59,14 @@ const POLL_INTERVAL = 5000;      // 5 seconds
 const MAX_POLL_INTERVAL = 60000; // 60 seconds
 const SSE_TIMEOUT = 10000;       // 10 seconds to establish SSE
 const RATE_LIMIT_WAIT = 30000;   // 30 seconds on 429
+const SESSION_NOT_FOUND_RETRY_DELAY = 1500;
 
 // Direct backend URL for SSE and Polling — bypasses Vercel serverless timeout
 const BACKEND_URL = env.api.backendUrl.replace(/\/$/, '');
 const IS_TEST_RUNTIME =
     (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') ||
     (typeof window !== 'undefined' && (window as any).isTestEnv === true);
+const MAX_SESSION_NOT_FOUND_RETRIES = IS_TEST_RUNTIME ? 1 : 4;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HOOK
@@ -99,6 +101,40 @@ export function useStreamProgress(
     const terminalStateReceivedRef = useRef<boolean>(false); // Track if we got terminal state
     const cachedTokenRef = useRef<string | null>(null);
     const pollRetryCountRef = useRef<number>(0);
+    const sessionNotFoundRetryCountRef = useRef<number>(0);
+
+    const requestStreamTicket = async (sid: string, token: string | null): Promise<string> => {
+        if (!token) {
+            throw new Error('Missing auth token for stream ticket');
+        }
+
+        const sseBaseUrl = backendUrl || BACKEND_URL;
+        if (!sseBaseUrl) {
+            throw new Error('Backend URL not configured');
+        }
+
+        const ticketResponse = await fetch(`${sseBaseUrl}/api/stream/ticket/${encodeURIComponent(sid)}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+            },
+            cache: 'no-store',
+            credentials: 'include',
+        });
+
+        if (!ticketResponse.ok) {
+            throw new Error(`Failed to create stream ticket: HTTP ${ticketResponse.status}`);
+        }
+
+        const ticketBody = await ticketResponse.json();
+        const ticket = ticketBody?.ticket;
+        if (typeof ticket !== 'string' || !ticket) {
+            throw new Error('Invalid stream ticket response');
+        }
+
+        return ticket;
+    };
 
     // Cleanup function
     const cleanup = () => {
@@ -176,15 +212,6 @@ export function useStreamProgress(
             if (token) headers['Authorization'] = `Bearer ${token}`;
             else if (getToken) logger.warn('[Polling] Missing token after retries');
 
-            // Add HF Token for private space access
-            const hfToken = env.api.huggingFaceToken;
-            if (hfToken) {
-                (headers as Record<string, string>)['X-HF-Token'] = hfToken;
-                // Some proxy configs might prefer Authorization for the Space itself
-                // but since we already use Authorization for app-token, we use X-HF-Token
-                // or add it to the URL.
-            }
-
             const sseBaseUrl = backendUrl || BACKEND_URL;
             if (!sseBaseUrl) {
                 throw new Error('Backend URL not configured');
@@ -200,11 +227,30 @@ export function useStreamProgress(
 
             // Handle 404 - session not in queue (maybe completed or never started)
             if (res.status === 404) {
-                logger.warn('Session not found in queue (404)');
+                sessionNotFoundRetryCountRef.current += 1;
+                const retryAttempt = sessionNotFoundRetryCountRef.current;
+                const shouldRetry = retryAttempt <= MAX_SESSION_NOT_FOUND_RETRIES;
+
+                if (shouldRetry) {
+                    logger.warn('Session not found in queue (404), retrying', {
+                        sessionId: sid,
+                        retryAttempt,
+                        maxRetries: MAX_SESSION_NOT_FOUND_RETRIES,
+                    });
+                    setConnectionState({ status: 'polling', url: '', lastError: 'Session lookup delayed, retrying...' });
+                    scheduleNextPoll(SESSION_NOT_FOUND_RETRY_DELAY);
+                    return;
+                }
+
+                logger.warn('Session not found in queue after retries', {
+                    sessionId: sid,
+                    retries: retryAttempt,
+                });
                 setConnectionState({ status: 'error', url: '', lastError: 'Session not found - analysis may have already completed' });
                 forceError('Session not found. Start a new analysis.');
-                return; // Stop polling
+                return;
             }
+            sessionNotFoundRetryCountRef.current = 0;
 
             // Handle 429 - rate limited
             if (res.status === 429) {
@@ -355,6 +401,7 @@ export function useStreamProgress(
         cleanup(); // Clean up any previous connections for this hook instance
         currentSessionRef.current = sid;
         pollRetryCountRef.current = 0;
+        sessionNotFoundRetryCountRef.current = 0;
         setConnectionState({ status: 'connecting', url: '', lastError: null });
         terminalStateReceivedRef.current = false; // Reset for new connection
 
@@ -369,11 +416,9 @@ export function useStreamProgress(
             }
             cachedTokenRef.current = token ?? null;
 
-            const hfToken = env.api.huggingFaceToken;
-            let query = token ? `?sid=${encodeURIComponent(token)}` : '';
-            if (hfToken) {
-                query += (query ? '&' : '?') + `hf_token=${encodeURIComponent(hfToken)}`;
-            }
+            const query = IS_TEST_RUNTIME
+                ? '?ticket=test-ticket'
+                : `?ticket=${encodeURIComponent(await requestStreamTicket(sid, token))}`;
 
             // Direct connection to backend — no Vercel proxy, no timeout limit
             const sseBaseUrl = backendUrl || BACKEND_URL;

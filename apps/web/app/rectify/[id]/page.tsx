@@ -45,7 +45,7 @@ const SSEDebugPanel = env.app.isDevelopment
   : () => null;
 
 const GlobalStyles = memo(() => (
-  <style jsx global>{`
+  <style>{`
     .style-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
     .style-scroll::-webkit-scrollbar-track { background: #FDF8F3; border-radius: 10px; }
     .style-scroll::-webkit-scrollbar-thumb { background: #E5E0D8; border-radius: 10px; }

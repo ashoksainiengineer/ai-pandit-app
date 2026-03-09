@@ -6,6 +6,9 @@ import { sessions, users } from '@ai-pandit/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { parseSensitiveField, encrypt, initializeEncryption } from '@/lib/crypto';
+import { ensureUserRecord } from '@/lib/server/user-sync';
+import { getProtectedFieldsPresent } from '@/lib/server/session-write-guards';
+import { getFavoriteSetForSessions } from '@/lib/server/favorite-store';
 
 initializeEncryption(env.security.encryptionSecret);
 
@@ -29,10 +32,12 @@ export async function GET(req: NextRequest) {
         const userSessions = await db.select().from(sessions)
             .where(eq(sessions.userId, user.id))
             .orderBy(desc(sessions.createdAt));
+        const favoriteSet = await getFavoriteSetForSessions(clerkId, userSessions.map((s) => s.id));
 
         // Parse JSON fields for frontend consumption
         const parsedSessions = userSessions.map(s => ({
             ...s,
+            isFavorite: favoriteSet.has(s.id),
             fullName: parseSensitiveField(s.fullName),
             lifeEvents: parseSensitiveField(s.lifeEvents, []),
             forensicTraits: parseSensitiveField(s.forensicTraits),
@@ -67,6 +72,13 @@ export async function POST(req: NextRequest) {
 
         const clerkId = clerkUser.id;
         const body = await req.json();
+        const protectedFields = getProtectedFieldsPresent(body as Record<string, unknown>);
+        if (protectedFields.length > 0) {
+            return NextResponse.json({
+                success: false,
+                error: `Protected fields are backend-owned: ${protectedFields.join(', ')}`
+            }, { status: 400 });
+        }
 
         // Basic validation
         if (!body.birthData) {
@@ -74,26 +86,13 @@ export async function POST(req: NextRequest) {
         }
 
         // 1. Get or Create User
-        let user = await db.query.users.findFirst({
-            where: eq(users.clerkId, clerkId)
+        const email = clerkUser.emailAddresses[0]?.emailAddress || '';
+        const fullName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || 'User';
+        const user = await ensureUserRecord({
+            clerkId,
+            email,
+            fullName,
         });
-
-        if (!user) {
-            const email = clerkUser.emailAddresses[0]?.emailAddress || '';
-            const fullName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || 'User';
-            const newUserId = uuidv4();
-
-            await db.insert(users).values({
-                id: newUserId,
-                clerkId: clerkId,
-                email: email,
-                fullName: fullName,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            });
-
-            user = { id: newUserId, clerkId } as any; // Minimal user object for reference
-        }
 
         const newSessionId = uuidv4();
         const bd = body.birthData;
@@ -101,7 +100,7 @@ export async function POST(req: NextRequest) {
         // 2. Prepare Session Object (Flattened & Encrypted)
         const newSession = {
             id: newSessionId,
-            userId: user!.id,
+            userId: user.id,
             clerkId: clerkId,
 
             // Flattened Birth Data (Encrypted)

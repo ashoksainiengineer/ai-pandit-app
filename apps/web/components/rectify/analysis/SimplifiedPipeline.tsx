@@ -70,7 +70,6 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
           return (
             <React.Fragment key={stage.id}>
               <motion.button
-                initial={false}
                 animate={{
                   scale: state === 'active' ? 1.05 : 1,
                 }}

@@ -117,6 +117,26 @@ export const sessions = sqliteTable(
 );
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// SESSION_FAVORITES TABLE - User Favorites (Durable)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const sessionFavorites = sqliteTable(
+    'session_favorites',
+    {
+        id: text('id').primaryKey(),
+        clerkId: text('clerkId').notNull(),
+        sessionId: text('sessionId').notNull().references(() => sessions.id, { onDelete: 'cascade' }),
+        createdAt: text('createdAt').default(sql`CURRENT_TIMESTAMP`).notNull(),
+        updatedAt: text('updatedAt').default(sql`CURRENT_TIMESTAMP`).notNull(),
+    },
+    (table) => ({
+        clerkIdIdx: index('session_favorites_clerkId_idx').on(table.clerkId),
+        sessionIdIdx: index('session_favorites_sessionId_idx').on(table.sessionId),
+        clerkSessionUnique: uniqueIndex('session_favorites_clerk_session_unique').on(table.clerkId, table.sessionId),
+    })
+);
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // CALCULATIONS TABLE - Ephemeris Cache
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -271,6 +291,8 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
 export type NewSession = typeof sessions.$inferInsert;
+export type SessionFavorite = typeof sessionFavorites.$inferSelect;
+export type NewSessionFavorite = typeof sessionFavorites.$inferInsert;
 export type Calculation = typeof calculations.$inferSelect;
 export type NewCalculation = typeof calculations.$inferInsert;
 export type Payment = typeof payments.$inferSelect;

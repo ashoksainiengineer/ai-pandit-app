@@ -1,4 +1,3 @@
-import { env } from './config';
 import { logger } from './secure-logger';
 import { getTokenWithRetry } from './auth-utils';
 
@@ -20,9 +19,6 @@ export class APIClient {
       'Content-Type': 'application/json',
       ...(token ? { 'Authorization': `Bearer ${token}` } : {})
     };
-    if (env.api.huggingFaceToken) {
-      (headers as Record<string, string>)['X-HF-Token'] = env.api.huggingFaceToken;
-    }
 
     try {
       const res = await fetch(url, {
@@ -52,9 +48,6 @@ export class APIClient {
       if (token) {
         headers['Authorization'] = `Bearer ${token}`;
       }
-    }
-    if (env.api.huggingFaceToken) {
-      (headers as Record<string, string>)['X-HF-Token'] = env.api.huggingFaceToken;
     }
 
     try {

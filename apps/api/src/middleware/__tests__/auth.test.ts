@@ -72,7 +72,7 @@ describe('Auth Middleware - Token Extraction', () => {
         vi.clearAllMocks();
     });
 
-    it('should reject request with no token (no Authorization header, no query)', async () => {
+    it('should reject request with no token', async () => {
         const req = createMockReq({ headers: {} as any });
         const res = createMockRes();
 
@@ -103,23 +103,7 @@ describe('Auth Middleware - Token Extraction', () => {
         expect(req.sessionId).toBe('sess_abc');
     });
 
-    it('should extract token from query parameter (for SSE streams)', async () => {
-        const mockVerify = vi.mocked(verifyToken);
-        mockVerify.mockResolvedValue({ sub: 'user_456', sid: 'sess_def' } as any);
-
-        const req = createMockReq({
-            headers: {} as any,
-            query: { sid: 'query_token_456' } as any,
-        });
-        const res = createMockRes();
-
-        await authMiddleware(req, res, next);
-
-        expect(mockVerify).toHaveBeenCalledWith('query_token_456', expect.any(Object));
-        expect(next).toHaveBeenCalled();
-    });
-
-    it('should prefer Authorization header over query token', async () => {
+    it('should ignore query token and only use Authorization header', async () => {
         const mockVerify = vi.mocked(verifyToken);
         mockVerify.mockResolvedValue({ sub: 'user_header', sid: 'sess_h' } as any);
 
@@ -132,6 +116,7 @@ describe('Auth Middleware - Token Extraction', () => {
         await authMiddleware(req, res, next);
 
         expect(mockVerify).toHaveBeenCalledWith('header_token', expect.any(Object));
+        expect(next).toHaveBeenCalled();
     });
 });
 

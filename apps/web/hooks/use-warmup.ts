@@ -29,8 +29,7 @@ export function useWarmup() {
 
                 await Promise.all(
                     endpoints.map(endpoint => {
-                        const separator = endpoint.includes('?') ? '&' : '?';
-                        const url = `${backendUrl}${endpoint}${token ? `${separator}sid=${encodeURIComponent(token)}` : ''}`;
+                        const url = `${backendUrl}${endpoint}`;
                         return fetch(url, {
                             method: 'GET',
                             mode: 'cors',

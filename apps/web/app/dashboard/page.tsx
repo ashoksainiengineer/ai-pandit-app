@@ -5,16 +5,16 @@
 
 import { Suspense } from 'react';
 import Link from 'next/link';
-import { v4 as uuidv4 } from 'uuid';
 import { currentUser } from '@clerk/nextjs/server';
 import { env } from '@/lib/config/env';
 import { db } from '@ai-pandit/db';
-import { sessions, users } from '@ai-pandit/db/schema';
+import { sessions } from '@ai-pandit/db/schema';
 import { eq, desc } from 'drizzle-orm';
 import { isEncrypted, parseSensitiveField, initializeEncryption } from '@/lib/crypto';
 import { DashboardSession } from '@/lib/dashboard/types';
 import { DashboardClient } from './DashboardClient';
 import Layout from '@/components/Layout';
+import { ensureUserRecord } from '@/lib/server/user-sync';
 
 // Initialize encryption for server-side decryption
 initializeEncryption(env.security.encryptionSecret);
@@ -64,37 +64,9 @@ function DashboardSkeleton() {
 // Fetch user sessions with error handling
 async function getUserSessions(clerkId: string, clerkUser?: any): Promise<DashboardSession[]> {
   try {
-    let user = await db.query.users.findFirst({
-      where: eq(users.clerkId, clerkId),
-    });
-
-    // 🔄 SELF-HEALING: If user doesn't exist in DB, create them now
-    if (!user && clerkUser) {
-      try {
-        console.log(`🔄 [Dashboard] Syncing missing user to DB: ${clerkId}`);
-        const email = clerkUser.emailAddresses[0]?.emailAddress || '';
-        const fullName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null;
-
-        const newUserId = uuidv4();
-        await db.insert(users).values({
-          id: newUserId,
-          clerkId: clerkId,
-          email: email,
-          fullName: fullName, // Note: This is plaintext, as per schema design for users table
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
-
-        user = { id: newUserId, clerkId, email, fullName } as any;
-      } catch (syncError) {
-        console.error('❌ [Dashboard] User sync failed:', syncError);
-        // If sync fails, we still want to try to continue if user was found in some other way, 
-        // but here user is definitely null, so we'll just return [] to prevent crash.
-        return [];
-      }
-    }
-
-    if (!user) return [];
+    const email = clerkUser?.emailAddresses[0]?.emailAddress || '';
+    const fullName = `${clerkUser?.firstName || ''} ${clerkUser?.lastName || ''}`.trim() || null;
+    const user = await ensureUserRecord({ clerkId, email, fullName });
 
     let userSessions: DashboardSession[] = [];
 

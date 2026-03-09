@@ -34,7 +34,9 @@ async function run() {
                         if (parsed.chunk?.length > 1000) {
                             console.log(`  -> MASSIVE CHUNK FIRST 100: ${parsed.chunk.substring(0, 100)}`);
                         }
-                    } catch (e) { }
+                    } catch {
+                        // Ignore malformed JSON payloads in debug stream output.
+                    }
                 } else {
                     console.log(`  -> payload preview: ${data.substring(0, 150)}`);
                 }

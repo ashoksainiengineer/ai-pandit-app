@@ -14,7 +14,7 @@ describe('AI Prompt DMS Validation', () => {
         const mockInput: SecondsPrecisionInput = {
             sessionId: 'test-session',
             dateOfBirth: '1990-05-15',
-            tentativeTime: '10:30:00',
+            tentativeTime: '09:41:00',
             latitude: 19.0760,
             longitude: 72.8777,
             timezone: 5.5,
@@ -105,6 +105,23 @@ describe('AI Prompt DMS Validation', () => {
             expect(batchPrompt, `Batch Prompt contains leak: ${pattern}`).not.toContain(pattern);
             expect(deepPrompt, `Deep Prompt contains leak: ${pattern}`).not.toContain(pattern);
             expect(finalPrompt, `Final Prompt contains leak: ${pattern}`).not.toContain(pattern);
+        });
+
+        // 5. Blind-mode assertions:
+        // AI should not get direct "tentative/original" markers or DOB labels.
+        // Candidate times are expected, but original-anchor metadata is not.
+        const forbiddenMarkers = [
+            'dateOfBirth',
+            'tentativeTime',
+            'Tentative (Original)',
+            'Original Time',
+            'DOB'
+        ];
+
+        forbiddenMarkers.forEach(marker => {
+            expect(batchPrompt, `Batch Prompt contains forbidden marker: ${marker}`).not.toContain(marker);
+            expect(deepPrompt, `Deep Prompt contains forbidden marker: ${marker}`).not.toContain(marker);
+            expect(finalPrompt, `Final Prompt contains forbidden marker: ${marker}`).not.toContain(marker);
         });
 
         console.log('✅ ALL AI PROMPTS VERIFIED FOR DMS PRECISION');

@@ -15,7 +15,6 @@ vi.mock('../lib/config/env', () => ({
     env: {
         api: {
             backendUrl: 'http://api.test',
-            huggingFaceToken: 'hf-test-token'
         },
         clerk: {
             publishableKey: 'pk_test_123'
@@ -65,13 +64,18 @@ describe('StreamAuthIntegration: useStreamProgress', () => {
         vi.clearAllMocks();
         mockGetToken = vi.fn().mockResolvedValue('valid-test-token-long-enough');
         useStreamStore.getState().clearStore();
+        global.fetch = vi.fn(async () => ({
+            ok: true,
+            status: 200,
+            json: async () => ({ success: true, status: 'streaming', progress: {} }),
+        })) as any;
     });
 
     afterEach(() => {
         vi.useRealTimers();
     });
 
-    it('should append token as "sid" query parameter for SSE', async () => {
+    it('should use ticket query parameter for SSE', async () => {
         let capturedES: MockEventSource | null = null;
         window.addEventListener('mock-es-created', (e: any) => {
             capturedES = e.detail;
@@ -84,7 +88,7 @@ describe('StreamAuthIntegration: useStreamProgress', () => {
         });
 
         expect(capturedES).not.toBeNull();
-        expect(capturedES!.url).toContain('sid=valid-test-token-long-enough');
+        expect(capturedES!.url).toContain('ticket=test-ticket');
     });
 
     it('should trigger re-auth on 401 error message', async () => {

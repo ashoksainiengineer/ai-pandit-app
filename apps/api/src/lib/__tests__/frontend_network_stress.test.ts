@@ -38,7 +38,7 @@ describe('🌪️ HEAVY NETWORK STRESS AUDIT (SSE UI STREAMS)', () => {
         sessionEvents.cleanup(SESSION_ID);
 
         // Mock DB to authorize user and say session is pending
-        // @ts-ignore
+        // @ts-expect-error - mocked DB fluent chain with vi.fn
         db.limit.mockResolvedValue([{ id: SESSION_ID, clerkId: 'stress_tester', status: 'pending' }]);
     });
 
@@ -195,7 +195,7 @@ describe('🌪️ HEAVY NETWORK STRESS AUDIT (SSE UI STREAMS)', () => {
 
     it('Scenario C: Reconnection after Session is Fully Completed (Post-Completion terminal state)', async () => {
         // Mock DB: Simulate that the analysis finished while user was fully offline
-        // @ts-ignore
+        // @ts-expect-error - mocked DB fluent chain with vi.fn
         db.limit.mockResolvedValue([{ id: SESSION_ID, clerkId: 'stress_tester', status: 'complete' }]);
 
         const client = await connectToStream();

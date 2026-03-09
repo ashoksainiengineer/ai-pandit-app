@@ -3,10 +3,13 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { encrypt, encryptObject, initializeEncryption, decrypt, isEncrypted, parseSensitiveField } from '@/lib/crypto';
+import { encrypt, encryptObject, initializeEncryption } from '@/lib/crypto';
 import { parsePaginationParams, createPaginationMeta } from '@/lib/pagination';
 import { logAuditEvent, getRequestMetadata } from '@/lib/audit';
 import { env } from '@/lib/config/env';
+import { currentUser } from '@clerk/nextjs/server';
+import { ensureUserRecord } from '@/lib/server/user-sync';
+import { canFrontendMutateSession, getProtectedFieldsPresent } from '@/lib/server/session-write-guards';
 
 // Initialize encryption
 initializeEncryption(env.security.encryptionSecret);
@@ -25,6 +28,13 @@ export async function POST(request: NextRequest) {
         }
 
         const body = await request.json();
+        const protectedFields = getProtectedFieldsPresent(body as Record<string, unknown>);
+        if (protectedFields.length > 0) {
+            return NextResponse.json(
+                { error: `Protected fields are backend-owned: ${protectedFields.join(', ')}` },
+                { status: 400 }
+            );
+        }
         const { birthData, lifeEvents, physicalTraits, forensicTraits, spouseData, offsetConfig, sessionId } = body;
 
         if (!birthData || !birthData.fullName) {
@@ -34,23 +44,11 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        let user = await db.query.users.findFirst({ where: eq(users.clerkId, clerkId) });
-
-        let internalUserId: string;
-        if (!user) {
-            const newUserId = crypto.randomUUID();
-            await db.insert(users).values({
-                id: newUserId,
-                clerkId: clerkId,
-                email: '', // Will be updated by webhook
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            });
-            internalUserId = newUserId;
-            await logAuditEvent({ userId: clerkId, action: 'USER_AUTOCREATED', ipAddress, userAgent, details: { source: 'POST /api/drafts' } });
-        } else {
-            internalUserId = user.id;
-        }
+        const clerkUser = await currentUser();
+        const email = clerkUser?.emailAddresses[0]?.emailAddress || '';
+        const fullName = `${clerkUser?.firstName || ''} ${clerkUser?.lastName || ''}`.trim() || null;
+        const user = await ensureUserRecord({ clerkId, email, fullName });
+        const internalUserId = user.id;
 
         const now = new Date().toISOString();
 
@@ -78,13 +76,19 @@ export async function POST(request: NextRequest) {
         };
 
         if (sessionId) {
-            const existing = await db.select({ clerkId: sessions.clerkId }).from(sessions).where(eq(sessions.id, sessionId)).limit(1);
+            const existing = await db.select({ clerkId: sessions.clerkId, status: sessions.status }).from(sessions).where(eq(sessions.id, sessionId)).limit(1);
             if (existing.length === 0) {
                 if (env.app.isProduction) {
                     return NextResponse.json({ error: 'Session not found' }, { status: 404 });
                 }
             }
             if (existing[0].clerkId !== clerkId) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+            if (!canFrontendMutateSession(existing[0].status)) {
+                return NextResponse.json(
+                    { error: `Session is locked for draft edits in status: ${existing[0].status}` },
+                    { status: 409 }
+                );
+            }
 
             await db.update(sessions).set(draftData).where(eq(sessions.id, sessionId));
             await logAuditEvent({ userId: clerkId, action: 'DRAFT_UPDATED', resourceType: 'SESSION', resourceId: sessionId, ipAddress, userAgent });

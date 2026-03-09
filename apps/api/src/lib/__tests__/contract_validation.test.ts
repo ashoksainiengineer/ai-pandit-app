@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CandidateDataPackageSchema, VimshottariDashaEntrySchema } from '@ai-pandit/shared';
+import { CandidateDataPackageSchema, TransitDataEntrySchema } from '@ai-pandit/shared';
 
 describe('Phase E: Industrial Contract Validation', () => {
     it('should validate a typical BTR Candidate Data Package', () => {
@@ -61,7 +61,6 @@ describe('Phase E: Industrial Contract Validation', () => {
             planets: { 'Jupiter': 'Aries | H 1' }
         };
 
-        const { TransitDataEntrySchema } = require('@ai-pandit/shared');
         const result = TransitDataEntrySchema.safeParse(invalidTransit);
         expect(result.success).toBe(false);
         expect(result.error?.errors[0].message).toContain('Dasha sequence must not be Unknown');

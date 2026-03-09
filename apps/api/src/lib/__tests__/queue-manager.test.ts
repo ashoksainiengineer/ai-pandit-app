@@ -212,6 +212,19 @@ describe('Queue Manager', () => {
 
             expect(emitComplete).toHaveBeenCalledWith('sess-1', '12:00', 95, 'High');
         });
+
+        it('should not emit complete when CAS guard blocks transition', async () => {
+            setMockResults([{ rowsAffected: 0 }]); // guarded update did not match processing state
+
+            await markAsComplete('sess-race', {
+                rectifiedTime: '12:01',
+                accuracy: 90,
+                confidence: 'Medium',
+                analysisResult: '{}',
+            });
+
+            expect(emitComplete).not.toHaveBeenCalled();
+        });
     });
 
     describe('markAsFailed', () => {
@@ -284,6 +297,13 @@ describe('Queue Manager', () => {
             const calls = (db.update as any).mock.results.map((r: any) => r.value.set.mock.calls[0][0]);
             const failedCall = calls.find((c: any) => c.status === 'failed');
             expect(failedCall.errorMessage).toBe('Cancelled by user');
+        });
+
+        it('should return false when cancel CAS update is blocked by race', async () => {
+            // select -> flush update -> flush delete -> cancel update(rowsAffected=0)
+            setMockResults([[{ status: 'processing' }], [], [], { rowsAffected: 0 }]);
+            const res = await cancelSession('sess-race-cancel');
+            expect(res).toBe(false);
         });
     });
 

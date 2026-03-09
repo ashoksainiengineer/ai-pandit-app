@@ -80,7 +80,8 @@ export const env = {
     // Priority: explicit env var, then localhost fallback for local development.
     // Production must set NEXT_PUBLIC_BACKEND_URL to the deployed backend origin.
     backendUrl: process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : ''),
-    huggingFaceToken: getEnvVarOptional(process.env.NEXT_PUBLIC_HF_TOKEN),
+    // Keep server-only token support for compatibility; client bundle should not expose this.
+    huggingFaceToken: getEnvVarOptional(process.env.HF_TOKEN),
     internalApiKey: undefined, // Removed for security realignment
   },
 

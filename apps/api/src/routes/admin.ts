@@ -64,7 +64,7 @@ router.get('/metrics', authMiddleware, async (req: AuthenticatedRequest, res: Re
       .groupBy(sessions.status);
 
     const activeReadings = statusCounts.find(s => s.status === 'processing')?.count || 0;
-    const completedReadings = statusCounts.find(s => s.status === 'completed')?.count || 0;
+    const completedReadings = statusCounts.find(s => s.status === 'complete')?.count || 0;
     const failedReadings = statusCounts.find(s => s.status === 'failed')?.count || 0;
 
     // Calculate success rate
@@ -130,7 +130,7 @@ router.get('/metrics', authMiddleware, async (req: AuthenticatedRequest, res: Re
         )`,
       })
       .from(sessions)
-      .where(eq(sessions.status, 'completed'));
+      .where(eq(sessions.status, 'complete'));
 
     const averageProcessingTime = avgProcessingResult[0]?.avgTime || 0;
 

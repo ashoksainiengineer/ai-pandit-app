@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { env } from '@/lib/config/env';
 import { db } from '@ai-pandit/db';
-import { sessions, users } from '@ai-pandit/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { sessions } from '@ai-pandit/db/schema';
 import { auth } from '@clerk/nextjs/server';
-import { encrypt, decrypt, isEncrypted, parseSensitiveField, initializeEncryption } from '@/lib/crypto';
+import { encrypt, isEncrypted, parseSensitiveField, initializeEncryption } from '@/lib/crypto';
+import { canFrontendMutateSession, getProtectedFieldsPresent } from '@/lib/server/session-write-guards';
+import { buildOwnedSessionWhereClause, resolveSessionOwnershipContext } from '@/lib/server/session-ownership';
 
 initializeEncryption(env.security.encryptionSecret);
 
@@ -24,8 +25,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
             return NextResponse.json({ success: false, error: 'Session ID required' }, { status: 400 });
         }
 
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
         const session = await db.query.sessions.findFirst({
-            where: and(eq(sessions.id, sessionId), eq(sessions.clerkId, clerkId))
+            where: buildOwnedSessionWhereClause(sessionId, ownershipContext),
         });
 
         if (!session) {
@@ -82,7 +84,32 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
         const resolvedParams = await params;
         const sessionId = resolvedParams.id;
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
         const body = await req.json();
+        const protectedFields = getProtectedFieldsPresent(body as Record<string, unknown>);
+        if (protectedFields.length > 0) {
+            return NextResponse.json({
+                success: false,
+                error: `Protected fields are backend-owned: ${protectedFields.join(', ')}`
+            }, { status: 400 });
+        }
+
+        const existingSession = await db.query.sessions.findFirst({
+            where: buildOwnedSessionWhereClause(sessionId, ownershipContext),
+            columns: {
+                id: true,
+                status: true,
+            }
+        });
+        if (!existingSession) {
+            return NextResponse.json({ success: false, error: 'Session not found' }, { status: 404 });
+        }
+        if (!canFrontendMutateSession(existingSession.status)) {
+            return NextResponse.json({
+                success: false,
+                error: `Session is locked for frontend edits in status: ${existingSession.status}`,
+            }, { status: 409 });
+        }
 
         // Prepare Update Object
         const updateData: any = {
@@ -121,18 +148,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             updateData.offsetConfig = encrypt(JSON.stringify(body.offsetConfig));
         }
 
-        // Results & Logs - If coming from frontend (rare but possible in draft modes)
-        if (body.analysisResult !== undefined) {
-            updateData.analysisResult = encrypt(JSON.stringify(body.analysisResult));
-        }
-        if (body.progressData !== undefined) {
-            updateData.progressData = encrypt(JSON.stringify(body.progressData));
-        }
-
         // Update in DB
         await db.update(sessions)
             .set(updateData)
-            .where(and(eq(sessions.id, sessionId), eq(sessions.clerkId, clerkId)));
+            .where(buildOwnedSessionWhereClause(sessionId, ownershipContext));
 
         return NextResponse.json({ success: true, message: 'Session updated' });
     } catch (error: any) {
@@ -150,10 +169,15 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
         const resolvedParams = await params;
         const sessionId = resolvedParams.id;
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
 
-        // Hard Delete
-        await db.delete(sessions)
-            .where(and(eq(sessions.id, sessionId), eq(sessions.clerkId, clerkId)));
+        const deletedRows = await db.delete(sessions)
+            .where(buildOwnedSessionWhereClause(sessionId, ownershipContext))
+            .returning({ id: sessions.id });
+
+        if (deletedRows.length === 0) {
+            return NextResponse.json({ success: false, error: 'Session not found' }, { status: 404 });
+        }
 
         return NextResponse.json({ success: true, message: 'Session deleted' });
     } catch (error: any) {

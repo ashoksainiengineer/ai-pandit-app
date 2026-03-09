@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
-import { eq, and } from 'drizzle-orm';
 import { auth } from '@clerk/nextjs/server';
 import { v4 as uuidv4 } from 'uuid';
+import { buildOwnedSessionWhereClause, resolveSessionOwnershipContext } from '@/lib/server/session-ownership';
 
 export async function POST(
-    req: NextRequest,
+    _req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
@@ -22,9 +22,11 @@ export async function POST(
             return NextResponse.json({ success: false, error: 'Session ID required' }, { status: 400 });
         }
 
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+
         // 1. Fetch original session safely verifying ownership
         const originalSession = await db.query.sessions.findFirst({
-            where: and(eq(sessions.id, sessionId), eq(sessions.clerkId, clerkId))
+            where: buildOwnedSessionWhereClause(sessionId, ownershipContext),
         });
 
         if (!originalSession) {
@@ -37,8 +39,8 @@ export async function POST(
         // 3. Create clone payload omitting results but keeping encrypted strings
         const clonePayload = {
             id: newSessionId,
-            userId: originalSession.userId,
-            clerkId: originalSession.clerkId,
+            userId: ownershipContext.internalUserId ?? originalSession.userId,
+            clerkId,
 
             // Core Data (Already Encrypted from DB)
             fullName: originalSession.fullName,

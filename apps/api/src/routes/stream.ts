@@ -13,6 +13,8 @@ import { getQueueStatus } from '../lib/queue-manager.js';
 import { logger } from '../lib/logger.js';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { safeDecryptWithFallback, parseSensitiveField } from '../lib/encryption/index.js';
+import { createStreamTicket } from '../lib/stream-ticket-manager.js';
+import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
 
 const router = Router();
 
@@ -37,6 +39,57 @@ router.options(['/', '/:sessionId'], (req, res) => {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Last-Event-ID, Authorization');
     res.setHeader('Access-Control-Max-Age', '86400');
     res.status(204).end();
+});
+
+/**
+ * POST /api/stream/ticket/:sessionId
+ * Creates a short-lived, single-use stream ticket for EventSource auth.
+ */
+router.post('/ticket/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+    const sessionId = req.params.sessionId;
+    const clerkId = req.clerkId;
+
+    if (!sessionId) {
+        res.status(400).json({ success: false, error: 'Session ID required' });
+        return;
+    }
+
+    if (!clerkId) {
+        res.status(401).json({ success: false, error: 'Unauthorized' });
+        return;
+    }
+
+    try {
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const found = await db.select({
+            id: sessions.id,
+            clerkId: sessions.clerkId,
+            userId: sessions.userId,
+        })
+            .from(sessions)
+            .where(eq(sessions.id, sessionId))
+            .limit(1);
+
+        if (found.length === 0) {
+            res.status(404).json({ success: false, error: 'Session not found' });
+            return;
+        }
+
+        if (!isSessionOwnedByContext(found[0], ownershipContext)) {
+            res.status(403).json({ success: false, error: 'Access denied' });
+            return;
+        }
+
+        const ticket = createStreamTicket(clerkId, sessionId);
+        res.json({
+            success: true,
+            ticket,
+            expiresInSeconds: 120,
+        });
+    } catch (error) {
+        logger.error('[SSE] Failed to create stream ticket', { sessionId, error });
+        res.status(500).json({ success: false, error: 'Failed to create stream ticket' });
+    }
 });
 
 /**
@@ -80,6 +133,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
     let isOwner = false;
 
     try {
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
         const session = await db.select({
             status: sessions.status,
             userId: sessions.userId,
@@ -105,7 +159,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
         }
 
         // Verify ownership
-        if (session[0].clerkId !== clerkId && !isTestScript) {
+        if (!isSessionOwnedByContext(session[0], ownershipContext) && !isTestScript) {
             logger.warn(`[SSE] Unauthorized access attempt: clerkId ${clerkId.slice(0, 12)}... tried to access session ${sessionId}`);
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');

@@ -66,12 +66,7 @@ export async function fetchWithColdStartHandling<T>(
       const timeoutMs = isColdStart ? mergedConfig.wakeUpTimeout : mergedConfig.timeout;
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-      // Add HF Token if available for private spaces
-      const hfToken = env.api.huggingFaceToken;
       const headers = { ...options.headers } as Record<string, string>;
-      if (hfToken) {
-        headers['Authorization'] = `Bearer ${hfToken}`;
-      }
 
       const response = await fetch(fullUrl, {
         ...options,

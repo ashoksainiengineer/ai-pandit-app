@@ -123,7 +123,7 @@ export function useDashboard(initialSessions: DashboardSession[]): UseDashboardR
       const response = await fetch('/api/sessions');
       if (!response.ok) throw new Error('Failed to refresh');
       const data = await response.json();
-      setSessions(data);
+      setSessions(Array.isArray(data?.data) ? data.data : []);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Refresh failed'));
     } finally {

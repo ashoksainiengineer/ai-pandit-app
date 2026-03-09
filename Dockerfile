@@ -65,6 +65,6 @@ ENV NODE_OPTIONS="--max-old-space-size=12288 --expose-gc"
 EXPOSE 7860
 
 HEALTHCHECK --interval=30s --timeout=15s --retries=3 --start-period=120s \
-    CMD wget -q -O- http://localhost:7860/health || exit 1
+    CMD wget -q -O- http://localhost:7860/live || exit 1
 
 CMD ["node", "apps/api/dist/server.js"]

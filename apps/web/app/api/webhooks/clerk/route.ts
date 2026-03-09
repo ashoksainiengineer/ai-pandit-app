@@ -61,29 +61,23 @@ export async function POST(req: Request) {
         if (!id) return new Response('No user ID', { status: 400 });
 
         try {
-            // Check if user exists
-            const existing = await db.select().from(users).where(eq(users.clerkId, id)).limit(1);
-
-            if (existing.length > 0) {
-                // Update
-                await db.update(users).set({
-                    email: email || existing[0].email,
-                    fullName: fullName || existing[0].fullName,
-                    updatedAt: new Date().toISOString(),
-                }).where(eq(users.clerkId, id));
-                logger.info('User updated via webhook', { clerkId: id });
-            } else {
-                // Create
-                await db.insert(users).values({
-                    id: crypto.randomUUID(),
-                    clerkId: id,
+            const now = new Date().toISOString();
+            await db.insert(users).values({
+                id: crypto.randomUUID(),
+                clerkId: id,
+                email: email || '',
+                fullName: fullName || null,
+                createdAt: now,
+                updatedAt: now,
+            }).onConflictDoUpdate({
+                target: users.clerkId,
+                set: {
                     email: email || '',
                     fullName: fullName || null,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                });
-                logger.info('User created via webhook', { clerkId: id });
-            }
+                    updatedAt: now,
+                }
+            });
+            logger.info('User upserted via webhook', { clerkId: id });
         } catch (error) {
             logger.error('Webhook DB error', { error, clerkId: id });
             return new Response('Database error', { status: 500 });

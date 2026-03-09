@@ -43,6 +43,7 @@ vi.mock('@ai-pandit/db/schema', () => ({
 vi.mock('drizzle-orm', () => ({
     eq: vi.fn((...args: any[]) => args),
     and: vi.fn((...args: any[]) => args),
+    or: vi.fn((...args: any[]) => args),
     desc: vi.fn((col: any) => col),
 }));
 
@@ -66,6 +67,18 @@ vi.mock('../../lib/encryption/index.js', () => ({
 
 vi.mock('../../lib/user-sync.js', () => ({
     syncUser: vi.fn().mockResolvedValue('internal_user_id'),
+}));
+
+vi.mock('../../lib/session-ownership.js', () => ({
+    resolveSessionOwnershipContext: vi.fn(async (clerkId: string) => ({
+        clerkId,
+        internalUserId: clerkId === 'test_clerk_id' ? 'internal_id' : null,
+    })),
+    isSessionOwnedByContext: vi.fn((session: { clerkId?: string | null; userId?: string | null }, context: { clerkId: string; internalUserId: string | null }) => {
+        if (session?.clerkId === context.clerkId) return true;
+        if (!context.internalUserId) return false;
+        return session?.userId === context.internalUserId;
+    }),
 }));
 
 vi.mock('uuid', () => ({
@@ -104,7 +117,7 @@ describe('Sessions Route - GET /api/sessions (List)', () => {
     });
 
     it('should return empty array if user not found', async () => {
-        (db.query.users.findFirst as any).mockResolvedValueOnce(null);
+        (db.limit as any).mockResolvedValueOnce([]);
         const res = await request(app).get('/api/sessions');
         expect(res.status).toBe(200);
         expect(res.body.data).toEqual([]);
@@ -202,13 +215,18 @@ describe('Sessions Route - DELETE /api/sessions/:id', () => {
     });
 
     it('should return 404 if session not found', async () => {
-        vi.mocked(executeWithRetry).mockResolvedValueOnce([]);
+        (db.query.sessions.findFirst as any).mockResolvedValueOnce(null);
         const res = await request(app).delete('/api/sessions/nonexistent-id');
         expect(res.status).toBe(404);
     });
 
     it('should delete session successfully', async () => {
-        vi.mocked(executeWithRetry).mockResolvedValueOnce([{ id: 'session-1' }]);
+        (db.query.sessions.findFirst as any).mockResolvedValueOnce({
+            id: 'session-1',
+            clerkId: 'test_clerk_id',
+            userId: 'internal_id',
+        });
+        (db.returning as any).mockResolvedValueOnce([{ id: 'session-1' }]);
         const res = await request(app).delete('/api/sessions/session-1');
         expect(res.status).toBe(200);
         expect(res.body.success).toBe(true);
@@ -262,7 +280,7 @@ describe('Sessions Route - POST /api/sessions/:id/clone', () => {
         // Check if insert was called with status 'draft' and null results
         expect(db.insert).toHaveBeenCalled();
         expect(db.values).toHaveBeenCalledWith(expect.objectContaining({
-            userId: 'user-id',
+            userId: 'internal_id',
             status: 'draft',
             rectifiedTime: null,
             accuracy: null,

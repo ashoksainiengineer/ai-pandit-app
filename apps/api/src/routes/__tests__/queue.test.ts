@@ -82,6 +82,18 @@ vi.mock('../../lib/session-events.js', () => ({
     cleanupSession: vi.fn(),
 }));
 
+vi.mock('../../lib/session-ownership.js', () => ({
+    resolveSessionOwnershipContext: vi.fn(async (clerkId: string) => ({
+        clerkId,
+        internalUserId: clerkId === 'test_clerk_id' ? 'internal_user_id_123' : null,
+    })),
+    isSessionOwnedByContext: vi.fn((session: { clerkId?: string | null; userId?: string | null }, context: { clerkId: string; internalUserId: string | null }) => {
+        if (session?.clerkId === context.clerkId) return true;
+        if (!context.internalUserId) return false;
+        return session?.userId === context.internalUserId;
+    }),
+}));
+
 vi.mock('../../config/index.js', () => ({
     config: {
         security: { rateLimitWindowMs: 60000, rateLimitMaxRequests: 100, calculateRateLimitWindowMs: 60000, calculateRateLimitMaxRequests: 5 },
@@ -322,5 +334,17 @@ describe('Queue Route - POST /api/queue/requeue', () => {
         vi.mocked(executeWithRetry).mockResolvedValueOnce([{ clerkId: 'other_user' }]);
         const res = await request(app).post('/api/queue/requeue').send({ sessionId: 'test' });
         expect(res.status).toBe(403);
+    });
+
+    it('should allow requeue when legacy row matches internal userId even if clerkId differs', async () => {
+        vi.mocked(executeWithRetry)
+            .mockResolvedValueOnce([{ clerkId: 'legacy_clerk', userId: 'internal_user_id_123', status: 'failed' }])
+            .mockResolvedValueOnce(undefined)
+            .mockResolvedValueOnce([{ status: 'pending', errorMessage: null }]);
+
+        const res = await request(app).post('/api/queue/requeue').send({ sessionId: 'legacy-session' });
+        expect(res.status).toBe(200);
+        expect(res.body.success).toBe(true);
+        expect(res.body.data?.sessionId).toBe('legacy-session');
     });
 });

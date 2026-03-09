@@ -4,6 +4,7 @@ import { config } from '../config/index.js';
 import { logger } from '../lib/logger.js';
 import fs from 'fs';
 import path from 'path';
+import { consumeStreamTicket } from '../lib/stream-ticket-manager.js';
 
 const LOG_FILE = path.join(process.cwd(), 'requeue_debug.txt');
 
@@ -28,9 +29,11 @@ export async function authMiddleware(
     next: NextFunction
 ): Promise<void> {
     try {
+        const sanitizeUrl = (url: string): string => url.replace(/([?&])(sid|token|ticket)=[^&]*/gi, '$1$2=[REDACTED]');
         const safeQuery = { ...req.query } as Record<string, unknown>;
         if (safeQuery.sid) safeQuery.sid = '[REDACTED]';
         if (safeQuery.token) safeQuery.token = '[REDACTED]';
+        if (safeQuery.ticket) safeQuery.ticket = '[REDACTED]';
 
         const safeHeaders = { ...req.headers } as Record<string, unknown>;
         if (safeHeaders.authorization) safeHeaders.authorization = '[REDACTED]';
@@ -38,8 +41,8 @@ export async function authMiddleware(
 
         const timestamp = new Date().toISOString();
         const logEntry = `\n--- ${timestamp} ---\n` +
-            `URL: ${req.url}\n` +
-            `OriginalURL: ${req.originalUrl}\n` +
+            `URL: ${sanitizeUrl(req.url)}\n` +
+            `OriginalURL: ${sanitizeUrl(req.originalUrl)}\n` +
             `Method: ${req.method}\n` +
             `Query: ${JSON.stringify(safeQuery)}\n` +
             `Headers: ${JSON.stringify(safeHeaders, null, 2)}\n`;
@@ -59,26 +62,34 @@ export async function authMiddleware(
 
         let token = '';
         const authHeader = req.headers.authorization;
-        const queryToken = (req.query.sid || req.query.token) as string;
+        const streamTicket = req.query.ticket as string | undefined;
 
         // 🔍 DETAILED LOGGING (Sanitized)
         const hasAuthHeader = !!authHeader;
-        const hasQueryToken = !!queryToken;
-        const authHeaderPrefix = authHeader ? authHeader.substring(0, 15) : 'NONE';
 
         logger.debug('🔑 [Auth] Token detection initiated', {
             path: req.path,
             hasAuthHeader,
-            authHeaderPrefix,
-            hasQueryToken,
+            authHeaderPrefix: hasAuthHeader ? 'Bearer [REDACTED]' : 'NONE',
+            hasStreamTicket: !!streamTicket,
             requestId: (req as any).requestId
         });
 
+        if (!authHeader && isStreamRequest && streamTicket) {
+            const ticketPayload = consumeStreamTicket(streamTicket);
+            if (ticketPayload) {
+                req.clerkId = ticketPayload.clerkId;
+                req.sessionId = ticketPayload.sessionId;
+                logger.debug('🔑 [Auth] Stream ticket accepted', {
+                    sessionId: ticketPayload.sessionId,
+                    clerkIdPrefix: ticketPayload.clerkId.slice(0, 12),
+                });
+                return next();
+            }
+        }
+
         if (authHeader && authHeader.startsWith('Bearer ')) {
             token = authHeader.substring(7).trim();
-        } else if (queryToken) {
-            token = queryToken;
-            logger.info('🔑 [Auth] Using query parameter sid', { rawPrefix: token.substring(0, 15) });
         }
 
         // Clean up common malformed token scenarios

@@ -1,11 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import express from 'express';
-import sessionRouter from '../sessions.js';
 import { db } from '@ai-pandit/db';
-import { sessions } from '@ai-pandit/db/schema';
-import { eq } from 'drizzle-orm';
-import { encryptData, safeDecrypt } from '../../lib/encryption/index.js';
+import { encryptData } from '../../lib/encryption/index.js';
 
 // Mock Auth Middleware specifically BEFORE importing the router
 vi.mock('../../middleware/auth.js', () => ({
@@ -55,13 +52,7 @@ vi.mock('@ai-pandit/db', () => ({
             }))
         })),
     },
-    executeWithRetry: vi.fn(async (cb) => {
-        try {
-            return await cb();
-        } catch (e) {
-            throw e;
-        }
-    })
+    executeWithRetry: vi.fn(async (cb) => cb())
 }));
 
 describe('Session Duplication / Clone API', () => {

@@ -75,6 +75,18 @@ vi.mock('../../lib/encryption/index.js', () => ({
     parseSensitiveField: vi.fn((field: any) => field || ''),
 }));
 
+vi.mock('../../lib/session-ownership.js', () => ({
+    resolveSessionOwnershipContext: vi.fn(async (clerkId: string) => ({
+        clerkId,
+        internalUserId: clerkId === 'test_clerk_id' ? 'internal_id' : null,
+    })),
+    isSessionOwnedByContext: vi.fn((session: { clerkId?: string | null; userId?: string | null }, context: { clerkId: string; internalUserId: string | null }) => {
+        if (session?.clerkId === context.clerkId) return true;
+        if (!context.internalUserId) return false;
+        return session?.userId === context.internalUserId;
+    }),
+}));
+
 import progressRouter from '../../routes/progress.js';
 import { db, executeWithRetry } from '@ai-pandit/db';
 import { getQueueStatus } from '../../lib/queue-manager.js';
@@ -116,11 +128,14 @@ describe('Progress Route - GET /:sessionId', () => {
         expect(res.status).toBe(403);
     });
 
-    it('should return 404 if queue status not found', async () => {
-        (db.limit as any).mockResolvedValueOnce([{ id: 'session-1', clerkId: 'test_clerk_id', userId: 'uid' }]);
+    it('should fallback to DB session row if queue status is unavailable', async () => {
+        (db.limit as any)
+            .mockResolvedValueOnce([{ id: 'session-1', clerkId: 'test_clerk_id', userId: 'uid' }])
+            .mockResolvedValueOnce([{ id: 'session-1', clerkId: 'test_clerk_id', userId: 'uid', status: 'queued', createdAt: '2026-03-09T00:00:00.000Z' }]);
         vi.mocked(getQueueStatus).mockResolvedValueOnce(null);
         const res = await request(app).get('/api/queue/progress/session-1');
-        expect(res.status).toBe(404);
+        expect(res.status).toBe(200);
+        expect(res.body.status).toBe('queued');
     });
 
     it('should return progress data for owned session', async () => {
@@ -132,6 +147,13 @@ describe('Progress Route - GET /:sessionId', () => {
         expect(res.body.progress).toBeDefined();
         expect(res.body.metadata).toBeDefined();
         expect(res.body.metadata.fullName).toBeDefined();
+    });
+
+    it('should allow progress access for legacy row matched by internal userId', async () => {
+        (db.limit as any).mockResolvedValueOnce([{ id: 'legacy-session', clerkId: 'legacy_clerk', userId: 'internal_id' }]);
+        const res = await request(app).get('/api/queue/progress/legacy-session');
+        expect(res.status).toBe(200);
+        expect(res.body.sessionId).toBe('legacy-session');
     });
 
     it('should return default progress if none exists', async () => {

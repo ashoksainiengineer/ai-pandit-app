@@ -45,6 +45,10 @@ const envSchema = z.object({
         .string()
         .default('true')
         .transform((v) => ['1', 'true', 'yes', 'on'].includes(v.toLowerCase())),
+    EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK: z
+        .string()
+        .default('false')
+        .transform((v) => ['1', 'true', 'yes', 'on'].includes(v.toLowerCase())),
 
     // Security Configuration
     CLERK_SECRET_KEY: z.string().min(1, 'CLERK_SECRET_KEY is required'),
@@ -184,6 +188,7 @@ export const config = {
     },
     ephemeris: {
         strictMode: env.EPHEMERIS_STRICT_MODE,
+        allowAlgorithmicFallback: env.EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK || env.NODE_ENV !== 'production',
     },
     timeouts: {
         requestMs: env.AI_TIMEOUT_MS,

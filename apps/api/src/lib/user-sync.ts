@@ -5,6 +5,11 @@ import { logger } from './logger.js';
 import { clerk } from '../middleware/auth.js';
 import crypto from 'node:crypto';
 
+function isUniqueConstraintError(error: unknown): boolean {
+    const message = error instanceof Error ? error.message : String(error);
+    return message.toLowerCase().includes('unique') || message.toLowerCase().includes('constraint');
+}
+
 /**
  * Self-Healing User Sync
  * 
@@ -24,16 +29,23 @@ export async function syncUser(clerkId: string): Promise<string> {
                 db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
             );
             if (dbUser.length === 0) {
-                await executeWithRetry(() =>
-                    db.insert(users).values({
+                const now = new Date().toISOString();
+                await executeWithRetry(async () => {
+                    try {
+                        await db.insert(users).values({
                         id: testUserId,
                         clerkId: clerkId,
                         email: 'test@example.com',
                         fullName: 'Test User',
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                    })
-                );
+                        createdAt: now,
+                        updatedAt: now,
+                        });
+                    } catch (error) {
+                        if (!isUniqueConstraintError(error)) {
+                            throw error;
+                        }
+                    }
+                });
             }
         } catch (e) {
             logger.warn('Failed to insert test user', { error: e instanceof Error ? e.message : String(e) });
@@ -55,22 +67,41 @@ export async function syncUser(clerkId: string): Promise<string> {
         const clerkUser = await clerk.users.getUser(clerkId);
         const email = clerkUser.emailAddresses[0]?.emailAddress || '';
         const fullName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null;
-
         const internalUserId = crypto.randomUUID();
-
-        await executeWithRetry(() =>
-            db.insert(users).values({
+        const now = new Date().toISOString();
+        let insertHadConflict = false;
+        await executeWithRetry(async () => {
+            try {
+                await db.insert(users).values({
                 id: internalUserId,
                 clerkId: clerkId,
                 email: email,
                 fullName: fullName,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            })
+                createdAt: now,
+                updatedAt: now,
+                });
+            } catch (error) {
+                if (!isUniqueConstraintError(error)) {
+                    throw error;
+                }
+                insertHadConflict = true;
+            }
+        });
+        const resolved = await executeWithRetry(() =>
+            db.select().from(users).where(eq(users.clerkId, clerkId)).limit(1)
         );
+        if (resolved.length > 0) {
+            logger.info('✅ [Self-Healing] User record recreated successfully', { clerkId, internalUserId: resolved[0].id });
+            return resolved[0].id;
+        }
 
-        logger.info('✅ [Self-Healing] User record recreated successfully', { clerkId, internalUserId });
-        return internalUserId;
+        // If insert succeeded but immediate read didn't return row (mock/test lag), use generated UUID.
+        if (!insertHadConflict) {
+            logger.warn('[Self-Healing] User row not visible after insert; using generated ID fallback', { clerkId });
+            return internalUserId;
+        }
+
+        throw new Error('User record not found after upsert');
     } catch (error) {
         logger.error('❌ [Self-Healing] Failed to fetch/create user from Clerk', {
             clerkId,

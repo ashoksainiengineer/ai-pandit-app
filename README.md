@@ -90,10 +90,16 @@ See [`README_HF.md`](README_HF.md) for the complete list of all environment vari
 
 ### Health check failing
 
-The health check endpoint is at `/health`. If it fails:
+The container liveness endpoint is `/live` (recommended for platform health checks).  
+Readiness endpoint is `/ready` (dependency status: DB + ephemeris).
+
+If liveness fails:
 1. Check if the server is listening on port 7860
-2. Verify database connection
-3. Check if Swiss Ephemeris initialized (logs will show warning if failed)
+2. Check startup logs for configuration validation errors
+
+If readiness fails:
+1. Verify database connection
+2. Check if Swiss Ephemeris initialized (logs will show warning if failed)
 
 ### Swiss Ephemeris initialization failed
 
@@ -103,7 +109,9 @@ The server will fall back to algorithmic calculations if Swiss Ephemeris WASM fa
 
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
-| GET | `/health` | ❌ | Health check |
+| GET | `/live` | ❌ | Liveness check |
+| GET | `/ready` | ❌ | Readiness check |
+| GET | `/health` | ❌ | Legacy liveness alias |
 | GET | `/` | ❌ | Root endpoint |
 | POST | `/api/calculate` | ✅ | Submit BTR analysis |
 | GET | `/api/stream/:id` | ✅ | SSE real-time stream |

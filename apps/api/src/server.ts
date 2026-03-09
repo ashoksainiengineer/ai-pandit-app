@@ -27,6 +27,68 @@ import { requestIdMiddleware } from './middleware/request-id.js';
 import { errorHandlerMiddleware, notFoundHandler, setupUncaughtExceptionHandlers } from './middleware/error-handler-new.js';
 import { initSwissEph } from './lib/ephemeris.js';
 
+type StartupState = {
+    initializing: boolean;
+    dbReady: boolean;
+    swissephReady: boolean;
+    dbError: string | null;
+    swissephError: string | null;
+    startedAt: number;
+};
+
+const startupState: StartupState = {
+    initializing: true,
+    dbReady: false,
+    swissephReady: false,
+    dbError: null,
+    swissephError: null,
+    startedAt: Date.now(),
+};
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+    return Promise.race([
+        promise,
+        new Promise<T>((_, reject) => {
+            setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+        }),
+    ]);
+}
+
+async function initializeStartupDependencies(): Promise<void> {
+    const initStart = Date.now();
+    logger.info('[STARTUP] Background dependency initialization started');
+
+    try {
+        const { ensureDatabaseInitialized } = await import('@ai-pandit/db');
+        await withTimeout(ensureDatabaseInitialized(), 45000, 'Database initialization');
+        startupState.dbReady = true;
+        startupState.dbError = null;
+        logger.info('[STARTUP] Database ready');
+    } catch (error) {
+        startupState.dbReady = false;
+        startupState.dbError = (error as Error).message;
+        logger.warn('[STARTUP] Database initialization failed/deferred', { error: startupState.dbError });
+    }
+
+    try {
+        await withTimeout(initSwissEph(), 45000, 'Swiss Ephemeris initialization');
+        startupState.swissephReady = true;
+        startupState.swissephError = null;
+        logger.info('[STARTUP] Swiss Ephemeris ready');
+    } catch (error) {
+        startupState.swissephReady = false;
+        startupState.swissephError = (error as Error).message;
+        logger.warn('[STARTUP] Swiss Ephemeris initialization failed/deferred', { error: startupState.swissephError });
+    }
+
+    startupState.initializing = false;
+    logger.info('[STARTUP] Background dependency initialization completed', {
+        elapsedMs: Date.now() - initStart,
+        dbReady: startupState.dbReady,
+        swissephReady: startupState.swissephReady,
+    });
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // APP FACTORY
 // ═════════════════════════════════════════════════════════════════════════════
@@ -90,10 +152,30 @@ export function createApp() {
 
     // Direct Health check (Bypass /api for standard load balancers)
     app.get(['/', '/health', '/ready', '/live'], (req, res) => {
+        if (req.path === '/ready') {
+            const ready = startupState.dbReady;
+            res.status(ready ? 200 : 503).json({
+                ready,
+                initializing: startupState.initializing,
+                timestamp: new Date().toISOString(),
+                startupElapsedMs: Date.now() - startupState.startedAt,
+                dependencies: {
+                    database: startupState.dbReady ? 'ready' : 'not-ready',
+                    swisseph: startupState.swissephReady ? 'ready' : 'not-ready',
+                },
+                errors: {
+                    database: startupState.dbError,
+                    swisseph: startupState.swissephError,
+                },
+            });
+            return;
+        }
+
         res.json({
-            status: 'healthy',
+            status: 'healthy', // Liveness only. Readiness is exposed via /ready.
             timestamp: new Date().toISOString(),
-            uptime: process.uptime()
+            uptime: process.uptime(),
+            initializing: startupState.initializing,
         });
     });
 
@@ -129,28 +211,6 @@ async function bootstrap() {
 
     const PORT = config.server.port;
 
-    // Ensure database is initialized before starting server
-    // This prevents race conditions where requests arrive before DB is ready
-    try {
-        console.log('[STARTUP] Waiting for database initialization...');
-        const { ensureDatabaseInitialized } = await import('@ai-pandit/db');
-        await ensureDatabaseInitialized();
-        console.log(`[STARTUP] Database ready in ${Date.now() - startTime}ms`);
-    } catch (error) {
-        console.warn('[STARTUP] Database initialization warning:', (error as Error).message);
-        // Continue - DB will retry on demand
-    }
-
-    // Initialize Swiss Ephemeris before listening
-    try {
-        console.log('[STARTUP] Initializing Swiss Ephemeris...');
-        await initSwissEph();
-        console.log('[STARTUP] Swiss Ephemeris initialized');
-    } catch (error) {
-        console.error('[STARTUP] Failed to initialize Swiss Ephemeris:', error);
-        // Continue anyway as we have fallback logic in ephemeris.ts
-    }
-
     httpServer.timeout = config.server.requestTimeoutMs;
 
     httpServer.listen(PORT, '0.0.0.0', () => {
@@ -165,6 +225,9 @@ async function bootstrap() {
             startupMs: elapsed
         });
     });
+
+    // Initialize heavy dependencies in background so container becomes live quickly.
+    void initializeStartupDependencies();
 
     // Graceful shutdown
     const shutdown = () => {

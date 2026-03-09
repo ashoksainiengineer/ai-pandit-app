@@ -9,6 +9,7 @@
 import { useState, useCallback, useMemo, memo } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import {
   Star,
@@ -110,6 +111,7 @@ export const SessionCard = memo(function SessionCard({
   onDelete,
   onDuplicate,
 }: SessionCardProps) {
+  const router = useRouter();
   const { getToken } = useAuth();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -189,12 +191,46 @@ export const SessionCard = memo(function SessionCard({
 
       if (data.success && data.data?.id) {
         onDuplicate?.(data.data.id);
-        
-        // Wait for database replication before redirecting
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Use router.push instead of window.location for better handling
-        window.location.href = `/rectify/${data.data.id}/edit`;
+
+        const token = await getToken();
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        };
+
+        let isReady = false;
+        for (let attempt = 0; attempt < 20; attempt += 1) {
+          let readinessRes: Response;
+          try {
+            readinessRes = await fetch(`/api/sessions/${data.data.id}`, {
+              method: 'GET',
+              headers,
+              cache: 'no-store',
+            });
+          } catch {
+            await new Promise((resolve) => setTimeout(resolve, 300));
+            continue;
+          }
+
+          if (readinessRes.ok) {
+            const readinessData = await readinessRes.json();
+            if (readinessData?.success) {
+              isReady = true;
+              break;
+            }
+          } else if (readinessRes.status === 401 || readinessRes.status === 403) {
+            break;
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
+
+        if (!isReady) {
+          alert('Session duplicated, but it is still syncing. Please retry in a few seconds.');
+          return;
+        }
+
+        router.push(`/rectify/${data.data.id}/edit`);
       } else {
         console.error(data.error || 'Failed to clone session');
         alert('Failed to clone session: ' + (data.error || 'Unknown error'));
@@ -205,7 +241,7 @@ export const SessionCard = memo(function SessionCard({
     } finally {
       setIsCloning(false);
     }
-  }, [getToken, session.id, onDuplicate]);
+  }, [getToken, onDuplicate, router, session.id]);
 
   // Compact View
   if (viewMode === 'compact') {

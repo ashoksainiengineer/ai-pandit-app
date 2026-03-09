@@ -236,9 +236,10 @@ function calculateKalaBala(
   ephemeris: EphemerisData
 ): number {
   let bala = 25;
-  
-  const birthHour = new Date().getUTCHours();
-  const isDayBirth = birthHour >= 6 && birthHour < 18;
+
+  // Derive day/night from chart state (Sun above/below horizon), not wall-clock time.
+  const sunHouse = ephemeris.planets.sun?.house;
+  const isDayBirth = typeof sunHouse === 'number' ? sunHouse >= 7 && sunHouse <= 12 : true;
   
   const dayPlanets = ['sun', 'jupiter', 'venus'];
   const nightPlanets = ['moon', 'mars', 'saturn'];
@@ -249,18 +250,40 @@ function calculateKalaBala(
     bala += 15;
   }
   
-  const birthMonth = new Date().getMonth();
-  if (['sun', 'mars'].includes(planet) && [2, 3, 4].includes(birthMonth)) {
+  const season = inferSeasonFromSunSign(ephemeris.planets.sun?.sign);
+  if (['sun', 'mars'].includes(planet) && season === 'spring') {
     bala += 10;
-  } else if (['moon', 'venus'].includes(planet) && [5, 6, 7].includes(birthMonth)) {
+  } else if (['moon', 'venus'].includes(planet) && season === 'summer') {
     bala += 10;
-  } else if (['mercury', 'jupiter'].includes(planet) && [8, 9, 10].includes(birthMonth)) {
+  } else if (['mercury', 'jupiter'].includes(planet) && season === 'autumn') {
     bala += 10;
-  } else if (planet === 'saturn' && [11, 0, 1].includes(birthMonth)) {
+  } else if (planet === 'saturn' && season === 'winter') {
     bala += 10;
   }
   
   return Math.min(60, bala);
+}
+
+function inferSeasonFromSunSign(sign?: string): 'spring' | 'summer' | 'autumn' | 'winter' {
+  switch (sign) {
+    case 'Pisces':
+    case 'Aries':
+    case 'Taurus':
+      return 'spring';
+    case 'Gemini':
+    case 'Cancer':
+    case 'Leo':
+      return 'summer';
+    case 'Virgo':
+    case 'Libra':
+    case 'Scorpio':
+      return 'autumn';
+    case 'Sagittarius':
+    case 'Capricorn':
+    case 'Aquarius':
+    default:
+      return 'winter';
+  }
 }
 
 function calculateChesthaBala(planet: string, pos: PlanetPosition): number {

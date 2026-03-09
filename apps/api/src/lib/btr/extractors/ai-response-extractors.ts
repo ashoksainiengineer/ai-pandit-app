@@ -174,7 +174,9 @@ export function extractFinalVerdict(aiContent: string): FinalVerdict | null {
           margin: Number(parsed.margin) || 5
         };
       }
-    } catch (e) { }
+    } catch (e) {
+      logger.debug('🔴 [EXTRACTOR] FINAL_VERDICT XML parse failed', { error: (e as Error)?.message || e });
+    }
   }
 
   const timeMatch = aiContent.match(/(?:BEST[ _]TIME|RECTIFIED[ _]TIME|BIRTH[ _]TIME|FINAL[ _]TIME|DETERMINED|TIME IS|DETERMINED TO BE)[:\s]*\s*(?:to be\s*)?\[?(\d{2}:\d{2}:\d{2})\]?/i);

@@ -21,6 +21,32 @@ vi.mock('../../cancellation-manager.js', async (importOriginal) => {
 // ═════════════════════════════════════════════════════════════════════════════
 
 describe('WHOLE SYSTEM BTR: 10 Profile Validation Protocol', () => {
+    const toSeconds = (time: string): number => {
+        const [h, m, s] = time.split(':').map(Number);
+        return h * 3600 + m * 60 + s;
+    };
+
+    const circularDiffSeconds = (a: string, b: string): number => {
+        const aSec = toSeconds(a);
+        const bSec = toSeconds(b);
+        const diff = Math.abs(aSec - bSec);
+        return Math.min(diff, 86400 - diff);
+    };
+
+    const extractCandidateTimes = (prompt: string): string[] => {
+        const matches = [...prompt.matchAll(/CANDIDATE:\s*(\d{2}:\d{2}:\d{2})/g)];
+        return matches.map((m) => m[1]);
+    };
+
+    const pickNearest = (times: string[], target: string): string => {
+        if (times.length === 0) return '00:00:00';
+        return [...times].sort((a, b) => {
+            const diff = circularDiffSeconds(a, target) - circularDiffSeconds(b, target);
+            if (diff !== 0) return diff;
+            return a.localeCompare(b);
+        })[0];
+    };
+
 
     // 1. Initialize REAL Swiss Ephemeris (Industry Standard)
     beforeAll(async () => {
@@ -32,38 +58,50 @@ describe('WHOLE SYSTEM BTR: 10 Profile Validation Protocol', () => {
         await cleanup();
     });
 
-    // 2. Iterate through a representative subset of High-Quality Profiles
-    it.each(TEST_PROFILES.slice(0, 3))('should correctly rectify $fullName ($id)', async (profile) => {
+    // 2. Iterate through configurable profile count (default: all available profiles)
+    const profileCount = Math.max(
+        1,
+        Math.min(
+            TEST_PROFILES.length,
+            Number(process.env.BTR_WHOLE_SYSTEM_PROFILE_COUNT || TEST_PROFILES.length)
+        )
+    );
+
+    it.each(TEST_PROFILES.slice(0, profileCount))('should correctly rectify $fullName ($id)', async (profile) => {
         const expectedTime = profile.expectedTime;
 
-        // 3. Mock AI API with "Smart VSL Parser"
+        // 3. Mock AI API with deterministic ranking over provided candidates.
+        // This avoids tautological "always return expectedTime" behavior.
         const callAISpy = vi.spyOn(aiClient, 'callAIWithStream').mockImplementation(
             async (_sessionId: string, stage: number, _systemPrompt: string, userPrompt: string) => {
-
-                // STAGE 2 & 4: Batch Tournament / Deep Analysis
                 if (stage === 2 || stage === 4) {
-                    const exists = userPrompt.includes(`CANDIDATE: ${expectedTime}`);
+                    const candidates = extractCandidateTimes(userPrompt);
+                    const ranked = [...candidates].sort((a, b) => {
+                        const diff = circularDiffSeconds(a, expectedTime) - circularDiffSeconds(b, expectedTime);
+                        if (diff !== 0) return diff;
+                        return a.localeCompare(b);
+                    });
+                    const survivorCount = Math.max(1, Math.min(3, ranked.length));
+                    const survivors = ranked.slice(0, survivorCount);
+                    const scored = ranked.slice(0, Math.min(6, ranked.length)).map((time, index) => ({
+                        time,
+                        score: Math.max(40, 98 - (index * 7)),
+                        reason: `ranked-by-distance:${circularDiffSeconds(time, expectedTime)}s`
+                    }));
 
-                    if (exists) {
-                        return {
-                            success: true,
-                            content: `<FINAL_SCORES>[{"time": "${expectedTime}", "score": 98, "reason": "VSL alignment perfect"}]</FINAL_SCORES>\nTOP_SURVIVORS: [${expectedTime}]`
-                        } as any;
-                    } else {
-                        const firstCandidateMatch = userPrompt.match(/CANDIDATE: (\d{2}:\d{2}:\d{2})/);
-                        const firstCandidate = firstCandidateMatch ? firstCandidateMatch[1] : '00:00:00';
-                        return {
-                            success: true,
-                            content: `<FINAL_SCORES>[{"time": "${firstCandidate}", "score": 50, "reason": "Fallback"}]</FINAL_SCORES>`
-                        } as any;
-                    }
-                }
-
-                // STAGE 6: Final Precision
-                if (stage === 6) {
                     return {
                         success: true,
-                        content: `<FINAL_VERDICT>{"time": "${expectedTime}", "accuracy": 99, "confidence": "GOD_TIER", "margin": 1}</FINAL_VERDICT>`
+                        content: `<FINAL_SCORES>${JSON.stringify(scored)}</FINAL_SCORES>\nTOP_SURVIVORS: [${survivors.join(', ')}]`
+                    } as any;
+                }
+
+                if (stage === 6) {
+                    const candidates = extractCandidateTimes(userPrompt);
+                    const winner = pickNearest(candidates, expectedTime);
+                    const winnerDiff = circularDiffSeconds(winner, expectedTime);
+                    return {
+                        success: true,
+                        content: `<FINAL_VERDICT>{"time": "${winner}", "accuracy": ${winnerDiff <= 10 ? 99 : 95}, "confidence": "${winnerDiff <= 10 ? 'GOD_TIER' : 'HIGH'}", "margin": ${winnerDiff <= 10 ? 1 : 6}}</FINAL_VERDICT>`
                     } as any;
                 }
 
@@ -79,12 +117,12 @@ describe('WHOLE SYSTEM BTR: 10 Profile Validation Protocol', () => {
         });
 
         // 5. Assertions
-        expect(result.rectifiedTime).toBe(expectedTime);
+        expect(circularDiffSeconds(result.rectifiedTime, expectedTime)).toBeLessThanOrEqual(15);
         expect(result.accuracy).toBeGreaterThanOrEqual(95);
         expect(result.stagesCompleted).toBe(6);
-        expect(result.confidence).toBe('GOD_TIER');
+        expect(['GOD_TIER', 'HIGH']).toContain(result.confidence);
 
         // Cleanup
         callAISpy.mockRestore();
-    }, 120000); // 120s timeout per profile — real SwissEph + data building can be slow
+    }, 240000); // 240s timeout per profile — full 6-stage pipeline on wide windows can exceed 120s
 });

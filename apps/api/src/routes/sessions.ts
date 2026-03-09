@@ -3,13 +3,13 @@
 
 import { Router, Response } from 'express';
 import { db, executeWithRetry } from '@ai-pandit/db';
-import { sessions, users } from '@ai-pandit/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { sessions } from '@ai-pandit/db/schema';
+import { eq, desc, or } from 'drizzle-orm';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { logger } from '../lib/logger.js';
-import { encryptData, safeDecrypt, safeDecryptWithFallback, parseSensitiveField } from '../lib/encryption/index.js';
-import { syncUser } from '../lib/user-sync.js';
+import { encryptData, parseSensitiveField } from '../lib/encryption/index.js';
 import { v4 as uuidv4 } from 'uuid';
+import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
 
 const router = Router();
 
@@ -24,24 +24,20 @@ function normalizeTimezoneValue(rawTimezone: string): number | string {
 router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const clerkId = req.clerkId!;
-
-        // Get user
-        const user = await executeWithRetry(() =>
-            db.query.users.findFirst({
-                where: eq(users.clerkId, clerkId)
-            })
-        );
-
-        if (!user) {
-            res.json({ success: true, data: [] });
-            return;
-        }
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
 
         // Get sessions
         const userSessions = await executeWithRetry(() =>
             db.select()
                 .from(sessions)
-                .where(eq(sessions.clerkId, clerkId))
+                .where(
+                    ownershipContext.internalUserId
+                        ? or(
+                            eq(sessions.clerkId, ownershipContext.clerkId),
+                            eq(sessions.userId, ownershipContext.internalUserId)
+                        )
+                        : eq(sessions.clerkId, ownershipContext.clerkId)
+                )
                 .orderBy(desc(sessions.createdAt))
                 .limit(50)
         );
@@ -72,6 +68,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
 router.get('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const clerkId = req.clerkId!;
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
         const sessionId = req.params.id;
 
         if (!sessionId) {
@@ -81,11 +78,11 @@ router.get('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Respon
 
         const session = await executeWithRetry(() =>
             db.query.sessions.findFirst({
-                where: and(eq(sessions.id, sessionId), eq(sessions.clerkId, clerkId))
+                where: eq(sessions.id, sessionId)
             })
         );
 
-        if (!session) {
+        if (!session || !isSessionOwnedByContext(session, ownershipContext)) {
             res.status(404).json({ success: false, error: 'Session not found' });
             return;
         }
@@ -134,6 +131,7 @@ router.get('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Respon
 router.put('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const clerkId = req.clerkId!;
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
         const sessionId = req.params.id;
         const body = req.body;
 
@@ -145,11 +143,11 @@ router.put('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Respon
         // Verify ownership
         const existing = await executeWithRetry(() =>
             db.query.sessions.findFirst({
-                where: and(eq(sessions.id, sessionId), eq(sessions.clerkId, clerkId))
+                where: eq(sessions.id, sessionId)
             })
         );
 
-        if (!existing) {
+        if (!existing || !isSessionOwnedByContext(existing, ownershipContext)) {
             res.status(404).json({ success: false, error: 'Session not found' });
             return;
         }
@@ -193,7 +191,7 @@ router.put('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Respon
         await executeWithRetry(() =>
             db.update(sessions)
                 .set(updateData)
-                .where(and(eq(sessions.id, sessionId), eq(sessions.clerkId, clerkId)))
+                .where(eq(sessions.id, sessionId))
         );
 
         res.json({ success: true, message: 'Session updated' });
@@ -209,6 +207,7 @@ router.put('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Respon
 router.delete('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const clerkId = req.clerkId!;
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
         const sessionId = req.params.id;
 
         if (!sessionId) {
@@ -216,10 +215,22 @@ router.delete('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Res
             return;
         }
 
+        const existing = await executeWithRetry(() =>
+            db.query.sessions.findFirst({
+                where: eq(sessions.id, sessionId),
+                columns: { id: true, clerkId: true, userId: true },
+            })
+        );
+
+        if (!existing || !isSessionOwnedByContext(existing, ownershipContext)) {
+            res.status(404).json({ success: false, error: 'Session not found' });
+            return;
+        }
+
         // Delete with ownership check
         const result = await executeWithRetry(() =>
             db.delete(sessions)
-                .where(and(eq(sessions.id, sessionId), eq(sessions.clerkId, clerkId)))
+                .where(eq(sessions.id, sessionId))
                 .returning({ id: sessions.id })
         );
 
@@ -241,6 +252,7 @@ router.delete('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Res
 router.post('/:id/clone', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const clerkId = req.clerkId!;
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
         const sessionId = req.params.id;
 
         if (!sessionId) {
@@ -251,11 +263,11 @@ router.post('/:id/clone', authMiddleware, async (req: AuthenticatedRequest, res:
         // 1. Fetch original session
         const originalSession = await executeWithRetry(() =>
             db.query.sessions.findFirst({
-                where: and(eq(sessions.id, sessionId), eq(sessions.clerkId, clerkId))
+                where: eq(sessions.id, sessionId)
             })
         );
 
-        if (!originalSession) {
+        if (!originalSession || !isSessionOwnedByContext(originalSession, ownershipContext)) {
             res.status(404).json({ success: false, error: 'Session not found' });
             return;
         }
@@ -266,8 +278,8 @@ router.post('/:id/clone', authMiddleware, async (req: AuthenticatedRequest, res:
         // 3. Create clone payload omitting results
         const clonePayload = {
             id: newSessionId,
-            userId: originalSession.userId,
-            clerkId: originalSession.clerkId,
+            userId: ownershipContext.internalUserId ?? originalSession.userId,
+            clerkId: clerkId,
 
             // Core Date (Encrypted)
             fullName: originalSession.fullName,

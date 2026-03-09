@@ -12,6 +12,7 @@ import { encryptData, safeDecrypt, safeDecryptWithFallback } from '../lib/encryp
 import { syncUser } from '../lib/user-sync.js';
 import { cleanupSession } from '../lib/session-events.js';
 import { CalculateRequestSchema } from '@ai-pandit/shared';
+import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
 
 const router = Router();
 
@@ -29,6 +30,7 @@ interface SubmitRequest {
 router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const clerkId = req.clerkId!;
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
         const body: SubmitRequest = req.body;
         const { birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig, consentConfirmed, existingSessionId } = req.body;
 
@@ -61,11 +63,20 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
         // 🔴 Check AI consent if session exists
         if (existingSessionId && !consentConfirmed) {
             const session = await executeWithRetry(() =>
-                db.select({ aiConsentGiven: sessions.aiConsentGiven })
+                db.select({
+                    aiConsentGiven: sessions.aiConsentGiven,
+                    clerkId: sessions.clerkId,
+                    userId: sessions.userId,
+                })
                     .from(sessions)
                     .where(eq(sessions.id, existingSessionId))
                     .limit(1)
             );
+
+            if (session.length > 0 && !isSessionOwnedByContext(session[0], ownershipContext)) {
+                res.status(403).json({ success: false, error: 'Unauthorized' });
+                return;
+            }
 
             if (session.length > 0 && !session[0].aiConsentGiven) {
                 res.status(403).json({
@@ -219,10 +230,11 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
 router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const clerkId = req.clerkId!;
-        const sessionId = (req.query.sessionId as string) || (req.query.sid as string);
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const sessionId = req.query.sessionId as string;
 
         if (!sessionId) {
-            res.status(400).json({ success: false, error: 'sessionId or sid is required' });
+            res.status(400).json({ success: false, error: 'sessionId is required' });
             return;
         }
 
@@ -236,7 +248,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
             return;
         }
 
-        if (session[0].clerkId !== clerkId) {
+        if (!isSessionOwnedByContext(session[0], ownershipContext)) {
             res.status(403).json({ success: false, error: 'Unauthorized' });
             return;
         }
@@ -313,6 +325,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
 router.post('/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     try {
         const clerkId = req.clerkId!;
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
         const { sessionId } = req.body;
 
         if (!sessionId) {
@@ -330,8 +343,7 @@ router.post('/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Re
             return;
         }
 
-        // Verify using clerkId (which matches the auth token), not internal userId
-        if (session[0].clerkId !== clerkId) {
+        if (!isSessionOwnedByContext(session[0], ownershipContext)) {
             logger.warn(`Cancel unauthorized: Session ${sessionId} owned by ${session[0].clerkId}, requested by ${clerkId}`);
             res.status(403).json({ success: false, error: 'Unauthorized' });
             return;
@@ -357,6 +369,7 @@ router.post('/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Re
 async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionIdFromPath?: string) {
     try {
         const clerkId = req.clerkId!;
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
         const sessionId = sessionIdFromPath ||
             req.body.sessionId ||
             (req.query.sessionId as string);
@@ -376,7 +389,7 @@ async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionId
             return;
         }
 
-        if (session[0].clerkId !== clerkId) {
+        if (!isSessionOwnedByContext(session[0], ownershipContext)) {
             res.status(403).json({ success: false, error: 'Unauthorized' });
             return;
         }

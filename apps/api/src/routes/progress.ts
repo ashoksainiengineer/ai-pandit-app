@@ -7,6 +7,7 @@ import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
 import { parseSensitiveField } from '../lib/encryption/index.js';
 import { logger } from '../lib/logger.js';
+import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
 
 const router = Router();
 logger.info('Progress route initialized');
@@ -53,6 +54,7 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
     // ═══════════════════════════════════════════════════════════════════════════════
     let internalUserId: string | undefined;
     try {
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
         const sessionCheck = await executeWithRetry(() =>
             db.select({
                 id: sessions.id,
@@ -69,7 +71,7 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
             return;
         }
 
-        if (sessionCheck[0].clerkId !== clerkId) {
+        if (!isSessionOwnedByContext(sessionCheck[0], ownershipContext)) {
             logger.warn(`[IDOR] Unauthorized progress access attempt: clerkId ${clerkId.slice(0, 12)}... tried to access session ${sessionId}`);
             res.status(403).json({ error: 'Access denied' });
             return;
@@ -83,11 +85,31 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
     }
 
     // Get queue status
-    const queueStatus = await getQueueStatus(sessionId);
-
+    let queueStatus = await getQueueStatus(sessionId);
     if (!queueStatus) {
-        res.status(404).json({ error: 'Session not found' });
-        return;
+        logger.warn('Queue status unavailable, falling back to DB session row', { sessionId });
+        const fallbackSession = await executeWithRetry(() =>
+            db.select()
+                .from(sessions)
+                .where(eq(sessions.id, sessionId))
+                .limit(1)
+        );
+
+        if (fallbackSession.length === 0) {
+            res.status(404).json({ error: 'Session not found' });
+            return;
+        }
+
+        const fallback = fallbackSession[0];
+        queueStatus = {
+            sessionId,
+            status: fallback.status as any,
+            position: 0,
+            estimatedWaitSeconds: 0,
+            totalInQueue: 0,
+            createdAt: fallback.createdAt || '',
+            session: fallback,
+        };
     }
 
     // Get detailed progress

@@ -62,17 +62,13 @@ describe('BackendAuth Middleware', () => {
         expect(mockReq.sessionId).toBe('sess_123');
     });
 
-    it('should pass with a valid sid query parameter (SSE support)', async () => {
+    it('should reject auth token in query parameter', async () => {
         mockReq.query.sid = 'valid-token-in-query';
-        (verifyToken as any).mockResolvedValue({
-            sub: 'user_123',
-            sid: 'sess_123',
-        });
 
         await authMiddleware(mockReq, mockRes, nextFunction);
 
-        expect(nextFunction).toHaveBeenCalled();
-        expect(mockReq.clerkId).toBe('user_123');
+        expect(nextFunction).not.toHaveBeenCalled();
+        expect(mockRes.status).toHaveBeenCalledWith(401);
     });
 
     it('should return 401 when no token is provided', async () => {

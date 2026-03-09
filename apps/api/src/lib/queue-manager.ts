@@ -288,6 +288,78 @@ async function getNextInQueue(): Promise<string | null> {
   }
 }
 
+function getRowsAffected(result: unknown): number | null {
+  if (result && typeof result === 'object' && 'rowsAffected' in (result as Record<string, unknown>)) {
+    const value = (result as { rowsAffected?: unknown }).rowsAffected;
+    if (typeof value === 'number') return value;
+  }
+  return null;
+}
+
+/**
+ * Atomically claim the next queued session.
+ * Prevents two workers from processing the same session under race.
+ */
+async function claimNextQueuedSession(): Promise<string | null> {
+  const candidates = await executeWithRetry(() =>
+    db.select({ id: sessions.id })
+      .from(sessions)
+      .where(
+        or(
+          eq(sessions.status, 'pending'),
+          eq(sessions.status, 'queued'),
+          eq(sessions.status, 'local-test')
+        )
+      )
+      .orderBy(asc(sessions.createdAt))
+      .limit(10)
+  );
+
+  for (const candidate of candidates) {
+    const updateResult = await executeWithRetry(() =>
+      db.update(sessions)
+        .set({
+          status: 'processing',
+          startedProcessingAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+        .where(and(
+          eq(sessions.id, candidate.id),
+          or(
+            eq(sessions.status, 'pending'),
+            eq(sessions.status, 'queued'),
+            eq(sessions.status, 'local-test')
+          )
+        ))
+    );
+
+    const rowsAffected = getRowsAffected(updateResult);
+    if (rowsAffected === null || rowsAffected > 0) {
+      activeProcessingIds.add(candidate.id);
+      processingStartTimes.set(candidate.id, Date.now());
+      return candidate.id;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Test hooks for deterministic race-condition validation.
+ * Not used in production paths.
+ */
+export const __queueInternals = {
+  claimNextQueuedSession,
+};
+
+export function __resetQueueStateForTests(): void {
+  activeProcessingIds.clear();
+  processingStartTimes.clear();
+  isProcessorRunning = false;
+  consecutiveFailures = 0;
+  lastFailureTime = 0;
+}
+
 /**
  * Mark session as processing
  */
@@ -318,7 +390,7 @@ export async function markAsComplete(
     reasoningLogs?: string | null;
   }
 ): Promise<void> {
-  await executeWithRetry(() =>
+  const updateResult = await executeWithRetry(() =>
     db.update(sessions)
       .set({
         status: 'complete',
@@ -331,8 +403,19 @@ export async function markAsComplete(
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       } as any)
-      .where(eq(sessions.id, sessionId))
+      .where(and(
+        eq(sessions.id, sessionId),
+        eq(sessions.status, 'processing')
+      ))
   );
+
+  const rowsAffected = getRowsAffected(updateResult);
+  if (rowsAffected === 0) {
+    logger.warn('Skipped complete transition due to non-processing state', { sessionId });
+    activeProcessingIds.delete(sessionId);
+    processingStartTimes.delete(sessionId);
+    return;
+  }
 
   activeProcessingIds.delete(sessionId);
   processingStartTimes.delete(sessionId);
@@ -355,15 +438,26 @@ export async function markAsFailed(sessionId: string, error: string): Promise<vo
   // 🧹 FLUSH KACHRA & ABORT: Stop operations and clear logs immediately on failure
   await flushSessionTrash(sessionId);
 
-  await executeWithRetry(() =>
+  const updateResult = await executeWithRetry(() =>
     db.update(sessions)
       .set({
         status: 'failed',
         errorMessage: error,
         updatedAt: new Date().toISOString(),
       })
-      .where(eq(sessions.id, sessionId))
+      .where(and(
+        eq(sessions.id, sessionId),
+        eq(sessions.status, 'processing')
+      ))
   );
+
+  const rowsAffected = getRowsAffected(updateResult);
+  if (rowsAffected === 0) {
+    logger.warn('Skipped failed transition due to non-processing state', { sessionId, error });
+    activeProcessingIds.delete(sessionId);
+    processingStartTimes.delete(sessionId);
+    return;
+  }
 
   activeProcessingIds.delete(sessionId);
   processingStartTimes.delete(sessionId);
@@ -442,15 +536,28 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
     // 🧹 FLUSH KACHRA & ABORT: Stop operations and clear logs immediately
     await flushSessionTrash(sessionId);
 
-    await executeWithRetry(() =>
+    const updateResult = await executeWithRetry(() =>
       db.update(sessions)
         .set({
           status: 'failed',
           errorMessage: 'Cancelled by user',
           updatedAt: new Date().toISOString(),
         })
-        .where(eq(sessions.id, sessionId))
+        .where(and(
+          eq(sessions.id, sessionId),
+          or(
+            eq(sessions.status, 'pending'),
+            eq(sessions.status, 'queued'),
+            eq(sessions.status, 'processing')
+          )
+        ))
     );
+
+    const rowsAffected = getRowsAffected(updateResult);
+    if (rowsAffected === 0) {
+      logger.warn('Cancel skipped due to status transition race', { sessionId });
+      return false;
+    }
 
     emitError(sessionId, 'Cancelled by user', 'cancelled');
     logger.info('Session cancelled by user (Full Wipe Complete)', { sessionId });
@@ -649,8 +756,8 @@ async function processQueue(): Promise<void> {
         continue;
       }
 
-      // Get next in queue
-      const nextId = await getNextInQueue();
+      // Claim next queued session atomically to avoid double-processing races.
+      const nextId = await claimNextQueuedSession();
 
       if (nextId === null) {
         // Queue empty, wait and check again
@@ -660,9 +767,7 @@ async function processQueue(): Promise<void> {
 
       logger.debug('Found next queued session', { sessionId: nextId });
 
-      // Mark as processing
-      await markAsProcessing(nextId);
-      logger.debug('Marked session as processing', { sessionId: nextId });
+      logger.debug('Claimed session as processing', { sessionId: nextId });
 
       // ⚡ C4 FIX: Use retry wrapper instead of direct call
       // Fire and loop back immediately to pick up next task if slot available

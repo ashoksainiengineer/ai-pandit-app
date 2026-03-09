@@ -102,6 +102,20 @@ describe('useStreamProgress Hook', () => {
         vi.useFakeTimers();
         (global as any).EventSource.instances = [];
         mockState.lastEventId = 0;
+        (global.fetch as any).mockImplementation(async (url: string) => {
+            if (url.includes('/api/stream/ticket/')) {
+                return {
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ ticket: 'ticket-test' }),
+                };
+            }
+            return {
+                ok: true,
+                status: 200,
+                json: async () => ({ success: true, status: 'streaming', progress: {} }),
+            };
+        });
     });
 
     afterEach(() => {
@@ -220,6 +234,54 @@ describe('useStreamProgress Hook', () => {
         expect((global.fetch as any).mock.calls.length).toBeGreaterThan(fetchCallsBefore);
     });
 
+    it('should retry once on transient 404 queue lookup before forcing terminal error', async () => {
+        let pollCallCount = 0;
+        (global.fetch as any).mockImplementation(async (url: string) => {
+            if (url.includes('/api/stream/ticket/')) {
+                return {
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ ticket: 'ticket-test' }),
+                };
+            }
+            pollCallCount += 1;
+            if (pollCallCount === 1) {
+                return { status: 404, ok: false };
+            }
+            return {
+                status: 200,
+                ok: true,
+                json: async () => ({
+                    status: 'processing',
+                    progress: { currentStep: 1, totalSteps: 7, percentage: 14, steps: [] },
+                    metadata: { status: 'processing' },
+                }),
+            };
+        });
+
+        const { result } = renderHook(() => useStreamProgress('session-404-retry', 'http://localhost:3001'));
+
+        await act(async () => {
+            vi.advanceTimersByTime(10500); // SSE timeout -> first poll (404)
+        });
+        await act(async () => {
+            vi.advanceTimersByTime(100);
+        });
+
+        expect(result.current.connectionState.status).toBe('polling');
+        expect(mockForceError).not.toHaveBeenCalled();
+
+        await act(async () => {
+            vi.advanceTimersByTime(1600); // retry window
+        });
+        await act(async () => {
+            vi.advanceTimersByTime(100);
+        });
+
+        expect(pollCallCount).toBe(2);
+        expect(mockForceError).not.toHaveBeenCalled();
+    });
+
     it('should ignore and log malformed JSON chunks from SSE without crashing', async () => {
         const { result } = renderHook(() => useStreamProgress('session-fuzz', 'http://localhost:3001'));
 
@@ -327,15 +389,24 @@ describe('useStreamProgress Hook', () => {
     });
 
     it('should hydrate completion result in polling fallback when status is complete', async () => {
-        (global.fetch as any).mockResolvedValueOnce({
-            status: 200,
-            ok: true,
-            json: async () => ({
-                status: 'complete',
-                progress: { currentStep: 7, totalSteps: 7, percentage: 100, steps: [] },
-                result: { rectifiedTime: '12:34:56', accuracy: 98, confidence: 'high' },
-                metadata: { status: 'complete' }
-            }),
+        (global.fetch as any).mockImplementation(async (url: string) => {
+            if (url.includes('/api/stream/ticket/')) {
+                return {
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ ticket: 'ticket-test' }),
+                };
+            }
+            return {
+                status: 200,
+                ok: true,
+                json: async () => ({
+                    status: 'complete',
+                    progress: { currentStep: 7, totalSteps: 7, percentage: 100, steps: [] },
+                    result: { rectifiedTime: '12:34:56', accuracy: 98, confidence: 'high' },
+                    metadata: { status: 'complete' }
+                }),
+            };
         });
 
         const { result } = renderHook(() => useStreamProgress('session-poll-complete', 'http://localhost:3001'));
@@ -358,9 +429,20 @@ describe('useStreamProgress Hook', () => {
 
     it('should clear token cache and retry polling once on 401', async () => {
         const { getTokenWithRetry } = await import('../auth-utils');
-        (global.fetch as any)
-            .mockResolvedValueOnce({ status: 401, ok: false })
-            .mockResolvedValueOnce({
+        let pollCallCount = 0;
+        (global.fetch as any).mockImplementation(async (url: string) => {
+            if (url.includes('/api/stream/ticket/')) {
+                return {
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ ticket: 'ticket-test' }),
+                };
+            }
+            pollCallCount += 1;
+            if (pollCallCount === 1) {
+                return { status: 401, ok: false };
+            }
+            return {
                 status: 200,
                 ok: true,
                 json: async () => ({
@@ -368,7 +450,8 @@ describe('useStreamProgress Hook', () => {
                     progress: { currentStep: 1, totalSteps: 7, percentage: 10, steps: [] },
                     metadata: { status: 'processing' }
                 }),
-            });
+            };
+        });
 
         renderHook(() => useStreamProgress('session-401-retry', 'http://localhost:3001', async () => 'mock-token'));
 
@@ -382,7 +465,7 @@ describe('useStreamProgress Hook', () => {
             vi.advanceTimersByTime(100);
         });
 
-        expect((global.fetch as any).mock.calls.length).toBe(2);
+        expect(pollCallCount).toBe(2);
         const retryCall = vi.mocked(getTokenWithRetry).mock.calls.find(([, options]) => options?.skipCache === true);
         expect(retryCall).toBeTruthy();
     });

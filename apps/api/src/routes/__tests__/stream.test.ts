@@ -104,6 +104,18 @@ vi.mock('../../lib/encryption/index.js', () => ({
     safeDecryptWithFallback: vi.fn((val) => val),
 }));
 
+vi.mock('../../lib/session-ownership.js', () => ({
+    resolveSessionOwnershipContext: vi.fn(async (clerkId: string) => ({
+        clerkId,
+        internalUserId: clerkId === 'valid-clerk' ? '1' : (clerkId === 'other-clerk' ? '2' : null),
+    })),
+    isSessionOwnedByContext: vi.fn((session: { clerkId?: string | null; userId?: string | null }, context: { clerkId: string; internalUserId: string | null }) => {
+        if (session?.clerkId === context.clerkId) return true;
+        if (!context.internalUserId) return false;
+        return session?.userId === context.internalUserId;
+    }),
+}));
+
 import { db } from '@ai-pandit/db';
 import streamRouter from '../stream.js';
 import { sessionEvents } from '../../lib/session-events.js';
@@ -141,7 +153,9 @@ function parseSSE(text: string) {
                 if (jsonStr) {
                     data.push(JSON.parse(jsonStr));
                 }
-            } catch (e) { }
+            } catch {
+                // Ignore malformed SSE chunks in parser helper.
+            }
         }
     }
     return data;
@@ -199,6 +213,18 @@ describe('GET /api/stream/:sessionId', () => {
         const sse = parseSSE(res.text);
         expect(sse[0].type).toBe('error');
         expect(sse[0].code).toBe('FORBIDDEN');
+    });
+
+    it('should allow access when legacy session matches internal userId fallback', async () => {
+        setMockResults([[{ clerkId: 'legacy-clerk', userId: '1', status: 'failed', errorMessage: 'Legacy failed' }]]);
+
+        const res = await request(app)
+            .get('/api/stream/sess-legacy')
+            .set('Authorization', 'Bearer VALID');
+
+        const sse = parseSSE(res.text);
+        expect(sse[0].type).toBe('terminal_state');
+        expect(sse[0].status).toBe('failed');
     });
 
     it('should immediately send terminal_state if session is complete', async () => {

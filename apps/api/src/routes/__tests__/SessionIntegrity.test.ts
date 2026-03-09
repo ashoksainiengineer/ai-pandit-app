@@ -15,6 +15,18 @@ vi.mock('../../middleware/auth.js', () => ({
     }
 }));
 
+vi.mock('../../lib/session-ownership.js', () => ({
+    resolveSessionOwnershipContext: vi.fn(async (clerkId: string) => ({
+        clerkId,
+        internalUserId: 'db-user-id',
+    })),
+    isSessionOwnedByContext: vi.fn((session: { clerkId?: string | null; userId?: string | null }, context: { clerkId: string; internalUserId: string | null }) => {
+        if (session?.clerkId === context.clerkId) return true;
+        if (!context.internalUserId) return false;
+        return session?.userId === context.internalUserId;
+    }),
+}));
+
 // Mock DB with captured calls
 const valuesMock = vi.fn().mockResolvedValue([{ id: 'new-session-uuid' }]);
 
