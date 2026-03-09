@@ -52,6 +52,7 @@ interface AuthOptions {
 
 interface PollOptions extends AuthOptions {
     hasRetriedAuth?: boolean;
+    forceLegacyProgressPath?: boolean;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -95,6 +96,7 @@ export function useStreamProgress(
     const mountedRef = useRef(true);
     const sseSourceRef = useRef<EventSource | null>(null);
     const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const connectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const connectionAttemptedRef = useRef<boolean>(false);
     const currentSessionRef = useRef<string | null>(null);
     const authRetryRef = useRef<boolean>(false);
@@ -138,6 +140,11 @@ export function useStreamProgress(
 
     // Cleanup function
     const cleanup = () => {
+        if (connectionTimeoutRef.current) {
+            clearTimeout(connectionTimeoutRef.current);
+            connectionTimeoutRef.current = null;
+        }
+
         if (sseSourceRef.current) {
             logger.info('[SSE] Closing active connection', { sessionId: currentSessionRef.current });
             sseSourceRef.current.close();
@@ -216,7 +223,9 @@ export function useStreamProgress(
             if (!sseBaseUrl) {
                 throw new Error('Backend URL not configured');
             }
-            const pollUrl = `${sseBaseUrl}/api/queue/progress?sessionId=${encodeURIComponent(sid)}`;
+            const pollUrl = options.forceLegacyProgressPath
+                ? `${sseBaseUrl}/api/queue/progress/${encodeURIComponent(sid)}`
+                : `${sseBaseUrl}/api/queue/progress?sessionId=${encodeURIComponent(sid)}`;
 
             const res = await fetch(pollUrl, {
                 headers,
@@ -227,6 +236,13 @@ export function useStreamProgress(
 
             // Handle 404 - session not in queue (maybe completed or never started)
             if (res.status === 404) {
+                // Backward compatibility: some backend deployments only support
+                // /api/queue/progress/:sessionId (path param), not query param.
+                if (!options.forceLegacyProgressPath) {
+                    await poll(sid, interval, { ...options, forceLegacyProgressPath: true });
+                    return;
+                }
+
                 sessionNotFoundRetryCountRef.current += 1;
                 const retryAttempt = sessionNotFoundRetryCountRef.current;
                 const shouldRetry = retryAttempt <= MAX_SESSION_NOT_FOUND_RETRIES;
@@ -433,10 +449,8 @@ export function useStreamProgress(
 
             let sseConnected = false;
 
-            let connectionTimeout: ReturnType<typeof setTimeout> | undefined;
-
             // Timeout — if SSE doesn't connect in 10s, fall back to polling
-            connectionTimeout = setTimeout(() => {
+            connectionTimeoutRef.current = setTimeout(() => {
                 if (!sseConnected && mountedRef.current && currentSessionRef.current === sid) {
                     logger.warn('[SSE] Connection timeout (10s), falling back to polling');
                     cleanup(); // This clears sseSourceRef AND pollTimerRef
@@ -451,7 +465,10 @@ export function useStreamProgress(
                     return;
                 }
                 sseConnected = true;
-                clearTimeout(connectionTimeout);
+                if (connectionTimeoutRef.current) {
+                    clearTimeout(connectionTimeoutRef.current);
+                    connectionTimeoutRef.current = null;
+                }
                 logger.info('[SSE] Connection opened');
                 dispatchStreamEvent('connected', {});
                 setConnectionState({ status: 'streaming', url, lastError: null });
@@ -538,8 +555,6 @@ export function useStreamProgress(
                     setTimeout(() => {
                         if (mountedRef.current && currentSessionRef.current === sid && !sseSourceRef.current && !terminalStateReceivedRef.current) {
                             logger.warn('[SSE] Initial connection timeout. Switching to polling');
-                            // @ts-ignore
-                            if (typeof connectionTimeout !== 'undefined') clearTimeout(connectionTimeout);
                             cleanup();
                             setConnectionState({ status: 'polling', url: '', lastError: 'SSE timeout' });
                             poll(sid);
@@ -550,14 +565,6 @@ export function useStreamProgress(
 
         } catch (error) {
             logger.error('Connection failed', { error });
-
-            // Clear any pending connection timeout immediately
-            // @ts-ignore
-            if (typeof connectionTimeout !== 'undefined') {
-                // @ts-ignore
-                clearTimeout(connectionTimeout);
-            }
-
             cleanup();
             setConnectionState({ status: 'polling', url: '', lastError: 'Connection failed' });
             pollTimerRef.current = setTimeout(() => poll(sid), 2000);

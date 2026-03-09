@@ -1,9 +1,8 @@
-import React, { memo, useRef, useEffect, useState } from 'react';
+import React, { memo, useRef, useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Radio } from 'lucide-react';
 import { sanitizeAIContent } from '@/lib/xss-sanitizer';
 import { highlightKeywords } from '@/lib/keyword-highlighter';
-import { CARD_PREVIEW_CHARS } from '../constants';
 
 export const ReasoningCard = memo(function ReasoningCard({
     title,
@@ -28,7 +27,10 @@ export const ReasoningCard = memo(function ReasoningCard({
 }) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [elapsed, setElapsed] = useState(0);
-    const sanitized = sanitizeAIContent(content);
+    const highlightedContent = useMemo(() => {
+        const sanitized = sanitizeAIContent(content);
+        return highlightKeywords(sanitized);
+    }, [content]);
 
     // Auto-scroll when live
     useEffect(() => {
@@ -99,11 +101,11 @@ export const ReasoningCard = memo(function ReasoningCard({
                 ref={scrollRef}
                 className="text-[10px] text-[#4A453F] leading-relaxed font-mono overflow-y-auto flex-grow relative"
             >
-                {!sanitized ? (
+                {!content ? (
                     <span className="text-stone-400 italic text-[9px]">Evaluating...</span>
                 ) : (
                     <pre className="whitespace-pre-wrap break-words font-mono text-[10px] text-[#4A453F] leading-relaxed">
-                        {highlightKeywords(sanitized)}
+                        {highlightedContent}
                         {isLive && (
                             <span className="inline-block w-1 h-3 bg-[#B8860B] animate-pulse ml-0.5 align-middle" />
                         )}

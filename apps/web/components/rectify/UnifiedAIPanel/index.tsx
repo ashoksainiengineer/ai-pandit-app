@@ -1,13 +1,11 @@
 'use client';
 
-import React, { useState, useRef, useMemo, useCallback, memo, useEffect, useId } from 'react';
+import React, { useState, useMemo, useCallback, memo, useId } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, Activity, ChevronDown, ChevronUp } from 'lucide-react';
-import { sanitizeAIContent } from '@/lib/xss-sanitizer';
 import { STAGES } from '@/lib/constants/stages';
 
 import { UnifiedAIPanelProps } from './types';
-import { groupCandidatesByScore } from './utils/scoring';
 import { ReasoningGrid } from './components/ReasoningGrid';
 import { ReasoningContent } from './components/ReasoningContent';
 
@@ -17,7 +15,6 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
     isActive,
     stage,
     allCandidates,
-    displayedCandidate,
     onSelectCandidate,
     candidateScores,
     unifiedMode = true,
@@ -41,11 +38,6 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
     const currentStage = thinking?.stage || stage || 2;
     const effectiveSelectedCandidate = localSelectedCandidate;
 
-    const groupedCandidates = useMemo(
-        () => groupCandidatesByScore(allCandidates, candidateScores),
-        [allCandidates, candidateScores]
-    );
-
     const candidatesList = useMemo(
         () => Object.keys(allCandidates || {}),
         [allCandidates]
@@ -65,15 +57,15 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
 
         if (allCandidates && effectiveSelectedCandidate) {
             const candidateData = allCandidates[effectiveSelectedCandidate];
-            return candidateData?.fullText ? sanitizeAIContent(getSafeText(candidateData.fullText)) : '';
+            return candidateData?.fullText ? getSafeText(candidateData.fullText) : '';
         }
 
         const stageNum = stage || currentStage;
         if (stageHistory && stageHistory[stageNum]) {
-            return sanitizeAIContent(getSafeText(stageHistory[stageNum]));
+            return getSafeText(stageHistory[stageNum]);
         }
 
-        return thinking ? sanitizeAIContent(getSafeText(thinking.fullText)) : '';
+        return thinking ? getSafeText(thinking.fullText) : '';
     }, [allCandidates, effectiveSelectedCandidate, thinking, stageHistory, stage, currentStage]);
 
     if (!unifiedMode) {

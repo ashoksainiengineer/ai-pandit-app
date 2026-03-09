@@ -1,4 +1,4 @@
-import React, { memo, useRef, useEffect } from 'react';
+import React, { memo, useRef, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Brain } from 'lucide-react';
 import { sanitizeAIContent } from '@/lib/xss-sanitizer';
@@ -19,6 +19,12 @@ export const ReasoningContent = memo(function ReasoningContent({
         }
     }, [content, isActive]);
 
+    const highlightedContent = useMemo(() => {
+        const sanitizedContent = sanitizeAIContent(content);
+        const trimmedContent = sanitizedContent.length > 50000 ? sanitizedContent.slice(-50000) : sanitizedContent;
+        return highlightKeywords(trimmedContent);
+    }, [content]);
+
     if (!content) {
         return (
             <div className="flex flex-col items-center justify-center h-[300px] text-center p-8">
@@ -36,15 +42,13 @@ export const ReasoningContent = memo(function ReasoningContent({
         );
     }
 
-    const sanitizedContent = sanitizeAIContent(content);
-
     return (
         <div
             ref={scrollRef}
             className="p-5 overflow-y-auto max-h-[400px] font-mono text-sm text-[#4A453F] leading-7 style-scroll"
         >
             <pre className="whitespace-pre-wrap break-words font-mono text-sm text-[#4A453F] leading-7">
-                {highlightKeywords(sanitizedContent.length > 50000 ? sanitizedContent.slice(-50000) : sanitizedContent)}
+                {highlightedContent}
                 {isActive && (
                     <span className="inline-block w-1.5 h-4 bg-[#B8860B] animate-pulse ml-0.5 align-middle" />
                 )}

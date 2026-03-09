@@ -210,14 +210,10 @@ export default function AnalysisPage() {
   const {
     candidatesByStage,
     stageHistory,
-    displayedCandidate,
-    setDisplayedCandidate,
     stageStats
   } = useStreamStore(useShallow(state => ({
     candidatesByStage: state.candidatesByStage,
     stageHistory: state.stageHistory,
-    displayedCandidate: state.displayedCandidate,
-    setDisplayedCandidate: state.setDisplayedCandidate,
     stageStats: state.stageStats,
   })));
 
@@ -659,8 +655,6 @@ export default function AnalysisPage() {
                               isCompleted={isStageCompleted}
                               stage={stageNum}
                               allCandidates={stageCandidates}
-                              displayedCandidate={displayedCandidate}
-                              onSelectCandidate={setDisplayedCandidate}
                               candidateScores={candidateScores}
                               title={stepDef.name}
                               offsetMinutes={offsetMinutes}

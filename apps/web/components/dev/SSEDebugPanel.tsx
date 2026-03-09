@@ -60,7 +60,7 @@ function patchDispatch() {
 export function SSEDebugPanel() {
     const [isOpen, setIsOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'events' | 'store' | 'actions'>('events');
-    const [refresh, setRefresh] = useState(0);
+    const [, setRefresh] = useState(0);
     const intervalRef = useRef<ReturnType<typeof setInterval>>();
 
     const {
@@ -82,11 +82,19 @@ export function SSEDebugPanel() {
 
     useEffect(() => {
         patchDispatch();
+    }, []);
+
+    useEffect(() => {
+        if (!isOpen || activeTab !== 'events') return;
+
         intervalRef.current = setInterval(() => setRefresh(r => r + 1), 1000);
         return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
+            if (intervalRef.current) {
+                clearInterval(intervalRef.current);
+                intervalRef.current = undefined;
+            }
         };
-    }, []);
+    }, [isOpen, activeTab]);
 
     const handleClearStore = useCallback(() => {
         if (confirm('Clear Zustand store? This will reset all analysis state.')) {

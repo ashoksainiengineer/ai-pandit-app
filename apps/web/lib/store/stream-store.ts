@@ -158,9 +158,6 @@ const getCharLimitForScore = (score: number | undefined): number => {
 };
 
 const MAX_FULLTEXT_CHARS = 25_000;
-const MAX_CANDIDATES_PER_STAGE = 30;
-
-const stageHistoryContributors: Record<number, Set<string>> = {};
 
 function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamState>) => void) {
     const buffered = new Map(thinkingBuffer.chunks);
@@ -203,14 +200,7 @@ function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamStat
             if (!stageChanges[stage]) stageChanges[stage] = {};
             stageChanges[stage][candidateTime] = updated;
 
-            if (!stageHistoryContributors[stage]) stageHistoryContributors[stage] = new Set();
-            const contributorKey = `${stage}_${candidateTime}`;
-            if (!stageHistoryContributors[stage].has(contributorKey)) {
-                stageHistoryContributors[stage].add(contributorKey);
-                historyAppends[stage] = (historyAppends[stage] || '') + text;
-            } else {
-                historyAppends[stage] = (historyAppends[stage] || '') + text;
-            }
+            historyAppends[stage] = (historyAppends[stage] || '') + text;
 
             latestCandidate = candidateTime;
             latestStage = stage;
@@ -258,7 +248,6 @@ export const useStreamStore = create<StreamStore>()(
                         thinkingBuffer.rafId = null;
                     }
                     thinkingBuffer.chunks.clear();
-                    Object.keys(stageHistoryContributors).forEach(k => delete stageHistoryContributors[Number(k)]);
                     set({ ...createInitialState() });
                 },
 
