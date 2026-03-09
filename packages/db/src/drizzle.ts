@@ -95,63 +95,49 @@ async function createClientWithTimeout(url: string, authToken: string, timeoutMs
   });
 }
 
-async function initializeDatabase(): Promise<void> {
+function initializeDatabaseSync(): void {
   console.log('[DB] Initializing database client...');
   const startTime = Date.now();
   const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
   const isProductionRuntime = process.env.NODE_ENV === 'production' && !isBuildPhase;
-  
+
+  // In production runtime, missing Turso URL must fail fast (no silent memory DB fallback)
+  if (!CONNECTION_CONFIG.syncUrl && isProductionRuntime) {
+    throw new Error('TURSO_DATABASE_URL is missing in production runtime');
+  }
+
+  // Use memory fallback only in non-production runtime (dev/test/build)
+  const finalUrl = CONNECTION_CONFIG.syncUrl || 'file::memory:';
+  if (!CONNECTION_CONFIG.syncUrl && !isBuildPhase) {
+    console.warn('⚠️ TURSO_DATABASE_URL is missing - using memory-based fallback client');
+  }
+
+  // IMPORTANT: create db synchronously so request handlers never observe undefined `db`.
+  client = createClient({ url: finalUrl, authToken: CONNECTION_CONFIG.authToken });
+  db = drizzle(client, { schema });
+  console.log(`[DB] Client created in ${Date.now() - startTime}ms`);
+  console.log('[DB] Database client initialized successfully');
+}
+
+async function verifyDatabaseConnection(): Promise<void> {
+  const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
+  if (isBuildPhase || !CONNECTION_CONFIG.syncUrl) return;
+
   try {
-    // In production runtime, missing Turso URL must fail fast (no silent memory DB fallback)
-    if (!CONNECTION_CONFIG.syncUrl && isProductionRuntime) {
-      throw new Error('TURSO_DATABASE_URL is missing in production runtime');
-    }
-
-    // Use memory fallback only in non-production runtime (dev/test/build)
-    const finalUrl = CONNECTION_CONFIG.syncUrl || 'file::memory:';
-    if (!CONNECTION_CONFIG.syncUrl && !isBuildPhase) {
-      console.warn('⚠️ TURSO_DATABASE_URL is missing - using memory-based fallback client');
-    }
-
-    // Create client with timeout protection
-    client = await createClientWithTimeout(finalUrl, CONNECTION_CONFIG.authToken);
-    console.log(`[DB] Client created in ${Date.now() - startTime}ms`);
-
-    // Proactive check in non-build environments
-    if (!isBuildPhase && CONNECTION_CONFIG.syncUrl) {
-      console.log('[DB] Testing connection...');
-      const testStart = Date.now();
-      try {
-        await client.execute('SELECT 1');
-        console.log(`[DB] Connection verified in ${Date.now() - testStart}ms`);
-      } catch (err) {
-        console.error('❌ Proactive database health check failed:', (err as Error).message);
-        // Continue - let runtime checks handle retries
-      }
-    }
-
-    db = drizzle(client, { schema });
-    console.log('[DB] Database client initialized successfully');
-
-  } catch (error) {
-    console.error('[DB] Failed to initialize database client:', (error as Error).message);
-    
-    // Allow fallback only in non-production runtime for local/dev/test/build ergonomics.
-    if (!isProductionRuntime) {
-      console.warn('[DB] Creating fallback in-memory client for non-production runtime...');
-      client = createClient({ url: 'file::memory:' });
-      db = drizzle(client, { schema });
-    } else {
-      // In production with valid config, we MUST connect to real database
-      console.error('[DB] CRITICAL: Cannot connect to Turso database in production');
-      throw error;
+    console.log('[DB] Testing connection...');
+    const testStart = Date.now();
+    await executeWithTimeout(() => client.execute('SELECT 1'), 10000);
+    console.log(`[DB] Connection verified in ${Date.now() - testStart}ms`);
+  } catch (err) {
+    console.error('❌ Proactive database health check failed:', (err as Error).message);
+    if (process.env.NODE_ENV === 'production') {
+      throw err;
     }
   }
 }
 
-// Initialize immediately but don't block on it
-// This prevents module load hangs while still initializing early
-const initPromise = initializeDatabase();
+initializeDatabaseSync();
+const initPromise = verifyDatabaseConnection();
 
 // For backward compatibility: expose a function to ensure init is complete
 export async function ensureDatabaseInitialized(): Promise<void> {
