@@ -217,6 +217,10 @@ describe('Queue Route - POST /api/queue (Submit)', () => {
     });
 
     it('should return 200 with sessionId on valid submission', async () => {
+        vi.mocked(executeWithRetry)
+            .mockResolvedValueOnce(undefined)
+            .mockResolvedValueOnce([{ clerkId: 'test_clerk_id', userId: 'internal_user_id_123', status: 'pending' }]);
+
         const res = await request(app).post('/api/queue').send(validSubmitBody);
         expect(res.status).toBe(200);
         expect(res.body.success).toBe(true);
@@ -225,6 +229,9 @@ describe('Queue Route - POST /api/queue (Submit)', () => {
     });
 
     it('should return 503 when queue fails to add', async () => {
+        vi.mocked(executeWithRetry)
+            .mockResolvedValueOnce(undefined)
+            .mockResolvedValueOnce([{ clerkId: 'test_clerk_id', userId: 'internal_user_id_123', status: 'pending' }]);
         vi.mocked(addToQueue).mockResolvedValueOnce({ success: false, error: 'Queue is full' });
         const res = await request(app).post('/api/queue').send(validSubmitBody);
         expect(res.status).toBe(503);
@@ -337,6 +344,12 @@ describe('Queue Route - POST /api/queue/requeue', () => {
     });
 
     it('should allow requeue when legacy row matches internal userId even if clerkId differs', async () => {
+        vi.mocked(addToQueue).mockResolvedValueOnce({
+            success: true,
+            sessionId: 'legacy-session',
+            position: 1,
+            estimatedWaitSeconds: 60,
+        });
         vi.mocked(executeWithRetry)
             .mockResolvedValueOnce([{ clerkId: 'legacy_clerk', userId: 'internal_user_id_123', status: 'failed' }])
             .mockResolvedValueOnce(undefined)

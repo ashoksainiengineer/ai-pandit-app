@@ -18,6 +18,7 @@ import Layout from '@/components/Layout';
 import AnalysisErrorBoundary from '@/components/rectify/AnalysisErrorBoundary';
 import { useWarmup } from '@/hooks/use-warmup';
 import { env } from '@/lib/config';
+import { waitForAnalysisSessionReady } from '@/lib/analysis-session-readiness';
 import dynamic from 'next/dynamic';
 
 // Lazy load step components for faster initial load
@@ -99,6 +100,12 @@ type StepValidation = {
 };
 
 type StepStatus = 'locked' | 'unlocked' | 'current' | 'completed';
+
+const FRONTEND_MUTABLE_SESSION_STATUSES = new Set(['draft', 'failed', 'pending']);
+
+function canMutateSessionInForm(status: unknown): boolean {
+    return typeof status === 'string' && FRONTEND_MUTABLE_SESSION_STATUSES.has(status);
+}
 
 // Loading skeleton for Suspense
 function RectifyPageSkeleton() {
@@ -251,11 +258,22 @@ function RectifyPageContent() {
             let result;
             if (draftSessionId) {
                 // 1. Force save to Vercel (same Turso DB) to ensure latest data is persisted
-                await fetch(`/api/sessions/${draftSessionId}`, {
+                const updateRes = await fetch(`/api/sessions/${draftSessionId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig })
                 });
+                // Session can become locked between load and submit; requeue still handles it safely.
+                if (!updateRes.ok && updateRes.status !== 409) {
+                    let updateError = 'Failed to save latest draft';
+                    try {
+                        const updateJson = await updateRes.json();
+                        updateError = toErrorMessage(updateJson?.error, updateError);
+                    } catch {
+                        // Keep default error if response body is not JSON.
+                    }
+                    throw new Error(updateError);
+                }
 
                 // 2. Trigger Requeue on HF Backend (reads from same Turso DB)
                 result = await APIClient.post(`${backendUrl}/api/queue/requeue`, { sessionId: draftSessionId }, getToken);
@@ -271,6 +289,15 @@ function RectifyPageContent() {
 
             // Navigate to analysis page (requeue returns sessionId in data)
             const sessionId = result.data?.sessionId || result.sessionId || draftSessionId;
+            if (!sessionId) {
+                throw new Error('Analysis session ID was not returned');
+            }
+
+            const isReady = await waitForAnalysisSessionReady(backendUrl, sessionId, getToken);
+            if (!isReady) {
+                throw new Error('Analysis session is still initializing. Please try again in a few seconds.');
+            }
+
             router.push(`/rectify/${sessionId}`);
 
         } catch (err: any) {
@@ -409,6 +436,15 @@ function RectifyPageContent() {
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify(payload)
                     });
+
+                    // Existing draft became locked (typically stale completed/processing ID in localStorage).
+                    // Drop stale draft reference so next autosave creates a fresh editable draft.
+                    if (updateRes.status === 409) {
+                        setDraftSessionId(null);
+                        localStorage.removeItem('btr_draft_id');
+                        return true;
+                    }
+
                     success = updateRes.ok;
                 }
 
@@ -472,9 +508,16 @@ function RectifyPageContent() {
                     const result = await res.json();
                     if (result.success && result.data) {
                         const session = result.data;
+                        const canMutateLoadedSession = canMutateSessionInForm(session.status);
 
-                        setDraftSessionId(savedDraftId);
-                        localStorage.setItem('btr_draft_id', savedDraftId);
+                        if (canMutateLoadedSession) {
+                            setDraftSessionId(savedDraftId);
+                            localStorage.setItem('btr_draft_id', savedDraftId);
+                        } else {
+                            // Keep loaded values for user convenience but don't autosave into locked session.
+                            setDraftSessionId(null);
+                            localStorage.removeItem('btr_draft_id');
+                        }
                         
                         if (session.birthData) setBirthData(session.birthData);
                         if (session.lifeEvents && Array.isArray(session.lifeEvents)) setLifeEvents(session.lifeEvents);

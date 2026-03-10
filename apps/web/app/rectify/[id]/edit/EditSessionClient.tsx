@@ -8,6 +8,7 @@ import { BirthData, LifeEvent, PhysicalTraits, SpouseData, ForensicTraits } from
 import { env } from '@/lib/config';
 import { APIClient } from '@/lib/api-client';
 import { useStreamStore } from '@/lib/store/stream-store';
+import { waitForAnalysisSessionReady } from '@/lib/analysis-session-readiness';
 
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
 import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
@@ -109,7 +110,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
             setSavingStatus('saving');
             try {
                 const token = await getToken();
-                await fetch(`/api/sessions/${sessionId}`, {
+                const saveRes = await fetch(`/api/sessions/${sessionId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify({
@@ -120,6 +121,10 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                         offsetConfig
                     })
                 });
+
+                if (!saveRes.ok) {
+                    throw new Error(`Save failed with status ${saveRes.status}`);
+                }
 
                 setLastSavedData(currentData);
                 setSavingStatus('saved');
@@ -195,9 +200,16 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                 })
             });
 
-            const updateResult = await updateRes.json();
-            if (!updateResult.success) {
-                setError(toErrorMessage(updateResult.error, 'Failed to update session'));
+            // 409 means session is locked for direct edit; continue to requeue path.
+            if (!updateRes.ok && updateRes.status !== 409) {
+                let updateError = 'Failed to update session';
+                try {
+                    const updateResult = await updateRes.json();
+                    updateError = toErrorMessage(updateResult?.error, updateError);
+                } catch {
+                    // Keep default fallback when non-JSON error body is returned.
+                }
+                setError(updateError);
                 setIsSubmitting(false);
                 return;
             }
@@ -207,6 +219,13 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                 const requeueResult = await APIClient.post(`${backendUrl}/api/queue/requeue`, { sessionId }, getToken);
                 if (!requeueResult?.success) {
                     setError(toErrorMessage(requeueResult?.error, 'Failed to restart analysis'));
+                    setIsSubmitting(false);
+                    return;
+                }
+
+                const isReady = await waitForAnalysisSessionReady(backendUrl, sessionId, getToken);
+                if (!isReady) {
+                    setError('Analysis session is still initializing. Please retry in a few seconds.');
                     setIsSubmitting(false);
                     return;
                 }

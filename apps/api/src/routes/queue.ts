@@ -24,6 +24,44 @@ interface SubmitRequest {
     offsetConfig: TimeOffsetConfig;
 }
 
+const SESSION_VISIBILITY_MAX_ATTEMPTS = 12;
+const SESSION_VISIBILITY_DELAY_MS = 250;
+
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForSessionVisibility(
+    sessionId: string,
+    ownershipContext: Awaited<ReturnType<typeof resolveSessionOwnershipContext>>
+): Promise<boolean> {
+    for (let attempt = 1; attempt <= SESSION_VISIBILITY_MAX_ATTEMPTS; attempt++) {
+        const found = await executeWithRetry(() =>
+            db.select({
+                id: sessions.id,
+                clerkId: sessions.clerkId,
+                userId: sessions.userId,
+                status: sessions.status,
+            })
+                .from(sessions)
+                .where(eq(sessions.id, sessionId))
+                .limit(1)
+        );
+
+        if (found.length > 0 && isSessionOwnedByContext(found[0], ownershipContext)) {
+            if (attempt > 1) {
+                logger.info('[QUEUE] Session became visible after retry', { sessionId, attempt });
+            }
+            return true;
+        }
+
+        await sleep(SESSION_VISIBILITY_DELAY_MS);
+    }
+
+    logger.warn('[QUEUE] Session visibility timed out after submit', { sessionId });
+    return false;
+}
+
 /**
  * POST /api/queue - Submit new analysis request to queue
  */
@@ -189,6 +227,15 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
                 updatedAt: now,
             })
         );
+
+        const isVisible = await waitForSessionVisibility(sessionId, ownershipContext);
+        if (!isVisible) {
+            res.status(503).json({
+                success: false,
+                error: 'Session initialization delayed. Please try again.',
+            });
+            return;
+        }
 
         logger.info('Session created', { sessionId, clerkId, internalUserId });
 
