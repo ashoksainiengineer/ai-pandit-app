@@ -10,6 +10,7 @@ import { getDashaForDate, verifyDoubleTransit, calculateVimshottariDasha } from 
 import { capitalizeFirstLetter } from '../utils/index.js';
 import { LifeEvent } from '@ai-pandit/shared';
 import { ZODIAC_SIGNS } from '@ai-pandit/shared';
+import { formatEventWindow, getRepresentativeEventDateTime } from './event-date-utils.js';
 
 /**
  * Calculate relative house position
@@ -65,7 +66,8 @@ export async function buildTransitData(
   // Compute the native Dasha tree for accurate date intersection logic (UI arrays fail here)
   const vimshottariDashas = calculateVimshottariDasha(moonLongitude, new Date(birthDate), 4);
 
-  for (const event of lifeEvents) {
+  for (let index = 0; index < lifeEvents.length; index++) {
+    const event = lifeEvents[index];
     try {
       const entry = await buildSingleEventTransit(event, {
         vimshottariDashas,
@@ -75,7 +77,8 @@ export async function buildTransitData(
       });
 
       if (entry) {
-        transitData[event.eventDate] = entry;
+        const stableKey = `${event.eventDate}#${event.id || index + 1}`;
+        transitData[stableKey] = entry;
       }
     } catch {
       // Skip events that fail to process
@@ -105,22 +108,24 @@ async function buildSingleEventTransit(
   }
 ): Promise<TransitDataEntry | null> {
   const { vimshottariDashas, ephemeris, input, vedicSignals } = context;
+  const { eventDate, eventTime, window } = getRepresentativeEventDateTime(event);
 
   // Calculate ephemeris for event date
   const eventEph = await calculateEphemeris(
-    event.eventDate,
-    event.eventTime || '12:00:00',
+    eventDate,
+    eventTime,
     input.latitude,
     input.longitude,
     input.timezone
   );
 
   // Get Dasha at event time
-  const dashaAtEvent = getDashaForDate(vimshottariDashas, new Date(event.eventDate));
+  const dashaAtEvent = getDashaForDate(vimshottariDashas, new Date(window.midpointMs));
   const dashaSequence = formatDashaSequence(dashaAtEvent);
 
   // Build event signatures
   const signatures: string[] = [];
+  signatures.push(`EventWindow: ${formatEventWindow(window)}`);
 
   // Add Dasha-Varga synergy signature
   const dashaSignature = buildDashaSignature(event, dashaAtEvent, ephemeris);

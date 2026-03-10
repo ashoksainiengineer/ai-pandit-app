@@ -41,6 +41,7 @@ import {
   calculateRankFusionScore,
   calculateWeightedAverage
 } from './btr/precision-weights.js';
+import { resolveEventDateWindow } from './btr/event-date-utils.js';
 
 // Re-export types for backwards compatibility
 export type {
@@ -166,12 +167,77 @@ export function calculateConsensus(input: ValidationInput): ConsensusResult {
 // INDIVIDUAL VALIDATION METHODS
 // ═══════════════════════════════════════════════════════════════════════════════
 
+function parseDateWindow(startEnd: unknown): { startDate?: Date; endDate?: Date } {
+  if (typeof startEnd !== 'string' || startEnd.trim().length === 0) return {};
+  const [startRaw, endRaw] = startEnd.split(' to ').map((part) => part.trim());
+  const startDate = startRaw ? new Date(startRaw) : undefined;
+  const endDate = endRaw ? new Date(endRaw) : undefined;
+  return {
+    startDate: startDate && !Number.isNaN(startDate.getTime()) ? startDate : undefined,
+    endDate: endDate && !Number.isNaN(endDate.getTime()) ? endDate : undefined
+  };
+}
+
+function getVimshottariSnapshot(candidate: ValidationInput['candidate']): {
+  maha?: string;
+  antar?: string;
+  pratyantar?: string;
+  sukshma?: string;
+  prana?: string;
+  startDate?: Date;
+  endDate?: Date;
+} {
+  const structured = candidate.dasha?.vimshottari;
+  if (structured?.mahadasha?.lord) {
+    return {
+      maha: structured.mahadasha.lord,
+      antar: structured.antardasha?.lord,
+      pratyantar: structured.pratyantardasha?.lord,
+      sukshma: structured.sukshmadasha?.lord,
+      prana: structured.pranadasha?.lord,
+      startDate: structured.mahadasha?.startDate,
+      endDate: structured.mahadasha?.endDate
+    };
+  }
+
+  const possibleArrays = [
+    candidate.dasha,
+    candidate.dasha?.vimshottari,
+    candidate.ephemeris?.vimshottariDasha
+  ];
+
+  for (const value of possibleArrays) {
+    if (!Array.isArray(value) || value.length === 0) continue;
+    const first = value[0] as {
+      maha?: string;
+      antar?: string;
+      pratyantar?: string;
+      sukshma?: string;
+      prana?: string;
+      startEnd?: string;
+    };
+    const window = parseDateWindow(first.startEnd);
+    return {
+      maha: first.maha,
+      antar: first.antar,
+      pratyantar: first.pratyantar,
+      sukshma: first.sukshma,
+      prana: first.prana,
+      startDate: window.startDate,
+      endDate: window.endDate
+    };
+  }
+
+  return {};
+}
+
 function validateVimshottari(input: ValidationInput): ValidationDetail {
   const { candidate, events } = input;
   let score = 0;
   const findings: string[] = [];
 
-  if (!candidate.dasha?.vimshottari) {
+  const vim = getVimshottariSnapshot(candidate);
+  if (!vim.maha) {
     return {
       method: 'Vimshottari Dasha',
       score: 0,
@@ -181,8 +247,6 @@ function validateVimshottari(input: ValidationInput): ValidationDetail {
       criticalFindings: ['Missing dasha calculation']
     };
   }
-
-  const vim = candidate.dasha.vimshottari;
   let matchCount = 0;
   let totalWeight = 0;
 
@@ -192,17 +256,17 @@ function validateVimshottari(input: ValidationInput): ValidationDetail {
 
     // Check if event significator matches dasha lord
     const significators = getEventSignificators(event.category);
-    const dashaLord = vim.mahadasha?.lord;
+    const dashaLord = vim.maha;
 
-    if (significators.includes(dashaLord)) {
+    if (dashaLord && significators.includes(dashaLord)) {
       matchCount += weight;
       findings.push(`${event.type}: Dasha lord ${dashaLord} matches significator`);
     }
 
     // Check antardasha
-    if (vim.antardasha && significators.includes(vim.antardasha.lord)) {
+    if (vim.antar && significators.includes(vim.antar)) {
       matchCount += weight * 0.7;
-      findings.push(`${event.type}: Antardasha lord ${vim.antardasha.lord} matches`);
+      findings.push(`${event.type}: Antardasha lord ${vim.antar} matches`);
     }
   }
 
@@ -242,14 +306,13 @@ function validateYogini(input: ValidationInput): ValidationDetail {
     const weight = getEventWeight(event.impact || 'moderate');
     totalWeight += weight;
 
-    // Parse event date
-    let eventDate: Date;
-    try {
-      eventDate = new Date(event.eventDate);
-      if (isNaN(eventDate.getTime())) continue;
-    } catch {
-      continue;
-    }
+    const eventWindow = resolveEventDateWindow({
+      eventDate: event.eventDate,
+      endDate: event.endDate,
+      datePrecision: event.datePrecision,
+      eventTime: event.eventTime,
+    } as any);
+    const eventDate = new Date(eventWindow.midpointMs);
 
     // Find which Yogini period contains this event
     const yoginiPeriod = candidate.dasha.yogini.find((y: any) => {
@@ -386,7 +449,7 @@ function validateKP(input: ValidationInput): ValidationDetail {
 
     if (cuspalSubLord) {
       // Check if event dasha lord matches cuspal sub-lord
-      const dashaLord = candidate.dasha?.vimshottari?.mahadasha?.lord;
+      const dashaLord = getVimshottariSnapshot(candidate).maha;
       if (dashaLord === cuspalSubLord.subLord) {
         matches++;
       }
@@ -437,8 +500,12 @@ function validateAshtakavarga(input: ValidationInput): ValidationDetail {
 
 function validateVargas(input: ValidationInput): ValidationDetail {
   const { candidate, events } = input;
+  const vargas = candidate.vargas || {};
+  const d9 = vargas.d9 || vargas.D9;
+  const d10 = vargas.d10 || vargas.D10;
+  const d60 = vargas.d60 || vargas.D60;
 
-  if (!candidate.vargas) {
+  if (!d9 && !d10 && !d60) {
     return {
       method: 'Divisional Charts',
       score: 40,
@@ -455,20 +522,20 @@ function validateVargas(input: ValidationInput): ValidationDetail {
 
   // D9 for marriage
   const marriageEvents = events.filter(e => e.category === 'marriage');
-  if (marriageEvents.length > 0 && candidate.vargas.d9) {
+  if (marriageEvents.length > 0 && d9) {
     score += 10;
     findings.push('D9 available for marriage analysis');
   }
 
   // D10 for career
   const careerEvents = events.filter(e => e.category === 'career');
-  if (careerEvents.length > 0 && candidate.vargas.d10) {
+  if (careerEvents.length > 0 && d10) {
     score += 10;
     findings.push('D10 available for career analysis');
   }
 
   // D60 for overall karma
-  if (candidate.vargas.d60) {
+  if (d60) {
     score += 10;
     findings.push('D60 available for karmic analysis');
   }
@@ -478,26 +545,72 @@ function validateVargas(input: ValidationInput): ValidationDetail {
     score: Math.min(100, score),
     maxScore: 100,
     status: score >= 70 ? 'pass' : 'warning',
-    details: `D9: ${candidate.vargas.d9 ? '✓' : '✗'}, D10: ${candidate.vargas.d10 ? '✓' : '✗'}, D60: ${candidate.vargas.d60 ? '✓' : '✗'}`,
+    details: `D9: ${d9 ? '✓' : '✗'}, D10: ${d10 ? '✓' : '✗'}, D60: ${d60 ? '✓' : '✗'}`,
     criticalFindings: findings
   };
 }
 
 function validateTransit(input: ValidationInput): ValidationDetail {
   const { candidate, events } = input;
+  const transitData = candidate.ephemeris?.transitData || {};
+  const transitEntries = Object.entries(transitData).map(([key, value]) => {
+    const [dateToken, eventId] = key.split('#');
+    return {
+      key,
+      dateToken,
+      eventId: eventId || undefined,
+      value: value as { doubleTransit?: { isTriggered?: boolean } },
+    };
+  });
 
-  // Transit validation - check if Saturn-Jupiter double transit matches events
+  const tokenToComparableDate = (token: string): string | null => {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(token)) return token;
+    if (/^\d{4}-\d{2}$/.test(token)) return `${token}-15`;
+    if (/^\d{4}$/.test(token)) return `${token}-07-01`;
+    return null;
+  };
+
   let score = 50;
   let transitMatches = 0;
+  let checkedEvents = 0;
 
   for (const event of events) {
-    if (event.transitData?.doubleTransit?.isTriggered) {
+    const eventId = event.id ? String(event.id) : undefined;
+    const eventDateRaw = typeof event.eventDate === 'string'
+      ? event.eventDate
+      : undefined;
+    const window = resolveEventDateWindow({
+      eventDate: event.eventDate,
+      endDate: event.endDate,
+      datePrecision: event.datePrecision,
+      eventTime: event.eventTime,
+    } as any);
+
+    const matchingEntry = transitEntries.find((entry) => {
+      if (eventId && entry.eventId === eventId) return true;
+
+      if (eventDateRaw) {
+        if (entry.dateToken === eventDateRaw) return true;
+        if (entry.dateToken.startsWith(eventDateRaw) || eventDateRaw.startsWith(entry.dateToken)) return true;
+      }
+
+      const comparable = tokenToComparableDate(entry.dateToken);
+      if (!comparable) return false;
+      return comparable >= window.startDate && comparable <= window.endDate;
+    })?.value;
+
+    if (matchingEntry) {
+      checkedEvents++;
+    }
+    if (matchingEntry?.doubleTransit?.isTriggered) {
       transitMatches++;
     }
   }
 
-  if (events.length > 0) {
-    score = 40 + (transitMatches / events.length) * 60;
+  if (checkedEvents > 0) {
+    score = 40 + (transitMatches / checkedEvents) * 60;
+  } else if (events.length > 0) {
+    score = 35;
   }
 
   return {
@@ -505,7 +618,7 @@ function validateTransit(input: ValidationInput): ValidationDetail {
     score: Math.min(100, score),
     maxScore: 100,
     status: score >= 60 ? 'pass' : 'warning',
-    details: `${transitMatches} events show double transit activation`,
+    details: `${transitMatches}/${Math.max(checkedEvents, events.length)} events show double transit activation`,
     criticalFindings: transitMatches > 0 ? [`Double transit for ${transitMatches} events`] : []
   };
 }
@@ -575,29 +688,45 @@ function validateAI(input: ValidationInput): ValidationDetail {
 
 function validateNadi(input: ValidationInput): ValidationDetail {
   const { candidate } = input;
-  const score = (candidate as any).nadiData?.matches ? 100 : 0;
+  const nadiData = candidate.ephemeris?.nadiData || (candidate as { nadiData?: Record<string, unknown> }).nadiData;
+  if (!nadiData || Object.keys(nadiData).length === 0) {
+    return {
+      method: 'Nadi Amsha',
+      score: 20,
+      maxScore: 100,
+      status: 'fail',
+      details: 'Nadi data unavailable',
+      criticalFindings: ['Missing D150/Nadi payload']
+    };
+  }
+
+  const hasAsc = Boolean((nadiData as Record<string, unknown>).ascendant);
+  const hasLuminaries = Boolean((nadiData as Record<string, unknown>).sun) && Boolean((nadiData as Record<string, unknown>).moon);
+  const count = Object.keys(nadiData).length;
+  const score = Math.min(100, 45 + (hasAsc ? 20 : 0) + (hasLuminaries ? 20 : 0) + Math.min(15, count));
 
   return {
     method: 'Nadi Amsha',
     score,
     maxScore: 100,
-    status: score >= 90 ? 'pass' : 'fail',
-    details: score > 0 ? `Nadi Amsha ${(candidate as any).nadiData?.amsha} matches` : 'Nadi data unavailable',
-    criticalFindings: score > 0 ? ['Precision Nadi Match'] : []
+    status: score >= 75 ? 'pass' : score >= 55 ? 'warning' : 'fail',
+    details: `Nadi payload entries: ${count}`,
+    criticalFindings: hasAsc ? ['Ascendant Nadi present'] : []
   };
 }
 
 function validatePrana(input: ValidationInput): ValidationDetail {
   const { candidate } = input;
-  const score = (candidate.dasha?.vimshottari as any)?.prana?.lord ? 100 : 0;
+  const vim = getVimshottariSnapshot(candidate);
+  const score = vim.prana ? 100 : 35;
 
   return {
     method: 'Prana Dasha',
     score,
     maxScore: 100,
-    status: score >= 90 ? 'pass' : 'fail',
-    details: score > 0 ? 'Prana level timing available' : 'Prana level data missing',
-    criticalFindings: score > 0 ? ['Micro-timing available'] : []
+    status: score >= 90 ? 'pass' : score >= 60 ? 'warning' : 'fail',
+    details: vim.prana ? 'Prana level timing available' : 'Prana level data missing',
+    criticalFindings: vim.prana ? ['Micro-timing available'] : []
   };
 }
 
@@ -618,6 +747,8 @@ function calculateWeightedConsensus(scores: ConsensusScores): number {
     transit: METHOD_WEIGHTS.transit,
     forensic: METHOD_WEIGHTS.forensic,
     ai: METHOD_WEIGHTS.ai,
+    nadi: METHOD_WEIGHTS.nadi,
+    prana: METHOD_WEIGHTS.prana
   };
 
   // Consensus Engine: Use Rank Fusion for mathematically robust judgment
@@ -748,8 +879,11 @@ function generateRecommendations(scores: ConsensusScores, redFlags: RedFlags): s
 function getEventWeight(impact: string): number {
   const weights: Record<string, number> = {
     critical: 3,
+    high: 2.5,
     major: 2,
+    medium: 1.5,
     moderate: 1,
+    low: 1,
     minor: 0.5
   };
   return weights[impact] || 1;
@@ -870,7 +1004,16 @@ function checkBuildPlanetaryMatch(build: string, planets: Record<string, any>): 
 
 function detectSandhi(candidate: any): boolean {
   const ascDegree = candidate.ephemeris?.ascendant?.degree;
-  return ascDegree !== undefined && (ascDegree < 1 || ascDegree > 29);
+  if (typeof ascDegree === 'number') {
+    return ascDegree < 1 || ascDegree > 29;
+  }
+  if (typeof ascDegree === 'string') {
+    const parsed = Number.parseFloat(ascDegree);
+    if (Number.isFinite(parsed)) {
+      return parsed < 1 || parsed > 29;
+    }
+  }
+  return false;
 }
 
 function detectGandanta(candidate: any): boolean {
@@ -884,8 +1027,9 @@ function detectGandanta(candidate: any): boolean {
 
 function detectDashaSandhi(candidate: any): boolean {
   // Check if birth is near dasha transition
-  const dashaStart = candidate.dasha?.vimshottari?.mahadasha?.startDate;
-  const dashaEnd = candidate.dasha?.vimshottari?.mahadasha?.endDate;
+  const snapshot = getVimshottariSnapshot(candidate);
+  const dashaStart = snapshot.startDate;
+  const dashaEnd = snapshot.endDate;
 
   if (!dashaStart || !dashaEnd) return false;
 

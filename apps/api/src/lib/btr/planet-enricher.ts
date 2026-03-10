@@ -86,6 +86,7 @@ function enrichSinglePlanet(
   }
 
   return {
+    longitude: rawPlanet.longitude,
     sign: rawPlanet.sign,
     degree: formatDegree(rawPlanet.longitude),
     nakshatra: rawPlanet.nakshatra,

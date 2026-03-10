@@ -15,6 +15,7 @@ import { randomSort } from '../../utils/index.js';
 import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';
 import { logger } from '../../logger.js';
 import { formatCandidateVSL, EnhancedCandidate } from './vsl-formatter.js';
+import { resolveEventDateWindow } from '../event-date-utils.js';
 
 /**
  * Get event importance summary for AI
@@ -39,6 +40,27 @@ function getEventImportanceSummary(events: LifeEvent[]): string {
     summary += `LOW (${low.length}): ${low.map(e => e.eventType).join(', ')}`;
   }
   return summary;
+}
+
+function getTimelineRange(events: LifeEvent[]): string {
+  const eventYears = events
+    .flatMap((event) => {
+      const window = resolveEventDateWindow(event);
+      return [
+        Number.parseInt(window.startDate.slice(0, 4), 10),
+        Number.parseInt(window.endDate.slice(0, 4), 10),
+      ];
+    })
+    .filter((year) => Number.isFinite(year));
+
+  const nowYear = new Date().getUTCFullYear();
+  if (eventYears.length === 0) {
+    return `${nowYear - 30}-${nowYear}`;
+  }
+
+  const minYear = Math.min(...eventYears);
+  const maxYear = Math.max(...eventYears, nowYear);
+  return `${minYear}-${maxYear}`;
 }
 
 /**
@@ -74,6 +96,7 @@ export function getDeepAnalysisPrompt(
   const eventsText = events.map(formatLifeEventForAI).join('\n');
   const f = forensicTraits;
   const spouseText = spouseData ? JSON.stringify(spouseData, null, 2) : 'N/A';
+  const timelineRange = getTimelineRange(events);
 
   const forensicContext = `
     [FORENSIC DNA DOSSIER]
@@ -165,7 +188,7 @@ Implement the following comprehensive verification sequence for EACH candidate:
    - Match @ForensicTraits to specific Varga deities and planetary configurations.
    - Verify if Tattwa Shuddhi aligns with the user's temperamental profile.
 
-3. **Multi-Dasha Chronology (1999-2026)**
+3. **Multi-Dasha Chronology (${timelineRange})**
    - Correlate Vimshottari MD-AD-PD-SD sequence with real-world events.
    - Cross-verify timing using Yogini and Chara Dashas for redundant proof.
 

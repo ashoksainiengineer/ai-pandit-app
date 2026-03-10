@@ -282,6 +282,50 @@ describe('useStreamProgress Hook', () => {
         expect(mockForceError).not.toHaveBeenCalled();
     });
 
+    it('should fallback to legacy progress path when query endpoint returns 404', async () => {
+        (global.fetch as any).mockImplementation(async (url: string) => {
+            if (url.includes('/api/stream/ticket/')) {
+                return {
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ ticket: 'ticket-test' }),
+                };
+            }
+
+            if (url.includes('/api/queue/progress?sessionId=')) {
+                return { status: 404, ok: false };
+            }
+
+            if (url.includes('/api/queue/progress/session-legacy-path')) {
+                return {
+                    status: 200,
+                    ok: true,
+                    json: async () => ({
+                        status: 'processing',
+                        progress: { currentStep: 1, totalSteps: 7, percentage: 14, steps: [] },
+                        metadata: { status: 'processing' },
+                    }),
+                };
+            }
+
+            return { status: 500, ok: false };
+        });
+
+        renderHook(() => useStreamProgress('session-legacy-path', 'http://localhost:3001'));
+
+        await act(async () => {
+            vi.advanceTimersByTime(10500);
+        });
+        await act(async () => {
+            vi.advanceTimersByTime(100);
+        });
+
+        const calledUrls = (global.fetch as any).mock.calls.map((call: unknown[]) => String(call[0]));
+        expect(calledUrls.some((url: string) => url.includes('/api/queue/progress?sessionId=session-legacy-path'))).toBe(true);
+        expect(calledUrls.some((url: string) => url.includes('/api/queue/progress/session-legacy-path'))).toBe(true);
+        expect(mockForceError).not.toHaveBeenCalled();
+    });
+
     it('should ignore and log malformed JSON chunks from SSE without crashing', async () => {
         const { result } = renderHook(() => useStreamProgress('session-fuzz', 'http://localhost:3001'));
 

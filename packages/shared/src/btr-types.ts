@@ -47,6 +47,7 @@ export interface Yoga {
 
 /** Represents a planet's position and attributes */
 export interface PlanetData {
+  longitude?: number;
   sign: string;
   degree: string;
   nakshatra: string;
@@ -142,7 +143,7 @@ export interface CandidateDataPackage {
   offsetMinutes: number;
   planets: Record<string, PlanetData>;
   specialPoints?: Record<string, SpecialPoint>;
-  ascendant: { sign: string; degree: string; nakshatra: string };
+  ascendant: { sign: string; degree: string; nakshatra: string; longitude?: number };
   houseLords: Record<number, string>;
   moonNakshatra: string;
   vimshottariDasha: VimshottariDashaEntry[];
@@ -168,7 +169,7 @@ export interface CandidateDataPackage {
   }>;
   aiScore?: number;
   aiVerdict?: string;
-  rawVimshottari?: VimshottariDashaEntry[];
+  rawVimshottari?: unknown[];
   vedicSignals?: VedicSignals;
   charaKarakas?: CharaKaraka[];
   vimsopakaBala?: Record<string, number>;
@@ -186,6 +187,54 @@ export interface CandidateDataPackage {
   gandantaAnalysis?: GandantaAnalysis;
   pakshiAnalysis?: PakshiAnalysis;
   d12Chart?: DivisionalChartData;
+  kpData?: {
+    planetSubLords?: Record<string, {
+      starLord: string;
+      subLord: string;
+      subSubLord: string;
+      subSubSubLord?: string;
+    }>;
+    cuspalSubLords?: Record<number, {
+      house: number;
+      cusp: number;
+      sign: string;
+      starLord: string;
+      subLord: string;
+      subSubLord: string;
+      subSubSubLord?: string;
+    }>;
+  };
+  precision?: {
+    kpSubLords?: Record<string, {
+      starLord: string;
+      subLord: string;
+      subSubLord: string;
+      subSubSubLord?: string;
+    }>;
+    cuspalSubLords?: Record<number, {
+      house: number;
+      cusp: number;
+      sign: string;
+      starLord: string;
+      subLord: string;
+      subSubLord: string;
+      subSubSubLord?: string;
+    }>;
+    consensus?: {
+      overallConsensus: number;
+      confidenceLevel: string;
+      marginOfError: number;
+      redFlags?: {
+        sandhiBirth?: boolean;
+        gandanta?: boolean;
+        dashaSandhi?: boolean;
+        conflictingMethods?: boolean;
+        weakSignificators?: boolean;
+        d60Instability?: boolean;
+        forensicMismatch?: boolean;
+      };
+    };
+  };
 }
 
 /** Result of a single stage in the BTR process */

@@ -143,6 +143,21 @@ function RectifyPageContent() {
     const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
     const [maxUnlockedStep, setMaxUnlockedStep] = useState(1);
 
+    const toErrorMessage = useCallback((value: unknown, fallback: string): string => {
+        if (typeof value === 'string' && value.trim()) return value;
+        if (value instanceof Error && value.message.trim()) return value.message;
+        if (value && typeof value === 'object') {
+            const asRecord = value as { message?: unknown; error?: unknown };
+            if (typeof asRecord.message === 'string' && asRecord.message.trim()) return asRecord.message;
+            if (typeof asRecord.error === 'string' && asRecord.error.trim()) return asRecord.error;
+            if (asRecord.error && typeof asRecord.error === 'object') {
+                const nestedMessage = (asRecord.error as { message?: unknown }).message;
+                if (typeof nestedMessage === 'string' && nestedMessage.trim()) return nestedMessage;
+            }
+        }
+        return fallback;
+    }, []);
+
     // Clear draft if ?new=true
     useEffect(() => {
         if (isNewPerson) {
@@ -210,7 +225,7 @@ function RectifyPageContent() {
         window.scrollTo(0, 0);
     }, [step, isSubmitting, validateStep1, validateStep3]);
 
-    const handleSubmit = async () => {
+    const handleSubmit = useCallback(async () => {
         const fullValidation = validateAllSteps();
         if (!fullValidation.isValid) {
             setError(fullValidation.errors.join('. '));
@@ -250,7 +265,7 @@ function RectifyPageContent() {
             }
 
             if (!result?.success) {
-                throw new Error(result?.error || 'Failed to start analysis');
+                throw new Error(toErrorMessage(result?.error, 'Failed to start analysis'));
             }
             localStorage.removeItem('btr_draft_id');
 
@@ -259,10 +274,10 @@ function RectifyPageContent() {
             router.push(`/rectify/${sessionId}`);
 
         } catch (err: any) {
-            setError(err.message || 'An unexpected error occurred. Please try again.');
+            setError(toErrorMessage(err, 'An unexpected error occurred. Please try again.'));
             setIsSubmitting(false);
         }
-    };
+    }, [toErrorMessage, validateAllSteps, getToken, draftSessionId, birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, router]);
 
     // Wrapper functions for child components
     const updateBirthData = useCallback((updates: Partial<BirthData>) => {

@@ -9,10 +9,9 @@ import { calculateVimshottariDasha } from '../vedic-astrology-engine.js';
 import { calculateYoginiDasha } from '../advanced-btr-methods.js';
 import { calculateCharaDasha } from '../jaimini-astrology.js';
 import { VimshottariDashaEntry } from '@ai-pandit/shared';
+import { logger } from '../logger.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
-
-console.log('[DEBUG] 🛠️ ESM-Fixed dasha-builder.ts loaded. If you see this, require() is gone!');
 
 interface DashaBuildOptions {
   moonLongitude: number;
@@ -34,7 +33,10 @@ export function buildVimshottariDasha(
   const vimDashas = calculateVimshottariDasha(moonLongitude, birthDate, dashaDepth);
 
   if (!vimDashas || vimDashas.length === 0) {
-    console.error(`[DASHA-BUILDER] calculateVimshottariDasha returned empty! Moon=${moonLongitude}, Birth=${birthDate.toISOString()}`);
+    logger.error('[DASHA-BUILDER] calculateVimshottariDasha returned empty', {
+      moonLongitude,
+      birthDate: birthDate.toISOString()
+    });
     return [];
   }
 

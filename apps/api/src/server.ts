@@ -21,6 +21,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import { createServer } from 'http';
 import { config } from './config/index.js';
+import { ForbiddenError } from './errors/index.js';
 import { routes } from './routes/index.js';
 import { logger } from './utils/logger.js';
 import { requestIdMiddleware } from './middleware/request-id.js';
@@ -95,10 +96,38 @@ async function initializeStartupDependencies(): Promise<void> {
 
 export function createApp() {
     const app = express();
+    const normalizeOrigin = (value: string): string | null => {
+        const trimmed = value.trim();
+        if (!trimmed) return null;
+
+        if (trimmed === '*') return '*';
+
+        try {
+            return new URL(trimmed).origin;
+        } catch {
+            return trimmed.replace(/\/+$/, '');
+        }
+    };
+
     const configuredOrigins = (config.app.allowedOrigins || '')
         .split(',')
-        .map((origin) => origin.trim())
-        .filter(Boolean);
+        .map((origin) => normalizeOrigin(origin))
+        .filter((origin): origin is string => Boolean(origin));
+
+    const frontendOrigin = config.app.frontendUrl ? normalizeOrigin(config.app.frontendUrl) : null;
+    if (frontendOrigin && !configuredOrigins.includes(frontendOrigin)) {
+        configuredOrigins.push(frontendOrigin);
+    }
+
+    const defaultProductionOrigins = ['https://aipandit.app', 'https://www.aipandit.app'];
+    if (config.app.isProduction) {
+        for (const origin of defaultProductionOrigins) {
+            if (!configuredOrigins.includes(origin)) {
+                configuredOrigins.push(origin);
+            }
+        }
+    }
+
     const allowAllOrigins = configuredOrigins.includes('*') && config.app.isDevelopment;
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -120,14 +149,20 @@ export function createApp() {
                 return;
             }
 
+            const normalizedRequestOrigin = normalizeOrigin(origin);
+            if (!normalizedRequestOrigin) {
+                callback(new ForbiddenError('Not allowed by CORS'));
+                return;
+            }
+
             // When wildcard is configured, reflect caller origin instead of returning '*'
             // so credentialed requests remain standards-compliant.
-            if (allowAllOrigins || configuredOrigins.includes(origin)) {
+            if (allowAllOrigins || configuredOrigins.includes(normalizedRequestOrigin)) {
                 callback(null, true);
                 return;
             }
 
-            callback(new Error('Not allowed by CORS'));
+            callback(new ForbiddenError('Not allowed by CORS'));
         },
         credentials: true,
         maxAge: 86400, // Pre-flight cache

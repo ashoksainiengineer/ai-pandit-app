@@ -46,6 +46,59 @@ function circularTimeDiffSeconds(a: string, b: string): number | null {
     return Math.min(diff, 86400 - diff);
 }
 
+function parseVimshottariWindow(startEnd: string): { start: Date; end: Date } | null {
+    const compact = startEnd.trim();
+    if (!compact) return null;
+
+    const dateRange = compact.match(/^(\d{4}-\d{2}-\d{2})\s+to\s+(\d{4}-\d{2}-\d{2})$/);
+    if (dateRange) {
+        const start = new Date(`${dateRange[1]}T00:00:00Z`);
+        const end = new Date(`${dateRange[2]}T23:59:59Z`);
+        if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+            return { start, end };
+        }
+    }
+
+    const timeRange = compact.match(/^(\d{2}:\d{2})\s+to\s+(\d{2}:\d{2})\s+\((\d{4}-\d{2}-\d{2})\)$/);
+    if (timeRange) {
+        const start = new Date(`${timeRange[3]}T${timeRange[1]}:00Z`);
+        const end = new Date(`${timeRange[3]}T${timeRange[2]}:00Z`);
+        if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
+            return { start, end };
+        }
+    }
+
+    return null;
+}
+
+function pickDashaAtNowFromVimshottari(
+    entries: Array<{ maha: string; antar: string; pratyantar: string; startEnd: string }>,
+    now: Date
+): { maha: string; antar: string; pratyantar: string } | null {
+    if (entries.length === 0) return null;
+
+    for (const entry of entries) {
+        const window = parseVimshottariWindow(entry.startEnd);
+        if (!window) continue;
+        if (now >= window.start && now <= window.end) {
+            return entry;
+        }
+    }
+
+    let nearest: { entry: { maha: string; antar: string; pratyantar: string }; diffMs: number } | null = null;
+    for (const entry of entries) {
+        const window = parseVimshottariWindow(entry.startEnd);
+        if (!window) continue;
+        const diffMs = Math.abs(now.getTime() - window.start.getTime());
+        if (!nearest || diffMs < nearest.diffMs) {
+            nearest = { entry, diffMs };
+        }
+    }
+
+    if (nearest) return nearest.entry;
+    return entries[0];
+}
+
 function resolveCandidateByVerdictTime(
     requestedTime: string | undefined,
     candidates: CandidateTime[],
@@ -90,7 +143,7 @@ function pickDeterministicFallbackWinner(candidates: CandidateTime[]): Candidate
 }
 
 function getPresentTransitData(c: CandidateDataPackage, currentEph: any, now: Date) {
-    if (!c || !c.rawVimshottari) {
+    if (!c) {
         logger.warn('🔱 [STAGE-6] Missing rawVimshottari in candidate for transit calculation');
         return {
             dashaAtNow: 'Unknown',
@@ -99,9 +152,20 @@ function getPresentTransitData(c: CandidateDataPackage, currentEph: any, now: Da
             rahu: 'Unknown',
         };
     }
-    const dashaAtNow = getDashaForDate(c.rawVimshottari as any, now);
+    let dashaAtNowText = 'Unknown';
+    if (Array.isArray(c.rawVimshottari) && c.rawVimshottari.length > 0) {
+        const dashaAtNow = getDashaForDate(c.rawVimshottari as any, now);
+        dashaAtNowText = dashaAtNow
+            ? `${dashaAtNow.mahadasha}-${dashaAtNow.antardasha}-${dashaAtNow.pratyantardasha}`
+            : 'Unknown';
+    } else if (Array.isArray(c.vimshottariDasha) && c.vimshottariDasha.length > 0) {
+        const best = pickDashaAtNowFromVimshottari(c.vimshottariDasha as Array<{ maha: string; antar: string; pratyantar: string; startEnd: string }>, now);
+        if (best) {
+            dashaAtNowText = `${best.maha}-${best.antar}-${best.pratyantar}`;
+        }
+    }
     return {
-        dashaAtNow: dashaAtNow ? `${dashaAtNow.mahadasha}-${dashaAtNow.antardasha}-${dashaAtNow.pratyantardasha}` : 'Unknown',
+        dashaAtNow: dashaAtNowText,
         jupiter: `${currentEph.planets.jupiter.sign}${currentEph.planets.jupiter.retro ? ' (R)' : ''}`,
         saturn: `${currentEph.planets.saturn.sign}${currentEph.planets.saturn.retro ? ' (R)' : ''}`,
         rahu: `${currentEph.planets.rahu.sign}${currentEph.planets.rahu.retro ? ' (R)' : ''}`

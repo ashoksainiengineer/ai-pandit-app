@@ -62,6 +62,23 @@ describe('God-Tier BTR - Orchestrator Modules', () => {
             expect(summary.recommendations.some(r => r.includes('high') || r.includes('document'))).toBe(true);
         });
 
+        it('should normalize ranged event dates to deterministic midpoint Date objects', () => {
+            const events: Partial<BtrEvent>[] = [
+                {
+                    id: 'evt_3',
+                    category: 'career',
+                    datePrecision: 'year_range' as any,
+                    eventDate: '1998',
+                    endDate: '2001',
+                    confidence: { source: 'document' } as any,
+                } as any
+            ];
+
+            const scored = EventScorer.scoreEvents(events, { defaultSource: 'document', defaultPrecision: 'year' as any });
+            expect(scored[0].eventDate).toBeInstanceOf(Date);
+            expect((scored[0].eventDate as Date).toISOString().slice(0, 10)).toBe('2000-01-01');
+        });
+
     });
 
 });

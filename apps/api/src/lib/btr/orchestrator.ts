@@ -328,16 +328,39 @@ async function buildTransitAnalysis(
   scoredEvents: ScoredEvent[]
 ): Promise<Map<string, ComprehensiveTransitResult>> {
   try {
+    const candidateTime = getCandidateTimeString(bestCandidate, input.tentativeTime);
+    let ascendantSign = 'Aries';
+
+    try {
+      const candidateEphemeris = await calculateEphemeris(
+        input.birthDate,
+        candidateTime,
+        input.latitude,
+        input.longitude,
+        input.timezone
+      );
+      ascendantSign = candidateEphemeris.ascendant.sign;
+    } catch (ephemerisError) {
+      logger.warn('[BTR] Transit ascendant fallback used', {
+        error: (ephemerisError as any)?.message || ephemerisError,
+        fallback: ascendantSign
+      });
+    }
+
     return await TransitAnalyzer.batchAnalyze(
       scoredEvents.map(e => ({
-        date: e.eventDate.toISOString().split('T')[0],
-        category: e.category
+        date: normalizeScoredEventDate(e.rawEventDate, e.eventDate),
+        endDate: e.endDate,
+        datePrecision: e.datePrecision,
+        time: e.eventTime,
+        category: e.category,
+        id: e.id
       })),
       {
         latitude: input.latitude,
         longitude: input.longitude,
         timezone: input.timezone,
-        ascendantSign: bestCandidate.timeString || 'Unknown'
+        ascendantSign
       }
     );
   } catch (e) {
@@ -416,6 +439,29 @@ function parseBirthTime(timeStr: string, dateStr: string, timezone: string | num
   const offset = typeof timezone === 'number' ? timezone : parseFloat(timezone) || 0;
 
   return new Date(Date.UTC(year, month - 1, day, hour, minute, second) - offset * 3600000);
+}
+
+function getCandidateTimeString(candidate: CandidateScore, fallbackTime: string): string {
+  if (typeof candidate.timeString === 'string' && candidate.timeString) {
+    return candidate.timeString;
+  }
+  if (candidate.time instanceof Date && !Number.isNaN(candidate.time.getTime())) {
+    return candidate.time.toISOString().slice(11, 19);
+  }
+  if (typeof candidate.time === 'string' && /^\d{2}:\d{2}:\d{2}$/.test(candidate.time)) {
+    return candidate.time;
+  }
+  return fallbackTime;
+}
+
+function normalizeScoredEventDate(rawEventDate: unknown, fallbackDate: Date): string {
+  if (typeof rawEventDate === 'string' && rawEventDate.trim()) {
+    return rawEventDate;
+  }
+  if (rawEventDate instanceof Date && !Number.isNaN(rawEventDate.getTime())) {
+    return rawEventDate.toISOString().slice(0, 10);
+  }
+  return fallbackDate.toISOString().slice(0, 10);
 }
 
 function generateRecommendations(

@@ -198,6 +198,49 @@ describe('Consensus Engine - Missing Data Handling', () => {
     });
 });
 
+describe('Consensus Engine - Transit Matching with Flexible Dates', () => {
+    it('should match transit entry by event id for ranged dates', () => {
+        const input = makeMinimalInput({
+            events: [{
+                id: 'evt_abc123',
+                type: 'Career Phase',
+                category: 'career',
+                impact: 'major',
+                eventDate: '1998',
+                endDate: '2001',
+                datePrecision: 'year_range',
+            }],
+        });
+
+        (input.candidate.ephemeris as any).transitData = {
+            '1999-07-01#evt_abc123': { doubleTransit: { isTriggered: true } },
+        };
+
+        const result = calculateConsensus(input);
+        expect(result.scores.transit).toBeGreaterThanOrEqual(95);
+    });
+
+    it('should match transit entry by window overlap when ids are absent', () => {
+        const input = makeMinimalInput({
+            events: [{
+                type: 'Education Range',
+                category: 'education',
+                impact: 'major',
+                eventDate: '2012-04',
+                endDate: '2012-06',
+                datePrecision: 'month_range',
+            }],
+        });
+
+        (input.candidate.ephemeris as any).transitData = {
+            '2012-05-15#x1': { doubleTransit: { isTriggered: true } },
+        };
+
+        const result = calculateConsensus(input);
+        expect(result.scores.transit).toBeGreaterThanOrEqual(95);
+    });
+});
+
 // ═══════════════════════════════════════════════════════════════════════════
 // RED FLAGS DETECTION
 // ═══════════════════════════════════════════════════════════════════════════

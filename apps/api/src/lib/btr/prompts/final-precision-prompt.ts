@@ -87,6 +87,13 @@ export function getFinalPrecisionPrompt(
     saturn?: string;
     rahu?: string;
   } | undefined;
+  const presentTransitSection = transitData
+    ? `PRESENT-DAY TRANSIT LOCK:
+- Dasha@Now: ${transitData.dashaAtNow || 'Unknown'}
+- Jupiter: ${transitData.jupiter || 'Unknown'}
+- Saturn: ${transitData.saturn || 'Unknown'}
+- Rahu: ${transitData.rahu || 'Unknown'}`
+    : 'PRESENT-DAY TRANSIT LOCK: N/A';
 
   return `BIRTH TIME RECTIFICATION - FINAL STAGE (Seconds Precision)
 
@@ -189,6 +196,7 @@ Execute the following 10-step final judgment sequence:
 USER FORENSIC DOSSIER:
 ${forensicDNA}
 SPOUSE INFO: ${spouseText}
+${presentTransitSection}
 
 LIFE EVENTS:
 ${eventsText}

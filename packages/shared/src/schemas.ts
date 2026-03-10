@@ -8,9 +8,9 @@ export const PlanetDataSchema = z.object({
 }).passthrough();
 
 export const VimshottariDashaEntrySchema = z.object({
-    maha: z.string(),
-    antar: z.string(),
-    pratyantar: z.string(),
+    maha: z.string().min(1),
+    antar: z.string().min(1),
+    pratyantar: z.string().min(1),
     sukshma: z.string().optional(),
     prana: z.string().optional(),
     startEnd: z.string()
@@ -62,16 +62,45 @@ const sanitizeString = (val: string) => {
 /**
  * Life Event validation schema
  */
+const YEAR_PATTERN = /^\d{4}$/;
+const MONTH_PATTERN = /^\d{4}-\d{2}$/;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
+
+function isDayLike(value: string): boolean {
+    return DATE_PATTERN.test(value);
+}
+
+function isMonthLike(value: string): boolean {
+    return MONTH_PATTERN.test(value) || DATE_PATTERN.test(value);
+}
+
+function isYearLike(value: string): boolean {
+    return YEAR_PATTERN.test(value) || MONTH_PATTERN.test(value) || DATE_PATTERN.test(value);
+}
+
+function toPrecisionKey(value: string, precision: 'day' | 'month' | 'year'): string | null {
+    if (precision === 'day' && isDayLike(value)) return value;
+    if (precision === 'month' && isMonthLike(value)) return isDayLike(value) ? value.slice(0, 7) : value;
+    if (precision === 'year' && isYearLike(value)) return value.slice(0, 4);
+    return null;
+}
+
 export const LifeEventSchema = z.object({
-    id: z.string().uuid().optional(),
+    id: z.string()
+        .regex(
+            /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|evt_[A-Za-z0-9_-]+|custom_[A-Za-z0-9_-]+|[A-Za-z0-9_-]{1,128})$/i,
+            'Invalid event id format'
+        )
+        .optional(),
     eventType: z.string()
         .min(1, "Event type is required")
         .max(100, "Event type must be less than 100 characters")
         .transform(sanitizeString),
     category: z.string(),
-    eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD required)"),
-    eventTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, "Invalid time format (HH:MM required)").optional().nullable(),
-    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid end date format").optional().nullable(),
+    eventDate: z.string().min(1, "Event date is required"),
+    eventTime: z.string().regex(TIME_PATTERN, "Invalid time format (HH:MM or HH:MM:SS required)").optional().nullable(),
+    endDate: z.string().optional().nullable(),
     datePrecision: z.enum(['exact_date_time', 'exact_date', 'month_year', 'month_range', 'year_range', 'date_range']),
     description: z.string()
         .max(2000, "Description must be less than 2000 characters")
@@ -81,7 +110,113 @@ export const LifeEventSchema = z.object({
     importance: z.enum(['high', 'medium', 'low', 'critical']).default('medium'),
     createdAt: z.string().datetime().optional(),
     updatedAt: z.string().datetime().optional(),
-}).passthrough();
+}).passthrough().superRefine((event, ctx) => {
+    const endDate = event.endDate ?? undefined;
+
+    switch (event.datePrecision) {
+        case 'exact_date':
+        case 'exact_date_time': {
+            if (!isDayLike(event.eventDate)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['eventDate'],
+                    message: 'Invalid date format (YYYY-MM-DD required for exact date)',
+                });
+            }
+            if (event.datePrecision === 'exact_date_time' && !event.eventTime) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['eventTime'],
+                    message: 'eventTime is required when datePrecision is exact_date_time',
+                });
+            }
+            break;
+        }
+
+        case 'date_range': {
+            if (!isDayLike(event.eventDate)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['eventDate'],
+                    message: 'Invalid date range start (YYYY-MM-DD required)',
+                });
+            }
+            if (endDate && !isDayLike(endDate)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['endDate'],
+                    message: 'Invalid date range end (YYYY-MM-DD required)',
+                });
+            }
+            break;
+        }
+
+        case 'month_year': {
+            if (!isMonthLike(event.eventDate)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['eventDate'],
+                    message: 'Invalid month-year format (YYYY-MM expected)',
+                });
+            }
+            break;
+        }
+
+        case 'month_range': {
+            if (!isMonthLike(event.eventDate)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['eventDate'],
+                    message: 'Invalid month range start (YYYY-MM expected)',
+                });
+            }
+            if (endDate && !isMonthLike(endDate)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['endDate'],
+                    message: 'Invalid month range end (YYYY-MM expected)',
+                });
+            }
+            break;
+        }
+
+        case 'year_range': {
+            if (!isYearLike(event.eventDate)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['eventDate'],
+                    message: 'Invalid year range start (YYYY expected)',
+                });
+            }
+            if (endDate && !isYearLike(endDate)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['endDate'],
+                    message: 'Invalid year range end (YYYY expected)',
+                });
+            }
+            break;
+        }
+
+        default:
+            break;
+    }
+
+    if (endDate) {
+        const precisionKey = event.datePrecision === 'year_range'
+            ? 'year'
+            : (event.datePrecision === 'month_range' ? 'month' : 'day');
+        const startKey = toPrecisionKey(event.eventDate, precisionKey);
+        const endKey = toPrecisionKey(endDate, precisionKey);
+        if (startKey && endKey && endKey < startKey) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['endDate'],
+                message: 'endDate must be on or after eventDate',
+            });
+        }
+    }
+});
 
 /**
  * Birth Data validation schema
@@ -128,10 +263,7 @@ export const CalculateRequestSchema = z.object({
 export function validateCandidateDataForAI(pkg: any) {
     try {
         return CandidateDataPackageSchema.parse(pkg);
-    } catch (err: any) {
-        if (err.errors) {
-            console.error('[ZOD-DEBUG] Validation Errors:', JSON.stringify(err.errors, null, 2));
-        }
+    } catch (err) {
         throw err;
     }
 }

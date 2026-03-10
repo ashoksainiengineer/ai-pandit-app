@@ -10,17 +10,21 @@
  * - Rahu/Ketu Transit: Significant for transformation events
  */
 
-import { calculateEphemeris, convertToUTC, calculateJulianDay } from '../ephemeris.js';
+import { calculateEphemeris } from '../ephemeris.js';
 import {
+  DatePrecision,
   TransitMatchResult,
   PARASHARI_ASPECTS,
   EVENT_HOUSE_MAP,
-  ZODIAC_SIGNS,
-  SIGN_LORDS
+  ZODIAC_SIGNS
 } from '@ai-pandit/shared';
 import { logger } from '../logger.js';
+import { getRepresentativeEventDateTime, resolveEventDateWindow } from './event-date-utils.js';
 
 const ZODIAC = ZODIAC_SIGNS;
+const YEAR_RE = /^\d{4}$/;
+const MONTH_RE = /^\d{4}-\d{2}$/;
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export interface TransitPosition {
   planet: string;
@@ -49,7 +53,9 @@ export interface DoubleTransitResult {
 
 export interface TransitAnalysisOptions {
   eventDate: string;
+  endDate?: string;
   eventTime?: string;
+  datePrecision?: DatePrecision;
   eventCategory: string;
   birthLatitude: number;
   birthLongitude: number;
@@ -67,6 +73,31 @@ export interface ComprehensiveTransitResult {
   doubleTransit: DoubleTransitResult;
   overallScore: number;
   significances: string[];
+}
+
+interface TransitEventInput {
+  date: string;
+  endDate?: string;
+  time?: string;
+  datePrecision?: DatePrecision;
+  category: string;
+  id?: string;
+}
+
+function inferDatePrecision(event: Pick<TransitEventInput, 'date' | 'endDate' | 'time' | 'datePrecision'>): DatePrecision {
+  if (event.datePrecision) return event.datePrecision;
+
+  if (event.endDate) {
+    if (YEAR_RE.test(event.date) && YEAR_RE.test(event.endDate)) return 'year_range';
+    if (MONTH_RE.test(event.date) && MONTH_RE.test(event.endDate)) return 'month_range';
+    if (DAY_RE.test(event.date) && DAY_RE.test(event.endDate)) return 'date_range';
+  }
+
+  if (event.time && DAY_RE.test(event.date)) return 'exact_date_time';
+  if (DAY_RE.test(event.date)) return 'exact_date';
+  if (MONTH_RE.test(event.date)) return 'month_year';
+  if (YEAR_RE.test(event.date)) return 'year_range';
+  return 'exact_date';
 }
 
 /**
@@ -208,18 +239,38 @@ export async function analyzeTransitForEvent(
 ): Promise<ComprehensiveTransitResult> {
   const {
     eventDate,
-    eventTime = '12:00',
+    endDate,
+    eventTime,
+    datePrecision,
     eventCategory,
     birthLatitude,
     birthLongitude,
     birthTimezone,
     birthAscendantSign
   } = options;
+  const effectivePrecision = inferDatePrecision({
+    date: eventDate,
+    endDate,
+    time: eventTime,
+    datePrecision
+  });
+  const representative = getRepresentativeEventDateTime({
+    eventDate,
+    endDate,
+    eventTime,
+    datePrecision: effectivePrecision
+  });
+  const eventWindow = resolveEventDateWindow({
+    eventDate,
+    endDate,
+    eventTime,
+    datePrecision: effectivePrecision
+  });
 
   const targetHouse = EVENT_HOUSE_MAP[eventCategory.toLowerCase()] || 1;
   const transits = await calculateTransitPositions(
-    eventDate,
-    eventTime,
+    representative.eventDate,
+    representative.eventTime,
     birthLatitude,
     birthLongitude,
     birthTimezone
@@ -236,7 +287,7 @@ export async function analyzeTransitForEvent(
   const significances = extractSignificances(transits, eventCategory, targetHouse);
 
   return {
-    eventDate: new Date(eventDate),
+    eventDate: new Date(eventWindow.midpointMs),
     eventCategory,
     targetHouse,
     transits,
@@ -251,11 +302,7 @@ export async function analyzeTransitForEvent(
  * Batch analyze transits for multiple events
  */
 export async function batchAnalyzeTransits(
-  events: Array<{
-    date: string;
-    time?: string;
-    category: string;
-  }>,
+  events: TransitEventInput[],
   birthData: {
     latitude: number;
     longitude: number;
@@ -269,7 +316,9 @@ export async function batchAnalyzeTransits(
     try {
       const analysis = await analyzeTransitForEvent({
         eventDate: event.date,
+        endDate: event.endDate,
         eventTime: event.time,
+        datePrecision: event.datePrecision,
         eventCategory: event.category,
         birthLatitude: birthData.latitude,
         birthLongitude: birthData.longitude,
@@ -278,6 +327,9 @@ export async function batchAnalyzeTransits(
       });
 
       results.set(event.date, analysis);
+      if (event.id) {
+        results.set(`${event.date}#${event.id}`, analysis);
+      }
     } catch (error) {
       logger.warn('[TRANSIT] Failed to analyze event', { event, error });
     }
@@ -331,7 +383,7 @@ function extractSignificances(
  * Calculate transit match score for a candidate birth time
  */
 export async function calculateTransitMatchScore(
-  events: Array<{ date: string; time?: string; category: string; id: string }>,
+  events: TransitEventInput[],
   birthData: {
     latitude: number;
     longitude: number;
@@ -345,7 +397,9 @@ export async function calculateTransitMatchScore(
     try {
       const analysis = await analyzeTransitForEvent({
         eventDate: event.date,
+        endDate: event.endDate,
         eventTime: event.time,
+        datePrecision: event.datePrecision,
         eventCategory: event.category,
         birthLatitude: birthData.latitude,
         birthLongitude: birthData.longitude,
@@ -354,8 +408,8 @@ export async function calculateTransitMatchScore(
       });
 
       results.push({
-        eventId: event.id,
-        eventDate: new Date(event.date),
+        eventId: event.id || event.date,
+        eventDate: analysis.eventDate,
         eventHouse: analysis.targetHouse,
         saturnAspect: analysis.doubleTransit.saturnAspect,
         jupiterAspect: analysis.doubleTransit.jupiterAspect,

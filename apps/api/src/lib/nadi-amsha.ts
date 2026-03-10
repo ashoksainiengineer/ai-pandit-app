@@ -2,7 +2,7 @@
  * D150 Nadi Amsha Correlation Module
  *
  * The ultimate precision layer in Vedic astrology. D150 divides each sign
- * into 150 parts, with each part changing approximately every 4.8 seconds
+ * into 150 parts, with each part changing approximately every 48 seconds
  * of birth time. This is the "DNA" level of astrological analysis.
  *
  * Each Nadi Amsha has:
@@ -10,7 +10,7 @@
  * - A specific result (phala)
  * - Karmic significance
  *
- * Reference: Nadi texts, BPHS Shashtyamsha varga
+ * Reference: Deva-Keralam (Nadiamsha counting rules), KP/BTR timing usage
  */
 
 import { EphemerisData } from '@ai-pandit/shared';
@@ -20,10 +20,18 @@ const ZODIAC_SIGNS = [
   'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
 ];
 
-const NADI_SPAN = 30 / 150;
+const NADI_COUNT = 150;
+const SIGN_SPAN_DEGREES = 30;
+const NADI_SPAN = SIGN_SPAN_DEGREES / NADI_COUNT; // 0.2 degrees (12 arc-min)
+const NADI_QUARTER_SPAN = NADI_SPAN / 4; // 0.05 degrees (3 arc-min)
+const NADI_TIME_RESOLUTION_SECONDS = 48;
+
+type NadiMode = 'movable' | 'fixed' | 'dual';
+type NadiKala = 'Vipra' | 'Kshatriya' | 'Vaisya' | 'Sudra';
 
 export interface NadiAmshaData {
   index: number;
+  indexWithinSign?: number;
   sign: string;
   degree: number;
   totalLongitude: number;
@@ -32,6 +40,8 @@ export interface NadiAmshaData {
   phala: string;
   karmicSignificance: string;
   timeResolution: number;
+  nadiMode?: NadiMode;
+  kala?: NadiKala;
 }
 
 export interface NadiMatchResult {
@@ -109,41 +119,62 @@ const EVENT_NADI_CORRELATION: Record<string, { favorable: number[]; unfavorable:
 };
 
 export function calculateD150Nadi(longitude: number): NadiAmshaData {
-  const signIndex = Math.floor(longitude / 30);
-  const degreeInSign = longitude % 30;
-  const nadiIndex = Math.floor(degreeInSign / NADI_SPAN);
-  const degreeInNadi = degreeInSign % NADI_SPAN;
-  
-  let calculatedNadiIndex: number;
-  const signType = signIndex % 3;
-  
-  if (signType === 0) {
-    calculatedNadiIndex = (signIndex * 150 / 12 + nadiIndex) % 150;
-  } else if (signType === 1) {
-    calculatedNadiIndex = (149 - nadiIndex + signIndex * 150 / 12) % 150;
-  } else {
-    calculatedNadiIndex = (75 + nadiIndex + signIndex * 150 / 12) % 150;
-  }
-  
-  const deity = NADI_DEITIES[calculatedNadiIndex] || 'Unknown';
-  const phala = NADI_PHALAS[calculatedNadiIndex % NADI_PHALAS.length] || 'General';
-  const karmicSignificance = getKarmicSignificance(calculatedNadiIndex);
-  const timeResolution = 4.8;
-  
+  const normalizedLongitude = normalizeLongitude(longitude);
+  const signIndex = Math.floor(normalizedLongitude / SIGN_SPAN_DEGREES);
+  const degreeInSign = normalizedLongitude - (signIndex * SIGN_SPAN_DEGREES);
+
+  const zeroBasedWithinSign = Math.min(NADI_COUNT - 1, Math.floor(degreeInSign / NADI_SPAN));
+  const indexWithinSign = zeroBasedWithinSign + 1;
+  const degreeInNadi = degreeInSign - (zeroBasedWithinSign * NADI_SPAN);
+
+  const nadiMode = getNadiMode(signIndex);
+  const canonicalIndex = mapToCanonicalNadiIndex(indexWithinSign, nadiMode);
+  const deity = NADI_DEITIES[canonicalIndex - 1] || 'Unknown';
+  const phala = NADI_PHALAS[(canonicalIndex - 1) % NADI_PHALAS.length] || 'General';
+  const karmicSignificance = getKarmicSignificance(canonicalIndex);
+  const kala = getKala(degreeInNadi);
+
   return {
-    index: nadiIndex + 1,
+    index: canonicalIndex,
+    indexWithinSign,
     sign: ZODIAC_SIGNS[signIndex],
     degree: degreeInNadi * 150,
-    totalLongitude: longitude,
-    nadiName: `Nadi ${calculatedNadiIndex + 1}`,
+    totalLongitude: normalizedLongitude,
+    nadiName: `Nadi ${canonicalIndex}`,
     deity,
     phala,
     karmicSignificance,
-    timeResolution
+    timeResolution: NADI_TIME_RESOLUTION_SECONDS,
+    nadiMode,
+    kala
   };
 }
 
-function getKarmicSignificance(nadiIndex: number): string {
+function normalizeLongitude(longitude: number): number {
+  return ((longitude % 360) + 360) % 360;
+}
+
+function getNadiMode(signIndex: number): NadiMode {
+  if (signIndex % 3 === 0) return 'movable';
+  if (signIndex % 3 === 1) return 'fixed';
+  return 'dual';
+}
+
+function mapToCanonicalNadiIndex(indexWithinSign: number, mode: NadiMode): number {
+  if (mode === 'movable') return indexWithinSign;
+  if (mode === 'fixed') return (NADI_COUNT + 1) - indexWithinSign;
+  // Dual signs: 76→150 then 1→75
+  return ((indexWithinSign + 74) % NADI_COUNT) + 1;
+}
+
+function getKala(degreeInNadi: number): NadiKala {
+  const quarter = Math.min(3, Math.floor(degreeInNadi / NADI_QUARTER_SPAN));
+  const labels: NadiKala[] = ['Vipra', 'Kshatriya', 'Vaisya', 'Sudra'];
+  return labels[quarter];
+}
+
+function getKarmicSignificance(indexOneBased: number): string {
+  const nadiIndex = indexOneBased - 1;
   if (nadiIndex < 25) return 'Past life karma dominant';
   if (nadiIndex < 50) return 'Family lineage karma';
   if (nadiIndex < 75) return 'Present life creation';
@@ -172,18 +203,19 @@ export function correlateNadiWithEvent(
   let matchScore = 50;
   let deityRelevance = 50;
   const details: string[] = [];
+  const nadiIndexZero = normalizeNadiIndex(nadiData.index - 1);
   
-  if (correlation.favorable.includes(nadiData.index - 1)) {
+  if (correlation.favorable.includes(nadiIndexZero)) {
     matchScore = 85;
     deityRelevance = 90;
     details.push(`Nadi ${nadiData.index} is highly favorable for ${eventCategory}`);
-  } else if (correlation.unfavorable.includes(nadiData.index - 1)) {
+  } else if (correlation.unfavorable.includes(nadiIndexZero)) {
     matchScore = 25;
     deityRelevance = 30;
     details.push(`Nadi ${nadiData.index} is challenging for ${eventCategory}`);
   } else {
-    const nearestFavorable = findNearestFavorable(nadiData.index - 1, correlation.favorable);
-    const distance = Math.abs(nadiData.index - 1 - nearestFavorable);
+    const nearestFavorable = findNearestFavorable(nadiIndexZero, correlation.favorable);
+    const distance = circularDistance(nadiIndexZero, nearestFavorable, NADI_COUNT);
     matchScore = Math.max(40, 80 - distance * 2);
     details.push(`Nadi ${nadiData.index} is moderately favorable for ${eventCategory}`);
   }
@@ -202,18 +234,28 @@ export function correlateNadiWithEvent(
 }
 
 function findNearestFavorable(nadiIndex: number, favorable: number[]): number {
-  let nearest = favorable[0];
-  let minDistance = Math.abs(nadiIndex - nearest);
+  let nearest = normalizeNadiIndex(favorable[0]);
+  let minDistance = circularDistance(normalizeNadiIndex(nadiIndex), nearest, NADI_COUNT);
   
   for (const fav of favorable) {
-    const distance = Math.abs(nadiIndex - fav);
+    const normalizedFav = normalizeNadiIndex(fav);
+    const distance = circularDistance(normalizeNadiIndex(nadiIndex), normalizedFav, NADI_COUNT);
     if (distance < minDistance) {
       minDistance = distance;
-      nearest = fav;
+      nearest = normalizedFav;
     }
   }
   
   return nearest;
+}
+
+function normalizeNadiIndex(index: number): number {
+  return ((index % NADI_COUNT) + NADI_COUNT) % NADI_COUNT;
+}
+
+function circularDistance(a: number, b: number, cycle: number): number {
+  const direct = Math.abs(a - b);
+  return Math.min(direct, cycle - direct);
 }
 
 export function calculateD150ForAllPlanets(

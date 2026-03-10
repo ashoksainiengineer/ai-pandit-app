@@ -57,7 +57,7 @@ describe('🤖 AI PROMPT SERIALIZATION AUDIT', () => {
         expect(promptText).toContain('#L'); // Lagna segment present
         expect(promptText).toContain('#M'); // Matrix segment present
         expect(promptText).toContain('#D'); // Dasha segment present
-        expect(promptText).toContain('VIM[Ra|Sa|Ju|Ve|Mo]'); // Compact dasha format
+        expect(promptText).toMatch(/VIM\[Ra\|Sa\|Ju\|Ve\|Mo\|/); // Compact dasha format
         expect(promptText).toContain('#N'); // Nadi segment present
         expect(promptText).toContain('Gandharva'); // D150 Nadi deity in #N segment
     });
@@ -68,7 +68,7 @@ describe('🤖 AI PROMPT SERIALIZATION AUDIT', () => {
         expect(promptText).toBeDefined();
 
         // Stage 6 must include VSL 4.0 formatted dasha (5 levels)
-        expect(promptText).toContain('VIM[Ra|Sa|Ju|Ve|Mo]');
+        expect(promptText).toMatch(/VIM\[Ra\|Sa\|Ju\|Ve\|Mo\|/);
 
         // Must include D60 in varga snapshot
         expect(promptText).toContain('D60');

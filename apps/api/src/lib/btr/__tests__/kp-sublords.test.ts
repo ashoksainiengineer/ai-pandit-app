@@ -46,6 +46,13 @@ describe('God-Tier BTR - KP Sublords', () => {
         expect(kpMoonRahu.subLord).toBe('Rahu');
     });
 
+    it('should handle nakshatra boundary values without fallback misclassification', () => {
+        // Exactly at the 2nd nakshatra boundary (13°20')
+        const kpBoundary = calculateKPSubLords(13.333333333333334 + 1e-9);
+        expect(kpBoundary.starLord).toBe('Venus');
+        expect(kpBoundary.subLord).toBe('Venus');
+    });
+
     it('should calculate deep Sub-Sub and Sub-Sub-Sub Lords', () => {
         // Just checking that they exist and map to valid lords
         const kp = calculateKPSubLords(123.4567);

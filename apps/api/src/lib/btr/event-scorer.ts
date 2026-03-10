@@ -26,6 +26,7 @@ import {
   getEventWeightFromImportance,
   getDefaultImportance,
 } from './precision-weights.js';
+import { resolveEventDateWindow } from './event-date-utils.js';
 
 export interface EventScoringOptions {
   defaultSource?: 'document' | 'memory' | 'approximate';
@@ -39,6 +40,11 @@ export interface ScoredEvent extends BtrEvent {
   categoryWeight: number;
   sourceMultiplier: number;
   precisionMultiplier: number;
+  rawEventDate?: unknown;
+  endDate?: string;
+  eventTime?: string;
+  eventWindowStart?: Date;
+  eventWindowEnd?: Date;
 }
 
 export interface EventScoreSummary {
@@ -137,6 +143,13 @@ export function scoreEvents(
   return events.map(event => {
     const confidence = calculateEventConfidence(event, options);
     const category = event.category || 'general';
+    const eventWindow = resolveEventDateWindow({
+      eventDate: (event as any).eventDate,
+      endDate: (event as any).endDate,
+      datePrecision: confidence.datePrecision as any,
+      eventTime: (event as any).eventTime,
+    });
+    const normalizedEventDate = new Date(eventWindow.midpointMs);
 
     // PRIORITY 1: User's selected importance (FRONTEND)
     // This is the PRIMARY weight factor - user knows best!
@@ -175,7 +188,12 @@ export function scoreEvents(
       id: event.id || generateEventId(),
       type: event.type || category,
       category,
-      eventDate: event.eventDate || new Date(),
+      eventDate: normalizedEventDate,
+      rawEventDate: (event as any).eventDate,
+      endDate: (event as any).endDate,
+      eventTime: (event as any).eventTime,
+      eventWindowStart: new Date(eventWindow.startMs),
+      eventWindowEnd: new Date(eventWindow.endMs),
       datePrecision: confidence.datePrecision,
       description: event.description || `${category} event`,
       impact: finalImpact,

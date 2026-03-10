@@ -5,7 +5,7 @@
  */
 
 import { LifeEvent } from '@ai-pandit/shared';
-import { logger } from '../../logger.js';
+import { formatEventWindow, resolveEventDateWindow } from '../event-date-utils.js';
 
 /**
  * A simple regex-based PII sanitizer. It redacts potential names, emails, 
@@ -18,14 +18,14 @@ const sanitizeNarration = (text: string): string => {
 
   let sanitizedText = text;
 
-  // Redact potential proper nouns (capitalized words not at the start of a sentence)
-  // This is a heuristic and might have false positives, but is safer than not redacting.
-  sanitizedText = sanitizedText.replace(/\b([A-Z][a-z]+)\b/g, (match, p1, offset) => {
-    if (offset === 0 || sanitizedText.charAt(offset - 2) === '.') {
-      return match; // Keep words at the start of a sentence.
-    }
-    return '[REDACTED_NAME]';
-  });
+  // Remove dangerous markup fragments to keep the prompt text-safe.
+  sanitizedText = sanitizedText
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<\/?[^>]+(>|$)/g, ' ')
+    .replace(/javascript:/gi, '');
+
+  // Redact obvious full names while preserving domain words like planets/signs.
+  sanitizedText = sanitizedText.replace(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,3})\b/g, '[REDACTED_NAME]');
 
   // Redact email addresses
   sanitizedText = sanitizedText.replace(/\S+@\S+\.\S+/g, '[REDACTED_EMAIL]');
@@ -49,6 +49,7 @@ const sanitizeNarration = (text: string): string => {
  */
 export function formatLifeEventForAI(event: LifeEvent): string {
   const { eventType, eventDate, datePrecision, description, importance } = event;
+  const window = resolveEventDateWindow(event);
   let timeStr = eventDate;
   let nuance = '';
 
@@ -63,10 +64,17 @@ export function formatLifeEventForAI(event: LifeEvent): string {
       timeStr = eventDate.split('-').slice(0, 2).join('-');
       nuance = '(Month-Level)';
       break;
+    case 'month_range':
+      timeStr = `${eventDate}${event.endDate ? ` to ${event.endDate}` : ''}`;
+      nuance = '(Month Range)';
+      break;
     case 'year_range':
-      const yearStart = eventDate.split('-')[0];
-      timeStr = yearStart;
-      nuance = '(Year-Level)';
+      timeStr = `${eventDate.split('-')[0]}${event.endDate ? ` to ${event.endDate.split('-')[0]}` : ''}`;
+      nuance = '(Year Range)';
+      break;
+    case 'date_range':
+      timeStr = `${eventDate}${event.endDate ? ` to ${event.endDate}` : ''}`;
+      nuance = '(Date Range)';
       break;
     case 'exact_date':
       nuance = '(Exact Date)';
@@ -75,6 +83,7 @@ export function formatLifeEventForAI(event: LifeEvent): string {
 
   const eventImportance = importance || 'medium';
   let result = `• [${eventImportance.toUpperCase()} IMPORTANCE] ${eventType}\n  Date: ${timeStr} ${nuance}`;
+  result += `\n  Event Window: ${formatEventWindow(window)}`;
   
   // CRITICAL SECURITY STEP: Sanitize the free-text description before adding it to the AI prompt.
   if (description) {

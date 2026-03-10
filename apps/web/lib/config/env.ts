@@ -38,6 +38,41 @@ function parseNumber(value: string | undefined, defaultValue: number): number {
   return isNaN(parsed) ? defaultValue : parsed;
 }
 
+function resolveBackendUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_BACKEND_URL?.trim() || '';
+  const isDevelopment = process.env.NODE_ENV === 'development';
+  const isTest = process.env.NODE_ENV === 'test';
+  const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
+
+  if (!raw) {
+    if (isDevelopment || isTest) {
+      return 'http://localhost:3001';
+    }
+    throw new Error(
+      'NEXT_PUBLIC_BACKEND_URL is required in production and must point to your Hugging Face Space URL.'
+    );
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error('NEXT_PUBLIC_BACKEND_URL must be a valid absolute URL.');
+  }
+
+  const isHfSpaceHost = parsed.hostname.endsWith('.hf.space');
+  const isHttps = parsed.protocol === 'https:';
+
+  // Enforce strict direct-to-HF routing in production runtime.
+  if (!isDevelopment && !isTest && !isBuildPhase && (!isHfSpaceHost || !isHttps)) {
+    throw new Error(
+      'NEXT_PUBLIC_BACKEND_URL must use https and a *.hf.space hostname in production.'
+    );
+  }
+
+  return raw.replace(/\/$/, '');
+}
+
 // Explicit validation check
 function validateEnv(): void {
   const requiredVars = [
@@ -77,9 +112,8 @@ export const env = {
   },
 
   api: {
-    // Priority: explicit env var, then localhost fallback for local development.
-    // Production must set NEXT_PUBLIC_BACKEND_URL to the deployed backend origin.
-    backendUrl: process.env.NEXT_PUBLIC_BACKEND_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:3001' : ''),
+    // Enforced: production must use direct Hugging Face Space origin (no Vercel API proxying).
+    backendUrl: resolveBackendUrl(),
     // Keep server-only token support for compatibility; client bundle should not expose this.
     huggingFaceToken: getEnvVarOptional(process.env.HF_TOKEN),
     internalApiKey: undefined, // Removed for security realignment

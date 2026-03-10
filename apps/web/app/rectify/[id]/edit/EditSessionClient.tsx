@@ -78,6 +78,17 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
     const { getToken } = useAuth();
 
+    const toErrorMessage = (value: unknown, fallback: string): string => {
+        if (typeof value === 'string' && value.trim()) return value;
+        if (value instanceof Error && value.message.trim()) return value.message;
+        if (value && typeof value === 'object') {
+            const candidate = (value as { message?: unknown; error?: unknown }).message
+                ?? (value as { message?: unknown; error?: unknown }).error;
+            if (typeof candidate === 'string' && candidate.trim()) return candidate;
+        }
+        return fallback;
+    };
+
     const updateStep = (newStep: number) => {
         setStep(newStep);
         const urlParams = new URLSearchParams(searchParams.toString());
@@ -186,7 +197,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
             const updateResult = await updateRes.json();
             if (!updateResult.success) {
-                setError(updateResult.error || 'Failed to update session');
+                setError(toErrorMessage(updateResult.error, 'Failed to update session'));
                 setIsSubmitting(false);
                 return;
             }
@@ -195,12 +206,12 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
             try {
                 const requeueResult = await APIClient.post(`${backendUrl}/api/queue/requeue`, { sessionId }, getToken);
                 if (!requeueResult?.success) {
-                    setError(requeueResult?.error || 'Failed to restart analysis');
+                    setError(toErrorMessage(requeueResult?.error, 'Failed to restart analysis'));
                     setIsSubmitting(false);
                     return;
                 }
             } catch (err: any) {
-                setError(err?.message || 'Failed to restart analysis');
+                setError(toErrorMessage(err, 'Failed to restart analysis'));
                 setIsSubmitting(false);
                 return;
             }
@@ -213,7 +224,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
             router.push(`/rectify/${sessionId}`);
 
         } catch (err: any) {
-            setError(err.message || 'Network error');
+            setError(toErrorMessage(err, 'Network error'));
             setIsSubmitting(false);
         }
     };

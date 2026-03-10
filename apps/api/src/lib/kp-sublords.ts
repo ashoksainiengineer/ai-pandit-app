@@ -114,6 +114,8 @@ function calculateSubDivision(
   
   let currentPosition = 0;
   
+  const epsilon = 1e-10;
+
   for (let i = 0; i < 9; i++) {
     const lordIndex = (startIndex + i) % 9;
     const lord = DASHA_SEQUENCE[lordIndex];
@@ -122,11 +124,12 @@ function calculateSubDivision(
     // Span proportional to dasha years
     const span = (years / TOTAL_DASHA_YEARS) * totalSpan;
     
-    if (position < currentPosition + span) {
+    const boundary = currentPosition + span;
+    if (position <= boundary + epsilon || i === 8) {
       return {
         lord,
         span,
-        positionInDivision: position - currentPosition
+        positionInDivision: Math.max(0, Math.min(span, position - currentPosition))
       };
     }
     

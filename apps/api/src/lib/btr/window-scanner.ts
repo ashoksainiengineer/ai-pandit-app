@@ -354,7 +354,10 @@ async function scoreCandidate(
   try {
     const transitResults = await TransitAnalyzer.calculateMatchScore(
       context.scoredEvents.map(e => ({
-        date: e.eventDate.toISOString().split('T')[0],
+        date: normalizeTransitDateLiteral((e as any).rawEventDate, e.eventDate),
+        endDate: (e as any).endDate,
+        datePrecision: e.datePrecision as any,
+        time: (e as any).eventTime,
         category: e.category,
         id: e.id
       })),
@@ -704,6 +707,16 @@ function calculateAverageScore(scores: number[]): number {
 function getPlanetHouse(planetName: string, ephemeris: any): number {
   const planet = ephemeris.planets?.[planetName.toLowerCase()];
   return planet?.house || 0;
+}
+
+function normalizeTransitDateLiteral(rawEventDate: unknown, fallbackDate: Date): string {
+  if (typeof rawEventDate === 'string' && rawEventDate.trim()) {
+    return rawEventDate;
+  }
+  if (rawEventDate instanceof Date && !Number.isNaN(rawEventDate.getTime())) {
+    return rawEventDate.toISOString().slice(0, 10);
+  }
+  return fallbackDate.toISOString().slice(0, 10);
 }
 
 function parseTime(timeStr: string, dateStr: string, timezone: string | number): Date {

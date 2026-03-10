@@ -41,6 +41,8 @@ import { performSpouseVerification, extractNativeD9Positions, verifyD9WithSpouse
 import { detectGandanta } from '../gandanta-detection.js';
 import { analyzePakshi } from '../pancha-pakshi.js';
 import { calculateD12 } from '../advanced-btr-methods.js';
+import { calculateKPSubLords, calculateKPCuspalSubLords } from '../kp-sublords.js';
+import { resolveEventDateWindow } from './event-date-utils.js';
 
 export interface PackageBuildOptions {
   includeFullData?: boolean;
@@ -78,7 +80,8 @@ export async function buildCandidateDataPackage(
     pranaWindowDays,
     // Safely parse event dates (handles partial dates like YYYY and YYYY-MM)
     eventRanges: input.lifeEvents.map(e => {
-      return parseEventRange(e);
+      const window = resolveEventDateWindow(e);
+      return { start: window.startMs, end: window.endMs };
     }),
     now: Date.now()
   });
@@ -114,7 +117,7 @@ export async function buildCandidateDataPackage(
   const pkg: CandidateDataPackage = {
     time,
     offsetMinutes,
-    rawVimshottari: [], // Omitted for brevity - populated when needed
+    rawVimshottari: [],
     ...vargaData,
     sandhiZones,
     vedicSignals: buildVedicSignals(ephemeris),
@@ -122,7 +125,8 @@ export async function buildCandidateDataPackage(
     ascendant: {
       sign: ephemeris.ascendant.sign,
       degree: formatDegree(ephemeris.ascendant.longitude),
-      nakshatra: ephemeris.ascendant.nakshatra || ''
+      nakshatra: ephemeris.ascendant.nakshatra || '',
+      longitude: ephemeris.ascendant.longitude
     },
     houseLords, // FIXED: Now properly populated from ephemeris data
     moonNakshatra: ephemeris.planets.moon.nakshatra,
@@ -137,6 +141,9 @@ export async function buildCandidateDataPackage(
     yogas: detectYogas(ephemeris),
     spouseMatch: await buildSpouseMatch(input, ephemeris)
   };
+
+  // KP data is needed in all AI stages so VSL can emit non-placeholder precision signals.
+  pkg.kpData = buildKPData(ephemeris);
 
   // 🔱 PROJECT MAHAKALA PRECISION ANCHORS
   try {
@@ -350,13 +357,16 @@ function calculateRelativeHouse(targetSign: string, ascendantSign: string): numb
 function buildVargaData(ephemeris: any) {
   const vargaDegrees: Record<string, Record<string, string>> = {};
   const d60Planets: Record<string, any> = {};
+  const optionalVargas = new Set(['D12']);
 
-  const vargaNames = ['D9', 'D10', 'D60', 'D150'];
+  const vargaNames = ['D9', 'D10', 'D12', 'D60', 'D150'];
 
   for (const varga of vargaNames) {
     const chart = ephemeris.divisionalCharts?.[varga];
     if (!chart || !chart.ascendant || !chart.planets) {
-      logger.warn(`[VARGA] Missing or incomplete chart data for ${varga}`);
+      if (!optionalVargas.has(varga)) {
+        logger.warn(`[VARGA] Missing or incomplete chart data for ${varga}`);
+      }
       continue;
     }
 
@@ -428,6 +438,55 @@ function buildVedicSignals(ephemeris: any) {
     pushkar: detectPushkarNavamsa(ephemeris),
     charaKarakas: calculateCharaKarakas(ephemeris)
   };
+}
+
+/**
+ * Build KP planet and cuspal hierarchy for VSL precision segments.
+ */
+function buildKPData(ephemeris: any): NonNullable<CandidateDataPackage['kpData']> {
+  const planetSubLords: NonNullable<CandidateDataPackage['kpData']>['planetSubLords'] = {};
+  const cuspalSubLords: NonNullable<CandidateDataPackage['kpData']>['cuspalSubLords'] = {};
+
+  for (const [planetName, planet] of Object.entries(ephemeris.planets || {}) as [string, any][]) {
+    if (typeof planet?.longitude !== 'number' || Number.isNaN(planet.longitude)) {
+      continue;
+    }
+    const kp = calculateKPSubLords(planet.longitude);
+    planetSubLords[planetName] = {
+      starLord: kp.starLord,
+      subLord: kp.subLord,
+      subSubLord: kp.subSubLord,
+      subSubSubLord: kp.subSubSubLord
+    };
+  }
+
+  const houses = Array.isArray(ephemeris.houses) ? ephemeris.houses : [];
+  const cuspLongitudes = houses.map((house: any) => {
+    if (typeof house?.cusp === 'number') return house.cusp;
+    if (typeof house?.longitude === 'number') return house.longitude;
+    if (typeof house?.sign === 'string') {
+      const signIndex = ZODIAC_SIGNS.indexOf(house.sign);
+      if (signIndex >= 0) {
+        return signIndex * 30;
+      }
+    }
+    return 0;
+  });
+
+  if (cuspLongitudes.length >= 12) {
+    for (const cusp of calculateKPCuspalSubLords(cuspLongitudes.slice(0, 12))) {
+      cuspalSubLords[cusp.house] = {
+        house: cusp.house,
+        cusp: cusp.cusp,
+        sign: cusp.sign,
+        starLord: cusp.starLord,
+        subLord: cusp.subLord,
+        subSubLord: cusp.subSubLord
+      };
+    }
+  }
+
+  return { planetSubLords, cuspalSubLords };
 }
 
 /**
@@ -542,88 +601,4 @@ function buildDivisionalCharts(pkg: CandidateDataPackage, ephemeris: any) {
  */
 function formatDegree(longitude: number): string {
   return decimalToDMS(longitude);
-}
-
-/**
- * Parse life event into time range based on precision
- */
-function parseEventRange(event: any): { start: number; end: number } {
-  try {
-    const precision = event.datePrecision || 'exact_date';
-    let start: number;
-    let end: number;
-
-    // Helper to parse YYYY-MM-DD or partials
-    const parseDate = (dateStr: string, defaultMonth = 0, defaultDay = 1) => {
-      if (!dateStr) return Date.now();
-      const parts = dateStr.split(/[-/]/);
-      const year = parseInt(parts[0], 10);
-      const month = (parseInt(parts[1], 10) || (defaultMonth + 1)) - 1;
-      const day = parseInt(parts[2], 10) || defaultDay;
-      return new Date(year, month, day).getTime();
-    };
-
-    // Helper to get last day of month
-    const getLastDay = (dateStr: string) => {
-      const parts = dateStr.split(/[-/]/);
-      const year = parseInt(parts[0], 10);
-      const month = (parseInt(parts[1], 10) || 1) - 1;
-      return new Date(year, month + 1, 0).getTime(); // Last day of month
-    };
-
-    switch (precision) {
-      case 'exact_date_time':
-        // If time is provided, combine; otherwise treat as date
-        if (event.eventTime) {
-          const datePart = event.eventDate.split('T')[0]; // Handle ISO potentially
-          const combined = new Date(`${datePart}T${event.eventTime}`);
-          start = combined.getTime();
-          end = start + (1000 * 60 * 60); // 1 hour window default
-        } else {
-          start = parseDate(event.eventDate);
-          end = start + (24 * 60 * 60 * 1000);
-        }
-        break;
-
-      case 'exact_date':
-        start = parseDate(event.eventDate);
-        end = start + (24 * 60 * 60 * 1000) - 1; // End of day
-        break;
-
-      case 'date_range':
-        start = parseDate(event.eventDate);
-        end = event.endDate ? parseDate(event.endDate) + (24 * 60 * 60 * 1000) - 1 : start + (24 * 60 * 60 * 1000);
-        break;
-
-      case 'month_year': // Input format likely "YYYY-MM" or "MM/YYYY"
-        // Ensure standard parsing
-        start = parseDate(event.eventDate); // Defaults to 1st
-        end = getLastDay(event.eventDate);
-        break;
-
-      case 'month_range':
-        start = parseDate(event.eventDate);
-        end = event.endDate ? getLastDay(event.endDate) : getLastDay(event.eventDate);
-        break;
-
-      case 'year_range': // Input format "YYYY"
-        const startYear = parseInt(event.eventDate, 10);
-        const endYear = event.endDate ? parseInt(event.endDate, 10) : startYear;
-        start = new Date(startYear, 0, 1).getTime(); // Jan 1st
-        end = new Date(endYear, 11, 31, 23, 59, 59).getTime(); // Dec 31st
-        break;
-
-      default:
-        start = parseDate(event.eventDate);
-        end = start + (24 * 60 * 60 * 1000);
-    }
-
-    if (isNaN(start)) start = Date.now();
-    if (isNaN(end)) end = start;
-
-    return { start, end };
-  } catch (e) {
-    logger.warn('Failed to parse event range', { event, error: e });
-    return { start: Date.now(), end: Date.now() };
-  }
 }
