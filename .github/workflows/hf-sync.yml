@@ -25,8 +25,19 @@ jobs:
       - name: Push to HF
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE_REPO: ${{ secrets.HF_SPACE_REPO }}
         run: |
           set -e
+
+          if [ -z "$HF_TOKEN" ]; then
+            echo "❌ HF_TOKEN not set. Add it in repository secrets."
+            exit 1
+          fi
+          
+          if [ -z "$HF_SPACE_REPO" ]; then
+            echo "❌ HF_SPACE_REPO not set. Expected format: username/space-name"
+            exit 1
+          fi
           
           # 1. Clean Slate Push (WHOLE REPO)
           mkdir -p ../sync_temp
@@ -56,6 +67,6 @@ jobs:
           git commit -m "Sync production files: ${{ github.sha }}"
           
           # 3. Push to Hugging Face
-          HF_URL="https://ashoksainiengineer:$HF_TOKEN@huggingface.co/spaces/ashoksainiengineer/ai-pandit"
+          HF_URL="https://x-access-token:$HF_TOKEN@huggingface.co/spaces/$HF_SPACE_REPO"
           git remote add hf "$HF_URL"
           git push hf main:main --force

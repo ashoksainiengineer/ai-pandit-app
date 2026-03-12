@@ -11,4 +11,12 @@ jobs:
     steps:
       - name: Ping Admin DB Check
         run: |
-          curl -I "https://ashoksainiengineer-ai-pandit.hf.space/api/admin/db-check"
+          HF_URL="${{ secrets.HF_SPACE_URL }}"
+
+          if [ -z "$HF_URL" ]; then
+            echo "⚠️ HF_SPACE_URL not set. Set it in repository secrets."
+            echo "Format: https://your-username-your-space.hf.space"
+            exit 0
+          fi
+
+          curl -I "${HF_URL}/api/admin/db-check"
