@@ -63,6 +63,20 @@ services/ephemeris/.venv/
 services/ephemeris/data/*.bsp
 services/ephemeris/data/*.bpc
 services/ephemeris/data/*.tpc
+data/*.bsp
+data/*.bpc
+data/*.tpc
+
+# --- PYTHON (EPHEMERIS SERVICE) ---
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
 
 # --- SCRATCH & DEBUG ---
 apps/api/test-*.ts
