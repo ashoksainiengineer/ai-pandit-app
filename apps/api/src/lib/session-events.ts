@@ -3,6 +3,7 @@
 
 import { EventEmitter } from 'events';
 import crypto from 'crypto';
+import { appendJobEvent, getLatestJobForSession } from '@ai-pandit/db/jobs';
 import { logger } from '../utils/logger.js';
 import type {
     ProgressEvent,
@@ -41,6 +42,23 @@ export type {
 
 // Max events to retain per session for Last-Event-ID replay
 const MAX_EVENT_LOG_SIZE = 2000;
+const NON_PERSISTED_EVENT_TYPES = new Set(['ping', 'connected', 'metadata', 'initial_state', 'terminal_state']);
+
+function extractPersistenceErrorCode(error: unknown): string | null {
+    if (!error || typeof error !== 'object') {
+        return null;
+    }
+
+    if ('code' in error && typeof (error as { code?: unknown }).code === 'string') {
+        return (error as { code: string }).code;
+    }
+
+    if ('cause' in error) {
+        return extractPersistenceErrorCode((error as { cause?: unknown }).cause);
+    }
+
+    return null;
+}
 
 interface SequencedEvent {
     seq: number;
@@ -62,6 +80,7 @@ class SessionEventManager {
     private thinkingBroadcastBuffer: Map<string, Array<{ chunk: string; stage: number; candidateTime?: string }>> = new Map();
     private scoreBroadcastBuffer: Map<string, CandidateScoreEvent[]> = new Map();
     private updateIntervals: Map<string, NodeJS.Timeout> = new Map();
+    private persistenceDisabled: boolean = process.env.NODE_ENV === 'test';
 
     // ⏱️ Track last activity for garbage collection
     private lastActive: Map<string, number> = new Map();
@@ -168,6 +187,7 @@ class SessionEventManager {
             const seq = this.getNextSeq(sessionId);
             (event as any).seq = seq; // Attach sequence to event for easier handling
             this.logEvent(sessionId, seq, event);
+            void this.persistEvent(sessionId, seq, event);
         }
 
         // 2. Broadcast to all active SSE listeners
@@ -192,6 +212,48 @@ class SessionEventManager {
         }
         if (event.type === 'decision') {
             this.appendToDecisionBuffer(sessionId, event as DecisionEvent);
+        }
+    }
+
+    private async persistEvent(sessionId: string, seq: number, event: SessionEvent): Promise<void> {
+        if (this.persistenceDisabled) {
+            return;
+        }
+
+        if (NON_PERSISTED_EVENT_TYPES.has(event.type)) {
+            return;
+        }
+
+        try {
+            const job = await getLatestJobForSession(sessionId);
+            if (!job) {
+                return;
+            }
+
+            const stage =
+                'stage' in event && typeof event.stage !== 'undefined'
+                    ? String(event.stage)
+                    : null;
+
+            await appendJobEvent({
+                id: crypto.randomUUID(),
+                jobId: job.id,
+                sessionId,
+                sequenceNo: seq,
+                eventType: event.type,
+                stage,
+                payloadJson: event as unknown as Record<string, unknown>,
+            });
+        } catch (error) {
+            const errorCode = extractPersistenceErrorCode(error);
+            if (errorCode === 'ECONNREFUSED' || errorCode === 'SQLITE_CANTOPEN' || errorCode === 'SQLITE_BUSY') {
+                this.persistenceDisabled = true;
+            }
+            logger.warn('[SessionEventManager] Failed to persist job event', {
+                sessionId,
+                eventType: event.type,
+                error: error instanceof Error ? error.message : String(error),
+            });
         }
     }
 

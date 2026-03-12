@@ -1,0 +1,109 @@
+#!/usr/bin/env sh
+set -eu
+
+SERVICE_KIND="${1:-}"
+
+if [ -z "$SERVICE_KIND" ]; then
+  echo "Usage: scripts/deploy-cloud-run.sh <api|web|worker>"
+  exit 1
+fi
+
+case "$SERVICE_KIND" in
+  api)
+    SERVICE_NAME="${API_SERVICE_NAME:-api-service}"
+    DOCKERFILE="deploy/cloudrun/api.Dockerfile"
+    MEMORY="${API_MEMORY:-8Gi}"
+    CPU="${API_CPU:-2}"
+    CONCURRENCY="${API_CONCURRENCY:-20}"
+    MIN_INSTANCES="${API_MIN_INSTANCES:-0}"
+    MAX_INSTANCES="${API_MAX_INSTANCES:-2}"
+    CPU_THROTTLING_FLAG="--cpu-throttling"
+    EXTRA_VARS="JOB_EXECUTION_MODE=external_worker,USE_ASYNC_JOB_PIPELINE=${USE_ASYNC_JOB_PIPELINE:-true},USE_NEW_STREAM_PATH=${USE_NEW_STREAM_PATH:-true}"
+    SECRET_VARS="NEON_DATABASE_URL=neon-database-url:latest,AI_API_KEY=ai-api-key:latest,ENCRYPTION_SECRET=encryption-secret:latest,CLERK_SECRET_KEY=clerk-secret-key:latest"
+    ;;
+  web)
+    SERVICE_NAME="${WEB_SERVICE_NAME:-web-service}"
+    DOCKERFILE="deploy/cloudrun/web.Dockerfile"
+    MEMORY="${WEB_MEMORY:-2Gi}"
+    CPU="${WEB_CPU:-1}"
+    CONCURRENCY="${WEB_CONCURRENCY:-80}"
+    MIN_INSTANCES="${WEB_MIN_INSTANCES:-0}"
+    MAX_INSTANCES="${WEB_MAX_INSTANCES:-2}"
+    CPU_THROTTLING_FLAG="--cpu-throttling"
+    EXTRA_VARS="NEXT_PUBLIC_BACKEND_URL=${WEB_BACKEND_URL:-},NEXT_PUBLIC_APP_URL=${WEB_FRONTEND_URL:-},FRONTEND_URL=${WEB_FRONTEND_URL:-},APP_REGION=${REGION},NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${WEB_CLERK_PUBLISHABLE_KEY:-${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:-}},NEXT_PUBLIC_CLERK_SIGN_IN_URL=${NEXT_PUBLIC_CLERK_SIGN_IN_URL:-/sign-in},NEXT_PUBLIC_CLERK_SIGN_UP_URL=${NEXT_PUBLIC_CLERK_SIGN_UP_URL:-/sign-up},NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=${NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL:-/dashboard},NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=${NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL:-/dashboard}"
+    SECRET_VARS="NEON_DATABASE_URL=neon-database-url:latest,ENCRYPTION_SECRET=encryption-secret:latest,CLERK_SECRET_KEY=clerk-secret-key:latest"
+    ;;
+  worker)
+    SERVICE_NAME="${WORKER_SERVICE_NAME:-worker-service}"
+    DOCKERFILE="deploy/cloudrun/worker.Dockerfile"
+    MEMORY="${WORKER_MEMORY:-12Gi}"
+    CPU="${WORKER_CPU:-4}"
+    CONCURRENCY="${WORKER_CONCURRENCY:-1}"
+    MIN_INSTANCES="${WORKER_MIN_INSTANCES:-0}"
+    MAX_INSTANCES="${WORKER_MAX_INSTANCES:-1}"
+    CPU_THROTTLING_FLAG="--cpu-throttling"
+    EXTRA_VARS="JOB_EXECUTION_MODE=external_worker,WORKER_POLL_INTERVAL_MS=${WORKER_POLL_INTERVAL_MS:-2000},USE_ASYNC_JOB_PIPELINE=${USE_ASYNC_JOB_PIPELINE:-true},USE_NEW_STREAM_PATH=${USE_NEW_STREAM_PATH:-true}"
+    SECRET_VARS="NEON_DATABASE_URL=neon-database-url:latest,AI_API_KEY=ai-api-key:latest,ENCRYPTION_SECRET=encryption-secret:latest,CLERK_SECRET_KEY=clerk-secret-key:latest"
+    ;;
+  *)
+    echo "Unsupported service kind: $SERVICE_KIND"
+    exit 1
+    ;;
+esac
+
+PROJECT_ID="${GCP_PROJECT_ID:-${GOOGLE_CLOUD_PROJECT:-}}"
+REGION="${CLOUD_RUN_REGION:-asia-southeast1}"
+REPOSITORY="${ARTIFACT_REGISTRY_REPO:-ai-pandit}"
+IMAGE_TAG="${IMAGE_TAG:-$(date +%Y%m%d-%H%M%S)}"
+
+if [ -z "$PROJECT_ID" ]; then
+  echo "GCP_PROJECT_ID or GOOGLE_CLOUD_PROJECT is required"
+  exit 1
+fi
+
+IMAGE_URI="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPOSITORY}/${SERVICE_NAME}:${IMAGE_TAG}"
+TMP_CLOUDBUILD_CONFIG="$(mktemp)"
+
+cleanup() {
+  rm -f "${TMP_CLOUDBUILD_CONFIG}"
+}
+
+trap cleanup EXIT
+
+cat > "${TMP_CLOUDBUILD_CONFIG}" <<EOF
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -f
+      - ${DOCKERFILE}
+      - -t
+      - ${IMAGE_URI}
+      - .
+images:
+  - ${IMAGE_URI}
+EOF
+
+echo "Building image: ${IMAGE_URI}"
+gcloud builds submit \
+  --project="${PROJECT_ID}" \
+  --config="${TMP_CLOUDBUILD_CONFIG}" \
+  .
+
+echo "Deploying Cloud Run service: ${SERVICE_NAME}"
+gcloud run deploy "${SERVICE_NAME}" \
+  --project="${PROJECT_ID}" \
+  --region="${REGION}" \
+  --image="${IMAGE_URI}" \
+  --platform=managed \
+  --allow-unauthenticated \
+  --memory="${MEMORY}" \
+  --cpu="${CPU}" \
+  --concurrency="${CONCURRENCY}" \
+  --min="${MIN_INSTANCES}" \
+  --max-instances="${MAX_INSTANCES}" \
+  "${CPU_THROTTLING_FLAG}" \
+  --set-env-vars="${EXTRA_VARS}" \
+  --set-secrets="${SECRET_VARS}"
+
+echo "Deployed ${SERVICE_NAME} to ${REGION}"

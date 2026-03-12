@@ -1,7 +1,7 @@
 # BTR Mixed Precision Stage Audit (2026-03-09)
 
-- stage2: prompts=52, batches=52, candidates(min-max)=1-6
-- stage4: prompts=20, batches=20, candidates(min-max)=1-6
+- stage2: prompts=30, batches=30, candidates(min-max)=1-6
+- stage4: prompts=22, batches=22, candidates(min-max)=4-6
 - stage6: prompts=26, batches=26, candidates(min-max)=2-6
 
 ## Validation Rules

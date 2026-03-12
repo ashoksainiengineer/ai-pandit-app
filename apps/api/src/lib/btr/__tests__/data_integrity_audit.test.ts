@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
-import { initSwissEph } from '../../ephemeris.js';
+import { initEphemerisProvider } from '../../ephemeris.js';
 import { SecondsPrecisionInput } from '@ai-pandit/shared';
 
 describe('🔱 DATA INTEGRITY AUDIT: AI Payload Precision', () => {
 
     beforeAll(async () => {
-        await initSwissEph();
+        await initEphemerisProvider();
     });
 
     it('should generate a 100% accurate, deep-varga payload for AI reasoning', async () => {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
 
 /**
  * /api/log-client/route.ts
@@ -7,9 +8,13 @@ import { auth } from '@clerk/nextjs/server';
  * Ensures that browser errors and lifecycle events are visible in server logs.
  */
 
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
+    const buildPhaseResponse = getBuildPhaseRouteResponse();
+    if (buildPhaseResponse) return buildPhaseResponse;
+
     try {
         const { userId } = await auth();
 
@@ -24,7 +29,7 @@ export async function POST(req: NextRequest) {
             receivedAt: new Date().toISOString(),
         };
 
-        // In production, we log to stdout which is captured by Vercel/Monitoring tools
+        // In production, stdout is captured by the hosting platform and monitoring pipeline.
         console.log(`[CLIENT_LOG] ${JSON.stringify(logEntry)}`);
 
         return NextResponse.json({ success: true }, { status: 200 });

@@ -59,6 +59,10 @@ Thumbs.db
 apps/api/ephe/*.se1
 !apps/api/ephe/README.md
 sweph.tar.gz
+services/ephemeris/.venv/
+services/ephemeris/data/*.bsp
+services/ephemeris/data/*.bpc
+services/ephemeris/data/*.tpc
 
 # --- SCRATCH & DEBUG ---
 apps/api/test-*.ts

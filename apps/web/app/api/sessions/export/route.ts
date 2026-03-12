@@ -4,6 +4,10 @@ import { db } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm';
 import { parseSensitiveField } from '@/lib/crypto';
+import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 type ExportFormat = 'pdf' | 'json' | 'csv';
 
@@ -27,6 +31,9 @@ function escapeCsv(value: unknown): string {
 }
 
 export async function POST(req: NextRequest) {
+  const buildPhaseResponse = getBuildPhaseRouteResponse();
+  if (buildPhaseResponse) return buildPhaseResponse;
+
   try {
     const { userId: clerkId } = await auth();
     if (!clerkId) {

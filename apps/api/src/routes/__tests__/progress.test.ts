@@ -19,6 +19,7 @@ vi.mock('@ai-pandit/db', () => ({
         limit: vi.fn().mockResolvedValue([]),
     },
     executeWithRetry: vi.fn((fn: any) => fn()),
+    getLatestJobForSession: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock('@ai-pandit/db/schema', () => ({
@@ -85,6 +86,10 @@ vi.mock('../../lib/session-ownership.js', () => ({
         if (!context.internalUserId) return false;
         return session?.userId === context.internalUserId;
     }),
+}));
+
+vi.mock('../../lib/jobs/job-event-stream.js', () => ({
+    getPersistedSessionEvents: vi.fn().mockResolvedValue([]),
 }));
 
 import progressRouter from '../../routes/progress.js';

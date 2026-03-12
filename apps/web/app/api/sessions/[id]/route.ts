@@ -6,12 +6,19 @@ import { auth } from '@clerk/nextjs/server';
 import { encrypt, isEncrypted, parseSensitiveField, initializeEncryption } from '@/lib/crypto';
 import { canFrontendMutateSession, getProtectedFieldsPresent } from '@/lib/server/session-write-guards';
 import { buildOwnedSessionWhereClause, resolveSessionOwnershipContext } from '@/lib/server/session-ownership';
+import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 initializeEncryption(env.security.encryptionSecret);
 
 // Redundant local helper removed as per implementation plan
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const buildPhaseResponse = getBuildPhaseRouteResponse();
+    if (buildPhaseResponse) return buildPhaseResponse;
+
     try {
         const { userId: clerkId } = await auth();
         if (!clerkId) {
@@ -76,6 +83,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const buildPhaseResponse = getBuildPhaseRouteResponse();
+    if (buildPhaseResponse) return buildPhaseResponse;
+
     try {
         const { userId: clerkId } = await auth();
         if (!clerkId) {

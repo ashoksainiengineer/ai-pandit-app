@@ -1,18 +1,19 @@
-import { Webhook } from 'svix';
 import { env } from '@/lib/config/env';
-import { headers } from 'next/headers';
-import { WebhookEvent } from '@clerk/nextjs/server';
-import { db } from '@ai-pandit/db';
-import { users } from '@ai-pandit/db/schema';
-import { eq } from 'drizzle-orm';
+import type { WebhookEvent } from '@clerk/nextjs/server';
 import { logger } from '@/lib/logger';
+import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
+    const buildPhaseResponse = getBuildPhaseRouteResponse();
+    if (buildPhaseResponse) return buildPhaseResponse;
+
     // 1. Get the headers
-    const headerPayload = await headers();
-    const svix_id = headerPayload.get("svix-id");
-    const svix_timestamp = headerPayload.get("svix-timestamp");
-    const svix_signature = headerPayload.get("svix-signature");
+    const svix_id = req.headers.get('svix-id');
+    const svix_timestamp = req.headers.get('svix-timestamp');
+    const svix_signature = req.headers.get('svix-signature');
 
     // 2. If there are no headers, error out
     if (!svix_id || !svix_timestamp || !svix_signature) {
@@ -31,6 +32,13 @@ export async function POST(req: Request) {
     if (!WEBHOOK_SECRET) {
         throw new Error('Please add CLERK_WEBHOOK_SECRET from Clerk Dashboard to .env or .env.local');
     }
+
+    const [{ Webhook }, { db }, { users }, { eq }] = await Promise.all([
+        import('svix'),
+        import('@ai-pandit/db'),
+        import('@ai-pandit/db/schema'),
+        import('drizzle-orm'),
+    ]);
 
     const wh = new Webhook(WEBHOOK_SECRET);
 

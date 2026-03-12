@@ -200,6 +200,28 @@ export async function getCacheStats(): Promise<{
   }
 }
 
+function getMutationRowCount(result: unknown): number {
+  if (
+    typeof result === 'object' &&
+    result !== null &&
+    'rowCount' in result &&
+    typeof (result as { rowCount?: unknown }).rowCount === 'number'
+  ) {
+    return (result as { rowCount: number }).rowCount;
+  }
+
+  if (
+    typeof result === 'object' &&
+    result !== null &&
+    'rowsAffected' in result &&
+    typeof (result as { rowsAffected?: unknown }).rowsAffected === 'number'
+  ) {
+    return (result as { rowsAffected: number }).rowsAffected;
+  }
+
+  return 0;
+}
+
 /**
  * Clear expired cache entries
  */
@@ -211,7 +233,7 @@ export async function clearExpiredCache(): Promise<number> {
       .delete(calculations)
       .where(and(isNotNull(calculations.expiresAt), lt(calculations.expiresAt, now)));
 
-    const deleted = result.rowsAffected ?? 0;
+    const deleted = getMutationRowCount(result);
     logger.info('Cleared expired cache entries', { deleted });
     return deleted;
   } catch (error) {

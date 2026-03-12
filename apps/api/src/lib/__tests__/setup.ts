@@ -96,20 +96,20 @@ beforeAll(async () => {
       )
     `);
 
-    if (process.env.SKIP_SWISSEPH_INIT === 'true') {
-        console.log('⏭️ [TEST SETUP] Skipping Swiss Ephemeris initialization as requested');
+    if (process.env.SKIP_EPHEMERIS_INIT === 'true' || process.env.SKIP_SWISSEPH_INIT === 'true') {
+        console.log('⏭️ [TEST SETUP] Skipping ephemeris initialization as requested');
         return;
     }
 
-    console.log('🧪 [TEST SETUP] Initializing Swiss Ephemeris...');
+    console.log('🧪 [TEST SETUP] Initializing ephemeris provider...');
     try {
         // Use dynamic import to avoid static import deadlocks/hangs
-        const { initSwissEph } = await import('../ephemeris.js');
-        const success = await initSwissEph();
+        const { initEphemerisProvider } = await import('../ephemeris.js');
+        const success = await initEphemerisProvider();
         if (!success) {
-            console.warn('⚠️ [TEST SETUP] Swiss Ephemeris failed to initialize, using algorithmic fallback');
+            console.warn('⚠️ [TEST SETUP] High-precision ephemeris unavailable, using algorithmic fallback');
         } else {
-            console.log('✅ [TEST SETUP] Swiss Ephemeris ready');
+            console.log('✅ [TEST SETUP] High-precision ephemeris ready');
         }
     } catch (error) {
         console.error('❌ [TEST SETUP] Critical error during initialization:', error);

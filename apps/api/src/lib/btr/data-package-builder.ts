@@ -460,18 +460,19 @@ function buildKPData(ephemeris: any): NonNullable<CandidateDataPackage['kpData']
     };
   }
 
-  const houses = Array.isArray(ephemeris.houses) ? ephemeris.houses : [];
-  const cuspLongitudes = houses.map((house: any) => {
-    if (typeof house?.cusp === 'number') return house.cusp;
-    if (typeof house?.longitude === 'number') return house.longitude;
-    if (typeof house?.sign === 'string') {
-      const signIndex = ZODIAC_SIGNS.indexOf(house.sign);
-      if (signIndex >= 0) {
-        return signIndex * 30;
-      }
-    }
-    return 0;
-  });
+  const cuspLongitudes = Array.isArray(ephemeris.kpCusps) && ephemeris.kpCusps.length >= 12
+    ? ephemeris.kpCusps.slice(0, 12)
+    : (Array.isArray(ephemeris.houses) ? ephemeris.houses : []).map((house: any) => {
+        if (typeof house?.cusp === 'number') return house.cusp;
+        if (typeof house?.longitude === 'number') return house.longitude;
+        if (typeof house?.sign === 'string') {
+          const signIndex = ZODIAC_SIGNS.indexOf(house.sign);
+          if (signIndex >= 0) {
+            return signIndex * 30;
+          }
+        }
+        return 0;
+      });
 
   if (cuspLongitudes.length >= 12) {
     for (const cusp of calculateKPCuspalSubLords(cuspLongitudes.slice(0, 12))) {

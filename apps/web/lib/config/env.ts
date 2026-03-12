@@ -38,6 +38,10 @@ function parseNumber(value: string | undefined, defaultValue: number): number {
   return isNaN(parsed) ? defaultValue : parsed;
 }
 
+function isLoopbackHost(hostname: string): boolean {
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '0.0.0.0' || hostname === '::1';
+}
+
 function resolveBackendUrl(): string {
   const raw = process.env.NEXT_PUBLIC_BACKEND_URL?.trim() || '';
   const isDevelopment = process.env.NODE_ENV === 'development';
@@ -49,7 +53,7 @@ function resolveBackendUrl(): string {
       return 'http://localhost:3001';
     }
     throw new Error(
-      'NEXT_PUBLIC_BACKEND_URL is required in production and must point to your Hugging Face Space URL.'
+      'NEXT_PUBLIC_BACKEND_URL is required in production and must point to your deployed API service.'
     );
   }
 
@@ -60,17 +64,61 @@ function resolveBackendUrl(): string {
     throw new Error('NEXT_PUBLIC_BACKEND_URL must be a valid absolute URL.');
   }
 
-  const isHfSpaceHost = parsed.hostname.endsWith('.hf.space');
-  const isHttps = parsed.protocol === 'https:';
-
-  // Enforce strict direct-to-HF routing in production runtime.
-  if (!isDevelopment && !isTest && !isBuildPhase && (!isHfSpaceHost || !isHttps)) {
+  const requiresHttps = !isDevelopment && !isTest && !isBuildPhase && !isLoopbackHost(parsed.hostname);
+  if (requiresHttps && parsed.protocol !== 'https:') {
     throw new Error(
-      'NEXT_PUBLIC_BACKEND_URL must use https and a *.hf.space hostname in production.'
+      'NEXT_PUBLIC_BACKEND_URL must use https in production unless you are targeting a local development host.'
     );
   }
 
   return raw.replace(/\/$/, '');
+}
+
+function resolveAppUrl(): string | undefined {
+  const raw = process.env.NEXT_PUBLIC_APP_URL?.trim() || process.env.FRONTEND_URL?.trim() || '';
+  if (!raw) {
+    return undefined;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    throw new Error('NEXT_PUBLIC_APP_URL or FRONTEND_URL must be a valid absolute URL when provided.');
+  }
+
+  if (parsed.protocol !== 'https:' && !isLoopbackHost(parsed.hostname)) {
+    throw new Error('NEXT_PUBLIC_APP_URL or FRONTEND_URL must use https outside local development.');
+  }
+
+  return raw.replace(/\/$/, '');
+}
+
+function resolveBaseUrl(): string {
+  const appUrl = resolveAppUrl();
+  if (appUrl) {
+    return appUrl;
+  }
+
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+
+  if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') {
+    return 'http://localhost:3000';
+  }
+
+  return '';
+}
+
+function resolveRegion(): string {
+  return (
+    process.env.APP_REGION ||
+    process.env.CLOUD_RUN_REGION ||
+    process.env.GOOGLE_CLOUD_REGION ||
+    process.env.VERCEL_REGION ||
+    'unknown'
+  );
 }
 
 // Explicit validation check
@@ -112,21 +160,20 @@ export const env = {
   },
 
   api: {
-    // Enforced: production must use direct Hugging Face Space origin (no Vercel API proxying).
+    // Used by server-side proxy routes that forward analysis lifecycle requests to the API service.
     backendUrl: resolveBackendUrl(),
-    // Keep server-only token support for compatibility; client bundle should not expose this.
     huggingFaceToken: getEnvVarOptional(process.env.HF_TOKEN),
     internalApiKey: undefined, // Removed for security realignment
   },
 
   app: {
-    url: getEnvVarOptional(process.env.FRONTEND_URL),
-    vercelUrl: getEnvVarOptional(process.env.NEXT_PUBLIC_VERCEL_URL),
-    baseUrl: process.env.FRONTEND_URL || (process.env.NEXT_PUBLIC_VERCEL_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}` : 'http://localhost:3000'),
+    url: resolveAppUrl(),
+    deploymentUrl: getEnvVarOptional(process.env.NEXT_PUBLIC_DEPLOYMENT_URL) ?? getEnvVarOptional(process.env.NEXT_PUBLIC_VERCEL_URL),
+    baseUrl: resolveBaseUrl(),
     isProduction: process.env.NODE_ENV === 'production',
     isDevelopment: process.env.NODE_ENV === 'development',
     isTest: process.env.NODE_ENV === 'test',
-    region: process.env.VERCEL_REGION || 'unknown',
+    region: resolveRegion(),
     nextPhase: process.env.NEXT_PHASE,
   },
 

@@ -1,15 +1,12 @@
 import { Router, Request, Response } from 'express';
-import crypto from 'node:crypto';
-import { z } from 'zod';
-import { AuthenticatedRequest, authMiddleware, clerk } from '../middleware/auth.js';
-import { db, executeWithRetry } from '@ai-pandit/db';
-import { sessions, users } from '@ai-pandit/db/schema';
-import { eq } from 'drizzle-orm';
+import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { logger } from '../lib/logger.js';
-import { addToQueue } from '../lib/queue-manager.js';
-import { encryptData } from '../lib/encryption/index.js';
-import { syncUser } from '../lib/user-sync.js';
-import { CalculateRequestSchema } from '@ai-pandit/shared';
+import {
+    createQueuedBirthRectificationJob,
+    getJobIdempotencyKey,
+} from '../lib/jobs/job-service.js';
+import { resolveSessionOwnershipContext } from '../lib/session-ownership.js';
+import { sendError, sendSuccess } from '../utils/response.js';
 
 const router = Router();
 
@@ -33,138 +30,35 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
 
     try {
         const clerkId = req.clerkId!;
-        const body = req.body;
-
-        // ═════════════════════════════════════════════════════════════════════
-        // Step 1: Validate Input
-        // ═════════════════════════════════════════════════════════════════════
-        const validationResult = CalculateRequestSchema.safeParse(body);
-
-        if (!validationResult.success) {
-            const errors = validationResult.error.errors.map(err => ({
-                field: err.path.join('.'),
-                message: err.message,
-            }));
-
-            logger.warn('Validation Failed - Invalid input rejected', {
-                clerkId: clerkId?.slice(0, 8),
-                errors,
-            });
-
-            res.status(400).json({
-                success: false,
-                error: 'Validation failed',
-                details: errors,
-            });
-            return;
-        }
-
-        const { birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig } = validationResult.data;
-
-        logger.info('Birth time rectification request received', {
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+        const result = await createQueuedBirthRectificationJob({
             clerkId,
-            dateOfBirth: birthData.dateOfBirth,
-            eventCount: lifeEvents.length,
-            offsetConfig,
-        });
-
-        // ═════════════════════════════════════════════════════════════════════
-        // Step 1.5: Self-Healing User Sync
-        // ═════════════════════════════════════════════════════════════════════
-        let internalUserId: string;
-        try {
-            internalUserId = await syncUser(clerkId);
-        } catch (syncError) {
-            res.status(500).json({ success: false, error: 'User synchronization failed' });
-            return;
-        }
-
-        // ═════════════════════════════════════════════════════════════════════
-        // Step 2: Create Database Session
-        // ═════════════════════════════════════════════════════════════════════
-        const sessionId = crypto.randomUUID();
-        const now = new Date().toISOString();
-
-        // Encrypt sensitive data using clerkId (consistent with frontend expectations)
-        const encryptedFullName = encryptData(birthData.fullName, clerkId);
-
-        // 🔒 CORE DATA ENCRYPTION (God-Tier Security)
-        // Encrypting birth details matches queue-manager expectations
-        const encryptedDateOfBirth = encryptData(birthData.dateOfBirth, clerkId);
-        const encryptedTentativeTime = encryptData(birthData.tentativeTime, clerkId);
-
-        const encryptedLifeEvents = encryptData(JSON.stringify(lifeEvents), clerkId);
-        const encryptedPhysicalTraits = physicalTraits
-            ? encryptData(JSON.stringify(physicalTraits), clerkId)
-            : null;
-        const encryptedForensicTraits = forensicTraits
-            ? encryptData(JSON.stringify(forensicTraits), clerkId)
-            : null;
-
-        await db.insert(sessions).values({
-            id: sessionId,
-            userId: internalUserId,
-            clerkId: clerkId,
-            fullName: encryptedFullName,
-            dateOfBirth: encryptedDateOfBirth, // 🔒 Encrypted
-            tentativeTime: encryptedTentativeTime, // 🔒 Encrypted
-            birthPlace: encryptData(birthData.birthPlace, clerkId),
-            latitude: birthData.latitude,
-            longitude: birthData.longitude,
-            timezone: birthData.timezone.toString(),
-            gender: birthData.gender,
-            physicalTraits: encryptedPhysicalTraits,
-            forensicTraits: encryptedForensicTraits,
-            lifeEvents: encryptedLifeEvents,
-            offsetConfig: encryptData(JSON.stringify(offsetConfig), clerkId),
-            status: 'pending',
-            createdAt: now,
-            updatedAt: now,
-        });
-
-        logger.info('Database session created', { sessionId });
-
-        // ═════════════════════════════════════════════════════════════════════
-        // Step 3: Add to Processing Queue
-        // ═════════════════════════════════════════════════════════════════════
-        const queueResult = await addToQueue(sessionId);
-
-        if (!queueResult.success) {
-            res.status(503).json({
-                success: false,
-                error: queueResult.error || 'Failed to queue request',
-            });
-            return;
-        }
-
-        logger.info('Request queued for processing', {
-            sessionId,
-            position: queueResult.position,
-            estimatedWait: queueResult.estimatedWaitSeconds,
+            ownershipContext,
+            body: req.body as Record<string, unknown>,
+            idempotencyKey: getJobIdempotencyKey(req),
         });
 
         const totalProcessingTime = Date.now() - startTime;
+        logger.info('Birth time rectification request queued', {
+            clerkId,
+            sessionId: result.job.sessionId,
+            jobId: result.job.id,
+            processingTimeMs: totalProcessingTime,
+            idempotentReplay: result.idempotentReplay,
+        });
 
-        // ═════════════════════════════════════════════════════════════════════
-        // Step 4: Return Immediately with SessionId
-        // ═════════════════════════════════════════════════════════════════════
-        res.json({
-            success: true,
-            data: {
-                sessionId,
-                position: queueResult.position || 0,
-                estimatedWaitSeconds: queueResult.estimatedWaitSeconds || 0,
-                status: 'queued',
-            },
+        sendSuccess(res, {
+            sessionId: result.job.sessionId,
+            jobId: result.job.id,
+            position: result.queue.position,
+            estimatedWaitSeconds: result.queue.estimatedWaitSeconds,
+            status: result.job.status,
+            idempotentReplay: result.idempotentReplay,
         });
 
     } catch (error) {
         logger.error('Calculate endpoint error', error);
-        res.status(500).json({
-            success: false,
-            error: error instanceof Error ? error.message : 'Internal server error',
-            stack: error instanceof Error ? error.stack : undefined,
-        });
+        sendError(res, error);
     }
 });
 

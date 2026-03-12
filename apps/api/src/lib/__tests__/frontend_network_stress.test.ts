@@ -14,7 +14,10 @@ vi.mock('@ai-pandit/db', () => ({
         where: vi.fn().mockReturnThis(),
         limit: vi.fn().mockReturnThis(),
     },
-    executeWithRetry: vi.fn((fn) => fn())
+    executeWithRetry: vi.fn((fn) => fn()),
+    getLatestJobForSession: vi.fn().mockResolvedValue(null),
+    listJobEvents: vi.fn().mockResolvedValue([]),
+    listJobEventsSince: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock Auth Middleware

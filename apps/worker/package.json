@@ -1,0 +1,23 @@
+{
+  "name": "@ai-pandit/worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/worker.js",
+  "scripts": {
+    "dev": "tsx src/worker.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/apps/worker/src/worker.js",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@ai-pandit/db": "*",
+    "@ai-pandit/shared": "*",
+    "dotenv": "^16.3.1",
+    "tsx": "^4.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "typescript": "^5.4.5"
+  }
+}

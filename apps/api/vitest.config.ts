@@ -1,6 +1,8 @@
 import { defineConfig } from 'vitest/config';
 import path from 'path';
 
+const envOrDefault = (key: string, fallback: string): string => process.env[key] ?? fallback;
+
 export default defineConfig({
     test: {
         globals: true,
@@ -15,7 +17,7 @@ export default defineConfig({
         alias: {
             '@': path.resolve(__dirname, './src'),
         },
-        // Required for Swiss Ephemeris binary initialization in tests
+        // Shared ephemeris/database test bootstrap
         setupFiles: ['./src/lib/__tests__/setup.ts'],
         pool: 'forks',
         // @ts-ignore - Vitest 4 top-level pool options
@@ -23,20 +25,26 @@ export default defineConfig({
             singleFork: true,
         },
         env: {
-            NODE_ENV: 'test',
-            TURSO_DATABASE_URL: 'file:test.db',
-            TURSO_AUTH_TOKEN: 'test-token',
-            AI_API_KEY: 'test-key',
-            AI_MODEL: 'test-model',
-            AI_TIMEOUT_MS: '60000',
-            REQUEST_TIMEOUT_MS: '30000',
-            MAX_CONCURRENT_SESSIONS: '3',
-            HEAP_THRESHOLD_GB: '4',
-            RSS_THRESHOLD_GB: '8',
-            CLERK_SECRET_KEY: 'sk_test_123',
-            ENCRYPTION_SECRET: 'test-secret-at-least-32-chars-long-12345',
-            RATE_LIMIT_WINDOW_MS: '60000',
-            RATE_LIMIT_MAX_REQUESTS: '100',
+            NODE_ENV: envOrDefault('NODE_ENV', 'test'),
+            TURSO_DATABASE_URL: envOrDefault('TURSO_DATABASE_URL', 'file:test.db'),
+            TURSO_AUTH_TOKEN: envOrDefault('TURSO_AUTH_TOKEN', 'test-token'),
+            AI_API_KEY: envOrDefault('AI_API_KEY', 'test-key'),
+            AI_MODEL: envOrDefault('AI_MODEL', 'test-model'),
+            AI_TIMEOUT_MS: envOrDefault('AI_TIMEOUT_MS', '60000'),
+            REQUEST_TIMEOUT_MS: envOrDefault('REQUEST_TIMEOUT_MS', '30000'),
+            MAX_CONCURRENT_SESSIONS: envOrDefault('MAX_CONCURRENT_SESSIONS', '3'),
+            HEAP_THRESHOLD_GB: envOrDefault('HEAP_THRESHOLD_GB', '4'),
+            RSS_THRESHOLD_GB: envOrDefault('RSS_THRESHOLD_GB', '8'),
+            CLERK_SECRET_KEY: envOrDefault('CLERK_SECRET_KEY', 'sk_test_123'),
+            ENCRYPTION_SECRET: envOrDefault('ENCRYPTION_SECRET', 'test-secret-at-least-32-chars-long-12345'),
+            RATE_LIMIT_WINDOW_MS: envOrDefault('RATE_LIMIT_WINDOW_MS', '60000'),
+            RATE_LIMIT_MAX_REQUESTS: envOrDefault('RATE_LIMIT_MAX_REQUESTS', '100'),
+            EPHEMERIS_PROVIDER: envOrDefault('EPHEMERIS_PROVIDER', 'algorithmic'),
+            EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK: envOrDefault('EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK', 'true'),
+            EPHEMERIS_SERVICE_URL: envOrDefault('EPHEMERIS_SERVICE_URL', 'http://localhost:8000'),
+            EPHEMERIS_SERVICE_TIMEOUT_MS: envOrDefault('EPHEMERIS_SERVICE_TIMEOUT_MS', '15000'),
+            SKIP_EPHEMERIS_INIT: envOrDefault('SKIP_EPHEMERIS_INIT', 'true'),
+            RUN_HIGH_PRECISION_EPHEMERIS_TESTS: envOrDefault('RUN_HIGH_PRECISION_EPHEMERIS_TESTS', 'false'),
         },
     },
 });

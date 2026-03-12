@@ -254,8 +254,9 @@ function calculateKPSubLordsForCandidate(
 function calculateCuspalSubLordsForCandidate(
   candidate: CandidateWithPrecisionData
 ): Record<number, { house: number; cusp: number; sign: string; starLord: string; subLord: string; subSubLord: string }> {
-  const houses = candidate.ephemeris?.houses || [];
-  const cuspLongitudes = houses.map((h: any) => h.cusp || 0);
+  const cuspLongitudes = Array.isArray(candidate.ephemeris?.kpCusps) && candidate.ephemeris.kpCusps.length >= 12
+    ? candidate.ephemeris.kpCusps.slice(0, 12)
+    : (candidate.ephemeris?.houses || []).map((h: any) => h.cusp || 0);
 
   const cuspalData = calculateKPCuspalSubLords(cuspLongitudes);
 

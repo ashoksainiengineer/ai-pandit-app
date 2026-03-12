@@ -1,0 +1,5 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "cd ../.. && npm ci",
+  "buildCommand": "cd ../.. && npm --workspace @ai-pandit/shared run build && npm --workspace @ai-pandit/db run build && npm --workspace @ai-pandit/web run build:app"
+}

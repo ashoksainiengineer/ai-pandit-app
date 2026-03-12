@@ -2,13 +2,20 @@
     "$schema": "https://turbo.build/schema.json",
     "globalEnv": [
         "NODE_ENV",
+        "NEON_DATABASE_URL",
+        "DATABASE_URL",
+        "POSTGRES_URL",
         "TURSO_DATABASE_URL",
         "TURSO_AUTH_TOKEN",
         "CLERK_SECRET_KEY",
         "ENCRYPTION_SECRET",
         "CLERK_WEBHOOK_SECRET",
         "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-        "NEXT_PUBLIC_BACKEND_URL"
+        "NEXT_PUBLIC_BACKEND_URL",
+        "JOB_EXECUTION_MODE",
+        "WORKER_POLL_INTERVAL_MS",
+        "USE_ASYNC_JOB_PIPELINE",
+        "USE_NEW_STREAM_PATH"
     ],
     "tasks": {
         "build": {
@@ -16,13 +23,20 @@
                 "^build"
             ],
             "env": [
+                "NEON_DATABASE_URL",
+                "DATABASE_URL",
+                "POSTGRES_URL",
                 "TURSO_DATABASE_URL",
                 "TURSO_AUTH_TOKEN",
                 "CLERK_SECRET_KEY",
                 "ENCRYPTION_SECRET",
                 "CLERK_WEBHOOK_SECRET",
                 "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
-                "NEXT_PUBLIC_BACKEND_URL"
+                "NEXT_PUBLIC_BACKEND_URL",
+                "JOB_EXECUTION_MODE",
+                "WORKER_POLL_INTERVAL_MS",
+                "USE_ASYNC_JOB_PIPELINE",
+                "USE_NEW_STREAM_PATH"
             ],
             "outputs": [
                 ".next/**",

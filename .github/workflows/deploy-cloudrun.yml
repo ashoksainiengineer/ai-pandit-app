@@ -1,0 +1,76 @@
+name: Deploy Cloud Run
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - migration/cloudrun-neon-worker-split
+    paths:
+      - 'apps/api/**'
+      - 'apps/worker/**'
+      - 'packages/db/**'
+      - 'packages/shared/**'
+      - 'deploy/cloudrun/**'
+      - 'scripts/deploy-cloud-run.sh'
+      - 'scripts/enforce-idle-cost-guards.sh'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'turbo.json'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      CLOUD_RUN_REGION: ${{ vars.CLOUD_RUN_REGION || 'asia-southeast1' }}
+      ARTIFACT_REGISTRY_REPO: ${{ vars.ARTIFACT_REGISTRY_REPO || 'ai-pandit' }}
+      NODE_ENV: production
+      NEON_DATABASE_URL: postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder
+      DATABASE_URL: postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder
+      AI_API_KEY: build-placeholder-ai-key
+      CLERK_SECRET_KEY: build-placeholder-clerk-secret
+      ENCRYPTION_SECRET: build-placeholder-encryption-secret-32chars
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: build-placeholder-publishable-key
+      NEXT_PUBLIC_BACKEND_URL: https://example.com
+      JOB_EXECUTION_MODE: external_worker
+      WORKER_POLL_INTERVAL_MS: 2000
+      USE_ASYNC_JOB_PIPELINE: true
+      USE_NEW_STREAM_PATH: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared, db, api, worker
+        run: |
+          npm --workspace @ai-pandit/shared run build
+          npm --workspace @ai-pandit/db run build
+          npm --workspace @ai-pandit/api run build
+          npm --workspace @ai-pandit/worker run build
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Setup gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Deploy API service
+        run: npm run deploy:cloudrun:api
+
+      - name: Deploy worker service
+        run: npm run deploy:cloudrun:worker
+
+      - name: Re-apply idle cost guards
+        run: npm run deploy:cloudrun:idle-guards

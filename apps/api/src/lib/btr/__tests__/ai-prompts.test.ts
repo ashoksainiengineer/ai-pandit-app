@@ -1,13 +1,13 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
-import { initSwissEph } from '../../ephemeris.js';
+import { initEphemerisProvider } from '../../ephemeris.js';
 import { getBatchPrompt, getDeepAnalysisPrompt, getFinalPrecisionPrompt } from '../prompts/index.js';
 import type { SecondsPrecisionInput, ForensicTraits } from '@ai-pandit/shared';
 
 describe('AI Prompt DMS Validation', () => {
 
     beforeAll(async () => {
-        await initSwissEph();
+        await initEphemerisProvider();
     });
 
     it('ALL prompts MUST contain Degrees in DMS format (DD° MM\' SS")', async () => {

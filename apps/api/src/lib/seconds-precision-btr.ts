@@ -312,7 +312,7 @@ export async function processSecondsPrecisionBTR(
             marginOfError: stage6.margin,
             stagesCompleted: 6,
             boundaryWarnings: boundary.isDangerous ? ['Near boundary transition'] : [],
-            methodsUsed: ['DeepSeek v3.2 (Reasoning Mode)', 'Swiss Ephemeris', 'Vimshottari', 'Yogini', 'Chara', 'D9', 'D10', 'D60'],
+            methodsUsed: ['DeepSeek v3.2 (Reasoning Mode)', 'Skyfield Astronomy Service', 'Vimshottari', 'Yogini', 'Chara', 'D9', 'D10', 'D60'],
             processingTimeMs: Date.now() - startTime,
             analysisResult: enrichedResult
         };

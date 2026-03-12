@@ -53,7 +53,10 @@ interface AuthOptions {
 interface PollOptions extends AuthOptions {
     hasRetriedAuth?: boolean;
     forceLegacyProgressPath?: boolean;
+    hasRetriedRequeue?: boolean;
 }
+
+const ANALYSIS_PROGRESS_PROXY_PATH = '/api/analysis/progress';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 const POLL_INTERVAL = 5000;      // 5 seconds
@@ -68,6 +71,15 @@ const IS_TEST_RUNTIME =
     (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') ||
     (typeof window !== 'undefined' && (window as any).isTestEnv === true);
 const MAX_SESSION_NOT_FOUND_RETRIES = IS_TEST_RUNTIME ? 1 : 4;
+
+function shouldForcePollingTransport(backendUrl: string): boolean {
+    try {
+        const hostname = new URL(backendUrl).hostname;
+        return hostname.endsWith('.hf.space');
+    } catch {
+        return false;
+    }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HOOK
@@ -104,6 +116,8 @@ export function useStreamProgress(
     const cachedTokenRef = useRef<string | null>(null);
     const pollRetryCountRef = useRef<number>(0);
     const sessionNotFoundRetryCountRef = useRef<number>(0);
+    const autoRequeueAttemptedRef = useRef<boolean>(false);
+    const forcePollingTransport = shouldForcePollingTransport(backendUrl || BACKEND_URL);
 
     const requestStreamTicket = async (sid: string, token: string | null): Promise<string> => {
         if (!token) {
@@ -136,6 +150,70 @@ export function useStreamProgress(
         }
 
         return ticket;
+    };
+
+    const tryAutoRequeue = async (sid: string, token: string | null): Promise<boolean> => {
+        if (autoRequeueAttemptedRef.current) return false;
+        autoRequeueAttemptedRef.current = true;
+
+        if (forcePollingTransport) {
+            try {
+                const res = await fetch('/api/analysis/requeue', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ sessionId: sid }),
+                    cache: 'no-store',
+                    credentials: 'same-origin',
+                });
+
+                if (!res.ok) {
+                    logger.warn('[Polling] Auto-requeue via proxy failed', { sessionId: sid, status: res.status });
+                    return false;
+                }
+
+                logger.info('[Polling] Auto-requeue via proxy triggered successfully', { sessionId: sid });
+                return true;
+            } catch (error) {
+                logger.warn('[Polling] Auto-requeue via proxy errored', { sessionId: sid, error });
+                return false;
+            }
+        }
+
+        if (!token) {
+            logger.warn('[Polling] Auto-requeue skipped: missing auth token', { sessionId: sid });
+            return false;
+        }
+
+        const sseBaseUrl = backendUrl || BACKEND_URL;
+        if (!sseBaseUrl) return false;
+
+        try {
+            const res = await fetch(`${sseBaseUrl}/api/queue/requeue`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ sessionId: sid }),
+                cache: 'no-store',
+            });
+
+            if (!res.ok) {
+                logger.warn('[Polling] Auto-requeue failed', {
+                    sessionId: sid,
+                    status: res.status,
+                });
+                return false;
+            }
+
+            logger.info('[Polling] Auto-requeue triggered successfully', { sessionId: sid });
+            return true;
+        } catch (error) {
+            logger.warn('[Polling] Auto-requeue request errored', { sessionId: sid, error });
+            return false;
+        }
     };
 
     // Cleanup function
@@ -208,24 +286,26 @@ export function useStreamProgress(
 
         try {
             // RETRY TOKEN ACQUISITION
-            const token = cachedTokenRef.current ??
-                ((typeof window !== 'undefined' && (window as any).isTestEnv)
-                    ? 'mock-token'
-                    : (getToken ? await getTokenWithRetry(getToken, options) : null));
+            const shouldUseProxyProgress = forcePollingTransport;
+            const token = shouldUseProxyProgress
+                ? null
+                : cachedTokenRef.current ??
+                    ((typeof window !== 'undefined' && (window as any).isTestEnv)
+                        ? 'mock-token'
+                        : (getToken ? await getTokenWithRetry(getToken, options) : null));
 
             if (token) cachedTokenRef.current = token;
 
             const headers: HeadersInit = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
-            else if (getToken) logger.warn('[Polling] Missing token after retries');
+            else if (getToken && !shouldUseProxyProgress) logger.warn('[Polling] Missing token after retries');
 
             const sseBaseUrl = backendUrl || BACKEND_URL;
-            if (!sseBaseUrl) {
-                throw new Error('Backend URL not configured');
-            }
-            const pollUrl = options.forceLegacyProgressPath
-                ? `${sseBaseUrl}/api/queue/progress/${encodeURIComponent(sid)}`
-                : `${sseBaseUrl}/api/queue/progress?sessionId=${encodeURIComponent(sid)}`;
+            const pollUrl = shouldUseProxyProgress
+                ? `${ANALYSIS_PROGRESS_PROXY_PATH}?sessionId=${encodeURIComponent(sid)}`
+                : options.forceLegacyProgressPath
+                    ? `${sseBaseUrl}/api/queue/progress/${encodeURIComponent(sid)}`
+                    : `${sseBaseUrl}/api/queue/progress?sessionId=${encodeURIComponent(sid)}`;
 
             const res = await fetch(pollUrl, {
                 headers,
@@ -238,7 +318,7 @@ export function useStreamProgress(
             if (res.status === 404) {
                 // Backward compatibility: some backend deployments only support
                 // /api/queue/progress/:sessionId (path param), not query param.
-                if (!options.forceLegacyProgressPath) {
+                if (!shouldUseProxyProgress && !options.forceLegacyProgressPath) {
                     await poll(sid, interval, { ...options, forceLegacyProgressPath: true });
                     return;
                 }
@@ -262,6 +342,18 @@ export function useStreamProgress(
                     sessionId: sid,
                     retries: retryAttempt,
                 });
+                const requeued = await tryAutoRequeue(sid, token);
+                if (requeued) {
+                    sessionNotFoundRetryCountRef.current = 0;
+                    setConnectionState({
+                        status: 'polling',
+                        url: '',
+                        lastError: 'Session was not active. Auto-requeue triggered, retrying...',
+                    });
+                    scheduleNextPoll(SESSION_NOT_FOUND_RETRY_DELAY);
+                    return;
+                }
+
                 setConnectionState({ status: 'error', url: '', lastError: 'Session not found - analysis may have already completed' });
                 forceError('Session not found. Start a new analysis.');
                 return;
@@ -395,6 +487,16 @@ export function useStreamProgress(
             return;
         }
 
+        // Hugging Face edge has proven unreliable for browser EventSource in production.
+        // Polling is slower but consistently works there and avoids false 404 "session not found" failures.
+        if (forcePollingTransport) {
+            logger.info('[SSE] HF backend detected, forcing polling transport', { sessionId: sid });
+            cleanup();
+            setConnectionState({ status: 'polling', url: '', lastError: 'Using polling transport' });
+            poll(sid);
+            return;
+        }
+
         // Guard against stale connections during rapid navigation/unmount
         if (!mountedRef.current) {
             logger.debug('[SSE] Ignoring stale connection attempt', { sid, mounted: mountedRef.current });
@@ -418,6 +520,7 @@ export function useStreamProgress(
         currentSessionRef.current = sid;
         pollRetryCountRef.current = 0;
         sessionNotFoundRetryCountRef.current = 0;
+        autoRequeueAttemptedRef.current = false;
         setConnectionState({ status: 'connecting', url: '', lastError: null });
         terminalStateReceivedRef.current = false; // Reset for new connection
 
@@ -603,7 +706,7 @@ export function useStreamProgress(
             mountedRef.current = false;
             cleanup();
         };
-    }, [sessionId, backendUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [sessionId, backendUrl, forcePollingTransport]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // PROACTIVE TOKEN REFRESH (Standard Session Maintenance)
     // Long-running analysis (20+ mins) can cause tokens to expire silently.

@@ -247,6 +247,80 @@ export const OffsetConfigSchema = z.object({
     description: z.string().default(''),
 });
 
+export const EphemerisServiceLocationSchema = z.object({
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+    altitudeMeters: z.number().min(-500).max(12000).optional(),
+});
+
+export const EphemerisServiceBaseRequestSchema = z.object({
+    location: EphemerisServiceLocationSchema,
+    ayanamshaMode: z.enum(['lahiri']).default('lahiri'),
+    houseSystem: z.enum(['whole_sign', 'equal', 'placidus']).default('placidus'),
+    nodeMode: z.enum(['true', 'mean']).default('true'),
+});
+
+export const EphemerisServiceSingleRequestSchema = EphemerisServiceBaseRequestSchema.extend({
+    timestampUtc: z.string().datetime(),
+});
+
+export const EphemerisServiceBatchRequestSchema = EphemerisServiceBaseRequestSchema.extend({
+    timestampsUtc: z.array(z.string().datetime()).min(1).max(500),
+});
+
+export const EphemerisServiceSunriseRequestSchema = z.object({
+    startTimestampUtc: z.string().datetime(),
+    endTimestampUtc: z.string().datetime(),
+    location: EphemerisServiceLocationSchema,
+});
+
+export const EphemerisServicePlanetPositionSchema = z.object({
+    body: z.enum(['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'rahu', 'ketu']),
+    tropicalLongitude: z.number(),
+    tropicalLatitude: z.number(),
+    siderealLongitude: z.number().optional(),
+    distanceAu: z.number(),
+    longitudeSpeed: z.number(),
+    latitudeSpeed: z.number().optional(),
+    retrograde: z.boolean(),
+});
+
+export const EphemerisServiceHousesSchema = z.object({
+    ascendantTropical: z.number(),
+    mcTropical: z.number(),
+    houseCuspsTropical: z.array(z.number()).length(12),
+    ascendantSidereal: z.number().optional(),
+    houseCuspsSidereal: z.array(z.number()).length(12).optional(),
+});
+
+export const EphemerisServiceChartResponseSchema = z.object({
+    timestampUtc: z.string().datetime(),
+    julianDayUt: z.number(),
+    julianDayTt: z.number(),
+    ayanamsha: z.number(),
+    planets: z.array(EphemerisServicePlanetPositionSchema),
+    houses: EphemerisServiceHousesSchema,
+});
+
+export const EphemerisServiceBatchResponseSchema = z.object({
+    charts: z.array(EphemerisServiceChartResponseSchema),
+});
+
+export const EphemerisServiceSunriseResponseSchema = z.object({
+    sunriseTimestampUtc: z.string().datetime().nullable(),
+});
+
+export const EphemerisServiceHealthResponseSchema = z.object({
+    service: z.literal('ephemeris'),
+    status: z.enum(['healthy', 'degraded', 'unhealthy']),
+    ready: z.boolean(),
+    kernelLoaded: z.boolean(),
+    kernelFile: z.string(),
+    timestamp: z.string().datetime(),
+    version: z.string(),
+    error: z.string().nullable().optional(),
+});
+
 /**
  * Main Calculation Request validation schema
  */
@@ -255,15 +329,100 @@ export const CalculateRequestSchema = z.object({
     lifeEvents: z.array(LifeEventSchema)
         .min(3, "At least 3 life events are required")
         .max(100, "Maximum 100 life events allowed"),
-    physicalTraits: z.record(z.any()).optional().nullable(),
-    forensicTraits: z.record(z.any()).optional().nullable(),
+    physicalTraits: z.record(z.unknown()).optional().nullable(),
+    forensicTraits: z.record(z.unknown()).optional().nullable(),
     offsetConfig: OffsetConfigSchema,
 });
 
-export function validateCandidateDataForAI(pkg: any) {
-    try {
-        return CandidateDataPackageSchema.parse(pkg);
-    } catch (err) {
-        throw err;
-    }
+export const JobStatusSchema = z.enum([
+    'queued',
+    'running',
+    'retrying',
+    'failed',
+    'completed',
+    'cancelled',
+]);
+
+export const JobKindSchema = z.enum(['btr_rectification']);
+
+export const JobSummarySchema = z.object({
+    id: z.string().min(1),
+    sessionId: z.string().min(1),
+    userId: z.string().min(1),
+    kind: JobKindSchema,
+    status: JobStatusSchema,
+    currentStage: z.string().nullable().optional(),
+    progressPercent: z.number().int().min(0).max(100),
+    attempt: z.number().int().min(0),
+    maxAttempts: z.number().int().min(1),
+    retryCount: z.number().int().min(0),
+    retryReasonCode: z.string().nullable().optional(),
+    nextRetryAt: z.string().datetime().nullable().optional(),
+    queuedAt: z.string().datetime(),
+    startedAt: z.string().datetime().nullable().optional(),
+    heartbeatAt: z.string().datetime().nullable().optional(),
+    finishedAt: z.string().datetime().nullable().optional(),
+    cancelRequestedAt: z.string().datetime().nullable().optional(),
+    errorCode: z.string().nullable().optional(),
+    errorMessage: z.string().nullable().optional(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+});
+
+export const JobDetailSchema = JobSummarySchema.extend({
+    version: z.number().int().min(0),
+    result: z.record(z.unknown()).nullable().optional(),
+    checkpoint: z.record(z.unknown()).nullable().optional(),
+    cursor: z.record(z.unknown()).nullable().optional(),
+    sessionStatus: z.string().nullable().optional(),
+});
+
+export const JobEventRecordSchema = z.object({
+    id: z.string().min(1),
+    jobId: z.string().min(1),
+    sessionId: z.string().min(1),
+    sequenceNo: z.number().int().min(0),
+    eventType: z.string().min(1),
+    stage: z.string().nullable().optional(),
+    payload: z.record(z.unknown()),
+    createdAt: z.string().datetime(),
+});
+
+export const JobEventsResponseSchema = z.object({
+    jobId: z.string().min(1),
+    sessionId: z.string().min(1),
+    since: z.number().int().min(0),
+    events: z.array(JobEventRecordSchema),
+});
+
+export const JobSyncResponseSchema = z.object({
+    job: JobDetailSchema,
+    since: z.number().int().min(0),
+    latestSequenceNo: z.number().int().min(0),
+    events: z.array(JobEventRecordSchema),
+    recommendedPollIntervalMs: z.number().int().positive(),
+    replayMode: z.enum(['incremental', 'snapshot']),
+});
+
+export const DeadLetterArtifactSummarySchema = z.object({
+    id: z.string().min(1),
+    jobId: z.string().min(1),
+    sessionId: z.string().nullable().optional(),
+    uri: z.string().min(1),
+    createdAt: z.string().datetime(),
+    metadata: z.record(z.unknown()).nullable(),
+});
+
+export const CreateJobResponseSchema = z.object({
+    job: JobDetailSchema,
+    idempotentReplay: z.boolean(),
+});
+
+export const CancelJobResponseSchema = z.object({
+    job: JobDetailSchema,
+    cancelled: z.boolean(),
+});
+
+export function validateCandidateDataForAI(pkg: unknown) {
+    return CandidateDataPackageSchema.parse(pkg);
 }

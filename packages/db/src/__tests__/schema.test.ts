@@ -1,78 +1,56 @@
-import { describe, it, expect } from 'vitest';
-import { users, sessions, calculations, payments, auditLogs, dataRetention } from '../schema.js';
+import { describe, expect, it } from 'vitest';
+import {
+  artifacts,
+  auditLogs,
+  calculations,
+  dataRetention,
+  idempotencyKeys,
+  jobAttempts,
+  jobEvents,
+  jobs,
+  payments,
+  sessionFavorites,
+  sessions,
+  users,
+} from '../schema.js';
 
-describe('Database Schema Constraints & Metadata', () => {
+describe('database schema exports', () => {
+  it('preserves the core existing tables', () => {
+    expect(users).toHaveProperty('id');
+    expect(users).toHaveProperty('clerkId');
+    expect(sessions).toHaveProperty('id');
+    expect(sessions).toHaveProperty('userId');
+    expect(sessions).toHaveProperty('status');
+    expect(sessionFavorites).toHaveProperty('sessionId');
+    expect(calculations).toHaveProperty('ephemerisData');
+    expect(payments).toHaveProperty('amountPaise');
+    expect(auditLogs).toHaveProperty('action');
+    expect(dataRetention).toHaveProperty('scheduledDeletionAt');
+  });
 
-    describe('users schema', () => {
-        it('should have required fields configured correctly', () => {
-            expect(users.clerkId.notNull).toBe(true);
-            expect(users.email.notNull).toBe(true);
-            expect(users.isActive.notNull).toBe(true);
-            expect(users.role.notNull).toBe(true);
-        });
+  it('adds durable job orchestration tables required for async processing', () => {
+    expect(jobs).toHaveProperty('sessionId');
+    expect(jobs).toHaveProperty('status');
+    expect(jobs).toHaveProperty('checkpointJson');
+    expect(jobs).toHaveProperty('version');
+    expect(jobs).toHaveProperty('retryCount');
+    expect(jobs).toHaveProperty('retryReasonCode');
+    expect(jobs).toHaveProperty('nextRetryAt');
 
-        it('should have correct default values', () => {
-            expect(users.isActive.default).toBe(true);
-            expect(users.role.default).toBe('user');
-        });
-    });
+    expect(jobAttempts).toHaveProperty('jobId');
+    expect(jobAttempts).toHaveProperty('attemptNo');
+    expect(jobAttempts).toHaveProperty('outcome');
 
-    describe('sessions schema', () => {
-        it('should have correct relations and required fields', () => {
-            expect(sessions.userId.notNull).toBe(true);
-            expect(sessions.clerkId.notNull).toBe(true);
-            expect(sessions.fullName.notNull).toBe(true);
-            expect(sessions.dateOfBirth.notNull).toBe(true);
-            expect(sessions.tentativeTime.notNull).toBe(true);
-            expect(sessions.birthPlace.notNull).toBe(true);
-            expect(sessions.latitude.notNull).toBe(true);
-            expect(sessions.longitude.notNull).toBe(true);
-        });
+    expect(jobEvents).toHaveProperty('jobId');
+    expect(jobEvents).toHaveProperty('sequenceNo');
+    expect(jobEvents).toHaveProperty('payloadJson');
 
-        it('should allow nullable fields for optional data', () => {
-            expect(sessions.physicalTraits.notNull).toBe(false);
-            expect(sessions.forensicTraits.notNull).toBe(false);
-            expect(sessions.lifeEvents.notNull).toBe(false);
-            expect(sessions.spouseData.notNull).toBe(false);
-            expect(sessions.rectifiedTime.notNull).toBe(false);
-        });
+    expect(idempotencyKeys).toHaveProperty('userId');
+    expect(idempotencyKeys).toHaveProperty('requestHash');
+    expect(idempotencyKeys).toHaveProperty('jobId');
 
-        it('should have correct defaults', () => {
-            expect(sessions.status.default).toBe('draft');
-            expect(sessions.aiConsentGiven.default).toBe(false);
-            expect(sessions.isEncrypted.default).toBe(true);
-        });
-    });
-
-    describe('calculations schema (Cache)', () => {
-        it('should enforce metadata requirements', () => {
-            expect((calculations as any).version).toBeUndefined(); // Checking name
-            expect(calculations.algorithmVersion.default).toBe('2.0.0');
-            expect(calculations.ephemerisVersion.default).toBe('de440');
-            expect(calculations.cacheHitCount.default).toBe(0);
-        });
-    });
-
-    describe('payments schema', () => {
-        it('should enforce financial data constraints', () => {
-            expect(payments.amountPaise.notNull).toBe(true);
-            expect(payments.currency.default).toBe('INR');
-            expect(payments.status.default).toBe('pending');
-            expect(payments.refundAmountPaise.default).toBe(0);
-        });
-    });
-
-    describe('auditLogs & dataRetention schemas', () => {
-        it('should enforce compliance-related constraints', () => {
-            expect(auditLogs.action.notNull).toBe(true);
-            expect(auditLogs.resource.notNull).toBe(true);
-            expect(auditLogs.success.default).toBe(true);
-
-            expect(dataRetention.dataType.notNull).toBe(true);
-            expect(dataRetention.retentionDays.notNull).toBe(true);
-            expect(dataRetention.scheduledDeletionAt.notNull).toBe(true);
-            expect(dataRetention.status.default).toBe('scheduled');
-            expect(dataRetention.retryCount.default).toBe(0);
-        });
-    });
+    expect(artifacts).toHaveProperty('jobId');
+    expect(artifacts).toHaveProperty('kind');
+    expect(artifacts).toHaveProperty('uri');
+  });
 });

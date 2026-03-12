@@ -256,7 +256,7 @@ export interface QueuePosition {
   estimatedWaitSeconds: number;
   totalInQueue: number;
   createdAt: string;
-  session?: any;
+  session?: Record<string, unknown>;
 }
 
 /**
@@ -268,6 +268,94 @@ export interface QueueSubmitResult {
   position?: number;
   estimatedWaitSeconds?: number;
   error?: string;
+}
+
+export type JobStatus =
+  | 'queued'
+  | 'running'
+  | 'retrying'
+  | 'failed'
+  | 'completed'
+  | 'cancelled';
+
+export type JobKind = 'btr_rectification';
+
+export interface JobSummary {
+  id: string;
+  sessionId: string;
+  userId: string;
+  kind: JobKind;
+  status: JobStatus;
+  currentStage?: string | null;
+  progressPercent: number;
+  attempt: number;
+  maxAttempts: number;
+  retryCount: number;
+  retryReasonCode?: string | null;
+  nextRetryAt?: string | null;
+  queuedAt: string;
+  startedAt?: string | null;
+  heartbeatAt?: string | null;
+  finishedAt?: string | null;
+  cancelRequestedAt?: string | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface JobDetail extends JobSummary {
+  version: number;
+  result?: Record<string, unknown> | null;
+  checkpoint?: Record<string, unknown> | null;
+  cursor?: Record<string, unknown> | null;
+  sessionStatus?: string | null;
+}
+
+export interface JobEventRecord {
+  id: string;
+  jobId: string;
+  sessionId: string;
+  sequenceNo: number;
+  eventType: string;
+  stage?: string | null;
+  payload: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface JobEventsResponse {
+  jobId: string;
+  sessionId: string;
+  since: number;
+  events: JobEventRecord[];
+}
+
+export interface JobSyncResponse {
+  job: JobDetail;
+  since: number;
+  latestSequenceNo: number;
+  events: JobEventRecord[];
+  recommendedPollIntervalMs: number;
+  replayMode: 'incremental' | 'snapshot';
+}
+
+export interface DeadLetterArtifactSummary {
+  id: string;
+  jobId: string;
+  sessionId?: string | null;
+  uri: string;
+  createdAt: string;
+  metadata: Record<string, unknown> | null;
+}
+
+export interface CreateJobResponse {
+  job: JobDetail;
+  idempotentReplay: boolean;
+}
+
+export interface CancelJobResponse {
+  job: JobDetail;
+  cancelled: boolean;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -324,7 +412,7 @@ export interface CandidateScore {
   rank?: number;
   batch?: number;
   minifiedEph?: { sun: string; moon: string; ascendant: string };
-  fullEph?: Record<string, string>; // 🔱 NEW: High-precision Swiss Ephemeris data
+  fullEph?: Record<string, string>; // 🔱 NEW: High-precision ephemeris payload
 
   // Advanced God-Tier Properties
   timeString?: string;
@@ -407,7 +495,7 @@ export interface CandidateScoreEvent {
   batch?: number;
   rank?: number;
   minifiedEph?: { sun: string; moon: string; ascendant: string };
-  fullEph?: Record<string, string>; // 🔱 NEW: High-precision Swiss Ephemeris data
+  fullEph?: Record<string, string>; // 🔱 NEW: High-precision ephemeris payload
 }
 
 /**
@@ -642,6 +730,97 @@ export interface MinifiedEphemeris {
   sun: string;
   moon: string;
   ascendant: string;
+}
+
+export type EphemerisAyanamsaMode = 'lahiri';
+
+export type EphemerisHouseSystem = 'whole_sign' | 'equal' | 'placidus';
+
+export type EphemerisNodeMode = 'true' | 'mean';
+
+export type EphemerisServiceBodyName =
+  | 'sun'
+  | 'moon'
+  | 'mercury'
+  | 'venus'
+  | 'mars'
+  | 'jupiter'
+  | 'saturn'
+  | 'rahu'
+  | 'ketu';
+
+export interface EphemerisServiceLocation {
+  latitude: number;
+  longitude: number;
+  altitudeMeters?: number;
+}
+
+export interface EphemerisServiceBaseRequest {
+  location: EphemerisServiceLocation;
+  ayanamshaMode?: EphemerisAyanamsaMode;
+  houseSystem?: EphemerisHouseSystem;
+  nodeMode?: EphemerisNodeMode;
+}
+
+export interface EphemerisServiceSingleRequest extends EphemerisServiceBaseRequest {
+  timestampUtc: string;
+}
+
+export interface EphemerisServiceBatchRequest extends EphemerisServiceBaseRequest {
+  timestampsUtc: string[];
+}
+
+export interface EphemerisServiceSunriseRequest {
+  startTimestampUtc: string;
+  endTimestampUtc: string;
+  location: EphemerisServiceLocation;
+}
+
+export interface EphemerisServicePlanetPosition {
+  body: EphemerisServiceBodyName;
+  tropicalLongitude: number;
+  tropicalLatitude: number;
+  siderealLongitude?: number;
+  distanceAu: number;
+  longitudeSpeed: number;
+  latitudeSpeed?: number;
+  retrograde: boolean;
+}
+
+export interface EphemerisServiceHouses {
+  ascendantTropical: number;
+  mcTropical: number;
+  houseCuspsTropical: number[];
+  ascendantSidereal?: number;
+  houseCuspsSidereal?: number[];
+}
+
+export interface EphemerisServiceChartResponse {
+  timestampUtc: string;
+  julianDayUt: number;
+  julianDayTt: number;
+  ayanamsha: number;
+  planets: EphemerisServicePlanetPosition[];
+  houses: EphemerisServiceHouses;
+}
+
+export interface EphemerisServiceBatchResponse {
+  charts: EphemerisServiceChartResponse[];
+}
+
+export interface EphemerisServiceSunriseResponse {
+  sunriseTimestampUtc: string | null;
+}
+
+export interface EphemerisServiceHealthResponse {
+  service: 'ephemeris';
+  status: 'healthy' | 'degraded' | 'unhealthy';
+  ready: boolean;
+  kernelLoaded: boolean;
+  kernelFile: string;
+  timestamp: string;
+  version: string;
+  error?: string | null;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

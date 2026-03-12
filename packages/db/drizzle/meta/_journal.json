@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1773247317362,
+      "tag": "0000_true_king_cobra",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1773248575487,
+      "tag": "0001_acoustic_star_brand",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773259142388,
+      "tag": "0003_lyrical_quicksilver",
+      "breakpoints": true
+    }
+  ]
+}

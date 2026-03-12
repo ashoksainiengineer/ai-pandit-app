@@ -17,8 +17,26 @@ vi.mock('@ai-pandit/db', () => {
             });
         return self;
     };
-    return { db: mockFn() };
+    return {
+        db: Object.assign(mockFn(), {
+            query: {
+                users: {
+                    findFirst: vi.fn(async () => ({
+                        clerkId: 'admin_clerk_001',
+                        isActive: true,
+                        role: 'admin',
+                    })),
+                },
+            },
+        }),
+        executeWithRetry: vi.fn(async (fn: () => Promise<unknown>) => fn()),
+    };
 });
+
+vi.mock('@ai-pandit/db/jobs', () => ({
+    getLatestArtifactForJobByKind: vi.fn(async () => null),
+    listDeadLetterArtifacts: vi.fn(async () => []),
+}));
 
 vi.mock('../../middleware/auth.js', () => ({
     authMiddleware: (req: any, _res: any, next: any) => {

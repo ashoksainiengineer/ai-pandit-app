@@ -2,9 +2,9 @@ import { describe, it, expect, vi } from 'vitest';
 import { db } from '../drizzle.js';
 import { users } from '../schema.js';
 
-describe('Turso DB Batching & Atomic Integrity', () => {
+describe('Postgres DB batching and atomic integrity', () => {
     it('should verify that all-or-nothing atomicity holds (Conceptual)', async () => {
-        // This is a conceptual test since actual Turso batching requires a live connection
+        // This remains a conceptual test because the package unit suite does not depend on a live database.
         // We verify that the schema exports are valid and can be used in batch structures
         expect(users).toBeDefined();
         expect(db).toBeDefined();

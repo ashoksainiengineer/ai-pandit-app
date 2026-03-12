@@ -49,13 +49,13 @@ else
     echo -e "${RED}FAIL${NC} (Project structure corrupted)"
 fi
 
-# 4. Check Ephemeris Data
-echo -n "Checking Swiss Ephemeris data... "
-COUNT=$(ls apps/api/ephe/*.se1 2>/dev/null | wc -l)
+# 4. Check Ephemeris Kernel
+echo -n "Checking Skyfield kernel data... "
+COUNT=$(ls services/ephemeris/data/*.bsp 2>/dev/null | wc -l)
 if [ $COUNT -gt 0 ]; then
-    echo -e "${GREEN}PASS ($COUNT files found)${NC}"
+    echo -e "${GREEN}PASS ($COUNT kernel file(s) found)${NC}"
 else
-    echo -e "${YELLOW}WARN${NC} (No .se1 files in apps/api/ephe/ - calculations may be less accurate)"
+    echo -e "${YELLOW}WARN${NC} (No .bsp kernel found in services/ephemeris/data/ - Skyfield service may not be ready)"
 fi
 
 # 5. Permission Check

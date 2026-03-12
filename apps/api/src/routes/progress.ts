@@ -2,12 +2,13 @@ import { Router, Response } from 'express';
 import { getSessionProgress } from '../lib/progress-tracker.js';
 import { getQueueStatus } from '../lib/queue-manager.js';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
-import { db, executeWithRetry } from '@ai-pandit/db';
-import { sessions } from '@ai-pandit/db/schema';
+import { db, executeWithRetry, getLatestJobForSession } from '@ai-pandit/db';
+import { sessions, type Session } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
 import { parseSensitiveField } from '../lib/encryption/index.js';
 import { logger } from '../lib/logger.js';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
+import { getPersistedSessionEvents } from '../lib/jobs/job-event-stream.js';
 
 const router = Router();
 logger.info('Progress route initialized');
@@ -114,8 +115,11 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
 
     // Get detailed progress
     const progress = await getSessionProgress(sessionId);
+    const sessionSnapshot = queueStatus.session as Partial<Session> | undefined;
+    const jobSnapshot = await getLatestJobForSession(sessionId);
+    const persistedEvents = await getPersistedSessionEvents(sessionId);
     const terminalResult = extractTerminalResult(
-        queueStatus.session?.analysisResult,
+        sessionSnapshot?.analysisResult,
         clerkId,
         internalUserId!
     );
@@ -126,22 +130,24 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
         status: queueStatus.status,
         position: queueStatus.position,
         estimatedWaitSeconds: queueStatus.estimatedWaitSeconds,
-        errorMessage: queueStatus.session?.errorMessage || undefined,
+        jobId: jobSnapshot?.id,
+        jobStatus: jobSnapshot?.status,
+        errorMessage: sessionSnapshot?.errorMessage || undefined,
         result: isCompleteStatus ? terminalResult ?? undefined : undefined,
         rectifiedTime: isCompleteStatus && typeof terminalResult?.rectifiedTime === 'string' ? terminalResult.rectifiedTime : undefined,
         accuracy: isCompleteStatus && typeof terminalResult?.accuracy === 'number' ? terminalResult.accuracy : undefined,
         confidence: isCompleteStatus && typeof terminalResult?.confidence === 'string' ? terminalResult.confidence : undefined,
         // Include session metadata for frontend "Blueprint" display
         metadata: {
-            fullName: parseSensitiveField(queueStatus.session?.fullName, clerkId, internalUserId!),
-            dateOfBirth: parseSensitiveField(queueStatus.session?.dateOfBirth, clerkId, internalUserId!),
-            tentativeTime: parseSensitiveField(queueStatus.session?.tentativeTime, clerkId, internalUserId!),
-            birthPlace: parseSensitiveField(queueStatus.session?.birthPlace, clerkId, internalUserId!),
-            offsetConfig: parseSensitiveField(queueStatus.session?.offsetConfig, clerkId, internalUserId!),
-            timezone: queueStatus.session?.timezone,
+            fullName: parseSensitiveField(sessionSnapshot?.fullName, clerkId, internalUserId!),
+            dateOfBirth: parseSensitiveField(sessionSnapshot?.dateOfBirth, clerkId, internalUserId!),
+            tentativeTime: parseSensitiveField(sessionSnapshot?.tentativeTime, clerkId, internalUserId!),
+            birthPlace: parseSensitiveField(sessionSnapshot?.birthPlace, clerkId, internalUserId!),
+            offsetConfig: parseSensitiveField(sessionSnapshot?.offsetConfig, clerkId, internalUserId!),
+            timezone: sessionSnapshot?.timezone,
             status: queueStatus.status,
-            errorMessage: queueStatus.session?.errorMessage || undefined,
-            updatedAt: queueStatus.session?.updatedAt || undefined,
+            errorMessage: sessionSnapshot?.errorMessage || undefined,
+            updatedAt: sessionSnapshot?.updatedAt || undefined,
         },
         progress: progress || {
             currentStep: 0,
@@ -151,6 +157,7 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
             lastUpdate: new Date().toISOString(),
             liveMessage: 'Waiting in queue...',
         },
+        recentEvents: persistedEvents.slice(-10),
     });
 }
 

@@ -4,11 +4,18 @@ import { sessions } from '@ai-pandit/db/schema';
 import { auth } from '@clerk/nextjs/server';
 import { v4 as uuidv4 } from 'uuid';
 import { buildOwnedSessionWhereClause, resolveSessionOwnershipContext } from '@/lib/server/session-ownership';
+import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 export async function POST(
     _req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
+    const buildPhaseResponse = getBuildPhaseRouteResponse();
+    if (buildPhaseResponse) return buildPhaseResponse;
+
     try {
         const { userId: clerkId } = await auth();
         if (!clerkId) {

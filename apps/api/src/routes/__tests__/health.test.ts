@@ -5,10 +5,34 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock @ai-pandit/db
-vi.mock('@ai-pandit/db', () => ({
-    checkDatabaseHealth: vi.fn(),
-    db: {},
-    executeWithRetry: vi.fn(),
+vi.mock('@ai-pandit/db', () => {
+    const createQuery = (value: any) => {
+        const query: any = {
+            where: vi.fn(() => Promise.resolve(value)),
+            then: (resolve: (result: unknown) => void) => resolve(value),
+        };
+        return query;
+    };
+
+    return {
+        checkDatabaseHealth: vi.fn(),
+        db: {
+            select: vi.fn((shape?: Record<string, unknown>) => ({
+                from: vi.fn(() => {
+                    if (shape && 'retryCount' in shape) {
+                        return createQuery([{ retryCount: 0 }]);
+                    }
+
+                    return createQuery([{ count: 0 }]);
+                }),
+            })),
+        },
+        executeWithRetry: vi.fn(),
+    };
+});
+
+vi.mock('@ai-pandit/db/jobs', () => ({
+    listActiveJobs: vi.fn().mockResolvedValue([]),
 }));
 
 // Mock config
@@ -33,6 +57,10 @@ vi.mock('../../config/index.js', () => ({
             staleTimeoutMs: 7200000,
             baseAnalysisTime: 240,
             contentionMultiplier: 0.1,
+        },
+        features: {
+            useAsyncJobPipeline: true,
+            useNewStreamPath: true,
         },
         memory: {
             heapThresholdGB: 1,

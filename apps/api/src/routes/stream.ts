@@ -3,10 +3,10 @@
 // SECURITY: Authenticated and authorized access only
 
 import { Router, Response } from 'express';
-import { db } from '@ai-pandit/db';
-import { sessions } from '@ai-pandit/db/schema';
+import { db, getLatestJobForSession } from '@ai-pandit/db';
+import { sessions, type Session } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { aiConfig } from '../config/index.js';
+import { aiConfig, config } from '../config/index.js';
 import { sessionEvents, SessionEvent } from '../lib/session-events.js';
 import { getSessionProgress } from '../lib/progress-tracker.js';
 import { getQueueStatus } from '../lib/queue-manager.js';
@@ -15,6 +15,10 @@ import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { safeDecryptWithFallback, parseSensitiveField } from '../lib/encryption/index.js';
 import { createStreamTicket } from '../lib/stream-ticket-manager.js';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
+import {
+    getPersistedSessionEvents,
+    getPersistedSessionEventsSince,
+} from '../lib/jobs/job-event-stream.js';
 
 const router = Router();
 
@@ -302,21 +306,32 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                 // RECONNECT PATH: Last-Event-ID present → replay only missed events
                 // This avoids sending duplicate thinking text, scores, etc.
                 // ────────────────────────────────────────────────────────────────
-                const missedEvents = sessionEvents.getEventsSince(sessionId, lastSeq);
-                logger.info(`[SSE] ♻️ Replaying ${missedEvents.length} missed events since seq ${lastSeq} for ${sessionId}`);
+                const missedEvents = config.features.useNewStreamPath
+                    ? await getPersistedSessionEventsSince(sessionId, lastSeq)
+                    : [];
+                const replayEvents = missedEvents.length > 0
+                    ? missedEvents
+                    : sessionEvents.getEventsSince(sessionId, lastSeq);
+                logger.info(`[SSE] ♻️ Replaying ${replayEvents.length} missed events since seq ${lastSeq} for ${sessionId}`);
 
-                for (const { seq, event } of missedEvents) {
+                for (const { seq, event } of replayEvents) {
                     sendSequencedEvent(res, sessionId, event, seq);
                 }
 
                 // Also send current metadata for status sync
                 const queueStatus = await getQueueStatus(sessionId);
                 if (queueStatus) {
-                    const session = queueStatus.session;
+                    const session = queueStatus.session as Partial<Session> | undefined;
+                    if (!session || !session.userId) {
+                        return;
+                    }
+                    const job = await getLatestJobForSession(sessionId);
                     sendSequencedEvent(res, sessionId, {
                         type: 'metadata',
                         data: {
                             ...session,
+                            jobId: job?.id,
+                            jobStatus: job?.status,
                             fullName: parseSensitiveField(session.fullName, clerkId, session.userId),
                             dateOfBirth: parseSensitiveField(session.dateOfBirth, clerkId, session.userId),
                             tentativeTime: parseSensitiveField(session.tentativeTime, clerkId, session.userId),
@@ -358,12 +373,18 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                 if (queueStatus) {
                     logger.info(`[SSE] Sending initial metadata for ${sessionId}`);
 
-                    const session = queueStatus.session;
+                    const session = queueStatus.session as Partial<Session> | undefined;
+                    if (!session || !session.userId) {
+                        return;
+                    }
+                    const job = await getLatestJobForSession(sessionId);
 
                     sendSequencedEvent(res, sessionId, {
                         type: 'metadata',
                         data: {
                             ...session,
+                            jobId: job?.id,
+                            jobStatus: job?.status,
                             fullName: parseSensitiveField(session.fullName, clerkId, session.userId),
                             dateOfBirth: parseSensitiveField(session.dateOfBirth, clerkId, session.userId),
                             tentativeTime: parseSensitiveField(session.tentativeTime, clerkId, session.userId),
@@ -376,6 +397,15 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                             aiModel: aiConfig.model,
                         }
                     } as any);
+                }
+
+                const persistedEvents = config.features.useNewStreamPath
+                    ? await getPersistedSessionEvents(sessionId)
+                    : [];
+                if (persistedEvents.length > 0) {
+                    logger.info(`[SSE] Replaying ${persistedEvents.length} persisted job events for ${sessionId}`);
+                    persistedEvents.forEach(({ seq, event }) => sendSequencedEvent(res, sessionId, event, seq));
+                    return;
                 }
 
                 // Send cached AI Context if exists

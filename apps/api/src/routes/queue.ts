@@ -1,5 +1,4 @@
 import { Router, Request, Response } from 'express';
-import crypto from 'node:crypto';
 import { AuthenticatedRequest, authMiddleware, clerk } from '../middleware/auth.js';
 import { db, executeWithRetry } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
@@ -13,6 +12,11 @@ import { syncUser } from '../lib/user-sync.js';
 import { cleanupSession } from '../lib/session-events.js';
 import { CalculateRequestSchema } from '@ai-pandit/shared';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
+import {
+    createQueuedBirthRectificationJob,
+    getJobIdempotencyKey,
+} from '../lib/jobs/job-service.js';
+import { sendError, sendSuccess } from '../utils/response.js';
 
 const router = Router();
 
@@ -69,205 +73,31 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
     try {
         const clerkId = req.clerkId!;
         const ownershipContext = await resolveSessionOwnershipContext(clerkId);
-        const body: SubmitRequest = req.body;
-        const { birthData, lifeEvents, physicalTraits, forensicTraits, offsetConfig, consentConfirmed, existingSessionId } = req.body;
-
-        // Validate core payload using shared contract schema
-        const validationResult = CalculateRequestSchema.safeParse({
-            birthData,
-            lifeEvents,
-            physicalTraits,
-            forensicTraits,
-            offsetConfig,
-        });
-        if (!validationResult.success) {
-            const errors = validationResult.error.errors.map((err) => ({
-                field: err.path.join('.'),
-                message: err.message,
-            }));
-            res.status(400).json({
-                success: false,
-                error: 'Validation failed',
-                details: errors,
-            });
-            return;
-        }
-
-        if (!forensicTraits) {
-            res.status(400).json({ success: false, error: 'Forensic Traits are required for high-precision BTR.' });
-            return;
-        }
-
-        // 🔴 Check AI consent if session exists
-        if (existingSessionId && !consentConfirmed) {
-            const session = await executeWithRetry(() =>
-                db.select({
-                    aiConsentGiven: sessions.aiConsentGiven,
-                    clerkId: sessions.clerkId,
-                    userId: sessions.userId,
-                })
-                    .from(sessions)
-                    .where(eq(sessions.id, existingSessionId))
-                    .limit(1)
-            );
-
-            if (session.length > 0 && !isSessionOwnedByContext(session[0], ownershipContext)) {
-                res.status(403).json({ success: false, error: 'Unauthorized' });
-                return;
-            }
-
-            if (session.length > 0 && !session[0].aiConsentGiven) {
-                res.status(403).json({
-                    success: false,
-                    error: 'AI processing consent required',
-                    code: 'CONSENT_REQUIRED',
-                });
-                return;
-            }
-        }
-
-        // Validate offset config
-        const offsetValidation = validateOffsetConfig(offsetConfig);
-        if (!offsetValidation.valid) {
-            res.status(400).json({ success: false, error: offsetValidation.error });
-            return;
-        }
-
-        // Validate birth data fields
-        const requiredFields = [
-            'fullName',
-            'dateOfBirth',
-            'tentativeTime',
-            'birthPlace',
-            'latitude',
-            'longitude',
-            'timezone',
-        ];
-        for (const field of requiredFields) {
-            if (!birthData[field as keyof BirthData]) {
-                res.status(400).json({ success: false, error: `${field} is required` });
-                return;
-            }
-        }
-
-        // Validate strict date format
-        if (!/^\d{4}-\d{2}-\d{2}$/.test(birthData.dateOfBirth)) {
-            res.status(400).json({ success: false, error: 'dateOfBirth must be strictly in YYYY-MM-DD format.' });
-            return;
-        }
-
-        const [year, month, day] = birthData.dateOfBirth.split('-').map(Number);
-        const birthDate = new Date(Date.UTC(year, month - 1, day));
-
-        if (birthDate.getUTCFullYear() !== year || birthDate.getUTCMonth() + 1 !== month || birthDate.getUTCDate() !== day) {
-            res.status(400).json({ success: false, error: 'Invalid date of birth (silent overflow detected)' });
-            return;
-        }
-
-        // Validate coordinates
-        if (birthData.latitude < -90 || birthData.latitude > 90) {
-            res.status(400).json({ success: false, error: 'Invalid latitude' });
-            return;
-        }
-        if (birthData.longitude < -180 || birthData.longitude > 180) {
-            res.status(400).json({ success: false, error: 'Invalid longitude' });
-            return;
-        }
-
-        // SELF-HEALING USER SYNC
-        // Ensures user exists in DB and gets internal UUID
-        // ═════════════════════════════════════════════════════════════════════════════
-        let internalUserId: string;
-        try {
-            internalUserId = await syncUser(clerkId);
-        } catch (syncError) {
-            res.status(500).json({ success: false, error: 'User synchronization failed' });
-            return;
-        }
-
-        // Create session with encrypted data
-        const sessionId = crypto.randomUUID();
-        const now = new Date().toISOString();
-
-        // 🔍 DIAGNOSTIC: Log migration info
-        logger.info('🔍 SESSION SUBMISSION: Mapping IDs', {
-            clerkId: clerkId.slice(0, 12) + '...',
-            internalUserId: internalUserId.slice(0, 8),
-            sessionId: sessionId.slice(0, 8)
+        const result = await createQueuedBirthRectificationJob({
+            clerkId,
+            ownershipContext,
+            body: req.body as Record<string, unknown>,
+            idempotencyKey: getJobIdempotencyKey(req),
         });
 
-        const encryptedFullName = encryptData(birthData.fullName, clerkId);
-        const encryptedLifeEvents = encryptData(JSON.stringify(lifeEvents), clerkId);
-        const encryptedPhysicalTraits = physicalTraits
-            ? encryptData(JSON.stringify(physicalTraits), clerkId)
-            : null;
-        const encryptedForensicTraits = forensicTraits
-            ? encryptData(JSON.stringify(forensicTraits), clerkId)
-            : null;
-
-        await executeWithRetry(() =>
-            db.insert(sessions).values({
-                id: sessionId,
-                userId: internalUserId,
-                clerkId: clerkId,
-                fullName: encryptedFullName,
-                dateOfBirth: encryptData(birthData.dateOfBirth, clerkId),
-                tentativeTime: encryptData(birthData.tentativeTime, clerkId),
-                birthPlace: encryptData(birthData.birthPlace, clerkId),
-                latitude: birthData.latitude,
-                longitude: birthData.longitude,
-                timezone: birthData.timezone.toString(),
-                gender: birthData.gender || 'other',
-                physicalTraits: encryptedPhysicalTraits,
-                forensicTraits: encryptedForensicTraits,
-                lifeEvents: encryptedLifeEvents,
-                offsetConfig: encryptData(JSON.stringify(offsetConfig), clerkId),
-                status: 'pending',
-                createdAt: now,
-                updatedAt: now,
-            })
-        );
-
-        const isVisible = await waitForSessionVisibility(sessionId, ownershipContext);
+        const isVisible = await waitForSessionVisibility(result.job.sessionId, ownershipContext);
         if (!isVisible) {
-            res.status(503).json({
-                success: false,
-                error: 'Session initialization delayed. Please try again.',
-            });
+            sendError(res, new Error('Session initialization delayed. Please try again.'));
             return;
         }
 
-        logger.info('Session created', { sessionId, clerkId, internalUserId });
-
-        // Add to queue
-        const queueResult = await addToQueue(sessionId);
-
-        if (!queueResult.success) {
-            await executeWithRetry(() =>
-                db.update(sessions)
-                    .set({ status: 'failed', errorMessage: queueResult.error })
-                    .where(eq(sessions.id, sessionId))
-            );
-
-            res.status(503).json({ success: false, error: queueResult.error });
-            return;
-        }
-
-        // Start queue processor
-        startQueueProcessor();
-
-        res.json({
-            success: true,
-            data: {
-                sessionId,
-                position: queueResult.position,
-                estimatedWaitSeconds: queueResult.estimatedWaitSeconds,
-                message: `Your request is in queue at position ${queueResult.position}`,
-            },
+        sendSuccess(res, {
+            sessionId: result.job.sessionId,
+            jobId: result.job.id,
+            position: result.queue.position,
+            estimatedWaitSeconds: result.queue.estimatedWaitSeconds,
+            status: result.job.status,
+            idempotentReplay: result.idempotentReplay,
+            message: `Your request is in queue at position ${result.queue.position}`,
         });
     } catch (error) {
         logger.error('Queue submit error', error);
-        res.status(500).json({ success: false, error: 'Failed to submit request' });
+        sendError(res, error);
     }
 });
 

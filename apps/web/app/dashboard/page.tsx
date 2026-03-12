@@ -16,6 +16,9 @@ import { DashboardClient } from './DashboardClient';
 import Layout from '@/components/Layout';
 import { ensureUserRecord } from '@/lib/server/user-sync';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Initialize encryption for server-side decryption
 initializeEncryption(env.security.encryptionSecret);
 
@@ -112,11 +115,11 @@ async function getUserSessions(clerkId: string, clerkUser?: any): Promise<Dashbo
       // Fallback for missing columns
       if (dbError.message?.includes('forensicTraits') || dbError.message?.includes('no such column')) {
         console.log('[Dashboard] Using fallback query...');
-        const { client } = await import('@ai-pandit/db');
-        const rawResult = await client.execute({
-          sql: `SELECT * FROM sessions WHERE clerkId = ? ORDER BY createdAt DESC`,
-          args: [clerkId]
-        });
+        const { pool } = await import('@ai-pandit/db');
+        const rawResult = await pool.query(
+          'SELECT * FROM sessions WHERE clerkId = $1 ORDER BY createdAt DESC',
+          [clerkId]
+        );
         userSessions = rawResult.rows.map((s: any) => ({
           ...s,
           fullName: parseSensitiveField(s.fullName, 'Unencryptable Session'),

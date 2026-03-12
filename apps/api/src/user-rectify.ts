@@ -6,13 +6,12 @@ import { logger } from './lib/logger.js';
 import { addToQueue, startQueueProcessor } from './lib/queue-manager.js';
 import { encryptData } from './lib/encryption/index.js';
 import { syncUser } from './lib/user-sync.js';
-import { initSwissEph } from './lib/ephemeris.js';
+import { initEphemerisProvider } from './lib/ephemeris.js';
 
 async function runUserRectification() {
     console.log('🚀 INITIALIZING USER BIRTH TIME RECTIFICATION...');
 
-    // 1. Init Swiss Ephemeris
-    await initSwissEph();
+    await initEphemerisProvider();
 
     const clerkId = 'clerk_user_rectification_run';
     let internalUserId: string;

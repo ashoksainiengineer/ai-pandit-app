@@ -1,6 +1,6 @@
 /**
  * Function Warmup Utility
- * Keeps Vercel serverless functions warm to prevent cold starts
+ * Keeps the deployed web service warm to reduce cold starts
  */
 
 import { logger } from './logger';
@@ -52,6 +52,10 @@ export async function executeWarmup(config: Partial<WarmupConfig> = {}): Promise
   const baseUrl = env.app.baseUrl;
 
   const pingPromises = mergedConfig.endpoints.map((endpoint) => {
+    if (!baseUrl && !endpoint.startsWith('http')) {
+      logger.warn('Skipping warmup endpoint because no public app URL is configured', { endpoint });
+      return Promise.resolve();
+    }
     const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
     return pingEndpoint(url, mergedConfig.timeoutMs);
   });

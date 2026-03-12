@@ -11,6 +11,9 @@ import { Breadcrumbs, predefinedBreadcrumbs } from '@/components/ui/Breadcrumbs'
 import { env } from '@/lib/config/env';
 import { initializeEncryption, decrypt, parseSensitiveField } from '@/lib/crypto';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Initialize encryption for server-side decryption
 initializeEncryption(env.security.encryptionSecret);
 

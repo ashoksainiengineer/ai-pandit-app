@@ -130,7 +130,16 @@ The server will fall back to algorithmic calculations if Swiss Ephemeris WASM fa
 
 ## 📝 License
 
-See LICENSE file for details.
+This project is proprietary and closed-source.
+All rights reserved. No reuse, redistribution, or modification is permitted
+without explicit written permission.
+
+See [LICENSE](LICENSE) for details.
+
+## 📄 Third-Party Notices
+
+This project uses third-party software, including Skyfield (MIT License).
+See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## 📚 Documentation
 

@@ -26,23 +26,23 @@ import { routes } from './routes/index.js';
 import { logger } from './utils/logger.js';
 import { requestIdMiddleware } from './middleware/request-id.js';
 import { errorHandlerMiddleware, notFoundHandler, setupUncaughtExceptionHandlers } from './middleware/error-handler-new.js';
-import { initSwissEph } from './lib/ephemeris.js';
+import { getEphemerisProviderStatus, initEphemerisProvider } from './lib/ephemeris.js';
 
 type StartupState = {
     initializing: boolean;
     dbReady: boolean;
-    swissephReady: boolean;
+    ephemerisReady: boolean;
     dbError: string | null;
-    swissephError: string | null;
+    ephemerisError: string | null;
     startedAt: number;
 };
 
 const startupState: StartupState = {
     initializing: true,
     dbReady: false,
-    swissephReady: false,
+    ephemerisReady: false,
     dbError: null,
-    swissephError: null,
+    ephemerisError: null,
     startedAt: Date.now(),
 };
 
@@ -65,6 +65,12 @@ async function initializeStartupDependencies(): Promise<void> {
         startupState.dbReady = true;
         startupState.dbError = null;
         logger.info('[STARTUP] Database ready');
+
+        if (config.features.useAsyncJobPipeline) {
+            const { recoverInterruptedJobsOnStartup } = await import('./lib/queue-manager.js');
+            const recovery = await recoverInterruptedJobsOnStartup();
+            logger.info('[STARTUP] Job recovery completed', recovery);
+        }
     } catch (error) {
         startupState.dbReady = false;
         startupState.dbError = (error as Error).message;
@@ -72,21 +78,23 @@ async function initializeStartupDependencies(): Promise<void> {
     }
 
     try {
-        await withTimeout(initSwissEph(), 45000, 'Swiss Ephemeris initialization');
-        startupState.swissephReady = true;
-        startupState.swissephError = null;
-        logger.info('[STARTUP] Swiss Ephemeris ready');
+        await withTimeout(initEphemerisProvider(), 45000, 'Ephemeris provider initialization');
+        startupState.ephemerisReady = true;
+        startupState.ephemerisError = null;
+        logger.info('[STARTUP] Ephemeris provider ready', {
+            ephemerisProvider: getEphemerisProviderStatus(),
+        });
     } catch (error) {
-        startupState.swissephReady = false;
-        startupState.swissephError = (error as Error).message;
-        logger.warn('[STARTUP] Swiss Ephemeris initialization failed/deferred', { error: startupState.swissephError });
+        startupState.ephemerisReady = false;
+        startupState.ephemerisError = (error as Error).message;
+        logger.warn('[STARTUP] Ephemeris provider initialization failed/deferred', { error: startupState.ephemerisError });
     }
 
     startupState.initializing = false;
     logger.info('[STARTUP] Background dependency initialization completed', {
         elapsedMs: Date.now() - initStart,
         dbReady: startupState.dbReady,
-        swissephReady: startupState.swissephReady,
+        ephemerisReady: startupState.ephemerisReady,
     });
 }
 
@@ -196,12 +204,13 @@ export function createApp() {
                 startupElapsedMs: Date.now() - startupState.startedAt,
                 dependencies: {
                     database: startupState.dbReady ? 'ready' : 'not-ready',
-                    swisseph: startupState.swissephReady ? 'ready' : 'not-ready',
+                    ephemeris: startupState.ephemerisReady ? 'ready' : 'not-ready',
                 },
                 errors: {
                     database: startupState.dbError,
-                    swisseph: startupState.swissephError,
+                    ephemeris: startupState.ephemerisError,
                 },
+                ephemerisProvider: getEphemerisProviderStatus(),
             });
             return;
         }
@@ -256,7 +265,7 @@ async function bootstrap() {
             port: PORT,
             nodeVersion: process.version,
             platform: process.platform,
-            swissephPath: 'ephe/',
+            ephemerisProvider: config.ephemeris.provider,
             startupMs: elapsed
         });
     });

@@ -1,15 +1,15 @@
-import { initSwissEph, calculateEphemeris } from '../lib/ephemeris.js';
+import { initEphemerisProvider, calculateEphemeris } from '../lib/ephemeris.js';
 
 async function verifyEphemeris() {
-    console.log("Initializing Swiss Ephemeris...");
+    console.log("Initializing ephemeris provider...");
     const initStart = Date.now();
-    const success = await initSwissEph();
+    const success = await initEphemerisProvider();
     console.log(`Init complete in ${Date.now() - initStart}ms. Success:`, success);
 
     if (!success) {
-        console.warn("WASM failed to initialize. Testing algorithmic fallback...");
+        console.warn("High-precision provider failed to initialize. Testing algorithmic fallback...");
     } else {
-        console.log("WASM initialized. Testing full coordinate calculation to verify planetary engines aren't crashing...");
+        console.log("High-precision provider initialized. Testing full coordinate calculation...");
     }
 
     try {

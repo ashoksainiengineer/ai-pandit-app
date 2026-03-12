@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 import { processSecondsPrecisionBTR } from '../../seconds-precision-btr.js';
 import * as aiClient from '../../ai-client.js';
-import { initSwissEph, cleanup } from '../../ephemeris.js';
+import { initEphemerisProvider, cleanup } from '../../ephemeris.js';
 import { TEST_PROFILES } from './dataset/test-profiles.js';
 import { logger } from '../../logger.js';
 
@@ -48,10 +48,9 @@ describe('WHOLE SYSTEM BTR: 10 Profile Validation Protocol', () => {
     };
 
 
-    // 1. Initialize REAL Swiss Ephemeris (Industry Standard)
     beforeAll(async () => {
-        logger.info('🧪 [SYSTEM-TEST] Initializing Real Swiss Ephemeris...');
-        await initSwissEph();
+        logger.info('🧪 [SYSTEM-TEST] Initializing ephemeris provider...');
+        await initEphemerisProvider();
     });
 
     afterAll(async () => {

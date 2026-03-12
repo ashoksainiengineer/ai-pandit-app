@@ -1,0 +1,494 @@
+import crypto from 'node:crypto';
+import { db, executeWithRetry } from '@ai-pandit/db';
+import { idempotencyKeys, jobs, sessions } from '@ai-pandit/db/schema';
+import { and, eq } from 'drizzle-orm';
+import {
+  CalculateRequestSchema,
+  type JobDetail,
+  type JobSummary,
+} from '@ai-pandit/shared';
+import {
+  AppError,
+  ErrorCodes,
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from '../../errors/index.js';
+import { addToQueue, cancelSession, startQueueProcessor } from '../queue-manager.js';
+import { validateOffsetConfig } from '../time-offset-manager.js';
+import { encryptData } from '../encryption/index.js';
+import { syncUser } from '../user-sync.js';
+import { isSessionOwnedByContext, type SessionOwnershipContext } from '../session-ownership.js';
+import type { AuthenticatedRequest } from '../../middleware/auth.js';
+
+interface CreateJobRequestBody extends Record<string, unknown> {
+  birthData?: unknown;
+  lifeEvents?: unknown;
+  physicalTraits?: unknown;
+  forensicTraits?: unknown;
+  offsetConfig?: unknown;
+  existingSessionId?: unknown;
+  consentConfirmed?: unknown;
+}
+
+export interface CreateJobOptions {
+  clerkId: string;
+  ownershipContext: SessionOwnershipContext;
+  body: CreateJobRequestBody;
+  idempotencyKey?: string;
+}
+
+export interface EnqueueJobResult {
+  job: JobDetail;
+  idempotentReplay: boolean;
+  queue: {
+    position: number;
+    estimatedWaitSeconds: number;
+  };
+}
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function getRequestHash(payload: unknown): string {
+  return crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: string }).code === '23505'
+  );
+}
+
+function normalizeJobStatus(sessionStatus: string | null | undefined): JobSummary['status'] {
+  switch (sessionStatus) {
+    case 'processing':
+      return 'running';
+    case 'complete':
+      return 'completed';
+    case 'failed':
+      return 'failed';
+    case 'queued':
+    case 'pending':
+      return 'queued';
+    default:
+      return 'queued';
+  }
+}
+
+function mergeJobStatus(
+  jobStatus: JobSummary['status'],
+  sessionStatus: string | null | undefined
+): JobSummary['status'] {
+  if (jobStatus === 'cancelled' || jobStatus === 'retrying') {
+    return jobStatus;
+  }
+
+  if (!sessionStatus) {
+    return jobStatus;
+  }
+
+  return normalizeJobStatus(sessionStatus);
+}
+
+function parseResultPayload(value: string | null): Record<string, unknown> | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return typeof parsed === 'object' && parsed !== null ? (parsed as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+function mapJobDetail(
+  jobRow: typeof jobs.$inferSelect,
+  sessionStatus?: string | null,
+  sessionResult?: string | null
+): JobDetail {
+  return {
+    id: jobRow.id,
+    sessionId: jobRow.sessionId,
+    userId: jobRow.userId,
+    kind: jobRow.kind,
+    status: mergeJobStatus(jobRow.status, sessionStatus),
+    currentStage: jobRow.currentStage,
+    progressPercent: jobRow.progressPercent,
+    attempt: jobRow.attempt,
+    maxAttempts: jobRow.maxAttempts,
+    retryCount: jobRow.retryCount,
+    retryReasonCode: jobRow.retryReasonCode,
+    nextRetryAt: jobRow.nextRetryAt,
+    queuedAt: jobRow.queuedAt,
+    startedAt: jobRow.startedAt,
+    heartbeatAt: jobRow.heartbeatAt,
+    finishedAt: jobRow.finishedAt,
+    cancelRequestedAt: jobRow.cancelRequestedAt,
+    errorCode: jobRow.errorCode,
+    errorMessage: jobRow.errorMessage,
+    createdAt: jobRow.createdAt,
+    updatedAt: jobRow.updatedAt,
+    version: jobRow.version,
+    result: (jobRow.resultJson as Record<string, unknown> | null) ?? parseResultPayload(sessionResult ?? null),
+    checkpoint: (jobRow.checkpointJson as Record<string, unknown> | null) ?? null,
+    cursor: (jobRow.cursorJson as Record<string, unknown> | null) ?? null,
+    sessionStatus: sessionStatus ?? null,
+  };
+}
+
+function getIdempotencyKey(request: AuthenticatedRequest): string | undefined {
+  const headerValue = request.headers['idempotency-key'];
+  if (typeof headerValue === 'string' && headerValue.trim()) {
+    return headerValue.trim();
+  }
+
+  return undefined;
+}
+
+async function ensureConsentIfReferenced(
+  existingSessionId: string | undefined,
+  consentConfirmed: boolean | undefined,
+  ownershipContext: SessionOwnershipContext
+): Promise<void> {
+  if (!existingSessionId || consentConfirmed) {
+    return;
+  }
+
+  const [existingSession] = await executeWithRetry(() =>
+    db
+      .select({
+        id: sessions.id,
+        clerkId: sessions.clerkId,
+        userId: sessions.userId,
+        aiConsentGiven: sessions.aiConsentGiven,
+      })
+      .from(sessions)
+      .where(eq(sessions.id, existingSessionId))
+      .limit(1)
+  );
+
+  if (!existingSession) {
+    throw new NotFoundError('Session', existingSessionId);
+  }
+
+  if (!isSessionOwnedByContext(existingSession, ownershipContext)) {
+    throw new ForbiddenError('Access denied');
+  }
+
+  if (!existingSession.aiConsentGiven) {
+    throw new AppError(ErrorCodes.FORBIDDEN, 'AI processing consent required', {
+      code: 'CONSENT_REQUIRED',
+      sessionId: existingSessionId,
+    });
+  }
+}
+
+function validateBirthData(value: CreateJobRequestBody): asserts value is CreateJobRequestBody {
+  const validationResult = CalculateRequestSchema.safeParse({
+    birthData: value.birthData,
+    lifeEvents: value.lifeEvents,
+    physicalTraits: value.physicalTraits,
+    forensicTraits: value.forensicTraits,
+    offsetConfig: value.offsetConfig,
+  });
+
+  if (!validationResult.success) {
+    throw new ValidationError('Validation failed', {
+      fields: validationResult.error.errors.map((issue) => ({
+        field: issue.path.join('.'),
+        message: issue.message,
+      })),
+    });
+  }
+
+  const { birthData, forensicTraits, offsetConfig } = validationResult.data;
+  if (!forensicTraits) {
+    throw new ValidationError('Forensic traits are required for high-precision BTR.');
+  }
+
+  const offsetValidation = validateOffsetConfig(offsetConfig);
+  if (!offsetValidation.valid) {
+    throw new ValidationError(offsetValidation.error ?? 'Invalid offset configuration');
+  }
+
+  const birthDate = birthData.dateOfBirth;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+    throw new ValidationError('dateOfBirth must be strictly in YYYY-MM-DD format.', {
+      field: 'birthData.dateOfBirth',
+    });
+  }
+
+  const [year, month, day] = birthDate.split('-').map(Number);
+  const parsedBirthDate = new Date(Date.UTC(year, month - 1, day));
+  if (
+    parsedBirthDate.getUTCFullYear() !== year ||
+    parsedBirthDate.getUTCMonth() + 1 !== month ||
+    parsedBirthDate.getUTCDate() !== day
+  ) {
+    throw new ValidationError('Invalid date of birth (silent overflow detected)', {
+      field: 'birthData.dateOfBirth',
+    });
+  }
+}
+
+export async function createQueuedBirthRectificationJob(
+  options: CreateJobOptions
+): Promise<EnqueueJobResult> {
+  validateBirthData(options.body);
+
+  const validationResult = CalculateRequestSchema.parse({
+    birthData: options.body.birthData,
+    lifeEvents: options.body.lifeEvents,
+    physicalTraits: options.body.physicalTraits,
+    forensicTraits: options.body.forensicTraits,
+    offsetConfig: options.body.offsetConfig,
+  });
+
+  const existingSessionId =
+    typeof options.body.existingSessionId === 'string' ? options.body.existingSessionId : undefined;
+  const consentConfirmed =
+    typeof options.body.consentConfirmed === 'boolean' ? options.body.consentConfirmed : undefined;
+
+  await ensureConsentIfReferenced(existingSessionId, consentConfirmed, options.ownershipContext);
+
+  const internalUserId = await syncUser(options.clerkId);
+  const requestHash = getRequestHash(validationResult);
+
+  if (options.idempotencyKey) {
+    const idempotencyKey = options.idempotencyKey;
+    const [existingRecord] = await executeWithRetry(() =>
+      db
+        .select({
+          requestHash: idempotencyKeys.requestHash,
+          jobId: idempotencyKeys.jobId,
+        })
+        .from(idempotencyKeys)
+        .where(
+          and(
+            eq(idempotencyKeys.userId, internalUserId),
+            eq(idempotencyKeys.key, idempotencyKey)
+          )
+        )
+        .limit(1)
+    );
+
+    if (existingRecord?.jobId) {
+      if (existingRecord.requestHash !== requestHash) {
+        throw new AppError(ErrorCodes.DUPLICATE_REQUEST, 'Idempotency key reuse with different payload', {
+          key: options.idempotencyKey,
+        });
+      }
+
+      const replayJob = await getJobDetailById(existingRecord.jobId, options.ownershipContext);
+      return {
+        job: replayJob,
+        idempotentReplay: true,
+        queue: {
+          position: 0,
+          estimatedWaitSeconds: 0,
+        },
+      };
+    }
+  }
+
+  const sessionId = crypto.randomUUID();
+  const jobId = crypto.randomUUID();
+  const timestamp = nowIso();
+  const encryptedFullName = encryptData(validationResult.birthData.fullName, options.clerkId);
+  const encryptedLifeEvents = encryptData(JSON.stringify(validationResult.lifeEvents), options.clerkId);
+  const encryptedPhysicalTraits = validationResult.physicalTraits
+    ? encryptData(JSON.stringify(validationResult.physicalTraits), options.clerkId)
+    : null;
+  const encryptedForensicTraits = validationResult.forensicTraits
+    ? encryptData(JSON.stringify(validationResult.forensicTraits), options.clerkId)
+    : null;
+
+  try {
+    await db.transaction(async (tx) => {
+      await tx.insert(sessions).values({
+        id: sessionId,
+        userId: internalUserId,
+        clerkId: options.clerkId,
+        fullName: encryptedFullName,
+        dateOfBirth: encryptData(validationResult.birthData.dateOfBirth, options.clerkId),
+        tentativeTime: encryptData(validationResult.birthData.tentativeTime, options.clerkId),
+        birthPlace: encryptData(validationResult.birthData.birthPlace, options.clerkId),
+        latitude: validationResult.birthData.latitude,
+        longitude: validationResult.birthData.longitude,
+        timezone: validationResult.birthData.timezone.toString(),
+        gender: validationResult.birthData.gender ?? 'other',
+        physicalTraits: encryptedPhysicalTraits,
+        forensicTraits: encryptedForensicTraits,
+        lifeEvents: encryptedLifeEvents,
+        offsetConfig: encryptData(JSON.stringify(validationResult.offsetConfig), options.clerkId),
+        status: 'pending',
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+
+      await tx.insert(jobs).values({
+        id: jobId,
+        sessionId,
+        userId: internalUserId,
+        kind: 'btr_rectification',
+        status: 'queued',
+        progressPercent: 0,
+        priority: 100,
+        attempt: 0,
+        maxAttempts: 3,
+        queuedAt: timestamp,
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+
+      if (options.idempotencyKey) {
+        await tx.insert(idempotencyKeys).values({
+          id: crypto.randomUUID(),
+          userId: internalUserId,
+          key: options.idempotencyKey,
+          requestHash,
+          sessionId,
+          jobId,
+          createdAt: timestamp,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        });
+      }
+    });
+  } catch (error) {
+    if (isUniqueViolation(error) && options.idempotencyKey) {
+      const idempotencyKey = options.idempotencyKey;
+      const [existingRecord] = await executeWithRetry(() =>
+        db
+          .select({
+            requestHash: idempotencyKeys.requestHash,
+            jobId: idempotencyKeys.jobId,
+          })
+          .from(idempotencyKeys)
+          .where(
+            and(
+              eq(idempotencyKeys.userId, internalUserId),
+              eq(idempotencyKeys.key, idempotencyKey)
+            )
+          )
+          .limit(1)
+      );
+
+      if (existingRecord?.jobId && existingRecord.requestHash === requestHash) {
+        const replayJob = await getJobDetailById(existingRecord.jobId, options.ownershipContext);
+        return {
+          job: replayJob,
+          idempotentReplay: true,
+          queue: { position: 0, estimatedWaitSeconds: 0 },
+        };
+      }
+    }
+
+    throw error;
+  }
+
+  const queueResult = await addToQueue(sessionId);
+  if (!queueResult.success) {
+    const message = queueResult.error ?? 'Failed to queue request';
+    await executeWithRetry(() =>
+      db.transaction(async (tx) => {
+        await tx
+          .update(sessions)
+          .set({
+            status: 'failed',
+            errorMessage: message,
+            updatedAt: nowIso(),
+          })
+          .where(eq(sessions.id, sessionId));
+
+        await tx
+          .update(jobs)
+          .set({
+            status: 'failed',
+            errorMessage: message,
+            updatedAt: nowIso(),
+          })
+          .where(eq(jobs.id, jobId));
+      })
+    );
+
+    throw new AppError(ErrorCodes.QUEUE_FULL, message, {
+      sessionId,
+      jobId,
+    });
+  }
+
+  startQueueProcessor();
+
+  const job = await getJobDetailById(jobId, options.ownershipContext);
+  return {
+    job,
+    idempotentReplay: false,
+    queue: {
+      position: queueResult.position ?? 0,
+      estimatedWaitSeconds: queueResult.estimatedWaitSeconds ?? 0,
+    },
+  };
+}
+
+export async function getJobDetailById(
+  jobId: string,
+  ownershipContext: SessionOwnershipContext
+): Promise<JobDetail> {
+  const [jobRow] = await executeWithRetry(() =>
+    db
+      .select({
+        job: jobs,
+        sessionStatus: sessions.status,
+        sessionResult: sessions.analysisResult,
+        sessionClerkId: sessions.clerkId,
+        sessionUserId: sessions.userId,
+      })
+      .from(jobs)
+      .innerJoin(sessions, eq(sessions.id, jobs.sessionId))
+      .where(eq(jobs.id, jobId))
+      .limit(1)
+  );
+
+  if (!jobRow) {
+    throw new NotFoundError('Job', jobId);
+  }
+
+  if (
+    !isSessionOwnedByContext(
+      {
+        clerkId: jobRow.sessionClerkId,
+        userId: jobRow.sessionUserId,
+      },
+      ownershipContext
+    )
+  ) {
+    throw new ForbiddenError('Access denied');
+  }
+
+  return mapJobDetail(jobRow.job, jobRow.sessionStatus, jobRow.sessionResult);
+}
+
+export async function cancelJobById(
+  jobId: string,
+  ownershipContext: SessionOwnershipContext
+): Promise<{ job: JobDetail; cancelled: boolean }> {
+  const job = await getJobDetailById(jobId, ownershipContext);
+  const cancelled = await cancelSession(job.sessionId);
+  const refreshedJob = await getJobDetailById(jobId, ownershipContext);
+
+  return {
+    job: refreshedJob,
+    cancelled,
+  };
+}
+
+export function getJobIdempotencyKey(request: AuthenticatedRequest): string | undefined {
+  return getIdempotencyKey(request);
+}

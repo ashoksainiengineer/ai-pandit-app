@@ -11,7 +11,6 @@
 import React, { useState, useEffect, useCallback, Suspense, useRef, useMemo, memo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
-import { APIClient } from '@/lib/api-client';
 import { BirthData, LifeEvent, PhysicalTraits, TimeOffsetConfig, SpouseData, ForensicTraits } from '@/lib/types';
 import { Gender } from '@/lib/forensic-emojis';
 import Layout from '@/components/Layout';
@@ -276,10 +275,20 @@ function RectifyPageContent() {
                 }
 
                 // 2. Trigger Requeue on HF Backend (reads from same Turso DB)
-                result = await APIClient.post(`${backendUrl}/api/queue/requeue`, { sessionId: draftSessionId }, getToken);
+                const requeueRes = await fetch('/api/analysis/requeue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ sessionId: draftSessionId })
+                });
+                result = await requeueRes.json();
             } else {
                 // 3. Normal Calculate - Submit to HF Backend Queue
-                result = await APIClient.post(`${backendUrl}/api/queue`, payload, getToken);
+                const queueRes = await fetch('/api/analysis/queue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+                result = await queueRes.json();
             }
 
             if (!result?.success) {
@@ -389,6 +398,7 @@ function RectifyPageContent() {
         // Only save if user has entered meaningful data
         if (!birthData.fullName || birthData.fullName.trim().length < 2) return;
         if (!userId) return;
+        if (isSubmitting) return;
         
         // Skip if nothing changed
         if (currentDataString === lastSavedData) return;
@@ -483,7 +493,7 @@ function RectifyPageContent() {
                 clearTimeout(pendingSaveRef.current);
             }
         };
-    }, [currentDataString, draftSessionId, userId, getToken, lastSavedData, saveToLocalStorage]); // eslint-disable-line react-hooks/exhaustive-deps -- Using memoized currentDataString instead of individual deps
+    }, [currentDataString, draftSessionId, userId, getToken, lastSavedData, saveToLocalStorage, isSubmitting]); // eslint-disable-line react-hooks/exhaustive-deps -- Using memoized currentDataString instead of individual deps
 
     // Load existing draft on mount
     useEffect(() => {

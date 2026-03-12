@@ -1,25 +1,72 @@
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const { mockQuery, MockPool } = vi.hoisted(() => {
+  const query = vi.fn();
+
+  return {
+    mockQuery: query,
+    MockPool: vi.fn(function MockPool() {
+      return {
+        query,
+        end: vi.fn(),
+      };
+    }),
+  };
+});
+
+vi.mock('pg', () => ({
+  Pool: MockPool,
+}));
+
+vi.mock('drizzle-orm/node-postgres', () => ({
+  drizzle: vi.fn(() => ({
+    select: vi.fn(),
+    insert: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  })),
+}));
+
 import { checkDatabaseHealth, executeWithTimeout } from '../drizzle.js';
 
-describe('Turso DB Connectivity & Timeout Resilience', () => {
-    it('should report healthy status when database is reachable', async () => {
-        const health = await checkDatabaseHealth();
-        // Since we are running in a test environment, it might be file-based or mocked
-        expect(health).toHaveProperty('healthy');
-        expect(typeof health.latencyMs).toBe('number');
-    });
+describe('Postgres database connectivity and timeout resilience', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+  });
 
-    it('should respect query timeouts using executeWithTimeout', async () => {
-        const slowOperation = () => new Promise((resolve) => setTimeout(() => resolve('done'), 1000));
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
-        await expect(executeWithTimeout(slowOperation, 100)).rejects.toThrow('Query timeout after 100ms');
-    });
+  it('reports healthy status when the database responds', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [{ '?column?': 1 }] });
 
-    it('should handle invalid credentials gracefully in health check', async () => {
-        // In this test, we assume the environment might not have valid credentials or it's using memory DB
-        const health = await checkDatabaseHealth();
-        if (!health.healthy) {
-            expect(health.error).toBeDefined();
-        }
-    });
+    const health = await checkDatabaseHealth();
+
+    expect(health.healthy).toBe(true);
+    expect(health.error).toBeUndefined();
+  });
+
+  it('surfaces connection errors through the health check result', async () => {
+    mockQuery.mockRejectedValueOnce(new Error('Connection refused'));
+
+    const health = await checkDatabaseHealth();
+
+    expect(health.healthy).toBe(false);
+    expect(health.error).toBe('Connection refused');
+  });
+
+  it('enforces query timeouts for slow operations', async () => {
+    const slowOperation = () =>
+      new Promise((resolve) => {
+        setTimeout(() => resolve('done'), 1000);
+      });
+
+    const promise = executeWithTimeout(slowOperation, 100);
+    const assertion = expect(promise).rejects.toThrow('Query timeout after 100ms');
+
+    await vi.advanceTimersByTimeAsync(200);
+    await assertion;
+  });
 });

@@ -7,7 +7,9 @@
 import { NextResponse } from 'next/server';
 import { getMemoryStats, getActiveCalculations } from '@/lib/memory-manager';
 import { isHighPrecisionMode } from '@/lib/ephemeris';
+import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
 
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 interface HealthStatus {
@@ -31,6 +33,9 @@ interface HealthStatus {
 }
 
 export async function GET(): Promise<NextResponse<HealthStatus>> {
+  const buildPhaseResponse = getBuildPhaseRouteResponse();
+  if (buildPhaseResponse) return buildPhaseResponse as NextResponse<HealthStatus>;
+
   try {
     const memory = getMemoryStats();
     const activeCalcs = getActiveCalculations();

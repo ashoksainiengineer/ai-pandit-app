@@ -15,12 +15,14 @@ import { Router, Request, Response, NextFunction } from 'express';
 import healthRouter from './health.js';
 import calculateRouter from './calculate.js';
 import queueRouter from './queue.js';
+import jobsRouter from './jobs.js';
 import progressRouter from './progress.js';
 import streamRouter from './stream.js';
 // warmupRouter removed for security realignment
 import adminRouter from './admin.js';
 import sessionsRouter from './sessions.js';
 import candidateDetailRouter from './candidate-detail.js';
+import { config } from '../config/index.js';
 import {
   apiRateLimiter,
   calculateRateLimiter,
@@ -100,9 +102,13 @@ router.use('/queue/progress', progressRateLimiter, progressRouter);
 // NOTE: auth is enforced within queueRouter to avoid duplicate auth verification.
 router.use('/queue', strictRateLimiter, queueRouter);
 
-// Sessions CRUD - Kept for internal use / debugging
-// Primary CRUD is now handled by Vercel serverless (Option A Hybrid Architecture)
-// Frontend uses Vercel /api/sessions for speed, HF only handles AI analysis
+// Durable job orchestration endpoints
+if (config.features.useAsyncJobPipeline) {
+  router.use('/jobs', strictRateLimiter, jobsRouter);
+}
+
+// Sessions CRUD - exposed for same-origin web routes and internal tooling
+// The web app uses its own server routes for draft/session CRUD while API owns analysis orchestration.
 router.use('/sessions', authMiddleware, apiRateLimiter, sessionsRouter);
 
 // Stream endpoint - SSE connection, lenient rate limit

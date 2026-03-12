@@ -4,6 +4,12 @@ import {
     VimshottariDashaEntrySchema,
     CandidateDataPackageSchema,
     TransitDataEntrySchema,
+    CreateJobResponseSchema,
+    DeadLetterArtifactSummarySchema,
+    JobEventRecordSchema,
+    JobEventsResponseSchema,
+    JobSyncResponseSchema,
+    JobSummarySchema,
     validateCandidateDataForAI,
 } from '../schemas.js';
 
@@ -176,6 +182,130 @@ describe('Shared Schemas - Contract Tests', () => {
                 nadiSignals: { vargottama: ['Sun'] },
             };
             const result = CandidateDataPackageSchema.safeParse(enriched);
+            expect(result.success).toBe(true);
+        });
+    });
+
+    describe('Job contracts', () => {
+        const baseJob = {
+            id: 'job_123',
+            sessionId: 'session_123',
+            userId: 'user_123',
+            kind: 'btr_rectification',
+            status: 'queued',
+            progressPercent: 0,
+            attempt: 0,
+            maxAttempts: 3,
+            retryCount: 0,
+            retryReasonCode: null,
+            nextRetryAt: null,
+            queuedAt: '2026-03-11T10:00:00.000Z',
+            createdAt: '2026-03-11T10:00:00.000Z',
+            updatedAt: '2026-03-11T10:00:00.000Z',
+        };
+
+        it('should validate a job summary payload', () => {
+            const result = JobSummarySchema.safeParse(baseJob);
+            expect(result.success).toBe(true);
+        });
+
+        it('should reject invalid progress values', () => {
+            const result = JobSummarySchema.safeParse({
+                ...baseJob,
+                progressPercent: 101,
+            });
+            expect(result.success).toBe(false);
+        });
+
+        it('should validate a job creation response', () => {
+            const result = CreateJobResponseSchema.safeParse({
+                job: {
+                    ...baseJob,
+                    version: 0,
+                    result: null,
+                    checkpoint: null,
+                    cursor: null,
+                    sessionStatus: 'queued',
+                },
+                idempotentReplay: false,
+            });
+            expect(result.success).toBe(true);
+        });
+
+        it('should validate a job event record', () => {
+            const result = JobEventRecordSchema.safeParse({
+                id: 'evt_123',
+                jobId: 'job_123',
+                sessionId: 'session_123',
+                sequenceNo: 1,
+                eventType: 'job.queued',
+                payload: { status: 'queued' },
+                createdAt: '2026-03-11T10:00:00.000Z',
+            });
+            expect(result.success).toBe(true);
+        });
+
+        it('should validate a job events polling response', () => {
+            const result = JobEventsResponseSchema.safeParse({
+                jobId: 'job_123',
+                sessionId: 'session_123',
+                since: 12,
+                events: [
+                    {
+                        id: 'evt_123',
+                        jobId: 'job_123',
+                        sessionId: 'session_123',
+                        sequenceNo: 13,
+                        eventType: 'job.retrying',
+                        payload: { status: 'retrying' },
+                        createdAt: '2026-03-11T10:00:00.000Z',
+                    },
+                ],
+            });
+            expect(result.success).toBe(true);
+        });
+
+        it('should validate a frontend job sync response', () => {
+            const result = JobSyncResponseSchema.safeParse({
+                job: {
+                    ...baseJob,
+                    version: 2,
+                    result: null,
+                    checkpoint: { stage: 'stage_4' },
+                    cursor: null,
+                    sessionStatus: 'processing',
+                },
+                since: 3,
+                latestSequenceNo: 5,
+                events: [
+                    {
+                        id: 'evt_4',
+                        jobId: 'job_123',
+                        sessionId: 'session_123',
+                        sequenceNo: 4,
+                        eventType: 'job.retrying',
+                        payload: { status: 'retrying' },
+                        createdAt: '2026-03-11T10:00:00.000Z',
+                    },
+                ],
+                recommendedPollIntervalMs: 2000,
+                replayMode: 'incremental',
+            });
+            expect(result.success).toBe(true);
+        });
+
+        it('should validate a dead-letter artifact summary payload', () => {
+            const result = DeadLetterArtifactSummarySchema.safeParse({
+                id: 'artifact_1',
+                jobId: 'job_123',
+                sessionId: 'session_123',
+                uri: 'gs://bucket/dead-letter/job_123/report.json',
+                createdAt: '2026-03-11T10:00:00.000Z',
+                metadata: {
+                    reason: 'poison_job',
+                    attemptsUsed: 3,
+                },
+            });
             expect(result.success).toBe(true);
         });
     });

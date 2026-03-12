@@ -7,13 +7,12 @@ import { logger } from './lib/logger.js';
 import { addToQueue, startQueueProcessor } from './lib/queue-manager.js';
 import { encryptData } from './lib/encryption/index.js';
 import { syncUser } from './lib/user-sync.js';
-import { initSwissEph } from './lib/ephemeris.js';
+import { initEphemerisProvider } from './lib/ephemeris.js';
 
 async function runLiveTest() {
     console.log('🚀 INITIALIZING HIGH-PRECISION LIVE TEST (OFFSET: ±5 MIN)...');
 
-    // 1. Init Swiss Ephemeris
-    await initSwissEph();
+    await initEphemerisProvider();
 
     const clerkId = 'clerk_test_live_run';
     let internalUserId: string;

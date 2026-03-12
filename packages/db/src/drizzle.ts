@@ -1,152 +1,64 @@
-// ═══════════════════════════════════════════════════════════════════════════════
-// DATABASE CONNECTION MANAGEMENT
-// Turso (libSQL) with connection pooling, retries, and health checks
-// ═══════════════════════════════════════════════════════════════════════════════
-
-import { createClient, Client } from '@libsql/client';
-import { drizzle } from 'drizzle-orm/libsql';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
 import * as schema from './schema.js';
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// CONNECTION CONFIGURATION
-// ═══════════════════════════════════════════════════════════════════════════════
-
 const CONNECTION_CONFIG = {
-  // Connection retry settings
   maxRetries: 5,
   baseDelayMs: 1000,
   maxDelayMs: 30000,
-
-  // Query timeout
   queryTimeoutMs: 30000,
-
-  // Connection pool settings (Turso client handles pooling internally)
-  syncUrl: process.env.TURSO_DATABASE_URL || '',
-  authToken: process.env.TURSO_AUTH_TOKEN || '',
+  connectionString:
+    process.env.NEON_DATABASE_URL ||
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_URL ||
+    '',
 };
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// CLIENT INITIALIZATION WITH RETRY
-// ═══════════════════════════════════════════════════════════════════════════════
+function getFallbackConnectionString(): string {
+  return 'postgresql://postgres:postgres@127.0.0.1:5432/postgres';
+}
 
-async function createClientWithRetry(): Promise<Client> {
-  let lastError: Error | undefined;
+function shouldUseSsl(connectionString: string): boolean {
+  try {
+    const parsed = new URL(connectionString);
+    return parsed.hostname !== 'localhost' && parsed.hostname !== '127.0.0.1';
+  } catch {
+    return false;
+  }
+}
 
-  for (let attempt = 1; attempt <= CONNECTION_CONFIG.maxRetries; attempt++) {
-    try {
-      console.log(`Connecting to Turso database (attempt ${attempt}/${CONNECTION_CONFIG.maxRetries})...`);
-
-      const client = createClient({
-        url: CONNECTION_CONFIG.syncUrl,
-        authToken: CONNECTION_CONFIG.authToken,
-      });
-
-      // Verify connection with a simple query
-      await client.execute('SELECT 1');
-
-      console.log('✅ Database connection established');
-      return client;
-
-    } catch (error) {
-      lastError = error as Error;
-      const delay = Math.min(
-        CONNECTION_CONFIG.baseDelayMs * Math.pow(2, attempt - 1),
-        CONNECTION_CONFIG.maxDelayMs
-      );
-
-      console.warn(`Database connection attempt ${attempt} failed, retrying in ${delay}ms...`, {
-        error: lastError.message,
-      });
-
-      if (attempt < CONNECTION_CONFIG.maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
+function resolveConnectionString(): string {
+  if (CONNECTION_CONFIG.connectionString) {
+    return CONNECTION_CONFIG.connectionString;
   }
 
-  throw new Error(`Failed to connect to database after ${CONNECTION_CONFIG.maxRetries} attempts: ${lastError?.message}`);
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// INITIALIZE CLIENT WITH TIMEOUT PROTECTION
-// ═══════════════════════════════════════════════════════════════════════════════
-
-let client: Client;
-let db: ReturnType<typeof drizzle<typeof schema>>;
-
-/**
- * Create client with explicit timeout to prevent indefinite hangs
- * HF Spaces may have restricted network egress causing createClient to hang
- */
-async function createClientWithTimeout(url: string, authToken: string, timeoutMs: number = 10000): Promise<Client> {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      reject(new Error(`Database client creation timed out after ${timeoutMs}ms. Check network egress/Turso connectivity.`));
-    }, timeoutMs);
-
-    try {
-      const newClient = createClient({ url, authToken });
-      clearTimeout(timer);
-      resolve(newClient);
-    } catch (error) {
-      clearTimeout(timer);
-      reject(error);
-    }
-  });
-}
-
-function initializeDatabaseSync(): void {
-  console.log('[DB] Initializing database client...');
-  const startTime = Date.now();
   const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
   const isProductionRuntime = process.env.NODE_ENV === 'production' && !isBuildPhase;
 
-  // In production runtime, missing Turso URL must fail fast (no silent memory DB fallback)
-  if (!CONNECTION_CONFIG.syncUrl && isProductionRuntime) {
-    throw new Error('TURSO_DATABASE_URL is missing in production runtime');
+  if (isProductionRuntime) {
+    throw new Error('NEON_DATABASE_URL or DATABASE_URL is required in production runtime');
   }
 
-  // Use memory fallback only in non-production runtime (dev/test/build)
-  const finalUrl = CONNECTION_CONFIG.syncUrl || 'file::memory:';
-  if (!CONNECTION_CONFIG.syncUrl && !isBuildPhase) {
-    console.warn('⚠️ TURSO_DATABASE_URL is missing - using memory-based fallback client');
-  }
-
-  // IMPORTANT: create db synchronously so request handlers never observe undefined `db`.
-  client = createClient({ url: finalUrl, authToken: CONNECTION_CONFIG.authToken });
-  db = drizzle(client, { schema });
-  console.log(`[DB] Client created in ${Date.now() - startTime}ms`);
-  console.log('[DB] Database client initialized successfully');
+  console.warn(
+    '[DB] No Postgres connection string found. Using local fallback URL for non-production runtime.'
+  );
+  return getFallbackConnectionString();
 }
 
-async function verifyDatabaseConnection(): Promise<void> {
-  const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
-  if (isBuildPhase || !CONNECTION_CONFIG.syncUrl) return;
+const connectionString = resolveConnectionString();
+const pool = new Pool({
+  connectionString,
+  max: Number(process.env.DB_POOL_MAX || 10),
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+  ssl: shouldUseSsl(connectionString) ? { rejectUnauthorized: false } : undefined,
+});
 
-  try {
-    console.log('[DB] Testing connection...');
-    const testStart = Date.now();
-    await executeWithTimeout(() => client.execute('SELECT 1'), 10000);
-    console.log(`[DB] Connection verified in ${Date.now() - testStart}ms`);
-  } catch (err) {
-    console.error('❌ Proactive database health check failed:', (err as Error).message);
-    if (process.env.NODE_ENV === 'production') {
-      throw err;
-    }
-  }
-}
+const db = drizzle(pool, { schema });
 
-initializeDatabaseSync();
-const initPromise = verifyDatabaseConnection();
-
-// For backward compatibility: expose a function to ensure init is complete
 export async function ensureDatabaseInitialized(): Promise<void> {
-  await initPromise;
+  await verifyDatabaseConnection();
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// HEALTH CHECK
-// ═══════════════════════════════════════════════════════════════════════════════
 
 export async function checkDatabaseHealth(): Promise<{
   healthy: boolean;
@@ -156,7 +68,7 @@ export async function checkDatabaseHealth(): Promise<{
   const startTime = Date.now();
 
   try {
-    await client.execute('SELECT 1');
+    await pool.query('SELECT 1');
     return {
       healthy: true,
       latencyMs: Date.now() - startTime,
@@ -170,25 +82,29 @@ export async function checkDatabaseHealth(): Promise<{
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// QUERY HELPERS WITH TIMEOUT AND RETRY
-// ═══════════════════════════════════════════════════════════════════════════════
-
 export async function executeWithTimeout<T>(
   operation: () => Promise<T>,
   timeoutMs: number = CONNECTION_CONFIG.queryTimeoutMs
 ): Promise<T> {
-  return Promise.race([
-    operation(),
-    new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error(`Query timeout after ${timeoutMs}ms`)), timeoutMs)
-    ),
-  ]);
+  let timer: NodeJS.Timeout | undefined;
+
+  try {
+    return await Promise.race([
+      operation(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`Query timeout after ${timeoutMs}ms`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
 }
 
 export async function executeWithRetry<T>(
   operation: () => Promise<T>,
-  maxRetries: number = 5
+  maxRetries: number = CONNECTION_CONFIG.maxRetries
 ): Promise<T> {
   let lastError: Error | undefined;
 
@@ -197,54 +113,63 @@ export async function executeWithRetry<T>(
       return await operation();
     } catch (error) {
       lastError = error as Error;
-
-      // Only retry on transient errors
       const errorMessage = lastError.message.toLowerCase();
       const isTransient =
         errorMessage.includes('timeout') ||
         errorMessage.includes('network') ||
         errorMessage.includes('econnrefused') ||
         errorMessage.includes('econnreset') ||
-        errorMessage.includes('temporarily') ||
+        errorMessage.includes('connection terminated') ||
+        errorMessage.includes('connection ended') ||
+        errorMessage.includes('too many clients') ||
+        errorMessage.includes('too many connections') ||
+        errorMessage.includes('could not connect') ||
         errorMessage.includes('busy') ||
-        errorMessage.includes('locked');
+        errorMessage.includes('locked') ||
+        errorMessage.includes('57p01') ||
+        errorMessage.includes('53300') ||
+        errorMessage.includes('40001') ||
+        errorMessage.includes('40p01');
 
       if (!isTransient || attempt === maxRetries) {
         throw lastError;
       }
 
-      // Exponential backoff with jitter
-      const baseDelay = 500 * Math.pow(2, attempt - 1);
+      const baseDelay = CONNECTION_CONFIG.baseDelayMs * Math.pow(2, attempt - 1);
       const jitter = Math.random() * 200;
-      const delay = Math.min(baseDelay + jitter, 15000);
+      const delay = Math.min(baseDelay + jitter, CONNECTION_CONFIG.maxDelayMs);
 
-      console.warn(`[DB] Operation failed (attempt ${attempt}/${maxRetries}), retrying in ${Math.round(delay)}ms...`, {
-        error: lastError.message,
-      });
+      console.warn(
+        `[DB] Operation failed (attempt ${attempt}/${maxRetries}), retrying in ${Math.round(delay)}ms...`,
+        { error: lastError.message }
+      );
 
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
   throw lastError;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// GRACEFUL SHUTDOWN
-// ═══════════════════════════════════════════════════════════════════════════════
+async function verifyDatabaseConnection(): Promise<void> {
+  const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
+  if (isBuildPhase) return;
 
-export async function closeDatabaseConnection(): Promise<void> {
   try {
-    console.log('Closing database connection...');
-    await client.close();
-    console.log('Database connection closed');
+    await executeWithTimeout(() => pool.query('SELECT 1'), 10000);
   } catch (error) {
-    console.error('Error closing database connection:', error);
+    if (process.env.NODE_ENV === 'production') {
+      throw error;
+    }
+
+    console.warn('[DB] Proactive database health check failed in non-production runtime', {
+      error: (error as Error).message,
+    });
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// EXPORTS
-// ═══════════════════════════════════════════════════════════════════════════════
+export async function closeDatabaseConnection(): Promise<void> {
+  await pool.end();
+}
 
-export { client, db };
+export { pool, db };

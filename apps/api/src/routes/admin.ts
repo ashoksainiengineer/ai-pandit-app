@@ -5,7 +5,8 @@
 
 import { Router, Request, Response } from 'express';
 import { db, executeWithRetry } from '@ai-pandit/db';
-import { sessions, users } from '@ai-pandit/db/schema';
+import { getLatestArtifactForJobByKind, listDeadLetterArtifacts } from '@ai-pandit/db/jobs';
+import { jobs, sessions, users } from '@ai-pandit/db/schema';
 import { eq, and, gte, sql, desc, count, SQL } from 'drizzle-orm';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 import { config } from '../config/index.js';
@@ -156,6 +157,120 @@ router.get('/metrics', authMiddleware, async (req: AuthenticatedRequest, res: Re
       error: {
         code: 'INTERNAL_ERROR',
         message: 'Failed to fetch dashboard metrics',
+      },
+    });
+  }
+});
+
+router.get('/jobs/dead-letter', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!(await requireAdmin(req, res))) return;
+
+    const limit = Math.min(100, Math.max(1, Number.parseInt(String(req.query.limit ?? '25'), 10) || 25));
+    const artifacts = await listDeadLetterArtifacts(limit);
+
+    const summaries = await Promise.all(
+      artifacts.map(async (artifact) => {
+        const [job] = await db
+          .select({
+            status: jobs.status,
+            retryCount: jobs.retryCount,
+            retryReasonCode: jobs.retryReasonCode,
+            nextRetryAt: jobs.nextRetryAt,
+            errorCode: jobs.errorCode,
+            errorMessage: jobs.errorMessage,
+          })
+          .from(jobs)
+          .where(eq(jobs.id, artifact.jobId))
+          .limit(1);
+
+        return {
+          id: artifact.id,
+          jobId: artifact.jobId,
+          sessionId: artifact.sessionId,
+          uri: artifact.uri,
+          createdAt: artifact.createdAt,
+          metadata: (artifact.metadataJson as Record<string, unknown> | null) ?? null,
+          job,
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data: summaries,
+    });
+  } catch (error) {
+    logger.error('Failed to fetch dead-letter summaries', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to fetch dead-letter summaries',
+      },
+    });
+  }
+});
+
+router.get('/jobs/:jobId/dead-letter', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!(await requireAdmin(req, res))) return;
+
+    const [job] = await db
+      .select({
+        id: jobs.id,
+        sessionId: jobs.sessionId,
+        status: jobs.status,
+        attempt: jobs.attempt,
+        maxAttempts: jobs.maxAttempts,
+        retryCount: jobs.retryCount,
+        retryReasonCode: jobs.retryReasonCode,
+        nextRetryAt: jobs.nextRetryAt,
+        checkpointJson: jobs.checkpointJson,
+        cursorJson: jobs.cursorJson,
+        errorCode: jobs.errorCode,
+        errorMessage: jobs.errorMessage,
+        finishedAt: jobs.finishedAt,
+        updatedAt: jobs.updatedAt,
+      })
+      .from(jobs)
+      .where(eq(jobs.id, req.params.jobId))
+      .limit(1);
+
+    if (!job) {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'Dead-letter job not found',
+        },
+      });
+      return;
+    }
+
+    const artifact = await getLatestArtifactForJobByKind(req.params.jobId, 'dead_letter_report');
+
+    res.json({
+      success: true,
+      data: {
+        job,
+        artifact: artifact
+          ? {
+              id: artifact.id,
+              uri: artifact.uri,
+              createdAt: artifact.createdAt,
+              metadata: (artifact.metadataJson as Record<string, unknown> | null) ?? null,
+            }
+          : null,
+      },
+    });
+  } catch (error) {
+    logger.error('Failed to inspect dead-letter job', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'INTERNAL_ERROR',
+        message: 'Failed to inspect dead-letter job',
       },
     });
   }

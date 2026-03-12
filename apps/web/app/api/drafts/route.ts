@@ -10,6 +10,10 @@ import { env } from '@/lib/config/env';
 import { currentUser } from '@clerk/nextjs/server';
 import { ensureUserRecord } from '@/lib/server/user-sync';
 import { canFrontendMutateSession, getProtectedFieldsPresent } from '@/lib/server/session-write-guards';
+import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 // Initialize encryption
 initializeEncryption(env.security.encryptionSecret);
@@ -19,6 +23,9 @@ initializeEncryption(env.security.encryptionSecret);
 // ═════════════════════════════════════════════════════════════════════════════
 
 export async function POST(request: NextRequest) {
+    const buildPhaseResponse = getBuildPhaseRouteResponse();
+    if (buildPhaseResponse) return buildPhaseResponse;
+
     const { ipAddress, userAgent } = getRequestMetadata(request);
 
     try {
@@ -132,6 +139,9 @@ export async function POST(request: NextRequest) {
 
 // ... (GET function remains the same)
 export async function GET(request: NextRequest) {
+    const buildPhaseResponse = getBuildPhaseRouteResponse();
+    if (buildPhaseResponse) return buildPhaseResponse;
+
     try {
         const { userId: clerkId } = await auth();
         if (!clerkId) {

@@ -8,11 +8,16 @@ import request from 'supertest';
 vi.mock('@ai-pandit/db', () => ({
     checkDatabaseHealth: vi.fn().mockResolvedValue({ healthy: true, latencyMs: 5 }),
     db: {
-        select: vi.fn().mockReturnThis(),
-        from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        limit: vi.fn().mockResolvedValue([]),
+        select: vi.fn(() => ({
+            from: vi.fn(() => ({
+                where: vi.fn().mockResolvedValue([{ count: 0 }]),
+            })),
+        })),
     }
+}));
+
+vi.mock('@ai-pandit/db/jobs', () => ({
+    listActiveJobs: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@clerk/backend', () => ({
@@ -23,7 +28,13 @@ vi.mock('@clerk/backend', () => ({
 
 // We need to mock the ephemeris initialization as well
 vi.mock('../lib/ephemeris.js', () => ({
-    initSwissEph: vi.fn().mockResolvedValue(undefined),
+    initEphemerisProvider: vi.fn().mockResolvedValue(undefined),
+    getEphemerisProviderStatus: vi.fn().mockReturnValue({
+        configuredProvider: 'skyfield',
+        activeMode: 'skyfield',
+        ready: true,
+        highPrecision: true,
+    }),
 }));
 
 import app from '../server.js';

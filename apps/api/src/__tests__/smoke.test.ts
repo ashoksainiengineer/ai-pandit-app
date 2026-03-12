@@ -22,6 +22,26 @@ vi.mock('@ai-pandit/db', () => ({
     checkDatabaseHealth: vi.fn().mockResolvedValue({ healthy: true, latencyMs: 5 }),
 }));
 
+vi.mock('@ai-pandit/db/jobs', () => ({
+    listActiveJobs: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('@ai-pandit/db/schema', () => ({
+    jobs: {
+        status: 'status',
+        retryCount: 'retryCount',
+    },
+}));
+
+vi.mock('drizzle-orm', () => ({
+    count: vi.fn(() => ({ kind: 'count' })),
+    eq: vi.fn((column: unknown, value: unknown) => ({ column, value })),
+    sql: Object.assign(
+        (strings: TemplateStringsArray, ...values: unknown[]) => ({ strings, values }),
+        { raw: vi.fn((value: string) => value) }
+    ),
+}));
+
 vi.mock('../config/index.js', () => ({
     config: {
         app: { nodeEnv: 'test' },
@@ -59,6 +79,8 @@ vi.mock('../lib/crypto-adapter.js', () => ({
 
 vi.mock('../errors/index.js', () => ({
     AppError: class extends Error { constructor(m: string) { super(m); } },
+    ValidationError: class extends Error { constructor(m: string) { super(m); } },
+    CalculationError: class extends Error { constructor(m: string) { super(m); } },
     ErrorCodes: {},
 }));
 

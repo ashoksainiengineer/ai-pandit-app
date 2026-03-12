@@ -22,6 +22,7 @@ vi.mock('@ai-pandit/db', () => {
     const createQueryBuilder = () => {
         const qb: any = {
             from: vi.fn().mockReturnThis(),
+            leftJoin: vi.fn().mockReturnThis(),
             where: vi.fn().mockReturnThis(),
             limit: vi.fn().mockReturnThis(),
             orderBy: vi.fn().mockReturnThis(),
@@ -60,6 +61,26 @@ vi.mock('drizzle-orm', () => ({
 vi.mock('@ai-pandit/db/schema', () => ({
     sessions: { id: 'id', status: 'status', createdAt: 'createdAt', updatedAt: 'updatedAt' },
     calculations: { sessionId: 'sessionId' },
+    jobs: { id: 'id', sessionId: 'sessionId', status: 'status', retryCount: 'retryCount', updatedAt: 'updatedAt' },
+    jobAttempts: { id: 'id', jobId: 'jobId', outcome: 'outcome' },
+}));
+
+vi.mock('@ai-pandit/db/jobs', () => ({
+    appendJobEvent: vi.fn(),
+    claimNextQueuedJob: vi.fn(),
+    completeJobAttempt: vi.fn(),
+    countQueuedJobs: vi.fn(async () => 0),
+    createJobAttempt: vi.fn(async () => ({ id: 'attempt-1' })),
+    failJob: vi.fn(),
+    getLatestJobForSession: vi.fn(async () => null),
+    incrementJobAttempt: vi.fn(async () => ({ attempt: 1 })),
+    listActiveJobs: vi.fn(async () => []),
+    listJobEvents: vi.fn(async () => []),
+    markJobRunning: vi.fn(),
+    requestJobCancellation: vi.fn(),
+    scheduleJobRetry: vi.fn(),
+    updateJobAttemptHeartbeat: vi.fn(),
+    updateJobProgress: vi.fn(),
 }));
 
 vi.mock('../logger.js', () => ({
@@ -88,6 +109,7 @@ vi.mock('../progress-tracker.js', () => ({
         clearInstance: vi.fn(),
         getInstance: vi.fn(),
     },
+    getSessionProgress: vi.fn(async () => null),
 }));
 
 vi.mock('../encryption/index.js', () => ({
@@ -97,14 +119,19 @@ vi.mock('../encryption/index.js', () => ({
 
 vi.mock('../../config/index.js', () => ({
     config: {
-        queue: { maxConcurrent: 3, pollIntervalMs: 1000, maxSize: 100, staleTimeoutMs: 7200000, baseAnalysisTime: 240, contentionMultiplier: 0.2 },
+        queue: { maxConcurrent: 3, pollIntervalMs: 1000, syncPollIntervalMs: 2000, maxSize: 100, staleTimeoutMs: 7200000, baseAnalysisTime: 240, contentionMultiplier: 0.2, architecture: 'db_polling' },
         memory: { pressureThresholdGB: 10, criticalThresholdGB: 14, gcThresholdGB: 8, heapThresholdGB: 4 },
         ai: { baseUrl: 'http://localhost', apiKey: 'key', model: 'model' },
+        storage: { gcsBucket: undefined, artifactPrefix: 'analysis-artifacts', artifactRetentionDays: 30 },
     },
 }));
 
-vi.mock('./seconds-precision-btr.js', () => ({
+vi.mock('../../lib/seconds-precision-btr.js', () => ({
     processSecondsPrecisionBTR: vi.fn(),
+}));
+
+vi.mock('../../lib/jobs/artifact-storage.js', () => ({
+    persistArtifactReference: vi.fn(),
 }));
 
 import {
@@ -116,10 +143,14 @@ import {
     flushSessionTrash,
     cancelSession,
     heartbeat,
+    recoverInterruptedJobsOnStartup,
+    runQueueIteration,
     stopQueueProcessor,
 } from '../../lib/queue-manager.js';
 import { db, executeWithRetry } from '@ai-pandit/db';
+import * as jobRepo from '@ai-pandit/db/jobs';
 import * as cancellationManager from '../cancellation-manager.js';
+import { processSecondsPrecisionBTR } from '../../lib/seconds-precision-btr.js';
 import { emitComplete } from '../session-events.js';
 
 describe('Queue Manager', () => {
@@ -138,22 +169,20 @@ describe('Queue Manager', () => {
 
     describe('getQueuePosition', () => {
         it('should return 0 if session is already processing', async () => {
-            setMockResults([
-                [{ id: 'sess-1', status: 'processing' }]
+            vi.mocked(jobRepo.listActiveJobs).mockResolvedValueOnce([
+                { sessionId: 'sess-1', status: 'running' } as any,
             ]);
             const pos = await getQueuePosition('sess-1');
             expect(pos).toBe(0);
         });
 
         it('should calculate position based on concurrent limit', async () => {
-            setMockResults([
-                [
-                    { id: 's1', status: 'processing' }, // index 0
-                    { id: 's2', status: 'processing' }, // index 1
-                    { id: 's3', status: 'processing' }, // index 2
-                    { id: 's4', status: 'queued' },     // index 3
-                    { id: 'sess-1', status: 'queued' }, // index 4
-                ]
+            vi.mocked(jobRepo.listActiveJobs).mockResolvedValueOnce([
+                { sessionId: 's1', status: 'running' } as any,
+                { sessionId: 's2', status: 'running' } as any,
+                { sessionId: 's3', status: 'running' } as any,
+                { sessionId: 's4', status: 'queued' } as any,
+                { sessionId: 'sess-1', status: 'queued' } as any,
             ]);
             // maxConcurrent = 3. index = 4. Math.max(1, 4 - 3 + 1) = 2.
             const pos = await getQueuePosition('sess-1');
@@ -161,7 +190,7 @@ describe('Queue Manager', () => {
         });
 
         it('should return 0 if session not found in active list', async () => {
-            setMockResults([[]]);
+            vi.mocked(jobRepo.listActiveJobs).mockResolvedValueOnce([]);
             const pos = await getQueuePosition('missing');
             expect(pos).toBe(0);
         });
@@ -177,9 +206,11 @@ describe('Queue Manager', () => {
         it('should return full status payload for queued session', async () => {
             setMockResults([
                 [{ id: 'sess-1', status: 'queued', createdAt: '2020' }], // session lookup
-                [{ id: 'sess-1', status: 'queued' }], // queue position active list
-                [{ id: 'sess-1' }] // total queued count
             ]);
+            vi.mocked(jobRepo.listActiveJobs).mockResolvedValueOnce([
+                { sessionId: 'sess-1', status: 'queued' } as any,
+            ]);
+            vi.mocked(jobRepo.countQueuedJobs).mockResolvedValueOnce(1);
 
             const status = await getQueueStatus('sess-1');
             expect(status).toBeDefined();
@@ -282,6 +313,9 @@ describe('Queue Manager', () => {
 
         it('should return false if session already complete', async () => {
             setMockResults([[{ status: 'complete' }]]); // For the initial select call
+            vi.mocked(jobRepo.getLatestJobForSession).mockResolvedValueOnce({
+                status: 'completed',
+            } as any);
             const res = await cancelSession('sess-done');
             expect(res).toBe(false);
         });
@@ -316,13 +350,108 @@ describe('Queue Manager', () => {
         });
     });
 
+    describe('worker recovery', () => {
+        it('should recover running jobs after worker restart using checkpoint state', async () => {
+            setMockResults([
+                [{
+                    jobId: 'job-running-1',
+                    sessionId: 'sess-running-1',
+                    retryCount: 1,
+                    checkpointJson: { status: 'running', progress: { currentStep: 4 } },
+                    attemptId: 'attempt-running-1',
+                }],
+                [],
+            ]);
+
+            const result = await recoverInterruptedJobsOnStartup();
+
+            expect(result).toEqual({
+                recoveredJobs: 1,
+                abandonedAttempts: 1,
+            });
+            expect(jobRepo.completeJobAttempt).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    attemptId: 'attempt-running-1',
+                    outcome: 'abandoned',
+                    failureCode: 'worker_restart',
+                })
+            );
+            expect(jobRepo.scheduleJobRetry).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    jobId: 'job-running-1',
+                    retryCount: 2,
+                    retryReasonCode: 'worker_restart',
+                })
+            );
+        });
+    });
+
+    describe('poison job handling', () => {
+        it('should land non-retryable failures in a safe terminal failed state', async () => {
+            vi.mocked(jobRepo.claimNextQueuedJob).mockResolvedValueOnce({
+                id: 'job-poison-1',
+                sessionId: 'sess-poison-1',
+                status: 'queued',
+            } as any);
+            vi.mocked(jobRepo.getLatestJobForSession).mockResolvedValue({
+                id: 'job-poison-1',
+                sessionId: 'sess-poison-1',
+                attempt: 1,
+                progressPercent: 0,
+                currentStage: null,
+                retryCount: 0,
+                maxAttempts: 3,
+                status: 'running',
+                checkpointJson: null,
+                cursorJson: null,
+            } as any);
+
+            setMockResults([
+                [], // cleanupStaleRequests
+                { rowsAffected: 1 }, // claimNextQueuedSession -> session processing update
+                [{
+                    id: 'sess-poison-1',
+                    clerkId: 'valid-clerk',
+                    userId: '1',
+                    lifeEvents: 'encrypted-events',
+                    physicalTraits: null,
+                    forensicTraits: null,
+                    dateOfBirth: '1990-01-01',
+                    tentativeTime: '12:00:00',
+                    latitude: 12.34,
+                    longitude: 56.78,
+                    timezone: '5.5',
+                    offsetConfig: null,
+                    spouseData: null,
+                }],
+                [], // flushSessionTrash update
+                [], // flushSessionTrash delete
+                { rowsAffected: 1 }, // final failed status update
+            ]);
+            vi.mocked(processSecondsPrecisionBTR).mockRejectedValueOnce(new Error('invalid birth data payload'));
+
+            await runQueueIteration();
+            await vi.waitFor(() => {
+                expect(jobRepo.failJob).toHaveBeenCalledWith(
+                    expect.objectContaining({
+                        jobId: 'job-poison-1',
+                        status: 'failed',
+                        errorCode: 'processing_error',
+                    })
+                );
+            });
+
+            expect(jobRepo.scheduleJobRetry).not.toHaveBeenCalled();
+        });
+    });
+
     // ═══════════════════════════════════════════════════════════════════════════
     // QUEUE ADDITION (RUN LAST TO AVOID BACKGROUND LOOP INTERFERENCE)
     // ═══════════════════════════════════════════════════════════════════════════
 
     describe('addToQueue', () => {
         it('should completely reject if queue is full', async () => {
-            setMockResults([new Array(100).fill({ id: 'dummy' })]);
+            vi.mocked(jobRepo.countQueuedJobs).mockResolvedValueOnce(100);
             const res = await addToQueue('sess-1');
             expect(res.success).toBe(false);
             expect(res.error).toContain('Queue is full');
@@ -330,11 +459,14 @@ describe('Queue Manager', () => {
 
         it('should update status to queued and return position', async () => {
             setMockResults([
-                new Array(5).fill({ id: 'dummy' }), // getQueuedCount
                 [], // update
                 [{ id: 'sess-1', status: 'queued' }], // getQueueStatus -> session
-                [{ id: 'sess-1', status: 'queued' }], // getQueuePosition -> active
-                new Array(6).fill({ id: 'dummy' }) // getQueueStatus -> getQueuedCount
+            ]);
+            vi.mocked(jobRepo.countQueuedJobs)
+                .mockResolvedValueOnce(5)
+                .mockResolvedValueOnce(6);
+            vi.mocked(jobRepo.listActiveJobs).mockResolvedValueOnce([
+                { sessionId: 'sess-1', status: 'queued' } as any,
             ]);
 
             const res = await addToQueue('sess-1');

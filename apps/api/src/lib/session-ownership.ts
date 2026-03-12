@@ -13,8 +13,26 @@ export interface SessionOwnershipSnapshot {
 }
 
 export async function resolveSessionOwnershipContext(clerkId: string): Promise<SessionOwnershipContext> {
+    const queryUsers = (db as typeof db & {
+        query?: {
+            users?: {
+                findFirst?: (input: {
+                    where: unknown;
+                    columns: { id: true };
+                }) => Promise<{ id: string } | undefined>;
+            };
+        };
+    }).query?.users;
+
+    if (!queryUsers?.findFirst) {
+        return {
+            clerkId,
+            internalUserId: null,
+        };
+    }
+
     const user = await executeWithRetry(() =>
-        db.query.users.findFirst({
+        queryUsers.findFirst({
             where: eq(users.clerkId, clerkId),
             columns: { id: true },
         })

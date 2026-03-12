@@ -82,6 +82,22 @@ vi.mock('@ai-pandit/db/schema', () => ({
     calculations: { sessionId: 'sessionId' },
 }));
 
+vi.mock('@ai-pandit/db/jobs', () => ({
+    claimNextQueuedJob: vi.fn(async () => {
+        const contenders = selectQueue[0] ?? [];
+        const winner = contenders.find((candidate) => (updateRowsById[candidate.id] ?? 0) > 0);
+        return winner ? { id: `job_${winner.id}`, sessionId: winner.id } : null;
+    }),
+    createJobAttempt: vi.fn(async ({ id, jobId }: { id: string; jobId: string }) => ({ id, jobId })),
+    failJob: vi.fn(),
+    getLatestJobForSession: vi.fn(async (sessionId: string) => ({
+        id: `job_${sessionId}`,
+        sessionId,
+        attempt: 0,
+    })),
+    incrementJobAttempt: vi.fn(async () => ({ attempt: 1 })),
+}));
+
 vi.mock('../logger.js', () => ({
     logger: {
         info: vi.fn(),

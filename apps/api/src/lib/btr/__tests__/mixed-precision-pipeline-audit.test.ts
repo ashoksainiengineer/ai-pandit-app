@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { processSecondsPrecisionBTR } from '../../seconds-precision-btr.js';
 import * as aiClient from '../../ai-client.js';
-import { cleanup, initSwissEph } from '../../ephemeris.js';
+import { cleanup, initEphemerisProvider } from '../../ephemeris.js';
 import type { SecondsPrecisionInput } from '@ai-pandit/shared';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -53,7 +53,7 @@ function countOccurrences(haystack: string, needle: string): number {
 
 describe('Mixed-Precision Pipeline Audit (Stage payload continuity)', () => {
   beforeAll(async () => {
-    await initSwissEph();
+    await initEphemerisProvider();
   });
 
   afterAll(async () => {

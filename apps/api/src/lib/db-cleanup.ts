@@ -14,6 +14,28 @@ interface CleanupResult {
   errors?: string;
 }
 
+function getMutationRowCount(result: unknown): number {
+  if (
+    typeof result === 'object' &&
+    result !== null &&
+    'rowCount' in result &&
+    typeof (result as { rowCount?: unknown }).rowCount === 'number'
+  ) {
+    return (result as { rowCount: number }).rowCount;
+  }
+
+  if (
+    typeof result === 'object' &&
+    result !== null &&
+    'rowsAffected' in result &&
+    typeof (result as { rowsAffected?: unknown }).rowsAffected === 'number'
+  ) {
+    return (result as { rowsAffected: number }).rowsAffected;
+  }
+
+  return 0;
+}
+
 interface CleanupReport {
   timestamp: string;
   results: CleanupResult[];
@@ -51,7 +73,7 @@ async function cleanupSoftDeletedSessions(): Promise<CleanupResult> {
 
     return {
       table: 'sessions',
-      deleted: result.rowsAffected ?? 0,
+      deleted: getMutationRowCount(result),
     };
   } catch (error) {
     logger.error('Failed to cleanup soft-deleted sessions', error);
@@ -83,7 +105,7 @@ async function cleanupSoftDeletedUsers(): Promise<CleanupResult> {
 
     return {
       table: 'users',
-      deleted: result.rowsAffected ?? 0,
+      deleted: getMutationRowCount(result),
     };
   } catch (error) {
     logger.error('Failed to cleanup soft-deleted users', error);
@@ -121,7 +143,7 @@ async function cleanupCompletedSessionProgress(): Promise<CleanupResult> {
 
     return {
       table: 'sessions.progressData',
-      deleted: result.rowsAffected ?? 0,
+      deleted: getMutationRowCount(result),
     };
   } catch (error) {
     logger.error('Failed to cleanup session progress data', error);
@@ -152,7 +174,7 @@ async function cleanupExpiredCalculations(): Promise<CleanupResult> {
 
     return {
       table: 'calculations',
-      deleted: result.rowsAffected ?? 0,
+      deleted: getMutationRowCount(result),
     };
   } catch (error) {
     logger.error('Failed to cleanup expired calculations', error);
@@ -185,7 +207,7 @@ async function cleanupStalePendingSessions(): Promise<CleanupResult> {
 
     return {
       table: 'stale_pending_sessions',
-      deleted: result.rowsAffected ?? 0,
+      deleted: getMutationRowCount(result),
     };
   } catch (error) {
     logger.error('Failed to cleanup stale pending sessions', error);

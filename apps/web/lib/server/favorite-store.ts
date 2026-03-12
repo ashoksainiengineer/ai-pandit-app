@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { client, db } from '@ai-pandit/db';
+import { db, pool } from '@ai-pandit/db';
 import { sessionFavorites } from '@ai-pandit/db/schema';
 import { and, eq, inArray } from 'drizzle-orm';
 
@@ -17,25 +17,29 @@ function getFallbackSet(clerkId: string): Set<string> {
 
 function isMissingTableError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
-  return message.toLowerCase().includes('no such table') && message.includes('session_favorites');
+  const normalized = message.toLowerCase();
+  return (
+    (normalized.includes('no such table') || normalized.includes('does not exist')) &&
+    normalized.includes('session_favorites')
+  );
 }
 
 async function ensureFavoritesTable(): Promise<void> {
   if (ensureTablePromise) return ensureTablePromise;
   ensureTablePromise = (async () => {
-    await client.execute(`
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS session_favorites (
         id TEXT PRIMARY KEY,
         clerkId TEXT NOT NULL,
         sessionId TEXT NOT NULL,
-        createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::text,
+        updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::text,
         FOREIGN KEY (sessionId) REFERENCES sessions(id) ON DELETE CASCADE
       )
     `);
-    await client.execute(`CREATE INDEX IF NOT EXISTS session_favorites_clerkId_idx ON session_favorites(clerkId)`);
-    await client.execute(`CREATE INDEX IF NOT EXISTS session_favorites_sessionId_idx ON session_favorites(sessionId)`);
-    await client.execute(`CREATE UNIQUE INDEX IF NOT EXISTS session_favorites_clerk_session_unique ON session_favorites(clerkId, sessionId)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS session_favorites_clerkId_idx ON session_favorites(clerkId)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS session_favorites_sessionId_idx ON session_favorites(sessionId)`);
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS session_favorites_clerk_session_unique ON session_favorites(clerkId, sessionId)`);
   })().catch((error) => {
     ensureTablePromise = null;
     throw error;

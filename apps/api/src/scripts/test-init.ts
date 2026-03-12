@@ -1,7 +1,7 @@
-import { initSwissEph } from '../lib/ephemeris.js';
+import { initEphemerisProvider } from '../lib/ephemeris.js';
 
 async function test() {
-  const success = await initSwissEph();
-  console.log("WASM Init Success:", success);
+  const success = await initEphemerisProvider();
+  console.log("Ephemeris init success:", success);
 }
 test();

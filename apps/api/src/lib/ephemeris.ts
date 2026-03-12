@@ -1,23 +1,46 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// EPHEMERIS MODULE - High-Precision AI-Enhanced
-// Uses Swiss Ephemeris with minimal memory footprint
+// EPHEMERIS MODULE - Skyfield-first Vedic astronomy runtime
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { EphemerisData, PlanetPosition, HousePosition } from '@ai-pandit/shared';
 import { logger } from './logger.js';
 import { config } from '../config/index.js';
+import type { EphemerisServiceChartResponse } from '@ai-pandit/shared/types';
+import { CalculationError, ValidationError } from '../errors/index.js';
+import type {
+  EphemerisExecutionMode,
+  EphemerisProviderName,
+  EphemerisProviderStatus,
+} from './ephemeris/provider.js';
+import { summarizeEphemerisComparison, type EphemerisComparisonSummary } from './ephemeris/compare.js';
+import { fetchSkyfieldChart, fetchSkyfieldHealth, fetchSkyfieldSunrise } from './ephemeris/skyfield-client.js';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// MEMORY-EFFICIENT SWISS EPHEMERIS
-// Swiss Ephemeris uses memory-mapped files - minimal RAM impact
-// Binary: ~2MB, Ephemeris data: accessed from disk, not RAM
-// ═══════════════════════════════════════════════════════════════════════════
+interface ResolvedEphemerisConfig {
+  provider: EphemerisProviderName;
+  serviceUrl: string;
+  allowAlgorithmicFallback: boolean;
+  houseSystem: 'whole_sign' | 'equal' | 'placidus';
+  strictMode: boolean;
+}
 
-let swe: any = null;
-let useSwissEph = false;
+const DEFAULT_EPHEMERIS_CONFIG: ResolvedEphemerisConfig = {
+  provider: 'algorithmic',
+  serviceUrl: 'http://localhost:8000',
+  allowAlgorithmicFallback: true,
+  houseSystem: 'placidus',
+  strictMode: false,
+};
+
+function getEphemerisConfig(): ResolvedEphemerisConfig {
+  return {
+    ...DEFAULT_EPHEMERIS_CONFIG,
+    ...(config as { ephemeris?: Partial<ResolvedEphemerisConfig> } | undefined)?.ephemeris,
+  };
+}
+
 let isInitialized = false;
-let isInitializing = false;
 let initPromise: Promise<boolean> | null = null;
+let activeExecutionMode: EphemerisExecutionMode = getEphemerisConfig().provider;
 
 // Calculation Cache (LRU-like simple Map with TTL)
 interface CacheEntry {
@@ -28,83 +51,395 @@ const EPH_CACHE = new Map<string, CacheEntry>();
 const MAX_CACHE_SIZE = 300;
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours (ephemeris data is immutable)
 
-/**
- * Initializes the Swiss Ephemeris WASM module (Prolaxu version)
- * This must be called (and awaited) at server start.
- */
-export async function initSwissEph(): Promise<boolean> {
-  if (isInitialized) return useSwissEph;
-  if (isInitializing) return initPromise!;
+function getConfiguredProvider(): EphemerisProviderName {
+  return getEphemerisConfig().provider;
+}
 
-  isInitializing = true;
+function assertConfiguredProviderImplemented(): void {
+  if (!['skyfield', 'algorithmic'].includes(getConfiguredProvider())) {
+    throw new CalculationError(
+      `Unsupported ephemeris provider: ${getConfiguredProvider()}`
+    );
+  }
+}
+
+export async function initEphemerisProvider(): Promise<boolean> {
+  if (isInitialized) {
+    return activeExecutionMode === 'skyfield';
+  }
+
+  if (initPromise) {
+    return initPromise;
+  }
+
+  assertConfiguredProviderImplemented();
   initPromise = (async () => {
-    try {
-      logger.info('[EPHEMERIS] WASM init started');
-      // 1. Dynamic import of the ESM wrapper class from swisseph-wasm
-      const { default: SwissEph } = await import('swisseph-wasm');
+    const provider = getConfiguredProvider();
 
-      // 2. Instantiate and initialize the module
-      const instance = new SwissEph();
-      await instance.initSwissEph();
-
-      // 3. Create a synchronous adapter to match the native 'swisseph' package API
-      swe = {
-        ...instance,
-        swe_set_sid_mode: (mode: number, t0: number, ayT0: number) => (instance as any).set_sid_mode(mode, t0, ayT0),
-        swe_get_ayanamsa_ut: (jd: number) => (instance as any).get_ayanamsa_ut(jd),
-        swe_calc_ut: (jd: number, ipl: number, flags: number) => {
-          const res = (instance as any).calc(jd, ipl, flags);
-          return {
-            longitude: res.longitude,
-            latitude: res.latitude,
-            distance: res.distance,
-            longitudeSpeed: res.longitudeSpeed,
-            latitudeSpeed: res.latitudeSpeed,
-            distanceSpeed: res.distanceSpeed
-          };
-        },
-        swe_houses: (jd: number, lat: number, lon: number, hsys: string) => {
-          const res = (instance as any).houses(jd, lat, lon, hsys);
-          return {
-            house: Array.from(res.cusps as any),
-            ascendant: (res.ascmc as any)[0],
-            mc: (res.ascmc as any)[1]
-          };
-        },
-        swe_julday: (y: number, m: number, d: number, h: number) => instance.julday(y, m, d, h)
-      };
-
-      useSwissEph = true;
-      logger.info('[EPHEMERIS] Swiss Ephemeris WASM initialized successfully');
-    } catch (error) {
-      logger.warn('[EPHEMERIS] Swiss Ephemeris WASM failed - Fallback to algorithmic', { error: (error as any)?.message || error });
-      useSwissEph = false;
-    } finally {
+    if (provider === 'algorithmic') {
+      activeExecutionMode = 'algorithmic';
       isInitialized = true;
-      isInitializing = false;
+      logger.info('[EPHEMERIS] Algorithmic provider initialized');
+      return false;
     }
-    return useSwissEph;
+
+    try {
+      await fetchSkyfieldHealth();
+      activeExecutionMode = 'skyfield';
+      isInitialized = true;
+      logger.info('[EPHEMERIS] Skyfield provider initialized', {
+        provider,
+        serviceUrl: getEphemerisConfig().serviceUrl,
+      });
+      return true;
+    } catch (error) {
+      if (!getEphemerisConfig().allowAlgorithmicFallback) {
+        throw new CalculationError('Skyfield provider initialization failed', {
+          provider,
+          serviceUrl: getEphemerisConfig().serviceUrl,
+          cause: error,
+        });
+      }
+
+      activeExecutionMode = 'algorithmic-fallback';
+      isInitialized = true;
+      logger.warn('[EPHEMERIS] Skyfield provider unavailable, using algorithmic fallback', {
+        serviceUrl: getEphemerisConfig().serviceUrl,
+        error: (error as Error).message,
+      });
+      return false;
+    } finally {
+      initPromise = null;
+    }
   })();
 
   return initPromise;
 }
 
-function getSwissEphStatus(): boolean {
-  return isInitialized && useSwissEph;
+function getCurrentExecutionMode(): EphemerisExecutionMode {
+  return activeExecutionMode;
 }
 
-/**
- * Critical Helper: Block briefly if initializing
- */
-async function ensureInit(): Promise<boolean> {
-  if (isInitialized) return useSwissEph;
-  if (isInitializing && initPromise) {
-    logger.info('[EPHEMERIS] Calculation requested while warming up, waiting...');
-    // Wait up to 10s for the existing init to finish
-    const timeout = new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 10000));
-    return Promise.race([initPromise, timeout]);
+export function getEphemerisProviderStatus(): EphemerisProviderStatus {
+  const activeMode = getCurrentExecutionMode();
+  return {
+    configuredProvider: getConfiguredProvider(),
+    activeMode,
+    ready: isInitialized,
+    highPrecision: activeMode === 'skyfield',
+  };
+}
+
+export function getEphemerisMode(): EphemerisExecutionMode {
+  return getCurrentExecutionMode();
+}
+
+function cacheResult(cacheKey: string, data: EphemerisData): void {
+  if (EPH_CACHE.size >= MAX_CACHE_SIZE) {
+    const firstKey = EPH_CACHE.keys().next().value;
+    if (firstKey !== undefined) EPH_CACHE.delete(firstKey);
   }
-  return false;
+  EPH_CACHE.set(cacheKey, { data, timestamp: Date.now() });
+}
+
+function buildWholeSignHouses(ascendantLongitude: number): HousePosition[] {
+  const ascSignIndex = Math.floor((((ascendantLongitude % 360) + 360) % 360) / 30);
+
+  return Array.from({ length: 12 }, (_, index) => {
+    const sign = ZODIAC_SIGNS[(ascSignIndex + index) % 12];
+    const cusp = ((ascSignIndex + index) % 12) * 30;
+
+    return {
+      houseNumber: index + 1,
+      sign,
+      degree: 0,
+      cusp,
+      lord: getLord(sign),
+    };
+  });
+}
+
+function assignWholeSignPlanetHouses(
+  planets: Record<string, PlanetPosition>,
+  ascendantSign: string
+): void {
+  const ascSignIndex = ZODIAC_SIGNS.indexOf(ascendantSign as typeof ZODIAC_SIGNS[number]);
+
+  for (const planet of Object.values(planets)) {
+    const planetSignIndex = ZODIAC_SIGNS.indexOf(planet.sign as typeof ZODIAC_SIGNS[number]);
+    planet.house = ((planetSignIndex - ascSignIndex + 12) % 12) + 1;
+  }
+}
+
+function buildEphemerisFromSkyfieldChart(chart: EphemerisServiceChartResponse): EphemerisData {
+  const skyfieldPlanets = new Map(chart.planets.map((planet) => [planet.body, planet]));
+  const sunLongitude = skyfieldPlanets.get('sun')?.siderealLongitude ?? skyfieldPlanets.get('sun')?.tropicalLongitude ?? 0;
+
+  const planetNames = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'rahu', 'ketu'] as const;
+  const planets: Record<string, PlanetPosition> = {};
+
+  for (const planetName of planetNames) {
+    const source = skyfieldPlanets.get(planetName);
+    if (!source) {
+      throw new CalculationError(`Skyfield chart is missing planet payload for ${planetName}`, {
+        planetName,
+      });
+    }
+
+    const longitude = source.siderealLongitude ?? ((source.tropicalLongitude - chart.ayanamsha) % 360 + 360) % 360;
+    const sign = getZodiacSign(longitude);
+    const name = planetName.charAt(0).toUpperCase() + planetName.slice(1);
+
+    planets[planetName] = {
+      sign,
+      degree: longitude % 30,
+      longitude,
+      latitude: source.tropicalLatitude,
+      nakshatra: getNakshatra(longitude),
+      nakshatraPada: getNakshatraPada(longitude),
+      lord: getLord(sign),
+      retro: source.retrograde,
+      speed: source.longitudeSpeed,
+      longitudeSpeed: source.longitudeSpeed,
+      distance: source.distanceAu,
+      isCombust: isCombust(name, longitude, sunLongitude),
+      dignity: getDignity(name, sign),
+      house: 0,
+    };
+  }
+
+  const ascLongitude = chart.houses.ascendantSidereal ?? ((chart.houses.ascendantTropical - chart.ayanamsha) % 360 + 360) % 360;
+  const ascSign = getZodiacSign(ascLongitude);
+  const ascendant = {
+    sign: ascSign,
+    degree: ascLongitude % 30,
+    longitude: ascLongitude,
+    nakshatra: getNakshatra(ascLongitude),
+    nakshatraPada: getNakshatraPada(ascLongitude),
+  };
+
+  const kpCusps = chart.houses.houseCuspsSidereal
+    ?? chart.houses.houseCuspsTropical.map((cusp) => ((cusp - chart.ayanamsha) % 360 + 360) % 360);
+  const houses = buildWholeSignHouses(ascLongitude);
+
+  assignWholeSignPlanetHouses(planets, ascendant.sign);
+
+  return {
+    planets: planets as EphemerisData['planets'],
+    ascendant,
+    houses,
+    kpCusps,
+  };
+}
+
+export async function compareEphemerisProviders(
+  input: {
+    birthDate: string;
+    birthTime: string;
+    latitude: number;
+    longitude: number;
+    timezone: number | string;
+  },
+  candidateProvider: EphemerisProviderName = 'skyfield',
+  baselineProvider: EphemerisProviderName = 'algorithmic'
+): Promise<{
+  candidateProvider: EphemerisProviderName;
+  baselineProvider: EphemerisProviderName;
+  summary: EphemerisComparisonSummary;
+  candidate: EphemerisData;
+  baseline: EphemerisData;
+}> {
+  const candidate = await calculateEphemerisWithProvider(input, candidateProvider);
+  const baseline = await calculateEphemerisWithProvider(input, baselineProvider);
+
+  return {
+    candidateProvider,
+    baselineProvider,
+    summary: summarizeEphemerisComparison(candidate, baseline),
+    candidate,
+    baseline,
+  };
+}
+
+async function calculateEphemerisWithSkyfield(input: {
+  birthDate: string;
+  birthTime: string;
+  latitude: number;
+  longitude: number;
+  timezone: number | string;
+}): Promise<EphemerisData> {
+  const timestampUtc = convertToUTC(input.birthDate, input.birthTime, input.timezone)
+    .toISOString()
+    .replace('.000Z', 'Z');
+  const chart = await fetchSkyfieldChart({
+    timestampUtc,
+    location: {
+      latitude: input.latitude,
+      longitude: input.longitude,
+    },
+    ayanamshaMode: 'lahiri',
+    houseSystem: getEphemerisConfig().houseSystem,
+    nodeMode: 'true',
+  });
+
+  return buildEphemerisFromSkyfieldChart(chart);
+}
+
+function calculateEphemerisWithAlgorithmic(input: {
+  birthDate: string;
+  birthTime: string;
+  latitude: number;
+  longitude: number;
+  timezone: number | string;
+}): EphemerisData {
+  const strictMode = getEphemerisConfig().strictMode;
+  const utcDate = convertToUTC(input.birthDate, input.birthTime, input.timezone);
+
+  if (Number.isNaN(utcDate.getTime())) {
+    const message = `Invalid datetime combination: date="${input.birthDate}", time="${input.birthTime}", timezone="${input.timezone}".`;
+    if (strictMode) {
+      throw new CalculationError(message, input);
+    }
+    logger.warn(`[EPHEMERIS] ${message} Continuing because strict mode is disabled.`);
+  }
+
+  const jd = calculateJulianDay(utcDate);
+  const planets: Record<string, PlanetPosition> = {};
+
+  logger.warn('[EPHEMERIS] Using algorithmic ephemeris mode (~0.1° accuracy)');
+
+  const sunLng = calcSun(jd);
+  const moonLng = calcMoon(jd);
+
+  const sunSign = getZodiacSign(sunLng);
+  planets.sun = {
+    sign: sunSign,
+    degree: sunLng % 30,
+    longitude: sunLng,
+    latitude: 0,
+    nakshatra: getNakshatra(sunLng),
+    nakshatraPada: getNakshatraPada(sunLng),
+    lord: getLord(sunSign),
+    retro: false,
+    speed: 1.0,
+    distance: 1.0,
+    isCombust: false,
+    dignity: getDignity('Sun', sunSign),
+    house: 0,
+  };
+
+  const moonSign = getZodiacSign(moonLng);
+  planets.moon = {
+    sign: moonSign,
+    degree: moonLng % 30,
+    longitude: moonLng,
+    latitude: 0,
+    nakshatra: getNakshatra(moonLng),
+    nakshatraPada: getNakshatraPada(moonLng),
+    lord: getLord(moonSign),
+    retro: false,
+    speed: 13.2,
+    distance: 1.0,
+    isCombust: false,
+    dignity: getDignity('Moon', moonSign),
+    house: 0,
+  };
+
+  for (const name of ['mercury', 'venus', 'mars', 'jupiter', 'saturn', 'rahu'] as const) {
+    const { longitude: lng, speed } = calcPlanet(jd, name);
+    const sign = getZodiacSign(lng);
+    const planetName = name.charAt(0).toUpperCase() + name.slice(1);
+
+    planets[name] = {
+      sign,
+      degree: lng % 30,
+      longitude: lng,
+      latitude: 0,
+      nakshatra: getNakshatra(lng),
+      nakshatraPada: getNakshatraPada(lng),
+      lord: getLord(sign),
+      retro: speed < 0,
+      speed,
+      distance: 1.0,
+      isCombust: isCombust(planetName, lng, sunLng),
+      dignity: getDignity(planetName, sign),
+      house: 0,
+    };
+  }
+
+  const ketuLng = (planets.rahu.longitude + 180) % 360;
+  const ketuSign = getZodiacSign(ketuLng);
+  planets.ketu = {
+    sign: ketuSign,
+    degree: ketuLng % 30,
+    longitude: ketuLng,
+    latitude: 0,
+    nakshatra: getNakshatra(ketuLng),
+    nakshatraPada: getNakshatraPada(ketuLng),
+    lord: getLord(ketuSign),
+    retro: true,
+    speed: planets.rahu.speed,
+    distance: 1.0,
+    isCombust: false,
+    dignity: getDignity('Ketu', ketuSign),
+    house: 0,
+  };
+
+  const ascLng = calcAscendant(jd, input.latitude, input.longitude);
+  const ascSign = getZodiacSign(ascLng);
+  const ascendant = {
+    sign: ascSign,
+    degree: ascLng % 30,
+    longitude: ascLng,
+    nakshatra: getNakshatra(ascLng),
+    nakshatraPada: getNakshatraPada(ascLng),
+  };
+
+  const houses = buildWholeSignHouses(ascLng);
+  assignWholeSignPlanetHouses(planets, ascendant.sign);
+  activeExecutionMode = getConfiguredProvider() === 'algorithmic' ? 'algorithmic' : 'algorithmic-fallback';
+
+  return {
+    planets: planets as EphemerisData['planets'],
+    ascendant,
+    houses,
+    kpCusps: houses.map((house) => house.cusp),
+  };
+}
+
+async function calculateEphemerisWithProvider(
+  input: {
+    birthDate: string;
+    birthTime: string;
+    latitude: number;
+    longitude: number;
+    timezone: number | string;
+  },
+  provider: EphemerisProviderName
+): Promise<EphemerisData> {
+  if (provider === 'skyfield') {
+    try {
+      const result = await calculateEphemerisWithSkyfield(input);
+      activeExecutionMode = 'skyfield';
+      return result;
+    } catch (error) {
+      if (!getEphemerisConfig().allowAlgorithmicFallback) {
+        throw new CalculationError('Skyfield ephemeris request failed', {
+          provider,
+          serviceUrl: getEphemerisConfig().serviceUrl,
+          cause: error,
+        });
+      }
+
+      logger.warn('[EPHEMERIS] Skyfield request failed, using algorithmic fallback', {
+        serviceUrl: getEphemerisConfig().serviceUrl,
+        error: (error as Error).message,
+      });
+      return calculateEphemerisWithAlgorithmic(input);
+    }
+  }
+
+  return calculateEphemerisWithAlgorithmic(input);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -167,12 +502,6 @@ const isCombust = (planet: string, long: number, sunLong: number): boolean => {
   const orb = (planet === 'Mercury') ? 12 : (planet === 'Venus') ? 10 : (planet === 'Mars') ? 17 : (planet === 'Jupiter') ? 11 : 15;
   return diff < orb || diff > (360 - orb);
 };
-
-// Swiss Ephemeris Planet IDs
-const SE = { SUN: 0, MOON: 1, MERCURY: 2, VENUS: 3, MARS: 4, JUPITER: 5, SATURN: 6, MEAN_NODE: 10, TRUE_NODE: 11 };
-const SEFLG_SIDEREAL = 64 * 1024;
-const SEFLG_SPEED = 256;
-const SE_SIDM_LAHIRI = 1;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // UTILITY FUNCTIONS (Zero allocation where possible)
@@ -241,6 +570,13 @@ function isValidIsoDate(dateStr: string): boolean {
   return utc.getUTCFullYear() === year &&
     utc.getUTCMonth() === month - 1 &&
     utc.getUTCDate() === day;
+}
+
+function addDaysToIsoDate(dateStr: string, days: number): string {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
 function isValidTimeInput(timeStr: string): boolean {
@@ -316,9 +652,8 @@ export function calculateJulianDay(date: Date): number {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// VSOP87 ALGORITHMIC CALCULATIONS (No external data, ~0.01° accuracy)
-// Used when Swiss Ephemeris is not available
-// Memory: Only uses CPU, no data files
+// VSOP87 ALGORITHMIC CALCULATIONS (No external data, ~0.1° accuracy)
+// Used as an emergency degraded-mode fallback when Skyfield is unavailable.
 // ═══════════════════════════════════════════════════════════════════════════
 
 function getAyanamsaAlgo(jd: number): number {
@@ -416,8 +751,9 @@ export async function calculateEphemeris(
   longitude: number,
   timezone: number | string
 ): Promise<EphemerisData> {
-  const strictMode = config.ephemeris.strictMode;
-  const allowAlgorithmicFallback = config.ephemeris.allowAlgorithmicFallback;
+  assertConfiguredProviderImplemented();
+  const strictMode = getEphemerisConfig().strictMode;
+  const provider = getConfiguredProvider();
 
   // FIXED: More precise cache key including timezone
   const cacheKey = `${birthDate}_${birthTime}_${latitude.toFixed(6)}_${longitude.toFixed(6)}_${typeof timezone === 'string' ? timezone : timezone.toFixed(2)}`;
@@ -434,277 +770,49 @@ export async function calculateEphemeris(
   // Validate
   if (!isValidIsoDate(birthDate)) {
     const message = `Invalid birthDate: "${birthDate}". Expected calendar date format YYYY-MM-DD.`;
-    if (strictMode) throw new Error(message);
+    if (strictMode) throw new ValidationError(message, { birthDate });
     logger.warn(`[EPHEMERIS] ${message} Continuing because strict mode is disabled.`);
   }
   if (!isValidTimeInput(birthTime)) {
     const message = `Invalid birthTime: "${birthTime}". Expected HH:MM[:SS] (24h) or HH:MM[:SS] AM/PM.`;
-    if (strictMode) throw new Error(message);
+    if (strictMode) throw new ValidationError(message, { birthTime });
     logger.warn(`[EPHEMERIS] ${message} Continuing because strict mode is disabled.`);
   }
   if (!isValidTimezoneInput(timezone)) {
     const message = `Invalid timezone: "${timezone}". Expected numeric offset (-14 to +14) or valid IANA zone.`;
-    if (strictMode) throw new Error(message);
+    if (strictMode) throw new ValidationError(message, { timezone });
     logger.warn(`[EPHEMERIS] ${message} Continuing because strict mode is disabled.`);
   }
-  if (latitude < -90 || latitude > 90) throw new Error(`Invalid latitude: ${latitude}. Must be between -90 and 90.`);
-  if (longitude < -180 || longitude > 180) throw new Error(`Invalid longitude: ${longitude}. Must be between -180 and 180.`);
+  if (latitude < -90 || latitude > 90) {
+    throw new ValidationError(`Invalid latitude: ${latitude}. Must be between -90 and 90.`, {
+      latitude,
+    });
+  }
+  if (longitude < -180 || longitude > 180) {
+    throw new ValidationError(`Invalid longitude: ${longitude}. Must be between -180 and 180.`, {
+      longitude,
+    });
+  }
 
   // Pass the original timezone input so IANA zones (e.g. "Asia/Kolkata")
   // are resolved correctly by convertToUTC/getTzOffset.
   const utcDate = convertToUTC(birthDate, birthTime, timezone);
   if (Number.isNaN(utcDate.getTime())) {
     const message = `Invalid datetime combination: date="${birthDate}", time="${birthTime}", timezone="${timezone}".`;
-    if (strictMode) throw new Error(message);
+    if (strictMode) throw new ValidationError(message, {
+      birthDate,
+      birthTime,
+      timezone,
+    });
     logger.warn(`[EPHEMERIS] ${message} Continuing because strict mode is disabled.`);
   }
 
-  // Ensure initialization is synchronized (God-Tier Rehydration)
-  await ensureInit();
-
-  // Use pre-initialized Swiss Ephemeris status
-  const highPrecision = getSwissEphStatus();
-  if (!highPrecision && !allowAlgorithmicFallback) {
-    throw new Error(
-      'Swiss Ephemeris is unavailable and algorithmic fallback is disabled. ' +
-      'Enable Swiss Ephemeris or set EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK=true for degraded mode.'
-    );
-  }
-
-  // Use high-precision Julian Day if available
-  const jd = (highPrecision && swe && (swe as any).swe_julday)
-    ? (swe as any).swe_julday(utcDate.getUTCFullYear(), utcDate.getUTCMonth() + 1, utcDate.getUTCDate(), utcDate.getUTCHours() + utcDate.getUTCMinutes() / 60 + utcDate.getUTCSeconds() / 3600)
-    : calculateJulianDay(utcDate);
-
-  // Calculate planets - sequential to minimize memory
-  const planetNames = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'rahu'] as const;
-  const planets: Record<string, PlanetPosition> = {};
-
-  if (highPrecision && swe) {
-    // ══════ SWISS EPHEMERIS MODE ══════
-    // Memory-mapped data access - very low RAM usage
-    swe.swe_set_sid_mode(SE_SIDM_LAHIRI, 0, 0);
-
-    const seIds = [SE.SUN, SE.MOON, SE.MERCURY, SE.VENUS, SE.MARS, SE.JUPITER, SE.SATURN, SE.TRUE_NODE];
-
-    // FIXED: Added error handling around Swiss Ephemeris calculations
-    let sunLng = 0;
-    try {
-      const sunResult = swe.swe_calc_ut(jd, SE.SUN, SEFLG_SIDEREAL | SEFLG_SPEED);
-      sunLng = sunResult.longitude;
-    } catch (e) {
-      logger.error('[EPHEMERIS] Failed to calculate Sun position', e);
-      throw new Error('Swiss Ephemeris calculation failed for Sun');
-    }
-
-    for (let i = 0; i < planetNames.length; i++) {
-      try {
-        const result = swe.swe_calc_ut(jd, seIds[i], SEFLG_SIDEREAL | SEFLG_SPEED);
-        const lng = result.longitude;
-        const sign = getZodiacSign(lng);
-        const name = planetNames[i].charAt(0).toUpperCase() + planetNames[i].slice(1);
-
-        planets[planetNames[i]] = {
-          sign, degree: lng % 30, longitude: lng,
-          latitude: result.latitude,
-          nakshatra: getNakshatra(lng), nakshatraPada: getNakshatraPada(lng),
-          lord: getLord(sign), retro: result.longitudeSpeed < 0,
-          speed: result.longitudeSpeed,
-          longitudeSpeed: result.longitudeSpeed,
-          distance: result.distance,
-          isCombust: isCombust(name, lng, sunLng),
-          dignity: getDignity(name, sign),
-          house: 0 // Will be set after ascendant is calculated
-        };
-      } catch (e) {
-        if (!allowAlgorithmicFallback) {
-          throw new Error(
-            `Swiss Ephemeris failed for ${planetNames[i]} and algorithmic fallback is disabled.`
-          );
-        }
-        logger.warn(`[EPHEMERIS] ⚠️ Swiss Ephemeris failed for ${planetNames[i]}, using algorithmic fallback (~0.1° accuracy)`);
-        // Use algorithmic fallback for this planet
-        const algoResult = calcPlanet(jd, planetNames[i]);
-        const lng = algoResult.longitude;
-        const sign = getZodiacSign(lng);
-        const name = planetNames[i].charAt(0).toUpperCase() + planetNames[i].slice(1);
-
-        planets[planetNames[i]] = {
-          sign, degree: lng % 30, longitude: lng,
-          latitude: 0,
-          nakshatra: getNakshatra(lng), nakshatraPada: getNakshatraPada(lng),
-          lord: getLord(sign), retro: algoResult.speed < 0,
-          speed: algoResult.speed,
-          longitudeSpeed: algoResult.speed,
-          distance: 1.0,
-          isCombust: isCombust(name, lng, sunLng),
-          dignity: getDignity(name, sign),
-          house: 0
-        };
-      }
-    }
-
-    // Ketu
-    const ketuLng = (planets.rahu.longitude + 180) % 360;
-    const ketuSign = getZodiacSign(ketuLng);
-    planets.ketu = {
-      sign: ketuSign, degree: ketuLng % 30, longitude: ketuLng,
-      latitude: -planets.rahu.latitude, // Ketu is opposite node
-      nakshatra: getNakshatra(ketuLng), nakshatraPada: getNakshatraPada(ketuLng),
-      lord: getLord(ketuSign), retro: true,
-      speed: planets.rahu.speed, // Ketu speed matches Rahu
-      longitudeSpeed: planets.rahu.longitudeSpeed,
-      distance: planets.rahu.distance,
-      isCombust: false,
-      dignity: getDignity('Ketu', ketuSign),
-      house: 0
-    };
-
-    // Houses from Swiss Ephemeris (Whole Sign)
-    const houses = swe.swe_houses(jd, latitude, longitude, 'W');
-    const ayanamsa = swe.swe_get_ayanamsa_ut(jd);
-    let ascLng = houses.ascendant - ayanamsa;
-    if (ascLng < 0) ascLng += 360;
-
-    const ascSign = getZodiacSign(ascLng);
-    const ascendant = {
-      sign: ascSign, degree: ascLng % 30, longitude: ascLng,
-      nakshatra: getNakshatra(ascLng), nakshatraPada: getNakshatraPada(ascLng)
-    };
-
-    // Houses from Swiss Ephemeris (Placidus)
-    const houseList: HousePosition[] = [];
-    for (let i = 1; i <= 12; i++) {
-      let cusp = houses.house[i] - ayanamsa;
-      if (cusp < 0) cusp += 360;
-      const sign = getZodiacSign(cusp);
-      houseList.push({
-        houseNumber: i,
-        sign,
-        degree: cusp % 30,
-        cusp,
-        lord: getLord(sign)
-      });
-    }
-
-    // Update house for planets
-    const ascSignIdx = ZODIAC_SIGNS.indexOf(ascendant.sign as any);
-    for (const p of Object.values(planets)) {
-      const pSignIdx = ZODIAC_SIGNS.indexOf(p.sign as any);
-      p.house = ((pSignIdx - ascSignIdx + 12) % 12) + 1;
-    }
-
-    const result = { planets: planets as any, ascendant, houses: houseList };
-    if (EPH_CACHE.size >= MAX_CACHE_SIZE) {
-      const firstKey = EPH_CACHE.keys().next().value;
-      if (firstKey !== undefined) EPH_CACHE.delete(firstKey);
-    }
-    EPH_CACHE.set(cacheKey, { data: result, timestamp: Date.now() });
-
-    return result;
-
-  } else {
-    // ══════ ALGORITHMIC MODE ══════
-    // Pure calculations, no data files, ~0.01-0.1° accuracy
-    logger.warn('[EPHEMERIS] ⚠️ Using ALGORITHMIC mode (~0.1° accuracy) - Swiss Ephemeris data not available');
-
-    // Sun & Moon (custom high-accuracy formulas)
-    const sunLng = calcSun(jd);
-    const moonLng = calcMoon(jd);
-
-    [['sun', sunLng, 1], ['moon', moonLng, 13]] as const;
-
-    const sunSign = getZodiacSign(sunLng);
-    planets.sun = {
-      sign: sunSign, degree: sunLng % 30, longitude: sunLng,
-      latitude: 0, // Sun always 0
-      nakshatra: getNakshatra(sunLng), nakshatraPada: getNakshatraPada(sunLng),
-      lord: getLord(sunSign), retro: false,
-      speed: 1.0, distance: 1.0, isCombust: false, dignity: getDignity('Sun', sunSign), house: 0
-    };
-
-    const moonSign = getZodiacSign(moonLng);
-    planets.moon = {
-      sign: moonSign, degree: moonLng % 30, longitude: moonLng,
-      latitude: 0, // Simplified for algo mode
-      nakshatra: getNakshatra(moonLng), nakshatraPada: getNakshatraPada(moonLng),
-      lord: getLord(moonSign), retro: false,
-      speed: 13.2, distance: 1.0, isCombust: false, dignity: getDignity('Moon', moonSign), house: 0
-    };
-
-    // Other planets
-    for (const name of ['mercury', 'venus', 'mars', 'jupiter', 'saturn', 'rahu'] as const) {
-      const { longitude: lng, speed } = calcPlanet(jd, name);
-      const sign = getZodiacSign(lng);
-      const planetName = name.charAt(0).toUpperCase() + name.slice(1);
-      planets[name] = {
-        sign, degree: lng % 30, longitude: lng,
-        latitude: 0, // Simplified for algo mode
-        nakshatra: getNakshatra(lng), nakshatraPada: getNakshatraPada(lng),
-        lord: getLord(sign), retro: speed < 0,
-        speed,
-        distance: 1.0, // Placeholder for algo mode
-        isCombust: isCombust(planetName, lng, sunLng),
-        dignity: getDignity(planetName, sign),
-        house: 0
-      };
-    }
-
-    // Ketu
-    const ketuLng = (planets.rahu.longitude + 180) % 360;
-    const ketuSign = getZodiacSign(ketuLng);
-    planets.ketu = {
-      sign: ketuSign, degree: ketuLng % 30, longitude: ketuLng,
-      latitude: 0,
-      nakshatra: getNakshatra(ketuLng), nakshatraPada: getNakshatraPada(ketuLng),
-      lord: getLord(ketuSign), retro: true,
-      speed: planets.rahu.speed,
-      distance: 1.0,
-      isCombust: false,
-      dignity: getDignity('Ketu', ketuSign),
-      house: 0
-    };
-
-    // Ascendant
-    const ascLng = calcAscendant(jd, latitude, longitude);
-    const ascSign = getZodiacSign(ascLng);
-    const ascendant = { sign: ascSign, degree: ascLng % 30, longitude: ascLng, nakshatra: getNakshatra(ascLng), nakshatraPada: getNakshatraPada(ascLng) };
-
-    // Whole Sign houses
-    const houseList: HousePosition[] = [];
-    // In Whole Sign, the first house starts at 0° of the sign containing the Ascendant
-    const ascSignIndex = ZODIAC_SIGNS.indexOf(ascendant.sign as any);
-    for (let i = 0; i < 12; i++) {
-      const houseSignIndex = (ascSignIndex + i) % 12;
-      const sign = ZODIAC_SIGNS[houseSignIndex];
-      // Whole Sign cusp is defined as 0° of the sign
-      const cusp = houseSignIndex * 30;
-      houseList.push({
-        houseNumber: i + 1,
-        sign,
-        degree: 0,
-        cusp,
-        lord: getLord(sign)
-      });
-    }
-
-    // Update house for planets
-    for (const p of Object.values(planets)) {
-      const pSignIdx = ZODIAC_SIGNS.indexOf(p.sign as any);
-      p.house = ((pSignIdx - ascSignIndex + 12) % 12) + 1;
-    }
-
-    const result = { planets: planets as any, ascendant, houses: houseList };
-
-    // Save to cache with timestamp
-    if (EPH_CACHE.size >= MAX_CACHE_SIZE) {
-      const firstKey = EPH_CACHE.keys().next().value;
-      if (firstKey !== undefined) EPH_CACHE.delete(firstKey);
-    }
-    EPH_CACHE.set(cacheKey, { data: result, timestamp: Date.now() });
-
-    return result;
-  }
+  const result = await calculateEphemerisWithProvider(
+    { birthDate, birthTime, latitude, longitude, timezone },
+    provider
+  );
+  cacheResult(cacheKey, result);
+  return result;
 }
 /**
  * Calculate Sunrise for a given date and location.
@@ -718,8 +826,37 @@ export async function calculateSunrise(
   timezone: number | string
 ): Promise<Date> {
   // Validate input date
-  if (isNaN(new Date(dateStr).getTime())) {
-    throw new Error(`Invalid date provided to calculateSunrise: ${dateStr}`);
+  if (!isValidIsoDate(dateStr)) {
+    throw new ValidationError(`Invalid date provided to calculateSunrise: ${dateStr}`, {
+      dateStr,
+    });
+  }
+
+  if (getConfiguredProvider() === 'skyfield') {
+    try {
+      const searchStart = convertToUTC(dateStr, '00:00:00', timezone);
+      const nextDateStr = addDaysToIsoDate(dateStr, 1);
+      const searchEnd = convertToUTC(nextDateStr, '00:00:00', timezone);
+      const response = await fetchSkyfieldSunrise({
+        startTimestampUtc: searchStart.toISOString().replace('.000Z', 'Z'),
+        endTimestampUtc: searchEnd.toISOString().replace('.000Z', 'Z'),
+        location: {
+          latitude,
+          longitude,
+        },
+      });
+
+      if (response.sunriseTimestampUtc) {
+        return new Date(response.sunriseTimestampUtc);
+      }
+    } catch (error) {
+      logger.warn('[EPHEMERIS] Skyfield sunrise lookup failed, falling back to heuristic sunrise calculation', {
+        error: (error as Error).message,
+        dateStr,
+        latitude,
+        longitude,
+      });
+    }
   }
 
   // Sweep morning from 04:00 to 08:00
@@ -760,7 +897,12 @@ export async function calculateSunrise(
   // Refine sweep
   const refinedBase = bestDate.getTime();
   if (isNaN(refinedBase)) {
-    throw new Error(`Failed to determine base sunrise time for ${dateStr}`);
+    throw new CalculationError(`Failed to determine base sunrise time for ${dateStr}`, {
+      dateStr,
+      latitude,
+      longitude,
+      timezone,
+    });
   }
 
   for (let s = -300; s <= 300; s += 10) {
@@ -793,13 +935,12 @@ export async function calculateSunrise(
 // EXPORTS
 // ═══════════════════════════════════════════════════════════════════════════
 
-export function isHighPrecisionMode(): boolean { return getSwissEphStatus(); }
+export function isHighPrecisionMode(): boolean {
+  const mode = getCurrentExecutionMode();
+  return mode === 'skyfield';
+}
 
 export function getAyanamsa(jd: number): number {
-  if (getSwissEphStatus() && swe) {
-    swe.swe_set_sid_mode(SE_SIDM_LAHIRI, 0, 0);
-    return swe.swe_get_ayanamsa_ut(jd);
-  }
   return getAyanamsaAlgo(jd);
 }
 

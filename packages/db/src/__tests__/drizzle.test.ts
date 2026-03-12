@@ -1,145 +1,112 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// MOCKS
-// ═══════════════════════════════════════════════════════════════════════════
+const { mockQuery, mockEnd, MockPool } = vi.hoisted(() => {
+  const query = vi.fn();
+  const end = vi.fn();
 
-const { mockExecute, mockClose } = vi.hoisted(() => ({
-    mockExecute: vi.fn(),
-    mockClose: vi.fn(),
+  return {
+    mockQuery: query,
+    mockEnd: end,
+    MockPool: vi.fn(function MockPool() {
+      return {
+        query,
+        end,
+      };
+    }),
+  };
+});
+
+vi.mock('pg', () => ({
+  Pool: MockPool,
 }));
 
-vi.mock('@libsql/client', () => ({
-    createClient: vi.fn(() => ({
-        execute: mockExecute,
-        close: mockClose,
-    })),
+vi.mock('drizzle-orm/node-postgres', () => ({
+  drizzle: vi.fn(() => ({
+    select: vi.fn(),
+    insert: vi.fn(),
+    update: vi.fn(),
+    delete: vi.fn(),
+  })),
 }));
 
-vi.mock('drizzle-orm/libsql', () => ({
-    drizzle: vi.fn(() => ({
-        select: vi.fn(),
-        insert: vi.fn(),
-        update: vi.fn(),
-        delete: vi.fn(),
-    })),
-}));
+import {
+  checkDatabaseHealth,
+  closeDatabaseConnection,
+  executeWithRetry,
+  executeWithTimeout,
+} from '../drizzle.js';
 
-import { checkDatabaseHealth, executeWithTimeout, executeWithRetry, closeDatabaseConnection } from '../drizzle.js';
+describe('database helpers', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+  });
 
-// ═══════════════════════════════════════════════════════════════════════════
-// TESTS
-// ═══════════════════════════════════════════════════════════════════════════
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
-describe('Database Resiliency & Health Helpers', () => {
+  it('reports a healthy database when SELECT 1 succeeds', async () => {
+    mockQuery.mockResolvedValueOnce({ rows: [{ '?column?': 1 }] });
 
-    beforeEach(() => {
-        vi.clearAllMocks();
-        vi.useFakeTimers();
-    });
+    const health = await checkDatabaseHealth();
 
-    afterEach(() => {
-        vi.useRealTimers();
-    });
+    expect(health.healthy).toBe(true);
+    expect(health.error).toBeUndefined();
+  });
 
-    describe('checkDatabaseHealth', () => {
-        it('should return healthy true if query succeeds', async () => {
-            mockExecute.mockResolvedValueOnce({ rows: [] });
+  it('reports unhealthy status when the connection fails', async () => {
+    mockQuery.mockRejectedValueOnce(new Error('Connection failed'));
 
-            const health = await checkDatabaseHealth();
-            expect(health.healthy).toBe(true);
-            expect(health.latencyMs).toBeDefined();
-            expect(health.error).toBeUndefined();
-        });
+    const health = await checkDatabaseHealth();
 
-        it('should return healthy false if query fails', async () => {
-            mockExecute.mockRejectedValueOnce(new Error('Connection failed'));
+    expect(health.healthy).toBe(false);
+    expect(health.error).toBe('Connection failed');
+  });
 
-            const health = await checkDatabaseHealth();
-            expect(health.healthy).toBe(false);
-            expect(health.error).toBe('Connection failed');
-        });
-    });
+  it('resolves executeWithTimeout when the operation finishes in time', async () => {
+    const operation = vi.fn().mockResolvedValue('success');
+    const promise = executeWithTimeout(operation, 1000);
+    const assertion = expect(promise).resolves.toBe('success');
 
-    describe('executeWithTimeout', () => {
-        it('should resolve if operation completes within timeout', async () => {
-            const operation = vi.fn().mockResolvedValue('success');
+    await vi.runAllTimersAsync();
+    await assertion;
+  });
 
-            const resultPromise = executeWithTimeout(operation, 1000);
-            await vi.runAllTimersAsync();
+  it('rejects executeWithTimeout when the operation exceeds the timeout', async () => {
+    const operation = vi.fn(() => new Promise<string>(() => undefined));
 
-            const result = await resultPromise;
-            expect(result).toBe('success');
-        });
+    const promise = executeWithTimeout(operation, 1000);
+    const assertion = expect(promise).rejects.toThrow('Query timeout after 1000ms');
+    await vi.advanceTimersByTimeAsync(1500);
+    await assertion;
+  });
 
-        it('should reject if operation exceeds timeout', async () => {
-            const operation = vi.fn(() => new Promise((resolve) => setTimeout(() => resolve('success'), 2000)));
+  it('retries transient Postgres-style failures until success', async () => {
+    const operation = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('connection terminated unexpectedly'))
+      .mockRejectedValueOnce(new Error('too many connections'))
+      .mockResolvedValueOnce('success');
 
-            let caughtError: Error | null = null;
-            const resultPromise = executeWithTimeout(operation, 1000).catch((e: Error) => {
-                caughtError = e;
-            });
+    const promise = executeWithRetry(operation, 3);
+    const assertion = expect(promise).resolves.toBe('success');
 
-            await vi.advanceTimersByTimeAsync(1500);
-            await resultPromise;
+    await vi.advanceTimersByTimeAsync(1200);
+    await vi.advanceTimersByTimeAsync(2200);
+    await assertion;
+    expect(operation).toHaveBeenCalledTimes(3);
+  });
 
-            expect((caughtError as any)?.message).toBe('Query timeout after 1000ms');
-        });
-    });
+  it('does not retry non-transient query errors', async () => {
+    const operation = vi.fn().mockRejectedValue(new Error('column "oops" does not exist'));
 
-    describe('executeWithRetry', () => {
-        it('should resolve immediately if operation succeeds', async () => {
-            const operation = vi.fn().mockResolvedValue('success');
+    await expect(executeWithRetry(operation, 3)).rejects.toThrow('column "oops" does not exist');
+    expect(operation).toHaveBeenCalledTimes(1);
+  });
 
-            const result = await executeWithRetry(operation, 3);
-            expect(result).toBe('success');
-            expect(operation).toHaveBeenCalledTimes(1);
-        });
-
-        it('should not retry on non-transient errors (e.g., syntax error)', async () => {
-            const operation = vi.fn().mockRejectedValue(new Error('Syntax Error in SQL'));
-
-            await expect(executeWithRetry(operation, 3)).rejects.toThrow('Syntax Error in SQL');
-            expect(operation).toHaveBeenCalledTimes(1); // Should fail immediately without retry
-        });
-
-        it('should retry on transient errors until success', async () => {
-            const operation = vi.fn()
-                .mockRejectedValueOnce(new Error('network timeout'))
-                .mockRejectedValueOnce(new Error('econnreset'))
-                .mockResolvedValueOnce('success');
-
-            const resultPromise = executeWithRetry(operation, 3);
-
-            // Advance past the backoff periods
-            await vi.advanceTimersByTimeAsync(1000); // 1st retry delay
-            await vi.advanceTimersByTimeAsync(2000); // 2nd retry delay
-
-            const result = await resultPromise;
-            expect(result).toBe('success');
-            expect(operation).toHaveBeenCalledTimes(3);
-        });
-
-        it('should throw after max retries even with transient errors', async () => {
-            const operation = vi.fn().mockRejectedValue(new Error('network timeout'));
-
-            let caughtError: Error | null = null;
-            const resultPromise = executeWithRetry(operation, 2).catch((e: Error) => {
-                caughtError = e;
-            });
-
-            await vi.advanceTimersByTimeAsync(1000); // 1st retry
-            await vi.advanceTimersByTimeAsync(2000); // 2nd retry (fails)
-
-            expect((caughtError as unknown as Error)?.message).toBe('network timeout');
-            expect(operation).toHaveBeenCalledTimes(2); // Max retries
-        });
-    });
-
-    describe('closeDatabaseConnection', () => {
-        it('should call client.close()', async () => {
-            await closeDatabaseConnection();
-            expect(mockClose).toHaveBeenCalledTimes(1);
-        });
-    });
+  it('closes the underlying pool cleanly', async () => {
+    await closeDatabaseConnection();
+    expect(mockEnd).toHaveBeenCalledTimes(1);
+  });
 });

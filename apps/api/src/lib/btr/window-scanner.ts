@@ -499,7 +499,8 @@ function scoreKPMatch(
 
   for (const event of context.scoredEvents) {
     const targetHouse = EVENT_HOUSE_MAP[event.category] || 1;
-    const houseCusp = candidate.ephemeris.houses?.[targetHouse - 1]?.cusp;
+    const houseCusp = candidate.ephemeris.kpCusps?.[targetHouse - 1]
+      ?? candidate.ephemeris.houses?.[targetHouse - 1]?.cusp;
 
     if (!houseCusp) continue;
 

@@ -1,4 +1,4 @@
-process.env.SKIP_SWISSEPH_INIT = 'true';
+process.env.SKIP_EPHEMERIS_INIT = 'true';
 
 import { describe, it, expect, vi } from 'vitest';
 import { buildCandidateDataPackage } from '../data-package-builder.js';

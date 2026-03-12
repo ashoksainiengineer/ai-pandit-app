@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { EphemerisHouseSystem } from '@ai-pandit/shared/types';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // ENVIRONMENT SCHEMA
@@ -12,9 +13,12 @@ const envSchema = z.object({
     FRONTEND_URL: z.string().optional().transform(v => v?.trim().split(/\s+/)[0]),
     ALLOWED_ORIGINS: z.string().trim().default('http://localhost:3000'),
 
-    // Database Configuration (Turso)
-    TURSO_DATABASE_URL: z.string().min(1, 'TURSO_DATABASE_URL is required'),
-    TURSO_AUTH_TOKEN: z.string().min(1, 'TURSO_AUTH_TOKEN is required'),
+    // Database Configuration
+    NEON_DATABASE_URL: z.string().min(1).optional(),
+    DATABASE_URL: z.string().min(1).optional(),
+    POSTGRES_URL: z.string().min(1).optional(),
+    TURSO_DATABASE_URL: z.string().min(1).optional(),
+    TURSO_AUTH_TOKEN: z.string().min(1).optional(),
 
     // AI Configuration
     AI_API_KEY: z.string().min(1, 'AI_API_KEY is required'),
@@ -41,6 +45,7 @@ const envSchema = z.object({
     BTR_STAGE4_MAX_ROUNDS: z.string().transform(Number).default('5'),
     BTR_STAGE6_MAX_ROUNDS: z.string().transform(Number).default('5'),
     BTR_CLUSTER_THRESHOLD_MINS: z.string().transform(Number).default('5'),
+    EPHEMERIS_PROVIDER: z.enum(['skyfield', 'algorithmic']).default('skyfield'),
     EPHEMERIS_STRICT_MODE: z
         .string()
         .default('true')
@@ -49,6 +54,10 @@ const envSchema = z.object({
         .string()
         .default('false')
         .transform((v) => ['1', 'true', 'yes', 'on'].includes(v.toLowerCase())),
+    EPHEMERIS_SERVICE_URL: z.string().url().default('http://localhost:8000'),
+    EPHEMERIS_SERVICE_TIMEOUT_MS: z.string().transform(Number).default('15000'),
+    EPHEMERIS_BATCH_SIZE: z.string().transform(Number).default('250'),
+    EPHEMERIS_HOUSE_SYSTEM: z.enum(['whole_sign', 'equal', 'placidus']).default('placidus'),
 
     // Security Configuration
     CLERK_SECRET_KEY: z.string().min(1, 'CLERK_SECRET_KEY is required'),
@@ -61,6 +70,21 @@ const envSchema = z.object({
     // Rate Limiting
     RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('60000'),
     RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('100'),
+    JOB_EXECUTION_MODE: z.enum(['inline', 'external_worker']).default('inline'),
+    QUEUE_ARCHITECTURE: z.enum(['db_polling']).default('db_polling'),
+    WORKER_POLL_INTERVAL_MS: z.string().transform(Number).default('2000'),
+    JOB_SYNC_POLL_INTERVAL_MS: z.string().transform(Number).default('2000'),
+    USE_ASYNC_JOB_PIPELINE: z
+        .string()
+        .default('true')
+        .transform((v) => ['1', 'true', 'yes', 'on'].includes(v.toLowerCase())),
+    USE_NEW_STREAM_PATH: z
+        .string()
+        .default('true')
+        .transform((v) => ['1', 'true', 'yes', 'on'].includes(v.toLowerCase())),
+    GCS_BUCKET: z.string().min(1).optional(),
+    GCS_ARTIFACT_PREFIX: z.string().default('analysis-artifacts'),
+    ARTIFACT_RETENTION_DAYS: z.string().transform(Number).default('30'),
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -75,14 +99,30 @@ function parseEnv() {
             (e) => `  • ${e.path.join('.')}: ${e.message}`
         );
 
-        console.error('\n❌ CONFIGURATION ERROR: The engine cannot start due to missing environment variables.');
-        console.error('Check your Hugging Face Space "Secrets" settings:');
+        console.error('\nCONFIGURATION ERROR: The engine cannot start due to missing environment variables.');
+        console.error('Check your runtime environment configuration:');
         console.error(errors.join('\n'));
-        console.error('\n⚠️  ACTION REQUIRED: Ensure all required variables are set correctly in the HF Space console.\n');
+        console.error('\nACTION REQUIRED: Ensure all required variables are set correctly in the deployment environment.\n');
         throw new Error(`Configuration Validation Failed:\n${errors.join('\n')}`);
     }
 
-    return result.data;
+    const env = result.data;
+    const resolvedDatabaseUrl =
+        env.NEON_DATABASE_URL ||
+        env.DATABASE_URL ||
+        env.POSTGRES_URL ||
+        env.TURSO_DATABASE_URL;
+
+    if (!resolvedDatabaseUrl) {
+        throw new Error(
+            'Configuration Validation Failed:\n  • NEON_DATABASE_URL or DATABASE_URL is required'
+        );
+    }
+
+    return {
+        ...env,
+        RESOLVED_DATABASE_URL: resolvedDatabaseUrl,
+    };
 }
 
 const env = parseEnv();
@@ -139,8 +179,15 @@ export const aiConfig = {
 };
 
 export const dbConfig = {
-    url: env.TURSO_DATABASE_URL,
+    url: env.RESOLVED_DATABASE_URL,
     authToken: env.TURSO_AUTH_TOKEN,
+    provider: env.NEON_DATABASE_URL || env.DATABASE_URL || env.POSTGRES_URL ? 'postgres' : 'turso',
+};
+
+export const storageConfig = {
+    gcsBucket: env.GCS_BUCKET,
+    artifactPrefix: env.GCS_ARTIFACT_PREFIX,
+    artifactRetentionDays: env.ARTIFACT_RETENTION_DAYS,
 };
 
 export const encryptionConfig = {
@@ -167,6 +214,8 @@ export const performanceConfig = {
     maxConcurrentSessions: env.MAX_CONCURRENT_SESSIONS,
     rssThresholdGB: env.HEAP_THRESHOLD_GB + 2,
     heapThresholdGB: env.HEAP_THRESHOLD_GB,
+    jobExecutionMode: env.JOB_EXECUTION_MODE,
+    workerPollIntervalMs: env.WORKER_POLL_INTERVAL_MS,
 };
 
 export const config = {
@@ -187,8 +236,13 @@ export const config = {
         fallbackRejectedScore: 30, // Hardcoded
     },
     ephemeris: {
+        provider: env.EPHEMERIS_PROVIDER,
         strictMode: env.EPHEMERIS_STRICT_MODE,
-        allowAlgorithmicFallback: env.EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK || env.NODE_ENV !== 'production',
+        allowAlgorithmicFallback: env.EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK,
+        serviceUrl: env.EPHEMERIS_SERVICE_URL,
+        serviceTimeoutMs: env.EPHEMERIS_SERVICE_TIMEOUT_MS,
+        batchSize: env.EPHEMERIS_BATCH_SIZE,
+        houseSystem: env.EPHEMERIS_HOUSE_SYSTEM as EphemerisHouseSystem,
     },
     timeouts: {
         requestMs: env.AI_TIMEOUT_MS,
@@ -196,18 +250,26 @@ export const config = {
     },
     queue: {
         maxConcurrent: env.MAX_CONCURRENT_SESSIONS,
-        pollIntervalMs: 5000,
+        pollIntervalMs: env.WORKER_POLL_INTERVAL_MS,
+        syncPollIntervalMs: env.JOB_SYNC_POLL_INTERVAL_MS,
         maxSize: 100,
         staleTimeoutMs: 7200000, // 2 Hours hardcoded
         baseAnalysisTime: 240, // Hardcoded
         contentionMultiplier: 0.1, // Hardcoded
+        executionMode: env.JOB_EXECUTION_MODE,
+        architecture: env.QUEUE_ARCHITECTURE,
     },
+    storage: storageConfig,
     logging: {
         level: 'info',
         format: 'json',
         redactFields: ['apiKey', 'token', 'secret', 'password', 'authorization', 'clerkId'],
         includeStackTrace: true,
         prettyPrint: false,
+    },
+    features: {
+        useAsyncJobPipeline: env.USE_ASYNC_JOB_PIPELINE,
+        useNewStreamPath: env.USE_NEW_STREAM_PATH,
     },
 };
 

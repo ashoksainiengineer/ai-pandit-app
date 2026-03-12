@@ -16,7 +16,7 @@ vi.mock('../drizzle.js', async (importOriginal) => {
     };
 });
 
-describe('Turso DB Concurrency & Atomic Operations', () => {
+describe('Postgres DB concurrency and retry behavior', () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
@@ -47,10 +47,10 @@ describe('Turso DB Concurrency & Atomic Operations', () => {
 
     it('should not retry on non-transient errors (e.g. syntax error)', async () => {
         const mockOperation = vi.fn().mockImplementation(async () => {
-            throw new Error('SQLITE_ERROR: no such column: invalid_col');
+            throw new Error('column "invalid_col" does not exist');
         });
 
-        await expect(executeWithRetry(mockOperation, 3)).rejects.toThrow('SQLITE_ERROR');
+        await expect(executeWithRetry(mockOperation, 3)).rejects.toThrow('invalid_col');
         expect(mockOperation).toHaveBeenCalledTimes(1);
     });
 });

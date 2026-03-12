@@ -3,11 +3,21 @@
     "version": "1.0.0",
     "private": true,
     "type": "module",
-    "main": "./dist/drizzle.js",
-    "types": "./dist/drizzle.d.ts",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
     "exports": {
-        ".": "./dist/drizzle.js",
-        "./schema": "./dist/schema.js"
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./schema": {
+            "types": "./dist/schema.d.ts",
+            "default": "./dist/schema.js"
+        },
+        "./jobs": {
+            "types": "./dist/jobs.d.ts",
+            "default": "./dist/jobs.js"
+        }
     },
     "scripts": {
         "build": "tsc",
@@ -19,12 +29,13 @@
         "test:coverage": "vitest run --coverage"
     },
     "dependencies": {
-        "@libsql/client": "^0.17.0",
         "drizzle-orm": "^0.45.1",
+        "pg": "^8.20.0",
         "uuid": "^9.0.1"
     },
     "devDependencies": {
         "@types/node": "^20.14.0",
+        "@types/pg": "^8.18.0",
         "@vitest/coverage-v8": "^4.0.18",
         "drizzle-kit": "^0.31.8",
         "typescript": "^5.4.5",

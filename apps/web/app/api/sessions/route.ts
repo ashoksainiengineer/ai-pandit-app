@@ -9,10 +9,17 @@ import { parseSensitiveField, encrypt, initializeEncryption } from '@/lib/crypto
 import { ensureUserRecord } from '@/lib/server/user-sync';
 import { getProtectedFieldsPresent } from '@/lib/server/session-write-guards';
 import { getFavoriteSetForSessions } from '@/lib/server/favorite-store';
+import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 initializeEncryption(env.security.encryptionSecret);
 
 export async function GET(req: NextRequest) {
+    const buildPhaseResponse = getBuildPhaseRouteResponse();
+    if (buildPhaseResponse) return buildPhaseResponse;
+
     try {
         const { userId: clerkId } = await auth();
         if (!clerkId) {
@@ -64,6 +71,9 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+    const buildPhaseResponse = getBuildPhaseRouteResponse();
+    if (buildPhaseResponse) return buildPhaseResponse;
+
     try {
         const clerkUser = await currentUser();
         if (!clerkUser) {

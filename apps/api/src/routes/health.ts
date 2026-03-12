@@ -4,7 +4,10 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 import { Router, Request, Response } from 'express';
-import { checkDatabaseHealth } from '@ai-pandit/db';
+import { checkDatabaseHealth, db } from '@ai-pandit/db';
+import { listActiveJobs } from '@ai-pandit/db/jobs';
+import { jobs } from '@ai-pandit/db/schema';
+import { count, eq, sql } from 'drizzle-orm';
 import { config } from '../config/index.js';
 import { logger } from '../lib/logger.js';
 
@@ -210,6 +213,37 @@ import { getActiveQueueCount } from '../lib/queue-manager.js';
 async function collectMetrics(): Promise<Record<string, unknown>> {
   const memoryUsage = process.memoryUsage();
   const cpuUsage = process.cpuUsage();
+  let activeJobs: Awaited<ReturnType<typeof listActiveJobs>> = [];
+  let activeByStatus: Record<string, number> = {};
+  let failedTerminalJobs = 0;
+  let totalRetryCount = 0;
+
+  try {
+    activeJobs = await listActiveJobs();
+    activeByStatus = activeJobs.reduce<Record<string, number>>((acc, job) => {
+      acc[job.status] = (acc[job.status] ?? 0) + 1;
+      return acc;
+    }, {});
+
+    const [failedTerminalJobsResult, retrySummaryResult] = await Promise.all([
+      db.select({ count: count() }).from(jobs).where(eq(jobs.status, 'failed')),
+      db
+        .select({
+          retryCount: sql<number>`COALESCE(SUM(${jobs.retryCount}), 0)`,
+        })
+        .from(jobs),
+    ]);
+
+    failedTerminalJobs = failedTerminalJobsResult[0]?.count ?? 0;
+    totalRetryCount = retrySummaryResult[0]?.retryCount ?? 0;
+  } catch (error) {
+    logger.warn('Job metrics collection failed, returning zeroed runtime metrics', {
+      error: (error as Error).message,
+    });
+  }
+
+  const queueDepth = (activeByStatus.queued ?? 0) + (activeByStatus.retrying ?? 0);
+  const activeJobCount = (activeByStatus.running ?? 0) + (activeByStatus.retrying ?? 0);
 
   return {
     memory: {
@@ -226,10 +260,21 @@ async function collectMetrics(): Promise<Record<string, unknown>> {
       activeSseConnections: getActiveSseCount(),
       activeQueueProcessing: getActiveQueueCount(),
     },
+    jobs: {
+      activeTotal: activeJobs.length,
+      byStatus: activeByStatus,
+      queueDepth,
+      activeJobCount,
+      retryCount: totalRetryCount,
+      failedTerminalJobs,
+    },
     config: {
       nodeEnv: config.app.nodeEnv,
       maxConcurrentSessions: config.performance.maxConcurrentSessions,
       aiModel: config.ai.model,
+      jobExecutionMode: config.queue.executionMode,
+      queueArchitecture: config.queue.architecture,
+      features: config.features,
     },
   };
 }

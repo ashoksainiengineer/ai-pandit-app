@@ -1,0 +1,28 @@
+[project]
+name = "ai-pandit-ephemeris-service"
+version = "0.1.0"
+description = "Internal Skyfield-based astronomy service for AI-Pandit"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi==0.116.1",
+  "numpy==2.3.3",
+  "pydantic==2.11.9",
+  "pydantic-settings==2.10.1",
+  "skyfield==1.53",
+  "uvicorn[standard]==0.35.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==8.4.2",
+]
+
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.uv]
+package = false

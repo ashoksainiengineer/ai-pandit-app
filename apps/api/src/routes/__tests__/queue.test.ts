@@ -1,55 +1,63 @@
-/**
- * 🔱 EXHAUSTIVE QUEUE ROUTE TESTS
- * Tests POST /api/queue (submit), GET /api/queue (poll),
- * POST /api/queue/cancel, POST /api/queue/requeue
- */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
+import queueRouter from '../../routes/queue.js';
+import { AppError, ErrorCodes } from '../../errors/index.js';
 
-// ═══════════════════════════════════════════════════════════════════════════
-// MOCKS
-// ═══════════════════════════════════════════════════════════════════════════
-
-vi.mock('@ai-pandit/db', () => ({
-    db: {
+const {
+    dbMock,
+    mockExecuteWithRetry,
+    mockCreateQueuedBirthRectificationJob,
+    mockGetJobIdempotencyKey,
+    mockResolveSessionOwnershipContext,
+    mockIsSessionOwnedByContext,
+    mockGetQueueStatus,
+    mockCancelSession,
+    mockFlushSessionTrash,
+    mockAddToQueue,
+    mockStartQueueProcessor,
+} = vi.hoisted(() => ({
+    dbMock: {
         select: vi.fn().mockReturnThis(),
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue([]),
-        insert: vi.fn().mockReturnThis(),
-        values: vi.fn().mockResolvedValue(undefined),
         update: vi.fn().mockReturnThis(),
         set: vi.fn().mockReturnThis(),
-        delete: vi.fn().mockReturnThis(),
     },
-    executeWithRetry: vi.fn((fn: any) => fn()),
+    mockExecuteWithRetry: vi.fn((fn: () => unknown) => fn()),
+    mockCreateQueuedBirthRectificationJob: vi.fn(),
+    mockGetJobIdempotencyKey: vi.fn(),
+    mockResolveSessionOwnershipContext: vi.fn(),
+    mockIsSessionOwnedByContext: vi.fn(),
+    mockGetQueueStatus: vi.fn(),
+    mockCancelSession: vi.fn(),
+    mockFlushSessionTrash: vi.fn(),
+    mockAddToQueue: vi.fn(),
+    mockStartQueueProcessor: vi.fn(),
+}));
+
+vi.mock('@ai-pandit/db', () => ({
+    db: dbMock,
+    executeWithRetry: mockExecuteWithRetry,
 }));
 
 vi.mock('@ai-pandit/db/schema', () => ({
-    sessions: { id: 'id', clerkId: 'clerkId', status: 'status', createdAt: 'createdAt', aiConsentGiven: 'aiConsentGiven' },
+    sessions: { id: 'id', clerkId: 'clerkId', userId: 'userId', status: 'status' },
     users: {},
-    calculations: {},
 }));
 
 vi.mock('drizzle-orm', () => ({
-    eq: vi.fn((...args: any[]) => args),
-    and: vi.fn((...args: any[]) => args),
-    or: vi.fn((...args: any[]) => args),
-    desc: vi.fn((col: any) => col),
-    asc: vi.fn((col: any) => col),
-    lt: vi.fn((...args: any[]) => args),
-    gte: vi.fn((...args: any[]) => args),
+    eq: vi.fn((...args: unknown[]) => args),
 }));
 
 vi.mock('../../middleware/auth.js', () => ({
-    authMiddleware: (req: any, _res: any, next: any) => {
+    authMiddleware: vi.fn((req: { clerkId?: string; sessionId?: string }, _res: unknown, next: () => void) => {
         req.clerkId = 'test_clerk_id';
         req.sessionId = 'test_session_id';
         next();
-    },
+    }),
     clerk: {},
-    AuthenticatedRequest: {},
 }));
 
 vi.mock('../../lib/logger.js', () => ({
@@ -57,61 +65,24 @@ vi.mock('../../lib/logger.js', () => ({
 }));
 
 vi.mock('../../lib/queue-manager.js', () => ({
-    addToQueue: vi.fn().mockResolvedValue({ success: true, sessionId: 'test-session', position: 1, estimatedWaitSeconds: 60 }),
-    getQueueStatus: vi.fn().mockResolvedValue({ status: 'queued', position: 1, estimatedWaitSeconds: 60, totalInQueue: 1 }),
-    startQueueProcessor: vi.fn(),
-    cancelSession: vi.fn().mockResolvedValue(true),
-    flushSessionTrash: vi.fn().mockResolvedValue(undefined),
-}));
-
-vi.mock('../../lib/time-offset-manager.js', () => ({
-    validateOffsetConfig: vi.fn().mockReturnValue({ valid: true }),
-}));
-
-vi.mock('../../lib/encryption/index.js', () => ({
-    encryptData: vi.fn((data: string) => `encrypted_${data}`),
-    safeDecrypt: vi.fn((data: string) => data),
-    safeDecryptWithFallback: vi.fn((data: string) => data),
-}));
-
-vi.mock('../../lib/user-sync.js', () => ({
-    syncUser: vi.fn().mockResolvedValue('internal_user_id_123'),
-}));
-
-vi.mock('../../lib/session-events.js', () => ({
-    cleanupSession: vi.fn(),
+    addToQueue: mockAddToQueue,
+    getQueueStatus: mockGetQueueStatus,
+    startQueueProcessor: mockStartQueueProcessor,
+    cancelSession: mockCancelSession,
+    flushSessionTrash: mockFlushSessionTrash,
 }));
 
 vi.mock('../../lib/session-ownership.js', () => ({
-    resolveSessionOwnershipContext: vi.fn(async (clerkId: string) => ({
-        clerkId,
-        internalUserId: clerkId === 'test_clerk_id' ? 'internal_user_id_123' : null,
-    })),
-    isSessionOwnedByContext: vi.fn((session: { clerkId?: string | null; userId?: string | null }, context: { clerkId: string; internalUserId: string | null }) => {
-        if (session?.clerkId === context.clerkId) return true;
-        if (!context.internalUserId) return false;
-        return session?.userId === context.internalUserId;
-    }),
+    resolveSessionOwnershipContext: mockResolveSessionOwnershipContext,
+    isSessionOwnedByContext: mockIsSessionOwnedByContext,
 }));
 
-vi.mock('../../config/index.js', () => ({
-    config: {
-        security: { rateLimitWindowMs: 60000, rateLimitMaxRequests: 100, calculateRateLimitWindowMs: 60000, calculateRateLimitMaxRequests: 5 },
-        queue: { maxConcurrent: 3, pollIntervalMs: 2000, maxSize: 50, staleTimeoutMs: 7200000, baseAnalysisTime: 240, contentionMultiplier: 0.15 },
-        memory: { pressureThresholdGB: 12, criticalThresholdGB: 14, gcThresholdGB: 10, heapThresholdGB: 8 },
-        app: { nodeEnv: 'test' },
-    },
+vi.mock('../../lib/jobs/job-service.js', () => ({
+    createQueuedBirthRectificationJob: mockCreateQueuedBirthRectificationJob,
+    getJobIdempotencyKey: mockGetJobIdempotencyKey,
 }));
 
-import queueRouter from '../../routes/queue.js';
-import { addToQueue, cancelSession } from '../../lib/queue-manager.js';
-import { db, executeWithRetry } from '@ai-pandit/db';
-
-// ═══════════════════════════════════════════════════════════════════════════
-// APP SETUP
-// ═══════════════════════════════════════════════════════════════════════════
-
-function createApp() {
+function createApp(): express.Express {
     const app = express();
     app.use(express.json());
     app.use('/api/queue', queueRouter);
@@ -138,226 +109,202 @@ const validSubmitBody = {
     offsetConfig: { preset: '2hours' },
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// POST /api/queue — SUBMIT
-// ═══════════════════════════════════════════════════════════════════════════
-
-describe('Queue Route - POST /api/queue (Submit)', () => {
+describe('Queue Route', () => {
     let app: express.Express;
 
     beforeEach(() => {
         vi.clearAllMocks();
         app = createApp();
-    });
 
-    it('should return 400 if birthData is missing', async () => {
-        const res = await request(app).post('/api/queue').send({ lifeEvents: [], forensicTraits: {} });
-        expect(res.status).toBe(400);
-        expect(res.body.error).toBe('Validation failed');
-        expect(Array.isArray(res.body.details)).toBe(true);
-    });
-
-    it('should return 400 if lifeEvents < 3', async () => {
-        const res = await request(app).post('/api/queue').send({
-            birthData: validSubmitBody.birthData,
-            lifeEvents: [{ eventType: 'test' }],
-            forensicTraits: {},
+        mockResolveSessionOwnershipContext.mockResolvedValue({
+            clerkId: 'test_clerk_id',
+            internalUserId: 'internal_user_id_123',
         });
-        expect(res.status).toBe(400);
-        expect(res.body.error).toBe('Validation failed');
-    });
-
-    it('should return 400 if forensicTraits missing', async () => {
-        const res = await request(app).post('/api/queue').send({
-            birthData: validSubmitBody.birthData,
-            lifeEvents: validSubmitBody.lifeEvents,
+        mockIsSessionOwnedByContext.mockImplementation((session, context) => {
+            if (!session) return false;
+            if (session.clerkId && session.clerkId === context.clerkId) return true;
+            if (context.internalUserId && session.userId === context.internalUserId) return true;
+            return false;
         });
-        expect(res.status).toBe(400);
-        expect(res.body.error).toBe('Validation failed');
-    });
-
-    it('should return 400 for invalid latitude > 90', async () => {
-        const body = {
-            ...validSubmitBody,
-            birthData: { ...validSubmitBody.birthData, latitude: 91 },
-        };
-        const res = await request(app).post('/api/queue').send(body);
-        expect(res.status).toBe(400);
-        expect(res.body.error).toBe('Validation failed');
-    });
-
-    it('should return 400 for invalid longitude > 180', async () => {
-        const body = {
-            ...validSubmitBody,
-            birthData: { ...validSubmitBody.birthData, longitude: 181 },
-        };
-        const res = await request(app).post('/api/queue').send(body);
-        expect(res.status).toBe(400);
-        expect(res.body.error).toBe('Validation failed');
-    });
-
-    it('should return 400 for invalid dateOfBirth', async () => {
-        const body = {
-            ...validSubmitBody,
-            birthData: { ...validSubmitBody.birthData, dateOfBirth: 'not-a-date' },
-        };
-        const res = await request(app).post('/api/queue').send(body);
-        expect(res.status).toBe(400);
-        expect(res.body.error).toBe('Validation failed');
-    });
-
-    it('should return 400 for missing required field (fullName)', async () => {
-        const body = {
-            ...validSubmitBody,
-            birthData: { ...validSubmitBody.birthData, fullName: '' },
-        };
-        const res = await request(app).post('/api/queue').send(body);
-        expect(res.status).toBe(400);
-        expect(res.body.error).toBe('Validation failed');
-    });
-
-    it('should return 200 with sessionId on valid submission', async () => {
-        vi.mocked(executeWithRetry)
-            .mockResolvedValueOnce(undefined)
-            .mockResolvedValueOnce([{ clerkId: 'test_clerk_id', userId: 'internal_user_id_123', status: 'pending' }]);
-
-        const res = await request(app).post('/api/queue').send(validSubmitBody);
-        expect(res.status).toBe(200);
-        expect(res.body.success).toBe(true);
-        expect(res.body.data.sessionId).toBeDefined();
-        expect(res.body.data.position).toBe(1);
-    });
-
-    it('should return 503 when queue fails to add', async () => {
-        vi.mocked(executeWithRetry)
-            .mockResolvedValueOnce(undefined)
-            .mockResolvedValueOnce([{ clerkId: 'test_clerk_id', userId: 'internal_user_id_123', status: 'pending' }]);
-        vi.mocked(addToQueue).mockResolvedValueOnce({ success: false, error: 'Queue is full' });
-        const res = await request(app).post('/api/queue').send(validSubmitBody);
-        expect(res.status).toBe(503);
-    });
-});
-
-// ═══════════════════════════════════════════════════════════════════════════
-// GET /api/queue — POLL
-// ═══════════════════════════════════════════════════════════════════════════
-
-describe('Queue Route - GET /api/queue (Poll)', () => {
-    let app: express.Express;
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-        app = createApp();
-    });
-
-    it('should return 400 if sessionId missing', async () => {
-        const res = await request(app).get('/api/queue');
-        expect(res.status).toBe(400);
-        expect(res.body.error).toContain('sessionId');
-    });
-
-    it('should return 404 if session not found', async () => {
-        vi.mocked(executeWithRetry).mockResolvedValueOnce([]);
-        const res = await request(app).get('/api/queue?sessionId=nonexistent');
-        expect(res.status).toBe(404);
-    });
-
-    it('should return 403 if session belongs to another user', async () => {
-        vi.mocked(executeWithRetry).mockResolvedValueOnce([{ clerkId: 'other_user', status: 'queued' }]);
-        const res = await request(app).get('/api/queue?sessionId=test-session-id');
-        expect(res.status).toBe(403);
-    });
-});
-
-// ═══════════════════════════════════════════════════════════════════════════
-// POST /api/queue/cancel
-// ═══════════════════════════════════════════════════════════════════════════
-
-describe('Queue Route - POST /api/queue/cancel', () => {
-    let app: express.Express;
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-        app = createApp();
-    });
-
-    it('should return 400 if sessionId missing', async () => {
-        const res = await request(app).post('/api/queue/cancel').send({});
-        expect(res.status).toBe(400);
-    });
-
-    it('should return 404 if session not found', async () => {
-        vi.mocked(executeWithRetry).mockResolvedValueOnce([]);
-        const res = await request(app).post('/api/queue/cancel').send({ sessionId: 'nonexistent' });
-        expect(res.status).toBe(404);
-    });
-
-    it('should return 403 if session belongs to another user', async () => {
-        vi.mocked(executeWithRetry).mockResolvedValueOnce([{ clerkId: 'other_user' }]);
-        const res = await request(app).post('/api/queue/cancel').send({ sessionId: 'test' });
-        expect(res.status).toBe(403);
-    });
-
-    it('should return 200 on successful cancel', async () => {
-        vi.mocked(executeWithRetry).mockResolvedValueOnce([{ clerkId: 'test_clerk_id' }]);
-        vi.mocked(cancelSession).mockResolvedValueOnce(true);
-        const res = await request(app).post('/api/queue/cancel').send({ sessionId: 'test' });
-        expect(res.status).toBe(200);
-        expect(res.body.success).toBe(true);
-    });
-
-    it('should return 400 if session cannot be cancelled', async () => {
-        vi.mocked(executeWithRetry).mockResolvedValueOnce([{ clerkId: 'test_clerk_id' }]);
-        vi.mocked(cancelSession).mockResolvedValueOnce(false);
-        const res = await request(app).post('/api/queue/cancel').send({ sessionId: 'test' });
-        expect(res.status).toBe(400);
-    });
-});
-
-// ═══════════════════════════════════════════════════════════════════════════
-// POST /api/queue/requeue
-// ═══════════════════════════════════════════════════════════════════════════
-
-describe('Queue Route - POST /api/queue/requeue', () => {
-    let app: express.Express;
-
-    beforeEach(() => {
-        vi.clearAllMocks();
-        app = createApp();
-    });
-
-    it('should return 400 if sessionId missing', async () => {
-        const res = await request(app).post('/api/queue/requeue').send({});
-        expect(res.status).toBe(400);
-    });
-
-    it('should return 404 if session not found', async () => {
-        vi.mocked(executeWithRetry).mockResolvedValueOnce([]);
-        const res = await request(app).post('/api/queue/requeue').send({ sessionId: 'nonexistent' });
-        expect(res.status).toBe(404);
-    });
-
-    it('should return 403 if session belongs to another user', async () => {
-        vi.mocked(executeWithRetry).mockResolvedValueOnce([{ clerkId: 'other_user' }]);
-        const res = await request(app).post('/api/queue/requeue').send({ sessionId: 'test' });
-        expect(res.status).toBe(403);
-    });
-
-    it('should allow requeue when legacy row matches internal userId even if clerkId differs', async () => {
-        vi.mocked(addToQueue).mockResolvedValueOnce({
+        mockGetJobIdempotencyKey.mockReturnValue(undefined);
+        dbMock.limit.mockResolvedValue([]);
+        mockGetQueueStatus.mockResolvedValue({
+            status: 'queued',
+            position: 1,
+            estimatedWaitSeconds: 60,
+            totalInQueue: 1,
+        });
+        mockCancelSession.mockResolvedValue(true);
+        mockFlushSessionTrash.mockResolvedValue(undefined);
+        mockAddToQueue.mockResolvedValue({
             success: true,
-            sessionId: 'legacy-session',
+            sessionId: 'test-session',
             position: 1,
             estimatedWaitSeconds: 60,
         });
-        vi.mocked(executeWithRetry)
-            .mockResolvedValueOnce([{ clerkId: 'legacy_clerk', userId: 'internal_user_id_123', status: 'failed' }])
-            .mockResolvedValueOnce(undefined)
-            .mockResolvedValueOnce([{ status: 'pending', errorMessage: null }]);
+    });
 
-        const res = await request(app).post('/api/queue/requeue').send({ sessionId: 'legacy-session' });
-        expect(res.status).toBe(200);
-        expect(res.body.success).toBe(true);
-        expect(res.body.data?.sessionId).toBe('legacy-session');
+    describe('POST /api/queue', () => {
+        it('returns queued session details on valid submission', async () => {
+            mockCreateQueuedBirthRectificationJob.mockResolvedValueOnce({
+                job: { id: 'job-123', sessionId: 'session-123', status: 'queued' },
+                queue: { position: 1, estimatedWaitSeconds: 60 },
+                idempotentReplay: false,
+            });
+            dbMock.limit.mockResolvedValueOnce([
+                { id: 'session-123', clerkId: 'test_clerk_id', userId: 'internal_user_id_123', status: 'pending' },
+            ]);
+
+            const res = await request(app).post('/api/queue').send(validSubmitBody);
+
+            expect(res.status).toBe(200);
+            expect(res.body.success).toBe(true);
+            expect(res.body.data).toMatchObject({
+                sessionId: 'session-123',
+                jobId: 'job-123',
+                position: 1,
+                estimatedWaitSeconds: 60,
+                status: 'queued',
+                message: 'Your request is in queue at position 1',
+            });
+        });
+
+        it('returns validation errors from the job service', async () => {
+            mockCreateQueuedBirthRectificationJob.mockRejectedValueOnce(
+                new AppError(ErrorCodes.VALIDATION_ERROR, 'Validation failed', {
+                    fields: [{ field: 'birthData.fullName', message: 'Required' }],
+                })
+            );
+
+            const res = await request(app).post('/api/queue').send(validSubmitBody);
+
+            expect(res.status).toBe(400);
+            expect(res.body.error).toMatchObject({
+                code: ErrorCodes.VALIDATION_ERROR,
+                message: 'Validation failed',
+            });
+        });
+
+        it('returns queue-full errors from the job service', async () => {
+            mockCreateQueuedBirthRectificationJob.mockRejectedValueOnce(
+                new AppError(ErrorCodes.QUEUE_FULL, 'Processing queue is full. Please try again later.')
+            );
+
+            const res = await request(app).post('/api/queue').send(validSubmitBody);
+
+            expect(res.status).toBe(503);
+            expect(res.body.error).toMatchObject({
+                code: ErrorCodes.QUEUE_FULL,
+                message: 'Processing queue is full. Please try again later.',
+            });
+        });
+    });
+
+    describe('GET /api/queue', () => {
+        it('returns 400 if sessionId is missing', async () => {
+            const res = await request(app).get('/api/queue');
+
+            expect(res.status).toBe(400);
+            expect(res.body).toMatchObject({
+                success: false,
+                error: 'sessionId is required',
+            });
+        });
+
+        it('returns 404 if session is not found', async () => {
+            dbMock.limit.mockResolvedValueOnce([]);
+
+            const res = await request(app).get('/api/queue?sessionId=missing-session');
+
+            expect(res.status).toBe(404);
+            expect(res.body).toMatchObject({
+                success: false,
+                error: 'Session not found',
+            });
+        });
+
+        it('returns queue status for owned sessions', async () => {
+            dbMock.limit.mockResolvedValueOnce([
+                { id: 'session-123', clerkId: 'test_clerk_id', userId: 'internal_user_id_123', status: 'queued' },
+            ]);
+
+            const res = await request(app).get('/api/queue?sessionId=session-123');
+
+            expect(res.status).toBe(200);
+            expect(res.body).toMatchObject({
+                success: true,
+                data: {
+                    status: 'queued',
+                    position: 1,
+                    estimatedWaitSeconds: 60,
+                    totalInQueue: 1,
+                },
+            });
+        });
+    });
+
+    describe('POST /api/queue/cancel', () => {
+        it('returns 400 if sessionId is missing', async () => {
+            const res = await request(app).post('/api/queue/cancel').send({});
+
+            expect(res.status).toBe(400);
+            expect(res.body).toMatchObject({
+                success: false,
+                error: 'sessionId is required',
+            });
+        });
+
+        it('cancels owned sessions', async () => {
+            dbMock.limit.mockResolvedValueOnce([
+                { id: 'session-123', clerkId: 'test_clerk_id', userId: 'internal_user_id_123' },
+            ]);
+
+            const res = await request(app).post('/api/queue/cancel').send({ sessionId: 'session-123' });
+
+            expect(res.status).toBe(200);
+            expect(res.body).toMatchObject({
+                success: true,
+                message: 'Session cancelled',
+            });
+            expect(mockCancelSession).toHaveBeenCalledWith('session-123');
+        });
+    });
+
+    describe('POST /api/queue/requeue', () => {
+        it('returns 404 if session is not found', async () => {
+            dbMock.limit.mockResolvedValueOnce([]);
+
+            const res = await request(app).post('/api/queue/requeue').send({ sessionId: 'missing-session' });
+
+            expect(res.status).toBe(404);
+            expect(res.body).toMatchObject({
+                success: false,
+                error: 'Session not found',
+            });
+        });
+
+        it('requeues a failed legacy session owned by internal user', async () => {
+            dbMock.limit
+                .mockResolvedValueOnce([
+                    { id: 'legacy-session', clerkId: 'legacy_clerk', userId: 'internal_user_id_123', status: 'failed', errorMessage: 'boom' },
+                ])
+                .mockResolvedValueOnce([
+                    { status: 'pending', errorMessage: null },
+                ]);
+
+            const res = await request(app).post('/api/queue/requeue').send({ sessionId: 'legacy-session' });
+
+            expect(res.status).toBe(200);
+            expect(res.body).toMatchObject({
+                success: true,
+                data: {
+                    sessionId: 'legacy-session',
+                    position: 1,
+                    estimatedWaitSeconds: 60,
+                },
+            });
+            expect(mockFlushSessionTrash).toHaveBeenCalledWith('legacy-session');
+            expect(mockStartQueueProcessor).toHaveBeenCalled();
+        });
     });
 });

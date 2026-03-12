@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:app": "next build",
     "start": "node .next/standalone/server.js",
     "lint": "next lint",
     "test": "vitest run",

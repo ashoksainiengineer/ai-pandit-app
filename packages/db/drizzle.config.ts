@@ -2,16 +2,19 @@ import { defineConfig } from 'drizzle-kit';
 import dotenv from 'dotenv';
 
 dotenv.config({ path: '.env.local' });
+dotenv.config();
 
-if (!process.env.TURSO_DATABASE_URL) throw new Error('TURSO_DATABASE_URL not found');
-if (!process.env.TURSO_AUTH_TOKEN) throw new Error('TURSO_AUTH_TOKEN not found');
+const connectionString =
+  process.env.NEON_DATABASE_URL ||
+  process.env.DATABASE_URL ||
+  process.env.POSTGRES_URL ||
+  'postgresql://postgres:postgres@127.0.0.1:5432/postgres';
 
 export default defineConfig({
-  schema: './database/schema.ts',
+  schema: './src/schema.ts',
   out: './drizzle',
-  dialect: 'turso',
+  dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.TURSO_DATABASE_URL,
-    authToken: process.env.TURSO_AUTH_TOKEN,
+    url: connectionString,
   },
 });

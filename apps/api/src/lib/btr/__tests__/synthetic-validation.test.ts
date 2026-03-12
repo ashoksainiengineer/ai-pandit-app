@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { scanBirthTimeWindow } from '../window-scanner.js';
-import { initSwissEph } from '../../ephemeris.js';
+import { initEphemerisProvider } from '../../ephemeris.js';
 import { BtrEvent } from '@ai-pandit/shared';
 
 describe('🏆 GOD-TIER PROOF: Synthetic Birth Time Recovery', () => {
 
     beforeAll(async () => {
-        await initSwissEph();
+        await initEphemerisProvider();
     });
 
     it('should recover the TRUE birth time from a 15-minute shifted input', async () => {

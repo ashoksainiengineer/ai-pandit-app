@@ -1,4 +1,4 @@
-process.env.SKIP_SWISSEPH_INIT = 'true';
+process.env.SKIP_EPHEMERIS_INIT = 'true';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { stage2BatchTournament } from '../stage2-batch-tournament.js';
 import { stage4DeepAnalysis } from '../stage4-deep-analysis.js';

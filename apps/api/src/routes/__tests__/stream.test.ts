@@ -15,6 +15,16 @@ import express from 'express';
 let mockQueryResults: any[] = [];
 let queryResultIndex = 0;
 
+const {
+    getPersistedSessionEventsMock,
+    getPersistedSessionEventsSinceMock,
+    getLatestJobForSessionMock,
+} = vi.hoisted(() => ({
+    getPersistedSessionEventsMock: vi.fn(async () => []),
+    getPersistedSessionEventsSinceMock: vi.fn(async () => []),
+    getLatestJobForSessionMock: vi.fn(async () => null),
+}));
+
 function setMockResults(results: any[]) {
     mockQueryResults = results;
     queryResultIndex = 0;
@@ -45,6 +55,7 @@ vi.mock('@ai-pandit/db', () => {
             update: vi.fn(() => createQueryBuilder()),
             delete: vi.fn(() => createQueryBuilder()),
         },
+        getLatestJobForSession: getLatestJobForSessionMock,
     };
 });
 
@@ -114,6 +125,20 @@ vi.mock('../../lib/session-ownership.js', () => ({
         if (!context.internalUserId) return false;
         return session?.userId === context.internalUserId;
     }),
+}));
+
+vi.mock('../../config/index.js', () => ({
+    aiConfig: { model: 'test-model' },
+    config: {
+        features: {
+            useNewStreamPath: true,
+        },
+    },
+}));
+
+vi.mock('../../lib/jobs/job-event-stream.js', () => ({
+    getPersistedSessionEvents: getPersistedSessionEventsMock,
+    getPersistedSessionEventsSince: getPersistedSessionEventsSinceMock,
 }));
 
 import { db } from '@ai-pandit/db';
@@ -364,6 +389,103 @@ describe('GET /api/stream/:sessionId', () => {
             const replayed = sse.find(e => e.type === 'ai_thinking' && e.chunk === 'replayed');
             expect(replayed).toBeDefined();
             expect(sessionEvents.getEventsSince).toHaveBeenCalledWith(sessionId, 4);
+        });
+
+        it('should prefer persisted incremental events for partial missed windows', { timeout: 10000 }, async () => {
+            const sessionId = 'sess-partial-window';
+            setMockResults([[{ clerkId: 'valid-clerk', status: 'processing', userId: '1' }]]);
+            getPersistedSessionEventsSinceMock.mockResolvedValueOnce([
+                { seq: 7, event: { type: 'ai_thinking', chunk: 'persisted-window' } },
+            ]);
+
+            let responseText = '';
+            await new Promise<void>((resolve) => {
+                const req = request(app)
+                    .get(`/api/stream/${sessionId}`)
+                    .set('Authorization', 'Bearer VALID')
+                    .set('Last-Event-ID', '6')
+                    .parse((res, cb) => {
+                        res.on('data', chunk => {
+                            responseText += chunk.toString();
+                            if (responseText.includes('persisted-window')) {
+                                mockEmitter.emit('event', { type: 'complete' });
+                                resolve();
+                            }
+                        });
+                        res.on('end', () => cb(null, responseText));
+                    });
+                req.end();
+            });
+
+            const sse = parseSSE(responseText);
+            expect(sse.find(e => e.chunk === 'persisted-window')).toBeDefined();
+            expect(getPersistedSessionEventsSinceMock).toHaveBeenCalledWith(sessionId, 6);
+            expect(sessionEvents.getEventsSince).not.toHaveBeenCalledWith(sessionId, 6);
+        });
+
+        it('should fall back to in-memory replay when no persisted events exist', { timeout: 10000 }, async () => {
+            const sessionId = 'sess-no-persisted';
+            setMockResults([[{ clerkId: 'valid-clerk', status: 'processing', userId: '1' }]]);
+            getPersistedSessionEventsSinceMock.mockResolvedValueOnce([]);
+            (sessionEvents.getEventsSince as any).mockReturnValueOnce([
+                { seq: 9, event: { type: 'ai_thinking', chunk: 'memory-fallback' } },
+            ]);
+
+            let responseText = '';
+            await new Promise<void>((resolve) => {
+                const req = request(app)
+                    .get(`/api/stream/${sessionId}`)
+                    .set('Authorization', 'Bearer VALID')
+                    .set('Last-Event-ID', '8')
+                    .parse((res, cb) => {
+                        res.on('data', chunk => {
+                            responseText += chunk.toString();
+                            if (responseText.includes('memory-fallback')) {
+                                mockEmitter.emit('event', { type: 'complete' });
+                                resolve();
+                            }
+                        });
+                        res.on('end', () => cb(null, responseText));
+                    });
+                req.end();
+            });
+
+            const sse = parseSSE(responseText);
+            expect(sse.find(e => e.chunk === 'memory-fallback')).toBeDefined();
+            expect(sessionEvents.getEventsSince).toHaveBeenCalledWith(sessionId, 8);
+        });
+
+        it('should suppress duplicate replay when persisted events are available', { timeout: 10000 }, async () => {
+            const sessionId = 'sess-no-duplicates';
+            setMockResults([[{ clerkId: 'valid-clerk', status: 'processing', userId: '1' }]]);
+            getPersistedSessionEventsSinceMock.mockResolvedValueOnce([
+                { seq: 11, event: { type: 'ai_thinking', chunk: 'deduped-event' } },
+            ]);
+            (sessionEvents.getEventsSince as any).mockReturnValueOnce([
+                { seq: 11, event: { type: 'ai_thinking', chunk: 'deduped-event' } },
+            ]);
+
+            let responseText = '';
+            await new Promise<void>((resolve) => {
+                const req = request(app)
+                    .get(`/api/stream/${sessionId}`)
+                    .set('Authorization', 'Bearer VALID')
+                    .set('Last-Event-ID', '10')
+                    .parse((res, cb) => {
+                        res.on('data', chunk => {
+                            responseText += chunk.toString();
+                            if (responseText.includes('deduped-event')) {
+                                mockEmitter.emit('event', { type: 'complete' });
+                                resolve();
+                            }
+                        });
+                        res.on('end', () => cb(null, responseText));
+                    });
+                req.end();
+            });
+
+            const replayed = parseSSE(responseText).filter(e => e.chunk === 'deduped-event');
+            expect(replayed).toHaveLength(1);
         });
 
         it('should correctly format sequenced SSE events with id: field', async () => {

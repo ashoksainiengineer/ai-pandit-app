@@ -6,7 +6,6 @@ import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { BirthData, LifeEvent, PhysicalTraits, SpouseData, ForensicTraits } from '@/lib/types';
 import { env } from '@/lib/config';
-import { APIClient } from '@/lib/api-client';
 import { useStreamStore } from '@/lib/store/stream-store';
 import { waitForAnalysisSessionReady } from '@/lib/analysis-session-readiness';
 
@@ -102,6 +101,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
     useEffect(() => {
         if (!birthData || !birthData.fullName || birthData.fullName.trim().length < 2) return;
+        if (isSubmitting) return;
 
         const currentData = JSON.stringify({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig });
         if (currentData === lastSavedData) return;
@@ -122,6 +122,11 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                     })
                 });
 
+                if (saveRes.status === 409) {
+                    setSavingStatus('idle');
+                    return;
+                }
+
                 if (!saveRes.ok) {
                     throw new Error(`Save failed with status ${saveRes.status}`);
                 }
@@ -137,7 +142,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
         const timer = setTimeout(saveDraft, 5000);
         return () => clearTimeout(timer);
-    }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, sessionId, lastSavedData, getToken]);
+    }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, sessionId, lastSavedData, getToken, isSubmitting]);
 
     const handleNext = () => {
         setError(null);
@@ -216,7 +221,12 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
 
             const backendUrl = env.api.backendUrl.replace(/\/$/, '');
             try {
-                const requeueResult = await APIClient.post(`${backendUrl}/api/queue/requeue`, { sessionId }, getToken);
+                const requeueRes = await fetch('/api/analysis/requeue', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ sessionId })
+                });
+                const requeueResult = await requeueRes.json();
                 if (!requeueResult?.success) {
                     setError(toErrorMessage(requeueResult?.error, 'Failed to restart analysis'));
                     setIsSubmitting(false);

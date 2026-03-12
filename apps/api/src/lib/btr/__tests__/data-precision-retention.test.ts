@@ -1,13 +1,12 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
-import { initSwissEph } from '../../ephemeris.js';
+import { initEphemerisProvider } from '../../ephemeris.js';
 import type { SecondsPrecisionInput } from '@ai-pandit/shared';
 
 describe('Elite E2E Data Precision Retention (DMS)', () => {
 
     beforeAll(async () => {
-        // Ensure the WASM engine is loaded
-        await initSwissEph();
+        await initEphemerisProvider();
     });
 
     it('MUST retain high precision and follow traditional DMS format (DD° MM\' SS") for AI', async () => {

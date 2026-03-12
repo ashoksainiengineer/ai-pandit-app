@@ -4,6 +4,10 @@ import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { and, eq, inArray } from 'drizzle-orm';
 import { setFavorite, toggleFavorite } from '@/lib/server/favorite-store';
+import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
 type BatchType = 'delete' | 'export' | 'favorite' | 'tag';
 
@@ -14,6 +18,9 @@ interface BatchRequestBody {
 }
 
 export async function POST(req: NextRequest) {
+  const buildPhaseResponse = getBuildPhaseRouteResponse();
+  if (buildPhaseResponse) return buildPhaseResponse;
+
   try {
     const { userId: clerkId } = await auth();
     if (!clerkId) {

@@ -1,6 +1,7 @@
 {
     "name": "ai-pandit-monorepo",
     "private": true,
+    "license": "UNLICENSED",
     "packageManager": "npm@10.8.0",
     "engines": {
         "node": ">=20.19.0"
@@ -12,9 +13,18 @@
     "scripts": {
         "build": "turbo run build",
         "dev": "turbo run dev",
+        "dev:ephemeris": "sh ./services/ephemeris/scripts/dev.sh",
         "lint": "turbo run lint",
         "test": "turbo run test",
         "test:coverage": "turbo run test:coverage",
+        "setup:ephemeris": "sh ./services/ephemeris/scripts/bootstrap.sh",
+        "ephemeris:download-kernel": "sh ./services/ephemeris/scripts/download-kernel.sh",
+        "deploy:cloudrun:api": "sh ./scripts/deploy-cloud-run.sh api",
+        "deploy:cloudrun:web": "sh ./scripts/deploy-cloud-run.sh web",
+        "deploy:cloudrun:worker": "sh ./scripts/deploy-cloud-run.sh worker",
+        "deploy:cloudrun:idle-guards": "sh ./scripts/enforce-idle-cost-guards.sh",
+        "deploy:cloudrun:prod-worker": "sh ./scripts/enable-production-worker-mode.sh",
+        "cleanup:artifacts": "sh ./scripts/cleanup-artifact-images.sh",
         "test:e2e": "npx playwright test",
         "test:e2e:ui": "npx playwright test --ui",
         "test:e2e:smoke": "npx playwright test e2e/smoke.spec.ts"

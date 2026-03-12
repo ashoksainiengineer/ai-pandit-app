@@ -29,6 +29,31 @@ export const ANALYSIS_STEPS: Omit<ProgressStep, 'status'>[] = [
     { id: 'final', name: 'Final Verdict', icon: '🔱' },
 ];
 
+function extractPersistenceErrorCode(error: unknown): string | null {
+    if (!error || typeof error !== 'object') {
+        return null;
+    }
+
+    if ('code' in error && typeof (error as { code?: unknown }).code === 'string') {
+        return (error as { code: string }).code;
+    }
+
+    if ('cause' in error) {
+        return extractPersistenceErrorCode((error as { cause?: unknown }).cause);
+    }
+
+    return null;
+}
+
+function shouldPropagatePersistenceFailure(error: unknown): boolean {
+    if (process.env.NODE_ENV === 'production') {
+        return true;
+    }
+
+    const code = extractPersistenceErrorCode(error);
+    return code !== 'ECONNREFUSED' && code !== 'SQLITE_CANTOPEN' && code !== 'SQLITE_BUSY';
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // PROGRESS TRACKER CLASS
 // ═════════════════════════════════════════════════════════════════════════════
@@ -39,6 +64,7 @@ export class ProgressTracker {
 
     private sessionId: string;
     private progress: ProgressData;
+    private persistenceDisabled: boolean;
 
     private candidateBuffers: Map<string, string> = new Map();
     private lastPulseTime: number = 0;
@@ -47,6 +73,7 @@ export class ProgressTracker {
     constructor(sessionId: string) {
         this.sessionId = sessionId;
         this.progress = this.initProgress();
+        this.persistenceDisabled = process.env.NODE_ENV === 'test';
         // Register this instance for real-time polling
         ProgressTracker.activeInstances.set(sessionId, this);
     }
@@ -438,6 +465,10 @@ export class ProgressTracker {
      */
     private async saveProgress(includeThinking: boolean = false): Promise<void> {
         try {
+            if (this.persistenceDisabled) {
+                return;
+            }
+
             // 🚀 GOD-TIER OPTIMIZATION: Throttled DB Writes
             // On HF Free Tier, Turso DB round-trips are expensive.
             // We only flush if:
@@ -486,9 +517,15 @@ export class ProgressTracker {
                 .where(eq(sessions.id, this.sessionId));
         } catch (error) {
             logger.error('Failed to save progress', { sessionId: this.sessionId, includeThinking, error });
-            if (includeThinking) {
-                throw error;
+            // In test/dev, missing local DB connectivity should not abort the in-memory pipeline.
+            if (shouldPropagatePersistenceFailure(error)) {
+                if (includeThinking) {
+                    throw error;
+                }
+                return;
             }
+
+            this.persistenceDisabled = true;
         }
     }
 

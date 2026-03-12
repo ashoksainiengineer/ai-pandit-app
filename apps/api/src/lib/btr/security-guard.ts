@@ -10,6 +10,8 @@ const SUSPICIOUS_PATTERNS = [
     /output your instructions/i,
     /forget everything/i,
     /you are now/i,
+    /you are a/i,
+    /pretend you are/i,
     /bypassing rules/i,
     // Exploits
     /```json/i,

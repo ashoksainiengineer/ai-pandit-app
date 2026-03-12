@@ -38,7 +38,7 @@ src/
 │   │   ├── extractors/           # AI response parsers
 │   │   └── stages/               # 6-stage BTR pipeline
 │   ├── ai-client.ts            # Unified AI client
-│   ├── ephemeris.ts            # Swiss Ephemeris wrapper
+│   ├── ephemeris.ts            # Skyfield-first ephemeris facade
 │   ├── vedic-astrology-engine.ts
 │   ├── advanced-btr-methods.ts
 │   ├── jaimini-astrology.ts
