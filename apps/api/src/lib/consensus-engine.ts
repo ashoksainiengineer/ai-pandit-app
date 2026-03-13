@@ -1,3 +1,4 @@
+
 /**
  * CONSENSUS VALIDATION ENGINE (Multi-Method Verification)
  * ==========================================================
@@ -27,7 +28,7 @@
  */
 
 import { logger } from './logger.js';
-import { calculateKPSubLords, KPCuspalData } from './kp-sublords.js';
+import { _calculateKPSubLords, _KPCuspalData } from './kp-sublords.js';
 import type {
   ConsensusScores,
   ValidationDetail,
@@ -39,7 +40,7 @@ import {
   METHOD_WEIGHTS,
   CONFIDENCE_THRESHOLDS,
   calculateRankFusionScore,
-  calculateWeightedAverage
+  _calculateWeightedAverage
 } from './btr/precision-weights.js';
 import { resolveEventDateWindow } from './btr/event-date-utils.js';
 
@@ -469,7 +470,7 @@ function validateKP(input: ValidationInput): ValidationDetail {
 }
 
 function validateAshtakavarga(input: ValidationInput): ValidationDetail {
-  const { candidate, events } = input;
+  const { candidate } = input;
 
   if (!candidate.ephemeris?.ashtakavarga) {
     return {
@@ -838,7 +839,7 @@ function calculateMarginOfError(scores: ConsensusScores, redFlags: RedFlags): nu
   return Math.max(3, baseError); // Minimum 3 seconds
 }
 
-function detectRedFlags(input: ValidationInput, scores: ConsensusScores, details: ValidationDetail[]): RedFlags {
+function detectRedFlags(input: ValidationInput, scores: ConsensusScores, _details: ValidationDetail[]): RedFlags {
   const { candidate } = input;
 
   return {

@@ -8,7 +8,9 @@
 // ═════════════════════════════════════════════════════════════════════════════
 // IMMEDIATE STARTUP OBSERVABILITY - Must be first
 // ═════════════════════════════════════════════════════════════════════════════
-console.log(`[STARTUP ${new Date().toISOString()}] Server process starting...`);
+// Note: Using console.log here before logger is initialized for early diagnostics
+const startupTimestamp = new Date().toISOString();
+console.log(`[STARTUP ${startupTimestamp}] Server process starting...`);
 console.log(`[STARTUP] Node version: ${process.version}`);
 console.log(`[STARTUP] Platform: ${process.platform}`);
 console.log(`[STARTUP] Environment: ${process.env.NODE_ENV || 'not set'}`);
@@ -24,7 +26,7 @@ import { config } from './config/index.js';
 import { ForbiddenError } from './errors/index.js';
 import { routes } from './routes/index.js';
 import { logger } from './utils/logger.js';
-import { requestIdMiddleware } from './middleware/request-id.js';
+import { performanceMiddleware, requestIdMiddleware, tracingMiddleware } from './middleware/request-id.js';
 import { errorHandlerMiddleware, notFoundHandler, setupUncaughtExceptionHandlers } from './middleware/error-handler-new.js';
 import { getEphemerisProviderStatus, initEphemerisProvider } from './lib/ephemeris.js';
 
@@ -181,6 +183,10 @@ export function createApp() {
 
     // Tracing & Logging
     app.use(requestIdMiddleware());
+    app.use(tracingMiddleware({
+        traceHeader: config.observability?.traceHeaderName ?? 'x-trace-id',
+    }));
+    app.use(performanceMiddleware());
     app.use(morgan(':method :url :status :res[content-length] - :response-time ms', {
         stream: { write: (message) => logger.http(message.trim()) },
         skip: (req) => req.path === '/health' || req.path === '/ready'

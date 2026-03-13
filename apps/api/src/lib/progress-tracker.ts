@@ -1,3 +1,4 @@
+
 // lib/progress-tracker.ts
 // Real-time progress tracking for BTR analysis
 // Updates database with current step, message, and percentage
@@ -6,7 +7,7 @@
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq, and, isNotNull } from 'drizzle-orm';
-import { emitProgress, emitComplete, emitError, emitCandidateScore, emitAIContext, emitEstimatedTime, emitAIThinking } from './session-events.js';
+import { emitProgress, _emitComplete, emitError, emitCandidateScore, emitAIContext, emitEstimatedTime, emitAIThinking } from './session-events.js';
 import { logger } from './logger.js';
 import type { CandidateScore, ProgressStep, AIThinkingData, AIContextData, ProgressData } from '@ai-pandit/shared';
 
@@ -470,8 +471,7 @@ export class ProgressTracker {
             }
 
             // 🚀 GOD-TIER OPTIMIZATION: Throttled DB Writes
-            // On HF Free Tier, Turso DB round-trips are expensive.
-            // We only flush if:
+            // Database round-trips are expensive. We only flush if:
             // 1. It's a major flush (includeThinking = true)
             // Throttle regular saves (non-thinking checkpoints) to 10s to reduce DB load
             if (!includeThinking && Date.now() - this.lastSaveTime < 10000) {
@@ -480,12 +480,12 @@ export class ProgressTracker {
 
             this.lastSaveTime = Date.now();
 
-            // 🛡️ [TURSO OPTIMIZED] Data Persistence with Volatile Reasoning
+            // 🛡️ Data Persistence with Volatile Reasoning
             // We persist everything except AI thinking logs (stageHistory and lastAIThinking)
             // as per user request for "No permanent reasoning store".
             const dbProgress = { ...this.progress };
 
-            // 🛡️ [TURSO OPTIMIZED] Data Persistence
+            // 🛡️ Data Persistence
             // We now PERSIST stageHistory (Reasoning Logs) as per "Industry Standard" request.
             // But we still strip `lastAIThinking` as it's a transient UI state, not a permanent log.
 

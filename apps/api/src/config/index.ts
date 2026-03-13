@@ -13,12 +13,10 @@ const envSchema = z.object({
     FRONTEND_URL: z.string().optional().transform(v => v?.trim().split(/\s+/)[0]),
     ALLOWED_ORIGINS: z.string().trim().default('http://localhost:3000'),
 
-    // Database Configuration
+    // Database Configuration (Neon Postgres)
     NEON_DATABASE_URL: z.string().min(1).optional(),
     DATABASE_URL: z.string().min(1).optional(),
     POSTGRES_URL: z.string().min(1).optional(),
-    TURSO_DATABASE_URL: z.string().min(1).optional(),
-    TURSO_AUTH_TOKEN: z.string().min(1).optional(),
 
     // AI Configuration
     AI_API_KEY: z.string().min(1, 'AI_API_KEY is required'),
@@ -70,10 +68,34 @@ const envSchema = z.object({
     // Rate Limiting
     RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default('60000'),
     RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default('100'),
+    MAX_ACTIVE_JOBS_PER_USER: z.string().transform(Number).default('2'),
+    MAX_ACTIVE_JOBS_FREE: z.string().transform(Number).default('2'),
+    MAX_ACTIVE_JOBS_PRO: z.string().transform(Number).default('5'),
+    MAX_ACTIVE_JOBS_ENTERPRISE: z.string().transform(Number).default('12'),
+    LOAD_SHED_QUEUE_DEPTH: z.string().transform(Number).default('80'),
     JOB_EXECUTION_MODE: z.enum(['inline', 'external_worker']).default('inline'),
-    QUEUE_ARCHITECTURE: z.enum(['db_polling']).default('db_polling'),
+    QUEUE_ARCHITECTURE: z.enum(['db_polling', 'redis_bullmq']).default('db_polling'),
+    REDIS_URL: z.string().url().optional(),
+    REDIS_TLS: z
+        .string()
+        .default('false')
+        .transform((v) => ['1', 'true', 'yes', 'on'].includes(v.toLowerCase())),
+    REDIS_QUEUE_NAME: z.string().default('ai-pandit:btr:jobs'),
     WORKER_POLL_INTERVAL_MS: z.string().transform(Number).default('2000'),
+    WORKER_RECOVERY_ALERT_THRESHOLD: z.string().transform(Number).default('1'),
     JOB_SYNC_POLL_INTERVAL_MS: z.string().transform(Number).default('2000'),
+    OTEL_ENABLED: z
+        .string()
+        .default('false')
+        .transform((v) => ['1', 'true', 'yes', 'on'].includes(v.toLowerCase())),
+    OTEL_SERVICE_NAME: z.string().default('ai-pandit-api'),
+    OTEL_EXPORTER_OTLP_ENDPOINT: z.string().url().optional(),
+    OTEL_TRACE_SAMPLE_RATIO: z.string().transform(Number).default('1'),
+    TRACE_HEADER_NAME: z.string().default('x-trace-id'),
+    SLO_WINDOW_MS: z.string().transform(Number).default('300000'),
+    SLO_MIN_SAMPLE_SIZE: z.string().transform(Number).default('20'),
+    SLO_ERROR_RATE_ALERT_PERCENT: z.string().transform(Number).default('5'),
+    SLO_P95_LATENCY_ALERT_MS: z.string().transform(Number).default('5000'),
     USE_ASYNC_JOB_PIPELINE: z
         .string()
         .default('true')
@@ -110,12 +132,17 @@ function parseEnv() {
     const resolvedDatabaseUrl =
         env.NEON_DATABASE_URL ||
         env.DATABASE_URL ||
-        env.POSTGRES_URL ||
-        env.TURSO_DATABASE_URL;
+        env.POSTGRES_URL;
 
     if (!resolvedDatabaseUrl) {
         throw new Error(
             'Configuration Validation Failed:\n  • NEON_DATABASE_URL or DATABASE_URL is required'
+        );
+    }
+
+    if (env.QUEUE_ARCHITECTURE === 'redis_bullmq' && !env.REDIS_URL) {
+        throw new Error(
+            'Configuration Validation Failed:\n  • REDIS_URL is required when QUEUE_ARCHITECTURE=redis_bullmq'
         );
     }
 
@@ -180,8 +207,7 @@ export const aiConfig = {
 
 export const dbConfig = {
     url: env.RESOLVED_DATABASE_URL,
-    authToken: env.TURSO_AUTH_TOKEN,
-    provider: env.NEON_DATABASE_URL || env.DATABASE_URL || env.POSTGRES_URL ? 'postgres' : 'turso',
+    provider: 'postgres',
 };
 
 export const storageConfig = {
@@ -250,7 +276,15 @@ export const config = {
     },
     queue: {
         maxConcurrent: env.MAX_CONCURRENT_SESSIONS,
+        maxActiveJobsPerUser: env.MAX_ACTIVE_JOBS_PER_USER,
+        maxActiveJobsByTier: {
+            free: env.MAX_ACTIVE_JOBS_FREE,
+            pro: env.MAX_ACTIVE_JOBS_PRO,
+            enterprise: env.MAX_ACTIVE_JOBS_ENTERPRISE,
+        },
+        loadShedQueueDepth: env.LOAD_SHED_QUEUE_DEPTH,
         pollIntervalMs: env.WORKER_POLL_INTERVAL_MS,
+        recoveryAlertThreshold: env.WORKER_RECOVERY_ALERT_THRESHOLD,
         syncPollIntervalMs: env.JOB_SYNC_POLL_INTERVAL_MS,
         maxSize: 100,
         staleTimeoutMs: 7200000, // 2 Hours hardcoded
@@ -258,8 +292,26 @@ export const config = {
         contentionMultiplier: 0.1, // Hardcoded
         executionMode: env.JOB_EXECUTION_MODE,
         architecture: env.QUEUE_ARCHITECTURE,
+        redis: {
+            url: env.REDIS_URL,
+            tls: env.REDIS_TLS,
+            queueName: env.REDIS_QUEUE_NAME,
+        },
     },
     storage: storageConfig,
+    observability: {
+        otelEnabled: env.OTEL_ENABLED,
+        serviceName: env.OTEL_SERVICE_NAME,
+        otlpEndpoint: env.OTEL_EXPORTER_OTLP_ENDPOINT,
+        traceSampleRatio: env.OTEL_TRACE_SAMPLE_RATIO,
+        traceHeaderName: env.TRACE_HEADER_NAME,
+        slo: {
+            windowMs: env.SLO_WINDOW_MS,
+            minSampleSize: env.SLO_MIN_SAMPLE_SIZE,
+            errorRateAlertPercent: env.SLO_ERROR_RATE_ALERT_PERCENT,
+            p95LatencyAlertMs: env.SLO_P95_LATENCY_ALERT_MS,
+        },
+    },
     logging: {
         level: 'info',
         format: 'json',

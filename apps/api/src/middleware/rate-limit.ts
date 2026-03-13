@@ -7,7 +7,6 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import { config } from '../config/index.js';
-import { RateLimitError } from '../errors/index.js';
 import { sendRateLimit } from '../utils/response.js';
 import { logger } from '../lib/logger.js';
 

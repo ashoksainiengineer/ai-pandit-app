@@ -20,10 +20,10 @@ const analysisSequence = [
   { type: 'info' as const, message: 'Initializing AI Pandit BTR Engine...', delay: 0 },
   { type: 'info' as const, message: 'Loading environment configuration...', delay: 100 },
   { type: 'success' as const, message: '✓ Node.js runtime detected', delay: 200 },
-  { type: 'info' as const, message: 'Importing swisseph-wasm...', delay: 300 },
-  { type: 'process' as const, message: 'Loading ephemeris files: sepl_18.se1, semo_18.se1', delay: 400 },
-  { type: 'success' as const, message: '✓ Swiss Ephemeris initialized', delay: 500 },
-  { type: 'info' as const, message: 'Connecting to Turso database...', delay: 600 },
+  { type: 'info' as const, message: 'Connecting to Skyfield service...', delay: 300 },
+  { type: 'process' as const, message: 'Loading DE440 ephemeris kernel...', delay: 400 },
+  { type: 'success' as const, message: '✓ Skyfield Ephemeris initialized', delay: 500 },
+  { type: 'info' as const, message: 'Connecting to Neon database...', delay: 600 },
   { type: 'success' as const, message: '✓ Database connected', delay: 700 },
   { type: 'info' as const, message: 'Loading drizzle-orm schema...', delay: 800 },
   { type: 'success' as const, message: '✓ Sessions table validated', delay: 900 },
@@ -213,7 +213,7 @@ export default function AIThinkingBox() {
               </span>
             </div>
             <p className="text-[10px] text-[#7A756F] font-mono">
-              Swiss Ephemeris • Hugging Face Space • DeepSeek R1-0528
+              Skyfield Ephemeris • API + Worker Stack • DeepSeek R1-0528
             </p>
           </div>
           <div className="flex items-center gap-2">

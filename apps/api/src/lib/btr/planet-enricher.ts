@@ -15,24 +15,24 @@ import {
   calculatePanchadhaSambandha,
   calculateIshtaKashtaPhala,
 } from '../vedic-astrology-engine.js';
-import { ZODIAC_SIGNS, PlanetData } from '@ai-pandit/shared';
+import { ZODIAC_SIGNS, PlanetData, EphemerisData, PlanetPosition } from '@ai-pandit/shared';
 import { capitalizeFirstLetter, decimalToDMS } from '../utils/index.js';
 
 export interface EnrichmentContext {
   ascendantSign: string;
   ascendantLongitude: number;
-  shadbala: Record<string, any>;
+  shadbala: NonNullable<EphemerisData['shadbala']>;
   ashtakavarga: Record<string, number[]>;
   houses: Array<{ sign: string; lord: string }>;
 }
 
 export interface EnrichedPlanet extends PlanetData {
   functionalNature: { role: string; reason: string };
-  aspects: any[];
+  aspects: ReturnType<typeof calculateAspects>;
   avastha: string;
   d60Deity: string;
   compoundDignity: string;
-  shadbalaBreakdown?: any;
+  shadbalaBreakdown?: NonNullable<EphemerisData['shadbala']>[string];
   ishtaKashtaPhala?: { ishta: number; kashta: number };
 }
 
@@ -40,7 +40,7 @@ export interface EnrichedPlanet extends PlanetData {
  * Enriches all planets in an ephemeris object
  */
 export function enrichPlanets(
-  planets: Record<string, any>,
+  planets: EphemerisData['planets'],
   context: EnrichmentContext
 ): Record<string, EnrichedPlanet> {
   const planetLongitudes = extractPlanetLongitudes(planets);
@@ -57,7 +57,7 @@ export function enrichPlanets(
 /**
  * Extract planet longitudes for aspect calculations
  */
-function extractPlanetLongitudes(planets: Record<string, any>): Record<string, number> {
+function extractPlanetLongitudes(planets: EphemerisData['planets']): Record<string, number> {
   const longitudes: Record<string, number> = {};
 
   for (const [key, p] of Object.entries(planets)) {
@@ -72,7 +72,7 @@ function extractPlanetLongitudes(planets: Record<string, any>): Record<string, n
  */
 function enrichSinglePlanet(
   planetName: string,
-  rawPlanet: any,
+  rawPlanet: PlanetPosition,
   planetLongitudes: Record<string, number>,
   context: EnrichmentContext
 ): EnrichedPlanet {
@@ -96,12 +96,12 @@ function enrichSinglePlanet(
     isRetro: rawPlanet.retro === true,
     speed: rawPlanet.speed ?? 0,
     isCombust: rawPlanet.isCombust === true,
-    shadbala: context.shadbala?.[planetName] ?? null,
-    bav: context.ashtakavarga?.[planetName]?.[signIdx] ?? null,
-    functionalNature: calculateFunctionalNature(planetName, context.ascendantSign), // Corrected argument order
+    shadbala: (context.shadbala?.[planetName] as unknown as number | undefined) ?? undefined,
+    bav: (context.ashtakavarga?.[planetName]?.[signIdx] as number | undefined) ?? undefined,
+    functionalNature: calculateFunctionalNature(planetName, context.ascendantSign),
     aspects: calculateAspects(planetName, rawPlanet.longitude, planetLongitudes, context.ascendantLongitude),
-    avastha: calculateBaladiAvastha(parseFloat(rawPlanet.longitude)),
-    d60Deity: getD60Deity(parseFloat(rawPlanet.longitude)), // Corrected call with parseFloat
+    avastha: calculateBaladiAvastha(rawPlanet.longitude),
+    d60Deity: getD60Deity(rawPlanet.longitude),
     compoundDignity: calculatePanchadhaSambandha(planetName, capitalizeFirstLetter(houseLord)),
     shadbalaBreakdown: context.shadbala?.[planetName],
     ishtaKashtaPhala: calculateIshtaKashtaPhala(planetName, rawPlanet) // Added missing argument

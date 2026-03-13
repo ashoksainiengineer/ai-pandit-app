@@ -21,12 +21,34 @@ import {
 } from '../lib/jobs/job-event-stream.js';
 
 const router = Router();
+type SseResponse = Response & {
+    flush?: () => void;
+    flushHeaders?: () => void;
+};
+type SequencedSessionEvent = SessionEvent & { seq?: number; status?: string };
 
 // Track active SSE connections for observability
 let activeSseConnections = 0;
 
 export function getActiveSseCount(): number {
     return activeSseConnections;
+}
+
+function flushHeaders(res: SseResponse): void {
+    res.flushHeaders?.();
+}
+
+function flushBody(res: SseResponse): void {
+    res.flush?.();
+}
+
+function isWritable(res: SseResponse): boolean {
+    return !res.writableEnded && !res.destroyed;
+}
+
+function safeWrite(res: SseResponse, payload: string): void {
+    if (!isWritable(res)) return;
+    res.write(payload);
 }
 
 /**
@@ -104,6 +126,7 @@ router.post('/ticket/:sessionId', authMiddleware, async (req: AuthenticatedReque
  * SECURITY: Requires authentication and session ownership verification
  */
 router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+    const sseRes = res as SseResponse;
     // Robust session ID extraction
     const sessionId = req.params.sessionId ||
         (req.query.sessionId as string);
@@ -134,8 +157,6 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
     // SECURITY: Verify session ownership
     // ═══════════════════════════════════════════════════════════════════════════════
     let currentStatus = 'pending';
-    let isOwner = false;
-
     try {
         const ownershipContext = await resolveSessionOwnershipContext(clerkId);
         const session = await db.select({
@@ -154,10 +175,10 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('X-Accel-Buffering', 'no');
-            if (typeof (res as any).flushHeaders === 'function') (res as any).flushHeaders();
-            res.write(': ping\n\n');
-            sendEvent(res, { type: 'error', message: 'Session not found', code: 'NOT_FOUND' });
-            if (typeof (res as any).flush === 'function') (res as any).flush();
+            flushHeaders(sseRes);
+            safeWrite(sseRes, ': ping\n\n');
+            sendEvent(sseRes, { type: 'error', message: 'Session not found', code: 'NOT_FOUND' });
+            flushBody(sseRes);
             res.end();
             return;
         }
@@ -168,17 +189,16 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
             res.setHeader('Content-Type', 'text/event-stream');
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('X-Accel-Buffering', 'no');
-            if (typeof (res as any).flushHeaders === 'function') (res as any).flushHeaders();
-            res.write(': ping\n\n');
-            sendEvent(res, { type: 'error', message: 'Access denied', code: 'FORBIDDEN' });
-            if (typeof (res as any).flush === 'function') (res as any).flush();
+            flushHeaders(sseRes);
+            safeWrite(sseRes, ': ping\n\n');
+            sendEvent(sseRes, { type: 'error', message: 'Access denied', code: 'FORBIDDEN' });
+            flushBody(sseRes);
             res.end();
             return;
         }
 
         const userId = session[0].userId; // Internal DB ID needed elsewhere
 
-        isOwner = true;
         currentStatus = session[0].status || 'pending';
 
         // Handle terminal states — do NOT open SSE for sessions that are done
@@ -212,13 +232,13 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
             res.setHeader('Cache-Control', 'no-cache, no-transform, no-store, must-revalidate, private');
             res.setHeader('Connection', 'keep-alive');
             res.setHeader('X-Accel-Buffering', 'no');
-            if (typeof (res as any).flushHeaders === 'function') (res as any).flushHeaders();
+            flushHeaders(sseRes);
 
             // Send preamble to ensure event is delivered through proxies
-            res.write(':' + ' '.repeat(1024) + '\n\n');
-            if (typeof (res as any).flush === 'function') (res as any).flush();
+            safeWrite(sseRes, ':' + ' '.repeat(1024) + '\n\n');
+            flushBody(sseRes);
 
-            sendEvent(res, {
+            sendEvent(sseRes, {
                 type: 'terminal_state',
                 status: currentStatus,
                 message: currentStatus === 'complete'
@@ -237,7 +257,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                 },
             });
 
-            if (typeof (res as any).flush === 'function') (res as any).flush();
+            flushBody(sseRes);
             res.end();
             return;
         }
@@ -281,20 +301,18 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
     }
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Cache-Control, Last-Event-ID, Authorization');
-    if (typeof (res as any).flushHeaders === 'function') (res as any).flushHeaders();
+    flushHeaders(sseRes);
 
     logger.info(`[SSE] Headers flushed for ${sessionId}`);
 
-    // Proxy-Buffering Bypass: Send a 2KB preamble
-    // This fills the buffer of intermediate proxies (Hugging Face / Ingress)
-    // to ensure real-time delivery of the next events.
-    res.write(':' + ' '.repeat(2048) + '\n\n');
+    // Proxy-buffering bypass: send a 2KB preamble so upstream proxies flush early.
+    safeWrite(sseRes, ':' + ' '.repeat(2048) + '\n\n');
 
-    if (typeof (res as any).flush === 'function') (res as any).flush();
+    flushBody(sseRes);
     logger.info(`[SSE] 2KB Preamble sent for ${sessionId}`);
 
     // Send initial connection event (unsequenced — lightweight)
-    sendEvent(res, { type: 'connected', sessionId, timestamp: new Date().toISOString() });
+    sendEvent(sseRes, { type: 'connected', sessionId, timestamp: new Date().toISOString() });
 
     // ═══════════════════════════════════════════════════════════════════════════════
     // RECONNECT vs FRESH: Smart replay strategy
@@ -326,7 +344,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                         return;
                     }
                     const job = await getLatestJobForSession(sessionId);
-                    sendSequencedEvent(res, sessionId, {
+                    sendSequencedEvent(sseRes, sessionId, {
                         type: 'metadata',
                         data: {
                             ...session,
@@ -343,7 +361,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                             status: queueStatus.status,
                             aiModel: aiConfig.model,
                         }
-                    } as any);
+                    } as unknown as SessionEvent);
                 }
             } else {
                 // ────────────────────────────────────────────────────────────────
@@ -354,19 +372,19 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
 
                 // Warmup hint for fresh connections
                 if (!currentProgress || currentProgress.currentStep === 0) {
-                    sendSequencedEvent(res, sessionId, {
+                    sendSequencedEvent(sseRes, sessionId, {
                         type: 'ai_thinking',
                         chunk: "[SYSTEM] Initializing God-Tier Rectification Engine... Establishing mathematical grid connection.\n",
                         stage: 1,
-                    } as any);
+                    } as unknown as SessionEvent);
                 }
 
                 if (currentProgress) {
                     logger.info(`[SSE] Sending initial state for ${sessionId}`);
-                    sendSequencedEvent(res, sessionId, {
+                    sendSequencedEvent(sseRes, sessionId, {
                         type: 'initial_state',
                         progress: currentProgress,
-                    } as any);
+                    } as unknown as SessionEvent);
                 }
 
                 const queueStatus = await getQueueStatus(sessionId);
@@ -379,7 +397,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                     }
                     const job = await getLatestJobForSession(sessionId);
 
-                    sendSequencedEvent(res, sessionId, {
+                    sendSequencedEvent(sseRes, sessionId, {
                         type: 'metadata',
                         data: {
                             ...session,
@@ -396,7 +414,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                             status: queueStatus.status,
                             aiModel: aiConfig.model,
                         }
-                    } as any);
+                    } as unknown as SessionEvent);
                 }
 
                 const persistedEvents = config.features.useNewStreamPath
@@ -404,14 +422,14 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                     : [];
                 if (persistedEvents.length > 0) {
                     logger.info(`[SSE] Replaying ${persistedEvents.length} persisted job events for ${sessionId}`);
-                    persistedEvents.forEach(({ seq, event }) => sendSequencedEvent(res, sessionId, event, seq));
+                    persistedEvents.forEach(({ seq, event }) => sendSequencedEvent(sseRes, sessionId, event, seq));
                     return;
                 }
 
                 // Send cached AI Context if exists
                 const lastContext = sessionEvents.getLastContext(sessionId);
                 if (lastContext) {
-                    sendSequencedEvent(res, sessionId, lastContext);
+                    sendSequencedEvent(sseRes, sessionId, lastContext);
                 }
 
                 // Send cached Thinking Buffers (Multi-Stage Replay)
@@ -419,12 +437,12 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                 if (thinkingBuffers && thinkingBuffers.length > 0) {
                     logger.info(`[SSE] Replaying ${thinkingBuffers.length} thinking streams for ${sessionId}`);
                     thinkingBuffers.forEach(buf => {
-                        sendSequencedEvent(res, sessionId, {
+                        sendSequencedEvent(sseRes, sessionId, {
                             type: 'ai_thinking',
                             chunk: buf.text,
                             stage: buf.stage,
                             candidateTime: buf.candidateTime,
-                        } as any);
+                        } as SessionEvent);
                     });
                 }
 
@@ -432,21 +450,21 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                 const calcLogs = sessionEvents.getCalculationBuffer(sessionId);
                 if (calcLogs && calcLogs.length > 0) {
                     logger.info(`[SSE] Replaying ${calcLogs.length} calc logs for ${sessionId}`);
-                    calcLogs.forEach(log => sendSequencedEvent(res, sessionId, log));
+                    calcLogs.forEach(log => sendSequencedEvent(sseRes, sessionId, log));
                 }
 
                 // Send cached Candidate Scores
                 const scoreHistory = sessionEvents.getCandidateScoreBuffer(sessionId);
                 if (scoreHistory && scoreHistory.length > 0) {
                     logger.info(`[SSE] Replaying ${scoreHistory.length} candidate scores for ${sessionId}`);
-                    scoreHistory.forEach(score => sendSequencedEvent(res, sessionId, score));
+                    scoreHistory.forEach(score => sendSequencedEvent(sseRes, sessionId, score));
                 }
 
                 // Send cached Decisions
                 const decisions = sessionEvents.getDecisionBuffer(sessionId);
                 if (decisions && decisions.length > 0) {
                     logger.info(`[SSE] Replaying ${decisions.length} decisions for ${sessionId}`);
-                    decisions.forEach(decision => sendSequencedEvent(res, sessionId, decision));
+                    decisions.forEach(decision => sendSequencedEvent(sseRes, sessionId, decision));
                 }
             }
         } catch (error) {
@@ -461,10 +479,10 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
     const emitter = sessionEvents.getEmitter(sessionId);
 
     const eventHandler = (event: SessionEvent) => {
-        sendSequencedEvent(res, sessionId, event);
+        sendSequencedEvent(sseRes, sessionId, event);
 
         // 🛑 CRITICAL: Signal client to stop retrying on terminal states
-        if (event.type === 'complete' || event.type === 'error' || (event as any).status === 'cancelled') {
+        if (event.type === 'complete' || event.type === 'error' || (event as SequencedSessionEvent).status === 'cancelled') {
             logger.info(`[SSE] Terminal event reached: ${event.type}. Closing stream.`);
             setTimeout(() => {
                 if (!res.writableEnded) res.end();
@@ -476,8 +494,8 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
 
     // Keep-alive ping every 15 seconds (unsequenced — pings don't need replay)
     const pingInterval = setInterval(() => {
-        res.write(': ping\n\n');
-        sendEvent(res, { type: 'ping', timestamp: new Date().toISOString() });
+        safeWrite(sseRes, ': ping\n\n');
+        sendEvent(sseRes, { type: 'ping', timestamp: new Date().toISOString() });
     }, 15000);
 
     let cleanedUp = false;
@@ -516,7 +534,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
 /**
  * Send SSE event to client (unsequenced — for pings, connected, and error events)
  */
-function sendEvent(res: Response, data: unknown): void {
+function sendEvent(res: SseResponse, data: unknown): void {
     try {
         if (typeof data === 'object' && data !== null) {
             const eventData = data as { type?: string; candidateTime?: string; chunk?: string };
@@ -528,16 +546,14 @@ function sendEvent(res: Response, data: unknown): void {
                 });
             }
             if (eventData.type === 'candidate_score') {
-                logger.debug('Sending Candidate Score:', data as any);
+                logger.debug('Sending Candidate Score:', data as Record<string, unknown>);
             }
         }
 
         const jsonData = JSON.stringify(data);
-        res.write(`data: ${jsonData}\n\n`);
+        safeWrite(res, `data: ${jsonData}\n\n`);
 
-        if (typeof (res as any).flush === 'function') {
-            (res as any).flush();
-        }
+        flushBody(res);
     } catch (error) {
         logger.error('Failed to send SSE event:', error);
     }
@@ -548,10 +564,10 @@ function sendEvent(res: Response, data: unknown): void {
  * Uses the monotonic seq assigned by SessionEventManager if available.
  * This is the primary send function for all meaningful events.
  */
-function sendSequencedEvent(res: Response, sessionId: string, event: SessionEvent, existingSeq?: number): void {
+function sendSequencedEvent(res: SseResponse, sessionId: string, event: SessionEvent, existingSeq?: number): void {
     try {
         // Use provided seq (replay), or attached seq (from SessionEventManager.emit), or fallback to next
-        const seq = existingSeq ?? (event as any).seq ?? sessionEvents.getNextSeq(sessionId);
+        const seq = existingSeq ?? (event as SequencedSessionEvent).seq ?? sessionEvents.getNextSeq(sessionId);
 
         // Debug logging
         if (typeof event === 'object' && event !== null) {
@@ -570,11 +586,9 @@ function sendSequencedEvent(res: Response, sessionId: string, event: SessionEven
 
         const jsonData = JSON.stringify(event);
         // Industry SSE format: id: → data: → blank line
-        res.write(`id: ${seq}\ndata: ${jsonData}\n\n`);
+        safeWrite(res, `id: ${seq}\ndata: ${jsonData}\n\n`);
 
-        if (typeof (res as any).flush === 'function') {
-            (res as any).flush();
-        }
+        flushBody(res);
     } catch (error) {
         logger.error('Failed to send sequenced SSE event:', error);
     }

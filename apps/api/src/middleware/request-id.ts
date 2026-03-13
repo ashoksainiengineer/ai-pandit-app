@@ -8,6 +8,8 @@
 import { randomUUID } from 'crypto';
 import type { Request, Response, NextFunction } from 'express';
 import { logger, createRequestLogger } from '../utils/logger.js';
+import { recordRequestSample } from '../lib/observability/slo-monitor.js';
+import { emitOtlpSpan, toSpanTimeRange } from '../lib/observability/otlp-exporter.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -15,10 +17,18 @@ import { logger, createRequestLogger } from '../utils/logger.js';
 
 declare global {
   namespace Express {
+    interface TraceContext {
+      traceId: string;
+      parentSpanId?: string;
+      spanId: string;
+      baggage: Record<string, string>;
+    }
+
     interface Request {
       requestId: string;
       startTime: number;
       logger: ReturnType<typeof createRequestLogger>;
+      traceContext?: TraceContext;
     }
   }
 }
@@ -80,6 +90,35 @@ export function requestIdMiddleware(options: RequestIdOptions = {}) {
     res.on('finish', () => {
       const duration = Date.now() - req.startTime;
       const level = res.statusCode >= 400 ? 'warn' : 'info';
+      const traceContext = req.traceContext;
+
+      recordRequestSample({
+        ts: Date.now(),
+        durationMs: duration,
+        statusCode: res.statusCode,
+        method: req.method,
+        path: req.path,
+      });
+
+      if (traceContext) {
+        const { startTimeUnixNano, endTimeUnixNano } = toSpanTimeRange(req.startTime, Date.now());
+        void emitOtlpSpan({
+          traceId: traceContext.traceId,
+          spanId: traceContext.spanId,
+          parentSpanId: traceContext.parentSpanId,
+          name: `${req.method} ${req.path}`,
+          startTimeUnixNano,
+          endTimeUnixNano,
+          statusCode: res.statusCode,
+          attributes: {
+            'http.method': req.method,
+            'http.route': req.path,
+            'http.status_code': res.statusCode,
+            'http.response_content_length': Number(res.get('content-length') || 0),
+            'net.peer.ip': req.ip || req.socket.remoteAddress || 'unknown',
+          },
+        });
+      }
 
       req.logger[level]('Request completed', {
         statusCode: res.statusCode,
@@ -142,7 +181,7 @@ export function tracingMiddleware(options: TracingOptions = {}) {
     const baggage = parseBaggage(req.get(baggageHeader));
 
     // Attach tracing info to request
-    (req as any).traceContext = {
+    req.traceContext = {
       traceId,
       parentSpanId,
       spanId: randomUUID(),
@@ -151,12 +190,12 @@ export function tracingMiddleware(options: TracingOptions = {}) {
 
     // Set tracing headers on response
     res.setHeader(traceHeader, traceId);
-    res.setHeader('x-span-id', (req as any).traceContext.spanId);
+    res.setHeader('x-span-id', req.traceContext.spanId);
 
     req.logger.debug('Tracing context attached', {
       traceId,
       parentSpanId,
-      spanId: (req as any).traceContext.spanId,
+      spanId: req.traceContext.spanId,
     });
 
     next();

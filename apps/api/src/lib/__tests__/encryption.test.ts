@@ -3,7 +3,7 @@
  * Tests encrypt/decrypt roundtrip, backward compatibility, error cases,
  * and the parseSensitiveField recovery helper.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
 // We test the actual encryption logic rather than mocking it
 // since this is a CRITICAL security module

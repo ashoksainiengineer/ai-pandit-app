@@ -3,21 +3,25 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "dist/worker.js",
   "scripts": {
-    "dev": "tsx src/worker.ts",
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/apps/worker/src/worker.js",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "start": "node dist/worker.js",
+    "dev": "tsx watch src/worker.ts"
   },
   "dependencies": {
     "@ai-pandit/db": "*",
     "@ai-pandit/shared": "*",
-    "dotenv": "^16.3.1",
-    "tsx": "^4.7.0"
+    "@ai-pandit/worker-runtime": "*",
+    "@ai-pandit/api": "*",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
-    "@types/node": "^20.14.0",
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
     "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   }
 }

@@ -26,8 +26,8 @@ const pipelineSteps = [
     number: '01',
     phase: 'Initialization',
     title: 'System Bootstrap',
-    description: 'Load Swiss Ephemeris, initialize cache, connect to Turso database, validate schema.',
-    technologies: ['Swiss Ephemeris', 'Turso', 'Drizzle ORM'],
+    description: 'Load Skyfield ephemeris, initialize cache, connect to database, validate schema.',
+    technologies: ['Skyfield', 'Neon Postgres', 'Drizzle ORM'],
     metrics: { label: 'Cache Size', value: '1000' },
     icon: Server,
     color: '#6B1F7A'
@@ -109,9 +109,9 @@ const architectureLayers = [
   { name: 'API Gateway', tech: 'Express + TypeScript', status: 'Rate Limited', color: '#8B4A9C' },
   { name: 'Event Stream', tech: 'Session Manager', status: 'SSE Active', color: '#B8860B' },
   { name: 'BTR Engine', tech: 'Pipeline Processor', status: '6 Stages', color: '#4A7C6F' },
-  { name: 'Ephemeris', tech: 'Swiss Ephemeris', status: 'High Precision', color: '#C65D3B' },
+  { name: 'Ephemeris', tech: 'Skyfield', status: 'High Precision', color: '#C65D3B' },
   { name: 'AI Service', tech: 'DeepSeek R1', status: 'Connected', color: '#4A7C6F' },
-  { name: 'Database', tech: 'Turso', status: 'Synced', color: '#78611D' },
+  { name: 'Database', tech: 'Neon Postgres', status: 'Synced', color: '#78611D' },
   { name: 'Progress', tech: 'Progress Tracker', status: 'Active', color: '#B8A1C9' },
 ];
 

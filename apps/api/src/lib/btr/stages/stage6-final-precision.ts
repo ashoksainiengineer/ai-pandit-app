@@ -1,3 +1,4 @@
+
 /**
  * Stage 6: Final Precision Judgement
  *
@@ -5,13 +6,14 @@
  * Performs the ultimate AI analysis to determine the exact birth time.
  */
 
-import { SecondsPrecisionInput, ForensicTraits } from '@ai-pandit/shared';
+import { SecondsPrecisionInput, ForensicTraits, EphemerisData } from '@ai-pandit/shared';
 import { CandidateTime, getDynamicBatchSize, getDynamicSurvivors, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { callAIWithStream, executeAIInParallel } from '../../ai-client.js';
-import { emitCandidateScore, emitAIContext } from '../../session-events.js';
+import { _emitCandidateScore, emitAIContext } from '../../session-events.js';
 import { calculateEphemeris } from '../../ephemeris.js';
 import { getDashaForDate } from '../../vedic-astrology-engine.js';
+import type { DashaPeriod } from '../../vedic-astrology-engine.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
 import { getFinalPrecisionPrompt } from '../prompts/index.js';
 import { extractFinalVerdict } from '../extractors/index.js';
@@ -27,6 +29,7 @@ import { getMinifiedEphemerisInline, getFullEphemerisPayload } from './_utils.js
 
 const BATCH_VERDICT_MATCH_THRESHOLD_SECONDS = 8;
 const FINAL_VERDICT_MATCH_THRESHOLD_SECONDS = 12;
+type LifecycleShift = NonNullable<CandidateDataPackage['lifecycleShifts']>[number];
 
 function parseTimeToSeconds(time: string): number | null {
     const match = time.trim().match(/^(\d{2}):(\d{2}):(\d{2})$/);
@@ -142,7 +145,7 @@ function pickDeterministicFallbackWinner(candidates: CandidateTime[]): Candidate
     })[0];
 }
 
-function getPresentTransitData(c: CandidateDataPackage, currentEph: any, now: Date) {
+function getPresentTransitData(c: CandidateDataPackage, currentEph: EphemerisData, now: Date) {
     if (!c) {
         logger.warn('🔱 [STAGE-6] Missing rawVimshottari in candidate for transit calculation');
         return {
@@ -154,7 +157,7 @@ function getPresentTransitData(c: CandidateDataPackage, currentEph: any, now: Da
     }
     let dashaAtNowText = 'Unknown';
     if (Array.isArray(c.rawVimshottari) && c.rawVimshottari.length > 0) {
-        const dashaAtNow = getDashaForDate(c.rawVimshottari as any, now);
+        const dashaAtNow = getDashaForDate(c.rawVimshottari as DashaPeriod[], now);
         dashaAtNowText = dashaAtNow
             ? `${dashaAtNow.mahadasha}-${dashaAtNow.antardasha}-${dashaAtNow.pratyantardasha}`
             : 'Unknown';
@@ -187,7 +190,7 @@ export async function stage6FinalPrecision(
     candidates: CandidateTime[],
     progress: ProgressTracker,
     forensicTraits: ForensicTraits,
-    globalLifecycle: any[] = []
+    globalLifecycle: LifecycleShift[] = []
 ): Promise<{
     finalTime: string;
     accuracy: number;
@@ -196,7 +199,7 @@ export async function stage6FinalPrecision(
     aiReasoning: string;
     allReasoning?: string;
     thinking?: string;
-    finalists: Array<{ time: string; score: number; ephemeris?: any }>;
+    finalists: Array<{ time: string; score: number; ephemeris?: unknown }>;
     stageResult: StageResult;
 }> {
     await progress.startStep('final', 'Stage 6: Final precision filtering...');
@@ -216,7 +219,7 @@ export async function stage6FinalPrecision(
                             input.offsetConfig.preset === '12hours' ? 720 : 60);
 
     const batchSize = getDynamicBatchSize(candidates.length, offsetMinutes);
-    const survivorsPerBatch = getDynamicSurvivors(batchSize, offsetMinutes, false);
+    const _survivorsPerBatch = getDynamicSurvivors(batchSize, offsetMinutes, false);
 
     const now = new Date();
     const currentEph = await calculateEphemeris(
@@ -230,7 +233,7 @@ export async function stage6FinalPrecision(
     // Removed orphaned getPresentTransitData block
 
     // PRECISION ENHANCEMENT: Enhance finalists with KP and Consensus data
-    let godTierEnhancedCandidates: Array<CandidateWithPrecisionData & { time: string; offsetMinutes: number }> = [];
+    const godTierEnhancedCandidates: Array<CandidateWithPrecisionData & { time: string; offsetMinutes: number }> = [];
 
     // FIXED: Log candidate data state before enhancement
     logger.info('[STAGE-6] Starting final precision judgment', {
@@ -241,7 +244,7 @@ export async function stage6FinalPrecision(
         hasSpouseData: !!input.spouseData
     });
 
-    let currentCandidates = [...candidates];
+    const _currentCandidates = [...candidates];
     let allReasoning = '';
 
     for (const candidate of candidates.slice(0, 7)) {
@@ -278,8 +281,10 @@ export async function stage6FinalPrecision(
                 time: candidate.time,
                 offsetMinutes: candidate.offsetMinutes
             });
-        } catch (error: any) {
-            logger.warn(`Failed to enhance candidate ${candidate.time} with God-Tier data`, { error: error?.message || error });
+        } catch (error: unknown) {
+            logger.warn(`Failed to enhance candidate ${candidate.time} with God-Tier data`, {
+                error: error instanceof Error ? error.message : String(error),
+            });
         }
     }
 
@@ -439,8 +444,10 @@ export async function stage6FinalPrecision(
                     baseCandidate, input.lifeEvents, input.forensicTraits, input.tentativeTime
                 );
                 enhancedFinalBatch.push({ ...enhanced, time: finalist.time, offsetMinutes: finalist.offsetMinutes });
-            } catch (error: any) {
-                logger.warn(`Failed to enhance finalist ${finalist.time}`, { error: error?.message || error });
+            } catch (error: unknown) {
+                logger.warn(`Failed to enhance finalist ${finalist.time}`, {
+                    error: error instanceof Error ? error.message : String(error),
+                });
             }
         }
     }

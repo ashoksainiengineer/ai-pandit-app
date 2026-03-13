@@ -73,12 +73,8 @@ const IS_TEST_RUNTIME =
 const MAX_SESSION_NOT_FOUND_RETRIES = IS_TEST_RUNTIME ? 1 : 4;
 
 function shouldForcePollingTransport(backendUrl: string): boolean {
-    try {
-        const hostname = new URL(backendUrl).hostname;
-        return hostname.endsWith('.hf.space');
-    } catch {
-        return false;
-    }
+    void backendUrl;
+    return false;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -487,10 +483,8 @@ export function useStreamProgress(
             return;
         }
 
-        // Hugging Face edge has proven unreliable for browser EventSource in production.
-        // Polling is slower but consistently works there and avoids false 404 "session not found" failures.
         if (forcePollingTransport) {
-            logger.info('[SSE] HF backend detected, forcing polling transport', { sessionId: sid });
+            logger.info('[SSE] Forcing polling transport', { sessionId: sid });
             cleanup();
             setConnectionState({ status: 'polling', url: '', lastError: 'Using polling transport' });
             poll(sid);

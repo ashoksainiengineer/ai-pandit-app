@@ -1,0 +1,26 @@
+{
+  "inputPath": "logs/test-latest.log",
+  "status": "passed",
+  "tasks": {
+    "successful": 5,
+    "total": 5
+  },
+  "duration": "12.741s",
+  "testFiles": {
+    "passed": 122,
+    "failed": 0,
+    "skipped": 2,
+    "lines": 3
+  },
+  "tests": {
+    "passed": 1111,
+    "failed": 0,
+    "skipped": 6,
+    "lines": 808
+  },
+  "failureLines": [],
+  "securitySignals": {
+    "invalidApiKey": false,
+    "dbConnRefused": false
+  }
+}

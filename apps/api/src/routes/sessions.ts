@@ -13,6 +13,10 @@ import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/
 
 const router = Router();
 
+function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : 'Unknown error';
+}
+
 function normalizeTimezoneValue(rawTimezone: string): number | string {
     const numericTimezone = Number(rawTimezone);
     return Number.isFinite(numericTimezone) ? numericTimezone : rawTimezone;
@@ -56,9 +60,9 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
         }));
 
         res.json({ success: true, data: decryptedSessions });
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('List sessions error', error);
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
     }
 });
 
@@ -119,9 +123,9 @@ router.get('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Respon
         };
 
         res.json({ success: true, data: response });
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Get session error', error);
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
     }
 });
 
@@ -153,7 +157,7 @@ router.put('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Respon
         }
 
         // Build update object
-        const updateData: any = {
+        const updateData: Record<string, unknown> = {
             updatedAt: new Date().toISOString()
         };
 
@@ -195,9 +199,9 @@ router.put('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Respon
         );
 
         res.json({ success: true, message: 'Session updated' });
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Update session error', error);
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
     }
 });
 
@@ -240,9 +244,9 @@ router.delete('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Res
         }
 
         res.json({ success: true, message: 'Session deleted' });
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Delete session error', error);
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
     }
 });
 
@@ -322,18 +326,16 @@ router.post('/:id/clone', authMiddleware, async (req: AuthenticatedRequest, res:
         };
 
         // 4. Insert clone
-        await executeWithRetry(() =>
-            db.insert(sessions).values(clonePayload as any)
-        );
+        await executeWithRetry(() => db.insert(sessions).values(clonePayload));
 
         res.status(201).json({
             success: true,
             message: 'Session cloned successfully',
             data: { id: newSessionId }
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('Clone session error', error);
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: getErrorMessage(error) });
     }
 });
 

@@ -27,19 +27,20 @@ function isMissingTableError(error: unknown): boolean {
 async function ensureFavoritesTable(): Promise<void> {
   if (ensureTablePromise) return ensureTablePromise;
   ensureTablePromise = (async () => {
+    // Postgres-compatible DDL with TIMESTAMPTZ for proper timezone handling
     await pool.query(`
       CREATE TABLE IF NOT EXISTS session_favorites (
         id TEXT PRIMARY KEY,
-        clerkId TEXT NOT NULL,
-        sessionId TEXT NOT NULL,
-        createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::text,
-        updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP::text,
-        FOREIGN KEY (sessionId) REFERENCES sessions(id) ON DELETE CASCADE
+        clerk_id TEXT NOT NULL,
+        session_id TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_session FOREIGN KEY (session_id) REFERENCES sessions(id) ON DELETE CASCADE
       )
     `);
-    await pool.query(`CREATE INDEX IF NOT EXISTS session_favorites_clerkId_idx ON session_favorites(clerkId)`);
-    await pool.query(`CREATE INDEX IF NOT EXISTS session_favorites_sessionId_idx ON session_favorites(sessionId)`);
-    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS session_favorites_clerk_session_unique ON session_favorites(clerkId, sessionId)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_session_favorites_clerk_id ON session_favorites(clerk_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_session_favorites_session_id ON session_favorites(session_id)`);
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_session_favorites_unique ON session_favorites(clerk_id, session_id)`);
   })().catch((error) => {
     ensureTablePromise = null;
     throw error;

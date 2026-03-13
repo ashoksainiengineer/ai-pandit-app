@@ -169,7 +169,7 @@ export default function PrivacyPage() {
                 <ul className="space-y-3 text-sm">
                   <li className="flex items-start gap-2">
                     <span className="text-emerald-600 mt-0.5">✓</span>
-                    <span className="text-emerald-900"><strong>Swiss Ephemeris Calculations:</strong> Planetary positions, house cusps, degrees, nakshatras</span>
+                    <span className="text-emerald-900"><strong>Skyfield Calculations:</strong> Planetary positions, house cusps, degrees, nakshatras</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-emerald-600 mt-0.5">✓</span>
@@ -440,7 +440,7 @@ export default function PrivacyPage() {
                 <Shield className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
                 <div>
                   <h4 className="font-semibold text-[#1A1612]">Secure Infrastructure</h4>
-                  <p className="text-sm text-[#7A756F]">Data is stored in Turso (libSQL) databases with industry-leading security practices, regular audits, and penetration testing.</p>
+                  <p className="text-sm text-[#7A756F]">Data is stored in Neon Postgres databases with industry-leading security practices, regular audits, and penetration testing.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">

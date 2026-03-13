@@ -78,6 +78,20 @@ const statusConfig = {
     borderColor: 'border-[#3B82F6]/30',
     icon: <Clock className="w-3.5 h-3.5" />,
   },
+  queued: {
+    label: 'Queued',
+    bgColor: 'bg-[#3B82F6]/10',
+    textColor: 'text-[#3B82F6]',
+    borderColor: 'border-[#3B82F6]/30',
+    icon: <Clock className="w-3.5 h-3.5" />,
+  },
+  retrying: {
+    label: 'Retrying',
+    bgColor: 'bg-[#8B4A9C]/10',
+    textColor: 'text-[#8B4A9C]',
+    borderColor: 'border-[#8B4A9C]/30',
+    icon: <Loader2 className="w-3.5 h-3.5 animate-spin" />,
+  },
   draft: {
     label: 'Draft',
     bgColor: 'bg-[#3B82F6]/10',
@@ -121,7 +135,7 @@ export const SessionCard = memo(function SessionCard({
   const status = statusConfig[session.status as keyof typeof statusConfig] || statusConfig.draft;
   const confidence = session.confidence ? confidenceConfig[session.confidence as keyof typeof confidenceConfig] : null;
 
-  const isLive = ['processing', 'pending', 'queued'].includes(session.status);
+  const isLive = ['processing', 'pending', 'queued', 'retrying'].includes(session.status);
 
   const sessionUrl = useMemo(() => {
     if (session.status === 'complete') return `/rectify/${session.id}/results`;

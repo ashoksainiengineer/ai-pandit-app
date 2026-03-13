@@ -14,63 +14,64 @@
  * - btr/stages/ - Individual stage implementations
  */
 
-import { calculateEphemeris, calculateJulianDay, cleanup } from './ephemeris.js';
+import { calculateEphemeris } from './ephemeris.js';
+
 import {
     calculateVimshottariDasha,
     getDashaForDate,
-    DashaPeriod,
+    _DashaPeriod,
 } from './vedic-astrology-engine.js';
 import {
     generateDivisionalCharts,
     calculateBoundarySafety,
 } from './advanced-btr-methods.js';
 import {
-    callAI,
-    callAIWithStream,
-    executeAIInParallel,
+    _callAI,
+    _callAIWithStream,
+    _executeAIInParallel,
 } from './ai-client.js';
 import {
-    CandidateTime,
-    generateCandidateTimes,
-    generateRefinementGrid,
-    splitIntoBatches,
+    _CandidateTime,
+    _generateCandidateTimes,
+    _generateRefinementGrid,
+    _splitIntoBatches,
     MAX_BATCH_SIZE,
     SURVIVORS_PER_BATCH,
-    getDynamicBatchSize,
-    getDynamicSurvivors,
-    injectSafetyNetCandidates,
+    _getDynamicBatchSize,
+    _getDynamicSurvivors,
+    _injectSafetyNetCandidates,
 } from './time-offset-manager.js';
 import { logger } from './logger.js';
 import { ProgressTracker, ANALYSIS_STEPS } from './progress-tracker.js';
 import { SecondsPrecisionInput, SecondsPrecisionResult } from '@ai-pandit/shared';
 import { throwIfCancelled, isCancellationError } from './cancellation-manager.js';
-import { emitCandidateScore, emitAIContext, emitCalculationLog, emitStageStats } from './session-events.js';
+import { _emitCandidateScore, _emitAIContext, _emitCalculationLog, emitStageStats } from './session-events.js';
 import {
-    enhanceCandidateWithPrecisionData,
-    generatePrecisionAIPrompt,
-    CandidateWithPrecisionData,
+    _enhanceCandidateWithPrecisionData,
+    _generatePrecisionAIPrompt,
+    _CandidateWithPrecisionData,
 } from './btr-precision-integrator.js';
-import { getMinifiedEphemeris } from './utils/index.js';
+import { _getMinifiedEphemeris } from './utils/index.js';
 import { logAnalysisContainerAction, clearDebugLog } from '../utils/debug-logger.js';
 
 // Import from modular BTR components
 import {
-    formatLifeEventForAI,
-    buildForensicContext,
-    buildForensicDNASummary,
-    getBatchPrompt,
-    getDeepAnalysisPrompt,
-    getFinalPrecisionPrompt,
+    _formatLifeEventForAI,
+    _buildForensicContext,
+    _buildForensicDNASummary,
+    _getBatchPrompt,
+    _getDeepAnalysisPrompt,
+    _getFinalPrecisionPrompt,
 } from './btr/prompts/index.js';
 import {
-    extractBatchSurvivors,
-    extractFinalVerdict,
+    _extractBatchSurvivors,
+    _extractFinalVerdict,
 } from './btr/extractors/index.js';
 import {
-    CandidateDataPackage,
+    _CandidateDataPackage,
     StageResult,
-    TournamentRound,
-    FinalVerdict,
+    _TournamentRound,
+    _FinalVerdict,
 } from '@ai-pandit/shared';
 import { buildCandidateDataPackage } from './btr/data-package-builder.js';
 
@@ -118,7 +119,7 @@ export async function processSecondsPrecisionBTR(
             const baseDashas = calculateVimshottariDasha(baseEph.planets.moon.longitude, birthDate);
 
             for (let y = startYear; y <= endYear; y++) {
-                for (let m of [1, 5, 9] as const) {
+                for (const m of [1, 5, 9] as const) {
                     const checkDateForCycle = `${y}-${String(m).padStart(2, '0')}-01`;
                     const ephShift = await calculateEphemeris(checkDateForCycle, '12:00:00', input.latitude, input.longitude, input.timezone);
                     const currentSatSign = ephShift.planets.saturn.sign;

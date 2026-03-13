@@ -236,7 +236,7 @@ export default function AnalysisPage() {
 
   useEffect(() => {
     if (metadata?.status === 'cancelled') setCancelled(true);
-    else if (metadata?.status && ['pending', 'queued', 'processing'].includes(metadata.status)) setCancelled(false);
+    else if (metadata?.status && ['pending', 'queued', 'processing', 'retrying'].includes(metadata.status)) setCancelled(false);
 
     // Removed the stale isComplete check that caused the UI to reset back to 'Starting analysis...'
   }, [metadata?.status, isComplete]);

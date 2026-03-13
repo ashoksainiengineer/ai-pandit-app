@@ -61,17 +61,20 @@ export function getBatchPrompt(
   batchNumber: number,
   totalBatches: number,
   survivorsNeeded: number,
-  spouseData?: any,
+  spouseData?: unknown,
   offsetMinutes: number = 60
 ): string {
   // 🛡️ ZERO-TRUST VALIDATION GATE: Ensure all candidates strictly meet contract before AI sees them
   candidates.forEach(c => {
     try {
       validateCandidateDataForAI(c);
-    } catch (err: any) {
-      if (err.errors) {
-        logger.error(`[VALIDATION-GATE] Candidate ${c.time} failed Zod schema validation:`, JSON.stringify(err.errors));
-        throw new Error(`Data Pipeline Contract Violation: Candidate ${c.time} failed Zod validation: ${JSON.stringify(err.errors, null, 2)}`);
+    } catch (err: unknown) {
+      const zodErrors = typeof err === 'object' && err !== null && 'errors' in err
+        ? (err as { errors: unknown }).errors
+        : null;
+      if (zodErrors) {
+        logger.error(`[VALIDATION-GATE] Candidate ${c.time} failed Zod schema validation:`, JSON.stringify(zodErrors));
+        throw new Error(`Data Pipeline Contract Violation: Candidate ${c.time} failed Zod validation: ${JSON.stringify(zodErrors, null, 2)}`);
       } else {
         logger.error(`[VALIDATION-GATE] Candidate ${c.time} failed validation:`, err);
         throw new Error(`Data Pipeline Contract Violation: Candidate ${c.time} is missing required data for AI analysis.`);

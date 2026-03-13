@@ -638,5 +638,8 @@ export function calculateBhriguBindu(ephemeris: EphemerisData): {
 }
 
 export function formatBhriguBindu(data: { sign: string; degree: number }): string {
-    return `BHRIGU BINDU (Destiny Point): ${data.sign} ${data.degree.toFixed(4)}°`;
+  return `BHRIGU BINDU (Destiny Point): ${data.sign} ${data.degree.toFixed(4)}°`;
 }
+
+// Legacy export for backward compatibility
+export { calculateCharaKarakas as _calculateCharaKarakas };

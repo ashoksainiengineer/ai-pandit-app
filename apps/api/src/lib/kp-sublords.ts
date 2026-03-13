@@ -189,7 +189,7 @@ export function correlateEventWithKP(
   
   // Check if dasha lord is star lord of significators
   let dashaAsStarLord = false;
-  for (const [planet, longitude] of Object.entries(significatorLongitudes)) {
+  for (const [, longitude] of Object.entries(significatorLongitudes)) {
     const planetKP = calculateKPSubLords(longitude);
     if (planetKP.starLord === dashaLord) {
       dashaAsStarLord = true;
@@ -372,3 +372,7 @@ export const KP = {
   calculateBatch: calculateKPSubLordsBatch,
   findSubLordWindow: findKPSubLordWindow
 };
+
+// Legacy exports for backward compatibility
+export { calculateKPSubLords as _calculateKPSubLords };
+export type { KPCuspalData as _KPCuspalData };

@@ -5,11 +5,13 @@
 
 import { Router, Request, Response } from 'express';
 import { checkDatabaseHealth, db } from '@ai-pandit/db';
-import { listActiveJobs } from '@ai-pandit/db/jobs';
 import { jobs } from '@ai-pandit/db/schema';
 import { count, eq, sql } from 'drizzle-orm';
 import { config } from '../config/index.js';
 import { logger } from '../lib/logger.js';
+import { getQueueDriver } from '../lib/queue/index.js';
+import { getSloAlerts, getSloSnapshot } from '../lib/observability/slo-monitor.js';
+import { getOtlpExporterStats } from '../lib/observability/otlp-exporter.js';
 
 const router = Router();
 
@@ -135,8 +137,6 @@ router.get('/metrics', async (_req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 async function performHealthCheck(): Promise<HealthStatus> {
-  const startTime = Date.now();
-
   const [dbStatus, memoryStatus] = await Promise.all([
     checkDatabaseComponent(),
     checkMemoryComponent(),
@@ -208,18 +208,23 @@ function checkMemoryComponent(): ComponentStatus {
 }
 
 import { getActiveSseCount } from './stream.js';
-import { getActiveQueueCount } from '../lib/queue-manager.js';
+import {
+  getActiveQueueCount,
+  getQueueCircuitBreakerStatus,
+  getQueueRecoveryTelemetry,
+} from '../lib/queue-manager.js';
 
 async function collectMetrics(): Promise<Record<string, unknown>> {
+  const queueDriver = getQueueDriver();
   const memoryUsage = process.memoryUsage();
   const cpuUsage = process.cpuUsage();
-  let activeJobs: Awaited<ReturnType<typeof listActiveJobs>> = [];
+  let activeJobs: Awaited<ReturnType<typeof queueDriver.listActiveJobs>> = [];
   let activeByStatus: Record<string, number> = {};
   let failedTerminalJobs = 0;
   let totalRetryCount = 0;
 
   try {
-    activeJobs = await listActiveJobs();
+    activeJobs = await queueDriver.listActiveJobs();
     activeByStatus = activeJobs.reduce<Record<string, number>>((acc, job) => {
       acc[job.status] = (acc[job.status] ?? 0) + 1;
       return acc;
@@ -244,6 +249,30 @@ async function collectMetrics(): Promise<Record<string, unknown>> {
 
   const queueDepth = (activeByStatus.queued ?? 0) + (activeByStatus.retrying ?? 0);
   const activeJobCount = (activeByStatus.running ?? 0) + (activeByStatus.retrying ?? 0);
+  const recoveryTelemetry = getQueueRecoveryTelemetry();
+  const otlpStats = getOtlpExporterStats();
+  const sloConfig = config.observability?.slo ?? {
+    windowMs: 300000,
+    minSampleSize: 20,
+    errorRateAlertPercent: 5,
+    p95LatencyAlertMs: 5000,
+  };
+  const sloSnapshot = getSloSnapshot(sloConfig.windowMs);
+  const alerts: Array<{ code: string; severity: 'warning' | 'critical'; message: string }> = [];
+
+  if (recoveryTelemetry.alertActive) {
+    alerts.push({
+      code: 'WORKER_RECOVERY_ALERT',
+      severity: recoveryTelemetry.lastAbandonedAttempts > 0 ? 'critical' : 'warning',
+      message: `Recovered=${recoveryTelemetry.lastRecoveredJobs}, abandonedAttempts=${recoveryTelemetry.lastAbandonedAttempts}`,
+    });
+  }
+  alerts.push(...getSloAlerts({
+    windowMs: sloConfig.windowMs,
+    minSampleSize: sloConfig.minSampleSize,
+    errorRateAlertPercent: sloConfig.errorRateAlertPercent,
+    p95LatencyAlertMs: sloConfig.p95LatencyAlertMs,
+  }));
 
   return {
     memory: {
@@ -259,6 +288,9 @@ async function collectMetrics(): Promise<Record<string, unknown>> {
     realtime: {
       activeSseConnections: getActiveSseCount(),
       activeQueueProcessing: getActiveQueueCount(),
+      circuitBreakers: getQueueCircuitBreakerStatus(),
+      recovery: recoveryTelemetry,
+      otlp: otlpStats,
     },
     jobs: {
       activeTotal: activeJobs.length,
@@ -268,14 +300,22 @@ async function collectMetrics(): Promise<Record<string, unknown>> {
       retryCount: totalRetryCount,
       failedTerminalJobs,
     },
+    slo: sloSnapshot,
     config: {
       nodeEnv: config.app.nodeEnv,
       maxConcurrentSessions: config.performance.maxConcurrentSessions,
+      maxActiveJobsPerUser: config.queue.maxActiveJobsPerUser,
+      maxActiveJobsByTier: config.queue.maxActiveJobsByTier,
+      loadShedQueueDepth: config.queue.loadShedQueueDepth,
       aiModel: config.ai.model,
       jobExecutionMode: config.queue.executionMode,
       queueArchitecture: config.queue.architecture,
+      queueDriver: queueDriver.name,
+      workerRecoveryAlertThreshold: config.queue.recoveryAlertThreshold,
+      observability: config.observability,
       features: config.features,
     },
+    alerts,
   };
 }
 

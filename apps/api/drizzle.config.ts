@@ -1,18 +1,14 @@
 import { defineConfig } from 'drizzle-kit';
 
 /**
- * Drizzle Kit configuration for Turso database
- * 
- * For drizzle-kit v0.31+, use dialect: 'turso' directly
- * This provides native support for Turso's libSQL protocol
+ * Drizzle Kit configuration for Neon Postgres database
  */
 export default defineConfig({
     schema: '../../packages/db/src/schema.ts',
     out: './drizzle',
-    dialect: 'turso',
+    dialect: 'postgresql',
     dbCredentials: {
-        url: process.env.TURSO_DATABASE_URL!,
-        authToken: process.env.TURSO_AUTH_TOKEN!,
+        url: process.env.NEON_DATABASE_URL || process.env.DATABASE_URL!,
     },
     verbose: true,
     strict: true,

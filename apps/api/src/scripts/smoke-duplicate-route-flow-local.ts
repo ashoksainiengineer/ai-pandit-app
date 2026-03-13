@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import crypto from 'node:crypto';
 import request from 'supertest';
-import { db } from '@ai-pandit/db';
+import { db, ensureDatabaseInitialized } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import { syncUser } from '../lib/user-sync.js';
@@ -16,6 +16,7 @@ function sleep(ms: number): Promise<void> {
 
 async function main(): Promise<void> {
   process.env.NODE_ENV = 'test';
+  await ensureDatabaseInitialized();
 
   const testUserId = await syncUser('TEST_SCRIPT');
 

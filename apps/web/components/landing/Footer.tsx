@@ -48,7 +48,7 @@ export default function Footer() {
 
             <p className="text-[#4A453F] text-sm leading-relaxed mb-6">
               Birth time rectification within seconds-level precision using
-              Swiss Ephemeris and DeepSeek AI. Aligning ancient Vedic wisdom
+              Skyfield ephemeris and DeepSeek AI. Aligning ancient Vedic wisdom
               with modern computational power.
             </p>
 
@@ -111,7 +111,7 @@ export default function Footer() {
 
               <div className="pt-4 border-t border-[#F0E8DE]">
                 <p className="text-xs text-[#7A756F] leading-relaxed">
-                  Based on Swiss Ephemeris calculations. For spiritual guidance only.
+                  Based on Skyfield ephemeris calculations. For spiritual guidance only.
                   Not a substitute for professional astrological consultation.
                 </p>
               </div>
@@ -134,7 +134,7 @@ export default function Footer() {
           <div className="flex items-center gap-6">
             <span className="text-xs text-[#A8A39D]">Powered by</span>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-[#7A756F]">Swiss Ephemeris</span>
+              <span className="text-xs text-[#7A756F]">Skyfield</span>
               <span className="text-[#F0E8DE]">•</span>
               <span className="text-xs text-[#7A756F]">DeepSeek AI</span>
               <span className="text-[#F0E8DE]">•</span>

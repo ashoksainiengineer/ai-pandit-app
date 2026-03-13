@@ -3,7 +3,6 @@ import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
 import { safeDecryptWithFallback, parseSensitiveField } from '../lib/encryption/index.js';
-import { logger } from '../lib/logger.js';
 
 async function testProcess() {
     const sessionId = '2f207ae6-0387-4039-8fc8-72128f0bf361';

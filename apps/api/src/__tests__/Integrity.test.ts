@@ -15,7 +15,8 @@ describe('🛡️ Configuration Integrity Audit', () => {
         process.env = { ...originalEnv };
         // Clear potentially conflicting env vars
         delete process.env.AI_API_KEY;
-        delete process.env.TURSO_DATABASE_URL;
+        delete process.env.NEON_DATABASE_URL;
+        delete process.env.DATABASE_URL;
     });
 
     afterEach(() => {
@@ -41,8 +42,8 @@ describe('🛡️ Configuration Integrity Audit', () => {
         process.env.AI_API_KEY = 'test_key';
         process.env.AI_BASE_URL = 'https://api.groq.com';
         process.env.AI_MODEL = 'llama-3';
-        process.env.TURSO_DATABASE_URL = 'libsql://test.db';
-        process.env.TURSO_AUTH_TOKEN = 'test_token';
+        process.env.NEON_DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
+        process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
         process.env.CLERK_SECRET_KEY = 'test_clerk';
         process.env.ENCRYPTION_SECRET = '0123456789abcdef0123456789abcdef'; // 32 chars
 
@@ -64,8 +65,8 @@ describe('🛡️ Configuration Integrity Audit', () => {
         process.env.AI_API_KEY = 'test_key';
         process.env.AI_BASE_URL = 'https://api.groq.com';
         process.env.AI_MODEL = 'llama-3';
-        process.env.TURSO_DATABASE_URL = 'libsql://test.db';
-        process.env.TURSO_AUTH_TOKEN = 'test_token';
+        process.env.NEON_DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
+        process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
         process.env.CLERK_SECRET_KEY = 'test_clerk';
         process.env.ENCRYPTION_SECRET = '0123456789abcdef0123456789abcdef';
 

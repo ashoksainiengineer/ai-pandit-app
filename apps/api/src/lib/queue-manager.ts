@@ -1,3 +1,4 @@
+
 // lib/queue-manager.ts
 // Efficient queue system for high-performance AI backend
 // Design: Process multiple requests concurrently based on system capacity
@@ -10,14 +11,11 @@ import {
 } from '@ai-pandit/db';
 import {
   appendJobEvent,
-  claimNextQueuedJob,
   completeJobAttempt,
-  countQueuedJobs,
   createJobAttempt,
   failJob as failJobRecord,
   getLatestJobForSession,
   incrementJobAttempt,
-  listActiveJobs,
   listJobEvents,
   markJobRunning as markJobRunningRecord,
   requestJobCancellation as requestJobCancellationRecord,
@@ -41,6 +39,15 @@ import { config } from '../config/index.js';
 import { processSecondsPrecisionBTR } from './seconds-precision-btr.js';
 import { getMemoryPressureSnapshot, triggerGC } from './memory-manager.js';
 import { persistArtifactReference } from './jobs/artifact-storage.js';
+import { getQueueDriver } from './queue/index.js';
+import {
+  getBlockingCircuitBreakers,
+  getCircuitSnapshots,
+  recordDependencyFailure,
+  recordGlobalProcessingSuccess,
+  resetAllCircuitBreakersForTests,
+  type CircuitDependency,
+} from './resilience/dependency-circuit-breaker.js';
 
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -54,6 +61,7 @@ const QUEUE_CONFIG = {
 
   pollIntervalMs: config.queue?.pollIntervalMs ?? 5000,
   maxQueueSize: config.queue?.maxSize ?? 100,
+  loadShedQueueDepth: config.queue?.loadShedQueueDepth ?? 80,
 
   // 2 hour timeout for complex BTR analyses with multiple life events
   staleTimeoutMs: config.queue?.staleTimeoutMs ?? 7_200_000,
@@ -78,13 +86,7 @@ const RETRY_CONFIG = {
   baseDelayMs: 1000,
   maxDelayMs: 60000,  // 1 minute max
   backoffMultiplier: 2,
-  circuitBreakerThreshold: 5,  // After 5 consecutive failures, pause
-  circuitBreakerResetMs: 300000,  // Reset after 5 minutes
 };
-
-// Track consecutive failures for circuit breaker
-let consecutiveFailures = 0;
-let lastFailureTime = 0;
 
 // ═════════════════════════════════════════════════════════════════════════════
 // QUEUE STATUS TYPES
@@ -110,9 +112,39 @@ export function getActiveQueueCount(): number {
   return activeProcessingIds.size;
 }
 
+export function getQueueCircuitBreakerStatus() {
+  return getCircuitSnapshots();
+}
+
+export function getQueueRecoveryTelemetry(): RecoveryTelemetry {
+  return { ...recoveryTelemetry };
+}
+
+export function isQueueProcessorRunning(): boolean {
+  return isProcessorRunning;
+}
+
 const processingStartTimes = new Map<string, number>(); // sessionId -> timestamp
 let isProcessorRunning = false;
-let workerLoopPromise: Promise<void> | null = null;
+const queueDriver = getQueueDriver();
+
+interface RecoveryTelemetry {
+  lastRunAt: string | null;
+  lastRecoveredJobs: number;
+  lastAbandonedAttempts: number;
+  totalRecoveredJobs: number;
+  totalAbandonedAttempts: number;
+  alertActive: boolean;
+}
+
+const recoveryTelemetry: RecoveryTelemetry = {
+  lastRunAt: null,
+  lastRecoveredJobs: 0,
+  lastAbandonedAttempts: 0,
+  totalRecoveredJobs: 0,
+  totalAbandonedAttempts: 0,
+  alertActive: false,
+};
 
 type RetryReasonCode =
   | 'network_error'
@@ -510,6 +542,14 @@ async function writeDeadLetterArtifact(sessionId: string, errorMessage: string, 
     maxAttempts: job.maxAttempts,
     errorMessage,
   });
+
+  await queueDriver.moveToDeadLetter(sessionId, {
+    reason: 'max_attempts_exceeded',
+    attemptsUsed,
+    maxAttempts: job.maxAttempts,
+    retryCount: job.retryCount,
+    errorMessage,
+  });
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -532,6 +572,17 @@ export async function addToQueue(sessionId: string): Promise<QueueSubmitResult> 
       };
     }
 
+    if (queuedCount >= QUEUE_CONFIG.loadShedQueueDepth) {
+      const retryAfterSeconds = Math.max(
+        5,
+        Math.ceil(QUEUE_CONFIG.baseAnalysisTime / Math.max(1, QUEUE_CONFIG.maxConcurrent))
+      );
+      return {
+        success: false,
+        error: `[RATE_LIMIT_EXCEEDED] System is under high load. Please retry shortly. retry_after=${retryAfterSeconds}`,
+      };
+    }
+
     // Update session status to queued
     await executeWithRetry(() =>
       db.update(sessions)
@@ -543,6 +594,7 @@ export async function addToQueue(sessionId: string): Promise<QueueSubmitResult> 
     );
 
     await syncJobQueued(sessionId);
+    await queueDriver.enqueueSession(sessionId);
 
     // Start processor if not running
     startQueueProcessor();
@@ -575,7 +627,7 @@ export async function addToQueue(sessionId: string): Promise<QueueSubmitResult> 
  */
 export async function getQueuePosition(sessionId: string): Promise<number> {
   try {
-    const active = await listActiveJobs();
+    const active = await queueDriver.listActiveJobs();
     const item = active.find((job) => job.sessionId === sessionId);
     if (!item) return 0;
 
@@ -661,7 +713,7 @@ export async function getQueueStatus(sessionId: string): Promise<QueuePosition |
  */
 async function getQueuedCount(): Promise<number> {
   try {
-    return await countQueuedJobs();
+    return await queueDriver.countQueuedJobs();
   } catch (error) {
     return 0;
   }
@@ -670,9 +722,9 @@ async function getQueuedCount(): Promise<number> {
 /**
  * Get next session to process (FIFO)
  */
-async function getNextInQueue(): Promise<string | null> {
+async function _getNextInQueue(): Promise<string | null> {
   try {
-    const nextJob = await claimNextQueuedJob();
+    const nextJob = await queueDriver.claimNextQueuedJob();
     return nextJob?.sessionId ?? null;
   } catch (error) {
     logger.error('Failed to get next in queue', { error: (error as any)?.message || error });
@@ -693,7 +745,7 @@ function getRowsAffected(result: unknown): number | null {
  * Prevents two workers from processing the same session under race.
  */
 async function claimNextQueuedSession(): Promise<string | null> {
-  const claimedJob = await claimNextQueuedJob();
+  const claimedJob = await queueDriver.claimNextQueuedJob();
   if (!claimedJob) {
     return null;
   }
@@ -738,14 +790,19 @@ export function __resetQueueStateForTests(): void {
   activeAttemptIds.clear();
   processingStartTimes.clear();
   isProcessorRunning = false;
-  consecutiveFailures = 0;
-  lastFailureTime = 0;
+  resetAllCircuitBreakersForTests();
+  recoveryTelemetry.lastRunAt = null;
+  recoveryTelemetry.lastRecoveredJobs = 0;
+  recoveryTelemetry.lastAbandonedAttempts = 0;
+  recoveryTelemetry.totalRecoveredJobs = 0;
+  recoveryTelemetry.totalAbandonedAttempts = 0;
+  recoveryTelemetry.alertActive = false;
 }
 
 /**
  * Mark session as processing
  */
-async function markAsProcessing(sessionId: string): Promise<void> {
+async function _markAsProcessing(sessionId: string): Promise<void> {
   await executeWithRetry(() =>
     db.update(sessions)
       .set({
@@ -911,6 +968,25 @@ export async function heartbeat(sessionId: string): Promise<void> {
   await syncJobHeartbeat(sessionId);
 }
 
+async function releaseProcessingSlot(sessionId: string): Promise<void> {
+  activeProcessingIds.delete(sessionId);
+  processingStartTimes.delete(sessionId);
+}
+
+async function markSessionQueuedForRetry(sessionId: string): Promise<void> {
+  await executeWithRetry(() =>
+    db.update(sessions)
+      .set({
+        status: 'queued',
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(sessions.id, sessionId))
+  );
+
+  await syncJobQueued(sessionId);
+  await releaseProcessingSlot(sessionId);
+}
+
 /**
  * Cancel a session
  */
@@ -974,20 +1050,19 @@ function getRetryDelay(attempt: number): number {
   return Math.min(delay, RETRY_CONFIG.maxDelayMs);
 }
 
-/**
- * Check if circuit breaker should trip
- */
-function shouldTripCircuitBreaker(): boolean {
-  if (consecutiveFailures >= RETRY_CONFIG.circuitBreakerThreshold) {
-    const timeSinceLastFailure = Date.now() - lastFailureTime;
-    // Reset after 5 minutes of no failures
-    if (timeSinceLastFailure > RETRY_CONFIG.circuitBreakerResetMs) {
-      consecutiveFailures = 0;
-      return false;
-    }
-    return true;
+function mapReasonToDependency(reasonCode: RetryReasonCode): CircuitDependency {
+  switch (reasonCode) {
+    case 'database_busy':
+      return 'database';
+    case 'rate_limited':
+    case 'service_unavailable':
+      return 'ai_provider';
+    case 'network_error':
+    case 'upstream_timeout':
+      return 'network';
+    default:
+      return 'processing';
   }
-  return false;
 }
 
 /**
@@ -1040,16 +1115,13 @@ async function processSessionWithRetry(sessionId: string, attempt: number = 0): 
     await processSessionAsync(sessionId);
 
     logger.debug('processSessionAsync completed successfully', { sessionId });
-    // Success - reset failure counter
-    if (consecutiveFailures > 0) {
-      logger.info(`Session ${sessionId} succeeded after ${consecutiveFailures} previous failures. Resetting counter.`);
-      consecutiveFailures = 0;
-    }
+    recordGlobalProcessingSuccess();
 
   } catch (error) {
     const isRetryable = isRetryableError(error);
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
     const retryReasonCode = deriveRetryReasonCode(error);
+    const dependency = mapReasonToDependency(retryReasonCode);
 
     if (isRetryable && attempt < RETRY_CONFIG.maxRetries) {
       const delay = getRetryDelay(attempt);
@@ -1074,7 +1146,20 @@ async function processSessionWithRetry(sessionId: string, attempt: number = 0): 
           nextRetryAt,
           errorMessage: errorMsg,
         });
+        await queueDriver.scheduleRetrySession(sessionId, nextRetryAt);
       }
+
+      if (config.queue.architecture === 'redis_bullmq') {
+        await markSessionQueuedForRetry(sessionId);
+        logger.warn(`Queued retry via Redis transport for session ${sessionId}`, {
+          delayMs: delay,
+          attempt: attempt + 1,
+          maxAttempts: RETRY_CONFIG.maxRetries,
+          retryReasonCode,
+        });
+        return;
+      }
+
       logger.warn(`Retrying session ${sessionId} after ${delay}ms (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries})`, {
         error: errorMsg,
         isRetryable,
@@ -1091,9 +1176,7 @@ async function processSessionWithRetry(sessionId: string, attempt: number = 0): 
       isRetryable,
       retryReasonCode,
     });
-
-    consecutiveFailures++;
-    lastFailureTime = Date.now();
+    recordDependencyFailure(dependency);
 
     // Try to mark as failed (with its own error handling)
     try {
@@ -1126,7 +1209,7 @@ export function startQueueProcessor(): void {
   }
 
   isProcessorRunning = true;
-  workerLoopPromise = processQueue();
+  void processQueue();
 }
 
 /**
@@ -1142,12 +1225,15 @@ async function processQueue(): Promise<void> {
 
 export async function runQueueIteration(): Promise<void> {
   try {
-    // C4: Circuit breaker check
-    if (shouldTripCircuitBreaker()) {
-      const remainingMs = RETRY_CONFIG.circuitBreakerResetMs - (Date.now() - lastFailureTime);
+    const blockingBreakers = getBlockingCircuitBreakers();
+    if (blockingBreakers.length > 0) {
+      const remainingMs = Math.min(...blockingBreakers.map((breaker) => breaker.remainingMs));
       const remainingSec = Math.ceil(remainingMs / 1000);
-      logger.error(`🔴 CIRCUIT BREAKER TRIPPED: ${consecutiveFailures} consecutive failures. Pausing for ${remainingSec}s...`);
-      await sleep(Math.min(config.queue.pollIntervalMs, 60000));
+      logger.error('Dependency circuit breaker open. Pausing queue iteration.', {
+        blockingDependencies: blockingBreakers.map((breaker) => breaker.dependency),
+        remainingSec,
+      });
+      await sleep(Math.max(1000, Math.min(config.queue.pollIntervalMs, remainingMs)));
       return;
     }
 
@@ -1158,7 +1244,19 @@ export async function runQueueIteration(): Promise<void> {
     let effectiveMaxConcurrent = QUEUE_CONFIG.maxConcurrent;
 
     if (Math.random() < 0.1) {
-      logger.info(`[MEMORY] RSS: ${rssGB.toFixed(2)}GB | Heap: ${heapUsedGB.toFixed(2)}GB / ${heapTotalGB.toFixed(2)}GB | Concurrent: ${activeProcessingIds.size}/${effectiveMaxConcurrent} | Failures: ${consecutiveFailures}`);
+      const snapshot = getCircuitSnapshots();
+      logger.info('[MEMORY] Queue runtime snapshot', {
+        rssGB: Number(rssGB.toFixed(2)),
+        heapUsedGB: Number(heapUsedGB.toFixed(2)),
+        heapTotalGB: Number(heapTotalGB.toFixed(2)),
+        concurrentActive: activeProcessingIds.size,
+        concurrentLimit: effectiveMaxConcurrent,
+        circuitBreakers: snapshot.map((item) => ({
+          dependency: item.dependency,
+          consecutiveFailures: item.consecutiveFailures,
+          isOpen: item.isOpen,
+        })),
+      });
     }
 
     if (memoryPressure.isUnderPressure) {
@@ -1190,15 +1288,16 @@ export async function runQueueIteration(): Promise<void> {
 
     processSessionWithRetry(nextId).catch(err => {
       logger.error('UNHANDLED ERROR in processSessionWithRetry', { sessionId: nextId, error: err });
-      consecutiveFailures++;
-      lastFailureTime = Date.now();
+      recordDependencyFailure('processing');
     });
   } catch (error) {
     logger.error('Queue processor error', { error: (error as any)?.message || error });
-    consecutiveFailures++;
-    lastFailureTime = Date.now();
+    const reasonCode = deriveRetryReasonCode(error);
+    recordDependencyFailure(mapReasonToDependency(reasonCode));
 
-    const delay = getRetryDelay(Math.min(consecutiveFailures, 5));
+    const processingSnapshot = getCircuitSnapshots().find((item) => item.dependency === 'processing');
+    const failureDepth = processingSnapshot?.consecutiveFailures ?? 1;
+    const delay = getRetryDelay(Math.min(failureDepth, 5));
     logger.info(`Queue processor backing off for ${delay}ms due to error`);
     await sleep(delay);
   }
@@ -1339,14 +1438,14 @@ async function processSessionAsync(sessionId: string): Promise<void> {
 
       // ✂️ SPLIT REASONING LOGS (Database Optimization)
       // Capture the persistent stage history from the ProgressTracker
-      let reasoningLogs: string | null = null;
+      let _reasoningLogs: string | null = null;
       let optimizedAnalysisStr = "";
 
       try {
         const tracker = ProgressTracker.getInstance(sessionId);
         if (tracker) {
           const history = tracker.getProgress().stageHistory;
-          reasoningLogs = JSON.stringify(history);
+          _reasoningLogs = JSON.stringify(history);
         }
 
         optimizedAnalysisStr = JSON.stringify(result.analysisResult);
@@ -1427,8 +1526,32 @@ async function cleanupStaleRequests(): Promise<void> {
  */
 export function stopQueueProcessor(): void {
   isProcessorRunning = false;
-  workerLoopPromise = null;
   logger.info('Queue processor stopped');
+}
+
+export async function waitForQueueDrain(
+  timeoutMs = 30_000,
+  pollIntervalMs = 250
+): Promise<{ drained: boolean; activeJobs: number; waitedMs: number }> {
+  const start = Date.now();
+
+  while (Date.now() - start < timeoutMs) {
+    const activeJobs = activeProcessingIds.size;
+    if (activeJobs === 0) {
+      return {
+        drained: true,
+        activeJobs: 0,
+        waitedMs: Date.now() - start,
+      };
+    }
+    await sleep(pollIntervalMs);
+  }
+
+  return {
+    drained: activeProcessingIds.size === 0,
+    activeJobs: activeProcessingIds.size,
+    waitedMs: Date.now() - start,
+  };
 }
 
 /**
@@ -1441,7 +1564,7 @@ export async function getQueueStats(): Promise<{
   averageWaitTime: number;
 }> {
   try {
-    const activeJobs = await listActiveJobs();
+    const activeJobs = await queueDriver.listActiveJobs();
     const queued = activeJobs.filter((job) => job.status === 'queued' || job.status === 'retrying');
     const processing = activeJobs.filter((job) => job.status === 'running');
 
@@ -1563,6 +1686,15 @@ export async function recoverInterruptedJobsOnStartup(): Promise<{
       abandonedAttempts,
     });
   }
+
+  recoveryTelemetry.lastRunAt = new Date().toISOString();
+  recoveryTelemetry.lastRecoveredJobs = recoveredJobs;
+  recoveryTelemetry.lastAbandonedAttempts = abandonedAttempts;
+  recoveryTelemetry.totalRecoveredJobs += recoveredJobs;
+  recoveryTelemetry.totalAbandonedAttempts += abandonedAttempts;
+  recoveryTelemetry.alertActive =
+    abandonedAttempts >= (config.queue.recoveryAlertThreshold ?? 1) ||
+    recoveredJobs >= (config.queue.recoveryAlertThreshold ?? 1);
 
   return {
     recoveredJobs,

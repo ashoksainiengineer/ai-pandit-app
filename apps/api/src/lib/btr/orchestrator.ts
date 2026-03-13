@@ -1,3 +1,4 @@
+
 /**
  * Professional BTR Orchestrator
  *
@@ -19,16 +20,20 @@ import { calculateSunrise, calculateEphemeris } from '../ephemeris.js';
 import {
   RectificationResult,
   CandidateScore,
-  MethodScores,
+  _MethodScores,
   ConfidenceLevel,
   BtrEvent,
   ForensicProfile,
   TatwaType,
-  DoshaType,
+  _DoshaType,
   ScanConfiguration,
-  DEFAULT_SCAN_CONFIG
+  _DEFAULT_SCAN_CONFIG
 } from '@ai-pandit/shared';
 import { logger } from '../logger.js';
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 export interface RectificationInput {
   birthDate: string;
@@ -88,7 +93,7 @@ export async function rectifyBirthTime(input: RectificationInput): Promise<Detai
 
       if (tatwaResult.correctionWindows.length > 0) {
         const bestWindow = tatwaResult.correctionWindows[0];
-        const midTime = new Date(
+        const _midTime = new Date(
           (bestWindow.startTime.getTime() + bestWindow.endTime.getTime()) / 2
         );
         scannerInput.knownTatwa = bestWindow.tatwa;
@@ -301,7 +306,7 @@ async function buildContext(input: RectificationInput): Promise<RectificationCon
       input.timezone
     );
   } catch (e) {
-    logger.warn('[BTR] Could not calculate sunrise', { error: (e as any)?.message || e });
+    logger.warn('[BTR] Could not calculate sunrise', { error: getErrorMessage(e) });
   }
 
   const scoredEvents = EventScorer.scoreEvents(input.events);
@@ -342,7 +347,7 @@ async function buildTransitAnalysis(
       ascendantSign = candidateEphemeris.ascendant.sign;
     } catch (ephemerisError) {
       logger.warn('[BTR] Transit ascendant fallback used', {
-        error: (ephemerisError as any)?.message || ephemerisError,
+        error: getErrorMessage(ephemerisError),
         fallback: ascendantSign
       });
     }
@@ -364,7 +369,7 @@ async function buildTransitAnalysis(
       }
     );
   } catch (e) {
-    logger.warn('[BTR] Transit analysis failed', { error: (e as any)?.message || e });
+    logger.warn('[BTR] Transit analysis failed', { error: getErrorMessage(e) });
     return new Map();
   }
 }

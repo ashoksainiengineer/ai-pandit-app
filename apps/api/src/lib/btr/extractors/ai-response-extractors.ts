@@ -47,7 +47,7 @@ function findNearestCandidate(hallucinatedTime: string, candidates: string[], th
 export function extractBatchSurvivors(
   aiContent: string,
   candidateTimes: string[],
-  neededCount: number
+  _neededCount: number
 ): { time: string; score: number; reason: string }[] {
   const scores: { time: string; score: number; reason: string }[] = [];
 

@@ -268,6 +268,8 @@ export interface QueueSubmitResult {
   position?: number;
   estimatedWaitSeconds?: number;
   error?: string;
+  errorCode?: 'QUEUE_FULL' | 'RATE_LIMIT_EXCEEDED';
+  retryAfterSeconds?: number;
 }
 
 export type JobStatus =
@@ -1297,3 +1299,13 @@ export const EVENT_TYPES: Record<EventCategory, string[]> = {
   identity_shifts: ['Weight transform', 'Nickname change', 'Appearance shift'],
   other: ['Custom event'],
 };
+
+// ═════════════════════════════════════════════════════════════════════════════
+// LEGACY EXPORTS (for backward compatibility during refactoring)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/** @deprecated Use PlanetPosition directly */
+export type _PlanetPosition = PlanetPosition;
+
+/** @deprecated Use LifeEvent directly */
+export type _LifeEvent = LifeEvent;

@@ -15,6 +15,7 @@
 
 import { calculateEphemeris } from './ephemeris.js';
 import { calculateD9 } from './advanced-btr-methods.js';
+import { logger } from '../utils/logger.js';
 
 const ZODIAC_SIGNS = [
   'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
@@ -120,7 +121,7 @@ export async function calculateSpousePositions(
       }
     };
   } catch (error) {
-    console.error('Failed to calculate spouse positions:', error);
+    logger.error('Failed to calculate spouse positions', error, { context: 'spouse-d9-verification' });
     return null;
   }
 }
@@ -545,3 +546,8 @@ export const SpouseD9Verification = {
   performVerification: performSpouseVerification,
   formatResult: formatVerificationResult
 };
+
+// Legacy exports for backward compatibility
+export { extractNativeD9Positions as _extractNativeD9Positions };
+export { verifyD9WithSpouse as _verifyD9WithSpouse };
+export { calculateSpousePositions as _calculateSpousePositions };

@@ -21,7 +21,6 @@
  */
 
 import * as v2 from './encryption/v2.js';
-import { safeDecrypt as legacySafeDecrypt } from './encryption/index.js';
 import { encryptionConfig } from '../config/index.js';
 import { logger } from './logger.js';
 

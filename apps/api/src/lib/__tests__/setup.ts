@@ -96,7 +96,7 @@ beforeAll(async () => {
       )
     `);
 
-    if (process.env.SKIP_EPHEMERIS_INIT === 'true' || process.env.SKIP_SWISSEPH_INIT === 'true') {
+    if (process.env.SKIP_EPHEMERIS_INIT === 'true') {
         console.log('⏭️ [TEST SETUP] Skipping ephemeris initialization as requested');
         return;
     }

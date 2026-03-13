@@ -32,10 +32,20 @@ const statusConfig = {
     icon: Clock,
     color: 'text-amber-600 bg-amber-50 border-amber-200',
   },
+  queued: {
+    label: 'Queued',
+    icon: Clock,
+    color: 'text-blue-600 bg-blue-50 border-blue-200',
+  },
   processing: {
     label: 'Processing',
     icon: Loader2,
     color: 'text-blue-600 bg-blue-50 border-blue-200',
+  },
+  retrying: {
+    label: 'Retrying',
+    icon: Loader2,
+    color: 'text-purple-600 bg-purple-50 border-purple-200',
   },
   completed: {
     label: 'Completed',

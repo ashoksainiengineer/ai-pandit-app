@@ -69,7 +69,7 @@ export default function LandingPage() {
       <Problem />
       <Solution />
       <AccuracyShowcase />
-      <TestimonialsSection />
+      {/* TestimonialsSection - Temporarily hidden */}
       <Pricing />
       <FAQ />
       <FinalCTA />

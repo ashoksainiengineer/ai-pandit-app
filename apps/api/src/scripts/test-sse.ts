@@ -11,9 +11,13 @@ async function run() {
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
 
-    while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
+    let streamDone = false;
+    while (!streamDone) {
+        const { value, done: chunkDone } = await reader.read();
+        if (chunkDone) {
+            streamDone = true;
+            continue;
+        }
         const text = decoder.decode(value);
 
         const events = text.split('\n\n').filter(Boolean);

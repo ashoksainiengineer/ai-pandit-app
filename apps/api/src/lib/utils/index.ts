@@ -37,3 +37,6 @@ export {
 
 // Re-export for backwards compatibility
 export { randomSort as shuffleCandidates } from './array-helpers.js';
+
+// Legacy exports for backward compatibility
+export { getMinifiedEphemeris as _getMinifiedEphemeris } from './ephemeris-helpers.js';

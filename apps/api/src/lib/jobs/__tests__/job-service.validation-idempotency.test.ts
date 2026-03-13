@@ -27,6 +27,7 @@ vi.mock('@ai-pandit/db/schema', () => ({
   idempotencyKeys: { userId: 'userId', key: 'key', requestHash: 'requestHash', jobId: 'jobId' },
   jobs: { id: 'id', sessionId: 'sessionId' },
   sessions: { id: 'id', clerkId: 'clerkId', userId: 'userId', aiConsentGiven: 'aiConsentGiven' },
+  users: { id: 'id', role: 'role' },
 }));
 
 vi.mock('drizzle-orm', () => ({
@@ -134,6 +135,13 @@ describe('job-service validation + idempotency guardrails', () => {
   });
 
   it('blocks idempotency key reuse with different request payload hash', async () => {
+    selectQueue.push([{ role: 'user' }]);
+    selectQueue.push([]); // global queued
+    selectQueue.push([]); // global running
+    selectQueue.push([]); // global retrying
+    selectQueue.push([]); // user queued
+    selectQueue.push([]); // user running
+    selectQueue.push([]); // user retrying
     selectQueue.push([
       {
         requestHash: 'a-different-hash',
@@ -153,5 +161,31 @@ describe('job-service validation + idempotency guardrails', () => {
     });
 
     expect(executeWithRetryMock).toHaveBeenCalled();
+  });
+
+  it('returns explicit 429 contract details when per-user tier limit is exceeded', async () => {
+    selectQueue.push([{ role: 'pro' }]);
+    selectQueue.push([]); // global queued
+    selectQueue.push([]); // global running
+    selectQueue.push([]); // global retrying
+    selectQueue.push([{ id: 'u1' }, { id: 'u2' }, { id: 'u3' }, { id: 'u4' }, { id: 'u5' }]); // user queued
+    selectQueue.push([]); // user running
+    selectQueue.push([]); // user retrying
+
+    await expect(
+      createQueuedBirthRectificationJob({
+        clerkId: 'clerk_1',
+        ownershipContext: { clerkId: 'clerk_1', internalUserId: 'internal-user-1' },
+        body: baseBody,
+      })
+    ).rejects.toMatchObject<AppError>({
+      code: ErrorCodes.RATE_LIMIT_EXCEEDED,
+      details: expect.objectContaining({
+        reason: 'PER_USER_ACTIVE_LIMIT',
+        contractVersion: '2026-03-12',
+        retryable: true,
+        httpStatusHint: 429,
+      }),
+    });
   });
 });

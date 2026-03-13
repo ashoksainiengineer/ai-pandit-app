@@ -7,8 +7,9 @@
 
 import { calculateEphemeris } from '../ephemeris.js';
 import { getDashaForDate, verifyDoubleTransit, calculateVimshottariDasha } from '../vedic-astrology-engine.js';
+import type { DashaPeriod } from '../vedic-astrology-engine.js';
 import { capitalizeFirstLetter } from '../utils/index.js';
-import { LifeEvent } from '@ai-pandit/shared';
+import { LifeEvent, EphemerisData, CharaKaraka } from '@ai-pandit/shared';
 import { ZODIAC_SIGNS } from '@ai-pandit/shared';
 import { formatEventWindow, getRepresentativeEventDateTime } from './event-date-utils.js';
 
@@ -35,14 +36,14 @@ export interface TransitDataEntry {
   dasha: string;
   signatures: string[];
   planets: Record<string, string>;
-  doubleTransit: any;
+  doubleTransit: ReturnType<typeof verifyDoubleTransit>;
 }
 
 export interface TransitBuildOptions {
   lifeEvents: LifeEvent[];
   moonLongitude: number;
   birthDate: string | Date;
-  ephemeris: any;
+  ephemeris: EphemerisData;
   input: {
     dateOfBirth: string;
     latitude: number;
@@ -50,7 +51,7 @@ export interface TransitBuildOptions {
     timezone: string;
   };
   vedicSignals?: {
-    charaKarakas?: any[];
+    charaKarakas?: CharaKaraka[];
   };
 }
 
@@ -95,15 +96,15 @@ export async function buildTransitData(
 async function buildSingleEventTransit(
   event: LifeEvent,
   context: {
-    vimshottariDashas: any[];
-    ephemeris: any;
+    vimshottariDashas: DashaPeriod[];
+    ephemeris: EphemerisData;
     input: {
       latitude: number;
       longitude: number;
       timezone: string;
     };
     vedicSignals?: {
-      charaKarakas?: any[];
+      charaKarakas?: CharaKaraka[];
     };
   }
 ): Promise<TransitDataEntry | null> {
@@ -162,7 +163,7 @@ async function buildSingleEventTransit(
 /**
  * Format Dasha sequence from DashaAtDate object
  */
-function formatDashaSequence(dashaAtEvent: any): string {
+function formatDashaSequence(dashaAtEvent: ReturnType<typeof getDashaForDate>): string {
   if (!dashaAtEvent) return 'Unknown';
 
   return `${dashaAtEvent.mahadasha}-${dashaAtEvent.antardasha}-${dashaAtEvent.pratyantardasha}-${dashaAtEvent.sukshmadasha}-${dashaAtEvent.pranadasha}`;
@@ -173,8 +174,8 @@ function formatDashaSequence(dashaAtEvent: any): string {
  */
 function buildDashaSignature(
   event: LifeEvent,
-  dashaAtEvent: any,
-  ephemeris: any
+  dashaAtEvent: ReturnType<typeof getDashaForDate>,
+  ephemeris: EphemerisData
 ): string | null {
   if (!dashaAtEvent) return null;
 
@@ -205,8 +206,8 @@ function buildDashaSignature(
  */
 function buildDoubleTransitSignature(
   event: LifeEvent,
-  eventEph: any,
-  baseEphemeris: any
+  eventEph: EphemerisData,
+  baseEphemeris: EphemerisData
 ): string | null {
   const houseMap: Record<string, number> = {
     marriage: 7, career: 10, education: 4, family: 2, children: 5, health: 6, travel: 9
@@ -227,14 +228,13 @@ function buildDoubleTransitSignature(
  */
 function buildJaiminiSignature(
   event: LifeEvent,
-  dashaAtEvent: any,
-  charaKarakas?: any[]
+  dashaAtEvent: ReturnType<typeof getDashaForDate>,
+  charaKarakas?: CharaKaraka[]
 ): string | null {
   if (!charaKarakas || !dashaAtEvent) return null;
 
-  const ak = charaKarakas.find((k: any) => k.karakaName === 'Atmakaraka')?.planet;
-  const amk = charaKarakas.find((k: any) => k.karakaName === 'Amatyakaraka')?.planet;
-  const dk = charaKarakas.find((k: any) => k.karakaName === 'Darakaraka')?.planet;
+  const amk = charaKarakas.find((k) => k.karakaName === 'Amatyakaraka')?.planet;
+  const dk = charaKarakas.find((k) => k.karakaName === 'Darakaraka')?.planet;
 
   // Marriage events check Darakaraka
   if (event.category === 'marriage') {
@@ -256,7 +256,7 @@ function buildJaiminiSignature(
 /**
  * Format planet positions for transit data
  */
-function formatPlanetPositions(planets: Record<string, any>, natalAscendantSign: string): Record<string, string> {
+function formatPlanetPositions(planets: EphemerisData['planets'], natalAscendantSign: string): Record<string, string> {
   const formatted: Record<string, string> = {};
 
   for (const [name, p] of Object.entries(planets)) {

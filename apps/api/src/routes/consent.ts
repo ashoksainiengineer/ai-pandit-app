@@ -1,7 +1,7 @@
-import { Router, Request, Response } from 'express';
-import { db, executeWithRetry } from '@ai-pandit/db';
+import { Router, Response } from 'express';
+import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
-import { eq, and } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { logger } from '../lib/logger.js';
 

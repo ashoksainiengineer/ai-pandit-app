@@ -3,8 +3,6 @@
  * Type-safe pagination helpers with cursor and offset-based strategies
  */
 
-import { SQL } from 'drizzle-orm';
-
 export interface PaginationParams {
   page?: number;
   limit?: number;

@@ -1,0 +1,86 @@
+name: CI Quality Gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    env:
+      NODE_ENV: test
+      NEON_DATABASE_URL: postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder
+      DATABASE_URL: postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder
+      AI_API_KEY: test-ai-key
+      CLERK_SECRET_KEY: sk_test_placeholder
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_c2VsZWN0LWNvZC05NS5jbGVyay5hY2NvdW50cy5kZXYk
+      CLERK_WEBHOOK_SECRET: whsec_test_placeholder
+      ENCRYPTION_SECRET: test-secret-32-characters-minimum-123
+      NEXT_PUBLIC_BACKEND_URL: http://localhost:3001
+      JOB_EXECUTION_MODE: external_worker
+      WORKER_POLL_INTERVAL_MS: 2000
+      USE_ASYNC_JOB_PIPELINE: true
+      USE_NEW_STREAM_PATH: true
+      CI: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup ephemeris service
+        run: |
+          npm run setup:ephemeris
+          npm run ephemeris:download-kernel
+
+      - name: Start ephemeris service
+        run: |
+          nohup sh -c 'cd services/ephemeris && .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000' > /tmp/ephemeris.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/health >/dev/null; then
+              echo "Ephemeris is healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Ephemeris failed to become ready"
+          cat /tmp/ephemeris.log || true
+          exit 1
+
+      - name: Lint Strict
+        run: npm run lint:strict
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test With Summary
+        run: npm run test:with-summary
+
+      - name: Upload Test Summary Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-summary
+          path: |
+            logs/test-summary-latest.json
+            logs/test-summary-latest.md
+            logs/test-latest.log
+          if-no-files-found: warn
+
+      - name: Release Gate
+        run: npm -w @ai-pandit/api run phase6:release-gate
+
+      - name: E2E Smoke
+        run: npm run test:e2e:smoke

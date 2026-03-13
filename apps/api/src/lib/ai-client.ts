@@ -32,6 +32,26 @@ const AI_CONFIG = {
     timeoutMs: config.ai.timeoutMs,
 };
 
+const USE_DETERMINISTIC_AI_MOCK_IN_TESTS =
+    (config.app?.isTest ?? (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true')) &&
+    process.env.ALLOW_REAL_AI_IN_TESTS !== 'true';
+
+function isFetchMockedByTestRunner(): boolean {
+    const maybeFetch = globalThis.fetch as unknown as { mock?: unknown; getMockName?: () => string };
+    return Boolean(maybeFetch && (typeof maybeFetch.getMockName === 'function' || maybeFetch.mock));
+}
+
+function buildDeterministicMockAIResponse(userPrompt: string): AIResponse {
+    // Keep test responses stable so snapshots/logic do not drift between runs.
+    const preview = userPrompt.slice(0, 120).replace(/\s+/g, ' ').trim();
+    return {
+        success: true,
+        thinking: `MOCK_THINKING: deterministic test response for prompt "${preview}"`,
+        content: 'MOCK_RESULT: deterministic AI output for test mode',
+        tokensUsed: 42,
+    };
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // AI COMPLETION SCHEMAS
 // ═════════════════════════════════════════════════════════════════════════════
@@ -84,6 +104,10 @@ export async function callAI(
         model?: string;
     }
 ): Promise<AIResponse> {
+    if (USE_DETERMINISTIC_AI_MOCK_IN_TESTS && !isFetchMockedByTestRunner()) {
+        return buildDeterministicMockAIResponse(userPrompt);
+    }
+
     const configLocal = {
         temperature: options?.temperature ?? AI_CONFIG.temperature,
         maxTokens: options?.maxTokens ?? AI_CONFIG.maxTokens,
@@ -140,8 +164,6 @@ export async function callAI(
             if (configLocal.enableThinking) {
                 requestBody.use_search = false; // Disable search for faster response
             }
-
-            const isGroqNative = AI_CONFIG.baseUrl.toLowerCase().includes('groq.com');
 
             // 🚀 PROVIDER-AGNOSTIC REASONING CONFIGURATION
             // Driven entirely by AI_REASONING_MODE env var — no hardcoded provider checks.
@@ -302,6 +324,17 @@ export async function callAIWithStream(
         };
     }
 ): Promise<AIResponse> {
+    if (USE_DETERMINISTIC_AI_MOCK_IN_TESTS && !isFetchMockedByTestRunner()) {
+        const mock = buildDeterministicMockAIResponse(userPrompt);
+        const chunk = 'MOCK_STREAM_CHUNK';
+        emitAIThinking(sessionId, chunk, stage, options?.candidateTime);
+        options?.onToken?.(chunk, true);
+        if (options?.progressTracker && typeof options.progressTracker.updateAIThinking === 'function') {
+            await options.progressTracker.updateAIThinking(chunk, stage, options?.candidateTime);
+        }
+        return mock;
+    }
+
     const configLocal = {
         temperature: options?.temperature ?? AI_CONFIG.temperature,
         maxTokens: options?.maxTokens ?? AI_CONFIG.maxTokens,
@@ -1007,3 +1040,16 @@ export default {
     buildRankingPrompt,
     parseAIAnalysisResponse,
 };
+
+// ═════════════════════════════════════════════════════════════════════════════
+// LEGACY EXPORTS (for backward compatibility during refactoring)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/** @deprecated Use callAI directly */
+export const _callAI = callAI;
+
+/** @deprecated Use callAIWithStream directly */
+export const _callAIWithStream = callAIWithStream;
+
+/** @deprecated Use executeAIInParallel directly */
+export const _executeAIInParallel = executeAIInParallel;

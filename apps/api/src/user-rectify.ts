@@ -2,7 +2,6 @@ import 'dotenv/config';
 import crypto from 'node:crypto';
 import { db, executeWithRetry } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
-import { logger } from './lib/logger.js';
 import { addToQueue, startQueueProcessor } from './lib/queue-manager.js';
 import { encryptData } from './lib/encryption/index.js';
 import { syncUser } from './lib/user-sync.js';

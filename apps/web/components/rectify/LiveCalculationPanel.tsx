@@ -20,7 +20,7 @@ interface LiveCalculationPanelProps {
 export const LiveCalculationPanel = memo<LiveCalculationPanelProps>(({
     logs,
     isConnected,
-    engineName = 'DeepSeek-V3 + Swiss Eph',
+    engineName = 'DeepSeek-V3 + Skyfield',
     latency = 0
 }) => {
     const scrollRef = useRef<HTMLDivElement>(null);

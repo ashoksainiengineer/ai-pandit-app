@@ -30,7 +30,7 @@ const techLayers = [
     icon: Cpu,
     color: '#00DC82',
     items: [
-      { name: 'Swiss Ephemeris v2.10.03', desc: 'NASA-grade astronomical calculations', version: '2.10.03' },
+      { name: 'Skyfield Ephemeris', desc: 'NASA-grade astronomical calculations', version: 'DE440' },
       { name: 'BTR Core Engine', desc: 'Birth Time Rectification algorithms', version: 'v4.2' },
       { name: 'Consensus Engine', desc: 'Multi-method result aggregation', version: 'v3.1' },
       { name: 'Shuddhi Engine', desc: 'Vedic precision calculations', version: 'v2.0' },
@@ -63,7 +63,7 @@ const techLayers = [
     icon: Database,
     color: '#F472B6',
     items: [
-      { name: 'Turso (SQLite)', desc: 'Edge-distributed database', version: 'libSQL' },
+      { name: 'Neon Postgres', desc: 'Serverless PostgreSQL', version: '16' },
       { name: 'Drizzle ORM', desc: 'Type-safe SQL queries', version: 'v0.29' },
       { name: 'Redis Cache', desc: 'Session & progress storage', version: 'v7.2' },
       { name: 'Ephemeris Files', desc: '32MB astronomical dataset', version: 'SE' },
@@ -238,7 +238,7 @@ export default function TechStack() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-zinc-600">Powered by</span>
-          <span className="text-xs font-semibold text-[#00DC82]">Swiss Ephemeris</span>
+          <span className="text-xs font-semibold text-[#00DC82]">Skyfield</span>
           <span className="text-xs text-zinc-600">+</span>
           <span className="text-xs font-semibold text-[#36E4DA]">DeepSeek AI</span>
         </div>

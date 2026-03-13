@@ -83,9 +83,12 @@ export function getDeepAnalysisPrompt(
   candidates.filter(c => c.time).forEach(c => {
     try {
       validateCandidateDataForAI(c);
-    } catch (err: any) {
-      if (err.errors) {
-        logger.error(`[VALIDATION-GATE] Candidate ${c.time} failed Zod schema validation:`, JSON.stringify(err.errors));
+    } catch (err: unknown) {
+      const zodErrors = typeof err === 'object' && err !== null && 'errors' in err
+        ? (err as { errors: unknown }).errors
+        : null;
+      if (zodErrors) {
+        logger.error(`[VALIDATION-GATE] Candidate ${c.time} failed Zod schema validation:`, JSON.stringify(zodErrors));
       } else {
         logger.error(`[VALIDATION-GATE] Candidate ${c.time} failed validation:`, err);
       }

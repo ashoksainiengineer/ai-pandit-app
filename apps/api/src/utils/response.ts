@@ -107,19 +107,34 @@ export function sendError(
 ): void {
   const statusCode = getErrorStatusCode(error);
   const errorResponse = getErrorResponse(error);
+  const details = (errorResponse.error as { details?: Record<string, unknown> }).details;
+  const retryAfterSeconds = typeof details?.retryAfterSeconds === 'number'
+    ? details.retryAfterSeconds
+    : typeof details?.retryAfter === 'number'
+      ? details.retryAfter
+      : undefined;
 
   const response: ApiResponse = {
     success: false,
     error: {
       code: (errorResponse.error as { code: string }).code || 'INTERNAL_ERROR',
       message: (errorResponse.error as { message: string }).message || 'An error occurred',
-      details: (errorResponse.error as { details?: Record<string, unknown> }).details,
+      details,
     },
     meta: {
       timestamp: new Date().toISOString(),
       requestId,
     },
   };
+
+  if (statusCode === 429 && retryAfterSeconds && retryAfterSeconds > 0) {
+    res.setHeader('Retry-After', String(Math.ceil(retryAfterSeconds)));
+  }
+
+  // Explicit, stable 429 contract for clients to branch retry logic.
+  if (statusCode === 429) {
+    res.setHeader('X-RateLimit-Contract', 'v2026-03-12');
+  }
 
   res.status(statusCode).json(response);
 }

@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
             updatedAt: new Date().toISOString()
         };
 
-        // 3. Insert into Turso via Drizzle
+        // 3. Insert into Neon Postgres via Drizzle
         await db.insert(sessions).values(newSession);
 
         // Return the structure expected by the frontend (with nested objects)

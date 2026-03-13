@@ -26,8 +26,8 @@ export default defineConfig({
         },
         env: {
             NODE_ENV: envOrDefault('NODE_ENV', 'test'),
-            TURSO_DATABASE_URL: envOrDefault('TURSO_DATABASE_URL', 'file:test.db'),
-            TURSO_AUTH_TOKEN: envOrDefault('TURSO_AUTH_TOKEN', 'test-token'),
+            NEON_DATABASE_URL: envOrDefault('NEON_DATABASE_URL', 'postgresql://postgres:postgres@127.0.0.1:5432/postgres'),
+            DATABASE_URL: envOrDefault('DATABASE_URL', 'postgresql://postgres:postgres@127.0.0.1:5432/postgres'),
             AI_API_KEY: envOrDefault('AI_API_KEY', 'test-key'),
             AI_MODEL: envOrDefault('AI_MODEL', 'test-model'),
             AI_TIMEOUT_MS: envOrDefault('AI_TIMEOUT_MS', '60000'),

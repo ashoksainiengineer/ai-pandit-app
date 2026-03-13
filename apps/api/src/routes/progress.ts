@@ -102,9 +102,15 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
         }
 
         const fallback = fallbackSession[0];
+        const validStatus = (fallback.status as string) === 'queued' ||
+                           (fallback.status as string) === 'processing' ||
+                           (fallback.status as string) === 'complete' ||
+                           (fallback.status as string) === 'failed'
+                           ? fallback.status as import('@ai-pandit/shared').QueueStatus
+                           : 'queued';
         queueStatus = {
             sessionId,
-            status: fallback.status as any,
+            status: validStatus,
             position: 0,
             estimatedWaitSeconds: 0,
             totalInQueue: 0,
@@ -115,7 +121,7 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
 
     // Get detailed progress
     const progress = await getSessionProgress(sessionId);
-    const sessionSnapshot = queueStatus.session as Partial<Session> | undefined;
+    const sessionSnapshot = queueStatus?.session as Partial<Session> | undefined;
     const jobSnapshot = await getLatestJobForSession(sessionId);
     const persistedEvents = await getPersistedSessionEvents(sessionId);
     const terminalResult = extractTerminalResult(
@@ -123,13 +129,13 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
         clerkId,
         internalUserId!
     );
-    const isCompleteStatus = ['complete', 'success', 'finished'].includes(queueStatus.status);
+    const isCompleteStatus = queueStatus && ['complete', 'success', 'finished'].includes(queueStatus.status);
 
     res.json({
         sessionId,
-        status: queueStatus.status,
-        position: queueStatus.position,
-        estimatedWaitSeconds: queueStatus.estimatedWaitSeconds,
+        status: queueStatus?.status ?? 'pending',
+        position: queueStatus?.position ?? 0,
+        estimatedWaitSeconds: queueStatus?.estimatedWaitSeconds ?? 0,
         jobId: jobSnapshot?.id,
         jobStatus: jobSnapshot?.status,
         errorMessage: sessionSnapshot?.errorMessage || undefined,
@@ -145,7 +151,7 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
             birthPlace: parseSensitiveField(sessionSnapshot?.birthPlace, clerkId, internalUserId!),
             offsetConfig: parseSensitiveField(sessionSnapshot?.offsetConfig, clerkId, internalUserId!),
             timezone: sessionSnapshot?.timezone,
-            status: queueStatus.status,
+            status: queueStatus?.status ?? 'pending',
             errorMessage: sessionSnapshot?.errorMessage || undefined,
             updatedAt: sessionSnapshot?.updatedAt || undefined,
         },

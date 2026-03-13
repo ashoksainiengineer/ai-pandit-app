@@ -1,3 +1,4 @@
+
 /**
  * Shadbala Module - Complete 6-Source Planetary Strength
  *
@@ -21,7 +22,7 @@
 
 import { EphemerisData, PlanetPosition } from '@ai-pandit/shared';
 
-const ZODIAC_SIGNS = [
+const _ZODIAC_SIGNS = [
   'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
   'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
 ];
@@ -182,7 +183,7 @@ function calculatePlanetShadbala(
 function calculateSthanaBala(
   planet: string,
   pos: PlanetPosition,
-  ephemeris: EphemerisData
+  _ephemeris: EphemerisData
 ): number {
   let bala = 0;
   const sign = pos.sign;
@@ -220,7 +221,7 @@ function calculateSthanaBala(
 function calculateDigBala(
   planet: string,
   pos: PlanetPosition,
-  ephemeris: EphemerisData
+  _ephemeris: EphemerisData
 ): number {
   const targetHouse = DIG_BALA_HOUSES[planet];
   const currentHouse = pos.house;

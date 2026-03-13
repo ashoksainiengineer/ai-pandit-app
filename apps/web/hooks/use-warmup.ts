@@ -7,7 +7,7 @@ import { getTokenWithRetry } from '@/lib/auth-utils';
 import { logger } from '@/lib/logger';
 
 /**
- * Hook to warm up the Hugging Face engine
+ * Hook to warm up backend analysis endpoints
  * Sends a background ping to the backend when a component mounts
  */
 export function useWarmup() {

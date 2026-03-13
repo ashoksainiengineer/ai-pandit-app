@@ -567,3 +567,18 @@ export const PARASHARI_ASPECTS: Record<string, number[]> = {
   rahu: [5, 7, 9],
   ketu: [5, 7, 9]
 };
+
+// ═════════════════════════════════════════════════════════════════════════════
+// LEGACY EXPORTS (for backward compatibility during refactoring)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/** @deprecated Use ZODIAC_SIGNS directly */
+export const _ZODIAC_SIGNS = ZODIAC_SIGNS;
+
+// Legacy type exports for backward compatibility
+export type { MethodScores as _MethodScores };
+export type { DoshaType as _DoshaType };
+export { DEFAULT_SCAN_CONFIG as _DEFAULT_SCAN_CONFIG };
+export type { CandidateDataPackage as _CandidateDataPackage };
+export type { TournamentRound as _TournamentRound };
+export type { FinalVerdict as _FinalVerdict };

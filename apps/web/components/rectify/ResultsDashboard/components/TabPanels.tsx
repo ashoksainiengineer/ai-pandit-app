@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, CheckCircle } from 'lucide-react';
 import { THEME } from '../../dashboard/theme';
 import { cleanSummary } from '../../dashboard/utils';
-import { SwissEphPanel } from '../../SwissEphPanel';
+import { EphemerisPanel } from '../../EphemerisPanel';
 import { PlanetaryVitals } from '../../PlanetaryVitals';
 import { CandidateComparisonView } from '../../CandidateComparisonView';
 import { VedicShuddhiRadar } from '../../VedicShuddhiRadar';
@@ -85,7 +85,7 @@ export function TabPanels({
                             </div>
 
                             <div>
-                                <SwissEphPanel
+                                <EphemerisPanel
                                     candidateTime={data.rectifiedTime}
                                     minifiedEph={analysisDetails?.godTierData?.ephemeris?.planets ? {
                                         sun: `${analysisDetails.godTierData.ephemeris.planets.sun?.sign || 'N/A'} ${((analysisDetails.godTierData.ephemeris.planets.sun?.longitude || 0) % 30).toFixed(4)}°`,

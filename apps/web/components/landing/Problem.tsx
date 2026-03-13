@@ -37,12 +37,12 @@ const comparisonPoints = [
       accuracy: '±5-15 minutes'
     },
     ai: {
-      title: 'Swiss Ephemeris Engine',
+      title: 'Skyfield Ephemeris Engine',
       advantages: [
         'IEEE 754 double-precision (64-bit)',
         '8+ decimal places maintained',
         'NASA JPL ephemeris data',
-        'Exact Swiss Ephemeris calculations'
+        'Exact Skyfield calculations'
       ],
       accuracy: '±0.0001° (0.36 arcsec)'
     },
@@ -127,16 +127,16 @@ const comparisonPoints = [
 ];
 
 const technicalSpecs = [
-  { label: 'Ephemeris', value: 'Swiss Ephemeris', icon: Telescope, color: '#8B4A9C' },
+  { label: 'Ephemeris', value: 'Skyfield', icon: Telescope, color: '#8B4A9C' },
   { label: 'Precision', value: '±0.0001° (0.36 arcsec)', icon: Target, color: '#B8860B' },
   { label: 'AI Model', value: 'DeepSeek R1', icon: Brain, color: '#4A7C6F' },
-  { label: 'Database', value: 'Turso (libSQL)', icon: Database, color: '#C65D3B' },
+  { label: 'Database', value: 'Neon Postgres', icon: Database, color: '#C65D3B' },
   { label: 'ORM', value: 'Drizzle', icon: Layers, color: '#6B1F7A' },
   { label: 'Cache', value: 'LRU Cache (1000)', icon: Server, color: '#78611D' },
 ];
 
 const backendComponents = [
-  { name: 'Ephemeris Service', purpose: 'Swiss Ephemeris calculations with WASM', color: '#6B1F7A' },
+  { name: 'Ephemeris Service', purpose: 'Skyfield ephemeris calculations via Python service', color: '#6B1F7A' },
   { name: 'BTR Processor', purpose: '6-stage batch tournament pipeline', color: '#B8860B' },
   { name: 'Session Manager', purpose: 'Real-time SSE event streaming', color: '#4A7C6F' },
   { name: 'Progress Tracker', purpose: 'In-memory progress with persistence', color: '#C65D3B' },

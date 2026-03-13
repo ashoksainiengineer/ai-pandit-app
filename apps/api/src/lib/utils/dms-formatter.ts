@@ -8,7 +8,7 @@ export function decimalToDMS(decimalDegree: number | undefined | null): string {
     }
 
     // Ensure we are working with a positive modulo 30 degree for sign-relative positioning
-    let d = Math.abs(decimalDegree % 30);
+    const d = Math.abs(decimalDegree % 30);
 
     let degrees = Math.floor(d);
 

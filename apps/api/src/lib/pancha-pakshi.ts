@@ -179,7 +179,6 @@ function findRulingBird(totalMinutes: number, weekday: number): number {
 }
 
 function findSecondaryBird(primaryIndex: number, totalMinutes: number): number | null {
-    const hour = Math.floor(totalMinutes / 60);
     const minute = totalMinutes % 60;
 
     const transitionMinutes = [15, 30, 45];

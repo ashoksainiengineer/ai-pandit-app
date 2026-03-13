@@ -1,3 +1,4 @@
+
 /**
  * Candidate Data Package Builder
  *
@@ -26,7 +27,7 @@ import {
 } from '../advanced-btr-methods.js';
 import { calculateTatwaAtTime } from './tatwa-shuddhi.js';
 import { calculateCharaKarakas, calculateBhriguBindu } from '../jaimini-astrology.js';
-import { SecondsPrecisionInput } from '@ai-pandit/shared';
+import { SecondsPrecisionInput, EphemerisData } from '@ai-pandit/shared';
 import { logger } from '../logger.js';
 import { capitalizeFirstLetter } from '../utils/index.js';
 import { decimalToDMS } from '../utils/dms-formatter.js';
@@ -34,21 +35,22 @@ import { CandidateDataPackage, ZODIAC_SIGNS } from '@ai-pandit/shared';
 import { buildVimshottariDasha, buildYoginiDasha, buildCharaDasha } from './dasha-builder.js';
 import { enrichPlanets, extractIshtaKashtaPhala } from './planet-enricher.js';
 import { buildTransitData } from './transit-builder.js';
-import { calculateKalachakraDasha, correlateKalachakraWithEvents } from '../kalachakra-dasha.js';
+import { calculateKalachakraDasha, _correlateKalachakraWithEvents } from '../kalachakra-dasha.js';
 import { calculateFullShadbala } from '../shadbala.js';
 import { calculateD150ForAllPlanets, analyzeD150ForEvents } from '../nadi-amsha.js';
-import { performSpouseVerification, extractNativeD9Positions, verifyD9WithSpouse, calculateSpousePositions } from '../spouse-d9-verification.js';
+import { performSpouseVerification, _extractNativeD9Positions, _verifyD9WithSpouse, _calculateSpousePositions } from '../spouse-d9-verification.js';
 import { detectGandanta } from '../gandanta-detection.js';
 import { analyzePakshi } from '../pancha-pakshi.js';
-import { calculateD12 } from '../advanced-btr-methods.js';
+import { _calculateD12 } from '../advanced-btr-methods.js';
 import { calculateKPSubLords, calculateKPCuspalSubLords } from '../kp-sublords.js';
 import { resolveEventDateWindow } from './event-date-utils.js';
+import type { DivisionalChart } from '../advanced-btr-methods.js';
 
 export interface PackageBuildOptions {
   includeFullData?: boolean;
   dashaDepth?: number;
   pranaWindowDays?: number;
-  lifecycleShifts?: any[];
+  lifecycleShifts?: NonNullable<CandidateDataPackage['lifecycleShifts']>;
   includeDivisionalCharts?: string[];
 }
 
@@ -235,7 +237,7 @@ export async function buildCandidateDataPackage(
   // FIXED: Validate that all critical data is present before returning
   const validationErrors = validateDataPackage(pkg);
   if (validationErrors.length > 0) {
-    logger.warn(`[DATA-PACKAGE] Validation warnings for ${time}:`, { warnings: validationErrors } as any);
+    logger.warn(`[DATA-PACKAGE] Validation warnings for ${time}:`, { warnings: validationErrors });
   }
 
   return pkg;
@@ -300,7 +302,7 @@ function validateDataPackage(pkg: CandidateDataPackage): string[] {
 /**
  * Load and enrich ephemeris data
  */
-async function loadEphemeris(time: string, input: SecondsPrecisionInput) {
+async function loadEphemeris(time: string, input: SecondsPrecisionInput): Promise<EphemerisData> {
   const ephemeris = await calculateEphemeris(
     input.dateOfBirth,
     time,
@@ -320,7 +322,7 @@ async function loadEphemeris(time: string, input: SecondsPrecisionInput) {
 /**
  * Build special astrological points (Arudha Lagna, etc.)
  */
-function buildSpecialPoints(ephemeris: any) {
+function buildSpecialPoints(ephemeris: EphemerisData) {
   const arudhas = calculateArudhas(ephemeris);
   const bb = calculateBhriguBindu(ephemeris);
   const ascSign = ephemeris.ascendant.sign;
@@ -354,9 +356,9 @@ function calculateRelativeHouse(targetSign: string, ascendantSign: string): numb
 /**
  * Build Varga (divisional chart) data
  */
-function buildVargaData(ephemeris: any) {
+function buildVargaData(ephemeris: EphemerisData) {
   const vargaDegrees: Record<string, Record<string, string>> = {};
-  const d60Planets: Record<string, any> = {};
+  const d60Planets: NonNullable<CandidateDataPackage['d60Planets']> = {};
   const optionalVargas = new Set(['D12']);
 
   const vargaNames = ['D9', 'D10', 'D12', 'D60', 'D150'];
@@ -375,7 +377,7 @@ function buildVargaData(ephemeris: any) {
         Ascendant: `${chart.ascendant.sign || 'Unknown'} ${decimalToDMS(chart.ascendant.degree || 0)}`
       };
 
-      for (const [pName, pPos] of Object.entries(chart.planets) as [string, any][]) {
+      for (const [pName, pPos] of Object.entries(chart.planets)) {
         if (!pPos || !pPos.sign) continue;
         vargaDegrees[varga][capitalizeFirstLetter(pName)] = `${pPos.sign || 'Unknown'} ${decimalToDMS(pPos.degree || 0)}`;
 
@@ -409,7 +411,7 @@ function buildVargaData(ephemeris: any) {
 /**
  * Detect Sandhi zones (planets near sign boundaries)
  */
-function detectSandhiZones(ephemeris: any): string[] {
+function detectSandhiZones(ephemeris: EphemerisData): string[] {
   const zones: string[] = [];
 
   // Check ascendant
@@ -418,7 +420,7 @@ function detectSandhiZones(ephemeris: any): string[] {
   }
 
   // Check planets
-  for (const [name, p] of Object.entries(ephemeris.planets) as [string, any][]) {
+  for (const [name, p] of Object.entries(ephemeris.planets)) {
     const deg = p.longitude % 30;
     if (deg < 0.5 || deg > 29.5) {
       zones.push(`${capitalizeFirstLetter(name)} in Deep Sandhi (${decimalToDMS(deg)})`);
@@ -431,7 +433,7 @@ function detectSandhiZones(ephemeris: any): string[] {
 /**
  * Build Vedic signal flags
  */
-function buildVedicSignals(ephemeris: any) {
+function buildVedicSignals(ephemeris: EphemerisData) {
   return {
     vargottama: detectVargottama(ephemeris),
     parivartana: detectParivartana(ephemeris),
@@ -443,11 +445,11 @@ function buildVedicSignals(ephemeris: any) {
 /**
  * Build KP planet and cuspal hierarchy for VSL precision segments.
  */
-function buildKPData(ephemeris: any): NonNullable<CandidateDataPackage['kpData']> {
+function buildKPData(ephemeris: EphemerisData): NonNullable<CandidateDataPackage['kpData']> {
   const planetSubLords: NonNullable<CandidateDataPackage['kpData']>['planetSubLords'] = {};
   const cuspalSubLords: NonNullable<CandidateDataPackage['kpData']>['cuspalSubLords'] = {};
 
-  for (const [planetName, planet] of Object.entries(ephemeris.planets || {}) as [string, any][]) {
+  for (const [planetName, planet] of Object.entries(ephemeris.planets || {})) {
     if (typeof planet?.longitude !== 'number' || Number.isNaN(planet.longitude)) {
       continue;
     }
@@ -460,9 +462,10 @@ function buildKPData(ephemeris: any): NonNullable<CandidateDataPackage['kpData']
     };
   }
 
+  type HouseLike = { cusp?: number; longitude?: number; sign?: string };
   const cuspLongitudes = Array.isArray(ephemeris.kpCusps) && ephemeris.kpCusps.length >= 12
     ? ephemeris.kpCusps.slice(0, 12)
-    : (Array.isArray(ephemeris.houses) ? ephemeris.houses : []).map((house: any) => {
+    : (Array.isArray(ephemeris.houses) ? ephemeris.houses : []).map((house: HouseLike) => {
         if (typeof house?.cusp === 'number') return house.cusp;
         if (typeof house?.longitude === 'number') return house.longitude;
         if (typeof house?.sign === 'string') {
@@ -493,7 +496,7 @@ function buildKPData(ephemeris: any): NonNullable<CandidateDataPackage['kpData']
 /**
  * Build spouse synastry match if spouse data available
  */
-async function buildSpouseMatch(input: SecondsPrecisionInput, ephemeris: any) {
+async function buildSpouseMatch(input: SecondsPrecisionInput, ephemeris: EphemerisData) {
   if (!input.spouseData?.dateOfBirth) return undefined;
 
   try {
@@ -519,7 +522,9 @@ async function buildSpouseMatch(input: SecondsPrecisionInput, ephemeris: any) {
         : (moonSignMatch ? 'Moon signs match!' : 'No direct synastry link')
     };
   } catch (e) {
-    logger.warn('Spouse data calculation failed', { error: (e as any)?.message || e });
+    logger.warn('Spouse data calculation failed', {
+      error: e instanceof Error ? e.message : String(e),
+    });
     return undefined;
   }
 }
@@ -530,7 +535,7 @@ async function buildSpouseMatch(input: SecondsPrecisionInput, ephemeris: any) {
 async function addExtendedData(
   pkg: CandidateDataPackage,
   input: SecondsPrecisionInput,
-  ephemeris: any,
+  ephemeris: EphemerisData,
   birthDate: Date,
   moonLong: number
 ) {
@@ -566,32 +571,37 @@ async function addExtendedData(
 /**
  * Build divisional chart planet mappings
  */
-function buildDivisionalCharts(pkg: CandidateDataPackage, ephemeris: any) {
-  const vargas = ephemeris.divisionalCharts || {};
+function buildDivisionalCharts(pkg: CandidateDataPackage, ephemeris: EphemerisData) {
+  const vargas = (ephemeris.divisionalCharts || {}) as unknown as Record<string, DivisionalChart | undefined>;
 
-  if (vargas.D9) {
+  // Type-safe access to divisional charts
+  const d9Chart = vargas.D9;
+  const d10Chart = vargas.D10;
+  const d150Chart = vargas.D150;
+
+  if (d9Chart) {
     pkg.d9Chart = {
-      ascendant: vargas.D9.ascendant.sign,
+      ascendant: d9Chart.ascendant.sign,
       planets: Object.fromEntries(
-        Object.entries(vargas.D9.planets).map(([name, p]: [string, any]) => [name, p.sign])
+        Object.entries(d9Chart.planets).map(([name, p]) => [name, p.sign])
       )
     };
   }
 
-  if (vargas.D10) {
+  if (d10Chart) {
     pkg.d10Chart = {
-      ascendant: vargas.D10.ascendant.sign,
+      ascendant: d10Chart.ascendant.sign,
       planets: Object.fromEntries(
-        Object.entries(vargas.D10.planets).map(([name, p]: [string, any]) => [name, p.sign])
+        Object.entries(d10Chart.planets).map(([name, p]) => [name, p.sign])
       )
     };
   }
 
-  if (vargas.D150) {
+  if (d150Chart) {
     pkg.d150Chart = {
-      ascendant: vargas.D150.ascendant.sign,
+      ascendant: d150Chart.ascendant.sign,
       planets: Object.fromEntries(
-        Object.entries(vargas.D150.planets).map(([name, p]: [string, any]) => [name, p.sign])
+        Object.entries(d150Chart.planets).map(([name, p]) => [name, p.sign])
       )
     };
   }

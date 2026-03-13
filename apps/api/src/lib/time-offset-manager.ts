@@ -589,7 +589,6 @@ export function calculateTournamentStructure(totalCandidates: number): {
   const survivorsPerRound: number[] = [];
 
   let remaining = totalCandidates;
-  let round = 0;
 
   while (remaining > MAX_BATCH_SIZE) {
     const batches = Math.ceil(remaining / MAX_BATCH_SIZE);
@@ -599,7 +598,6 @@ export function calculateTournamentStructure(totalCandidates: number): {
     survivorsPerRound.push(survivors);
 
     remaining = survivors;
-    round++;
   }
 
   // Final round
@@ -614,3 +612,12 @@ export function calculateTournamentStructure(totalCandidates: number): {
 }
 
 export default generateCandidateTimes;
+
+// Legacy exports for backward compatibility
+export type { CandidateTime as _CandidateTime };
+export { generateCandidateTimes as _generateCandidateTimes };
+export { generateRefinementGrid as _generateRefinementGrid };
+export { splitIntoBatches as _splitIntoBatches };
+export { getDynamicBatchSize as _getDynamicBatchSize };
+export { getDynamicSurvivors as _getDynamicSurvivors };
+export { injectSafetyNetCandidates as _injectSafetyNetCandidates };

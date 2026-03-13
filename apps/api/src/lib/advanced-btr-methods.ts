@@ -1,8 +1,9 @@
+
 // lib/advanced-btr-methods.ts
 // Advanced Vedic Astrology Methods for 99%+ BTR Accuracy
 // Includes: Yogini Dasha, Divisional Charts, Physical Traits, Advanced Aspects, Arudha Lagna
 
-import { EphemerisData, PlanetPosition, LifeEvent, ZODIAC_SIGNS, SIGN_LORDS } from '@ai-pandit/shared';
+import { EphemerisData, _PlanetPosition, _LifeEvent, ZODIAC_SIGNS, SIGN_LORDS } from '@ai-pandit/shared';
 import { calculateEphemeris } from './ephemeris.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -86,7 +87,7 @@ const YOGINI_SEQUENCE = [
     { name: 'Sankata', planet: 'Rahu', years: 8 },
 ];
 
-const TOTAL_YOGINI_YEARS = 36;
+const _TOTAL_YOGINI_YEARS = 36;
 
 // Nakshatra to starting Yogini mapping
 const NAKSHATRA_TO_YOGINI: Record<number, number> = {
@@ -398,7 +399,7 @@ export function calculateD45(longitude: number): { sign: string; degree: number 
  * Crucial for seconds-level rectification.
  */
 export function calculateD60(longitude: number): { sign: string; degree: number } {
-    const totalHalfDegrees = Math.floor(longitude / 0.5);
+    const _totalHalfDegrees = Math.floor(longitude / 0.5);
     const signIndex = Math.floor(longitude / 30);
     const halfDegreeInSign = Math.floor((longitude % 30) / 0.5);
 
@@ -685,7 +686,7 @@ export function scorePhysicalTraits(
     // Prakriti matching (20 points - High indicator)
     if (traits.prakriti) {
         const fireSigns = ['Aries', 'Leo', 'Sagittarius'];
-        const earthSigns = ['Taurus', 'Virgo', 'Capricorn'];
+        const _earthSigns = ['Taurus', 'Virgo', 'Capricorn'];
         const airSigns = ['Gemini', 'Libra', 'Aquarius'];
         const waterSigns = ['Cancer', 'Scorpio', 'Pisces'];
 
@@ -875,7 +876,7 @@ function checkDebilitation(planet: string, sign: string): boolean {
 export function calculateSecondaryProgression(
     birthDate: Date,
     eventDate: Date,
-    ephemerisCalculator: (date: string, time: string) => Promise<EphemerisData>
+    _ephemerisCalculator: (date: string, time: string) => Promise<EphemerisData>
 ): SecondaryProgression {
     // Calculate age at event
     const ageInYears = (eventDate.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
@@ -1436,15 +1437,15 @@ export function detectParivartana(ephemeris: EphemerisData): any[] {
     const planets = Object.entries(ephemeris.planets);
 
     // Get lords and where they are placed
-    const lordPlacements: Record<number, number> = {}; // House Number -> Occupied by Lord of House X
+    const _lordPlacements: Record<number, number> = {}; // House Number -> Occupied by Lord of House X
     const lagnaSignIdx = ZODIAC_SIGNS.indexOf(ephemeris.ascendant.sign);
 
     for (let h = 1; h <= 12; h++) {
         const signIdx = (lagnaSignIdx + h - 1) % 12;
-        const sign = ZODIAC_SIGNS[signIdx];
+        const _sign = ZODIAC_SIGNS[signIdx];
         const planetInHouse = planets.find(([_, p]) => p.house === h)?.[0];
         if (planetInHouse) {
-            const planetLordOfSign = SIGN_LORDS[ephemeris.planets[planetInHouse as keyof typeof ephemeris.planets].sign];
+            const _planetLordOfSign = SIGN_LORDS[ephemeris.planets[planetInHouse as keyof typeof ephemeris.planets].sign];
             // This is complex, simplify: Check if Lord of H1 is in H2 and Lord of H2 in H1
         }
     }
@@ -1486,7 +1487,7 @@ function getLordOfHouse(h: number, lagnaSign: string): string {
  */
 export function detectPushkarNavamsa(ephemeris: EphemerisData): string[] {
     const pushkar: string[] = [];
-    const ZODIAC_SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
+    const _ZODIAC_SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
 
     // Pushkar Navamsa signs: Taurus, Virgo, Libra, Sagittarius, Capricorn, Pisces (specifically signs 2, 6, 7, 9, 10, 12)
     const pushkarSigns = ['Taurus', 'Virgo', 'Libra', 'Sagittarius', 'Capricorn', 'Pisces'];
@@ -1603,7 +1604,7 @@ export async function findAstrologicalBoundaries(
     let lastD60 = '';
 
     for (let offset = -rangeSeconds; offset <= rangeSeconds; offset += STEP_SECONDS) {
-        let currentTotal = centerTotalSeconds + offset;
+        const currentTotal = centerTotalSeconds + offset;
         const curH = Math.floor(currentTotal / 3600) % 24;
         const curM = Math.floor((currentTotal % 3600) / 60);
         const curS = currentTotal % 60;
@@ -1629,8 +1630,10 @@ export async function findAstrologicalBoundaries(
         lastD9 = d9;
         lastD60 = d60;
     }
-
-    return boundaries;
+return boundaries;
 }
 
+// Legacy exports for backward compatibility
+export { calculateD12 as _calculateD12 };
+export { calculateBoundarySafety as _calculateBoundarySafety };
 

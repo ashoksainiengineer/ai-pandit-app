@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { db, executeWithRetry } from '@ai-pandit/db';
-import { idempotencyKeys, jobs, sessions } from '@ai-pandit/db/schema';
+import { idempotencyKeys, jobs, sessions, users } from '@ai-pandit/db/schema';
 import { and, eq } from 'drizzle-orm';
 import {
   CalculateRequestSchema,
@@ -20,6 +20,9 @@ import { encryptData } from '../encryption/index.js';
 import { syncUser } from '../user-sync.js';
 import { isSessionOwnedByContext, type SessionOwnershipContext } from '../session-ownership.js';
 import type { AuthenticatedRequest } from '../../middleware/auth.js';
+import { config } from '../../config/index.js';
+
+type UserPlanTier = 'free' | 'pro' | 'enterprise';
 
 interface CreateJobRequestBody extends Record<string, unknown> {
   birthData?: unknown;
@@ -238,6 +241,87 @@ function validateBirthData(value: CreateJobRequestBody): asserts value is Create
   }
 }
 
+async function enforceQueueCapacity(userId: string): Promise<void> {
+  const [userRow] = await executeWithRetry(() =>
+    db
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1)
+  );
+
+  const roleValue = userRow?.role?.toLowerCase() ?? 'user';
+  const inferredTier: UserPlanTier =
+    roleValue.includes('enterprise') || roleValue === 'admin'
+      ? 'enterprise'
+      : roleValue.includes('pro') || roleValue.includes('premium') || roleValue.includes('paid')
+        ? 'pro'
+        : 'free';
+
+  const tierLimit = config.queue.maxActiveJobsByTier[inferredTier] ?? config.queue.maxActiveJobsPerUser;
+
+  const [globalQueued, globalRunning, globalRetrying, userQueued, userRunning, userRetrying] = await Promise.all([
+    executeWithRetry(() => db.select({ id: jobs.id }).from(jobs).where(eq(jobs.status, 'queued')).limit(100000)),
+    executeWithRetry(() => db.select({ id: jobs.id }).from(jobs).where(eq(jobs.status, 'running')).limit(100000)),
+    executeWithRetry(() => db.select({ id: jobs.id }).from(jobs).where(eq(jobs.status, 'retrying')).limit(100000)),
+    executeWithRetry(() =>
+      db.select({ id: jobs.id }).from(jobs).where(and(eq(jobs.userId, userId), eq(jobs.status, 'queued'))).limit(100000)
+    ),
+    executeWithRetry(() =>
+      db.select({ id: jobs.id }).from(jobs).where(and(eq(jobs.userId, userId), eq(jobs.status, 'running'))).limit(100000)
+    ),
+    executeWithRetry(() =>
+      db.select({ id: jobs.id }).from(jobs).where(and(eq(jobs.userId, userId), eq(jobs.status, 'retrying'))).limit(100000)
+    ),
+  ]);
+
+  const globalActiveCount = globalQueued.length + globalRunning.length + globalRetrying.length;
+  const userActiveCount = userQueued.length + userRunning.length + userRetrying.length;
+
+  if (userActiveCount >= tierLimit) {
+    throw new AppError(
+      ErrorCodes.RATE_LIMIT_EXCEEDED,
+      `Per-user active job limit reached (${tierLimit}) for tier ${inferredTier}.`,
+      {
+        userId,
+        tier: inferredTier,
+        role: userRow?.role ?? 'user',
+        reason: 'PER_USER_ACTIVE_LIMIT',
+        contractVersion: '2026-03-12',
+        httpStatusHint: 429,
+        retryable: true,
+        retryAfterSeconds: 60,
+        limitType: 'active_jobs_per_user',
+        limit: tierLimit,
+        current: userActiveCount,
+        activeJobs: userActiveCount,
+        maxActiveJobsPerUser: tierLimit,
+      }
+    );
+  }
+
+  if (globalActiveCount >= config.queue.loadShedQueueDepth) {
+    throw new AppError(
+      ErrorCodes.RATE_LIMIT_EXCEEDED,
+      'System is under high load. Please retry shortly.',
+      {
+        tier: inferredTier,
+        role: userRow?.role ?? 'user',
+        reason: 'GLOBAL_LOAD_SHEDDING',
+        contractVersion: '2026-03-12',
+        httpStatusHint: 429,
+        retryable: true,
+        retryAfterSeconds: 30,
+        limitType: 'global_active_jobs',
+        limit: config.queue.loadShedQueueDepth,
+        current: globalActiveCount,
+        activeJobs: globalActiveCount,
+        loadShedQueueDepth: config.queue.loadShedQueueDepth,
+      }
+    );
+  }
+}
+
 export async function createQueuedBirthRectificationJob(
   options: CreateJobOptions
 ): Promise<EnqueueJobResult> {
@@ -259,6 +343,7 @@ export async function createQueuedBirthRectificationJob(
   await ensureConsentIfReferenced(existingSessionId, consentConfirmed, options.ownershipContext);
 
   const internalUserId = await syncUser(options.clerkId);
+  await enforceQueueCapacity(internalUserId);
   const requestHash = getRequestHash(validationResult);
 
   if (options.idempotencyKey) {
@@ -418,9 +503,22 @@ export async function createQueuedBirthRectificationJob(
       })
     );
 
-    throw new AppError(ErrorCodes.QUEUE_FULL, message, {
+    const isRateLimit = message.includes('[RATE_LIMIT_EXCEEDED]');
+    const retryMatch = message.match(/retry_after=(\d+)/);
+    const retryAfterSeconds = retryMatch ? Number.parseInt(retryMatch[1], 10) : undefined;
+    const sanitizedMessage = message
+      .replace('[RATE_LIMIT_EXCEEDED]', '')
+      .replace(/\s*retry_after=\d+/, '')
+      .trim();
+
+    throw new AppError(isRateLimit ? ErrorCodes.RATE_LIMIT_EXCEEDED : ErrorCodes.QUEUE_FULL, sanitizedMessage, {
       sessionId,
       jobId,
+      reason: isRateLimit ? 'QUEUE_LOAD_SHEDDING' : 'QUEUE_FULL',
+      contractVersion: '2026-03-12',
+      httpStatusHint: isRateLimit ? 429 : 503,
+      retryable: isRateLimit,
+      retryAfterSeconds: Number.isFinite(retryAfterSeconds) ? retryAfterSeconds : undefined,
     });
   }
 

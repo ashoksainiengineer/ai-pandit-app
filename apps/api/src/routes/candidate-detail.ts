@@ -14,14 +14,18 @@ import { db, executeWithRetry } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '../lib/logger.js';
-import { buildCandidateDataPackage } from '../lib/btr/data-package-builder.js';
 
 const router = Router();
+
+type OwnershipSession = Pick<
+    typeof sessions.$inferSelect,
+    'id' | 'clerkId' | 'tentativeTime' | 'dateOfBirth' | 'latitude' | 'longitude' | 'timezone'
+>;
 
 /**
  * Verify session ownership (reusable helper)
  */
-async function verifyOwnership(sessionId: string, clerkId: string): Promise<{ ok: boolean; session?: any }> {
+async function verifyOwnership(sessionId: string, clerkId: string): Promise<{ ok: boolean; session?: OwnershipSession }> {
     try {
         const result = await executeWithRetry(() =>
             db.select({

@@ -7,6 +7,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 
+type MockFnLike = {
+    mockResolvedValueOnce: (value: unknown) => MockFnLike;
+};
+
+function asMock(value: unknown): MockFnLike {
+    return value as MockFnLike;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // MOCKS
 // ═══════════════════════════════════════════════════════════════════════════
@@ -18,7 +26,7 @@ vi.mock('@ai-pandit/db', () => ({
         where: vi.fn().mockReturnThis(),
         limit: vi.fn().mockResolvedValue([]),
     },
-    executeWithRetry: vi.fn((fn: any) => fn()),
+    executeWithRetry: vi.fn((fn: () => unknown) => fn()),
     getLatestJobForSession: vi.fn().mockResolvedValue(null),
 }));
 
@@ -27,11 +35,11 @@ vi.mock('@ai-pandit/db/schema', () => ({
 }));
 
 vi.mock('drizzle-orm', () => ({
-    eq: vi.fn((...args: any[]) => args),
+    eq: vi.fn((...args: unknown[]) => args),
 }));
 
 vi.mock('../../middleware/auth.js', () => ({
-    authMiddleware: (req: any, _res: any, next: any) => {
+    authMiddleware: (req: { clerkId?: string }, _res: unknown, next: () => void) => {
         req.clerkId = 'test_clerk_id';
         next();
     },
@@ -73,7 +81,7 @@ vi.mock('../../lib/queue-manager.js', () => ({
 vi.mock('../../lib/encryption/index.js', () => ({
     safeDecrypt: vi.fn((d: string) => d),
     safeDecryptWithFallback: vi.fn((d: string) => d),
-    parseSensitiveField: vi.fn((field: any) => field || ''),
+    parseSensitiveField: vi.fn((field: unknown) => field || ''),
 }));
 
 vi.mock('../../lib/session-ownership.js', () => ({
@@ -93,7 +101,7 @@ vi.mock('../../lib/jobs/job-event-stream.js', () => ({
 }));
 
 import progressRouter from '../../routes/progress.js';
-import { db, executeWithRetry } from '@ai-pandit/db';
+import { db } from '@ai-pandit/db';
 import { getQueueStatus } from '../../lib/queue-manager.js';
 
 function createApp() {
@@ -122,19 +130,19 @@ describe('Progress Route - GET /:sessionId', () => {
     });
 
     it('should return 404 if session not found in DB', async () => {
-        (db.limit as any).mockResolvedValueOnce([]);
+        asMock(db.limit).mockResolvedValueOnce([]);
         const res = await request(app).get('/api/queue/progress/nonexistent-session');
         expect(res.status).toBe(404);
     });
 
     it('should return 403 if session belongs to another user (IDOR protection)', async () => {
-        (db.limit as any).mockResolvedValueOnce([{ id: 'session-1', clerkId: 'other_user', userId: 'uid' }]);
+        asMock(db.limit).mockResolvedValueOnce([{ id: 'session-1', clerkId: 'other_user', userId: 'uid' }]);
         const res = await request(app).get('/api/queue/progress/session-1');
         expect(res.status).toBe(403);
     });
 
     it('should fallback to DB session row if queue status is unavailable', async () => {
-        (db.limit as any)
+        asMock(db.limit)
             .mockResolvedValueOnce([{ id: 'session-1', clerkId: 'test_clerk_id', userId: 'uid' }])
             .mockResolvedValueOnce([{ id: 'session-1', clerkId: 'test_clerk_id', userId: 'uid', status: 'queued', createdAt: '2026-03-09T00:00:00.000Z' }]);
         vi.mocked(getQueueStatus).mockResolvedValueOnce(null);
@@ -144,7 +152,7 @@ describe('Progress Route - GET /:sessionId', () => {
     });
 
     it('should return progress data for owned session', async () => {
-        (db.limit as any).mockResolvedValueOnce([{ id: 'session-1', clerkId: 'test_clerk_id', userId: 'internal_id' }]);
+        asMock(db.limit).mockResolvedValueOnce([{ id: 'session-1', clerkId: 'test_clerk_id', userId: 'internal_id' }]);
         const res = await request(app).get('/api/queue/progress/session-1');
         expect(res.status).toBe(200);
         expect(res.body.sessionId).toBe('session-1');
@@ -155,14 +163,14 @@ describe('Progress Route - GET /:sessionId', () => {
     });
 
     it('should allow progress access for legacy row matched by internal userId', async () => {
-        (db.limit as any).mockResolvedValueOnce([{ id: 'legacy-session', clerkId: 'legacy_clerk', userId: 'internal_id' }]);
+        asMock(db.limit).mockResolvedValueOnce([{ id: 'legacy-session', clerkId: 'legacy_clerk', userId: 'internal_id' }]);
         const res = await request(app).get('/api/queue/progress/legacy-session');
         expect(res.status).toBe(200);
         expect(res.body.sessionId).toBe('legacy-session');
     });
 
     it('should return default progress if none exists', async () => {
-        (db.limit as any).mockResolvedValueOnce([{ id: 'session-2', clerkId: 'test_clerk_id', userId: 'internal_id' }]);
+        asMock(db.limit).mockResolvedValueOnce([{ id: 'session-2', clerkId: 'test_clerk_id', userId: 'internal_id' }]);
         const { getSessionProgress } = await import('../../lib/progress-tracker.js');
         vi.mocked(getSessionProgress).mockResolvedValueOnce(null);
         const res = await request(app).get('/api/queue/progress/session-2');
@@ -172,7 +180,7 @@ describe('Progress Route - GET /:sessionId', () => {
     });
 
     it('should return terminal result payload for completed sessions', async () => {
-        (db.limit as any).mockResolvedValueOnce([{ id: 'session-3', clerkId: 'test_clerk_id', userId: 'internal_id' }]);
+        asMock(db.limit).mockResolvedValueOnce([{ id: 'session-3', clerkId: 'test_clerk_id', userId: 'internal_id' }]);
         vi.mocked(getQueueStatus).mockResolvedValueOnce({
             status: 'complete',
             position: 0,
@@ -188,7 +196,12 @@ describe('Progress Route - GET /:sessionId', () => {
                 analysisResult: JSON.stringify({ rectifiedTime: '12:12:12', accuracy: 98, confidence: 'high' }),
                 updatedAt: '2026-03-09T00:00:00.000Z',
             },
-        } as any);
+        } as {
+            status: string;
+            position: number;
+            estimatedWaitSeconds: number;
+            session: Record<string, unknown>;
+        });
 
         const res = await request(app).get('/api/queue/progress/session-3');
         expect(res.status).toBe(200);
@@ -211,13 +224,13 @@ describe('Progress Route - GET /?sessionId=... (Query Param)', () => {
     });
 
     it('should return 404 if session not found via query param', async () => {
-        (db.limit as any).mockResolvedValueOnce([]);
+        asMock(db.limit).mockResolvedValueOnce([]);
         const res = await request(app).get('/api/queue/progress/?sessionId=nonexistent');
         expect(res.status).toBe(404);
     });
 
     it('should return progress via query param', async () => {
-        (db.limit as any).mockResolvedValueOnce([{ id: 'session-1', clerkId: 'test_clerk_id', userId: 'uid' }]);
+        asMock(db.limit).mockResolvedValueOnce([{ id: 'session-1', clerkId: 'test_clerk_id', userId: 'uid' }]);
         const res = await request(app).get('/api/queue/progress/?sessionId=session-1');
         expect(res.status).toBe(200);
         expect(res.body.sessionId).toBe('session-1');

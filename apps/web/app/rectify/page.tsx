@@ -143,7 +143,7 @@ function RectifyPageContent() {
     const [lastSavedData, setLastSavedData] = useState<string>('');
     const [draftLoaded, setDraftLoaded] = useState(false);
 
-    // 🔥 WAKE UP ENGINE: Pre-warm Hugging Face backends
+    // Pre-warm backend analysis endpoints
     useWarmup();
 
     const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
@@ -256,7 +256,7 @@ function RectifyPageContent() {
 
             let result;
             if (draftSessionId) {
-                // 1. Force save to Vercel (same Turso DB) to ensure latest data is persisted
+                // 1. Force save to Vercel (same Neon DB) to ensure latest data is persisted
                 const updateRes = await fetch(`/api/sessions/${draftSessionId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -274,7 +274,7 @@ function RectifyPageContent() {
                     throw new Error(updateError);
                 }
 
-                // 2. Trigger Requeue on HF Backend (reads from same Turso DB)
+                // 2. Trigger Requeue on API Backend (reads from same Neon DB)
                 const requeueRes = await fetch('/api/analysis/requeue', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },

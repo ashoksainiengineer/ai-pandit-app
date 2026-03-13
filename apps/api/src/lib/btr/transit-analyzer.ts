@@ -114,8 +114,7 @@ export async function calculateTransitPositions(
     const ephemeris = await calculateEphemeris(date, time, latitude, longitude, timezone);
     const positions: TransitPosition[] = [];
 
-    for (const [name, data] of Object.entries(ephemeris.planets)) {
-      const planetData = data as any;
+    for (const [name, planetData] of Object.entries(ephemeris.planets)) {
       positions.push({
         planet: capitalizeFirst(name),
         sign: planetData.sign,
@@ -344,7 +343,7 @@ export async function batchAnalyzeTransits(
 function extractSignificances(
   transits: TransitPosition[],
   eventCategory: string,
-  targetHouse: number
+  _targetHouse: number
 ): string[] {
   const significances: string[] = [];
 

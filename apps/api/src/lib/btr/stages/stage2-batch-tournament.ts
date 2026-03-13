@@ -1,3 +1,4 @@
+
 /**
  * Stage 2: Batch Tournament
  *
@@ -10,7 +11,7 @@ import { SecondsPrecisionInput, ForensicTraits } from '@ai-pandit/shared';
 import { CandidateTime, getDynamicBatchSize, getDynamicSurvivors, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { callAIWithStream, executeAIInParallel } from '../../ai-client.js';
-import { emitCandidateScore, emitAIContext, emitDecision } from '../../session-events.js';
+import { _emitCandidateScore, emitAIContext, emitDecision } from '../../session-events.js';
 import { throwIfCancelled } from '../../cancellation-manager.js';
 import { cleanup } from '../../ephemeris.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
@@ -22,6 +23,7 @@ import { config } from '../../../config/index.js';
 import { getMinifiedEphemerisInline, getFullEphemerisPayload } from './_utils.js';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+type LifecycleShift = NonNullable<CandidateDataPackage['lifecycleShifts']>[number];
 
 /**
  * Stage 2: Batch tournament with dynamic sizing and safety net protection
@@ -38,7 +40,7 @@ export async function stage2BatchTournament(
     candidates: CandidateTime[],
     progress: ProgressTracker,
     forensicTraits: ForensicTraits,
-    globalLifecycle: any[] = []
+    globalLifecycle: LifecycleShift[] = []
 ): Promise<{ survivors: CandidateTime[]; stageResult: StageResult; rounds: TournamentRound[] }> {
     await progress.startStep('coarse', 'Stage 2: Batch Tournament...');
 
@@ -83,7 +85,7 @@ export async function stage2BatchTournament(
     if (roundNumber === 0 && currentCandidates.length > 0) {
         roundNumber++;
         const batches = splitIntoBatches(currentCandidates, batchSize, `${input.sessionId}:stage2:r${roundNumber}`);
-        const roundSurvivors: CandidateTime[] = [];
+        const _roundSurvivors: CandidateTime[] = [];
 
         await progress.updateMessage(`Base Analysis: Evaluating ${currentCandidates.length} potential paths...`);
 
@@ -129,7 +131,7 @@ export async function stage2BatchTournament(
             await progress.updateSubProgress(completedBatches, batches.length);
 
             // PROCESS BATCH IMMEDIATELY AND EMIT SCORES
-            const batchSurvivors: any[] = [];
+            const batchSurvivors: CandidateTime[] = [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
             const aiScores = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), Math.min(batchTimes.length, survivorsPerBatch));
 
@@ -220,7 +222,7 @@ export async function stage2BatchTournament(
             if (!hasSurvivor) {
                 const bestInQuadrant = currentCandidates
                     .filter(c => c.offsetMinutes >= qStart && c.offsetMinutes <= qEnd)
-                    .sort((a, b) => (a.time === input.tentativeTime ? -1 : 1))[0]; // Favor tentative if in quadrant
+                    .sort((a, _b) => (a.time === input.tentativeTime ? -1 : 1))[0]; // Favor tentative if in quadrant
                 if (bestInQuadrant) {
                     nextCandidates.push(bestInQuadrant);
                     logger.info('🔱 Safety Net: Injected Wildcard from quadrant', { quadrant: i + 1, time: bestInQuadrant.time });

@@ -63,8 +63,6 @@ export function calculateTatwaAtTime(sunriseTime: Date, birthTime: Date): TatwaR
   const clampedIndex = Math.min(tatwaIndex, 4);
 
   const tatwa = TATWA_SEQUENCE[clampedIndex];
-  const minutesIntoTatwa = positionInCycle % TATWA_DURATION_MINUTES;
-
   const cycleStartOffset = cycleNumber * FULL_CYCLE_MINUTES * 60000;
   const tatwaStartOffset = clampedIndex * TATWA_DURATION_MINUTES * 60000;
 
@@ -365,3 +363,6 @@ export const TatwaShuddhi = {
   validate: validateTatwaTiming,
   getDailyWindows: getDailyTatwaWindows
 };
+
+// Legacy export for backward compatibility
+export { TatwaShuddhi as _TatwaShuddhi };

@@ -26,7 +26,7 @@ const techCategories = [
     icon: Database,
     description: 'NASA-grade astronomical calculations',
     items: [
-      { name: 'Swiss Ephemeris', detail: 'DE440 planetary data' },
+      { name: 'Skyfield Ephemeris', detail: 'DE440 planetary data' },
       { name: 'Ayanamsa', detail: 'Lahiri / Raman / KP' },
       { name: 'Planetary Positions', detail: '0.001° precision' },
       { name: 'House Systems', detail: 'Placidus / KP / Whole Sign' },
@@ -76,7 +76,7 @@ const infrastructure = [
   { icon: Globe, label: 'Global CDN', desc: 'Edge-deployed' },
   { icon: Shield, label: 'AES-256 Encryption', desc: 'Military-grade security' },
   { icon: Zap, label: 'Sub-second API', desc: '<100ms response' },
-  { icon: Layers, label: 'SQLite + Turso', desc: 'Distributed database' },
+  { icon: Layers, label: 'Neon Postgres', desc: 'Serverless PostgreSQL' },
   { icon: GitBranch, label: 'Version Control', desc: 'Audit trails' },
 ];
 

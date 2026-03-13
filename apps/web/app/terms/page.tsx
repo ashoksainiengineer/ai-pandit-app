@@ -55,7 +55,7 @@ export default function TermsPage() {
               </h2>
             </div>
             <p className="text-[#4A453F] leading-relaxed mb-4">
-              AI Pandit provides AI-powered birth time rectification services based on Vedic astrology principles. Our platform uses Swiss Ephemeris data and advanced machine learning algorithms to provide accurate astrological calculations.
+              AI Pandit provides AI-powered birth time rectification services based on Vedic astrology principles. Our platform uses Skyfield ephemeris data and advanced machine learning algorithms to provide accurate astrological calculations.
             </p>
             <p className="text-[#4A453F] leading-relaxed">
               By accessing or using AI Pandit, you agree to these Terms of Service and our Privacy Policy. If you do not agree with any part of these terms, you may not use our services.
@@ -130,7 +130,7 @@ export default function TermsPage() {
                   <li>• Life event dates & descriptions</li>
                   <li>• Forensic traits (physical/psychological)</li>
                   <li>• Spouse birth data (DOB/time/coords)</li>
-                  <li>• Swiss Ephemeris calculations</li>
+                  <li>• Skyfield ephemeris calculations</li>
                 </ul>
               </div>
               <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -245,7 +245,7 @@ export default function TermsPage() {
               Data Accuracy & Limitations
             </h2>
             <p className="text-[#4A453F] leading-relaxed mb-4">
-              While we strive for the highest accuracy in our calculations using Swiss Ephemeris data, please note:
+              While we strive for the highest accuracy in our calculations using Skyfield ephemeris data, please note:
             </p>
             <ul className="space-y-2 text-[#4A453F]">
               <li className="flex items-start gap-2">

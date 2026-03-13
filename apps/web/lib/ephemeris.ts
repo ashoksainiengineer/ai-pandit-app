@@ -1,7 +1,7 @@
 // Frontend-compatible ephemeris utilities
 
 export function isHighPrecisionMode(): boolean {
-  // Frontend doesn't have access to Swiss Ephemeris files
+  // Frontend relies on backend Skyfield service for high-precision calculations
   return false;
 }
 

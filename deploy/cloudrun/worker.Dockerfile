@@ -6,7 +6,6 @@ FROM base AS builder
 COPY package.json package-lock.json turbo.json ./
 COPY apps ./apps
 COPY packages ./packages
-COPY ephe ./ephe
 COPY .dockerignore ./.dockerignore
 
 ENV NODE_ENV=development
@@ -30,17 +29,15 @@ RUN npm prune --omit=dev
 FROM node:20-alpine AS runner
 WORKDIR /app
 RUN apk add --no-cache libc6-compat
-RUN mkdir -p /app/ephe && chown -R node:node /app
+RUN chown -R node:node /app
 
 COPY --from=builder --chown=node:node /app/package.json /app/package-lock.json /app/turbo.json ./
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /app/apps ./apps
 COPY --from=builder --chown=node:node /app/packages ./packages
-COPY --from=builder --chown=node:node /app/ephe ./ephe
 
 USER node
 ENV NODE_ENV=production
-ENV SWISSEPH_PATH=/app/ephe
 ENV JOB_EXECUTION_MODE=external_worker
 ENV WORKER_POLL_INTERVAL_MS=2000
 ENV NODE_OPTIONS=--max-old-space-size=12288

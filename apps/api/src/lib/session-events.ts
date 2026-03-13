@@ -1,10 +1,12 @@
 // backend/src/lib/session-events.ts
 // Global EventEmitter for real-time session progress streaming
+// Now with Redis-backed persistent storage
 
 import { EventEmitter } from 'events';
 import crypto from 'crypto';
 import { appendJobEvent, getLatestJobForSession } from '@ai-pandit/db/jobs';
 import { logger } from '../utils/logger.js';
+import { getRedisEventStore, type RedisClient } from './redis-event-store.js';
 import type {
     ProgressEvent,
     AIThinkingEvent,
@@ -91,9 +93,23 @@ class SessionEventManager {
     // Per-session ordered event log for reconnection replay
     private eventLogs: Map<string, SequencedEvent[]> = new Map();
 
+    // ═══ REDIS BACKUP STORE ═══
+    // Redis-backed persistent storage for crash recovery
+    private redisStore = getRedisEventStore();
+    private useRedis: boolean = process.env.USE_REDIS_EVENTS === 'true';
+
     constructor() {
         // Run garbage collection every 10 minutes
         setInterval(() => this.garbageCollect(), 10 * 60 * 1000);
+    }
+
+    /**
+     * Enable Redis for persistent event storage
+     */
+    enableRedis(redis: RedisClient): void {
+        this.redisStore.setRedisClient(redis);
+        this.useRedis = true;
+        logger.info('[SessionEventManager] Redis event storage enabled');
     }
 
     /**
@@ -690,3 +706,32 @@ export function emitDecision(
 export function cleanupSession(sessionId: string): void {
     sessionEvents.cleanup(sessionId);
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// LEGACY EXPORTS (for backward compatibility during refactoring)
+// These will be deprecated in favor of direct function calls
+// ═════════════════════════════════════════════════════════════════════════════
+
+/** @deprecated Use emitCandidateScore directly */
+export const _emitCandidateScore = emitCandidateScore;
+
+/** @deprecated Use emitComplete directly */
+export const _emitComplete = emitComplete;
+
+/** @deprecated Use emitAIContext directly */
+export const _emitAIContext = emitAIContext;
+
+/** @deprecated Use emitCalculationLog directly */
+export const _emitCalculationLog = emitCalculationLog;
+
+/** @deprecated Use emitDecision directly */
+export const _emitDecision = emitDecision;
+
+/** @deprecated Use emitEstimatedTime directly */
+export const _emitEstimatedTime = emitEstimatedTime;
+
+/** @deprecated Use emitError directly */
+export const _emitError = emitError;
+
+/** @deprecated Use emitProgress directly */
+export const _emitProgress = emitProgress;

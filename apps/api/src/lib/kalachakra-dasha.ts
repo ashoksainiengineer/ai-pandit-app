@@ -8,8 +8,6 @@
  * Reference: Brihat Parashara Hora Shastra
  */
 
-import { EphemerisData } from '@ai-pandit/shared';
-
 const ZODIAC_SIGNS = [
   'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
   'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
@@ -113,7 +111,7 @@ export function calculateKalachakraDasha(
   moonLongitude: number,
   birthDate: Date
 ): KalachakraPeriod[] {
-  const { nakshatraIndex, type, group, positionInNakshatra } = 
+  const { type, group, positionInNakshatra } = 
     determineKalachakraType(moonLongitude);
   
   if (!group) {
@@ -352,3 +350,6 @@ export const Kalachakra = {
   getType: determineKalachakraType,
   format: formatKalachakraDasha
 };
+
+// Legacy export for backward compatibility
+export { correlateKalachakraWithEvents as _correlateKalachakraWithEvents };

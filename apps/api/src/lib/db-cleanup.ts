@@ -5,7 +5,7 @@
 
 import { db, executeWithRetry } from '@ai-pandit/db';
 import { sessions, calculations, users } from '@ai-pandit/db/schema';
-import { eq, lt, and, isNotNull, sql } from 'drizzle-orm';
+import { eq, lt, and, isNotNull } from 'drizzle-orm';
 import { logger } from './logger.js';
 
 interface CleanupResult {
@@ -265,8 +265,6 @@ export async function getCleanupPreview(): Promise<{
 
   const cutoffUsers = new Date();
   cutoffUsers.setDate(cutoffUsers.getDate() - RETENTION.softDeletedUsers);
-
-  const now = new Date().toISOString();
 
   // Count queries (implementation depends on your Drizzle version)
   const wouldDelete: Record<string, number> = {

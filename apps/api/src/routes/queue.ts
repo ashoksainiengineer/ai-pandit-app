@@ -1,16 +1,10 @@
-import { Router, Request, Response } from 'express';
-import { AuthenticatedRequest, authMiddleware, clerk } from '../middleware/auth.js';
+import { Router, Response } from 'express';
+import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { db, executeWithRetry } from '@ai-pandit/db';
-import { sessions, users } from '@ai-pandit/db/schema';
+import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '../lib/logger.js';
 import { addToQueue, getQueueStatus, startQueueProcessor, cancelSession, flushSessionTrash } from '../lib/queue-manager.js';
-import { validateOffsetConfig, TimeOffsetConfig } from '../lib/time-offset-manager.js';
-import { BirthData, LifeEvent } from '../lib/types.js';
-import { encryptData, safeDecrypt, safeDecryptWithFallback } from '../lib/encryption/index.js';
-import { syncUser } from '../lib/user-sync.js';
-import { cleanupSession } from '../lib/session-events.js';
-import { CalculateRequestSchema } from '@ai-pandit/shared';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
 import {
     createQueuedBirthRectificationJob,
@@ -19,14 +13,6 @@ import {
 import { sendError, sendSuccess } from '../utils/response.js';
 
 const router = Router();
-
-interface SubmitRequest {
-    birthData: BirthData;
-    lifeEvents: LifeEvent[];
-    physicalTraits?: any;
-    forensicTraits: any;
-    offsetConfig: TimeOffsetConfig;
-}
 
 const SESSION_VISIBILITY_MAX_ATTEMPTS = 12;
 const SESSION_VISIBILITY_DELAY_MS = 250;
@@ -282,19 +268,21 @@ async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionId
         });
 
         // 1. Reset session state
+        const resetPayload: Partial<typeof sessions.$inferInsert> = {
+            status: 'pending',
+            analysisResult: null,
+            progressData: null,
+            reasoningLogs: null,
+            errorMessage: null,
+            accuracy: null,
+            confidence: null,
+            rectifiedTime: null,
+            updatedAt: now,
+        };
+
         await executeWithRetry(() =>
             db.update(sessions)
-                .set({
-                    status: 'pending',
-                    analysisResult: null,
-                    progressData: null,
-                    reasoningLogs: null,
-                    errorMessage: null,
-                    accuracy: null,
-                    confidence: null,
-                    rectifiedTime: null,
-                    updatedAt: now,
-                } as any)
+                .set(resetPayload)
                 .where(eq(sessions.id, sessionId))
         );
 

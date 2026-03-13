@@ -57,7 +57,6 @@ export async function lookupCalculation(
   timezone: string
 ): Promise<CacheLookupResult> {
   try {
-    const cacheKey = generateCacheKey(birthDateTime, latitude, longitude, timezone);
     const now = new Date().toISOString();
 
     // Find valid cache entry (not expired)

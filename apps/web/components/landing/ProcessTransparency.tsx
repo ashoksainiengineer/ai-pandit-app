@@ -19,7 +19,7 @@ const yugas = [
     candidates: '48 candidates generated',
     description: 'We begin with a wide sweep covering your entire tentative time window. Every 30-minute interval becomes a candidate for analysis.',
     techniques: [
-      'Swiss Ephemeris planetary positions',
+      'Skyfield ephemeris planetary positions',
       'Basic Dasha period matching',
       'Rashi compatibility check',
     ],

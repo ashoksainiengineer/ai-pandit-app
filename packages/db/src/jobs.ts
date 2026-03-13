@@ -239,6 +239,37 @@ export async function claimNextQueuedJob(): Promise<Job | null> {
   return null;
 }
 
+export async function claimJobById(jobId: string): Promise<Job | null> {
+  const timestamp = nowIso();
+
+  const [claimedJob] = await executeWithRetry(() =>
+    db
+      .update(jobs)
+      .set({
+        status: 'running',
+        startedAt: timestamp,
+        heartbeatAt: timestamp,
+        updatedAt: timestamp,
+        errorCode: null,
+        errorMessage: null,
+        retryReasonCode: null,
+        nextRetryAt: null,
+      })
+      .where(
+        and(
+          eq(jobs.id, jobId),
+          or(
+            eq(jobs.status, 'queued'),
+            and(eq(jobs.status, 'retrying'), lte(jobs.nextRetryAt, timestamp))
+          )
+        )
+      )
+      .returning()
+  );
+
+  return claimedJob ?? null;
+}
+
 export async function markJobRunning(jobId: string, startedAt: string = nowIso()): Promise<Job | null> {
   const [job] = await executeWithRetry(() =>
     db

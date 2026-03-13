@@ -1,10 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { EventEmitter } from 'events';
-import { sessionEvents, emitProgress, emitAIThinking, emitCandidateScore, emitComplete, emitError } from '../session-events.js';
+import { sessionEvents, emitProgress, emitAIThinking, emitCandidateScore } from '../session-events.js';
 import express from 'express';
 import request from 'supertest';
 import streamRoutes from '../../routes/stream.js';
-import { db, executeWithRetry } from '@ai-pandit/db';
+import { db } from '@ai-pandit/db';
 
 // Mock DB
 vi.mock('@ai-pandit/db', () => ({
@@ -22,7 +21,7 @@ vi.mock('@ai-pandit/db', () => ({
 
 // Mock Auth Middleware
 vi.mock('../../middleware/auth.js', () => ({
-    authMiddleware: (req: any, res: any, next: any) => {
+    authMiddleware: (req: { clerkId?: string }, _res: unknown, next: () => void) => {
         req.clerkId = 'stress_tester';
         next();
     }
@@ -62,39 +61,43 @@ describe('🌪️ HEAVY NETWORK STRESS AUDIT (SSE UI STREAMS)', () => {
         }
 
         // We bypass the standard Supertest `.expect()` because we want to intercept chunks live
-        return new Promise<{ events: any[], endStream: () => void, lastSeq: number }>((resolve, reject) => {
-            const events: any[] = [];
+        return new Promise<{ events: Array<Record<string, unknown>>, endStream: () => void, lastSeq: number }>((resolve, reject) => {
+            const events: Array<Record<string, unknown>> = [];
             let lastSeq = 0;
 
-            const req = (reqInst as any).buffer(false).end((err: any, res: any) => {
+            const req = (reqInst as { buffer: (value: boolean) => { end: (cb: (err: { code?: string; message?: string } | null, res: unknown) => void) => unknown } })
+                .buffer(false)
+                .end((err: { code?: string; message?: string } | null, _res: unknown) => {
                 // Suppress aborted/reset errors as they are expected in these stress scenarios
                 if (err && err.code !== 'ECONNRESET' && err.message !== 'aborted' && err.code !== 'ECONNABORTED') {
                     reject(err);
                 }
-            });
+                });
 
             // CRITICAL: Handle errors on the request object itself to prevent unhandled exceptions
-            req.on('error', (err: any) => {
+            (req as { on: (event: 'error', cb: (err: { code?: string; message?: string }) => void) => void }).on('error', (err: { code?: string; message?: string }) => {
                 if (err.code !== 'ECONNRESET' && err.message !== 'aborted' && err.code !== 'ECONNABORTED') {
                     // console.warn('Ignored expected request error:', err.code);
                 }
             });
 
-            req.on('response', (res: any) => {
+            (req as { on: (event: 'response', cb: (res: { on: (event: 'error' | 'data', cb: (value: unknown) => void) => void }) => void) => void }).on('response', (res) => {
                 // CRITICAL: Also handle errors on the response stream
-                res.on('error', (err: any) => {
-                    if (err.code !== 'ECONNRESET' && err.message !== 'aborted' && err.code !== 'ECONNABORTED') {
+                res.on('error', (err: unknown) => {
+                    const error = err as { code?: string; message?: string };
+                    if (error.code !== 'ECONNRESET' && error.message !== 'aborted' && error.code !== 'ECONNABORTED') {
                         // console.warn('Ignored expected response error:', err.code);
                     }
                 });
 
-                res.on('data', (chunk: Buffer) => {
-                    const text = chunk.toString();
+                res.on('data', (chunk: unknown) => {
+                    const bufferChunk = chunk as Buffer;
+                    const text = bufferChunk.toString();
 
                     // Parse standard SSE id: \n data: \n\n chunks
                     const lines = text.split('\n');
                     let currentId = 0;
-                    let currentData = null;
+                    let currentData: Record<string, unknown> | null = null;
 
                     for (const line of lines) {
                         if (line.startsWith('id: ')) {
@@ -108,7 +111,9 @@ describe('🌪️ HEAVY NETWORK STRESS AUDIT (SSE UI STREAMS)', () => {
                                 if (currentData.type !== 'connected' && currentData.type !== 'ping') {
                                     events.push({ seq: currentId, ...currentData });
                                 }
-                            } catch (e) { /* ignore preamble or invalid json */ }
+                            } catch {
+                                // ignore preamble or invalid json
+                            }
                         }
                     }
                 });
@@ -119,8 +124,10 @@ describe('🌪️ HEAVY NETWORK STRESS AUDIT (SSE UI STREAMS)', () => {
                     lastSeq,
                     endStream: () => {
                         try {
-                            req.abort();
-                        } catch (e) { /* already aborted */ }
+                            (req as { abort: () => void }).abort();
+                        } catch {
+                            // already aborted
+                        }
                     }
                 });
             });
@@ -128,8 +135,10 @@ describe('🌪️ HEAVY NETWORK STRESS AUDIT (SSE UI STREAMS)', () => {
             // Auto timeout fallback
             setTimeout(() => {
                 try {
-                    req.abort();
-                } catch (e) { /* ignore */ }
+                    (req as { abort: () => void }).abort();
+                } catch {
+                    // ignore
+                }
                 resolve({ events, lastSeq, endStream: () => { } });
             }, 3000);
         });

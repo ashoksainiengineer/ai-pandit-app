@@ -1,3 +1,4 @@
+
 /**
  * BTR Window Scanner Module
  *
@@ -15,9 +16,10 @@
 
 import { calculateEphemeris, calculateSunrise, convertToUTC } from '../ephemeris.js';
 import { calculateVimshottariDasha, getDashaForDate } from '../vedic-astrology-engine.js';
+import type { DashaAtDate, DashaPeriod } from '../vedic-astrology-engine.js';
 import { calculateKPSubLords } from '../kp-sublords.js';
 import { generateDivisionalCharts, calculateBoundarySafety } from '../advanced-btr-methods.js';
-import { calculateCharaKarakas } from '../jaimini-astrology.js';
+import { _calculateCharaKarakas } from '../jaimini-astrology.js';
 import { Kalachakra } from '../kalachakra-dasha.js';
 import { Shadbala } from '../shadbala.js';
 import { NadiAmsha } from '../nadi-amsha.js';
@@ -29,28 +31,36 @@ import {
   MethodScores,
   BtrEvent,
   DEFAULT_SCAN_CONFIG,
-  ZODIAC_SIGNS,
+  EphemerisData,
+  KPSubLordData,
+  _ZODIAC_SIGNS,
   EVENT_HOUSE_MAP,
   EVENT_SIGNIFICATORS
 } from '@ai-pandit/shared';
+import type { DivisionalChart, BoundarySafety } from '../advanced-btr-methods.js';
 import {
-  TatwaShuddhi,
+  _TatwaShuddhi,
   calculateTatwaAtTime,
   FULL_CYCLE_MINUTES
 } from './tatwa-shuddhi.js';
 import { TransitAnalyzer } from './transit-analyzer.js';
+import type { TransitMatchResult } from '@ai-pandit/shared';
 import { EventScorer, ScoredEvent } from './event-scorer.js';
 import {
   METHOD_WEIGHTS,
   KP_SCORES,
   DASHA_MATCH_SCORES,
   calculateRankFusionScore,
-  calculateWeightedAverage
+  _calculateWeightedAverage
 } from './precision-weights.js';
 import { logger } from '../logger.js';
 
-const DAY_MS = 24 * 60 * 60 * 1000;
-const HOUR_MS = 60 * 60 * 1000;
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+const _DAY_MS = 24 * 60 * 60 * 1000;
+const _HOUR_MS = 60 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
 
 export interface ScannerInput {
@@ -81,11 +91,22 @@ export interface ScannerContext {
 export interface CandidateAnalysis {
   time: Date;
   timeString: string;
-  ephemeris: any;
-  dasha: any;
-  vargas: any;
-  kpData: any;
-  boundarySafety: any;
+  ephemeris: EphemerisData;
+  dasha: DashaPeriod[];
+  vargas: Record<string, DivisionalChart>;
+  kpData: Record<string, KPSubLordData>;
+  boundarySafety: BoundarySafety;
+}
+
+interface EventMatchEvidence {
+  eventId: string;
+  eventType: string;
+  expectedHouse: number;
+  dashaLord: string;
+  antarLord: string;
+  significatorMatch: boolean;
+  score: number;
+  details: string;
 }
 
 /**
@@ -115,7 +136,7 @@ export async function scanBirthTimeWindow(input: ScannerInput): Promise<ScanResu
         input.timezone
       );
     } catch (e) {
-      logger.warn('[SCANNER] Could not calculate sunrise', { error: (e as any)?.message || e });
+      logger.warn('[SCANNER] Could not calculate sunrise', { error: getErrorMessage(e) });
     }
 
     const context: ScannerContext = {
@@ -227,7 +248,7 @@ export async function scanBirthTimeWindow(input: ScannerInput): Promise<ScanResu
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     errors.push(`Scanner error: ${errorMessage}`);
-    logger.error('[SCANNER] Fatal error', { error: (error as any)?.message || error });
+    logger.error('[SCANNER] Fatal error', { error: getErrorMessage(error) });
 
     return {
       success: false,
@@ -255,7 +276,7 @@ async function generateCandidates(
   const startMs = window.baseTime.getTime() - rangeMs;
   const endMs = window.baseTime.getTime() + rangeMs;
 
-  const ephemerisCache = new Map<string, any>();
+  const ephemerisCache = new Map<string, EphemerisData>();
 
   for (let timeMs = startMs; timeMs <= endMs; timeMs += stepMs) {
     const candidateTime = new Date(timeMs);
@@ -263,10 +284,10 @@ async function generateCandidates(
     const cacheKey = `${context.birthDate}_${timeString}`;
 
     try {
-      let ephemeris: any;
+      let ephemeris: EphemerisData;
 
       if (context.config.cacheEphemeris && ephemerisCache.has(cacheKey)) {
-        ephemeris = ephemerisCache.get(cacheKey);
+        ephemeris = ephemerisCache.get(cacheKey) as EphemerisData;
       } else {
         ephemeris = await calculateEphemeris(
           context.birthDate,
@@ -284,9 +305,9 @@ async function generateCandidates(
       const dasha = calculateVimshottariDasha(moonLong, candidateTime, 5);
       const vargas = generateDivisionalCharts(ephemeris);
 
-      const kpData: Record<string, any> = {};
+      const kpData: Record<string, KPSubLordData> = {};
       for (const [name, data] of Object.entries(ephemeris.planets)) {
-        kpData[name] = calculateKPSubLords((data as any).longitude);
+        kpData[name] = calculateKPSubLords(data.longitude);
       }
 
       const boundarySafety = calculateBoundarySafety(ephemeris);
@@ -302,7 +323,7 @@ async function generateCandidates(
       });
 
     } catch (error) {
-      logger.debug(`[SCANNER] Failed to analyze candidate ${timeString}`, { error: (error as any)?.message || error });
+      logger.debug(`[SCANNER] Failed to analyze candidate ${timeString}`, { error: getErrorMessage(error) });
     }
 
     if (candidates.length >= context.config.maxCandidates * 2) {
@@ -336,8 +357,8 @@ async function scoreCandidate(
     spouseD9: 0
   };
 
-  const eventMatches: any[] = [];
-  const transitMatches: any[] = [];
+  const eventMatches: EventMatchEvidence[] = [];
+  const transitMatches: TransitMatchResult[] = [];
   const redFlags: string[] = [];
   const keyEvidence: string[] = [];
 
@@ -354,10 +375,10 @@ async function scoreCandidate(
   try {
     const transitResults = await TransitAnalyzer.calculateMatchScore(
       context.scoredEvents.map(e => ({
-        date: normalizeTransitDateLiteral((e as any).rawEventDate, e.eventDate),
-        endDate: (e as any).endDate,
-        datePrecision: e.datePrecision as any,
-        time: (e as any).eventTime,
+        date: normalizeTransitDateLiteral(e.rawEventDate, e.eventDate),
+        endDate: e.endDate,
+        datePrecision: e.datePrecision,
+        time: e.eventTime,
         category: e.category,
         id: e.id
       })),
@@ -372,7 +393,7 @@ async function scoreCandidate(
     transitMatches.push(...transitResults);
     methodScores.transit = calculateAverageScore(transitResults.map(t => t.score));
   } catch (e) {
-    logger.debug('[SCANNER] Transit calculation failed', { error: (e as any)?.message || e });
+    logger.debug('[SCANNER] Transit calculation failed', { error: getErrorMessage(e) });
   }
 
   const weights = METHOD_WEIGHTS;
@@ -407,7 +428,7 @@ async function scoreCandidate(
 function scoreVimshottariMatch(
   candidate: CandidateAnalysis,
   context: ScannerContext,
-  eventMatches: any[]
+  eventMatches: EventMatchEvidence[]
 ): number {
   let totalScore = 0;
   let totalWeight = 0;
@@ -450,19 +471,20 @@ function scoreVimshottariMatch(
     }
 
     // PRATYANTARDASHA (if available) - Week-level precision
-    const pratyantardasha = (dashaAtEvent as any).pratyantardasha;
+    const pratyantardasha = dashaAtEvent.pratyantardasha;
     if (pratyantardasha && significators.includes(pratyantardasha)) {
       eventScore += DASHA_MATCH_SCORES.pratyantardashaMatch;
     }
 
     // SUKSHMA DASHA (if available) - Day-level precision
-    const sukshma = (dashaAtEvent as any).sukshma;
+    const legacyDasha = dashaAtEvent as DashaAtDate & { sukshma?: string; prana?: string };
+    const sukshma = legacyDasha.sukshma ?? dashaAtEvent.sukshmadasha;
     if (sukshma && significators.includes(sukshma)) {
       eventScore += DASHA_MATCH_SCORES.sukshmaMatch;
     }
 
     // PRANA DASHA (if available) - Hour-level precision (SECONDS POSSIBLE!)
-    const prana = (dashaAtEvent as any).prana;
+    const prana = legacyDasha.prana ?? dashaAtEvent.pranadasha;
     if (prana && significators.includes(prana)) {
       eventScore += DASHA_MATCH_SCORES.pranaMatch;
     }
@@ -492,7 +514,7 @@ function scoreVimshottariMatch(
 function scoreKPMatch(
   candidate: CandidateAnalysis,
   context: ScannerContext,
-  eventMatches: any[]
+  _eventMatches: EventMatchEvidence[]
 ): number {
   let totalScore = 0;
   let totalWeight = 0;
@@ -526,7 +548,7 @@ function scoreKPMatch(
       eventScore = KP_SCORES.subSubLordMatch;
     }
     // KP SUB-SUB-SUB-LORD - Fine detail (60 points) - SECONDS precision
-    else if ((cuspKP as any).subSubSubLord?.toLowerCase() === dashaLord) {
+    else if (cuspKP.subSubSubLord?.toLowerCase() === dashaLord) {
       eventScore = KP_SCORES.subSubSubLordMatch;
     }
     // SIGNIFICATOR MATCH - A/B/C planet (40 points)
@@ -628,7 +650,7 @@ function scoreTatwaMatch(
   if (!context.sunriseTime) return 70;
 
   try {
-    const tatwaResult = calculateTatwaAtTime(context.sunriseTime, candidate.time);
+    const _tatwaResult = calculateTatwaAtTime(context.sunriseTime, candidate.time);
     const minutesSinceSunrise = (candidate.time.getTime() - context.sunriseTime.getTime()) / 60000;
 
     if (minutesSinceSunrise > 0 && minutesSinceSunrise < FULL_CYCLE_MINUTES) {
@@ -705,7 +727,7 @@ function calculateAverageScore(scores: number[]): number {
   return scores.reduce((a, b) => a + b, 0) / scores.length;
 }
 
-function getPlanetHouse(planetName: string, ephemeris: any): number {
+function getPlanetHouse(planetName: string, ephemeris: EphemerisData): number {
   const planet = ephemeris.planets?.[planetName.toLowerCase()];
   return planet?.house || 0;
 }
@@ -727,7 +749,7 @@ function parseTime(timeStr: string, dateStr: string, timezone: string | number):
   return convertToUTC(dateStr, timeStr, timezone);
 }
 
-function formatTimeString(date: Date, timezone: string | number): string {
+function formatTimeString(date: Date, _timezone: string | number): string {
   const hours = date.getUTCHours().toString().padStart(2, '0');
   const minutes = date.getUTCMinutes().toString().padStart(2, '0');
   const seconds = date.getUTCSeconds().toString().padStart(2, '0');
@@ -757,7 +779,7 @@ function determineConfidenceLevel(
 function calculateMarginOfError(
   methodScores: MethodScores,
   redFlags: string[],
-  boundarySafety: any
+  boundarySafety: BoundarySafety | null | undefined
 ): number {
   let baseError = 60;
 
@@ -776,7 +798,7 @@ function calculateMarginOfError(
 function extractKeyEvidence(
   candidate: CandidateAnalysis,
   methodScores: MethodScores,
-  eventMatches: any[],
+  eventMatches: EventMatchEvidence[],
   evidence: string[]
 ): void {
   if (methodScores.vimshottari >= 80) {

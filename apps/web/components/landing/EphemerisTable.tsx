@@ -1,5 +1,5 @@
 /**
- * Swiss Ephemeris Precision Data Table - Light Theme Edition
+ * Skyfield Ephemeris Precision Data Table - Light Theme Edition
  */
 
 'use client';
@@ -84,9 +84,9 @@ export default function EphemerisTable() {
         className="w-full px-5 py-4 flex items-center justify-between hover:bg-[#FDF8F3] transition-colors bg-[#FFFCF8]"
       >
         <div className="flex flex-col gap-1">
-          <h4 className="text-sm font-bold text-[#1A1612]">Swiss Ephemeris Precision Data</h4>
+          <h4 className="text-sm font-bold text-[#1A1612]">Skyfield Ephemeris Precision Data</h4>
           <div className="flex items-center gap-2">
-            <p className="text-[10px] text-[#7A756F] font-mono">SE v2.10.03 • 4-decimal precision • NASA DE440</p>
+            <p className="text-[10px] text-[#7A756F] font-mono">Skyfield • 4-decimal precision • NASA DE440</p>
           </div>
         </div>
 

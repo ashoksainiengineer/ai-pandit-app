@@ -1,3 +1,4 @@
+
 /**
  * Stage 4: Deep Analysis
  *
@@ -9,9 +10,9 @@ import { SecondsPrecisionInput, ForensicTraits } from '@ai-pandit/shared';
 import { CandidateTime, getDynamicBatchSize, getDynamicSurvivors, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { callAIWithStream, executeAIInParallel } from '../../ai-client.js';
-import { emitCandidateScore, emitAIContext, emitDecision } from '../../session-events.js';
-import { throwIfCancelled } from '../../cancellation-manager.js';
-import { cleanup } from '../../ephemeris.js';
+import { _emitCandidateScore, emitAIContext, emitDecision } from '../../session-events.js';
+import { _throwIfCancelled } from '../../cancellation-manager.js';
+import { _cleanup } from '../../ephemeris.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
 import { getDeepAnalysisPrompt } from '../prompts/index.js';
 import { extractBatchSurvivors } from '../extractors/index.js';
@@ -21,6 +22,7 @@ import { logger } from '../../logger.js';
 import { getMinifiedEphemerisInline, getFullEphemerisPayload } from './_utils.js';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+type LifecycleShift = NonNullable<CandidateDataPackage['lifecycleShifts']>[number];
 
 /**
  * Stage 4: Deep multi-dasha analysis on refined candidates
@@ -37,7 +39,7 @@ export async function stage4DeepAnalysis(
     candidates: CandidateTime[],
     progress: ProgressTracker,
     forensicTraits: ForensicTraits,
-    globalLifecycle: any[] = []
+    globalLifecycle: LifecycleShift[] = []
 ): Promise<{ survivors: CandidateTime[]; stageResult: StageResult; aiReasoning: string }> {
     await progress.startStep('deep', 'Stage 4: Deep analysis tournament...');
 
@@ -71,7 +73,7 @@ export async function stage4DeepAnalysis(
 
     while (currentCandidates.length > batchSize && roundNumber <= MAX_ROUNDS) {
         const batches = splitIntoBatches(currentCandidates, batchSize, `${input.sessionId}:stage4:r${roundNumber}`);
-        const batchSurvivors: CandidateTime[] = [];
+        const _batchSurvivors: CandidateTime[] = [];
         const batchDataMap = new Map<number, CandidateDataPackage[]>();
 
         let completedBatches = 0;
@@ -117,7 +119,7 @@ export async function stage4DeepAnalysis(
             await progress.updateSubProgress(completedBatches, batches.length + 1);
 
             // PROCESS BATCH IMMEDIATELY
-            const batchSurvivors: any[] = [];
+            const batchSurvivors: CandidateTime[] = [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
             const aiScores = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), survivorsPerBatch);
 
@@ -140,7 +142,7 @@ export async function stage4DeepAnalysis(
 
                 // If AI failed, use fallback scores — mark as isFallback for transparency
                 const scoreObj = aiScores.find(s => s.time === candidate.time);
-                const isFallback = !scoreObj;
+                const _isFallback = !scoreObj;
                 const score = scoreObj ? scoreObj.score : (isSurvivor ? config.btr.fallbackPromotedScore : config.btr.fallbackRejectedScore + 20);
                 const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "⚠️ AI unavailable — estimated score (preserved)" : "⚠️ AI unavailable — estimated score");
 
@@ -247,7 +249,7 @@ export async function stage4DeepAnalysis(
             const originalTimeInfo = currentCandidates[j];
             const isSurvivor = survivorTimes.includes(candidate.time);
             const scoreObj = aiScores.find(s => s.time === candidate.time);
-            const isFallback = !scoreObj;
+            const _isFallback = !scoreObj;
             const score = scoreObj ? scoreObj.score : (isSurvivor ? config.btr.fallbackPromotedScore + 10 : config.btr.fallbackRejectedScore + 25);
             const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "⚠️ AI unavailable — estimated score" : "⚠️ AI unavailable — low estimated confidence");
 

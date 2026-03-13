@@ -385,7 +385,7 @@ export function calculateRankFusionScore(
 
   // Normalize sum: Scale rrfSum relative to the "Max Possible RRF Sum" (all scores 100)
   let maxPossibleRrf = 0;
-  for (const [method, _] of scores) {
+  for (const [method] of scores) {
     const weight = weights[method] || 1.0;
     maxPossibleRrf += weight * (1 / (RRF_K + 1));
   }
@@ -438,3 +438,9 @@ export default {
   RRF_K,
   MIN_CONSENSUS_METHODS,
 };
+
+// Legacy exports for backward compatibility
+export { EVENT_IMPORTANCE_WEIGHTS as _EVENT_IMPORTANCE_WEIGHTS };
+export { VEDIC_EVENT_IMPORTANCE as _VEDIC_EVENT_IMPORTANCE };
+export { getDefaultImportance as _getDefaultImportance };
+export { calculateWeightedAverage as _calculateWeightedAverage };

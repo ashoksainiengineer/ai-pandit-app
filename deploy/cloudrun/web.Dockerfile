@@ -6,7 +6,6 @@ FROM base AS builder
 COPY package.json package-lock.json turbo.json ./
 COPY apps ./apps
 COPY packages ./packages
-COPY ephe ./ephe
 COPY .dockerignore ./.dockerignore
 
 ENV NODE_ENV=production

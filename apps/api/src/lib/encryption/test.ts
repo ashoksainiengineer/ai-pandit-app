@@ -15,8 +15,6 @@ process.env.NODE_ENV = 'test';
 const {
     encryptData,
     decryptData,
-    safeEncrypt,
-    safeDecrypt,
     encryptObject,
     decryptObject,
     isEncrypted,

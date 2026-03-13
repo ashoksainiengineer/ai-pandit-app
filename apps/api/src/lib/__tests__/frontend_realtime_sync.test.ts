@@ -1,11 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { EventEmitter } from 'events';
 import { sessionEvents, emitProgress, emitAIThinking, emitCandidateScore } from '../session-events.js';
-import express from 'express';
-import request from 'supertest';
-import streamRoutes from '../../routes/stream.js';
-import { db, executeWithRetry } from '@ai-pandit/db';
-import { sessions } from '@ai-pandit/db/schema';
+import { executeWithRetry } from '@ai-pandit/db';
 
 // Mock dependencies
 vi.mock('@ai-pandit/db', () => ({
@@ -20,17 +15,6 @@ vi.mock('@ai-pandit/db', () => ({
     executeWithRetry: vi.fn((fn) => fn())
 }));
 
-// Mock Auth
-const mockAuth = (req: any, res: any, next: any) => {
-    req.clerkId = 'test_user_123';
-    next();
-};
-
-const app = express();
-app.use(express.json());
-// Inject mock auth before route
-app.use('/api/stream', mockAuth, streamRoutes);
-
 describe('📡 FRONTEND REAL-TIME SYNC AUDIT (SSE)', () => {
 
     const SESSION_ID = 'test-realtime-session-123';
@@ -40,7 +24,10 @@ describe('📡 FRONTEND REAL-TIME SYNC AUDIT (SSE)', () => {
         sessionEvents.cleanup(SESSION_ID);
 
         // Mock executeWithRetry to resolve our Auth check
-        (executeWithRetry as any).mockResolvedValue([{ id: SESSION_ID, clerkId: 'test_user_123', userId: 'user_internal' }]);
+        const executeWithRetryMock = executeWithRetry as unknown as {
+            mockResolvedValue: (value: unknown) => void;
+        };
+        executeWithRetryMock.mockResolvedValue([{ id: SESSION_ID, clerkId: 'test_user_123', userId: 'user_internal' }]);
     });
 
     afterEach(() => {
@@ -48,32 +35,17 @@ describe('📡 FRONTEND REAL-TIME SYNC AUDIT (SSE)', () => {
     });
 
     it('should correctly stream structured progress events to the frontend UI container', async () => {
-        // We will simulate a frontend connection keeping the stream open
-        let emittedData = '';
-        let connectionCount = 0;
-
-        // Start SSE request
-        const req = request(app).get(`/api/stream/events/${SESSION_ID}`).set('Accept', 'text/event-stream');
-
-        // We need a way to mock the stream response receiving events over time
-        // Supertest handles streams differently. We can mock the internal event emitter directly 
+        // Supertest handles streams differently. We mock the internal event emitter directly
         // to prove the payload structure matches what the UI expects.
 
         // Instead of a full HTTP stream which is tricky in vitest without an active server,
         // we test the core event manager that feeds the stream.
-        const mockResponse = {
-            write: vi.fn(),
-            setHeader: vi.fn(),
-            flushHeaders: vi.fn(),
-            on: vi.fn(),
-            end: vi.fn()
-        };
 
         // 1. Simulate UI Connecting to Stream
         const emitter = sessionEvents.getEmitter(SESSION_ID);
 
-        let receivedEvents: any[] = [];
-        emitter.on('event', (data) => {
+        const receivedEvents: Array<Record<string, unknown>> = [];
+        emitter.on('event', (data: Record<string, unknown>) => {
             receivedEvents.push(data);
         });
 
@@ -112,7 +84,8 @@ describe('📡 FRONTEND REAL-TIME SYNC AUDIT (SSE)', () => {
         // Optimized engine sends batched scores under 'candidate_scores' type
         const batchEvent = receivedEvents.find(e => e.type === 'candidate_scores');
         expect(batchEvent).toBeDefined();
-        const scoreEvent = (batchEvent as any).data.find((s: any) => s.time === '10:28:00');
+        const batchData = ((batchEvent as { data?: Array<{ time?: string; score?: number }> })?.data) ?? [];
+        const scoreEvent = batchData.find((s) => s.time === '10:28:00');
         expect(scoreEvent).toBeDefined();
         expect(scoreEvent?.score).toBe(95.5);
     });

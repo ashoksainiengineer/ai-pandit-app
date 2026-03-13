@@ -1,0 +1,369 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# AI-Pandit Production-Grade Testing Pipeline
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# This workflow implements industry-standard testing practices:
+# - Unit & Integration Tests (Vitest)
+# - E2E Tests (Playwright)
+# - Security Scanning (Snyk, npm audit, CodeQL)
+# - Performance Testing (k6)
+# - Code Quality (ESLint, TypeScript)
+# - Mutation Testing (Stryker)
+#
+# ═══════════════════════════════════════════════════════════════════════════════
+
+name: 🧪 Test Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  schedule:
+    # Run full test suite daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20.x'
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+jobs:
+  # ═════════════════════════════════════════════════════════════════════════════
+  # STAGE 1: CODE QUALITY & LINTING
+  # ═════════════════════════════════════════════════════════════════════════════
+  lint-and-typecheck:
+    name: 🔍 Lint & TypeCheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: TypeScript Check (API)
+        run: npm -w @ai-pandit/api run typecheck
+
+      - name: TypeScript Check (Web)
+        run: npm -w @ai-pandit/web run typecheck
+
+  # ═════════════════════════════════════════════════════════════════════════════
+  # STAGE 2: UNIT & INTEGRATION TESTS
+  # ═════════════════════════════════════════════════════════════════════════════
+  unit-tests:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: lint-and-typecheck
+    
+    strategy:
+      matrix:
+        app: [api, web, db, shared]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests - ${{ matrix.app }}
+        run: npm -w @ai-pandit/${{ matrix.app }} run test
+        continue-on-error: ${{ matrix.app == 'web' }}
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./apps/${{ matrix.app }}/coverage/lcov.info
+          flags: ${{ matrix.app }}
+          name: ${{ matrix.app }}-coverage
+          fail_ci_if_error: false
+
+  # ═════════════════════════════════════════════════════════════════════════════
+  # STAGE 3: SECURITY SCANNING
+  # ═════════════════════════════════════════════════════════════════════════════
+  security-scan:
+    name: 🔒 Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: lint-and-typecheck
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Run security tests
+        run: npm run test:security:dependencies
+        continue-on-error: true
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: typescript, javascript
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        continue-on-error: true
+
+  # ═════════════════════════════════════════════════════════════════════════════
+  # STAGE 4: E2E TESTS
+  # ═════════════════════════════════════════════════════════════════════════════
+  e2e-tests:
+    name: 🎭 E2E Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [unit-tests, security-scan]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build applications
+        run: npm run build
+
+      - name: Run E2E Smoke Tests
+        run: npm run test:e2e:smoke
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY_TEST }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_TEST }}
+
+      - name: Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+  # ═════════════════════════════════════════════════════════════════════════════
+  # STAGE 5: PERFORMANCE TESTS
+  # ═════════════════════════════════════════════════════════════════════════════
+  performance-tests:
+    name: ⚡ Performance Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: unit-tests
+    if: github.event_name == 'schedule' || github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start API server
+        run: |
+          npm -w @ai-pandit/api run dev &
+          npx wait-on http://localhost:3000/api/health --timeout 60000
+        env:
+          NODE_ENV: test
+          AI_API_KEY: test-key
+          CLERK_SECRET_KEY: sk_test_123
+
+      - name: Run k6 Load Test
+        run: k6 run tests/performance/load-test.js
+        env:
+          BASE_URL: http://localhost:3000
+          API_KEY: test-key
+
+      - name: Run k6 Stress Test
+        run: k6 run tests/performance/stress-test.js
+        env:
+          BASE_URL: http://localhost:3000
+          API_KEY: test-key
+
+  # ═════════════════════════════════════════════════════════════════════════════
+  # STAGE 6: ACCESSIBILITY TESTS
+  # ═════════════════════════════════════════════════════════════════════════════
+  a11y-tests:
+    name: ♿ Accessibility Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: e2e-tests
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Accessibility Tests
+        run: npm run test:e2e:a11y
+
+  # ═════════════════════════════════════════════════════════════════════════════
+  # STAGE 7: MUTATION TESTING
+  # ═════════════════════════════════════════════════════════════════════════════
+  mutation-testing:
+    name: 🧬 Mutation Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: unit-tests
+    if: github.event_name == 'schedule'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Stryker Mutation Testing
+        run: npm run test:mutation
+        continue-on-error: true
+
+      - name: Upload Mutation Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutation-report
+          path: reports/mutation/
+          retention-days: 30
+
+  # ═════════════════════════════════════════════════════════════════════════════
+  # STAGE 8: DEPLOY READINESS CHECK
+  # ═════════════════════════════════════════════════════════════════════════════
+  deploy-readiness:
+    name: 🚀 Deploy Readiness
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [e2e-tests, security-scan]
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build all applications
+        run: npm run build
+
+      - name: Verify production build
+        run: |
+          test -d apps/api/dist || exit 1
+          test -d apps/web/.next || exit 1
+
+      - name: Check bundle size
+        run: |
+          API_SIZE=$(du -sh apps/api/dist | cut -f1)
+          WEB_SIZE=$(du -sh apps/web/.next | cut -f1)
+          echo "API Bundle Size: $API_SIZE"
+          echo "Web Bundle Size: $WEB_SIZE"
+
+  # ═════════════════════════════════════════════════════════════════════════════
+  # FINAL STATUS
+  # ═════════════════════════════════════════════════════════════════════════════
+  test-summary:
+    name: 📊 Test Summary
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-tests, security-scan, a11y-tests, deploy-readiness]
+    if: always()
+    
+    steps:
+      - name: Generate Test Summary
+        run: |
+          echo "## 🧪 Test Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Lint & TypeCheck | ${{ needs.lint-and-typecheck.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Scan | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Tests | ${{ needs.e2e-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Accessibility Tests | ${{ needs.a11y-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deploy Readiness | ${{ needs.deploy-readiness.result }} |" >> $GITHUB_STEP_SUMMARY

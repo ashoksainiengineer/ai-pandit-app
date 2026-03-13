@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { sessionEvents, emitAIThinking, emitCandidateScore, emitCalculationLog } from '../session-events.js';
+import { sessionEvents, emitCandidateScore, emitCalculationLog } from '../session-events.js';
 
 describe('🔥 HEAVY MEMORY STRESS AUDIT (BROWSER OOM PREVENTION)', () => {
 
@@ -18,9 +18,9 @@ describe('🔥 HEAVY MEMORY STRESS AUDIT (BROWSER OOM PREVENTION)', () => {
         // Simulate a 5-hour run that emits 50,000 tiny events
         for (let i = 0; i < 50000; i++) {
             // Internal method to bypass the wrapper for sheer volume testing
-            sessionEvents.emit(SESSION_ID, { type: 'ping', timestamp: 'now' } as any);
+            sessionEvents.emit(SESSION_ID, { type: 'ping', timestamp: 'now' } as Record<string, unknown>);
             // We need to use sendSequencedEvent simulator to test the logEvent function
-            sessionEvents.logEvent(SESSION_ID, i, { type: 'progress', step: 'deep', percentage: 50 } as any);
+            sessionEvents.logEvent(SESSION_ID, i, { type: 'progress', step: 'deep', percentage: 50 } as Record<string, unknown>);
         }
 
         // If a user reconnects after 5 hours, what is the maximum number of events the server will dump on them?

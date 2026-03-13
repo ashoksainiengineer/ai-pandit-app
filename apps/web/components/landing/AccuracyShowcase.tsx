@@ -144,7 +144,7 @@ export function AccuracyShowcase() {
           </h2>
 
           <p className="text-lg text-[#4A453F] max-w-3xl mx-auto">
-            Swiss Ephemeris calculations with IEEE 754 double-precision arithmetic.
+            Skyfield ephemeris calculations with IEEE 754 double-precision arithmetic.
             Achieving sub-arcsecond accuracy through algorithmic consensus.
           </p>
         </motion.div>

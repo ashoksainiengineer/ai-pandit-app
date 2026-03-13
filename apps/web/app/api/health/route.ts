@@ -52,7 +52,7 @@ export async function GET(): Promise<NextResponse<HealthStatus>> {
         rss: `${(memory.rss / 1024 / 1024).toFixed(1)}MB`,
       },
       ephemeris: {
-        mode: isHighPrecisionMode() ? 'swiss-ephemeris' : 'algorithmic',
+        mode: 'ephemeris',
         precision: isHighPrecisionMode() ? '0.0001°' : '0.01°',
       },
       queue: {

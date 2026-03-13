@@ -39,9 +39,11 @@ function resolveConnectionString(): string {
     throw new Error('NEON_DATABASE_URL or DATABASE_URL is required in production runtime');
   }
 
-  console.warn(
-    '[DB] No Postgres connection string found. Using local fallback URL for non-production runtime.'
-  );
+  if (process.env.NODE_ENV !== 'test') {
+    console.warn(
+      '[DB] No Postgres connection string found. Using local fallback URL for non-production runtime.'
+    );
+  }
   return getFallbackConnectionString();
 }
 
@@ -153,7 +155,8 @@ export async function executeWithRetry<T>(
 
 async function verifyDatabaseConnection(): Promise<void> {
   const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
-  if (isBuildPhase) return;
+  const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+  if (isBuildPhase || isTest) return;
 
   try {
     await executeWithTimeout(() => pool.query('SELECT 1'), 10000);
@@ -162,9 +165,11 @@ async function verifyDatabaseConnection(): Promise<void> {
       throw error;
     }
 
-    console.warn('[DB] Proactive database health check failed in non-production runtime', {
-      error: (error as Error).message,
-    });
+    if (!isTest) {
+      console.warn('[DB] Proactive database health check failed in non-production runtime', {
+        error: (error as Error).message,
+      });
+    }
   }
 }
 

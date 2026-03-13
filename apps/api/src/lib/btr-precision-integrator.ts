@@ -11,7 +11,7 @@
  * without breaking backward compatibility.
  */
 
-import { calculateKPSubLords, KPCuspalData, calculateKPCuspalSubLords } from './kp-sublords.js';
+import { calculateKPSubLords, calculateKPCuspalSubLords } from './kp-sublords.js';
 import { calculateConsensus, ConsensusResult, ValidationInput } from './consensus-engine.js';
 import { logger } from './logger.js';
 import type { PrecisionEnhancement, CandidateWithPrecisionData } from '@ai-pandit/shared';
@@ -29,8 +29,8 @@ export type { PrecisionEnhancement, CandidateWithPrecisionData };
  */
 export function enhanceCandidateWithPrecisionData(
   candidate: CandidateWithPrecisionData,
-  events: any[],
-  forensicProfile: any,
+  events: ValidationInput['events'],
+  forensicProfile: ValidationInput['forensicProfile'],
   tentativeTime: string
 ): CandidateWithPrecisionData {
   const startTime = Date.now();
@@ -111,8 +111,8 @@ export function enhanceCandidateWithPrecisionData(
  */
 export function enhanceCandidatesBatch(
   candidates: CandidateWithPrecisionData[],
-  events: any[],
-  forensicProfile: any,
+  events: ValidationInput['events'],
+  forensicProfile: ValidationInput['forensicProfile'],
   tentativeTime: string,
   options: { parallel?: boolean; maxConcurrency?: number } = {}
 ): CandidateWithPrecisionData[] {
@@ -236,7 +236,11 @@ function calculateKPSubLordsForCandidate(
   const result: Record<string, { starLord: string; subLord: string; subSubLord: string; subSubSubLord: string }> = {};
 
   for (const [name, data] of Object.entries(planets)) {
-    const longitude = (data as any).longitude;
+    const longitude =
+      typeof data === 'object' && data !== null && 'longitude' in data &&
+      typeof (data as { longitude?: unknown }).longitude === 'number'
+        ? (data as { longitude: number }).longitude
+        : undefined;
     if (longitude !== undefined) {
       const kp = calculateKPSubLords(longitude);
       result[name] = {
@@ -256,7 +260,12 @@ function calculateCuspalSubLordsForCandidate(
 ): Record<number, { house: number; cusp: number; sign: string; starLord: string; subLord: string; subSubLord: string }> {
   const cuspLongitudes = Array.isArray(candidate.ephemeris?.kpCusps) && candidate.ephemeris.kpCusps.length >= 12
     ? candidate.ephemeris.kpCusps.slice(0, 12)
-    : (candidate.ephemeris?.houses || []).map((h: any) => h.cusp || 0);
+    : (candidate.ephemeris?.houses || []).map((h: unknown) => {
+      if (typeof h === 'object' && h !== null && 'cusp' in h && typeof (h as { cusp?: unknown }).cusp === 'number') {
+        return (h as { cusp: number }).cusp;
+      }
+      return 0;
+    });
 
   const cuspalData = calculateKPCuspalSubLords(cuspLongitudes);
 
@@ -377,3 +386,8 @@ export const PrecisionIntegrator = {
   generateReport: generatePrecisionReport,
   generateAIPrompt: generatePrecisionAIPrompt
 };
+
+// Legacy exports for backward compatibility
+export { enhanceCandidateWithPrecisionData as _enhanceCandidateWithPrecisionData };
+export { generatePrecisionAIPrompt as _generatePrecisionAIPrompt };
+export type { CandidateWithPrecisionData as _CandidateWithPrecisionData };

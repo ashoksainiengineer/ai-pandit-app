@@ -7,12 +7,22 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 
+type MockFnLike = {
+    mockResolvedValueOnce: (value: unknown) => MockFnLike;
+    mockResolvedValue: (value: unknown) => MockFnLike;
+    mockImplementation: (impl: (...args: unknown[]) => unknown) => MockFnLike;
+};
+
+function asMock(value: unknown): MockFnLike {
+    return value as MockFnLike;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // MOCKS
 // ═══════════════════════════════════════════════════════════════════════════
 
 vi.mock('@ai-pandit/db', () => {
-    const mockDb: any = {
+    const mockDb = {
         select: vi.fn().mockReturnThis(),
         from: vi.fn().mockReturnThis(),
         where: vi.fn().mockReturnThis(),
@@ -31,7 +41,7 @@ vi.mock('@ai-pandit/db', () => {
     };
     return {
         db: mockDb,
-        executeWithRetry: vi.fn((fn: any) => fn()),
+        executeWithRetry: vi.fn((fn: () => unknown) => fn()),
     };
 });
 
@@ -41,14 +51,14 @@ vi.mock('@ai-pandit/db/schema', () => ({
 }));
 
 vi.mock('drizzle-orm', () => ({
-    eq: vi.fn((...args: any[]) => args),
-    and: vi.fn((...args: any[]) => args),
-    or: vi.fn((...args: any[]) => args),
-    desc: vi.fn((col: any) => col),
+    eq: vi.fn((...args: unknown[]) => args),
+    and: vi.fn((...args: unknown[]) => args),
+    or: vi.fn((...args: unknown[]) => args),
+    desc: vi.fn((col: unknown) => col),
 }));
 
 vi.mock('../../middleware/auth.js', () => ({
-    authMiddleware: (req: any, _res: any, next: any) => {
+    authMiddleware: (req: { clerkId?: string }, _res: unknown, next: () => void) => {
         req.clerkId = 'test_clerk_id';
         next();
     },
@@ -62,7 +72,7 @@ vi.mock('../../lib/encryption/index.js', () => ({
     encryptData: vi.fn((data: string) => `encrypted_${data}`),
     safeDecrypt: vi.fn((data: string) => data),
     safeDecryptWithFallback: vi.fn((data: string) => data),
-    parseSensitiveField: vi.fn((field: any) => field || ''),
+    parseSensitiveField: vi.fn((field: unknown) => field || ''),
 }));
 
 vi.mock('../../lib/user-sync.js', () => ({
@@ -109,15 +119,15 @@ describe('Sessions Route - GET /api/sessions (List)', () => {
 
     it('should return empty array if user has no sessions', async () => {
         // Mock: user exists but no sessions
-        (db.query.users.findFirst as any).mockResolvedValueOnce({ id: 'uid', clerkId: 'test_clerk_id' });
-        vi.mocked(executeWithRetry).mockImplementation(async (fn: any) => fn());
+        asMock(db.query.users.findFirst).mockResolvedValueOnce({ id: 'uid', clerkId: 'test_clerk_id' });
+        vi.mocked(executeWithRetry).mockImplementation(async (fn: () => unknown) => fn());
         const res = await request(app).get('/api/sessions');
         expect(res.status).toBe(200);
         expect(res.body.success).toBe(true);
     });
 
     it('should return empty array if user not found', async () => {
-        (db.limit as any).mockResolvedValueOnce([]);
+        asMock(db.limit).mockResolvedValueOnce([]);
         const res = await request(app).get('/api/sessions');
         expect(res.status).toBe(200);
         expect(res.body.data).toEqual([]);
@@ -137,13 +147,13 @@ describe('Sessions Route - GET /api/sessions/:id (Single)', () => {
     });
 
     it('should return 404 if session not found', async () => {
-        (db.query.sessions.findFirst as any).mockResolvedValueOnce(null);
+        asMock(db.query.sessions.findFirst).mockResolvedValueOnce(null);
         const res = await request(app).get('/api/sessions/nonexistent-id');
         expect(res.status).toBe(404);
     });
 
     it('should return session data with birthData reconstruction', async () => {
-        (db.query.sessions.findFirst as any).mockResolvedValueOnce({
+        asMock(db.query.sessions.findFirst).mockResolvedValueOnce({
             id: 'session-1',
             clerkId: 'test_clerk_id',
             userId: 'internal_id',
@@ -186,13 +196,13 @@ describe('Sessions Route - PUT /api/sessions/:id (Update)', () => {
     });
 
     it('should return 404 if session not found', async () => {
-        (db.query.sessions.findFirst as any).mockResolvedValueOnce(null);
+        asMock(db.query.sessions.findFirst).mockResolvedValueOnce(null);
         const res = await request(app).put('/api/sessions/nonexistent-id').send({ birthData: { fullName: 'Test' } });
         expect(res.status).toBe(404);
     });
 
     it('should update session successfully', async () => {
-        (db.query.sessions.findFirst as any).mockResolvedValueOnce({ id: 'session-1', clerkId: 'test_clerk_id' });
+        asMock(db.query.sessions.findFirst).mockResolvedValueOnce({ id: 'session-1', clerkId: 'test_clerk_id' });
         const res = await request(app).put('/api/sessions/session-1').send({
             birthData: { fullName: 'Updated Name', latitude: 28.6 },
             lifeEvents: [{ eventType: 'job' }],
@@ -215,18 +225,18 @@ describe('Sessions Route - DELETE /api/sessions/:id', () => {
     });
 
     it('should return 404 if session not found', async () => {
-        (db.query.sessions.findFirst as any).mockResolvedValueOnce(null);
+        asMock(db.query.sessions.findFirst).mockResolvedValueOnce(null);
         const res = await request(app).delete('/api/sessions/nonexistent-id');
         expect(res.status).toBe(404);
     });
 
     it('should delete session successfully', async () => {
-        (db.query.sessions.findFirst as any).mockResolvedValueOnce({
+        asMock(db.query.sessions.findFirst).mockResolvedValueOnce({
             id: 'session-1',
             clerkId: 'test_clerk_id',
             userId: 'internal_id',
         });
-        (db.returning as any).mockResolvedValueOnce([{ id: 'session-1' }]);
+        asMock(db.returning).mockResolvedValueOnce([{ id: 'session-1' }]);
         const res = await request(app).delete('/api/sessions/session-1');
         expect(res.status).toBe(200);
         expect(res.body.success).toBe(true);
@@ -246,7 +256,7 @@ describe('Sessions Route - POST /api/sessions/:id/clone', () => {
     });
 
     it('should return 404 if original session not found', async () => {
-        (db.query.sessions.findFirst as any).mockResolvedValueOnce(null);
+        asMock(db.query.sessions.findFirst).mockResolvedValueOnce(null);
         const res = await request(app).post('/api/sessions/nonexistent-id/clone');
         expect(res.status).toBe(404);
     });
@@ -269,7 +279,7 @@ describe('Sessions Route - POST /api/sessions/:id/clone', () => {
             accuracy: 95,
             confidence: 'HIGH'
         };
-        (db.query.sessions.findFirst as any).mockResolvedValueOnce(mockOriginal);
+        asMock(db.query.sessions.findFirst).mockResolvedValueOnce(mockOriginal);
 
         const res = await request(app).post('/api/sessions/original-id/clone');
 

@@ -278,7 +278,7 @@ router.get('/jobs/:jobId/dead-letter', authMiddleware, async (req: Authenticated
 
 /**
  * GET /api/admin/db-check
- * Industrial diagnostic for Turso connectivity and session sync
+ * Industrial diagnostic for Neon Postgres connectivity and session sync
  */
 // Intercept HEAD requests (used by uptime bots) to prevent auth warning logs
 router.head('/db-check', (req: Request, res: Response) => {
@@ -302,7 +302,7 @@ router.get('/db-check', authMiddleware, async (req: AuthenticatedRequest, res: R
     res.json({
       success: true,
       diagnostics: {
-        database: 'Turso/libSQL',
+        database: 'Neon Postgres',
         connected: true,
         latencyMs: Date.now() - startTime,
         stats: {

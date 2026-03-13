@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { callAI, callAIWithStream, buildCandidateAnalysisPrompt } from '../ai-client.js';
 import * as sessionEvents from '../session-events.js';
 

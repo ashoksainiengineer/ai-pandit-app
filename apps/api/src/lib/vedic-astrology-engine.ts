@@ -1,4 +1,5 @@
-import { getAyanamsa } from './ephemeris.js';
+
+import { _getAyanamsa } from './ephemeris.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -55,7 +56,7 @@ const DASHA_SEQUENCE = [
     'Rahu', 'Jupiter', 'Saturn', 'Mercury'
 ];
 
-const NAKSHATRA_NAMES = [
+const _NAKSHATRA_NAMES = [
     'Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashirsha', 'Ardra', 'Punarvasu', 'Pushya', 'Ashlesha',
     'Magha', 'Purva Phalguni', 'Uttara Phalguni', 'Hasta', 'Chitra', 'Swati', 'Vishakha', 'Anuradha', 'Jyeshtha',
     'Mula', 'Purva Ashadha', 'Uttara Ashadha', 'Shravana', 'Dhanishtha', 'Shatabhisha', 'Purva Bhadrapada', 'Uttara Bhadrapada', 'Revati'
@@ -189,7 +190,7 @@ function calculateSubDashas(
     const totalDurationMs = fullEndDate.getTime() - fullStartDate.getTime();
     const subPeriods: DashaPeriod[] = [];
     let currentSubStart = new Date(fullStartDate);
-    let startIndex = DASHA_SEQUENCE.indexOf(parentLord);
+    const startIndex = DASHA_SEQUENCE.indexOf(parentLord);
 
     for (let i = 0; i < 9; i++) {
         const lord = DASHA_SEQUENCE[(startIndex + i) % 9];
@@ -382,10 +383,10 @@ import {
     calculateArudhaLagna,
     calculatePanchanga as calcPanchanga,
     calculateAdvancedAspects as calcAspects,
-    calculateBoundarySafety,
+    _calculateBoundarySafety,
     detectParivartana,
 } from './advanced-btr-methods.js';
-import { calculateCharaKarakas as calcCK } from './jaimini-astrology.js';
+import { calculateCharaKarakas as _calcCK } from './jaimini-astrology.js';
 import { TransitAnalyzer } from './btr/transit-analyzer.js';
 
 /**
@@ -456,14 +457,14 @@ export const calculatePanchanga = (jd: number, sunLong: number, moonLong: number
 /**
  * Calculate Vimsopaka Bala (Divisional strength).
  */
-export const calculateVimsopakaBala = (ephemeris: any): any => {
+export const calculateVimsopakaBala = (_ephemeris: any): any => {
     return { total: 0 }; // Placeholder until fully implemented
 };
 
 /**
  * Detect discrepancies between Rasi and Bhava Chalit.
  */
-export const detectBhavaChalitDiscrepancy = (ephemeris: any): any[] => {
+export const detectBhavaChalitDiscrepancy = (_ephemeris: any): any[] => {
     return [];
 };
 
@@ -501,7 +502,7 @@ export const calculateHouse = (longitude: number, houseCusps: number[]): number 
 /**
  * planetary aspects (Sign-based Parashari Drishti).
  */
-export const calculateAspects = (arg1: any, arg2?: any, arg3?: any, arg4?: any): any => {
+export const calculateAspects = (arg1: any, _arg2?: any, _arg3?: any, _arg4?: any): any => {
     // If called with ephemeris object (from new engine)
     if (arg1 && typeof arg1 === 'object' && arg1.planets) {
         return calcAspects(arg1);
@@ -513,14 +514,14 @@ export const calculateAspects = (arg1: any, arg2?: any, arg3?: any, arg4?: any):
 /**
  * planetary dignity (Exaltation, Own, etc).
  */
-export const getDignity = (planet: any, signOrChart: any): string => {
+export const getDignity = (_planet: any, _signOrChart: any): string => {
     return 'Neutral';
 };
 
 /**
  * Functional nature (Benefic/Malefic) based on Lagna.
  */
-export const calculateFunctionalNature = (planetName: string, ascendantSign: string): { role: string; reason: string; } => {
+export const calculateFunctionalNature = (_planetName: string, _ascendantSign: string): { role: string; reason: string; } => {
     return { role: 'Neutral', reason: 'General placement' };
 };
 
@@ -539,14 +540,14 @@ export const calculateBaladiAvastha = (longitude: number): string => {
 /**
  * Compound dignity (Panchadha Sambandha).
  */
-export const calculatePanchadhaSambandha = (planetName: string, lordSign: string): string => {
+export const calculatePanchadhaSambandha = (_planetName: string, _lordSign: string): string => {
     return 'Neutral';
 };
 
 /**
  * Ishta Kashta Phala calculation.
  */
-export const calculateIshtaKashtaPhala = (arg1: any, arg2?: any): any => {
+export const calculateIshtaKashtaPhala = (_arg1: any, _arg2?: any): any => {
     return { ishta: 20, kashta: 10 };
 };
 
@@ -574,3 +575,6 @@ export const verifyDoubleTransit = (ephemeris: any, ascendantSign: string, targe
         details: result.details.split('; ').map(d => ({ message: d }))
     };
 };
+
+// Legacy exports for backward compatibility
+export type { DashaPeriod as _DashaPeriod };

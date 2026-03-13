@@ -11,7 +11,7 @@ export function errorHandler(
     err: CustomError,
     req: Request,
     res: Response,
-    next: NextFunction
+    _next: NextFunction
 ): void {
     const requestId = (req as any).id || 'unknown';
 
@@ -50,9 +50,6 @@ export function errorHandler(
         });
         return;
     }
-
-    // Client errors - log as warn in production, debug in development
-    const level = config.app.nodeEnv === 'production' ? 'warn' : 'debug';
 
     // Default: don't leak error details in production
     const isDev = config.app.isDevelopment;

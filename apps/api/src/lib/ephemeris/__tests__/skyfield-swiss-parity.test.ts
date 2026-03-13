@@ -1,8 +1,8 @@
 /**
- * Skyfield vs Swiss Ephemeris Parity Tests
+ * Skyfield Ephemeris Parity Tests
  *
  * EXTENSIVE tests to ensure Skyfield generates accurate astrological data
- * comparable to Swiss Ephemeris precision standards.
+ * meeting precision standards.
  *
  * These tests verify:
  * - Planetary positions (all 9 planets)
@@ -88,7 +88,7 @@ const TEST_BIRTH_DATA = {
 } as const;
 
 // Tolerance levels for different celestial bodies (in degrees)
-// These are the acceptable differences between Skyfield and Swiss Ephemeris
+// These are the acceptable precision thresholds
 const TOLERANCE = {
   SUN: 0.01,
   MOON: 0.05,
@@ -103,7 +103,7 @@ const TOLERANCE = {
   AYANAMSA: 0.01
 } as const;
 
-describe('Skyfield vs Swiss Ephemeris - Parity Tests', () => {
+describe('Skyfield Ephemeris - Parity Tests', () => {
 
   beforeAll(async () => {
     await initEphemerisProvider();

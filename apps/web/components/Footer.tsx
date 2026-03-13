@@ -58,7 +58,7 @@ export default function Footer() {
             </Link>
             <p className="text-[#7A756F] text-sm leading-relaxed max-w-xs mb-4">
               Birth time rectification within seconds-level precision using
-              Swiss Ephemeris and DeepSeek AI.
+              Skyfield ephemeris and DeepSeek AI.
             </p>
             <div className="flex items-center gap-2 text-sm text-[#7A756F]">
               <Mail className="w-4 h-4 text-[#6B1F7A]" />
@@ -155,7 +155,7 @@ export default function Footer() {
           </p>
           <div className="flex items-center gap-2 text-sm text-[#7A756F]">
             <Sparkles className="w-4 h-4 text-[#B8860B]" />
-            <span>Powered by Swiss Ephemeris & DeepSeek AI</span>
+            <span>Powered by Skyfield & DeepSeek AI</span>
           </div>
         </motion.div>
       </div>

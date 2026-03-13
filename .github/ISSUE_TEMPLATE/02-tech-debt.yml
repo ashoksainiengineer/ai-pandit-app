@@ -1,0 +1,51 @@
+name: "Tech Debt / Cleanup"
+description: "Track one bounded cleanup task with measurable outcome"
+title: "[DEBT] "
+labels: ["tech-debt"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What mess or debt exists today?
+      placeholder: Describe the current pain clearly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: non_goals
+    attributes:
+      label: Non-Goals
+      description: What this task must NOT do.
+      placeholder: No behavior changes, no schema migration, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: Allowed files and expected size of change.
+      placeholder: Max X files, directories allowed, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: success
+    attributes:
+      label: Success Criteria
+      description: How do we know this cleanup worked?
+      placeholder: Reduced complexity, removed duplication, tests still green.
+    validations:
+      required: true
+
+  - type: textarea
+    id: checks
+    attributes:
+      label: Required Checks
+      description: Commands that must pass.
+      placeholder: |
+        npm run lint
+        npm run test
+    validations:
+      required: true

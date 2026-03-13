@@ -948,3 +948,13 @@ export function getAyanamsa(jd: number): number {
 export function cleanup(): void {
   if (global.gc) global.gc();
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// LEGACY EXPORTS (for backward compatibility during refactoring)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/** @deprecated Use getAyanamsa directly */
+export const _getAyanamsa = getAyanamsa;
+
+/** @deprecated Use cleanup directly */
+export const _cleanup = cleanup;

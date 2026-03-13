@@ -6,7 +6,7 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import { AppError, isAppError, handleUnknownError, getErrorStatusCode } from '../errors/index.js';
+import { AppError, handleUnknownError } from '../errors/index.js';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { sendError } from '../utils/response.js';

@@ -162,7 +162,6 @@ export const env = {
   api: {
     // Used by server-side proxy routes that forward analysis lifecycle requests to the API service.
     backendUrl: resolveBackendUrl(),
-    huggingFaceToken: getEnvVarOptional(process.env.HF_TOKEN),
     internalApiKey: undefined, // Removed for security realignment
   },
 

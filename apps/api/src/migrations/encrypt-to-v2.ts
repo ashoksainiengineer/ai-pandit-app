@@ -12,7 +12,7 @@
  */
 
 import { db } from '@ai-pandit/db';
-import { sessions, users } from '@ai-pandit/db/schema';
+import { sessions } from '@ai-pandit/db/schema';
 import { eq, isNotNull } from 'drizzle-orm';
 import { logger } from '../lib/logger.js';
 import { config } from '../config/index.js';
@@ -25,7 +25,6 @@ import {
 
 import {
     encryptData as encryptDataNew,
-    isEncrypted as isEncryptedNew
 } from '../lib/encryption/encryption-v2.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════

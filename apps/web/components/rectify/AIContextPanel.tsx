@@ -28,7 +28,7 @@ export function AIContextPanel({ data, currentStage }: AIContextPanelProps) {
                     Engine Ground Truth
                 </h3>
                 <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full ml-auto border border-emerald-200">
-                    Swiss Ephemeris Calculated
+                    Skyfield Calculated
                 </span>
             </div>
 

@@ -123,3 +123,10 @@ export function isCancellationError(error: unknown): boolean {
     return error instanceof CancellationError ||
         (error instanceof Error && error.name === 'AbortError');
 }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// LEGACY EXPORTS (for backward compatibility during refactoring)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/** @deprecated Use throwIfCancelled directly */
+export const _throwIfCancelled = throwIfCancelled;

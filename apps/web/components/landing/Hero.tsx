@@ -90,7 +90,7 @@ export default function Hero() {
                        border border-[#F0E8DE] rounded-full text-sm mb-8 shadow-sm"
           >
             <span className="text-[#6B1F7A] font-medium">Vedic Birth Time Rectification</span>
-            <span className="text-[10px] px-2 py-0.5 bg-[#B8860B]/10 text-[#B8860B] rounded-full">by Swiss Ephemeris</span>
+            <span className="text-[10px] px-2 py-0.5 bg-[#B8860B]/10 text-[#B8860B] rounded-full">by Skyfield Ephemeris</span>
             <span className="text-[10px] px-2 py-0.5 bg-[#4A7C6F]/10 text-[#4A7C6F] rounded-full">by DeepSeek R1-0528</span>
           </motion.div>
 
@@ -120,7 +120,7 @@ export default function Hero() {
           >
             Highly accurate birth time rectification within{' '}
             <span className="text-[#B8860B] font-semibold">seconds-level precision</span>.
-            Powered by Swiss Ephemeris astronomical data and DeepSeek AI,
+            Powered by Skyfield astronomical data and DeepSeek AI,
             aligned with ancient Vedic wisdom.
           </motion.p>
 

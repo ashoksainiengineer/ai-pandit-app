@@ -1,3 +1,4 @@
+
 /**
  * Event Scorer Module
  *
@@ -16,21 +17,22 @@ import {
   DATE_PRECISION_MULTIPLIERS,
   SOURCE_MULTIPLIERS,
   EVENT_HOUSE_MAP,
-  EVENT_SIGNIFICATORS
+  EVENT_SIGNIFICATORS,
+  type DatePrecision
 } from '@ai-pandit/shared';
 import {
-  EVENT_IMPORTANCE_WEIGHTS,
+  _EVENT_IMPORTANCE_WEIGHTS,
   IMPORTANCE_TO_IMPACT,
-  VEDIC_EVENT_IMPORTANCE,
+  _VEDIC_EVENT_IMPORTANCE,
   EventImportance,
   getEventWeightFromImportance,
-  getDefaultImportance,
+  _getDefaultImportance,
 } from './precision-weights.js';
 import { resolveEventDateWindow } from './event-date-utils.js';
 
 export interface EventScoringOptions {
   defaultSource?: 'document' | 'memory' | 'approximate';
-  defaultPrecision?: 'exact' | 'month' | 'year' | 'approximate';
+  defaultPrecision?: DatePrecision;
   minReliabilityThreshold?: number;
 }
 
@@ -57,6 +59,15 @@ export interface EventScoreSummary {
   categoryDistribution: Record<string, number>;
   recommendations: string[];
 }
+
+type LegacyEventInput = Partial<BtrEvent> & {
+  source?: EventConfidence['source'];
+  datePrecision?: DatePrecision;
+  eventDate?: string | Date;
+  endDate?: string;
+  eventTime?: string;
+  importance?: EventImportance;
+};
 
 const CATEGORY_IMPACT_MAP: Record<string, 'critical' | 'major' | 'moderate' | 'minor'> = {
   marriage: 'critical',
@@ -96,7 +107,7 @@ const MINIMUM_EVENT_COUNT = 5;
  * Calculate confidence for a single event
  */
 export function calculateEventConfidence(
-  event: Partial<BtrEvent>,
+  event: LegacyEventInput,
   options: EventScoringOptions = {}
 ): EventConfidence {
   const {
@@ -105,12 +116,10 @@ export function calculateEventConfidence(
   } = options;
 
   const source = event.confidence?.source ||
-    (event as any).source ||
+    event.source ||
     defaultSource;
 
-  const datePrecision = event.datePrecision ||
-    (event as any).datePrecision ||
-    defaultPrecision;
+  const datePrecision = (event.datePrecision || defaultPrecision) as DatePrecision;
 
   const sourceMultiplier = SOURCE_MULTIPLIERS[source] || 1.0;
   const precisionMultiplier = DATE_PRECISION_MULTIPLIERS[datePrecision] || 0.5;
@@ -137,23 +146,23 @@ export function calculateEventConfidence(
  * Priority: User's importance > Event's impact > Category default
  */
 export function scoreEvents(
-  events: Array<Partial<BtrEvent>>,
+  events: LegacyEventInput[],
   options: EventScoringOptions = {}
 ): ScoredEvent[] {
   return events.map(event => {
     const confidence = calculateEventConfidence(event, options);
     const category = event.category || 'general';
     const eventWindow = resolveEventDateWindow({
-      eventDate: (event as any).eventDate,
-      endDate: (event as any).endDate,
-      datePrecision: confidence.datePrecision as any,
-      eventTime: (event as any).eventTime,
-    });
+      eventDate: event.eventDate as string,
+      endDate: event.endDate,
+      datePrecision: confidence.datePrecision,
+      eventTime: event.eventTime,
+    } as Parameters<typeof resolveEventDateWindow>[0]);
     const normalizedEventDate = new Date(eventWindow.midpointMs);
 
     // PRIORITY 1: User's selected importance (FRONTEND)
     // This is the PRIMARY weight factor - user knows best!
-    const userImportance = (event as any).importance as EventImportance | undefined;
+    const userImportance = event.importance;
 
     // PRIORITY 2: Event's impact (if explicitly set)
     const explicitImpact = event.impact;
@@ -189,9 +198,9 @@ export function scoreEvents(
       type: event.type || category,
       category,
       eventDate: normalizedEventDate,
-      rawEventDate: (event as any).eventDate,
-      endDate: (event as any).endDate,
-      eventTime: (event as any).eventTime,
+      rawEventDate: event.eventDate,
+      endDate: event.endDate,
+      eventTime: event.eventTime,
       eventWindowStart: new Date(eventWindow.startMs),
       eventWindowEnd: new Date(eventWindow.endMs),
       datePrecision: confidence.datePrecision,

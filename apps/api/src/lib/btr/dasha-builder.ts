@@ -6,9 +6,10 @@
  */
 
 import { calculateVimshottariDasha } from '../vedic-astrology-engine.js';
+import type { DashaPeriod } from '../vedic-astrology-engine.js';
 import { calculateYoginiDasha } from '../advanced-btr-methods.js';
 import { calculateCharaDasha } from '../jaimini-astrology.js';
-import { VimshottariDashaEntry } from '@ai-pandit/shared';
+import { VimshottariDashaEntry, EphemerisData } from '@ai-pandit/shared';
 import { logger } from '../logger.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -42,13 +43,7 @@ export function buildVimshottariDasha(
 
   const pruningWindowMs = pranaWindowDays * DAY_MS;
 
-  // Use range starts for reference date calculation
-  const validStartDates = eventRanges.map(r => r.start).filter(d => !isNaN(d));
-  const referenceDate = validStartDates.length > 0 ? Math.min(...validStartDates) : now;
-  const minDate = referenceDate - (365 * DAY_MS);
-
-  // Used for pruning logic but not extensively used in calculation here
-  // const maxDate = Math.max(...eventDates, now) + (365 * DAY_MS);
+  // Event ranges are retained for downstream pruning logic in processPratyantarLevel.
 
   const result: VimshottariDashaEntry[] = [];
 
@@ -101,9 +96,9 @@ export function buildVimshottariDasha(
  * Process Pratyantar level and deeper if configured
  */
 export function processPratyantarLevel(
-  maha: any,
-  antar: any,
-  prat: any,
+  maha: DashaPeriod,
+  antar: DashaPeriod,
+  prat: DashaPeriod,
   dashaDepth: number,
   pruningWindowMs: number,
   eventRanges: { start: number; end: number }[]
@@ -133,10 +128,10 @@ export function processPratyantarLevel(
  * Process Sukshma level and Prana if configured
  */
 function processSukshmaLevel(
-  maha: any,
-  antar: any,
-  prat: any,
-  suksh: any,
+  maha: DashaPeriod,
+  antar: DashaPeriod,
+  prat: DashaPeriod,
+  suksh: DashaPeriod,
   dashaDepth: number,
   pruningWindowMs: number,
   eventRanges: { start: number; end: number }[]
@@ -249,7 +244,7 @@ export function buildYoginiDasha(
  * Build Chara Dasha filtered by timeline
  */
 export function buildCharaDasha(
-  ephemeris: any,
+  ephemeris: EphemerisData,
   birthDate: Date,
   minDate: number,
   maxDate: number

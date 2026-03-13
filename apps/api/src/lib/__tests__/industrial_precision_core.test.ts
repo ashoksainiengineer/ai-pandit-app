@@ -1,10 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
     calculateVimshottariDasha,
-    getDashaForDate,
     calculatePanchanga
 } from '../vedic-astrology-engine.js';
-import { calculateJulianDay } from '../ephemeris.js';
 
 describe('Phase A: Industrial Precision (Engine Edge Cases)', () => {
 

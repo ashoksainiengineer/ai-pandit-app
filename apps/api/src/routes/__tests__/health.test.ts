@@ -52,11 +52,23 @@ vi.mock('../../config/index.js', () => ({
         },
         queue: {
             maxConcurrent: 3,
+            maxActiveJobsPerUser: 2,
+            maxActiveJobsByTier: { free: 2, pro: 5, enterprise: 12 },
+            loadShedQueueDepth: 80,
             pollIntervalMs: 2000,
+            syncPollIntervalMs: 2000,
             maxSize: 100,
             staleTimeoutMs: 7200000,
             baseAnalysisTime: 240,
             contentionMultiplier: 0.1,
+            executionMode: 'external_worker',
+            architecture: 'db_polling',
+            recoveryAlertThreshold: 1,
+            redis: {
+                url: undefined,
+                tls: false,
+                queueName: 'test:queue',
+            },
         },
         features: {
             useAsyncJobPipeline: true,
