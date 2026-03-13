@@ -1,73 +1,145 @@
-# ═══════════════════════════════════════════════════════════════════════════
-# AI PANDIT - REPOSITORY HYGIENE (.gitignore)
-# ═══════════════════════════════════════════════════════════════════════════
+# =============================================================================
+# AI PANDIT - COMPREHENSIVE .gitignore
+# Following industry best practices
+# =============================================================================
 
 # --- DEPENDENCIES ---
 node_modules/
 .pnp
 .pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # --- ENVIRONMENT & SECRETS ---
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*.local
+.env.development
+.env.test
+.env.production
 .env*.local
 .clerk/
+*.pem
+*.key
+secrets/
+config/secrets/
+
+# --- DATABASE FILES ---
 *.db
 *.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
 
 # --- BUILD OUTPUTS ---
 dist/
 build/
 .next/
 out/
+.nuxt/
 .turbo/
 *.tsbuildinfo
 .vercel/
+.netlify/
 .agents/
+.cache/
+.parcel-cache/
 
 # --- LOGS & DIAGNOSTICS ---
 *.log
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
 pnpm-debug.log*
 .eslintcache
 .stylelintcache
+.prettiercache
+*.pid
+*.seed
+*.pid.lock
 
 # --- TEST ARTIFACTS ---
 coverage/
 playwright-report/
 test-results/
 .nyc_output
+.vitest-reports/
+*.test.ts.snap
+*.test.tsx.snap
+__snapshots__/
 
 # --- SYSTEM & IDE ---
 .DS_Store
 Thumbs.db
 .vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
 .idea/
 .project
+.classpath
+*.sublime-workspace
+*.sublime-project
+
+# --- CLOUD & PLATFORM ---
 .gemini/
 .idx/
+.firebase/
+.firebaserc
+
+# --- BACKUP FILES ---
 *.backup
 *.bak
 *.old
 *.original
+*.swp
+*.swo
+*~
 
 # --- APP SPECIFIC (NON-SOURCE) ---
+# Ephemeris data files (downloaded at build time)
 apps/api/ephe/*.se1
 !apps/api/ephe/README.md
+!apps/api/ephe/.gitkeep
+
+# Swiss Ephemeris (legacy - removed from project)
 sweph.tar.gz
-services/ephemeris/.venv/
-services/ephemeris/data/*.bsp
-services/ephemeris/data/*.bpc
-services/ephemeris/data/*.tpc
+*.eph
+
+# Skyfield data
 data/*.bsp
 data/*.bpc
 data/*.tpc
+data/*.naif
+data/*.txt
+
+services/ephemeris/data/*.bsp
+services/ephemeris/data/*.bpc
+services/ephemeris/data/*.tpc
+services/ephemeris/data/*.naif
+services/ephemeris/data/*.txt
 
 # --- PYTHON (EPHEMERIS SERVICE) ---
+services/ephemeris/.venv/
+services/ephemeris/__pycache__/
+services/ephemeris/**/__pycache__/
+services/ephemeris/*.py[cod]
+services/ephemeric/*$py.class
+services/ephemeris/.pytest_cache/
+services/ephemeris/.mypy_cache/
+services/ephemeris/.ruff_cache/
+services/ephemeris/.coverage
+services/ephemeris/.coverage.*
+services/ephemeris/htmlcov/
+services/ephemeris/dist/
+services/ephemeris/*.egg-info/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -77,14 +149,73 @@ __pycache__/
 .coverage
 .coverage.*
 htmlcov/
+*.egg-info/
+.eggs/
 
-# --- SCRATCH & DEBUG ---
+# --- DOCKER ---
+.dockerignore
+Dockerfile.local
+docker-compose.override.yml
+.docker/
+
+# --- TYPESCRIPT ---
+*.js.map
+*.d.ts.map
+
+# --- MISC ---
+*.tgz
+*.tar.gz
+*.zip
+
+# --- TEMPORARY FILES ---
+tmp/
+temp/
+tmp.*
+*.tmp
+
+# --- SCRATCH & DEBUG (keep these out of git) ---
+scratch/
+scratch.*
+debug/
+debug-*.ts
+debug-*.js
+test-*.ts
+test-*.js
+check-*.ts
+check-*.js
+verify-*.ts
+verify-*.js
 apps/api/test-*.ts
-apps/api/check-*.ts
+check-*.ts
 apps/api/src/check-*.ts
+check-*.ts
 apps/api/src/debug-*.ts
+debug-*.ts
 apps/api/src/test-*.ts
+test-*.ts
 apps/api/src/requeue-*.ts
+requeue-*.ts
 apps/api/src/scripts/requeue_debug.txt
+requeue_debug.txt
 logs/debug-analysis.log
+debug-analysis.log
 verify-production.ts
+
+# --- WEIGHTED FILES (large binaries) ---
+*.weights
+*.onnx
+*.pt
+*.pth
+*.h5
+*.pb
+*.tflite
+*.mlmodel
+
+# --- LOCAL DEV FILES ---
+local/
+local.*
+*.local
+notes.md
+TODO.md
+todo.md
+NOTES.md
