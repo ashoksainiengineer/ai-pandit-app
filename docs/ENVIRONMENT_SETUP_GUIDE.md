@@ -127,7 +127,7 @@ Make sure you have access to:
 
 ---
 
-## 4️⃣ GitHub Secrets (CI/CD)
+## 4️⃣ GitHub Secrets and Variables (CI/CD)
 
 **URL:** https://github.com/ashoksainiengineer/ai-pandit-app/settings/secrets/actions
 
@@ -142,17 +142,43 @@ Make sure you have access to:
 | Secret Name | Value |
 |------------|-------|
 | `NEON_DATABASE_URL` | Full connection string |
+| `DATABASE_URL` | Same resolved Neon connection string |
 | `REDIS_URL` | Full Redis URL |
 | `AI_API_KEY` | Groq API key |
 | `ENCRYPTION_SECRET` | 64-char hex string |
 | `CLERK_SECRET_KEY` | Clerk production key |
-| `CLERK_PUBLISHABLE_KEY` | Clerk publishable key |
+| `CLERK_SECRET_KEY_TEST` | Optional test workflow key (can mirror production initially) |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_TEST` | Optional test workflow key |
 | `GCP_PROJECT_ID` | `ai-pandit-489913` |
-| `GCA_SA_KEY` | Full service account JSON |
+| `GCP_SA_KEY` | Full service account JSON |
+| `VERCEL_URL` | `https://aipandit.app` |
+
+### Repository Variables to Add:
+
+| Variable Name | Value |
+|--------------|-------|
+| `CLOUD_RUN_REGION` | `asia-southeast1` |
+| `ARTIFACT_REGISTRY_REPO` | `ai-pandit` |
 
 ---
 
-## 5️⃣ Local Development
+## 5️⃣ Vercel - Current Production Web Target
+
+The current live web target is Vercel (`aipandit.app`). Use the linked `apps/web` project and add production variables there. The Cloud Run `web-service` path still exists in the repo as an optional containerized path, but it is not the current live production target.
+
+---
+
+## 6️⃣ Production Source Template
+
+1. Copy `.env.production.example` to a private file such as `.env.production`
+2. Fill in the real production values
+3. Run `sh scripts/sync-production-config.sh --env-file .env.production` for a dry-run
+4. Run `sh scripts/sync-production-config.sh --env-file .env.production --apply` only after reviewing the targets
+
+---
+
+## 7️⃣ Local Development
 
 ### Steps:
 1. Copy example file:
@@ -184,6 +210,7 @@ After setup, verify:
 - [ ] Cloud Run Worker service has all variables
 - [ ] Vercel has all environment variables
 - [ ] GitHub Secrets has all secrets
+- [ ] GitHub repository variables are set
 - [ ] Local `.env.local` file exists (not committed)
 - [ ] Test deployment works
 

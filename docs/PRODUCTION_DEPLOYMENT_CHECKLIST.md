@@ -5,7 +5,7 @@
 
 **Date:** 13 March 2026  
 **Status:** Ready for Release Candidate  
-**Deployment Sequence:** Ephemeris → API → Worker → Web
+**Deployment Sequence:** Ephemeris → API → Worker → Vercel Web
 
 ---
 
@@ -89,8 +89,8 @@ npm run test:e2e:smoke
 | `AI_API_KEY` | API, Worker | Google Secret Manager | [ ] |
 | `CLERK_SECRET_KEY` | All | Google Secret Manager | [ ] |
 | `ENCRYPTION_SECRET` | All | Google Secret Manager | [ ] |
-| `NEXT_PUBLIC_BACKEND_URL` | Web | Cloud Run env var | [ ] |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Web | Cloud Run env var | [ ] |
+| `NEXT_PUBLIC_BACKEND_URL` | Web | Vercel env var | [ ] |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Web | Vercel env var | [ ] |
 
 ### GCP Configuration
 
@@ -185,27 +185,26 @@ curl https://worker-service-xxx.run.app/ready
 curl https://worker-service-xxx.run.app/health
 ```
 
-### Phase 4: Web Service
+### Phase 4: Vercel Web
 
 ```bash
-# Deploy Web
-npm run deploy:cloudrun:web
+# From apps/web after linking the correct Vercel account/project
+vercel pull --environment=production
+vercel deploy --prod
 ```
 
 **Configuration:**
-- Memory: 2Gi
-- CPU: 1
-- Concurrency: 80
-- Min Instances: 0
-- Max Instances: 2
+- Root Directory: `apps/web`
+- Domain: `https://aipandit.app`
+- Backend target: `NEXT_PUBLIC_BACKEND_URL=https://api-service-7tjuxigfoq-as.a.run.app`
 
 **Post-Deploy Verification:**
 ```bash
 # Web health
-curl https://web-service-xxx.run.app/api/health
+curl https://aipandit.app/api/health
 
 # Smoke test landing page
-curl -s https://web-service-xxx.run.app | head -20
+curl -s https://aipandit.app | head -20
 ```
 
 ---
@@ -223,7 +222,7 @@ echo "Checking Worker..."
 curl -s https://worker-service-xxx.run.app/health | jq .
 
 echo "Checking Web..."
-curl -s https://web-service-xxx.run.app/api/health | jq .
+curl -s https://aipandit.app/api/health | jq .
 
 echo "Checking Ephemeris..."
 curl -s https://ephemeris-service-xxx.run.app/health | jq .
@@ -260,12 +259,9 @@ If issues detected:
 gcloud run revisions list --service=api-service
 gcloud run services update-traffic api-service --to-revisions=[PREV_REVISION]=100
 
-# Same for worker and web
+# Same for worker
 gcloud run revisions list --service=worker-service
 gcloud run services update-traffic worker-service --to-revisions=[PREV_REVISION]=100
-
-gcloud run revisions list --service=web-service
-gcloud run services update-traffic web-service --to-revisions=[PREV_REVISION]=100
 ```
 
 **Rollback Trigger Conditions:**

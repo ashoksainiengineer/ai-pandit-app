@@ -20,7 +20,7 @@ export class ResultsPageErrorBoundary extends React.Component<
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        logger.error('ResultsPage Error:', error, errorInfo);
+        logger.error('ResultsPage Error:', error, { componentStack: errorInfo.componentStack });
     }
 
     render() {

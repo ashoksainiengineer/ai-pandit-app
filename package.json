@@ -12,6 +12,7 @@
     ],
     "scripts": {
         "build": "turbo run build",
+        "build:vercel:web": "npm --workspace @ai-pandit/shared run build && npm --workspace @ai-pandit/db run build && npm --workspace @ai-pandit/web run build:app",
         "dev": "turbo run dev",
         "dev:ephemeris": "sh ./services/ephemeris/scripts/dev.sh",
         "lint": "turbo run lint",

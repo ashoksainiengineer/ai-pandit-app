@@ -24,7 +24,7 @@ export class ResultsErrorBoundary extends React.Component<
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        logger.error('ResultsDashboard Error:', error, errorInfo);
+        logger.error('ResultsDashboard Error:', error, { componentStack: errorInfo.componentStack });
     }
 
     render() {

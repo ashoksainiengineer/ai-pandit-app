@@ -63,7 +63,7 @@ PORT
 
 ---
 
-## 3. Vercel - Frontend
+## 3. Vercel - Frontend (Current production web target)
 
 **Location:** Vercel Dashboard > Project > Settings > Environment Variables
 
@@ -84,19 +84,32 @@ EPHEMERIS_SERVICE_URL
 
 ---
 
-## 4. GitHub Secrets (CI/CD)
+## 4. GitHub Secrets and Variables (CI/CD)
 
 **Location:** GitHub Repo > Settings > Secrets and Variables > Actions
 
+Secrets:
+
 ```
 NEON_DATABASE_URL
+DATABASE_URL
 REDIS_URL
 AI_API_KEY
 ENCRYPTION_SECRET
 CLERK_SECRET_KEY
-CLERK_PUBLISHABLE_KEY
+CLERK_SECRET_KEY_TEST
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY_TEST
 GCP_PROJECT_ID
-GCA_SA_KEY
+GCP_SA_KEY
+VERCEL_URL
+```
+
+Variables:
+
+```
+CLOUD_RUN_REGION
+ARTIFACT_REGISTRY_REPO
 ```
 
 ---
@@ -122,7 +135,18 @@ NEON_DATABASE_URL=projects/PROJECT_ID/secrets/neon-database-url/versions/latest
 
 ---
 
-## 6. Local Development
+## 6. Production deployment targets
+
+- `apps/web` -> Vercel production project (`aipandit.app`)
+- `apps/api` -> Google Cloud Run `api-service`
+- `apps/worker` -> Google Cloud Run `worker-service`
+- `services/ephemeris` -> Google Cloud Run `ephemeris-service`
+
+The repo still contains a Cloud Run web Dockerfile, but the current live web target is Vercel.
+
+---
+
+## 7. Local Development
 
 **File:** `apps/web/.env.local` (create manually, never commit)
 

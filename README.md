@@ -139,7 +139,8 @@ npm run test:e2e:smoke
 
 1. **Build and deploy**
    ```bash
-   ./scripts/deploy-cloud-run.sh
+   ./scripts/deploy-cloud-run.sh api
+   ./scripts/deploy-cloud-run.sh worker
    ```
 
 2. **Setup environment variables in Cloud Run Console**
@@ -148,9 +149,15 @@ npm run test:e2e:smoke
 
 ### Vercel (Frontend)
 
-1. **Connect repository to Vercel**
-2. **Set environment variables in Vercel Dashboard**
-3. **Deploy**
+1. **Connect `apps/web` to the Vercel project**
+2. **Set production environment variables in Vercel Dashboard**
+3. **Deploy from Vercel or run `vercel deploy --prod` from `apps/web`**
+
+### Production bootstrap
+
+- Copy `.env.production.example` to a private file such as `.env.production` and fill in your real production values.
+- Use `sh scripts/sync-production-config.sh` for a dry-run of GitHub, GCP, and Vercel env sync.
+- Add `--env-file .env.production --apply` once that file is your confirmed production source of truth.
 
 ## 🤝 Contributing
 

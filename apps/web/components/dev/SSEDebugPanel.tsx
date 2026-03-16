@@ -335,7 +335,7 @@ export function SSEDebugPanel() {
                         </button>
                         <button
                         onClick={() => {
-                                logger.info('📊 Full Stream Store State:', useStreamStore.getState());
+                                logger.info('📊 Full Stream Store State:', { ...useStreamStore.getState() });
                             }}
                             style={actionBtnStyle}
                         >
