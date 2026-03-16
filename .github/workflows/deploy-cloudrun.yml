@@ -34,7 +34,6 @@ jobs:
       GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
       CLOUD_RUN_REGION: ${{ vars.CLOUD_RUN_REGION || 'asia-southeast1' }}
       ARTIFACT_REGISTRY_REPO: ${{ vars.ARTIFACT_REGISTRY_REPO || 'ai-pandit' }}
-      NODE_ENV: production
       NEON_DATABASE_URL: postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder
       DATABASE_URL: postgresql://placeholder:placeholder@127.0.0.1:5432/placeholder
       AI_API_KEY: build-placeholder-ai-key
