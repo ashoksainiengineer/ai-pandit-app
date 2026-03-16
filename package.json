@@ -13,6 +13,7 @@
     "scripts": {
         "build": "turbo run build",
         "build:vercel:web": "npm --workspace @ai-pandit/shared run build && npm --workspace @ai-pandit/db run build && npm --workspace @ai-pandit/web run build:app",
+        "test:deploy-config": "node ./scripts/verify-deploy-config.mjs",
         "dev": "turbo run dev",
         "dev:ephemeris": "sh ./services/ephemeris/scripts/dev.sh",
         "lint": "turbo run lint",
@@ -53,6 +54,7 @@
         "setup:ephemeris": "sh ./services/ephemeris/scripts/bootstrap.sh",
         "ephemeris:download-kernel": "sh ./services/ephemeris/scripts/download-kernel.sh",
         "deploy:cloudrun:api": "sh ./scripts/deploy-cloud-run.sh api",
+        "deploy:cloudrun:ephemeris": "sh ./scripts/deploy-cloud-run.sh ephemeris",
         "deploy:cloudrun:web": "sh ./scripts/deploy-cloud-run.sh web",
         "deploy:cloudrun:worker": "sh ./scripts/deploy-cloud-run.sh worker",
         "deploy:staging:preflight": "sh ./scripts/staging-preflight.sh",

@@ -4,7 +4,7 @@ set -eu
 SERVICE_KIND="${1:-}"
 
 if [ -z "$SERVICE_KIND" ]; then
-  echo "Usage: scripts/deploy-cloud-run.sh <api|web|worker>"
+  echo "Usage: scripts/deploy-cloud-run.sh <api|web|worker|ephemeris>"
   exit 1
 fi
 
@@ -61,6 +61,18 @@ case "$SERVICE_KIND" in
     EXTRA_VARS="NODE_ENV=production,APP_REGION=${REGION},CLOUD_RUN_REGION=${REGION},JOB_EXECUTION_MODE=external_worker,QUEUE_ARCHITECTURE=${QUEUE_ARCHITECTURE:-db_polling},WORKER_POLL_INTERVAL_MS=${WORKER_POLL_INTERVAL_MS:-2000},WORKER_DRAIN_TIMEOUT_MS=${WORKER_DRAIN_TIMEOUT_MS:-30000},JOB_SYNC_POLL_INTERVAL_MS=${JOB_SYNC_POLL_INTERVAL_MS:-2000},USE_ASYNC_JOB_PIPELINE=${USE_ASYNC_JOB_PIPELINE:-true},USE_NEW_STREAM_PATH=${USE_NEW_STREAM_PATH:-true},AI_BASE_URL=${AI_BASE_URL:-https://api.groq.com/openai/v1},AI_MODEL=${AI_MODEL:-openai/gpt-oss-120b},EPHEMERIS_PROVIDER=${EPHEMERIS_PROVIDER:-skyfield},EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK=${EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK:-false},EPHEMERIS_SERVICE_URL=${EPHEMERIS_SERVICE_URL:?EPHEMERIS_SERVICE_URL is required for worker deploy},EPHEMERIS_SERVICE_TIMEOUT_MS=${EPHEMERIS_SERVICE_TIMEOUT_MS:-15000},EPHEMERIS_BATCH_SIZE=${EPHEMERIS_BATCH_SIZE:-250},EPHEMERIS_HOUSE_SYSTEM=${EPHEMERIS_HOUSE_SYSTEM:-placidus}"
     SECRET_VARS="NEON_DATABASE_URL=neon-database-url:latest,REDIS_URL=redis-url:latest,AI_API_KEY=ai-api-key:latest,ENCRYPTION_SECRET=encryption-secret:latest,CLERK_SECRET_KEY=clerk-secret-key:latest"
     ;;
+  ephemeris)
+    SERVICE_NAME="${EPHEMERIS_SERVICE_NAME:-ephemeris-service}"
+    DOCKERFILE="deploy/cloudrun/ephemeris.Dockerfile"
+    MEMORY="${EPHEMERIS_MEMORY:-1Gi}"
+    CPU="${EPHEMERIS_CPU:-1}"
+    CONCURRENCY="${EPHEMERIS_CONCURRENCY:-5}"
+    MIN_INSTANCES="${EPHEMERIS_MIN_INSTANCES:-0}"
+    MAX_INSTANCES="${EPHEMERIS_MAX_INSTANCES:-1}"
+    CPU_THROTTLING_FLAG="--cpu-throttling"
+    EXTRA_VARS="EPHEMERIS_DATA_DIR=${EPHEMERIS_DATA_DIR:-/app/data},EPHEMERIS_KERNEL_FILE=${EPHEMERIS_KERNEL_FILE:-de440s.bsp},EPHEMERIS_LOAD_KERNEL_ON_STARTUP=${EPHEMERIS_LOAD_KERNEL_ON_STARTUP:-true}"
+    SECRET_VARS=""
+    ;;
   *)
     echo "Unsupported service kind: $SERVICE_KIND"
     exit 1
@@ -98,19 +110,35 @@ gcloud builds submit \
   .
 
 echo "Deploying Cloud Run service: ${SERVICE_NAME}"
-gcloud run deploy "${SERVICE_NAME}" \
-  --project="${PROJECT_ID}" \
-  --region="${REGION}" \
-  --image="${IMAGE_URI}" \
-  --platform=managed \
-  --allow-unauthenticated \
-  --memory="${MEMORY}" \
-  --cpu="${CPU}" \
-  --concurrency="${CONCURRENCY}" \
-  --min="${MIN_INSTANCES}" \
-  --max-instances="${MAX_INSTANCES}" \
-  "${CPU_THROTTLING_FLAG}" \
-  --set-env-vars="${EXTRA_VARS}" \
-  --set-secrets="${SECRET_VARS}"
+if [ -n "${SECRET_VARS}" ]; then
+  gcloud run deploy "${SERVICE_NAME}" \
+    --project="${PROJECT_ID}" \
+    --region="${REGION}" \
+    --image="${IMAGE_URI}" \
+    --platform=managed \
+    --allow-unauthenticated \
+    --memory="${MEMORY}" \
+    --cpu="${CPU}" \
+    --concurrency="${CONCURRENCY}" \
+    --min="${MIN_INSTANCES}" \
+    --max-instances="${MAX_INSTANCES}" \
+    "${CPU_THROTTLING_FLAG}" \
+    --set-env-vars="${EXTRA_VARS}" \
+    --set-secrets="${SECRET_VARS}"
+else
+  gcloud run deploy "${SERVICE_NAME}" \
+    --project="${PROJECT_ID}" \
+    --region="${REGION}" \
+    --image="${IMAGE_URI}" \
+    --platform=managed \
+    --allow-unauthenticated \
+    --memory="${MEMORY}" \
+    --cpu="${CPU}" \
+    --concurrency="${CONCURRENCY}" \
+    --min="${MIN_INSTANCES}" \
+    --max-instances="${MAX_INSTANCES}" \
+    "${CPU_THROTTLING_FLAG}" \
+    --set-env-vars="${EXTRA_VARS}"
+fi
 
 echo "Deployed ${SERVICE_NAME} to ${REGION}"

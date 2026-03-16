@@ -5,18 +5,24 @@ on:
   push:
     branches:
       - main
-      - migration/cloudrun-neon-worker-split
     paths:
       - 'apps/api/**'
       - 'apps/worker/**'
+      - 'services/ephemeris/**'
       - 'packages/db/**'
       - 'packages/shared/**'
       - 'deploy/cloudrun/**'
       - 'scripts/deploy-cloud-run.sh'
       - 'scripts/enforce-idle-cost-guards.sh'
+      - 'scripts/verify-deploy-config.mjs'
       - 'package.json'
       - 'package-lock.json'
       - 'turbo.json'
+      - '.github/workflows/deploy-cloudrun.yml'
+
+concurrency:
+  group: deploy-cloudrun-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -36,12 +42,65 @@ jobs:
       ENCRYPTION_SECRET: build-placeholder-encryption-secret-32chars
       NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: build-placeholder-publishable-key
       NEXT_PUBLIC_BACKEND_URL: https://example.com
+      WEB_FRONTEND_URL: ${{ secrets.VERCEL_URL }}
+      FRONTEND_URL: ${{ secrets.VERCEL_URL }}
       JOB_EXECUTION_MODE: external_worker
       WORKER_POLL_INTERVAL_MS: 2000
       USE_ASYNC_JOB_PIPELINE: true
       USE_NEW_STREAM_PATH: true
+      API_SERVICE_NAME: api-service
+      WORKER_SERVICE_NAME: worker-service
+      EPHEMERIS_SERVICE_NAME: ephemeris-service
     steps:
       - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            api:
+              - 'apps/api/**'
+              - 'packages/db/**'
+              - 'packages/shared/**'
+              - 'deploy/cloudrun/**'
+              - 'scripts/deploy-cloud-run.sh'
+              - 'scripts/verify-deploy-config.mjs'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'turbo.json'
+              - '.github/workflows/deploy-cloudrun.yml'
+            worker:
+              - 'apps/worker/**'
+              - 'packages/db/**'
+              - 'packages/shared/**'
+              - 'deploy/cloudrun/**'
+              - 'scripts/deploy-cloud-run.sh'
+              - 'scripts/verify-deploy-config.mjs'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'turbo.json'
+              - '.github/workflows/deploy-cloudrun.yml'
+            ephemeris:
+              - 'services/ephemeris/**'
+              - 'deploy/cloudrun/**'
+              - 'scripts/deploy-cloud-run.sh'
+              - 'scripts/verify-deploy-config.mjs'
+              - 'package.json'
+              - 'package-lock.json'
+              - '.github/workflows/deploy-cloudrun.yml'
+
+      - name: Resolve deploy scope
+        id: scope
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "api=true" >> "$GITHUB_OUTPUT"
+            echo "worker=true" >> "$GITHUB_OUTPUT"
+            echo "ephemeris=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "api=${{ steps.changes.outputs.api }}" >> "$GITHUB_OUTPUT"
+            echo "worker=${{ steps.changes.outputs.worker }}" >> "$GITHUB_OUTPUT"
+            echo "ephemeris=${{ steps.changes.outputs.ephemeris }}" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: actions/setup-node@v4
         with:
@@ -51,7 +110,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify deployment contract
+        run: npm run test:deploy-config
+
       - name: Build shared, db, api, worker
+        if: steps.scope.outputs.api == 'true' || steps.scope.outputs.worker == 'true'
         run: |
           npm --workspace @ai-pandit/shared run build
           npm --workspace @ai-pandit/db run build
@@ -66,11 +129,60 @@ jobs:
       - name: Setup gcloud
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: Deploy ephemeris service
+        if: steps.scope.outputs.ephemeris == 'true'
+        run: npm run deploy:cloudrun:ephemeris
+
+      - name: Resolve ephemeris service URL
+        if: steps.scope.outputs.ephemeris == 'true' || steps.scope.outputs.api == 'true' || steps.scope.outputs.worker == 'true'
+        run: |
+          EPHEMERIS_URL=$(gcloud run services describe "$EPHEMERIS_SERVICE_NAME" --project "$GCP_PROJECT_ID" --region "$CLOUD_RUN_REGION" --format='value(status.url)')
+          echo "EPHEMERIS_SERVICE_URL=${EPHEMERIS_URL}" >> "$GITHUB_ENV"
+
+      - name: Wait for ephemeris readiness
+        if: steps.scope.outputs.ephemeris == 'true' || steps.scope.outputs.api == 'true' || steps.scope.outputs.worker == 'true'
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS "$EPHEMERIS_SERVICE_URL/ready" >/dev/null; then
+              exit 0
+            fi
+            sleep 10
+          done
+          curl -sS "$EPHEMERIS_SERVICE_URL/health" || true
+          exit 1
+
       - name: Deploy API service
+        if: steps.scope.outputs.api == 'true'
         run: npm run deploy:cloudrun:api
 
+      - name: Verify API health
+        if: steps.scope.outputs.api == 'true'
+        run: |
+          API_URL=$(gcloud run services describe "$API_SERVICE_NAME" --project "$GCP_PROJECT_ID" --region "$CLOUD_RUN_REGION" --format='value(status.url)')
+          for i in $(seq 1 30); do
+            if curl -fsS "$API_URL/health" >/dev/null; then
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
+
       - name: Deploy worker service
+        if: steps.scope.outputs.worker == 'true'
         run: npm run deploy:cloudrun:worker
 
+      - name: Verify worker health
+        if: steps.scope.outputs.worker == 'true'
+        run: |
+          WORKER_URL=$(gcloud run services describe "$WORKER_SERVICE_NAME" --project "$GCP_PROJECT_ID" --region "$CLOUD_RUN_REGION" --format='value(status.url)')
+          for i in $(seq 1 30); do
+            if curl -fsS "$WORKER_URL/health" >/dev/null; then
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1
+
       - name: Re-apply idle cost guards
+        if: steps.scope.outputs.api == 'true' || steps.scope.outputs.worker == 'true'
         run: npm run deploy:cloudrun:idle-guards

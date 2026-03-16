@@ -153,6 +153,13 @@ npm run test:e2e:smoke
 2. **Set production environment variables in Vercel Dashboard**
 3. **Deploy from Vercel or run `vercel deploy --prod` from `apps/web`**
 
+### Production automation
+
+- Pushes to `main` should auto-deploy `apps/web` through Vercel Git integration.
+- Pushes to `main` also trigger `.github/workflows/deploy-cloudrun.yml` for Cloud Run services.
+- The Cloud Run deployment lane now treats `ephemeris-service`, `api-service`, and `worker-service` as the production backend set.
+- Backend deploy order is `ephemeris -> api -> worker`, with health gates before downstream services continue.
+
 ### Production bootstrap
 
 - Copy `.env.production.example` to a private file such as `.env.production` and fill in your real production values.
