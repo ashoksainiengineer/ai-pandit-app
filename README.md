@@ -4,7 +4,7 @@
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-96.5%25-blue)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Cloud Run](https://img.shields.io/badge/Google%20Cloud%20Run-Ready-blue)](https://cloud.google.com/run)
+[![Cloud Run](https://img.shields.io/badge/Google%20Cloud%20Run-Active-blue)](https://cloud.google.com/run)
 
 AI-Pandit is a comprehensive platform for precise birth time rectification (BTR) using advanced Vedic astrology algorithms combined with modern AI capabilities.
 
