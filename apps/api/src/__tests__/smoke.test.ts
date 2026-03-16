@@ -50,6 +50,26 @@ vi.mock('../config/index.js', () => ({
             heapThresholdGB: 1.5,
             maxConcurrentSessions: 4,
         },
+        queue: {
+            maxActiveJobsPerUser: 2,
+            maxActiveJobsByTier: { free: 2, pro: 5, enterprise: 12 },
+            loadShedQueueDepth: 80,
+            executionMode: 'external_worker',
+            architecture: 'db_polling',
+            recoveryAlertThreshold: 1,
+        },
+        observability: {
+            slo: {
+                windowMs: 300000,
+                minSampleSize: 20,
+                errorRateAlertPercent: 5,
+                p95LatencyAlertMs: 5000,
+            },
+        },
+        features: {
+            useAsyncJobPipeline: true,
+            useNewStreamPath: true,
+        },
         ai: { model: 'test-model' },
     },
 }));
@@ -66,6 +86,15 @@ vi.mock('../middleware/auth.js', () => ({
 
 vi.mock('../lib/logger.js', () => ({
     logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
+}));
+
+vi.mock('../lib/ephemeris.js', () => ({
+    getEphemerisProviderStatus: vi.fn(() => ({
+        configuredProvider: 'skyfield',
+        activeMode: 'skyfield',
+        ready: true,
+        highPrecision: true,
+    })),
 }));
 
 vi.mock('../lib/user-sync.js', () => ({

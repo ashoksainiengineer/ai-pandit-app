@@ -86,7 +86,7 @@ export const KNOWN_BIRTH_CHARTS = {
   // Sandhi Zone - Critical Test
   sandhiBirth: {
     dateOfBirth: '1992-06-15',
-    time: '05:55:00', // Near ascendant change
+    time: '00:30:00',
     latitude: 28.6139,
     longitude: 77.2090,
     timezone: 5.5,

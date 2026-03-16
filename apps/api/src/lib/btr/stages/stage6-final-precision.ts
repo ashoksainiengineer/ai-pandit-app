@@ -199,6 +199,7 @@ export async function stage6FinalPrecision(
     aiReasoning: string;
     allReasoning?: string;
     thinking?: string;
+    boundaryWarnings: string[];
     finalists: Array<{ time: string; score: number; ephemeris?: unknown }>;
     stageResult: StageResult;
 }> {
@@ -472,6 +473,7 @@ export async function stage6FinalPrecision(
     // FIXED: Aggregate God-Tier data from ALL finalists for comprehensive prompt
     // This provides the AI with consensus patterns across all finalists
     const validEnhanced = enhancedFinalBatch.filter(e => e.precision?.consensus);
+    const boundaryWarnings = getConsensusBoundaryWarnings(validEnhanced);
     if (validEnhanced.length > 0) {
         // Use the candidate with highest consensus for main enhancement
         const bestEnhanced = validEnhanced.reduce((best, current) =>
@@ -589,6 +591,7 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
             ? `${aiContent}\n\n[Fallback] Final verdict was not usable. Deterministic finalist fallback winner selected: ${finalTime}.`
             : aiContent,
         thinking: response.thinking,
+        boundaryWarnings,
         finalists: finalBatch.map(c => ({
             time: c.time,
             score: c.time === finalTime ? accuracy : config.btr.fallbackRejectedScore + 30, // Basic score for runner-ups if not specified
@@ -602,4 +605,27 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
             aiReasoning: allReasoning
         }
     };
+}
+
+function getConsensusBoundaryWarnings(
+    candidates: Array<CandidateWithPrecisionData & { time: string; offsetMinutes: number }>
+): string[] {
+    const warnings = new Set<string>();
+
+    for (const candidate of candidates) {
+        const redFlags = candidate.precision?.consensus.redFlags;
+        if (!redFlags) {
+            continue;
+        }
+
+        if (redFlags.sandhiBirth) {
+            warnings.add('Birth near cusp - additional verification needed');
+        }
+
+        if (redFlags.d60Instability) {
+            warnings.add('D60 changes in window - micro-grid analysis recommended');
+        }
+    }
+
+    return [...warnings];
 }

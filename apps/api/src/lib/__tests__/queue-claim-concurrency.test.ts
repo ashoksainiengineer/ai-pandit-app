@@ -88,14 +88,25 @@ vi.mock('@ai-pandit/db/jobs', () => ({
         const winner = contenders.find((candidate) => (updateRowsById[candidate.id] ?? 0) > 0);
         return winner ? { id: `job_${winner.id}`, sessionId: winner.id } : null;
     }),
+    appendJobEvent: vi.fn(),
+    completeJobAttempt: vi.fn(),
     createJobAttempt: vi.fn(async ({ id, jobId }: { id: string; jobId: string }) => ({ id, jobId })),
     failJob: vi.fn(),
     getLatestJobForSession: vi.fn(async (sessionId: string) => ({
         id: `job_${sessionId}`,
         sessionId,
         attempt: 0,
+        currentStage: null,
+        progressPercent: 0,
+        retryCount: 0,
     })),
     incrementJobAttempt: vi.fn(async () => ({ attempt: 1 })),
+    listJobEvents: vi.fn(async () => []),
+    markJobRunning: vi.fn(),
+    requestJobCancellation: vi.fn(),
+    scheduleJobRetry: vi.fn(),
+    updateJobAttemptHeartbeat: vi.fn(),
+    updateJobProgress: vi.fn(),
 }));
 
 vi.mock('../logger.js', () => ({
@@ -124,6 +135,7 @@ vi.mock('../progress-tracker.js', () => ({
         clearInstance: vi.fn(),
         getInstance: vi.fn(),
     },
+    getSessionProgress: vi.fn(async () => null),
 }));
 
 vi.mock('../encryption/index.js', () => ({

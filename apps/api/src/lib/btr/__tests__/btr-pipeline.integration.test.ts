@@ -6,10 +6,57 @@
  */
 
 import { describe, it, expect, beforeAll } from 'vitest';
+import { db } from '@ai-pandit/db';
+import { sessions, users } from '@ai-pandit/db/schema';
+import { eq } from 'drizzle-orm';
 import { processSecondsPrecisionBTR } from '../../seconds-precision-btr.js';
 import { initEphemerisProvider } from '../../ephemeris.js';
 import { createBirthInput, TEST_TIMEOUTS, KNOWN_BIRTH_CHARTS } from '../../__tests__/test-utils.js';
 import type { SecondsPrecisionInput } from '@ai-pandit/shared';
+
+const TEST_USER_ID = 'btr-integration-user';
+const TEST_CLERK_ID = 'btr-integration-clerk';
+
+async function runPipelineWithSession(input: SecondsPrecisionInput) {
+  const now = new Date().toISOString();
+
+  await db.insert(users).values({
+    id: TEST_USER_ID,
+    clerkId: TEST_CLERK_ID,
+    email: 'btr-integration@example.com',
+    fullName: 'BTR Integration Test',
+    createdAt: now,
+    updatedAt: now,
+  }).onConflictDoNothing();
+
+  await db.insert(sessions).values({
+    id: input.sessionId,
+    userId: TEST_USER_ID,
+    clerkId: TEST_CLERK_ID,
+    fullName: 'BTR Integration Test',
+    dateOfBirth: input.dateOfBirth,
+    tentativeTime: input.tentativeTime,
+    birthPlace: 'Integration Test Location',
+    latitude: input.latitude,
+    longitude: input.longitude,
+    timezone: String(input.timezone),
+    forensicTraits: input.forensicTraits ? JSON.stringify(input.forensicTraits) : null,
+    lifeEvents: JSON.stringify(input.lifeEvents),
+    offsetConfig: JSON.stringify(input.offsetConfig),
+    status: 'pending',
+    aiConsentGiven: true,
+    aiConsentGivenAt: now,
+    isEncrypted: false,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  try {
+    return await processSecondsPrecisionBTR(input);
+  } finally {
+    await db.delete(sessions).where(eq(sessions.id, input.sessionId));
+  }
+}
 
 describe('BTR Pipeline - Integration Tests', () => {
   
@@ -58,7 +105,7 @@ describe('BTR Pipeline - Integration Tests', () => {
           ]
         });
 
-        const result = await processSecondsPrecisionBTR(input);
+        const result = await runPipelineWithSession(input);
 
         // Verify result structure
         expect(result).toBeDefined();
@@ -87,7 +134,7 @@ describe('BTR Pipeline - Integration Tests', () => {
           ]
         });
 
-        const result = await processSecondsPrecisionBTR(input);
+        const result = await runPipelineWithSession(input);
 
         expect(result).toBeDefined();
         expect(result.stagesCompleted).toBe(6);
@@ -137,7 +184,7 @@ describe('BTR Pipeline - Integration Tests', () => {
           }
         });
 
-        const result = await processSecondsPrecisionBTR(input);
+        const result = await runPipelineWithSession(input);
 
         expect(result).toBeDefined();
         // Verify forensic traits were processed - result should be valid
@@ -158,7 +205,7 @@ describe('BTR Pipeline - Integration Tests', () => {
           timezone: KNOWN_BIRTH_CHARTS.sandhiBirth.timezone
         });
 
-        const result = await processSecondsPrecisionBTR(input);
+        const result = await runPipelineWithSession(input);
 
         expect(result).toBeDefined();
         expect(result.boundaryWarnings).toBeInstanceOf(Array);
@@ -175,7 +222,7 @@ describe('BTR Pipeline - Integration Tests', () => {
           offsetConfig: { customMinutes: 60, description: '±1 hour' }
         });
 
-        const result = await processSecondsPrecisionBTR(input);
+        const result = await runPipelineWithSession(input);
 
         expect(result).toBeDefined();
         expect(result.analysisResult.stageHistory).toBeDefined();
@@ -188,7 +235,7 @@ describe('BTR Pipeline - Integration Tests', () => {
           offsetConfig: { preset: '30min', description: '±30 min' }
         });
 
-        const result = await processSecondsPrecisionBTR(input);
+        const result = await runPipelineWithSession(input);
 
         expect(result).toBeDefined();
       }, TEST_TIMEOUTS.E2E);
@@ -198,7 +245,7 @@ describe('BTR Pipeline - Integration Tests', () => {
           offsetConfig: { preset: '1hour', description: '±1 hour' }
         });
 
-        const result = await processSecondsPrecisionBTR(input);
+        const result = await runPipelineWithSession(input);
 
         expect(result).toBeDefined();
       }, TEST_TIMEOUTS.E2E);
@@ -210,7 +257,7 @@ describe('BTR Pipeline - Integration Tests', () => {
       it('Then should contain all required result fields', async () => {
         const input = createBirthInput();
 
-        const result = await processSecondsPrecisionBTR(input);
+        const result = await runPipelineWithSession(input);
 
         // Core fields
         expect(result.rectifiedTime).toBeTruthy();

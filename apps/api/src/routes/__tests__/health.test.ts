@@ -88,6 +88,17 @@ vi.mock('../../lib/logger.js', () => ({
     logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
 
+const ephemerisStatus = {
+    configuredProvider: 'skyfield',
+    activeMode: 'skyfield',
+    ready: true,
+    highPrecision: true,
+};
+
+vi.mock('../../lib/ephemeris.js', () => ({
+    getEphemerisProviderStatus: vi.fn(() => ephemerisStatus),
+}));
+
 import { checkDatabaseHealth } from '@ai-pandit/db';
 import express from 'express';
 import request from 'supertest';
@@ -154,6 +165,7 @@ describe('Health Routes - GET /health/ready (Readiness)', () => {
         expect(res.status).toBe(200);
         expect(res.body.ready).toBe(true);
         expect(res.body.dbLatencyMs).toBe(3);
+        expect(res.body.dependencies).toEqual({ database: 'ready', ephemeris: 'ready' });
     });
 
     it('should return 503 ready: false when DB is unhealthy', async () => {
@@ -164,6 +176,24 @@ describe('Health Routes - GET /health/ready (Readiness)', () => {
 
         expect(res.status).toBe(503);
         expect(res.body.ready).toBe(false);
+    });
+
+    it('should return 503 ready: false when ephemeris is not ready', async () => {
+        vi.mocked(checkDatabaseHealth).mockResolvedValue({ healthy: true, latencyMs: 3 });
+        ephemerisStatus.ready = false;
+        ephemerisStatus.highPrecision = false;
+        ephemerisStatus.activeMode = 'algorithmic-fallback';
+
+        const app = createApp();
+        const res = await request(app).get('/health/ready');
+
+        expect(res.status).toBe(503);
+        expect(res.body.ready).toBe(false);
+        expect(res.body.dependencies).toEqual({ database: 'ready', ephemeris: 'not-ready' });
+
+        ephemerisStatus.ready = true;
+        ephemerisStatus.highPrecision = true;
+        ephemerisStatus.activeMode = 'skyfield';
     });
 
     it('should return 503 when checkDatabaseHealth throws', async () => {

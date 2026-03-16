@@ -21,18 +21,21 @@ vi.mock('../session-events.js', () => ({
 }));
 
 describe('Chapter 2.1: BTR Pipeline - Stress & Robustness', () => {
+    const originalNodeEnv = process.env.NODE_ENV;
 
     describe('ProgressTracker Industrial Stress', () => {
         let tracker: ProgressTracker;
         const sessionId = 'stress-test-session';
 
         beforeEach(() => {
+            process.env.NODE_ENV = 'development';
             tracker = new ProgressTracker(sessionId);
         });
 
         afterEach(() => {
             ProgressTracker.clearInstance(sessionId);
             vi.clearAllMocks();
+            process.env.NODE_ENV = originalNodeEnv;
         });
 
         it('should handle rapid-fire thinking updates without memory bloat', async () => {
