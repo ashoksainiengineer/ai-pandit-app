@@ -13,7 +13,6 @@ import {
   getActiveQueueCount,
   recoverInterruptedJobsOnStartup,
   runQueueIteration,
-  stopQueueProcessor,
   waitForQueueDrain,
 } from '../queue-manager.js';
 import { initEphemerisProvider } from '../ephemeris.js';

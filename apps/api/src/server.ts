@@ -49,10 +49,6 @@ const startupState: StartupState = {
     startedAt: Date.now(),
 };
 
-function isApiReady(): boolean {
-    return startupState.dbReady && startupState.ephemerisReady;
-}
-
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
     return Promise.race([
         promise,

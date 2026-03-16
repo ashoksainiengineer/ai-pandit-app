@@ -12,6 +12,7 @@
     "build:app": "next build",
     "build:vercel": "npm run build:vercel:web",
     "build:vercel:web": "cd ../.. && npm run build:vercel:web",
+    "typecheck": "tsc --noEmit",
     "start": "node .next/standalone/server.js",
     "lint": "next lint",
     "test": "vitest run",

@@ -447,7 +447,7 @@ export class RedisEventStore {
   /**
    * Get inactive sessions (for garbage collection)
    */
-  async getInactiveSessions(thresholdMs: number): Promise<string[]> {
+  async getInactiveSessions(_thresholdMs: number): Promise<string[]> {
     if (!this.isAvailable()) {
       return [];
     }

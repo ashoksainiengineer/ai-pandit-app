@@ -75,15 +75,6 @@ interface SseEventEnvelope {
   [key: string]: unknown;
 }
 
-function getRequiredEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`${name} is required`);
-  }
-
-  return value;
-}
-
 async function loadPayload(): Promise<Record<string, unknown>> {
   const payloadPath = process.env.SMOKE_PAYLOAD_PATH || DEFAULT_SMOKE_PAYLOAD_PATH;
   const raw = await fs.readFile(payloadPath, 'utf8');

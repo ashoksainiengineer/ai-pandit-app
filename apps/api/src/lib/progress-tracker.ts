@@ -6,7 +6,7 @@
 
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
-import { eq, and, isNotNull } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { emitProgress, _emitComplete, emitError, emitCandidateScore, emitAIContext, emitEstimatedTime, emitAIThinking } from './session-events.js';
 import { logger } from './logger.js';
 import type { CandidateScore, ProgressStep, AIThinkingData, AIContextData, ProgressData } from '@ai-pandit/shared';

@@ -23,7 +23,7 @@ import {
   updateJobAttemptHeartbeat,
   updateJobProgress as updateJobProgressRecord,
 } from '@ai-pandit/db/jobs';
-import { eq, and, or, desc, asc, lt, gte } from 'drizzle-orm';
+import { eq, and, or, asc, lt, gte } from 'drizzle-orm';
 import { logger } from './logger.js';
 import { safeDecryptWithFallback, parseSensitiveField } from './encryption/index.js';
 import {
