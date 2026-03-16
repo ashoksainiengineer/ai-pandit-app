@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const root = '/home/ashoksainiengineer/ai-pandit-app';
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const root = resolve(scriptDir, '..');
 
 const readJson = (relativePath) => JSON.parse(readFileSync(resolve(root, relativePath), 'utf8'));
 const readText = (relativePath) => readFileSync(resolve(root, relativePath), 'utf8');
