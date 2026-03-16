@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from 'react';
+import { logger } from '@/lib/secure-logger';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { useClipboard } from '@/hooks/useClipboard';
@@ -24,7 +25,7 @@ export function useResultsDashboard({ sessionId, data, birthData }: ResultsDashb
                 setAnalysisDetails(parsed);
             }
         } catch (e) {
-            console.error('Failed to parse analysis result:', e);
+            logger.error('Failed to parse analysis result:', e);
             setAnalysisDetails(null);
         }
     }, [data.analysisResult]);
@@ -39,7 +40,7 @@ export function useResultsDashboard({ sessionId, data, birthData }: ResultsDashb
                 throw new Error(result.error || 'Failed to clone session');
             }
         } catch (err) {
-            console.error('Clone failed:', err);
+            logger.error('Clone failed:', err);
             alert('Failed to duplicate session. Please try again.');
             setIsCloning(false);
         }
@@ -75,7 +76,7 @@ export function useResultsDashboard({ sessionId, data, birthData }: ResultsDashb
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
         } catch (err) {
-            console.error('Export failed:', err);
+            logger.error('Export failed:', err);
             alert('Failed to export data');
         }
     }, [sessionId, data, birthData, analysisDetails]);
@@ -169,7 +170,7 @@ export function useResultsDashboard({ sessionId, data, birthData }: ResultsDashb
 
             doc.save(`Rectification_Report_${sessionId.slice(0, 6)}.pdf`);
         } catch (error) {
-            console.error('PDF Generation failed:', error);
+            logger.error('PDF Generation failed:', error);
             alert('Failed to generate PDF report. Please try again.');
         } finally {
             setIsGenerating(false);

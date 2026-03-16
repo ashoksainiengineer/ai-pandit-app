@@ -15,6 +15,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useStreamStore } from '@/lib/store/stream-store';
 import { useShallow } from 'zustand/react/shallow';
+import { logger } from '@/lib/secure-logger';
 
 interface SSEEvent {
     id: number;
@@ -333,8 +334,8 @@ export function SSEDebugPanel() {
                             🗑️ Clear Store (Reset)
                         </button>
                         <button
-                            onClick={() => {
-                                console.log('📊 Full Stream Store State:', useStreamStore.getState());
+                        onClick={() => {
+                                logger.info('📊 Full Stream Store State:', useStreamStore.getState());
                             }}
                             style={actionBtnStyle}
                         >

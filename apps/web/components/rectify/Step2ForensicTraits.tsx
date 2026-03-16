@@ -13,6 +13,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
+import { logger } from '@/lib/secure-logger';
 import { motion } from 'framer-motion';
 import { ForensicTraits } from '@/lib/types';
 import { Gender } from '@/lib/forensic-emojis';
@@ -75,7 +76,7 @@ export default function Step2ForensicTraits({
             setQuizCompleted(true);
             setShowQuiz(false);
         } catch (error) {
-            console.error('Error converting quiz results:', error);
+            logger.error('Error converting quiz results:', error);
             // Still mark as complete, user can retake if needed
             setQuizCompleted(true);
             setShowQuiz(false);

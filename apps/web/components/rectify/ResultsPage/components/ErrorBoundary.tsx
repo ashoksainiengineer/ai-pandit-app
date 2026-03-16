@@ -1,4 +1,5 @@
 import React from 'react';
+import { logger } from '@/lib/secure-logger';
 import { AlertTriangle } from 'lucide-react';
 
 interface ErrorBoundaryState {
@@ -19,7 +20,7 @@ export class ResultsPageErrorBoundary extends React.Component<
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        console.error('ResultsPage Error:', error, errorInfo);
+        logger.error('ResultsPage Error:', error, errorInfo);
     }
 
     render() {

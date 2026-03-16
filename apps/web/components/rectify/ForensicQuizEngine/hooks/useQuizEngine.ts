@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { logger } from '@/lib/secure-logger';
 import { QuizAnswer, QuizResults } from '@/lib/forensic-quiz/types';
 import { FORENSIC_ONLY_QUESTIONS as FORENSIC_QUIZ_QUESTIONS } from '@/lib/forensic-quiz/questions';
 import { calculateQuizResults, getQuizProgress } from '@/lib/forensic-quiz/scoring';
@@ -30,7 +31,7 @@ export function useQuizEngine({
                 }
             }
         } catch (e) {
-            console.error('Error loading quiz progress:', e);
+            logger.error('Error loading quiz progress:', e);
         }
         return null;
     }, [sessionId]);
@@ -98,7 +99,7 @@ export function useQuizEngine({
         try {
             return calculateQuizResults(answers);
         } catch (e) {
-            console.error('Error calculating results:', e);
+            logger.error('Error calculating results:', e);
             return null;
         }
     }, [answers]);
@@ -120,7 +121,7 @@ export function useQuizEngine({
 
             setTimeout(() => setSaveStatus('idle'), 2000);
         } catch (e) {
-            console.error('Error saving quiz progress:', e);
+            logger.error('Error saving quiz progress:', e);
             setSaveStatus('idle');
         }
     }, 1000);
@@ -297,7 +298,7 @@ export function useQuizEngine({
             }
             onComplete(results);
         } catch (e) {
-            console.error('Error completing quiz:', e);
+            logger.error('Error completing quiz:', e);
             setError('Failed to complete quiz. Please try again.');
         } finally {
             setIsSubmitting(false);

@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { MapPin, Search, Crosshair, Globe, X } from 'lucide-react';
+import { logger } from '@/lib/secure-logger';
 
 const InteractiveMap = dynamic(() => import('./InteractiveMap'), {
   ssr: false,
@@ -165,7 +166,7 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
       setShowDropdown(results.length > 0);
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') return;
-      console.error('City search failed:', error);
+      logger.error('City search failed', error instanceof Error ? error : new Error(String(error)));
       setSearchError('Search failed. Please try again.');
       setSearchResults([]);
     } finally {
@@ -225,7 +226,7 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
         const formattedPlace = [location.city, location.district, location.state, location.country].filter(Boolean).join(', ');
         onUpdate({ birthPlace: formattedPlace, latitude: lat, longitude: lng, timezone: parseFloat(location.timezone) });
       }
-    } catch (error) { console.error('Map search failed:', error); }
+    } catch (error) { logger.error('Map search failed', error instanceof Error ? error : new Error(String(error))); }
   };
 
   return (

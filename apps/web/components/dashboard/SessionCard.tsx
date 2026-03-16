@@ -28,6 +28,7 @@ import { DeleteConfirmModal } from './DeleteConfirmModal';
 import { ClientOnly } from '@/components/ui/ClientOnly';
 import { LoadingOverlay } from '@/components/ui/LoadingOverlay';
 import { APIClient } from '@/lib/api-client';
+import { logger } from '@/lib/secure-logger';
 
 interface SessionCardProps {
   session: DashboardSession;
@@ -246,11 +247,11 @@ export const SessionCard = memo(function SessionCard({
 
         router.push(`/rectify/${data.data.id}/edit`);
       } else {
-        console.error(data.error || 'Failed to clone session');
+        logger.error('Failed to clone session', new Error(data.error || 'Failed to clone session'));
         alert('Failed to clone session: ' + (data.error || 'Unknown error'));
       }
     } catch (error: any) {
-      console.error('Clone error:', error);
+      logger.error('Clone error', error);
       alert('Clone failed: ' + error.message);
     } finally {
       setIsCloning(false);

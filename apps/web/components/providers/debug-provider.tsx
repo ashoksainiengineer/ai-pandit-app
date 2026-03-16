@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { debugAnalysis } from '@/lib/debug/analysis-debug';
+import { logger } from '@/lib/secure-logger';
 
 /**
  * Debug Provider - Development only
@@ -9,7 +10,7 @@ import { debugAnalysis } from '@/lib/debug/analysis-debug';
  */
 export function DebugProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
+      if (process.env.NODE_ENV === 'development') {
       // Attach to window
       (window as any).debugAnalysis = debugAnalysis;
       
@@ -23,10 +24,10 @@ export function DebugProvider({ children }: { children: React.ReactNode }) {
         }
       }, 1000);
       
-      console.log('🔧 Debug utilities loaded! Try:');
-      console.log('  debugAnalysis.logStreamState()');
-      console.log('  debugAnalysis.checkMemory()');
-      console.log('  debugAnalysis.getErrors()');
+      logger.info('🔧 Debug utilities loaded! Try:');
+      logger.info('  debugAnalysis.logStreamState()');
+      logger.info('  debugAnalysis.checkMemory()');
+      logger.info('  debugAnalysis.getErrors()');
       
       return () => clearInterval(checkStore);
     }

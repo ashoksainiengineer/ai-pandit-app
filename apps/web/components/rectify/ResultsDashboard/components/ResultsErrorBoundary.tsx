@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { logger } from '@/lib/secure-logger';
 import { AlertTriangle } from 'lucide-react';
 import { THEME } from '../../dashboard/theme';
 
@@ -23,7 +24,7 @@ export class ResultsErrorBoundary extends React.Component<
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        console.error('ResultsDashboard Error:', error, errorInfo);
+        logger.error('ResultsDashboard Error:', error, errorInfo);
     }
 
     render() {

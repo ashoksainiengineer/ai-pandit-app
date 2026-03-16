@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { logger } from '@/lib/secure-logger';
 import { TabType } from '../types';
 import { sanitizeHtml } from '../utils';
 
@@ -12,7 +13,7 @@ export function useResultsPage(onNewAnalysis: () => void) {
         try {
             onNewAnalysis();
         } catch (error) {
-            console.error('Failed to start new analysis:', error);
+            logger.error('Failed to start new analysis:', error);
             setIsLoading(false);
         }
     }, [onNewAnalysis]);
