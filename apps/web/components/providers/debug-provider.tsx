@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect } from 'react';
-import { debugAnalysis } from '@/lib/debug/analysis-debug';
 import { logger } from '@/lib/secure-logger';
 
 /**
@@ -11,6 +10,23 @@ import { logger } from '@/lib/secure-logger';
 export function DebugProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
       if (process.env.NODE_ENV === 'development') {
+      // Dynamically import debug utilities to avoid build issues
+      let debugAnalysis: any = {};
+      try {
+        const debugModule = require('@/lib/debug/analysis-debug');
+        debugAnalysis = debugModule.debugAnalysis || {};
+      } catch (e) {
+        // Debug module not available in production build
+        debugAnalysis = {
+          logStreamState: () => console.log('Debug not available'),
+          checkMemory: () => console.log('Debug not available'),
+          monitorSSE: () => console.log('Debug not available'),
+          checkRenders: () => console.log('Debug not available'),
+          inspectCandidate: () => console.log('Debug not available'),
+          getErrors: () => console.log('Debug not available'),
+        };
+      }
+      
       // Attach to window
       (window as any).debugAnalysis = debugAnalysis;
       
