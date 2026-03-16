@@ -158,6 +158,7 @@ npm run test:e2e:smoke
 - Copy `.env.production.example` to a private file such as `.env.production` and fill in your real production values.
 - Use `sh scripts/sync-production-config.sh` for a dry-run of GitHub, GCP, and Vercel env sync.
 - Add `--env-file .env.production --apply` once that file is your confirmed production source of truth.
+- For Git-triggered Vercel hobby deployments, use a commit author email that GitHub can associate with the connected repository owner.
 
 ## 🤝 Contributing
 
