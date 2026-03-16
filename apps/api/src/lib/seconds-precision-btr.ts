@@ -241,6 +241,10 @@ export async function processSecondsPrecisionBTR(
 
         const divCharts = generateDivisionalCharts(finalEphemeris);
         const boundary = calculateBoundarySafety(finalEphemeris);
+        const boundaryWarnings = [...new Set([
+            ...getBoundaryWarnings(boundary),
+            ...stage6.boundaryWarnings
+        ])];
 
         await progress.complete();
 
@@ -312,7 +316,7 @@ export async function processSecondsPrecisionBTR(
             precisionLevel: 'seconds' as const,
             marginOfError: stage6.margin,
             stagesCompleted: 6,
-            boundaryWarnings: boundary.isDangerous ? ['Near boundary transition'] : [],
+            boundaryWarnings,
             methodsUsed: ['DeepSeek v3.2 (Reasoning Mode)', 'Skyfield Astronomy Service', 'Vimshottari', 'Yogini', 'Chara', 'D9', 'D10', 'D60'],
             processingTimeMs: Date.now() - startTime,
             analysisResult: enrichedResult
@@ -332,6 +336,24 @@ export async function processSecondsPrecisionBTR(
         await progress.errorStep(currentStepId, error instanceof Error ? error.message : String(error));
         throw error;
     }
+}
+
+function getBoundaryWarnings(boundary: { lagnaSignBoundary: number; moonNakshatraBoundary: number; isDangerous: boolean }): string[] {
+    const warnings: string[] = [];
+
+    if (boundary.lagnaSignBoundary < 60) {
+        warnings.push(`Lagna near sign boundary (${boundary.lagnaSignBoundary}s)`);
+    }
+
+    if (boundary.moonNakshatraBoundary < 120) {
+        warnings.push(`Moon near nakshatra boundary (${boundary.moonNakshatraBoundary}s)`);
+    }
+
+    if (boundary.isDangerous) {
+        warnings.push('Birth in critical boundary zone');
+    }
+
+    return warnings;
 }
 
 // ═════════════════════════════════════════════════════════════════════════════

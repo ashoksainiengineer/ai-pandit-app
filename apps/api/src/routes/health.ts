@@ -9,6 +9,7 @@ import { jobs } from '@ai-pandit/db/schema';
 import { count, eq, sql } from 'drizzle-orm';
 import { config } from '../config/index.js';
 import { logger } from '../lib/logger.js';
+import { getEphemerisProviderStatus } from '../lib/ephemeris.js';
 import { getQueueDriver } from '../lib/queue/index.js';
 import { getSloAlerts, getSloSnapshot } from '../lib/observability/slo-monitor.js';
 import { getOtlpExporterStats } from '../lib/observability/otlp-exporter.js';
@@ -37,6 +38,69 @@ interface ComponentStatus {
   details?: Record<string, unknown>;
 }
 
+export interface ApiReadinessStatus {
+  ready: boolean;
+  timestamp: string;
+  dbLatencyMs?: number;
+  dependencies: {
+    database: 'ready' | 'not-ready';
+    ephemeris: 'ready' | 'not-ready';
+  };
+  errors: {
+    database: string | null;
+    ephemeris: string | null;
+  };
+  ephemerisProvider: ReturnType<typeof getEphemerisProviderStatus>;
+}
+
+async function withDbHealthTimeout() {
+  return Promise.race([
+    checkDatabaseHealth(),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('DB health check timeout')), 5000)
+    ),
+  ]);
+}
+
+export async function getApiReadinessStatus(): Promise<ApiReadinessStatus> {
+  const timestamp = new Date().toISOString();
+  const ephemerisProvider = getEphemerisProviderStatus();
+
+  try {
+    const dbHealth = await withDbHealthTimeout();
+    const ready = dbHealth.healthy && ephemerisProvider.ready;
+
+    return {
+      ready,
+      timestamp,
+      dbLatencyMs: dbHealth.latencyMs,
+      dependencies: {
+        database: dbHealth.healthy ? 'ready' : 'not-ready',
+        ephemeris: ephemerisProvider.ready ? 'ready' : 'not-ready',
+      },
+      errors: {
+        database: dbHealth.healthy ? null : (dbHealth.error ?? 'Database not ready'),
+        ephemeris: ephemerisProvider.ready ? null : 'Ephemeris provider not ready',
+      },
+      ephemerisProvider,
+    };
+  } catch (error) {
+    return {
+      ready: false,
+      timestamp,
+      dependencies: {
+        database: 'not-ready',
+        ephemeris: ephemerisProvider.ready ? 'ready' : 'not-ready',
+      },
+      errors: {
+        database: `Readiness check failed: ${(error as Error).message}`,
+        ephemeris: ephemerisProvider.ready ? null : 'Ephemeris provider not ready',
+      },
+      ephemerisProvider,
+    };
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // HEALTH CHECK ENDPOINT
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -62,36 +126,13 @@ router.get('/', async (_req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 router.get('/ready', async (_req: Request, res: Response) => {
-  try {
-    // Add timeout to prevent hanging on DB check
-    const dbHealth = await Promise.race([
-      checkDatabaseHealth(),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('DB health check timeout')), 5000)
-      ),
-    ]);
+  const readiness = await getApiReadinessStatus();
 
-    if (dbHealth.healthy) {
-      res.json({
-        ready: true,
-        timestamp: new Date().toISOString(),
-        dbLatencyMs: dbHealth.latencyMs,
-      });
-    } else {
-      res.status(503).json({
-        ready: false,
-        error: 'Database not ready',
-        timestamp: new Date().toISOString(),
-      });
-    }
-  } catch (error) {
-    logger.warn('Readiness check failed', { error: (error as Error).message });
-    res.status(503).json({
-      ready: false,
-      error: 'Readiness check failed: ' + (error as Error).message,
-      timestamp: new Date().toISOString(),
-    });
+  if (!readiness.ready) {
+    logger.warn('Readiness check failed', readiness.errors);
   }
+
+  res.status(readiness.ready ? 200 : 503).json(readiness);
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════

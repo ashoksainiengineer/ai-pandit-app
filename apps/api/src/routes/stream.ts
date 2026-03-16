@@ -324,13 +324,22 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                 // RECONNECT PATH: Last-Event-ID present → replay only missed events
                 // This avoids sending duplicate thinking text, scores, etc.
                 // ────────────────────────────────────────────────────────────────
-                const missedEvents = config.features.useNewStreamPath
+                // FIX: Merge both DB-persisted (durable) and memory (all events) sources
+                // DB has low-volume durable events (progress, complete, error, job.*)
+                // Memory has all events including high-volume (ai_thinking, candidate_scores)
+                const dbEvents = config.features.useNewStreamPath
                     ? await getPersistedSessionEventsSince(sessionId, lastSeq)
                     : [];
-                const replayEvents = missedEvents.length > 0
-                    ? missedEvents
-                    : sessionEvents.getEventsSince(sessionId, lastSeq);
-                logger.info(`[SSE] ♻️ Replaying ${replayEvents.length} missed events since seq ${lastSeq} for ${sessionId}`);
+                const memoryEvents = sessionEvents.getEventsSince(sessionId, lastSeq);
+
+                // Merge and deduplicate by sequence number (memory events take precedence for same seq)
+                const eventMap = new Map<number, { seq: number; event: SessionEvent }>();
+                dbEvents.forEach(e => eventMap.set(e.seq, e));
+                memoryEvents.forEach(e => eventMap.set(e.seq, e)); // Overwrite with memory if duplicate
+
+                // Sort by sequence number for ordered replay
+                const replayEvents = Array.from(eventMap.values()).sort((a, b) => a.seq - b.seq);
+                logger.info(`[SSE] ♻️ Replaying ${replayEvents.length} missed events (DB: ${dbEvents.length}, Memory: ${memoryEvents.length}) since seq ${lastSeq} for ${sessionId}`);
 
                 for (const { seq, event } of replayEvents) {
                     sendSequencedEvent(res, sessionId, event, seq);

@@ -45,6 +45,15 @@ export type {
 // Max events to retain per session for Last-Event-ID replay
 const MAX_EVENT_LOG_SIZE = 2000;
 const NON_PERSISTED_EVENT_TYPES = new Set(['ping', 'connected', 'metadata', 'initial_state', 'terminal_state']);
+const PERSISTED_EVENT_TYPES = new Set([
+    'progress',
+    'stage_stats',
+    'complete',
+    'error',
+    'job.queued',
+    'job.started',
+    'job.recovered',
+]);
 
 function extractPersistenceErrorCode(error: unknown): string | null {
     if (!error || typeof error !== 'object') {
@@ -237,6 +246,10 @@ class SessionEventManager {
         }
 
         if (NON_PERSISTED_EVENT_TYPES.has(event.type)) {
+            return;
+        }
+
+        if (!PERSISTED_EVENT_TYPES.has(event.type)) {
             return;
         }
 

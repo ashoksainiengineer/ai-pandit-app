@@ -277,11 +277,13 @@ async function syncJobRunning(sessionId: string): Promise<void> {
     return;
   }
 
+  const progress = await getSessionProgress(sessionId);
+
   await markJobRunningRecord(job.id);
   await updateJobProgressRecord({
     jobId: job.id,
-    currentStage: job.currentStage,
-    progressPercent: job.progressPercent,
+    currentStage: getCurrentStage(progress) ?? job.currentStage,
+    progressPercent: progress?.percentage ?? job.progressPercent,
     checkpointJson: await buildCheckpointPayload(sessionId, 'running', {
       attempt: job.attempt,
       retryCount: job.retryCount,
@@ -408,6 +410,7 @@ async function syncJobHeartbeat(sessionId: string): Promise<void> {
   }
 
   const progress = await getSessionProgress(sessionId);
+  const currentStage = getCurrentStage(progress) ?? job.currentStage;
   const checkpointJson = await buildCheckpointPayload(sessionId, job.status, {
     attempt: job.attempt,
     retryCount: job.retryCount,
@@ -415,7 +418,7 @@ async function syncJobHeartbeat(sessionId: string): Promise<void> {
 
   await updateJobProgressRecord({
     jobId: job.id,
-    currentStage: job.currentStage,
+    currentStage,
     progressPercent: progress?.percentage ?? job.progressPercent,
     checkpointJson,
   });
@@ -427,6 +430,15 @@ async function syncJobHeartbeat(sessionId: string): Promise<void> {
       checkpointJson,
     });
   }
+}
+
+function getCurrentStage(progress: Awaited<ReturnType<typeof getSessionProgress>>): string | null {
+  if (!progress) {
+    return null;
+  }
+
+  const currentStep = progress.steps?.[progress.currentStep];
+  return currentStep?.id ?? null;
 }
 
 async function syncJobCancelled(sessionId: string): Promise<void> {
@@ -1331,6 +1343,17 @@ async function processSessionAsync(sessionId: string): Promise<void> {
 
     // Process the analysis
     try {
+      await heartbeat(sessionId);
+      const heartbeatTimer = setInterval(() => {
+        void heartbeat(sessionId).catch((error) => {
+          logger.warn('Worker heartbeat failed', {
+            sessionId,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+      }, 15000);
+
+      try {
       // 🔐 Decrypt sensitive data using clerkId (encryption key)
       // lifeEvents is nullable for drafts, but at processing stage it must exist
       if (!s.lifeEvents) {
@@ -1461,6 +1484,9 @@ async function processSessionAsync(sessionId: string): Promise<void> {
       });
 
       cleanupController(sessionId); // Cleanup on success
+      } finally {
+        clearInterval(heartbeatTimer);
+      }
     } catch (error) {
       // Check if this was a cancellation
       if (isCancellationError(error)) {
