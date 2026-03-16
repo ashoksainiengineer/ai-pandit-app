@@ -259,12 +259,12 @@ NEON_DATABASE_URL: envOrDefault('NEON_DATABASE_URL', 'postgresql://localhost:543
 
 ## 6. Verification Checklist
 
-- [ ] `drizzle.config.ts` uses `dialect: 'postgresql'`
-- [ ] `config/index.ts` has no Turso fallback
-- [ ] `admin.ts` reports correct database name
-- [ ] Tests pass with Neon configuration
-- [ ] No Turso references in production code
-- [ ] Environment templates updated (`.env.example`)
+- [x] `drizzle.config.ts` uses `dialect: 'postgresql'`
+- [x] `config/index.ts` has no Turso fallback
+- [x] `admin.ts` reports correct database name
+- [x] Tests pass with Neon configuration
+- [x] No Turso references in production code
+- [x] Environment templates updated (`.env.example`)
 
 ---
 

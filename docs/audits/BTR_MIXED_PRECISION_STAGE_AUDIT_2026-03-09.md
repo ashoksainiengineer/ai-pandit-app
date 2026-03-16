@@ -13,4 +13,4 @@
 ## Result
 - PASS
 
-See JSON details: `/home/ashoksainiengineer/Desktop/ai-pandit/ai-pandit/docs/audits/BTR_MIXED_PRECISION_STAGE_AUDIT_2026-03-09.json`
+See JSON details: `/home/ashoksainiengineer/ai-pandit-app/docs/audits/BTR_MIXED_PRECISION_STAGE_AUDIT_2026-03-09.json`

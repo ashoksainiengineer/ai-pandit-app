@@ -151,11 +151,11 @@ npm run deploy:cloudrun:api
 
 **Post-Deploy Verification:**
 ```bash
-# Health check
-curl https://api-service-xxx.run.app/health
-
-# Ready check
+# Ready check (deploy success signal)
 curl https://api-service-xxx.run.app/ready
+
+# Health check (liveness only)
+curl https://api-service-xxx.run.app/health
 
 # Queue status
 curl https://api-service-xxx.run.app/api/queue/status
@@ -178,11 +178,11 @@ npm run deploy:cloudrun:worker
 
 **Post-Deploy Verification:**
 ```bash
-# Worker health
-curl https://worker-service-xxx.run.app/health
-
-# Worker ready
+# Worker ready (deploy success signal)
 curl https://worker-service-xxx.run.app/ready
+
+# Worker health (liveness only)
+curl https://worker-service-xxx.run.app/health
 ```
 
 ### Phase 4: Web Service
