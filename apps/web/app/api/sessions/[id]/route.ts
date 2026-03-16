@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/secure-logger';
 import { env } from '@/lib/config/env';
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
@@ -77,7 +78,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
         return NextResponse.json({ success: true, data: parsedSession });
     } catch (error: any) {
-        console.error('Failed to fetch session:', error);
+        logger.error('Failed to fetch session:', error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
@@ -165,7 +166,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
         return NextResponse.json({ success: true, message: 'Session updated' });
     } catch (error: any) {
-        console.error('Failed to update session:', error);
+        logger.error('Failed to update session:', error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
@@ -191,7 +192,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
         return NextResponse.json({ success: true, message: 'Session deleted' });
     } catch (error: any) {
-        console.error('Failed to delete session:', error);
+        logger.error('Failed to delete session:', error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/secure-logger';
 import { auth } from '@clerk/nextjs/server';
 import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
 
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
         };
 
         // In production, stdout is captured by the hosting platform and monitoring pipeline.
-        console.log(`[CLIENT_LOG] ${JSON.stringify(logEntry)}`);
+        logger.info(`[CLIENT_LOG] ${JSON.stringify(logEntry)}`);
 
         return NextResponse.json({ success: true }, { status: 200 });
     } catch (error) {

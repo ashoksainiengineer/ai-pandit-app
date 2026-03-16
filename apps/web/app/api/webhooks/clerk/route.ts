@@ -1,6 +1,6 @@
 import { env } from '@/lib/config/env';
 import type { WebhookEvent } from '@clerk/nextjs/server';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/secure-logger';
 import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
 
 export const runtime = 'nodejs';
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
             "svix-signature": svix_signature,
         }) as WebhookEvent;
     } catch (err) {
-        console.error('Error verifying webhook:', err);
+        logger.error('Error verifying webhook:', err);
         return new Response('Error occured', {
             status: 400
         });

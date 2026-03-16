@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
+import { logger } from '@/lib/secure-logger';
 import { db } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
@@ -130,8 +131,8 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({ success: true, message: 'Draft saved to cloud', sessionId: newSessionId });
 
-    } catch (error: any) {
-        console.error('Draft save error:', error);
+        } catch (error: any) {
+        logger.error('Draft save error:', error);
         await logAuditEvent({ action: 'DRAFT_SAVE_FAILED', ipAddress, userAgent, details: { error: error.message } });
         return NextResponse.json({ error: 'Failed to save draft' }, { status: 500 });
     }
@@ -190,7 +191,7 @@ export async function GET(request: NextRequest) {
         });
 
     } catch (error) {
-        console.error('Get drafts error:', error);
+        logger.error('Get drafts error:', error);
         return NextResponse.json({ error: 'Failed to get drafts' }, { status: 500 });
     }
 }

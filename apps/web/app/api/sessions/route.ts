@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/secure-logger';
 import { env } from '@/lib/config/env';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '@ai-pandit/db';
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json({ success: true, data: parsedSessions });
     } catch (error: any) {
-        console.error('Failed to fetch sessions:', error);
+        logger.error('Failed to fetch sessions:', error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }

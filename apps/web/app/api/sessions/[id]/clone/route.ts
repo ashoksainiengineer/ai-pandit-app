@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { auth } from '@clerk/nextjs/server';
+import { logger } from '@/lib/secure-logger';
 import { v4 as uuidv4 } from 'uuid';
 import { buildOwnedSessionWhereClause, resolveSessionOwnershipContext } from '@/lib/server/session-ownership';
 import { getBuildPhaseRouteResponse } from '@/lib/server/build-phase-route-guard';
@@ -97,7 +98,7 @@ export async function POST(
         }, { status: 201 });
 
     } catch (error: any) {
-        console.error('Failed to clone session:', error);
+        logger.error('Failed to clone session:', error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
