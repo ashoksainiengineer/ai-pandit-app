@@ -9,6 +9,7 @@ import { env } from '@/lib/config/env';
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, RefreshCw, Home, Mail, Clipboard } from 'lucide-react';
+import { logger } from '@/lib/secure-logger';
 
 interface ErrorBoundaryProps {
   error: Error & { digest?: string };
@@ -24,18 +25,27 @@ export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {
   const errorId = generateErrorId();
 
   useEffect(() => {
-    // Log error to console with reference ID
-    console.error('Error caught by boundary:', {
+    logger.error('Error caught by boundary', error, {
       errorId,
-      message: error.message,
-      stack: error.stack,
       digest: error.digest,
+      isProduction: env.app.isProduction,
     });
 
-    // In production, send to error tracking service
-    if (env.app.isProduction) {
-      // TODO: Send to Sentry/LogRocket/error endpoint
-      // Example: Sentry.captureException(error, { extra: { errorId } });
+    // In production, send to error tracking endpoint
+    if (env.app.isProduction && typeof window !== 'undefined') {
+      fetch('/api/log-client', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          level: 'error',
+          message: `Error boundary: ${error.message}`,
+          meta: { errorId, digest: error.digest, url: window.location.href },
+          timestamp: new Date().toISOString(),
+        }),
+        keepalive: true,
+      }).catch(() => {
+        // Silently fail - error logging should never break the app
+      });
     }
   }, [error, errorId]);
 

@@ -18,6 +18,7 @@ import AnalysisErrorBoundary from '@/components/rectify/AnalysisErrorBoundary';
 import { useWarmup } from '@/hooks/use-warmup';
 import { env } from '@/lib/config';
 import { waitForAnalysisSessionReady } from '@/lib/analysis-session-readiness';
+import { logger } from '@/lib/secure-logger';
 import dynamic from 'next/dynamic';
 
 // Lazy load step components for faster initial load
@@ -384,7 +385,7 @@ function RectifyPageContent() {
                 savedAt: new Date().toISOString()
             }));
         } catch (e) {
-            console.warn('localStorage save failed:', e);
+            logger.warn('localStorage save failed', { error: String(e) });
         }
     }, []);
 
@@ -468,8 +469,8 @@ function RectifyPageContent() {
                     throw new Error('Save failed');
                 }
             } catch (err) {
-                console.error(`Auto-save failed (attempt ${retryCount + 1}):`, err);
-                
+                logger.error(`Auto-save failed (attempt ${retryCount + 1})`, err instanceof Error ? err : new Error(String(err)));
+
                 // Retry logic: 3 attempts with exponential backoff
                 if (retryCount < 3) {
                     const backoffMs = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
@@ -549,11 +550,11 @@ function RectifyPageContent() {
                         }));
                         
                         setDraftLoaded(true);
-                        console.log('✅ Draft loaded successfully:', savedDraftId);
+                        logger.info('Draft loaded successfully', { draftId: savedDraftId });
                     }
                 }
             } catch (err) {
-                console.error('Failed to load draft:', err);
+                logger.error('Failed to load draft', err instanceof Error ? err : new Error(String(err)));
                 setDraftLoaded(true); // Still mark as loaded to prevent infinite loading
             }
         };

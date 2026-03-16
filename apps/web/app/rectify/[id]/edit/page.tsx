@@ -8,6 +8,7 @@ import { EditSessionClient } from './EditSessionClient';
 import Layout from '@/components/Layout';
 import { env } from '@/lib/config/env';
 import { initializeEncryption, decrypt, parseSensitiveField } from '@/lib/crypto';
+import { logger } from '@/lib/secure-logger';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -56,7 +57,7 @@ const getSessionData = cache(async (sessionId: string, userId: string): Promise<
             offsetConfig: parseSensitiveField(session.offsetConfig, undefined),
         };
     } catch (error) {
-        console.error('CRITICAL: Error in getSessionData:', error);
+        logger.error('CRITICAL: Error in getSessionData', error instanceof Error ? error : new Error(String(error)));
         return null;
     }
 });

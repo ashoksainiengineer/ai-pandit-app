@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { Breadcrumbs, predefinedBreadcrumbs } from '@/components/ui/Breadcrumbs';
 import { env } from '@/lib/config/env';
 import { initializeEncryption, decrypt, parseSensitiveField } from '@/lib/crypto';
+import { logger } from '@/lib/secure-logger';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -62,7 +63,7 @@ const getSessionResults = cache(async (sessionId: string, userId: string): Promi
             confidence: session.confidence || analysisResult?.confidence,
         };
     } catch (error) {
-        console.error('CRITICAL: Error in getSessionResults:', error);
+        logger.error('CRITICAL: Error in getSessionResults', error instanceof Error ? error : new Error(String(error)));
         return null;
     }
 });

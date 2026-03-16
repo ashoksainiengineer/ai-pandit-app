@@ -15,6 +15,7 @@ import { DashboardSession } from '@/lib/dashboard/types';
 import { DashboardClient } from './DashboardClient';
 import Layout from '@/components/Layout';
 import { ensureUserRecord } from '@/lib/server/user-sync';
+import { logger } from '@/lib/secure-logger';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -114,7 +115,7 @@ async function getUserSessions(clerkId: string, clerkUser?: any): Promise<Dashbo
     } catch (dbError: any) {
       // Fallback for missing columns
       if (dbError.message?.includes('forensicTraits') || dbError.message?.includes('no such column')) {
-        console.log('[Dashboard] Using fallback query...');
+        logger.info('[Dashboard] Using fallback query...');
         const { pool } = await import('@ai-pandit/db');
         const rawResult = await pool.query(
           'SELECT * FROM sessions WHERE clerkId = $1 ORDER BY createdAt DESC',
@@ -138,7 +139,7 @@ async function getUserSessions(clerkId: string, clerkUser?: any): Promise<Dashbo
 
     return userSessions;
   } catch (error) {
-    console.error('Error fetching sessions:', error);
+    logger.error('Error fetching sessions', error instanceof Error ? error : new Error(String(error)));
     return [];
   }
 }

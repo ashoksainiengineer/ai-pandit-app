@@ -8,6 +8,7 @@ import { BirthData, LifeEvent, PhysicalTraits, SpouseData, ForensicTraits } from
 import { env } from '@/lib/config';
 import { useStreamStore } from '@/lib/store/stream-store';
 import { waitForAnalysisSessionReady } from '@/lib/analysis-session-readiness';
+import { logger } from '@/lib/secure-logger';
 
 import Step1BirthDetails from '@/components/rectify/Step1BirthDetails';
 import Step3LifeEvents from '@/components/rectify/Step3LifeEvents';
@@ -135,7 +136,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                 setSavingStatus('saved');
                 setTimeout(() => setSavingStatus('idle'), 2000);
             } catch (err) {
-                console.error('Auto-save failed:', err);
+                logger.error('Auto-save failed', err instanceof Error ? err : new Error(String(err)));
                 setSavingStatus('error');
             }
         };
