@@ -53,7 +53,8 @@ export async function authMiddleware(
         const isStreamRequest = req.originalUrl.includes('/stream');
 
         // Allow bypass only inside automated tests.
-        const isTestScript = config.app.isTest && req.headers['x-test-bypass-auth'] === 'super-secret-test-key';
+        const isTestRuntime = config.app.isTest || process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+        const isTestScript = isTestRuntime && req.headers['x-test-bypass-auth'] === 'super-secret-test-key';
         if (isTestScript) {
             req.clerkId = 'TEST_SCRIPT';
             logger.info('🧪 [Auth] Super secret test script bypass activated');

@@ -16,7 +16,7 @@ console.log(`[STARTUP] Platform: ${process.platform}`);
 console.log(`[STARTUP] Environment: ${process.env.NODE_ENV || 'not set'}`);
 console.log(`[STARTUP] Port: ${process.env.PORT || '7860'}`);
 
-import 'dotenv/config';
+import './scripts/load-env.js';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -25,6 +25,7 @@ import { createServer } from 'http';
 import { config } from './config/index.js';
 import { ForbiddenError } from './errors/index.js';
 import { routes } from './routes/index.js';
+import { getApiReadinessStatus } from './routes/health.js';
 import { logger } from './utils/logger.js';
 import { performanceMiddleware, requestIdMiddleware, tracingMiddleware } from './middleware/request-id.js';
 import { errorHandlerMiddleware, notFoundHandler, setupUncaughtExceptionHandlers } from './middleware/error-handler-new.js';
@@ -47,6 +48,10 @@ const startupState: StartupState = {
     ephemerisError: null,
     startedAt: Date.now(),
 };
+
+function isApiReady(): boolean {
+    return startupState.dbReady && startupState.ephemerisReady;
+}
 
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
     return Promise.race([
@@ -200,23 +205,19 @@ export function createApp() {
     app.use('/api', routes);
 
     // Direct Health check (Bypass /api for standard load balancers)
-    app.get(['/', '/health', '/ready', '/live'], (req, res) => {
+    app.get(['/', '/health', '/ready', '/live'], async (req, res) => {
         if (req.path === '/ready') {
-            const ready = startupState.dbReady;
-            res.status(ready ? 200 : 503).json({
-                ready,
+            const readiness = await getApiReadinessStatus();
+            res.status(readiness.ready ? 200 : 503).json({
+                ...readiness,
                 initializing: startupState.initializing,
-                timestamp: new Date().toISOString(),
                 startupElapsedMs: Date.now() - startupState.startedAt,
-                dependencies: {
+                startupState: {
                     database: startupState.dbReady ? 'ready' : 'not-ready',
                     ephemeris: startupState.ephemerisReady ? 'ready' : 'not-ready',
+                    databaseError: startupState.dbError,
+                    ephemerisError: startupState.ephemerisError,
                 },
-                errors: {
-                    database: startupState.dbError,
-                    ephemeris: startupState.ephemerisError,
-                },
-                ephemerisProvider: getEphemerisProviderStatus(),
             });
             return;
         }

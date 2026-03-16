@@ -1,5 +1,31 @@
+import fs from 'node:fs';
 import { defineConfig } from 'vitest/config';
 import path from 'path';
+import dotenv from 'dotenv';
+
+const envFiles = [
+    path.resolve(__dirname, '.env.local'),
+    path.resolve(__dirname, '.env'),
+    path.resolve(__dirname, '../../.env.local'),
+    path.resolve(__dirname, '../../.env'),
+];
+
+const localSecretFiles = [
+    path.resolve(__dirname, '../../local/dev-runtime.env'),
+    path.resolve(__dirname, '../../local/cloudrun.env'),
+];
+
+for (const envFile of envFiles) {
+    if (fs.existsSync(envFile)) {
+        dotenv.config({ path: envFile, override: false });
+    }
+}
+
+for (const envFile of localSecretFiles) {
+    if (fs.existsSync(envFile)) {
+        dotenv.config({ path: envFile, override: true });
+    }
+}
 
 const envOrDefault = (key: string, fallback: string): string => process.env[key] ?? fallback;
 
@@ -20,7 +46,6 @@ export default defineConfig({
         // Shared ephemeris/database test bootstrap
         setupFiles: ['./src/lib/__tests__/setup.ts'],
         pool: 'forks',
-        // @ts-ignore - Vitest 4 top-level pool options
         forks: {
             singleFork: true,
         },
@@ -39,11 +64,11 @@ export default defineConfig({
             ENCRYPTION_SECRET: envOrDefault('ENCRYPTION_SECRET', 'test-secret-at-least-32-chars-long-12345'),
             RATE_LIMIT_WINDOW_MS: envOrDefault('RATE_LIMIT_WINDOW_MS', '60000'),
             RATE_LIMIT_MAX_REQUESTS: envOrDefault('RATE_LIMIT_MAX_REQUESTS', '100'),
-            EPHEMERIS_PROVIDER: envOrDefault('EPHEMERIS_PROVIDER', 'algorithmic'),
-            EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK: envOrDefault('EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK', 'true'),
+            EPHEMERIS_PROVIDER: envOrDefault('EPHEMERIS_PROVIDER', 'skyfield'),
+            EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK: envOrDefault('EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK', 'false'),
             EPHEMERIS_SERVICE_URL: envOrDefault('EPHEMERIS_SERVICE_URL', 'http://localhost:8000'),
             EPHEMERIS_SERVICE_TIMEOUT_MS: envOrDefault('EPHEMERIS_SERVICE_TIMEOUT_MS', '15000'),
-            SKIP_EPHEMERIS_INIT: envOrDefault('SKIP_EPHEMERIS_INIT', 'true'),
+            SKIP_EPHEMERIS_INIT: envOrDefault('SKIP_EPHEMERIS_INIT', 'false'),
             RUN_HIGH_PRECISION_EPHEMERIS_TESTS: envOrDefault('RUN_HIGH_PRECISION_EPHEMERIS_TESTS', 'false'),
         },
     },

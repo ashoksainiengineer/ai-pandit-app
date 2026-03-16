@@ -17,7 +17,7 @@
         "lint": "eslint src --ext .ts",
         "lint:strict:phase1": "eslint src/server.ts src/config/**/*.ts src/utils/**/*.ts src/routes/*.ts src/middleware/*.ts --rule '@typescript-eslint/no-unused-vars:[1,{\"argsIgnorePattern\":\"^_\",\"varsIgnorePattern\":\"^_\"}]' --rule 'prefer-const:1' --max-warnings 0",
         "lint:strict:phase2": "eslint src --ext .ts --ignore-pattern 'src/**/__tests__/**' --ignore-pattern 'src/**/*.test.ts' --rule '@typescript-eslint/no-unused-vars:[1,{\"argsIgnorePattern\":\"^_\",\"varsIgnorePattern\":\"^_\"}]' --rule 'prefer-const:1' --max-warnings 0",
-        "test": "vitest run --exclude src/lib/ephemeris/__tests__/contract.test.ts --exclude src/lib/btr/__tests__/whole-system-btr.test.ts --exclude src/lib/btr/__tests__/synthetic-validation.test.ts --exclude src/lib/btr/__tests__/btr-pipeline.integration.test.ts --exclude src/lib/btr/__tests__/data-package-builder.unit.test.ts --exclude src/lib/__tests__/btr_stress_robustness.test.ts --exclude src/lib/__tests__/stress_benchmarks.test.ts --exclude src/lib/__tests__/performance.benchmark.test.ts --exclude src/routes/__tests__/stream.test.ts --exclude src/__tests__/CORS.test.ts --exclude src/__tests__/ProductionAudit.test.ts --exclude src/__tests__/smoke.test.ts --exclude src/lib/__tests__/ai-resilience.test.ts --exclude src/lib/__tests__/ai_intelligence.test.ts --exclude src/lib/__tests__/frontend_network_stress.test.ts --exclude src/lib/__tests__/frontend_realtime_sync.test.ts --exclude src/lib/__tests__/queue-claim-concurrency.test.ts --exclude src/routes/__tests__/SessionIntegrity.test.ts --exclude src/routes/__tests__/api.integration.test.ts --exclude src/routes/__tests__/health.test.ts --exclude src/lib/btr/__tests__/mixed-precision-pipeline-audit.test.ts --exclude src/lib/btr/stages/__tests__/btr-model-routing.test.ts",
+        "test": "vitest run",
         "test:full": "vitest run",
         "test:full:ci": "npm run test:full:deterministic",
         "test:watch": "vitest",
@@ -44,9 +44,10 @@
         "chaos:resilience": "tsx src/scripts/chaos-resilience-check.ts",
         "smoke:duplicate-flow": "tsx src/scripts/smoke-duplicate-route-flow.ts",
         "smoke:cloudrun-job-flow": "tsx src/scripts/smoke-cloudrun-job-flow.ts",
-        "smoke:duplicate-flow:local": "NODE_ENV=test NEON_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres AI_API_KEY=test_ai_key CLERK_SECRET_KEY=sk_test_local_placeholder NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_local_placeholder ENCRYPTION_SECRET=f8e7d6c5b4a3928170654433221100ffeeddccbbaa99887766554433221100ff tsx src/scripts/smoke-duplicate-route-flow-local.ts",
+        "smoke:duplicate-flow:local": "NODE_ENV=test tsx src/scripts/smoke-duplicate-route-flow-local.ts",
         "smoke:duplicate-flow:deterministic": "vitest run src/routes/__tests__/sessions.test.ts src/routes/__tests__/queue.test.ts",
-        "verify:worker-health": "tsx src/scripts/verify-worker-health.ts"
+        "verify:worker-health": "tsx src/scripts/verify-worker-health.ts",
+        "verify:stack:deployed": "npm run verify:worker-health && npm run smoke:duplicate-flow"
     },
     "dependencies": {
         "@ai-pandit/db": "*",
