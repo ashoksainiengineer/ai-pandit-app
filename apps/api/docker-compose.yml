@@ -13,7 +13,6 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=7860
-      - EPHE_PATH=/app/ephe
       # Database (Neon Postgres)
       - NEON_DATABASE_URL=${NEON_DATABASE_URL}
       - DATABASE_URL=${DATABASE_URL}
@@ -35,7 +34,6 @@ services:
       - RATE_LIMIT_WINDOW_MS=60000
       - RATE_LIMIT_MAX_REQUESTS=100
     volumes:
-      - ./ephe:/app/ephe:ro
       - app-logs:/app/logs
     restart: unless-stopped
     # ═══════════════════════════════════════════════════════════════

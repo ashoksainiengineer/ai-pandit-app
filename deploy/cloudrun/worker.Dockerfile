@@ -13,7 +13,7 @@ ENV NEON_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres
 ENV DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/postgres
 ENV CLERK_SECRET_KEY=build_clerk_secret_key_placeholder
 ENV ENCRYPTION_SECRET=build_encryption_secret_32_chars_minimum_placeholder
-ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=build_publishable_key_placeholder
+ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_Y2xlcmsuZXhhbXBsZS5hcHAk
 ENV NEXT_PUBLIC_BACKEND_URL=http://localhost:8080
 ENV AI_API_KEY=build_ai_key_placeholder
 ENV JOB_EXECUTION_MODE=external_worker
@@ -22,6 +22,7 @@ ENV WORKER_POLL_INTERVAL_MS=2000
 RUN npm ci --include=dev --loglevel=error
 RUN npm --workspace @ai-pandit/shared run build \
  && npm --workspace @ai-pandit/db run build \
+ && npm --workspace @ai-pandit/worker-runtime run build \
  && npm --workspace @ai-pandit/api run build \
  && npm --workspace @ai-pandit/worker run build
 RUN npm prune --omit=dev

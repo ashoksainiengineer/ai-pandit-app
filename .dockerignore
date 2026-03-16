@@ -8,3 +8,4 @@ coverage
 .env.*
 services/ephemeris/.venv
 services/ephemeris/data
+local/

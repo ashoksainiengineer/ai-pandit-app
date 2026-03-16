@@ -11,7 +11,6 @@ node_modules/
 .yarn/unplugged
 .yarn/build-state.yml
 .yarn/install-state.gz
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
@@ -153,7 +152,6 @@ htmlcov/
 .eggs/
 
 # --- DOCKER ---
-.dockerignore
 Dockerfile.local
 docker-compose.override.yml
 .docker/
@@ -200,6 +198,8 @@ requeue_debug.txt
 logs/debug-analysis.log
 debug-analysis.log
 verify-production.ts
+!apps/api/src/utils/debug-logger.ts
+!apps/api/src/routes/debug-analysis.ts
 
 # --- WEIGHTED FILES (large binaries) ---
 *.weights
