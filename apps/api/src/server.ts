@@ -14,6 +14,7 @@ console.log(`[STARTUP ${startupTimestamp}] Server process starting...`);
 console.log(`[STARTUP] Node version: ${process.version}`);
 console.log(`[STARTUP] Platform: ${process.platform}`);
 console.log(`[STARTUP] Environment: ${process.env.NODE_ENV || 'not set'}`);
+console.log(`[STARTUP] Deployment: v2.0.0-cloudrun`);
 console.log(`[STARTUP] Port: ${process.env.PORT || '7860'}`);
 
 import './scripts/load-env.js';
