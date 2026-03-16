@@ -103,6 +103,8 @@ jobs:
       - name: Run unit tests - ${{ matrix.app }}
         run: npm -w @ai-pandit/${{ matrix.app }} run test
         continue-on-error: ${{ matrix.app == 'web' }}
+        env:
+          SKIP_EPHEMERIS_INIT: true
 
       - name: Upload coverage
         uses: codecov/codecov-action@v4
