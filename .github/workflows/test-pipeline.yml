@@ -62,6 +62,9 @@ jobs:
       - name: Build db workspace outputs
         run: npm --workspace @ai-pandit/db run build
 
+      - name: Build worker-runtime workspace outputs
+        run: npm --workspace @ai-pandit/worker-runtime run build
+
       - name: Run ESLint
         run: npm run lint
 
