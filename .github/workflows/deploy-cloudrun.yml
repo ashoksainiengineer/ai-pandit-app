@@ -112,11 +112,12 @@ jobs:
       - name: Verify deployment contract
         run: npm run test:deploy-config
 
-      - name: Build shared, db, api, worker
+      - name: Build shared, db, worker-runtime, api, worker
         if: steps.scope.outputs.api == 'true' || steps.scope.outputs.worker == 'true'
         run: |
           npm --workspace @ai-pandit/shared run build
           npm --workspace @ai-pandit/db run build
+          npm --workspace @ai-pandit/worker-runtime run build
           npm --workspace @ai-pandit/api run build
           npm --workspace @ai-pandit/worker run build
 
