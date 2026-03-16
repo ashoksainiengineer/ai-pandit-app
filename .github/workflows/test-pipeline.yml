@@ -117,11 +117,96 @@ jobs:
         run: npm ci
 
       - name: Build workspace dependencies
-        if: matrix.app == 'api'
+        if: matrix.app == 'api' || matrix.app == 'web'
         run: |
           npm --workspace @ai-pandit/shared run build
           npm --workspace @ai-pandit/db run build
           npm --workspace @ai-pandit/worker-runtime run build
+
+      - name: Initialize database schema
+        if: matrix.app == 'api'
+        run: |
+          echo "Waiting for PostgreSQL to be ready..."
+          for i in {1..30}; do
+            if pg_isready -h localhost -p 5432 -U postgres; then
+              echo "PostgreSQL is ready!"
+              break
+            fi
+            sleep 1
+          done
+          echo "Creating database tables..."
+          PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -c "
+            CREATE TABLE IF NOT EXISTS users (
+              id TEXT PRIMARY KEY NOT NULL,
+              clerkId TEXT NOT NULL UNIQUE,
+              email TEXT NOT NULL,
+              fullName TEXT,
+              isActive INTEGER NOT NULL DEFAULT 1,
+              role TEXT NOT NULL DEFAULT 'user',
+              lastLoginAt TEXT,
+              deletedAt TEXT,
+              createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS sessions (
+              id TEXT PRIMARY KEY NOT NULL,
+              userId TEXT NOT NULL,
+              clerkId TEXT NOT NULL,
+              fullName TEXT NOT NULL,
+              dateOfBirth TEXT NOT NULL,
+              tentativeTime TEXT NOT NULL,
+              birthPlace TEXT NOT NULL,
+              latitude REAL NOT NULL,
+              longitude REAL NOT NULL,
+              timezone TEXT NOT NULL,
+              gender TEXT,
+              physicalTraits TEXT,
+              forensicTraits TEXT,
+              lifeEvents TEXT,
+              spouseData TEXT,
+              offsetConfig TEXT,
+              rectifiedTime TEXT,
+              accuracy INTEGER,
+              confidence TEXT,
+              analysisResult TEXT,
+              progressData TEXT,
+              reasoningLogs TEXT,
+              status TEXT NOT NULL DEFAULT 'draft',
+              errorMessage TEXT,
+              errorCode TEXT,
+              submittedAt TEXT,
+              startedProcessingAt TEXT,
+              completedAt TEXT,
+              deletedAt TEXT,
+              retentionUntil TEXT,
+              aiConsentGiven INTEGER DEFAULT 0,
+              aiConsentGivenAt TEXT,
+              aiConsentIp TEXT,
+              isEncrypted INTEGER NOT NULL DEFAULT 1,
+              createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              updatedAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              FOREIGN KEY (userId) REFERENCES users(id)
+            );
+            CREATE TABLE IF NOT EXISTS calculations (
+              id TEXT PRIMARY KEY NOT NULL,
+              sessionId TEXT NOT NULL,
+              birthDateTime TEXT NOT NULL,
+              latitude REAL NOT NULL,
+              longitude REAL NOT NULL,
+              timezone TEXT NOT NULL,
+              ephemerisData TEXT NOT NULL,
+              algorithmVersion TEXT NOT NULL DEFAULT '2.0.0',
+              ephemerisVersion TEXT NOT NULL DEFAULT 'de440',
+              processingTime INTEGER,
+              cacheHitCount INTEGER NOT NULL DEFAULT 0,
+              expiresAt TEXT,
+              success INTEGER NOT NULL DEFAULT 1,
+              createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+              FOREIGN KEY (sessionId) REFERENCES sessions(id) ON DELETE CASCADE
+            );
+          "
+        env:
+          PGPASSWORD: postgres
 
       - name: Run unit tests - ${{ matrix.app }}
         run: npm -w @ai-pandit/${{ matrix.app }} run test
