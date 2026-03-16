@@ -188,3 +188,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Built with ❤️ for the Vedic astrology community**
+# IAM permissions applied Monday 16 March 2026 11:37:29 PM IST
