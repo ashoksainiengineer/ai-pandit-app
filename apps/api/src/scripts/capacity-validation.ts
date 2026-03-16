@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { logger } from '../lib/logger.js';
 
 interface ProfileConfig {
   name: 'normal' | 'burst' | 'sustained';
@@ -246,7 +247,7 @@ async function main(): Promise<void> {
   const reportPath = path.join(reportDir, `capacity-${profile}-${safeTs}.json`);
   fs.writeFileSync(reportPath, JSON.stringify(result, null, 2));
 
-  console.log(JSON.stringify({ reportPath, ...result }, null, 2));
+  logger.info('Capacity validation completed', { reportPath, ...result });
 
   if (!result.gate.pass) {
     process.exit(1);

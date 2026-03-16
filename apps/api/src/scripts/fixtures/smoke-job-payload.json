@@ -1,0 +1,90 @@
+{
+  "birthData": {
+    "fullName": "Cloud Run Smoke User",
+    "dateOfBirth": "1990-05-15",
+    "tentativeTime": "14:30:00",
+    "birthPlace": "Delhi",
+    "latitude": 28.6139,
+    "longitude": 77.209,
+    "timezone": 5.5,
+    "gender": "male"
+  },
+  "lifeEvents": [
+    {
+      "id": "smoke-event-1",
+      "category": "education",
+      "eventType": "education",
+      "eventDate": "2008-06-15",
+      "description": "Graduated from university",
+      "importance": "high",
+      "datePrecision": "exact_date"
+    },
+    {
+      "id": "smoke-event-2",
+      "category": "work",
+      "eventType": "career",
+      "eventDate": "2012-06-01",
+      "description": "Started first full-time job",
+      "importance": "high",
+      "datePrecision": "exact_date"
+    },
+    {
+      "id": "smoke-event-3",
+      "category": "relationship",
+      "eventType": "marriage",
+      "eventDate": "2018-02-10",
+      "description": "Got married",
+      "importance": "high",
+      "datePrecision": "exact_date"
+    }
+  ],
+  "forensicTraits": {
+    "physical": {
+      "facialStructure": {
+        "forehead": "broad",
+        "eyeShape": "almond",
+        "noseType": "straight",
+        "teethAlignment": "perfect",
+        "voicePitch": "medium"
+      },
+      "skinHair": {
+        "texture": "dry",
+        "hairType": "straight",
+        "complexion": "medium",
+        "marks": []
+      },
+      "build": "medium",
+      "height": {
+        "cm": 175,
+        "feet": 5,
+        "inches": 9
+      }
+    },
+    "psychographic": {
+      "speechStyle": "measured_soft",
+      "decisionMaking": "deliberate",
+      "stressResponse": "calm",
+      "sleepCycle": "early_bird",
+      "temperament": "patient"
+    },
+    "biological": {
+      "prakriti": "pitta",
+      "sensitivity": {
+        "heat": "medium",
+        "cold": "medium"
+      },
+      "recurringHealthIssues": []
+    },
+    "family": {
+      "siblingPosition": "eldest",
+      "brotherCount": 1,
+      "sisterCount": 0,
+      "fatherStatusAtBirth": "stable",
+      "motherHealthAtBirth": "normal"
+    }
+  },
+  "offsetConfig": {
+    "preset": "2hours",
+    "description": "Cloud Run smoke payload"
+  }
+}

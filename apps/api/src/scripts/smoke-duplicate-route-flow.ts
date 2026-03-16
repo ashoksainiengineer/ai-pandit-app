@@ -1,21 +1,28 @@
-import 'dotenv/config';
+import './load-env.js';
+import { resolveSmokeBearerToken } from './get-smoke-token.js';
 
 interface SessionListItem {
   id: string;
   status?: string;
 }
 
-const backendUrl = (process.env.SMOKE_BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001').replace(/\/$/, '');
-const bearerToken = process.env.SMOKE_CLERK_BEARER_TOKEN || process.env.CLERK_BEARER_TOKEN || '';
+const backendUrlRaw = process.env.SMOKE_BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL;
 const useTestBypass = process.env.SMOKE_TEST_BYPASS === 'true';
 const maxPolls = Number(process.env.SMOKE_MAX_POLLS || 18);
 const pollIntervalMs = Number(process.env.SMOKE_POLL_INTERVAL_MS || 5000);
+
+if (!backendUrlRaw) {
+  throw new Error('Missing backend target. Set SMOKE_BACKEND_URL or NEXT_PUBLIC_BACKEND_URL to the deployed API service.');
+}
+
+const backendUrl = backendUrlRaw.replace(/\/$/, '');
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function buildHeaders(): HeadersInit {
+  const bearerToken = process.env.SMOKE_CLERK_BEARER_TOKEN || process.env.CLERK_BEARER_TOKEN || '';
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
   };
@@ -55,8 +62,8 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 async function main(): Promise<void> {
-  if (!bearerToken && !useTestBypass) {
-    throw new Error('Missing auth. Set SMOKE_CLERK_BEARER_TOKEN (or CLERK_BEARER_TOKEN), or enable SMOKE_TEST_BYPASS=true in test mode.');
+  if (!useTestBypass) {
+    process.env.SMOKE_CLERK_BEARER_TOKEN = await resolveSmokeBearerToken();
   }
 
   const sessionsResponse = await requestJson<{ success: boolean; data: SessionListItem[] }>('/api/sessions', { method: 'GET' });

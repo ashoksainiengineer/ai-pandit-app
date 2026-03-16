@@ -43,7 +43,7 @@
         "test:security:api": "npx zap-cli quick-scan --self-contained --start-options '-config api.disablekey=true' http://localhost:3000",
         "test:security:dependencies": "npx audit-ci --moderate",
         "test:security:snyk": "npx snyk test --all-projects",
-        "test:fuzz": "npm -w @ai-pandit/api run test:fuzz",
+        
         "test:mutation": "npx stryker run",
         "test:chaos": "npm -w @ai-pandit/api run chaos:resilience",
         "test:watchdog": "npx playwright test e2e/analysis-watchdog.spec.ts",

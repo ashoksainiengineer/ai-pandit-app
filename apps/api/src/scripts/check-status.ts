@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
+import { logger } from '../lib/logger.js';
 
 async function check() {
     const r = await db.select({
@@ -14,7 +15,7 @@ async function check() {
         confidence: sessions.confidence,
         updatedAt: sessions.updatedAt,
     }).from(sessions).where(eq(sessions.id, '2f207ae6-0387-4039-8fc8-72128f0bf361')).limit(1);
-    console.log(JSON.stringify(r[0], null, 2));
+    logger.info('Session status', { session: r[0] });
     process.exit(0);
 }
 check();

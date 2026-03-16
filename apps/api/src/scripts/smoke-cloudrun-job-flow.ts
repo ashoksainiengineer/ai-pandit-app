@@ -1,5 +1,33 @@
+import './load-env.js';
 import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { logger } from '../lib/logger.js';
+import { resolveSmokeBearerToken } from './get-smoke-token.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const DEFAULT_SMOKE_PAYLOAD_PATH = path.resolve(__dirname, 'fixtures', 'smoke-job-payload.json');
+const BASE_POLL_INTERVAL_MS = 10000;
+const RATE_LIMIT_POLL_INTERVAL_MS = 45000;
+const RUNNING_QUEUE_POLL_EVERY = 3;
+const DEFAULT_SMOKE_TIMEOUT_MS = 20 * 60 * 1000;
+
+function formatUnknownError(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'object' && error !== null) {
+    try {
+      return JSON.stringify(error, Object.getOwnPropertyNames(error));
+    } catch {
+      return String(error);
+    }
+  }
+
+  return String(error);
+}
 
 interface JobCreateResponse {
   success: boolean;
@@ -8,6 +36,35 @@ interface JobCreateResponse {
       id: string;
       sessionId: string;
     };
+  };
+}
+
+interface JobSyncResponse {
+  success: boolean;
+  data?: {
+    job?: {
+      id: string;
+      status?: string;
+      errorCode?: string | null;
+      errorMessage?: string | null;
+      sessionStatus?: string | null;
+    };
+    latestSequenceNo?: number;
+    events?: Array<{
+      sequenceNo: number;
+      eventType: string;
+      stage: string | null;
+    }>;
+  };
+}
+
+interface QueueResponse {
+  success: boolean;
+  data?: {
+    status?: string;
+    error?: string;
+    position?: number;
+    estimatedWaitSeconds?: number;
   };
 }
 
@@ -28,7 +85,7 @@ function getRequiredEnv(name: string): string {
 }
 
 async function loadPayload(): Promise<Record<string, unknown>> {
-  const payloadPath = getRequiredEnv('SMOKE_PAYLOAD_PATH');
+  const payloadPath = process.env.SMOKE_PAYLOAD_PATH || DEFAULT_SMOKE_PAYLOAD_PATH;
   const raw = await fs.readFile(payloadPath, 'utf8');
   return JSON.parse(raw) as Record<string, unknown>;
 }
@@ -64,11 +121,10 @@ async function createJob(
   };
 }
 
-async function streamUntilTerminal(
+async function openSmokeStream(
   apiBaseUrl: string,
   token: string,
   sessionId: string,
-  timeoutMs: number
 ): Promise<void> {
   const response = await fetch(`${apiBaseUrl}/api/stream/${sessionId}`, {
     headers: {
@@ -84,12 +140,11 @@ async function streamUntilTerminal(
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
-  const deadline = Date.now() + timeoutMs;
 
-  while (Date.now() < deadline) {
+  while (true) {
     const { value, done } = await reader.read();
     if (done) {
-      throw new Error('SSE stream closed before terminal event');
+      break;
     }
 
     buffer += decoder.decode(value, { stream: true });
@@ -112,37 +167,137 @@ async function streamUntilTerminal(
         status: payload.status,
       });
 
-      if (
-        payload.type === 'complete' ||
-        payload.type === 'terminal_state' ||
-        payload.type === 'error' ||
-        payload.status === 'failed' ||
-        payload.status === 'complete'
-      ) {
+      if (payload.type === 'connected' || payload.type === 'metadata' || payload.type === 'ai_thinking') {
+        await reader.cancel();
         return;
       }
     }
   }
+}
 
-  throw new Error(`Timed out waiting for terminal SSE event after ${timeoutMs}ms`);
+async function waitForTerminalState(
+  apiBaseUrl: string,
+  token: string,
+  jobId: string,
+  sessionId: string,
+  timeoutMs: number
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  let since = 0;
+  let pollIntervalMs = BASE_POLL_INTERVAL_MS;
+  let pollCount = 0;
+
+  while (Date.now() < deadline) {
+    try {
+      pollCount += 1;
+      const syncResponse = await fetch(`${apiBaseUrl}/api/jobs/${jobId}/sync?since=${since}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!syncResponse.ok) {
+        throw new Error(`Job sync failed with HTTP ${syncResponse.status}`);
+      }
+
+      const syncPayload = (await syncResponse.json()) as JobSyncResponse;
+      const job = syncPayload.data?.job;
+      const latestSequenceNo = syncPayload.data?.latestSequenceNo ?? since;
+      const recentEvents = syncPayload.data?.events ?? [];
+      pollIntervalMs = BASE_POLL_INTERVAL_MS;
+
+      if (latestSequenceNo > since) {
+        logger.info('Smoke job sync advanced', {
+          jobId,
+          sessionId,
+          status: job?.status,
+          sessionStatus: job?.sessionStatus,
+          latestSequenceNo,
+          recentEventTypes: recentEvents.map((event) => event.eventType),
+        });
+        since = latestSequenceNo;
+      }
+
+      let queueStatus: string | undefined;
+      let queuePosition: number | null = null;
+      let queueEta: number | null = null;
+
+      const shouldPollQueue = !job?.status || job.status === 'queued' || job.status === 'retrying' || (pollCount % RUNNING_QUEUE_POLL_EVERY === 0);
+      if (shouldPollQueue) {
+        const queueResponse = await fetch(`${apiBaseUrl}/api/queue?sessionId=${sessionId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!queueResponse.ok) {
+          throw new Error(`Queue poll failed with HTTP ${queueResponse.status}`);
+        }
+
+        const queuePayload = (await queueResponse.json()) as QueueResponse;
+        queueStatus = queuePayload.data?.status;
+        queuePosition = queuePayload.data?.position ?? null;
+        queueEta = queuePayload.data?.estimatedWaitSeconds ?? null;
+
+        logger.info('Smoke queue status polled', {
+          jobId,
+          sessionId,
+          jobStatus: job?.status,
+          queueStatus,
+          position: queuePosition,
+          estimatedWaitSeconds: queueEta,
+        });
+      }
+
+      if (queueStatus === 'complete' || job?.status === 'completed') {
+        return;
+      }
+
+      if (queueStatus === 'failed' || queueStatus === 'cancelled' || job?.status === 'failed' || job?.status === 'cancelled') {
+        throw new Error(job?.errorMessage || `Job ended with status ${job?.status || queueStatus}`);
+      }
+    } catch (error) {
+      const message = formatUnknownError(error);
+      if (message.includes('HTTP 429')) {
+        pollIntervalMs = RATE_LIMIT_POLL_INTERVAL_MS;
+      }
+
+      logger.warn('Smoke polling transient failure', {
+        jobId,
+        sessionId,
+        error: message,
+        nextPollInMs: pollIntervalMs,
+      });
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+  }
+
+  throw new Error(`Timed out waiting for terminal job state after ${timeoutMs}ms`);
 }
 
 async function main(): Promise<void> {
-  const apiBaseUrl = getRequiredEnv('SMOKE_API_BASE_URL').replace(/\/+$/, '');
-  const token = getRequiredEnv('SMOKE_AUTH_TOKEN');
-  const timeoutMs = Number.parseInt(process.env.SMOKE_TIMEOUT_MS ?? '600000', 10);
+  const apiBaseUrl = (process.env.SMOKE_API_BASE_URL || process.env.NEXT_PUBLIC_BACKEND_URL || '').replace(/\/+$/, '');
+  if (!apiBaseUrl) {
+    throw new Error('SMOKE_API_BASE_URL or NEXT_PUBLIC_BACKEND_URL is required');
+  }
+
+  const token = await resolveSmokeBearerToken();
+
+  const timeoutMs = Number.parseInt(process.env.SMOKE_TIMEOUT_MS ?? String(DEFAULT_SMOKE_TIMEOUT_MS), 10);
   const payload = await loadPayload();
 
   const { jobId, sessionId } = await createJob(apiBaseUrl, token, payload);
   logger.info('Smoke job created', { jobId, sessionId });
 
-  await streamUntilTerminal(apiBaseUrl, token, sessionId, timeoutMs);
+  await openSmokeStream(apiBaseUrl, token, sessionId);
+  await waitForTerminalState(apiBaseUrl, token, jobId, sessionId, timeoutMs);
   logger.info('Smoke flow reached terminal state', { jobId, sessionId });
 }
 
 main().catch((error) => {
   logger.error('Cloud Run smoke flow failed', {
-    error: error instanceof Error ? error.message : String(error),
+    error: formatUnknownError(error),
   });
   process.exitCode = 1;
 });

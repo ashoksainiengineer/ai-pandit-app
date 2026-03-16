@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import '../../api/src/scripts/load-env.js';
 import { createServer } from 'node:http';
 import {
   getWorkerRuntimeStatus,

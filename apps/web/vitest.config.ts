@@ -1,6 +1,17 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import dotenv from 'dotenv';
+import fs from 'fs';
+
+const envLocalPath = path.resolve(__dirname, '.env.local');
+const envPath = path.resolve(__dirname, '.env');
+
+if (fs.existsSync(envLocalPath)) {
+    dotenv.config({ path: envLocalPath });
+} else if (fs.existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+}
 
 export default defineConfig({
     plugins: [react()],
@@ -14,7 +25,6 @@ export default defineConfig({
         exclude: ['node_modules', '.next'],
         setupFiles: ['./vitest.setup.ts', './__tests__/setup.ts'],
         pool: 'forks',
-        // @ts-ignore - Vitest 4 top-level pool options
         forks: {
             singleFork: true,
         },

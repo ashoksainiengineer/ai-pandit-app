@@ -1,4 +1,5 @@
 import { runCapacityValidation } from './capacity-validation.js';
+import { logger } from '../lib/logger.js';
 
 interface Scenario {
   name: 'ai_timeout_spike' | 'db_latency_spike' | 'queue_outage';
@@ -56,12 +57,12 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log(JSON.stringify({
+  logger.info('Chaos resilience check completed', {
     ranAt: new Date().toISOString(),
     allPassed,
     note: 'This harness validates resilience under externally injected faults. Configure CHAOS_* URLs to fault-enabled targets.',
     results,
-  }, null, 2));
+  });
 
   if (!allPassed) {
     process.exit(1);

@@ -1,30 +1,37 @@
+import './load-env.js';
 import { logger } from '../lib/logger.js';
 
 interface MetricsResponse {
-  database?: {
-    healthy?: boolean;
-    latencyMs?: number;
-  };
-  realtime?: {
-    activeSseConnections?: number;
-    activeQueueProcessing?: number;
-  };
-  jobs?: {
-    queueDepth?: number;
-    activeJobCount?: number;
-    retryCount?: number;
-    failedTerminalJobs?: number;
-  };
-  config?: {
-    jobExecutionMode?: string;
+  service?: string;
+  healthy?: boolean;
+  ready?: boolean;
+  workerStarted?: boolean;
+  shutdownRequested?: boolean;
+  draining?: boolean;
+  startupError?: string | null;
+  runtimeStatus?: {
+    running?: boolean;
+    pollIntervalMs?: number;
+    activeJobs?: number;
     queueArchitecture?: string;
+    jobExecutionMode?: string;
+    lastError?: string | null;
   };
 }
 
+function getRequiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} is required`);
+  }
+
+  return value;
+}
+
 async function main(): Promise<void> {
-  const baseUrl = process.env.WORKER_HEALTH_URL ?? 'http://localhost:3001';
+  const baseUrl = getRequiredEnv('WORKER_HEALTH_URL');
   const token = process.env.WORKER_HEALTH_BEARER_TOKEN;
-  const url = `${baseUrl.replace(/\/+$/, '')}/api/health/metrics`;
+  const url = `${baseUrl.replace(/\/+$/, '')}/health`;
 
   const response = await fetch(url, {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
@@ -35,19 +42,23 @@ async function main(): Promise<void> {
   }
 
   const payload = (await response.json()) as MetricsResponse;
-  if (!payload.database?.healthy) {
-    throw new Error('Database health is not healthy');
+  if (!payload.healthy || !payload.ready || !payload.runtimeStatus?.running) {
+    throw new Error(
+      payload.startupError
+        ? `Worker is not ready: ${payload.startupError}`
+        : 'Worker is not healthy or ready'
+    );
   }
 
   logger.info('Worker health verification passed', {
     url,
-    dbLatencyMs: payload.database.latencyMs ?? null,
-    activeQueueProcessing: payload.realtime?.activeQueueProcessing ?? 0,
-    queueDepth: payload.jobs?.queueDepth ?? 0,
-    retryCount: payload.jobs?.retryCount ?? 0,
-    failedTerminalJobs: payload.jobs?.failedTerminalJobs ?? 0,
-    jobExecutionMode: payload.config?.jobExecutionMode ?? 'unknown',
-    queueArchitecture: payload.config?.queueArchitecture ?? 'unknown',
+    service: payload.service ?? 'unknown',
+    workerStarted: payload.workerStarted ?? false,
+    draining: payload.draining ?? false,
+    activeJobs: payload.runtimeStatus?.activeJobs ?? 0,
+    pollIntervalMs: payload.runtimeStatus?.pollIntervalMs ?? null,
+    jobExecutionMode: payload.runtimeStatus?.jobExecutionMode ?? 'unknown',
+    queueArchitecture: payload.runtimeStatus?.queueArchitecture ?? 'unknown',
   });
 }
 
