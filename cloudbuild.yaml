@@ -1,11 +1,36 @@
 # Cloud Build configuration for AI-Pandit
 # This replaces GitHub Actions for CI/CD
+# Uses Docker-based deployment instead of buildpacks for reliability
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/ai-pandit-489913/secrets/neon-database-url/versions/latest
+      env: 'NEON_DATABASE_URL'
+    - versionName: projects/ai-pandit-489913/secrets/redis-url/versions/latest
+      env: 'REDIS_URL'
+    - versionName: projects/ai-pandit-489913/secrets/ai-api-key/versions/latest
+      env: 'AI_API_KEY'
+    - versionName: projects/ai-pandit-489913/secrets/encryption-secret/versions/latest
+      env: 'ENCRYPTION_SECRET'
+    - versionName: projects/ai-pandit-489913/secrets/clerk-secret-key/versions/latest
+      env: 'CLERK_SECRET_KEY'
+    - versionName: projects/ai-pandit-489913/secrets/next-public-clerk-publishable-key/versions/latest
+      env: 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY'
+    - versionName: projects/ai-pandit-489913/secrets/next-public-backend-url/versions/latest
+      env: 'NEXT_PUBLIC_BACKEND_URL'
+    - versionName: projects/ai-pandit-489913/secrets/next-public-app-url/versions/latest
+      env: 'NEXT_PUBLIC_APP_URL'
+    - versionName: projects/ai-pandit-489913/secrets/clerk-webhook-secret/versions/latest
+      env: 'CLERK_WEBHOOK_SECRET'
 
 steps:
-  # Install dependencies
+  # Install dependencies with dev dependencies for build
   - name: 'node:20'
     entrypoint: 'npm'
-    args: ['ci']
+    args: ['ci', '--include=dev']
+    env:
+      - 'DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder'
+    secretEnv: ['NEON_DATABASE_URL', 'REDIS_URL', 'AI_API_KEY', 'ENCRYPTION_SECRET', 'CLERK_SECRET_KEY', 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY', 'NEXT_PUBLIC_BACKEND_URL', 'NEXT_PUBLIC_APP_URL', 'CLERK_WEBHOOK_SECRET']
 
   # Build shared packages
   - name: 'node:20'
@@ -16,6 +41,7 @@ steps:
   - name: 'node:20'
     entrypoint: 'npm'
     args: ['--workspace', '@ai-pandit/db', 'run', 'build']
+    secretEnv: ['NEON_DATABASE_URL']
 
   # Build worker-runtime package
   - name: 'node:20'
@@ -31,20 +57,79 @@ steps:
   - name: 'node:20'
     entrypoint: 'npm'
     args: ['--workspace', '@ai-pandit/api', 'run', 'build']
+    secretEnv: ['NEON_DATABASE_URL', 'REDIS_URL', 'AI_API_KEY', 'ENCRYPTION_SECRET', 'CLERK_SECRET_KEY']
 
   # Build Web
   - name: 'node:20'
     entrypoint: 'npm'
     args: ['--workspace', '@ai-pandit/web', 'run', 'build']
+    env:
+      - 'NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in'
+      - 'NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up'
+      - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard'
+      - 'NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard'
+      - 'DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder'
+    secretEnv: ['NEON_DATABASE_URL', 'ENCRYPTION_SECRET', 'CLERK_SECRET_KEY', 'NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY', 'NEXT_PUBLIC_BACKEND_URL', 'NEXT_PUBLIC_APP_URL', 'CLERK_WEBHOOK_SECRET']
 
-  # Deploy API to Cloud Run
+  # Build and push API Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'deploy/cloudrun/api.Dockerfile'
+      - '-t'
+      - 'asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/api-service:$BUILD_ID'
+      - '-t'
+      - 'asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/api-service:latest'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/api-service:$BUILD_ID'
+
+  # Build and push Worker Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'deploy/cloudrun/worker.Dockerfile'
+      - '-t'
+      - 'asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/worker-service:$BUILD_ID'
+      - '-t'
+      - 'asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/worker-service:latest'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/worker-service:$BUILD_ID'
+
+  # Build and push Ephemeris Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - 'deploy/cloudrun/ephemeris.Dockerfile'
+      - '-t'
+      - 'asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/ephemeris-service:$BUILD_ID'
+      - '-t'
+      - 'asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/ephemeris-service:latest'
+      - '.'
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/ephemeris-service:$BUILD_ID'
+
+  # Deploy API to Cloud Run using pre-built image
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
         gcloud run deploy api-service \
-          --source apps/api \
+          --image asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/api-service:$BUILD_ID \
           --region asia-southeast1 \
           --platform managed \
           --allow-unauthenticated \
@@ -56,14 +141,14 @@ steps:
           --set-secrets NEON_DATABASE_URL=neon-database-url:latest,REDIS_URL=redis-url:latest,AI_API_KEY=ai-api-key:latest,ENCRYPTION_SECRET=encryption-secret:latest,CLERK_SECRET_KEY=clerk-secret-key:latest \
           --set-env-vars NODE_ENV=production,APP_REGION=asia-southeast1,CLOUD_RUN_REGION=asia-southeast1,JOB_EXECUTION_MODE=external_worker,QUEUE_ARCHITECTURE=db_polling,USE_ASYNC_JOB_PIPELINE=true,USE_NEW_STREAM_PATH=true,AI_BASE_URL=https://api.groq.com/openai/v1,AI_MODEL=openai/gpt-oss-120b,EPHEMERIS_PROVIDER=skyfield,EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK=false,EPHEMERIS_SERVICE_URL=https://ephemeris-service-7tjuxigfoq-as.a.run.app,EPHEMERIS_SERVICE_TIMEOUT_MS=15000,EPHEMERIS_BATCH_SIZE=250,EPHEMERIS_HOUSE_SYSTEM=placidus,FRONTEND_URL=https://aipandit.app,ALLOWED_ORIGINS=https://aipandit.app,WORKER_POLL_INTERVAL_MS=2000,JOB_SYNC_POLL_INTERVAL_MS=2000
 
-  # Deploy Worker to Cloud Run
+  # Deploy Worker to Cloud Run using pre-built image
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
         gcloud run deploy worker-service \
-          --source apps/worker \
+          --image asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/worker-service:$BUILD_ID \
           --region asia-southeast1 \
           --platform managed \
           --allow-unauthenticated \
@@ -76,14 +161,14 @@ steps:
           --set-secrets NEON_DATABASE_URL=neon-database-url:latest,REDIS_URL=redis-url:latest,AI_API_KEY=ai-api-key:latest,ENCRYPTION_SECRET=encryption-secret:latest,CLERK_SECRET_KEY=clerk-secret-key:latest \
           --set-env-vars NODE_ENV=production,APP_REGION=asia-southeast1,CLOUD_RUN_REGION=asia-southeast1,JOB_EXECUTION_MODE=external_worker,QUEUE_ARCHITECTURE=db_polling,WORKER_POLL_INTERVAL_MS=2000,WORKER_DRAIN_TIMEOUT_MS=30000,JOB_SYNC_POLL_INTERVAL_MS=2000,USE_ASYNC_JOB_PIPELINE=true,USE_NEW_STREAM_PATH=true,AI_BASE_URL=https://api.groq.com/openai/v1,AI_MODEL=openai/gpt-oss-120b,EPHEMERIS_PROVIDER=skyfield,EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK=false,EPHEMERIS_SERVICE_URL=https://ephemeris-service-7tjuxigfoq-as.a.run.app,EPHEMERIS_SERVICE_TIMEOUT_MS=15000,EPHEMERIS_BATCH_SIZE=250,EPHEMERIS_HOUSE_SYSTEM=placidus
 
-  # Deploy Ephemeris to Cloud Run
+  # Deploy Ephemeris to Cloud Run using pre-built image
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: 'bash'
     args:
       - '-c'
       - |
         gcloud run deploy ephemeris-service \
-          --source services/ephemeris \
+          --image asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/ephemeris-service:$BUILD_ID \
           --region asia-southeast1 \
           --platform managed \
           --allow-unauthenticated \
@@ -94,7 +179,16 @@ steps:
           --max-instances 1 \
           --set-env-vars EPHEMERIS_DATA_DIR=/app/data,EPHEMERIS_KERNEL_FILE=de440s.bsp,EPHEMERIS_LOAD_KERNEL_ON_STARTUP=true
 
+images:
+  - 'asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/api-service:$BUILD_ID'
+  - 'asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/api-service:latest'
+  - 'asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/worker-service:$BUILD_ID'
+  - 'asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/worker-service:latest'
+  - 'asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/ephemeris-service:$BUILD_ID'
+  - 'asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/ephemeris-service:latest'
+
 options:
   logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'
 
 timeout: 1800s
