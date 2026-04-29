@@ -8,14 +8,17 @@
 // ═════════════════════════════════════════════════════════════════════════════
 // IMMEDIATE STARTUP OBSERVABILITY - Must be first
 // ═════════════════════════════════════════════════════════════════════════════
-// Note: Using console.log here before logger is initialized for early diagnostics
 const startupTimestamp = new Date().toISOString();
-console.log(`[STARTUP ${startupTimestamp}] Server process starting...`);
-console.log(`[STARTUP] Node version: ${process.version}`);
-console.log(`[STARTUP] Platform: ${process.platform}`);
-console.log(`[STARTUP] Environment: ${process.env.NODE_ENV || 'not set'}`);
-console.log(`[STARTUP] Deployment: v2.0.0-cloudrun`);
-console.log(`[STARTUP] Port: ${process.env.PORT || '7860'}`);
+process.stdout.write(JSON.stringify({
+    level: 'info',
+    msg: 'Server process starting',
+    time: startupTimestamp,
+    nodeVersion: process.version,
+    platform: process.platform,
+    env: process.env.NODE_ENV || 'not set',
+    deployment: 'v2.0.0-cloudrun',
+    port: process.env.PORT || '7860'
+}) + '\n');
 
 import './scripts/load-env.js';
 import express from 'express';
@@ -245,7 +248,7 @@ export default app;
 // ═════════════════════════════════════════════════════════════════════════════
 
 async function bootstrap() {
-    console.log(`[STARTUP] Bootstrap starting...`);
+    logger.info('[STARTUP] Bootstrap starting...');
     const startTime = Date.now();
     
     const httpServer = createServer(app);
@@ -263,7 +266,7 @@ async function bootstrap() {
 
     httpServer.listen(PORT, '0.0.0.0', () => {
         const elapsed = Date.now() - startTime;
-        console.log(`[STARTUP] 🚀 AI Pandit BTR Engine is live (${elapsed}ms)`);
+        logger.info(`🚀 AI Pandit BTR Engine is live (${elapsed}ms)`);
         logger.info('🚀 AI Pandit BTR Engine is live', {
             env: config.app.nodeEnv,
             port: PORT,

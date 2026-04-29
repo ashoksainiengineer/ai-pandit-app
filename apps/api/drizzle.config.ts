@@ -5,7 +5,7 @@ import { defineConfig } from 'drizzle-kit';
  */
 export default defineConfig({
     schema: '../../packages/db/src/schema.ts',
-    out: './drizzle',
+    out: '../../packages/db/drizzle',
     dialect: 'postgresql',
     dbCredentials: {
         url: process.env.NEON_DATABASE_URL || process.env.DATABASE_URL!,

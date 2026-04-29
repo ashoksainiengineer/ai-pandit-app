@@ -5,7 +5,7 @@
 
 'use client';
 
-import React, { useState, useEffect, Suspense, use } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { env } from '@/lib/config/env';
 import dynamic from 'next/dynamic';
 import DashboardLayout from '@/app/components/dashboard/DashboardLayout';
@@ -42,6 +42,9 @@ async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
       'Authorization': `Bearer ${localStorage.getItem('token')}`,
     },
   });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  }
   const data = await response.json();
   if (!data.success) throw new Error(data.error?.message || 'Failed to fetch metrics');
   return data.data;
@@ -53,6 +56,9 @@ async function fetchRecentReadings(): Promise<Reading[]> {
       'Authorization': `Bearer ${localStorage.getItem('token')}`,
     },
   });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  }
   const data = await response.json();
   if (!data.success) throw new Error(data.error?.message || 'Failed to fetch readings');
   return data.data;
@@ -64,6 +70,9 @@ async function fetchTimeSeriesData(): Promise<TimeSeriesData[]> {
       'Authorization': `Bearer ${localStorage.getItem('token')}`,
     },
   });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  }
   const data = await response.json();
   if (!data.success) throw new Error(data.error?.message || 'Failed to fetch analytics');
   return data.data;
