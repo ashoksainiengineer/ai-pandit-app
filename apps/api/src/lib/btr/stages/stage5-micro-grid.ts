@@ -9,7 +9,7 @@
  */
 
 import { SecondsPrecisionInput } from '@ai-pandit/shared';
-import { CandidateTime, generateRefinementGrid } from '../../time-offset-manager.js';
+import { CandidateTime, generateRefinementGrid, getCandidateIdentity, sortCandidatesByMerit } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { StageResult } from '@ai-pandit/shared';
 import { logger } from '../../logger.js';
@@ -65,13 +65,7 @@ export async function stage5MicroGrid(
                         input.offsetConfig.preset === '6hours' ? 360 :
                             input.offsetConfig.preset === '12hours' ? 720 : 60);
 
-    const rankedSurvivors = [...survivors].sort((a, b) => {
-        const absDiff = Math.abs(a.offsetMinutes) - Math.abs(b.offsetMinutes);
-        if (absDiff !== 0) return absDiff;
-        const signedDiff = a.offsetMinutes - b.offsetMinutes;
-        if (signedDiff !== 0) return signedDiff;
-        return a.time.localeCompare(b.time);
-    });
+    const rankedSurvivors = sortCandidatesByMerit(survivors);
 
     const focusCount = getStage5FocusCount(offsetMinutes, rankedSurvivors.length);
     const microGridParams = getMicroGridParams(offsetMinutes);
@@ -79,13 +73,13 @@ export async function stage5MicroGrid(
     // Adaptive micro-grid around top-K survivors.
     for (const survivor of rankedSurvivors.slice(0, focusCount)) {
         const microGrid = generateRefinementGrid(
-            survivor.time,
+            survivor,
             microGridParams.rangeMinutes,
             microGridParams.intervalSeconds
         );
 
         for (const gridPoint of microGrid) {
-            if (!microCandidates.some(c => c.time === gridPoint.time)) {
+            if (!microCandidates.some(c => getCandidateIdentity(c) === getCandidateIdentity(gridPoint))) {
                 microCandidates.push(gridPoint);
             }
         }

@@ -7,7 +7,7 @@
  */
 
 import { SecondsPrecisionInput, ForensicTraits } from '@ai-pandit/shared';
-import { CandidateTime, getDynamicBatchSize, getDynamicSurvivors, splitIntoBatches } from '../../time-offset-manager.js';
+import { CandidateTime, getCandidateIdentity, getDynamicBatchSize, getDynamicSurvivors, sortCandidatesByMerit, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { callAIWithStream, executeAIInParallel } from '../../ai-client.js';
 import { _emitCandidateScore, emitAIContext, emitDecision } from '../../session-events.js';
@@ -19,7 +19,9 @@ import { extractBatchSurvivors } from '../extractors/index.js';
 import { CandidateDataPackage, StageResult } from '@ai-pandit/shared';
 import { config } from '../../../config/index.js';
 import { logger } from '../../logger.js';
+import { btrDataCapture } from '../data-capture.js';
 import { getMinifiedEphemerisInline, getFullEphemerisPayload } from './_utils.js';
+import { buildCandidateReferenceMap } from '../candidate-reference.js';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 type LifecycleShift = NonNullable<CandidateDataPackage['lifecycleShifts']>[number];
@@ -82,7 +84,8 @@ export async function stage4DeepAnalysis(
                 buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
                     includeFullData: true,
                     dashaDepth: 4, // High Precision (Sookshma Dasha)
-                    lifecycleShifts: globalLifecycle
+                    lifecycleShifts: globalLifecycle,
+                    candidate: ct,
                 })
             ));
             batchDataMap.set(i, batchEnriched);
@@ -101,47 +104,119 @@ export async function stage4DeepAnalysis(
                 hasForensicTraits: !!forensicTraits
             });
 
+            const systemPrompt = 'You are the GOD-TIER VEDIC ANALYST. Perform deep forensic multi-dasha verification.';
+            const userPrompt = getDeepAnalysisPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData, offsetMinutes);
+            
+            // Save batch metadata
+            btrDataCapture.saveBatchMetadata(
+                input.sessionId,
+                4,
+                roundNumber,
+                i + 1,
+                batchTimes.map(c => c.time),
+                survivorsPerBatch
+            );
+            
+            // Save ephemeris and prompts for each candidate
+            for (const candidate of batchEnriched) {
+                btrDataCapture.saveEphemeris(
+                    input.sessionId,
+                    4,
+                    candidate.time,
+                    {
+                        planets: candidate.planets,
+                        houses: candidate.houseLords,
+                        lagna: candidate.ascendant,
+                        vimshottariDasha: candidate.vimshottariDasha,
+                        vargas: candidate.vargaDegrees,
+                        transits: candidate.transitData
+                    },
+                    roundNumber,
+                    i + 1
+                );
+                
+                btrDataCapture.savePrompt(
+                    input.sessionId,
+                    4,
+                    candidate.time,
+                    systemPrompt,
+                    userPrompt,
+                    {
+                        candidateCount: batchEnriched.length,
+                        eventCount: input.lifeEvents.length,
+                        forensicTraitsPresent: !!forensicTraits,
+                        spouseDataPresent: !!input.spouseData
+                    },
+                    roundNumber,
+                    i + 1
+                );
+            }
+            
             const response = await callAIWithStream(
                 input.sessionId,
                 4,
-                'You are the GOD-TIER VEDIC ANALYST. Perform deep forensic multi-dasha verification.',
-                getDeepAnalysisPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData, offsetMinutes),
+                systemPrompt,
+                userPrompt,
                 {
                     candidateTime: `R${roundNumber}-B${i + 1}`,
                     progressTracker: progress,
-                    maxTokens: config.ai.stage4MaxTokens, // Driven by AI_STAGE4_MAX_TOKENS
+                    maxTokens: config.ai.stage4MaxTokens,
                     model: config.ai.reasonerModel,
                 }
             );
-
+            
             completedBatches++;
-            // Use batches.length + 1 to account for the potential final verification step
             await progress.updateSubProgress(completedBatches, batches.length + 1);
 
-            // PROCESS BATCH IMMEDIATELY
             const batchSurvivors: CandidateTime[] = [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
-            const aiScores = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), survivorsPerBatch);
+            const referenceMap = buildCandidateReferenceMap(batchTimes);
+            const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], survivorsPerBatch);
+            
+            if (response.success) {
+                for (const candidate of batchEnriched) {
+                    const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === getCandidateIdentity(candidate));
+                    btrDataCapture.saveAIResponse(
+                        input.sessionId,
+                        4,
+                        candidate.time,
+                        response.thinking || '',
+                        response.content || '',
+                        {
+                            score: scoreObj?.score,
+                            verdict: scoreObj?.time,
+                            tokensUsed: { prompt: 0, completion: 0, total: 0 },
+                            duration: 0,
+                            model: config.ai.reasonerModel
+                        },
+                        roundNumber,
+                        i + 1
+                    );
+                }
+            }
 
             // 🔱 RESILIENT FALLBACK: If AI fails or returns empty, preserve the first N candidates
             let survivorTimes: string[] = [];
             if (!response.success || aiScores.length === 0) {
                 logger.warn(`🔱 [STAGE-4] Batch ${i + 1} AI verdict failed (Success: ${response.success}, Scores: ${aiScores.length}). FALLBACK: Preserving top candidates.`);
-                survivorTimes = batchTimes.slice(0, survivorsPerBatch).map(c => c.time);
+                survivorTimes = sortCandidatesByMerit(batchTimes)
+                    .slice(0, survivorsPerBatch)
+                    .map(c => getCandidateIdentity(c));
             } else {
                 survivorTimes = aiScores
                     .sort((a, b) => b.score - a.score)
                     .slice(0, survivorsPerBatch)
-                    .map(s => s.time);
+                    .map(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }));
             }
 
             for (let j = 0; j < batchEnriched.length; j++) {
                 const candidate = batchEnriched[j];
                 const originalTimeInfo = batchTimes[j];
-                const isSurvivor = survivorTimes.includes(candidate.time);
+                const candidateId = getCandidateIdentity(originalTimeInfo);
+                const isSurvivor = survivorTimes.includes(candidateId);
 
                 // If AI failed, use fallback scores — mark as isFallback for transparency
-                const scoreObj = aiScores.find(s => s.time === candidate.time);
+                const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === candidateId);
                 const _isFallback = !scoreObj;
                 const score = scoreObj ? scoreObj.score : (isSurvivor ? config.btr.fallbackPromotedScore : config.btr.fallbackRejectedScore + 20);
                 const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "⚠️ AI unavailable — estimated score (preserved)" : "⚠️ AI unavailable — estimated score");
@@ -181,9 +256,9 @@ export async function stage4DeepAnalysis(
         currentCandidates = roundSurvivors;
 
         // 🔱 TENTATIVE TIME SAFETY: Ensure it survives the rounds
-        const hasTentative = currentCandidates.some(c => c.time === input.tentativeTime);
+        const hasTentative = currentCandidates.some(c => c.time === input.tentativeTime && (c.dayOffset ?? 0) === 0);
         if (!hasTentative) {
-            const tentativeCandidate = candidates.find(c => c.time === input.tentativeTime);
+            const tentativeCandidate = candidates.find(c => c.time === input.tentativeTime && (c.dayOffset ?? 0) === 0);
             if (tentativeCandidate) {
                 currentCandidates.push(tentativeCandidate);
                 logger.info(`🔱 [STAGE-4] Round safety net: Restored tentative time ${input.tentativeTime}`);
@@ -204,7 +279,8 @@ export async function stage4DeepAnalysis(
             buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
                 includeFullData: true,
                 dashaDepth: 5, // God-Tier Precision (Prana Dasha)
-                lifecycleShifts: globalLifecycle
+                lifecycleShifts: globalLifecycle,
+                candidate: ct,
             })
         ));
 
@@ -229,26 +305,28 @@ export async function stage4DeepAnalysis(
         const aiContent = response.success ? (response.content || response.thinking || '') : '';
         allReasoning += aiContent;
 
-        const aiScores = extractBatchSurvivors(aiContent, currentCandidates.map(c => c.time), survivorsPerBatch);
+        const referenceMap = buildCandidateReferenceMap(currentCandidates);
+        const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], survivorsPerBatch);
 
         // 🔱 FINAL ROUND FALLBACK: If AI fails or returns empty, preserve everyone (don't eliminate)
         let survivorTimes: string[] = [];
         if (!response.success || aiScores.length === 0) {
             logger.warn(`🔱 [STAGE-4] Final verification AI failed. FALLBACK: Promoting all current candidates.`);
-            survivorTimes = currentCandidates.map(c => c.time);
+            survivorTimes = currentCandidates.map(c => getCandidateIdentity(c));
         } else {
             survivorTimes = aiScores
                 .sort((a, b) => b.score - a.score)
                 .slice(0, survivorsPerBatch)
-                .map(s => s.time);
+                .map(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }));
         }
 
         const survivors: CandidateTime[] = [];
         for (let j = 0; j < finalBatchData.length; j++) {
             const candidate = finalBatchData[j];
             const originalTimeInfo = currentCandidates[j];
-            const isSurvivor = survivorTimes.includes(candidate.time);
-            const scoreObj = aiScores.find(s => s.time === candidate.time);
+            const candidateId = getCandidateIdentity(originalTimeInfo);
+            const isSurvivor = survivorTimes.includes(candidateId);
+            const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === candidateId);
             const _isFallback = !scoreObj;
             const score = scoreObj ? scoreObj.score : (isSurvivor ? config.btr.fallbackPromotedScore + 10 : config.btr.fallbackRejectedScore + 25);
             const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "⚠️ AI unavailable — estimated score" : "⚠️ AI unavailable — low estimated confidence");
@@ -284,7 +362,7 @@ export async function stage4DeepAnalysis(
     await progress.completeStep('deep', [`Deep analysis: ${currentCandidates.length} survivors`]);
 
     return {
-        survivors: currentCandidates.slice(0, 7),
+        survivors: sortCandidatesByMerit(currentCandidates).slice(0, 7),
         stageResult: {
             stageNumber: 4,
             stageName: 'Deep Multi-Dasha Analysis',

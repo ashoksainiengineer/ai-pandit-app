@@ -6,7 +6,7 @@
  */
 
 import { SecondsPrecisionInput } from '@ai-pandit/shared';
-import { CandidateTime, generateRefinementGrid } from '../../time-offset-manager.js';
+import { CandidateTime, generateRefinementGrid, getCandidateIdentity, sortCandidatesByMerit } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { StageResult } from '@ai-pandit/shared';
 
@@ -78,23 +78,17 @@ export async function stage3RefinementGrid(
         intervalSeconds = 60;
     }
 
-    const rankedSurvivors = [...survivors].sort((a, b) => {
-        const absDiff = Math.abs(a.offsetMinutes) - Math.abs(b.offsetMinutes);
-        if (absDiff !== 0) return absDiff;
-        const signedDiff = a.offsetMinutes - b.offsetMinutes;
-        if (signedDiff !== 0) return signedDiff;
-        return a.time.localeCompare(b.time);
-    });
+    const rankedSurvivors = sortCandidatesByMerit(survivors);
 
     const focusCount = getStage3FocusCount(offsetMinutes, rankedSurvivors.length);
 
     // Generate explicit dynamic grids around adaptive top-K survivors
     for (const survivor of rankedSurvivors.slice(0, focusCount)) {
-        const fineGrid = generateRefinementGrid(survivor.time, rangeMinutes, intervalSeconds); // Telescopic Focus
+        const fineGrid = generateRefinementGrid(survivor, rangeMinutes, intervalSeconds); // Telescopic Focus
 
         for (const gridPoint of fineGrid) {
             // Check if already exists
-            if (!refinedCandidates.some(c => c.time === gridPoint.time)) {
+            if (!refinedCandidates.some(c => getCandidateIdentity(c) === getCandidateIdentity(gridPoint))) {
                 refinedCandidates.push(gridPoint);
             }
         }

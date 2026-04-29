@@ -7,7 +7,7 @@
  */
 
 import { SecondsPrecisionInput, ForensicTraits, EphemerisData } from '@ai-pandit/shared';
-import { CandidateTime, getDynamicBatchSize, getDynamicSurvivors, splitIntoBatches } from '../../time-offset-manager.js';
+import { CandidateTime, getCandidateIdentity, getDynamicBatchSize, getDynamicSurvivors, sortCandidatesByMerit, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { callAIWithStream, executeAIInParallel } from '../../ai-client.js';
 import { _emitCandidateScore, emitAIContext } from '../../session-events.js';
@@ -25,11 +25,19 @@ import {
 } from '../../btr-precision-integrator.js';
 import { logger } from '../../logger.js';
 import { config } from '../../../config/index.js';
+import { btrDataCapture } from '../data-capture.js';
 import { getMinifiedEphemerisInline, getFullEphemerisPayload } from './_utils.js';
+import { buildCandidateReferenceMap, getCandidateReference } from '../candidate-reference.js';
 
 const BATCH_VERDICT_MATCH_THRESHOLD_SECONDS = 8;
 const FINAL_VERDICT_MATCH_THRESHOLD_SECONDS = 12;
 type LifecycleShift = NonNullable<CandidateDataPackage['lifecycleShifts']>[number];
+type PresentTransitLock = {
+    dashaAtNow: string;
+    jupiter: string;
+    saturn: string;
+    rahu: string;
+};
 
 function parseTimeToSeconds(time: string): number | null {
     const match = time.trim().match(/^(\d{2}):(\d{2}):(\d{2})$/);
@@ -111,7 +119,8 @@ function resolveCandidateByVerdictTime(
         return { match: null };
     }
 
-    const exact = candidates.find(c => c.time === requestedTime);
+    const referenceMap = buildCandidateReferenceMap(candidates);
+    const exact = referenceMap.get(requestedTime) || candidates.find(c => c.time === requestedTime);
     if (exact) {
         return { match: exact, mappedFrom: requestedTime, diffSeconds: 0 };
     }
@@ -136,16 +145,10 @@ function resolveCandidateByVerdictTime(
 }
 
 function pickDeterministicFallbackWinner(candidates: CandidateTime[]): CandidateTime {
-    return [...candidates].sort((a, b) => {
-        const absOffsetDiff = Math.abs(a.offsetMinutes) - Math.abs(b.offsetMinutes);
-        if (absOffsetDiff !== 0) return absOffsetDiff;
-        const signedOffsetDiff = a.offsetMinutes - b.offsetMinutes;
-        if (signedOffsetDiff !== 0) return signedOffsetDiff;
-        return a.time.localeCompare(b.time);
-    })[0];
+    return sortCandidatesByMerit(candidates)[0];
 }
 
-function getPresentTransitData(c: CandidateDataPackage, currentEph: EphemerisData, now: Date) {
+function getPresentTransitData(c: CandidateDataPackage, currentEph: EphemerisData, now: Date): PresentTransitLock {
     if (!c) {
         logger.warn('🔱 [STAGE-6] Missing rawVimshottari in candidate for transit calculation');
         return {
@@ -175,6 +178,28 @@ function getPresentTransitData(c: CandidateDataPackage, currentEph: EphemerisDat
     };
 }
 
+function buildPresentTransitLockMap(
+    candidates: CandidateDataPackage[],
+    currentEph: EphemerisData,
+    now: Date,
+): Record<string, PresentTransitLock> {
+    const duplicateTimes = new Set<string>();
+    const counts = new Map<string, number>();
+
+    for (const candidate of candidates) {
+        counts.set(candidate.time, (counts.get(candidate.time) || 0) + 1);
+    }
+
+    for (const [time, count] of counts.entries()) {
+        if (count > 1) duplicateTimes.add(time);
+    }
+
+    return Object.fromEntries(candidates.map((candidate) => [
+        getCandidateReference(candidate, duplicateTimes),
+        getPresentTransitData(candidate, currentEph, now),
+    ]));
+}
+
 /**
  * Stage 6: Final seconds-level precision judgement
  *
@@ -192,6 +217,7 @@ export async function stage6FinalPrecision(
     forensicTraits: ForensicTraits,
     globalLifecycle: LifecycleShift[] = []
 ): Promise<{
+    finalCandidate: CandidateTime;
     finalTime: string;
     accuracy: number;
     confidence: string;
@@ -248,13 +274,14 @@ export async function stage6FinalPrecision(
     const _currentCandidates = [...candidates];
     let allReasoning = '';
 
-    for (const candidate of candidates.slice(0, 7)) {
+    for (const candidate of sortCandidatesByMerit(candidates).slice(0, 7)) {
         try {
             const pkg = await buildCandidateDataPackage(candidate.time, candidate.offsetMinutes, input, {
                 includeFullData: true,
                 dashaDepth: 3,
                 pranaWindowDays: 3,
-                lifecycleShifts: globalLifecycle
+                lifecycleShifts: globalLifecycle,
+                candidate,
             });
 
             const baseCandidate: CandidateWithPrecisionData = {
@@ -289,7 +316,7 @@ export async function stage6FinalPrecision(
         }
     }
 
-    let finalists = [...candidates];
+    let finalists = sortCandidatesByMerit(candidates);
 
     const godTierCount = godTierEnhancedCandidates.filter(c => c.precision?.isPrecisionStandard).length;
     logger.info(`Stage 6: ${godTierCount}/${godTierEnhancedCandidates.length} candidates achieved High-Precision status`);
@@ -309,7 +336,8 @@ export async function stage6FinalPrecision(
                     includeFullData: true,
                     dashaDepth: 4,
                     pranaWindowDays: 3,
-                    lifecycleShifts: globalLifecycle
+                    lifecycleShifts: globalLifecycle,
+                    candidate: ct,
                 })
             ));
             batchDataMap.set(i, batchEnriched);
@@ -319,20 +347,91 @@ export async function stage6FinalPrecision(
                 return { success: false, error: 'Enrichment failed', content: '' };
             }
 
-            const presentAnchor = getPresentTransitData(batchEnriched[0], currentEph, now);
+            const presentAnchor = buildPresentTransitLockMap(batchEnriched, currentEph, now);
+            
+            const systemPrompt = 'FINAL FORENSIC JUDGEMENT. Pick THE ONE based on bio-Vedic alignment.';
+            const userPrompt = getFinalPrecisionPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData, presentAnchor);
+            
+            // Save batch metadata
+            btrDataCapture.saveBatchMetadata(
+                input.sessionId,
+                6,
+                1,
+                i + 1,
+                batchTimes.map(c => c.time),
+                1
+            );
+            
+            // Save ephemeris and prompts
+            for (const candidate of batchEnriched) {
+                btrDataCapture.saveEphemeris(
+                    input.sessionId,
+                    6,
+                    candidate.time,
+                    {
+                        planets: candidate.planets,
+                        houses: candidate.houseLords,
+                        lagna: candidate.ascendant,
+                        vimshottariDasha: candidate.vimshottariDasha,
+                        vargas: candidate.vargaDegrees,
+                        transits: candidate.transitData
+                    },
+                    1,
+                    i + 1
+                );
+                
+                btrDataCapture.savePrompt(
+                    input.sessionId,
+                    6,
+                    candidate.time,
+                    systemPrompt,
+                    userPrompt,
+                    {
+                        candidateCount: batchEnriched.length,
+                        eventCount: input.lifeEvents.length,
+                        forensicTraitsPresent: !!forensicTraits,
+                        spouseDataPresent: !!input.spouseData
+                    },
+                    1,
+                    i + 1
+                );
+            }
 
             const resp = await callAIWithStream(
                 input.sessionId,
                 6,
-                'FINAL FORENSIC JUDGEMENT. Pick THE ONE based on bio-Vedic alignment.',
-                getFinalPrecisionPrompt(batchEnriched, input.lifeEvents, forensicTraits, input.spouseData, presentAnchor),
+                systemPrompt,
+                userPrompt,
                 {
                     candidateTime: `R1-B${i + 1}`,
                     progressTracker: progress,
-                    maxTokens: config.ai.stage6MaxTokens, // Driven by AI_STAGE6_MAX_TOKENS
+                    maxTokens: config.ai.stage6MaxTokens,
                     model: config.ai.reasonerModel,
                 }
             );
+            
+            // Save AI responses
+            if (resp.success) {
+                const verdict = extractFinalVerdict(resp.content || resp.thinking || '');
+                for (const candidate of batchEnriched) {
+                    btrDataCapture.saveAIResponse(
+                        input.sessionId,
+                        6,
+                        candidate.time,
+                        resp.thinking || '',
+                        resp.content || '',
+                        {
+                            score: verdict?.confidence ? parseFloat(String(verdict.confidence)) : undefined,
+                            verdict: verdict?.time,
+                            tokensUsed: { prompt: 0, completion: 0, total: 0 },
+                            duration: 0,
+                            model: config.ai.reasonerModel
+                        },
+                        1,
+                        i + 1
+                    );
+                }
+            }
 
             const aiContent = resp.success ? (resp.content || resp.thinking || '') : '';
             return { response: resp, aiContent };
@@ -401,19 +500,19 @@ export async function stage6FinalPrecision(
             break;
         }
 
-        finalists = batchWinners;
+        finalists = sortCandidatesByMerit(batchWinners);
         roundNumber++;
     }
 
     if (finalists.length > batchSize) {
         logger.warn(`🔱 [STAGE-6] Truncating remaining ${finalists.length} candidates down to ${batchSize} after hitting max rounds.`);
-        finalists = finalists.slice(0, batchSize);
+        finalists = sortCandidatesByMerit(finalists).slice(0, batchSize);
     }
 
     // 🔱 EMERGENCY FALLBACK: If all finalists vanish (critical glitch), restore original candidates
     if (finalists.length === 0 && candidates.length > 0) {
         logger.error('🔱 [STAGE-6] CRITICAL: Finalists empty before judgment. Restoring top 3 from input.');
-        finalists = candidates.slice(0, 3);
+        finalists = sortCandidatesByMerit(candidates).slice(0, 3);
     }
 
     // Final judgement with God-Tier prompt enhancement
@@ -431,7 +530,8 @@ export async function stage6FinalPrecision(
                     includeFullData: true,
                     dashaDepth: 5,
                     pranaWindowDays: 5,
-                    lifecycleShifts: globalLifecycle
+                    lifecycleShifts: globalLifecycle,
+                    candidate: finalist,
                 });
                 const baseCandidate: CandidateWithPrecisionData = {
                     time: finalist.time,
@@ -458,7 +558,8 @@ export async function stage6FinalPrecision(
             includeFullData: true,
             dashaDepth: 5,
             pranaWindowDays: 5,
-            lifecycleShifts: globalLifecycle
+            lifecycleShifts: globalLifecycle,
+            candidate: ct,
         })
     ));
 
@@ -467,7 +568,7 @@ export async function stage6FinalPrecision(
         throw new Error('AI_ANALYSIS_FAILED: Unable to build final candidate data. Please check your internet connection and retry.');
     }
 
-    const finalAnchor = getPresentTransitData(finalBatch[0], currentEph, now);
+    const finalAnchor = buildPresentTransitLockMap(finalBatch, currentEph, now);
     let prompt = getFinalPrecisionPrompt(finalBatch, input.lifeEvents, forensicTraits, input.spouseData, finalAnchor);
 
     // FIXED: Aggregate God-Tier data from ALL finalists for comprehensive prompt
@@ -554,7 +655,8 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
     }
 
     const finalTime = resolvedFinalWinner.match?.time || fallbackWinner?.time;
-    if (!finalTime) {
+    const finalCandidate = resolvedFinalWinner.match || fallbackWinner;
+    if (!finalTime || !finalCandidate) {
         throw new Error('AI_ANALYSIS_INCOMPLETE: Unable to determine final birth time. No finalists available for fallback winner selection.');
     }
 
@@ -568,7 +670,8 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
         ? 60
         : (verdict?.margin ?? 5);
 
-    const winnerPkg = finalBatch.find(c => c.time === finalTime) || finalBatch[0];
+    const winnerIdentity = getCandidateIdentity(finalCandidate);
+    const winnerPkg = finalBatch.find(c => getCandidateIdentity(c) === winnerIdentity) || finalBatch[0];
 
     await progress.addCandidateScore({
         time: finalTime,
@@ -583,6 +686,7 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
     await progress.completeStep('final', [`FINAL: ${finalTime} (${confidence})`]);
 
     return {
+        finalCandidate,
         finalTime,
         accuracy,
         confidence,
@@ -594,7 +698,7 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
         boundaryWarnings,
         finalists: finalBatch.map(c => ({
             time: c.time,
-            score: c.time === finalTime ? accuracy : config.btr.fallbackRejectedScore + 30, // Basic score for runner-ups if not specified
+            score: getCandidateIdentity(c) === winnerIdentity ? accuracy : config.btr.fallbackRejectedScore + 30,
             ephemeris: getMinifiedEphemerisInline(c)
         })),
         stageResult: {

@@ -155,7 +155,7 @@ describe('Consensus Engine - Missing Data Handling', () => {
         const input = makeMinimalInput({ candidate: { dasha: undefined } });
         const result = calculateConsensus(input);
         expect(result.scores.vimshottari).toBe(0); // Fail without dasha
-        expect(result.scores.yogini).toBe(50); // Default warning score
+        expect(result.scores.yogini).toBe(0);
     });
 
     it('should handle missing KP data gracefully', () => {
@@ -173,7 +173,7 @@ describe('Consensus Engine - Missing Data Handling', () => {
     it('should handle missing forensic profile gracefully', () => {
         const input = makeMinimalInput({ forensicProfile: undefined });
         const result = calculateConsensus(input);
-        expect(result.scores.forensic).toBe(50); // Warning score
+        expect(result.scores.forensic).toBe(0);
     });
 
     it('should handle missing AI score with default 70', () => {
@@ -187,7 +187,7 @@ describe('Consensus Engine - Missing Data Handling', () => {
             candidate: { ephemeris: { planets: {}, ascendant: { degree: 15 } } }
         });
         const result = calculateConsensus(input);
-        expect(result.scores.kalachakra).toBe(50); // Warning
+        expect(result.scores.kalachakra).toBe(0);
     });
 
     it('should handle empty events array', () => {
@@ -295,8 +295,7 @@ describe('Consensus Engine - Red Flags Detection', () => {
     it('should detect forensicMismatch when forensic score < 50', () => {
         const input = makeMinimalInput({ forensicProfile: undefined });
         const result = calculateConsensus(input);
-        // Score is 50, so should NOT flag (< 50 = mismatch)
-        expect(result.redFlags.forensicMismatch).toBe(false);
+        expect(result.redFlags.forensicMismatch).toBe(true);
     });
 });
 

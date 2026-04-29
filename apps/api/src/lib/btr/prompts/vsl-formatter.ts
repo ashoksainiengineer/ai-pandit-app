@@ -327,7 +327,7 @@ function formatTransits(pkg: EnhancedCandidate): string {
 }
 
 function extractKeyTransitPlanets(planets: Record<string, string>): string {
-  const keys = ['Jupiter', 'Saturn', 'Rahu', 'Ketu'];
+  const keys = ['Jupiter', 'Saturn', 'Mars', 'Rahu', 'Ketu'];
   const tokens = keys
     .map((key) => planets[key] ? `${getPlan(key)}:${sanitizeToken(planets[key], 14)}` : '')
     .filter(Boolean);

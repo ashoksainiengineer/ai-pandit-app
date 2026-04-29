@@ -16,6 +16,7 @@ import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';
 import { logger } from '../../logger.js';
 import { formatCandidateVSL, EnhancedCandidate } from './vsl-formatter.js';
 import { resolveEventDateWindow } from '../event-date-utils.js';
+import { buildDuplicateTimeSet, getCandidateReference } from '../candidate-reference.js';
 
 /**
  * Get event importance summary for AI
@@ -102,15 +103,17 @@ export function getDeepAnalysisPrompt(
   const timelineRange = getTimelineRange(events);
 
   const forensicContext = `
-    [FORENSIC DNA DOSSIER]
-    - PHYSICAL: ${f?.physical?.facialStructure?.forehead ?? 'unknown'} forehead, ${f?.physical?.facialStructure?.eyeShape ?? 'unknown'} eyes, ${f?.physical?.facialStructure?.voicePitch ?? 'unknown'} voice, Marks: ${f?.physical?.skinHair?.marks?.join(', ') ?? 'none'}
-    - TEMPERAMENT: ${f?.psychographic?.temperament ?? 'unknown'}, ${f?.psychographic?.speechStyle ?? 'unknown'} speech, ${f?.psychographic?.decisionMaking ?? 'unknown'} judgment
-    - FAMILY: ${f?.family?.siblingPosition ?? 'unknown'} child, ${f?.family?.brotherCount ?? 0} B / ${f?.family?.sisterCount ?? 0} S, Father at birth: ${f?.family?.fatherStatusAtBirth ?? 'unknown'}
-    - BIOLOGICAL: ${f?.biological?.prakriti?.toUpperCase() ?? 'Unknown'}, Heat sensitivity: ${f?.biological?.sensitivity?.heat ?? 'unknown'}, Chronic: ${f?.biological?.recurringHealthIssues?.join(', ') ?? 'none'}
+    [FORENSIC DNA - TOP 5 ANCHORS]
+    1. PRAKRITI: ${f?.biological?.prakriti?.toUpperCase() ?? 'Unknown'} (Biological Constitution)
+    2. TEMPERAMENT: ${f?.psychographic?.temperament ?? 'unknown'} (Psychological Profile)
+    3. BUILD: ${f?.physical?.build ?? 'unknown'} (${f?.physical?.height?.feet ?? '?'}'${f?.physical?.height?.inches ?? '?'}") (Physical Structure)
+    4. BIRTH ORDER: ${f?.family?.siblingPosition ?? 'unknown'} child (${f?.family?.brotherCount ?? 0}B/${f?.family?.sisterCount ?? 0}S) (Family Karma)
+    5. VOICE: ${f?.physical?.facialStructure?.voicePitch ?? 'unknown'} (Physical Marker)
     `;
   // Anti-bias: Shuffle to prevent positional bias
   const filteredCandidates = candidates.filter(c => c.time);
   const shuffledCandidates = randomSort(filteredCandidates);
+  const duplicateTimes = buildDuplicateTimeSet(shuffledCandidates);
 
   return `BIRTH TIME RECTIFICATION - STAGE 4 (Deep Multi-Dasha Analysis)
 
@@ -121,18 +124,20 @@ export function getDeepAnalysisPrompt(
 YOU HAVE FULL FREEDOM TO ADJUST WEIGHTS! Reference weights - ADJUST as needed:
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  METHOD          │ REFERENCE │  PRECISION    │ ADJUST FOR                  │
-│                  │  WEIGHT   │               │                             │
-├──────────────────┼───────────┼───────────────┼─────────────────────────────┤
-│  D150 Nadi       │   2.0     │  48 seconds   │ Critical events + good data │
-│  KP Sub-Lord     │   2.0     │  seconds      │ Precise cuspal data         │
-│  Vimshottari     │   1.8     │  hours        │ Full MD-AD-PD sequence      │
-│  Varga (D60)     │   1.7     │  2 minutes    │ D60 deity clear             │
-│  Transit         │   1.5     │  days         │ Double transit matches      │
-│  Kalachakra      │   1.2     │  days         │ Cross-verification          │
-│  Shadbala        │   1.0     │  N/A          │ Planet strength context     │
-│  Yogini Dasha    │   0.9     │  months       │ Secondary verification      │
-│  Chara Dasha     │   0.9     │  months       │ Jaimini cross-check         │
+│  METHOD              │ REFERENCE │  PRECISION    │ ADJUST FOR              │
+│                      │  WEIGHT   │               │                         │
+├──────────────────────┼───────────┼───────────────┼─────────────────────────┤
+│  KP Sub-Lord         │   2.5     │  seconds      │ HIGHEST - Cuspal precision │
+│  Vimshottari AD      │   2.3     │  hours        │ PRIMARY timing method   │
+│  D150 (Nadi)         │   2.2     │  ~10 minutes  │ Meso-precision        │
+│  D9 (Navamsa)        │   2.0     │  ~4 minutes   │ Marriage/Spouse       │
+│  D10 (Dasamsa)       │   1.9     │  ~4 minutes   │ Career/Status         │
+│  D60 (Shashtiamsa)   │   1.8     │  2 minutes    │ Karma verification    │
+│  Chara Dasha         │   1.7     │  sign-based   │ Jaimini cross-check   │
+│  Transit             │   1.5     │  days         │ Double transit        │
+│  Kalachakra          │   1.2     │  days         │ Tertiary check        │
+│  Yogini Dasha        │   0.9     │  months       │ Secondary             │
+│  Shadbala            │   0.5     │  N/A          │ Strength context      │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ════════════════════════════════════════════════════════════════════════════════
@@ -165,7 +170,7 @@ You are in Stage 4. The Lagna is fixed. Your objective is hunting the correct Na
       : `════════════════════════════════════════════════════════════════════════════════
 🪐 PHASE C: THE MICRO SWEEP PROTOCOL (Offset: ±${offsetMinutes} mins)
 ════════════════════════════════════════════════════════════════════════════════
-We are in the terminal varga zones. We are hunting exact D60 / D150 alignments.
+We are in the terminal varga zones. We are hunting exact D60 / D1080 (Nadi) alignments.
 - ANALYZE Vimshottari down to Pratyantar / Sookshma levels.
 - USE D60 deities and configurations to map traumatic or sudden events.
 - Your final judgment MUST hinge on mathematical precision in the micro-charts matching the situational narrative.`}
@@ -217,7 +222,7 @@ Implement the following comprehensive verification sequence for EACH candidate:
 
 9. **Terminal Precision (D60/D150)**
    - Audit D60 Karma deities for forensic alignment.
-   - Review D150 Nadi Amsha for seconds-level resolution.
+    - Review D1080 Nadi Amsha for seconds-level resolution.
 
 10. **Final Forensic Verdict**
     - Apply weighted scoring based on narrative match.
@@ -231,10 +236,29 @@ SPOUSE DATA: ${spouseText}
 LIFE EVENTS:
 ${eventsText}
 
+════════════════════════════════════════════════════════════════════════════════
+📚 EVENT SIGNIFICATOR GUIDE (Map Events to Astrological Indicators)
+════════════════════════════════════════════════════════════════════════════════
+For EACH event, verify activation of the following:
+• Marriage/Partnership: Venus, 7th House Lord, D9 (Navamsha) Lagna
+• Career/Status: Sun, Saturn, 10th House Lord, D10 (Dasamsha)
+• Health/Surgery: Mars, 6th House Lord, 8th House (chronic)
+• Education: Mercury, Jupiter, 4th/9th House Lords
+• Children/Birth: Jupiter, 5th House Lord, D7 (Saptamsha)
+• Property/Vehicles: Mars, Saturn, 4th House Lord
+• Foreign Travel: Rahu, Ketu, 9th/12th Houses
+• Spiritual/Religious: Jupiter, Ketu, 9th/12th Houses
+• Financial Gain/Loss: Jupiter (gain), Saturn/Rahu (loss), 2nd/11th Houses
+• Legal/Court: Saturn, Mars, 6th House Lord
+• Death/Accident: Saturn, Mars, 8th House, Gandanta zones
+
+⚠️ Dasha period MUST activate the relevant house lord or significator planet.
+⚠️ Transit (especially Jupiter/Saturn) MUST confirm the event timing.
+
 CANDIDATES WITH ENRICHED VEDIC DATA (VSL 4.0 Protocol):
 ${shuffledCandidates.map(c => `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CANDIDATE: ${c.time}
+CANDIDATE: ${getCandidateReference(c, duplicateTimes)}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${formatCandidateVSL(c as EnhancedCandidate)}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

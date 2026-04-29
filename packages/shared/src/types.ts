@@ -25,12 +25,23 @@ export type EventCategory =
   | 'family'
   | 'health'
   | 'financial'
+  | 'finance'
   | 'travel'
   | 'spiritual'
   | 'legal'
   | 'public_life'
   | 'karmic_events'
   | 'identity_shifts'
+  | 'promotion'
+  | 'business'
+  | 'property'
+  | 'relocation'
+  | 'accident'
+  | 'death_relative'
+  | 'divorce'
+  | 'surgery'
+  | 'inheritance'
+  | 'awards'
   | 'other';
 
 /**
@@ -233,6 +244,10 @@ export interface CandidateTime {
   time: string;
   offsetMinutes: number;
   offsetDescription: string;
+  candidateDate?: string;
+  dayOffset?: number;
+  candidateKey?: string;
+  rank?: number;
   batchIndex?: number;
   priority?: number;
 }
@@ -1193,7 +1208,7 @@ export interface RectificationSession {
   rectifiedTime?: string;
   accuracy?: number;
   confidence?: string;
-  analysisResult?: any; // Kept as any for DB flexibility, but internal code should cast to SecondsPrecisionResult['analysisResult']
+  analysisResult?: unknown;
   progressData?: string;
   status: SessionStatus;
   errorMessage?: string;
@@ -1291,12 +1306,23 @@ export const EVENT_TYPES: Record<EventCategory, string[]> = {
   family: ['Parent death', 'Sibling birth', 'Family event'],
   health: ['Major illness', 'Surgery', 'Recovery', 'Accident'],
   financial: ['Money gain', 'Property purchase', 'Business deal'],
+  finance: ['Money gain', 'Property purchase', 'Business deal'],
   travel: ['Long journey', 'Relocation', 'International travel'],
   spiritual: ['Spiritual awakening', 'Meditation retreat', 'Religious event'],
   legal: ['Court case started', 'Legal win', 'Court verdict'],
   public_life: ['Award', 'Fame spike', 'Public recognition'],
   karmic_events: ['Sudden windfall', 'Natural disaster', 'Pet loss'],
   identity_shifts: ['Weight transform', 'Nickname change', 'Appearance shift'],
+  promotion: ['Promotion', 'Role expansion', 'Recognition'],
+  business: ['Business launch', 'Partnership', 'Major deal'],
+  property: ['Property purchase', 'House move', 'Land acquisition'],
+  relocation: ['City move', 'Country move', 'Permanent relocation'],
+  accident: ['Accident', 'Emergency injury', 'Near-miss'],
+  death_relative: ['Parent death', 'Relative death', 'Family bereavement'],
+  divorce: ['Separation', 'Divorce filing', 'Divorce finalization'],
+  surgery: ['Surgery', 'Procedure', 'Hospital admission'],
+  inheritance: ['Inheritance received', 'Estate settlement', 'Will dispute'],
+  awards: ['Award', 'Prize', 'Public recognition'],
   other: ['Custom event'],
 };
 

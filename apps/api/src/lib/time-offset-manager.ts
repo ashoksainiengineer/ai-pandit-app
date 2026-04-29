@@ -6,6 +6,9 @@ import { config } from '../config/index.js';
 import { logger } from './logger.js';
 import type { OffsetPreset, TimeOffsetConfig, CandidateTime } from '@ai-pandit/shared';
 
+const DAY_SECONDS = 24 * 60 * 60;
+const MAX_CANDIDATES = 500;
+
 // Re-export types for backwards compatibility
 export type { OffsetPreset, TimeOffsetConfig, CandidateTime };
 
@@ -173,7 +176,8 @@ export function getExpectedCandidateCount(offsetMinutes: number): number {
 
 export function generateCandidateTimes(
   tentativeTime: string, // HH:MM:SS
-  offsetConfig: TimeOffsetConfig
+  offsetConfig: TimeOffsetConfig,
+  baseDate?: string,
 ): CandidateTime[] {
   try {
     logger.info('🔱 Generating candidates (chronological order)', { tentativeTime, offsetConfig });
@@ -205,14 +209,25 @@ export function generateCandidateTimes(
     }
 
     // 🔱 Adaptive interval for consistent candidate count
-    const interval = getAdaptiveInterval(offsetMinutes);
+    let interval = getAdaptiveInterval(offsetMinutes);
 
     const presetLabel = offsetConfig.preset ? (OFFSET_PRESETS[offsetConfig.preset]?.label || 'Custom/Fallback') : 'Custom';
     const description = offsetConfig.customMinutes !== undefined
       ? `±${offsetMinutes} min (${interval >= 1 ? interval + 'min' : (interval * 60) + 's'} Grid)`
       : `${presetLabel} (${interval >= 1 ? interval + 'min' : (interval * 60) + 's'} Grid)`;
 
-    const expectedCandidates = Math.ceil(offsetMinutes / interval) * 2 + 1;
+    let expectedCandidates = Math.ceil(offsetMinutes / interval) * 2 + 1;
+
+    if (expectedCandidates > MAX_CANDIDATES) {
+      logger.warn('Candidate count exceeds maximum, adjusting interval', {
+        expectedCandidates,
+        maxAllowed: MAX_CANDIDATES,
+        originalInterval: interval,
+      });
+      const adjustedInterval = (offsetMinutes * 2) / (MAX_CANDIDATES - 1);
+      interval = Math.max(interval, adjustedInterval);
+      expectedCandidates = Math.ceil(offsetMinutes / interval) * 2 + 1;
+    }
 
     logger.info('Offset configuration', {
       offsetMinutes,
@@ -234,7 +249,7 @@ export function generateCandidateTimes(
     for (let step = 0; step <= totalSteps; step++) {
       const offset = -offsetMinutes + (step * interval);
       const candidateMinutes = baseMinutes + offset;
-      const candidate = convertMinutesToTime(candidateMinutes, tentativeTime, offset);
+      const candidate = convertMinutesToTime(candidateMinutes, tentativeTime, offset, baseDate);
       candidates.push(candidate);
     }
 
@@ -245,6 +260,9 @@ export function generateCandidateTimes(
         time: tentativeTime,
         offsetMinutes: 0,
         offsetDescription: 'Tentative (Original)',
+        candidateDate: baseDate,
+        dayOffset: 0,
+        candidateKey: buildCandidateKey(baseDate, tentativeTime),
       });
       // Re-sort chronologically
       candidates.sort((a, b) => a.offsetMinutes - b.offsetMinutes);
@@ -347,7 +365,8 @@ export function splitIntoBatches<T>(
  */
 export function injectSafetyNetCandidates(
   tentativeTime: string,
-  allCandidates: CandidateTime[]
+  allCandidates: CandidateTime[],
+  baseDate?: string,
 ): CandidateTime[] {
   const safetyOffsets = [
     { min: 0, desc: 'Tentative (Original)' },
@@ -368,7 +387,7 @@ export function injectSafetyNetCandidates(
 
   for (const offset of safetyOffsets) {
     const candidateMinutes = baseTotalMinutes + offset.min;
-    const candidate = convertMinutesToTimeSafetyNet(candidateMinutes, offset.min, offset.desc);
+    const candidate = convertMinutesToTimeSafetyNet(candidateMinutes, offset.min, offset.desc, baseDate);
 
     // Only add if not already present
     if (!existingTimes.has(candidate.time)) {
@@ -397,36 +416,10 @@ export function injectSafetyNetCandidates(
 function convertMinutesToTimeSafetyNet(
   totalMinutes: number,
   offsetMinutes: number,
-  description: string
+  description: string,
+  baseDate?: string,
 ): CandidateTime {
-  // Handle day wraparound
-  let adjustedMinutes = totalMinutes;
-  let dayOffset = 0;
-
-  if (adjustedMinutes < 0) {
-    dayOffset = -1;
-    adjustedMinutes += 24 * 60;
-  } else if (adjustedMinutes >= 24 * 60) {
-    dayOffset = 1;
-    adjustedMinutes -= 24 * 60;
-  }
-
-  const h = Math.floor(adjustedMinutes / 60);
-  const m = Math.floor(adjustedMinutes % 60);
-  const s = Math.round((adjustedMinutes % 1) * 60);
-
-  const timeString = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-
-  let offsetDescription = description;
-  if (dayOffset !== 0) {
-    offsetDescription += ` (${dayOffset > 0 ? 'Next' : 'Previous'} day)`;
-  }
-
-  return {
-    time: timeString,
-    offsetMinutes: Number(offsetMinutes.toFixed(4)),
-    offsetDescription,
-  };
+  return convertMinutesToCandidate(totalMinutes, offsetMinutes, description, baseDate);
 }
 
 // ═════════════════════════════════════════════════════════════════════════
@@ -434,37 +427,55 @@ function convertMinutesToTimeSafetyNet(
 // ═════════════════════════════════════════════════════════════════════════
 
 export function generateRefinementGrid(
-  centerTime: string,
+  center: string | CandidateTime,
   rangeMinutes: number,
   intervalSeconds: number
 ): CandidateTime[] {
   const candidates: CandidateTime[] = [];
 
-  const [hours, minutes, seconds] = centerTime.split(':').map(Number);
+  const centerCandidate = typeof center === 'string'
+    ? { time: center, offsetMinutes: 0, offsetDescription: 'Center' }
+    : center;
+
+  const [hours, minutes, seconds] = centerCandidate.time.split(':').map(Number);
   const baseSeconds = hours * 3600 + minutes * 60 + seconds;
   const rangeSec = rangeMinutes * 60;
 
   for (let offset = -rangeSec; offset <= rangeSec; offset += intervalSeconds) {
-    let totalSec = baseSeconds + offset;
-
-    // Handle day wraparound
-    if (totalSec < 0) totalSec += 86400;
-    if (totalSec >= 86400) totalSec -= 86400;
-
-    const h = Math.floor(totalSec / 3600);
-    const m = Math.floor((totalSec % 3600) / 60);
-    const s = totalSec % 60;
-
-    const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-
-    candidates.push({
-      time: timeStr,
-      offsetMinutes: offset / 60,
-      offsetDescription: offset === 0 ? 'Center' : `${offset > 0 ? '+' : ''}${offset}s`,
-    });
+    candidates.push(convertSecondsToCandidate(
+      baseSeconds + offset,
+      offset / 60,
+      offset === 0 ? 'Center' : `${offset > 0 ? '+' : ''}${offset}s`,
+      centerCandidate.candidateDate,
+      centerCandidate.dayOffset ?? 0,
+    ));
   }
 
   return candidates;
+}
+
+export function compareCandidateMerit(a: CandidateTime, b: CandidateTime): number {
+  const priorityDiff = compareOptionalOrder(resolveCandidatePriority(a), resolveCandidatePriority(b));
+  if (priorityDiff !== 0) return priorityDiff;
+
+  const rankDiff = compareOptionalOrder(resolveCandidateRank(a), resolveCandidateRank(b));
+  if (rankDiff !== 0) return rankDiff;
+
+  const absOffsetDiff = Math.abs(a.offsetMinutes) - Math.abs(b.offsetMinutes);
+  if (absOffsetDiff !== 0) return absOffsetDiff;
+
+  const signedOffsetDiff = a.offsetMinutes - b.offsetMinutes;
+  if (signedOffsetDiff !== 0) return signedOffsetDiff;
+
+  return a.time.localeCompare(b.time);
+}
+
+export function sortCandidatesByMerit(candidates: CandidateTime[]): CandidateTime[] {
+  return [...candidates].sort(compareCandidateMerit);
+}
+
+export function getCandidateIdentity(candidate: Pick<CandidateTime, 'time' | 'candidateKey'>): string {
+  return candidate.candidateKey || candidate.time;
 }
 
 // ═════════════════════════════════════════════════════════════════════════
@@ -473,27 +484,10 @@ export function generateRefinementGrid(
 
 function convertMinutesToTime(
   totalMinutes: number,
-  originalTime: string,
-  offsetFromBase: number
+  _originalTime: string,
+  offsetFromBase: number,
+  baseDate?: string,
 ): CandidateTime {
-  // Handle day wraparound
-  let adjustedMinutes = totalMinutes;
-  let dayOffset = 0;
-
-  if (adjustedMinutes < 0) {
-    dayOffset = -1;
-    adjustedMinutes += 24 * 60;
-  } else if (adjustedMinutes >= 24 * 60) {
-    dayOffset = 1;
-    adjustedMinutes -= 24 * 60;
-  }
-
-  const h = Math.floor(adjustedMinutes / 60);
-  const m = Math.floor(adjustedMinutes % 60);
-  const s = Math.round((adjustedMinutes % 1) * 60);
-
-  const timeString = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-
   // Format offset description
   const absOffset = Math.abs(offsetFromBase);
   const offsetHours = Math.floor(absOffset / 60);
@@ -509,15 +503,86 @@ function convertMinutesToTime(
     if (offsetMins > 0 || offsetHours === 0) offsetDescription += `${offsetMins}m`;
   }
 
-  if (dayOffset !== 0) {
-    offsetDescription += ` (${dayOffset > 0 ? 'Next' : 'Previous'} day)`;
+  return convertMinutesToCandidate(totalMinutes, offsetFromBase, offsetDescription, baseDate);
+}
+
+function convertMinutesToCandidate(
+  totalMinutes: number,
+  offsetMinutes: number,
+  description: string,
+  baseDate?: string,
+): CandidateTime {
+  const roundedTotalSeconds = Math.round(totalMinutes * 60);
+  return convertSecondsToCandidate(roundedTotalSeconds, offsetMinutes, description, baseDate, 0);
+}
+
+function convertSecondsToCandidate(
+  totalSeconds: number,
+  offsetMinutes: number,
+  description: string,
+  baseDate?: string,
+  baseDayOffset: number = 0,
+): CandidateTime {
+  const normalized = normalizeDayWrappedSeconds(totalSeconds);
+  const effectiveDayOffset = baseDayOffset + normalized.dayOffset;
+  const candidateDate = baseDate ? addDaysToIsoDate(baseDate, effectiveDayOffset) : undefined;
+  let offsetDescription = description;
+
+  if (normalized.dayOffset !== 0) {
+    offsetDescription += ` (${normalized.dayOffset > 0 ? 'Next' : 'Previous'} day)`;
   }
 
   return {
-    time: timeString,
-    offsetMinutes: Number(offsetFromBase.toFixed(4)),
+    time: normalized.time,
+    offsetMinutes,
     offsetDescription,
+    candidateDate,
+    dayOffset: effectiveDayOffset,
+    candidateKey: buildCandidateKey(candidateDate, normalized.time),
   };
+}
+
+function normalizeDayWrappedSeconds(totalSeconds: number): { time: string; dayOffset: number } {
+  const dayOffset = Math.floor(totalSeconds / DAY_SECONDS);
+  const normalizedSeconds = ((totalSeconds % DAY_SECONDS) + DAY_SECONDS) % DAY_SECONDS;
+  const h = Math.floor(normalizedSeconds / 3600);
+  const m = Math.floor((normalizedSeconds % 3600) / 60);
+  const s = normalizedSeconds % 60;
+
+  return {
+    time: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`,
+    dayOffset,
+  };
+}
+
+function addDaysToIsoDate(baseDate: string, dayOffset: number): string {
+  const [year, month, day] = baseDate.split('-').map(Number);
+  const utc = new Date(Date.UTC(year, month - 1, day + dayOffset, 0, 0, 0, 0));
+  return utc.toISOString().slice(0, 10);
+}
+
+function buildCandidateKey(candidateDate: string | undefined, time: string): string | undefined {
+  if (!candidateDate) return undefined;
+  return `${candidateDate}T${time}`;
+}
+
+function resolveCandidatePriority(candidate: CandidateTime): number {
+  return typeof candidate.priority === 'number'
+    ? candidate.priority
+    : Number.POSITIVE_INFINITY;
+}
+
+function resolveCandidateRank(candidate: CandidateTime): number {
+  return typeof candidate.rank === 'number'
+    ? candidate.rank
+    : Number.POSITIVE_INFINITY;
+}
+
+function compareOptionalOrder(a: number, b: number): number {
+  if (!Number.isFinite(a) && !Number.isFinite(b)) return 0;
+  if (!Number.isFinite(a)) return 1;
+  if (!Number.isFinite(b)) return -1;
+  return a - b;
 }
 
 // ═════════════════════════════════════════════════════════════════════════
@@ -621,3 +686,6 @@ export { splitIntoBatches as _splitIntoBatches };
 export { getDynamicBatchSize as _getDynamicBatchSize };
 export { getDynamicSurvivors as _getDynamicSurvivors };
 export { injectSafetyNetCandidates as _injectSafetyNetCandidates };
+export { compareCandidateMerit as _compareCandidateMerit };
+export { sortCandidatesByMerit as _sortCandidatesByMerit };
+export { getCandidateIdentity as _getCandidateIdentity };

@@ -86,6 +86,7 @@ export interface ScannerContext {
   sunriseTime: Date | null;
   config: ScanConfiguration;
   knownTatwa?: string;
+  sessionId?: string;
 }
 
 export interface CandidateAnalysis {
@@ -109,13 +110,26 @@ interface EventMatchEvidence {
   details: string;
 }
 
+interface LocalBirthDateTime {
+  date: string;
+  time: string;
+}
+
 /**
  * Main scanner function - finds optimal birth time
  */
-export async function scanBirthTimeWindow(input: ScannerInput): Promise<ScanResult> {
+export interface ScanOptions {
+  sessionId?: string;
+}
+
+export async function scanBirthTimeWindow(
+  input: ScannerInput,
+  options?: ScanOptions
+): Promise<ScanResult> {
   const startTime = Date.now();
   const errors: string[] = [];
   const recommendations: string[] = [];
+  const sessionId = options?.sessionId;
 
   try {
     const config = { ...DEFAULT_SCAN_CONFIG, ...input.config };
@@ -148,7 +162,8 @@ export async function scanBirthTimeWindow(input: ScannerInput): Promise<ScanResu
       totalEventWeight,
       sunriseTime,
       config,
-      knownTatwa: input.knownTatwa
+      knownTatwa: input.knownTatwa,
+      sessionId
     };
 
     const timeWindow: TimeWindow = {
@@ -263,75 +278,56 @@ export async function scanBirthTimeWindow(input: ScannerInput): Promise<ScanResu
 }
 
 /**
- * Generate candidate times within the window
+ * Generate candidate times within the window using streaming to prevent memory overflow
  */
 async function generateCandidates(
   window: TimeWindow,
   context: ScannerContext
 ): Promise<CandidateAnalysis[]> {
-  const candidates: CandidateAnalysis[] = [];
   const stepMs = window.stepSeconds * 1000;
   const rangeMs = window.rangeMinutes * MINUTE_MS;
 
   const startMs = window.baseTime.getTime() - rangeMs;
   const endMs = window.baseTime.getTime() + rangeMs;
 
-  const ephemerisCache = new Map<string, EphemerisData>();
+  // Use streaming processor to handle large candidate counts without memory issues
+  // This prevents OOM errors with ±2h+ windows by processing in chunks
+  const { processCandidatesInChunks, maintainTopCandidates } = await import('./streaming-processor.js');
 
-  for (let timeMs = startMs; timeMs <= endMs; timeMs += stepMs) {
-    const candidateTime = new Date(timeMs);
-    const timeString = formatTimeString(candidateTime, context.timezone);
-    const cacheKey = `${context.birthDate}_${timeString}`;
+  let allCandidates: CandidateAnalysis[] = [];
 
-    try {
-      let ephemeris: EphemerisData;
-
-      if (context.config.cacheEphemeris && ephemerisCache.has(cacheKey)) {
-        ephemeris = ephemerisCache.get(cacheKey) as EphemerisData;
-      } else {
-        ephemeris = await calculateEphemeris(
-          context.birthDate,
-          timeString,
-          context.latitude,
-          context.longitude,
-          context.timezone as string | number
-        );
-        if (context.config.cacheEphemeris) {
-          ephemerisCache.set(cacheKey, ephemeris);
-        }
+  await processCandidatesInChunks(
+    { startMs, endMs },
+    stepMs,
+    async (chunk) => {
+      // Score candidates SEQUENTIALLY (not in parallel) to control memory
+      // Parallel scoring of 30 candidates causes OOM with large windows
+      for (const candidate of chunk) {
+        const scored = await scoreCandidate(candidate, context);
+        candidate.score = scored.overallScore;
+        
+        // Allow GC between candidates
+        await new Promise(resolve => setImmediate(resolve));
       }
 
-      const moonLong = ephemeris.planets.moon.longitude;
-      const dasha = calculateVimshottariDasha(moonLong, candidateTime, 5);
-      const vargas = generateDivisionalCharts(ephemeris);
-
-      const kpData: Record<string, KPSubLordData> = {};
-      for (const [name, data] of Object.entries(ephemeris.planets)) {
-        kpData[name] = calculateKPSubLords(data.longitude);
-      }
-
-      const boundarySafety = calculateBoundarySafety(ephemeris);
-
-      candidates.push({
-        time: candidateTime,
-        timeString,
-        ephemeris,
-        dasha,
-        vargas,
-        kpData,
-        boundarySafety
-      });
-
-    } catch (error) {
-      logger.debug(`[SCANNER] Failed to analyze candidate ${timeString}`, { error: getErrorMessage(error) });
+      // Maintain only top 30 candidates to control memory
+      // 100 candidates with full ephemeris = ~2GB memory
+      // 30 candidates = ~600MB memory
+      allCandidates = maintainTopCandidates(allCandidates, chunk, 30);
+    },
+    {
+      timezone: context.timezone,
+      latitude: context.latitude,
+      longitude: context.longitude,
+    },
+    {
+      chunkSize: 10,
+      maxKeep: 30,
+      sessionId: context.sessionId,
     }
+  );
 
-    if (candidates.length >= context.config.maxCandidates * 2) {
-      break;
-    }
-  }
-
-  return candidates;
+  return allCandidates;
 }
 
 /**
@@ -504,7 +500,7 @@ function scoreVimshottariMatch(
     });
   }
 
-  return totalWeight > 0 ? Math.min(100, totalScore / totalWeight) : 50;
+  return totalWeight > 0 ? Math.min(100, totalScore / totalWeight) : 0;
 }
 
 /**
@@ -564,7 +560,7 @@ function scoreKPMatch(
     totalWeight += event.calculatedWeight;
   }
 
-  return totalWeight > 0 ? Math.min(100, totalScore / totalWeight) : 50;
+  return totalWeight > 0 ? Math.min(100, totalScore / totalWeight) : 0;
 }
 
 /**
@@ -577,7 +573,7 @@ function scoreVargaMatch(
   let score = 60;
   const vargas = candidate.vargas;
 
-  if (!vargas) return 50;
+  if (!vargas) return 0;
 
   const marriageEvents = context.scoredEvents.filter(e => e.category === 'marriage');
   if (marriageEvents.length > 0 && vargas.D9) {
@@ -674,7 +670,7 @@ function scoreKalachakraMatch(
 ): number {
   try {
     const moonLong = candidate.ephemeris?.planets?.moon?.longitude;
-    if (!moonLong) return 50;
+    if (!moonLong) return 0;
 
     const kalachakraPeriods = Kalachakra.calculate(moonLong, candidate.time);
 
@@ -686,20 +682,20 @@ function scoreKalachakraMatch(
 
     return Kalachakra.score(kalachakraPeriods, events);
   } catch {
-    return 50;
+    return 0;
   }
 }
 
 function scoreShadbalaMatch(candidate: CandidateAnalysis): number {
   try {
-    if (!candidate.ephemeris) return 50;
+    if (!candidate.ephemeris) return 0;
 
     const shadbalaResult = Shadbala.calculate(candidate.ephemeris);
     const avgStrength = shadbalaResult.averageStrength;
 
     return Math.min(100, Math.max(0, avgStrength));
   } catch {
-    return 50;
+    return 0;
   }
 }
 
@@ -708,7 +704,7 @@ function scoreNadiMatch(
   context: ScannerContext
 ): number {
   try {
-    if (!candidate.ephemeris) return 50;
+    if (!candidate.ephemeris) return 0;
 
     const nadiData = NadiAmsha.calculateAll(candidate.ephemeris);
 
@@ -718,12 +714,12 @@ function scoreNadiMatch(
 
     return NadiAmsha.score(nadiData, events);
   } catch {
-    return 50;
+    return 0;
   }
 }
 
 function calculateAverageScore(scores: number[]): number {
-  if (scores.length === 0) return 50;
+  if (scores.length === 0) return 0;
   return scores.reduce((a, b) => a + b, 0) / scores.length;
 }
 
@@ -750,10 +746,36 @@ function parseTime(timeStr: string, dateStr: string, timezone: string | number):
 }
 
 function formatTimeString(date: Date, _timezone: string | number): string {
-  const hours = date.getUTCHours().toString().padStart(2, '0');
-  const minutes = date.getUTCMinutes().toString().padStart(2, '0');
-  const seconds = date.getUTCSeconds().toString().padStart(2, '0');
-  return `${hours}:${minutes}:${seconds}`;
+  return formatLocalBirthDateTime(date, _timezone).time;
+}
+
+function formatLocalBirthDateTime(date: Date, timezone: string | number): LocalBirthDateTime {
+  if (typeof timezone === 'number') {
+    const shifted = new Date(date.getTime() + timezone * 3600000);
+    return {
+      date: shifted.toISOString().slice(0, 10),
+      time: shifted.toISOString().slice(11, 19),
+    };
+  }
+
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  });
+
+  const parts = formatter.formatToParts(date);
+  const getPart = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? '00';
+
+  return {
+    date: `${getPart('year')}-${getPart('month')}-${getPart('day')}`,
+    time: `${getPart('hour')}:${getPart('minute')}:${getPart('second')}`,
+  };
 }
 
 function determineConfidenceLevel(
@@ -856,7 +878,7 @@ function generateFinalRecommendations(
 
 
 export const WindowScanner = {
-  scan: scanBirthTimeWindow,
+  scan: (input: ScannerInput, sessionId?: string) => scanBirthTimeWindow(input, { sessionId }),
   generateCandidates,
   scoreCandidate
 };

@@ -89,6 +89,7 @@ export function formatLifeEventForAI(event: LifeEvent): string {
   if (description) {
     const sanitizedDescription = sanitizeNarration(description);
     result += `\n  SITUATIONAL NARRATIVE & EXPERIENCE: "${sanitizedDescription}"`;
+    result += `\n  [ANALYZE: 1) Event "flavor" → Match planetary dignity/aspects, 2) Severity → Check malefic strength, 3) Timing → Verify Dasha period activation]`;
   }
   
   return result;

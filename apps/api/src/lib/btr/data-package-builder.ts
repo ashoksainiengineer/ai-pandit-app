@@ -16,6 +16,7 @@ import {
   calculateArudhas,
   calculatePanchanga,
   calculateVimsopakaBala,
+  calculateVimshottariDasha,
   detectBhavaChalitDiscrepancy,
   getD60Deity,
 } from '../vedic-astrology-engine.js';
@@ -27,7 +28,7 @@ import {
 } from '../advanced-btr-methods.js';
 import { calculateTatwaAtTime } from './tatwa-shuddhi.js';
 import { calculateCharaKarakas, calculateBhriguBindu } from '../jaimini-astrology.js';
-import { SecondsPrecisionInput, EphemerisData } from '@ai-pandit/shared';
+import { SecondsPrecisionInput, EphemerisData, CandidateTime } from '@ai-pandit/shared';
 import { logger } from '../logger.js';
 import { capitalizeFirstLetter } from '../utils/index.js';
 import { decimalToDMS } from '../utils/dms-formatter.js';
@@ -52,6 +53,7 @@ export interface PackageBuildOptions {
   pranaWindowDays?: number;
   lifecycleShifts?: NonNullable<CandidateDataPackage['lifecycleShifts']>;
   includeDivisionalCharts?: string[];
+  candidate?: CandidateTime;
 }
 
 /**
@@ -67,11 +69,13 @@ export async function buildCandidateDataPackage(
     includeFullData = false,
     dashaDepth = 3,
     pranaWindowDays = 3,
-    lifecycleShifts = []
+    lifecycleShifts = [],
+    candidate,
   } = options;
 
-  const ephemeris = await loadEphemeris(time, input);
-  const birthDate = new Date(input.dateOfBirth);
+  const candidateDate = candidate?.candidateDate || input.dateOfBirth;
+  const birthDate = convertToUTC(candidateDate, time, input.timezone);
+  const ephemeris = await loadEphemeris(candidateDate, time, input);
   const moonLong = ephemeris.planets.moon.longitude;
 
   // Build Dasha sequences
@@ -119,7 +123,10 @@ export async function buildCandidateDataPackage(
   const pkg: CandidateDataPackage = {
     time,
     offsetMinutes,
-    rawVimshottari: [],
+    candidateDate,
+    dayOffset: candidate?.dayOffset,
+    candidateKey: candidate?.candidateKey,
+    rawVimshottari: calculateVimshottariDasha(moonLong, birthDate, Math.max(dashaDepth, 5)),
     ...vargaData,
     sandhiZones,
     vedicSignals: buildVedicSignals(ephemeris),
@@ -149,8 +156,8 @@ export async function buildCandidateDataPackage(
 
   // 🔱 PROJECT MAHAKALA PRECISION ANCHORS
   try {
-    const sunriseDate = await calculateSunrise(input.dateOfBirth, input.latitude, input.longitude, input.timezone);
-    const candidateUTC = convertToUTC(input.dateOfBirth, time, input.timezone);
+    const sunriseDate = await calculateSunrise(candidateDate, input.latitude, input.longitude, input.timezone);
+    const candidateUTC = birthDate;
 
     // Ensure vedicSignals is initialized
     if (!pkg.vedicSignals) pkg.vedicSignals = {};
@@ -180,9 +187,10 @@ export async function buildCandidateDataPackage(
   }
 
   try {
-    pkg.nadiData = calculateD150ForAllPlanets(ephemeris);
+    const nadiData = calculateD150ForAllPlanets(ephemeris);
+    pkg.nadiData = nadiData;
     if (input.lifeEvents && input.lifeEvents.length > 0) {
-      pkg.nadiAnalysis = analyzeD150ForEvents(pkg.nadiData, input.lifeEvents.map(e => ({
+      pkg.nadiAnalysis = analyzeD150ForEvents(nadiData, input.lifeEvents.map(e => ({
         category: e.eventType || 'general'
       })));
     }
@@ -216,12 +224,11 @@ export async function buildCandidateDataPackage(
 
   // 🔱 PANCHA-PAKSHI SHASTRA (Five Birds System)
   try {
-    const birthDate = new Date(input.dateOfBirth);
     const [hours, minutes] = time.split(':').map(Number);
     pkg.pakshiAnalysis = analyzePakshi(
       hours,
       minutes,
-      birthDate.getDay(),
+      getLocalWeekday(candidateDate),
       ephemeris.ascendant.sign,
       ephemeris.planets.moon.sign
     );
@@ -302,9 +309,9 @@ function validateDataPackage(pkg: CandidateDataPackage): string[] {
 /**
  * Load and enrich ephemeris data
  */
-async function loadEphemeris(time: string, input: SecondsPrecisionInput): Promise<EphemerisData> {
+async function loadEphemeris(candidateDate: string, time: string, input: SecondsPrecisionInput): Promise<EphemerisData> {
   const ephemeris = await calculateEphemeris(
-    input.dateOfBirth,
+    candidateDate,
     time,
     input.latitude,
     input.longitude,
@@ -612,4 +619,9 @@ function buildDivisionalCharts(pkg: CandidateDataPackage, ephemeris: EphemerisDa
  */
 function formatDegree(longitude: number): string {
   return decimalToDMS(longitude);
+}
+
+function getLocalWeekday(localDate: string): number {
+  const [year, month, day] = localDate.split('-').map(Number);
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0)).getUTCDay();
 }

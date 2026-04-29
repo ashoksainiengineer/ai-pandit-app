@@ -12,6 +12,7 @@ import { logger } from './logger.js';
 import { config } from '../config/index.js';
 import type { AIResponse, AIMessage } from '@ai-pandit/shared';
 import { logAnalysisContainerAction } from '../utils/debug-logger.js';
+import { thinkingPersistence } from './btr/thinking-persistence.js';
 
 // Re-export types for backwards compatibility
 export type { AIResponse, AIMessage };
@@ -350,6 +351,7 @@ export async function callAIWithStream(
     }
 
     let lastError: Error | null = null;
+    const startTime = Date.now(); // Track duration for persistence
 
     // Retry Loop for Streaming resilience
     for (let attempt = 1; attempt <= AI_CONFIG.retryAttempts; attempt++) {
@@ -591,6 +593,29 @@ export async function callAIWithStream(
             if (thinkMatch) {
                 fullThinking += "\n" + thinkMatch[1];
                 fullContent = fullContent.replace(/<(?:thinking|think|thought)>[\s\S]*?<\/(?:thinking|think|thought)>/gi, '').trim();
+            }
+
+            // 💾 DEVELOPMENT: Persist AI thinking for analysis
+            if (sessionId && stage) {
+                const scoreMatch = fullContent.match(/(?:FINAL SCORE|CONFIDENCE SCORE|SCORE)[:\s]*(\d+)/i);
+                const score = scoreMatch ? Math.min(100, Math.max(0, parseInt(scoreMatch[1]))) : undefined;
+                
+                const verdictMatch = fullContent.match(/(?:VERDICT|RECOMMENDATION|FINAL)[:\s]*([^\n]+)/i);
+                const verdict = verdictMatch ? verdictMatch[1].trim() : undefined;
+                
+                thinkingPersistence.saveThinking(
+                    sessionId,
+                    stage,
+                    options?.candidateTime || 'general',
+                    fullThinking,
+                    {
+                        promptTokens: userPrompt.length / 4,
+                        responseTokens: (fullThinking.length + fullContent.length) / 4,
+                        score,
+                        verdict,
+                        duration: Date.now() - startTime
+                    }
+                );
             }
 
             return {

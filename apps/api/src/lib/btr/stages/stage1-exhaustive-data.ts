@@ -35,10 +35,10 @@ export async function stage1ExhaustiveDataGeneration(
   await progress.startStep('grid', 'Stage 1: Generating ALL candidate data...');
 
   // 🔱 SAFETY NET: Generate raw candidates first
-  const rawCandidates = generateCandidateTimes(input.tentativeTime, input.offsetConfig);
+  const rawCandidates = generateCandidateTimes(input.tentativeTime, input.offsetConfig, input.dateOfBirth);
 
   // 🔱 SAFETY NET: Inject safety net candidates around tentative time
-  const candidatesWithSafetyNet = injectSafetyNetCandidates(input.tentativeTime, rawCandidates);
+  const candidatesWithSafetyNet = injectSafetyNetCandidates(input.tentativeTime, rawCandidates, input.dateOfBirth);
 
   // 🔱 PROJECT MAHAKALA: Boundary-Locked Generation
   await progress.updateMessage('Mahakala: Scanning for divisional boundaries...');
@@ -70,10 +70,18 @@ export async function stage1ExhaustiveDataGeneration(
 
   for (const b of boundaries) {
     if (!existingTimes.has(b.time)) {
+      const boundaryIdentity = generateCandidateTimes(input.tentativeTime, {
+        customMinutes: Math.abs(b.offsetMinutes),
+        description: 'Boundary identity'
+      }, input.dateOfBirth).find(candidate => Math.abs(candidate.offsetMinutes - b.offsetMinutes) < 1e-9);
+
       finalCandidates.push({
         time: b.time,
         offsetMinutes: b.offsetMinutes,
-        offsetDescription: `Boundary Lock: ${b.type} (${b.from} → ${b.to})`
+        offsetDescription: `Boundary Lock: ${b.type} (${b.from} → ${b.to})`,
+        candidateDate: boundaryIdentity?.candidateDate,
+        dayOffset: boundaryIdentity?.dayOffset,
+        candidateKey: boundaryIdentity?.candidateKey,
       });
       existingTimes.add(b.time);
     }
@@ -100,7 +108,8 @@ export async function stage1ExhaustiveDataGeneration(
     await Promise.all(batch.map(async (raw) => {
       const pkg = await buildCandidateDataPackage(raw.time, raw.offsetMinutes, input, {
         includeFullData: false,
-        dashaDepth: 2
+        dashaDepth: 2,
+        candidate: raw,
       });
 
       processed++;

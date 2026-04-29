@@ -146,10 +146,7 @@ async function buildSingleEventTransit(
   signatures.push(`Quantum: Ju in ${jupKakshya} Kakshya | Sa in ${satKakshya} Kakshya`);
 
   // Calculate double transit result
-  const houseMap: Record<string, number> = {
-    marriage: 7, career: 10, education: 4, family: 2, children: 5, health: 6, travel: 9
-  };
-  const targetHouse = houseMap[event.category as keyof typeof houseMap] || 1;
+  const targetHouse = getTargetHouse(event.category);
   const dtResult = verifyDoubleTransit(eventEph, ephemeris.ascendant.sign, targetHouse);
 
   return {
@@ -209,10 +206,7 @@ function buildDoubleTransitSignature(
   eventEph: EphemerisData,
   baseEphemeris: EphemerisData
 ): string | null {
-  const houseMap: Record<string, number> = {
-    marriage: 7, career: 10, education: 4, family: 2, children: 5, health: 6, travel: 9
-  };
-  const targetHouse = houseMap[event.category as keyof typeof houseMap] || 1;
+  const targetHouse = getTargetHouse(event.category);
 
   const dtResult = verifyDoubleTransit(eventEph, baseEphemeris.ascendant.sign, targetHouse);
 
@@ -266,4 +260,33 @@ function formatPlanetPositions(planets: EphemerisData['planets'], natalAscendant
   }
 
   return formatted;
+}
+
+function getTargetHouse(category: string): number {
+  const houseMap: Record<string, number> = {
+    marriage: 7,
+    career: 10,
+    education: 4,
+    family: 2,
+    children: 5,
+    health: 6,
+    travel: 9,
+    financial: 2,
+    finance: 2,
+    public_life: 10,
+    karmic_events: 8,
+    identity_shifts: 1,
+    promotion: 10,
+    business: 7,
+    property: 4,
+    relocation: 3,
+    accident: 8,
+    death_relative: 8,
+    divorce: 7,
+    surgery: 6,
+    inheritance: 8,
+    awards: 11,
+  };
+
+  return houseMap[category] || 1;
 }

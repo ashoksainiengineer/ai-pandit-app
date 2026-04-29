@@ -5,18 +5,18 @@
  * These types were extracted from seconds-precision-btr.ts for better modularity.
  */
 
-import { LifeEvent, ForensicTraits, DatePrecision, CandidateScore } from './types.js';
+import { LifeEvent, ForensicTraits, DatePrecision, CandidateScore, CandidateTime as SharedCandidateTime } from './types.js';
 export type { DatePrecision, CandidateScore };
 
 // Types internal to the backend calculation engine
-type CandidateTime = any;
-type KalachakraPeriod = any;
-type ShadbalaSummary = any;
-type NadiAmshaData = any;
-type D150EventAnalysis = any;
-type D9VerificationResult = any;
-type GandantaAnalysis = any;
-type PakshiAnalysis = any;
+type CandidateTime = SharedCandidateTime;
+type KalachakraPeriod = unknown;
+type ShadbalaSummary = unknown;
+type NadiAmshaData = unknown;
+type D150EventAnalysis = unknown;
+type D9VerificationResult = unknown;
+type GandantaAnalysis = unknown;
+type PakshiAnalysis = unknown;
 
 /** Zodiac signs in order */
 export const ZODIAC_SIGNS: readonly string[] = [
@@ -141,6 +141,9 @@ export interface VedicSignals {
 export interface CandidateDataPackage {
   time: string;
   offsetMinutes: number;
+  candidateDate?: string;
+  dayOffset?: number;
+  candidateKey?: string;
   planets: Record<string, PlanetData>;
   specialPoints?: Record<string, SpecialPoint>;
   ascendant: { sign: string; degree: string; nakshatra: string; longitude?: number };
@@ -479,10 +482,12 @@ export const EVENT_WEIGHTS = {
 } as const;
 
 export const DATE_PRECISION_MULTIPLIERS = {
-  exact: 1.0,
-  month: 0.8,
-  year: 0.6,
-  approximate: 0.4
+  exact_date_time: 1.0,
+  exact_date: 0.95,
+  date_range: 0.75,
+  month_year: 0.8,
+  month_range: 0.65,
+  year_range: 0.5
 } as const;
 
 export const SOURCE_MULTIPLIERS = {
@@ -516,6 +521,7 @@ export const EVENT_HOUSE_MAP: Record<string, number> = {
   education: 4,
   children: 5,
   health: 6,
+  financial: 2,
   finance: 2,
   travel: 9,
   property: 4,
@@ -525,12 +531,16 @@ export const EVENT_HOUSE_MAP: Record<string, number> = {
   relocation: 3,
   accident: 8,
   death_relative: 8,
+  public_life: 10,
+  karmic_events: 8,
+  identity_shifts: 1,
   promotion: 10,
   business: 7,
   divorce: 7,
   surgery: 6,
   inheritance: 8,
-  awards: 11
+  awards: 11,
+  other: 1
 };
 
 export const EVENT_SIGNIFICATORS: Record<string, string[]> = {
@@ -539,6 +549,7 @@ export const EVENT_SIGNIFICATORS: Record<string, string[]> = {
   education: ['Mercury', 'Jupiter', 'Moon', '4th Lord'],
   children: ['Jupiter', 'Venus', 'Moon', '5th Lord'],
   health: ['Sun', 'Moon', 'Mars', 'Saturn', '6th Lord'],
+  financial: ['Jupiter', 'Venus', 'Mercury', '2nd Lord'],
   finance: ['Jupiter', 'Venus', 'Mercury', '2nd Lord'],
   travel: ['Moon', 'Rahu', 'Ketu', '9th Lord', '12th Lord'],
   property: ['Mars', 'Saturn', 'Venus', '4th Lord'],
@@ -548,12 +559,16 @@ export const EVENT_SIGNIFICATORS: Record<string, string[]> = {
   relocation: ['Moon', 'Rahu', '3rd Lord', '9th Lord'],
   accident: ['Mars', 'Saturn', 'Rahu', '8th Lord'],
   death_relative: ['Saturn', 'Rahu', 'Ketu', '8th Lord'],
+  public_life: ['Sun', 'Jupiter', 'Mercury', '10th Lord', '11th Lord'],
+  karmic_events: ['Saturn', 'Ketu', '8th Lord', '12th Lord'],
+  identity_shifts: ['Sun', 'Moon', '1st Lord'],
   promotion: ['Sun', 'Jupiter', 'Mercury', '10th Lord'],
   business: ['Mercury', 'Venus', '7th Lord'],
   divorce: ['Mars', 'Rahu', 'Saturn', '6th Lord', '7th Lord'],
   surgery: ['Mars', 'Rahu', 'Saturn', '6th Lord', '8th Lord'],
   inheritance: ['Jupiter', 'Saturn', '8th Lord'],
-  awards: ['Jupiter', 'Venus', 'Sun', '11th Lord']
+  awards: ['Jupiter', 'Venus', 'Sun', '11th Lord'],
+  other: []
 };
 
 export const PARASHARI_ASPECTS: Record<string, number[]> = {

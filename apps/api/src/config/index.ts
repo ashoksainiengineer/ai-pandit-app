@@ -28,10 +28,11 @@ const envSchema = z.object({
     AI_TIMEOUT_MS: z.string().transform(Number).default('3600000'),
     REQUEST_TIMEOUT_MS: z.string().transform(Number).default('3600000'),
 
-    // BTR Specific AI Config
-    AI_STAGE2_MAX_TOKENS: z.string().transform(Number).default('2048'),
-    AI_STAGE4_MAX_TOKENS: z.string().transform(Number).default('8192'),
-    AI_STAGE6_MAX_TOKENS: z.string().transform(Number).default('16384'),
+    // BTR Specific AI Config - MAX TOKENS for GPT-OSS-120B (Groq API)
+    // Using max available tokens for deep analysis
+    AI_STAGE2_MAX_TOKENS: z.string().transform(Number).default('32768'),  // Max for batch tournament
+    AI_STAGE4_MAX_TOKENS: z.string().transform(Number).default('32768'),  // Max for deep analysis
+    AI_STAGE6_MAX_TOKENS: z.string().transform(Number).default('32768'),  // Max for final precision
     AI_BATCH_SIZE_MIN: z.string().transform(Number).default('5'),
     AI_BATCH_SIZE_MAX: z.string().transform(Number).default('10'),
     AI_SURVIVAL_RATE_BASE: z.string().transform(Number).default('0.35'),

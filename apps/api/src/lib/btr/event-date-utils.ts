@@ -54,13 +54,32 @@ function formatUtcTime(ms: number): string {
   return new Date(ms).toISOString().slice(11, 19);
 }
 
+function isValidDate(year: number, month: number, day: number): boolean {
+  if (month < 1 || month > 12) return false;
+  if (day < 1 || day > 31) return false;
+  
+  const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  
+  const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+  if (isLeapYear) daysInMonth[1] = 29;
+  
+  return day <= daysInMonth[month - 1];
+}
+
+function isReasonableYear(year: number): boolean {
+  const currentYear = new Date().getUTCFullYear();
+  return year >= 1800 && year <= currentYear + 1;
+}
+
 function parseDateLiteral(raw: unknown): ParsedDateLiteral | null {
   if (raw instanceof Date && !Number.isNaN(raw.getTime())) {
-    return {
-      year: raw.getUTCFullYear(),
-      month: raw.getUTCMonth() + 1,
-      day: raw.getUTCDate(),
-    };
+    const year = raw.getUTCFullYear();
+    const month = raw.getUTCMonth() + 1;
+    const day = raw.getUTCDate();
+    
+    if (!isReasonableYear(year)) return null;
+    
+    return { year, month, day };
   }
 
   if (typeof raw !== 'string') return null;
@@ -68,16 +87,22 @@ function parseDateLiteral(raw: unknown): ParsedDateLiteral | null {
 
   if (DAY_RE.test(value)) {
     const [year, month, day] = value.split('-').map(Number);
+    if (!isReasonableYear(year)) return null;
+    if (!isValidDate(year, month, day)) return null;
     return { year, month, day };
   }
 
   if (MONTH_RE.test(value)) {
     const [year, month] = value.split('-').map(Number);
+    if (!isReasonableYear(year)) return null;
+    if (month < 1 || month > 12) return null;
     return { year, month };
   }
 
   if (YEAR_RE.test(value)) {
-    return { year: Number(value) };
+    const year = Number(value);
+    if (!isReasonableYear(year)) return null;
+    return { year };
   }
 
   return null;
@@ -258,7 +283,12 @@ export function resolveEventDateWindow(event: EventDateLike): EventDateWindow {
     );
   }
 
-  return buildWindow(Date.now(), Date.now(), true);
+  const currentYear = new Date().getUTCFullYear();
+  return buildWindow(
+    Date.UTC(1900, 0, 1, 0, 0, 0, 0),
+    Date.UTC(currentYear, 11, 31, 23, 59, 59, 999),
+    true,
+  );
 }
 
 /**

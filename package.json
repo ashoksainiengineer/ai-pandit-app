@@ -48,6 +48,9 @@
         
         "test:mutation": "npx stryker run",
         "test:chaos": "npm -w @ai-pandit/api run chaos:resilience",
+        "test:btr": "node test-runner.js",
+        "test:btr:gandhi": "node test-runner.js --profile=gandhi",
+        "test:btr:modi": "node test-runner.js --profile=modi",
         "test:watchdog": "npx playwright test e2e/analysis-watchdog.spec.ts",
         "test:ci": "npm run lint && npm run test:unit && npm run test:integration && npm run test:e2e:smoke && npm run test:coverage:threshold",
         "test:ci:full": "npm run lint:strict && npm run test:full:ci && npm run test:e2e && npm run test:security:dependencies && npm run test:coverage:merge",

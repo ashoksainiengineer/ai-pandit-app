@@ -16,7 +16,7 @@ import { WindowScanner, ScannerInput } from './window-scanner.js';
 import { TatwaShuddhi, TatwaCorrectionResult } from './tatwa-shuddhi.js';
 import { TransitAnalyzer, ComprehensiveTransitResult } from './transit-analyzer.js';
 import { EventScorer, ScoredEvent, EventScoreSummary } from './event-scorer.js';
-import { calculateSunrise, calculateEphemeris } from '../ephemeris.js';
+import { calculateSunrise, calculateEphemeris, convertToUTC, clearSessionCache } from '../ephemeris.js';
 import {
   RectificationResult,
   CandidateScore,
@@ -46,6 +46,7 @@ export interface RectificationInput {
   knownTatwa?: TatwaType;
   timeRangeMinutes?: number;
   config?: Partial<ScanConfiguration>;
+  sessionId?: string;
 }
 
 export interface RectificationContext {
@@ -68,9 +69,10 @@ export interface DetailedResult extends RectificationResult {
 export async function rectifyBirthTime(input: RectificationInput): Promise<DetailedResult> {
   const startTime = Date.now();
   const errors: string[] = [];
+  const sessionId = input.sessionId ?? `btr_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 
   try {
-    const context = await buildContext(input);
+    const context = await buildContext(input, sessionId);
 
     const scannerInput: ScannerInput = {
       birthDate: input.birthDate,
@@ -108,7 +110,7 @@ export async function rectifyBirthTime(input: RectificationInput): Promise<Detai
       }
     }
 
-    const scanResult = await WindowScanner.scan(scannerInput);
+    const scanResult = await WindowScanner.scan(scannerInput, sessionId);
 
     if (!scanResult.success || !scanResult.bestCandidate) {
       return buildFailedResult(input, context, scanResult.errors, startTime);
@@ -117,7 +119,8 @@ export async function rectifyBirthTime(input: RectificationInput): Promise<Detai
     const transitAnalysis = await buildTransitAnalysis(
       input,
       scanResult.bestCandidate,
-      context.scoredEvents
+      context.scoredEvents,
+      sessionId
     );
 
     const result = buildDetailedResult(
@@ -136,7 +139,10 @@ export async function rectifyBirthTime(input: RectificationInput): Promise<Detai
     logger.error('[BTR] Rectification failed', error);
     errors.push(errorMessage);
 
-    return buildFailedResult(input, await buildContext(input), errors, startTime);
+    return buildFailedResult(input, await buildContext(input, sessionId), errors, startTime);
+  } finally {
+    clearSessionCache(sessionId);
+    logger.debug('[BTR] Session cache cleared', { sessionId });
   }
 }
 
@@ -295,7 +301,7 @@ export async function analyzeTransits(
 // INTERNAL FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-async function buildContext(input: RectificationInput): Promise<RectificationContext> {
+async function buildContext(input: RectificationInput, sessionId: string): Promise<RectificationContext> {
   let sunriseTime: Date | null = null;
 
   try {
@@ -330,7 +336,8 @@ async function buildContext(input: RectificationInput): Promise<RectificationCon
 async function buildTransitAnalysis(
   input: RectificationInput,
   bestCandidate: CandidateScore,
-  scoredEvents: ScoredEvent[]
+  scoredEvents: ScoredEvent[],
+  sessionId: string
 ): Promise<Map<string, ComprehensiveTransitResult>> {
   try {
     const candidateTime = getCandidateTimeString(bestCandidate, input.tentativeTime);
@@ -342,7 +349,8 @@ async function buildTransitAnalysis(
         candidateTime,
         input.latitude,
         input.longitude,
-        input.timezone
+        input.timezone,
+        { sessionId }
       );
       ascendantSign = candidateEphemeris.ascendant.sign;
     } catch (ephemerisError) {
@@ -438,12 +446,7 @@ function buildFailedResult(
 }
 
 function parseBirthTime(timeStr: string, dateStr: string, timezone: string | number): Date {
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const [hour, minute, second = 0] = timeStr.split(':').map(Number);
-
-  const offset = typeof timezone === 'number' ? timezone : parseFloat(timezone) || 0;
-
-  return new Date(Date.UTC(year, month - 1, day, hour, minute, second) - offset * 3600000);
+  return convertToUTC(dateStr, timeStr, timezone);
 }
 
 function getCandidateTimeString(candidate: CandidateScore, fallbackTime: string): string {

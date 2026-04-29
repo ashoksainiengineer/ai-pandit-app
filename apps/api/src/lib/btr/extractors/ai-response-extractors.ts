@@ -14,7 +14,8 @@ function findNearestCandidate(hallucinatedTime: string, candidates: string[], th
   if (!hallucinatedTime || !candidates.length) return null;
 
   const parseToSeconds = (t: string) => {
-    const clean = t.replace(/[\[\]]/g, '');
+    const timeMatch = t.match(/(\d{2}:\d{2}(?::\d{2})?)/);
+    const clean = (timeMatch?.[1] || t).replace(/[\[\]]/g, '');
     const parts = clean.split(':').map(Number);
     if (parts.length < 2) return -1;
     const h = parts[0];
