@@ -526,3 +526,213 @@ apps/api/drizzle/meta/_journal.json
 **Branch:** main  
 **Latest Fix Commit:** d683da5
 **Changelog Commit:** f54e341
+
+---
+
+## Deployment Session - 2026-04-30
+
+**Session Type:** Production Deployment  
+**Duration:** ~1 hour  
+**Status:** ✅ ALL SERVICES DEPLOYED AND HEALTHY
+
+### Summary
+
+Successfully deployed AI-Pandit project to production with all backend services on Google Cloud Run and frontend on Vercel. Applied idle-cost guards to prevent unnecessary billing when services are not in use.
+
+---
+
+### Pre-Deployment Checks
+
+#### 1. Billing Risk Assessment
+**Question:** *"Backend processes se faaltu bill to nahi aayega na?"*
+
+**Findings:**
+- ✅ All Cloud Run services configured with `min-instances=0` (scale-to-zero when idle)
+- ✅ `cpu-throttling=true` on all services (no CPU billing when idle)
+- ✅ No Cloud Scheduler jobs configured (API disabled)
+- ✅ No Cloud Run Jobs configured
+- **Conclusion:** When all services are idle, Cloud Run compute bill will be near-zero
+
+**Services Analyzed:**
+| Service | minScale | CPU Throttling | Idle Billing Risk |
+|---------|----------|----------------|-------------------|
+| api-service | 0 | ✅ Yes | ✅ None |
+| worker-service | 0 | ✅ Yes | ✅ None |
+| ephemeris-service | 0 | ✅ Yes | ✅ None |
+
+#### 2. Environment Verification
+- ✅ Google Cloud project: `ai-pandit-489913`
+- ✅ Region: `asia-southeast1`
+- ✅ All secrets accessible in Secret Manager
+- ✅ Vercel CLI authenticated (`app.aipandit@gmail.com`)
+- ✅ Git working tree clean (committed all pending changes)
+
+---
+
+### Deployment Steps Executed
+
+#### Step 1: Commit Pending Changes
+**Commit:** `220fe73` - `chore(deploy): apply idle-cost safety guards and deploy config fixes`
+
+**Files Changed:**
+- `cloudbuild.yaml` - Changed worker from `min-instances=1` to `min-instances=0`, added cpu-throttling
+- `scripts/deploy-cloud-run.sh` - Added deploy mode logic (development vs production)
+- `scripts/enforce-idle-cost-guards.sh` - Enhanced to handle all 4 services
+
+#### Step 2: Deploy Ephemeris Service
+**Command:** `sh ./scripts/deploy-cloud-run.sh ephemeris`
+
+**Result:** ✅ SUCCESS
+- **Build ID:** `1b7cca34-99e0-4150-94f3-9e119cf4b163`
+- **Image:** `asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/ephemeris-service:20260430-002509`
+- **Service URL:** https://ephemeris-service-624056173858.asia-southeast1.run.app
+- **Revision:** `ephemeris-service-00008-z42`
+- **Duration:** 1 minute 4 seconds
+
+**Configuration:**
+- Memory: 1Gi
+- CPU: 1
+- Concurrency: 5
+- Min Instances: 0
+- Max Instances: 1
+- CPU Throttling: ✅ Enabled
+
+#### Step 3: Deploy API Service
+**Command:** `sh ./scripts/deploy-cloud-run.sh api`
+
+**Result:** ✅ SUCCESS
+- **Build ID:** `6be6b9ee-75b5-4107-ba6a-b3a2e14f0901`
+- **Image:** `asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/api-service:20260430-002805`
+- **Service URL:** https://api-service-624056173858.asia-southeast1.run.app
+- **Revision:** `api-service-00011-sds`
+- **Duration:** 5 minutes 32 seconds
+
+**Configuration:**
+- Memory: 8Gi
+- CPU: 2
+- Concurrency: 20
+- Min Instances: 0
+- Max Instances: 2
+- CPU Throttling: ✅ Enabled
+- Secrets: NEON_DATABASE_URL, REDIS_URL, AI_API_KEY, ENCRYPTION_SECRET, CLERK_SECRET_KEY
+
+#### Step 4: Deploy Worker Service
+**Command:** `sh ./scripts/deploy-cloud-run.sh worker`
+
+**Result:** ✅ SUCCESS
+- **Build ID:** `6eca5eb1-864c-47f6-b49a-66f054fc4783`
+- **Image:** `asia-southeast1-docker.pkg.dev/ai-pandit-489913/ai-pandit/worker-service:20260430-003542`
+- **Service URL:** https://worker-service-624056173858.asia-southeast1.run.app
+- **Revision:** `worker-service-00017-vsh`
+- **Duration:** 4 minutes 10 seconds
+
+**Configuration:**
+- Memory: 12Gi
+- CPU: 4
+- Concurrency: 1
+- Min Instances: 0
+- Max Instances: 1
+- CPU Throttling: ✅ Enabled
+- Secrets: NEON_DATABASE_URL, REDIS_URL, AI_API_KEY, ENCRYPTION_SECRET, CLERK_SECRET_KEY
+
+#### Step 5: Deploy Frontend to Vercel
+**Command:** `vercel --prod --yes` (from `ai-pandit-app-vercel-deploy` directory)
+
+**Issue Encountered:**
+- Build failed because `apps/web/vercel.json` referenced `buildCommand: "npm run build:vercel:web"`
+- This command exists in root `package.json` but Vercel executes from `apps/web` directory
+
+**Fix Applied:**
+- Changed `apps/web/vercel.json` buildCommand to `"npm run build:vercel"`
+- The `build:vercel` script in `apps/web/package.json` correctly navigates to root: `cd ../.. && npm run build:vercel:web`
+- **Commit:** `356acef` - `fix(vercel): correct build command path for web app`
+
+**Result:** ✅ SUCCESS
+- **Production URL:** https://www.aipandit.app
+- **Vercel Deploy URL:** https://ai-pandit-nntyakdtd-ai-pandits-projects.vercel.app
+- **Build Duration:** ~3 minutes
+- **Build Output:** 9 static pages, 15 serverless functions
+
+#### Step 6: Apply Idle-Cost Guards
+**Command:** `sh ./scripts/enforce-idle-cost-guards.sh`
+
+**Result:** ✅ SUCCESS
+- `api-service`: Updated to min=0, max=2, cpu-throttling
+- `worker-service`: Updated to min=0, max=1, cpu-throttling
+- `ephemeris-service`: Updated to min=0, max=1, cpu-throttling
+- `web-service`: Skipped (not deployed on Cloud Run)
+
+---
+
+### Post-Deployment Verification
+
+#### Health Check Results
+
+| Service | Endpoint | Status | Response |
+|---------|----------|--------|----------|
+| **API Service** | `/live` | ✅ Healthy | `{"status":"healthy","timestamp":"2026-04-29T19:34:35.932Z"}` |
+| **Ephemeris Service** | `/health` | ✅ Healthy | `{"service":"ephemeris","status":"healthy","ready":true,"kernelLoaded":true}` |
+| **Worker Service** | `/live` | ✅ Healthy | `{"service":"worker","healthy":true,"ready":true,"workerStarted":true}` |
+| **Frontend** | `/` | ✅ 200 OK | HTML page loaded successfully |
+
+#### Service URLs
+
+| Component | URL |
+|-----------|-----|
+| **Frontend (Production)** | https://www.aipandit.app |
+| **API Service** | https://api-service-624056173858.asia-southeast1.run.app |
+| **Worker Service** | https://worker-service-624056173858.asia-southeast1.run.app |
+| **Ephemeris Service** | https://ephemeris-service-624056173858.asia-southeast1.run.app |
+
+---
+
+### Idle Cost Protection Summary
+
+| Protection Measure | Status |
+|-------------------|--------|
+| min-instances = 0 (all services) | ✅ Applied |
+| cpu-throttling = true (all services) | ✅ Applied |
+| No Cloud Scheduler jobs | ✅ Confirmed |
+| No Cloud Run Jobs | ✅ Confirmed |
+| Worker service scales to zero | ✅ Applied |
+
+**Billing Impact:**
+- When idle: Near-zero Cloud Run compute costs
+- When active: Billed only for actual request processing time
+- No always-on instances consuming resources 24/7
+
+---
+
+### Git Commits Made During Deployment
+
+1. **`220fe73`** - `chore(deploy): apply idle-cost safety guards and deploy config fixes`
+   - Modified: `cloudbuild.yaml`, `scripts/deploy-cloud-run.sh`, `scripts/enforce-idle-cost-guards.sh`
+   
+2. **`356acef`** - `fix(vercel): correct build command path for web app`
+   - Modified: `apps/web/vercel.json`
+
+---
+
+### Known Issues / Notes
+
+1. **Worker Service Quota:** Logs showed previous "compute time quota exceeded" errors. If worker repeatedly restarts, may need to upgrade GCP plan or reduce max instances.
+
+2. **Vercel Build:** First build failed due to incorrect buildCommand in vercel.json. Fixed and redeployed successfully.
+
+3. **Security:** All secrets stored in Google Secret Manager and Vercel Environment Variables. No hardcoded secrets in source code.
+
+4. **Database:** Neon PostgreSQL database connection verified during deployment. All services can connect successfully.
+
+5. **Next Session:**
+   - Monitor Cloud Run logs for any startup failures
+   - Verify worker is processing jobs correctly
+   - Test frontend-backend integration end-to-end
+   - Consider setting up Cloud Monitoring alerts
+
+---
+
+**Deployment Complete:** All services healthy and serving traffic  
+**Date:** 2026-04-30  
+**Deployer:** Sisyphus (AI Agent)  
+**Repository:** https://github.com/ashoksainiengineer/ai-pandit-app  
+**Branch:** main
