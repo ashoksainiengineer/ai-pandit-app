@@ -97,10 +97,10 @@ This session transformed the AI-Pandit project from a stalled, insecure state to
 
 **Before:**
 ```javascript
-AI_API_KEY: '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',
-CLERK_SECRET_KEY: 'sk_test_5y6ECBKB4faegrYiRkK3yZOoSnIyxwXCZaUeKbS1yA',
-ENCRYPTION_SECRET: 'this-is-a-test-encryption-secret-key-with-32-chars',
-NEON_DATABASE_URL: 'postgresql://user:pass@localhost/test'
+AI_API_KEY: '<redacted-groq-api-key>',
+CLERK_SECRET_KEY: '<redacted-clerk-secret-key>',
+ENCRYPTION_SECRET: '<redacted-encryption-secret>',
+NEON_DATABASE_URL: '<redacted-database-url>'
 ```
 
 **After:**
@@ -524,4 +524,5 @@ apps/api/drizzle/meta/_journal.json
 **Session Complete:** All changes committed and pushed to GitHub  
 **Repository:** https://github.com/ashoksainiengineer/ai-pandit-app  
 **Branch:** main  
-**Latest Commit:** d683da5
+**Latest Fix Commit:** d683da5
+**Changelog Commit:** f54e341

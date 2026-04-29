@@ -2,6 +2,7 @@
 set -eu
 
 SERVICE_KIND="${1:-}"
+DEPLOY_MODE="${CLOUD_RUN_DEPLOY_MODE:-development}"
 
 if [ -z "$SERVICE_KIND" ]; then
   echo "Usage: scripts/deploy-cloud-run.sh <api|web|worker|ephemeris>"
@@ -55,9 +56,13 @@ case "$SERVICE_KIND" in
     MEMORY="${WORKER_MEMORY:-12Gi}"
     CPU="${WORKER_CPU:-4}"
     CONCURRENCY="${WORKER_CONCURRENCY:-1}"
-    MIN_INSTANCES="${WORKER_MIN_INSTANCES:-1}"
+    MIN_INSTANCES="${WORKER_MIN_INSTANCES:-0}"
     MAX_INSTANCES="${WORKER_MAX_INSTANCES:-1}"
-    CPU_THROTTLING_FLAG="--no-cpu-throttling"
+    CPU_THROTTLING_FLAG="--cpu-throttling"
+    if [ "${DEPLOY_MODE}" = "production" ] && [ "${WORKER_ALWAYS_ON:-false}" = "true" ]; then
+      MIN_INSTANCES="${WORKER_MIN_INSTANCES:-1}"
+      CPU_THROTTLING_FLAG="--no-cpu-throttling"
+    fi
     EXTRA_VARS="NODE_ENV=production,APP_REGION=${REGION},CLOUD_RUN_REGION=${REGION},JOB_EXECUTION_MODE=external_worker,QUEUE_ARCHITECTURE=${QUEUE_ARCHITECTURE:-db_polling},WORKER_POLL_INTERVAL_MS=${WORKER_POLL_INTERVAL_MS:-2000},WORKER_DRAIN_TIMEOUT_MS=${WORKER_DRAIN_TIMEOUT_MS:-30000},JOB_SYNC_POLL_INTERVAL_MS=${JOB_SYNC_POLL_INTERVAL_MS:-2000},USE_ASYNC_JOB_PIPELINE=${USE_ASYNC_JOB_PIPELINE:-true},USE_NEW_STREAM_PATH=${USE_NEW_STREAM_PATH:-true},AI_BASE_URL=${AI_BASE_URL:-https://api.groq.com/openai/v1},AI_MODEL=${AI_MODEL:-openai/gpt-oss-120b},EPHEMERIS_PROVIDER=${EPHEMERIS_PROVIDER:-skyfield},EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK=${EPHEMERIS_ALLOW_ALGORITHMIC_FALLBACK:-false},EPHEMERIS_SERVICE_URL=${EPHEMERIS_SERVICE_URL:?EPHEMERIS_SERVICE_URL is required for worker deploy},EPHEMERIS_SERVICE_TIMEOUT_MS=${EPHEMERIS_SERVICE_TIMEOUT_MS:-15000},EPHEMERIS_BATCH_SIZE=${EPHEMERIS_BATCH_SIZE:-250},EPHEMERIS_HOUSE_SYSTEM=${EPHEMERIS_HOUSE_SYSTEM:-placidus}"
     SECRET_VARS="NEON_DATABASE_URL=neon-database-url:latest,REDIS_URL=redis-url:latest,AI_API_KEY=ai-api-key:latest,ENCRYPTION_SECRET=encryption-secret:latest,CLERK_SECRET_KEY=clerk-secret-key:latest"
     ;;
@@ -110,6 +115,7 @@ gcloud builds submit \
   .
 
 echo "Deploying Cloud Run service: ${SERVICE_NAME}"
+echo "Cloud Run deploy mode: ${DEPLOY_MODE}; min instances: ${MIN_INSTANCES}; max instances: ${MAX_INSTANCES}; cpu flag: ${CPU_THROTTLING_FLAG}"
 if [ -n "${SECRET_VARS}" ]; then
   gcloud run deploy "${SERVICE_NAME}" \
     --project="${PROJECT_ID}" \

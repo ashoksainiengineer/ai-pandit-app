@@ -4,7 +4,9 @@ set -eu
 PROJECT_ID="${GCP_PROJECT_ID:-${GOOGLE_CLOUD_PROJECT:-}}"
 REGION="${CLOUD_RUN_REGION:-asia-southeast1}"
 API_SERVICE_NAME="${API_SERVICE_NAME:-api-service}"
+WEB_SERVICE_NAME="${WEB_SERVICE_NAME:-web-service}"
 WORKER_SERVICE_NAME="${WORKER_SERVICE_NAME:-worker-service}"
+EPHEMERIS_SERVICE_NAME="${EPHEMERIS_SERVICE_NAME:-ephemeris-service}"
 
 if [ -z "${PROJECT_ID}" ]; then
   echo "GCP_PROJECT_ID or GOOGLE_CLOUD_PROJECT is required"
@@ -16,20 +18,30 @@ if ! command -v gcloud >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "Applying idle-cost guards to ${API_SERVICE_NAME} and ${WORKER_SERVICE_NAME} in ${PROJECT_ID}/${REGION}"
+echo "Applying zero-idle Cloud Run guards in ${PROJECT_ID}/${REGION}"
 
-gcloud run services update "${API_SERVICE_NAME}" \
-  --project="${PROJECT_ID}" \
-  --region="${REGION}" \
-  --min=0 \
-  --max=2 \
-  --cpu-throttling
+update_if_exists() {
+  service_name="$1"
+  max_instances="$2"
 
-gcloud run services update "${WORKER_SERVICE_NAME}" \
-  --project="${PROJECT_ID}" \
-  --region="${REGION}" \
-  --min=0 \
-  --max=1 \
-  --cpu-throttling
+  if gcloud run services describe "${service_name}" \
+    --project="${PROJECT_ID}" \
+    --region="${REGION}" >/dev/null 2>&1; then
+    echo "Setting ${service_name} to min=0, max=${max_instances}, cpu-throttling"
+    gcloud run services update "${service_name}" \
+      --project="${PROJECT_ID}" \
+      --region="${REGION}" \
+      --min=0 \
+      --max="${max_instances}" \
+      --cpu-throttling
+  else
+    echo "Skipping ${service_name}; service not found"
+  fi
+}
 
-echo "Idle-cost guards applied successfully"
+update_if_exists "${API_SERVICE_NAME}" 2
+update_if_exists "${WEB_SERVICE_NAME}" 2
+update_if_exists "${WORKER_SERVICE_NAME}" 1
+update_if_exists "${EPHEMERIS_SERVICE_NAME}" 1
+
+echo "Zero-idle guards applied successfully"

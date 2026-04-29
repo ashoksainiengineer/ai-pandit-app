@@ -60,7 +60,7 @@ $ curl http://localhost:8000/health
 
 **Configuration Verified:**
 ```
-AI_API_KEY:     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
+AI_API_KEY:     <redacted-groq-api-key>
 AI_BASE_URL:    https://api.groq.com/openai/v1
 AI_MODEL:       openai/gpt-oss-120b
 ```
