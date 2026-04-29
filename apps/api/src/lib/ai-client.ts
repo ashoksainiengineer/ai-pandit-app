@@ -565,7 +565,6 @@ export async function callAIWithStream(
                 thinkingLength: fullThinking.length,
             });
 
-            // 🔍 DEBUG UI: Log the full container state
             logAnalysisContainerAction(stage, `Streaming AI Complete - ${configLocal.model}`, {
                 promptLength: userPrompt.length,
                 thinkingLength: fullThinking.length,

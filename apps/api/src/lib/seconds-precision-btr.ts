@@ -149,7 +149,6 @@ export async function processSecondsPrecisionBTR(
             globalLifecycleItems: globalLifecycle.length
         });
 
-        // 🔍 DEBUG UI: Clear previous logs and initialize
         clearDebugLog();
         logAnalysisContainerAction('INIT', `Starting Professional BTR (Session: ${input.sessionId})`, {
             input,
@@ -323,7 +322,6 @@ export async function processSecondsPrecisionBTR(
             analysisResult: enrichedResult
         };
 
-        // 🔍 DEBUG UI: Log final verdict
         logAnalysisContainerAction('FINAL', 'Final Verification & Result', resultPayload);
 
         return resultPayload;

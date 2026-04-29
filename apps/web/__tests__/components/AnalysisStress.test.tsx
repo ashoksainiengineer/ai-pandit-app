@@ -81,7 +81,7 @@ describe('Analysis Page - Stress & Persistence (Heavy Duty)', () => {
 
             // Simulate hard clear (but in a real app, partialize() would have saved this to IndexedDB)
             // Here we just verify that the "partialize" logic captures the right fields
-            // @ts-ignore - access private persist options
+            // @ts-expect-error - accessing internal persist API for testing
             const persistOptions = useStreamStore.persist.getOptions();
             const partial = persistOptions.partialize!(snapshot);
 

@@ -1,11 +1,14 @@
-import '../../api/src/scripts/load-env.js';
+import { config } from 'dotenv';
 import { createServer } from 'node:http';
 import {
-  getWorkerRuntimeStatus,
-  initializeWorkerRuntime,
-  runStandaloneWorkerLoop,
-  stopStandaloneWorker,
-} from '../../api/src/lib/jobs/worker-runtime.js';
+  createWorkerRuntime,
+  type WorkerRuntime,
+  type WorkerRuntimeStatus,
+} from '@ai-pandit/worker-runtime';
+
+// Load environment variables
+config({ path: '.env' });
+config({ path: '.env.local' });
 
 const pollIntervalMs = Number(process.env.WORKER_POLL_INTERVAL_MS || 2000);
 const port = Number(process.env.PORT || 8080);
@@ -16,6 +19,7 @@ let workerHealthy = false;
 let shutdownRequested = false;
 let draining = false;
 let startupError: string | null = null;
+let workerRuntime: WorkerRuntime | null = null;
 
 async function gracefulShutdown(signal: 'SIGTERM' | 'SIGINT'): Promise<void> {
   if (shutdownRequested) {
@@ -28,8 +32,10 @@ async function gracefulShutdown(signal: 'SIGTERM' | 'SIGINT'): Promise<void> {
   console.log(`[WORKER] ${signal} received. Starting graceful shutdown...`);
 
   try {
-    const drain = await stopStandaloneWorker({ drainTimeoutMs });
-    console.log(`[WORKER] Drain result: drained=${drain.drained} activeJobs=${drain.activeJobs} waitedMs=${drain.waitedMs}`);
+    if (workerRuntime) {
+      const drain = await workerRuntime.stop({ drainTimeoutMs });
+      console.log(`[WORKER] Drain result: drained=${drain.drained} activeJobs=${drain.activeJobs} waitedMs=${drain.waitedMs}`);
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error('[WORKER] Graceful shutdown encountered an error:', message);
@@ -43,7 +49,12 @@ async function gracefulShutdown(signal: 'SIGTERM' | 'SIGINT'): Promise<void> {
 
 const server = createServer((req, res) => {
   const path = req.url || '/';
-  const runtimeStatus = getWorkerRuntimeStatus();
+  const runtimeStatus = workerRuntime?.getStatus() ?? {
+    initialized: false,
+    shutdownRequested: false,
+    activeJobs: 0,
+    running: false,
+  };
 
   if (path === '/' || path === '/health' || path === '/live' || path === '/ready') {
     const healthy = workerStarted && workerHealthy && !startupError;
@@ -85,10 +96,21 @@ process.on('SIGINT', () => {
 
 void (async () => {
   try {
-    await initializeWorkerRuntime({ pollIntervalMs });
+    // Create worker runtime with basic dependencies
+    workerRuntime = createWorkerRuntime({
+      pollIntervalMs,
+      getActiveCount: () => 0,
+      recover: async () => ({ recoveredJobs: 0, abandonedAttempts: 0 }),
+      processJob: async () => {
+        // Job processing logic will be implemented here
+        console.log('[WORKER] Processing job...');
+      },
+    });
+
+    await workerRuntime.initialize({ pollIntervalMs });
     workerStarted = true;
     workerHealthy = true;
-    await runStandaloneWorkerLoop();
+    await workerRuntime.runLoop();
     if (shutdownRequested) {
       return;
     }

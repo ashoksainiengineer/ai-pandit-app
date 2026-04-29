@@ -85,7 +85,7 @@ class MockEventSource {
     static instances: MockEventSource[] = [];
 }
 
-// @ts-ignore
+// @ts-expect-error - Mocking EventSource for tests
 global.EventSource = MockEventSource;
 (global as any).EventSource.instances = [];
 

@@ -1415,8 +1415,7 @@ async function processSessionAsync(sessionId: string): Promise<void> {
       const dateOfBirth = parseSensitiveField(s.dateOfBirth, s.clerkId, s.userId);
       const tentativeTime = parseSensitiveField(s.tentativeTime, s.clerkId, s.userId);
 
-      // 🔍 DEBUG: Log time format to catch "Invalid time value"
-      logger.info('🔍 [TIME DEBUG]', {
+      logger.info('[Time Format]', {
         sessionId,
         rawTime: s.tentativeTime?.substring(0, 20) + '...',
         decryptedTime: tentativeTime,

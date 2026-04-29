@@ -19,6 +19,13 @@
     {
       "idx": 2,
       "version": "7",
+      "when": 1773250000000,
+      "tag": "0002_genuine_dawn",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
       "when": 1773259142388,
       "tag": "0003_lyrical_quicksilver",
       "breakpoints": true
