@@ -79,6 +79,10 @@ const CATEGORY_IMPACT_MAP: Record<string, 'critical' | 'major' | 'moderate' | 'm
   accident: 'major',
   surgery: 'major',
   property: 'major',
+  public_life: 'major',
+  karmic_events: 'major',
+  identity_shifts: 'moderate',
+  financial: 'moderate',
   finance: 'moderate',
   travel: 'minor',
   relocation: 'moderate',
@@ -112,7 +116,7 @@ export function calculateEventConfidence(
 ): EventConfidence {
   const {
     defaultSource = 'memory',
-    defaultPrecision = 'exact'
+    defaultPrecision = 'exact_date'
   } = options;
 
   const source = event.confidence?.source ||
@@ -151,7 +155,7 @@ export function scoreEvents(
 ): ScoredEvent[] {
   return events.map(event => {
     const confidence = calculateEventConfidence(event, options);
-    const category = event.category || 'general';
+    const category = normalizeCategory(event.category);
     const eventWindow = resolveEventDateWindow({
       eventDate: event.eventDate as string,
       endDate: event.endDate,
@@ -216,6 +220,12 @@ export function scoreEvents(
       precisionMultiplier: DATE_PRECISION_MULTIPLIERS[confidence.datePrecision]
     };
   });
+}
+
+function normalizeCategory(category: string | undefined): string {
+  if (!category) return 'other';
+  if (category === 'financial') return 'finance';
+  return category;
 }
 
 /**

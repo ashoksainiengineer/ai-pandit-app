@@ -5,18 +5,14 @@ import { stage4DeepAnalysis } from '../stage4-deep-analysis.js';
 import { stage6FinalPrecision } from '../stage6-final-precision.js';
 import * as aiClient from '../../../ai-client.js';
 import * as extractors from '../../extractors/index.js';
+import * as sessionEvents from '../../../session-events.js';
+import * as vedicAstrologyEngine from '../../../vedic-astrology-engine.js';
 import { config } from '../../../../config/index.js';
 
 // Mock the AI client
 vi.mock('../../../ai-client.js', () => ({
     callAIWithStream: vi.fn(),
-    executeAIInParallel: vi.fn(async (tasks) => {
-        const results = [];
-        for (const task of tasks) {
-            results.push(await task());
-        }
-        return results;
-    })
+    executeAIInParallel: vi.fn(async (tasks: Array<() => Promise<unknown>>) => Promise.all(tasks.map((task) => task())))
 }));
 
 // Mock validation to bypass zero-trust gates in tests
@@ -34,9 +30,27 @@ vi.mock('../../data-package-builder.js', () => ({
             moon: { sign: 'Taurus', degree: '15:00:00' },
             sun: { sign: 'Aries', degree: '10:00:00' }
         },
-        rawVimshottari: []
+        rawVimshottari: [{ marker: time }],
+        vimshottariDasha: [
+            {
+                maha: 'Jupiter',
+                antar: 'Saturn',
+                pratyantar: 'Mercury',
+                startEnd: '2000-01-01 to 2100-01-01'
+            }
+        ]
     }))
 }));
+
+vi.mock('../../../time-offset-manager.js', async () => {
+    const actual = await vi.importActual('../../../time-offset-manager.js');
+    return {
+        ...actual,
+        getDynamicBatchSize: vi.fn().mockReturnValue(10),
+        getDynamicSurvivors: vi.fn().mockReturnValue(2),
+        splitIntoBatches: vi.fn().mockImplementation((candidates: unknown[]) => [candidates])
+    };
+});
 
 // Mock stage utilities
 vi.mock('../_utils.js', () => ({
@@ -82,7 +96,7 @@ vi.mock('../../../btr-precision-integrator.js', () => ({
             consensus: { overallConsensus: 90, confidenceLevel: 'HIGH' }
         }
     })),
-    generatePrecisionAIPrompt: vi.fn((c, p) => p)
+    generatePrecisionAIPrompt: vi.fn((...args: unknown[]) => args[1])
 }));
 
 // Mock extractors
@@ -242,5 +256,126 @@ describe('BTR Stage Model Routing', () => {
         const result = await stage6FinalPrecision(input as any, candidates as any, mockProgress as any, {} as any);
         expect(result.finalTime).toBe('12:00:00');
         expect(result.confidence).toBe('LOW');
+    });
+
+    it('Stage 2 fallback should not auto-promote first batch-order candidates when stronger provenance exists', async () => {
+        const input: Parameters<typeof stage2BatchTournament>[0] = {
+            sessionId: 'stage2-fallback-order-bias',
+            lifeEvents: [{ eventType: 'Birth', eventDate: '2000-01-01' }],
+            offsetConfig: { preset: '1hour' },
+            tentativeTime: '12:00:00'
+        } as Parameters<typeof stage2BatchTournament>[0];
+
+        const candidates: Parameters<typeof stage2BatchTournament>[1] = [
+            { time: '12:00:00', offsetMinutes: 0, offsetDescription: 'batch-first low provenance', priority: 90 },
+            { time: '12:00:30', offsetMinutes: 0.5, offsetDescription: 'batch-second low provenance', priority: 85 },
+            { time: '11:58:00', offsetMinutes: -2, offsetDescription: 'far but stronger provenance', priority: 1 },
+            { time: '12:03:00', offsetMinutes: 3, offsetDescription: 'far but strong provenance', priority: 2 },
+        ];
+
+        vi.mocked(extractors.extractBatchSurvivors).mockReturnValue([]);
+        vi.mocked(aiClient.callAIWithStream).mockResolvedValue({ success: false, content: '' } as never);
+
+        await stage2BatchTournament(
+            input,
+            candidates,
+            mockProgress as unknown as Parameters<typeof stage2BatchTournament>[2],
+            {} as Parameters<typeof stage2BatchTournament>[3]
+        );
+
+        const promotedStage2Times = vi.mocked(sessionEvents.emitDecision).mock.calls
+            .map(([, payload]) => payload as { stage?: number; verdict?: string; time?: string })
+            .filter((payload) => payload.stage === 2 && payload.verdict === 'promoted' && Boolean(payload.time))
+            .map((payload) => payload.time as string);
+
+        expect(promotedStage2Times).toContain('11:58:00');
+        expect(promotedStage2Times).toContain('12:03:00');
+        expect(promotedStage2Times).not.toContain('12:00:00');
+        expect(promotedStage2Times).not.toContain('12:00:30');
+    });
+
+    it('Stage 4 fallback should preserve deterministic merit/provenance, not first shuffled candidates', async () => {
+        const input: Parameters<typeof stage4DeepAnalysis>[0] = {
+            sessionId: 'stage4-fallback-order-bias',
+            lifeEvents: [{ eventType: 'Birth', eventDate: '2000-01-01' }],
+            offsetConfig: { preset: '1hour' },
+            tentativeTime: '12:00:00'
+        } as Parameters<typeof stage4DeepAnalysis>[0];
+
+        const candidates: Parameters<typeof stage4DeepAnalysis>[1] = [
+            { time: '12:00:00', offsetMinutes: 0, offsetDescription: 'batch-first low provenance', priority: 90 },
+            { time: '12:00:30', offsetMinutes: 0.5, offsetDescription: 'batch-second low provenance', priority: 85 },
+            { time: '11:58:00', offsetMinutes: -2, offsetDescription: 'far but stronger provenance', priority: 1 },
+            { time: '12:03:00', offsetMinutes: 3, offsetDescription: 'far but strong provenance', priority: 2 },
+            { time: '11:57:00', offsetMinutes: -3, offsetDescription: 'far but strong provenance', priority: 3 },
+            { time: '12:04:00', offsetMinutes: 4, offsetDescription: 'far but strong provenance', priority: 4 },
+            { time: '11:56:00', offsetMinutes: -4, offsetDescription: 'far but strong provenance', priority: 5 },
+            { time: '12:05:00', offsetMinutes: 5, offsetDescription: 'far but strong provenance', priority: 6 },
+            { time: '11:55:00', offsetMinutes: -5, offsetDescription: 'far but strong provenance', priority: 7 },
+            { time: '12:06:00', offsetMinutes: 6, offsetDescription: 'far but strong provenance', priority: 8 },
+            { time: '11:54:00', offsetMinutes: -6, offsetDescription: 'far but strong provenance', priority: 9 },
+        ];
+
+        vi.mocked(extractors.extractBatchSurvivors).mockReturnValue([]);
+        vi.mocked(aiClient.callAIWithStream).mockResolvedValue({ success: false, content: '' } as never);
+
+        await stage4DeepAnalysis(
+            input,
+            candidates,
+            mockProgress as unknown as Parameters<typeof stage4DeepAnalysis>[2],
+            {} as Parameters<typeof stage4DeepAnalysis>[3]
+        );
+
+        const promotedStage4Times = vi.mocked(sessionEvents.emitDecision).mock.calls
+            .map(([, payload]) => payload as { stage?: number; verdict?: string; time?: string; batch?: number })
+            .filter((payload) => payload.stage === 4 && payload.verdict === 'promoted' && payload.batch === 1 && Boolean(payload.time))
+            .map((payload) => payload.time as string);
+
+        expect(promotedStage4Times).toContain('11:58:00');
+        expect(promotedStage4Times).toContain('12:03:00');
+        expect(promotedStage4Times).not.toContain('12:00:00');
+        expect(promotedStage4Times).not.toContain('12:00:30');
+    });
+
+    it('Stage 6 should derive present-day dasha anchors per finalist candidate, not from only first finalist', async () => {
+        const input: Parameters<typeof stage6FinalPrecision>[0] = {
+            sessionId: 'stage6-candidate-scoped-anchor',
+            lifeEvents: [{ eventType: 'Birth', eventDate: '2000-01-01' }],
+            offsetConfig: { preset: '1hour' },
+            latitude: 0,
+            longitude: 0,
+            timezone: 'UTC',
+            tentativeTime: '12:00:00'
+        } as Parameters<typeof stage6FinalPrecision>[0];
+
+        const candidates: Parameters<typeof stage6FinalPrecision>[1] = [
+            { time: '12:00:00', offsetMinutes: 0, offsetDescription: 'Exact' },
+            { time: '12:00:30', offsetMinutes: 0.5, offsetDescription: '+30s' }
+        ];
+
+        vi.mocked(extractors.extractFinalVerdict).mockReturnValue({
+            time: '12:00:00',
+            accuracy: 95,
+            confidence: 'HIGH',
+            margin: 5
+        });
+        vi.mocked(aiClient.callAIWithStream).mockResolvedValue({
+            success: true,
+            content: '<FINAL_VERDICT>{"time": "12:00:00", "accuracy": 95, "confidence": "HIGH", "margin": 5}</FINAL_VERDICT>'
+        } as never);
+
+        await stage6FinalPrecision(
+            input,
+            candidates,
+            mockProgress as unknown as Parameters<typeof stage6FinalPrecision>[2],
+            {} as Parameters<typeof stage6FinalPrecision>[3]
+        );
+
+        const dashaMarkers = vi.mocked(vedicAstrologyEngine.getDashaForDate).mock.calls
+            .map(([raw]) => raw as Array<{ marker?: string }>)
+            .map((raw) => raw[0]?.marker)
+            .filter((marker): marker is string => Boolean(marker));
+
+        expect(dashaMarkers).toEqual(expect.arrayContaining(['12:00:00', '12:00:30']));
     });
 });

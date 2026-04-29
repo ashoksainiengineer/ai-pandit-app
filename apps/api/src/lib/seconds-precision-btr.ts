@@ -14,7 +14,7 @@
  * - btr/stages/ - Individual stage implementations
  */
 
-import { calculateEphemeris } from './ephemeris.js';
+import { calculateEphemeris, convertToUTC } from './ephemeris.js';
 
 import {
     calculateVimshottariDasha,
@@ -109,8 +109,8 @@ export async function processSecondsPrecisionBTR(
         // 🦾 Pre-calculate Global Lifecycle Shifts
         const globalLifecycle: any[] = [];
         try {
-            const birthDate = new Date(input.dateOfBirth);
-            const startYear = birthDate.getFullYear();
+            const birthDate = convertToUTC(input.dateOfBirth, input.tentativeTime, input.timezone);
+            const startYear = birthDate.getUTCFullYear();
             const endYear = new Date().getFullYear();
             let lastSaturnSign = '';
             let lastJupiterSign = '';
@@ -232,8 +232,8 @@ export async function processSecondsPrecisionBTR(
         // BUILD FINAL RESULT
         // ═══════════════════════════════════════════════════════════════════════
         const finalEphemeris = await calculateEphemeris(
-            input.dateOfBirth,
-            stage6.finalTime,
+            stage6.finalCandidate.candidateDate || input.dateOfBirth,
+            stage6.finalCandidate.time,
             input.latitude,
             input.longitude,
             input.timezone
@@ -252,7 +252,8 @@ export async function processSecondsPrecisionBTR(
         const winnerPkg = await buildCandidateDataPackage(stage6.finalTime, 0, input, {
             includeFullData: true,
             dashaDepth: 5,
-            pranaWindowDays: 7
+            pranaWindowDays: 7,
+            candidate: stage6.finalCandidate,
         });
 
         const enrichedResult = {

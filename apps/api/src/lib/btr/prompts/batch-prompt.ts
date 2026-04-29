@@ -16,6 +16,7 @@ import { randomSort } from '../../utils/index.js';
 import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';
 import { logger } from '../../logger.js';
 import { formatCandidateVSL, EnhancedCandidate } from './vsl-formatter.js';
+import { buildDuplicateTimeSet, getCandidateReference } from '../candidate-reference.js';
 
 /**
  * Get event importance summary for AI
@@ -51,7 +52,8 @@ function getEventImportanceSummary(events: LifeEvent[]): string {
  * @param batchNumber - Current batch number
  * @param totalBatches - Total number of batches
  * @param survivorsNeeded - Number of survivors to select
- * @param tentativeTime - Optional tentative time for blind evaluation
+ * @param spouseData - Optional spouse data for synastry analysis
+ * @param offsetMinutes - Window offset for determining sweep protocol
  * @returns Complete AI prompt string
  */
 export function getBatchPrompt(
@@ -88,6 +90,7 @@ export function getBatchPrompt(
 
   // Anti-bias: Shuffle candidate order in every batch to prevent positional bias
   const shuffledCandidates = randomSort(candidates);
+  const duplicateTimes = buildDuplicateTimeSet(shuffledCandidates);
 
   return `BIRTH TIME RECTIFICATION - STAGE 2 (Batch ${batchNumber}/${totalBatches})
 
@@ -98,17 +101,18 @@ export function getBatchPrompt(
 YOU HAVE FULL FREEDOM TO ADJUST WEIGHTS! Here are REFERENCE weights - you MAY change them:
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  METHOD          │ REFERENCE │  PRECISION    │ WHEN TO INCREASE           │
-│                  │  WEIGHT   │               │                            │
-├──────────────────┼───────────┼───────────────┼────────────────────────────┤
-│  D150 Nadi       │   2.0     │  48 seconds   │ Critical events, good data │
-│  KP Sub-Lord     │   2.0     │  seconds      │ Marriage, career events    │
-│  Vimshottari     │   1.8     │  hours        │ All timing, strong match   │
-│  Varga (D60)     │   1.7     │  2 minutes    │ Karma events, D60 clear    │
-│  Transit         │   1.5     │  days         │ Double transit confirmed   │
-│  Kalachakra      │   1.2     │  days         │ Cross-verification         │
-│  Shadbala        │   1.0     │  N/A          │ Weak/strong planets        │
-│  AI Judgment     │   0.5     │  N/A          │ Pattern recognition        │
+│  METHOD              │ REFERENCE │  PRECISION    │ WHEN TO INCREASE        │
+│                      │  WEIGHT   │               │                         │
+├──────────────────────┼───────────┼───────────────┼─────────────────────────┤
+│  Vimshottari         │   2.2     │  hours        │ PRIMARY timing method   │
+│  KP Sub-Lord         │   2.0     │  seconds      │ Marriage, career        │
+│  D150 (Nadi)         │   2.0     │  ~10 minutes  │ Meso-precision        │
+│  D9 (Navamsa)        │   1.8     │  ~4 minutes   │ Marriage/Spouse       │
+│  D10 (Dasamsa)       │   1.7     │  ~4 minutes   │ Career events         │
+│  Transit             │   1.2     │  days         │ Confirmation          │
+│  Kalachakra          │   1.2     │  days         │ Cross-verification    │
+│  Shadbala            │   0.5     │  N/A          │ Strength context      │
+│  AI Judgment         │   0.3     │  N/A          │ Pattern recognition   │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 WEIGHT ADJUSTMENT RULES:
@@ -235,7 +239,7 @@ ${spouseText}
 CANDIDATES WITH ENRICHED VEDIC DATA (VSL 4.0 Protocol):
 ${shuffledCandidates.map(c => `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CANDIDATE: ${c.time}
+CANDIDATE: ${getCandidateReference(c, duplicateTimes)}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${formatCandidateVSL(c as EnhancedCandidate)}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

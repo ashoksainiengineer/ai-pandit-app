@@ -12,14 +12,14 @@ describe('God-Tier BTR - Orchestrator Modules', () => {
                     id: 'evt_1',
                     category: 'travel', // Usually minor impact
                     description: 'Moved to a new country',
-                    datePrecision: 'exact',
+                    datePrecision: 'exact_date',
                     confidence: { source: 'document' },
                     // the front-end might inject user importance as a generic prop
                     importance: 'critical'
                 } as any
             ];
 
-            const scored = EventScorer.scoreEvents(events, { defaultSource: 'document', defaultPrecision: 'exact' });
+            const scored = EventScorer.scoreEvents(events, { defaultSource: 'document', defaultPrecision: 'exact_date' });
 
             expect(scored.length).toBe(1);
             // Critical importance carries a 5.0 base weight. 
@@ -33,7 +33,7 @@ describe('God-Tier BTR - Orchestrator Modules', () => {
                 {
                     id: 'evt_2',
                     category: 'marriage', // Usually critical impact
-                    datePrecision: 'approximate', // Penalizes score
+                    datePrecision: 'year_range', // Penalizes score
                     confidence: { source: 'memory' } // Penalizes score
                 } as any
             ];
@@ -49,8 +49,8 @@ describe('God-Tier BTR - Orchestrator Modules', () => {
 
         it('should correctly generate recommendations and summary metrics', () => {
             const events: Partial<BtrEvent>[] = [
-                { id: '1', category: 'marriage', datePrecision: 'approximate', confidence: { source: 'memory' } } as any,
-                { id: '2', category: 'career', datePrecision: 'approximate', confidence: { source: 'memory' } } as any
+                { id: '1', category: 'marriage', datePrecision: 'year_range', confidence: { source: 'memory' } } as any,
+                { id: '2', category: 'career', datePrecision: 'year_range', confidence: { source: 'memory' } } as any
             ];
 
             const scored = EventScorer.scoreEvents(events);
@@ -74,7 +74,7 @@ describe('God-Tier BTR - Orchestrator Modules', () => {
                 } as any
             ];
 
-            const scored = EventScorer.scoreEvents(events, { defaultSource: 'document', defaultPrecision: 'year' as any });
+            const scored = EventScorer.scoreEvents(events, { defaultSource: 'document', defaultPrecision: 'year_range' });
             expect(scored[0].eventDate).toBeInstanceOf(Date);
             expect((scored[0].eventDate as Date).toISOString().slice(0, 10)).toBe('2000-01-01');
         });

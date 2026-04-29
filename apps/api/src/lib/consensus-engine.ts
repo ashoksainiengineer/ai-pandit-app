@@ -271,7 +271,7 @@ function validateVimshottari(input: ValidationInput): ValidationDetail {
     }
   }
 
-  score = totalWeight > 0 ? (matchCount / totalWeight) * 100 : 50;
+  score = totalWeight > 0 ? (matchCount / totalWeight) * 100 : 0;
   score = Math.min(100, Math.max(0, score));
 
   return {
@@ -290,7 +290,7 @@ function validateYogini(input: ValidationInput): ValidationDetail {
   if (!candidate.dasha?.yogini || !Array.isArray(candidate.dasha.yogini)) {
     return {
       method: 'Yogini Dasha',
-      score: 50,
+        score: 0,
       maxScore: 100,
       status: 'warning',
       details: 'Yogini dasha data unavailable - using default',
@@ -331,7 +331,7 @@ function validateYogini(input: ValidationInput): ValidationDetail {
     }
   }
 
-  const score = totalWeight > 0 ? Math.min(100, (matchCount / totalWeight) * 100 + 30) : 50;
+  const score = totalWeight > 0 ? Math.min(100, (matchCount / totalWeight) * 100 + 30) : 0;
 
   return {
     method: 'Yogini Dasha',
@@ -349,7 +349,7 @@ function validateChara(input: ValidationInput): ValidationDetail {
   if (!candidate.dasha?.chara) {
     return {
       method: 'Chara Dasha',
-      score: 50,
+        score: 0,
       maxScore: 100,
       status: 'warning',
       details: 'Chara dasha data unavailable',
@@ -383,7 +383,7 @@ function validateKalachakra(input: ValidationInput): ValidationDetail {
   if (!moonLong) {
     return {
       method: 'Kalachakra Dasha',
-      score: 50,
+        score: 0,
       maxScore: 100,
       status: 'warning',
       details: 'Moon position unavailable for Kalachakra',
@@ -457,7 +457,7 @@ function validateKP(input: ValidationInput): ValidationDetail {
     }
   }
 
-  score = events.length > 0 ? (matches / events.length) * 100 : 50;
+  score = events.length > 0 ? (matches / events.length) * 100 : 0;
 
   return {
     method: 'KP Sub-Lords',
@@ -475,7 +475,7 @@ function validateAshtakavarga(input: ValidationInput): ValidationDetail {
   if (!candidate.ephemeris?.ashtakavarga) {
     return {
       method: 'Ashtakavarga',
-      score: 50,
+        score: 0,
       maxScore: 100,
       status: 'warning',
       details: 'Ashtakavarga data unavailable',
@@ -630,7 +630,7 @@ function validateForensic(input: ValidationInput): ValidationDetail {
   if (!forensicProfile || !candidate.ephemeris) {
     return {
       method: 'Forensic Correlation',
-      score: 50,
+        score: 0,
       maxScore: 100,
       status: 'warning',
       details: 'Forensic data incomplete',

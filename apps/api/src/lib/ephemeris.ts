@@ -46,10 +46,31 @@ let activeExecutionMode: EphemerisExecutionMode = getEphemerisConfig().provider;
 interface CacheEntry {
   data: EphemerisData;
   timestamp: number;
+  sessionId?: string;
 }
 const EPH_CACHE = new Map<string, CacheEntry>();
+const SESSION_CACHES = new Map<string, Set<string>>();
 const MAX_CACHE_SIZE = 300;
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours (ephemeris data is immutable)
+const MAX_CACHE_SIZE_PER_SESSION = 100;
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+export function clearSessionCache(sessionId: string): void {
+  const keys = SESSION_CACHES.get(sessionId);
+  if (keys) {
+    for (const key of keys) {
+      EPH_CACHE.delete(key);
+    }
+    SESSION_CACHES.delete(sessionId);
+    logger.debug('[EPHEMERIS] Cleared session cache', { sessionId, entriesRemoved: keys.size });
+  }
+}
+
+export function getCacheStats(): { totalEntries: number; sessionCount: number; memoryEstimateMB: number } {
+  const totalEntries = EPH_CACHE.size;
+  const sessionCount = SESSION_CACHES.size;
+  const memoryEstimateMB = Math.round((totalEntries * 2 * 1024) / (1024 * 1024) * 100) / 100;
+  return { totalEntries, sessionCount, memoryEstimateMB };
+}
 
 function getConfiguredProvider(): EphemerisProviderName {
   return getEphemerisConfig().provider;
@@ -134,12 +155,35 @@ export function getEphemerisMode(): EphemerisExecutionMode {
   return getCurrentExecutionMode();
 }
 
-function cacheResult(cacheKey: string, data: EphemerisData): void {
+function cacheResult(cacheKey: string, data: EphemerisData, sessionId?: string): void {
+  if (sessionId) {
+    const sessionKeys = SESSION_CACHES.get(sessionId) ?? new Set<string>();
+    if (sessionKeys.size >= MAX_CACHE_SIZE_PER_SESSION) {
+      const keysArray = Array.from(sessionKeys);
+      const keysToRemove = keysArray.slice(0, Math.floor(keysArray.length * 0.2));
+      for (const key of keysToRemove) {
+        sessionKeys.delete(key);
+        EPH_CACHE.delete(key);
+      }
+    }
+    sessionKeys.add(cacheKey);
+    SESSION_CACHES.set(sessionId, sessionKeys);
+  }
+
   if (EPH_CACHE.size >= MAX_CACHE_SIZE) {
     const firstKey = EPH_CACHE.keys().next().value;
-    if (firstKey !== undefined) EPH_CACHE.delete(firstKey);
+    if (firstKey !== undefined) {
+      EPH_CACHE.delete(firstKey);
+      for (const [sid, keys] of SESSION_CACHES) {
+        if (keys.has(firstKey)) {
+          keys.delete(firstKey);
+          if (keys.size === 0) SESSION_CACHES.delete(sid);
+          break;
+        }
+      }
+    }
   }
-  EPH_CACHE.set(cacheKey, { data, timestamp: Date.now() });
+  EPH_CACHE.set(cacheKey, { data, timestamp: Date.now(), sessionId });
 }
 
 function buildWholeSignHouses(ascendantLongitude: number): HousePosition[] {
@@ -306,7 +350,7 @@ function calculateEphemerisWithAlgorithmic(input: {
   const jd = calculateJulianDay(utcDate);
   const planets: Record<string, PlanetPosition> = {};
 
-  logger.warn('[EPHEMERIS] Using algorithmic ephemeris mode (~0.1° accuracy)');
+  logger.info('[EPHEMERIS] Using algorithmic ephemeris mode (~0.1° accuracy)');
 
   const sunLng = calcSun(jd);
   const moonLng = calcMoon(jd);
@@ -744,30 +788,33 @@ function calcAscendant(jd: number, lat: number, lon: number): number {
 // All calculations done sequentially, results discarded after use
 // ═══════════════════════════════════════════════════════════════════════════
 
+export interface CalculateEphemerisOptions {
+  sessionId?: string;
+}
+
 export async function calculateEphemeris(
   birthDate: string,
   birthTime: string,
   latitude: number,
   longitude: number,
-  timezone: number | string
+  timezone: number | string,
+  options?: CalculateEphemerisOptions
 ): Promise<EphemerisData> {
   assertConfiguredProviderImplemented();
   const strictMode = getEphemerisConfig().strictMode;
   const provider = getConfiguredProvider();
+  const sessionId = options?.sessionId;
 
-  // FIXED: More precise cache key including timezone
-  const cacheKey = `${birthDate}_${birthTime}_${latitude.toFixed(6)}_${longitude.toFixed(6)}_${typeof timezone === 'string' ? timezone : timezone.toFixed(2)}`;
+  const cacheKey = `${birthDate}_${birthTime}_${latitude.toFixed(6)}_${longitude.toFixed(6)}_${typeof timezone === 'string' ? timezone : timezone.toFixed(2)}${sessionId ? `_${sessionId}` : ''}`;
 
-  // Check cache with TTL
   const cached = EPH_CACHE.get(cacheKey);
   if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
     return cached.data;
   }
   if (cached) {
-    EPH_CACHE.delete(cacheKey); // Remove expired entry
+    EPH_CACHE.delete(cacheKey);
   }
 
-  // Validate
   if (!isValidIsoDate(birthDate)) {
     const message = `Invalid birthDate: "${birthDate}". Expected calendar date format YYYY-MM-DD.`;
     if (strictMode) throw new ValidationError(message, { birthDate });
@@ -794,8 +841,6 @@ export async function calculateEphemeris(
     });
   }
 
-  // Pass the original timezone input so IANA zones (e.g. "Asia/Kolkata")
-  // are resolved correctly by convertToUTC/getTzOffset.
   const utcDate = convertToUTC(birthDate, birthTime, timezone);
   if (Number.isNaN(utcDate.getTime())) {
     const message = `Invalid datetime combination: date="${birthDate}", time="${birthTime}", timezone="${timezone}".`;
@@ -811,7 +856,7 @@ export async function calculateEphemeris(
     { birthDate, birthTime, latitude, longitude, timezone },
     provider
   );
-  cacheResult(cacheKey, result);
+  cacheResult(cacheKey, result, sessionId);
   return result;
 }
 /**

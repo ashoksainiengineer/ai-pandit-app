@@ -8,7 +8,7 @@
  */
 
 import { SecondsPrecisionInput, ForensicTraits } from '@ai-pandit/shared';
-import { CandidateTime, getDynamicBatchSize, getDynamicSurvivors, splitIntoBatches } from '../../time-offset-manager.js';
+import { CandidateTime, getCandidateIdentity, getDynamicBatchSize, getDynamicSurvivors, sortCandidatesByMerit, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { callAIWithStream, executeAIInParallel } from '../../ai-client.js';
 import { _emitCandidateScore, emitAIContext, emitDecision } from '../../session-events.js';
@@ -21,6 +21,8 @@ import { CandidateDataPackage, StageResult, TournamentRound } from '@ai-pandit/s
 import { logger } from '../../logger.js';
 import { config } from '../../../config/index.js';
 import { getMinifiedEphemerisInline, getFullEphemerisPayload } from './_utils.js';
+import { buildCandidateReferenceMap } from '../candidate-reference.js';
+import { btrDataCapture } from '../data-capture.js';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 type LifecycleShift = NonNullable<CandidateDataPackage['lifecycleShifts']>[number];
@@ -96,7 +98,8 @@ export async function stage2BatchTournament(
                 buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
                     includeFullData: true,
                     dashaDepth: 4, // Upgraded to Sukshma for precision pruning
-                    lifecycleShifts: globalLifecycle
+                    lifecycleShifts: globalLifecycle,
+                    candidate: ct,
                 })
             ));
             batchDataMap.set(i, batchEnriched);
@@ -114,46 +117,122 @@ export async function stage2BatchTournament(
                 hasForensicTraits: !!forensicTraits
             });
 
+            const systemPrompt = 'You are the SUPREME VEDIC ASTROLOGER. Analyze candidate birth times for primary alignment using forensic markers.';
+            const userPrompt = getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch, input.spouseData, offsetMinutes);
+            
+            // Save batch metadata
+            btrDataCapture.saveBatchMetadata(
+                input.sessionId,
+                2,
+                roundNumber,
+                i + 1,
+                batchTimes.map(c => c.time),
+                survivorsPerBatch
+            );
+            
+            // Save ephemeris data for each candidate in batch
+            for (const candidate of batchEnriched) {
+                btrDataCapture.saveEphemeris(
+                    input.sessionId,
+                    2,
+                    candidate.time,
+                    {
+                        planets: candidate.planets,
+                        houses: candidate.houseLords,
+                        lagna: candidate.ascendant,
+                        vimshottariDasha: candidate.vimshottariDasha,
+                        vargas: candidate.vargaDegrees,
+                        transits: candidate.transitData
+                    },
+                    roundNumber,
+                    i + 1
+                );
+                
+                // Save prompt
+                btrDataCapture.savePrompt(
+                    input.sessionId,
+                    2,
+                    candidate.time,
+                    systemPrompt,
+                    userPrompt,
+                    {
+                        candidateCount: batchEnriched.length,
+                        eventCount: input.lifeEvents.length,
+                        forensicTraitsPresent: !!forensicTraits,
+                        spouseDataPresent: !!input.spouseData
+                    },
+                    roundNumber,
+                    i + 1
+                );
+            }
+            
             const response = await callAIWithStream(
                 input.sessionId,
                 2,
-                'You are the SUPREME VEDIC ASTROLOGER. Analyze candidate birth times for primary alignment using forensic markers.',
-                getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch, input.spouseData, offsetMinutes),
+                systemPrompt,
+                userPrompt,
                 {
                     candidateTime: `R${roundNumber}-B${i + 1}`,
                     progressTracker: progress,
-                    maxTokens: config.ai.stage2MaxTokens, // Driven by AI_STAGE2_MAX_TOKENS
+                    maxTokens: config.ai.stage2MaxTokens,
                     model: config.ai.model,
                 }
             );
-
+            
             completedBatches++;
             await progress.updateSubProgress(completedBatches, batches.length);
 
             // PROCESS BATCH IMMEDIATELY AND EMIT SCORES
             const batchSurvivors: CandidateTime[] = [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
-            const aiScores = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), Math.min(batchTimes.length, survivorsPerBatch));
+            const referenceMap = buildCandidateReferenceMap(batchTimes);
+            const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], Math.min(batchTimes.length, survivorsPerBatch));
+
+            // Save AI responses after parsing
+            if (response.success) {
+                for (const candidate of batchEnriched) {
+                    const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === getCandidateIdentity(candidate));
+                    btrDataCapture.saveAIResponse(
+                        input.sessionId,
+                        2,
+                        candidate.time,
+                        response.thinking || '',
+                        response.content || '',
+                        {
+                            score: scoreObj?.score,
+                            verdict: scoreObj?.time,
+                            tokensUsed: { prompt: 0, completion: 0, total: 0 },
+                            duration: 0,
+                            model: config.ai.model
+                        },
+                        roundNumber,
+                        i + 1
+                    );
+                }
+            }
 
             // 🔱 RESILIENT FALLBACK: If AI fails or returns empty, preserve the first N candidates
             let survivorTimes: string[] = [];
             if (!response.success || aiScores.length === 0) {
                 logger.warn(`🔱 [STAGE-2] Batch ${i + 1} AI verdict failed. FALLBACK: Preserving top candidates.`);
-                survivorTimes = batchTimes.slice(0, survivorsPerBatch).map(c => c.time);
+                survivorTimes = sortCandidatesByMerit(batchTimes)
+                    .slice(0, survivorsPerBatch)
+                    .map(c => getCandidateIdentity(c));
             } else {
                 survivorTimes = aiScores
                     .sort((a, b) => b.score - a.score)
                     .slice(0, Math.min(batchTimes.length, survivorsPerBatch))
-                    .map(s => s.time);
+                    .map(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }));
             }
 
             for (let j = 0; j < batchEnriched.length; j++) {
                 const candidate = batchEnriched[j];
                 const originalTimeInfo = batchTimes[j];
-                const isSurvivor = survivorTimes.includes(candidate.time);
+                const candidateId = getCandidateIdentity(originalTimeInfo);
+                const isSurvivor = survivorTimes.includes(candidateId);
 
                 // If AI failed, use fallback scores
-                const scoreObj = aiScores.find(s => s.time === candidate.time);
+                const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === candidateId);
                 const score = scoreObj ? scoreObj.score : (isSurvivor ? config.btr.fallbackPromotedScore : config.btr.fallbackRejectedScore);
                 const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Meets primary alignment criteria (Fallback)" : "Low forensic match score");
 
@@ -199,7 +278,7 @@ export async function stage2BatchTournament(
         const additionalSurvivors: CandidateTime[] = [];
         for (const s of nextCandidates) {
             const nearby = currentCandidates.filter(c =>
-                !nextCandidates.some(nc => nc.time === c.time) &&
+                !nextCandidates.some(nc => getCandidateIdentity(nc) === getCandidateIdentity(c)) &&
                 Math.abs(c.offsetMinutes - s.offsetMinutes) <= clusterThreshold
             );
             // Only add the BEST nearby candidate to avoid bloat
@@ -232,11 +311,11 @@ export async function stage2BatchTournament(
 
         // 🔱 PROTECTION: Boundary Locks and Tentative always survive Round 1
         const protectedCandidates = currentCandidates.filter(c =>
-            c.time === input.tentativeTime ||
+            (c.time === input.tentativeTime && (c.dayOffset ?? 0) === 0) ||
             c.offsetDescription.includes('Boundary')
         );
         for (const p of protectedCandidates) {
-            if (!nextCandidates.some(nc => nc.time === p.time)) {
+            if (!nextCandidates.some(nc => getCandidateIdentity(nc) === getCandidateIdentity(p))) {
                 nextCandidates.push(p);
             }
         }
@@ -262,7 +341,8 @@ export async function stage2BatchTournament(
                 buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
                     includeFullData: true,
                     dashaDepth: 4, // Upgraded to Sukshma for precision pruning
-                    lifecycleShifts: globalLifecycle
+                    lifecycleShifts: globalLifecycle,
+                    candidate: ct,
                 })
             ));
             batchDataMap.set(i, batchEnriched);
@@ -277,21 +357,97 @@ export async function stage2BatchTournament(
                 }))
             });
 
+            const systemPrompt = 'You are the SUPREME VEDIC ASTROLOGER. Tournament analysis: prune based on forensic alignment.';
+            const userPrompt = getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch, input.spouseData, offsetMinutes);
+            
+            // Save batch metadata
+            btrDataCapture.saveBatchMetadata(
+                input.sessionId,
+                2,
+                roundNumber,
+                i + 1,
+                batchTimes.map(c => c.time),
+                survivorsPerBatch
+            );
+            
+                // Save ephemeris and prompts for each candidate
+            for (const candidate of batchEnriched) {
+                btrDataCapture.saveEphemeris(
+                    input.sessionId,
+                    2,
+                    candidate.time,
+                    {
+                        planets: candidate.planets,
+                        houses: candidate.houseLords,
+                        lagna: candidate.ascendant,
+                        vimshottariDasha: candidate.vimshottariDasha,
+                        vargas: candidate.vargaDegrees,
+                        transits: candidate.transitData
+                    },
+                    roundNumber,
+                    i + 1
+                );
+                
+                btrDataCapture.savePrompt(
+                    input.sessionId,
+                    2,
+                    candidate.time,
+                    systemPrompt,
+                    userPrompt,
+                    {
+                        candidateCount: batchEnriched.length,
+                        eventCount: input.lifeEvents.length,
+                        forensicTraitsPresent: !!forensicTraits,
+                        spouseDataPresent: !!input.spouseData
+                    },
+                    roundNumber,
+                    i + 1
+                );
+            }
+            
             const response = await callAIWithStream(
                 input.sessionId,
                 2,
-                'You are the SUPREME VEDIC ASTROLOGER. Tournament analysis: prune based on forensic alignment.',
-                getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch, input.spouseData, offsetMinutes),
+                systemPrompt,
+                userPrompt,
                 {
                     candidateTime: `R${roundNumber}-B${i + 1}`,
                     progressTracker: progress,
-                    maxTokens: config.ai.stage2MaxTokens, // Driven by AI_STAGE2_MAX_TOKENS
+                    maxTokens: config.ai.stage2MaxTokens,
                     model: config.ai.model,
                 }
             );
-
+            
             completedBatches++;
             await progress.updateSubProgress(completedBatches, batches.length);
+
+            // Parse AI response first
+            const aiContent = response.success ? (response.content || response.thinking || '') : '';
+            const responseRefMap = buildCandidateReferenceMap(batchTimes);
+            const responseAiScores = extractBatchSurvivors(aiContent, [...responseRefMap.keys()], survivorsPerBatch);
+            
+            // Save AI responses after parsing
+            if (response.success) {
+                for (const candidate of batchEnriched) {
+                    const scoreObj = responseAiScores.find(s => getCandidateIdentity(responseRefMap.get(s.time) || { time: s.time }) === getCandidateIdentity(candidate));
+                    btrDataCapture.saveAIResponse(
+                        input.sessionId,
+                        2,
+                        candidate.time,
+                        response.thinking || '',
+                        response.content || '',
+                        {
+                            score: scoreObj?.score,
+                            verdict: scoreObj?.time,
+                            tokensUsed: { prompt: 0, completion: 0, total: 0 },
+                            duration: 0,
+                            model: config.ai.model
+                        },
+                        roundNumber,
+                        i + 1
+                    );
+                }
+            }
 
             return response;
         });
@@ -303,27 +459,31 @@ export async function stage2BatchTournament(
             const response = results[i];
             const fullBatchData = batchDataMap.get(i) || [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
-            const aiScores = extractBatchSurvivors(aiContent, batchTimes.map(c => c.time), survivorsPerBatch);
+            const referenceMap = buildCandidateReferenceMap(batchTimes);
+            const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], survivorsPerBatch);
 
             // 🔱 RESILIENT FALLBACK: If AI fails or returns empty, preserve the first N candidates
             let survivorTimes: string[] = [];
             if (!response.success || aiScores.length === 0) {
                 logger.warn(`🔱 [STAGE-2] Tournament batch ${i + 1} verdict failed. FALLBACK: Preserving top candidates.`);
-                survivorTimes = batchTimes.slice(0, survivorsPerBatch).map(c => c.time);
+                survivorTimes = sortCandidatesByMerit(batchTimes)
+                    .slice(0, survivorsPerBatch)
+                    .map(c => getCandidateIdentity(c));
             } else {
                 survivorTimes = aiScores
                     .sort((a, b) => b.score - a.score)
                     .slice(0, survivorsPerBatch)
-                    .map(s => s.time);
+                    .map(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }));
             }
 
             for (let j = 0; j < fullBatchData.length; j++) {
                 const candidate = fullBatchData[j];
                 const originalTimeInfo = batchTimes[j];
-                const isSurvivor = survivorTimes.includes(candidate.time);
+                const candidateId = getCandidateIdentity(originalTimeInfo);
+                const isSurvivor = survivorTimes.includes(candidateId);
 
                 // If AI failed, use fallback scores
-                const scoreObj = aiScores.find(s => s.time === candidate.time);
+                const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === candidateId);
                 const score = scoreObj ? scoreObj.score : (isSurvivor ? config.btr.fallbackPromotedScore + 3 : config.btr.fallbackRejectedScore - 10);
                 const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Superior alignment in tournament round (Fallback)" : "Eliminated in batch tournament");
 
@@ -370,19 +530,19 @@ export async function stage2BatchTournament(
 
     if (currentCandidates.length > batchSize) {
         logger.warn(`🔱 [STAGE-2] Truncating remaining ${currentCandidates.length} candidates down to ${batchSize} after hitting max rounds.`);
-        currentCandidates = currentCandidates.slice(0, batchSize);
+        currentCandidates = sortCandidatesByMerit(currentCandidates).slice(0, batchSize);
     }
 
     // GOD-TIER SAFETY: Ensure tentative time and safety net always survive
     const tentativeTime = input.tentativeTime;
-    const hasTentative = currentCandidates.some(c => c.time === tentativeTime);
+        const hasTentative = currentCandidates.some(c => c.time === tentativeTime && (c.dayOffset ?? 0) === 0);
     const hasSafetyNet = currentCandidates.some(c => c.offsetDescription.includes('Safety Net'));
 
     if (!hasTentative || !hasSafetyNet) {
         logger.warn('🔱 Safety Net: Adding missing tentative/safety net candidates back to survivors');
 
         if (!hasTentative) {
-            const tentativeCandidate = candidates.find(c => c.time === tentativeTime);
+            const tentativeCandidate = candidates.find(c => c.time === tentativeTime && (c.dayOffset ?? 0) === 0);
             if (tentativeCandidate) {
                 currentCandidates.push(tentativeCandidate);
                 logger.info('🔱 Safety Net: Restored tentative time', { tentativeTime });
@@ -391,7 +551,7 @@ export async function stage2BatchTournament(
 
         const missingSafetyNet = candidates
             .filter(c => c.offsetDescription.includes('Safety Net'))
-            .filter(c => !currentCandidates.some(survivor => survivor.time === c.time))
+            .filter(c => !currentCandidates.some(survivor => getCandidateIdentity(survivor) === getCandidateIdentity(c)))
             .slice(0, 3);
 
         if (missingSafetyNet.length > 0) {
@@ -406,7 +566,7 @@ export async function stage2BatchTournament(
     // Ensure we don't return an empty set
     if (currentCandidates.length === 0 && candidates.length > 0) {
         logger.warn('Tournament failed to yield survivors, using top candidates from original set');
-        currentCandidates = candidates.slice(0, 10);
+        currentCandidates = sortCandidatesByMerit(candidates).slice(0, 10);
     }
 
     await progress.completeStep('coarse', [

@@ -104,6 +104,32 @@ describe('Time Offset Manager (BTR Candidate Generation)', () => {
             expect(latest.time).toBe('00:15:00');
             expect(latest.offsetDescription).toContain('Next day');
         });
+
+        it('should keep cross-midnight candidates bound to numeric offset identity, not wall-clock time text', () => {
+            const aroundStartOfDay = generateCandidateTimes('00:01:00', { customMinutes: 2, description: 'test' });
+
+            expect(aroundStartOfDay[0].offsetMinutes).toBe(-2);
+            expect(aroundStartOfDay[0].time).toBe('23:59:00');
+            expect(aroundStartOfDay[0].offsetDescription).toContain('Previous day');
+            expect(aroundStartOfDay.at(-1)?.offsetMinutes).toBe(2);
+            expect(aroundStartOfDay.at(-1)?.time).toBe('00:03:00');
+
+            const negativeOne = aroundStartOfDay.find(c => c.offsetMinutes === -1);
+            const zero = aroundStartOfDay.find(c => c.offsetMinutes === 0);
+            const positiveOne = aroundStartOfDay.find(c => c.offsetMinutes === 1);
+            expect(negativeOne?.time).toBe('00:00:00');
+            expect(zero?.time).toBe('00:01:00');
+            expect(positiveOne?.time).toBe('00:02:00');
+            expect(positiveOne?.offsetDescription).not.toContain('Previous day');
+
+            const aroundEndOfDay = generateCandidateTimes('23:59:00', { customMinutes: 2, description: 'test' });
+            const minusTwo = aroundEndOfDay.find(c => c.offsetMinutes === -2);
+            const plusTwo = aroundEndOfDay.find(c => c.offsetMinutes === 2);
+            expect(minusTwo?.time).toBe('23:57:00');
+            expect(plusTwo?.time).toBe('00:01:00');
+            expect(plusTwo?.offsetDescription).toContain('Next day');
+            expect(minusTwo?.offsetDescription).not.toContain('Next day');
+        });
     });
 
     describe('splitIntoBatches', () => {
@@ -153,6 +179,31 @@ describe('Time Offset Manager (BTR Candidate Generation)', () => {
             expect(grid.length).toBe(9);
             expect(grid[0].offsetMinutes).toBe(-1); // -60s
             expect(grid[grid.length - 1].offsetMinutes).toBe(1); // +60s
+        });
+
+        it('should preserve sequential offset semantics when refinement wraps across midnight', () => {
+            const grid = generateRefinementGrid('00:00:10', 1, 20);
+
+            expect(grid.map(c => c.offsetMinutes)).toEqual([
+                -1,
+                -2 / 3,
+                -1 / 3,
+                0,
+                1 / 3,
+                2 / 3,
+                1,
+            ]);
+            expect(grid.map(c => c.time)).toEqual([
+                '23:59:10',
+                '23:59:30',
+                '23:59:50',
+                '00:00:10',
+                '00:00:30',
+                '00:00:50',
+                '00:01:10',
+            ]);
+            expect(grid[0].offsetDescription).toBe('-60s (Previous day)');
+            expect(grid[grid.length - 1].offsetDescription).toBe('+60s');
         });
     });
 

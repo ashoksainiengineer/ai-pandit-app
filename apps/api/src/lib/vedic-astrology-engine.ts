@@ -229,11 +229,35 @@ function calculateSubDashas(
 /**
  * Get Dasha active on a specific date (5 levels deep)
  * PATCHED: Replaced placeholder new Date() with null for data integrity.
+ * FIX: Handle dates before first period (return birth dasha with null sub-periods).
  */
 export function getDashaForDate(
     periods: DashaPeriod[],
     eventDate: Date
 ): DashaAtDate | null {
+    // Handle edge case: date is before the first Mahadasha period
+    // This can happen for birth events when eventDate is midnight but birth time is later in the day
+    if (periods.length > 0 && eventDate < periods[0].startDate) {
+        const firstMaha = periods[0];
+        return {
+            mahadasha: firstMaha.lord,
+            antardasha: 'Unknown',
+            pratyantardasha: 'Unknown',
+            sukshmadasha: 'Unknown',
+            pranadasha: 'Unknown',
+            mahadashaStart: firstMaha.startDate,
+            mahadashaEnd: firstMaha.endDate,
+            antardashaStart: null,
+            antardashaEnd: null,
+            pratyantarStart: null,
+            pratyantarEnd: null,
+            sukshmaStart: null,
+            sukshmaEnd: null,
+            pranaStart: null,
+            pranaEnd: null
+        };
+    }
+
     for (const maha of periods) {
         if (eventDate >= maha.startDate && eventDate <= maha.endDate) {
             for (const antar of maha.subPeriods) {

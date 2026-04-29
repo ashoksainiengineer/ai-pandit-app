@@ -16,6 +16,7 @@ import { randomSort } from '../../utils/index.js';
 import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';
 import { logger } from '../../logger.js';
 import { formatCandidateVSL, EnhancedCandidate } from './vsl-formatter.js';
+import { buildDuplicateTimeSet, getCandidateReference } from '../candidate-reference.js';
 
 /**
  * Get event importance summary for AI
@@ -41,6 +42,13 @@ function getEventImportanceSummary(events: LifeEvent[]): string {
   }
   return summary;
 }
+
+type PresentTransitLock = {
+  dashaAtNow?: string;
+  jupiter?: string;
+  saturn?: string;
+  rahu?: string;
+};
 
 /**
  * Generates final precision prompt for Stage 6
@@ -83,20 +91,21 @@ export function getFinalPrecisionPrompt(
 
   // Anti-bias: Final shuffling
   const shuffledCandidates = randomSort(candidates);
+  const duplicateTimes = buildDuplicateTimeSet(shuffledCandidates);
 
-  const transitData = currentTransits as {
-    dashaAtNow?: string;
-    jupiter?: string;
-    saturn?: string;
-    rahu?: string;
-  } | undefined;
-  const presentTransitSection = transitData
-    ? `PRESENT-DAY TRANSIT LOCK:
+  const transitData = currentTransits as PresentTransitLock | Record<string, PresentTransitLock> | undefined;
+  const presentTransitSection = !transitData
+    ? 'PRESENT-DAY TRANSIT LOCK: N/A'
+    : isPerCandidateTransitLockMap(transitData)
+      ? `PRESENT-DAY TRANSIT LOCKS BY CANDIDATE:
+${Object.entries(transitData).map(([time, lock]) =>
+  `- ${time}: Dasha@Now=${lock.dashaAtNow || 'Unknown'} | Jupiter=${lock.jupiter || 'Unknown'} | Saturn=${lock.saturn || 'Unknown'} | Rahu=${lock.rahu || 'Unknown'}`
+).join('\n')}`
+      : `PRESENT-DAY TRANSIT LOCK:
 - Dasha@Now: ${transitData.dashaAtNow || 'Unknown'}
 - Jupiter: ${transitData.jupiter || 'Unknown'}
 - Saturn: ${transitData.saturn || 'Unknown'}
-- Rahu: ${transitData.rahu || 'Unknown'}`
-    : 'PRESENT-DAY TRANSIT LOCK: N/A';
+- Rahu: ${transitData.rahu || 'Unknown'}`;
 
   return `BIRTH TIME RECTIFICATION - FINAL STAGE (Seconds Precision)
 
@@ -107,22 +116,25 @@ export function getFinalPrecisionPrompt(
 YOU HAVE FULL FREEDOM TO ADJUST WEIGHTS! This is the FINAL judgment - be precise:
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  METHOD          │ REFERENCE │  PRECISION    │ FINAL STAGE FOCUS          │
-│                  │  WEIGHT   │               │                            │
-├──────────────────┼───────────┼───────────────┼────────────────────────────┤
-│  D150 Nadi       │   2.5     │  48 seconds   │ CRITICAL for seconds!      │
-│  KP Sub-Lord     │   2.3     │  seconds      │ 4-level precision          │
-│  Vimshottari     │   2.0     │  hours        │ Prana Dasha level          │
-│  Varga (D60)     │   1.8     │  2 minutes    │ Karma Lagna changes        │
-│  Transit         │   1.5     │  days         │ Final verification         │
-│  Kalachakra      │   1.3     │  days         │ Cross-check                │
-│  Shadbala        │   1.0     │  N/A          │ Strength context           │
+│  METHOD              │ REFERENCE │  PRECISION    │ FINAL STAGE FOCUS      │
+│                      │  WEIGHT   │               │                        │
+├──────────────────────┼───────────┼───────────────┼────────────────────────┤
+│  KP Sub-Sub-Sub-Lord │   2.8     │  30-60 sec    │ HIGHEST precision      │
+│  D1080 Nadi Amsha    │   2.5     │  48 seconds   │ Seconds-level          │
+│  KP Sub-Sub-Lord     │   2.2     │  2-4 minutes  │ High precision         │
+│  Vimshottari Prana   │   2.0     │  ~24 seconds  │ Micro-dasha level      │
+│  D9 (Navamsa)        │   1.8     │  ~4 minutes   │ Marriage/Dharma        │
+│  D60 (Shashtiamsa)   │   1.8     │  2 minutes    │ Karma verification     │
+│  D10 (Dasamsa)       │   1.7     │  ~4 minutes   │ Career status          │
+│  Transit             │   1.0     │  days         │ Background only        │
+│  Chara Dasha         │   1.3     │  sign-based   │ Cross-verification     │
+│  Shadbala            │   0.3     │  N/A          │ Not for micro-timing   │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ⚠️ FOR SECONDS PRECISION - FOCUS ON:
-• D150 Nadi Amsha - Changes every 48 seconds!
+• D1080 Nadi Amsha - Changes every 48 seconds (CRITICAL!)
 • KP Sub-Sub-Sub-Lord - 4th level precision
-• Vimshottari Prana Dasha - Hour-level refinement
+• Vimshottari Prana Dasha - Seconds-level (~24 sec per prana)
 • D60 Lagna - Changes every 2 minutes
 
 ════════════════════════════════════════════════════════════════════════════════
@@ -139,7 +151,7 @@ ${getEventImportanceSummary(events)}
 2. NO POSITIONAL BIAS: Candidate #1 is NOT more likely than Candidate #N.
 3. MANDATORY PROOF: Every score must be backed by technical proof.
 4. FOCUS ON D60: Even 10 seconds can change D60 Lagna!
-5. NADI AMSHA (D150): Changes every 48 seconds - THIS IS THE KEY!
+5. NADI AMSHA (D1080): Changes every 48 seconds - THIS IS THE KEY!
 6. BIO-VEDIC LOCK: Time must match Life Events + Forensic DNA + Family Karma.
 
 ════════════════════════════════════════════════════════════════════════════════
@@ -147,8 +159,8 @@ ${getEventImportanceSummary(events)}
 
     TASK: Solve the Bio-Vedic Identity Matrix. Select THE SINGLE BEST birth time from ${shuffledCandidates.length} finalists.
 
-## Step 1: Criminal-Level Forensic Correlation
-- DNA Signature Matching: @ForensicTraits (Physical + Biological)
+## Step 1: Advanced Forensic Correlation
+- Forensic Signature Matching: @ForensicTraits (Physical + Biological)
 - Alibi Verification: @UserEvents (Narrative Integrity)
 - Family Witness Matrix: @ForensicTraits.family
 - Bio-Vedic Lock Status: @CurrentTransits
@@ -156,12 +168,12 @@ ${getEventImportanceSummary(events)}
 ## Step 2: Final Judgment Logic
 Execute the following 10-step final judgment sequence:
 
-1. **Micro-Chart Boundary Lock (D60/D150)**
-   - Analyze Nadi Amsha shifts (every 48 seconds).
+1. **Micro-Chart Boundary Lock (D60/D1080 Nadi)**
+   - Analyze D1080 Nadi Amsha shifts (every 48 seconds).
    - Match D60 Lagna deity to life-defining traumatic/spiritual events.
 
 2. **Vimshottari Prana Dasha Audit**
-   - Scrutinize the hour-level Prana Dasha for the most critical user-weighted event.
+   - Scrutinize the seconds-level Prana Dasha (~24 sec) for the most critical user-weighted event.
    - Verify if the lord of the micro-period has a direct 'Mahakala signature'.
 
 3. **Cuspal (KP) 4th Level Precision**
@@ -169,7 +181,7 @@ Execute the following 10-step final judgment sequence:
    - Verify alignment with seconds-level forensic traits.
 
 4. **Tattwa Shuddhi & Mahakala Anchor**
-   - Verify if the exact second of birth aligns with the biological element (Fire/Earth/Air/Water).
+   - Verify Tattwa (5-element cycle) compatibility with biological profile (Fire/Earth/Air/Water).
    - Check 'Kunda Lagna' matches Moon position for structural integrity.
 
 5. **Spouse/Synastry Final Proof**
@@ -207,7 +219,7 @@ ${eventsText}
 CANDIDATES WITH ENRICHED VEDIC DATA (VSL 4.0 Protocol):
 ${shuffledCandidates.map(c => `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CANDIDATE: ${c.time}
+CANDIDATE: ${getCandidateReference(c, duplicateTimes)}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${formatCandidateVSL(c as EnhancedCandidate)}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -219,7 +231,7 @@ FINAL VERDICT (required format):
 Wrap your final reasoning and evidence inside a markdown code block (\`\`\`) to ensure it renders correctly in the results dashboard.
 
 \`\`\`
-BEST TIME: [HH:MM:SS]
+BEST TIME: [candidate reference]
 REASONING: [Explicitly cite D60 Lagna, Dasha Connection, Synastry Match (if any), and Lifecycle Chronology. No generic text.]
 CONFIDENCE SCORE: [0-100]
 ACCURACY: [0-100]%
@@ -244,4 +256,8 @@ At the VERY END of your response, you MUST output the final verdict in a structu
   }
   </FINAL_VERDICT>
 ═══════════════════════════════════════════════════════════════════════════════`;
+}
+
+function isPerCandidateTransitLockMap(value: PresentTransitLock | Record<string, PresentTransitLock>): value is Record<string, PresentTransitLock> {
+  return Object.values(value).some((entry) => typeof entry === 'object' && entry !== null && ('dashaAtNow' in entry || 'jupiter' in entry || 'saturn' in entry || 'rahu' in entry));
 }

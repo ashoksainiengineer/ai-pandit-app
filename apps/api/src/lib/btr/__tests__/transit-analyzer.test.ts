@@ -26,6 +26,7 @@ import {
 } from '../transit-analyzer.js';
 
 const calculateEphemerisMock = vi.mocked(calculateEphemeris);
+type EventDateInput = Parameters<typeof resolveEventDateWindow>[0];
 
 function mockTransitEphemeris() {
   calculateEphemerisMock.mockResolvedValue({
@@ -49,7 +50,7 @@ describe('TransitAnalyzer flexible date precision handling', () => {
       eventDate: '2012-04',
       endDate: '2012-06',
       datePrecision: 'month_range',
-    } as any);
+    } satisfies EventDateInput);
 
     const result = await analyzeTransitForEvent({
       eventDate: '2012-04',
@@ -74,7 +75,7 @@ describe('TransitAnalyzer flexible date precision handling', () => {
         eventDate: '2012-04',
         endDate: '2012-06',
         datePrecision: 'month_range',
-      } as any).midpointMs).toISOString().slice(0, 19)
+      } satisfies EventDateInput).midpointMs).toISOString().slice(0, 19)
     );
   });
 
@@ -124,10 +125,71 @@ describe('TransitAnalyzer flexible date precision handling', () => {
       eventDate: '1998',
       endDate: '2001',
       datePrecision: 'year_range',
-    } as any).midpointMs);
+    } satisfies EventDateInput).midpointMs);
 
     expect(matches).toHaveLength(1);
     expect(matches[0].eventId).toBe('evt_abc123');
     expect(matches[0].eventDate.toISOString().slice(0, 19)).toBe(expectedMidpoint.toISOString().slice(0, 19));
+  });
+
+  it('uses exact_date_time literal directly without timezone-driven date shifts', async () => {
+    const expected = getRepresentativeEventDateTime({
+      eventDate: '2017-12-11',
+      eventTime: '00:15:00',
+      datePrecision: 'exact_date_time',
+    } satisfies EventDateInput);
+
+    const result = await analyzeTransitForEvent({
+      eventDate: '2017-12-11',
+      eventTime: '00:15:00',
+      datePrecision: 'exact_date_time',
+      eventCategory: 'marriage',
+      birthLatitude: 28.6139,
+      birthLongitude: 77.209,
+      birthTimezone: -11,
+      birthAscendantSign: 'Aries',
+    });
+
+    expect(calculateEphemerisMock).toHaveBeenCalledWith(
+      expected.eventDate,
+      expected.eventTime,
+      28.6139,
+      77.209,
+      -11,
+    );
+    expect(result.eventDate.getTime()).toBe(Date.UTC(2017, 11, 11, 0, 15, 0, 0));
+  });
+
+  it('keeps range-midpoint eventDate stable across extreme birth timezones', async () => {
+    const event = {
+      eventDate: '2020-01-01',
+      endDate: '2020-01-02',
+      datePrecision: 'date_range' as const,
+      eventCategory: 'career',
+      birthLatitude: 28.6139,
+      birthLongitude: 77.209,
+      birthAscendantSign: 'Aries',
+    };
+
+    const westResult = await analyzeTransitForEvent({
+      ...event,
+      birthTimezone: -12,
+    });
+    const eastResult = await analyzeTransitForEvent({
+      ...event,
+      birthTimezone: 14,
+    });
+
+    expect(westResult.eventDate.toISOString()).toBe(eastResult.eventDate.toISOString());
+    expect(westResult.eventDate.toISOString().slice(0, 19)).toBe('2020-01-01T23:59:59');
+
+    const westCall = calculateEphemerisMock.mock.calls[0];
+    const eastCall = calculateEphemerisMock.mock.calls[1];
+    expect(westCall?.[0]).toBe('2020-01-01');
+    expect(westCall?.[1]).toBe('23:59:59');
+    expect(eastCall?.[0]).toBe('2020-01-01');
+    expect(eastCall?.[1]).toBe('23:59:59');
+    expect(westCall?.[4]).toBe(-12);
+    expect(eastCall?.[4]).toBe(14);
   });
 });
