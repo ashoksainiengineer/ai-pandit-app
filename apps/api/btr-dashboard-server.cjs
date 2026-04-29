@@ -456,15 +456,15 @@ function startAnalysis() {
 
   const env = {
     ...process.env,
-    AI_API_KEY: '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',
-    AI_BASE_URL: 'https://api.groq.com/openai/v1',
-    AI_MODEL: 'openai/gpt-oss-120b',
-    AI_STAGE2_MAX_TOKENS: '32768',
-    AI_STAGE4_MAX_TOKENS: '32768',
-    AI_STAGE6_MAX_TOKENS: '32768',
-    CLERK_SECRET_KEY: 'sk_test_5y6ECBKB4faegrYiRkK3yZOoSnIyxwXCZaUeKbS1yA',
-    ENCRYPTION_SECRET: 'this-is-a-test-encryption-secret-key-with-32-chars',
-    NEON_DATABASE_URL: 'postgresql://user:pass@localhost/test'
+    AI_API_KEY: process.env.AI_API_KEY || '',
+    AI_BASE_URL: process.env.AI_BASE_URL || 'https://api.groq.com/openai/v1',
+    AI_MODEL: process.env.AI_MODEL || 'openai/gpt-oss-120b',
+    AI_STAGE2_MAX_TOKENS: process.env.AI_STAGE2_MAX_TOKENS || '32768',
+    AI_STAGE4_MAX_TOKENS: process.env.AI_STAGE4_MAX_TOKENS || '32768',
+    AI_STAGE6_MAX_TOKENS: process.env.AI_STAGE6_MAX_TOKENS || '32768',
+    CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || '',
+    ENCRYPTION_SECRET: process.env.ENCRYPTION_SECRET || '',
+    NEON_DATABASE_URL: process.env.NEON_DATABASE_URL || ''
   };
   
   const child = spawn('node', ['--max-old-space-size=8192', 'modi_btr_godtier.mjs'], {
