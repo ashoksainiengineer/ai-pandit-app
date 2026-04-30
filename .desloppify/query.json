@@ -1,6 +1,6 @@
 {
   "command": "show",
-  "query": "orphaned",
+  "query": "smells",
   "status_filter": "open",
   "total": 0,
   "issues": [],
