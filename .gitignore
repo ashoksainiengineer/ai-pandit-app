@@ -223,3 +223,4 @@ NOTES.md
 # --- DESLOPPIFY (Code Quality Scanner) ---
 .d esloppify/
 .venv-desloppify/
+.desloppify/
