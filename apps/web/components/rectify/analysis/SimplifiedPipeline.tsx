@@ -2,9 +2,9 @@
 
 import React, { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle, Circle, Loader2, Cpu, Shield, Zap, Info } from 'lucide-react';
+import { CheckCircle, Circle, Loader2 } from 'lucide-react';
 
-import { STAGES, type StageConfig } from '@/lib/constants/stages';
+import { STAGES } from '@/lib/constants/stages';
 
 interface SimplifiedPipelineProps {
   currentStage: number;
@@ -20,7 +20,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
   currentStage,
   isComplete,
   isConnected,
-  aiModel,
+  _aiModel,
   activeAIStage,
   offsetMinutes = 60,
   onStageClick,
@@ -39,7 +39,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
     : currentStage;
 
   const stageStates = useMemo(() => {
-    return STAGES.map((stage, index) => {
+    return STAGES.map((_stage, index) => {
       if (isComplete) return 'completed';
       if (index < effectiveStageIndex) return 'completed';
       if (index === effectiveStageIndex) return 'active';

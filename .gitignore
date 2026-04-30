@@ -221,5 +221,5 @@ todo.md
 NOTES.md
 
 # --- DESLOPPIFY (Code Quality Scanner) ---
-.d desloppify/
+.d esloppify/
 .venv-desloppify/
