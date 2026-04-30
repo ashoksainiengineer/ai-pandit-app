@@ -1,5 +1,6 @@
 
 import { _getAyanamsa } from './ephemeris.js';
+import { EphemerisData, PlanetPosition } from '@ai-pandit/shared';
 
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -409,21 +410,36 @@ import {
     calculateAdvancedAspects as calcAspects,
     _calculateBoundarySafety,
     detectParivartana,
+    type DivisionalChart,
+    type AspectData,
+    type ArudhaLagna,
+    type PanchangaData,
 } from './advanced-btr-methods.js';
 import { calculateCharaKarakas as _calcCK } from './jaimini-astrology.js';
-import { TransitAnalyzer } from './btr/transit-analyzer.js';
+import { TransitAnalyzer, type TransitPosition } from './btr/transit-analyzer.js';
+
+interface YogaResult {
+    name: string;
+    description: string;
+    significance: string;
+    planetsInvolved: [string, string];
+}
+
+interface DoubleTransitDetail {
+    message: string;
+}
 
 /**
  * Calculate all divisional charts for the given ephemeris data.
  */
-export const calculateAllVargas = (ephemeris: any): any => {
+export const calculateAllVargas = (ephemeris: EphemerisData): any => {
     return generateDivisionalCharts(ephemeris);
 };
 
 /**
  * Calculate Ashtakavarga bindus (SAV and BAV).
  */
-export const calculateAshtakavarga = (ephemeris: any): any => {
+export const calculateAshtakavarga = (ephemeris: EphemerisData): Record<string, number> => {
     const { sav } = calcAV(ephemeris);
     // Convert array to sign-indexed object for backward compatibility if needed, 
     // though the engine seems to expect the object format in some places.
@@ -436,15 +452,15 @@ export const calculateAshtakavarga = (ephemeris: any): any => {
 /**
  * Calculate Shadbala (Six-source planetary strength).
  */
-export const calculateShadbala = (ephemeris: any): any => {
+export const calculateShadbala = (ephemeris: EphemerisData): any => {
     return calculateFullShadbala(ephemeris);
 };
 
 /**
  * Detect yogas and planetary combinations.
  */
-export const detectYogas = (ephemeris: any): any[] => {
-    const yogas: any[] = [];
+export const detectYogas = (ephemeris: EphemerisData): YogaResult[] => {
+    const yogas: YogaResult[] = [];
 
     // 1. Detect Parivartana Yoga
     const parivartanas = detectParivartana(ephemeris);
@@ -463,7 +479,7 @@ export const detectYogas = (ephemeris: any): any[] => {
 /**
  * Calculate Arudha Lagna and other special lagnas.
  */
-export const calculateArudhas = (ephemeris: any): any => {
+export const calculateArudhas = (ephemeris: EphemerisData): { AL: string; UL: string } => {
     const al = calculateArudhaLagna(ephemeris);
     return { AL: al.sign, UL: 'Unknown' }; // Expansion point for Upapada Lagna
 };
@@ -474,21 +490,35 @@ export const calculateArudhas = (ephemeris: any): any => {
 export const calculatePanchanga = (jd: number, sunLong: number, moonLong: number, birthDate?: Date): any => {
     // The engine expects ephemeris-like object for calcPanchanga, but the stub takes JD/Long
     // We'll normalize this by creating a minimal object
-    const mockEph: any = { planets: { sun: { longitude: sunLong }, moon: { longitude: moonLong } } };
+    const mockEph: EphemerisData = {
+        planets: {
+            sun: { sign: '', degree: 0, longitude: sunLong, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+            moon: { sign: '', degree: 0, longitude: moonLong, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+            mercury: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+            venus: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+            mars: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+            jupiter: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+            saturn: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+            rahu: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+            ketu: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+        },
+        ascendant: { sign: '', degree: 0, nakshatra: '', longitude: 0 },
+        houses: [],
+    };
     return calcPanchanga(mockEph, birthDate || new Date());
 };
 
 /**
  * Calculate Vimsopaka Bala (Divisional strength).
  */
-export const calculateVimsopakaBala = (_ephemeris: any): any => {
+export const calculateVimsopakaBala = (_ephemeris: EphemerisData): { total: number } => {
     return { total: 0 }; // Placeholder until fully implemented
 };
 
 /**
  * Detect discrepancies between Rasi and Bhava Chalit.
  */
-export const detectBhavaChalitDiscrepancy = (_ephemeris: any): any[] => {
+export const detectBhavaChalitDiscrepancy = (_ephemeris: EphemerisData): any[] => {
     return [];
 };
 
@@ -526,9 +556,9 @@ export const calculateHouse = (longitude: number, houseCusps: number[]): number 
 /**
  * planetary aspects (Sign-based Parashari Drishti).
  */
-export const calculateAspects = (arg1: any, _arg2?: any, _arg3?: any, _arg4?: any): any => {
+export const calculateAspects = (arg1: any, _arg2?: any, _arg3?: any, _arg4?: any): any[] => {
     // If called with ephemeris object (from new engine)
-    if (arg1 && typeof arg1 === 'object' && arg1.planets) {
+    if (arg1 && typeof arg1 === 'object' && 'planets' in arg1) {
         return calcAspects(arg1);
     }
     // If called with individual planet data (from planet-enricher)
@@ -538,7 +568,7 @@ export const calculateAspects = (arg1: any, _arg2?: any, _arg3?: any, _arg4?: an
 /**
  * planetary dignity (Exaltation, Own, etc).
  */
-export const getDignity = (_planet: any, _signOrChart: any): string => {
+export const getDignity = (_planet: string, _signOrChart: string | EphemerisData): string => {
     return 'Neutral';
 };
 
@@ -571,17 +601,17 @@ export const calculatePanchadhaSambandha = (_planetName: string, _lordSign: stri
 /**
  * Ishta Kashta Phala calculation.
  */
-export const calculateIshtaKashtaPhala = (_arg1: any, _arg2?: any): any => {
+export const calculateIshtaKashtaPhala = (_arg1: any, _arg2?: any): { ishta: number; kashta: number } => {
     return { ishta: 20, kashta: 10 };
 };
 
 /**
  * Verify Double Transit (Jupiter + Saturn aspecting a house).
  */
-export const verifyDoubleTransit = (ephemeris: any, ascendantSign: string, targetHouse?: number): { isTriggered: boolean; details: any[] } => {
-    const transitPositions: any[] = [];
+export const verifyDoubleTransit = (ephemeris: EphemerisData, ascendantSign: string, targetHouse?: number): { isTriggered: boolean; details: DoubleTransitDetail[] } => {
+    const transitPositions: TransitPosition[] = [];
     for (const [name, data] of Object.entries(ephemeris.planets)) {
-        const planetData = data as any;
+        const planetData = data;
         transitPositions.push({
             planet: name,
             sign: planetData.sign,

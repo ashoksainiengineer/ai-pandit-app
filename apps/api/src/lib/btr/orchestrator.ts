@@ -68,50 +68,14 @@ export interface DetailedResult extends RectificationResult {
  */
 export async function rectifyBirthTime(input: RectificationInput): Promise<DetailedResult> {
   const startTime = Date.now();
-  const errors: string[] = [];
-  const sessionId = input.sessionId ?? `btr_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  const sessionId = input.sessionId ?? generateSessionId();
 
   try {
     const context = await buildContext(input, sessionId);
-
-    const scannerInput: ScannerInput = {
-      birthDate: input.birthDate,
-      tentativeTime: input.tentativeTime,
-      latitude: input.latitude,
-      longitude: input.longitude,
-      timezone: input.timezone,
-      events: input.events,
-      rangeMinutes: input.timeRangeMinutes || 30,
-      config: input.config,
-      knownTatwa: input.knownTatwa
-    };
-
-    if (context.prakritiTatwaMatch && !input.knownTatwa && context.sunriseTime) {
-      const tatwaResult = TatwaShuddhi.findCorrections({
-        sunriseTime: context.sunriseTime,
-        birthTime: parseBirthTime(input.tentativeTime, input.birthDate, input.timezone),
-        knownPrakriti: input.forensicProfile?.prakriti?.dominant
-      });
-
-      if (tatwaResult.correctionWindows.length > 0) {
-        const bestWindow = tatwaResult.correctionWindows[0];
-        const _midTime = new Date(
-          (bestWindow.startTime.getTime() + bestWindow.endTime.getTime()) / 2
-        );
-        scannerInput.knownTatwa = bestWindow.tatwa;
-        scannerInput.rangeMinutes = Math.min(
-          scannerInput.rangeMinutes || 30,
-          15
-        );
-        logger.info('[BTR] Tatwa-based time narrowing applied', {
-          tatwa: bestWindow.tatwa,
-          confidence: bestWindow.confidence
-        });
-      }
-    }
+    const scannerInput = prepareScannerInput(input);
+    applyTatwaNarrowing(input, context, scannerInput);
 
     const scanResult = await WindowScanner.scan(scannerInput, sessionId);
-
     if (!scanResult.success || !scanResult.bestCandidate) {
       return buildFailedResult(input, context, scanResult.errors, startTime);
     }
@@ -123,7 +87,7 @@ export async function rectifyBirthTime(input: RectificationInput): Promise<Detai
       sessionId
     );
 
-    const result = buildDetailedResult(
+    return buildDetailedResult(
       scanResult.bestCandidate,
       scanResult.candidates,
       input,
@@ -131,15 +95,8 @@ export async function rectifyBirthTime(input: RectificationInput): Promise<Detai
       transitAnalysis,
       startTime
     );
-
-    return result;
-
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    logger.error('[BTR] Rectification failed', error);
-    errors.push(errorMessage);
-
-    return buildFailedResult(input, await buildContext(input, sessionId), errors, startTime);
+    return handleRectificationError(input, error, sessionId, startTime);
   } finally {
     clearSessionCache(sessionId);
     logger.debug('[BTR] Session cache cleared', { sessionId });
@@ -165,24 +122,7 @@ export async function quickRectify(
   confidence: ConfidenceLevel;
   marginSeconds: number;
 }> {
-  const btrEvents: BtrEvent[] = events.map((e, i) => ({
-    id: `evt_${i}`,
-    type: e.category,
-    category: e.category,
-    eventDate: new Date(e.date),
-    datePrecision: 'exact_date' as const,
-    description: `${e.category} event`,
-    impact: 'moderate' as const,
-    confidence: {
-      level: e.source === 'document' ? 'high' : e.source === 'memory' ? 'medium' : 'low',
-      source: e.source || 'memory',
-      datePrecision: 'exact_date' as const,
-      weight: e.source === 'document' ? 3 : e.source === 'memory' ? 1.5 : 0.5,
-      reliabilityScore: e.source === 'document' ? 0.95 : 0.70
-    },
-    eventHouse: 1,
-    significators: []
-  }));
+  const btrEvents: BtrEvent[] = events.map(mapSimpleEventToBtrEvent);
 
   const result = await rectifyBirthTime({
     birthDate,
@@ -197,6 +137,37 @@ export async function quickRectify(
     rectifiedTime: result.rectifiedTime,
     confidence: result.confidenceLevel || 'LOW',
     marginSeconds: result.marginOfErrorSeconds || 0
+  };
+}
+
+/**
+ * Convert a simple event descriptor into a full BtrEvent object.
+ */
+function mapSimpleEventToBtrEvent(
+  e: { category: string; date: string; source?: 'document' | 'memory' | 'approximate' },
+  index: number
+): BtrEvent {
+  const source = e.source || 'memory';
+  const isDocument = source === 'document';
+  const isMemory = source === 'memory';
+
+  return {
+    id: `evt_${index}`,
+    type: e.category,
+    category: e.category,
+    eventDate: new Date(e.date),
+    datePrecision: 'exact_date',
+    description: `${e.category} event`,
+    impact: 'moderate',
+    confidence: {
+      level: isDocument ? 'high' : isMemory ? 'medium' : 'low',
+      source,
+      datePrecision: 'exact_date',
+      weight: isDocument ? 3 : isMemory ? 1.5 : 0.5,
+      reliabilityScore: isDocument ? 0.95 : 0.70
+    },
+    eventHouse: 1,
+    significators: []
   };
 }
 
@@ -509,6 +480,79 @@ function generateRecommendations(
   }
 
   return recs;
+}
+
+/**
+ * Generate a unique session identifier for BTR processing.
+ */
+function generateSessionId(): string {
+  return `btr_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+/**
+ * Build the scanner input from rectification input parameters.
+ */
+function prepareScannerInput(input: RectificationInput): ScannerInput {
+  return {
+    birthDate: input.birthDate,
+    tentativeTime: input.tentativeTime,
+    latitude: input.latitude,
+    longitude: input.longitude,
+    timezone: input.timezone,
+    events: input.events,
+    rangeMinutes: input.timeRangeMinutes || 30,
+    config: input.config,
+    knownTatwa: input.knownTatwa
+  };
+}
+
+/**
+ * Narrow the scan range using Tatwa Shuddhi when a Prakriti match is available.
+ * Mutates the provided scannerInput in place.
+ */
+function applyTatwaNarrowing(
+  input: RectificationInput,
+  context: RectificationContext,
+  scannerInput: ScannerInput
+): void {
+  if (!context.prakritiTatwaMatch || input.knownTatwa || !context.sunriseTime) {
+    return;
+  }
+
+  const tatwaResult = TatwaShuddhi.findCorrections({
+    sunriseTime: context.sunriseTime,
+    birthTime: parseBirthTime(input.tentativeTime, input.birthDate, input.timezone),
+    knownPrakriti: input.forensicProfile?.prakriti?.dominant
+  });
+
+  if (tatwaResult.correctionWindows.length === 0) {
+    return;
+  }
+
+  const bestWindow = tatwaResult.correctionWindows[0];
+  scannerInput.knownTatwa = bestWindow.tatwa;
+  scannerInput.rangeMinutes = Math.min(
+    scannerInput.rangeMinutes || 30,
+    15
+  );
+  logger.info('[BTR] Tatwa-based time narrowing applied', {
+    tatwa: bestWindow.tatwa,
+    confidence: bestWindow.confidence
+  });
+}
+
+/**
+ * Handle rectification errors by logging and returning a failed result.
+ */
+async function handleRectificationError(
+  input: RectificationInput,
+  error: unknown,
+  sessionId: string,
+  startTime: number
+): Promise<DetailedResult> {
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+  logger.error('[BTR] Rectification failed', error);
+  return buildFailedResult(input, await buildContext(input, sessionId), [errorMessage], startTime);
 }
 
 export const ProfessionalBTR = {

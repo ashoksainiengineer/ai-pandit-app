@@ -92,7 +92,7 @@ const RETRY_CONFIG = {
 // QUEUE STATUS TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-import type { QueueStatus, QueuePosition, QueueSubmitResult } from '@ai-pandit/shared';
+import type { QueueStatus, QueuePosition, QueueSubmitResult, PhysicalTraits, ForensicTraits, SecondsPrecisionInput } from '@ai-pandit/shared';
 
 // Re-export types for backwards compatibility
 export type { QueueStatus, QueuePosition, QueueSubmitResult };
@@ -308,15 +308,7 @@ async function syncJobCompleted(
     return;
   }
 
-  let parsedResult: Record<string, unknown> | undefined;
-  try {
-    const parsed = JSON.parse(results.analysisResult);
-    if (typeof parsed === 'object' && parsed !== null) {
-      parsedResult = parsed as Record<string, unknown>;
-    }
-  } catch {
-    parsedResult = undefined;
-  }
+  const parsedResult = safeParseJsonRecord(results.analysisResult);
 
   await completeJobRecord({
     jobId: job.id,
@@ -327,7 +319,46 @@ async function syncJobCompleted(
     },
   });
 
-  await Promise.all([
+  await persistCompletionArtifacts(job, sessionId, results);
+
+  await appendLifecycleEvent(sessionId, 'job.completed', {
+    status: 'completed',
+    rectifiedTime: results.rectifiedTime,
+    accuracy: results.accuracy,
+    confidence: results.confidence,
+  });
+}
+
+/**
+ * Safely parse a JSON string into a Record. Returns undefined on failure.
+ */
+function safeParseJsonRecord(value: string): Record<string, unknown> | undefined {
+  try {
+    const parsed = JSON.parse(value);
+    if (typeof parsed === 'object' && parsed !== null) {
+      return parsed as Record<string, unknown>;
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return undefined;
+}
+
+/**
+ * Persist all artifact references for a completed job.
+ */
+async function persistCompletionArtifacts(
+  job: NonNullable<Awaited<ReturnType<typeof getTrackedJob>>>,
+  sessionId: string,
+  results: {
+    rectifiedTime: string;
+    accuracy: number;
+    confidence: string;
+    analysisResult: string;
+    reasoningLogs?: string | null;
+  }
+): Promise<void> {
+  const artifacts: Promise<unknown>[] = [
     persistArtifactReference({
       jobId: job.id,
       sessionId,
@@ -341,19 +372,6 @@ async function syncJobCompleted(
         confidence: results.confidence,
       },
     }),
-    results.reasoningLogs
-      ? persistArtifactReference({
-          jobId: job.id,
-          sessionId,
-          kind: 'reasoning_log',
-          fileName: 'reasoning-log.json',
-          mimeType: 'application/json',
-          payload: results.reasoningLogs,
-          metadata: {
-            format: 'stage_history',
-          },
-        })
-      : Promise.resolve(),
     persistArtifactReference({
       jobId: job.id,
       sessionId,
@@ -369,14 +387,25 @@ async function syncJobCompleted(
         source: 'queue_manager',
       },
     }),
-  ]);
+  ];
 
-  await appendLifecycleEvent(sessionId, 'job.completed', {
-    status: 'completed',
-    rectifiedTime: results.rectifiedTime,
-    accuracy: results.accuracy,
-    confidence: results.confidence,
-  });
+  if (results.reasoningLogs) {
+    artifacts.push(
+      persistArtifactReference({
+        jobId: job.id,
+        sessionId,
+        kind: 'reasoning_log',
+        fileName: 'reasoning-log.json',
+        mimeType: 'application/json',
+        payload: results.reasoningLogs,
+        metadata: {
+          format: 'stage_history',
+        },
+      })
+    );
+  }
+
+  await Promise.all(artifacts);
 }
 
 async function syncJobFailed(
@@ -518,33 +547,15 @@ async function writeDeadLetterArtifact(sessionId: string, errorMessage: string, 
     return;
   }
 
+  const payload = buildDeadLetterPayload(job, sessionId, errorMessage, attemptsUsed);
   await persistArtifactReference({
     jobId: job.id,
     sessionId,
     kind: 'dead_letter_report',
     fileName: 'dead-letter-report.json',
     mimeType: 'application/json',
-    payload: JSON.stringify({
-      jobId: job.id,
-      sessionId,
-      retryCount: job.retryCount,
-      attemptsUsed,
-      maxAttempts: job.maxAttempts,
-      errorMessage,
-      checkpoint: job.checkpointJson ?? null,
-      cursor: job.cursorJson ?? null,
-      finalStatus: 'failed',
-      createdAt: new Date().toISOString(),
-    }),
-    metadata: {
-      reason: 'max_attempts_exceeded',
-      attemptsUsed,
-      maxAttempts: job.maxAttempts,
-      retryCount: job.retryCount,
-      errorMessage,
-      finalStatus: 'failed',
-      createdAt: new Date().toISOString(),
-    },
+    payload: JSON.stringify(payload),
+    metadata: payload,
   });
 
   await appendLifecycleEvent(sessionId, 'job.dead_lettered', {
@@ -564,6 +575,29 @@ async function writeDeadLetterArtifact(sessionId: string, errorMessage: string, 
   });
 }
 
+/**
+ * Build the dead-letter payload for a permanently failed job.
+ */
+function buildDeadLetterPayload(
+  job: NonNullable<Awaited<ReturnType<typeof getTrackedJob>>>,
+  sessionId: string,
+  errorMessage: string,
+  attemptsUsed: number
+): Record<string, unknown> {
+  return {
+    jobId: job.id,
+    sessionId,
+    retryCount: job.retryCount,
+    attemptsUsed,
+    maxAttempts: job.maxAttempts,
+    errorMessage,
+    checkpoint: job.checkpointJson ?? null,
+    cursor: job.cursorJson ?? null,
+    finalStatus: 'failed',
+    createdAt: new Date().toISOString(),
+  };
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 // QUEUE OPERATIONS
 // ═════════════════════════════════════════════════════════════════════════════
@@ -574,45 +608,16 @@ async function writeDeadLetterArtifact(sessionId: string, errorMessage: string, 
  */
 export async function addToQueue(sessionId: string): Promise<QueueSubmitResult> {
   try {
-    // Check queue size limit
     const queuedCount = await getQueuedCount();
-
-    if (queuedCount >= QUEUE_CONFIG.maxQueueSize) {
-      return {
-        success: false,
-        error: 'Queue is full. Please try again in a few minutes.',
-      };
+    const capacityResult = checkQueueCapacity(queuedCount);
+    if (capacityResult) {
+      return capacityResult;
     }
 
-    if (queuedCount >= QUEUE_CONFIG.loadShedQueueDepth) {
-      const retryAfterSeconds = Math.max(
-        5,
-        Math.ceil(QUEUE_CONFIG.baseAnalysisTime / Math.max(1, QUEUE_CONFIG.maxConcurrent))
-      );
-      return {
-        success: false,
-        error: `[RATE_LIMIT_EXCEEDED] System is under high load. Please retry shortly. retry_after=${retryAfterSeconds}`,
-      };
-    }
-
-    // Update session status to queued
-    await executeWithRetry(() =>
-      db.update(sessions)
-        .set({
-          status: 'queued',
-          updatedAt: new Date().toISOString(),
-        })
-        .where(eq(sessions.id, sessionId))
-    );
-
-    await syncJobQueued(sessionId);
-    await queueDriver.enqueueSession(sessionId);
-
-    // Start processor if not running
+    await enqueueSession(sessionId);
     startQueueProcessor();
 
     const status = await getQueueStatus(sessionId);
-
     logger.info('Request added to queue', {
       sessionId,
       position: status?.position || 0,
@@ -632,6 +637,49 @@ export async function addToQueue(sessionId: string): Promise<QueueSubmitResult> 
       error: 'Failed to queue request',
     };
   }
+}
+
+/**
+ * Check if the queue has capacity for a new request.
+ * Returns a rejection result if at capacity, otherwise null.
+ */
+function checkQueueCapacity(queuedCount: number): QueueSubmitResult | null {
+  if (queuedCount >= QUEUE_CONFIG.maxQueueSize) {
+    return {
+      success: false,
+      error: 'Queue is full. Please try again in a few minutes.',
+    };
+  }
+
+  if (queuedCount >= QUEUE_CONFIG.loadShedQueueDepth) {
+    const retryAfterSeconds = Math.max(
+      5,
+      Math.ceil(QUEUE_CONFIG.baseAnalysisTime / Math.max(1, QUEUE_CONFIG.maxConcurrent))
+    );
+    return {
+      success: false,
+      error: `[RATE_LIMIT_EXCEEDED] System is under high load. Please retry shortly. retry_after=${retryAfterSeconds}`,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Update session status to queued and enqueue in the driver.
+ */
+async function enqueueSession(sessionId: string): Promise<void> {
+  await executeWithRetry(() =>
+    db.update(sessions)
+      .set({
+        status: 'queued',
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(sessions.id, sessionId))
+  );
+
+  await syncJobQueued(sessionId);
+  await queueDriver.enqueueSession(sessionId);
 }
 
 /**
@@ -660,49 +708,14 @@ export async function getQueuePosition(sessionId: string): Promise<number> {
  */
 export async function getQueueStatus(sessionId: string): Promise<QueuePosition | null> {
   try {
-    const sessionRows = await executeWithRetry(() =>
-      db.select()
-        .from(sessions)
-        .where(eq(sessions.id, sessionId))
-        .limit(1)
-    );
-
-    if (sessionRows.length === 0) {
+    const { session, job } = await fetchSessionAndJob(sessionId);
+    if (!session) {
       return null;
     }
 
-    const session = sessionRows[0];
-    const job = await getTrackedJob(sessionId);
     const queueStatus = mapJobStatusToQueueStatus(job?.status ?? session.status);
-    const position = queueStatus === 'queued' || queueStatus === 'processing'
-      ? await getQueuePosition(sessionId)
-      : 0;
-
-    // 🚀 GOD-TIER DYNAMIC WAIT ESTIMATION
-    let estimatedWaitSeconds = 0;
-    const activeCount = activeProcessingIds.size;
-
-    if (queueStatus === 'queued') {
-      // 1. Calculate how much time is left in the CURRENT active slots
-      const contentionFactor = 1 + (Math.max(0, activeCount - 1) * QUEUE_CONFIG.contentionMultiplier);
-      const adjustedCycleTime = QUEUE_CONFIG.baseAnalysisTime * contentionFactor;
-
-      const sessionTimes = Array.from(processingStartTimes.values());
-      const remainingTimes = sessionTimes.map(startTime => {
-        const elapsed = (Date.now() - startTime) / 1000;
-        return Math.max(10, adjustedCycleTime - elapsed);
-      });
-
-      // The next slot opens at the MIN of remaining times
-      const nextSlotAvailableIn = remainingTimes.length > 0 ? Math.min(...remainingTimes) : 0;
-
-      // 2. Add time for people ahead of you in the queue
-      const itemsAhead = Math.max(0, position - 1);
-      const waitPerQueueItem = adjustedCycleTime / QUEUE_CONFIG.maxConcurrent;
-
-      estimatedWaitSeconds = Math.ceil(nextSlotAvailableIn + (itemsAhead * waitPerQueueItem));
-    }
-
+    const position = await computeQueuePosition(sessionId, queueStatus);
+    const estimatedWaitSeconds = await computeEstimatedWait(position, queueStatus);
     const totalInQueue = await getQueuedCount();
 
     return {
@@ -718,6 +731,61 @@ export async function getQueueStatus(sessionId: string): Promise<QueuePosition |
     logger.error('Failed to get queue status', { error: (error as any)?.message || error });
     return null;
   }
+}
+
+/**
+ * Fetch the session row and latest job for a session.
+ */
+async function fetchSessionAndJob(sessionId: string): Promise<{
+  session: typeof sessions.$inferSelect | null;
+  job: Awaited<ReturnType<typeof getTrackedJob>>;
+}> {
+  const sessionRows = await executeWithRetry(() =>
+    db.select()
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .limit(1)
+  );
+
+  const session = sessionRows[0] ?? null;
+  const job = session ? await getTrackedJob(sessionId) : null;
+
+  return { session, job };
+}
+
+/**
+ * Compute queue position based on status.
+ */
+async function computeQueuePosition(sessionId: string, queueStatus: QueueStatus): Promise<number> {
+  if (queueStatus !== 'queued' && queueStatus !== 'processing') {
+    return 0;
+  }
+  return getQueuePosition(sessionId);
+}
+
+/**
+ * Compute estimated wait time in seconds for a queued session.
+ */
+async function computeEstimatedWait(position: number, queueStatus: QueueStatus): Promise<number> {
+  if (queueStatus !== 'queued') {
+    return 0;
+  }
+
+  const activeCount = activeProcessingIds.size;
+  const contentionFactor = 1 + (Math.max(0, activeCount - 1) * QUEUE_CONFIG.contentionMultiplier);
+  const adjustedCycleTime = QUEUE_CONFIG.baseAnalysisTime * contentionFactor;
+
+  const sessionTimes = Array.from(processingStartTimes.values());
+  const remainingTimes = sessionTimes.map(startTime => {
+    const elapsed = (Date.now() - startTime) / 1000;
+    return Math.max(10, adjustedCycleTime - elapsed);
+  });
+
+  const nextSlotAvailableIn = remainingTimes.length > 0 ? Math.min(...remainingTimes) : 0;
+  const itemsAhead = Math.max(0, position - 1);
+  const waitPerQueueItem = adjustedCycleTime / QUEUE_CONFIG.maxConcurrent;
+
+  return Math.ceil(nextSlotAvailableIn + (itemsAhead * waitPerQueueItem));
 }
 
 /**
@@ -739,7 +807,7 @@ async function _getNextInQueue(): Promise<string | null> {
     const nextJob = await queueDriver.claimNextQueuedJob();
     return nextJob?.sessionId ?? null;
   } catch (error) {
-    logger.error('Failed to get next in queue', { error: (error as any)?.message || error });
+    logger.error('Failed to get next in queue', { error: error instanceof Error ? error.message : error });
     return null;
   }
 }
@@ -842,6 +910,39 @@ export async function markAsComplete(
     reasoningLogs?: string | null;
   }
 ): Promise<void> {
+  const rowsAffected = await updateSessionToComplete(sessionId, results);
+  if (rowsAffected === 0) {
+    logger.warn('Skipped complete transition due to non-processing state', { sessionId });
+    releaseProcessingSlot(sessionId);
+    return;
+  }
+
+  releaseProcessingSlot(sessionId);
+  await completeTrackedJobAttempt(sessionId, 'succeeded');
+
+  logger.info('Session marked complete', { sessionId });
+  await syncJobCompleted(sessionId, results);
+  emitComplete(
+    sessionId,
+    results.rectifiedTime,
+    results.accuracy,
+    results.confidence
+  );
+}
+
+/**
+ * Update the session row to complete status. Returns rows affected.
+ */
+async function updateSessionToComplete(
+  sessionId: string,
+  results: {
+    rectifiedTime: string;
+    accuracy: number;
+    confidence: string;
+    analysisResult: string;
+    reasoningLogs?: string | null;
+  }
+): Promise<number | null> {
   const updateResult = await executeWithRetry(() =>
     db.update(sessions)
       .set({
@@ -850,8 +951,7 @@ export async function markAsComplete(
         accuracy: results.accuracy,
         confidence: results.confidence,
         analysisResult: results.analysisResult,
-        // progressData: LEAVE AS IS (Saved by ProgressTracker.complete())
-        reasoningLogs: results.reasoningLogs ? JSON.stringify(results.reasoningLogs) : null, // 🔥 PERSISTING LOGS NOW
+        reasoningLogs: results.reasoningLogs ? JSON.stringify(results.reasoningLogs) : null,
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       } as any)
@@ -861,30 +961,16 @@ export async function markAsComplete(
       ))
   );
 
-  const rowsAffected = getRowsAffected(updateResult);
-  if (rowsAffected === 0) {
-    logger.warn('Skipped complete transition due to non-processing state', { sessionId });
-    activeProcessingIds.delete(sessionId);
-    processingStartTimes.delete(sessionId);
-    return;
-  }
-
-  activeProcessingIds.delete(sessionId);
-  processingStartTimes.delete(sessionId);
-  await completeTrackedJobAttempt(sessionId, 'succeeded');
-
-  logger.info('Session marked complete', { sessionId });
-  await syncJobCompleted(sessionId, results);
-
-  // ⚡ Emit Complete Event so frontend gets the result!
-  emitComplete(
-    sessionId,
-    results.rectifiedTime,
-    results.accuracy,
-    results.confidence
-  );
+  return getRowsAffected(updateResult);
 }
 
+/**
+ * Release a processing slot for the given session.
+ */
+function releaseProcessingSlot(sessionId: string): void {
+  activeProcessingIds.delete(sessionId);
+  processingStartTimes.delete(sessionId);
+}
 /**
  * Mark session as failed and flush technical trash
  */
@@ -944,7 +1030,7 @@ export async function flushSessionTrash(sessionId: string): Promise<void> {
           analysisResult: null,
           // reasoningLogs: null, // Note: Not in DB but keep in mind
           updatedAt: new Date().toISOString(),
-        } as any)
+        })
         .where(eq(sessions.id, sessionId))
     );
 
@@ -978,11 +1064,6 @@ export async function heartbeat(sessionId: string): Promise<void> {
       .where(eq(sessions.id, sessionId))
   );
   await syncJobHeartbeat(sessionId);
-}
-
-async function releaseProcessingSlot(sessionId: string): Promise<void> {
-  activeProcessingIds.delete(sessionId);
-  processingStartTimes.delete(sessionId);
 }
 
 async function markSessionQueuedForRetry(sessionId: string): Promise<void> {
@@ -1045,7 +1126,7 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
     logger.info('Session cancelled by user (Full Wipe Complete)', { sessionId });
     return true;
   } catch (error) {
-    logger.error('Failed to cancel session', { error: (error as any)?.message || error });
+    logger.error('Failed to cancel session', { error: error instanceof Error ? error.message : error });
     return false;
   }
 }
@@ -1130,73 +1211,109 @@ async function processSessionWithRetry(sessionId: string, attempt: number = 0): 
     recordGlobalProcessingSuccess();
 
   } catch (error) {
-    const isRetryable = isRetryableError(error);
-    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-    const retryReasonCode = deriveRetryReasonCode(error);
-    const dependency = mapReasonToDependency(retryReasonCode);
+    await handleProcessingFailure(sessionId, error, attempt);
+  }
+}
 
-    if (isRetryable && attempt < RETRY_CONFIG.maxRetries) {
-      const delay = getRetryDelay(attempt);
-      await completeTrackedJobAttempt(sessionId, 'abandoned', errorMsg, retryReasonCode);
-      const job = await getTrackedJob(sessionId);
-      if (job) {
-        const nextRetryAt = new Date(Date.now() + delay).toISOString();
-        await scheduleJobRetry({
-          jobId: job.id,
-          retryCount: job.retryCount + 1,
-          retryReasonCode,
-          nextRetryAt,
-          errorCode: retryReasonCode,
-          errorMessage: errorMsg,
-        });
-        await appendLifecycleEvent(sessionId, 'job.retrying', {
-          status: 'retrying',
-          attempt: attempt + 1,
-          retryCount: job.retryCount + 1,
-          retryReasonCode,
-          delayMs: delay,
-          nextRetryAt,
-          errorMessage: errorMsg,
-        });
-        await queueDriver.scheduleRetrySession(sessionId, nextRetryAt);
-      }
+/**
+ * Handle a processing failure by either scheduling a retry or marking permanent failure.
+ */
+async function handleProcessingFailure(
+  sessionId: string,
+  error: unknown,
+  attempt: number
+): Promise<void> {
+  const isRetryable = isRetryableError(error);
+  const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+  const retryReasonCode = deriveRetryReasonCode(error);
+  const dependency = mapReasonToDependency(retryReasonCode);
 
-      if (config.queue.architecture === 'redis_bullmq') {
-        await markSessionQueuedForRetry(sessionId);
-        logger.warn(`Queued retry via Redis transport for session ${sessionId}`, {
-          delayMs: delay,
-          attempt: attempt + 1,
-          maxAttempts: RETRY_CONFIG.maxRetries,
-          retryReasonCode,
-        });
-        return;
-      }
+  if (isRetryable && attempt < RETRY_CONFIG.maxRetries) {
+    await scheduleRetry(sessionId, errorMsg, retryReasonCode, attempt);
+    return;
+  }
 
-      logger.warn(`Retrying session ${sessionId} after ${delay}ms (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries})`, {
-        error: errorMsg,
-        isRetryable,
-      });
+  await finalizePermanentFailure(sessionId, errorMsg, attempt, retryReasonCode, dependency);
+}
 
-      await sleep(delay);
-      await beginTrackedJobAttempt(sessionId);
-      return processSessionWithRetry(sessionId, attempt + 1);
-    }
+/**
+ * Schedule a retry for a failed session after a backoff delay.
+ */
+async function scheduleRetry(
+  sessionId: string,
+  errorMsg: string,
+  retryReasonCode: RetryReasonCode,
+  attempt: number
+): Promise<void> {
+  const delay = getRetryDelay(attempt);
+  await completeTrackedJobAttempt(sessionId, 'abandoned', errorMsg, retryReasonCode);
 
-    // Non-retryable or max retries exceeded
-    logger.error(`Session ${sessionId} failed permanently after ${attempt + 1} attempts`, {
-      error: errorMsg,
-      isRetryable,
+  const job = await getTrackedJob(sessionId);
+  if (job) {
+    const nextRetryAt = new Date(Date.now() + delay).toISOString();
+    await scheduleJobRetry({
+      jobId: job.id,
+      retryCount: job.retryCount + 1,
+      retryReasonCode,
+      nextRetryAt,
+      errorCode: retryReasonCode,
+      errorMessage: errorMsg,
+    });
+    await appendLifecycleEvent(sessionId, 'job.retrying', {
+      status: 'retrying',
+      attempt: attempt + 1,
+      retryCount: job.retryCount + 1,
+      retryReasonCode,
+      delayMs: delay,
+      nextRetryAt,
+      errorMessage: errorMsg,
+    });
+    await queueDriver.scheduleRetrySession(sessionId, nextRetryAt);
+  }
+
+  if (config.queue.architecture === 'redis_bullmq') {
+    await markSessionQueuedForRetry(sessionId);
+    logger.warn(`Queued retry via Redis transport for session ${sessionId}`, {
+      delayMs: delay,
+      attempt: attempt + 1,
+      maxAttempts: RETRY_CONFIG.maxRetries,
       retryReasonCode,
     });
-    recordDependencyFailure(dependency);
+    return;
+  }
 
-    // Try to mark as failed (with its own error handling)
-    try {
-      await writeDeadLetterArtifact(sessionId, errorMsg, attempt + 1);
-      await markAsFailed(sessionId, errorMsg, retryReasonCode);
-    } catch (markError) {
-      logger.error(`Failed to mark session ${sessionId} as failed`, markError);
-    }
+  logger.warn(`Retrying session ${sessionId} after ${delay}ms (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries})`, {
+    error: errorMsg,
+    isRetryable: true,
+  });
+
+  await sleep(delay);
+  await beginTrackedJobAttempt(sessionId);
+  return processSessionWithRetry(sessionId, attempt + 1);
+}
+
+/**
+ * Finalize a permanently failed session by writing dead letter and marking failed.
+ */
+async function finalizePermanentFailure(
+  sessionId: string,
+  errorMsg: string,
+  attempt: number,
+  retryReasonCode: RetryReasonCode,
+  dependency: CircuitDependency
+): Promise<void> {
+  logger.error(`Session ${sessionId} failed permanently after ${attempt + 1} attempts`, {
+    error: errorMsg,
+    isRetryable: false,
+    retryReasonCode,
+  });
+  recordDependencyFailure(dependency);
+
+  try {
+    await writeDeadLetterArtifact(sessionId, errorMsg, attempt + 1);
+    await markAsFailed(sessionId, errorMsg, retryReasonCode);
+  } catch (markError) {
+    logger.error(`Failed to mark session ${sessionId} as failed`, markError);
   }
 }
 
@@ -1237,55 +1354,17 @@ async function processQueue(): Promise<void> {
 
 export async function runQueueIteration(): Promise<void> {
   try {
-    const blockingBreakers = getBlockingCircuitBreakers();
-    if (blockingBreakers.length > 0) {
-      const remainingMs = Math.min(...blockingBreakers.map((breaker) => breaker.remainingMs));
-      const remainingSec = Math.ceil(remainingMs / 1000);
-      logger.error('Dependency circuit breaker open. Pausing queue iteration.', {
-        blockingDependencies: blockingBreakers.map((breaker) => breaker.dependency),
-        remainingSec,
-      });
-      await sleep(Math.max(1000, Math.min(config.queue.pollIntervalMs, remainingMs)));
+    const breakerDelay = await checkCircuitBreakers();
+    if (breakerDelay !== null) {
+      await sleep(breakerDelay);
       return;
     }
 
     await cleanupStaleRequests();
-
-    const memoryPressure = getMemoryPressureSnapshot();
-    const { heapUsedGB, heapTotalGB, rssGB } = memoryPressure;
-    let effectiveMaxConcurrent = QUEUE_CONFIG.maxConcurrent;
-
-    if (Math.random() < 0.1) {
-      const snapshot = getCircuitSnapshots();
-      logger.info('[MEMORY] Queue runtime snapshot', {
-        rssGB: Number(rssGB.toFixed(2)),
-        heapUsedGB: Number(heapUsedGB.toFixed(2)),
-        heapTotalGB: Number(heapTotalGB.toFixed(2)),
-        concurrentActive: activeProcessingIds.size,
-        concurrentLimit: effectiveMaxConcurrent,
-        circuitBreakers: snapshot.map((item) => ({
-          dependency: item.dependency,
-          consecutiveFailures: item.consecutiveFailures,
-          isOpen: item.isOpen,
-        })),
-      });
-    }
-
-    if (memoryPressure.isUnderPressure) {
-      logger.warn(`[PRESSURE] RAM Pressure detected (RSS: ${rssGB.toFixed(2)}GB, Heap: ${heapUsedGB.toFixed(2)}GB), restricting concurrency from ${effectiveMaxConcurrent} to 1`);
-      effectiveMaxConcurrent = 1;
-      triggerGC();
-    }
+    const effectiveMaxConcurrent = await evaluateMemoryPressure();
 
     if (activeProcessingIds.size >= effectiveMaxConcurrent) {
-      const queuedCount = await getQueuedCount();
-      if (queuedCount > activeProcessingIds.size) {
-        logger.debug('Queue blocked: all slots full', {
-          active: activeProcessingIds.size,
-          max: QUEUE_CONFIG.maxConcurrent
-        });
-      }
-      await sleep(1000);
+      await handleQueueBlocked();
       return;
     }
 
@@ -1297,22 +1376,100 @@ export async function runQueueIteration(): Promise<void> {
 
     logger.debug('Found next queued session', { sessionId: nextId });
     logger.debug('Claimed session as processing', { sessionId: nextId });
-
-    processSessionWithRetry(nextId).catch(err => {
-      logger.error('UNHANDLED ERROR in processSessionWithRetry', { sessionId: nextId, error: err });
-      recordDependencyFailure('processing');
-    });
+    startSessionProcessing(nextId);
   } catch (error) {
-    logger.error('Queue processor error', { error: (error as any)?.message || error });
-    const reasonCode = deriveRetryReasonCode(error);
-    recordDependencyFailure(mapReasonToDependency(reasonCode));
-
-    const processingSnapshot = getCircuitSnapshots().find((item) => item.dependency === 'processing');
-    const failureDepth = processingSnapshot?.consecutiveFailures ?? 1;
-    const delay = getRetryDelay(Math.min(failureDepth, 5));
-    logger.info(`Queue processor backing off for ${delay}ms due to error`);
-    await sleep(delay);
+    await handleQueueIterationError(error);
   }
+}
+
+/**
+ * Check if any circuit breakers are open and return the required delay.
+ */
+async function checkCircuitBreakers(): Promise<number | null> {
+  const blockingBreakers = getBlockingCircuitBreakers();
+  if (blockingBreakers.length === 0) {
+    return null;
+  }
+
+  const remainingMs = Math.min(...blockingBreakers.map((breaker) => breaker.remainingMs));
+  const remainingSec = Math.ceil(remainingMs / 1000);
+  logger.error('Dependency circuit breaker open. Pausing queue iteration.', {
+    blockingDependencies: blockingBreakers.map((breaker) => breaker.dependency),
+    remainingSec,
+  });
+  return Math.max(1000, Math.min(config.queue.pollIntervalMs, remainingMs));
+}
+
+/**
+ * Evaluate memory pressure and return the effective concurrency limit.
+ */
+async function evaluateMemoryPressure(): Promise<number> {
+  const memoryPressure = getMemoryPressureSnapshot();
+  const { heapUsedGB, heapTotalGB, rssGB } = memoryPressure;
+  let effectiveMaxConcurrent = QUEUE_CONFIG.maxConcurrent;
+
+  if (Math.random() < 0.1) {
+    const snapshot = getCircuitSnapshots();
+    logger.info('[MEMORY] Queue runtime snapshot', {
+      rssGB: Number(rssGB.toFixed(2)),
+      heapUsedGB: Number(heapUsedGB.toFixed(2)),
+      heapTotalGB: Number(heapTotalGB.toFixed(2)),
+      concurrentActive: activeProcessingIds.size,
+      concurrentLimit: effectiveMaxConcurrent,
+      circuitBreakers: snapshot.map((item) => ({
+        dependency: item.dependency,
+        consecutiveFailures: item.consecutiveFailures,
+        isOpen: item.isOpen,
+      })),
+    });
+  }
+
+  if (memoryPressure.isUnderPressure) {
+    logger.warn(`[PRESSURE] RAM Pressure detected (RSS: ${rssGB.toFixed(2)}GB, Heap: ${heapUsedGB.toFixed(2)}GB), restricting concurrency from ${effectiveMaxConcurrent} to 1`);
+    effectiveMaxConcurrent = 1;
+    triggerGC();
+  }
+
+  return effectiveMaxConcurrent;
+}
+
+/**
+ * Handle the case when all processing slots are full.
+ */
+async function handleQueueBlocked(): Promise<void> {
+  const queuedCount = await getQueuedCount();
+  if (queuedCount > activeProcessingIds.size) {
+    logger.debug('Queue blocked: all slots full', {
+      active: activeProcessingIds.size,
+      max: QUEUE_CONFIG.maxConcurrent,
+    });
+  }
+  await sleep(1000);
+}
+
+/**
+ * Start processing a claimed session in the background.
+ */
+function startSessionProcessing(sessionId: string): void {
+  processSessionWithRetry(sessionId).catch((err) => {
+    logger.error('UNHANDLED ERROR in processSessionWithRetry', { sessionId, error: err });
+    recordDependencyFailure('processing');
+  });
+}
+
+/**
+ * Handle errors during a queue iteration with exponential backoff.
+ */
+async function handleQueueIterationError(error: unknown): Promise<void> {
+  logger.error('Queue processor error', { error: (error as any)?.message || error });
+  const reasonCode = deriveRetryReasonCode(error);
+  recordDependencyFailure(mapReasonToDependency(reasonCode));
+
+  const processingSnapshot = getCircuitSnapshots().find((item) => item.dependency === 'processing');
+  const failureDepth = processingSnapshot?.consecutiveFailures ?? 1;
+  const delay = getRetryDelay(Math.min(failureDepth, 5));
+  logger.info(`Queue processor backing off for ${delay}ms due to error`);
+  await sleep(delay);
 }
 
 /**
@@ -1324,199 +1481,266 @@ async function processSessionAsync(sessionId: string): Promise<void> {
     logger.debug('processSessionAsync querying DB', { sessionId });
     logger.info('Starting to process request', { sessionId });
 
-    // Get session data
-    const session = await executeWithRetry(() =>
-      db.select()
-        .from(sessions)
-        .where(eq(sessions.id, sessionId))
-        .limit(1)
-    );
-
-    if (session.length === 0) {
-      throw new Error('Session not found');
-    }
-
-    const s = session[0];
-
-    // 🛑 Create AbortController for this session
+    const s = await fetchSessionRow(sessionId);
     const abortController = createAbortController(sessionId);
 
-    // Process the analysis
     try {
       await heartbeat(sessionId);
-      const heartbeatTimer = setInterval(() => {
-        void heartbeat(sessionId).catch((error) => {
-          logger.warn('Worker heartbeat failed', {
-            sessionId,
-            error: error instanceof Error ? error.message : String(error),
-          });
-        });
-      }, 15000);
+      const heartbeatTimer = startHeartbeatTimer(sessionId);
 
       try {
-      // 🔐 Decrypt sensitive data using clerkId (encryption key)
-      // lifeEvents is nullable for drafts, but at processing stage it must exist
-      if (!s.lifeEvents) {
-        throw new Error('lifeEvents data is missing - cannot process without life events');
-      }
-
-      let decryptedLifeEvents;
-      const lifeEventsDecrypted = safeDecryptWithFallback(s.lifeEvents, s.clerkId, s.userId);
-      if (lifeEventsDecrypted) {
-        decryptedLifeEvents = JSON.parse(lifeEventsDecrypted);
-      } else {
-        // Fallback: Try parsing as plain JSON (for Hybrid/Vercel created sessions)
-        try {
-          decryptedLifeEvents = JSON.parse(s.lifeEvents);
-        } catch (e) {
-          throw new Error('Failed to decrypt or parse lifeEvents data');
-        }
-      }
-
-      let decryptedPhysicalTraits: any = undefined;
-      if (s.physicalTraits) {
-        const decrypted = safeDecryptWithFallback(s.physicalTraits, s.clerkId, s.userId);
-        if (decrypted) {
-          try {
-            decryptedPhysicalTraits = JSON.parse(decrypted);
-          } catch (e) {
-            logger.warn('Failed to parse physicalTraits JSON, using undefined', { sessionId, error: e });
-          }
-        } else {
-          // Fallback: Try parsing as plain JSON
-          try {
-            decryptedPhysicalTraits = JSON.parse(s.physicalTraits);
-          } catch (e) {
-            // Ignore plain text parse errors for optional fields
-          }
-        }
-      }
-
-      let decryptedForensicTraits: any = undefined;
-      if (s.forensicTraits) {
-        const decrypted = safeDecryptWithFallback(s.forensicTraits, s.clerkId, s.userId);
-        if (decrypted) {
-          try {
-            decryptedForensicTraits = JSON.parse(decrypted);
-          } catch (e) {
-            logger.warn('Failed to parse forensicTraits JSON, using undefined', { sessionId, error: e });
-          }
-        } else {
-          // Fallback: Try parsing as plain JSON
-          try {
-            decryptedForensicTraits = JSON.parse(s.forensicTraits);
-          } catch (e) {
-            // Ignore plain text parse errors for optional fields
-          }
-        }
-      }
-
-      // 🔐 Decrypt core birth data (Robust Fallback for Legacy Sessions)
-      const dateOfBirth = parseSensitiveField(s.dateOfBirth, s.clerkId, s.userId);
-      const tentativeTime = parseSensitiveField(s.tentativeTime, s.clerkId, s.userId);
-
-      logger.info('[Time Format]', {
-        sessionId,
-        rawTime: s.tentativeTime?.substring(0, 20) + '...',
-        decryptedTime: tentativeTime,
-        type: typeof tentativeTime
-      });
-
-      // Decrypt Spouse Data if present
-      let decryptedSpouseData: any = undefined;
-      if (s.spouseData) {
-        decryptedSpouseData = parseSensitiveField(s.spouseData, s.clerkId, s.userId);
-      }
-
-      // 🚀 GOD-TIER STARTUP LOGGING
-      logger.info('🚀 [ENGINE START] Initializing Seconds Precision BTR...', {
-        sessionId,
-        offsetConfig: s.offsetConfig ? 'Preserving User Config' : 'Using Default',
-        dashaSystem: 'Vimshottari'
-      });
-
-      const result = await processSecondsPrecisionBTR({
-        sessionId: sessionId,
-        dateOfBirth: dateOfBirth,
-        tentativeTime: tentativeTime,
-        latitude: s.latitude,
-        longitude: s.longitude,
-        timezone: s.timezone,
-        lifeEvents: decryptedLifeEvents,
-        offsetConfig: (() => {
-          // 🧠 Robust Offset Parsing: Prioritize User Config > Default
-          const raw = parseSensitiveField(s.offsetConfig, s.clerkId, s.userId);
-          if (raw && (raw.preset || raw.customMinutes)) return raw;
-          return { preset: '1hour' }; // Only fallback if totally missing/invalid
-        })(),
-        physicalTraits: decryptedPhysicalTraits,
-        forensicTraits: decryptedForensicTraits,
-        spouseData: decryptedSpouseData,
-        abortSignal: abortController.signal, // 🛑 Pass abort signal
-      });
-
-      logger.info('✅ [ENGINE COMPLETE] Analysis finished successfully', { sessionId });
-
-
-      // ✂️ SPLIT REASONING LOGS (Database Optimization)
-      // Capture the persistent stage history from the ProgressTracker
-      let _reasoningLogs: string | null = null;
-      let optimizedAnalysisStr = "";
-
-      try {
-        const tracker = ProgressTracker.getInstance(sessionId);
-        if (tracker) {
-          const history = tracker.getProgress().stageHistory;
-          _reasoningLogs = JSON.stringify(history);
-        }
-
-        optimizedAnalysisStr = JSON.stringify(result.analysisResult);
-      } catch (e) {
-        logger.warn('Failed to serialize analysis result', { error: (e as any)?.message || e });
-        optimizedAnalysisStr = JSON.stringify({ error: "Serialization failed" });
-      }
-
-      await markAsComplete(sessionId, {
-        ...result,
-        analysisResult: optimizedAnalysisStr
-        // reasoningLogs: null // 🔥 NOT SAVED TO DB
-      });
-
-      cleanupController(sessionId); // Cleanup on success
+        const decrypted = decryptSessionFields(s, sessionId);
+        const btrInput = buildBtrInput(s, decrypted, abortController.signal);
+        const result = await runBtrAnalysis(sessionId, btrInput);
+        await serializeAndComplete(sessionId, result);
+        cleanupController(sessionId);
       } finally {
         clearInterval(heartbeatTimer);
       }
     } catch (error) {
-      // Check if this was a cancellation
-      if (isCancellationError(error)) {
-        logger.info('Session processing cancelled', { sessionId });
-        cleanupController(sessionId);
-        // Status already set to 'failed' by cancelSession, no need to update
-      } else {
-        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-        const errorStack = error instanceof Error ? error.stack : undefined;
-        logger.error('[PROCESSING ERROR] Session failed during processing', {
-          sessionId,
-          errorMsg,
-          errorStack: errorStack?.substring(0, 500)
-        });
-        cleanupController(sessionId);
-        throw error;
-      }
+      handleProcessingException(error, sessionId);
     }
   } catch (error) {
     logger.error('Async worker error', error);
     throw error;
   } finally {
-    // 🛡️ Ensure slot is ALWAYS released
-    activeProcessingIds.delete(sessionId);
+    releaseWorkerSlot(sessionId);
+  }
+}
 
-    // 🚀 GOD-TIER MEMORY RECOVERY
-    // Manually trigger Garbage Collection if --expose-gc is enabled
-    if ((global as any).gc) {
-      logger.info('[MEMORY] Triggering manual GC after session recovery');
-      (global as any).gc();
+/**
+ * Fetch a session row from the database. Throws if not found.
+ */
+async function fetchSessionRow(sessionId: string): Promise<typeof sessions.$inferSelect> {
+  const rows = await executeWithRetry(() =>
+    db.select()
+      .from(sessions)
+      .where(eq(sessions.id, sessionId))
+      .limit(1)
+  );
+
+  if (rows.length === 0) {
+    throw new Error('Session not found');
+  }
+  return rows[0];
+}
+
+/**
+ * Start a heartbeat timer that pings the session every 15 seconds.
+ */
+function startHeartbeatTimer(sessionId: string): ReturnType<typeof setInterval> {
+  return setInterval(() => {
+    void heartbeat(sessionId).catch((error) => {
+      logger.warn('Worker heartbeat failed', {
+        sessionId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    });
+  }, 15000);
+}
+
+interface DecryptedSessionData {
+  lifeEvents: unknown;
+  physicalTraits: PhysicalTraits | undefined;
+  forensicTraits: ForensicTraits | undefined;
+  dateOfBirth: string;
+  tentativeTime: string;
+  spouseData: unknown | undefined;
+}
+
+/**
+ * Decrypt all sensitive session fields with fallback to plain JSON.
+ */
+function decryptSessionFields(
+  s: typeof sessions.$inferSelect,
+  sessionId: string
+): DecryptedSessionData {
+  if (!s.lifeEvents) {
+    throw new Error('lifeEvents data is missing - cannot process without life events');
+  }
+
+  const lifeEvents = decryptJsonField(s.lifeEvents, s.clerkId, s.userId, true);
+  const physicalTraits = decryptOptionalJsonField<PhysicalTraits>(
+    s.physicalTraits, s.clerkId, s.userId, sessionId, 'physicalTraits'
+  );
+  const forensicTraits = decryptOptionalJsonField<ForensicTraits>(
+    s.forensicTraits, s.clerkId, s.userId, sessionId, 'forensicTraits'
+  );
+
+  const dateOfBirth = parseSensitiveField(s.dateOfBirth, s.clerkId, s.userId) as string;
+  const tentativeTime = parseSensitiveField(s.tentativeTime, s.clerkId, s.userId) as string;
+
+  logger.info('[Time Format]', {
+    sessionId,
+    rawTime: s.tentativeTime?.substring(0, 20) + '...',
+    decryptedTime: tentativeTime,
+    type: typeof tentativeTime,
+  });
+
+  const spouseData = s.spouseData
+    ? parseSensitiveField(s.spouseData, s.clerkId, s.userId)
+    : undefined;
+
+  return { lifeEvents, physicalTraits, forensicTraits, dateOfBirth, tentativeTime, spouseData };
+}
+
+/**
+ * Decrypt a JSON field, falling back to plain JSON if decryption fails.
+ * Throws if both decryption and plain JSON parsing fail.
+ */
+function decryptJsonField(
+  encrypted: string,
+  clerkId: string,
+  userId: string,
+  required: boolean
+): unknown {
+  const decrypted = safeDecryptWithFallback(encrypted, clerkId, userId);
+  if (decrypted) {
+    return JSON.parse(decrypted);
+  }
+  try {
+    return JSON.parse(encrypted);
+  } catch {
+    if (required) {
+      throw new Error('Failed to decrypt or parse required field');
     }
+    return undefined;
+  }
+}
+
+/**
+ * Decrypt an optional JSON field, returning undefined on any failure.
+ */
+function decryptOptionalJsonField<T>(
+  encrypted: string | null,
+  clerkId: string,
+  userId: string,
+  sessionId: string,
+  fieldName: string
+): T | undefined {
+  if (!encrypted) return undefined;
+
+  const decrypted = safeDecryptWithFallback(encrypted, clerkId, userId);
+  if (decrypted) {
+    try {
+      return JSON.parse(decrypted) as T;
+    } catch (e) {
+      logger.warn(`Failed to parse ${fieldName} JSON, using undefined`, { sessionId, error: e });
+      return undefined;
+    }
+  }
+  try {
+    return JSON.parse(encrypted) as T;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Build the BTR input object from decrypted session data.
+ */
+function buildBtrInput(
+  s: typeof sessions.$inferSelect,
+  decrypted: DecryptedSessionData,
+  abortSignal: AbortSignal
+): Parameters<typeof processSecondsPrecisionBTR>[0] {
+  logger.info('🚀 [ENGINE START] Initializing Seconds Precision BTR...', {
+    sessionId: s.id,
+    offsetConfig: s.offsetConfig ? 'Preserving User Config' : 'Using Default',
+    dashaSystem: 'Vimshottari',
+  });
+
+  const rawOffset = parseSensitiveField(s.offsetConfig, s.clerkId, s.userId) as Record<string, unknown> | null;
+  const offsetConfig = rawOffset && (rawOffset.preset || rawOffset.customMinutes)
+    ? rawOffset
+    : { preset: '1hour' };
+
+  return {
+    sessionId: s.id,
+    dateOfBirth: decrypted.dateOfBirth,
+    tentativeTime: decrypted.tentativeTime,
+    latitude: s.latitude,
+    longitude: s.longitude,
+    timezone: s.timezone,
+    lifeEvents: decrypted.lifeEvents as Parameters<typeof processSecondsPrecisionBTR>[0]['lifeEvents'],
+    offsetConfig: offsetConfig as unknown as Parameters<typeof processSecondsPrecisionBTR>[0]['offsetConfig'],
+    physicalTraits: decrypted.physicalTraits,
+    forensicTraits: decrypted.forensicTraits as ForensicTraits,
+    spouseData: decrypted.spouseData as Parameters<typeof processSecondsPrecisionBTR>[0]['spouseData'],
+    abortSignal,
+  };
+}
+
+/**
+ * Run the seconds-precision BTR analysis and log completion.
+ */
+async function runBtrAnalysis(
+  sessionId: string,
+  btrInput: Parameters<typeof processSecondsPrecisionBTR>[0]
+): Promise<Awaited<ReturnType<typeof processSecondsPrecisionBTR>>> {
+  const result = await processSecondsPrecisionBTR(btrInput);
+  logger.info('✅ [ENGINE COMPLETE] Analysis finished successfully', { sessionId });
+  return result;
+}
+
+/**
+ * Serialize the analysis result and mark the session as complete.
+ */
+async function serializeAndComplete(
+  sessionId: string,
+  result: Awaited<ReturnType<typeof processSecondsPrecisionBTR>>
+): Promise<void> {
+  let optimizedAnalysisStr = '';
+
+  try {
+    const tracker = ProgressTracker.getInstance(sessionId);
+    if (tracker) {
+      tracker.getProgress().stageHistory;
+    }
+    optimizedAnalysisStr = JSON.stringify(result.analysisResult);
+  } catch (e) {
+    logger.warn('Failed to serialize analysis result', { error: e instanceof Error ? e.message : e });
+    optimizedAnalysisStr = JSON.stringify({ error: 'Serialization failed' });
+  }
+
+  await markAsComplete(sessionId, {
+    ...result,
+    analysisResult: optimizedAnalysisStr,
+  });
+}
+
+/**
+ * Distinguish cancellation errors from real processing errors.
+ * Re-throws real errors after cleanup.
+ */
+function handleProcessingException(error: unknown, sessionId: string): void {
+  if (isCancellationError(error)) {
+    logger.info('Session processing cancelled', { sessionId });
+    cleanupController(sessionId);
+    return;
+  }
+
+  const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+  const errorStack = error instanceof Error ? error.stack : undefined;
+  logger.error('[PROCESSING ERROR] Session failed during processing', {
+    sessionId,
+    errorMsg,
+    errorStack: errorStack?.substring(0, 500),
+  });
+  cleanupController(sessionId);
+  throw error;
+}
+
+/**
+ * Release the worker slot and trigger manual GC if available.
+ */
+function releaseWorkerSlot(sessionId: string): void {
+  activeProcessingIds.delete(sessionId);
+
+  const globalWithGC = globalThis as typeof globalThis & { gc?: () => void };
+  if (globalWithGC.gc) {
+    logger.info('[MEMORY] Triggering manual GC after session recovery');
+    globalWithGC.gc();
   }
 }
 
@@ -1634,7 +1858,44 @@ export async function recoverInterruptedJobsOnStartup(): Promise<{
   recoveredJobs: number;
   abandonedAttempts: number;
 }> {
-  const runningJobs = await executeWithRetry(() =>
+  const runningJobs = await fetchRunningJobs();
+  let recoveredJobs = 0;
+  let abandonedAttempts = 0;
+
+  for (const runningJob of runningJobs) {
+    const wasAbandoned = await recoverSingleJob(runningJob);
+    if (wasAbandoned) abandonedAttempts++;
+    recoveredJobs++;
+  }
+
+  if (recoveredJobs > 0) {
+    logger.warn('Recovered interrupted running jobs on startup', {
+      recoveredJobs,
+      abandonedAttempts,
+    });
+  }
+
+  updateRecoveryMetrics(recoveredJobs, abandonedAttempts);
+
+  return {
+    recoveredJobs,
+    abandonedAttempts,
+  };
+}
+
+/**
+ * Fetch all running jobs with their active attempt IDs.
+ */
+async function fetchRunningJobs(): Promise<
+  Array<{
+    jobId: string;
+    sessionId: string;
+    retryCount: number;
+    checkpointJson: unknown;
+    attemptId: string | null;
+  }>
+> {
+  return executeWithRetry(() =>
     db
       .select({
         jobId: jobs.id,
@@ -1651,67 +1912,68 @@ export async function recoverInterruptedJobsOnStartup(): Promise<{
       .where(eq(jobs.status, 'running'))
       .orderBy(asc(jobs.updatedAt))
   );
+}
 
-  let recoveredJobs = 0;
-  let abandonedAttempts = 0;
+/**
+ * Recover a single interrupted job. Returns true if an attempt was abandoned.
+ */
+async function recoverSingleJob(
+  runningJob: Awaited<ReturnType<typeof fetchRunningJobs>>[number]
+): Promise<boolean> {
+  const now = new Date().toISOString();
+  let wasAbandoned = false;
 
-  for (const runningJob of runningJobs) {
-    const now = new Date().toISOString();
+  if (runningJob.attemptId) {
+    await completeJobAttempt({
+      attemptId: runningJob.attemptId,
+      outcome: 'abandoned',
+      failureReason: 'Worker restarted before completion',
+      failureCode: 'worker_restart',
+      checkpointJson: (runningJob.checkpointJson as Record<string, unknown> | null) ?? null,
+    });
+    wasAbandoned = true;
+  }
 
-    if (runningJob.attemptId) {
-      await completeJobAttempt({
-        attemptId: runningJob.attemptId,
-        outcome: 'abandoned',
-        failureReason: 'Worker restarted before completion',
-        failureCode: 'worker_restart',
-        checkpointJson: (runningJob.checkpointJson as Record<string, unknown> | null) ?? null,
-      });
-      abandonedAttempts += 1;
-    }
+  await scheduleJobRetry({
+    jobId: runningJob.jobId,
+    retryCount: runningJob.retryCount + 1,
+    retryReasonCode: 'worker_restart',
+    nextRetryAt: now,
+    errorCode: 'worker_restart',
+    errorMessage: 'Recovered after worker restart',
+  });
 
-    await scheduleJobRetry({
-      jobId: runningJob.jobId,
-      retryCount: runningJob.retryCount + 1,
+  await executeWithRetry(() =>
+    db
+      .update(sessions)
+      .set({
+        status: 'queued',
+        errorMessage: null,
+        updatedAt: now,
+      })
+      .where(eq(sessions.id, runningJob.sessionId))
+  );
+
+  await appendJobEvent({
+    id: crypto.randomUUID(),
+    jobId: runningJob.jobId,
+    sessionId: runningJob.sessionId,
+    sequenceNo: await getNextJobEventSequence(runningJob.jobId),
+    eventType: 'job.recovered',
+    payloadJson: {
+      status: 'retrying',
       retryReasonCode: 'worker_restart',
-      nextRetryAt: now,
-      errorCode: 'worker_restart',
-      errorMessage: 'Recovered after worker restart',
-    });
+      recoveredAt: now,
+    },
+  });
 
-    await executeWithRetry(() =>
-      db
-        .update(sessions)
-        .set({
-          status: 'queued',
-          errorMessage: null,
-          updatedAt: now,
-        })
-        .where(eq(sessions.id, runningJob.sessionId))
-    );
+  return wasAbandoned;
+}
 
-    await appendJobEvent({
-      id: crypto.randomUUID(),
-      jobId: runningJob.jobId,
-      sessionId: runningJob.sessionId,
-      sequenceNo: await getNextJobEventSequence(runningJob.jobId),
-      eventType: 'job.recovered',
-      payloadJson: {
-        status: 'retrying',
-        retryReasonCode: 'worker_restart',
-        recoveredAt: now,
-      },
-    });
-
-    recoveredJobs += 1;
-  }
-
-  if (recoveredJobs > 0) {
-    logger.warn('Recovered interrupted running jobs on startup', {
-      recoveredJobs,
-      abandonedAttempts,
-    });
-  }
-
+/**
+ * Update global recovery telemetry counters.
+ */
+function updateRecoveryMetrics(recoveredJobs: number, abandonedAttempts: number): void {
   recoveryTelemetry.lastRunAt = new Date().toISOString();
   recoveryTelemetry.lastRecoveredJobs = recoveredJobs;
   recoveryTelemetry.lastAbandonedAttempts = abandonedAttempts;
@@ -1720,11 +1982,6 @@ export async function recoverInterruptedJobsOnStartup(): Promise<{
   recoveryTelemetry.alertActive =
     abandonedAttempts >= (config.queue.recoveryAlertThreshold ?? 1) ||
     recoveredJobs >= (config.queue.recoveryAlertThreshold ?? 1);
-
-  return {
-    recoveredJobs,
-    abandonedAttempts,
-  };
 }
 
 /**

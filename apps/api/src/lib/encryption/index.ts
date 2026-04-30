@@ -83,7 +83,7 @@ export function decryptObject<T extends Record<string, unknown>>(encryptedString
  * 🟢 GOD-TIER ROBUST DECRYPTION HELPER
  * Handles both encrypted and non-encrypted fields, and safely parses JSON.
  */
-export function parseSensitiveField(data: string | null | undefined, clerkId: string, internalUserId: string, defaultValue: any = null): any {
+export function parseSensitiveField<T = unknown>(data: string | null | undefined, clerkId: string, internalUserId: string, defaultValue: T | null = null): T | string | null {
     if (!data) return defaultValue;
 
     try {

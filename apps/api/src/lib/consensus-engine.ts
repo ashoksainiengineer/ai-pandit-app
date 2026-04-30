@@ -312,11 +312,11 @@ function validateYogini(input: ValidationInput): ValidationDetail {
       endDate: event.endDate,
       datePrecision: event.datePrecision,
       eventTime: event.eventTime,
-    } as any);
+    });
     const eventDate = new Date(eventWindow.midpointMs);
 
     // Find which Yogini period contains this event
-    const yoginiPeriod = candidate.dasha.yogini.find((y: any) => {
+    const yoginiPeriod = candidate.dasha.yogini.find((y: { lord: string; startEnd: string }) => {
       if (!y.startEnd) return false;
       const [start, end] = y.startEnd.split(' to ').map((d: string) => new Date(d));
       return eventDate >= start && eventDate <= end;
@@ -585,7 +585,7 @@ function validateTransit(input: ValidationInput): ValidationDetail {
       endDate: event.endDate,
       datePrecision: event.datePrecision,
       eventTime: event.eventTime,
-    } as any);
+    });
 
     const matchingEntry = transitEntries.find((entry) => {
       if (eventId && entry.eventId === eventId) return true;
@@ -991,7 +991,7 @@ function checkPrakritiLagnaMatch(prakriti: string, lagna: string): boolean {
   return element === prakritiElement;
 }
 
-function checkBuildPlanetaryMatch(build: string, planets: Record<string, any>): number {
+function checkBuildPlanetaryMatch(build: string, planets: Record<string, { dignity?: string }>): number {
   let score = 0;
   const jupiterStrong = planets.jupiter?.dignity === 'exalted' || planets.jupiter?.dignity === 'own';
   const saturnStrong = planets.saturn?.dignity === 'exalted' || planets.saturn?.dignity === 'own';
@@ -1003,7 +1003,7 @@ function checkBuildPlanetaryMatch(build: string, planets: Record<string, any>): 
   return score;
 }
 
-function detectSandhi(candidate: any): boolean {
+function detectSandhi(candidate: ValidationInput['candidate']): boolean {
   const ascDegree = candidate.ephemeris?.ascendant?.degree;
   if (typeof ascDegree === 'number') {
     return ascDegree < 1 || ascDegree > 29;
@@ -1017,7 +1017,7 @@ function detectSandhi(candidate: any): boolean {
   return false;
 }
 
-function detectGandanta(candidate: any): boolean {
+function detectGandanta(candidate: ValidationInput['candidate']): boolean {
   const moonLong = candidate.ephemeris?.planets?.moon?.longitude;
   if (!moonLong) return false;
 
@@ -1026,7 +1026,7 @@ function detectGandanta(candidate: any): boolean {
   return inZone;
 }
 
-function detectDashaSandhi(candidate: any): boolean {
+function detectDashaSandhi(candidate: ValidationInput['candidate']): boolean {
   // Check if birth is near dasha transition
   const snapshot = getVimshottariSnapshot(candidate);
   const dashaStart = snapshot.startDate;
@@ -1048,11 +1048,15 @@ function detectConflicts(scores: ConsensusScores): boolean {
   return (max - min) > 40; // More than 40 point difference indicates conflict
 }
 
-function detectWeakSignificators(candidate: any): boolean {
-  const planets = candidate.ephemeris?.planets || {};
-  return Object.values(planets).some((p: any) =>
-    p.shadbala && p.shadbala.total < 1.0
-  );
+function detectWeakSignificators(candidate: ValidationInput['candidate']): boolean {
+  const planets = candidate.ephemeris?.planets;
+  if (!planets) return false;
+  return Object.values(planets).some((p) => {
+    const total = (p as Record<string, unknown>)?.shadbala && typeof (p as Record<string, unknown>).shadbala === 'object' && (p as Record<string, unknown>).shadbala !== null
+      ? ((p as Record<string, unknown>).shadbala as Record<string, unknown>).total
+      : undefined;
+    return typeof total === 'number' && total < 1.0;
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

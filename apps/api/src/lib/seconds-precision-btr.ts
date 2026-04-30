@@ -107,7 +107,7 @@ export async function processSecondsPrecisionBTR(
         await progress.startStep('init', 'Initializing Professional BTR v7.0 (Batch Tournament)...');
 
         // 🦾 Pre-calculate Global Lifecycle Shifts
-        const globalLifecycle: any[] = [];
+        const globalLifecycle: Array<{ date: string; event: string; dasha: string }> = [];
         try {
             const birthDate = convertToUTC(input.dateOfBirth, input.tentativeTime, input.timezone);
             const startYear = birthDate.getUTCFullYear();
@@ -140,7 +140,7 @@ export async function processSecondsPrecisionBTR(
                 if (globalLifecycle.length > 50) break;
             }
         } catch (e) {
-            logger.warn('Global lifecycle calculation failed', { error: (e as any)?.message || e });
+            logger.warn('Global lifecycle calculation failed', { error: e instanceof Error ? e.message : String(e) });
         }
 
         logger.info('Starting Professional BTR v7.0 (Batch Tournament)', {
@@ -272,7 +272,7 @@ export async function processSecondsPrecisionBTR(
                 ephemeris: finalEphemeris,
                 divCharts,
                 boundary,
-                d60Deity: (winnerPkg?.planets?.sun as any)?.d60Deity,
+                d60Deity: winnerPkg?.planets?.sun?.d60Deity,
                 vimsopakaAvg: winnerPkg?.vimsopakaBala ?
                     Object.values(winnerPkg.vimsopakaBala).reduce((a: number, b: number) => a + b, 0) / 7 : 0
             },
@@ -293,9 +293,9 @@ export async function processSecondsPrecisionBTR(
                 dasha: stage6.aiReasoning.match(/DASHA[:\s]*([^\n]+)/i)?.[1] || 'Final decision context',
                 precisionMetrics: {
                     vimsopaka: winnerPkg?.vimsopakaBala,
-                    avasthaMap: Object.fromEntries(Object.entries(winnerPkg?.planets || {}).map(([k, p]) => [k, (p as any).avastha])),
-                    deityMap: Object.fromEntries(Object.entries(winnerPkg?.planets || {}).map(([k, p]) => [k, (p as any).d60Deity])),
-                    sambandhaMap: Object.fromEntries(Object.entries(winnerPkg?.planets || {}).map(([k, p]) => [k, (p as any).compoundDignity]))
+                    avasthaMap: Object.fromEntries(Object.entries(winnerPkg?.planets || {}).map(([k, p]) => [k, p.avastha])),
+                    deityMap: Object.fromEntries(Object.entries(winnerPkg?.planets || {}).map(([k, p]) => [k, p.d60Deity])),
+                    sambandhaMap: Object.fromEntries(Object.entries(winnerPkg?.planets || {}).map(([k, p]) => [k, p.compoundDignity]))
                 }
             },
             stageHistory: Object.fromEntries(
@@ -327,7 +327,7 @@ export async function processSecondsPrecisionBTR(
         return resultPayload;
 
     } catch (error) {
-        logger.error('Professional BTR v7.0 FAILED', { error: (error as any)?.message || error });
+        logger.error('Professional BTR v7.0 FAILED', { error: error instanceof Error ? error.message : String(error) });
         if (isCancellationError(error)) {
             throw error;
         }
