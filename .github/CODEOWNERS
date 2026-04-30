@@ -1,0 +1,27 @@
+# Global owners - all files require review from these owners
+* @ashoksainiengineer
+
+# Backend code - API and worker services
+apps/api/ @ashoksainiengineer
+apps/worker/ @ashoksainiengineer
+packages/db/ @ashoksainiengineer
+packages/shared/ @ashoksainiengineer
+packages/worker-runtime/ @ashoksainiengineer
+
+# Frontend code - Next.js web app
+apps/web/ @ashoksainiengineer
+
+# Infrastructure and deployment
+deploy/ @ashoksainiengineer
+scripts/ @ashoksainiengineer
+.github/workflows/ @ashoksainiengineer
+
+# Services - Ephemeris
+services/ephemeris/ @ashoksainiengineer
+
+# Critical configuration files
+package.json @ashoksainiengineer
+package-lock.json @ashoksainiengineer
+turbo.json @ashoksainiengineer
+Dockerfile @ashoksainiengineer
+cloudbuild.yaml @ashoksainiengineer
