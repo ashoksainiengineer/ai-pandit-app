@@ -219,3 +219,7 @@ notes.md
 TODO.md
 todo.md
 NOTES.md
+
+# --- DESLOPPIFY (Code Quality Scanner) ---
+.d desloppify/
+.venv-desloppify/
