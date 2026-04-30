@@ -600,7 +600,7 @@ function getTzOffset(dateStr: string, timeStr: string, timeZone: string): number
       }
     }
   } catch (e) {
-    logger.warn(`Timezone lookup failed for ${timeZone}, falling back to 0`, { error: (e as any)?.message || e });
+    logger.warn(`Timezone lookup failed for ${timeZone}, falling back to 0`, { error: e instanceof Error ? e.message : String(e) });
   }
 
   return 0;

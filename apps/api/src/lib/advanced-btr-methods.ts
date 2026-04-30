@@ -1425,7 +1425,12 @@ export function detectVargottama(ephemeris: EphemerisData): string[] {
 /**
  * Detect Parivartana Yoga (Exchange of House Lords)
  */
-export function detectParivartana(ephemeris: EphemerisData): any[] {
+export interface ParivartanaExchange {
+    houses: [number, number];
+    planets: [string, string];
+}
+
+export function detectParivartana(ephemeris: EphemerisData): ParivartanaExchange[] {
     const SIGN_LORDS: Record<string, string> = {
         Aries: 'Mars', Taurus: 'Venus', Gemini: 'Mercury', Cancer: 'Moon',
         Leo: 'Sun', Virgo: 'Mercury', Libra: 'Venus', Scorpio: 'Mars',
@@ -1433,7 +1438,7 @@ export function detectParivartana(ephemeris: EphemerisData): any[] {
     };
     const ZODIAC_SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
 
-    const exchanges: any[] = [];
+    const exchanges: ParivartanaExchange[] = [];
     const planets = Object.entries(ephemeris.planets);
 
     // Get lords and where they are placed

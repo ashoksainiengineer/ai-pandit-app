@@ -1,12 +1,12 @@
 // lib/debounce.ts - Debounce utility function with cancel/flush support
 
-interface DebouncedFunction<T extends (...args: any[]) => any> {
+interface DebouncedFunction<T extends (...args: unknown[]) => unknown> {
   (...args: Parameters<T>): void;
   cancel: () => void;
   flush: (...args: Parameters<T>) => void;
 }
 
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,
   delay: number
 ): DebouncedFunction<T> {

@@ -12,6 +12,7 @@ import type {
     AIThinkingEvent,
     EphemerisEvent,
     CandidateScoreEvent,
+    CandidateScoresEvent,
     CompleteEvent,
     ErrorEvent,
     AIContextEvent,
@@ -28,6 +29,7 @@ export type {
     AIThinkingEvent,
     EphemerisEvent,
     CandidateScoreEvent,
+    CandidateScoresEvent,
     CompleteEvent,
     ErrorEvent,
     AIContextEvent,
@@ -145,7 +147,7 @@ class SessionEventManager {
      */
     logEvent(sessionId: string, seq: number, event: SessionEvent): void {
         const skipLogTypes = ['ping', 'connected'];
-        const eventType = (event as any).type || '';
+        const eventType = event.type;
         if (skipLogTypes.includes(eventType)) return;
 
         if (!this.eventLogs.has(sessionId)) {
@@ -206,11 +208,11 @@ class SessionEventManager {
 
         // 1. Assign sequence and log for replay (IF loggable)
         const skipSeqTypes = ['ping', 'connected'];
-        const eventType = (event as any).type || '';
+        const eventType = event.type;
 
         if (!skipSeqTypes.includes(eventType)) {
             const seq = this.getNextSeq(sessionId);
-            (event as any).seq = seq; // Attach sequence to event for easier handling
+            (event as SessionEvent & { seq?: number }).seq = seq; // Attach sequence to event for easier handling
             this.logEvent(sessionId, seq, event);
             void this.persistEvent(sessionId, seq, event);
         }
@@ -337,7 +339,7 @@ class SessionEventManager {
             this.emit(sessionId, {
                 type: 'candidate_scores',
                 data: scoreBatch
-            } as any);
+            } as CandidateScoresEvent);
             this.scoreBroadcastBuffer.set(sessionId, []);
         }
     }

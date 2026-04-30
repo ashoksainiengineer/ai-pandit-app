@@ -220,7 +220,7 @@ export async function callAI(
                         errorText = 'Response body not readable (missing text/json methods)';
                     }
                 } catch (e) {
-                    errorText = `Error unreadable: ${(e as any)?.message || String(e)}`;
+                    errorText = `Error unreadable: ${e instanceof Error ? e.message : String(e)}`;
                 }
 
                 // 🔱 BUG FIX: 400 errors (context_length_exceeded) are permanent — don't retry

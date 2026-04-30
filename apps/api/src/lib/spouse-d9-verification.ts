@@ -16,6 +16,7 @@
 import { calculateEphemeris } from './ephemeris.js';
 import { calculateD9 } from './advanced-btr-methods.js';
 import { logger } from '../utils/logger.js';
+import type { EphemerisData } from '@ai-pandit/shared';
 
 const ZODIAC_SIGNS = [
   'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
@@ -127,7 +128,7 @@ export async function calculateSpousePositions(
 }
 
 export function extractNativeD9Positions(
-  nativeEphemeris: any
+  nativeEphemeris: EphemerisData
 ): NativeD9Positions {
   const d9Lagna = calculateD9(nativeEphemeris.ascendant.longitude);
   const d9Venus = calculateD9(nativeEphemeris.planets.venus.longitude);
@@ -488,7 +489,7 @@ function generateDetailsString(
 }
 
 export async function performSpouseVerification(
-  nativeEphemeris: any,
+  nativeEphemeris: EphemerisData,
   spouseData: SpouseData
 ): Promise<D9VerificationResult> {
   const spousePositions = await calculateSpousePositions(spouseData);
