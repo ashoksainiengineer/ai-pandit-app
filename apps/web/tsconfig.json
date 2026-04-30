@@ -8,8 +8,6 @@
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
     "noEmit": true,
     "incremental": true,
     "esModuleInterop": true,

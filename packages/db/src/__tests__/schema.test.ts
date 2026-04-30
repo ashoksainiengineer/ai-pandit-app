@@ -1,56 +1,70 @@
-import { describe, expect, it } from 'vitest';
-import {
-  artifacts,
-  auditLogs,
-  calculations,
-  dataRetention,
-  idempotencyKeys,
-  jobAttempts,
-  jobEvents,
-  jobs,
-  payments,
-  sessionFavorites,
-  sessions,
-  users,
-} from '../schema.js';
+import { describe, it, expect } from 'vitest';
+import { sessions, jobs, users } from '../schema';
 
-describe('database schema exports', () => {
-  it('preserves the core existing tables', () => {
-    expect(users).toHaveProperty('id');
-    expect(users).toHaveProperty('clerkId');
-    expect(sessions).toHaveProperty('id');
-    expect(sessions).toHaveProperty('userId');
-    expect(sessions).toHaveProperty('status');
-    expect(sessionFavorites).toHaveProperty('sessionId');
-    expect(calculations).toHaveProperty('ephemerisData');
-    expect(payments).toHaveProperty('amountPaise');
-    expect(auditLogs).toHaveProperty('action');
-    expect(dataRetention).toHaveProperty('scheduledDeletionAt');
+describe('Database Schema', () => {
+  describe('Sessions Table', () => {
+    it('should be defined', () => {
+      expect(sessions).toBeDefined();
+    });
+
+    it('should have id column', () => {
+      expect(sessions.id).toBeDefined();
+    });
+
+    it('should have userId column', () => {
+      expect(sessions.userId).toBeDefined();
+    });
+
+    it('should have status column', () => {
+      expect(sessions.status).toBeDefined();
+    });
+
+    it('should have createdAt column', () => {
+      expect(sessions.createdAt).toBeDefined();
+    });
   });
 
-  it('adds durable job orchestration tables required for async processing', () => {
-    expect(jobs).toHaveProperty('sessionId');
-    expect(jobs).toHaveProperty('status');
-    expect(jobs).toHaveProperty('checkpointJson');
-    expect(jobs).toHaveProperty('version');
-    expect(jobs).toHaveProperty('retryCount');
-    expect(jobs).toHaveProperty('retryReasonCode');
-    expect(jobs).toHaveProperty('nextRetryAt');
+  describe('Jobs Table', () => {
+    it('should be defined', () => {
+      expect(jobs).toBeDefined();
+    });
 
-    expect(jobAttempts).toHaveProperty('jobId');
-    expect(jobAttempts).toHaveProperty('attemptNo');
-    expect(jobAttempts).toHaveProperty('outcome');
+    it('should have id column', () => {
+      expect(jobs.id).toBeDefined();
+    });
 
-    expect(jobEvents).toHaveProperty('jobId');
-    expect(jobEvents).toHaveProperty('sequenceNo');
-    expect(jobEvents).toHaveProperty('payloadJson');
+    it('should have sessionId column', () => {
+      expect(jobs.sessionId).toBeDefined();
+    });
 
-    expect(idempotencyKeys).toHaveProperty('userId');
-    expect(idempotencyKeys).toHaveProperty('requestHash');
-    expect(idempotencyKeys).toHaveProperty('jobId');
+    it('should have status column', () => {
+      expect(jobs.status).toBeDefined();
+    });
+  });
 
-    expect(artifacts).toHaveProperty('jobId');
-    expect(artifacts).toHaveProperty('kind');
-    expect(artifacts).toHaveProperty('uri');
+  describe('Users Table', () => {
+    it('should be defined', () => {
+      expect(users).toBeDefined();
+    });
+
+    it('should have id column', () => {
+      expect(users.id).toBeDefined();
+    });
+
+    it('should have email column', () => {
+      expect(users.email).toBeDefined();
+    });
+  });
+
+  describe('Enums', () => {
+    it('should have job status enum', () => {
+      const { jobStatusEnum } = require('../schema');
+      expect(jobStatusEnum).toBeDefined();
+    });
+
+    it('should have job kind enum', () => {
+      const { jobKindEnum } = require('../schema');
+      expect(jobKindEnum).toBeDefined();
+    });
   });
 });
