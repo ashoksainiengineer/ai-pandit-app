@@ -736,3 +736,302 @@ Successfully deployed AI-Pandit project to production with all backend services 
 **Deployer:** Sisyphus (AI Agent)  
 **Repository:** https://github.com/ashoksainiengineer/ai-pandit-app  
 **Branch:** main
+
+---
+
+## Desloppify Integration Session - 2026-04-30
+
+**Session Date:** 2026-04-30  
+**Session Duration:** ~1 hour  
+**Total Commits:** 1  
+**Files Added:** 3  
+**Files Modified:** 2  
+**Status:** Complete
+
+---
+
+### Executive Summary
+
+Integrated Desloppify (AI-powered codebase quality scanner) into the ai-pandit-app monorepo. Established baseline quality scores for all applications, configured CI/CD quality gates, and created a comprehensive improvement roadmap. Desloppify will help systematically improve code quality from "vibe coding" to "vibe engineering" standards.
+
+---
+
+### What is Desloppify?
+
+Desloppify is an agent harness that gives AI coding agents tools to identify, understand, and systematically improve codebase quality. It combines:
+- **Mechanical Detection:** Dead code, duplication, complexity, test gaps
+- **LLM Review:** Naming, abstractions, error handling, module boundaries
+- **Gaming-Resistant Scoring:** 98+ score = "seasoned engineer would call beautiful"
+- **Persistent State:** Progress saved across sessions
+
+**Repository:** https://github.com/peteromallet/desloppify  
+**Stars:** 2.8k | **Forks:** 194
+
+---
+
+### Installation & Setup
+
+**Python Virtual Environment:**
+```bash
+cd /home/ashoksainiengineer/ai-pandit-app
+python3 -m venv .venv-desloppify
+source .venv-desloppify/bin/activate
+pip install "desloppify[full]"
+```
+
+**Version Installed:** 0.9.15  
+**Python Version:** 3.12.3  
+**Location:** `.venv-desloppify/`
+
+---
+
+### Configuration
+
+**Exclusions Added:**
+- `node_modules`
+- `.next`
+- `dist`
+- `build`
+- `.turbo`
+- `coverage`
+- `playwright-report`
+- `test-results`
+- `.venv-desloppify`
+
+**Git Ignore Updated:**
+- Added `.desloppify/` (state persistence directory)
+- Added `.venv-desloppify/` (Python virtual environment)
+
+---
+
+### Baseline Scan Results
+
+#### apps/web (Next.js Frontend)
+
+| Metric | Score | Issues | Status |
+|--------|-------|--------|--------|
+| Overall | 20.4/100 | 717 | 🔴 |
+| Objective | 81.6/100 | - | 🟡 |
+| Strict | 20.4/100 | - | 🔴 |
+
+**Dimensions:**
+- File health: 95.2% ✅
+- Code quality: 84.8% 🟡
+- Duplication: 99.9% ✅
+- Security: 98.9% 🟡 (11 issues)
+- Test health: 15.5% 🔴 (205 missing)
+
+**Top Issues:**
+- 161 unused TypeScript instances
+- 111 orphaned files (zero importers)
+- 158 code smell issues
+- 4 React state sync anti-patterns
+
+---
+
+#### apps/api (Express Backend)
+
+| Metric | Score | Issues | Status |
+|--------|-------|--------|--------|
+| Overall | 21.0/100 | 578 | 🔴 |
+| Objective | 83.9/100 | - | 🟡 |
+| Strict | 21.0/100 | - | 🔴 |
+
+**Dimensions:**
+- File health: 90.4% 🟡
+- Code quality: 78.7% 🟡
+- Duplication: 99.6% ✅
+- Security: 98.3% 🟡 (10 issues)
+- Test health: 47.8% 🔴 (101 missing)
+
+**Top Issues:**
+- 62 unused TypeScript instances
+- 100 orphaned files
+- 203 code smell issues
+- 16 deprecated usages
+
+---
+
+#### apps/worker (Background Job Processor)
+
+| Metric | Score | Issues | Status |
+|--------|-------|--------|--------|
+| Overall | 10.3/100 | 26 | 🔴 |
+| Objective | 41.2/100 | - | 🔴 |
+| Strict | 10.3/100 | - | 🔴 |
+
+**Dimensions:**
+- File health: 100.0% ✅
+- Code quality: 58.9% 🟡
+- Duplication: 100.0% ✅
+- Security: 100.0% ✅
+- Test health: 0.0% 🔴 (1 missing)
+
+**Top Issues:**
+- No tests (11 production files)
+- 5 code quality issues
+- 1 orphaned file
+
+---
+
+#### packages/* (Shared Packages)
+
+| Metric | Score | Issues | Status |
+|--------|-------|--------|--------|
+| Overall | 16.7/100 | 52 | 🔴 |
+| Objective | 66.7/100 | - | 🟡 |
+| Strict | 16.7/100 | - | 🔴 |
+
+**Dimensions:**
+- File health: 80.9% 🟡
+- Code quality: 83.1% 🟡
+- Duplication: 100.0% ✅
+- Security: 95.0% 🟡 (1 issue)
+- Test health: 50.2% 🟡 (4 missing)
+
+**Top Issues:**
+- 17 code quality issues
+- 3 deprecated usages
+- 2 re-export facade issues
+
+---
+
+### Files Created
+
+1. **`.github/workflows/desloppify-quality-gate.yml`**
+   - CI/CD quality gate workflow
+   - Scans all apps on push/PR
+   - Fails if score drops below baseline
+   - Generates GitHub Actions summary
+
+2. **`docs/DESLOPPIFY_BASELINE_REPORT.md`**
+   - Comprehensive baseline report
+   - Detailed app analysis
+   - Cross-cutting issues summary
+   - Improvement roadmap
+   - Daily workflow guide
+
+3. **`scorecard.png`**
+   - Visual scorecard badge
+   - Can be added to README
+
+---
+
+### Files Modified
+
+1. **`.gitignore`**
+   - Added `.desloppify/`
+   - Added `.venv-desloppify/`
+
+2. **`README.md`**
+   - Added Desloppify badge
+
+---
+
+### CI/CD Integration
+
+**Workflow Triggers:**
+- Push to `main` branch (when apps/packages change)
+- Pull requests to `main`
+- Manual dispatch (selective scanning)
+
+**Jobs:**
+1. Quality Gate - Web
+2. Quality Gate - API
+3. Quality Gate - Worker
+4. Quality Gate - Packages
+5. Summary Report
+
+**Score Thresholds (Current Baselines):**
+- Web: 20.0
+- API: 20.0
+- Worker: 10.0
+- Packages: 16.0
+
+**Note:** Thresholds are set to current baseline to prevent regression. As scores improve, update thresholds.
+
+---
+
+### Improvement Roadmap
+
+#### Phase 1: Security & Critical (Week 1)
+- [ ] Review and fix all 22 security issues
+- [ ] Add tests for apps/worker (0% coverage)
+- [ ] Fix React state sync anti-patterns
+
+#### Phase 2: Test Coverage (Weeks 2-3)
+- [ ] Add tests for apps/web (target: 60%)
+- [ ] Add tests for apps/api (target: 70%)
+- [ ] Add tests for packages/* (target: 80%)
+
+#### Phase 3: Code Quality (Weeks 4-5)
+- [ ] Remove unused code (227 instances)
+- [ ] Fix code smell issues (364 total)
+- [ ] Refactor complex functions
+- [ ] Update deprecated usages (19 instances)
+
+#### Phase 4: Subjective Review (Week 6+)
+- [ ] Run `desloppify review --prepare` for each app
+- [ ] Assess naming conventions
+- [ ] Evaluate abstractions and module boundaries
+- [ ] Review error handling patterns
+
+---
+
+### Daily Workflow
+
+```bash
+# Activate virtual environment
+cd /home/ashoksainiengineer/ai-pandit-app
+source .venv-desloppify/bin/activate
+
+# Check status
+desloppify status
+
+# Get next task
+desloppify next
+
+# After fixing, resolve
+desloppify resolve
+
+# Rescan to verify
+desloppify scan --path ./apps/web
+```
+
+---
+
+### Score Targets
+
+| App | Current | 3 Months | 6 Months |
+|-----|---------|----------|----------|
+| apps/web | 20.4 | 60.0 | 85.0 |
+| apps/api | 21.0 | 65.0 | 85.0 |
+| apps/worker | 10.3 | 70.0 | 85.0 |
+| packages/* | 16.7 | 70.0 | 85.0 |
+
+---
+
+### Key Insights
+
+1. **Mechanical Quality is Good:** Objective scores (81.6%, 83.9%, 41.2%, 66.7%) show solid mechanical quality
+2. **Subjective Review Needed:** Overall scores are low because subjective dimensions (75% weight) are unassessed
+3. **Test Coverage is Critical:** All apps have significant test coverage gaps
+4. **Security Issues Exist:** 22 security issues across apps/web, apps/api, and packages/*
+5. **Unused Code Abounds:** 227 unused instances across all apps
+
+---
+
+### Notes
+
+- **State Persistence:** Progress saved in `.desloppify/` — do not commit
+- **Monorepo Support:** Each app scanned independently for accurate scoring
+- **Scorecard:** `scorecard.png` generated after each scan
+- **Next Steps:** Run `desloppify next` to start fixing issues
+
+---
+
+**Desloppify Integration Complete:** All baseline scans done, CI/CD configured  
+**Date:** 2026-04-30  
+**Integrator:** Sisyphus (AI Agent)  
+**Repository:** https://github.com/ashoksainiengineer/ai-pandit-app  
+**Branch:** main
