@@ -141,24 +141,41 @@ const OFFSET_PRESETS: Record<OffsetPreset, { label: string; minutes: number; int
 // For smaller offsets: FINER grid (more candidates for precision)
 // For larger offsets: COARSER grid aligned with Lagna boundaries
 
+// Interval constants in minutes
+const EXTREME_PRECISION_THRESHOLD = 5;
+const HIGH_PRECISION_THRESHOLD = 15;
+const STANDARD_WINDOW_THRESHOLD = 30;
+const WIDE_WINDOW_THRESHOLD = 120;
+const MASSIVE_WINDOW_THRESHOLD = 240;
+const ABSOLUTE_UNKNOWN_THRESHOLD = 360;
+
+// Interval values in minutes
+const INTERVAL_15_SECONDS = 0.25;
+const INTERVAL_30_SECONDS = 0.5;
+const INTERVAL_1_MINUTE = 1;
+const INTERVAL_90_SECONDS = 1.5;
+const INTERVAL_3_MINUTES = 3;
+const INTERVAL_4_MINUTES = 4;
+const INTERVAL_5_MINUTES = 5;
+
 export function getAdaptiveInterval(offsetMinutes: number): number {
   // 🔱 GEAR 1: Extreme Precision (D150/D60 Capture)
-  if (offsetMinutes <= 5) return 0.25; // 15 seconds
-  if (offsetMinutes <= 15) return 0.5; // 30 seconds
+  if (offsetMinutes <= EXTREME_PRECISION_THRESHOLD) return INTERVAL_15_SECONDS;
+  if (offsetMinutes <= HIGH_PRECISION_THRESHOLD) return INTERVAL_30_SECONDS;
 
   // 🔱 GEAR 2: Standard Window (D9 Capture)
-  if (offsetMinutes <= 30) return 1; // 60 seconds
+  if (offsetMinutes <= STANDARD_WINDOW_THRESHOLD) return INTERVAL_1_MINUTE;
 
   // 🔱 GEAR 3: Wide Window (D1/D9 Baseline, avoiding 2m D60 blindspot)
-  if (offsetMinutes <= 120) return 1.5; // 90 seconds
+  if (offsetMinutes <= WIDE_WINDOW_THRESHOLD) return INTERVAL_90_SECONDS;
 
   // 🔱 GEAR 4: Massive Window (Strict D1 Mapping)
-  if (offsetMinutes <= 240) return 3; // 3 minutes
-  if (offsetMinutes <= 360) return 4; // 4 minutes
+  if (offsetMinutes <= MASSIVE_WINDOW_THRESHOLD) return INTERVAL_3_MINUTES;
+  if (offsetMinutes <= ABSOLUTE_UNKNOWN_THRESHOLD) return INTERVAL_4_MINUTES;
 
   // 🔱 GEAR 5: Absolute Unknown (Strict D1 Quadrant)
   // Maximum 5 minutes to ensure we never completely step over D10 (12m) or D12 (10m) signs
-  return 5;
+  return INTERVAL_5_MINUTES;
 }
 
 /**
