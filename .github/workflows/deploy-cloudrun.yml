@@ -192,7 +192,7 @@ jobs:
 
       - name: Post-deploy notification
         if: always()
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const jobStatus = '${{ job.status }}';
