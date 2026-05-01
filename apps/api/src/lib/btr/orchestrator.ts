@@ -12,6 +12,7 @@
  * with production-grade accuracy and reliability.
  */
 
+import crypto from 'crypto';
 import { WindowScanner, ScannerInput } from './window-scanner.js';
 import { TatwaShuddhi, TatwaCorrectionResult } from './tatwa-shuddhi.js';
 import { TransitAnalyzer, ComprehensiveTransitResult } from './transit-analyzer.js';
@@ -486,7 +487,7 @@ function generateRecommendations(
  * Generate a unique session identifier for BTR processing.
  */
 function generateSessionId(): string {
-  return `btr_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  return `btr_${Date.now()}_${crypto.randomUUID()}`;
 }
 
 /**

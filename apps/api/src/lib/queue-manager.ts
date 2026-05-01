@@ -1596,6 +1596,28 @@ function decryptJsonField(
 ): unknown {
   const decrypted = safeDecryptWithFallback(encrypted, clerkId, userId);
   if (decrypted) {
+    try {
+      return JSON.parse(decrypted);
+    } catch {
+      // Decrypted value is not valid JSON, fall through to try parsing raw encrypted
+    }
+  }
+  try {
+    return JSON.parse(encrypted);
+  } catch {
+    if (required) {
+      throw new Error('Failed to decrypt or parse required field');
+    }
+    return undefined;
+  }
+}
+  encrypted: string,
+  clerkId: string,
+  userId: string,
+  required: boolean
+): unknown {
+  const decrypted = safeDecryptWithFallback(encrypted, clerkId, userId);
+  if (decrypted) {
     return JSON.parse(decrypted);
   }
   try {
