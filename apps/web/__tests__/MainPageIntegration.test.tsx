@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import AnalysisPage from '../app/rectify/[id]/page';
 import React from 'react';
 
@@ -102,7 +102,7 @@ describe('MainPageIntegration (Full Lifecycle)', () => {
             restartAnalysis: vi.fn().mockResolvedValue({ success: true }),
         }));
 
-        const { cancelAnalysis } = await import('../app/rectify/[id]/actions');
+        // const { cancelAnalysis } = await import('../app/rectify/[id]/actions');
 
         render(<AnalysisPage />);
 

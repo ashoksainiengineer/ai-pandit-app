@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
 
 initializeEncryption(env.security.encryptionSecret);
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: NextRequest) {
     const buildPhaseResponse = getBuildPhaseRouteResponse();
     if (buildPhaseResponse) return buildPhaseResponse;
 

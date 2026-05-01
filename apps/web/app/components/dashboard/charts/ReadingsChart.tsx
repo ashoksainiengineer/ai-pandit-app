@@ -7,6 +7,14 @@
 
 import React from 'react';
 import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Area,
+  AreaChart,
+} from 'recharts';
   LineChart,
   Line,
   XAxis,

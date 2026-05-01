@@ -25,6 +25,7 @@
 
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
 import { env } from './config/env';
+import { logger } from './logger';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SECURE CRYPTOGRAPHIC CONSTANTS
@@ -47,12 +48,12 @@ let ENCRYPTION_SECRET = env.security.encryptionSecret;
 // Auto-initialize on first use
 if (ENCRYPTION_SECRET) {
     if (env.app.nextPhase !== 'phase-production-build') {
-        console.log('[Crypto] Encryption secret loaded');
+        logger.info('[Crypto] Encryption secret loaded');
     }
 } else {
     // Silence warning during build as secrets are injected at runtime
     if (env.app.nextPhase !== 'phase-production-build') {
-        console.warn('[Crypto] WARNING: No encryption secret found!');
+        logger.warn('[Crypto] WARNING: No encryption secret found!');
     }
 }
 
@@ -67,7 +68,7 @@ if (ENCRYPTION_SECRET) {
 export function initializeEncryption(secret: string | undefined) {
     if (!secret) {
         if (env.app.nextPhase !== 'phase-production-build') {
-            console.error("CRITICAL: ENCRYPTION_SECRET is not set. Encryption will fail.");
+            logger.error("CRITICAL: ENCRYPTION_SECRET is not set. Encryption will fail.");
         }
         // In a real production environment, you might want to throw an error and prevent startup.
         // For this context, we will allow it to proceed but log a severe warning.

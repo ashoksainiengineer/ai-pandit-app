@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     const eventType = evt.type;
 
     if (eventType === 'user.created' || eventType === 'user.updated') {
-        const { id, first_name, last_name, email_addresses, image_url } = evt.data;
+        const { id, first_name, last_name, email_addresses } = evt.data;
         const email = email_addresses[0]?.email_address;
         const fullName = `${first_name || ''} ${last_name || ''}`.trim();
 

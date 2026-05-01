@@ -7,7 +7,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MoreHorizontal, Loader2 } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 import type { ChartCardProps } from '@/app/types/dashboard';
 
 export default function ChartCard({
