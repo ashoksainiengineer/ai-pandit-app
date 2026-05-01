@@ -118,7 +118,7 @@ export function TabPanels({
                         role="tabpanel"
                         id="comparison-panel"
                     >
-                        <CandidateComparisonView candidates={topCandidates} />
+                        <CandidateComparisonView candidates={topCandidates as any[]} />
                     </motion.div>
                 )}
 
@@ -176,8 +176,8 @@ export function TabPanels({
                                         className="flex justify-between items-center p-3 rounded"
                                         style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}80` }}
                                     >
-                                        <span className="font-mono" style={{ color: THEME.textMuted }}>#{i + 2} {alt.time}</span>
-                                        <span className="text-sm" style={{ color: THEME.gold }}>Score: {alt.score?.toFixed(1) || 'N/A'}%</span>
+                                        <span className="font-mono" style={{ color: THEME.textMuted }}>#{i + 2} {(alt as Record<string, unknown>).time as string}</span>
+                                        <span className="text-sm" style={{ color: THEME.gold }}>Score: {((alt as Record<string, unknown>).score as number)?.toFixed(1) || 'N/A'}%</span>
                                     </div>
                                 ))}
                             </div>

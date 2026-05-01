@@ -3,20 +3,26 @@
 /**
  * useStreamProgress - Bulletproof Real-Time Progress Hook
  * ========================================================
- * 
- * SIMPLE architecture:
- * 1. Try SSE once
- * 2. If SSE fails, use polling
- * 3. On 404 (session not found), stop and show error
- * 4. On 429 (rate limit), wait 30s and retry
- * 
- * @version 7.0.0 - Bulletproof rewrite
+ *
+ * THIN React wrapper around stream-state-machine.
+ * All transport decisions live in the state machine;
+ * this file only binds to React lifecycle and executes I/O.
+ *
+ * @version 7.1.0 - Extracted state machine
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { logger } from './secure-logger';
 import { env } from './config';
 import { getTokenWithRetry } from './auth-utils';
+import { useStreamStore } from './store/stream-store';
+import {
+    createStreamStateMachine,
+    type ConnectionState,
+    type Effect,
+    type StateMachineConfig,
+    type PollOptions,
+} from './stream-state-machine';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -38,54 +44,9 @@ export interface CandidateScore {
     minifiedEph?: { sun: string; moon: string; ascendant: string };
 }
 
-type ConnectionStatus = 'idle' | 'connecting' | 'streaming' | 'polling' | 'rate_limited' | 'finished' | 'error';
-
-interface ConnectionState {
-    status: ConnectionStatus;
-    url: string;
-    lastError: string | null;
-}
-
-interface AuthOptions {
-    skipCache?: boolean;
-}
-
-interface PollOptions extends AuthOptions {
-    hasRetriedAuth?: boolean;
-    forceLegacyProgressPath?: boolean;
-    hasRetriedRequeue?: boolean;
-}
-
-const ANALYSIS_PROGRESS_PROXY_PATH = '/api/analysis/progress';
-
-// ═══════════════════════════════════════════════════════════════════════════════
-const POLL_INTERVAL = 5000;      // 5 seconds
-const MAX_POLL_INTERVAL = 60000; // 60 seconds
-const SSE_TIMEOUT = 10000;       // 10 seconds to establish SSE
-const RATE_LIMIT_WAIT = 30000;   // 30 seconds on 429
-const SESSION_NOT_FOUND_RETRY_DELAY = 1500;
-
-// Direct backend URL for SSE and Polling — bypasses Vercel serverless timeout
-const BACKEND_URL = env.api.backendUrl.replace(/\/$/, '');
-const IS_TEST_RUNTIME =
-    (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') ||
-    (typeof window !== 'undefined' && (window as any).isTestEnv === true);
-const MAX_SESSION_NOT_FOUND_RETRIES = IS_TEST_RUNTIME ? 1 : 4;
-
-function shouldForcePollingTransport(backendUrl: string): boolean {
-    void backendUrl;
-    return false;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// HOOK
-// ═══════════════════════════════════════════════════════════════════════════════
-
-import { useStreamStore } from './store/stream-store';
-
 export function useStreamProgress(
     sessionId: string | null,
-    backendUrl: string = BACKEND_URL,
+    backendUrl: string = env.api.backendUrl.replace(/\/$/, ''),
     getToken?: () => Promise<string | null>
 ): { connectionState: ConnectionState } {
 
@@ -106,21 +67,157 @@ export function useStreamProgress(
     const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const connectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const connectionAttemptedRef = useRef<boolean>(false);
-    const currentSessionRef = useRef<string | null>(null);
-    const authRetryRef = useRef<boolean>(false);
-    const terminalStateReceivedRef = useRef<boolean>(false); // Track if we got terminal state
-    const cachedTokenRef = useRef<string | null>(null);
-    const pollRetryCountRef = useRef<number>(0);
-    const sessionNotFoundRetryCountRef = useRef<number>(0);
-    const autoRequeueAttemptedRef = useRef<boolean>(false);
-    const forcePollingTransport = shouldForcePollingTransport(backendUrl || BACKEND_URL);
+
+    const IS_TEST_RUNTIME =
+        (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') ||
+        (typeof window !== 'undefined' && (window as any).isTestEnv === true);
+
+    const MAX_SESSION_NOT_FOUND_RETRIES = IS_TEST_RUNTIME ? 1 : 4;
+
+    const machineConfigRef = useRef<StateMachineConfig>({
+        backendUrl,
+        pollInterval: 5000,
+        maxPollInterval: 60000,
+        sseTimeout: 10000,
+        rateLimitWait: 30000,
+        sessionNotFoundRetryDelay: 1500,
+        maxSessionNotFoundRetries: MAX_SESSION_NOT_FOUND_RETRIES,
+        isTestRuntime: IS_TEST_RUNTIME,
+        analysisProgressProxyPath: '/api/analysis/progress',
+    });
+
+    // Update config ref when backendUrl changes
+    machineConfigRef.current.backendUrl = backendUrl;
+    machineConfigRef.current.isTestRuntime = IS_TEST_RUNTIME;
+    machineConfigRef.current.maxSessionNotFoundRetries = MAX_SESSION_NOT_FOUND_RETRIES;
+
+    const machineRef = useRef(createStreamStateMachine(machineConfigRef.current));
+    const machine = machineRef.current;
+
+    const forcePollingTransport = false;
+
+    // ── helpers ───────────────────────────────────────────────────────────────
+
+    const applyEffects = useCallback((effects: Effect[]) => {
+        const cfg = machineConfigRef.current;
+
+        for (const effect of effects) {
+            switch (effect.type) {
+                case 'CLEANUP':
+                    if (connectionTimeoutRef.current) {
+                        clearTimeout(connectionTimeoutRef.current);
+                        connectionTimeoutRef.current = null;
+                    }
+                    if (sseSourceRef.current) {
+                        sseSourceRef.current.close();
+                        sseSourceRef.current = null;
+                    }
+                    connectionAttemptedRef.current = false;
+                    if (pollTimerRef.current) {
+                        clearTimeout(pollTimerRef.current);
+                        pollTimerRef.current = null;
+                    }
+                    break;
+
+                case 'START_SSE': {
+                    const { sid, url } = effect;
+                    const sse = new EventSource(url);
+                    sseSourceRef.current = sse;
+                    let sseConnected = false;
+
+                    connectionTimeoutRef.current = setTimeout(() => {
+                        if (!sseConnected && mountedRef.current && machine.getCurrentSessionId() === sid) {
+                            logger.warn('[SSE] Connection timeout (10s), falling back to polling');
+                            const result = machine.onSseTimeout();
+                            setConnectionState(result.state);
+                            applyEffects(result.effects);
+                        }
+                    }, cfg.sseTimeout);
+
+                    sse.onopen = () => {
+                        if (!mountedRef.current || machine.getCurrentSessionId() !== sid) {
+                            sse.close();
+                            return;
+                        }
+                        sseConnected = true;
+                        if (connectionTimeoutRef.current) {
+                            clearTimeout(connectionTimeoutRef.current);
+                            connectionTimeoutRef.current = null;
+                        }
+                        logger.info('[SSE] Connection opened');
+                        const result = machine.onSseOpened(url);
+                        setConnectionState(result.state);
+                        applyEffects(result.effects);
+                    };
+
+                    sse.onmessage = (event) => {
+                        if (!mountedRef.current || machine.getCurrentSessionId() !== sid) return;
+                        try {
+                            const data = JSON.parse(event.data);
+                            const result = machine.onSseMessage(data, event.lastEventId);
+                            setConnectionState(result.state);
+                            applyEffects(result.effects);
+                        } catch (e) {
+                            logger.warn('Failed to parse SSE message');
+                        }
+                    };
+
+                    sse.onerror = () => {
+                        if (!mountedRef.current || machine.getCurrentSessionId() !== sid) return;
+                        const readyState = sse.readyState;
+                        const result = machine.onSseError(readyState, sseConnected);
+                        setConnectionState(result.state);
+                        applyEffects(result.effects);
+                    };
+                    break;
+                }
+
+                case 'START_POLLING': {
+                    const { sid, delay } = effect;
+                    if (delay) {
+                        pollTimerRef.current = setTimeout(() => poll(sid), delay);
+                    } else {
+                        poll(sid);
+                    }
+                    break;
+                }
+
+                case 'SCHEDULE_POLL': {
+                    const { sid, delay } = effect;
+                    if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
+                    pollTimerRef.current = setTimeout(() => poll(sid), delay);
+                    break;
+                }
+
+                case 'SCHEDULE_RECONNECT': {
+                    const { sid, delay } = effect;
+                    if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
+                    connectionTimeoutRef.current = setTimeout(() => connect(sid, { skipCache: true }), delay);
+                    break;
+                }
+
+                case 'FORCE_ERROR':
+                    forceError(effect.message);
+                    break;
+
+                case 'DISPATCH_EVENT':
+                    dispatchStreamEvent(effect.eventType, effect.data);
+                    break;
+
+                case 'SET_LAST_EVENT_ID':
+                    setLastEventId(effect.seq);
+                    break;
+            }
+        }
+    }, [machine, dispatchStreamEvent, setLastEventId, forceError]);
+
+    // ── token / ticket helpers ────────────────────────────────────────────────
 
     const requestStreamTicket = async (sid: string, token: string | null): Promise<string> => {
         if (!token) {
             throw new Error('Missing auth token for stream ticket');
         }
-
-        const sseBaseUrl = backendUrl || BACKEND_URL;
+        const sseBaseUrl = backendUrl || machineConfigRef.current.backendUrl;
         if (!sseBaseUrl) {
             throw new Error('Backend URL not configured');
         }
@@ -149,26 +246,19 @@ export function useStreamProgress(
     };
 
     const tryAutoRequeue = async (sid: string, token: string | null): Promise<boolean> => {
-        if (autoRequeueAttemptedRef.current) return false;
-        autoRequeueAttemptedRef.current = true;
-
         if (forcePollingTransport) {
             try {
                 const res = await fetch('/api/analysis/requeue', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ sessionId: sid }),
                     cache: 'no-store',
                     credentials: 'same-origin',
                 });
-
                 if (!res.ok) {
                     logger.warn('[Polling] Auto-requeue via proxy failed', { sessionId: sid, status: res.status });
                     return false;
                 }
-
                 logger.info('[Polling] Auto-requeue via proxy triggered successfully', { sessionId: sid });
                 return true;
             } catch (error) {
@@ -181,8 +271,7 @@ export function useStreamProgress(
             logger.warn('[Polling] Auto-requeue skipped: missing auth token', { sessionId: sid });
             return false;
         }
-
-        const sseBaseUrl = backendUrl || BACKEND_URL;
+        const sseBaseUrl = backendUrl || machineConfigRef.current.backendUrl;
         if (!sseBaseUrl) return false;
 
         try {
@@ -195,15 +284,10 @@ export function useStreamProgress(
                 body: JSON.stringify({ sessionId: sid }),
                 cache: 'no-store',
             });
-
             if (!res.ok) {
-                logger.warn('[Polling] Auto-requeue failed', {
-                    sessionId: sid,
-                    status: res.status,
-                });
+                logger.warn('[Polling] Auto-requeue failed', { sessionId: sid, status: res.status });
                 return false;
             }
-
             logger.info('[Polling] Auto-requeue triggered successfully', { sessionId: sid });
             return true;
         } catch (error) {
@@ -212,499 +296,154 @@ export function useStreamProgress(
         }
     };
 
-    // Cleanup function
-    const cleanup = () => {
-        if (connectionTimeoutRef.current) {
-            clearTimeout(connectionTimeoutRef.current);
-            connectionTimeoutRef.current = null;
-        }
+    // ── polling ───────────────────────────────────────────────────────────────
 
-        if (sseSourceRef.current) {
-            logger.info('[SSE] Closing active connection', { sessionId: currentSessionRef.current });
-            sseSourceRef.current.close();
-            sseSourceRef.current = null;
-        }
-
-        // Also mark connection as not attempted so a fresh connect() can reset it
-        connectionAttemptedRef.current = false;
-
-        if (pollTimerRef.current) {
-            clearTimeout(pollTimerRef.current);
-            pollTimerRef.current = null;
-        }
-    };
-
-    // Handle incoming event data
-    const handleEvent = (data: Record<string, unknown>) => {
-        if (!mountedRef.current) return;
-        const type = String(data.type || '');
-
-        // Push payload to Zustand instantly
-        dispatchStreamEvent(type, data);
-
-        // Update local connector connection status UI
-        if (type === 'complete' || type === 'result') {
-            cleanup();
-            setConnectionState(cs => ({ ...cs, status: 'finished' }));
-        } else if (type === 'error') {
-            cleanup();
-            setConnectionState(cs => ({
-                ...cs,
-                status: 'error',
-                lastError: String(data.message || data.error || 'Unknown error'),
-            }));
-        } else if (type === 'terminal_state') {
-            const termData = (data.data as any) || data;
-            terminalStateReceivedRef.current = true;
-            cleanup();
-            const isErr = termData.status === 'failed' || termData.status === 'error' || termData.status === 'cancelled';
-            setConnectionState(cs => ({
-                ...cs,
-                status: isErr ? 'error' : 'finished',
-                lastError: isErr ? (termData.errorMessage || termData.message) : null
-            }));
-        }
-    };
-
-    // Single polling function
-    const poll = async (sid: string, interval: number = POLL_INTERVAL, options: PollOptions = {}) => {
-        if (!mountedRef.current || currentSessionRef.current !== sid) return;
-
-        const scheduleNextPoll = (nextInterval: number) => {
-            if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
-
-            // Allow bounded retries in test runtime to keep fake-timer tests deterministic.
-            if (IS_TEST_RUNTIME && pollRetryCountRef.current >= 1) return;
-            if (IS_TEST_RUNTIME) pollRetryCountRef.current += 1;
-
-            pollTimerRef.current = setTimeout(() => poll(sid, nextInterval), nextInterval);
-        };
+    const poll = async (sid: string, interval: number = machineConfigRef.current.pollInterval, options: PollOptions = {}) => {
+        if (!mountedRef.current || machine.getCurrentSessionId() !== sid) return;
 
         try {
-            // RETRY TOKEN ACQUISITION
             const shouldUseProxyProgress = forcePollingTransport;
             const token = shouldUseProxyProgress
                 ? null
-                : cachedTokenRef.current ??
+                : machine.getCachedToken() ??
                     ((typeof window !== 'undefined' && (window as any).isTestEnv)
                         ? 'mock-token'
-                        : (getToken ? await getTokenWithRetry(getToken, options) : null));
+                        : (getToken ? await getTokenWithRetry(getToken, options as Record<string, unknown>) : null));
 
-            if (token) cachedTokenRef.current = token;
+            if (token) machine.setCachedToken(token);
 
             const headers: HeadersInit = { 'Content-Type': 'application/json' };
             if (token) headers['Authorization'] = `Bearer ${token}`;
             else if (getToken && !shouldUseProxyProgress) logger.warn('[Polling] Missing token after retries');
 
-            const sseBaseUrl = backendUrl || BACKEND_URL;
+            const sseBaseUrl = backendUrl || machineConfigRef.current.backendUrl;
             const pollUrl = shouldUseProxyProgress
-                ? `${ANALYSIS_PROGRESS_PROXY_PATH}?sessionId=${encodeURIComponent(sid)}`
+                ? `${machineConfigRef.current.analysisProgressProxyPath}?sessionId=${encodeURIComponent(sid)}`
                 : options.forceLegacyProgressPath
                     ? `${sseBaseUrl}/api/queue/progress/${encodeURIComponent(sid)}`
                     : `${sseBaseUrl}/api/queue/progress?sessionId=${encodeURIComponent(sid)}`;
 
-            const res = await fetch(pollUrl, {
-                headers,
-                cache: 'no-store',
-            });
+            const res = await fetch(pollUrl, { headers, cache: 'no-store' });
 
-            if (!mountedRef.current || currentSessionRef.current !== sid) return;
+            if (!mountedRef.current || machine.getCurrentSessionId() !== sid) return;
 
-            // Handle 404 - session not in queue (maybe completed or never started)
-            if (res.status === 404) {
-                // Backward compatibility: some backend deployments only support
-                // /api/queue/progress/:sessionId (path param), not query param.
-                if (!shouldUseProxyProgress && !options.forceLegacyProgressPath) {
-                    await poll(sid, interval, { ...options, forceLegacyProgressPath: true });
-                    return;
-                }
-
-                sessionNotFoundRetryCountRef.current += 1;
-                const retryAttempt = sessionNotFoundRetryCountRef.current;
-                const shouldRetry = retryAttempt <= MAX_SESSION_NOT_FOUND_RETRIES;
-
-                if (shouldRetry) {
-                    logger.warn('Session not found in queue (404), retrying', {
-                        sessionId: sid,
-                        retryAttempt,
-                        maxRetries: MAX_SESSION_NOT_FOUND_RETRIES,
-                    });
-                    setConnectionState({ status: 'polling', url: '', lastError: 'Session lookup delayed, retrying...' });
-                    scheduleNextPoll(SESSION_NOT_FOUND_RETRY_DELAY);
-                    return;
-                }
-
-                logger.warn('Session not found in queue after retries', {
-                    sessionId: sid,
-                    retries: retryAttempt,
-                });
-                const requeued = await tryAutoRequeue(sid, token);
-                if (requeued) {
-                    sessionNotFoundRetryCountRef.current = 0;
-                    setConnectionState({
-                        status: 'polling',
-                        url: '',
-                        lastError: 'Session was not active. Auto-requeue triggered, retrying...',
-                    });
-                    scheduleNextPoll(SESSION_NOT_FOUND_RETRY_DELAY);
-                    return;
-                }
-
-                setConnectionState({ status: 'error', url: '', lastError: 'Session not found - analysis may have already completed' });
-                forceError('Session not found. Start a new analysis.');
-                return;
-            }
-            sessionNotFoundRetryCountRef.current = 0;
-
-            // Handle 429 - rate limited
-            if (res.status === 429) {
-                logger.warn('Rate limited (429), waiting 30s');
-                setConnectionState({ status: 'rate_limited', url: '', lastError: 'Rate limited' });
-                scheduleNextPoll(RATE_LIMIT_WAIT);
+            // Handle 404 with legacy path fallback (original behavior)
+            if (res.status === 404 && !shouldUseProxyProgress && !options.forceLegacyProgressPath) {
+                await poll(sid, interval, { ...options, forceLegacyProgressPath: true });
                 return;
             }
 
-            if (res.status === 401) {
-                cachedTokenRef.current = null;
-                if (!options.hasRetriedAuth) {
-                    await poll(sid, interval, { ...options, skipCache: true, hasRetriedAuth: true });
-                    return;
-                }
-                forceError('Authentication expired. Please retry.');
-                setConnectionState({ status: 'error', url: '', lastError: 'Authentication expired' });
-                return;
-            }
-
-            // Handle other errors
-            if (!res.ok) {
-                throw new Error(`HTTP ${res.status}`);
-            }
-
-            const result = await res.json();
-
-            // Update state
-            setConnectionState(cs => ({ ...cs, status: 'polling', lastError: null }));
-
-            if (result.success !== false) {
-                const status = result.status || result.data?.status;
-                const isComplete = ['complete', 'success', 'finished'].includes(status);
-                const isFailed = ['failed', 'error', 'cancelled'].includes(status);
-
-                // ═══════════════════════════════════════════════════════════════
-                // INDUSTRY FIX: Extract result.progress (the actual ProgressData)
-                // Polling returns {sessionId, status, progress:{currentStep,...}, metadata:{...}}
-                // The store expects PollingProgressData shape at the top level,
-                // not the entire polling response wrapper.
-                // ═══════════════════════════════════════════════════════════════
-                const progressPayload = result.progress || result.data?.progress || result.data || result;
-
-                // Always send progress data first (has candidateScores, startedAt, etc.)
-                handleEvent({ type: 'progress', data: progressPayload });
-
-                if (isComplete) {
-                    const completionResult = result.result
-                        || result.data?.result
-                        || (result.rectifiedTime
-                            ? {
-                                rectifiedTime: result.rectifiedTime,
-                                accuracy: result.accuracy,
-                                confidence: result.confidence
-                            }
-                            : undefined);
-                    handleEvent({ type: 'complete', data: completionResult || progressPayload });
-                }
-
-                if (isFailed) {
-                    handleEvent({
-                        type: 'terminal_state',
-                        data: { status, message: result.errorMessage || `Session ${status}` },
-                    });
-                }
-
-                if (result.metadata) {
-                    // 🔧 FIX: Merge top-level status and error into metadata payload
-                    // This ensures store's metadata.status is preserved during polling
-                    const enrichedMetadata = {
-                        ...result.metadata,
-                        status: result.status,
-                        errorMessage: result.errorMessage || result.metadata.errorMessage,
-                        updatedAt: result.metadata.updatedAt || result.updatedAt || new Date().toISOString()
-                    };
-                    handleEvent({ type: 'metadata', data: enrichedMetadata });
-                }
-
-                // 🔧 FIX: Also dispatch terminal_state if polling detects end of session
-                // This syncs state.isComplete and state.error store-wide
-                if (['complete', 'failed', 'cancelled'].includes(result.status)) {
-                    handleEvent({
-                        type: 'terminal_state',
-                        data: {
-                            status: result.status,
-                            errorMessage: result.errorMessage || result.metadata?.errorMessage,
-                            result: result.result || result.data?.result
-                        }
-                    });
-                }
-
-                // Stop if complete or failed
-                if (isComplete || isFailed) return;
-            }
-
-            // Schedule next poll - guard against branching
-            scheduleNextPoll(interval);
+            const result = await machine.onPollResult(
+                sid,
+                { status: res.status, ok: res.ok, json: () => res.json() },
+                options,
+                interval,
+                token
+            );
+            setConnectionState(result.state);
+            applyEffects(result.effects);
 
         } catch (error) {
-            logger.warn('Polling failed', { error });
-
-            // CAPTURE STACK TRACE FOR DEBUGGING
-            const err = error as Error;
-            const stackMsg = err.message + (err.stack ? '\n' + err.stack : '');
-            if (err.name === 'RangeError' || err.message.includes('Invalid time value')) {
-                forceError(stackMsg);
-            }
-
-            // Retry with backoff - guard against branching
-            if (pollTimerRef.current) clearTimeout(pollTimerRef.current);
-            const nextInterval = Math.min(interval * 1.5, MAX_POLL_INTERVAL);
-            scheduleNextPoll(nextInterval);
+            const result = machine.onPollError(error as Error, sid, interval);
+            setConnectionState(result.state);
+            applyEffects(result.effects);
         }
     };
 
-    // Connect — SSE directly to backend (bypasses Vercel serverless timeout)
-    const connect = async (sid: string, options: AuthOptions = {}) => {
+    // ── connect ───────────────────────────────────────────────────────────────
+
+    const connect = async (sid: string, options: { skipCache?: boolean } = {}) => {
         if (!sid || sid === 'undefined') return;
 
-        // 🧪 E2E HYDRATION BYPASS: If SKIP_SSE is set, fall back to polling immediately
-        if (typeof window !== 'undefined' && (window as any).SKIP_SSE) {
-            logger.info('[SSE] SKIP_SSE detected, using polling fallback');
-            cleanup();
-            setConnectionState({ status: 'polling', url: '', lastError: 'E2E Polling Mode' });
-            poll(sid);
+        const skipSse = typeof window !== 'undefined' && (window as any).SKIP_SSE;
+        const startResult = machine.onConnectStart(sid, { forcePolling: forcePollingTransport, skipSse: !!skipSse });
+        setConnectionState(startResult.state);
+
+        if (startResult.effects.length > 0) {
+            applyEffects(startResult.effects);
             return;
         }
 
-        if (forcePollingTransport) {
-            logger.info('[SSE] Forcing polling transport', { sessionId: sid });
-            cleanup();
-            setConnectionState({ status: 'polling', url: '', lastError: 'Using polling transport' });
-            poll(sid);
-            return;
-        }
-
-        // Guard against stale connections during rapid navigation/unmount
+        // SSE path
         if (!mountedRef.current) {
             logger.debug('[SSE] Ignoring stale connection attempt', { sid, mounted: mountedRef.current });
             return;
         }
 
-        // 🔱 BUG FIX: Guard against duplicate connections (React StrictMode double-mount).
-        // If an SSE connection already exists for this session, skip.
-        if (sseSourceRef.current && currentSessionRef.current === sid) {
+        if (sseSourceRef.current && machine.getCurrentSessionId() === sid) {
             logger.debug('[SSE] Connection already exists for this session, skipping duplicate', { sid });
             return;
         }
 
-        // 🔱 BUG FIX: Don't reconnect if we already received a terminal state.
-        if (terminalStateReceivedRef.current) {
+        if (machine.isTerminalReceived()) {
             logger.debug('[SSE] Terminal state already received, not reconnecting', { sid });
             return;
         }
 
-        cleanup(); // Clean up any previous connections for this hook instance
-        currentSessionRef.current = sid;
-        pollRetryCountRef.current = 0;
-        sessionNotFoundRetryCountRef.current = 0;
-        autoRequeueAttemptedRef.current = false;
-        setConnectionState({ status: 'connecting', url: '', lastError: null });
-        terminalStateReceivedRef.current = false; // Reset for new connection
-
         try {
-            // RETRY TOKEN ACQUISITION
             const token = (typeof window !== 'undefined' && (window as any).isTestEnv)
                 ? 'mock-token'
-                : (getToken ? await getTokenWithRetry(getToken, options) : null);
+                : (getToken ? await getTokenWithRetry(getToken, options as Record<string, unknown>) : null);
 
             if (!token && getToken) {
                 logger.warn('Token acquisition failed after maximum retries');
             }
-            cachedTokenRef.current = token ?? null;
+            machine.setCachedToken(token ?? null);
 
             const query = IS_TEST_RUNTIME
                 ? '?ticket=test-ticket'
                 : `?ticket=${encodeURIComponent(await requestStreamTicket(sid, token))}`;
 
-            // Direct connection to backend — no Vercel proxy, no timeout limit
-            const sseBaseUrl = backendUrl || BACKEND_URL;
+            const sseBaseUrl = backendUrl || machineConfigRef.current.backendUrl;
             if (!sseBaseUrl) {
                 throw new Error('Backend URL not configured');
             }
             const url = `${sseBaseUrl}/api/stream/${sid}${query}`;
             logger.info('[SSE] Opening EventSource stream', { sessionId: sid });
 
-            const sse = new EventSource(url);
-            sseSourceRef.current = sse;
-
-            let sseConnected = false;
-
-            // Timeout — if SSE doesn't connect in 10s, fall back to polling
-            connectionTimeoutRef.current = setTimeout(() => {
-                if (!sseConnected && mountedRef.current && currentSessionRef.current === sid) {
-                    logger.warn('[SSE] Connection timeout (10s), falling back to polling');
-                    cleanup(); // This clears sseSourceRef AND pollTimerRef
-                    setConnectionState({ status: 'polling', url: '', lastError: 'SSE timeout' });
-                    poll(sid);
-                }
-            }, SSE_TIMEOUT);
-
-            sse.onopen = () => {
-                if (!mountedRef.current || currentSessionRef.current !== sid) {
-                    sse.close();
-                    return;
-                }
-                sseConnected = true;
-                if (connectionTimeoutRef.current) {
-                    clearTimeout(connectionTimeoutRef.current);
-                    connectionTimeoutRef.current = null;
-                }
-                logger.info('[SSE] Connection opened');
-                dispatchStreamEvent('connected', {});
-                setConnectionState({ status: 'streaming', url, lastError: null });
-            };
-
-            sse.onmessage = (event) => {
-                if (!mountedRef.current || currentSessionRef.current !== sid) return;
-                try {
-                    const data = JSON.parse(event.data);
-
-                    // INDUSTRY SSE: Track Last-Event-ID for reconnection replay
-                    // Native EventSource auto-sends this as header on reconnect
-                    if (event.lastEventId) {
-                        const seq = parseInt(event.lastEventId, 10);
-                        if (!isNaN(seq)) {
-                            setLastEventId(seq);
-                        }
-                    }
-
-                    // 🔧 FIX: Handle auth errors sent as regular messages
-                    if (data.type === 'error' && (data.code === 'AUTH_FAILED' || data.code === 'UNAUTHORIZED')) {
-                        logger.warn('[SSE] Auth error received', { code: data.code });
-
-                        if (!authRetryRef.current) {
-                            logger.warn('[SSE] Authentication failed. Retrying with fresh token');
-                            authRetryRef.current = true;
-                            cleanup();
-                            setTimeout(() => connect(sid, { skipCache: true }), 500);
-                            return;
-                        }
-
-                        // Terminal error after retry
-                        cleanup();
-                        const authErrorMessage = data.message || data.error || 'Authentication failed';
-                        forceError(authErrorMessage);
-                        setConnectionState({
-                            status: 'error',
-                            url: '',
-                            lastError: authErrorMessage
-                        });
-                        return;
-                    }
-
-                    handleEvent(data);
-                } catch (e) {
-                    logger.warn('Failed to parse SSE message');
-                }
-            };
-
-            sse.onerror = (err: Event) => {
-                if (!mountedRef.current || currentSessionRef.current !== sid) return;
-
-                // 🔱 BUG FIX: Check if we already received a terminal state - if so, this error is expected
-                // This is the PRIMARY fix for the reconnect storm. After 'complete' or 'failed',
-                // EventSource fires onerror when the server closes. We must NOT reconnect.
-                if (terminalStateReceivedRef.current) {
-                    logger.info('[SSE] Connection closed after terminal state');
-                    cleanup();
-                    return;
-                }
-
-                const readyState = sse.readyState;
-                logger.warn('[SSE] Connection error', { readyState, err });
-
-                if (sseConnected && readyState === EventSource.OPEN) {
-                    logger.warn('[SSE] Transient error, browser will auto-retry');
-                } else if (readyState === EventSource.CLOSED) {
-                    // Connection was closed - check if we need to retry with fresh token
-                    if (!authRetryRef.current) {
-                        logger.warn('[SSE] Connection closed. Retrying with refreshed token');
-                        authRetryRef.current = true;
-                        cleanup();
-                        setTimeout(() => connect(sid, { skipCache: true }), 1000);
-                        return;
-                    }
-
-                    // Already retried - fall back to polling (but NOT if terminal)
-                    logger.warn('[SSE] Connection failed after retry. Switching to polling');
-                    cleanup();
-                    setConnectionState({ status: 'polling', url: '', lastError: 'SSE connection failed, using polling' });
-                    poll(sid);
-                } else {
-                    // Still connecting - wait a bit before deciding
-                    setTimeout(() => {
-                        if (mountedRef.current && currentSessionRef.current === sid && !sseSourceRef.current && !terminalStateReceivedRef.current) {
-                            logger.warn('[SSE] Initial connection timeout. Switching to polling');
-                            cleanup();
-                            setConnectionState({ status: 'polling', url: '', lastError: 'SSE timeout' });
-                            poll(sid);
-                        }
-                    }, 500);
-                }
-            };
-
+            applyEffects([{ type: 'START_SSE', sid, url }]);
         } catch (error) {
             logger.error('Connection failed', { error });
-            cleanup();
-            setConnectionState({ status: 'polling', url: '', lastError: 'Connection failed' });
-            pollTimerRef.current = setTimeout(() => poll(sid), 2000);
+            const result = machine.onCleanup();
+            setConnectionState(prev => ({ ...prev, status: 'polling', url: '', lastError: 'Connection failed' }));
+            applyEffects([...result.effects, { type: 'START_POLLING', sid, delay: 2000 }]);
         }
     };
 
-    // Main effect
+    // ── main effect ───────────────────────────────────────────────────────────
+
     useEffect(() => {
         mountedRef.current = true;
-        // 🔱 BUG FIX: Reset connectionAttemptedRef on each mount to handle StrictMode.
-        // StrictMode unmounts then re-mounts, so cleanup sets this to false,
-        // and we need to allow the second mount to establish the connection.
         connectionAttemptedRef.current = false;
 
         if (!sessionId) {
-            cleanup();
-            currentSessionRef.current = null;
-            setConnectionState({ status: 'idle', url: '', lastError: null });
+            const result = machine.onSessionChange(null);
+            setConnectionState(result.state);
+            applyEffects(result.effects);
             return;
         }
 
-        // Initialize Store State
         setSessionId(sessionId);
 
-        // Don't start a new connection if we already have one for the same session
-        if (connectionAttemptedRef.current && currentSessionRef.current === sessionId) {
+        if (connectionAttemptedRef.current && machine.getCurrentSessionId() === sessionId) {
             return;
         }
 
         connectionAttemptedRef.current = true;
-
-        // Start Connection
+        const result = machine.onSessionChange(sessionId);
+        setConnectionState(result.state);
         connect(sessionId, { skipCache: false });
 
         return () => {
             mountedRef.current = false;
-            cleanup();
+            const cleanupResult = machine.onCleanup();
+            applyEffects(cleanupResult.effects);
         };
-    }, [sessionId, backendUrl, forcePollingTransport]); // eslint-disable-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sessionId, backendUrl, forcePollingTransport]);
 
-    // PROACTIVE TOKEN REFRESH (Standard Session Maintenance)
-    // Long-running analysis (20+ mins) can cause tokens to expire silently.
-    // We refresh the token every 45 minutes to ensure the session remains valid.
+    // ── proactive token refresh ───────────────────────────────────────────────
+
     useEffect(() => {
         if (!getToken) return;
 
@@ -713,14 +452,14 @@ export function useStreamProgress(
 
         const refresh = async () => {
             try {
-                logger.debug('[Token] 🔄 Proactively refreshing Clerk token...');
+                logger.debug('[Token] Proactively refreshing Clerk token...');
                 const refreshedToken = await getTokenWithRetry(getToken, { skipCache: true });
                 if (refreshedToken) {
-                    cachedTokenRef.current = refreshedToken;
+                    machine.setCachedToken(refreshedToken);
                 }
-                logger.info('[Token] ✅ Token refreshed successfully');
+                logger.info('[Token] Token refreshed successfully');
             } catch (err) {
-                logger.warn('[Token] ⚠️ Failed to refresh token proactively', err);
+                logger.warn('[Token] Failed to refresh token proactively', err);
             }
         };
 

@@ -192,7 +192,7 @@ export function useResultsDashboard({ sessionId, data, birthData }: ResultsDashb
 
         return [
             { time: data.rectifiedTime, score: data.accuracy, stage: 6, rank: 1, reason: 'Final selected candidate' },
-            ...alternatives.filter((c: { time: string }) => c.time !== data.rectifiedTime)
+            ...alternatives.filter((c) => (c as { time: string }).time !== data.rectifiedTime)
         ];
     }, [analysisDetails?.alternatives, data.rectifiedTime, data.accuracy]);
 

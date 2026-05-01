@@ -221,7 +221,7 @@ export function parseSensitiveField<T = unknown>(data: string | null | undefined
                 return JSON.parse(decrypted);
             } catch (e) {
                 // Otherwise it's probably a plain string (like name)
-                return decrypted;
+                return decrypted as T;
             }
         }
     } catch (e) {
@@ -233,9 +233,9 @@ export function parseSensitiveField<T = unknown>(data: string | null | undefined
         const parsed = JSON.parse(data);
         // If it's a number/boolean/null, JSON.parse might be too aggressive
         if (typeof parsed === 'object' && parsed !== null) return parsed;
-        return data;
+        return data as T;
     } catch (e) {
         // 3. Return raw string if JSON parse fails
-        return data || defaultValue;
+        return (data || defaultValue) as T;
     }
 }
