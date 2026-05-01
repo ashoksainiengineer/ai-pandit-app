@@ -151,6 +151,8 @@ export async function authMiddleware(
                 next();
             } else {
                 logger.warn('🔒 [Auth] Token verification failed: Invalid or expired session (no sub)', {
+                    path: req.originalUrl
+                });
                     rawPrefix: token.substring(0, 10),
                     path: req.originalUrl
                 });

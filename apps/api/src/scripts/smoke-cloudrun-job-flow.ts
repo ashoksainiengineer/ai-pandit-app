@@ -78,6 +78,15 @@ interface SseEventEnvelope {
 async function loadPayload(): Promise<Record<string, unknown>> {
   const payloadPath = process.env.SMOKE_PAYLOAD_PATH || DEFAULT_SMOKE_PAYLOAD_PATH;
   const raw = await fs.readFile(payloadPath, 'utf8');
+  try {
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch (error) {
+    logger.error('Failed to parse smoke payload JSON', { payloadPath, error });
+    throw new Error(`Invalid JSON in smoke payload file: ${payloadPath}`);
+  }
+}
+  const payloadPath = process.env.SMOKE_PAYLOAD_PATH || DEFAULT_SMOKE_PAYLOAD_PATH;
+  const raw = await fs.readFile(payloadPath, 'utf8');
   return JSON.parse(raw) as Record<string, unknown>;
 }
 
@@ -151,7 +160,32 @@ async function openSmokeStream(
         continue;
       }
 
-      const payload = JSON.parse(dataLine.slice(6)) as SseEventEnvelope;
+      try {
+        const payload = JSON.parse(dataLine.slice(6)) as SseEventEnvelope;
+        logger.info('Smoke SSE event received', {
+          sessionId,
+          type: payload.type,
+          status: payload.status,
+        });
+
+        if (payload.type === 'connected' || payload.type === 'metadata' || payload.type === 'ai_thinking') {
+          await reader.cancel();
+          return;
+        }
+
+        if (payload.type === 'error') {
+          throw new Error(`Analysis error: ${payload.message || 'Unknown error'}`);
+        }
+
+        if (payload.type === 'complete') {
+          result = payload.result as AnalysisResult;
+          await reader.cancel();
+          return;
+        }
+      } catch (parseError) {
+        logger.warn('Failed to parse SSE data line', { dataLine: dataLine.slice(0, 100), error: parseError });
+        continue;
+      }
       logger.info('Smoke SSE event received', {
         sessionId,
         type: payload.type,
