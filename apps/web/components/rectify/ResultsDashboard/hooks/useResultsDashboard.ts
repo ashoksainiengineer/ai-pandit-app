@@ -178,7 +178,7 @@ export function useResultsDashboard({ sessionId, data, birthData }: ResultsDashb
     }, [sessionId, data, birthData]);
 
     const topCandidates = useMemo(() => {
-        const alternatives = analysisDetails?.alternatives?.slice(0, 5).map((alt: any, idx: number) => ({
+        const alternatives = analysisDetails?.alternatives?.slice(0, 5).map((alt: Record<string, unknown>, idx: number) => ({
             time: alt.time,
             score: alt.score || (95 - idx * 3),
             stage: 6,
@@ -192,7 +192,7 @@ export function useResultsDashboard({ sessionId, data, birthData }: ResultsDashb
 
         return [
             { time: data.rectifiedTime, score: data.accuracy, stage: 6, rank: 1, reason: 'Final selected candidate' },
-            ...alternatives.filter((c: any) => c.time !== data.rectifiedTime)
+            ...alternatives.filter((c: { time: string }) => c.time !== data.rectifiedTime)
         ];
     }, [analysisDetails?.alternatives, data.rectifiedTime, data.accuracy]);
 

@@ -55,8 +55,8 @@ export interface WorkerRuntime {
   runLoop(): Promise<void>;
   stop(options?: { drainTimeoutMs?: number }): Promise<WorkerStopResult>;
   getStatus(): WorkerRuntimeStatus;
-  on(event: string, listener: (...args: any[]) => void): void;
-  emit(event: string, ...args: any[]): void;
+  on(event: string, listener: (...args: unknown[]) => void): void;
+  emit(event: string, ...args: unknown[]): void;
 }
 
 export interface QueueJob {
@@ -187,11 +187,11 @@ export function createWorkerRuntime(deps: WorkerDependencies): WorkerRuntime {
       };
     },
 
-    on(_event: string, _listener: (...args: any[]) => void): void {
+    on(_event: string, _listener: (...args: unknown[]) => void): void {
       // Event subscription (for future use)
     },
 
-    emit(_event: string, ..._args: any[]): void {
+    emit(_event: string, ....args: unknown[]): void {
       // Event emission (for future use)
     },
   };

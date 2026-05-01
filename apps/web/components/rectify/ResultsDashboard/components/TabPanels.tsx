@@ -13,7 +13,7 @@ interface TabPanelsProps {
     activeTab: 'summary' | 'audit' | 'comparison' | 'logs';
     data: FinalResult;
     analysisDetails: AnalysisDetails | null;
-    topCandidates: any[];
+    topCandidates: Array<Record<string, unknown>>;
 }
 
 export function TabPanels({

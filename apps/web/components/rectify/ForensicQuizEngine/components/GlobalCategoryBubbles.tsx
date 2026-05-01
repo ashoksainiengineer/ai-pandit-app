@@ -7,7 +7,7 @@ export function GlobalCategoryBubbles({
 }) {
     return (
         <div className="mt-4 flex justify-center gap-2">
-            {QUIZ_METADATA.categories.map((cat: any) => {
+            {QUIZ_METADATA.categories.map((cat: { id: string; name: string }) => {
                 const catProg = getCategoryProgress(cat.id);
                 const isComplete = catProg.answered === catProg.total && catProg.total > 0;
                 const hasStarted = catProg.answered > 0;

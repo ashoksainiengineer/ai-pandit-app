@@ -12,7 +12,7 @@ describe('Calculate Routes', () => {
       expect(true).toBe(true);
     });
 
-    it('should require minimum life events', async () =>
+    it('should require minimum life events', async () => {
       // Should enforce at least 3 life events for accurate BTR
       expect(true).toBe(true);
     });

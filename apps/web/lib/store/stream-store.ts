@@ -110,7 +110,7 @@ interface StreamStore extends StreamState {
     setSessionId: (id: string | null) => void;
     setLastEventId: (seq: number) => void;
     clearStore: () => void;
-    dispatchStreamEvent: (type: string, payload: any) => void;
+    dispatchStreamEvent: (type: string, payload: Record<string, unknown>) => void;
     forceError: (msg: string) => void;
     markComplete: () => void;
     setDisplayedCandidate: (id: string | null) => void;
@@ -360,7 +360,7 @@ export const useStreamStore = create<StreamStore>()(
                     }
                 },
 
-                dispatchStreamEvent: (type: string, data: any) => {
+                dispatchStreamEvent: (type: string, data: Record<string, unknown>) => {
                     const payload = data.data || data;
 
                     if (type === 'ai_thinking' && payload.chunk !== undefined) {
@@ -397,7 +397,7 @@ export const useStreamStore = create<StreamStore>()(
 
                                 return {
                                     progress: {
-                                        step: p.steps?.find((s: any) => s.status === 'running')?.id || DEFAULT_STEPS[p.currentStep || 0].id,
+                                        step: p.steps?.find((s: { status: string; id: string }) => s.status === 'running')?.id || DEFAULT_STEPS[p.currentStep || 0].id,
                                         stepIndex: p.currentStep || 0,
                                         totalSteps: p.totalSteps || 7,
                                         percentage: p.percentage || 0,

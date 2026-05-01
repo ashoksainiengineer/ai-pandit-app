@@ -313,12 +313,12 @@ router.get('/db-check', authMiddleware, async (req: AuthenticatedRequest, res: R
         environment: config.app.nodeEnv
       }
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('❌ Database diagnostic failed', error);
     res.status(500).json({
       success: false,
       error: 'Database diagnostic failed',
-      details: error.message
+      details: error instanceof Error ? error.message : String(error)
     });
   }
 });

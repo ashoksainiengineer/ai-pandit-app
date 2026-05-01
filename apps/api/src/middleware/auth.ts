@@ -160,7 +160,7 @@ export async function authMiddleware(
                     code: 'INVALID_SESSION'
                 });
             }
-        } catch (clerkError: any) {
+        } catch (clerkError: unknown) {
             const errorStr = clerkError instanceof Error
                 ? clerkError.message
                 : typeof clerkError === 'object'

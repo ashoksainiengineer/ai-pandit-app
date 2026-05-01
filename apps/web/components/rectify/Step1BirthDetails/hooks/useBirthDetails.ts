@@ -141,8 +141,8 @@ export function useBirthDetails({
         updateData({ fullName: sanitizeInput(value) });
     }, [updateData]);
 
-    const handlePlaceChange = useCallback((updates: any) => {
-        setTouched((prev: any) => ({ ...prev, birthPlace: true }));
+    const handlePlaceChange = useCallback((updates: Record<string, unknown>) => {
+        setTouched((prev: Record<string, boolean>) => ({ ...prev, birthPlace: true }));
         updateData(updates);
     }, [updateData]);
 

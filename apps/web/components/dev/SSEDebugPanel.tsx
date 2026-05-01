@@ -27,7 +27,7 @@ interface SSEEvent {
 // Global event log — populated by monkey-patching dispatchStreamEvent
 const eventLog: SSEEvent[] = [];
 let eventCounter = 0;
-let originalDispatch: ((type: string, data: any) => void) | null = null;
+let originalDispatch: ((type: string, data: Record<string, unknown>) => void) | null = null;
 
 function patchDispatch() {
     if (originalDispatch) return;
@@ -36,7 +36,7 @@ function patchDispatch() {
 
     // Monkey-patch to intercept events
     (useStreamStore as any).setState({
-        dispatchStreamEvent: (type: string, data: any) => {
+        dispatchStreamEvent: (type: string, data: Record<string, unknown>) => {
             eventCounter++;
             const preview = typeof data === 'object'
                 ? JSON.stringify(data).slice(0, 120)

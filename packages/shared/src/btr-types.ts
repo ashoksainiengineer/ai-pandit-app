@@ -162,13 +162,13 @@ export interface CandidateDataPackage {
   ashtakavarga?: Record<string, number>;
   panchanga?: PanchangaData;
   yogas?: Yoga[];
-  doubleTransitAnalysis?: Record<string, { isTriggered: boolean; details: any[] }>;
+  doubleTransitAnalysis?: Record<string, { isTriggered: boolean; details: Array<Record<string, unknown>> }>;
   lifecycleShifts?: Array<{ date: string; event: string; dasha: string }>;
   transitData?: Record<string, {
     dasha: string;
     signatures: string[];
     planets: Record<string, string>;
-    doubleTransit: { isTriggered: boolean; details: any[] };
+    doubleTransit: { isTriggered: boolean; details: Array<Record<string, unknown>> };
   }>;
   aiScore?: number;
   aiVerdict?: string;

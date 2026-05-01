@@ -32,13 +32,13 @@ export interface GodTierData {
         planets?: {
             sun?: { sign?: string; longitude?: number };
             moon?: { sign?: string; longitude?: number };
-            [key: string]: any;
+            [key: string]: { sign?: string; longitude?: number } | undefined;
         };
         ascendant?: { sign?: string; longitude?: number };
     };
-    divCharts?: any;
+    divCharts?: Record<string, unknown>;
     dasha?: string;
-    shuddhi?: any;
+    shuddhi?: Record<string, unknown>;
 }
 
 export interface BoundarySafety {
@@ -59,15 +59,15 @@ export interface AnalysisDetails {
     alternatives?: Array<{
         time: string;
         score?: number;
-        ephemeris?: any;
-        [key: string]: any;
+        ephemeris?: Record<string, unknown>;
+        [key: string]: unknown;
     }>;
     stageHistory?: StageHistory;
     eventMatches?: EventMatch[];
     boundarySafety?: BoundarySafety;
     godTierData?: GodTierData;
     aiAnalysis?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export interface FinalResult {
