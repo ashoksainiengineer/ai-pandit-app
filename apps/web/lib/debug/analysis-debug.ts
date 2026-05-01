@@ -14,7 +14,7 @@ export const debugAnalysis = {
       stage,
       count: Object.keys(state.candidatesByStage[stage] || {}).length
     })));
-    console.log('Total Candidates:', Object.values(state.candidatesByStage || {}).reduce((acc: number, stage: any) => 
+    console.log('Total Candidates:', Object.values(state.candidatesByStage || {}).reduce((acc: number, stage: Record<string, unknown>) => 
       acc + Object.keys(stage).length, 0
     ));
     console.log('Store Size:', JSON.stringify(state).length / 1024, 'KB');
@@ -39,7 +39,7 @@ export const debugAnalysis = {
 
   // Monitor SSE connection
   monitorSSE: () => {
-    const events: any[] = [];
+    const events: Array<Record<string, unknown>> = [];
     const originalFetch = window.fetch;
     
     window.fetch = async (...args) => {
@@ -52,7 +52,7 @@ export const debugAnalysis = {
     };
 
     console.log('SSE monitoring started. Events logged to window.sseEvents');
-    (window as any).sseEvents = events;
+    (window as unknown as Record<string, unknown>).sseEvents = events;
     return events;
   },
 
@@ -88,7 +88,7 @@ export const debugAnalysis = {
       console.group(`🔍 Candidate: ${time} (Stage: ${stage})`);
       console.log('Full Text Length:', candidate.fullText?.length || 0);
       console.log('Last Updated:', new Date(candidate.updatedAt).toLocaleTimeString());
-      console.log('Score:', state.candidateScores?.find((c: any) => c.time === time)?.score || 'N/A');
+      console.log('Score:', state.candidateScores?.find((c: { time: string; score?: number }) => c.time === time)?.score || 'N/A');
       console.log('Preview:', candidate.fullText?.substring(0, 200) + '...');
       console.groupEnd();
       return candidate;
@@ -116,8 +116,8 @@ export const debugAnalysis = {
 declare global {
   interface Window {
     debugAnalysis: typeof debugAnalysis;
-    sseEvents: any[];
-    __STREAM_STORE__: any;
+    sseEvents: Array<Record<string, unknown>>;
+    __STREAM_STORE__: Record<string, unknown>;
   }
 }
 

@@ -3,7 +3,7 @@ import { Brain, Trophy, CheckCircle2, Copy } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useClipboard } from '@/hooks/useClipboard';
 
-export function CompletionInsights({ result, sessionId }: { result: any, sessionId: string }) {
+export function CompletionInsights({ result, sessionId }: { result: Record<string, unknown>, sessionId: string }) {
     const router = useRouter();
     const { copyToClipboard, hasCopied } = useClipboard();
 

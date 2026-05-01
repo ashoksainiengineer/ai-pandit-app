@@ -416,7 +416,7 @@ export interface AIContextData {
   };
   dasha: string;
   divCharts?: string;
-  groundTruth?: any;
+  groundTruth?: Record<string, unknown>;
 }
 
 /**
@@ -436,9 +436,9 @@ export interface CandidateScore {
   overallScore?: number;
   confidenceLevel?: 'STANDARD_PRECISION' | 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW' | string;
   marginOfErrorSeconds?: number;
-  methodScores?: any;
-  eventMatches?: any[];
-  transitMatches?: any[];
+  methodScores?: Record<string, number>;
+  eventMatches?: Array<Record<string, unknown>>;
+  transitMatches?: Array<Record<string, unknown>>;
   redFlags?: string[];
   keyEvidence?: string[];
 }
@@ -735,7 +735,7 @@ export interface EphemerisData {
   };
   houses: HousePosition[];
   divisionalCharts?: Record<string, DivisionalChart>;
-  ashtakavarga?: any;
+  ashtakavarga?: Record<string, number | number[]>;
   shadbala?: Record<string, ShadbalaBreakdown>;
   kpCusps?: number[];
 }
@@ -949,15 +949,15 @@ export interface ConsensusResult {
 export interface ValidationInput {
   candidate: {
     time: string;
-    ephemeris: any;
-    dasha: any;
-    vargas: any;
-    kpData: any;
+    ephemeris: EphemerisData;
+    dasha: Record<string, unknown>;
+    vargas: Record<string, unknown>;
+    kpData: Record<string, unknown>;
     aiScore?: number;
     birthDate?: string;
   };
-  events: any[];
-  forensicProfile: any;
+  events: LifeEvent[];
+  forensicProfile: ForensicTraits;
   tentativeTime: string;
 }
 
@@ -994,10 +994,10 @@ export interface PrecisionEnhancement {
 export interface CandidateWithPrecisionData {
   time: string;
   offsetMinutes: number;
-  ephemeris: any;
-  dasha: any;
-  vargas: any;
-  kpData: any;
+  ephemeris: EphemerisData;
+  dasha: Record<string, unknown>;
+  vargas: Record<string, unknown>;
+  kpData: Record<string, unknown>;
   precision?: PrecisionEnhancement;
 }
 
@@ -1033,9 +1033,9 @@ export interface CandidateAnalysis {
   reason: string;
   metadata?: {
     isTentativeOrNeighbor?: boolean;
-    d60Stability?: any;
+    d60Stability?: Record<string, unknown>;
     protected?: boolean;
-    [key: string]: any;
+    [key: string]: unknown | boolean | undefined;
   };
 }
 
@@ -1272,8 +1272,8 @@ export interface MasterAnalysisArchive {
 export interface CalculateRequest {
   birthData: BirthData;
   lifeEvents: LifeEvent[];
-  physicalTraits?: any;
-  forensicTraits?: any;
+  physicalTraits?: PhysicalTraits;
+  forensicTraits?: ForensicTraits;
   offsetConfig: TimeOffsetConfig;
 }
 

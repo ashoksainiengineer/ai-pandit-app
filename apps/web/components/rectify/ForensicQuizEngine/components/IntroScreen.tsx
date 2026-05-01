@@ -62,7 +62,7 @@ export function IntroScreen({
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
-                        {QUIZ_METADATA.categories.map((cat: any) => {
+                        {QUIZ_METADATA.categories.map((cat: { id: string; name: string }) => {
                             const catProg = getCategoryProgress(cat.id);
                             const isComplete = catProg.answered === catProg.total && catProg.total > 0;
                             return (

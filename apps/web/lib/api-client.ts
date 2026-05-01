@@ -13,7 +13,7 @@ export class APIClient {
   /**
    * Authenticated POST request
    */
-  public static async post(url: string, body: any, getToken: () => Promise<string | null>) {
+  public static async post(url: string, body: Record<string, unknown> | unknown, getToken: () => Promise<string | null>) {
     const token = await this.getAuthToken(getToken);
     const headers: HeadersInit = {
       'Content-Type': 'application/json',

@@ -47,7 +47,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
     },
   });
 
-  let payload: any = null;
+  let payload: Record<string, unknown> | null = null;
   try {
     payload = await response.json();
   } catch {

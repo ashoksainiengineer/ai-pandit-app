@@ -40,7 +40,7 @@ export interface PhysicalTraits {
   shoulderWidth?: string;
   hairType?: string;
   specialFeatures?: string;
-  [key: string]: any;
+  [key: string]: string | undefined;
 }
 
 export interface ForensicTraits {
@@ -93,7 +93,7 @@ export interface ForensicTraits {
   noseShape?: string;
   lipShape?: string;
   chinType?: string;
-  [key: string]: any;
+  [key: string]: string | undefined;
 }
 
 export interface SpouseData {
@@ -135,6 +135,6 @@ export interface AnalysisResult {
   rectifiedTime: string;
   accuracy: number;
   confidence: string;
-  candidates: any[];
-  analysis: any;
+  candidates: Array<Record<string, unknown>>;
+  analysis: Record<string, unknown>;
 }

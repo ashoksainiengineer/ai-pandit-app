@@ -5,11 +5,11 @@ import { logger } from './secure-logger';
  * Robustly acquires a Clerk token with retries and exponential backoff.
  */
 export async function getTokenWithRetry(
-    getToken: (options?: any) => Promise<string | null>,
-    options: any = {},
+    getToken: (options?: Record<string, unknown>) => Promise<string | null>,
+    options: Record<string, unknown> = {},
     maxRetries = 10
 ): Promise<string | null> {
-    const isTest = typeof window !== 'undefined' && (window as any).isTestEnv === true;
+    const isTest = typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).isTestEnv === true;
 
     if (isTest) {
         return 'mock-token-123456789012345678901234567890';

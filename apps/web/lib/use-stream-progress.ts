@@ -615,7 +615,7 @@ export function useStreamProgress(
                 }
             };
 
-            sse.onerror = (err: any) => {
+            sse.onerror = (err: Event) => {
                 if (!mountedRef.current || currentSessionRef.current !== sid) return;
 
                 // 🔱 BUG FIX: Check if we already received a terminal state - if so, this error is expected

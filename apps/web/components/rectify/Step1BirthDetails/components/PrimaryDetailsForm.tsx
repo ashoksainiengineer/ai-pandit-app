@@ -16,9 +16,9 @@ interface PrimaryDetailsFormProps {
     handleNameChange: (val: string) => void;
     handleDateChange: (part: 'day' | 'month' | 'year', val: string) => void;
     handleTimeChange: (part: 'hour' | 'minute' | 'period', val: string) => void;
-    handleOffsetChange: (val: any) => void;
+    handleOffsetChange: (val: string) => void;
     handleCustomOffsetChange: (val: string) => void;
-    handlePlaceChange: (updates: any) => void;
+    handlePlaceChange: (updates: Record<string, unknown>) => void;
     updateData: (updates: Partial<BirthData>) => void;
 }
 

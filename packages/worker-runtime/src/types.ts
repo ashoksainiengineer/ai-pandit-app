@@ -70,10 +70,10 @@ export interface WorkerRuntime {
   getStatus(): WorkerRuntimeStatus;
   
   /** Subscribe to events */
-  on(event: string, listener: (...args: any[]) => void): void;
+  on(event: string, listener: (...args: unknown[]) => void): void;
   
   /** Emit events */
-  emit(event: string, ...args: any[]): void;
+  emit(event: string, ...args: unknown[]): void;
 }
 
 export interface QueueJob {

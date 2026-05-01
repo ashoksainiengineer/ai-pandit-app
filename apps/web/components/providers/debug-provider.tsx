@@ -11,7 +11,7 @@ export function DebugProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
       if (process.env.NODE_ENV === 'development') {
       // Dynamically import debug utilities to avoid build issues
-      let debugAnalysis: any = {};
+      let debugAnalysis: Record<string, unknown> = {};
       try {
         const debugModule = require('@/lib/debug/analysis-debug');
         debugAnalysis = debugModule.debugAnalysis || {};

@@ -7,7 +7,7 @@ export interface StreamProgress {
     percentage: number;
     message: string;
     details?: string[];
-    calculationLogs?: any[]; // For LiveCalculationPanel
+    calculationLogs?: Array<Record<string, unknown>>; // For LiveCalculationPanel
 }
 
 export interface AIThinking {
@@ -136,7 +136,7 @@ export interface StreamState {
     metadata?: StreamMetadata;
     candidatesByStage: Record<number, Record<string, AIThinking>>;
     displayedCandidate: string | null;
-    persistentCandidates: any[];
+    persistentCandidates: Array<Record<string, unknown>>;
     stageHistory: Record<number, string>;
     analyzedCount: number;
     totalCandidates: number;

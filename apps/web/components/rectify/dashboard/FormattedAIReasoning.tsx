@@ -40,7 +40,7 @@ export function FormattedAIReasoning({
     }, [reasoningLogs, analysisDetails]);
 
     // Helper to extract text from structured stage history
-    function processStructuredLogs(data: any): string {
+    function processStructuredLogs(data: Record<string, unknown>): string {
         if (!data) return '';
 
         // If it's the finalCandidate/AnalysisDetails object itself

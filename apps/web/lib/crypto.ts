@@ -208,7 +208,7 @@ export function isEncrypted(data: string | null | undefined): boolean {
  * @param data The field value to parse (may be encrypted v3, plain JSON, or plain string)
  * @param defaultValue Fallback if data is null/undefined
  */
-export function parseSensitiveField(data: string | null | undefined, defaultValue: any = null): any {
+export function parseSensitiveField<T = unknown>(data: string | null | undefined, defaultValue: T | null = null): T | null {
     if (!data) return defaultValue;
 
     try {

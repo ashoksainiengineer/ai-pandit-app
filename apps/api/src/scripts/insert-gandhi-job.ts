@@ -104,7 +104,7 @@ async function insertGandhiJob() {
         gender: GANDHI_PROFILE.gender,
     };
 
-    const lifeEvents = GANDHI_PROFILE.lifeEvents.map((event: any) => ({
+    const lifeEvents = GANDHI_PROFILE.lifeEvents.map((event: Record<string, unknown>) => ({
         ...event,
         id: crypto.randomUUID(),
         datePrecision: 'exact_date',

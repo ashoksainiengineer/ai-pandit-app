@@ -66,7 +66,7 @@ export function ProgressHeader({
 
             {/* Category Progress */}
             <div className="mt-2 flex gap-2 flex-wrap">
-                {QUIZ_METADATA.categories.map((cat: any) => {
+                {QUIZ_METADATA.categories.map((cat: { id: string; name: string }) => {
                     const catProg = getCategoryProgress(cat.id);
                     const isActive = currentCategory === cat.id;
                     const isComplete = catProg.answered === catProg.total && catProg.total > 0;

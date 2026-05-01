@@ -250,7 +250,7 @@ export const SessionCard = memo(function SessionCard({
         logger.error('Failed to clone session', new Error(data.error || 'Failed to clone session'));
         alert('Failed to clone session: ' + (data.error || 'Unknown error'));
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Clone error', error);
       alert('Clone failed: ' + error.message);
     } finally {

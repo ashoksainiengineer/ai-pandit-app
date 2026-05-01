@@ -11,7 +11,7 @@ import { DATE_OPTIONS } from '../constants';
 
 interface EventEditorProps {
     editingEvent: LifeEvent;
-    editingEventData: any;
+    editingEventData: Record<string, unknown>;
     allCategories: EventCategory[];
     errors: Record<string, string>;
     setErrors: React.Dispatch<React.SetStateAction<Record<string, string>>>;
