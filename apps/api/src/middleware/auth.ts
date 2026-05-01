@@ -20,6 +20,44 @@ export interface AuthenticatedRequest extends Request {
 }
 
 /**
+ * Send standardized authentication error response
+ */
+function sendAuthError(
+    res: Response,
+    isStreamRequest: boolean,
+    message: string,
+    code: string,
+    statusCode: number = 401
+): void {
+    if (isStreamRequest) {
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.setHeader('X-Accel-Buffering', 'no');
+        res.flushHeaders();
+
+        res.write(':' + ' '.repeat(1024) + '\n\n');
+
+        res.write(`data: ${JSON.stringify({
+            type: 'error',
+            message,
+            error: message,
+            code,
+            isAuthError: true
+        })}\n\n`);
+
+        if ((res as any).flush) (res as any).flush();
+        res.end();
+    } else {
+        res.status(statusCode).json({
+            success: false,
+            error: message,
+            code
+        });
+    }
+}
+
+/**
  * Middleware to verify Clerk authentication
  * Extracts user ID from Bearer token using industrial-grade verification
  */
@@ -100,35 +138,7 @@ export async function authMiddleware(
                 cookiePresent: !!req.headers.cookie
             });
 
-            if (isStreamRequest) {
-                // 🔧 FIX: Send as regular message, not named event (onmessage can't receive named events)
-                res.setHeader('Content-Type', 'text/event-stream');
-                res.setHeader('Cache-Control', 'no-cache');
-                res.setHeader('Connection', 'keep-alive');
-                res.setHeader('X-Accel-Buffering', 'no');
-                res.flushHeaders();
-
-                // Preamble for proxy buffer bypass
-                res.write(':' + ' '.repeat(1024) + '\n\n');
-
-                // Send as regular data message (not named event)
-                res.write(`data: ${JSON.stringify({
-                    type: 'error',
-                    message: 'Unauthorized: No valid session token',
-                    error: 'Unauthorized: No valid session token',
-                    code: 'UNAUTHORIZED',
-                    isAuthError: true
-                })}\n\n`);
-
-                if ((res as any).flush) (res as any).flush();
-                res.end();
-            } else {
-                res.status(401).json({
-                    success: false,
-                    error: 'Unauthorized: No valid session token found in Header or Query',
-                    code: 'UNAUTHORIZED'
-                });
-            }
+            sendAuthError(res, isStreamRequest, 'Unauthorized: No valid session token', 'UNAUTHORIZED');
             return;
         }
 
@@ -153,14 +163,7 @@ export async function authMiddleware(
                 logger.warn('🔒 [Auth] Token verification failed: Invalid or expired session (no sub)', {
                     path: req.originalUrl
                 });
-                    rawPrefix: token.substring(0, 10),
-                    path: req.originalUrl
-                });
-                res.status(401).json({
-                    success: false,
-                    error: 'Invalid or expired session',
-                    code: 'INVALID_SESSION'
-                });
+                sendAuthError(res, isStreamRequest, 'Invalid or expired session', 'INVALID_SESSION');
             }
         } catch (clerkError: unknown) {
             const errorStr = clerkError instanceof Error
@@ -174,33 +177,7 @@ export async function authMiddleware(
                 rawPrefix: token.substring(0, 10),
                 path: req.originalUrl
             });
-            if (isStreamRequest) {
-                // 🔧 FIX: Send as regular message, not named event
-                res.setHeader('Content-Type', 'text/event-stream');
-                res.setHeader('Cache-Control', 'no-cache');
-                res.setHeader('X-Accel-Buffering', 'no');
-                res.flushHeaders();
-
-                // Preamble for proxy buffer bypass
-                res.write(':' + ' '.repeat(1024) + '\n\n');
-
-                res.write(`data: ${JSON.stringify({
-                    type: 'error',
-                    message: 'Authentication failed',
-                    error: 'Authentication failed',
-                    code: 'AUTH_FAILED',
-                })}\n\n`);
-
-                if ((res as any).flush) (res as any).flush();
-                res.end();
-            } else {
-                res.status(401).json({
-                    success: false,
-                    error: 'Authentication failed',
-                    code: 'AUTH_FAILED',
-                    details: config.app.nodeEnv === 'development' ? (clerkError instanceof Error ? clerkError.message : JSON.stringify(clerkError)) : undefined
-                });
-            }
+            sendAuthError(res, isStreamRequest, 'Authentication failed', 'AUTH_FAILED');
         }
 
     } catch (error) {
