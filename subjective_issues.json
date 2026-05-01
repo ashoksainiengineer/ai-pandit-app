@@ -1,0 +1,74 @@
+[
+  {
+    "identifier": "btr-pipeline-too-long",
+    "dimension": "abstraction_fitness",
+    "summary": "Core BTR pipeline function exceeds 200 lines; consider decomposing into smaller, named stage functions",
+    "confidence": "medium",
+    "suggestion": "Extract each of the 6 BTR stages into standalone functions with explicit inputs/outputs",
+    "related_files": ["apps/api/src/lib/seconds-precision-btr.ts"],
+    "evidence": ["Main pipeline function is ~350 lines and mixes stage orchestration with error handling"]
+  },
+  {
+    "identifier": "queue-manager-too-large",
+    "dimension": "abstraction_fitness",
+    "summary": "File exceeds 2000 lines; extract domain-specific modules",
+    "confidence": "medium",
+    "suggestion": "Split into job-lifecycle.ts, retry-policies.ts, and metrics-reporter.ts",
+    "related_files": ["apps/api/src/lib/queue-manager.ts"],
+    "evidence": ["File contains job scheduling, retry logic, dead-letter handling, and metrics all in one module"]
+  },
+  {
+    "identifier": "stream-hook-mixed-concerns",
+    "dimension": "high_level_elegance",
+    "summary": "Hook mixes transport concerns with UI state",
+    "confidence": "medium",
+    "suggestion": "Extract a transport-agnostic state machine; let the hook only bind state to React",
+    "related_files": ["apps/web/lib/use-stream-progress.ts"],
+    "evidence": ["Hook manages SSE connection, polling fallback, reconnection logic, and UI state in one unit"]
+  },
+  {
+    "identifier": "orchestrator-procedural",
+    "dimension": "high_level_elegance",
+    "summary": "rectifyBirthTime is a long procedural sequence",
+    "confidence": "medium",
+    "suggestion": "Introduce explicit pipeline stages with early-exit helpers",
+    "related_files": ["apps/api/src/lib/btr/orchestrator.ts"],
+    "evidence": ["Function is 78 lines of sequential logic without clear stage boundaries"]
+  },
+  {
+    "identifier": "vedic-engine-implicit-any",
+    "dimension": "type_safety",
+    "summary": "Several internal functions use implicit any for ephemeris result shapes",
+    "confidence": "high",
+    "suggestion": "Add explicit interfaces for ephemeris return types",
+    "related_files": ["apps/api/src/lib/vedic-astrology-engine.ts"],
+    "evidence": ["Functions returning raw ephemeris data lack return-type annotations"]
+  },
+  {
+    "identifier": "rectify-page-large-effect",
+    "dimension": "low_level_elegance",
+    "summary": "Large useEffect with mixed responsibilities",
+    "confidence": "low",
+    "suggestion": "Split into focused effects or a reducer",
+    "related_files": ["apps/web/app/rectify/page.tsx"],
+    "evidence": ["Single useEffect handles form init, validation, and navigation"]
+  },
+  {
+    "identifier": "auth-middleware-inconsistent-errors",
+    "dimension": "error_consistency",
+    "summary": "Some branches return raw Error while others use AppError",
+    "confidence": "low",
+    "suggestion": "Standardize to AppError hierarchy throughout middleware",
+    "related_files": ["apps/api/src/middleware/auth.ts"],
+    "evidence": ["Legacy throw new Error() remains in token validation path"]
+  },
+  {
+    "identifier": "shared-types-schema-drift",
+    "dimension": "contract_coherence",
+    "summary": "Zod schemas and TypeScript interfaces are not co-located",
+    "confidence": "low",
+    "suggestion": "Co-locate Zod schemas with their TypeScript interfaces",
+    "related_files": ["packages/shared/src/types.ts"],
+    "evidence": ["Type definitions and validation schemas are in separate files, risking drift"]
+  }
+]
