@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/home/ashoksainiengineer/ai-pandit-app/logs/.0d190e396d39ed4eb046840bf0022288ba426d35-audit.json",
+    "files": [
+        {
+            "date": 1777650376910,
+            "name": "/home/ashoksainiengineer/ai-pandit-app/logs/mcp-puppeteer-2026-05-01.log",
+            "hash": "bcdc4ea04b714939e24256205f94bffcebd6289b8f74d5ae4cdafa284184df8b"
+        }
+    ],
+    "hashType": "sha256"
+}
