@@ -1,6 +1,6 @@
 
 import { _getAyanamsa } from './ephemeris.js';
-import { EphemerisData, PlanetPosition } from '@ai-pandit/shared';
+import { EphemerisData, PlanetPosition, PlanetData } from '@ai-pandit/shared';
 
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -428,11 +428,17 @@ interface YogaResult {
 interface DoubleTransitDetail {
     message: string;
 }
+interface BhavaChalitDiscrepancy {
+    planet: string;
+    rasiHouse: number;
+    bhavaHouse: number;
+    degreeDiff: number;
+}
 
 /**
  * Calculate all divisional charts for the given ephemeris data.
  */
-export const calculateAllVargas = (ephemeris: EphemerisData): any => {
+export const calculateAllVargas = (ephemeris: EphemerisData): Record<string, DivisionalChart> => {
     return generateDivisionalCharts(ephemeris);
 };
 
@@ -452,7 +458,7 @@ export const calculateAshtakavarga = (ephemeris: EphemerisData): Record<string, 
 /**
  * Calculate Shadbala (Six-source planetary strength).
  */
-export const calculateShadbala = (ephemeris: EphemerisData): any => {
+export const calculateShadbala = (ephemeris: EphemerisData): Record<string, number> => {
     return calculateFullShadbala(ephemeris);
 };
 
@@ -487,7 +493,7 @@ export const calculateArudhas = (ephemeris: EphemerisData): { AL: string; UL: st
 /**
  * Calculate Panchanga (Tithi, Yoga, Karana, Vara).
  */
-export const calculatePanchanga = (jd: number, sunLong: number, moonLong: number, birthDate?: Date): any => {
+export const calculatePanchanga = (jd: number, sunLong: number, moonLong: number, birthDate?: Date): PanchangaData => {
     // The engine expects ephemeris-like object for calcPanchanga, but the stub takes JD/Long
     // We'll normalize this by creating a minimal object
     const mockEph: EphemerisData = {
@@ -518,7 +524,7 @@ export const calculateVimsopakaBala = (_ephemeris: EphemerisData): { total: numb
 /**
  * Detect discrepancies between Rasi and Bhava Chalit.
  */
-export const detectBhavaChalitDiscrepancy = (_ephemeris: EphemerisData): any[] => {
+export const detectBhavaChalitDiscrepancy = (_ephemeris: EphemerisData): BhavaChalitDiscrepancy[] => {
     return [];
 };
 
@@ -556,7 +562,7 @@ export const calculateHouse = (longitude: number, houseCusps: number[]): number 
 /**
  * planetary aspects (Sign-based Parashari Drishti).
  */
-export const calculateAspects = (arg1: any, _arg2?: any, _arg3?: any, _arg4?: any): any[] => {
+export const calculateAspects = (arg1: EphemerisData | string, _arg2?: number, _arg3?: Record<string, number>, _arg4?: number): AspectData[] => {
     // If called with ephemeris object (from new engine)
     if (arg1 && typeof arg1 === 'object' && 'planets' in arg1) {
         return calcAspects(arg1);
@@ -601,7 +607,7 @@ export const calculatePanchadhaSambandha = (_planetName: string, _lordSign: stri
 /**
  * Ishta Kashta Phala calculation.
  */
-export const calculateIshtaKashtaPhala = (_arg1: any, _arg2?: any): { ishta: number; kashta: number } => {
+export const calculateIshtaKashtaPhala = (_planetName: string, _rawPlanet?: PlanetData): { ishta: number; kashta: number } => {
     return { ishta: 20, kashta: 10 };
 };
 
