@@ -16,6 +16,7 @@ import { Gender } from '@/lib/forensic-emojis';
 import Layout from '@/components/Layout';
 import AnalysisErrorBoundary from '@/components/rectify/AnalysisErrorBoundary';
 import { useWarmup } from '@/hooks/use-warmup';
+import { useAutoSave } from '@/hooks/use-auto-save';
 import { env } from '@/lib/config';
 import { waitForAnalysisSessionReady } from '@/lib/analysis-session-readiness';
 import { logger } from '@/lib/secure-logger';
@@ -365,136 +366,25 @@ function RectifyPageContent() {
     }, [isNewPerson, draftIdFromUrl]);
 
     // ═══════════════════════════════════════════════════════════════════════════════
-    // ROBUST AUTO-SAVE: With retry, localStorage backup, and offline support
+    // ROBUST AUTO-SAVE: Delegated to useAutoSave hook
     // ═══════════════════════════════════════════════════════════════════════════════
-    const saveRetryCount = useRef(0);
-    const lastSaveAttemptRef = useRef<string>('');
-    const pendingSaveRef = useRef<NodeJS.Timeout | null>(null);
-
-    // Save to localStorage as backup (immediate, always)
-    const saveToLocalStorage = useCallback((data: {
-        birthData: BirthData;
-        lifeEvents: LifeEvent[];
-        forensicTraits: ForensicTraits;
-        spouseData: SpouseData;
-        offsetConfig: TimeOffsetConfig;
-    }) => {
-        try {
-            localStorage.setItem('btr_local_backup', JSON.stringify({
-                ...data,
-                savedAt: new Date().toISOString()
-            }));
-        } catch (e) {
-            logger.warn('localStorage save failed', { error: String(e) });
-        }
-    }, []);
-
     const currentDataString = useMemo(() => 
         JSON.stringify({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig }),
         [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig]
     );
 
-    // Main autosave with retry logic
-    useEffect(() => {
-        // Only save if user has entered meaningful data
-        if (!birthData.fullName || birthData.fullName.trim().length < 2) return;
-        if (!userId) return;
-        if (isSubmitting) return;
-        
-        // Skip if nothing changed
-        if (currentDataString === lastSavedData) return;
-
-        // Immediate localStorage backup
-        saveToLocalStorage({ birthData, lifeEvents, forensicTraits, spouseData, offsetConfig });
-
-        // Clear pending save
-        if (pendingSaveRef.current) {
-            clearTimeout(pendingSaveRef.current);
-        }
-
-        const saveDraft = async (retryCount = 0): Promise<boolean> => {
-            // Prevent duplicate save attempts
-            if (lastSaveAttemptRef.current === currentDataString && retryCount === 0) {
-                return false;
-            }
-            lastSaveAttemptRef.current = currentDataString;
-
-            setCloudSaveStatus('saving');
-
-            try {
-                const token = await getToken();
-                const payload = { birthData, lifeEvents, forensicTraits, spouseData, offsetConfig };
-
-                let success = false;
-
-                if (!draftSessionId) {
-                    // Create new session
-                    const createRes = await fetch(`/api/sessions`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify(payload)
-                    });
-                    if (createRes.ok) {
-                        const result = await createRes.json();
-                        setDraftSessionId(result.data.id);
-                        localStorage.setItem('btr_draft_id', result.data.id);
-                        success = true;
-                    }
-                } else {
-                    // Update existing
-                    const updateRes = await fetch(`/api/sessions/${draftSessionId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                        body: JSON.stringify(payload)
-                    });
-
-                    // Existing draft became locked (typically stale completed/processing ID in localStorage).
-                    // Drop stale draft reference so next autosave creates a fresh editable draft.
-                    if (updateRes.status === 409) {
-                        setDraftSessionId(null);
-                        localStorage.removeItem('btr_draft_id');
-                        return true;
-                    }
-
-                    success = updateRes.ok;
-                }
-
-                if (success) {
-                    setLastSavedData(currentDataString);
-                    setCloudSaveStatus('saved');
-                    saveRetryCount.current = 0;
-                    setTimeout(() => setCloudSaveStatus('idle'), 2000);
-                    return true;
-                } else {
-                    throw new Error('Save failed');
-                }
-            } catch (err) {
-                logger.error(`Auto-save failed (attempt ${retryCount + 1})`, err instanceof Error ? err : new Error(String(err)));
-
-                // Retry logic: 3 attempts with exponential backoff
-                if (retryCount < 3) {
-                    const backoffMs = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
-                    await new Promise(resolve => setTimeout(resolve, backoffMs));
-                    return saveDraft(retryCount + 1);
-                } else {
-                    setCloudSaveStatus('error');
-                    setTimeout(() => setCloudSaveStatus('idle'), 3000);
-                    return false;
-                }
-            }
-        };
-
-        // Debounce: Save after 3 seconds of inactivity
-        pendingSaveRef.current = setTimeout(() => {
-            saveDraft();
-        }, 3000);
-
-        return () => {
-            if (pendingSaveRef.current) {
-                clearTimeout(pendingSaveRef.current);
-            }
-        };
-    }, [currentDataString, draftSessionId, userId, getToken, lastSavedData, saveToLocalStorage, isSubmitting]); // eslint-disable-line react-hooks/exhaustive-deps -- Using memoized currentDataString instead of individual deps
+    useAutoSave({
+        userId,
+        draftSessionId,
+        dataString: currentDataString,
+        lastSavedData,
+        isSubmitting,
+        getToken,
+        onSaveStatusChange: setCloudSaveStatus,
+        onDraftSessionIdChange: setDraftSessionId,
+        onLastSavedDataChange: setLastSavedData,
+        onLocalBackup: () => {},
+    });
 
     // Load existing draft on mount
     useEffect(() => {

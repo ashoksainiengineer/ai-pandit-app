@@ -44,7 +44,7 @@ export function FormattedAIReasoning({
         if (!data) return '';
 
         // If it's the finalCandidate/AnalysisDetails object itself
-        if (data.finalCandidate?.thinking) return data.finalCandidate.thinking;
+        if ((data.finalCandidate as Record<string, unknown>)?.thinking) return (data.finalCandidate as Record<string, unknown>).thinking as string;
 
         // If it's stageHistory { [key: number]: string }
         if (typeof data === 'object' && !Array.isArray(data)) {

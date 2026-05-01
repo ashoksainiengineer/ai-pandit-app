@@ -15,16 +15,6 @@ import {
   Area,
   AreaChart,
 } from 'recharts';
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-} from 'recharts';
 import type { TimeSeriesData } from '@/app/types/dashboard';
 
 interface ReadingsChartProps {
@@ -35,72 +25,32 @@ interface ReadingsChartProps {
 export default function ReadingsChart({ data, loading }: ReadingsChartProps) {
   if (loading) {
     return (
-      <div className="h-64 rounded-xl bg-[#FDF8F3] animate-pulse" />
-    );
-  }
-
-  if (data.length === 0) {
-    return (
-      <div className="h-64 flex items-center justify-center text-[#A8A39D]">
-        No data available
+      <div className="animate-pulse bg-gray-100 h-64 rounded-lg">
+        <div className="h-4 bg-gray-200 rounded w-3/4 mb-4" />
+        <div className="h-4 bg-gray-200 rounded w-1/2" />
       </div>
     );
   }
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric',
-    }).format(date);
-  };
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg">
+        <p className="text-gray-500">No data available</p>
+      </div>
+    );
+  }
 
   return (
-    <ResponsiveContainer width="100%" height={256}>
-      <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id="colorReadings" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#B8860B" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="#B8860B" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#F0E8DE" vertical={false} />
-        <XAxis
-          dataKey="date"
-          tickFormatter={formatDate}
-          stroke="#A8A39D"
-          fontSize={12}
-          tickLine={false}
-          axisLine={false}
-        />
-        <YAxis
-          stroke="#A8A39D"
-          fontSize={12}
-          tickLine={false}
-          axisLine={false}
-          tickFormatter={(value) => value.toLocaleString()}
-        />
-        <Tooltip
-          contentStyle={{
-            backgroundColor: '#fff',
-            border: '1px solid #F0E8DE',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-          }}
-          labelStyle={{ color: '#1A1612', fontWeight: 500 }}
-          itemStyle={{ color: '#B8860B' }}
-          formatter={(value: number) => [value.toLocaleString(), 'Readings']}
-          labelFormatter={(label: string) => formatDate(label)}
-        />
-        <Area
-          type="monotone"
-          dataKey="readings"
-          stroke="#B8860B"
-          strokeWidth={2}
-          fillOpacity={1}
-          fill="url(#colorReadings)"
-        />
-      </AreaChart>
-    </ResponsiveContainer>
+    <div className="w-full h-64">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="date" />
+          <YAxis />
+          <Tooltip />
+          <Area type="monotone" dataKey="value" stroke="#8884d8" fill="#8884d8" />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
   );
 }

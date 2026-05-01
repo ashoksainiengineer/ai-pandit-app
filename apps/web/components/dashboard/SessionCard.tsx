@@ -190,7 +190,7 @@ export const SessionCard = memo(function SessionCard({
         setDeleteError(data.error || data.details || 'Failed to delete session');
       }
     } catch (error) {
-      setDeleteError(error instanceof Error ? error.message : 'Network error');
+      setDeleteError(error instanceof Error ? (error as Error).message : 'Network error');
     } finally {
       setIsDeleting(false);
     }
@@ -252,7 +252,7 @@ export const SessionCard = memo(function SessionCard({
       }
     } catch (error: unknown) {
       logger.error('Clone error', error);
-      alert('Clone failed: ' + error.message);
+      alert('Clone failed: ' + (error as Error).message);
     } finally {
       setIsCloning(false);
     }

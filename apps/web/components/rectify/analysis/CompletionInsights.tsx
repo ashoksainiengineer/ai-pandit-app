@@ -30,11 +30,11 @@ export function CompletionInsights({ result, sessionId }: { result: Record<strin
                         <div className="flex gap-4 mt-2">
                             <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900/80 border border-zinc-800">
                                 <Brain className="w-4 h-4 text-emerald-400" />
-                                <span className="text-sm font-medium text-zinc-300">Confidence: <span className="text-emerald-400">{result.confidence}</span></span>
+                                <span className="text-sm font-medium text-zinc-300">Confidence: <span className="text-emerald-400">{result.confidence as React.ReactNode}</span></span>
                             </div>
                             <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-zinc-900/80 border border-zinc-800">
                                 <Trophy className="w-4 h-4 text-amber-400" />
-                                <span className="text-sm font-medium text-zinc-300">Accuracy Score: <span className="text-amber-400">{result.accuracy}%</span></span>
+                                <span className="text-sm font-medium text-zinc-300">Accuracy Score: <span className="text-amber-400">{result.accuracy as React.ReactNode}%</span></span>
                             </div>
                         </div>
                     </div>
@@ -48,10 +48,10 @@ export function CompletionInsights({ result, sessionId }: { result: Record<strin
                         </span>
 
                         <div className="text-6xl font-black tabular-nums tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.7)] mb-6 relative z-10 group-hover:scale-105 transition-transform duration-500 cursor-default flex items-center gap-4">
-                            {result.rectifiedTime}
+                            {result.rectifiedTime as React.ReactNode}
                             <button
                                 className="p-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700 transition-colors opacity-0 group-hover:opacity-100 border border-zinc-700"
-                                onClick={() => copyToClipboard(result.rectifiedTime)}
+                                onClick={() => copyToClipboard(result.rectifiedTime as string)}
                                 title={hasCopied ? "Copied!" : "Copy to clipboard"}
                             >
                                 {hasCopied ? (

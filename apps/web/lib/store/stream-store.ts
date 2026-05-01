@@ -363,7 +363,7 @@ export const useStreamStore = create<StreamStore>()(
                 dispatchStreamEvent: (type: string, data: Record<string, unknown>) => {
                     const payload = data.data || data;
 
-                    if (type === 'ai_thinking' && payload.chunk !== undefined) {
+                    if (type === 'ai_thinking' && (payload as AIThinkingEventData).chunk !== undefined) {
                         const { chunk, stage, candidateTime = 'general' } = payload as AIThinkingEventData;
                         const bufferKey = `${stage}_${candidateTime}`;
                         const existing = thinkingBuffer.chunks.get(bufferKey);
@@ -397,7 +397,7 @@ export const useStreamStore = create<StreamStore>()(
 
                                 return {
                                     progress: {
-                                        step: p.steps?.find((s: { status: string; id: string }) => s.status === 'running')?.id || DEFAULT_STEPS[p.currentStep || 0].id,
+                                        step: (p.steps as unknown as Array<{ status: string; id: string }> | undefined)?.find(s => s.status === 'running')?.id || DEFAULT_STEPS[p.currentStep || 0].id,
                                         stepIndex: p.currentStep || 0,
                                         totalSteps: p.totalSteps || 7,
                                         percentage: p.percentage || 0,
@@ -488,26 +488,28 @@ export const useStreamStore = create<StreamStore>()(
 
                             case 'complete':
                             case 'result': {
-                                const directResult = payload?.rectifiedTime ? payload : null;
-                                const nestedResult = payload?.result?.rectifiedTime ? payload.result : null;
+                                const pl = payload as Record<string, any>;
+                                const directResult = pl?.rectifiedTime ? pl : null;
+                                const nestedResult = pl?.result?.rectifiedTime ? pl.result : null;
                                 const res = (directResult || nestedResult || prev.result) as StreamResult | null;
                                 return { isComplete: true, result: res, error: null };
                             }
 
                             case 'terminal_state': {
-                                const status = payload?.status;
+                                const pl = payload as Record<string, any>;
+                                const status = pl?.status;
                                 const terminalResult = (
-                                    payload?.result?.rectifiedTime
-                                        ? payload.result
-                                        : payload?.data?.result?.rectifiedTime
-                                            ? payload.data.result
-                                            : payload?.rectifiedTime
-                                                ? payload
+                                    pl?.result?.rectifiedTime
+                                        ? pl.result
+                                        : pl?.data?.result?.rectifiedTime
+                                            ? pl.data.result
+                                            : pl?.rectifiedTime
+                                                ? pl
                                                 : prev.result
                                 ) as StreamResult | null;
-                                const terminalError = payload?.errorMessage || payload?.error || payload?.message;
-                                const mergedMetadata = payload?.data
-                                    ? { ...(prev.metadata || {}), ...(payload.data as StreamMetadata) }
+                                const terminalError = pl?.errorMessage || pl?.error || pl?.message;
+                                const mergedMetadata = pl?.data
+                                    ? { ...(prev.metadata || {}), ...(pl.data as StreamMetadata) }
                                     : prev.metadata;
 
                                 if (status === 'complete' || status === 'success' || status === 'finished') {
@@ -527,7 +529,8 @@ export const useStreamStore = create<StreamStore>()(
                             }
 
                             case 'error': {
-                                return { error: payload.message || payload.error || String(payload), isComplete: false };
+                                const errPl = payload as Record<string, any>;
+                                return { error: errPl.message || errPl.error || String(payload), isComplete: false };
                             }
 
                             case 'stage_stats': {
