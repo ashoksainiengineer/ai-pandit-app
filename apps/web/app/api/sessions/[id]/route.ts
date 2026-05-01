@@ -16,7 +16,7 @@ initializeEncryption(env.security.encryptionSecret);
 
 // Redundant local helper removed as per implementation plan
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const buildPhaseResponse = getBuildPhaseRouteResponse();
     if (buildPhaseResponse) return buildPhaseResponse;
 
@@ -171,7 +171,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { userId: clerkId } = await auth();
         if (!clerkId) {

@@ -3,13 +3,12 @@
  */
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, act, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 
 // Setup jest-dom matchers with vitest expect
 (globalThis as any).expect = expect;
 import '@testing-library/jest-dom';
 import { AnalysisStatusBanner } from '../components/rectify/analysis/AnalysisStatusBanner';
-import { useStreamStore } from '../lib/store/stream-store';
 
 // Mock Framer Motion
 vi.mock('framer-motion', () => ({

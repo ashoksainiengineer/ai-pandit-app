@@ -122,7 +122,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
           className="md:hidden bg-white/98 backdrop-blur-xl border-t border-[#F0E8DE]"
         >
           <div className="px-6 py-6 space-y-4">
-            {navLinks.map((link, index) => (
+            {navLinks.map((link) => (
               <div
                 key={link.href}
               >

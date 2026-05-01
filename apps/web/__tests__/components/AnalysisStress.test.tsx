@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { useStreamStore, createInitialState } from '../../lib/store/stream-store';
-import { del } from 'idb-keyval';
+import { useStreamStore } from '../../lib/store/stream-store';
 
 // Mock IndexedDB
 vi.mock('idb-keyval', () => ({
