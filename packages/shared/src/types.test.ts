@@ -4,7 +4,7 @@ import type {
   RectificationSession, 
   BtrEvent,
   SessionStatus 
-} from './types';
+} from './types.js';
 
 describe('Shared Types', () => {
   describe('BirthData', () => {
