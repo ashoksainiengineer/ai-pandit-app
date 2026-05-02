@@ -1,27 +1,11 @@
-
-// lib/queue-manager.ts
-// Efficient queue system for high-performance AI backend
-// Design: Process multiple requests concurrently based on system capacity
-
 import crypto from 'node:crypto';
 import {
-  completeJob as completeJobRecord,
   db,
   executeWithRetry,
 } from '@ai-pandit/db';
 import {
-  appendJobEvent,
-  completeJobAttempt,
-  createJobAttempt,
-  failJob as failJobRecord,
-  getLatestJobForSession,
-  incrementJobAttempt,
-  listJobEvents,
-  markJobRunning as markJobRunningRecord,
-  requestJobCancellation as requestJobCancellationRecord,
   scheduleJobRetry,
-  updateJobAttemptHeartbeat,
-  updateJobProgress as updateJobProgressRecord,
+  failJob as failJobRecord,
 } from '@ai-pandit/db/jobs';
 import { eq, and, or, asc, lt, gte } from 'drizzle-orm';
 import { logger } from './logger.js';
@@ -38,7 +22,6 @@ import { calculations, jobAttempts, jobs, sessions } from '@ai-pandit/db/schema'
 import { config } from '../config/index.js';
 import { processSecondsPrecisionBTR } from './seconds-precision-btr.js';
 import { getMemoryPressureSnapshot, triggerGC } from './memory-manager.js';
-import { persistArtifactReference } from './jobs/artifact-storage.js';
 import { getQueueDriver } from './queue/index.js';
 import {
   getBlockingCircuitBreakers,
@@ -48,44 +31,50 @@ import {
   resetAllCircuitBreakersForTests,
   type CircuitDependency,
 } from './resilience/dependency-circuit-breaker.js';
-
+import {
+  syncJobQueued,
+  syncJobRunning,
+  syncJobCompleted,
+  syncJobFailed,
+  syncJobHeartbeat,
+  syncJobCancelled,
+  beginTrackedJobAttempt,
+  completeTrackedJobAttempt,
+  writeDeadLetterArtifact,
+  getTrackedJob,
+  mapJobStatusToQueueStatus,
+  appendLifecycleEvent,
+} from './job-lifecycle.js';
+import {
+  RETRY_CONFIG,
+  type RetryReasonCode,
+  deriveRetryReasonCode,
+  getRetryDelay,
+  mapReasonToDependency,
+  isRetryableError,
+} from './retry-policies.js';
+import {
+  recoveryTelemetry,
+  recoverInterruptedJobsOnStartup as _recoverInterruptedJobsOnStartup,
+  getQueueStats as _getQueueStats,
+  cleanupZombiesOnStartup as _cleanupZombiesOnStartup,
+  getQueueRecoveryTelemetry as _getQueueRecoveryTelemetry,
+} from './metrics-reporter.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // QUEUE CONFIGURATION (Optimized for HF Spaces Free Tier: 16GB RAM)
 // ═════════════════════════════════════════════════════════════════════════════
 
 const QUEUE_CONFIG = {
-  // Default 3 concurrent sessions - can handle up to 3 simultaneous BTR analyses
-  // With 16GB RAM, each session gets ~5GB which is sufficient for God-Tier BTR
   maxConcurrent: config.queue?.maxConcurrent ?? 3,
-
   pollIntervalMs: config.queue?.pollIntervalMs ?? 5000,
   maxQueueSize: config.queue?.maxSize ?? 100,
   loadShedQueueDepth: config.queue?.loadShedQueueDepth ?? 80,
-
-  // 2 hour timeout for complex BTR analyses with multiple life events
   staleTimeoutMs: config.queue?.staleTimeoutMs ?? 7_200_000,
-
-  // Base analysis time ~4 minutes per session with DeepSeek R1
   baseAnalysisTime: config.queue?.baseAnalysisTime ?? 240,
-
-  // Contention factor - minimal overhead per additional concurrent session
   contentionMultiplier: config.queue?.contentionMultiplier ?? 0.1,
-
-  // Memory thresholds (in GB) for automatic throttling
   memoryPressureThresholdGB: config.memory?.pressureThresholdGB ?? 10,
   memoryCriticalThresholdGB: config.memory?.criticalThresholdGB ?? 11,
-};
-
-// ═════════════════════════════════════════════════════════════════════════════
-// C4 FIX: Retry & Circuit Breaker Configuration
-// ═════════════════════════════════════════════════════════════════════════════
-
-const RETRY_CONFIG = {
-  maxRetries: 3,
-  baseDelayMs: 1000,
-  maxDelayMs: 60000,  // 1 minute max
-  backoffMultiplier: 2,
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -94,14 +83,12 @@ const RETRY_CONFIG = {
 
 import type { QueueStatus, QueuePosition, QueueSubmitResult, PhysicalTraits, ForensicTraits, SecondsPrecisionInput } from '@ai-pandit/shared';
 
-// Re-export types for backwards compatibility
 export type { QueueStatus, QueuePosition, QueueSubmitResult };
 
 // ═════════════════════════════════════════════════════════════════════════════
 // IN-MEMORY STATE (minimal - just tracking current jobs)
 // ═════════════════════════════════════════════════════════════════════════════
 
-// Track multiple concurrent processing IDs
 const activeProcessingIds = new Set<string>();
 const activeAttemptIds = new Map<string, string>();
 const workerId = process.env.K_SERVICE
@@ -116,496 +103,22 @@ export function getQueueCircuitBreakerStatus() {
   return getCircuitSnapshots();
 }
 
-export function getQueueRecoveryTelemetry(): RecoveryTelemetry {
-  return { ...recoveryTelemetry };
+export function getQueueRecoveryTelemetry() {
+  return _getQueueRecoveryTelemetry();
 }
 
 export function isQueueProcessorRunning(): boolean {
   return isProcessorRunning;
 }
 
-const processingStartTimes = new Map<string, number>(); // sessionId -> timestamp
+const processingStartTimes = new Map<string, number>();
 let isProcessorRunning = false;
 const queueDriver = getQueueDriver();
-
-interface RecoveryTelemetry {
-  lastRunAt: string | null;
-  lastRecoveredJobs: number;
-  lastAbandonedAttempts: number;
-  totalRecoveredJobs: number;
-  totalAbandonedAttempts: number;
-  alertActive: boolean;
-}
-
-const recoveryTelemetry: RecoveryTelemetry = {
-  lastRunAt: null,
-  lastRecoveredJobs: 0,
-  lastAbandonedAttempts: 0,
-  totalRecoveredJobs: 0,
-  totalAbandonedAttempts: 0,
-  alertActive: false,
-};
-
-type RetryReasonCode =
-  | 'network_error'
-  | 'upstream_timeout'
-  | 'rate_limited'
-  | 'service_unavailable'
-  | 'database_busy'
-  | 'worker_restart'
-  | 'processing_error';
-
-async function getTrackedJob(sessionId: string) {
-  return getLatestJobForSession(sessionId);
-}
-
-function deriveRetryReasonCode(error: unknown): RetryReasonCode {
-  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
-
-  if (message.includes('429') || message.includes('rate limit') || message.includes('too many requests')) {
-    return 'rate_limited';
-  }
-
-  if (message.includes('timeout') || message.includes('etimedout')) {
-    return 'upstream_timeout';
-  }
-
-  if (
-    message.includes('network') ||
-    message.includes('econnrefused') ||
-    message.includes('enotfound') ||
-    message.includes('econnreset')
-  ) {
-    return 'network_error';
-  }
-
-  if (message.includes('503') || message.includes('service unavailable') || message.includes('temporarily unavailable')) {
-    return 'service_unavailable';
-  }
-
-  if (message.includes('database is locked') || message.includes('busy') || message.includes('sqlite_busy')) {
-    return 'database_busy';
-  }
-
-  return 'processing_error';
-}
-
-async function buildCheckpointPayload(
-  sessionId: string,
-  status: 'queued' | 'running' | 'retrying' | 'failed' | 'completed' | 'cancelled',
-  extra: Record<string, unknown> = {}
-): Promise<Record<string, unknown>> {
-  const progress = await getSessionProgress(sessionId);
-
-  return {
-    status,
-    progress: progress
-      ? {
-          currentStep: progress.currentStep,
-          totalSteps: progress.totalSteps,
-          percentage: progress.percentage,
-          lastUpdate: progress.lastUpdate,
-        }
-      : null,
-    capturedAt: new Date().toISOString(),
-    ...extra,
-  };
-}
-
-function mapJobStatusToQueueStatus(status: string | null | undefined): QueueStatus {
-  switch (status) {
-    case 'running':
-      return 'processing';
-    case 'completed':
-      return 'complete';
-    case 'failed':
-    case 'cancelled':
-      return 'failed';
-    default:
-      return 'queued';
-  }
-}
-
-async function getNextJobEventSequence(jobId: string): Promise<number> {
-  const events = await listJobEvents(jobId);
-  const lastSequence = events.at(-1)?.sequenceNo ?? 0;
-  return lastSequence + 1;
-}
-
-async function appendLifecycleEvent(
-  sessionId: string,
-  eventType: string,
-  payload: Record<string, unknown>,
-  stage?: string
-): Promise<void> {
-  const job = await getTrackedJob(sessionId);
-  if (!job) {
-    return;
-  }
-
-  await appendJobEvent({
-    id: crypto.randomUUID(),
-    jobId: job.id,
-    sessionId,
-    sequenceNo: await getNextJobEventSequence(job.id),
-    eventType,
-    stage: stage ?? null,
-    payloadJson: payload,
-  });
-}
-
-async function syncJobQueued(sessionId: string): Promise<void> {
-  const job = await getTrackedJob(sessionId);
-  if (!job) {
-    return;
-  }
-
-  const checkpointJson = await buildCheckpointPayload(sessionId, 'queued');
-  await updateJobProgressRecord({
-    jobId: job.id,
-    currentStage: null,
-    progressPercent: 0,
-    checkpointJson,
-  });
-
-  await appendLifecycleEvent(sessionId, 'job.queued', { status: 'queued' });
-}
-
-async function syncJobRunning(sessionId: string): Promise<void> {
-  const job = await getTrackedJob(sessionId);
-  if (!job) {
-    return;
-  }
-
-  const progress = await getSessionProgress(sessionId);
-
-  await markJobRunningRecord(job.id);
-  await updateJobProgressRecord({
-    jobId: job.id,
-    currentStage: getCurrentStage(progress) ?? job.currentStage,
-    progressPercent: progress?.percentage ?? job.progressPercent,
-    checkpointJson: await buildCheckpointPayload(sessionId, 'running', {
-      attempt: job.attempt,
-      retryCount: job.retryCount,
-    }),
-  });
-
-  await appendLifecycleEvent(sessionId, 'job.started', { status: 'running' });
-}
-
-async function syncJobCompleted(
-  sessionId: string,
-  results: {
-    rectifiedTime: string;
-    accuracy: number;
-    confidence: string;
-    analysisResult: string;
-    reasoningLogs?: string | null;
-  }
-): Promise<void> {
-  const job = await getTrackedJob(sessionId);
-  if (!job) {
-    return;
-  }
-
-  const parsedResult = safeParseJsonRecord(results.analysisResult);
-
-  await completeJobRecord({
-    jobId: job.id,
-    resultJson: parsedResult ?? {
-      rectifiedTime: results.rectifiedTime,
-      accuracy: results.accuracy,
-      confidence: results.confidence,
-    },
-  });
-
-  await persistCompletionArtifacts(job, sessionId, results);
-
-  await appendLifecycleEvent(sessionId, 'job.completed', {
-    status: 'completed',
-    rectifiedTime: results.rectifiedTime,
-    accuracy: results.accuracy,
-    confidence: results.confidence,
-  });
-}
-
-/**
- * Safely parse a JSON string into a Record. Returns undefined on failure.
- */
-function safeParseJsonRecord(value: string): Record<string, unknown> | undefined {
-  try {
-    const parsed = JSON.parse(value);
-    if (typeof parsed === 'object' && parsed !== null) {
-      return parsed as Record<string, unknown>;
-    }
-  } catch {
-    // ignore parse errors
-  }
-  return undefined;
-}
-
-/**
- * Persist all artifact references for a completed job.
- */
-async function persistCompletionArtifacts(
-  job: NonNullable<Awaited<ReturnType<typeof getTrackedJob>>>,
-  sessionId: string,
-  results: {
-    rectifiedTime: string;
-    accuracy: number;
-    confidence: string;
-    analysisResult: string;
-    reasoningLogs?: string | null;
-  }
-): Promise<void> {
-  const artifacts: Promise<unknown>[] = [
-    persistArtifactReference({
-      jobId: job.id,
-      sessionId,
-      kind: 'analysis_result',
-      fileName: 'analysis-result.json',
-      mimeType: 'application/json',
-      payload: results.analysisResult,
-      metadata: {
-        rectifiedTime: results.rectifiedTime,
-        accuracy: results.accuracy,
-        confidence: results.confidence,
-      },
-    }),
-    persistArtifactReference({
-      jobId: job.id,
-      sessionId,
-      kind: 'report',
-      fileName: 'result-summary.json',
-      mimeType: 'application/json',
-      payload: JSON.stringify({
-        rectifiedTime: results.rectifiedTime,
-        accuracy: results.accuracy,
-        confidence: results.confidence,
-      }),
-      metadata: {
-        source: 'queue_manager',
-      },
-    }),
-  ];
-
-  if (results.reasoningLogs) {
-    artifacts.push(
-      persistArtifactReference({
-        jobId: job.id,
-        sessionId,
-        kind: 'reasoning_log',
-        fileName: 'reasoning-log.json',
-        mimeType: 'application/json',
-        payload: results.reasoningLogs,
-        metadata: {
-          format: 'stage_history',
-        },
-      })
-    );
-  }
-
-  await Promise.all(artifacts);
-}
-
-async function syncJobFailed(
-  sessionId: string,
-  errorMessage: string,
-  errorCode?: string
-): Promise<void> {
-  const job = await getTrackedJob(sessionId);
-  if (!job) {
-    return;
-  }
-
-  await failJobRecord({
-    jobId: job.id,
-    errorCode: errorCode ?? null,
-    errorMessage,
-    status: 'failed',
-  });
-
-  await appendLifecycleEvent(sessionId, 'job.failed', {
-    status: 'failed',
-    errorCode: errorCode ?? undefined,
-    errorMessage,
-  });
-}
-
-async function syncJobHeartbeat(sessionId: string): Promise<void> {
-  const job = await getTrackedJob(sessionId);
-  if (!job) {
-    return;
-  }
-
-  const progress = await getSessionProgress(sessionId);
-  const currentStage = getCurrentStage(progress) ?? job.currentStage;
-  const checkpointJson = await buildCheckpointPayload(sessionId, job.status, {
-    attempt: job.attempt,
-    retryCount: job.retryCount,
-  });
-
-  await updateJobProgressRecord({
-    jobId: job.id,
-    currentStage,
-    progressPercent: progress?.percentage ?? job.progressPercent,
-    checkpointJson,
-  });
-
-  const attemptId = activeAttemptIds.get(sessionId);
-  if (attemptId) {
-    await updateJobAttemptHeartbeat({
-      attemptId,
-      checkpointJson,
-    });
-  }
-}
-
-function getCurrentStage(progress: Awaited<ReturnType<typeof getSessionProgress>>): string | null {
-  if (!progress) {
-    return null;
-  }
-
-  const currentStep = progress.steps?.[progress.currentStep];
-  return currentStep?.id ?? null;
-}
-
-async function syncJobCancelled(sessionId: string): Promise<void> {
-  const job = await getTrackedJob(sessionId);
-  if (!job) {
-    return;
-  }
-
-  await requestJobCancellationRecord(job.id);
-  await failJobRecord({
-    jobId: job.id,
-    errorMessage: 'Cancelled by user',
-    status: 'cancelled',
-  });
-
-  const attemptId = activeAttemptIds.get(sessionId);
-  if (attemptId) {
-    await completeJobAttempt({
-      attemptId,
-      outcome: 'cancelled',
-      failureReason: 'Cancelled by user',
-      checkpointJson: await buildCheckpointPayload(sessionId, 'cancelled'),
-    });
-    activeAttemptIds.delete(sessionId);
-  }
-
-  await appendLifecycleEvent(sessionId, 'job.cancelled', {
-    status: 'cancelled',
-    errorMessage: 'Cancelled by user',
-  });
-}
-
-async function beginTrackedJobAttempt(sessionId: string): Promise<void> {
-  const job = await getTrackedJob(sessionId);
-  if (!job) {
-    return;
-  }
-
-  const updatedJob = await incrementJobAttempt(job.id);
-  const attemptNo = updatedJob?.attempt ?? job.attempt + 1;
-  const attempt = await createJobAttempt({
-    id: crypto.randomUUID(),
-    jobId: job.id,
-    attemptNo,
-    workerId,
-    leaseToken: crypto.randomUUID(),
-  });
-
-  activeAttemptIds.set(sessionId, attempt.id);
-}
-
-async function completeTrackedJobAttempt(
-  sessionId: string,
-  outcome: 'succeeded' | 'failed' | 'cancelled' | 'abandoned',
-  failureReason?: string,
-  failureCode?: string
-): Promise<void> {
-  const attemptId = activeAttemptIds.get(sessionId);
-  if (!attemptId) {
-    return;
-  }
-
-  const job = await getTrackedJob(sessionId);
-  await completeJobAttempt({
-    attemptId,
-    outcome,
-    failureReason: failureReason ?? null,
-    failureCode: failureCode ?? null,
-    checkpointJson: (job?.checkpointJson as Record<string, unknown> | null) ?? null,
-  });
-  activeAttemptIds.delete(sessionId);
-}
-
-async function writeDeadLetterArtifact(sessionId: string, errorMessage: string, attemptsUsed: number): Promise<void> {
-  const job = await getTrackedJob(sessionId);
-  if (!job) {
-    return;
-  }
-
-  const payload = buildDeadLetterPayload(job, sessionId, errorMessage, attemptsUsed);
-  await persistArtifactReference({
-    jobId: job.id,
-    sessionId,
-    kind: 'dead_letter_report',
-    fileName: 'dead-letter-report.json',
-    mimeType: 'application/json',
-    payload: JSON.stringify(payload),
-    metadata: payload,
-  });
-
-  await appendLifecycleEvent(sessionId, 'job.dead_lettered', {
-    status: 'failed',
-    reason: 'max_attempts_exceeded',
-    attemptsUsed,
-    maxAttempts: job.maxAttempts,
-    errorMessage,
-  });
-
-  await queueDriver.moveToDeadLetter(sessionId, {
-    reason: 'max_attempts_exceeded',
-    attemptsUsed,
-    maxAttempts: job.maxAttempts,
-    retryCount: job.retryCount,
-    errorMessage,
-  });
-}
-
-/**
- * Build the dead-letter payload for a permanently failed job.
- */
-function buildDeadLetterPayload(
-  job: NonNullable<Awaited<ReturnType<typeof getTrackedJob>>>,
-  sessionId: string,
-  errorMessage: string,
-  attemptsUsed: number
-): Record<string, unknown> {
-  return {
-    jobId: job.id,
-    sessionId,
-    retryCount: job.retryCount,
-    attemptsUsed,
-    maxAttempts: job.maxAttempts,
-    errorMessage,
-    checkpoint: job.checkpointJson ?? null,
-    cursor: job.cursorJson ?? null,
-    finalStatus: 'failed',
-    createdAt: new Date().toISOString(),
-  };
-}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // QUEUE OPERATIONS
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * Add a new request to the queue
- * Returns queue position and estimated wait time
- */
 export async function addToQueue(sessionId: string): Promise<QueueSubmitResult> {
   try {
     const queuedCount = await getQueuedCount();
@@ -639,10 +152,6 @@ export async function addToQueue(sessionId: string): Promise<QueueSubmitResult> 
   }
 }
 
-/**
- * Check if the queue has capacity for a new request.
- * Returns a rejection result if at capacity, otherwise null.
- */
 function checkQueueCapacity(queuedCount: number): QueueSubmitResult | null {
   if (queuedCount >= QUEUE_CONFIG.maxQueueSize) {
     return {
@@ -665,9 +174,6 @@ function checkQueueCapacity(queuedCount: number): QueueSubmitResult | null {
   return null;
 }
 
-/**
- * Update session status to queued and enqueue in the driver.
- */
 async function enqueueSession(sessionId: string): Promise<void> {
   await executeWithRetry(() =>
     db.update(sessions)
@@ -682,9 +188,6 @@ async function enqueueSession(sessionId: string): Promise<void> {
   await queueDriver.enqueueSession(sessionId);
 }
 
-/**
- * Get current queue position for a session
- */
 export async function getQueuePosition(sessionId: string): Promise<number> {
   try {
     const active = await queueDriver.listActiveJobs();
@@ -703,9 +206,6 @@ export async function getQueuePosition(sessionId: string): Promise<number> {
   }
 }
 
-/**
- * Get full queue status for a session
- */
 export async function getQueueStatus(sessionId: string): Promise<QueuePosition | null> {
   try {
     const { session, job } = await fetchSessionAndJob(sessionId);
@@ -733,9 +233,6 @@ export async function getQueueStatus(sessionId: string): Promise<QueuePosition |
   }
 }
 
-/**
- * Fetch the session row and latest job for a session.
- */
 async function fetchSessionAndJob(sessionId: string): Promise<{
   session: typeof sessions.$inferSelect | null;
   job: Awaited<ReturnType<typeof getTrackedJob>>;
@@ -753,9 +250,6 @@ async function fetchSessionAndJob(sessionId: string): Promise<{
   return { session, job };
 }
 
-/**
- * Compute queue position based on status.
- */
 async function computeQueuePosition(sessionId: string, queueStatus: QueueStatus): Promise<number> {
   if (queueStatus !== 'queued' && queueStatus !== 'processing') {
     return 0;
@@ -763,9 +257,6 @@ async function computeQueuePosition(sessionId: string, queueStatus: QueueStatus)
   return getQueuePosition(sessionId);
 }
 
-/**
- * Compute estimated wait time in seconds for a queued session.
- */
 async function computeEstimatedWait(position: number, queueStatus: QueueStatus): Promise<number> {
   if (queueStatus !== 'queued') {
     return 0;
@@ -788,9 +279,6 @@ async function computeEstimatedWait(position: number, queueStatus: QueueStatus):
   return Math.ceil(nextSlotAvailableIn + (itemsAhead * waitPerQueueItem));
 }
 
-/**
- * Get count of queued + processing requests
- */
 async function getQueuedCount(): Promise<number> {
   try {
     return await queueDriver.countQueuedJobs();
@@ -799,9 +287,6 @@ async function getQueuedCount(): Promise<number> {
   }
 }
 
-/**
- * Get next session to process (FIFO)
- */
 async function _getNextInQueue(): Promise<string | null> {
   try {
     const nextJob = await queueDriver.claimNextQueuedJob();
@@ -820,10 +305,6 @@ function getRowsAffected(result: unknown): number | null {
   return null;
 }
 
-/**
- * Atomically claim the next queued session.
- * Prevents two workers from processing the same session under race.
- */
 async function claimNextQueuedSession(): Promise<string | null> {
   const claimedJob = await queueDriver.claimNextQueuedJob();
   if (!claimedJob) {
@@ -852,15 +333,11 @@ async function claimNextQueuedSession(): Promise<string | null> {
 
   activeProcessingIds.add(claimedJob.sessionId);
   processingStartTimes.set(claimedJob.sessionId, Date.now());
-  await beginTrackedJobAttempt(claimedJob.sessionId);
+  await beginTrackedJobAttempt(claimedJob.sessionId, activeAttemptIds, workerId);
   await syncJobRunning(claimedJob.sessionId);
   return claimedJob.sessionId;
 }
 
-/**
- * Test hooks for deterministic race-condition validation.
- * Not used in production paths.
- */
 export const __queueInternals = {
   claimNextQueuedSession,
 };
@@ -879,9 +356,6 @@ export function __resetQueueStateForTests(): void {
   recoveryTelemetry.alertActive = false;
 }
 
-/**
- * Mark session as processing
- */
 async function _markAsProcessing(sessionId: string): Promise<void> {
   await executeWithRetry(() =>
     db.update(sessions)
@@ -897,9 +371,6 @@ async function _markAsProcessing(sessionId: string): Promise<void> {
   await syncJobRunning(sessionId);
 }
 
-/**
- * Mark session as complete with results
- */
 export async function markAsComplete(
   sessionId: string,
   results: {
@@ -918,7 +389,7 @@ export async function markAsComplete(
   }
 
   releaseProcessingSlot(sessionId);
-  await completeTrackedJobAttempt(sessionId, 'succeeded');
+  await completeTrackedJobAttempt(sessionId, activeAttemptIds, 'succeeded');
 
   logger.info('Session marked complete', { sessionId });
   await syncJobCompleted(sessionId, results);
@@ -930,9 +401,6 @@ export async function markAsComplete(
   );
 }
 
-/**
- * Update the session row to complete status. Returns rows affected.
- */
 async function updateSessionToComplete(
   sessionId: string,
   results: {
@@ -964,22 +432,16 @@ async function updateSessionToComplete(
   return getRowsAffected(updateResult);
 }
 
-/**
- * Release a processing slot for the given session.
- */
 function releaseProcessingSlot(sessionId: string): void {
   activeProcessingIds.delete(sessionId);
   processingStartTimes.delete(sessionId);
 }
-/**
- * Mark session as failed and flush technical trash
- */
+
 export async function markAsFailed(
   sessionId: string,
   error: string,
   errorCode?: string
 ): Promise<void> {
-  // 🧹 FLUSH KACHRA & ABORT: Stop operations and clear logs immediately on failure
   await flushSessionTrash(sessionId);
 
   const updateResult = await executeWithRetry(() =>
@@ -1005,56 +467,44 @@ export async function markAsFailed(
 
   activeProcessingIds.delete(sessionId);
   processingStartTimes.delete(sessionId);
-  await completeTrackedJobAttempt(sessionId, 'failed', error, errorCode);
+  await completeTrackedJobAttempt(sessionId, activeAttemptIds, 'failed', error, errorCode);
 
   logger.error('Session marked failed (Trash Flushed)', { sessionId, error });
   await syncJobFailed(sessionId, error, errorCode);
 }
 
-/**
- * Technical Trash Flush Tool
- * Aborts ongoing operations and wipes heavy processing artifacts (logs, cache, results)
- */
 export async function flushSessionTrash(sessionId: string): Promise<void> {
   try {
-    logger.info('🧹 Flushing technical trash and aborting session', { sessionId });
+    logger.info('Flushing technical trash and aborting session', { sessionId });
 
-    // 1. 🛑 ABORT Engine: Immediately kill all ongoing AI calls and calculations
     abortSessionController(sessionId);
 
-    // 2. 🧽 DB WIPE: Clear heavy processing columns
     await executeWithRetry(() =>
       db.update(sessions)
         .set({
           progressData: null,
           analysisResult: null,
-          // reasoningLogs: null, // Note: Not in DB but keep in mind
           updatedAt: new Date().toISOString(),
         })
         .where(eq(sessions.id, sessionId))
     );
 
-    // 3. 🗑️ CACHE WIPE: Delete all ephemeris cache records for this session
     await executeWithRetry(() =>
       db.delete(calculations)
         .where(eq(calculations.sessionId, sessionId))
     );
 
-    // 4. Memory Cleanup
     cleanupController(sessionId);
     ProgressTracker.clearInstance(sessionId);
     activeProcessingIds.delete(sessionId);
     processingStartTimes.delete(sessionId);
 
-    logger.debug('✨ Trash flush complete', { sessionId });
+    logger.debug('Trash flush complete', { sessionId });
   } catch (error) {
     logger.error('Failed to flush session trash', { sessionId, error });
   }
 }
 
-/**
- * Update session timestamp to prevent it from being marked as stale
- */
 export async function heartbeat(sessionId: string): Promise<void> {
   await executeWithRetry(() =>
     db.update(sessions)
@@ -1063,7 +513,7 @@ export async function heartbeat(sessionId: string): Promise<void> {
       })
       .where(eq(sessions.id, sessionId))
   );
-  await syncJobHeartbeat(sessionId);
+  await syncJobHeartbeat(sessionId, activeAttemptIds);
 }
 
 async function markSessionQueuedForRetry(sessionId: string): Promise<void> {
@@ -1080,9 +530,6 @@ async function markSessionQueuedForRetry(sessionId: string): Promise<void> {
   await releaseProcessingSlot(sessionId);
 }
 
-/**
- * Cancel a session
- */
 export async function cancelSession(sessionId: string): Promise<boolean> {
   try {
     const session = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
@@ -1095,7 +542,6 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
       return false;
     }
 
-    // 🧹 FLUSH KACHRA & ABORT: Stop operations and clear logs immediately
     await flushSessionTrash(sessionId);
 
     const updateResult = await executeWithRetry(() =>
@@ -1122,7 +568,7 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
     }
 
     emitError(sessionId, 'Cancelled by user', 'cancelled');
-    await syncJobCancelled(sessionId);
+    await syncJobCancelled(sessionId, activeAttemptIds);
     logger.info('Session cancelled by user (Full Wipe Complete)', { sessionId });
     return true;
   } catch (error) {
@@ -1132,76 +578,9 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// C4 FIX: Retry & Circuit Breaker Helper Functions
+// C4 FIX: Retry Orchestration
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * Calculate exponential backoff delay
- */
-function getRetryDelay(attempt: number): number {
-  const delay = RETRY_CONFIG.baseDelayMs * Math.pow(RETRY_CONFIG.backoffMultiplier, attempt);
-  return Math.min(delay, RETRY_CONFIG.maxDelayMs);
-}
-
-function mapReasonToDependency(reasonCode: RetryReasonCode): CircuitDependency {
-  switch (reasonCode) {
-    case 'database_busy':
-      return 'database';
-    case 'rate_limited':
-    case 'service_unavailable':
-      return 'ai_provider';
-    case 'network_error':
-    case 'upstream_timeout':
-      return 'network';
-    default:
-      return 'processing';
-  }
-}
-
-/**
- * Determine if error is retryable
- */
-function isRetryableError(error: unknown): boolean {
-  if (error instanceof Error) {
-    const msg = error.message.toLowerCase();
-
-    // Network errors - retry
-    if (msg.includes('timeout') ||
-      msg.includes('network') ||
-      msg.includes('econnrefused') ||
-      msg.includes('enotfound') ||
-      msg.includes('rate limit') ||
-      msg.includes('429') ||
-      msg.includes('503') ||
-      msg.includes('too many requests') ||
-      msg.includes('etimedout') ||
-      msg.includes('econnreset')) {
-      return true;
-    }
-
-    // AI service errors - retry (only transient/network issues)
-    // NOTE: ai_analysis_incomplete is NOT retryable — it's a parsing failure,
-    // and retrying restarts ALL 6 stages (~19 AI calls each time = credit drain)
-    if (msg.includes('openrouter') ||
-      msg.includes('temporarily unavailable') ||
-      msg.includes('service unavailable')) {
-      return true;
-    }
-
-    // Database transient errors - retry
-    if (msg.includes('database is locked') ||
-      msg.includes('busy') ||
-      msg.includes('sqlITE_BUSY')) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-/**
- * Process session with retry logic (C4 Fix)
- */
 async function processSessionWithRetry(sessionId: string, attempt: number = 0): Promise<void> {
   logger.debug('processSessionWithRetry called', { sessionId, attempt });
   try {
@@ -1215,9 +594,6 @@ async function processSessionWithRetry(sessionId: string, attempt: number = 0): 
   }
 }
 
-/**
- * Handle a processing failure by either scheduling a retry or marking permanent failure.
- */
 async function handleProcessingFailure(
   sessionId: string,
   error: unknown,
@@ -1236,9 +612,6 @@ async function handleProcessingFailure(
   await finalizePermanentFailure(sessionId, errorMsg, attempt, retryReasonCode, dependency);
 }
 
-/**
- * Schedule a retry for a failed session after a backoff delay.
- */
 async function scheduleRetry(
   sessionId: string,
   errorMsg: string,
@@ -1246,7 +619,7 @@ async function scheduleRetry(
   attempt: number
 ): Promise<void> {
   const delay = getRetryDelay(attempt);
-  await completeTrackedJobAttempt(sessionId, 'abandoned', errorMsg, retryReasonCode);
+  await completeTrackedJobAttempt(sessionId, activeAttemptIds, 'abandoned', errorMsg, retryReasonCode);
 
   const job = await getTrackedJob(sessionId);
   if (job) {
@@ -1288,13 +661,10 @@ async function scheduleRetry(
   });
 
   await sleep(delay);
-  await beginTrackedJobAttempt(sessionId);
+  await beginTrackedJobAttempt(sessionId, activeAttemptIds, workerId);
   return processSessionWithRetry(sessionId, attempt + 1);
 }
 
-/**
- * Finalize a permanently failed session by writing dead letter and marking failed.
- */
 async function finalizePermanentFailure(
   sessionId: string,
   errorMsg: string,
@@ -1310,7 +680,7 @@ async function finalizePermanentFailure(
   recordDependencyFailure(dependency);
 
   try {
-    await writeDeadLetterArtifact(sessionId, errorMsg, attempt + 1);
+    await writeDeadLetterArtifact(sessionId, errorMsg, attempt + 1, queueDriver);
     await markAsFailed(sessionId, errorMsg, retryReasonCode);
   } catch (markError) {
     logger.error(`Failed to mark session ${sessionId} as failed`, markError);
@@ -1321,15 +691,9 @@ async function finalizePermanentFailure(
 // QUEUE PROCESSOR
 // ═════════════════════════════════════════════════════════════════════════════
 
-// processSecondsPrecisionBTR imported at top of file
-
-/**
- * Start the queue processor
- * Runs in background, processes one request at a time
- */
 export function startQueueProcessor(): void {
   if (isProcessorRunning) {
-    return; // Already running
+    return;
   }
 
   if (config.queue.executionMode === 'external_worker') {
@@ -1341,9 +705,6 @@ export function startQueueProcessor(): void {
   void processQueue();
 }
 
-/**
- * Main queue processing loop (C4 Fix: Global error handling + Circuit breaker)
- */
 async function processQueue(): Promise<void> {
   logger.info('Queue processor loop started with C4 fixes (retry + circuit breaker)');
 
@@ -1382,9 +743,6 @@ export async function runQueueIteration(): Promise<void> {
   }
 }
 
-/**
- * Check if any circuit breakers are open and return the required delay.
- */
 async function checkCircuitBreakers(): Promise<number | null> {
   const blockingBreakers = getBlockingCircuitBreakers();
   if (blockingBreakers.length === 0) {
@@ -1400,9 +758,6 @@ async function checkCircuitBreakers(): Promise<number | null> {
   return Math.max(1000, Math.min(config.queue.pollIntervalMs, remainingMs));
 }
 
-/**
- * Evaluate memory pressure and return the effective concurrency limit.
- */
 async function evaluateMemoryPressure(): Promise<number> {
   const memoryPressure = getMemoryPressureSnapshot();
   const { heapUsedGB, heapTotalGB, rssGB } = memoryPressure;
@@ -1433,9 +788,6 @@ async function evaluateMemoryPressure(): Promise<number> {
   return effectiveMaxConcurrent;
 }
 
-/**
- * Handle the case when all processing slots are full.
- */
 async function handleQueueBlocked(): Promise<void> {
   const queuedCount = await getQueuedCount();
   if (queuedCount > activeProcessingIds.size) {
@@ -1447,9 +799,6 @@ async function handleQueueBlocked(): Promise<void> {
   await sleep(1000);
 }
 
-/**
- * Start processing a claimed session in the background.
- */
 function startSessionProcessing(sessionId: string): void {
   processSessionWithRetry(sessionId).catch((err) => {
     logger.error('UNHANDLED ERROR in processSessionWithRetry', { sessionId, error: err });
@@ -1457,9 +806,6 @@ function startSessionProcessing(sessionId: string): void {
   });
 }
 
-/**
- * Handle errors during a queue iteration with exponential backoff.
- */
 async function handleQueueIterationError(error: unknown): Promise<void> {
   logger.error('Queue processor error', { error: (error as any)?.message || error });
   const reasonCode = deriveRetryReasonCode(error);
@@ -1472,9 +818,10 @@ async function handleQueueIterationError(error: unknown): Promise<void> {
   await sleep(delay);
 }
 
-/**
- * Process a single session (async worker)
- */
+// ═════════════════════════════════════════════════════════════════════════════
+// SESSION PROCESSING
+// ═════════════════════════════════════════════════════════════════════════════
+
 async function processSessionAsync(sessionId: string): Promise<void> {
   logger.debug('processSessionAsync entered', { sessionId });
   try {
@@ -1508,9 +855,6 @@ async function processSessionAsync(sessionId: string): Promise<void> {
   }
 }
 
-/**
- * Fetch a session row from the database. Throws if not found.
- */
 async function fetchSessionRow(sessionId: string): Promise<typeof sessions.$inferSelect> {
   const rows = await executeWithRetry(() =>
     db.select()
@@ -1525,9 +869,6 @@ async function fetchSessionRow(sessionId: string): Promise<typeof sessions.$infe
   return rows[0];
 }
 
-/**
- * Start a heartbeat timer that pings the session every 15 seconds.
- */
 function startHeartbeatTimer(sessionId: string): ReturnType<typeof setInterval> {
   return setInterval(() => {
     void heartbeat(sessionId).catch((error) => {
@@ -1548,9 +889,6 @@ interface DecryptedSessionData {
   spouseData: unknown | undefined;
 }
 
-/**
- * Decrypt all sensitive session fields with fallback to plain JSON.
- */
 function decryptSessionFields(
   s: typeof sessions.$inferSelect,
   sessionId: string
@@ -1584,10 +922,6 @@ function decryptSessionFields(
   return { lifeEvents, physicalTraits, forensicTraits, dateOfBirth, tentativeTime, spouseData };
 }
 
-/**
- * Decrypt a JSON field, falling back to plain JSON if decryption fails.
- * Throws if both decryption and plain JSON parsing fail.
- */
 function decryptJsonField(
   encrypted: string,
   clerkId: string,
@@ -1611,28 +945,7 @@ function decryptJsonField(
     return undefined;
   }
 }
-  encrypted: string,
-  clerkId: string,
-  userId: string,
-  required: boolean
-): unknown {
-  const decrypted = safeDecryptWithFallback(encrypted, clerkId, userId);
-  if (decrypted) {
-    return JSON.parse(decrypted);
-  }
-  try {
-    return JSON.parse(encrypted);
-  } catch {
-    if (required) {
-      throw new Error('Failed to decrypt or parse required field');
-    }
-    return undefined;
-  }
-}
 
-/**
- * Decrypt an optional JSON field, returning undefined on any failure.
- */
 function decryptOptionalJsonField<T>(
   encrypted: string | null,
   clerkId: string,
@@ -1658,15 +971,12 @@ function decryptOptionalJsonField<T>(
   }
 }
 
-/**
- * Build the BTR input object from decrypted session data.
- */
 function buildBtrInput(
   s: typeof sessions.$inferSelect,
   decrypted: DecryptedSessionData,
   abortSignal: AbortSignal
 ): Parameters<typeof processSecondsPrecisionBTR>[0] {
-  logger.info('🚀 [ENGINE START] Initializing Seconds Precision BTR...', {
+  logger.info('Initializing Seconds Precision BTR...', {
     sessionId: s.id,
     offsetConfig: s.offsetConfig ? 'Preserving User Config' : 'Using Default',
     dashaSystem: 'Vimshottari',
@@ -1693,21 +1003,15 @@ function buildBtrInput(
   };
 }
 
-/**
- * Run the seconds-precision BTR analysis and log completion.
- */
 async function runBtrAnalysis(
   sessionId: string,
   btrInput: Parameters<typeof processSecondsPrecisionBTR>[0]
 ): Promise<Awaited<ReturnType<typeof processSecondsPrecisionBTR>>> {
   const result = await processSecondsPrecisionBTR(btrInput);
-  logger.info('✅ [ENGINE COMPLETE] Analysis finished successfully', { sessionId });
+  logger.info('Analysis finished successfully', { sessionId });
   return result;
 }
 
-/**
- * Serialize the analysis result and mark the session as complete.
- */
 async function serializeAndComplete(
   sessionId: string,
   result: Awaited<ReturnType<typeof processSecondsPrecisionBTR>>
@@ -1731,10 +1035,6 @@ async function serializeAndComplete(
   });
 }
 
-/**
- * Distinguish cancellation errors from real processing errors.
- * Re-throws real errors after cleanup.
- */
 function handleProcessingException(error: unknown, sessionId: string): void {
   if (isCancellationError(error)) {
     logger.info('Session processing cancelled', { sessionId });
@@ -1753,9 +1053,6 @@ function handleProcessingException(error: unknown, sessionId: string): void {
   throw error;
 }
 
-/**
- * Release the worker slot and trigger manual GC if available.
- */
 function releaseWorkerSlot(sessionId: string): void {
   activeProcessingIds.delete(sessionId);
 
@@ -1766,14 +1063,14 @@ function releaseWorkerSlot(sessionId: string): void {
   }
 }
 
-/**
- * Cleanup stale requests (stuck in processing for too long)
- */
+// ═════════════════════════════════════════════════════════════════════════════
+// CLEANUP & UTILITIES
+// ═════════════════════════════════════════════════════════════════════════════
+
 async function cleanupStaleRequests(): Promise<void> {
   try {
     const staleThreshold = new Date(Date.now() - QUEUE_CONFIG.staleTimeoutMs).toISOString();
 
-    // Find processing requests that are too old
     const stale = await executeWithRetry(() =>
       db.select({ id: sessions.id })
         .from(sessions)
@@ -1792,9 +1089,6 @@ async function cleanupStaleRequests(): Promise<void> {
   }
 }
 
-/**
- * Stop the queue processor (for graceful shutdown)
- */
 export function stopQueueProcessor(): void {
   isProcessorRunning = false;
   logger.info('Queue processor stopped');
@@ -1825,239 +1119,18 @@ export async function waitForQueueDrain(
   };
 }
 
-/**
- * Get queue statistics
- */
-export async function getQueueStats(): Promise<{
-  queuedCount: number;
-  processingCount: number;
-  completedToday: number;
-  averageWaitTime: number;
-}> {
-  try {
-    const activeJobs = await queueDriver.listActiveJobs();
-    const queued = activeJobs.filter((job) => job.status === 'queued' || job.status === 'retrying');
-    const processing = activeJobs.filter((job) => job.status === 'running');
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString();
-
-    // Filter by today's date — previously todayStr was computed but never used
-    const completed = await db.select({ id: sessions.id })
-      .from(sessions)
-      .where(and(
-        eq(sessions.status, 'complete'),
-        gte(sessions.completedAt, todayStr)
-      ));
-
-    return {
-      queuedCount: queued.length,
-      processingCount: processing.length,
-      completedToday: completed.length,
-      averageWaitTime: QUEUE_CONFIG.baseAnalysisTime,
-    };
-  } catch (error) {
-    logger.error('Failed to get queue stats', error);
-    return {
-      queuedCount: 0,
-      processingCount: 0,
-      completedToday: 0,
-      averageWaitTime: 30,
-    };
-  }
+export async function getQueueStats() {
+  return _getQueueStats(queueDriver);
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// UTILITY
-// ═════════════════════════════════════════════════════════════════════════════
+export async function recoverInterruptedJobsOnStartup() {
+  return _recoverInterruptedJobsOnStartup();
+}
+
+export async function cleanupZombiesOnStartup() {
+  return _cleanupZombiesOnStartup(markAsFailed);
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-export async function recoverInterruptedJobsOnStartup(): Promise<{
-  recoveredJobs: number;
-  abandonedAttempts: number;
-}> {
-  const runningJobs = await fetchRunningJobs();
-  let recoveredJobs = 0;
-  let abandonedAttempts = 0;
-
-  for (const runningJob of runningJobs) {
-    const wasAbandoned = await recoverSingleJob(runningJob);
-    if (wasAbandoned) abandonedAttempts++;
-    recoveredJobs++;
-  }
-
-  if (recoveredJobs > 0) {
-    logger.warn('Recovered interrupted running jobs on startup', {
-      recoveredJobs,
-      abandonedAttempts,
-    });
-  }
-
-  updateRecoveryMetrics(recoveredJobs, abandonedAttempts);
-
-  return {
-    recoveredJobs,
-    abandonedAttempts,
-  };
-}
-
-/**
- * Fetch all running jobs with their active attempt IDs.
- */
-async function fetchRunningJobs(): Promise<
-  Array<{
-    jobId: string;
-    sessionId: string;
-    retryCount: number;
-    checkpointJson: unknown;
-    attemptId: string | null;
-  }>
-> {
-  return executeWithRetry(() =>
-    db
-      .select({
-        jobId: jobs.id,
-        sessionId: jobs.sessionId,
-        retryCount: jobs.retryCount,
-        checkpointJson: jobs.checkpointJson,
-        attemptId: jobAttempts.id,
-      })
-      .from(jobs)
-      .leftJoin(
-        jobAttempts,
-        and(eq(jobAttempts.jobId, jobs.id), eq(jobAttempts.outcome, 'running'))
-      )
-      .where(eq(jobs.status, 'running'))
-      .orderBy(asc(jobs.updatedAt))
-  );
-}
-
-/**
- * Recover a single interrupted job. Returns true if an attempt was abandoned.
- */
-async function recoverSingleJob(
-  runningJob: Awaited<ReturnType<typeof fetchRunningJobs>>[number]
-): Promise<boolean> {
-  const now = new Date().toISOString();
-  let wasAbandoned = false;
-
-  if (runningJob.attemptId) {
-    await completeJobAttempt({
-      attemptId: runningJob.attemptId,
-      outcome: 'abandoned',
-      failureReason: 'Worker restarted before completion',
-      failureCode: 'worker_restart',
-      checkpointJson: (runningJob.checkpointJson as Record<string, unknown> | null) ?? null,
-    });
-    wasAbandoned = true;
-  }
-
-  await scheduleJobRetry({
-    jobId: runningJob.jobId,
-    retryCount: runningJob.retryCount + 1,
-    retryReasonCode: 'worker_restart',
-    nextRetryAt: now,
-    errorCode: 'worker_restart',
-    errorMessage: 'Recovered after worker restart',
-  });
-
-  await executeWithRetry(() =>
-    db
-      .update(sessions)
-      .set({
-        status: 'queued',
-        errorMessage: null,
-        updatedAt: now,
-      })
-      .where(eq(sessions.id, runningJob.sessionId))
-  );
-
-  await appendJobEvent({
-    id: crypto.randomUUID(),
-    jobId: runningJob.jobId,
-    sessionId: runningJob.sessionId,
-    sequenceNo: await getNextJobEventSequence(runningJob.jobId),
-    eventType: 'job.recovered',
-    payloadJson: {
-      status: 'retrying',
-      retryReasonCode: 'worker_restart',
-      recoveredAt: now,
-    },
-  });
-
-  return wasAbandoned;
-}
-
-/**
- * Update global recovery telemetry counters.
- */
-function updateRecoveryMetrics(recoveredJobs: number, abandonedAttempts: number): void {
-  recoveryTelemetry.lastRunAt = new Date().toISOString();
-  recoveryTelemetry.lastRecoveredJobs = recoveredJobs;
-  recoveryTelemetry.lastAbandonedAttempts = abandonedAttempts;
-  recoveryTelemetry.totalRecoveredJobs += recoveredJobs;
-  recoveryTelemetry.totalAbandonedAttempts += abandonedAttempts;
-  recoveryTelemetry.alertActive =
-    abandonedAttempts >= (config.queue.recoveryAlertThreshold ?? 1) ||
-    recoveredJobs >= (config.queue.recoveryAlertThreshold ?? 1);
-}
-
-/**
- * Cleanup processing sessions on startup (Zombie killer)
- * Two strategies:
- * 1. STALE: Sessions stuck in 'processing' for > 10 minutes (time-based)
- * 2. ORPHAN: Sessions marked 'processing' in DB but NOT in activeProcessingIds
- *    (lost during dev hot-reloads or crash — the real zombie killer)
- */
-export async function cleanupZombiesOnStartup(): Promise<void> {
-  try {
-    // Strategy 1: Time-based stale detection (production-safe)
-    const staleThreshold = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-
-    const staleZombies = await db.select({ id: sessions.id })
-      .from(sessions)
-      .where(and(
-        eq(sessions.status, 'processing'),
-        lt(sessions.updatedAt, staleThreshold)
-      ));
-
-    if (staleZombies.length > 0) {
-      logger.warn(`Found ${staleZombies.length} stale zombie sessions (>10min). Cleaning up...`);
-      for (const zombie of staleZombies) {
-        await markAsFailed(zombie.id, 'Process interrupted (Stale Session at Startup)');
-      }
-    }
-
-    // Strategy 2: Orphan detection (dev-mode hot-reload safety net)
-    // On fresh startup, activeProcessingIds is EMPTY. Any DB session showing
-    // 'processing' is a guaranteed orphan — its worker died with the old process.
-    const allProcessing = await db.select({ id: sessions.id })
-      .from(sessions)
-      .where(eq(sessions.status, 'processing'));
-
-    const orphans = allProcessing.filter(s => !activeProcessingIds.has(s.id));
-
-    if (orphans.length > 0) {
-      logger.warn(`🧟 Found ${orphans.length} orphaned zombie sessions (processing in DB but no active worker). Resetting to pending...`);
-      for (const orphan of orphans) {
-        // Reset to 'pending' so queue processor picks them up again
-        await executeWithRetry(() =>
-          db.update(sessions)
-            .set({
-              status: 'pending',
-              errorMessage: null,
-              updatedAt: new Date().toISOString(),
-            })
-            .where(eq(sessions.id, orphan.id))
-        );
-        logger.info(`🧟 Orphan ${orphan.id} reset to pending for re-processing`);
-      }
-    }
-  } catch (error) {
-    logger.error('Zombie cleanup failed', error);
-  }
 }

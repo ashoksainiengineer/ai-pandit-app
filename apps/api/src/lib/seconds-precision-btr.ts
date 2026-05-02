@@ -89,6 +89,65 @@ import {
 // MAIN PROCESSING FUNCTION
 // ═════════════════════════════════════════════════════════════════════════════
 
+async function initializeBTRSession(
+    input: SecondsPrecisionInput,
+    progress: ProgressTracker
+): Promise<Array<{ date: string; event: string; dasha: string }>> {
+    await progress.updateETA(600);
+    await progress.startStep('init', 'Initializing Professional BTR v7.0 (Batch Tournament)...');
+
+    const globalLifecycle: Array<{ date: string; event: string; dasha: string }> = [];
+    try {
+        const birthDate = convertToUTC(input.dateOfBirth, input.tentativeTime, input.timezone);
+        const startYear = birthDate.getUTCFullYear();
+        const endYear = new Date().getFullYear();
+        let lastSaturnSign = '';
+        let lastJupiterSign = '';
+
+        const baseEph = await calculateEphemeris(input.dateOfBirth, input.tentativeTime, input.latitude, input.longitude, input.timezone);
+        const baseDashas = calculateVimshottariDasha(baseEph.planets.moon.longitude, birthDate);
+
+        for (let y = startYear; y <= endYear; y++) {
+            for (const m of [1, 5, 9] as const) {
+                const checkDateForCycle = `${y}-${String(m).padStart(2, '0')}-01`;
+                const ephShift = await calculateEphemeris(checkDateForCycle, '12:00:00', input.latitude, input.longitude, input.timezone);
+                const currentSatSign = ephShift.planets.saturn.sign;
+                const currentJupSign = ephShift.planets.jupiter.sign;
+
+                if (currentSatSign !== lastSaturnSign || currentJupSign !== lastJupiterSign) {
+                    const dashaCycle = getDashaForDate(baseDashas, new Date(checkDateForCycle));
+                    globalLifecycle.push({
+                        date: checkDateForCycle,
+                        event: `TRANSIT INGRESS: Saturn in ${currentSatSign} | Jupiter in ${currentJupSign}`,
+                        dasha: dashaCycle ? `${dashaCycle.mahadasha}-${dashaCycle.antardasha}` : 'N/A'
+                    });
+                    lastSaturnSign = currentSatSign;
+                    lastJupiterSign = currentJupSign;
+                }
+                if (globalLifecycle.length > 50) break;
+            }
+            if (globalLifecycle.length > 50) break;
+        }
+    } catch (e) {
+        logger.warn('Global lifecycle calculation failed', { error: e instanceof Error ? e.message : String(e) });
+    }
+
+    logger.info('Starting Professional BTR v7.0 (Batch Tournament)', {
+        sessionId: input.sessionId,
+        dateOfBirth: input.dateOfBirth,
+        globalLifecycleItems: globalLifecycle.length
+    });
+
+    clearDebugLog();
+    logAnalysisContainerAction('INIT', `Starting Professional BTR (Session: ${input.sessionId})`, {
+        input,
+        globalLifecycle
+    });
+
+    return globalLifecycle;
+}
+
+
 /**
  * Main BTR processing function - 6 stage tournament for birth time rectification
  *
@@ -103,57 +162,7 @@ export async function processSecondsPrecisionBTR(
     const stageHistory: Record<number, StageResult> = {};
 
     try {
-        await progress.updateETA(600);
-        await progress.startStep('init', 'Initializing Professional BTR v7.0 (Batch Tournament)...');
-
-        // 🦾 Pre-calculate Global Lifecycle Shifts
-        const globalLifecycle: Array<{ date: string; event: string; dasha: string }> = [];
-        try {
-            const birthDate = convertToUTC(input.dateOfBirth, input.tentativeTime, input.timezone);
-            const startYear = birthDate.getUTCFullYear();
-            const endYear = new Date().getFullYear();
-            let lastSaturnSign = '';
-            let lastJupiterSign = '';
-
-            const baseEph = await calculateEphemeris(input.dateOfBirth, input.tentativeTime, input.latitude, input.longitude, input.timezone);
-            const baseDashas = calculateVimshottariDasha(baseEph.planets.moon.longitude, birthDate);
-
-            for (let y = startYear; y <= endYear; y++) {
-                for (const m of [1, 5, 9] as const) {
-                    const checkDateForCycle = `${y}-${String(m).padStart(2, '0')}-01`;
-                    const ephShift = await calculateEphemeris(checkDateForCycle, '12:00:00', input.latitude, input.longitude, input.timezone);
-                    const currentSatSign = ephShift.planets.saturn.sign;
-                    const currentJupSign = ephShift.planets.jupiter.sign;
-
-                    if (currentSatSign !== lastSaturnSign || currentJupSign !== lastJupiterSign) {
-                        const dashaCycle = getDashaForDate(baseDashas, new Date(checkDateForCycle));
-                        globalLifecycle.push({
-                            date: checkDateForCycle,
-                            event: `TRANSIT INGRESS: Saturn in ${currentSatSign} | Jupiter in ${currentJupSign}`,
-                            dasha: dashaCycle ? `${dashaCycle.mahadasha}-${dashaCycle.antardasha}` : 'N/A'
-                        });
-                        lastSaturnSign = currentSatSign;
-                        lastJupiterSign = currentJupSign;
-                    }
-                    if (globalLifecycle.length > 50) break;
-                }
-                if (globalLifecycle.length > 50) break;
-            }
-        } catch (e) {
-            logger.warn('Global lifecycle calculation failed', { error: e instanceof Error ? e.message : String(e) });
-        }
-
-        logger.info('Starting Professional BTR v7.0 (Batch Tournament)', {
-            sessionId: input.sessionId,
-            dateOfBirth: input.dateOfBirth,
-            globalLifecycleItems: globalLifecycle.length
-        });
-
-        clearDebugLog();
-        logAnalysisContainerAction('INIT', `Starting Professional BTR (Session: ${input.sessionId})`, {
-            input,
-            globalLifecycle
-        });
+        const globalLifecycle = await initializeBTRSession(input, progress);
 
         // ═══════════════════════════════════════════════════════════════════════
         // STAGE 1: EXHAUSTIVE DATA GENERATION
@@ -227,104 +236,7 @@ export async function processSecondsPrecisionBTR(
         emitStageStats(input.sessionId, 6, 1, 'FINAL TIME DETERMINED');
         await progress.flush("All analysis stages complete. Generating final report...");
 
-        // ═══════════════════════════════════════════════════════════════════════
-        // BUILD FINAL RESULT
-        // ═══════════════════════════════════════════════════════════════════════
-        const finalEphemeris = await calculateEphemeris(
-            stage6.finalCandidate.candidateDate || input.dateOfBirth,
-            stage6.finalCandidate.time,
-            input.latitude,
-            input.longitude,
-            input.timezone
-        );
-
-        const divCharts = generateDivisionalCharts(finalEphemeris);
-        const boundary = calculateBoundarySafety(finalEphemeris);
-        const boundaryWarnings = [...new Set([
-            ...getBoundaryWarnings(boundary),
-            ...stage6.boundaryWarnings
-        ])];
-
-        await progress.complete();
-
-        // FINAL JIT: Enrich the winner package
-        const winnerPkg = await buildCandidateDataPackage(stage6.finalTime, 0, input, {
-            includeFullData: true,
-            dashaDepth: 5,
-            pranaWindowDays: 7,
-            candidate: stage6.finalCandidate,
-        });
-
-        const enrichedResult = {
-            summary: stage6.aiReasoning.slice(0, 5000),
-            finalCandidate: {
-                time: stage6.finalTime,
-                score: stage6.accuracy,
-                confidence: stage6.confidence,
-                margin: stage6.margin,
-                thinking: stage6.thinking || 'Final analysis completed.',
-                vimsopakaBala: winnerPkg?.vimsopakaBala,
-                ishtaKashtaPhala: winnerPkg?.ishtaKashtaPhala,
-                chalitDiscrepancies: winnerPkg?.chalitDiscrepancies
-            },
-            alternatives: stage6.finalists.filter(f => f.time !== stage6.finalTime),
-            technicalProof: {
-                ephemeris: finalEphemeris,
-                divCharts,
-                boundary,
-                d60Deity: winnerPkg?.planets?.sun?.d60Deity,
-                vimsopakaAvg: winnerPkg?.vimsopakaBala ?
-                    Object.values(winnerPkg.vimsopakaBala).reduce((a: number, b: number) => a + b, 0) / 7 : 0
-            },
-            precisionData: {
-                ephemeris: finalEphemeris,
-                divCharts,
-                boundarySafety: boundary,
-                shuddhi: {
-                    kunda: {
-                        score: winnerPkg.vedicSignals?.kundaLagna?.matchesMoon ? 100 : 40,
-                        details: `Kunda Lagna: ${winnerPkg.vedicSignals?.kundaLagna?.sign} ${winnerPkg.vedicSignals?.kundaLagna?.degree.toFixed(4)}° | ${winnerPkg.vedicSignals?.kundaLagna?.matchesMoon ? 'Matches Moon Nakshatra' : 'Genetic Offset Detected'}`
-                    },
-                    tatwa: {
-                        score: winnerPkg.vedicSignals?.tatwa?.isAuspicious ? 100 : 20,
-                        details: `Current Tatwa: ${winnerPkg.vedicSignals?.tatwa?.name} (${winnerPkg.vedicSignals?.tatwa?.element}) | Aligning with the 90-min cycle.`
-                    }
-                },
-                dasha: stage6.aiReasoning.match(/DASHA[:\s]*([^\n]+)/i)?.[1] || 'Final decision context',
-                precisionMetrics: {
-                    vimsopaka: winnerPkg?.vimsopakaBala,
-                    avasthaMap: Object.fromEntries(Object.entries(winnerPkg?.planets || {}).map(([k, p]) => [k, p.avastha])),
-                    deityMap: Object.fromEntries(Object.entries(winnerPkg?.planets || {}).map(([k, p]) => [k, p.d60Deity])),
-                    sambandhaMap: Object.fromEntries(Object.entries(winnerPkg?.planets || {}).map(([k, p]) => [k, p.compoundDignity]))
-                }
-            },
-            stageHistory: Object.fromEntries(
-                Object.entries(stageHistory).map(([k, v]) => [k, {
-                    candidatesIn: v.candidatesIn,
-                    candidatesOut: v.candidatesOut,
-                    aiReasoning: v.aiReasoning
-                }])
-            ),
-            // 📝 PERSIST FULL REASONING LOGS
-            reasoningLogs: progress.getStageHistory()
-        };
-
-        const resultPayload = {
-            rectifiedTime: stage6.finalTime,
-            accuracy: stage6.accuracy,
-            confidence: stage6.confidence,
-            precisionLevel: 'seconds' as const,
-            marginOfError: stage6.margin,
-            stagesCompleted: 6,
-            boundaryWarnings,
-            methodsUsed: ['DeepSeek v3.2 (Reasoning Mode)', 'Skyfield Astronomy Service', 'Vimshottari', 'Yogini', 'Chara', 'D9', 'D10', 'D60'],
-            processingTimeMs: Date.now() - startTime,
-            analysisResult: enrichedResult
-        };
-
-        logAnalysisContainerAction('FINAL', 'Final Verification & Result', resultPayload);
-
-        return resultPayload;
+        return await buildFinalBTResult(input, stage6, stageHistory, progress, startTime);
 
     } catch (error) {
         logger.error('Professional BTR v7.0 FAILED', { error: error instanceof Error ? error.message : String(error) });
@@ -354,6 +266,109 @@ function getBoundaryWarnings(boundary: { lagnaSignBoundary: number; moonNakshatr
 
     return warnings;
 }
+
+async function buildFinalBTResult(
+    input: SecondsPrecisionInput,
+    stage6: Awaited<ReturnType<typeof stage6FinalPrecision>>,
+    stageHistory: Record<number, StageResult>,
+    progress: ProgressTracker,
+    startTime: number
+): Promise<SecondsPrecisionResult> {
+    const finalEphemeris = await calculateEphemeris(
+        stage6.finalCandidate.candidateDate || input.dateOfBirth,
+        stage6.finalCandidate.time,
+        input.latitude,
+        input.longitude,
+        input.timezone
+    );
+
+    const divCharts = generateDivisionalCharts(finalEphemeris);
+    const boundary = calculateBoundarySafety(finalEphemeris);
+    const boundaryWarnings = [...new Set([
+        ...getBoundaryWarnings(boundary),
+        ...stage6.boundaryWarnings
+    ])];
+
+    await progress.complete();
+
+    const winnerPkg = await buildCandidateDataPackage(stage6.finalTime, 0, input, {
+        includeFullData: true,
+        dashaDepth: 5,
+        pranaWindowDays: 7,
+        candidate: stage6.finalCandidate,
+    });
+
+    const enrichedResult = {
+        summary: stage6.aiReasoning.slice(0, 5000),
+        finalCandidate: {
+            time: stage6.finalTime,
+            score: stage6.accuracy,
+            confidence: stage6.confidence,
+            margin: stage6.margin,
+            thinking: stage6.thinking || 'Final analysis completed.',
+            vimsopakaBala: winnerPkg?.vimsopakaBala,
+            ishtaKashtaPhala: winnerPkg?.ishtaKashtaPhala,
+            chalitDiscrepancies: winnerPkg?.chalitDiscrepancies
+        },
+        alternatives: stage6.finalists.filter(f => f.time !== stage6.finalTime),
+        technicalProof: {
+            ephemeris: finalEphemeris,
+            divCharts,
+            boundary,
+            d60Deity: winnerPkg?.planets?.sun?.d60Deity,
+            vimsopakaAvg: winnerPkg?.vimsopakaBala ?
+                Object.values(winnerPkg.vimsopakaBala).reduce((a: number, b: number) => a + b, 0) / 7 : 0
+        },
+        precisionData: {
+            ephemeris: finalEphemeris,
+            divCharts,
+            boundarySafety: boundary,
+            shuddhi: {
+                kunda: {
+                    score: winnerPkg.vedicSignals?.kundaLagna?.matchesMoon ? 100 : 40,
+                    details: `Kunda Lagna: ${winnerPkg.vedicSignals?.kundaLagna?.sign} ${winnerPkg.vedicSignals?.kundaLagna?.degree.toFixed(4)}° | ${winnerPkg.vedicSignals?.kundaLagna?.matchesMoon ? 'Matches Moon Nakshatra' : 'Genetic Offset Detected'}`
+                },
+                tatwa: {
+                    score: winnerPkg.vedicSignals?.tatwa?.isAuspicious ? 100 : 20,
+                    details: `Current Tatwa: ${winnerPkg.vedicSignals?.tatwa?.name} (${winnerPkg.vedicSignals?.tatwa?.element}) | Aligning with the 90-min cycle.`
+                }
+            },
+            dasha: stage6.aiReasoning.match(/DASHA[:\s]*([^\n]+)/i)?.[1] || 'Final decision context',
+            precisionMetrics: {
+                vimsopaka: winnerPkg?.vimsopakaBala,
+                avasthaMap: Object.fromEntries(Object.entries(winnerPkg?.planets || {}).map(([k, p]) => [k, p.avastha])),
+                deityMap: Object.fromEntries(Object.entries(winnerPkg?.planets || {}).map(([k, p]) => [k, p.d60Deity])),
+                sambandhaMap: Object.fromEntries(Object.entries(winnerPkg?.planets || {}).map(([k, p]) => [k, p.compoundDignity]))
+            }
+        },
+        stageHistory: Object.fromEntries(
+            Object.entries(stageHistory).map(([k, v]) => [k, {
+                candidatesIn: v.candidatesIn,
+                candidatesOut: v.candidatesOut,
+                aiReasoning: v.aiReasoning
+            }])
+        ),
+        reasoningLogs: progress.getStageHistory()
+    };
+
+    const resultPayload = {
+        rectifiedTime: stage6.finalTime,
+        accuracy: stage6.accuracy,
+        confidence: stage6.confidence,
+        precisionLevel: 'seconds' as const,
+        marginOfError: stage6.margin,
+        stagesCompleted: 6,
+        boundaryWarnings,
+        methodsUsed: ['DeepSeek v3.2 (Reasoning Mode)', 'Skyfield Astronomy Service', 'Vimshottari', 'Yogini', 'Chara', 'D9', 'D10', 'D60'],
+        processingTimeMs: Date.now() - startTime,
+        analysisResult: enrichedResult
+    };
+
+    logAnalysisContainerAction('FINAL', 'Final Verification & Result', resultPayload);
+
+    return resultPayload;
+}
+
 
 // ═════════════════════════════════════════════════════════════════════════════
 // EXPORTS

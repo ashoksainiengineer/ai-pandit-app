@@ -66,7 +66,6 @@ export function useStreamProgress(
     const sseSourceRef = useRef<EventSource | null>(null);
     const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const connectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const connectionAttemptedRef = useRef<boolean>(false);
 
     const IS_TEST_RUNTIME =
         (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') ||
@@ -112,7 +111,6 @@ export function useStreamProgress(
                         sseSourceRef.current.close();
                         sseSourceRef.current = null;
                     }
-                    connectionAttemptedRef.current = false;
                     if (pollTimerRef.current) {
                         clearTimeout(pollTimerRef.current);
                         pollTimerRef.current = null;
@@ -375,11 +373,6 @@ export function useStreamProgress(
             return;
         }
 
-        if (machine.isTerminalReceived()) {
-            logger.debug('[SSE] Terminal state already received, not reconnecting', { sid });
-            return;
-        }
-
         try {
             const token = (typeof window !== 'undefined' && (window as any).isTestEnv)
                 ? 'mock-token'
@@ -403,10 +396,9 @@ export function useStreamProgress(
 
             applyEffects([{ type: 'START_SSE', sid, url }]);
         } catch (error) {
-            logger.error('Connection failed', { error });
-            const result = machine.onCleanup();
-            setConnectionState(prev => ({ ...prev, status: 'polling', url: '', lastError: 'Connection failed' }));
-            applyEffects([...result.effects, { type: 'START_POLLING', sid, delay: 2000 }]);
+            const result = machine.onConnectError(error as Error, sid);
+            setConnectionState(result.state);
+            applyEffects(result.effects);
         }
     };
 
@@ -414,7 +406,6 @@ export function useStreamProgress(
 
     useEffect(() => {
         mountedRef.current = true;
-        connectionAttemptedRef.current = false;
 
         if (!sessionId) {
             const result = machine.onSessionChange(null);
@@ -425,11 +416,6 @@ export function useStreamProgress(
 
         setSessionId(sessionId);
 
-        if (connectionAttemptedRef.current && machine.getCurrentSessionId() === sessionId) {
-            return;
-        }
-
-        connectionAttemptedRef.current = true;
         const result = machine.onSessionChange(sessionId);
         setConnectionState(result.state);
         connect(sessionId, { skipCache: false });
