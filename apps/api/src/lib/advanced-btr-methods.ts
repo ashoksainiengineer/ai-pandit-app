@@ -914,6 +914,8 @@ export interface PanchangaData {
     yoga: { name: string; number: number; percentage: number };
     karana: { name: string; number: number };
     weekday: string;
+    vara: string;
+    nakshatra: string;
 }
 
 const TITHI_NAMES = [
@@ -959,6 +961,8 @@ export function calculatePanchanga(ephemeris: EphemerisData, birthDate: Date): P
         yoga: { name: YOGA_NAMES[(yogaNum - 1) % 27], number: yogaNum, percentage: yogaPerc },
         karana: { name: `Karana ${karanaNum}`, number: karanaNum },
         weekday: weekdays[birthDate.getDay()],
+        vara: weekdays[birthDate.getDay()],
+        nakshatra: ephemeris.planets.moon.nakshatra || '',
     };
 }
 

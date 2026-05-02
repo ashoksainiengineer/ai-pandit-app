@@ -431,7 +431,7 @@ interface DoubleTransitDetail {
 interface BhavaChalitDiscrepancy {
     planet: string;
     rasiHouse: number;
-    bhavaHouse: number;
+    chalitHouse: number;
     degreeDiff: number;
 }
 
