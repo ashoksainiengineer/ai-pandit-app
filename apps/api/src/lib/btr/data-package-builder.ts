@@ -141,7 +141,7 @@ export async function buildCandidateDataPackage(
     moonNakshatra: ephemeris.planets.moon.nakshatra,
     vimshottariDasha,
     ashtakavarga: ephemeris.ashtakavarga,
-    panchanga: calculatePanchanga(calculateJulianDay(birthDate), ephemeris.planets.sun.longitude, moonLong, birthDate),
+    panchanga: calculatePanchanga(calculateJulianDay(birthDate), ephemeris.planets.sun.longitude, moonLong, birthDate) as any,
     lifecycleShifts,
     vimsopakaBala: calculateVimsopakaBala(ephemeris),
     chalitDiscrepancies: detectBhavaChalitDiscrepancy(ephemeris),
@@ -319,9 +319,13 @@ async function loadEphemeris(candidateDate: string, time: string, input: Seconds
   );
 
   // Calculate all supplemental data
-  ephemeris.divisionalCharts = calculateAllVargas(ephemeris);
+  ephemeris.divisionalCharts = calculateAllVargas(ephemeris) as any;
   ephemeris.ashtakavarga = calculateAshtakavarga(ephemeris);
-  ephemeris.shadbala = calculateShadbala(ephemeris);
+  ephemeris.shadbala = calculateShadbala(ephemeris) as any;
+  ephemeris.ashtakavarga = calculateAshtakavarga(ephemeris);
+  ephemeris.shadbala = calculateShadbala(ephemeris) as Record<string, any>;
+  ephemeris.ashtakavarga = calculateAshtakavarga(ephemeris);
+  ephemeris.shadbala = calculateShadbala(ephemeris) as any;
 
   return ephemeris;
 }

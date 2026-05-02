@@ -104,7 +104,7 @@ function enrichSinglePlanet(
     d60Deity: getD60Deity(rawPlanet.longitude),
     compoundDignity: calculatePanchadhaSambandha(planetName, capitalizeFirstLetter(houseLord)),
     shadbalaBreakdown: context.shadbala?.[planetName],
-    ishtaKashtaPhala: calculateIshtaKashtaPhala(planetName, rawPlanet) // Added missing argument
+    ishtaKashtaPhala: calculateIshtaKashtaPhala(planetName, rawPlanet as any)
   };
 }
 

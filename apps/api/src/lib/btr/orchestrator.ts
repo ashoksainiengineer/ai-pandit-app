@@ -36,6 +36,247 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// EARLY-EXIT HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function validateRectificationInput(input: RectificationInput): { valid: boolean; reason?: string } {
+  if (!input.events || input.events.length === 0) {
+    return { valid: false, reason: 'At least one life event is required for rectification' };
+  }
+  if (!input.birthDate) {
+    return { valid: false, reason: 'Birth date is required' };
+  }
+  if (!input.tentativeTime) {
+    return { valid: false, reason: 'Tentative birth time is required' };
+  }
+  return { valid: true };
+}
+
+function buildValidationFailedResult(input: RectificationInput, reason: string): DetailedResult {
+  const startTime = Date.now();
+  const scoredEvents = EventScorer.scoreEvents(input.events || []);
+  const eventSummary = EventScorer.generateSummary(scoredEvents);
+  const context: RectificationContext = {
+    sunriseTime: null,
+    scoredEvents,
+    eventSummary,
+    prakritiTatwaMatch: null
+  };
+
+  return {
+    rectifiedTime: input.tentativeTime || '',
+    rectifiedDate: input.tentativeTime && input.birthDate
+      ? parseBirthTime(input.tentativeTime, input.birthDate, input.timezone)
+      : new Date(),
+    confidenceLevel: 'LOW',
+    confidencePercentage: 0,
+    marginOfErrorSeconds: 3600,
+    methodConsensus: {
+      vimshottari: 0, yogini: 0, chara: 0, kalachakra: 0,
+      kp: 0, varga: 0, transit: 0, forensic: 0, boundary: 0, tatwa: 0,
+      shadbala: 0, nadi: 0, spouseD9: 0
+    },
+    evidence: { primary: [], secondary: [], warnings: [reason] },
+    candidateAnalysis: [],
+    recommendations: ['Rectification failed - please check input data'],
+    processingTimeMs: Date.now() - startTime,
+    eventAnalysis: eventSummary,
+    context
+  };
+}
+
+function getFailureResultIfScanInvalid(
+  scanResult: { success: boolean; bestCandidate?: CandidateScore; candidates: CandidateScore[]; errors: string[] },
+  input: RectificationInput,
+  context: RectificationContext,
+  startTime: number
+): DetailedResult | null {
+  if (!scanResult.success || !scanResult.bestCandidate) {
+    return assembleFailureResult(input, context, scanResult.errors, startTime);
+  }
+  return null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PIPELINE STAGE FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function initializeSession(input: RectificationInput): { startTime: number; sessionId: string } {
+  return {
+    startTime: Date.now(),
+    sessionId: input.sessionId ?? generateSessionId()
+  };
+}
+
+function configureScanner(
+  input: RectificationInput,
+  context: RectificationContext
+): ScannerInput {
+  const scannerInput: ScannerInput = {
+    birthDate: input.birthDate,
+    tentativeTime: input.tentativeTime,
+    latitude: input.latitude,
+    longitude: input.longitude,
+    timezone: input.timezone,
+    events: input.events,
+    rangeMinutes: input.timeRangeMinutes || 30,
+    config: input.config,
+    knownTatwa: input.knownTatwa
+  };
+
+  if (!context.prakritiTatwaMatch || input.knownTatwa || !context.sunriseTime) {
+    return scannerInput;
+  }
+
+  const tatwaResult = TatwaShuddhi.findCorrections({
+    sunriseTime: context.sunriseTime,
+    birthTime: parseBirthTime(input.tentativeTime, input.birthDate, input.timezone),
+    knownPrakriti: input.forensicProfile?.prakriti?.dominant
+  });
+
+  if (tatwaResult.correctionWindows.length === 0) {
+    return scannerInput;
+  }
+
+  const bestWindow = tatwaResult.correctionWindows[0];
+  scannerInput.knownTatwa = bestWindow.tatwa;
+  scannerInput.rangeMinutes = Math.min(scannerInput.rangeMinutes || 30, 15);
+
+  logger.info('[BTR] Tatwa-based time narrowing applied', {
+    tatwa: bestWindow.tatwa,
+    confidence: bestWindow.confidence
+  });
+
+  return scannerInput;
+}
+
+async function executeWindowScan(
+  scannerInput: ScannerInput,
+  sessionId: string
+): Promise<{ success: boolean; bestCandidate?: CandidateScore | null; candidates: CandidateScore[]; errors: string[] }> {
+  return WindowScanner.scan(scannerInput, sessionId);
+}
+
+async function analyzeTransitsForCandidate(
+  input: RectificationInput,
+  bestCandidate: CandidateScore,
+  context: RectificationContext,
+  sessionId: string
+): Promise<Map<string, ComprehensiveTransitResult>> {
+  try {
+    const candidateTime = getCandidateTimeString(bestCandidate, input.tentativeTime);
+    let ascendantSign = 'Aries';
+
+    try {
+      const candidateEphemeris = await calculateEphemeris(
+        input.birthDate,
+        candidateTime,
+        input.latitude,
+        input.longitude,
+        input.timezone,
+        { sessionId }
+      );
+      ascendantSign = candidateEphemeris.ascendant.sign;
+    } catch (ephemerisError) {
+      logger.warn('[BTR] Transit ascendant fallback used', {
+        error: getErrorMessage(ephemerisError),
+        fallback: ascendantSign
+      });
+    }
+
+    return await TransitAnalyzer.batchAnalyze(
+      context.scoredEvents.map(e => ({
+        date: normalizeScoredEventDate(e.rawEventDate, e.eventDate),
+        endDate: e.endDate,
+        datePrecision: e.datePrecision,
+        time: e.eventTime,
+        category: e.category,
+        id: e.id
+      })),
+      {
+        latitude: input.latitude,
+        longitude: input.longitude,
+        timezone: input.timezone,
+        ascendantSign
+      }
+    );
+  } catch (e) {
+    logger.warn('[BTR] Transit analysis failed', { error: getErrorMessage(e) });
+    return new Map();
+  }
+}
+
+function assembleSuccessResult(
+  scanResult: { bestCandidate: CandidateScore; candidates: CandidateScore[] },
+  input: RectificationInput,
+  context: RectificationContext,
+  transitAnalysis: Map<string, ComprehensiveTransitResult>,
+  startTime: number
+): DetailedResult {
+  const bestCandidate = scanResult.bestCandidate;
+  const evidence = {
+    primary: bestCandidate.keyEvidence?.slice(0, 3) || [],
+    secondary: bestCandidate.keyEvidence?.slice(3) || [],
+    warnings: bestCandidate.redFlags || []
+  };
+
+  const recommendations = generateRecommendations(bestCandidate, context);
+
+  return {
+    rectifiedTime: bestCandidate.timeString || '',
+    rectifiedDate: (bestCandidate.time as Date),
+    confidenceLevel: (bestCandidate.confidenceLevel || 'LOW') as ConfidenceLevel,
+    confidencePercentage: Math.round(bestCandidate.overallScore || 0),
+    marginOfErrorSeconds: bestCandidate.marginOfErrorSeconds || 0,
+    methodConsensus: bestCandidate.methodScores || {},
+    evidence,
+    candidateAnalysis: scanResult.candidates.slice(0, 10),
+    recommendations,
+    processingTimeMs: Date.now() - startTime,
+    eventAnalysis: context.eventSummary,
+    transitAnalysis,
+    context
+  };
+}
+
+function assembleFailureResult(
+  input: RectificationInput,
+  context: RectificationContext,
+  errors: string[],
+  startTime: number
+): DetailedResult {
+  return {
+    rectifiedTime: input.tentativeTime,
+    rectifiedDate: parseBirthTime(input.tentativeTime, input.birthDate, input.timezone),
+    confidenceLevel: 'LOW',
+    confidencePercentage: 0,
+    marginOfErrorSeconds: 3600,
+    methodConsensus: {
+      vimshottari: 0, yogini: 0, chara: 0, kalachakra: 0,
+      kp: 0, varga: 0, transit: 0, forensic: 0, boundary: 0, tatwa: 0,
+      shadbala: 0, nadi: 0, spouseD9: 0
+    },
+    evidence: {
+      primary: [],
+      secondary: [],
+      warnings: errors
+    },
+    candidateAnalysis: [],
+    recommendations: ['Rectification failed - please check input data'],
+    processingTimeMs: Date.now() - startTime,
+    eventAnalysis: context.eventSummary,
+    context
+  };
+}
+
+function cleanupSession(sessionId: string): void {
+  clearSessionCache(sessionId);
+  logger.debug('[BTR] Session cache cleared', { sessionId });
+}
+
+
+
 export interface RectificationInput {
   birthDate: string;
   tentativeTime: string;
