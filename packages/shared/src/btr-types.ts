@@ -19,6 +19,8 @@ type GandantaAnalysis = unknown;
 type PakshiAnalysis = unknown;
 
 /** Zodiac signs in order */
+import { z } from 'zod';
+
 export const ZODIAC_SIGNS: readonly string[] = [
   'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
   'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
@@ -597,3 +599,54 @@ export { DEFAULT_SCAN_CONFIG as _DEFAULT_SCAN_CONFIG };
 export type { CandidateDataPackage as _CandidateDataPackage };
 export type { TournamentRound as _TournamentRound };
 export type { FinalVerdict as _FinalVerdict };
+
+// ═════════════════════════════════════════════════════════════════════════════
+// ZOD SCHEMAS (co-located with TypeScript interfaces)
+// ═════════════════════════════════════════════════════════════════════════════
+
+export const PlanetDataSchema = z.object({
+    sign: z.string(),
+    degree: z.union([z.number(), z.string()]),
+    nakshatra: z.string().optional(),
+    house: z.number().optional(),
+}).passthrough();
+
+export const VimshottariDashaEntrySchema = z.object({
+    maha: z.string().min(1),
+    antar: z.string().min(1),
+    pratyantar: z.string().min(1),
+    sukshma: z.string().optional(),
+    prana: z.string().optional(),
+    startEnd: z.string()
+});
+
+export const TransitPlanetSchema = z.string().min(1).refine(val => val.includes('| H'), {
+    message: 'Transit planet must include house position indicator (| H)'
+});
+
+export const TransitDataEntrySchema = z.object({
+    dasha: z.string().min(1).refine(val => val !== 'Unknown', {
+        message: 'Dasha sequence must not be Unknown'
+    }),
+    signatures: z.array(z.string()),
+    planets: z.record(z.string(), TransitPlanetSchema),
+    doubleTransit: z.any().optional(),
+});
+
+export const CandidateDataPackageSchema = z.object({
+    time: z.string(),
+    offsetMinutes: z.number(),
+    ascendant: z.object({
+        sign: z.string(),
+        degree: z.string(),
+        nakshatra: z.string().optional(),
+    }),
+    planets: z.record(z.string(), PlanetDataSchema),
+    houseLords: z.record(z.union([z.string(), z.number()]), z.string()),
+    vimshottariDasha: z.array(VimshottariDashaEntrySchema).min(1),
+    transitData: z.record(z.string(), TransitDataEntrySchema).optional(),
+}).passthrough();
+
+export function validateCandidateDataForAI(pkg: unknown) {
+    return CandidateDataPackageSchema.parse(pkg);
+}

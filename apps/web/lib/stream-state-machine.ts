@@ -121,6 +121,9 @@ export interface StreamStateMachine {
     onAuthError(code: string, message?: string): { state: ConnectionState; effects: Effect[] };
     onAuthRetry(sid: string): { state: ConnectionState; effects: Effect[] };
 
+    // Connection error
+    onConnectError(error: Error, sid: string): { state: ConnectionState; effects: Effect[] };
+
     // Cleanup
     onCleanup(): { state: ConnectionState; effects: Effect[] };
 
@@ -142,7 +145,7 @@ export function createStreamStateMachine(
     let sessionNotFoundRetryCount = 0;
     let autoRequeueAttempted = false;
     let cachedToken: string | null = null;
-
+    let connectionAttemptedForSession: string | null = null;
     // ── helpers ───────────────────────────────────────────────────────────────
 
     function setConnectionStatus(next: Partial<ConnectionState>): ConnectionState {
@@ -150,12 +153,13 @@ export function createStreamStateMachine(
         return state;
     }
 
-    function resetForNewSession(sid: string): void {
-        currentSessionId = sid;
-        pollRetryCount = 0;
-        sessionNotFoundRetryCount = 0;
+function resetForNewSession(sid: string): void {
+currentSessionId = sid;
+pollRetryCount = 0;
+sessionNotFoundRetryCount = 0;
         autoRequeueAttempted = false;
-    }
+        connectionAttemptedForSession = null;
+}
 
     function resetRetryCounters(): void {
         authRetryCount = 0;
@@ -257,19 +261,19 @@ export function createStreamStateMachine(
     const machine: StreamStateMachine = {
         getState: () => state,
 
-        getSnapshot: (): StateMachineSnapshot => ({
-            state,
-            currentSessionId,
-            terminalStateReceived,
-            authRetryCount,
-            pollRetryCount,
-            sessionNotFoundRetryCount,
-            autoRequeueAttempted,
-            cachedToken,
-        }),
+getSnapshot: (): StateMachineSnapshot => ({
+state,
+currentSessionId,
+terminalStateReceived,
+authRetryCount,
+pollRetryCount,
+sessionNotFoundRetryCount,
+autoRequeueAttempted,
+cachedToken,
+}),
 
-        getCurrentSessionId: () => currentSessionId,
-        isTerminalReceived: () => terminalStateReceived,
+getCurrentSessionId: () => currentSessionId,
+isTerminalReceived: () => terminalStateReceived,
         canConnect: (sid: string) => {
             if (currentSessionId === sid && terminalStateReceived) return false;
             return true;
@@ -294,9 +298,17 @@ export function createStreamStateMachine(
         },
 
         onConnectStart: (sid: string, options: { forcePolling: boolean; skipSse: boolean }) => {
+            if (terminalStateReceived) {
+                return {
+                    state,
+                    effects: [{ type: 'CLEANUP' }],
+                };
+            }
+
             const transport = decideTransport(options.forcePolling, options.skipSse);
             resetForNewSession(sid);
             resetRetryCounters();
+            connectionAttemptedForSession = sid;
             state = { status: 'connecting', url: '', lastError: null };
 
             if (transport === 'polling') {
@@ -393,6 +405,21 @@ export function createStreamStateMachine(
                     lastError: 'SSE timeout',
                 }),
                 effects: [{ type: 'START_POLLING', sid: currentSessionId!, delay: undefined }],
+            };
+        },
+
+        onConnectError: (error: Error, sid: string) => {
+            logger.error('Connection failed', { error: error.message, sessionId: sid });
+            return {
+                state: setConnectionStatus({
+                    status: 'polling',
+                    url: '',
+                    lastError: 'Connection failed',
+                }),
+                effects: [
+                    { type: 'CLEANUP' },
+                    { type: 'START_POLLING', sid, delay: 2000 },
+                ],
             };
         },
 
@@ -634,11 +661,12 @@ export function createStreamStateMachine(
         // ── Cleanup ───────────────────────────────────────────────────────────
 
         onCleanup: () => {
-            return {
-                state,
-                effects: [{ type: 'CLEANUP' }],
-            };
-        },
+            connectionAttemptedForSession = null;
+return {
+state,
+effects: [{ type: 'CLEANUP' }],
+};
+},
 
         // ── Token ─────────────────────────────────────────────────────────────
 
