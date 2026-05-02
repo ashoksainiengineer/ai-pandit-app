@@ -14,6 +14,44 @@
  */
 import { z } from 'zod';
 
+// ZOD SCHEMAS (co-located with TypeScript interfaces)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Sanitize string to prevent XSS (Internal helper for schemas)
+ */
+const sanitizeString = (val: string) => {
+    return val
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/javascript:/gi, '')
+        .replace(/on\w+\s*=/gi, '')
+        .trim();
+};
+
+const YEAR_PATTERN = /^\d{4}$/;
+const MONTH_PATTERN = /^\d{4}-\d{2}$/;
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
+
+function isDayLike(value: string): boolean {
+    return DATE_PATTERN.test(value);
+}
+
+function isMonthLike(value: string): boolean {
+    return MONTH_PATTERN.test(value) || DATE_PATTERN.test(value);
+}
+
+function isYearLike(value: string): boolean {
+    return YEAR_PATTERN.test(value) || MONTH_PATTERN.test(value) || DATE_PATTERN.test(value);
+}
+
+function toPrecisionKey(value: string, precision: 'day' | 'month' | 'year'): string | null {
+    if (precision === 'day' && isDayLike(value)) return value;
+    if (precision === 'month' && isMonthLike(value)) return isDayLike(value) ? value.slice(0, 7) : value;
+    if (precision === 'year' && isYearLike(value)) return value.slice(0, 4);
+    return null;
+}
+
 export type Gender = 'male' | 'female' | 'other';
 
 /**
@@ -89,6 +127,23 @@ export interface BirthData {
   timezone: number;
   gender: Gender;
 }
+
+export const BirthDataSchema = z.object({
+    fullName: z.string()
+        .min(1, "Full name is required")
+        .max(100, "Name must be less than 100 characters")
+        .transform(sanitizeString),
+    dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD required)"),
+    tentativeTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/, "Invalid time format (HH:MM:SS required)"),
+    birthPlace: z.string()
+        .min(1, "Birth place is required")
+        .max(200, "Birth place must be less than 200 characters")
+        .transform(sanitizeString),
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+    timezone: z.number().min(-12).max(14),
+    gender: z.enum(['male', 'female', 'other']).optional(),
+});
 
 /**
  * Physical traits for forensic matching
@@ -213,6 +268,138 @@ export interface LifeEvent {
   ageAtEvent?: number;
 }
 
+export const LifeEventSchema = z.object({
+    id: z.string()
+        .regex(
+            /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|evt_[A-Za-z0-9_-]+|custom_[A-Za-z0-9_-]+|[A-Za-z0-9_-]{1,128})$/i,
+            'Invalid event id format'
+        )
+        .optional(),
+    eventType: z.string()
+        .min(1, "Event type is required")
+        .max(100, "Event type must be less than 100 characters")
+        .transform(sanitizeString),
+    category: z.string(),
+    eventDate: z.string().min(1, "Event date is required"),
+    eventTime: z.string().regex(TIME_PATTERN, "Invalid time format (HH:MM or HH:MM:SS required)").optional().nullable(),
+    endDate: z.string().optional().nullable(),
+    datePrecision: z.enum(['exact_date_time', 'exact_date', 'month_year', 'month_range', 'year_range', 'date_range']),
+    description: z.string()
+        .max(2000, "Description must be less than 2000 characters")
+        .transform(sanitizeString)
+        .optional()
+        .nullable(),
+    importance: z.enum(['high', 'medium', 'low', 'critical']).default('medium'),
+    createdAt: z.string().datetime().optional(),
+    updatedAt: z.string().datetime().optional(),
+}).passthrough().superRefine((event, ctx) => {
+    const endDate = event.endDate ?? undefined;
+
+    switch (event.datePrecision) {
+        case 'exact_date':
+        case 'exact_date_time': {
+            if (!isDayLike(event.eventDate)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['eventDate'],
+                    message: 'Invalid date format (YYYY-MM-DD required for exact date)',
+                });
+            }
+            if (event.datePrecision === 'exact_date_time' && !event.eventTime) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['eventTime'],
+                    message: 'eventTime is required when datePrecision is exact_date_time',
+                });
+            }
+            break;
+        }
+
+        case 'date_range': {
+            if (!isDayLike(event.eventDate)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['eventDate'],
+                    message: 'Invalid date range start (YYYY-MM-DD required)',
+                });
+            }
+            if (endDate && !isDayLike(endDate)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['endDate'],
+                    message: 'Invalid date range end (YYYY-MM-DD required)',
+                });
+            }
+            break;
+        }
+
+        case 'month_year': {
+            if (!isMonthLike(event.eventDate)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['eventDate'],
+                    message: 'Invalid month-year format (YYYY-MM expected)',
+                });
+            }
+            break;
+        }
+
+        case 'month_range': {
+            if (!isMonthLike(event.eventDate)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['eventDate'],
+                    message: 'Invalid month range start (YYYY-MM expected)',
+                });
+            }
+            if (endDate && !isMonthLike(endDate)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['endDate'],
+                    message: 'Invalid month range end (YYYY-MM expected)',
+                });
+            }
+            break;
+        }
+
+        case 'year_range': {
+            if (!isYearLike(event.eventDate)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['eventDate'],
+                    message: 'Invalid year range start (YYYY expected)',
+                });
+            }
+            if (endDate && !isYearLike(endDate)) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    path: ['endDate'],
+                    message: 'Invalid year range end (YYYY expected)',
+                });
+            }
+            break;
+        }
+
+        default:
+            break;
+    }
+
+    if (endDate) {
+        const precisionKey = event.datePrecision === 'year_range'
+            ? 'year'
+            : (event.datePrecision === 'month_range' ? 'month' : 'day');
+        const startKey = toPrecisionKey(event.eventDate, precisionKey);
+        const endKey = toPrecisionKey(endDate, precisionKey);
+        if (startKey && endKey && endKey < startKey) {
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['endDate'],
+                message: 'endDate must be on or after eventDate',
+            });
+        }
+    }
+});
+
 // ═════════════════════════════════════════════════════════════════════════════
 // TIME OFFSET TYPES
 // ═════════════════════════════════════════════════════════════════════════════
@@ -238,6 +425,12 @@ export interface TimeOffsetConfig {
   customMinutes?: number;
   description: string;
 }
+
+export const OffsetConfigSchema = z.object({
+    preset: z.enum(['30min', '1hour', '2hours', '4hours', '6hours', '12hours', 'seconds-30', 'seconds-6']),
+    customMinutes: z.number().min(1).max(720).optional(),
+    description: z.string().default(''),
+});
 
 /**
  * Candidate time for analysis
@@ -297,7 +490,18 @@ export type JobStatus =
   | 'completed'
   | 'cancelled';
 
+export const JobStatusSchema = z.enum([
+    'queued',
+    'running',
+    'retrying',
+    'failed',
+    'completed',
+    'cancelled',
+]);
+
 export type JobKind = 'btr_rectification';
+
+export const JobKindSchema = z.enum(['btr_rectification']);
 
 export interface JobSummary {
   id: string;
@@ -323,6 +527,30 @@ export interface JobSummary {
   updatedAt: string;
 }
 
+export const JobSummarySchema = z.object({
+    id: z.string().min(1),
+    sessionId: z.string().min(1),
+    userId: z.string().min(1),
+    kind: JobKindSchema,
+    status: JobStatusSchema,
+    currentStage: z.string().nullable().optional(),
+    progressPercent: z.number().int().min(0).max(100),
+    attempt: z.number().int().min(0),
+    maxAttempts: z.number().int().min(1),
+    retryCount: z.number().int().min(0),
+    retryReasonCode: z.string().nullable().optional(),
+    nextRetryAt: z.string().datetime().nullable().optional(),
+    queuedAt: z.string().datetime(),
+    startedAt: z.string().datetime().nullable().optional(),
+    heartbeatAt: z.string().datetime().nullable().optional(),
+    finishedAt: z.string().datetime().nullable().optional(),
+    cancelRequestedAt: z.string().datetime().nullable().optional(),
+    errorCode: z.string().nullable().optional(),
+    errorMessage: z.string().nullable().optional(),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+});
+
 export interface JobDetail extends JobSummary {
   version: number;
   result?: Record<string, unknown> | null;
@@ -330,6 +558,14 @@ export interface JobDetail extends JobSummary {
   cursor?: Record<string, unknown> | null;
   sessionStatus?: string | null;
 }
+
+export const JobDetailSchema = JobSummarySchema.extend({
+    version: z.number().int().min(0),
+    result: z.record(z.unknown()).nullable().optional(),
+    checkpoint: z.record(z.unknown()).nullable().optional(),
+    cursor: z.record(z.unknown()).nullable().optional(),
+    sessionStatus: z.string().nullable().optional(),
+});
 
 export interface JobEventRecord {
   id: string;
@@ -342,12 +578,30 @@ export interface JobEventRecord {
   createdAt: string;
 }
 
+export const JobEventRecordSchema = z.object({
+    id: z.string().min(1),
+    jobId: z.string().min(1),
+    sessionId: z.string().min(1),
+    sequenceNo: z.number().int().min(0),
+    eventType: z.string().min(1),
+    stage: z.string().nullable().optional(),
+    payload: z.record(z.unknown()),
+    createdAt: z.string().datetime(),
+});
+
 export interface JobEventsResponse {
   jobId: string;
   sessionId: string;
   since: number;
   events: JobEventRecord[];
 }
+
+export const JobEventsResponseSchema = z.object({
+    jobId: z.string().min(1),
+    sessionId: z.string().min(1),
+    since: z.number().int().min(0),
+    events: z.array(JobEventRecordSchema),
+});
 
 export interface JobSyncResponse {
   job: JobDetail;
@@ -358,6 +612,15 @@ export interface JobSyncResponse {
   replayMode: 'incremental' | 'snapshot';
 }
 
+export const JobSyncResponseSchema = z.object({
+    job: JobDetailSchema,
+    since: z.number().int().min(0),
+    latestSequenceNo: z.number().int().min(0),
+    events: z.array(JobEventRecordSchema),
+    recommendedPollIntervalMs: z.number().int().positive(),
+    replayMode: z.enum(['incremental', 'snapshot']),
+});
+
 export interface DeadLetterArtifactSummary {
   id: string;
   jobId: string;
@@ -367,15 +630,34 @@ export interface DeadLetterArtifactSummary {
   metadata: Record<string, unknown> | null;
 }
 
+export const DeadLetterArtifactSummarySchema = z.object({
+    id: z.string().min(1),
+    jobId: z.string().min(1),
+    sessionId: z.string().nullable().optional(),
+    uri: z.string().min(1),
+    createdAt: z.string().datetime(),
+    metadata: z.record(z.unknown()).nullable(),
+});
+
 export interface CreateJobResponse {
   job: JobDetail;
   idempotentReplay: boolean;
 }
 
+export const CreateJobResponseSchema = z.object({
+    job: JobDetailSchema,
+    idempotentReplay: z.boolean(),
+});
+
 export interface CancelJobResponse {
   job: JobDetail;
   cancelled: boolean;
 }
+
+export const CancelJobResponseSchema = z.object({
+    job: JobDetailSchema,
+    cancelled: z.boolean(),
+});
 
 // ═════════════════════════════════════════════════════════════════════════════
 // PROGRESS TRACKING TYPES
@@ -774,6 +1056,12 @@ export interface EphemerisServiceLocation {
   altitudeMeters?: number;
 }
 
+export const EphemerisServiceLocationSchema = z.object({
+    latitude: z.number().min(-90).max(90),
+    longitude: z.number().min(-180).max(180),
+    altitudeMeters: z.number().min(-500).max(12000).optional(),
+});
+
 export interface EphemerisServiceBaseRequest {
   location: EphemerisServiceLocation;
   ayanamshaMode?: EphemerisAyanamsaMode;
@@ -781,19 +1069,40 @@ export interface EphemerisServiceBaseRequest {
   nodeMode?: EphemerisNodeMode;
 }
 
+export const EphemerisServiceBaseRequestSchema = z.object({
+    location: EphemerisServiceLocationSchema,
+    ayanamshaMode: z.enum(['lahiri']).default('lahiri'),
+    houseSystem: z.enum(['whole_sign', 'equal', 'placidus']).default('placidus'),
+    nodeMode: z.enum(['true', 'mean']).default('true'),
+});
+
 export interface EphemerisServiceSingleRequest extends EphemerisServiceBaseRequest {
   timestampUtc: string;
 }
 
+export const EphemerisServiceSingleRequestSchema = EphemerisServiceBaseRequestSchema.extend({
+    timestampUtc: z.string().datetime(),
+});
+
 export interface EphemerisServiceBatchRequest extends EphemerisServiceBaseRequest {
   timestampsUtc: string[];
 }
+
+export const EphemerisServiceBatchRequestSchema = EphemerisServiceBaseRequestSchema.extend({
+    timestampsUtc: z.array(z.string().datetime()).min(1).max(500),
+});
 
 export interface EphemerisServiceSunriseRequest {
   startTimestampUtc: string;
   endTimestampUtc: string;
   location: EphemerisServiceLocation;
 }
+
+export const EphemerisServiceSunriseRequestSchema = z.object({
+    startTimestampUtc: z.string().datetime(),
+    endTimestampUtc: z.string().datetime(),
+    location: EphemerisServiceLocationSchema,
+});
 
 export interface EphemerisServicePlanetPosition {
   body: EphemerisServiceBodyName;
@@ -806,6 +1115,17 @@ export interface EphemerisServicePlanetPosition {
   retrograde: boolean;
 }
 
+export const EphemerisServicePlanetPositionSchema = z.object({
+    body: z.enum(['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'rahu', 'ketu']),
+    tropicalLongitude: z.number(),
+    tropicalLatitude: z.number(),
+    siderealLongitude: z.number().optional(),
+    distanceAu: z.number(),
+    longitudeSpeed: z.number(),
+    latitudeSpeed: z.number().optional(),
+    retrograde: z.boolean(),
+});
+
 export interface EphemerisServiceHouses {
   ascendantTropical: number;
   mcTropical: number;
@@ -813,6 +1133,14 @@ export interface EphemerisServiceHouses {
   ascendantSidereal?: number;
   houseCuspsSidereal?: number[];
 }
+
+export const EphemerisServiceHousesSchema = z.object({
+    ascendantTropical: z.number(),
+    mcTropical: z.number(),
+    houseCuspsTropical: z.array(z.number()).length(12),
+    ascendantSidereal: z.number().optional(),
+    houseCuspsSidereal: z.array(z.number()).length(12).optional(),
+});
 
 export interface EphemerisServiceChartResponse {
   timestampUtc: string;
@@ -823,13 +1151,30 @@ export interface EphemerisServiceChartResponse {
   houses: EphemerisServiceHouses;
 }
 
+export const EphemerisServiceChartResponseSchema = z.object({
+    timestampUtc: z.string().datetime(),
+    julianDayUt: z.number(),
+    julianDayTt: z.number(),
+    ayanamsha: z.number(),
+    planets: z.array(EphemerisServicePlanetPositionSchema),
+    houses: EphemerisServiceHousesSchema,
+});
+
 export interface EphemerisServiceBatchResponse {
   charts: EphemerisServiceChartResponse[];
 }
 
+export const EphemerisServiceBatchResponseSchema = z.object({
+    charts: z.array(EphemerisServiceChartResponseSchema),
+});
+
 export interface EphemerisServiceSunriseResponse {
   sunriseTimestampUtc: string | null;
 }
+
+export const EphemerisServiceSunriseResponseSchema = z.object({
+    sunriseTimestampUtc: z.string().datetime().nullable(),
+});
 
 export interface EphemerisServiceHealthResponse {
   service: 'ephemeris';
@@ -841,6 +1186,17 @@ export interface EphemerisServiceHealthResponse {
   version: string;
   error?: string | null;
 }
+
+export const EphemerisServiceHealthResponseSchema = z.object({
+    service: z.literal('ephemeris'),
+    status: z.enum(['healthy', 'degraded', 'unhealthy']),
+    ready: z.boolean(),
+    kernelLoaded: z.boolean(),
+    kernelFile: z.string(),
+    timestamp: z.string().datetime(),
+    version: z.string(),
+    error: z.string().nullable().optional(),
+});
 
 // ═════════════════════════════════════════════════════════════════════════════
 // KP (KRISHNAMURTI PADDHATI) TYPES
@@ -1279,6 +1635,16 @@ export interface CalculateRequest {
   offsetConfig: TimeOffsetConfig;
 }
 
+export const CalculateRequestSchema = z.object({
+    birthData: BirthDataSchema,
+    lifeEvents: z.array(LifeEventSchema)
+        .min(3, "At least 3 life events are required")
+        .max(100, "Maximum 100 life events allowed"),
+    physicalTraits: z.record(z.unknown()).optional().nullable(),
+    forensicTraits: z.record(z.unknown()).optional().nullable(),
+    offsetConfig: OffsetConfigSchema,
+});
+
 /**
  * Calculate response
  */
@@ -1339,368 +1705,3 @@ export type _PlanetPosition = PlanetPosition;
 export type _LifeEvent = LifeEvent;
 
 // ═════════════════════════════════════════════════════════════════════════════
-// ZOD SCHEMAS (co-located with TypeScript interfaces)
-// ═════════════════════════════════════════════════════════════════════════════
-
-/**
- * Sanitize string to prevent XSS (Internal helper for schemas)
- */
-const sanitizeString = (val: string) => {
-    return val
-        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-        .replace(/javascript:/gi, '')
-        .replace(/on\w+\s*=/gi, '')
-        .trim();
-};
-
-const YEAR_PATTERN = /^\d{4}$/;
-const MONTH_PATTERN = /^\d{4}-\d{2}$/;
-const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const TIME_PATTERN = /^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/;
-
-function isDayLike(value: string): boolean {
-    return DATE_PATTERN.test(value);
-}
-
-function isMonthLike(value: string): boolean {
-    return MONTH_PATTERN.test(value) || DATE_PATTERN.test(value);
-}
-
-function isYearLike(value: string): boolean {
-    return YEAR_PATTERN.test(value) || MONTH_PATTERN.test(value) || DATE_PATTERN.test(value);
-}
-
-function toPrecisionKey(value: string, precision: 'day' | 'month' | 'year'): string | null {
-    if (precision === 'day' && isDayLike(value)) return value;
-    if (precision === 'month' && isMonthLike(value)) return isDayLike(value) ? value.slice(0, 7) : value;
-    if (precision === 'year' && isYearLike(value)) return value.slice(0, 4);
-    return null;
-}
-
-export const LifeEventSchema = z.object({
-    id: z.string()
-        .regex(
-            /^(?:[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}|evt_[A-Za-z0-9_-]+|custom_[A-Za-z0-9_-]+|[A-Za-z0-9_-]{1,128})$/i,
-            'Invalid event id format'
-        )
-        .optional(),
-    eventType: z.string()
-        .min(1, "Event type is required")
-        .max(100, "Event type must be less than 100 characters")
-        .transform(sanitizeString),
-    category: z.string(),
-    eventDate: z.string().min(1, "Event date is required"),
-    eventTime: z.string().regex(TIME_PATTERN, "Invalid time format (HH:MM or HH:MM:SS required)").optional().nullable(),
-    endDate: z.string().optional().nullable(),
-    datePrecision: z.enum(['exact_date_time', 'exact_date', 'month_year', 'month_range', 'year_range', 'date_range']),
-    description: z.string()
-        .max(2000, "Description must be less than 2000 characters")
-        .transform(sanitizeString)
-        .optional()
-        .nullable(),
-    importance: z.enum(['high', 'medium', 'low', 'critical']).default('medium'),
-    createdAt: z.string().datetime().optional(),
-    updatedAt: z.string().datetime().optional(),
-}).passthrough().superRefine((event, ctx) => {
-    const endDate = event.endDate ?? undefined;
-
-    switch (event.datePrecision) {
-        case 'exact_date':
-        case 'exact_date_time': {
-            if (!isDayLike(event.eventDate)) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    path: ['eventDate'],
-                    message: 'Invalid date format (YYYY-MM-DD required for exact date)',
-                });
-            }
-            if (event.datePrecision === 'exact_date_time' && !event.eventTime) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    path: ['eventTime'],
-                    message: 'eventTime is required when datePrecision is exact_date_time',
-                });
-            }
-            break;
-        }
-
-        case 'date_range': {
-            if (!isDayLike(event.eventDate)) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    path: ['eventDate'],
-                    message: 'Invalid date range start (YYYY-MM-DD required)',
-                });
-            }
-            if (endDate && !isDayLike(endDate)) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    path: ['endDate'],
-                    message: 'Invalid date range end (YYYY-MM-DD required)',
-                });
-            }
-            break;
-        }
-
-        case 'month_year': {
-            if (!isMonthLike(event.eventDate)) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    path: ['eventDate'],
-                    message: 'Invalid month-year format (YYYY-MM expected)',
-                });
-            }
-            break;
-        }
-
-        case 'month_range': {
-            if (!isMonthLike(event.eventDate)) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    path: ['eventDate'],
-                    message: 'Invalid month range start (YYYY-MM expected)',
-                });
-            }
-            if (endDate && !isMonthLike(endDate)) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    path: ['endDate'],
-                    message: 'Invalid month range end (YYYY-MM expected)',
-                });
-            }
-            break;
-        }
-
-        case 'year_range': {
-            if (!isYearLike(event.eventDate)) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    path: ['eventDate'],
-                    message: 'Invalid year range start (YYYY expected)',
-                });
-            }
-            if (endDate && !isYearLike(endDate)) {
-                ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
-                    path: ['endDate'],
-                    message: 'Invalid year range end (YYYY expected)',
-                });
-            }
-            break;
-        }
-
-        default:
-            break;
-    }
-
-    if (endDate) {
-        const precisionKey = event.datePrecision === 'year_range'
-            ? 'year'
-            : (event.datePrecision === 'month_range' ? 'month' : 'day');
-        const startKey = toPrecisionKey(event.eventDate, precisionKey);
-        const endKey = toPrecisionKey(endDate, precisionKey);
-        if (startKey && endKey && endKey < startKey) {
-            ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                path: ['endDate'],
-                message: 'endDate must be on or after eventDate',
-            });
-        }
-    }
-});
-
-export const BirthDataSchema = z.object({
-    fullName: z.string()
-        .min(1, "Full name is required")
-        .max(100, "Name must be less than 100 characters")
-        .transform(sanitizeString),
-    dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format (YYYY-MM-DD required)"),
-    tentativeTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/, "Invalid time format (HH:MM:SS required)"),
-    birthPlace: z.string()
-        .min(1, "Birth place is required")
-        .max(200, "Birth place must be less than 200 characters")
-        .transform(sanitizeString),
-    latitude: z.number().min(-90).max(90),
-    longitude: z.number().min(-180).max(180),
-    timezone: z.number().min(-12).max(14),
-    gender: z.enum(['male', 'female', 'other']).optional(),
-});
-
-export const OffsetConfigSchema = z.object({
-    preset: z.enum(['30min', '1hour', '2hours', '4hours', '6hours', '12hours', 'seconds-30', 'seconds-6']),
-    customMinutes: z.number().min(1).max(720).optional(),
-    description: z.string().default(''),
-});
-
-export const EphemerisServiceLocationSchema = z.object({
-    latitude: z.number().min(-90).max(90),
-    longitude: z.number().min(-180).max(180),
-    altitudeMeters: z.number().min(-500).max(12000).optional(),
-});
-
-export const EphemerisServiceBaseRequestSchema = z.object({
-    location: EphemerisServiceLocationSchema,
-    ayanamshaMode: z.enum(['lahiri']).default('lahiri'),
-    houseSystem: z.enum(['whole_sign', 'equal', 'placidus']).default('placidus'),
-    nodeMode: z.enum(['true', 'mean']).default('true'),
-});
-
-export const EphemerisServiceSingleRequestSchema = EphemerisServiceBaseRequestSchema.extend({
-    timestampUtc: z.string().datetime(),
-});
-
-export const EphemerisServiceBatchRequestSchema = EphemerisServiceBaseRequestSchema.extend({
-    timestampsUtc: z.array(z.string().datetime()).min(1).max(500),
-});
-
-export const EphemerisServiceSunriseRequestSchema = z.object({
-    startTimestampUtc: z.string().datetime(),
-    endTimestampUtc: z.string().datetime(),
-    location: EphemerisServiceLocationSchema,
-});
-
-export const EphemerisServicePlanetPositionSchema = z.object({
-    body: z.enum(['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'rahu', 'ketu']),
-    tropicalLongitude: z.number(),
-    tropicalLatitude: z.number(),
-    siderealLongitude: z.number().optional(),
-    distanceAu: z.number(),
-    longitudeSpeed: z.number(),
-    latitudeSpeed: z.number().optional(),
-    retrograde: z.boolean(),
-});
-
-export const EphemerisServiceHousesSchema = z.object({
-    ascendantTropical: z.number(),
-    mcTropical: z.number(),
-    houseCuspsTropical: z.array(z.number()).length(12),
-    ascendantSidereal: z.number().optional(),
-    houseCuspsSidereal: z.array(z.number()).length(12).optional(),
-});
-
-export const EphemerisServiceChartResponseSchema = z.object({
-    timestampUtc: z.string().datetime(),
-    julianDayUt: z.number(),
-    julianDayTt: z.number(),
-    ayanamsha: z.number(),
-    planets: z.array(EphemerisServicePlanetPositionSchema),
-    houses: EphemerisServiceHousesSchema,
-});
-
-export const EphemerisServiceBatchResponseSchema = z.object({
-    charts: z.array(EphemerisServiceChartResponseSchema),
-});
-
-export const EphemerisServiceSunriseResponseSchema = z.object({
-    sunriseTimestampUtc: z.string().datetime().nullable(),
-});
-
-export const EphemerisServiceHealthResponseSchema = z.object({
-    service: z.literal('ephemeris'),
-    status: z.enum(['healthy', 'degraded', 'unhealthy']),
-    ready: z.boolean(),
-    kernelLoaded: z.boolean(),
-    kernelFile: z.string(),
-    timestamp: z.string().datetime(),
-    version: z.string(),
-    error: z.string().nullable().optional(),
-});
-
-export const CalculateRequestSchema = z.object({
-    birthData: BirthDataSchema,
-    lifeEvents: z.array(LifeEventSchema)
-        .min(3, "At least 3 life events are required")
-        .max(100, "Maximum 100 life events allowed"),
-    physicalTraits: z.record(z.unknown()).optional().nullable(),
-    forensicTraits: z.record(z.unknown()).optional().nullable(),
-    offsetConfig: OffsetConfigSchema,
-});
-
-export const JobStatusSchema = z.enum([
-    'queued',
-    'running',
-    'retrying',
-    'failed',
-    'completed',
-    'cancelled',
-]);
-
-export const JobKindSchema = z.enum(['btr_rectification']);
-
-export const JobSummarySchema = z.object({
-    id: z.string().min(1),
-    sessionId: z.string().min(1),
-    userId: z.string().min(1),
-    kind: JobKindSchema,
-    status: JobStatusSchema,
-    currentStage: z.string().nullable().optional(),
-    progressPercent: z.number().int().min(0).max(100),
-    attempt: z.number().int().min(0),
-    maxAttempts: z.number().int().min(1),
-    retryCount: z.number().int().min(0),
-    retryReasonCode: z.string().nullable().optional(),
-    nextRetryAt: z.string().datetime().nullable().optional(),
-    queuedAt: z.string().datetime(),
-    startedAt: z.string().datetime().nullable().optional(),
-    heartbeatAt: z.string().datetime().nullable().optional(),
-    finishedAt: z.string().datetime().nullable().optional(),
-    cancelRequestedAt: z.string().datetime().nullable().optional(),
-    errorCode: z.string().nullable().optional(),
-    errorMessage: z.string().nullable().optional(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
-});
-
-export const JobDetailSchema = JobSummarySchema.extend({
-    version: z.number().int().min(0),
-    result: z.record(z.unknown()).nullable().optional(),
-    checkpoint: z.record(z.unknown()).nullable().optional(),
-    cursor: z.record(z.unknown()).nullable().optional(),
-    sessionStatus: z.string().nullable().optional(),
-});
-
-export const JobEventRecordSchema = z.object({
-    id: z.string().min(1),
-    jobId: z.string().min(1),
-    sessionId: z.string().min(1),
-    sequenceNo: z.number().int().min(0),
-    eventType: z.string().min(1),
-    stage: z.string().nullable().optional(),
-    payload: z.record(z.unknown()),
-    createdAt: z.string().datetime(),
-});
-
-export const JobEventsResponseSchema = z.object({
-    jobId: z.string().min(1),
-    sessionId: z.string().min(1),
-    since: z.number().int().min(0),
-    events: z.array(JobEventRecordSchema),
-});
-
-export const JobSyncResponseSchema = z.object({
-    job: JobDetailSchema,
-    since: z.number().int().min(0),
-    latestSequenceNo: z.number().int().min(0),
-    events: z.array(JobEventRecordSchema),
-    recommendedPollIntervalMs: z.number().int().positive(),
-    replayMode: z.enum(['incremental', 'snapshot']),
-});
-
-export const DeadLetterArtifactSummarySchema = z.object({
-    id: z.string().min(1),
-    jobId: z.string().min(1),
-    sessionId: z.string().nullable().optional(),
-    uri: z.string().min(1),
-    createdAt: z.string().datetime(),
-    metadata: z.record(z.unknown()).nullable(),
-});
-
-export const CreateJobResponseSchema = z.object({
-    job: JobDetailSchema,
-    idempotentReplay: z.boolean(),
-});
-
-export const CancelJobResponseSchema = z.object({
-    job: JobDetailSchema,
-    cancelled: z.boolean(),
-});
