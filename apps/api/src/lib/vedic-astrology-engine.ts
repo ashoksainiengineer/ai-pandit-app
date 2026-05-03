@@ -335,16 +335,19 @@ function calculateDashaSandhi(dasha: DashaAtDate, date: Date): DashaAtDate['sand
         .map(t => ({ start: t.start!.getTime(), end: t.end!.getTime(), level: t.level }));
 
     for (const t of transitions) {
-        const startDiff = Math.abs(time - t.start) / 60000; // in minutes
-        const endDiff = Math.abs(time - t.end) / 60000; // in minutes
+        const durationMs = t.end - t.start;
+        // Traditional sandhi: ~10% of dasha period at start and end
+        const thresholdMs = durationMs * 0.10;
+        const startDiff = Math.abs(time - t.start);
+        const endDiff = Math.abs(time - t.end);
 
-        const threshold = [43200, 10080, 2880, 720, 60][t.level - 1] || 60;
-
-        if (startDiff < threshold) {
-            return { isNearTransition: true, level: t.level, distanceMinutes: startDiff, transitionType: 'start' };
+        if (startDiff < thresholdMs) {
+            const distanceMinutes = Math.round(startDiff / 60000);
+            return { isNearTransition: true, level: t.level, distanceMinutes, transitionType: 'start' };
         }
-        if (endDiff < threshold) {
-            return { isNearTransition: true, level: t.level, distanceMinutes: endDiff, transitionType: 'end' };
+        if (endDiff < thresholdMs) {
+            const distanceMinutes = Math.round(endDiff / 60000);
+            return { isNearTransition: true, level: t.level, distanceMinutes, transitionType: 'end' };
         }
     }
 
@@ -787,4 +790,3 @@ export const verifyDoubleTransit = (ephemeris: EphemerisData, ascendantSign: str
 };
 
 // Legacy exports for backward compatibility
-export type { DashaPeriod as _DashaPeriod };

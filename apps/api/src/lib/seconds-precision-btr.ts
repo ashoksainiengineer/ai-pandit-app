@@ -19,7 +19,7 @@ import { calculateEphemeris, convertToUTC } from './ephemeris.js';
 import {
     calculateVimshottariDasha,
     getDashaForDate,
-    _DashaPeriod,
+    DashaPeriod,
 } from './vedic-astrology-engine.js';
 import {
     generateDivisionalCharts,
@@ -31,7 +31,7 @@ import {
     _executeAIInParallel,
 } from './ai-client.js';
 import {
-    _CandidateTime,
+    CandidateTime,
     _generateCandidateTimes,
     _generateRefinementGrid,
     _splitIntoBatches,
@@ -49,7 +49,7 @@ import { emitCandidateScore, emitAIContext, emitCalculationLog, emitStageStats }
 import {
     _enhanceCandidateWithPrecisionData,
     _generatePrecisionAIPrompt,
-    _CandidateWithPrecisionData,
+    CandidateWithPrecisionData,
 } from './btr-precision-integrator.js';
 import { _getMinifiedEphemeris } from './utils/index.js';
 import { logAnalysisContainerAction, clearDebugLog } from '../utils/debug-logger.js';

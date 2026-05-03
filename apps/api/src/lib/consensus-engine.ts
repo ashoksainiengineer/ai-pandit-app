@@ -28,7 +28,7 @@
  */
 
 import { logger } from '../utils/logger.js';
-import { _calculateKPSubLords, _KPCuspalData } from './kp-sublords.js';
+import { _calculateKPSubLords, KPCuspalData } from './kp-sublords.js';
 import type {
   ConsensusScores,
   ValidationDetail,
