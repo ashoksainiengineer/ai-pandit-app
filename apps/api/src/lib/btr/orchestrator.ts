@@ -21,14 +21,11 @@ import { calculateSunrise, calculateEphemeris, convertToUTC, clearEphemerisSessi
 import {
   RectificationResult,
   CandidateScore,
-  MethodScores,
   ConfidenceLevel,
   BtrEvent,
   ForensicProfile,
   TatwaType,
-  DoshaType,
   ScanConfiguration,
-  DEFAULT_SCAN_CONFIG
 } from '@ai-pandit/shared';
 import { logger } from '../../utils/logger.js';
 

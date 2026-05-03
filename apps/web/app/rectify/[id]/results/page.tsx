@@ -1,5 +1,5 @@
 import { Suspense, cache } from 'react';
-import { notFound, redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { currentUser } from '@clerk/nextjs/server';
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
@@ -9,7 +9,6 @@ import Layout from '@/components/Layout';
 import Link from 'next/link';
 import { Breadcrumbs, predefinedBreadcrumbs } from '@/components/ui/Breadcrumbs';
 import { env } from '@/lib/config/env';
-import { initializeEncryption, decrypt, parseSensitiveField } from '@/lib/crypto';
 import { logger } from '@/lib/secure-logger';
 
 export const dynamic = 'force-dynamic';

@@ -54,13 +54,13 @@ class DataPackageValidationError extends Error {
   }
 }
 
-async function safeEnrich<T>(
-  pkg: Record<string, unknown>,
-  key: string,
+async function safeEnrich<T, K extends string>(
+  pkg: CandidateDataPackage,
+  key: K,
   compute: () => T | Promise<T>
 ): Promise<void> {
   try {
-    (pkg as any)[key] = await compute();
+    (pkg as unknown as Record<string, unknown>)[key] = await compute();
   } catch (err) {
     logger.error(`Enrichment ${key} failed`, err);
   }
@@ -115,8 +115,8 @@ export async function buildCandidateDataPackage(
   const enrichedPlanets = enrichPlanets(ephemeris.planets, {
     ascendantSign: ephemeris.ascendant.sign,
     ascendantLongitude: ephemeris.ascendant.longitude,
-    shadbala: (ephemeris.shadbala || {}) as Record<string, any>,
-    ashtakavarga: (ephemeris.ashtakavarga || {}) as Record<string, any>,
+    shadbala: (ephemeris.shadbala || {}) as NonNullable<EphemerisData['shadbala']>,
+    ashtakavarga: (ephemeris.ashtakavarga || {}) as Record<string, number[]>,
     houses: ephemeris.houses
   });
 
@@ -193,10 +193,10 @@ export async function buildCandidateDataPackage(
   }
 
   // Optional enrichment calculations with graceful error handling
-  await safeEnrich(pkg as any, 'kalachakraDasha', () => calculateKalachakraDasha(moonLong, birthDate));
-  await safeEnrich(pkg as any, 'shadbalaSummary', () => calculateFullShadbala(ephemeris));
+  await safeEnrich(pkg, 'kalachakraDasha', () => calculateKalachakraDasha(moonLong, birthDate));
+  await safeEnrich(pkg, 'shadbalaSummary', () => calculateFullShadbala(ephemeris));
 
-  await safeEnrich(pkg as any, 'nadiData', () => {
+  await safeEnrich(pkg, 'nadiData', () => {
     const nadiData = calculateD150ForAllPlanets(ephemeris);
     if (input.lifeEvents && input.lifeEvents.length > 0) {
       pkg.nadiAnalysis = analyzeD150ForEvents(nadiData, input.lifeEvents.map(e => ({
@@ -207,7 +207,7 @@ export async function buildCandidateDataPackage(
   });
 
   if (input.spouseData?.dateOfBirth) {
-    await safeEnrich(pkg as any, 'spouseD9Verification', () => performSpouseVerification(ephemeris, {
+    await safeEnrich(pkg, 'spouseD9Verification', () => performSpouseVerification(ephemeris, {
       dateOfBirth: input.spouseData!.dateOfBirth,
       birthTime: input.spouseData!.birthTime || '12:00:00',
       latitude: input.spouseData!.latitude || 0,
@@ -216,12 +216,12 @@ export async function buildCandidateDataPackage(
     }));
   }
 
-  await safeEnrich(pkg as any, 'gandantaAnalysis', () => detectGandanta(
+  await safeEnrich(pkg, 'gandantaAnalysis', () => detectGandanta(
     ephemeris.ascendant.longitude,
     ephemeris.planets.moon.longitude
   ));
 
-  await safeEnrich(pkg as any, 'pakshiAnalysis', () => {
+  await safeEnrich(pkg, 'pakshiAnalysis', () => {
     const [hours, minutes] = time.split(':').map(Number);
     return analyzePakshi(hours, minutes, getLocalWeekday(candidateDate),
       ephemeris.ascendant.sign, ephemeris.planets.moon.sign);
@@ -560,7 +560,7 @@ async function addExtendedData(
   // Build divisional chart data
   buildDivisionalCharts(pkg, ephemeris);
 
-  // Build transit data
+  // Build transit data (boundary cast: API concrete types vs shared generic types)
   (pkg as any).transitData = await buildTransitData({
     lifeEvents: input.lifeEvents,
     moonLongitude: moonLong,
