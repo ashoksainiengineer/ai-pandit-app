@@ -760,7 +760,7 @@ function determineConfidenceLevel(
   scores: ConsensusScores,
   overall: number,
   redFlags: RedFlags
-) {
+): ConsensusResult['confidenceLevel'] {
   // Exclude methods with no data (score of 0) from threshold checks
   // A method scoring 0 means it was not computed, not that it failed
   const activeScores = Object.values(scores).filter((s): s is number => typeof s === 'number' && s > 0);
@@ -768,7 +768,7 @@ function determineConfidenceLevel(
 
   if (redFlags.gandanta) return 'LOW';
 
-  let baseLevel = 'LOW';
+  let baseLevel: ConsensusResult['confidenceLevel'] = 'LOW';
 
   if (activeScores.length >= 6 && activeScores.every(s => s >= thresholds.standard_precision.allMethodsAbove) &&
       overall >= thresholds.standard_precision.minScore && !redFlags.conflictingMethods) {
