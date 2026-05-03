@@ -175,7 +175,7 @@ export async function getLatestJobForSession(sessionId: string): Promise<Job | n
   return job ?? null;
 }
 
-export async function listActiveJobs(): Promise<Job[]> {
+export function listActiveJobs(): Promise<Job[]> {
   return executeWithRetry(() =>
     db
       .select()
@@ -554,7 +554,7 @@ export async function appendJobEvent(input: CreateJobEventInput): Promise<JobEve
   throw new DatabaseError('Failed to append job event after retries');
 }
 
-export async function listJobEvents(jobId: string): Promise<JobEvent[]> {
+export function listJobEvents(jobId: string): Promise<JobEvent[]> {
   return executeWithRetry(() =>
     db
       .select()
@@ -564,7 +564,7 @@ export async function listJobEvents(jobId: string): Promise<JobEvent[]> {
   );
 }
 
-export async function listJobEventsSince(jobId: string, sequenceNo: number): Promise<JobEvent[]> {
+export function listJobEventsSince(jobId: string, sequenceNo: number): Promise<JobEvent[]> {
   return executeWithRetry(() =>
     db
       .select()
@@ -626,7 +626,7 @@ export async function createArtifact(input: CreateArtifactInput): Promise<Artifa
   return artifact;
 }
 
-export async function listArtifactsForJob(jobId: string): Promise<Artifact[]> {
+export function listArtifactsForJob(jobId: string): Promise<Artifact[]> {
   return executeWithRetry(() =>
     db
       .select()
@@ -652,7 +652,7 @@ export async function getLatestArtifactForJobByKind(
   return artifact ?? null;
 }
 
-export async function listDeadLetterArtifacts(limit = 50): Promise<Artifact[]> {
+export function listDeadLetterArtifacts(limit = 50): Promise<Artifact[]> {
   return executeWithRetry(() =>
     db
       .select()

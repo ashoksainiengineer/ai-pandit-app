@@ -13,12 +13,8 @@
  * Reference: Deva-Keralam (Nadiamsha counting rules), KP/BTR timing usage
  */
 
-import { EphemerisData } from '@ai-pandit/shared';
+import { EphemerisData, ZODIAC_SIGNS } from '@ai-pandit/shared';
 
-const ZODIAC_SIGNS = [
-  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
-];
 
 const NADI_COUNT = 150;
 const SIGN_SPAN_DEGREES = 30;

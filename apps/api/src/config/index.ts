@@ -172,8 +172,12 @@ export function ensureEnv(): ReturnType<typeof parseEnv> {
   return _cachedEnv;
 }
 
-// Eagerly parsed at module scope for backwards compatibility
-const env = parseEnv();
+// Lazy proxy — triggers parseEnv() only on first property access
+const env = new Proxy({} as ReturnType<typeof parseEnv>, {
+    get(_, prop) {
+        return ensureEnv()[prop as keyof ReturnType<typeof parseEnv>];
+},
+});
 
 // Warn on likely provider/model mismatch to catch misconfigured deployments early.
 

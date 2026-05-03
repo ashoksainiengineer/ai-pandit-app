@@ -244,11 +244,9 @@ export async function verifyDatabaseConnection(): Promise<void> {
     if (process.env.NODE_ENV === 'production') {
       throw error;
     }
-    if (!isTest) {
-      console.error('[DB] Proactive database health check failed in non-production runtime', {
-        error: (error as Error).message,
-      });
-    }
+    console.error('[DB] Proactive database health check failed in non-production runtime', {
+      error: (error as Error).message,
+    });
   }
 }
 

@@ -1,5 +1,5 @@
 
-import { EphemerisData, PlanetPosition, HousePosition } from '@ai-pandit/shared';
+import { EphemerisData, PlanetPosition, HousePosition, ZODIAC_SIGNS } from '@ai-pandit/shared';
 import { logger } from '../utils/logger.js';
 import { config } from '../config/index.js';
 import type { EphemerisServiceChartResponse } from '@ai-pandit/shared/types';
@@ -492,7 +492,6 @@ async function calculateEphemerisWithProvider(
 }
 
 
-const ZODIAC_SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'] as const;
 const NAKSHATRAS = ['Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashirsha', 'Ardra', 'Punarvasu', 'Pushya', 'Ashlesha', 'Magha', 'Purva Phalguni', 'Uttara Phalguni', 'Hasta', 'Chitra', 'Swati', 'Vishakha', 'Anuradha', 'Jyeshtha', 'Mula', 'Purva Ashadha', 'Uttara Ashadha', 'Shravana', 'Dhanishtha', 'Shatabhisha', 'Purva Bhadrapada', 'Uttara Bhadrapada', 'Revati'] as const;
 
 // Inline lord mapping (no object allocation)

@@ -2,16 +2,12 @@
 // Jaimini Astrology System Methods
 // Includes: Chara Dasha, Chara Karakas, Jaimini Aspects
 
-import { EphemerisData } from '@ai-pandit/shared';
+import { EphemerisData, ZODIAC_SIGNS } from '@ai-pandit/shared';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // JAIMINI SYSTEM CONSTANTS
 // ═════════════════════════════════════════════════════════════════════════════
 
-const ZODIAC_SIGNS = [
-    'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-    'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
-];
 
 // Chara Karaka (Variable Significator) order based on degree
 const KARAKA_NAMES = [

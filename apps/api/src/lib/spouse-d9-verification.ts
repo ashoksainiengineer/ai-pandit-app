@@ -17,11 +17,8 @@ import { calculateEphemeris } from './ephemeris.js';
 import { calculateD9 } from './advanced-btr-methods.js';
 import { logger } from '../utils/logger.js';
 import type { EphemerisData } from '@ai-pandit/shared';
+import { ZODIAC_SIGNS } from '@ai-pandit/shared';
 
-const ZODIAC_SIGNS = [
-  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
-];
 
 export interface SpouseData {
   dateOfBirth: string;

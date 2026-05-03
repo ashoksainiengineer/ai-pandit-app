@@ -20,12 +20,8 @@
  * Weak: < 1.0 Rupa (60 points)
  */
 
-import { EphemerisData, PlanetPosition } from '@ai-pandit/shared';
+import { EphemerisData, PlanetPosition, _ZODIAC_SIGNS } from '@ai-pandit/shared';
 
-const _ZODIAC_SIGNS = [
-  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
-];
 
 const PLANETS = ['sun', 'moon', 'mars', 'mercury', 'jupiter', 'venus', 'saturn'];
 

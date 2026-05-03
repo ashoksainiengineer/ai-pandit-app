@@ -1364,7 +1364,6 @@ export function calculateAshtakavarga(ephemeris: EphemerisData): {
     const sav: number[] = new Array(12).fill(0);
 
     // 1. Get positions of all sources
-    const ZODIAC_SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
     const planetPositions: Record<string, number> = {};
     for (const p of PLANET_NAMES_AV) {
         planetPositions[p] = ZODIAC_SIGNS.indexOf(ephemeris.planets[p]?.sign || '');
@@ -1445,7 +1444,6 @@ export function detectParivartana(ephemeris: EphemerisData): ParivartanaExchange
         Leo: 'Sun', Virgo: 'Mercury', Libra: 'Venus', Scorpio: 'Mars',
         Sagittarius: 'Jupiter', Capricorn: 'Saturn', Aquarius: 'Saturn', Pisces: 'Jupiter',
     };
-    const ZODIAC_SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
 
     const exchanges: ParivartanaExchange[] = [];
     const planets = Object.entries(ephemeris.planets);
@@ -1490,7 +1488,6 @@ function getLordOfHouse(h: number, lagnaSign: string): string {
         Leo: 'Sun', Virgo: 'Mercury', Libra: 'Venus', Scorpio: 'Mars',
         Sagittarius: 'Jupiter', Capricorn: 'Saturn', Aquarius: 'Saturn', Pisces: 'Jupiter',
     };
-    const ZODIAC_SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
     const lagnaSignIdx = ZODIAC_SIGNS.indexOf(lagnaSign);
     const houseSignIdx = (lagnaSignIdx + h - 1) % 12;
     return SIGN_LORDS[ZODIAC_SIGNS[houseSignIdx]];
@@ -1501,7 +1498,6 @@ function getLordOfHouse(h: number, lagnaSign: string): string {
  */
 export function detectPushkarNavamsa(ephemeris: EphemerisData): string[] {
     const pushkar: string[] = [];
-    const _ZODIAC_SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'];
 
     // Pushkar Navamsa signs: Taurus, Virgo, Libra, Sagittarius, Capricorn, Pisces (specifically signs 2, 6, 7, 9, 10, 12)
     const pushkarSigns = ['Taurus', 'Virgo', 'Libra', 'Sagittarius', 'Capricorn', 'Pisces'];
