@@ -674,7 +674,7 @@ function validateForensic(input: ValidationInput): ValidationDetail {
 function validateAI(input: ValidationInput): ValidationDetail {
   // AI score comes from previous AI analysis
   // This is a placeholder - actual AI score passed from AI service
-  const score = input.candidate.aiScore || 70;
+  const score = input.candidate.aiScore ?? 70;
 
   return {
     method: 'AI Reasoning',
@@ -1029,7 +1029,7 @@ function detectDashaSandhi(candidate: ValidationInput['candidate']): boolean {
 
   if (!dashaStart || !dashaEnd) return false;
 
-  const birthDate = new Date(candidate.birthDate || Date.now());
+  const birthDate = new Date(candidate.candidateDate || candidate.birthDate || Date.now());
   const daysFromStart = Math.abs(birthDate.getTime() - dashaStart.getTime()) / (1000 * 60 * 60 * 24);
   const daysToEnd = Math.abs(dashaEnd.getTime() - birthDate.getTime()) / (1000 * 60 * 60 * 24);
 

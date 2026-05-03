@@ -11,7 +11,7 @@
 
 import { CandidateDataPackage, LifeEvent, ForensicTraits } from '@ai-pandit/shared';
 import { formatLifeEventForAI } from './life-event-formatter.js';
-import { randomSort } from '../../utils/index.js';
+import { shuffleArray } from '../../utils/index.js';
 import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';
 import { logger } from '../../../utils/logger.js';
 import { formatCandidateVSL, EnhancedCandidate } from './vsl-formatter.js';
@@ -112,7 +112,7 @@ export function getDeepAnalysisPrompt(
     `;
   // Anti-bias: Shuffle to prevent positional bias
   const filteredCandidates = candidates.filter(c => c.time);
-  const shuffledCandidates = randomSort(filteredCandidates);
+  const shuffledCandidates = shuffleArray(filteredCandidates);
   const duplicateTimes = buildDuplicateTimeSet(shuffledCandidates);
 
   return `BIRTH TIME RECTIFICATION - STAGE 4 (Deep Multi-Dasha Analysis)

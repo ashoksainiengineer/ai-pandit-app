@@ -79,12 +79,11 @@ function enrichSinglePlanet(
   const signIdx = ZODIAC_SIGNS.indexOf(rawPlanet.sign);
   const houseLord = context.houses[signIdx]?.lord || '';
 
-  // FIXED: Proper null/undefined handling for house calculation
+  // Fall back to whole-sign house computation when cusp-based house is missing
   let houseNumber = rawPlanet.house;
-  if (!houseNumber || houseNumber < 1 || houseNumber > 12) {
-    houseNumber = calculateHouse(rawPlanet.longitude, []); // Corrected call
+  if (typeof houseNumber !== 'number' || Number.isNaN(houseNumber) || houseNumber < 1 || houseNumber > 12) {
+    houseNumber = ((Math.floor(((rawPlanet.longitude % 360) + 360) % 360 / 30) + 12) % 12) + 1;
   }
-
   return {
     longitude: rawPlanet.longitude,
     sign: rawPlanet.sign,

@@ -17,7 +17,7 @@ import { WindowScanner, ScannerInput } from './window-scanner.js';
 import { TatwaShuddhi, TatwaCorrectionResult } from './tatwa-shuddhi.js';
 import { TransitAnalyzer, ComprehensiveTransitResult } from './transit-analyzer.js';
 import { EventScorer, ScoredEvent, EventScoreSummary } from './event-scorer.js';
-import { calculateSunrise, calculateEphemeris, convertToUTC, clearSessionCache } from '../ephemeris.js';
+import { calculateSunrise, calculateEphemeris, convertToUTC, clearEphemerisSessionCache } from '../ephemeris.js';
 import {
   RectificationResult,
   CandidateScore,
@@ -101,7 +101,7 @@ export async function rectifyBirthTime(input: RectificationInput): Promise<Detai
   } catch (error) {
     return logAndRecoverRectificationFailure(input, error, sessionId, startTime);
   } finally {
-    clearSessionCache(sessionId);
+    clearEphemerisSessionCache(sessionId);
     logger.debug('[BTR] Session cache cleared', { sessionId });
   }
 }
@@ -555,6 +555,12 @@ async function logAndRecoverRectificationFailure(
 ): Promise<DetailedResult> {
   const errorMessage = error instanceof Error ? error.message : 'Unknown error';
   logger.error('[BTR] Rectification failed', error);
-  return buildFailedResult(input, await buildContext(input, sessionId), [errorMessage], startTime);
+  const fallbackCtx: RectificationContext = {
+    sunriseTime: null,
+    scoredEvents: [],
+    eventSummary: { averageReliability: 0, totalEvents: 0, totalWeight: 0, highConfidenceCount: 0, mediumConfidenceCount: 0, lowConfidenceCount: 0, categoryDistribution: {}, recommendations: [] },
+    prakritiTatwaMatch: null,
+  };
+  return buildFailedResult(input, fallbackCtx, [errorMessage], startTime);
 }
 

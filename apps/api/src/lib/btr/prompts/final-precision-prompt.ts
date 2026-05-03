@@ -12,7 +12,7 @@
 import { CandidateDataPackage, LifeEvent, ForensicTraits } from '@ai-pandit/shared';
 import { formatLifeEventForAI } from './life-event-formatter.js';
 import { buildForensicDNASummary } from './forensic-context.js';
-import { randomSort } from '../../utils/index.js';
+import { shuffleArray } from '../../utils/index.js';
 import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';
 import { logger } from '../../../utils/logger.js';
 import { formatCandidateVSL, EnhancedCandidate } from './vsl-formatter.js';
@@ -90,7 +90,7 @@ export function getFinalPrecisionPrompt(
   const forensicDNA = buildForensicDNASummary(forensicTraits);
 
   // Anti-bias: Final shuffling
-  const shuffledCandidates = randomSort(candidates);
+  const shuffledCandidates = shuffleArray(candidates);
   const duplicateTimes = buildDuplicateTimeSet(shuffledCandidates);
 
   const transitData = currentTransits as PresentTransitLock | Record<string, PresentTransitLock> | undefined;

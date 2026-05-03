@@ -1,6 +1,7 @@
 
 import { getAyanamsa } from './ephemeris.js';
 import { EphemerisData, PlanetData } from '@ai-pandit/shared';
+import { DAYS_PER_YEAR, addYears } from './utils/time-constants.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -385,10 +386,8 @@ export function formatDashaForDate(
 // ═════════════════════════════════════════════════════════════════════════════
 // UTILITY FUNCTIONS
 // ═════════════════════════════════════════════════════════════════════════════
-// Sidereal year: ~365.25636 days. Julian (365.25) drifts ~0.76 days/century.
-// Using NASA-JPL sidereal year for dasha date calculations.
-const DAYS_PER_YEAR = 365.256363004;  // sidereal year in mean solar days
 
+// ═════════════════════════════════════════════════════════════════════════════
 // ═════════════════════════════════════════════════════════════════════════════
 // PLANETARY DIGNITY LOOKUP TABLES (Brihat Parashara Hora Shastra)
 // ═════════════════════════════════════════════════════════════════════════════
@@ -456,11 +455,7 @@ const ZODIAC_SIGNS = [
     'Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'
 ];
 
-function addYears(date: Date, years: number): Date {
-    const result = new Date(date);
-    result.setTime(result.getTime() + years * DAYS_PER_YEAR * 24 * 60 * 60 * 1000);
-    return result;
-}
+
 
 function formatDate(date: Date): string {
     return date.toISOString().split('T')[0];

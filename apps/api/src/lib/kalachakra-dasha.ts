@@ -8,7 +8,7 @@
  * Reference: Brihat Parashara Hora Shastra
  */
 import { ZODIAC_SIGNS } from '@ai-pandit/shared';
-
+import { DAYS_PER_YEAR, addYears } from './utils/time-constants.js';
 
 const NAKSHATRA_NAMES = [
   'Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashirsha', 'Ardra',
@@ -289,13 +289,6 @@ function generateFallbackDasha(birthDate: Date): KalachakraPeriod[] {
   return periods;
 }
 
-const DAYS_PER_YEAR = 365.256363004;
-
-function addYears(date: Date, years: number): Date {
-  const result = new Date(date);
-  result.setTime(result.getTime() + years * DAYS_PER_YEAR * 24 * 60 * 60 * 1000);
-  return result;
-}
 
 function getSignElement(sign: string): string {
   const fireSigns = ['Aries', 'Leo', 'Sagittarius'];

@@ -13,7 +13,6 @@
  * 5. Quality Control Layer (Tatwa, Boundary, AI)
  */
 
-import { ShadbalaSummary } from '../shadbala.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // METHOD WEIGHTS - For overall candidate scoring
@@ -253,56 +252,15 @@ export const CONFIDENCE_THRESHOLDS = {
   },
 } as const;
 
-/**
- * CORE SCORING ENGINE: Dynamic Weight Calculator
- * Uses Shadbala (Planetary Strength) to adjust method weights for the specific native.
- * 
- * Logic: If a planet is the 'Strongest' in the chart, its significations and 
- * related dasha/transit methods gain a 1.2x boost. Weak planets are penalized.
- */
-export function calculateDynamicWeights(
-  baseWeights: Record<string, number>,
-  shadbala: ShadbalaSummary
-): Record<string, number> {
-  const dynamicWeights = { ...baseWeights };
-  const strongest = shadbala.strongestPlanet;
-  const weakest = shadbala.weakestPlanet;
-
-  // 1. Boost methods related to the strongest planet
-  // For example, if Jupiter is strongest, 'varga' and 'vimshottari' (wisdom/timing) get boosted.
-  if (['jupiter', 'sun', 'moon'].includes(strongest)) {
-    dynamicWeights.varga = (dynamicWeights.varga || 3) * 1.25;
-    dynamicWeights.vimshottari = (dynamicWeights.vimshottari || 4) * 1.2;
-  }
-
-  // 2. Adjust KP/Nadi weights based on mercury/jupiter strength (logic processing)
-  if (shadbala.planets.mercury.totalRupas > 1.5) {
-    dynamicWeights.kp = (dynamicWeights.kp || 5) * 1.15;
-  }
-
-  // 3. Penalize methods relying on weak planets
-  if (['saturn', 'mars'].includes(weakest)) {
-    dynamicWeights.transit = (dynamicWeights.transit || 3) * 0.85;
-  }
-
-  return dynamicWeights;
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // RANK FUSION CONSENSUS CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /**
- * RRF constant 'k' (Industry standard is 60)
- * Prevents small fluctuations in rank from overly biasing the score.
- */
-export const RRF_K = 60;
-
-/**
  * Minimum methods required for a valid consensus
  */
 export const MIN_CONSENSUS_METHODS = 3;
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -375,13 +333,13 @@ export function calculateRankFusionScore(
   for (const [method, score] of scores) {
     const weight = weights[method] || 1.0;
     const virtualRank = Math.max(1, 101 - score);
-    rrfSum += weight * (1 / (RRF_K + virtualRank));
+    rrfSum += weight * (1 / (60 + virtualRank));
   }
 
   let maxPossibleRrf = 0;
   for (const [method] of scores) {
     const weight = weights[method] || 1.0;
-    maxPossibleRrf += weight * (1 / (RRF_K + 1));
+    maxPossibleRrf += weight * (1 / (60 + 1));
   }
 
   const normalizedScore = (rrfSum / maxPossibleRrf) * 100;
@@ -427,7 +385,6 @@ export default {
   calculateRankFusionScore,
   getTotalMethodWeight,
   getDefaultImportance,
-  RRF_K,
   MIN_CONSENSUS_METHODS,
 };
 

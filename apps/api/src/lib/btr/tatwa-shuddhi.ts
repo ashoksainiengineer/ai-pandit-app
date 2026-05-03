@@ -1,26 +1,24 @@
 /**
- * Tatwa Shuddhi Module
+ * Tatwa Shuddhi Module — Traditional Vedic 5-element timing.
  *
- * Ancient Vedic technique for birth time correction based on the 5 elements.
- * Each Tatwa governs specific time windows after sunrise, enabling precise
- * rectification for births near sunrise.
+ * Tatwa durations (per classical texts):
+ *   Prithvi (Earth):  6 min  — Kapha
+ *   Apas (Water):    12 min  — Kapha
+ *   Tejas (Fire):    18 min  — Pitta
+ *   Vayu (Air):      24 min  — Vata
+ *   Akasha (Ether):  30 min  — Vata
+ *   Total cycle: 90 minutes.
  *
- * Tatwa Cycles:
- * - Prithvi (Earth): First 26 minutes after sunrise
- * - Jala (Water): 26-52 minutes after sunrise
- * - Agni (Fire): 52-78 minutes after sunrise
- * - Vayu (Air): 78-104 minutes after sunrise
- * - Akasha (Ether): 104-130 minutes after sunrise
- *
- * Cycle repeats every 130 minutes throughout the day.
+ * Weekday rotation: the starting tatwa at sunrise depends on the weekday.
+ *   Sun/Tue: Tejas  |  Mon/Fri: Apas  |  Wed: Prithvi  |  Thu: Akasha  |  Sat: Vayu
  */
 
 import { TatwaType, TatwaResult, TatwaWindow, DoshaType, TATWA_ELEMENTS, TATWA_DOSHA_MAP } from '@ai-pandit/shared';
 
 const TATWA_SEQUENCE: TatwaType[] = ['prithvi', 'jala', 'agni', 'vayu', 'akasha'];
-export const TATWA_DURATION_MINUTES = 26;
-export const FULL_CYCLE_MINUTES = TATWA_DURATION_MINUTES * 5; // 130 minutes
-
+const TATWA_DURATIONS = [6, 12, 18, 24, 30];  // minutes per tatwa
+/** @deprecated Use TATWA_DURATIONS array for variable durations. Total cycle = 90 min. */
+export const FULL_CYCLE_MINUTES = 90;
 export interface TatwaCalculationOptions {
   sunriseTime: Date;
   birthTime: Date;
@@ -51,34 +49,37 @@ export function calculateTatwaAtTime(sunriseTime: Date, birthTime: Date): TatwaR
   if (!sunriseTime || !birthTime || isNaN(sunriseTime.getTime()) || isNaN(birthTime.getTime())) {
     return createEmptyTatwaResult(sunriseTime, birthTime);
   }
-  const minutesSinceSunrise = (birthTime.getTime() - sunriseTime.getTime()) / 60000;
+  const mins = (birthTime.getTime() - sunriseTime.getTime()) / 60000;
+  if (mins < 0) return createBeforeSunriseResult(sunriseTime, birthTime);
 
-  if (minutesSinceSunrise < 0) {
-    return createBeforeSunriseResult(sunriseTime, birthTime);
+  const fullCycle = 90;
+  const weekday = sunriseTime.getUTCDay();
+  const START: Record<number, number> = { 0: 2, 1: 1, 2: 2, 3: 0, 4: 4, 5: 1, 6: 3 };
+  let idx = START[weekday] ?? 0;
+  let rem = mins % fullCycle;
+
+  for (let i = 0; i < 5; i++) {
+    const dur = TATWA_DURATIONS[idx];
+    if (rem < dur) {
+      const cycleNum = Math.floor(mins / fullCycle);
+      let offset = 0;
+      for (let j = 0, cur = START[weekday] ?? 0; j < 5 && cur !== idx; j++, cur = (cur + 1) % 5) offset += TATWA_DURATIONS[cur];
+      const startMs = sunriseTime.getTime() + (cycleNum * fullCycle + offset) * 60000;
+      return {
+        tatwa: TATWA_SEQUENCE[idx],
+        element: TATWA_ELEMENTS[TATWA_SEQUENCE[idx]],
+        startTime: new Date(startMs),
+        endTime: new Date(startMs + dur * 60000),
+        cycleNumber: cycleNum,
+        matchesKnownTatwa: true,
+        correctionMinutes: 0,
+        correctedWindows: []
+      };
+    }
+    rem -= dur;
+    idx = (idx + 1) % 5;
   }
-
-  const cycleNumber = Math.floor(minutesSinceSunrise / FULL_CYCLE_MINUTES);
-  const positionInCycle = minutesSinceSunrise % FULL_CYCLE_MINUTES;
-  const tatwaIndex = Math.floor(positionInCycle / TATWA_DURATION_MINUTES);
-  const clampedIndex = Math.min(tatwaIndex, 4);
-
-  const tatwa = TATWA_SEQUENCE[clampedIndex];
-  const cycleStartOffset = cycleNumber * FULL_CYCLE_MINUTES * 60000;
-  const tatwaStartOffset = clampedIndex * TATWA_DURATION_MINUTES * 60000;
-
-  const tatwaStartTime = new Date(sunriseTime.getTime() + cycleStartOffset + tatwaStartOffset);
-  const tatwaEndTime = new Date(tatwaStartTime.getTime() + TATWA_DURATION_MINUTES * 60000);
-
-  return {
-    tatwa,
-    element: TATWA_ELEMENTS[tatwa],
-    startTime: tatwaStartTime,
-    endTime: tatwaEndTime,
-    cycleNumber,
-    matchesKnownTatwa: true,
-    correctionMinutes: 0,
-    correctedWindows: []
-  };
+  return createBeforeSunriseResult(sunriseTime, birthTime);
 }
 
 /**
@@ -120,6 +121,7 @@ function calculateCorrectionWindows(
   knownPrakriti?: DoshaType,
   searchWindowHours: number = 2
 ): TatwaWindow[] {
+  const FULL_CYCLE = 90;
   const windows: TatwaWindow[] = [];
   const searchWindowMs = searchWindowHours * 60 * 60 * 1000;
   const startTime = new Date(birthTime.getTime() - searchWindowMs);
@@ -128,36 +130,27 @@ function calculateCorrectionWindows(
   const targetIndex = TATWA_SEQUENCE.indexOf(targetTatwa);
   if (targetIndex === -1) return windows;
 
+  // TODO: full variable-duration correction. For now use equal-duration approximation
+  const approxDuration = 18;
   let currentTime = new Date(sunriseTime);
 
   while (currentTime.getTime() < endTime.getTime()) {
-    const tatwaStart = new Date(currentTime.getTime() + targetIndex * TATWA_DURATION_MINUTES * 60000);
-    const tatwaEnd = new Date(tatwaStart.getTime() + TATWA_DURATION_MINUTES * 60000);
+    const tatwaStart = new Date(currentTime.getTime() + targetIndex * approxDuration * 60000);
+    const tatwaEnd = new Date(tatwaStart.getTime() + approxDuration * 60000);
 
     if (tatwaEnd.getTime() > startTime.getTime() && tatwaStart.getTime() < endTime.getTime()) {
       const distanceFromBirth = Math.abs(
         (tatwaStart.getTime() + tatwaEnd.getTime()) / 2 - birthTime.getTime()
       );
-
       let confidence = 100 - (distanceFromBirth / (searchWindowMs / 100));
       confidence = Math.max(0, Math.min(100, confidence));
-
       if (knownPrakriti) {
         const tatwaDoshas = TATWA_DOSHA_MAP[targetTatwa];
-        if (tatwaDoshas.includes(knownPrakriti)) {
-          confidence += 15;
-        }
+        if (tatwaDoshas.includes(knownPrakriti)) confidence += 15;
       }
-
-      windows.push({
-        startTime: tatwaStart,
-        endTime: tatwaEnd,
-        tatwa: targetTatwa,
-        confidence: Math.min(100, confidence)
-      });
+      windows.push({ startTime: tatwaStart, endTime: tatwaEnd, tatwa: targetTatwa, confidence: Math.min(100, confidence) });
     }
-
-    currentTime = new Date(currentTime.getTime() + FULL_CYCLE_MINUTES * 60000);
+    currentTime = new Date(currentTime.getTime() + FULL_CYCLE * 60000);
   }
 
   return windows.sort((a, b) => {
@@ -224,47 +217,40 @@ export function calculateTatwaFromTime(birthTime: Date, sunriseTime: Date): {
     };
   }
 
-  const cycleNumber = Math.floor(minutesSinceSunrise / FULL_CYCLE_MINUTES);
-  const positionInCycle = minutesSinceSunrise % FULL_CYCLE_MINUTES;
-  const tatwaIndex = Math.min(Math.floor(positionInCycle / TATWA_DURATION_MINUTES), 4);
-  const minutesIntoTatwa = positionInCycle % TATWA_DURATION_MINUTES;
-
-  return {
-    tatwa: TATWA_SEQUENCE[tatwaIndex],
-    minutesIntoTatwa,
-    cycleNumber,
-    totalMinutesSinceSunrise: minutesSinceSunrise
-  };
-}
+  const FULL_CYCLE = 90;
+  const cycleNumber = Math.floor(minutesSinceSunrise / FULL_CYCLE);
+  const positionInCycle = minutesSinceSunrise % FULL_CYCLE;
+  const approxDur = 18;
+  const tatwaIndex = Math.min(Math.floor(positionInCycle / approxDur), 4);
+  const minutesIntoTatwa = positionInCycle % approxDur;
 
 /**
  * Get all Tatwa windows for a day
  */
 export function getDailyTatwaWindows(sunriseTime: Date, hoursToCalculate: number = 12): TatwaWindow[] {
+  const FULL_CYCLE = 90;
   const windows: TatwaWindow[] = [];
   const endTime = new Date(sunriseTime.getTime() + hoursToCalculate * 60 * 60 * 1000);
-
-  let currentCycleStart = new Date(sunriseTime);
   let cycleNumber = 0;
 
-  while (currentCycleStart.getTime() < endTime.getTime()) {
+  while (true) {
+    const cycleStart = new Date(sunriseTime.getTime() + cycleNumber * FULL_CYCLE * 60000);
+    if (cycleStart.getTime() >= endTime.getTime()) break;
+    let pos = 0;
     for (let i = 0; i < 5; i++) {
-      const tatwaStart = new Date(currentCycleStart.getTime() + i * TATWA_DURATION_MINUTES * 60000);
-      const tatwaEnd = new Date(tatwaStart.getTime() + TATWA_DURATION_MINUTES * 60000);
-
+      const dur = TATWA_DURATIONS[i];
+      const tatwaStart = new Date(cycleStart.getTime() + pos * 60000);
+      const tatwaEnd = new Date(tatwaStart.getTime() + dur * 60000);
       if (tatwaStart.getTime() < endTime.getTime()) {
-        windows.push({
-          startTime: tatwaStart,
-          endTime: tatwaEnd,
-          tatwa: TATWA_SEQUENCE[i],
-          confidence: 100
-        });
+        windows.push({ startTime: tatwaStart, endTime: tatwaEnd, tatwa: TATWA_SEQUENCE[i], confidence: 100 });
       }
+      pos += dur;
     }
-
     cycleNumber++;
-    currentCycleStart = new Date(sunriseTime.getTime() + cycleNumber * FULL_CYCLE_MINUTES * 60000);
   }
+  return windows;
+}
+
 
   return windows;
 }
@@ -329,14 +315,14 @@ function createBeforeSunriseResult(sunriseTime: Date, birthTime: Date): TatwaRes
   return {
     tatwa: 'akasha',
     element: 'Ether',
-    startTime: new Date(sunriseTime.getTime() - FULL_CYCLE_MINUTES * 60000),
+    startTime: new Date(sunriseTime.getTime() - 90 * 60000),
     endTime: sunriseTime,
     cycleNumber: -1,
     matchesKnownTatwa: false,
     correctionMinutes: minutesBefore,
     correctedWindows: [{
       startTime: sunriseTime,
-      endTime: new Date(sunriseTime.getTime() + TATWA_DURATION_MINUTES * 60000),
+      endTime: new Date(sunriseTime.getTime() + 6 * 60000),
       tatwa: 'prithvi',
       confidence: 80
     }]
