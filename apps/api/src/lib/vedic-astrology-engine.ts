@@ -581,19 +581,46 @@ export const calculateAspects = (arg1: EphemerisData | string, _arg2?: number, _
 };
 
 /**
- * planetary dignity (Exaltation, Own, etc).
+ * Planetary dignity based on sign placement.
  */
-export const getDignity = (_planet: string, _signOrChart: string | EphemerisData): string => {
-    return 'Neutral';
+export const getDignity = (planet: string, signOrChart: string | EphemerisData): string => {
+  const sign = typeof signOrChart === 'string' ? signOrChart : signOrChart.planets[planet]?.sign;
+  if (!sign) return 'Neutral';
+  const p = planet.toLowerCase();
+  const EXALT: Record<string, string> = { sun: 'Aries', moon: 'Taurus', mars: 'Capricorn', mercury: 'Virgo', jupiter: 'Cancer', venus: 'Pisces', saturn: 'Libra' };
+  const DEBIL: Record<string, string> = { sun: 'Libra', moon: 'Scorpio', mars: 'Cancer', mercury: 'Pisces', jupiter: 'Capricorn', venus: 'Virgo', saturn: 'Aries' };
+  const MT: Record<string, string> = { sun: 'Leo', moon: 'Taurus', mars: 'Aries', mercury: 'Virgo', jupiter: 'Sagittarius', venus: 'Libra', saturn: 'Aquarius' };
+  const OWN: Record<string, string[]> = { sun: ['Leo'], moon: ['Cancer'], mars: ['Aries','Scorpio'], mercury: ['Gemini','Virgo'], jupiter: ['Sagittarius','Pisces'], venus: ['Taurus','Libra'], saturn: ['Capricorn','Aquarius'] };
+  if (sign === EXALT[p]) return 'Exalted';
+  if (sign === DEBIL[p]) return 'Debilitated';
+  if (sign === MT[p]) return 'Moolatrikona';
+  if (OWN[p]?.includes(sign)) return 'Own Sign';
+  return 'Neutral';
 };
 
 /**
- * Functional nature (Benefic/Malefic) based on Lagna.
+ * Functional nature (Benefic/Malefic) based on Lagna lordship.
+ * Lords of trikonas (1,5,9) are benefics; dusthanas are malefics;
+ * kendras are neutral temporal malefics. Rahu/Ketu take Saturn/Mars lordship.
  */
-export const calculateFunctionalNature = (_planetName: string, _ascendantSign: string): { role: string; reason: string; } => {
-    return { role: 'Neutral', reason: 'General placement' };
+export const calculateFunctionalNature = (planetName: string, ascendantSign: string): { role: string; reason: string } => {
+  const SIGNS = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+  const L: Record<string, number[]> = { sun: [4], moon: [3], mars: [0,7], mercury: [2,5], jupiter: [8,11], venus: [1,6], saturn: [9,10] };
+  const ascIdx = SIGNS.indexOf(ascendantSign);
+  if (ascIdx === -1) return { role: 'Neutral', reason: 'Unknown ascendant' };
+  const p = planetName.toLowerCase();
+  const entry = p === 'rahu' ? L.saturn : p === 'ketu' ? L.mars : L[p];
+  if (!entry) return { role: 'Neutral', reason: 'No lordship' };
+  const houses = entry.map(si => ((si - ascIdx + 12) % 12) + 1);
+  const hasKendra = houses.some((h: number) => [1,4,7,10].includes(h));
+  const hasTrikona = houses.some((h: number) => [1,5,9].includes(h));
+  const hasDusthana = houses.some((h: number) => [6,8,12].includes(h));
+  if (hasTrikona && !hasDusthana) return { role: 'Benefic', reason: 'Lord of trine houses' };
+  if (hasKendra && hasTrikona) return { role: 'Benefic', reason: 'Kendra-trikona lordship' };
+  if (hasDusthana && !hasTrikona) return { role: 'Malefic', reason: 'Lord of dusthana houses' };
+  if (hasKendra) return { role: 'Neutral', reason: 'Lord of kendra' };
+  return { role: 'Neutral', reason: 'Mixed lordship' };
 };
-
 /**
  * Baladi Avastha (Infant, Youth, etc).
  */

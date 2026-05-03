@@ -68,10 +68,10 @@ import {
     _extractFinalVerdict,
 } from './btr/extractors/index.js';
 import {
-    _CandidateDataPackage,
+    CandidateDataPackage,
     StageResult,
-    _TournamentRound,
-    _FinalVerdict,
+    TournamentRound,
+    FinalVerdict,
 } from '@ai-pandit/shared';
 import { buildCandidateDataPackage } from './btr/data-package-builder.js';
 

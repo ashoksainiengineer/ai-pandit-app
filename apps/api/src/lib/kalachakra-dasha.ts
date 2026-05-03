@@ -293,10 +293,12 @@ function generateFallbackDasha(birthDate: Date): KalachakraPeriod[] {
 }
 
 const DAYS_PER_YEAR = 365.256363004;
-  function addYears(date: Date, years: number): Date {
+
+function addYears(date: Date, years: number): Date {
   const result = new Date(date);
   result.setTime(result.getTime() + years * DAYS_PER_YEAR * 24 * 60 * 60 * 1000);
   return result;
+}
 
 function getSignElement(sign: string): string {
   const fireSigns = ['Aries', 'Leo', 'Sagittarius'];
