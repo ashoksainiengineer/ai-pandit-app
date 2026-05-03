@@ -333,7 +333,6 @@ function buildSpecialPoints(ephemeris: EphemerisData) {
   };
   const lagnaLord = SIGN_LORD[ascSign] || 'sun';
   const lordDegree = ephemeris.planets[lagnaLord]?.degree ?? 0;
-  const lordDegree = ephemeris.planets[lagnaLord]?.degree ?? 0;
   const alDegreeDMS = decimalToDMS(lordDegree);
 
   return {

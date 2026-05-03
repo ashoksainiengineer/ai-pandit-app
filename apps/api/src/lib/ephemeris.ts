@@ -167,13 +167,21 @@ function cacheResult(cacheKey: string, data: EphemerisData, sessionId?: string):
     SESSION_CACHES.set(sessionId, sessionKeys);
   }
 
+  // LRU eviction: find and remove the least-recently-used entry
   if (EPH_CACHE.size >= MAX_CACHE_SIZE) {
-    const firstKey = EPH_CACHE.keys().next().value;
-    if (firstKey !== undefined) {
-      EPH_CACHE.delete(firstKey);
+    let oldestKey: string | undefined;
+    let oldestTime = Infinity;
+    for (const [key, entry] of EPH_CACHE) {
+      if (entry.timestamp < oldestTime) {
+        oldestTime = entry.timestamp;
+        oldestKey = key;
+      }
+    }
+    if (oldestKey !== undefined) {
+      EPH_CACHE.delete(oldestKey);
       for (const [sid, keys] of SESSION_CACHES) {
-        if (keys.has(firstKey)) {
-          keys.delete(firstKey);
+        if (keys.has(oldestKey)) {
+          keys.delete(oldestKey);
           if (keys.size === 0) SESSION_CACHES.delete(sid);
           break;
         }
@@ -887,12 +895,10 @@ export async function calculateSunrise(
     }
   }
 
-  // Sweep morning from 04:00 to 08:00
+  // Sweep across 24h to find sunrise regardless of latitude/timezone
   let bestDate = new Date(`${dateStr}T06:00:00Z`);
 
-  // Robust check for initial bestDate validity
   if (isNaN(bestDate.getTime())) {
-    // Fallback if direct ISO construction fails
     const d = new Date(dateStr);
     d.setUTCHours(6, 0, 0, 0);
     bestDate = d;
@@ -900,15 +906,13 @@ export async function calculateSunrise(
 
   let minDiff = 1000;
 
-  for (let h = 4; h <= 8; h++) {
-    for (let m = 0; m < 60; m += 5) {
+  for (let h = 0; h < 24; h++) {
+    for (let m = 0; m < 60; m += 15) {
       const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`;
       try {
         const eph = await calculateEphemeris(dateStr, timeStr, latitude, longitude, timezone);
         const sunLong = eph.planets.sun.longitude;
         const ascLong = eph.ascendant.longitude;
-
-        // Sun on Ascendant = Sunrise
         const diff = Math.abs(sunLong - ascLong);
         const normDiff = Math.min(diff, 360 - diff);
 
@@ -916,7 +920,7 @@ export async function calculateSunrise(
           minDiff = normDiff;
           bestDate = convertToUTC(dateStr, timeStr, timezone);
         }
-      } catch (e) {
+      } catch (_e) {
         // Ignore ephemeris failures during sweep
       }
     }
