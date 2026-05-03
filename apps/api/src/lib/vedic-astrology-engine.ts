@@ -208,7 +208,7 @@ function calculateSubDashas(
                 lord,
                 startDate: effectiveStart,
                 endDate: effectiveEnd,
-                durationYears: (effectiveEnd.getTime() - effectiveStart.getTime()) / (365.25 * 24 * 60 * 60 * 1000),
+                durationYears: (effectiveEnd.getTime() - effectiveStart.getTime()) / (DAYS_PER_YEAR * 24 * 60 * 60 * 1000),
                 subPeriods: calculateSubDashas(
                     lord,
                     currentSubStart,
@@ -385,10 +385,13 @@ export function formatDashaForDate(
 // ═════════════════════════════════════════════════════════════════════════════
 // UTILITY FUNCTIONS
 // ═════════════════════════════════════════════════════════════════════════════
+// Sidereal year: ~365.25636 days. Julian (365.25) drifts ~0.76 days/century.
+// Using NASA-JPL sidereal year for dasha date calculations.
+const DAYS_PER_YEAR = 365.256363004;  // sidereal year in mean solar days
 
 function addYears(date: Date, years: number): Date {
     const result = new Date(date);
-    result.setTime(result.getTime() + years * 365.25 * 24 * 60 * 60 * 1000);
+    result.setTime(result.getTime() + years * DAYS_PER_YEAR * 24 * 60 * 60 * 1000);
     return result;
 }
 

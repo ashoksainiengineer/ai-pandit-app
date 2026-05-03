@@ -511,9 +511,11 @@ export function formatJaiminiAspects(aspects: JaiminiAspect[]): string {
 // UTILITY
 // ═════════════════════════════════════════════════════════════════════════════
 
+const DAYS_PER_YEAR = 365.256363004;
+
 function addYears(date: Date, years: number): Date {
     const result = new Date(date);
-    const wholeDays = years * 365.25;
+    const wholeDays = years * DAYS_PER_YEAR;
     result.setTime(result.getTime() + wholeDays * 24 * 60 * 60 * 1000);
     return result;
 }

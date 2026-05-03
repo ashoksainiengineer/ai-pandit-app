@@ -1,7 +1,10 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema.js';
 import { ConfigurationError, TimeoutError } from '@ai-pandit/shared';
+type PgDb = NodePgDatabase<typeof schema>;
+
 const CONNECTION_CONFIG = {
   maxRetries: 5,
   baseDelayMs: 1000,
@@ -52,7 +55,7 @@ function resolveConnectionString(): string {
 // ─── Lazy initialization ───────────────────────────────────────────────────
 
 let _pool: Pool | null = null;
-let _db: ReturnType<typeof drizzle> | null = null;
+let _db: PgDb | null = null;
 
 function ensureInit(): void {
   if (_pool) return;
@@ -103,7 +106,7 @@ const pool = new Proxy({} as Pool, {
  * Lazily-initialized db proxy.
  * Behaves exactly like a Drizzle ORM instance but defers pool creation until first access.
  */
-const db = new Proxy({} as ReturnType<typeof drizzle>, {
+const db: PgDb = new Proxy({} as PgDb, {
   get(_target, prop, receiver) {
     ensureInit();
     const value = Reflect.get(_db!, prop, _db!);
@@ -134,7 +137,7 @@ export function getPool(): Pool {
 }
 
 /** Canonical lazy accessor — prefer this over the db proxy when you need a direct reference. */
-export function getDb(): ReturnType<typeof drizzle> {
+export function getDb(): PgDb {
   ensureInit();
   return _db!;
 }

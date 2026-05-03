@@ -879,7 +879,7 @@ export function calculateSecondaryProgression(
     _ephemerisCalculator: (date: string, time: string) => Promise<EphemerisData>
 ): SecondaryProgression {
     // Calculate age at event
-    const ageInYears = (eventDate.getTime() - birthDate.getTime()) / (365.25 * 24 * 60 * 60 * 1000);
+    const ageInYears = (eventDate.getTime() - birthDate.getTime()) / (DAYS_PER_YEAR * 24 * 60 * 60 * 1000);
 
     // Progressed date = birth date + (age in days)
     const progressedDate = new Date(birthDate);
@@ -1405,9 +1405,11 @@ export function calculateAshtakavarga(ephemeris: EphemerisData): {
     return { bav, sav };
 }
 
+const DAYS_PER_YEAR = 365.256363004;
+
 function addYears(date: Date, years: number): Date {
     const result = new Date(date);
-    const wholeDays = years * 365.25;
+    const wholeDays = years * DAYS_PER_YEAR;
     result.setTime(result.getTime() + wholeDays * 24 * 60 * 60 * 1000);
     return result;
 }
