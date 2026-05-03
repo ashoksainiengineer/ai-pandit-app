@@ -115,7 +115,7 @@ const NATURAL_NEUTRALS: Record<string, string[]> = {
   mercury: ['mars', 'jupiter', 'saturn'],
   jupiter: ['saturn'],
   venus: ['mars', 'jupiter'],
-  saturn: ['sun', 'moon', 'mars', 'jupiter']
+  saturn: ['jupiter']  // Only Jupiter is neutral to Saturn; Sun/Moon/Mars are enemies
 };
 
 const COMBUSTION_ORBS: Record<string, number> = {
@@ -235,9 +235,9 @@ function calculateKalaBala(
 ): number {
   let bala = 25;
 
-  // Derive day/night from chart state (Sun above/below horizon), not wall-clock time.
+  // Day = Sun above horizon: houses 10-12 and 1-3. Night = houses 4-9.
   const sunHouse = ephemeris.planets.sun?.house;
-  const isDayBirth = typeof sunHouse === 'number' ? sunHouse >= 7 && sunHouse <= 12 : true;
+  const isDayBirth = typeof sunHouse === 'number' ? (sunHouse >= 10 || sunHouse <= 3) : true;
   
   const dayPlanets = ['sun', 'jupiter', 'venus'];
   const nightPlanets = ['moon', 'mars', 'saturn'];
@@ -448,11 +448,12 @@ function getRelationship(planet: string, lord: string): string {
   if (NATURAL_NEUTRALS[planet]?.includes(lord)) {
     return 'neutral';
   }
-  
-  if (NATURAL_FRIENDS[planet]?.includes(lord)) {
+
+  // Lord considers planet a friend, but planet does not → 'enemy'
+  if (NATURAL_FRIENDS[lord]?.includes(planet)) {
     return 'enemy';
   }
-  
+
   return 'greatEnemy';
 }
 

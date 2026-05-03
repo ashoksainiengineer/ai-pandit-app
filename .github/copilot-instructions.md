@@ -33,6 +33,6 @@ This is a Turborepo monorepo for a Vedic Astrology Birth Time Rectification (BTR
 - `apps/api/src/lib/queue-manager.ts` — Job queue (max 3 concurrent)
 - `apps/api/src/lib/vedic-astrology-engine.ts` — Vedic calculations
 - `apps/web/app/rectify/[id]/page.tsx` — Main analysis page
-- `packages/shared/src/types.ts` — Shared type definitions
+- `packages/shared/src/types.ts` — Barrel re-export for 6 domain type files (core, api, ephemeris, validation, btr, kp)
 
 For full details, see CLAUDE.md in the project root.

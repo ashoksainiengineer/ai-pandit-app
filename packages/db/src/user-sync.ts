@@ -1,4 +1,5 @@
 import { getDb, executeWithRetry } from './drizzle.js';
+import { DatabaseError, AppError } from '@ai-pandit/shared';
 import { users } from './schema.js';
 import { eq } from 'drizzle-orm';
 import crypto from 'node:crypto';
@@ -6,7 +7,7 @@ import crypto from 'node:crypto';
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 function isUniqueConstraintError(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = error instanceof AppError ? error.message : String(error);
   return message.toLowerCase().includes('unique') || message.toLowerCase().includes('constraint');
 }
 
@@ -42,7 +43,7 @@ export async function ensureUserRecord(
 
   const resolved = await db.select().from(users).where(eq(users.clerkId, input.clerkId)).limit(1);
   if (resolved.length === 0) {
-    throw new Error('Failed to resolve user after upsert');
+    throw new DatabaseError('Failed to resolve user after upsert');
   }
   return { id: resolved[0].id, clerkId: resolved[0].clerkId };
 }
@@ -153,12 +154,12 @@ export async function syncUser(
       return internalUserId;
     }
 
-    throw new Error('User record not found after upsert');
+    throw new DatabaseError('User record not found after upsert');
   } catch (error) {
     log('error', 'Failed to fetch/create user from Clerk', {
       clerkId,
       error: error instanceof Error ? error.message : String(error),
     });
-    throw new Error('User synchronization failed');
+    throw new DatabaseError('User synchronization failed');
   }
 }
