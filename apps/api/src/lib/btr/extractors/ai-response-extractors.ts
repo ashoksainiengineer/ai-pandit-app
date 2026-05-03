@@ -5,7 +5,7 @@
  */
 
 import { FinalVerdict } from '@ai-pandit/shared';
-import { logger } from '../../logger.js';
+import { logger } from '../../../utils/logger.js';
 
 /**
  * Finds the nearest candidate time from a list for a given hallucinated time
@@ -85,6 +85,7 @@ export function extractBatchSurvivors(
         if (scores.length > 0) return scores;
       }
     } catch (e) {
+      // Fall through to regex-based extraction (PRIORITY 2) as fallback
       logger.warn('🔴 [EXTRACTOR] XML parse failed in FINAL_SCORES block', { error: (e as Error)?.message || e });
     }
   }
@@ -176,6 +177,7 @@ export function extractFinalVerdict(aiContent: string): FinalVerdict | null {
         };
       }
     } catch (e) {
+      // Fall through to regex-based verdict extraction as fallback
       logger.debug('🔴 [EXTRACTOR] FINAL_VERDICT XML parse failed', { error: (e as Error)?.message || e });
     }
   }

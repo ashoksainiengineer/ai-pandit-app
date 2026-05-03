@@ -26,13 +26,13 @@ export default function Navbar() {
 
   useEffect(() => {
     setMounted(true);
-    const handleScroll = () => {
+    const updateNavbarOnScroll = () => {
       setScrolled(window.scrollY > 50);
     };
     // Check initial scroll position
-    handleScroll();
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    updateNavbarOnScroll();
+    window.addEventListener('scroll', updateNavbarOnScroll);
+    return () => window.removeEventListener('scroll', updateNavbarOnScroll);
   }, []);
 
   // Prevent hydration mismatch by using default styles until mounted

@@ -6,7 +6,7 @@ test.describe('Phase N: Analysis Data Flow Audit', () => {
     test.beforeEach(async ({ page }) => {
         // Industry Pattern: Inject test flag to bypass auth and enable internal logging
         await page.addInitScript(() => {
-            (window as any).isTestEnv = true;
+            window.__AI_PANDIT_TEST_MODE__ = true;
             (window as any).__clerk_ssr_state = {
                 user: { id: 'user_audit_123' },
                 session: { id: 'sess_audit_123' },

@@ -40,7 +40,7 @@ const req = http.request(options, (res) => {
                         if (parsed.chunk?.length > 50000) {
                             console.log(`  -> MASSIVE CHUNK DETECTED: ${parsed.chunk.length} chars (First 50: ${parsed.chunk.substring(0, 50)})`);
                         }
-                    } catch (e) { }
+                    } catch (e) { console.error('SSE parse error:', e); }
                 }
                 if (type === 'initial_state' || type === 'metadata' || type === 'ai_context') {
                     console.log(`  -> payload:`, data.substring(0, 200) + '...');

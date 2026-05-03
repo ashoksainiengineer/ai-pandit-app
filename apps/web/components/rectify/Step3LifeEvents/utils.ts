@@ -2,15 +2,7 @@ import { LifeEvent } from '@/lib/types';
 import { MONTHS } from './constants';
 
 export const generateEventId = (): string => {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-        return crypto.randomUUID();
-    }
-    const hex = () => Math.floor(Math.random() * 0xffffffff).toString(16).padStart(8, '0');
-    const h1 = hex();
-    const h2 = hex();
-    const h3 = hex();
-    // RFC 4122-like fallback UUID for environments without crypto.randomUUID.
-    return `${h1.slice(0, 8)}-${h2.slice(0, 4)}-4${h2.slice(5, 8)}-a${h3.slice(1, 4)}-${h1.slice(0, 4)}${h2.slice(0, 4)}${h3.slice(0, 4)}`;
+    return crypto.randomUUID();
 };
 
 export const sanitizeDescription = (desc: string): string => {

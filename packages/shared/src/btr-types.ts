@@ -18,7 +18,6 @@ type D9VerificationResult = unknown;
 type GandantaAnalysis = unknown;
 type PakshiAnalysis = unknown;
 
-/** Zodiac signs in order */
 import { z } from 'zod';
 
 export const ZODIAC_SIGNS: readonly string[] = [
@@ -36,10 +35,8 @@ export const SIGN_LORDS: Record<string, string> = {
 /** Sequence of Tatwas in a cycle */
 export const TATWA_SEQUENCE: string[] = ['prithvi', 'jala', 'agni', 'vayu', 'akasha'];
 
-/** Zodiac Signs Type */
 export type ZodiacSign = (typeof ZODIAC_SIGNS)[number];
 
-/** Astrological Yoga Definition */
 export interface Yoga {
   name: string;
   description: string;
@@ -47,7 +44,6 @@ export interface Yoga {
   planetsInvolved: string[];
 }
 
-/** Represents a planet's position and attributes */
 export interface PlanetData {
   longitude?: number;
   sign: string;
@@ -80,7 +76,7 @@ export const PlanetDataSchema = z.object({
     degree: z.union([z.number(), z.string()]),
     nakshatra: z.string().optional(),
     house: z.number().optional(),
-}).passthrough();
+}).passthrough(); // passthrough: allows extra planetary fields from ephemeris not in core schema (dignity, isRetro, speed, isCombust, shadbala, aspects, etc.)
 
 /** Special astrological points (AL, UL, BB) */
 export interface SpecialPoint {
@@ -115,7 +111,6 @@ export interface CharaKaraka {
   degree: number;
 }
 
-/** Divisional chart data */
 export interface DivisionalChartData {
   ascendant: string;
   planets: Record<string, string>;
@@ -268,7 +263,7 @@ export const TransitDataEntrySchema = z.object({
     }),
     signatures: z.array(z.string()),
     planets: z.record(z.string(), TransitPlanetSchema),
-    doubleTransit: z.any().optional(),
+    doubleTransit: z.object({ isTriggered: z.boolean(), details: z.array(z.record(z.unknown())) }),
 });
 
 
@@ -284,7 +279,7 @@ export const CandidateDataPackageSchema = z.object({
     houseLords: z.record(z.union([z.string(), z.number()]), z.string()),
     vimshottariDasha: z.array(VimshottariDashaEntrySchema).min(1),
     transitData: z.record(z.string(), TransitDataEntrySchema).optional(),
-}).passthrough();
+}).passthrough(); // passthrough: pipeline adds ~50+ optional analysis fields (yoginis, shadbala, nadi, KP data, etc.)
 
 /** Result of a single stage in the BTR process */
 export interface StageResult {
@@ -296,7 +291,6 @@ export interface StageResult {
   aiReasoning?: string;
 }
 
-/** Information about a tournament round */
 export interface TournamentRound {
   roundNumber: number;
   batchesProcessed: number;
@@ -312,7 +306,6 @@ export interface AnonymizedCandidate {
   data: CandidateDataPackage;
 }
 
-/** AI prompt context for batch evaluation */
 export interface BatchPromptContext {
   candidates: CandidateDataPackage[];
   events: LifeEvent[];
@@ -323,7 +316,6 @@ export interface BatchPromptContext {
   tentativeTime?: string;
 }
 
-/** AI prompt context for deep analysis */
 export interface DeepAnalysisContext {
   candidates: CandidateDataPackage[];
   events: LifeEvent[];
@@ -331,7 +323,6 @@ export interface DeepAnalysisContext {
   spouseData: unknown;
 }
 
-/** AI prompt context for final precision */
 export interface FinalPrecisionContext {
   candidates: CandidateDataPackage[];
   events: LifeEvent[];
@@ -340,7 +331,6 @@ export interface FinalPrecisionContext {
   currentTransits?: unknown;
 }
 
-/** Extracted final verdict from AI response */
 export interface FinalVerdict {
   time: string;
   accuracy: number;

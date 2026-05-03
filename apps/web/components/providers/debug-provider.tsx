@@ -28,14 +28,14 @@ export function DebugProvider({ children }: { children: React.ReactNode }) {
       }
       
       // Attach to window
-      (window as any).debugAnalysis = debugAnalysis;
+      (window as unknown as Record<string, unknown>).debugAnalysis = debugAnalysis;
       
       // Expose Zustand store if available
       const checkStore = setInterval(() => {
-        const store = (window as any).__STREAM_STORE__ || 
-                     (window as any).useStreamStore;
+        const store = (window as unknown as Record<string, unknown>).__STREAM_STORE__ ||
+                     (window as unknown as Record<string, unknown>).useStreamStore;
         if (store) {
-          (window as any).__STREAM_STORE__ = store;
+          (window as unknown as Record<string, unknown>).__STREAM_STORE__ = store;
           clearInterval(checkStore);
         }
       }, 1000);

@@ -21,7 +21,7 @@ interface LoggerConfig {
 const DEFAULT_CONFIG: LoggerConfig = {
     level: env.app.isProduction ? 'warn' : 'debug',
     enableConsole: !env.app.isProduction,
-    enableRemote: env.app.isProduction || (typeof window !== 'undefined' && (window as any).isTestEnv),
+    enableRemote: env.app.isProduction || (typeof window !== 'undefined' && window.__AI_PANDIT_TEST_MODE__ === true),
     redactPatterns: [
         // Email addresses
         /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
@@ -258,6 +258,15 @@ class SecureLogger {
             { ...this.baseMeta, ...context }
         );
     }
+
+    // Enable test mode (for e2e/playwright environments)
+    enableTestMode(): void {
+        this.config.enableRemote = true;
+        this.config.enableConsole = true;
+        if (this.config.level !== 'error') {
+            this.config.level = 'debug';
+        }
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -265,6 +274,14 @@ class SecureLogger {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const logger = new SecureLogger();
+
+/**
+ * Enable test mode globally on the singleton logger.
+ * Called by RootTestModeProvider when window.__AI_PANDIT_TEST_MODE__ is detected.
+ */
+export function enableGlobalTestMode(): void {
+    logger.enableTestMode();
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HOOK: useLogger

@@ -8,7 +8,7 @@ import crypto from 'node:crypto';
 import { db } from '@ai-pandit/db';
 import { calculations } from '@ai-pandit/db/schema';
 import { eq, and, lt, isNotNull, sql } from 'drizzle-orm';
-import { logger } from './logger.js';
+import { logger } from '../utils/logger.js';
 
 interface CacheEntry {
   id: string;

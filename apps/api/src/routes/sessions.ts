@@ -6,9 +6,9 @@ import { db, executeWithRetry } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq, desc, or } from 'drizzle-orm';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
-import { logger } from '../lib/logger.js';
+import { logger } from '../utils/logger.js';
 import { encryptData, parseSensitiveField } from '../lib/encryption/index.js';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
 
 const router = Router();
@@ -277,7 +277,7 @@ router.post('/:id/clone', authMiddleware, async (req: AuthenticatedRequest, res:
         }
 
         // 2. Generate new ID
-        const newSessionId = uuidv4();
+        const newSessionId = randomUUID();
 
         // 3. Create clone payload omitting results
         const clonePayload = {

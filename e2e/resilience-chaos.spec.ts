@@ -8,8 +8,8 @@ test.describe('Phase E: Resilience & Chaos Engineering', () => {
     test.beforeEach(async ({ page }) => {
         // Mock Clerk Auth globals/hooks if possible
         await page.addInitScript(() => {
-            (window as any).isTestEnv = true;
-            console.log('🧪 [TEST] isTestEnv is now TRUE');
+            window.__AI_PANDIT_TEST_MODE__ = true;
+            console.log('\u{1F9EA} [TEST] __AI_PANDIT_TEST_MODE__ is now TRUE');
             // Mock Clerk state for useAuth()
             (window as any).__clerk_ssr_state = {
                 user: { id: 'user_123' },

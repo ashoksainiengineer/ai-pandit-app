@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HelpCircle, Info, CheckCircle, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { QuizQuestion, QuizAnswer } from '@/lib/forensic-quiz/types';
@@ -11,10 +10,10 @@ interface QuestionCardProps {
     showHelp: boolean;
     setShowHelp: (show: boolean) => void;
     customAnswer: string;
-    handleSelectOption: (optionId: string) => void;
-    handleCustomAnswerChange: (value: string) => void;
-    handleClearCustomAnswer: () => void;
-    handleNotSure: () => void;
+    recordQuizAnswer: (optionId: string) => void;
+    updateCustomQuizResponse: (value: string) => void;
+    clearCustomQuizResponse: () => void;
+    markQuestionAsSkipped: () => void;
     handlePrevious: () => void;
     handleNext: () => void;
 }
@@ -26,10 +25,10 @@ export function QuestionCard({
     showHelp,
     setShowHelp,
     customAnswer,
-    handleSelectOption,
-    handleCustomAnswerChange,
-    handleClearCustomAnswer,
-    handleNotSure,
+    recordQuizAnswer,
+    updateCustomQuizResponse,
+    clearCustomQuizResponse,
+    markQuestionAsSkipped,
     handlePrevious,
     handleNext
 }: QuestionCardProps) {
@@ -93,7 +92,7 @@ export function QuestionCard({
                         return (
                             <button
                                 key={option.id}
-                                onClick={() => handleSelectOption(option.id)}
+                                onClick={() => recordQuizAnswer(option.id)}
                                 className={`w-full p-4 rounded-xl border-2 text-left transition-all ${isSelected
                                     ? 'border-[#B8860B] bg-[#B8860B]/5'
                                     : 'border-[#F0E8DE] hover:border-[#78611D]/50 hover:bg-[#F5EFE7]/50'
@@ -129,14 +128,14 @@ export function QuestionCard({
                             <div className="relative">
                                 <textarea
                                     value={customAnswer}
-                                    onChange={(e) => handleCustomAnswerChange(e.target.value)}
+                                    onChange={(e) => updateCustomQuizResponse(e.target.value)}
                                     placeholder={currentQuestion.customAnswerPlaceholder || 'Describe in your own words...'}
                                     className="w-full p-3 rounded-lg border border-[#F0E8DE] bg-white text-[#1A1612] placeholder:text-[#7A756F]/50 resize-none focus:outline-none focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B] transition-all"
                                     rows={3}
                                 />
                                 {customAnswer.trim() && (
                                     <button
-                                        onClick={handleClearCustomAnswer}
+                                        onClick={clearCustomQuizResponse}
                                         className="absolute top-2 right-2 p-1 text-[#7A756F] hover:text-[#D64545] transition-colors"
                                         title="Clear custom answer"
                                     >
@@ -149,7 +148,7 @@ export function QuestionCard({
 
                     {currentQuestion.hasNotSureOption && (
                         <button
-                            onClick={handleNotSure}
+                            onClick={markQuestionAsSkipped}
                             className={`w-full p-4 rounded-xl border-2 border-dashed text-left transition-all ${currentAnswer?.isNotSure
                                 ? 'border-[#7A756F] bg-[#7A756F]/5'
                                 : 'border-[#E8E0D5] hover:border-[#7A756F]/50'

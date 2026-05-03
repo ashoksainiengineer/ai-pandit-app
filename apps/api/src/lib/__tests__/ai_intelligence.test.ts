@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { callAI, callAIWithStream, buildCandidateAnalysisPrompt } from '../ai-client.js';
+import { callAI, _callAIWithStream } from '../ai-client.js';
+import { buildCandidateAnalysisPrompt } from '../prompts/context-builder.js';
 import * as sessionEvents from '../session-events.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -125,7 +126,7 @@ describe('Chapter 3: AI Intelligence (Integration & Mocks)', () => {
                 body: { getReader: () => stream.getReader() }
             });
 
-            const result = await callAIWithStream('session-1', 2, 'System', 'User');
+            const result = await _callAIWithStream('session-1', 2, 'System', 'User');
 
             expect(result.success).toBe(true);
             expect(result.thinking).toBe('Thinking...');
@@ -144,7 +145,7 @@ describe('Chapter 3: AI Intelligence (Integration & Mocks)', () => {
 
             vi.useFakeTimers();
             const controller = new AbortController();
-            const promise = callAIWithStream('session-timeout', 2, 'System', 'User', {
+            const promise = _callAIWithStream('session-timeout', 2, 'System', 'User', {
                 abortSignal: controller.signal
             });
 

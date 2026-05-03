@@ -17,8 +17,23 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'on-first-retry',
   },
-
   projects: [
+    // ═════ Auth Setup — runs before authenticated tests ═════
+    {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+    },
+    // ═════ Authenticated Chromium — uses saved auth state ═════
+    {
+      name: 'chromium-authed',
+      use: { 
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1280, height: 720 },
+        storageState: 'playwright/.auth/user.json',
+      },
+      dependencies: ['setup'],
+    },
+    // ═════ Non-authenticated browsers ═════
     {
       name: 'chromium',
       use: { 

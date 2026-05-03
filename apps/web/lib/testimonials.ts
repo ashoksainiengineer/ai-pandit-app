@@ -204,8 +204,20 @@ export function getTestimonialsByRating(minRating: number = 5): Testimonial[] {
 }
 
 export function getRandomTestimonials(count: number = 3): Testimonial[] {
-    const shuffled = [...TESTIMONIALS].sort(() => 0.5 - Math.random());
+    const shuffled = fisherYatesShuffle(TESTIMONIALS);
     return shuffled.slice(0, Math.min(count, TESTIMONIALS.length));
+}
+
+/** Fisher-Yates shuffle using cryptographically secure random values. */
+function fisherYatesShuffle<T>(array: readonly T[]): T[] {
+    const result = [...array];
+    const buffer = new Uint32Array(1);
+    for (let i = result.length - 1; i > 0; i--) {
+        crypto.getRandomValues(buffer);
+        const j = buffer[0] % (i + 1);
+        [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
 }
 
 export function getAverageRating(): number {

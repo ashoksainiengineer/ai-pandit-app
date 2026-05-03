@@ -52,7 +52,6 @@ export interface StateMachineConfig {
     rateLimitWait: number;
     sessionNotFoundRetryDelay: number;
     maxSessionNotFoundRetries: number;
-    isTestRuntime: boolean;
     analysisProgressProxyPath: string;
 }
 
@@ -79,7 +78,6 @@ export const DEFAULT_CONFIG: StateMachineConfig = {
     rateLimitWait: 30000,
     sessionNotFoundRetryDelay: 1500,
     maxSessionNotFoundRetries: 4,
-    isTestRuntime: false,
     analysisProgressProxyPath: '/api/analysis/progress',
 };
 
@@ -135,7 +133,7 @@ export interface StreamStateMachine {
 export function createStreamStateMachine(
     config: Partial<StateMachineConfig> = {}
 ): StreamStateMachine {
-    const cfg: StateMachineConfig = { ...DEFAULT_CONFIG, ...config };
+    const machineConfig: StateMachineConfig = { ...DEFAULT_CONFIG, ...config };
 
     let state: ConnectionState = { status: 'idle', url: '', lastError: null };
     let currentSessionId: string | null = null;
@@ -166,7 +164,7 @@ sessionNotFoundRetryCount = 0;
     }
 
     function nextPollInterval(current: number): number {
-        return Math.min(current * 1.5, cfg.maxPollInterval);
+        return Math.min(current * 1.5, machineConfig.maxPollInterval);
     }
 
     function decideTransport(forcePolling: boolean, skipSse: boolean): TransportDecision {
@@ -441,7 +439,7 @@ isTerminalReceived: () => terminalStateReceived,
                             {
                                 type: 'SCHEDULE_POLL',
                                 sid,
-                                delay: cfg.sessionNotFoundRetryDelay,
+                                delay: machineConfig.sessionNotFoundRetryDelay,
                             },
                         ],
                     };
@@ -449,13 +447,13 @@ isTerminalReceived: () => terminalStateReceived,
 
                 sessionNotFoundRetryCount += 1;
                 const retryAttempt = sessionNotFoundRetryCount;
-                const shouldRetry = retryAttempt <= cfg.maxSessionNotFoundRetries;
+                const shouldRetry = retryAttempt <= machineConfig.maxSessionNotFoundRetries;
 
                 if (shouldRetry) {
                     logger.warn('Session not found in queue (404), retrying', {
                         sessionId: sid,
                         retryAttempt,
-                        maxRetries: cfg.maxSessionNotFoundRetries,
+                        maxRetries: machineConfig.maxSessionNotFoundRetries,
                     });
                     return {
                         state: setConnectionStatus({
@@ -463,7 +461,7 @@ isTerminalReceived: () => terminalStateReceived,
                             url: '',
                             lastError: 'Session lookup delayed, retrying...',
                         }),
-                        effects: [{ type: 'SCHEDULE_POLL', sid, delay: cfg.sessionNotFoundRetryDelay }],
+                        effects: [{ type: 'SCHEDULE_POLL', sid, delay: machineConfig.sessionNotFoundRetryDelay }],
                     };
                 }
 
@@ -480,7 +478,7 @@ isTerminalReceived: () => terminalStateReceived,
                             url: '',
                             lastError: 'Session was not active. Auto-requeue triggered, retrying...',
                         }),
-                        effects: [{ type: 'SCHEDULE_POLL', sid, delay: cfg.sessionNotFoundRetryDelay }],
+                    effects: [{ type: 'SCHEDULE_POLL', sid, delay: machineConfig.sessionNotFoundRetryDelay }],
                     };
                 }
 
@@ -506,7 +504,7 @@ isTerminalReceived: () => terminalStateReceived,
                 logger.warn('Rate limited (429), waiting 30s');
                 return {
                     state: setConnectionStatus({ status: 'rate_limited', url: '', lastError: 'Rate limited' }),
-                    effects: [{ type: 'SCHEDULE_POLL', sid, delay: cfg.rateLimitWait }],
+                    effects: [{ type: 'SCHEDULE_POLL', sid, delay: machineConfig.rateLimitWait }],
                 };
             }
 

@@ -16,10 +16,6 @@ describe('AuthUtils: getTokenWithRetry', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         vi.clearAllMocks();
-        // Reset window.isTestEnv
-        if (typeof window !== 'undefined') {
-            (window as any).isTestEnv = false;
-        }
     });
 
     afterEach(() => {
@@ -93,10 +89,9 @@ describe('AuthUtils: getTokenWithRetry', () => {
     });
 
     it('should bypass retries in test environment', async () => {
-        (window as any).isTestEnv = true;
         const getToken = vi.fn().mockResolvedValue(null);
 
-        const token = await getTokenWithRetry(getToken);
+        const token = await getTokenWithRetry(getToken, {}, undefined, true);
         expect(token).toBe('mock-token-123456789012345678901234567890');
         expect(getToken).not.toHaveBeenCalled();
     });

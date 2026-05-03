@@ -24,8 +24,7 @@ function getAllEncryptionSecrets(): string[] {
 }
 
 /**
- * 🔴 CRITICAL FUNCTION - DO NOT MODIFY 🔴
- * Encrypts data with the latest version (v2).
+ * Encrypts with the latest standard (v4 - AES-256-GCM + scrypt + user isolation)
  */
 export function encryptData(plaintext: string, userId: string): string {
     return rawEncryptData(plaintext, userId, getEncryptionSecret());
@@ -80,39 +79,38 @@ export function decryptObject<T extends Record<string, unknown>>(encryptedString
 }
 
 /**
- * 🟢 GOD-TIER ROBUST DECRYPTION HELPER
- * Handles both encrypted and non-encrypted fields, and safely parses JSON.
+ * Handles both encrypted and non-encrypted sensitive fields.
+ * Tries decryption first, then plain JSON parse, then returns raw string.
  */
-export function parseSensitiveField<T = unknown>(data: string | null | undefined, clerkId: string, internalUserId: string, defaultValue: T | null = null): T | string | null {
-    if (!data) return defaultValue;
+export function parseSensitiveField<T = unknown>(
+    data: string | null | undefined,
+    clerkId: string,
+    internalUserId: string,
+    defaultValue: T | null = null
+): T | string | null {
+    if (data == null) return defaultValue;
 
     try {
-        // 1. Try Decrypting (if it looks encrypted)
         if (isEncrypted(data)) {
             const decrypted = safeDecryptWithFallback(data, clerkId, internalUserId);
             if (decrypted) {
                 try {
-                    // If it can be parsed as JSON, do it
-                    return JSON.parse(decrypted);
-                } catch (e) {
-                    // Otherwise it's probably a plain string (like name)
+                    return JSON.parse(decrypted) as T;
+                } catch {
                     return decrypted;
                 }
             }
         }
-    } catch (e) {
+    } catch {
         // Fallback to legacy path
     }
 
-    // 2. Try Plain JSON Parse (Legacy or unencrypted)
     try {
         const parsed = JSON.parse(data);
-        // If it's a number/boolean/null, JSON.parse might be too aggressive
-        if (typeof parsed === 'object' && parsed !== null) return parsed;
+        if (typeof parsed === 'object' && parsed !== null) return parsed as T;
         return data;
-    } catch (e) {
-        // 3. Return raw string if JSON parse fails
-        return data || defaultValue;
+    } catch {
+        return data;
     }
 }
 

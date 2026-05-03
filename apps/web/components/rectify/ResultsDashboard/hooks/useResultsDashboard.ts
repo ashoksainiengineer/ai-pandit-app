@@ -26,7 +26,7 @@ export function useResultsDashboard({ sessionId, data, birthData }: ResultsDashb
             }
         } catch (e) {
             logger.error('Failed to parse analysis result:', e);
-            setAnalysisDetails(null);
+            setAnalysisDetails(null); // Graceful fallback: reset to default state
         }
     }, [data.analysisResult]);
 

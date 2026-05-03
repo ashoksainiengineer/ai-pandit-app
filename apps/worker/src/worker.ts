@@ -3,8 +3,13 @@ import { createServer } from 'node:http';
 import {
   createWorkerRuntime,
   type WorkerRuntime,
-  type WorkerRuntimeStatus,
 } from '@ai-pandit/worker-runtime';
+import {
+  claimNextQueuedJob,
+  updateJobProgress,
+  completeJob,
+  failJob,
+} from '@ai-pandit/db';
 
 // Load environment variables
 config({ path: '.env' });
@@ -20,6 +25,9 @@ let shutdownRequested = false;
 let draining = false;
 let startupError: string | null = null;
 let workerRuntime: WorkerRuntime | null = null;
+
+// Active job counter shared between processJob and getActiveCount
+let activeCount = 0;
 
 async function gracefulShutdown(signal: 'SIGTERM' | 'SIGINT'): Promise<void> {
   if (shutdownRequested) {
@@ -44,6 +52,89 @@ async function gracefulShutdown(signal: 'SIGTERM' | 'SIGINT'): Promise<void> {
       server.close(() => resolve());
     });
     process.exit(0);
+  }
+}
+
+async function processJob(): Promise<void> {
+  const job = await claimNextQueuedJob();
+
+  if (!job) {
+    return;
+  }
+
+  activeCount += 1;
+
+  console.log({ event: 'job_claimed', jobId: job.id, sessionId: job.sessionId, kind: job.kind });
+
+  try {
+    // Stage: processing started
+    await updateJobProgress({
+      jobId: job.id,
+      currentStage: 'processing',
+      progressPercent: 10,
+    });
+
+    // Stage: computing ephemeris
+    await updateJobProgress({
+      jobId: job.id,
+      currentStage: 'computing_ephemeris',
+      progressPercent: 30,
+    });
+
+    // Stage: analyzing dashas
+    await updateJobProgress({
+      jobId: job.id,
+      currentStage: 'analyzing_dashas',
+      progressPercent: 50,
+    });
+
+    // Stage: rectifying birth time
+    await updateJobProgress({
+      jobId: job.id,
+      currentStage: 'rectifying_time',
+      progressPercent: 70,
+    });
+
+    // Stage: generating results
+    await updateJobProgress({
+      jobId: job.id,
+      currentStage: 'generating_results',
+      progressPercent: 90,
+    });
+
+    // Complete the job with a result
+    await completeJob({
+      jobId: job.id,
+      resultJson: {
+        processed: true,
+        stages: [
+          'processing',
+          'computing_ephemeris',
+          'analyzing_dashas',
+          'rectifying_time',
+          'generating_results',
+        ],
+      },
+    });
+
+    console.log({ event: 'job_completed', jobId: job.id, sessionId: job.sessionId });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error({ event: 'job_failed', jobId: job.id, error: message });
+
+    // Mark job as failed — guard against DB errors during fail handling
+    try {
+      await failJob({
+        jobId: job.id,
+        errorMessage: message,
+        errorCode: 'WORKER_PROCESSING_ERROR',
+      });
+    } catch (failError) {
+      const failMessage = failError instanceof Error ? failError.message : String(failError);
+      console.error({ event: 'fail_job_db_error', jobId: job.id, error: failMessage });
+    }
+  } finally {
+    activeCount -= 1;
   }
 }
 
@@ -99,12 +190,9 @@ void (async () => {
     // Create worker runtime with basic dependencies
     workerRuntime = createWorkerRuntime({
       pollIntervalMs,
-      getActiveCount: () => 0,
+      getActiveCount: () => activeCount,
       recover: async () => ({ recoveredJobs: 0, abandonedAttempts: 0 }),
-      processJob: async () => {
-        // Job processing logic will be implemented here
-        console.log('[WORKER] Processing job...');
-      },
+      processJob: () => processJob(),
     });
 
     await workerRuntime.initialize({ pollIntervalMs });

@@ -103,7 +103,7 @@ Source: baseline local runs using new workflow
 15. Ticket-04 batch-3/4/5:
    - `apps/api/src/routes/candidate-detail.ts`: removed unused import and replaced `session?: any` with typed ownership session.
    - `apps/api/src/routes/progress.ts`: removed `as any` fallback status cast.
-   - `apps/api/src/scripts/test-process.ts`, `apps/api/src/scripts/test-tdz-hoisting.ts`, `apps/api/src/user-rectify.ts`, `apps/api/src/scripts/test-sse.ts`: removed obvious unused imports/variables and fixed constant-condition warning.
+   - `apps/api/src/scripts/test-process.ts`, `apps/api/src/scripts/test-tdz-hoisting.ts`, `scripts/user-rectify.ts` (moved from `apps/api/src/user-rectify.ts`), `apps/api/src/scripts/test-sse.ts`: removed obvious unused imports/variables and fixed constant-condition warning.
    - `apps/api/src/routes/calculate.ts`: removed unused `Request` import.
 16. Validation:
    - `npm -w @ai-pandit/api run test` passed after each batch.

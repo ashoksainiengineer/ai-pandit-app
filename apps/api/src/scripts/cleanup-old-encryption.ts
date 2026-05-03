@@ -15,7 +15,7 @@
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq, isNotNull } from 'drizzle-orm';
-import { logger } from '../lib/logger.js';
+import { logger } from '../utils/logger.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // DETECTION FUNCTIONS

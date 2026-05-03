@@ -255,6 +255,9 @@ function generatePersonalityTraits(pakshi: PakshiData, lagnaElement: string): st
         case 'Peacock':
             traits.push('creativity', 'beauty', 'auspiciousness');
             break;
+        default:
+            // Unknown pakshi name — return generic traits from qualities
+            break;
     }
 
     return [...new Set(traits)];

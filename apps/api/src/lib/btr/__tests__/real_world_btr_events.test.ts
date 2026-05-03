@@ -1,11 +1,8 @@
-import { describe, it, expect, beforeAll } from 'vitest';
-import { BtrEvent } from '@ai-pandit/shared';
+import { describe, it, expect } from 'vitest';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
 import { EventScorer } from '../event-scorer.js';
-import { buildTransitData } from '../transit-builder.js';
 
 describe('🌍 REAL-WORLD AUDIT: Virat Kohli Life Events', () => {
-
 
     // Known Accurate Birth Info: Virat Kohli - Nov 5, 1988, 10:28 AM, Delhi
     const kohliInput = {
@@ -42,10 +39,6 @@ describe('🌍 REAL-WORLD AUDIT: Virat Kohli Life Events', () => {
         const testCaptaincyMonth = scoredEvents.find(e => e.id === '5');
         const marriage = scoredEvents.find(e => e.id === '6');
 
-        console.log(`[EVENT SCORE] Father's Death (Exact Document): ${fatherDeath?.calculatedWeight}`);
-        console.log(`[EVENT SCORE] Test Captaincy (Month/Year Memory): ${testCaptaincyMonth?.calculatedWeight}`);
-        console.log(`[EVENT SCORE] Marriage (Exact Document): ${marriage?.calculatedWeight}`);
-
         // Exact date + document should score significantly higher than month_year + memory
         expect(fatherDeath!.calculatedWeight).toBeGreaterThan(testCaptaincyMonth!.calculatedWeight * 2);
     });
@@ -63,21 +56,12 @@ describe('🌍 REAL-WORLD AUDIT: Virat Kohli Life Events', () => {
         expect(payload.ascendant.sign).toBeDefined();
         expect(payload.vimshottariDasha.length).toBeGreaterThan(0);
 
-        console.log(`[KOHLI ASTRO] Ascendant: ${payload.ascendant.sign} ${payload.ascendant.degree}°`);
-        console.log(`[KOHLI ASTRO] Moon: ${payload.planets.moon.sign} ${payload.planets.moon.degree}°`);
-
         // Ensure that imprecise dates (month_year) did not panic the Transit Builder
         expect(payload.transitData).toBeDefined();
         const transitKeys = Object.keys(payload.transitData || {});
         expect(transitKeys.length).toBeGreaterThan(0);
 
-        console.log(`[KOHLI TRANSITS] Successfully mapped transits for ${transitKeys.length} events.`);
-
         // Check structural integrity of transit payload, e.g. Marriage transit
         const marriageTransit = payload.transitData!['2017-12-11'];
-        if (marriageTransit) {
-            console.log(`[MARRIAGE TRANSIT] Dasha Active: ${marriageTransit.dasha}`);
-            console.log(`[MARRIAGE TRANSIT] Jupiter Position: ${marriageTransit.planets['Jupiter']}`);
-        }
     });
 });

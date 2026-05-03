@@ -1,25 +1,9 @@
 /**
- * 🔱 AI-Pandit BTR Engine - Server Entry Point
+ * AI-Pandit BTR Engine - Server Entry Point
  * ===========================================
  * Production-grade Express server with robust middleware,
  * error handling, and performance monitoring.
  */
-
-// ═════════════════════════════════════════════════════════════════════════════
-// IMMEDIATE STARTUP OBSERVABILITY - Must be first
-// ═════════════════════════════════════════════════════════════════════════════
-const startupTimestamp = new Date().toISOString();
-process.stdout.write(JSON.stringify({
-    level: 'info',
-    msg: 'Server process starting',
-    time: startupTimestamp,
-    nodeVersion: process.version,
-    platform: process.platform,
-    env: process.env.NODE_ENV || 'not set',
-    deployment: 'v2.0.0-cloudrun',
-    port: process.env.PORT || '7860'
-}) + '\n');
-
 import './scripts/load-env.js';
 import express from 'express';
 import cors from 'cors';
@@ -67,15 +51,15 @@ async function initializeStartupDependencies(): Promise<void> {
     logger.info('[STARTUP] Background dependency initialization started');
 
     try {
-        const { ensureDatabaseInitialized } = await import('@ai-pandit/db');
-        await withTimeout(ensureDatabaseInitialized(), 45000, 'Database initialization');
+        const { verifyDatabaseConnection } = await import('@ai-pandit/db');
+        await withTimeout(verifyDatabaseConnection(), 45000, 'Database initialization');
         startupState.dbReady = true;
         startupState.dbError = null;
         logger.info('[STARTUP] Database ready');
 
         if (config.features.useAsyncJobPipeline) {
-            const { recoverInterruptedJobsOnStartup } = await import('./lib/queue-manager.js');
-            const recovery = await recoverInterruptedJobsOnStartup();
+            const { recoverInterruptedJobsOnStartup: _recoverInterruptedJobs } = await import('./lib/metrics-reporter.js');
+            const recovery = await _recoverInterruptedJobs();
             logger.info('[STARTUP] Job recovery completed', recovery);
         }
     } catch (error) {
@@ -243,22 +227,26 @@ export function createApp() {
 const app = createApp();
 export default app;
 
-// ═════════════════════════════════════════════════════════════════════════════
-// BOOTSTRAP
-// ═════════════════════════════════════════════════════════════════════════════
-
 async function bootstrap() {
-    logger.info('[STARTUP] Bootstrap starting...');
     const startTime = Date.now();
+    const startupTimestamp = new Date().toISOString();
+    process.stdout.write(JSON.stringify({
+        level: 'info',
+        msg: 'Server process starting',
+        time: startupTimestamp,
+        nodeVersion: process.version,
+        platform: process.platform,
+        env: process.env.NODE_ENV || 'not set',
+        deployment: process.env.K_SERVICE || process.env.K_REVISION || 'local',
+        port: process.env.PORT || '7860'
+    }) + '\n');
+    logger.info('[STARTUP] Bootstrap starting...');
     
     const httpServer = createServer(app);
 
     // Setup uncaught exception handlers before anything else
     setupUncaughtExceptionHandlers();
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // SERVER STARTUP
-    // ═══════════════════════════════════════════════════════════════════════════
 
     const PORT = config.server.port;
 
@@ -266,8 +254,7 @@ async function bootstrap() {
 
     httpServer.listen(PORT, '0.0.0.0', () => {
         const elapsed = Date.now() - startTime;
-        logger.info(`🚀 AI Pandit BTR Engine is live (${elapsed}ms)`);
-        logger.info('🚀 AI Pandit BTR Engine is live', {
+        logger.info('AI Pandit BTR Engine is live', {
             env: config.app.nodeEnv,
             port: PORT,
             nodeVersion: process.version,

@@ -14,7 +14,6 @@ import {
   Layers,
   Star,
   Telescope,
-  Sparkles,
   Server,
   Workflow,
   Zap,

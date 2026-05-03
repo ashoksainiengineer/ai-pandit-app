@@ -1,5 +1,5 @@
 import { db } from '@ai-pandit/db';
-import { sessions, jobs } from '@ai-pandit/db/schema';
+import { sessions } from '@ai-pandit/db/schema';
 import crypto from 'node:crypto';
 
 const GANDHI_PROFILE = {

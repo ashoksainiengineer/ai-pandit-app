@@ -12,7 +12,7 @@ import { SecondsPrecisionInput } from '@ai-pandit/shared';
 import { CandidateTime, generateRefinementGrid, getCandidateIdentity, sortCandidatesByMerit } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
 import { StageResult } from '@ai-pandit/shared';
-import { logger } from '../../logger.js';
+import { logger } from '../../../utils/logger.js';
 
 function getStage5FocusCount(offsetMinutes: number, survivorsCount: number): number {
     if (survivorsCount <= 3) return survivorsCount;

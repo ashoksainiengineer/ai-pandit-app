@@ -35,10 +35,16 @@ This file defines how coding agents (Codex/Copilot/Claude/etc.) must operate in 
 - Full dev: `npm run dev`
 - Full lint: `npm run lint`
 - Full tests: `npm run test`
+- Integration tests: `npm run test:integration`
 - E2E smoke: `npm run test:e2e:smoke`
+- Full CI: `npm run test:ci`
+- Coverage: `npm run test:coverage`
 - API only: `npm -w @ai-pandit/api run test`
 - Web only: `npm -w @ai-pandit/web run test`
+- Worker only: `npm -w @ai-pandit/worker run test`
 - Worker typecheck: `npm -w @ai-pandit/worker run typecheck`
+- Python tests: `cd services/ephemeris && .venv/bin/pytest tests/ -v`
+- Security scan: `npm run test:security`
 
 ## Verification Matrix
 
@@ -48,10 +54,21 @@ This file defines how coding agents (Codex/Copilot/Claude/etc.) must operate in 
 - If `apps/web/**` changed:
   - `npm -w @ai-pandit/web run lint`
   - `npm -w @ai-pandit/web run test`
+- If `apps/worker/**` changed:
+  - `npm -w @ai-pandit/worker run typecheck`
+  - `npm -w @ai-pandit/worker run test`
 - If shared packages changed (`packages/**`):
   - `npm run lint`
   - `npm run test`
+- If `services/ephemeris/**` changed:
+  - `npm run setup:ephemeris`
+  - `cd services/ephemeris && .venv/bin/pytest tests/ -v`
 - If stream/job flow changed:
+  - `npm run test:integration`
+  - `npm run test:e2e:smoke`
+- If schema changed (`packages/db/**`):
+  - `npm run test:integration`
+- If `e2e/**` changed:
   - `npm run test:e2e:smoke`
 
 ## Prompt Contract (for coding agents)

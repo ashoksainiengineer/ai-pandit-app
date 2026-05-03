@@ -2,7 +2,7 @@ import './load-env.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { logger } from '../lib/logger.js';
+import { logger } from '../utils/logger.js';
 import { resolveSmokeBearerToken } from './get-smoke-token.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -84,10 +84,6 @@ async function loadPayload(): Promise<Record<string, unknown>> {
     logger.error('Failed to parse smoke payload JSON', { payloadPath, error });
     throw new Error(`Invalid JSON in smoke payload file: ${payloadPath}`);
   }
-}
-  const payloadPath = process.env.SMOKE_PAYLOAD_PATH || DEFAULT_SMOKE_PAYLOAD_PATH;
-  const raw = await fs.readFile(payloadPath, 'utf8');
-  return JSON.parse(raw) as Record<string, unknown>;
 }
 
 async function createJob(

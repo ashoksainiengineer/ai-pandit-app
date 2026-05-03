@@ -1,7 +1,7 @@
 import { config } from 'dotenv';
 config({ path: '/home/ashoksainiengineer/ai-pandit-app/apps/api/.env' });
 
-import { processSecondsPrecisionBTR } from '/home/ashoksainiengineer/ai-pandit-app/apps/api/dist/lib/seconds-precision-btr.js';
+import { executeSecondsPrecisionRectification } from '/home/ashoksainiengineer/ai-pandit-app/apps/api/dist/lib/seconds-precision-btr.js';
 import { getCacheStats } from '/home/ashoksainiengineer/ai-pandit-app/apps/api/dist/lib/ephemeris.js';
 import fs from 'fs';
 
@@ -384,7 +384,7 @@ async function runResearchBasedAnalysis() {
     });
 
     const startTime = Date.now();
-    const result = await processSecondsPrecisionBTR(testInput);
+    const result = await executeSecondsPrecisionRectification(testInput);
     const duration = Date.now() - startTime;
 
     log('RESEARCH-BASED BTR ANALYSIS COMPLETE', {

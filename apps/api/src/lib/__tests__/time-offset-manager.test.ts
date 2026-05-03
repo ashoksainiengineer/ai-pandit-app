@@ -1,16 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
-    getDynamicBatchSize,
-    getDynamicSurvivors,
-    getAdaptiveInterval,
-    getExpectedCandidateCount,
-    generateCandidateTimes,
-    splitIntoBatches,
-    injectSafetyNetCandidates,
-    generateRefinementGrid,
-    validateOffsetConfig,
-    MAX_BATCH_SIZE
-} from '../time-offset-manager';
+  getDynamicBatchSize,
+  getDynamicSurvivors,
+  getAdaptiveInterval,
+  getExpectedCandidateCount,
+  generateCandidateTimes,
+  splitIntoBatches,
+  injectSafetyNetCandidates,
+  generateRefinementGrid,
+  validateOffsetConfig
+} from '../time-offset-manager.js';
 
 describe('Time Offset Manager (BTR Candidate Generation)', () => {
 

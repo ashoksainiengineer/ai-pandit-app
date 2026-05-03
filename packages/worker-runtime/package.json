@@ -11,14 +11,13 @@
     },
     "scripts": {
         "build": "tsc",
-        "typecheck": "tsc --noEmit"
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run"
     },
-    "dependencies": {
-        "@ai-pandit/db": "*",
-        "@ai-pandit/shared": "*"
-    },
+    "dependencies": {},
     "devDependencies": {
         "@types/node": "^20.0.0",
-        "typescript": "^5.4.5"
+        "typescript": "^5.4.5",
+        "vitest": "^4.0.18"
     }
 }

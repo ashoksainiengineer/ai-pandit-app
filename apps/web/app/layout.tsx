@@ -6,6 +6,7 @@
 import { ClerkProvider } from '@clerk/nextjs';
 import { env } from '@/lib/config/env';
 import { DebugProvider } from '@/components/providers/debug-provider';
+import { RootTestModeProvider } from '@/components/providers/root-test-mode-provider';
 import './globals.css';
 
 import type { Metadata, Viewport } from 'next';
@@ -77,9 +78,11 @@ export default function RootLayout({
 
           {/* Main Content */}
           <DebugProvider>
-            <div className="relative z-10">
-              {children}
-            </div>
+            <RootTestModeProvider>
+              <div className="relative z-10">
+                {children}
+              </div>
+            </RootTestModeProvider>
           </DebugProvider>
         </body>
       </html>

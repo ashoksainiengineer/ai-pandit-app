@@ -18,9 +18,9 @@ describe('🔥 HEAVY MEMORY STRESS AUDIT (BROWSER OOM PREVENTION)', () => {
         // Simulate a 5-hour run that emits 50,000 tiny events
         for (let i = 0; i < 50000; i++) {
             // Internal method to bypass the wrapper for sheer volume testing
-            sessionEvents.emit(SESSION_ID, { type: 'ping', timestamp: 'now' } as Record<string, unknown>);
+            sessionEvents.emit(SESSION_ID, { type: 'ping', timestamp: 'now' } as any);
             // We need to use sendSequencedEvent simulator to test the logEvent function
-            sessionEvents.logEvent(SESSION_ID, i, { type: 'progress', step: 'deep', percentage: 50 } as Record<string, unknown>);
+            sessionEvents.logEvent(SESSION_ID, i, { type: 'progress', step: 'deep', percentage: 50 } as any);
         }
 
         // If a user reconnects after 5 hours, what is the maximum number of events the server will dump on them?
@@ -36,12 +36,12 @@ describe('🔥 HEAVY MEMORY STRESS AUDIT (BROWSER OOM PREVENTION)', () => {
 
     it('should not leak memory on Calculation Logs buffers (Limit to 50)', () => {
         for (let i = 0; i < 1000; i++) {
-            emitCalculationLog(SESSION_ID, { candidateTime: '10:00', message: `Log ${i}`, category: 'ruler' });
+            emitCalculationLog(SESSION_ID, { candidateTime: '10:00', message: `Log ${i}`, category: 'ruler' } as any);
         }
 
         const calcLogs = sessionEvents.getCalculationBuffer(SESSION_ID);
         expect(calcLogs?.length).toBeLessThanOrEqual(50);
-        expect(calcLogs?.[calcLogs.length - 1].message).toBe('Log 999');
+        expect((calcLogs?.[calcLogs.length - 1] as any).message).toBe('Log 999');
     });
 
     it('should overwrite Candidate Scores to prevent memory bloat over 50,000 candidate evaluations', () => {
@@ -78,12 +78,11 @@ describe('🔥 HEAVY MEMORY STRESS AUDIT (BROWSER OOM PREVENTION)', () => {
                 rationale: 'Too low',
                 stage: 2,
                 impact: 'negative',
-                candidatesAffected: 1
-            });
+            } as any);
         }
 
         const decisionBuffer = sessionEvents.getDecisionBuffer(SESSION_ID);
         expect(decisionBuffer?.length).toBeLessThanOrEqual(200);
-        expect(decisionBuffer?.[decisionBuffer.length - 1].title).toBe('Cut 999');
+        expect((decisionBuffer?.[decisionBuffer.length - 1] as any).title).toBe('Cut 999');
     });
 });

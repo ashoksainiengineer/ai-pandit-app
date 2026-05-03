@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Request, Response, NextFunction } from 'express';
-import { authMiddleware, clerk } from '../auth.js';
+import { NextFunction } from 'express';
+import { authMiddleware } from '../auth.js';
 import { verifyToken } from '@clerk/backend';
 
 // Mock Clerk backend

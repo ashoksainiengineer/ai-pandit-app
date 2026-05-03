@@ -1,16 +1,18 @@
 import { Request, Response, NextFunction } from 'express';
 import { createClerkClient, verifyToken } from '@clerk/backend';
 import { config } from '../config/index.js';
-import { logger } from '../lib/logger.js';
-import fs from 'fs';
-import path from 'path';
+import { logger } from '../utils/logger.js';
 import { consumeStreamTicket } from '../lib/stream-ticket-manager.js';
 
-const LOG_FILE = path.join(process.cwd(), 'requeue_debug.txt');
 
-export const clerk = createClerkClient({
-    secretKey: config.security.clerkSecretKey,
-});
+let _clerk: ReturnType<typeof createClerkClient> | null = null;
+
+export function getClerk() {
+  if (!_clerk) {
+    _clerk = createClerkClient({ secretKey: config.security.clerkSecretKey });
+  }
+  return _clerk;
+}
 
 
 export interface AuthenticatedRequest extends Request {
@@ -46,7 +48,8 @@ function sendAuthError(
             isAuthError: true
         })}\n\n`);
 
-        if ((res as any).flush) (res as any).flush();
+        const flushable = res as { flush?: () => void };
+        flushable.flush?.();
         res.end();
     } else {
         res.status(statusCode).json({
@@ -67,7 +70,6 @@ export async function authMiddleware(
     next: NextFunction
 ): Promise<void> {
     try {
-        const sanitizeUrl = (url: string): string => url.replace(/([?&])(sid|token|ticket)=[^&]*/gi, '$1$2=[REDACTED]');
         const safeQuery = { ...req.query } as Record<string, unknown>;
         if (safeQuery.sid) safeQuery.sid = '[REDACTED]';
         if (safeQuery.token) safeQuery.token = '[REDACTED]';
@@ -77,16 +79,6 @@ export async function authMiddleware(
         if (safeHeaders.authorization) safeHeaders.authorization = '[REDACTED]';
         if (safeHeaders.cookie) safeHeaders.cookie = '[REDACTED]';
 
-        const timestamp = new Date().toISOString();
-        const logEntry = `\n--- ${timestamp} ---\n` +
-            `URL: ${sanitizeUrl(req.url)}\n` +
-            `OriginalURL: ${sanitizeUrl(req.originalUrl)}\n` +
-            `Method: ${req.method}\n` +
-            `Query: ${JSON.stringify(safeQuery)}\n` +
-            `Headers: ${JSON.stringify(safeHeaders, null, 2)}\n`;
-        if (config.app.nodeEnv === 'development') {
-            fs.appendFileSync(LOG_FILE, logEntry);
-        }
 
         const isStreamRequest = req.originalUrl.includes('/stream');
 
@@ -102,7 +94,7 @@ export async function authMiddleware(
             hasAuthHeader,
             authHeaderPrefix: hasAuthHeader ? 'Bearer [REDACTED]' : 'NONE',
             hasStreamTicket: !!streamTicket,
-            requestId: (req as any).requestId
+            requestId: (req as AuthenticatedRequest & { requestId?: string }).requestId
         });
 
         if (!authHeader && isStreamRequest && streamTicket) {
@@ -128,7 +120,7 @@ export async function authMiddleware(
         }
 
         if (!token) {
-            // HEAVY DIAGNOSTIC LOGGING
+            // Diagnostic logging
             logger.warn('🔒 [Auth] Authentication failed: No token provided', {
                 path: req.originalUrl,
                 method: req.method,
@@ -142,7 +134,7 @@ export async function authMiddleware(
             return;
         }
 
-        // 🛡️ INDUSTRIAL GRADE VERIFICATION
+        // Verify Clerk session token
         try {
             const session = await verifyToken(token, {
                 secretKey: config.security.clerkSecretKey,

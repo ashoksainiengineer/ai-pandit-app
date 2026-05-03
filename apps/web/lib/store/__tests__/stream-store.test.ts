@@ -495,7 +495,7 @@ describe('useStreamStore (Zustand State Management)', () => {
                 { time: '12:00', score: 85, stage: 2 },
                 { time: '12:05', score: 72, stage: 2 },
                 { time: '12:10', score: 91, stage: 2 },
-            ]);
+            ] as any);
 
             const state = useStreamStore.getState();
             expect(state.candidateScores).toHaveLength(3);
@@ -519,11 +519,11 @@ describe('useStreamStore (Zustand State Management)', () => {
 
             store.dispatchStreamEvent('candidate_scores', [
                 { time: '12:00', score: 85, stage: 2 },
-            ]);
+            ] as any);
             store.dispatchStreamEvent('candidate_scores', [
                 { time: '12:00', score: 92, stage: 4 }, // Same time, different stage
                 { time: '12:05', score: 78, stage: 4 },
-            ]);
+            ] as any);
 
             const state = useStreamStore.getState();
             expect(state.candidateScores).toHaveLength(3); // 1 from S2, 2 from S4

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { config } from '../config/index.js';
+import { safeJsonParse } from '../lib/utils/safe-json-parse.js';
 
 const DEBUG_LOG_FILE = path.join(process.cwd(), 'logs', 'debug-analysis.log');
 
@@ -49,7 +50,7 @@ export function logAnalysisContainerAction(stage: number | string, context: stri
         }
         fs.appendFileSync(DEBUG_LOG_FILE, entry);
     } catch (e) {
-        // Soft fail
+        console.error('Failed to write debug log:', e);
     }
 }
 
@@ -60,8 +61,8 @@ export function clearDebugLog() {
         if (fs.existsSync(DEBUG_LOG_FILE)) {
             fs.unlinkSync(DEBUG_LOG_FILE);
         }
-    } catch {
-        // Soft fail
+    } catch (e) {
+        console.error('Failed to clear debug log:', e);
     }
 }
 
@@ -71,9 +72,7 @@ export function readDebugLog() {
     try {
         if (!fs.existsSync(DEBUG_LOG_FILE)) return [];
         const content = fs.readFileSync(DEBUG_LOG_FILE, 'utf-8');
-        return content.split('\n').filter(Boolean).map(line => {
-            try { return JSON.parse(line); } catch (e) { return null; }
-        }).filter(Boolean);
+        return content.split('\n').filter(Boolean).map(line => safeJsonParse(line, null)).filter(Boolean);
     } catch (e) {
         return [];
     }

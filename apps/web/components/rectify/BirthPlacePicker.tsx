@@ -94,13 +94,13 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
 
   // Click outside handler
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const closeDropdownOnOutsideClick = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setShowDropdown(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('mousedown', closeDropdownOnOutsideClick);
+    return () => document.removeEventListener('mousedown', closeDropdownOnOutsideClick);
   }, []);
 
   // Cleanup on unmount
@@ -194,7 +194,7 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
     inputRef.current?.focus();
   }, []);
 
-  const handleSelectLocation = (location: LocationResult) => {
+  const updateBirthLocation = (location: LocationResult) => {
     setSelectedLocation(location);
     const formattedPlace = [location.city, location.district, location.state, location.country].filter(Boolean).join(', ');
     setSearchQuery(formattedPlace);
@@ -202,7 +202,7 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
     onUpdate({ birthPlace: formattedPlace, latitude: location.latitude, longitude: location.longitude, timezone: parseFloat(location.timezone) });
   };
 
-  const handleManualUpdate = () => {
+  const applyManualLocationInput = () => {
     const lat = parseFloat(manualLat);
     const lng = parseFloat(manualLng);
     const tz = parseFloat(manualTimezone);
@@ -226,7 +226,7 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
         const formattedPlace = [location.city, location.district, location.state, location.country].filter(Boolean).join(', ');
         onUpdate({ birthPlace: formattedPlace, latitude: lat, longitude: lng, timezone: parseFloat(location.timezone) });
       }
-    } catch (error) { logger.error('Map search failed', error instanceof Error ? error : new Error(String(error))); }
+    } catch (error) { logger.error('Map search failed', error instanceof Error ? error : new Error(String(error))); setSearchError('Map search failed. Please try again.'); }
   };
 
   return (
@@ -290,7 +290,7 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
                 <button
                   key={result.id}
                   type="button"
-                  onClick={() => handleSelectLocation(result)}
+                  onClick={() => updateBirthLocation(result)}
                   className="w-full text-left px-4 py-3 hover:bg-[#F5EFE7] transition-colors border-b border-[#F0E8DE] last:border-0"
                 >
                   <div className="font-medium text-[#1A1612] text-sm">{result.city || 'Unknown Location'}{result.district && <span className="text-[#7A756F]"> • {result.district}</span>}</div>
@@ -370,7 +370,7 @@ export default function BirthPlacePicker({ birthPlace, latitude, longitude, time
               <option value="12">UTC+12:00 (New Zealand)</option>
             </select>
           </div>
-          <button type="button" onClick={handleManualUpdate} className="w-full h-10 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white font-semibold rounded-lg hover:shadow-md transition-all text-sm">Apply Coordinates</button>
+          <button type="button" onClick={applyManualLocationInput} className="w-full h-10 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white font-semibold rounded-lg hover:shadow-md transition-all text-sm">Apply Coordinates</button>
           {latitude !== undefined && longitude !== undefined && latitude !== 0 && longitude !== 0 && (
             <div className="p-3 bg-[#184131]/5 border border-[#184131]/20 rounded-lg text-xs">
               <span className="text-[#184131] font-semibold">✓ Current:</span>

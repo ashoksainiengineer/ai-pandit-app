@@ -2,7 +2,7 @@ import crypto from 'node:crypto';
 import { createArtifact } from '@ai-pandit/db/jobs';
 import type { ArtifactKind } from '@ai-pandit/db/schema';
 import { config } from '../../config/index.js';
-import { logger } from '../logger.js';
+import { logger } from '../../utils/logger.js';
 
 interface PersistArtifactInput {
   jobId: string;

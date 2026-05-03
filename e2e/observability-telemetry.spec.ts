@@ -12,8 +12,8 @@ test.describe('Phase E: Observability & Telemetry Verification', () => {
         });
 
         await page.addInitScript(() => {
-            (window as any).isTestEnv = true;
-            console.log('🧪 [TEST] isTestEnv is TRUE');
+            window.__AI_PANDIT_TEST_MODE__ = true;
+            console.log('\u{1F9EA} [TEST] __AI_PANDIT_TEST_MODE__ is TRUE');
         });
 
         // Mock Clerk

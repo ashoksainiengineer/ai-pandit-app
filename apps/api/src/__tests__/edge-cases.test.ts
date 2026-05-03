@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
-import { createApp } from '../server';
+import { createApp } from '../server.js';
 import { db, pool } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
@@ -17,8 +17,7 @@ describe('Edge Case & Error Handling Tests', () => {
       clerkId: `edge_test_${testTimestamp}`,
       email: `edge_test_${testTimestamp}@test.com`,
       fullName: 'Edge Case Test User',
-      tier: 'free'
-    }).returning();
+    } as any).returning();
     
     testUserId = user.id;
     authToken = `test_token_${testTimestamp}`;

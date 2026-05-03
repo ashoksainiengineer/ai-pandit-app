@@ -10,6 +10,12 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+vi.mock('@/lib/test-mode-context', () => ({
+    TestModeProvider: ({ children }: any) => children,
+    useTestMode: () => true,
+    TestModeContext: { Provider: ({ children }: any) => children },
+}));
+
 import AnalysisPage from '../app/rectify/[id]/page';
 import { useStreamStore, createInitialState } from '../lib/store/stream-store';
 
@@ -100,12 +106,11 @@ describe('Analysis Pipeline: SSE → Store → UI Integration', () => {
                 totalCandidates: 120,
             });
         });
-        (window as any).isTestEnv = true;
+        // Test mode enabled via mock
     });
 
     afterEach(() => {
         vi.clearAllMocks();
-        delete (window as any).isTestEnv;
     });
 
     it('simulates a realistic SSE event sequence: metadata → progress → scores → complete', async () => {

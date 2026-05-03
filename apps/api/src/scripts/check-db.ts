@@ -1,7 +1,7 @@
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { desc } from 'drizzle-orm';
-import { logger } from '../lib/logger.js';
+import { logger } from '../utils/logger.js';
 
 async function checkSessions() {
     const recentSessions = await db.select({

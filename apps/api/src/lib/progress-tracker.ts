@@ -7,19 +7,13 @@
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { emitProgress, _emitComplete, emitError, emitCandidateScore, emitAIContext, emitEstimatedTime, emitAIThinking } from './session-events.js';
-import { logger } from './logger.js';
+import { emitProgress, emitComplete, emitError, emitCandidateScore, emitAIContext, emitEstimatedTime, emitAIThinking } from './session-events.js';
+import { logger } from '../utils/logger.js';
+import { safeJsonParse } from './utils/safe-json-parse.js';
 import type { CandidateScore, ProgressStep, AIThinkingData, AIContextData, ProgressData } from '@ai-pandit/shared';
-
-// Re-export types for backwards compatibility
 export type { CandidateScore, ProgressStep, AIThinkingData, AIContextData, ProgressData };
 
-// ═════════════════════════════════════════════════════════════════════════════
-// PROGRESS STEPS DEFINITION
-// ═════════════════════════════════════════════════════════════════════════════
-
-
-// 🔱 GOD-TIER BTR v7.0 STEPS (7-Stage Analysis Pipeline)
+// Analysis Pipeline Steps
 export const ANALYSIS_STEPS: Omit<ProgressStep, 'status'>[] = [
     { id: 'init', name: 'Initializing Engine', icon: '🚀' },
     { id: 'grid', name: 'Stage 1: Grid Generation', icon: '📊' },
@@ -55,14 +49,15 @@ function shouldPropagatePersistenceFailure(error: unknown): boolean {
     return code !== 'ECONNREFUSED' && code !== 'SQLITE_CANTOPEN' && code !== 'SQLITE_BUSY';
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// PROGRESS TRACKER CLASS
-// ═════════════════════════════════════════════════════════════════════════════
+
+
+const _activeInstances = new Map<string, ProgressTracker>();
+
+export function clearAllActiveInstances(): void {
+  _activeInstances.clear();
+}
 
 export class ProgressTracker {
-    // 🚀 STATIC REGISTRY FOR FAST POLLING (No DB Hits)
-    private static activeInstances = new Map<string, ProgressTracker>();
-
     private sessionId: string;
     private progress: ProgressData;
     private persistenceDisabled: boolean;
@@ -76,21 +71,18 @@ export class ProgressTracker {
         this.progress = this.initProgress();
         this.persistenceDisabled = process.env.NODE_ENV === 'test';
         // Register this instance for real-time polling
-        ProgressTracker.activeInstances.set(sessionId, this);
+        _activeInstances.set(sessionId, this);
     }
 
     /**
      * Get active in-memory instance
      */
     public static getInstance(sessionId: string): ProgressTracker | undefined {
-        return ProgressTracker.activeInstances.get(sessionId);
+        return _activeInstances.get(sessionId);
     }
 
-    /**
-     * Remove instance from memory
-     */
     public static clearInstance(sessionId: string): void {
-        ProgressTracker.activeInstances.delete(sessionId);
+        _activeInstances.delete(sessionId);
     }
 
 
@@ -172,7 +164,7 @@ export class ProgressTracker {
 
         // ❌ NO DB SAVE - Pure Stream as requested
         // BUT update lastActive for GC
-        ProgressTracker.activeInstances.set(this.sessionId, this);
+        _activeInstances.set(this.sessionId, this);
 
         // 💓 DEBOUNCED DB PULSE: Keep session alive in DB during long AI streaming
         // Only update DB every 30 seconds to save IO but prevent stale cleanup (30 mins)
@@ -434,7 +426,7 @@ export class ProgressTracker {
 
         // Cleanup memory after short delay (preserve for immediate polling)
         setTimeout(() => {
-            ProgressTracker.activeInstances.delete(this.sessionId);
+            _activeInstances.delete(this.sessionId);
         }, 120000); // Keep in memory for 2 minutes after completion
     }
 
@@ -470,7 +462,7 @@ export class ProgressTracker {
                 return;
             }
 
-            // 🚀 GOD-TIER OPTIMIZATION: Throttled DB Writes
+            // Throttled DB Writes
             // Database round-trips are expensive. We only flush if:
             // 1. It's a major flush (includeThinking = true)
             // Throttle regular saves (non-thinking checkpoints) to 10s to reduce DB load
@@ -600,7 +592,7 @@ export async function getSessionProgress(sessionId: string): Promise<ProgressDat
             return null;
         }
 
-        return JSON.parse(result[0].progressData) as ProgressData;
+        try { return safeJsonParse<ProgressData>(result[0].progressData, null!); } catch (error) { logger.warn('[PROGRESS-TRACKER] Corrupt progress data, returning null', { error }); return null; }
     } catch (error) {
         logger.error('Failed to get progress', { sessionId, error });
         return null;

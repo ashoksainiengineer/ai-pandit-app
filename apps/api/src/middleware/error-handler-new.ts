@@ -5,17 +5,14 @@
  * Must be registered last in the middleware chain.
  */
 
-import type { Request, Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction, ErrorRequestHandler, RequestHandler } from 'express';
 import { AppError, handleUnknownError } from '../errors/index.js';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { sendError } from '../utils/response.js';
 
-// ═════════════════════════════════════════════════════════════════════════════
-// MAIN ERROR HANDLER
-// ═════════════════════════════════════════════════════════════════════════════
 
-export function errorHandlerMiddleware() {
+export function errorHandlerMiddleware(): ErrorRequestHandler {
   return (
     err: Error | AppError | unknown,
     req: Request,
@@ -32,7 +29,7 @@ export function errorHandlerMiddleware() {
 
     // Log the error
     const logData = {
-      requestId: (req as any).requestId,
+      requestId: req.requestId,
       path: req.path,
       method: req.method,
       statusCode: appError.statusCode,
@@ -56,15 +53,10 @@ export function errorHandlerMiddleware() {
     }
 
     // Send error response
-    sendError(res, appError, (req as any).requestId);
+    sendError(res, appError, req.requestId);
   };
 }
-
-// ═════════════════════════════════════════════════════════════════════════════
-// NOT FOUND HANDLER
-// ═════════════════════════════════════════════════════════════════════════════
-
-export function notFoundHandler() {
+export function notFoundHandler(): RequestHandler {
   return (req: Request, res: Response, _next: NextFunction): void => {
     const appError = new AppError(
       'RESOURCE_NOT_FOUND',
@@ -76,13 +68,10 @@ export function notFoundHandler() {
       req.logger.debug('Route not found', { path: req.path, method: req.method });
     }
 
-    sendError(res, appError, (req as any).requestId);
+    sendError(res, appError, req.requestId);
   };
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// ASYNC HANDLER WRAPPER
-// ═════════════════════════════════════════════════════════════════════════════
 
 export function asyncHandler(
   fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>
@@ -92,9 +81,6 @@ export function asyncHandler(
   };
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// UNCAUGHT EXCEPTION HANDLER
-// ═════════════════════════════════════════════════════════════════════════════
 
 export function setupUncaughtExceptionHandlers(): void {
   process.on('uncaughtException', (error: Error) => {

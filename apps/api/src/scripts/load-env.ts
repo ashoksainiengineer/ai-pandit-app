@@ -13,19 +13,26 @@ const envFiles = [
   path.resolve(__dirname, '../../../../.env'),
 ];
 
-for (const envFile of envFiles) {
-  if (fs.existsSync(envFile)) {
-    dotenv.config({ path: envFile, override: false });
-  }
-}
-
 const localSecretFiles = [
   path.resolve(__dirname, '../../../../local/dev-runtime.env'),
   path.resolve(__dirname, '../../../../local/cloudrun.env'),
 ];
 
-for (const envFile of localSecretFiles) {
-  if (fs.existsSync(envFile)) {
-    dotenv.config({ path: envFile, override: true });
+// Kept as explicit function for test/CJS contexts requiring manual env bootstrapping.
+// Module-level execution is preserved for server.ts side-effect import compatibility.
+export function initEnv(): void {
+  for (const envFile of envFiles) {
+    if (fs.existsSync(envFile)) {
+      dotenv.config({ path: envFile, override: false });
+    }
+  }
+
+  for (const envFile of localSecretFiles) {
+    if (fs.existsSync(envFile)) {
+      dotenv.config({ path: envFile, override: true });
+    }
   }
 }
+
+// Backward-compatible module-level initialization for server.ts side-effect import
+initEnv();

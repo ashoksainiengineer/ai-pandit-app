@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useStreamStore } from '../stream-store';
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -34,7 +34,7 @@ describe('Chapter 5: Stream Store Integrity (Zustand)', () => {
     it('should initialize with default state', () => {
         const state = useStreamStore.getState();
         expect(state.error).toBe(null);
-        expect(state.currentStep).toBeUndefined(); // It's progress.step or progress.stepIndex
+        expect((state as any).currentStep).toBeUndefined(); // It's progress.step or progress.stepIndex
         expect(state.candidateScores).toHaveLength(0);
         expect(state.isComplete).toBe(false);
     });

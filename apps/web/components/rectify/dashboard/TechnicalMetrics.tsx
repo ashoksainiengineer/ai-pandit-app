@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Activity, Gauge, BarChart3 } from 'lucide-react';
 import { THEME } from './theme';

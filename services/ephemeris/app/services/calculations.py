@@ -279,8 +279,6 @@ def build_placidus_house_cusps(ascendant_longitude: float, midheaven_longitude: 
     cusps[1] = solve_placidus_cusp(ascendant_longitude, imum_coeli_longitude, latitude_degrees, 2, ramc_degrees, obliquity_degrees)
     cusps[2] = solve_placidus_cusp(ascendant_longitude, imum_coeli_longitude, latitude_degrees, 3, ramc_degrees, obliquity_degrees)
     cusps[3] = imum_coeli_longitude
-    cusps[4] = normalize_degrees(cusps[10] + 180.0) if cusps[10] else 0.0
-    cusps[5] = normalize_degrees(cusps[11] + 180.0) if cusps[11] else 0.0
     cusps[6] = descendant_longitude
     cusps[7] = normalize_degrees(cusps[1] + 180.0)
     cusps[8] = normalize_degrees(cusps[2] + 180.0)
@@ -312,7 +310,7 @@ def resolve_kernel_body(name: str):
     for candidate in BODY_CANDIDATES[name]:
         try:
             return kernel[candidate]
-        except Exception:
+        except KeyError:
             continue
     raise ServiceInitializationError(f"Unable to resolve Skyfield body for {name}")
 

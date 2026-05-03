@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import crypto from 'node:crypto';
 import request from 'supertest';
-import { db, ensureDatabaseInitialized } from '@ai-pandit/db';
+import { db, verifyDatabaseConnection } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { desc, eq } from 'drizzle-orm';
 import { syncUser } from '../lib/user-sync.js';
@@ -16,7 +16,7 @@ function sleep(ms: number): Promise<void> {
 
 async function main(): Promise<void> {
   process.env.NODE_ENV = 'test';
-  await ensureDatabaseInitialized();
+  await verifyDatabaseConnection();
 
   const testUserId = await syncUser('TEST_SCRIPT');
 
@@ -124,7 +124,6 @@ async function main(): Promise<void> {
     }
 
     clonedSessionId = cloneRes.body.data.id as string;
-    console.log(`[SMOKE-LOCAL] clone ok: ${clonedSessionId}`);
 
     const requeueRes = await request(app)
       .post('/api/queue/requeue')
@@ -134,8 +133,6 @@ async function main(): Promise<void> {
     if (requeueRes.status !== 200 || !requeueRes.body?.success) {
       throw new Error(`Requeue failed: status=${requeueRes.status} body=${JSON.stringify(requeueRes.body)}`);
     }
-
-    console.log('[SMOKE-LOCAL] requeue ok');
 
     let finalStatus: string | null = null;
     for (let attempt = 1; attempt <= MAX_POLLS; attempt += 1) {
@@ -149,7 +146,6 @@ async function main(): Promise<void> {
       }
 
       const status = progressRes.body?.status || 'unknown';
-      console.log(`[SMOKE-LOCAL] poll=${attempt} status=${status}`);
       if (['complete', 'failed', 'cancelled', 'error'].includes(status)) {
         finalStatus = status;
         break;
@@ -171,7 +167,6 @@ async function main(): Promise<void> {
       throw new Error(`Delete cloned session failed: status=${deleteCloneRes.status} body=${JSON.stringify(deleteCloneRes.body)}`);
     }
 
-    console.log(`[SMOKE-LOCAL] delete clone ok: ${clonedSessionId}`);
     console.log(`SMOKE_LOCAL_RESULT: seed=${seededCompletedSessionId} clone=${clonedSessionId} status=${finalStatus ?? 'non-terminal'}`);
   } finally {
     await db.delete(sessions).where(eq(sessions.id, seededCompletedSessionId));

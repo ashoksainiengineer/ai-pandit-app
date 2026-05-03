@@ -3,23 +3,22 @@ import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
 import { db, executeWithRetry } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { logger } from '../lib/logger.js';
+import { logger } from '../utils/logger.js';
 import { addToQueue, getQueueStatus, startQueueProcessor, cancelSession, flushSessionTrash } from '../lib/queue-manager.js';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
 import {
     createQueuedBirthRectificationJob,
     getJobIdempotencyKey,
 } from '../lib/jobs/job-service.js';
-import { sendError, sendSuccess } from '../utils/response.js';
+import { sendError, sendSuccess, sendValidationError, sendNotFound, sendForbidden } from '../utils/response.js';
+import { validateBody, QueueSubmitSchema } from '../middleware/validation.js';
+import { sleep } from '../lib/ai-helpers.js';
 
 const router = Router();
 
 const SESSION_VISIBILITY_MAX_ATTEMPTS = 12;
 const SESSION_VISIBILITY_DELAY_MS = 250;
 
-function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 async function waitForSessionVisibility(
     sessionId: string,
@@ -55,7 +54,7 @@ async function waitForSessionVisibility(
 /**
  * POST /api/queue - Submit new analysis request to queue
  */
-router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', authMiddleware, validateBody(QueueSubmitSchema), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const clerkId = req.clerkId!;
         const ownershipContext = await resolveSessionOwnershipContext(clerkId);
@@ -97,7 +96,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
         const sessionId = req.query.sessionId as string;
 
         if (!sessionId) {
-            res.status(400).json({ success: false, error: 'sessionId is required' });
+            sendValidationError(res, 'sessionId is required');
             return;
         }
 
@@ -107,12 +106,12 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
         );
 
         if (session.length === 0) {
-            res.status(404).json({ success: false, error: 'Session not found' });
+            sendNotFound(res, 'Session not found');
             return;
         }
 
         if (!isSessionOwnedByContext(session[0], ownershipContext)) {
-            res.status(403).json({ success: false, error: 'Unauthorized' });
+            sendForbidden(res, 'Unauthorized');
             return;
         }
 
@@ -120,7 +119,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
         const queueStatus = await getQueueStatus(sessionId);
 
         if (!queueStatus) {
-            res.status(500).json({ success: false, error: 'Failed to get queue status' });
+            sendError(res, new Error('Failed to get queue status'));
             return;
         }
 
@@ -178,7 +177,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
         });
     } catch (error) {
         logger.error('Queue poll error', error);
-        res.status(500).json({ success: false, error: 'Failed to get status' });
+        sendError(res, error);
     }
 });
 
@@ -192,7 +191,7 @@ router.post('/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Re
         const { sessionId } = req.body;
 
         if (!sessionId) {
-            res.status(400).json({ success: false, error: 'sessionId is required' });
+            sendValidationError(res, 'sessionId is required');
             return;
         }
 
@@ -202,13 +201,13 @@ router.post('/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Re
         );
 
         if (session.length === 0) {
-            res.status(404).json({ success: false, error: 'Session not found' });
+            sendNotFound(res, 'Session not found');
             return;
         }
 
         if (!isSessionOwnedByContext(session[0], ownershipContext)) {
             logger.warn(`Cancel unauthorized: Session ${sessionId} owned by ${session[0].clerkId}, requested by ${clerkId}`);
-            res.status(403).json({ success: false, error: 'Unauthorized' });
+            sendForbidden(res, 'Unauthorized');
             return;
         }
 
@@ -218,18 +217,18 @@ router.post('/cancel', authMiddleware, async (req: AuthenticatedRequest, res: Re
         if (success) {
             res.json({ success: true, message: 'Session cancelled' });
         } else {
-            res.status(400).json({ success: false, error: 'Could not cancel session (may be already complete or failed)' });
+            sendError(res, new Error('Could not cancel session (may be already complete or failed)'));
         }
     } catch (error) {
         logger.error('Cancel session error', error);
-        res.status(500).json({ success: false, error: 'Failed to cancel session' });
+        sendError(res, error);
     }
 });
 
 /**
  * REUSABLE REQUEUE HANDLER
  */
-async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionIdFromPath?: string) {
+async function requeueAnalysisSession(req: AuthenticatedRequest, res: Response, sessionIdFromPath?: string) {
     try {
         const clerkId = req.clerkId!;
         const ownershipContext = await resolveSessionOwnershipContext(clerkId);
@@ -238,7 +237,7 @@ async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionId
             (req.query.sessionId as string);
 
         if (!sessionId) {
-            res.status(400).json({ success: false, error: 'sessionId is required' });
+            sendValidationError(res, 'sessionId is required');
             return;
         }
 
@@ -248,12 +247,12 @@ async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionId
         );
 
         if (session.length === 0) {
-            res.status(404).json({ success: false, error: 'Session not found' });
+            sendNotFound(res, 'Session not found');
             return;
         }
 
         if (!isSessionOwnedByContext(session[0], ownershipContext)) {
-            res.status(403).json({ success: false, error: 'Unauthorized' });
+            sendForbidden(res, 'Unauthorized');
             return;
         }
 
@@ -303,7 +302,7 @@ async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionId
                 expectedStatus: 'pending',
                 actualStatus: verifySession[0]?.status
             });
-            res.status(500).json({ success: false, error: 'Failed to reset session state' });
+            sendError(res, new Error('Failed to reset session state'));
             return;
         }
 
@@ -318,7 +317,7 @@ async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionId
                     .set({ status: 'failed', errorMessage: queueResult.error })
                     .where(eq(sessions.id, sessionId))
             );
-            res.status(503).json({ success: false, error: queueResult.error });
+            sendError(res, new Error(queueResult.error || 'Failed to queue'));
             return;
         }
 
@@ -337,7 +336,7 @@ async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionId
         });
     } catch (error) {
         logger.error('Requeue error', error);
-        res.status(500).json({ success: false, error: 'Failed to restart analysis' });
+        sendError(res, error);
     }
 }
 
@@ -345,15 +344,18 @@ async function handleRequeue(req: AuthenticatedRequest, res: Response, sessionId
  * POST /api/queue/requeue - Modern endpoint
  */
 router.post('/requeue', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
-    return handleRequeue(req, res);
+    return requeueAnalysisSession(req, res);
 });
 
 /**
  * POST /api/sessions/:id/requeue - LEGACY BRIDGE
+ * @deprecated Use POST /api/queue/requeue instead. Remove after verifying zero traffic for 3+ months.
+ * Last deprecated: May 2026. Monitored via structured logger key: [LEGACY_REQUEUE].
  * Used by older frontend builds that haven't been redeployed yet.
  */
 router.post('/:sessionId/requeue', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
-    return handleRequeue(req, res, req.params.sessionId);
+    logger.info('[LEGACY_REQUEUE] Legacy requeue bridge used', { sessionId: req.params.sessionId, clerkId: req.clerkId?.slice(0, 12) });
+    return requeueAnalysisSession(req, res, req.params.sessionId);
 });
 
 export default router;

@@ -1,74 +1,38 @@
 /**
  * Worker Runtime Package
  * Shared runtime for standalone worker and inline processing
- * 
+ *
  * This package provides the core worker runtime that can be used by both
  * the API (for inline processing) and the standalone worker.
  */
 
+import type {
+  WorkerDependencies,
+  WorkerInitializationResult,
+  WorkerRuntime,
+  WorkerRuntimeOptions,
+  WorkerRuntimeStatus,
+  WorkerStopResult,
+} from './types.js';
+
+// Re-export shared types for consumers
+export type {
+  WorkerDependencies,
+  WorkerInitializationResult,
+  WorkerRuntime,
+  WorkerRuntimeOptions,
+  WorkerRuntimeStatus,
+  WorkerStopResult,
+  RecoveryResult,
+  QueueJob,
+  QueueStatus,
+  WorkerConfig,
+  JobProcessor,
+} from './types.js';
+
 // Default configuration
 const DEFAULT_POLL_INTERVAL_MS = 2000;
 const DEFAULT_DRAIN_TIMEOUT_MS = 30000;
-
-// ═════════════════════════════════════════════════════════════════════════════
-// TYPE DEFINITIONS
-// ═════════════════════════════════════════════════════════════════════════════
-
-export interface WorkerRuntimeOptions {
-  pollIntervalMs?: number;
-}
-
-export interface WorkerInitializationResult {
-  pollIntervalMs: number;
-  recoveredJobs: number;
-}
-
-export interface WorkerStopResult {
-  drained: boolean;
-  activeJobs: number;
-  waitedMs: number;
-}
-
-export interface WorkerRuntimeStatus {
-  initialized: boolean;
-  shutdownRequested: boolean;
-  activeJobs: number;
-  running: boolean;
-}
-
-export interface RecoveryResult {
-  recoveredJobs: number;
-  abandonedAttempts: number;
-}
-
-export interface WorkerDependencies {
-  pollIntervalMs?: number;
-  initialize?: () => Promise<void>;
-  processJob: () => Promise<void>;
-  getActiveCount: () => number;
-  drain?: (timeoutMs: number) => Promise<void>;
-  recover: () => Promise<RecoveryResult>;
-}
-
-export interface WorkerRuntime {
-  initialize(options?: WorkerRuntimeOptions): Promise<WorkerInitializationResult>;
-  runLoop(): Promise<void>;
-  stop(options?: { drainTimeoutMs?: number }): Promise<WorkerStopResult>;
-  getStatus(): WorkerRuntimeStatus;
-  on(event: string, listener: (...args: unknown[]) => void): void;
-  emit(event: string, ...args: unknown[]): void;
-}
-
-export interface QueueJob {
-  id: string;
-  sessionId: string;
-  userId: string;
-  payload: Record<string, unknown>;
-  attempt: number;
-  maxAttempts: number;
-}
-
-export type JobProcessor = (job: QueueJob, signal: AbortSignal) => Promise<void>;
 
 // ═════════════════════════════════════════════════════════════════════════════
 // WORKER RUNTIME FACTORY
@@ -76,7 +40,7 @@ export type JobProcessor = (job: QueueJob, signal: AbortSignal) => Promise<void>
 
 /**
  * Create a new worker runtime instance
- * 
+ *
  * This factory function creates a runtime with the provided dependencies,
  * making it independent of any specific implementation details.
  */
@@ -95,10 +59,6 @@ export function createWorkerRuntime(deps: WorkerDependencies): WorkerRuntime {
       state.shutdownRequested = false;
       state.pollIntervalMs = options.pollIntervalMs ?? deps.pollIntervalMs ?? DEFAULT_POLL_INTERVAL_MS;
 
-      console.log('[WORKER-RUNTIME] Initializing...', {
-        pollIntervalMs: state.pollIntervalMs,
-      });
-
       // Run custom initialization if provided
       if (deps.initialize) {
         await deps.initialize();
@@ -116,12 +76,6 @@ export function createWorkerRuntime(deps: WorkerDependencies): WorkerRuntime {
     },
 
     async runLoop(): Promise<void> {
-      if (!deps.processJob) {
-        throw new Error('[WORKER-RUNTIME] No processJob function provided');
-      }
-
-      console.log('[WORKER-RUNTIME] Starting worker loop');
-
       while (state.shouldRunLoop) {
         try {
           // Wait for poll interval
@@ -138,16 +92,12 @@ export function createWorkerRuntime(deps: WorkerDependencies): WorkerRuntime {
           // Continue loop - don't crash on transient errors
         }
       }
-
-      console.log('[WORKER-RUNTIME] Worker loop ended');
     },
 
     async stop(options: { drainTimeoutMs?: number } = {}): Promise<WorkerStopResult> {
       const drainTimeout = options.drainTimeoutMs ?? DEFAULT_DRAIN_TIMEOUT_MS;
       state.shutdownRequested = true;
       state.shouldRunLoop = false;
-
-      console.log('[WORKER-RUNTIME] Stopping worker...', { drainTimeoutMs: drainTimeout });
 
       const startTime = Date.now();
 
@@ -165,12 +115,6 @@ export function createWorkerRuntime(deps: WorkerDependencies): WorkerRuntime {
       const activeJobs = deps.getActiveCount();
       const drained = activeJobs === 0;
 
-      console.log('[WORKER-RUNTIME] Worker stopped', {
-        drained,
-        activeJobs,
-        waitedMs,
-      });
-
       return {
         drained,
         activeJobs,
@@ -186,46 +130,5 @@ export function createWorkerRuntime(deps: WorkerDependencies): WorkerRuntime {
         running: state.shouldRunLoop && !state.shutdownRequested,
       };
     },
-
-    on(_event: string, _listener: (...args: unknown[]) => void): void {
-      // Event subscription (for future use)
-    },
-
-    emit(_event: string, ....args: unknown[]): void {
-      // Event emission (for future use)
-    },
   };
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
-// LEGACY EXPORTS (DEPRECATED - for backward compatibility)
-// ═════════════════════════════════════════════════════════════════════════════
-
-export async function initializeWorkerRuntime(): Promise<never> {
-  throw new Error('[WORKER-RUNTIME] Use createWorkerRuntime() instead');
-}
-
-export async function runStandaloneWorkerLoop(): Promise<never> {
-  throw new Error('[WORKER-RUNTIME] Use createWorkerRuntime().runLoop() instead');
-}
-
-export async function stopStandaloneWorker(): Promise<never> {
-  throw new Error('[WORKER-RUNTIME] Use createWorkerRuntime().stop() instead');
-}
-
-export function getWorkerRuntimeStatus(): WorkerRuntimeStatus {
-  return {
-    initialized: false,
-    shutdownRequested: false,
-    activeJobs: 0,
-    running: false,
-  };
-}
-
-export async function startStandaloneWorker(): Promise<never> {
-  throw new Error('[WORKER-RUNTIME] Use createWorkerRuntime() instead');
-}
-
-export function getActiveQueueCount(): number {
-  return 0;
 }

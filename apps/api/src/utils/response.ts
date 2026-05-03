@@ -8,9 +8,6 @@
 import type { Response } from 'express';
 import { AppError, getErrorResponse, getErrorStatusCode } from '../errors/index.js';
 
-// ═════════════════════════════════════════════════════════════════════════════
-// RESPONSE TYPES
-// ═════════════════════════════════════════════════════════════════════════════
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -39,9 +36,6 @@ export interface PaginatedData<T> {
   limit: number;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// SUCCESS RESPONSES
-// ═════════════════════════════════════════════════════════════════════════════
 
 export function sendSuccess<T>(
   res: Response,
@@ -73,9 +67,6 @@ export function sendNoContent(res: Response): void {
   res.status(204).send();
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// PAGINATED RESPONSES
-// ═════════════════════════════════════════════════════════════════════════════
 
 export function sendPaginated<T>(
   res: Response,
@@ -96,9 +87,6 @@ export function sendPaginated<T>(
   });
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// ERROR RESPONSES
-// ═════════════════════════════════════════════════════════════════════════════
 
 export function sendError(
   res: Response,
@@ -290,9 +278,6 @@ export function sendServiceUnavailable(
   res.status(503).json(response);
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// QUEUE-SPECIFIC RESPONSES
-// ═════════════════════════════════════════════════════════════════════════════
 
 export interface QueueStatusResponse {
   sessionId: string;
@@ -320,9 +305,6 @@ export function sendQueueStatus(
   sendSuccess(res, status, 200, { requestId });
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// BTR-SPECIFIC RESPONSES
-// ═════════════════════════════════════════════════════════════════════════════
 
 export interface BtrResultResponse {
   sessionId: string;

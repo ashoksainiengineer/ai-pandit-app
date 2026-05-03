@@ -9,7 +9,7 @@ test.describe('Form Validation & Integrity', () => {
         });
         await page.setViewportSize({ width: 1280, height: 1200 });
         await page.goto('/rectify?new=true');
-        await page.waitForTimeout(500);
+        await page.waitForLoadState('networkidle');
     });
 
     test('Step 1: should show specific errors for missing birth details', async ({ page }) => {
@@ -71,7 +71,7 @@ test.describe('Form Validation & Integrity', () => {
                 await option.click();
                 const next = page.getByRole('button', { name: 'Next', exact: true }).or(page.getByRole('button', { name: 'See Results', exact: true }));
                 await next.click();
-                await page.waitForTimeout(400);
+                await page.waitForSelector('button.w-full.text-left, button:has-text("Confirm & Continue")', { state: 'visible', timeout: 5000 });
             } else {
                 break;
             }

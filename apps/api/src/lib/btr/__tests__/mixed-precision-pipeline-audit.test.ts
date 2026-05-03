@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
-import { processSecondsPrecisionBTR } from '../../seconds-precision-btr.js';
+import { executeSecondsPrecisionRectification } from '../../seconds-precision-btr.js';
 import * as aiClient from '../../ai-client.js';
 import { cleanup, initEphemerisProvider } from '../../ephemeris.js';
 import type { SecondsPrecisionInput } from '@ai-pandit/shared';
@@ -63,8 +63,8 @@ describe('Mixed-Precision Pipeline Audit (Stage payload continuity)', () => {
   it('preserves full mixed-precision life-event context and VSL payload across Stage 2/4/6 prompts', async () => {
     const capturedPrompts: CapturedPrompt[] = [];
 
-    const callAISpy = vi.spyOn(aiClient, 'callAIWithStream').mockImplementation(
-      async (_sessionId: string, stage: number, _systemPrompt: string, userPrompt: string) => {
+    const callAISpy = vi.spyOn(aiClient as any, 'callAIWithStream').mockImplementation(
+      (async (_sessionId: string, stage: number, _systemPrompt: string, userPrompt: string) => {
         capturedPrompts.push({ stage, prompt: userPrompt });
 
         if (stage === 2 || stage === 4) {
@@ -93,7 +93,7 @@ describe('Mixed-Precision Pipeline Audit (Stage payload continuity)', () => {
         }
 
         return { success: false, error: `Unsupported stage ${stage}` } as any;
-      }
+      }) as any
     );
 
     const input: SecondsPrecisionInput = {
@@ -178,7 +178,7 @@ describe('Mixed-Precision Pipeline Audit (Stage payload continuity)', () => {
       abortSignal: new AbortController().signal,
     };
 
-    const result = await processSecondsPrecisionBTR(input);
+    const result = await executeSecondsPrecisionRectification(input);
 
     expect(result.stagesCompleted).toBe(6);
     expect(capturedPrompts.length).toBeGreaterThan(0);
@@ -258,9 +258,6 @@ ${stageSummary}
 See JSON details: \`${jsonPath}\`
 `;
     writeFileSync(mdPath, markdown, 'utf8');
-
-    console.log('[MIXED-PRECISION-AUDIT-REPORT]', JSON.stringify(stageReports, null, 2));
-    console.log('[MIXED-PRECISION-AUDIT-FILES]', JSON.stringify({ jsonPath, mdPath }));
 
     callAISpy.mockRestore();
   }, 180000);

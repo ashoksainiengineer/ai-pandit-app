@@ -31,6 +31,8 @@
   },
   "include": [
     "next-env.d.ts",
+    "vitest.setup.ts",
+    "__tests__/setup.ts",
     "app/**/*.ts",
     "app/**/*.tsx",
     "lib/**/*.ts",
@@ -47,9 +49,6 @@
     "drizzle.config.ts",
     "reset-session.ts",
     "debug*.ts",
-    "inspect*.ts",
-    "**/__tests__/**",
-    "**/*.test.ts",
-    "**/*.test.tsx"
+    "inspect*.ts"
   ]
 }

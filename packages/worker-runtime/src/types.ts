@@ -68,13 +68,8 @@ export interface WorkerRuntime {
   
   /** Get current runtime status */
   getStatus(): WorkerRuntimeStatus;
-  
-  /** Subscribe to events */
-  on(event: string, listener: (...args: unknown[]) => void): void;
-  
-  /** Emit events */
-  emit(event: string, ...args: unknown[]): void;
 }
+
 
 export interface QueueJob {
   id: string;

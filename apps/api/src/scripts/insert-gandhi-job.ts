@@ -6,7 +6,6 @@
 import { db } from '@ai-pandit/db';
 import { sessions, jobs } from '@ai-pandit/db/schema';
 import crypto from 'node:crypto';
-import { sql } from 'drizzle-orm';
 
 const GANDHI_PROFILE = {
     fullName: 'Mohandas Karamchand Gandhi',

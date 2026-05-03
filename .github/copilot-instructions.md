@@ -4,9 +4,10 @@ This is a Turborepo monorepo for a Vedic Astrology Birth Time Rectification (BTR
 
 ## Structure
 - `apps/web` — Next.js 15 frontend (React 18, TailwindCSS, Zustand, Clerk Auth)
-- `apps/api` — Express.js backend (BTR engine, Swiss Ephemeris, DeepSeek AI, Drizzle ORM)
-- `packages/db` — Shared Drizzle schema for Turso (libSQL)
+- `apps/api` — Express.js backend (BTR engine, Skyfield, DeepSeek AI, Drizzle ORM)
+- `packages/db` — Shared Drizzle schema for Neon Postgres
 - `packages/shared` — Shared TypeScript types and Zod schemas
+- `apps/worker` — Background job processor
 
 ## Rules
 - TypeScript strict mode. No `any` types.

@@ -24,12 +24,10 @@ vi.mock('./logger.js', () => ({
 }));
 
 import {
-    generateCacheKey,
-    lookupCalculation,
-    storeCalculation,
-    getCacheStats,
-    clearExpiredCache,
-    clearSessionCache,
+  generateCacheKey,
+  lookupCalculation,
+  storeCalculation,
+  clearSessionCache
 } from '../calculation-cache.js';
 import { db } from '@ai-pandit/db';
 
@@ -76,7 +74,7 @@ describe('Calculation Cache - Unit Tests', () => {
 
     describe('lookupCalculation', () => {
         it('should return { found: false } when no cache entry exists', async () => {
-            vi.mocked(db.limit).mockResolvedValueOnce([]);
+            (db as any).limit.mockResolvedValueOnce([]);
             const result = await lookupCalculation('2000-01-01T12:00:00', 28.6139, 77.2090, 'Asia/Kolkata');
             expect(result.found).toBe(false);
             expect(result.data).toBeUndefined();
@@ -95,7 +93,7 @@ describe('Calculation Cache - Unit Tests', () => {
                 expiresAt: new Date(Date.now() + 86400000).toISOString(),
                 createdAt: new Date().toISOString(),
             };
-            vi.mocked(db.limit).mockResolvedValueOnce([mockEntry]);
+            (db as any).limit.mockResolvedValueOnce([mockEntry]);
 
             const result = await lookupCalculation('2000-01-01T12:00:00', 28.6139, 77.2090, 'Asia/Kolkata');
             expect(result.found).toBe(true);
@@ -115,7 +113,7 @@ describe('Calculation Cache - Unit Tests', () => {
                 expiresAt: null,
                 createdAt: new Date().toISOString(),
             };
-            vi.mocked(db.limit).mockResolvedValueOnce([mockEntry]);
+            (db as any).limit.mockResolvedValueOnce([mockEntry]);
 
             await lookupCalculation('2000-01-01T12:00:00', 28.6139, 77.2090, 'Asia/Kolkata');
 
@@ -124,7 +122,7 @@ describe('Calculation Cache - Unit Tests', () => {
         });
 
         it('should return { found: false } on database error', async () => {
-            vi.mocked(db.limit).mockRejectedValueOnce(new Error('DB connection lost'));
+            (db as any).limit.mockRejectedValueOnce(new Error('DB connection lost'));
 
             const result = await lookupCalculation('2000-01-01T12:00:00', 28.6139, 77.2090, 'Asia/Kolkata');
             expect(result.found).toBe(false);
@@ -146,7 +144,7 @@ describe('Calculation Cache - Unit Tests', () => {
         });
 
         it('should not throw on insert failure (non-critical)', async () => {
-            vi.mocked(db.values).mockRejectedValueOnce(new Error('Insert failed'));
+            vi.mocked((db as any).values).mockRejectedValueOnce(new Error('Insert failed'));
             await expect(
                 storeCalculation('sess-1', '2000-01-01T12:00:00', 28.6139, 77.209, 'Asia/Kolkata', {})
             ).resolves.not.toThrow();

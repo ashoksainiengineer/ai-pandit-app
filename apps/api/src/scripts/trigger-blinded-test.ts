@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import { MODI_BLINDED_PROFILE } from '../lib/btr/__tests__/dataset/modi-blinded-profile.js';
 
 const API_URL = 'http://localhost:3001';

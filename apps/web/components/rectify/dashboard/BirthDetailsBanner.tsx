@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { motion } from 'framer-motion';
 import { User, Calendar, Clock, MapPin } from 'lucide-react';
 import { BirthData } from './types';

@@ -2,7 +2,7 @@ import { db, executeWithRetry } from '@ai-pandit/db';
 import { artifacts } from '@ai-pandit/db/schema';
 import { eq, lt } from 'drizzle-orm';
 import { config } from '../config/index.js';
-import { logger } from '../lib/logger.js';
+import { logger } from '../utils/logger.js';
 import { deleteArtifactObject } from '../lib/jobs/artifact-storage.js';
 
 function getArgValue(flag: string): string | null {

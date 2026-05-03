@@ -6,7 +6,7 @@
  * replacing in-memory buffers with a distributed, persistent store.
  */
 
-import { logger } from './logger.js';
+import { logger } from '../utils/logger.js';
 
 // Redis client interface (will be injected)
 interface RedisClient {

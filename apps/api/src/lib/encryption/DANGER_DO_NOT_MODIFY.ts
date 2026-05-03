@@ -13,7 +13,7 @@
  */
 
 import crypto from 'crypto';
-import { logger } from '../logger.js';
+import { logger } from '../../utils/logger.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // V3 CONFIGURATION (NIST Standard)
@@ -65,15 +65,15 @@ export function encryptData(plaintext: string, userId: string, secret: string): 
         const iv = crypto.randomBytes(V4_CONFIG.IV_LENGTH);
         const derivedKey = deriveKeyV4(secret, userId, salt);
 
-        const cipher = crypto.createCipheriv(V4_CONFIG.ALGORITHM, derivedKey, iv, {
+const cipher = crypto.createCipheriv(V4_CONFIG.ALGORITHM, derivedKey, iv, {
             authTagLength: V4_CONFIG.AUTH_TAG_LENGTH
-        } as any) as any;
+        } as crypto.CipherGCMOptions);
 
         // User payload is strictly verified during tag validation
-        cipher.setAAD(Buffer.from(userId, 'utf8'));
+        (cipher as crypto.CipherGCM).setAAD(Buffer.from(userId, 'utf8'));
 
         const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
-        const authTag = cipher.getAuthTag();
+        const authTag = (cipher as crypto.CipherGCM).getAuthTag();
 
         // Format: v4:salt(base64):iv(base64):authTag(base64):ciphertext(base64)
         return [
@@ -115,10 +115,10 @@ export function decryptData(payload: string, userId: string, secrets: string | s
                 const derivedKey = deriveKeyV4(secret, userId, salt);
                 const decipher = crypto.createDecipheriv(V4_CONFIG.ALGORITHM, derivedKey, iv, {
                     authTagLength: V4_CONFIG.AUTH_TAG_LENGTH
-                } as any) as any;
+                } as crypto.CipherGCMOptions);
 
-                decipher.setAAD(Buffer.from(userId, 'utf8'));
-                decipher.setAuthTag(authTag);
+                (decipher as crypto.DecipherGCM).setAAD(Buffer.from(userId, 'utf8'));
+                (decipher as crypto.DecipherGCM).setAuthTag(authTag);
                 return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
             }
             // 🚀 Handle v3
@@ -133,11 +133,10 @@ export function decryptData(payload: string, userId: string, secrets: string | s
                 const ciphertext = Buffer.from(ciphertextB64, 'base64');
 
                 const derivedKey = deriveKeyV3(secret, salt);
-                const decipher = crypto.createDecipheriv(V3_CONFIG.ALGORITHM, derivedKey, iv, {
-                    authTagLength: V3_CONFIG.AUTH_TAG_LENGTH
-                } as any) as any;
+                const decipherOptions3: crypto.CipherGCMOptions = { authTagLength: V3_CONFIG.AUTH_TAG_LENGTH };
+                const decipher = crypto.createDecipheriv(V3_CONFIG.ALGORITHM, derivedKey, iv, decipherOptions3);
 
-                decipher.setAuthTag(authTag);
+                (decipher as crypto.DecipherGCM).setAuthTag(authTag);
                 return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
             }
 
@@ -161,7 +160,7 @@ export function decryptData(payload: string, userId: string, secrets: string | s
 
                 // Legacy v2 used simple PBKDF2 or direct key
                 const key = crypto.createHash('sha256').update(secret).digest();
-                const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv) as any;
+                const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
                 decipher.setAuthTag(authTag);
                 return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
             }
@@ -177,7 +176,7 @@ export function decryptData(payload: string, userId: string, secrets: string | s
                 return decrypted;
             }
         } catch (err) {
-            // Continue trying other secrets
+            logger.debug('Decryption attempt failed for this secret/version', { error: (err as Error)?.message || err });
             continue;
         }
     }
@@ -211,7 +210,11 @@ export function encryptObject<T extends Record<string, unknown>>(obj: T, userId:
 
 export function decryptObject<T extends Record<string, unknown>>(encryptedString: string, userId: string, secrets: string | string[]): T {
     const plaintext = decryptData(encryptedString, userId, secrets);
-    return JSON.parse(plaintext) as T;
+    try {
+        return JSON.parse(plaintext) as T;
+    } catch (error) {
+        throw new Error('Decrypted data is not valid JSON');
+    }
 }
 
 export function isEncrypted(data: string | null | undefined): boolean {

@@ -5,7 +5,13 @@
  * Uses real timers to match implementation behavior.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach
+} from 'vitest';
 import { EventEmitter } from 'events';
 import { 
   sessionEvents, 

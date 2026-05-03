@@ -8,11 +8,13 @@ import { checkDatabaseHealth, db } from '@ai-pandit/db';
 import { jobs } from '@ai-pandit/db/schema';
 import { count, eq, sql } from 'drizzle-orm';
 import { config } from '../config/index.js';
-import { logger } from '../lib/logger.js';
+import { logger } from '../utils/logger.js';
 import { getEphemerisProviderStatus } from '../lib/ephemeris.js';
 import { getQueueDriver } from '../lib/queue/index.js';
 import { getSloAlerts, getSloSnapshot } from '../lib/observability/slo-monitor.js';
 import { getOtlpExporterStats } from '../lib/observability/otlp-exporter.js';
+import { getCircuitSnapshots } from '../lib/resilience/dependency-circuit-breaker.js';
+import { getQueueRecoveryTelemetry as _getQueueRecoveryTelemetry } from '../lib/metrics-reporter.js';
 
 const router = Router();
 
@@ -249,11 +251,7 @@ function checkMemoryComponent(): ComponentStatus {
 }
 
 import { getActiveSseCount } from './stream.js';
-import {
-  getActiveQueueCount,
-  getQueueCircuitBreakerStatus,
-  getQueueRecoveryTelemetry,
-} from '../lib/queue-manager.js';
+import { getActiveProcessingCount } from '../lib/queue-manager.js';
 
 async function collectMetrics(): Promise<Record<string, unknown>> {
   const queueDriver = getQueueDriver();
@@ -290,7 +288,7 @@ async function collectMetrics(): Promise<Record<string, unknown>> {
 
   const queueDepth = (activeByStatus.queued ?? 0) + (activeByStatus.retrying ?? 0);
   const activeJobCount = (activeByStatus.running ?? 0) + (activeByStatus.retrying ?? 0);
-  const recoveryTelemetry = getQueueRecoveryTelemetry();
+  const recoveryTelemetry = _getQueueRecoveryTelemetry();
   const otlpStats = getOtlpExporterStats();
   const sloConfig = config.observability?.slo ?? {
     windowMs: 300000,
@@ -328,8 +326,8 @@ async function collectMetrics(): Promise<Record<string, unknown>> {
     },
     realtime: {
       activeSseConnections: getActiveSseCount(),
-      activeQueueProcessing: getActiveQueueCount(),
-      circuitBreakers: getQueueCircuitBreakerStatus(),
+      activeQueueProcessing: getActiveProcessingCount(),
+          circuitBreakers: getCircuitSnapshots(),
       recovery: recoveryTelemetry,
       otlp: otlpStats,
     },

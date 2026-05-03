@@ -3,7 +3,7 @@ import request from 'supertest';
 import express from 'express';
 import sessionRouter from '../sessions.js';
 import { db } from '@ai-pandit/db';
-import { encryptData, safeDecrypt } from '../../lib/encryption/index.js';
+import { safeDecrypt } from '../../lib/encryption/index.js';
 
 // Setup Mock Express App
 const app = express();
@@ -137,8 +137,8 @@ describe('Physical and Forensic Traits API Integration', () => {
         expect(capturedUpdateData).toBeDefined();
         
         // Decrypt to ensure strings match exactly
-        const decryptedPhysical = JSON.parse(safeDecrypt(capturedUpdateData.physicalTraits, mockClerkId));
-        const decryptedForensic = JSON.parse(safeDecrypt(capturedUpdateData.forensicTraits, mockClerkId));
+        const decryptedPhysical = JSON.parse(safeDecrypt(capturedUpdateData.physicalTraits, mockClerkId)!);
+        const decryptedForensic = JSON.parse(safeDecrypt(capturedUpdateData.forensicTraits, mockClerkId)!);
 
         // Assert deeply nested physical properties
         expect(decryptedPhysical.build).toBe("athletic");

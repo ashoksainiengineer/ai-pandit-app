@@ -345,7 +345,7 @@ describe('getSessionProgress', () => {
     });
 
     it('should fallback to DB if no active instance', async () => {
-        (db.limit as any).mockResolvedValueOnce([{
+        (db as any).limit.mockResolvedValueOnce([{
             progressData: JSON.stringify({ currentStep: 5, percentage: 70 })
         }]);
         const progress = await getSessionProgress('db-session');
@@ -354,13 +354,13 @@ describe('getSessionProgress', () => {
     });
 
     it('should return null if not found anywhere', async () => {
-        (db.limit as any).mockResolvedValueOnce([]);
+        (db as any).limit.mockResolvedValueOnce([]);
         const progress = await getSessionProgress('nonexistent');
         expect(progress).toBeNull();
     });
 
     it('should return null on DB error', async () => {
-        (db.limit as any).mockRejectedValueOnce(new Error('DB down'));
+        (db as any).limit.mockRejectedValueOnce(new Error('DB down'));
         const progress = await getSessionProgress('error-session');
         expect(progress).toBeNull();
     });

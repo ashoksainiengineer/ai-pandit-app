@@ -383,6 +383,8 @@ export default function DateInput({
       case 'year_range':
         if (startParts.year && endParts.year) result = validateYearRange(startParts.year, endParts.year);
         break;
+    default:
+      break;
     }
 
     setValidation({

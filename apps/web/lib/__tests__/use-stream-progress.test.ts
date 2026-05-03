@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { useStreamProgress } from '../use-stream-progress';
 
 // Mock EventSource
@@ -14,61 +14,40 @@ describe('useStreamProgress', () => {
     vi.clearAllMocks();
   });
 
-  describe('Connection State', () => {
-    it('should initialize with disconnected state', () => {
-      const { result } = renderHook(() => useStreamProgress('test-session'));
-      
-      expect(result.current.connectionState.status).toBe('disconnected');
-    });
-
-    it('should handle connection errors', () => {
-      const { result } = renderHook(() => useStreamProgress('test-session'));
-      
-      act(() => {
-        result.current.connect();
-      });
-
-      expect(result.current.connectionState.status).toBeDefined();
-    });
-
-    it('should disconnect cleanly', () => {
-      const { result } = renderHook(() => useStreamProgress('test-session'));
-      
-      act(() => {
-        result.current.disconnect();
-      });
-
-      expect(result.current.connectionState.status).toBe('disconnected');
-    });
+  it('should return connection state', () => {
+    const { result } = renderHook(() => useStreamProgress('test-session'));
+    
+    expect(result.current.connectionState).toBeDefined();
+    expect(result.current.connectionState.status).toBeDefined();
+    expect(result.current.connectionState.url).toBeDefined();
+    expect(result.current.connectionState.lastError).toBeDefined();
   });
 
-  describe('Progress Tracking', () => {
-    it('should track progress updates', () => {
-      const { result } = renderHook(() => useStreamProgress('test-session'));
-      
-      expect(result.current.progress).toBeDefined();
-      expect(typeof result.current.progress).toBe('object');
-    });
-
-    it('should calculate percentage correctly', () => {
-      const { result } = renderHook(() => useStreamProgress('test-session'));
-      
-      expect(result.current.percentage).toBeGreaterThanOrEqual(0);
-      expect(result.current.percentage).toBeLessThanOrEqual(100);
-    });
+  it('should transition to connecting when session provided', () => {
+    const { result } = renderHook(() => useStreamProgress('test-session'));
+    
+    expect(result.current.connectionState.status).toBe('connecting');
   });
 
-  describe('Error Handling', () => {
-    it('should handle stream errors', () => {
-      const { result } = renderHook(() => useStreamProgress('test-session'));
-      
-      expect(result.current.error).toBeNull();
-    });
+  it('should reset to idle on null session', () => {
+    const { result, rerender } = renderHook(
+      ({ sessionId }) => useStreamProgress(sessionId),
+      { initialProps: { sessionId: 'test-session' as string | null } }
+    );
+    
+    rerender({ sessionId: null });
+    expect(result.current.connectionState.status).toBe('idle');
+  });
 
-    it('should retry on connection failure', () => {
-      const { result } = renderHook(() => useStreamProgress('test-session'));
-      
-      expect(result.current.retryCount).toBeDefined();
-    });
+  it('should update state when session changes', () => {
+    const { result, rerender } = renderHook(
+      ({ sessionId }) => useStreamProgress(sessionId),
+      { initialProps: { sessionId: null as string | null } }
+    );
+    
+    expect(result.current.connectionState.status).toBe('idle');
+    
+    rerender({ sessionId: 'test-session' });
+    expect(result.current.connectionState.status).toBe('connecting');
   });
 });

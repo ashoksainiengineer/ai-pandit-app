@@ -391,7 +391,7 @@ function calculateWeight(level: 'high' | 'medium' | 'low', reliability: number):
 }
 
 function generateEventId(): string {
-  return `evt_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+  return `evt_${Date.now()}_${crypto.randomUUID()}`;
 }
 
 function generateRecommendations(scoredEvents: ScoredEvent[]): string[] {

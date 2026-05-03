@@ -14,7 +14,7 @@ import { formatLifeEventForAI } from './life-event-formatter.js';
 import { buildForensicContext } from './forensic-context.js';
 import { randomSort } from '../../utils/index.js';
 import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';
-import { logger } from '../../logger.js';
+import { logger } from '../../../utils/logger.js';
 import { formatCandidateVSL, EnhancedCandidate } from './vsl-formatter.js';
 import { buildDuplicateTimeSet, getCandidateReference } from '../candidate-reference.js';
 

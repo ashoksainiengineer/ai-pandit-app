@@ -1,6 +1,6 @@
 'use client';
 
-import React, { memo, useMemo, useState, useCallback } from 'react';
+import { memo, useMemo, useState, useCallback } from 'react';
 import { Trophy, Zap, ChevronDown, ChevronUp, Info, Activity, Loader2, Map as MapIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CandidateScore } from '@/lib/store/stream-types';

@@ -41,11 +41,11 @@ import {
     _getDynamicSurvivors,
     _injectSafetyNetCandidates,
 } from './time-offset-manager.js';
-import { logger } from './logger.js';
+import { logger } from '../utils/logger.js';
 import { ProgressTracker, ANALYSIS_STEPS } from './progress-tracker.js';
 import { SecondsPrecisionInput, SecondsPrecisionResult } from '@ai-pandit/shared';
 import { throwIfCancelled, isCancellationError } from './cancellation-manager.js';
-import { _emitCandidateScore, _emitAIContext, _emitCalculationLog, emitStageStats } from './session-events.js';
+import { emitCandidateScore, emitAIContext, emitCalculationLog, emitStageStats } from './session-events.js';
 import {
     _enhanceCandidateWithPrecisionData,
     _generatePrecisionAIPrompt,
@@ -85,9 +85,7 @@ import {
     stage6FinalPrecision,
 } from './btr/stages/index.js';
 
-// ═════════════════════════════════════════════════════════════════════════════
-// MAIN PROCESSING FUNCTION
-// ═════════════════════════════════════════════════════════════════════════════
+// Main Processing Function
 
 async function initializeBTRSession(
     input: SecondsPrecisionInput,
@@ -154,7 +152,7 @@ async function initializeBTRSession(
  * @param input - BTR input parameters including birth data, life events, and forensic traits
  * @returns Final rectified birth time with accuracy metrics
  */
-export async function processSecondsPrecisionBTR(
+export async function executeSecondsPrecisionRectification(
     input: SecondsPrecisionInput
 ): Promise<SecondsPrecisionResult> {
     const startTime = Date.now();
@@ -370,25 +368,9 @@ async function buildFinalBTResult(
 }
 
 
-// ═════════════════════════════════════════════════════════════════════════════
-// EXPORTS
-// ═════════════════════════════════════════════════════════════════════════════
+// Exports
 
 export { MAX_BATCH_SIZE, SURVIVORS_PER_BATCH };
 export type { CandidateDataPackage, StageResult, TournamentRound, FinalVerdict } from '@ai-pandit/shared';
 export { buildCandidateDataPackage } from './btr/data-package-builder.js';
 
-// Re-export for backward compatibility
-export {
-    formatLifeEventForAI,
-    buildForensicContext,
-    buildForensicDNASummary,
-    getBatchPrompt,
-    getDeepAnalysisPrompt,
-    getFinalPrecisionPrompt,
-} from './btr/prompts/index.js';
-
-export {
-    extractBatchSurvivors,
-    extractFinalVerdict,
-} from './btr/extractors/index.js';

@@ -167,7 +167,7 @@ describe('request context + tracing + performance middleware', () => {
   it('tracingMiddleware attaches trace context and parses baggage', () => {
     const { req, res } = makeReqRes();
     req.requestId = 'req-1';
-    req.logger = requestLogger;
+    req.logger = requestLogger as any;
     req.headers['x-baggage'] = 'tenant=acme,plan=premium%20pro';
 
     const next = vi.fn() as unknown as NextFunction;
@@ -185,7 +185,7 @@ describe('request context + tracing + performance middleware', () => {
   it('performanceMiddleware sets x-response-time header on json response', () => {
     const { req, res } = makeReqRes();
     req.requestId = 'req-perf';
-    req.logger = requestLogger;
+    req.logger = requestLogger as any;
     req.startTime = Date.now() - 25;
 
     const next = vi.fn() as unknown as NextFunction;

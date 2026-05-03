@@ -31,6 +31,5 @@
         "src/scripts/**/*",
         "node_modules",
         "dist",
-        "**/__tests__/**"
     ]
 }

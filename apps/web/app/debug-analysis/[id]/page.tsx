@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, memo, useRef, useMemo, useId, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, memo, useRef, useMemo, useId } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -27,10 +27,11 @@ import { useStreamProgress } from '@/lib/use-stream-progress';
 import { useStreamStore } from '@/lib/store/stream-store';
 import { useShallow } from 'zustand/react/shallow';
 import type { CandidateScore } from '@/lib/store/stream-types';
-// import { cancelAnalysis, restartAnalysis } from '@/app/rectify/[id]/actions';
+
 import { logger } from '@/lib/secure-logger';
 import { env } from '@/lib/config';
 import { AnalysisErrorBoundary, SectionErrorBoundary } from '@/components/rectify/AnalysisErrorBoundary';
+import { TestModeProvider } from '@/lib/test-mode-context';
 const AdvancedSignalsDashboard = dynamic(() => import('@/components/rectify/advanced-signals/AdvancedSignalsDashboard'), { ssr: false });
 const UnifiedAIPanel = dynamic(() => import('@/components/rectify/UnifiedAIPanel').then(mod => mod.UnifiedAIPanel), { ssr: false });
 const AnalysisStatusBanner = dynamic(() => import('@/components/rectify/analysis/AnalysisStatusBanner').then(mod => mod.AnalysisStatusBanner), { ssr: false });
@@ -164,13 +165,6 @@ export default function AnalysisPage() {
   const sessionId = params.id as string;
   const pageTitleId = useId();
 
-  useEffect(() => {
-    // 🧪 Force Test Environment Bypass for the Stream hook over SSE
-    if (typeof window !== 'undefined') {
-      (window as any).isTestEnv = true;
-    }
-  }, []);
-
   const { connectionState } = useStreamProgress(sessionId, undefined, undefined);
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -268,17 +262,17 @@ export default function AnalysisPage() {
     }
   }, [isComplete, result, sessionId, connectionState.status]);
 
-  const handleCancel = useCallback(async () => {
+  const cancelActiveAnalysis = useCallback(async () => {
     alert("Cancel disabled in Debug Mode");
     return;
   }, []);
 
-  const handleRestart = useCallback(async () => {
+  const restartAnalysisSession = useCallback(async () => {
     alert("Restart disabled in Debug Mode");
     return;
   }, []);
 
-  const handleStageClick = useCallback((stageId: number) => {
+  const selectAnalysisStage = useCallback((stageId: number) => {
     const el = document.getElementById(`stage-${stageId}`);
     if (el) {
       const headerOffset = 100;
@@ -360,7 +354,8 @@ export default function AnalysisPage() {
   }
 
   return (
-    <AnalysisErrorBoundary sectionName="Analysis Page">
+    <TestModeProvider value={true}>
+      <AnalysisErrorBoundary sectionName="Analysis Page">
       <GlobalStyles />
       <main className="min-h-screen font-sans" style={{ backgroundColor: THEME.bg }} aria-labelledby={pageTitleId}>
 
@@ -418,7 +413,7 @@ export default function AnalysisPage() {
                   <div className="relative">
                     {showCancelConfirm ? (
                       <div className="flex items-center gap-2">
-                        <button onClick={handleCancel} className="px-3 py-1.5 text-xs font-bold text-white bg-red-600 rounded-lg hover:bg-red-700">
+                        <button onClick={cancelActiveAnalysis} className="px-3 py-1.5 text-xs font-bold text-white bg-red-600 rounded-lg hover:bg-red-700">
                           Confirm
                         </button>
                         <button onClick={() => setShowCancelConfirm(false)} className="px-3 py-1.5 text-xs text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200">
@@ -463,7 +458,7 @@ export default function AnalysisPage() {
                   </h2>
                   <p className="mb-6 text-sm text-[#7A756F]">{metadata?.errorMessage || 'The analysis was terminated.'}</p>
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                    <button onClick={handleRestart} disabled={isCancelling} className="px-5 py-2.5 rounded-xl font-bold text-white flex items-center gap-2" style={{ backgroundColor: THEME.success }}>
+                    <button onClick={restartAnalysisSession} disabled={isCancelling} className="px-5 py-2.5 rounded-xl font-bold text-white flex items-center gap-2" style={{ backgroundColor: THEME.success }}>
                       <RefreshCw className={`w-4 h-4 ${isCancelling ? 'animate-spin' : ''}`} /> Restart
                     </button>
                     <Link href="/rectify?new=true" className="px-5 py-2.5 rounded-xl font-semibold border flex items-center gap-2" style={{ borderColor: THEME.border, color: THEME.textPrimary }}>
@@ -530,7 +525,7 @@ export default function AnalysisPage() {
                 aiModel={metadata?.aiModel}
                 activeAIStage={activeAIStage}
                 offsetMinutes={offsetMinutes}
-                onStageClick={handleStageClick}
+                onStageClick={selectAnalysisStage}
               />
             </SectionErrorBoundary>
           )}
@@ -659,6 +654,7 @@ export default function AnalysisPage() {
       </main>
       {/* 🔧 Dev-only: SSE Debug Panel */}
       <SSEDebugPanel />
-    </AnalysisErrorBoundary >
+    </AnalysisErrorBoundary>
+    </TestModeProvider>
   );
 }

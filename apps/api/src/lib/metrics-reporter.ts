@@ -6,7 +6,7 @@ import {
   scheduleJobRetry,
 } from '@ai-pandit/db/jobs';
 import { eq, and, lt, gte, asc } from 'drizzle-orm';
-import { logger } from './logger.js';
+import { logger } from '../utils/logger.js';
 import { jobAttempts, jobs, sessions } from '@ai-pandit/db/schema';
 import { config } from '../config/index.js';
 import { getNextJobEventSequence } from './job-lifecycle.js';
@@ -20,26 +20,34 @@ export interface RecoveryTelemetry {
   alertActive: boolean;
 }
 
-export const recoveryTelemetry: RecoveryTelemetry = {
-  lastRunAt: null,
-  lastRecoveredJobs: 0,
-  lastAbandonedAttempts: 0,
-  totalRecoveredJobs: 0,
-  totalAbandonedAttempts: 0,
-  alertActive: false,
-};
+let _recoveryTelemetry: RecoveryTelemetry | null = null;
+
+function getRecoveryTelemetryInstance(): RecoveryTelemetry {
+  if (!_recoveryTelemetry) {
+    _recoveryTelemetry = {
+      lastRunAt: null,
+      lastRecoveredJobs: 0,
+      lastAbandonedAttempts: 0,
+      totalRecoveredJobs: 0,
+      totalAbandonedAttempts: 0,
+      alertActive: false,
+    };
+  }
+  return _recoveryTelemetry;
+}
 
 export function getQueueRecoveryTelemetry(): RecoveryTelemetry {
-  return { ...recoveryTelemetry };
+  return { ...getRecoveryTelemetryInstance() };
 }
 
 export function updateRecoveryMetrics(recoveredJobs: number, abandonedAttempts: number): void {
-  recoveryTelemetry.lastRunAt = new Date().toISOString();
-  recoveryTelemetry.lastRecoveredJobs = recoveredJobs;
-  recoveryTelemetry.lastAbandonedAttempts = abandonedAttempts;
-  recoveryTelemetry.totalRecoveredJobs += recoveredJobs;
-  recoveryTelemetry.totalAbandonedAttempts += abandonedAttempts;
-  recoveryTelemetry.alertActive =
+  const telemetry = getRecoveryTelemetryInstance();
+  telemetry.lastRunAt = new Date().toISOString();
+  telemetry.lastRecoveredJobs = recoveredJobs;
+  telemetry.lastAbandonedAttempts = abandonedAttempts;
+  telemetry.totalRecoveredJobs += recoveredJobs;
+  telemetry.totalAbandonedAttempts += abandonedAttempts;
+  telemetry.alertActive =
     abandonedAttempts >= (config.queue.recoveryAlertThreshold ?? 1) ||
     recoveredJobs >= (config.queue.recoveryAlertThreshold ?? 1);
 }

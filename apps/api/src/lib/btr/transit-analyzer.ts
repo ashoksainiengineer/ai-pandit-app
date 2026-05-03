@@ -18,7 +18,7 @@ import {
   EVENT_HOUSE_MAP,
   ZODIAC_SIGNS
 } from '@ai-pandit/shared';
-import { logger } from '../logger.js';
+import { logger } from '../../utils/logger.js';
 import { getRepresentativeEventDateTime, resolveEventDateWindow } from './event-date-utils.js';
 
 const ZODIAC = ZODIAC_SIGNS;

@@ -6,7 +6,7 @@
 import { db, executeWithRetry } from '@ai-pandit/db';
 import { sessions, calculations, users } from '@ai-pandit/db/schema';
 import { eq, lt, and, isNotNull } from 'drizzle-orm';
-import { logger } from './logger.js';
+import { logger } from '../utils/logger.js';
 
 interface CleanupResult {
   table: string;

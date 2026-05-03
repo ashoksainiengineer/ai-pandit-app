@@ -1,7 +1,7 @@
 import { beforeAll, describe, it, expect } from 'vitest';
 import request from 'supertest';
 import { createServer } from 'node:http';
-import app from '../server';
+import app from '../server.js';
 
 describe('CORS Configuration', () => {
     let canBindSocket = true;

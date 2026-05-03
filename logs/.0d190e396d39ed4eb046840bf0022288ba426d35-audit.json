@@ -9,6 +9,16 @@
             "date": 1777650376910,
             "name": "/home/ashoksainiengineer/ai-pandit-app/logs/mcp-puppeteer-2026-05-01.log",
             "hash": "bcdc4ea04b714939e24256205f94bffcebd6289b8f74d5ae4cdafa284184df8b"
+        },
+        {
+            "date": 1777726413389,
+            "name": "/home/ashoksainiengineer/ai-pandit-app/logs/mcp-puppeteer-2026-05-02.log",
+            "hash": "4e5ec6131df2bf2360284a636cb931a021c015c66d2fdf1560d46ed69622307e"
+        },
+        {
+            "date": 1777793329927,
+            "name": "/home/ashoksainiengineer/ai-pandit-app/logs/mcp-puppeteer-2026-05-03.log",
+            "hash": "7093fde0b5e738800382c2af0027cb49c9703b7393960b20feca394a34206a5a"
         }
     ],
     "hashType": "sha256"

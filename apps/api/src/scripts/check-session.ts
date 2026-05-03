@@ -3,7 +3,7 @@ import 'dotenv/config';
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { logger } from '../lib/logger.js';
+import { logger } from '../utils/logger.js';
 
 async function checkSession() {
     const sessionId = process.argv[2];

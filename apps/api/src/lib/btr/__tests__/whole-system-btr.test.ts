@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-import { processSecondsPrecisionBTR } from '../../seconds-precision-btr.js';
+import { executeSecondsPrecisionRectification } from '../../seconds-precision-btr.js';
 import * as aiClient from '../../ai-client.js';
 import { initEphemerisProvider, cleanup } from '../../ephemeris.js';
 import { TEST_PROFILES } from './dataset/test-profiles.js';
-import { logger } from '../../logger.js';
+import { logger } from '../../../utils/logger.js';
 
 // Mock the cancellation manager — test sessions don't exist in the DB,
 // so isSessionCancelled would return true and abort the pipeline.
@@ -71,8 +71,8 @@ describe('WHOLE SYSTEM BTR: 10 Profile Validation Protocol', () => {
 
         // 3. Mock AI API with deterministic ranking over provided candidates.
         // This avoids tautological "always return expectedTime" behavior.
-        const callAISpy = vi.spyOn(aiClient, 'callAIWithStream').mockImplementation(
-            async (_sessionId: string, stage: number, _systemPrompt: string, userPrompt: string) => {
+        const callAISpy = vi.spyOn(aiClient as any, 'callAIWithStream').mockImplementation(
+            (async (_sessionId: string, stage: number, _systemPrompt: string, userPrompt: string) => {
                 if (stage === 2 || stage === 4) {
                     const candidates = extractCandidateTimes(userPrompt);
                     const ranked = [...candidates].sort((a, b) => {
@@ -105,11 +105,11 @@ describe('WHOLE SYSTEM BTR: 10 Profile Validation Protocol', () => {
                 }
 
                 return { success: false, error: 'Unsupported stage in mock' } as any;
-            }
+            }) as any
         );
 
         // 4. Execute Full 6-Stage Pipeline
-        const result = await processSecondsPrecisionBTR({
+        const result = await executeSecondsPrecisionRectification({
             ...profile,
             sessionId: `test-whole-${profile.id}`,
             abortSignal: new AbortController().signal

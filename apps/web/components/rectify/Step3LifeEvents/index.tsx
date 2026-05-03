@@ -41,7 +41,7 @@ export default function Step3LifeEventsIndex(props: Step3Props) {
                         updateEvent={engine.updateEvent}
                         setEditingId={engine.setEditingId}
                         deleteEvent={engine.deleteEvent}
-                        handlePrecisionChange={engine.handlePrecisionChange}
+                        updateEventDatePrecision={engine.updateEventDatePrecision}
                     />
                 ) : (
                     <motion.div
@@ -52,7 +52,7 @@ export default function Step3LifeEventsIndex(props: Step3Props) {
                         <FormCard className="p-5">
                             <EventSelector
                                 existingEvents={props.lifeEvents}
-                                onSelectEvent={engine.handleSelectEvent}
+                                onSelectEvent={engine.addLifeEventToTimeline}
                                 onCreateCustom={(categoryId?: string) => {
                                     engine.setPreselectedCategoryId(categoryId || '');
                                     engine.setIsCustomModalOpen(true);
@@ -74,7 +74,7 @@ export default function Step3LifeEventsIndex(props: Step3Props) {
                 isOpen={engine.isCustomModalOpen}
                 onClose={() => engine.setIsCustomModalOpen(false)}
                 categories={engine.allCategories}
-                onCreateEvent={engine.handleCreateCustomEvent}
+                onCreateEvent={engine.createCustomLifeEvent}
                 preselectedCategoryId={engine.preselectedCategoryId}
             />
         </div>

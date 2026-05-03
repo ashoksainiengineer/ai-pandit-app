@@ -13,7 +13,7 @@ import { CandidateDataPackage, LifeEvent, ForensicTraits } from '@ai-pandit/shar
 import { formatLifeEventForAI } from './life-event-formatter.js';
 import { randomSort } from '../../utils/index.js';
 import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';
-import { logger } from '../../logger.js';
+import { logger } from '../../../utils/logger.js';
 import { formatCandidateVSL, EnhancedCandidate } from './vsl-formatter.js';
 import { resolveEventDateWindow } from '../event-date-utils.js';
 import { buildDuplicateTimeSet, getCandidateReference } from '../candidate-reference.js';

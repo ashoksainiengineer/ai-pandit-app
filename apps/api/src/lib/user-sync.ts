@@ -1,8 +1,8 @@
 import { db, executeWithRetry } from '@ai-pandit/db';
 import { users } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { logger } from './logger.js';
-import { clerk } from '../middleware/auth.js';
+import { logger } from '../utils/logger.js';
+import { getClerk } from '../middleware/auth.js';
 import crypto from 'node:crypto';
 
 function isUniqueConstraintError(error: unknown): boolean {
@@ -64,7 +64,7 @@ export async function syncUser(clerkId: string): Promise<string> {
     logger.info('🔄 [Self-Healing] User missing from DB. Syncing from Clerk...', { clerkId });
 
     try {
-        const clerkUser = await clerk.users.getUser(clerkId);
+        const clerkUser = await getClerk().users.getUser(clerkId);
         const email = clerkUser.emailAddresses[0]?.emailAddress || '';
         const fullName = `${clerkUser.firstName || ''} ${clerkUser.lastName || ''}`.trim() || null;
         const internalUserId = crypto.randomUUID();

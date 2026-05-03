@@ -9,9 +9,6 @@
 // CORE / BASE TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * Gender type for birth data
- */
 import { z } from 'zod';
 
 // ZOD SCHEMAS (co-located with TypeScript interfaces)
@@ -54,9 +51,6 @@ function toPrecisionKey(value: string, precision: 'day' | 'month' | 'year'): str
 
 export type Gender = 'male' | 'female' | 'other';
 
-/**
- * Event categories for life events
- */
 export type EventCategory =
   | 'education'
   | 'career'
@@ -84,9 +78,6 @@ export type EventCategory =
   | 'awards'
   | 'other';
 
-/**
- * Date precision levels for flexible event dating
- */
 export type DatePrecision =
   | 'exact_date_time'
   | 'exact_date'
@@ -95,14 +86,8 @@ export type DatePrecision =
   | 'month_range'
   | 'year_range';
 
-/**
- * Importance level for life events
- */
 export type EventImportance = 'low' | 'medium' | 'high' | 'critical';
 
-/**
- * Session status for queue processing
- */
 export type SessionStatus =
   | 'pending'
   | 'queued'
@@ -142,7 +127,7 @@ export const BirthDataSchema = z.object({
     latitude: z.number().min(-90).max(90),
     longitude: z.number().min(-180).max(180),
     timezone: z.number().min(-12).max(14),
-    gender: z.enum(['male', 'female', 'other']).optional(),
+    gender: z.enum(['male', 'female', 'other']),
 });
 
 /**
@@ -170,9 +155,6 @@ export interface PhysicalTraits {
 // FORENSIC TRAITS TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * Facial structure characteristics
- */
 export interface FacialStructure {
   forehead: string | 'broad' | 'narrow' | 'average' | 'sloping';
   eyeShape: string | 'deep_set' | 'prominent' | 'almond' | 'round' | 'small';
@@ -183,9 +165,6 @@ export interface FacialStructure {
   voicePitch: string | 'deep' | 'high' | 'medium' | 'soft' | 'raspy';
 }
 
-/**
- * Skin and hair characteristics
- */
 export interface SkinHair {
   texture: 'dry' | 'oily' | 'combination' | 'sensitive';
   hairType: 'straight' | 'curly' | 'wavy' | 'thin' | 'thick' | 'bald';
@@ -216,9 +195,6 @@ export interface BiologicalMarkers {
   recurringHealthIssues: string[];
 }
 
-/**
- * Family narrative matrix
- */
 export interface FamilyNarrativeMatrix {
   siblingPosition: 'eldest' | 'middle' | 'youngest' | 'only_child';
   brotherCount: number;
@@ -231,9 +207,6 @@ export interface FamilyNarrativeMatrix {
   };
 }
 
-/**
- * Complete forensic traits structure
- */
 export interface ForensicTraits {
   physical: {
     facialStructure: FacialStructure;
@@ -279,7 +252,7 @@ export const LifeEventSchema = z.object({
         .min(1, "Event type is required")
         .max(100, "Event type must be less than 100 characters")
         .transform(sanitizeString),
-    category: z.string(),
+    category: z.enum(['education', 'career', 'marriage', 'children', 'family', 'health', 'financial', 'finance', 'travel', 'spiritual', 'legal', 'public_life', 'karmic_events', 'identity_shifts', 'promotion', 'business', 'property', 'relocation', 'accident', 'death_relative', 'divorce', 'surgery', 'inheritance', 'awards', 'other']),
     eventDate: z.string().min(1, "Event date is required"),
     eventTime: z.string().regex(TIME_PATTERN, "Invalid time format (HH:MM or HH:MM:SS required)").optional().nullable(),
     endDate: z.string().optional().nullable(),
@@ -292,7 +265,7 @@ export const LifeEventSchema = z.object({
     importance: z.enum(['high', 'medium', 'low', 'critical']).default('medium'),
     createdAt: z.string().datetime().optional(),
     updatedAt: z.string().datetime().optional(),
-}).passthrough().superRefine((event, ctx) => {
+}).passthrough().superRefine((event, ctx) => { // passthrough: allows dynamic pipeline fields (icon, color, ageAtEvent, etc.)
     const endDate = event.endDate ?? undefined;
 
     switch (event.datePrecision) {
@@ -404,9 +377,6 @@ export const LifeEventSchema = z.object({
 // TIME OFFSET TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * Offset preset options
- */
 export type OffsetPreset =
   | '30min'
   | '1hour'
@@ -417,9 +387,6 @@ export type OffsetPreset =
   | 'seconds-30'
   | 'seconds-6';
 
-/**
- * Time offset configuration
- */
 export interface TimeOffsetConfig {
   preset?: OffsetPreset;
   customMinutes?: number;
@@ -429,12 +396,9 @@ export interface TimeOffsetConfig {
 export const OffsetConfigSchema = z.object({
     preset: z.enum(['30min', '1hour', '2hours', '4hours', '6hours', '12hours', 'seconds-30', 'seconds-6']),
     customMinutes: z.number().min(1).max(720).optional(),
-    description: z.string().default(''),
+    description: z.string(),
 });
 
-/**
- * Candidate time for analysis
- */
 export interface CandidateTime {
   time: string;
   offsetMinutes: number;
@@ -451,14 +415,8 @@ export interface CandidateTime {
 // QUEUE TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * Queue status values
- */
 export type QueueStatus = 'queued' | 'processing' | 'complete' | 'failed';
 
-/**
- * Queue position information
- */
 export interface QueuePosition {
   sessionId: string;
   status: QueueStatus;
@@ -469,9 +427,6 @@ export interface QueuePosition {
   session?: Record<string, unknown>;
 }
 
-/**
- * Queue submission result
- */
 export interface QueueSubmitResult {
   success: boolean;
   sessionId?: string;
@@ -663,9 +618,6 @@ export const CancelJobResponseSchema = z.object({
 // PROGRESS TRACKING TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * Individual step in analysis progress
- */
 export interface ProgressStep {
   id: string;
   name: string;
@@ -687,9 +639,6 @@ export interface AIThinkingData {
   fullText: string;
 }
 
-/**
- * AI context data
- */
 export interface AIContextData {
   stage: number;
   candidateTime: string;
@@ -703,9 +652,6 @@ export interface AIContextData {
   groundTruth?: Record<string, unknown>;
 }
 
-/**
- * Candidate score for ranking
- */
 export interface CandidateScore {
   time: string | Date;
   score?: number;
@@ -727,9 +673,6 @@ export interface CandidateScore {
   keyEvidence?: string[];
 }
 
-/**
- * Complete progress data structure
- */
 export interface ProgressData {
   currentStep: number;
   totalSteps: number;
@@ -750,9 +693,6 @@ export interface ProgressData {
 // SESSION EVENT TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * Progress event for SSE
- */
 export interface ProgressEvent {
   type: 'progress';
   step: string;
@@ -764,9 +704,6 @@ export interface ProgressEvent {
   startedAt?: string;
 }
 
-/**
- * AI thinking event for SSE
- */
 export interface AIThinkingEvent {
   type: 'ai_thinking';
   chunk: string;
@@ -774,9 +711,6 @@ export interface AIThinkingEvent {
   candidateTime?: string;
 }
 
-/**
- * Ephemeris event for SSE
- */
 export interface EphemerisEvent {
   type: 'ephemeris';
   candidateTime: string;
@@ -785,9 +719,6 @@ export interface EphemerisEvent {
   moonNakshatra: string;
 }
 
-/**
- * Candidate score event for SSE
- */
 export interface CandidateScoreEvent {
   type: 'candidate_score' | 'candidate_score_v2';
   time: string;
@@ -799,17 +730,11 @@ export interface CandidateScoreEvent {
   fullEph?: Record<string, string>; // 🔱 NEW: High-precision ephemeris payload
 }
 
-/**
- * Batched candidate scores event for SSE
- */
 export interface CandidateScoresEvent {
   type: 'candidate_scores';
   data: CandidateScoreEvent[];
 }
 
-/**
- * Complete event for SSE
- */
 export interface CompleteEvent {
   type: 'complete';
   rectifiedTime: string;
@@ -817,9 +742,6 @@ export interface CompleteEvent {
   confidence: string;
 }
 
-/**
- * AI context event for SSE
- */
 export interface AIContextEvent {
   type: 'ai_context';
   stage: number;
@@ -854,9 +776,6 @@ export interface DecisionEvent {
   batch?: number;
 }
 
-/**
- * Calculation log event for SSE
- */
 export interface CalculationLogEvent {
   type: 'calculation_log';
   logId: string;
@@ -867,18 +786,12 @@ export interface CalculationLogEvent {
   dashaObj?: string;
 }
 
-/**
- * Error event for SSE
- */
 export interface ErrorEvent {
   type: 'error';
   message: string;
   stage?: string;
 }
 
-/**
- * Stage stats event for SSE
- */
 export interface StageStatsEvent {
   type: 'stage_stats';
   stage: number;
@@ -886,9 +799,6 @@ export interface StageStatsEvent {
   description: string;
 }
 
-/**
- * Estimated time event for SSE
- */
 export interface EstimatedTimeEvent {
   type: 'estimated_time';
   seconds: number;
@@ -915,17 +825,11 @@ export type SessionEvent =
 // AI CLIENT TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * AI message structure
- */
 export interface AIMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
 }
 
-/**
- * AI response structure
- */
 export interface AIResponse {
   success: boolean;
   thinking?: string;
@@ -938,9 +842,6 @@ export interface AIResponse {
 // EPHEMERIS / ASTROLOGY TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * Shadbala breakdown
- */
 export interface ShadbalaBreakdown {
   sthana: number;
   dig: number;
@@ -950,9 +851,6 @@ export interface ShadbalaBreakdown {
   total: number;
 }
 
-/**
- * Planet position
- */
 export interface PlanetPosition {
   sign: string;
   degree: number;
@@ -970,9 +868,6 @@ export interface PlanetPosition {
   house: number;
 }
 
-/**
- * House position
- */
 export interface HousePosition {
   houseNumber: number;
   sign: string;
@@ -982,9 +877,6 @@ export interface HousePosition {
   subLord?: string;
 }
 
-/**
- * Divisional chart
- */
 export interface DivisionalChart {
   id: string;
   planets: Record<string, PlanetPosition>;
@@ -995,9 +887,6 @@ export interface DivisionalChart {
   };
 }
 
-/**
- * Complete ephemeris data
- */
 export interface EphemerisData {
   planets: {
     sun: PlanetPosition;
@@ -1024,9 +913,6 @@ export interface EphemerisData {
   kpCusps?: number[];
 }
 
-/**
- * Minified ephemeris for display
- */
 export interface MinifiedEphemeris {
   sun: string;
   moon: string;
@@ -1261,9 +1147,6 @@ export interface ConsensusScores {
   prana?: number;
 }
 
-/**
- * Validation detail for a single method
- */
 export interface ValidationDetail {
   method: string;
   score: number;
@@ -1273,9 +1156,6 @@ export interface ValidationDetail {
   criticalFindings: string[];
 }
 
-/**
- * Red flags for warning conditions
- */
 export interface RedFlags {
   sandhiBirth: boolean;
   gandanta: boolean;
@@ -1286,9 +1166,6 @@ export interface RedFlags {
   forensicMismatch: boolean;
 }
 
-/**
- * Complete consensus result
- */
 export interface ConsensusResult {
   scores: ConsensusScores;
   overallConsensus: number;
@@ -1301,9 +1178,6 @@ export interface ConsensusResult {
   validatedAt: Date;
 }
 
-/**
- * Input for validation
- */
 export interface ValidationInput {
   candidate: {
     time: string;
@@ -1323,9 +1197,6 @@ export interface ValidationInput {
 // PRECISION BTR TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * Precision enhancement data
- */
 export interface PrecisionEnhancement {
   kpSubLords: Record<string, {
     starLord: string;
@@ -1346,9 +1217,6 @@ export interface PrecisionEnhancement {
   recommendedPrecision: 'seconds' | 'sub-seconds' | 'minutes';
 }
 
-/**
- * Candidate with Precision data
- */
 export interface CandidateWithPrecisionData {
   time: string;
   offsetMinutes: number;
@@ -1363,9 +1231,6 @@ export interface CandidateWithPrecisionData {
 // BTR INPUT/OUTPUT TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * BTR Input
- */
 export interface BTRInput {
   birthDate: string;
   timeEstimate: string;
@@ -1377,9 +1242,6 @@ export interface BTRInput {
   physicalTraits?: PhysicalTraits;
 }
 
-/**
- * Candidate analysis result
- */
 export interface CandidateAnalysis {
   time: string;
   offsetMinutes: number;
@@ -1397,18 +1259,12 @@ export interface CandidateAnalysis {
   };
 }
 
-/**
- * Ranked candidates
- */
 export interface RankedCandidates {
   topCandidates: CandidateAnalysis[];
   allCandidates: CandidateAnalysis[];
   totalAnalyzed: number;
 }
 
-/**
- * AI analysis result
- */
 export interface AIAnalysisResult {
   time: string;
   offsetMinutes: number;
@@ -1427,9 +1283,6 @@ export interface AIAnalysisResult {
   transitAnalysis: string;
 }
 
-/**
- * Top candidates analysis
- */
 export interface TopCandidatesAnalysis {
   candidates: AIAnalysisResult[];
   topRecommendation: AIAnalysisResult;
@@ -1437,9 +1290,6 @@ export interface TopCandidatesAnalysis {
   processingTime: number;
 }
 
-/**
- * BTR Output
- */
 export interface BTROutput {
   rectifiedTime: string;
   accuracy: number;
@@ -1464,9 +1314,6 @@ export interface BTROutput {
 // SECONDS PRECISION BTR TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * Input for seconds-precision BTR
- */
 export interface SecondsPrecisionInput {
   sessionId: string;
   dateOfBirth: string;
@@ -1488,9 +1335,6 @@ export interface SecondsPrecisionInput {
   abortSignal?: AbortSignal;
 }
 
-/**
- * Result from seconds-precision BTR
- */
 export interface SecondsPrecisionResult {
   rectifiedTime: string;
   accuracy: number;
@@ -1518,9 +1362,6 @@ export interface SecondsPrecisionResult {
   };
 }
 
-/**
- * Boundary safety result
- */
 export interface BoundarySafetyResult {
   isSafe: boolean;
   warnings: BoundaryWarning[];
@@ -1531,9 +1372,6 @@ export interface BoundarySafetyResult {
   recommendations: string[];
 }
 
-/**
- * Boundary warning
- */
 export interface BoundaryWarning {
   type: 'nakshatra' | 'lagna' | 'house' | 'dasha';
   message: string;
@@ -1545,9 +1383,6 @@ export interface BoundaryWarning {
 // SESSION / DATABASE TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * Rectification session
- */
 export interface RectificationSession {
   id: string;
   userId: string;
@@ -1575,9 +1410,6 @@ export interface RectificationSession {
   completedAt?: string;
 }
 
-/**
- * Master analysis archive
- */
 export interface MasterAnalysisArchive {
   version: string;
   sessionId: string;
@@ -1624,9 +1456,6 @@ export interface MasterAnalysisArchive {
 // API / REQUEST TYPES
 // ═════════════════════════════════════════════════════════════════════════════
 
-/**
- * Calculate request
- */
 export interface CalculateRequest {
   birthData: BirthData;
   lifeEvents: LifeEvent[];
@@ -1645,9 +1474,6 @@ export const CalculateRequestSchema = z.object({
     offsetConfig: OffsetConfigSchema,
 });
 
-/**
- * Calculate response
- */
 export interface CalculateResponse {
   success: boolean;
   data?: {

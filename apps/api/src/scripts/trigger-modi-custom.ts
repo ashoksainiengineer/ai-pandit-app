@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import crypto from 'node:crypto';
 import { TEST_PROFILES } from '../lib/btr/__tests__/dataset/test-profiles.js';
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Compass, Table } from 'lucide-react';
+import { Compass } from 'lucide-react';
 import type { EphemerisData, DivisionalChart, PlanetPosition } from '@ai-pandit/shared';
 
 interface PlanetaryProps {

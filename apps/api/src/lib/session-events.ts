@@ -22,8 +22,6 @@ import type {
     DecisionEvent,
     SessionEvent
 } from '@ai-pandit/shared';
-
-// Re-export types for backwards compatibility
 export type {
     ProgressEvent,
     AIThinkingEvent,
@@ -39,11 +37,6 @@ export type {
     DecisionEvent,
     SessionEvent
 };
-
-// ═════════════════════════════════════════════════════════════════════════════
-// GLOBAL SESSION EVENT EMITTER
-// ═════════════════════════════════════════════════════════════════════════════
-
 // Max events to retain per session for Last-Event-ID replay
 const MAX_EVENT_LOG_SIZE = 2000;
 const NON_PERSISTED_EVENT_TYPES = new Set(['ping', 'connected', 'metadata', 'initial_state', 'terminal_state']);
@@ -555,9 +548,6 @@ class SessionEventManager {
 // Global singleton
 export const sessionEvents = new SessionEventManager();
 
-// ═════════════════════════════════════════════════════════════════════════════
-// HELPER FUNCTIONS
-// ═════════════════════════════════════════════════════════════════════════════
 
 
 export function emitProgress(

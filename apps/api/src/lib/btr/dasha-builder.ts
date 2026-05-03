@@ -10,7 +10,7 @@ import type { DashaPeriod } from '../vedic-astrology-engine.js';
 import { calculateYoginiDasha } from '../advanced-btr-methods.js';
 import { calculateCharaDasha } from '../jaimini-astrology.js';
 import { VimshottariDashaEntry, EphemerisData } from '@ai-pandit/shared';
-import { logger } from '../logger.js';
+import { logger } from '../../utils/logger.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

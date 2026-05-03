@@ -127,7 +127,7 @@ vi.mock('../../config/index.js', () => ({
 }));
 
 vi.mock('../../lib/seconds-precision-btr.js', () => ({
-    processSecondsPrecisionBTR: vi.fn(),
+    executeSecondsPrecisionRectification: vi.fn(),
 }));
 
 vi.mock('../../lib/jobs/artifact-storage.js', () => ({
@@ -143,14 +143,14 @@ import {
     flushSessionTrash,
     cancelSession,
     heartbeat,
-    recoverInterruptedJobsOnStartup,
     runQueueIteration,
     stopQueueProcessor,
 } from '../../lib/queue-manager.js';
-import { db, executeWithRetry } from '@ai-pandit/db';
+import { recoverInterruptedJobsOnStartup as _recoverInterruptedJobsOnStartup } from '../../lib/metrics-reporter.js';
+import { db } from '@ai-pandit/db';
 import * as jobRepo from '@ai-pandit/db/jobs';
 import * as cancellationManager from '../cancellation-manager.js';
-import { processSecondsPrecisionBTR } from '../../lib/seconds-precision-btr.js';
+import { executeSecondsPrecisionRectification } from '../../lib/seconds-precision-btr.js';
 import { emitComplete } from '../session-events.js';
 
 describe('Queue Manager', () => {
@@ -363,7 +363,7 @@ describe('Queue Manager', () => {
                 [],
             ]);
 
-            const result = await recoverInterruptedJobsOnStartup();
+            const result = await _recoverInterruptedJobsOnStartup();
 
             expect(result).toEqual({
                 recoveredJobs: 1,
@@ -407,7 +407,7 @@ describe('Queue Manager', () => {
             } as any);
 
             setMockResults([
-                [], // cleanupStaleRequests
+                [], // purgeExpiredQueueEntries
                 { rowsAffected: 1 }, // claimNextQueuedSession -> session processing update
                 [{
                     id: 'sess-poison-1',
@@ -428,7 +428,7 @@ describe('Queue Manager', () => {
                 [], // flushSessionTrash delete
                 { rowsAffected: 1 }, // final failed status update
             ]);
-            vi.mocked(processSecondsPrecisionBTR).mockRejectedValueOnce(new Error('invalid birth data payload'));
+            vi.mocked(executeSecondsPrecisionRectification).mockRejectedValueOnce(new Error('invalid birth data payload'));
 
             await runQueueIteration();
             await vi.waitFor(() => {

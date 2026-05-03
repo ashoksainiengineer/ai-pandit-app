@@ -1,5 +1,5 @@
 import { runCapacityValidation } from './capacity-validation.js';
-import { logger } from '../lib/logger.js';
+import { logger } from '../utils/logger.js';
 
 interface Scenario {
   name: 'ai_timeout_spike' | 'db_latency_spike' | 'queue_outage';

@@ -65,8 +65,7 @@ export const ReasoningGrid = memo(function ReasoningGrid({
         overscan: 2,
     });
 
-    // 🔱 Removed null return to ensure grid container stays visible even before candidates arrive
-    // if (filteredEntries.length === 0 && !searchQuery) return null;
+
 
     return (
         <div

@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import crypto from 'node:crypto';
 
 const API_URL = process.env.API_URL || 'http://localhost:3000';
