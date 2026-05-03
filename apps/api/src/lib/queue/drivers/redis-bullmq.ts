@@ -9,7 +9,7 @@ import { db } from '@ai-pandit/db';
 import { jobs } from '@ai-pandit/db/schema';
 import { and, eq, lte, or } from 'drizzle-orm';
 import { config } from '../../../config/index.js';
-import { logger } from '../../logger.js';
+import { logger } from '../../../utils/logger.js';
 import type { QueueDriver } from '../driver.js';
 
 const REDIS_CLAIM_BATCH_SIZE = 50;

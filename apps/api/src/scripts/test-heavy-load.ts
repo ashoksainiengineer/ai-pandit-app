@@ -1,8 +1,7 @@
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq, or, desc } from 'drizzle-orm';
-import { v4 as uuidv4 } from 'uuid';
-import fetch from 'node-fetch';
+import { randomUUID } from 'crypto';
 
 async function runHeavyLoadTest() {
     console.log("🚀 STARTING HEAVY LOAD TEST ON BACKEND ENGINE...");
@@ -18,7 +17,7 @@ async function runHeavyLoadTest() {
     }
 
     const template = recentSession[0];
-    const newSessionId = uuidv4();
+    const newSessionId = randomUUID();
 
     console.log(`📋 Cloning session ${template.id} into NEW test session ${newSessionId}`);
 
@@ -119,7 +118,6 @@ async function runHeavyLoadTest() {
         if (check.length > 0) {
             const current = check[0];
             if (current.status !== lastStatus) {
-                console.log(`\n⏳ [DB STATUS]: ${lastStatus} -> ${current.status}`);
                 lastStatus = current.status as string;
             }
 
@@ -129,7 +127,6 @@ async function runHeavyLoadTest() {
                 process.exit(1);
             }
             if (current.status === 'complete') {
-                console.log(`\n✅ [TEST PASSED] DB marked session complete.`);
                 clearInterval(interval);
                 process.exit(0);
             }

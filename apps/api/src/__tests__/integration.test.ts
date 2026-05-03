@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
-import { createApp } from '../server';
+import { createApp } from '../server.js';
 import { db, pool } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
@@ -24,8 +24,7 @@ describe('API Integration Tests', () => {
       clerkId: testUser.clerkId,
       email: testUser.email,
       fullName: testUser.fullName,
-      tier: 'free'
-    }).returning();
+    } as any).returning();
     
     authToken = 'test_token_' + user.id;
   });

@@ -323,7 +323,6 @@ export function importanceToImpact(importance: string): EventImpact {
 
 /**
  * Calculate total weight for weighted average
- * @deprecated Use calculateRankFusionScore for consensus validation
  */
 export function calculateWeightedAverage(
   scores: Record<string, number>,

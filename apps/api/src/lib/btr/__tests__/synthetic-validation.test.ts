@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { scanBirthTimeWindow } from '../window-scanner.js';
 import { initEphemerisProvider } from '../../ephemeris.js';
-import { BtrEvent } from '@ai-pandit/shared';
 
 describe('🏆 GOD-TIER PROOF: Synthetic Birth Time Recovery', () => {
 
@@ -61,9 +60,6 @@ describe('🏆 GOD-TIER PROOF: Synthetic Birth Time Recovery', () => {
 
         // The best candidate should be very close to 10:00:00 AM
         const rectifiedTimeStr = bestCandidate!.timeString;
-        console.log(`[PROOF] Input Time (IST): 10:15:00`);
-        console.log(`[PROOF] Rectified Time (UTC): ${rectifiedTimeStr}`);
-        console.log(`[PROOF] Confidence: ${bestCandidate!.overallScore?.toFixed(2)}%`);
 
         // Assert that we are within the scanned window (20 minutes = 1200 seconds)
         // 10:00:00 IST is 04:30:00 UTC

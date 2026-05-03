@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, memo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-// import { motion } from 'framer-motion';
+
 import { Sparkles, Search, BarChart3, CheckCircle2, Activity } from 'lucide-react';
 import { DashboardSession } from '@/lib/dashboard/types';
 import { SessionCard } from '@/components/dashboard/SessionCard';
@@ -69,7 +69,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
 
   const stats = useMemo(() => calculateStats(sessions), [sessions]);
 
-  const handleDeleteSession = useCallback((deletedId: string) => {
+  const removeSessionFromDashboard = useCallback((deletedId: string) => {
     setSessions(prev => prev.filter(s => s.id !== deletedId));
   }, []);
 
@@ -87,16 +87,16 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
     currentPage * ITEMS_PER_PAGE
   );
 
-  const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const filterSessionsByQuery = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
     setCurrentPage(1);
   }, []);
 
-  const handlePageChange = useCallback((page: number) => {
+  const navigateToPage = useCallback((page: number) => {
     setCurrentPage(page);
   }, []);
 
-  const handleNewPerson = useCallback(() => {
+  const createNewSession = useCallback(() => {
     setIsCreatingDraft(true);
     router.push('/rectify?new=true');
   }, [router]);
@@ -121,7 +121,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
 
         <div className="flex gap-2">
           <button
-            onClick={handleNewPerson}
+            onClick={createNewSession}
             disabled={isCreatingDraft}
             className="inline-flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-[#B8860B] text-[#B8860B] rounded-xl font-semibold hover:bg-[#B8860B]/10 transition-all text-xs sm:text-sm disabled:opacity-50"
           >
@@ -167,7 +167,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
           type="text"
           placeholder="Search by name..."
           value={searchQuery}
-          onChange={handleSearch}
+          onChange={filterSessionsByQuery}
           className="w-full pl-12 pr-4 py-3 bg-white border border-[#E8E0D5] rounded-xl text-[#1A1612] placeholder-[#A8A39D] focus:border-[#78611D] focus:ring-2 focus:ring-[#78611D]/10 outline-none transition-all"
         />
       </div>
@@ -208,7 +208,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
                 viewMode="list"
                 isSelected={false}
                 isFavorite={false}
-                onDelete={handleDeleteSession}
+                onDelete={removeSessionFromDashboard}
               />
             </div>
           ))
@@ -230,7 +230,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
           {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
             <button
               key={page}
-              onClick={() => handlePageChange(page)}
+              onClick={() => navigateToPage(page)}
               className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg text-xs sm:text-sm font-medium transition-colors ${currentPage === page
                 ? 'bg-[#B8860B] text-white'
                 : 'text-[#7A756F] hover:bg-[#F5EFE7]'

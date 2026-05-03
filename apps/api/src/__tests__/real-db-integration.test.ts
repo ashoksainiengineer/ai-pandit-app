@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import request from 'supertest';
-import { createApp } from '../server';
+import { createApp } from '../server.js';
 import { db, pool } from '@ai-pandit/db';
 import { sessions, users, jobs } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
@@ -26,10 +26,9 @@ describe('Real Database Integration Tests', () => {
       clerkId: testUser.clerkId,
       email: testUser.email,
       fullName: testUser.fullName,
-      tier: 'free',
       createdAt: new Date(),
       updatedAt: new Date()
-    }).returning();
+    } as any).returning();
     
     testUserId = user.id;
     authToken = `test_token_${testTimestamp}`;
@@ -58,8 +57,7 @@ describe('Real Database Integration Tests', () => {
         clerkId: `temp_${testTimestamp}`,
         email: `temp_${testTimestamp}@test.com`,
         fullName: 'Temp User',
-        tier: 'free'
-      }).returning();
+      } as any).returning();
       
       expect(newUser).toBeDefined();
       expect(newUser.email).toBe(`temp_${testTimestamp}@test.com`);
@@ -264,7 +262,7 @@ describe('Real Database Integration Tests', () => {
           createdAt: new Date(),
           updatedAt: new Date()
         }
-      ]);
+      ] as any);
       
       const res = await request(app)
         .get('/api/sessions')
@@ -402,7 +400,7 @@ describe('Real Database Integration Tests', () => {
         status: 'pending',
         createdAt: new Date(),
         updatedAt: new Date()
-      });
+      } as any);
       
       const jobsBefore = await db.query.jobs.findMany({
         where: eq(jobs.sessionId, sessionId)

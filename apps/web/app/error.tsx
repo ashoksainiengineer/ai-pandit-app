@@ -18,7 +18,7 @@ interface ErrorBoundaryProps {
 
 // Generate a unique error reference ID
 function generateErrorId(): string {
-  return `ERR-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+  return `ERR-${Date.now()}-${crypto.randomUUID()}`;
 }
 
 export default function ErrorBoundary({ error, reset }: ErrorBoundaryProps) {

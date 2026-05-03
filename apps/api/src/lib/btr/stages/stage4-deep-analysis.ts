@@ -9,16 +9,16 @@
 import { SecondsPrecisionInput, ForensicTraits } from '@ai-pandit/shared';
 import { CandidateTime, getCandidateIdentity, getDynamicBatchSize, getDynamicSurvivors, sortCandidatesByMerit, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
-import { callAIWithStream, executeAIInParallel } from '../../ai-client.js';
-import { _emitCandidateScore, emitAIContext, emitDecision } from '../../session-events.js';
-import { _throwIfCancelled } from '../../cancellation-manager.js';
+import { _callAIWithStream, _executeAIInParallel } from '../../ai-client.js';
+import { emitCandidateScore, emitAIContext, emitDecision } from '../../session-events.js';
+import { throwIfCancelled } from '../../cancellation-manager.js';
 import { _cleanup } from '../../ephemeris.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
 import { getDeepAnalysisPrompt } from '../prompts/index.js';
 import { extractBatchSurvivors } from '../extractors/index.js';
 import { CandidateDataPackage, StageResult } from '@ai-pandit/shared';
 import { config } from '../../../config/index.js';
-import { logger } from '../../logger.js';
+import { logger } from '../../../utils/logger.js';
 import { btrDataCapture } from '../data-capture.js';
 import { getMinifiedEphemerisInline, getFullEphemerisPayload } from './_utils.js';
 import { buildCandidateReferenceMap } from '../candidate-reference.js';
@@ -152,7 +152,7 @@ export async function stage4DeepAnalysis(
                 );
             }
             
-            const response = await callAIWithStream(
+            const response = await _callAIWithStream(
                 input.sessionId,
                 4,
                 systemPrompt,
@@ -247,7 +247,7 @@ export async function stage4DeepAnalysis(
             return { batchSurvivors, aiContent };
         });
 
-        const results = await executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
+        const results = await _executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
 
         // Flatten survivors and accumulate reasoning
         const roundSurvivors = results.flatMap(r => r.batchSurvivors);
@@ -286,7 +286,7 @@ export async function stage4DeepAnalysis(
 
         const prompt = getDeepAnalysisPrompt(finalBatchData, input.lifeEvents, forensicTraits, input.spouseData, offsetMinutes);
 
-        const response = await callAIWithStream(
+        const response = await _callAIWithStream(
             input.sessionId,
             4,
             'You are performing FINAL deep verification.',

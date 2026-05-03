@@ -2,7 +2,7 @@ import 'dotenv/config';
 import crypto from 'node:crypto';
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { initEphemerisProvider, cleanup as triggerEphemerisCleanup } from '../lib/ephemeris.js';
-import { processSecondsPrecisionBTR } from '../lib/seconds-precision-btr.js';
+import { executeSecondsPrecisionRectification } from '../lib/seconds-precision-btr.js';
 import type { ForensicTraits, LifeEvent, SecondsPrecisionInput } from '@ai-pandit/shared';
 import { TEST_PROFILES, type TestProfile } from '../lib/btr/__tests__/dataset/test-profiles.js';
 import { MODI_BLINDED_PROFILE } from '../lib/btr/__tests__/dataset/modi-blinded-profile.js';
@@ -461,7 +461,7 @@ async function run(): Promise<void> {
 
     const startedAt = Date.now();
     const results = await Promise.all(inputs.map(async (input): Promise<AnalysisRunSummary> => {
-      const result = await processSecondsPrecisionBTR(input);
+      const result = await executeSecondsPrecisionRectification(input);
       return {
         sessionId: input.sessionId,
         rectifiedTime: result.rectifiedTime,

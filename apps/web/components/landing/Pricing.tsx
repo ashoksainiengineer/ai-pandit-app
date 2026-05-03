@@ -1,9 +1,8 @@
 'use client';
 
-import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Check, Star, Clock, Target, FileText, Mail, Shield } from 'lucide-react';
+import { Check, Clock, Target, FileText, Mail, Shield } from 'lucide-react';
 
 const features = [
   {

@@ -1,22 +1,39 @@
 import { beforeAll } from 'vitest';
 
 beforeAll(async () => {
+
     const dbModule = await import('@ai-pandit/db');
-    const hasEnsure = Object.prototype.hasOwnProperty.call(dbModule, 'ensureDatabaseInitialized');
+
+    const hasVerify = Object.prototype.hasOwnProperty.call(dbModule, 'verifyDatabaseConnection');
+
     const hasClient = Object.prototype.hasOwnProperty.call(dbModule, 'client');
-    const ensureDatabaseInitialized = hasEnsure
-        ? (dbModule as { ensureDatabaseInitialized?: () => Promise<void> }).ensureDatabaseInitialized
-        : undefined;
-    const client = hasClient
-        ? (dbModule as { client?: { execute?: (sql: string) => Promise<unknown> } }).client
+
+    const verifyDatabaseConnection = hasVerify
+
+        ? (dbModule as { verifyDatabaseConnection?: () => Promise<void> }).verifyDatabaseConnection
+
         : undefined;
 
-    if (typeof ensureDatabaseInitialized === 'function') {
-        await ensureDatabaseInitialized();
+    const client = hasClient
+
+        ? (dbModule as { client?: { execute?: (sql: string) => Promise<unknown> } }).client
+
+        : undefined;
+
+
+
+    if (typeof verifyDatabaseConnection === 'function') {
+
+        await verifyDatabaseConnection();
+
     }
 
+
+
     if (!client?.execute) {
+
         return;
+
     }
 
     await client.execute(`
@@ -97,20 +114,13 @@ beforeAll(async () => {
     `);
 
     if (process.env.SKIP_EPHEMERIS_INIT === 'true') {
-        console.log('⏭️ [TEST SETUP] Skipping ephemeris initialization as requested');
         return;
     }
 
-    console.log('🧪 [TEST SETUP] Initializing ephemeris provider...');
     try {
         // Use dynamic import to avoid static import deadlocks/hangs
         const { initEphemerisProvider } = await import('../ephemeris.js');
         const success = await initEphemerisProvider();
-        if (!success) {
-            console.warn('⚠️ [TEST SETUP] High-precision ephemeris unavailable, using algorithmic fallback');
-        } else {
-            console.log('✅ [TEST SETUP] High-precision ephemeris ready');
-        }
     } catch (error) {
         console.error('❌ [TEST SETUP] Critical error during initialization:', error);
         throw error;

@@ -97,12 +97,12 @@ export function useLifeEvents({ lifeEvents, updateEvents }: Step3Props) {
         }
     }, [lifeEvents, updateEvents, allCategories]);
 
-    const handleSelectEvent = useCallback((event: EventTemplate, categoryId: string) => {
+    const addLifeEventToTimeline = useCallback((event: EventTemplate, categoryId: string) => {
         const category = getCategoryById(allCategories, categoryId);
         addEvent(event.label, category?.icon || '📅', categoryId, event.importance as ImportanceLevel);
     }, [addEvent, allCategories]);
 
-    const handleCreateCustomEvent = useCallback((data: {
+    const createCustomLifeEvent = useCallback((data: {
         label: string;
         categoryId: string;
         importance: EventImportance;
@@ -112,7 +112,7 @@ export function useLifeEvents({ lifeEvents, updateEvents }: Step3Props) {
         if (data.isNewCategory && data.newCategoryName) {
             // Create new category
             const newCategory: EventCategory = {
-                id: `custom_${crypto.randomUUID ? crypto.randomUUID() : Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+                id: `custom_${crypto.randomUUID()}`,
                 icon: '📌',
                 label: data.newCategoryName,
                 color: '#B8860B',
@@ -138,7 +138,7 @@ export function useLifeEvents({ lifeEvents, updateEvents }: Step3Props) {
     }, [lifeEvents, updateEvents]);
 
     // Handle precision change - intelligently preserve date values when possible
-    const handlePrecisionChange = useCallback((id: string, newPrecision: DatePrecision) => {
+    const updateEventDatePrecision = useCallback((id: string, newPrecision: DatePrecision) => {
         const event = lifeEvents.find(e => e.id === id);
         if (!event) return;
 
@@ -230,10 +230,10 @@ export function useLifeEvents({ lifeEvents, updateEvents }: Step3Props) {
         setErrors,
         allCategories,
         accuracy,
-        handleSelectEvent,
-        handleCreateCustomEvent,
+        addLifeEventToTimeline,
+        createCustomLifeEvent,
         updateEvent,
-        handlePrecisionChange,
+        updateEventDatePrecision,
         deleteEvent,
         sortedEvents,
         editingEvent,

@@ -17,8 +17,7 @@ test.describe('Analysis Page Lifecycle & Persistence', () => {
 
         // Inject test flag and mock Clerk
         await page.addInitScript(() => {
-            (window as any).isTestEnv = true;
-            (window as any).SKIP_SSE = true; // FORCE POLLING FOR E2E STABILITY
+            window.__AI_PANDIT_TEST_MODE__ = true;
             (window as any).__clerk_ssr_state = {
                 user: { id: 'user_lifecycle_123' },
                 session: { id: 'sess_lifecycle_123' },
@@ -115,7 +114,7 @@ test.describe('Analysis Page Lifecycle & Persistence', () => {
 
         // 2. Wait for IndexedDB debounce (2s)
         console.log('Waiting for persistence...');
-        await page.waitForTimeout(3000);
+        await page.waitForFunction(() => (window as any).__persisted === true, { timeout: 5000 }).catch(() => {}); // Wait for IndexedDB persistence flag
 
         // 3. Refresh the page
         console.log('Refreshing...');

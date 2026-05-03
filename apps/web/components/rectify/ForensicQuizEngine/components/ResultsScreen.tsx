@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle, Target, AlertCircle, Sparkles, ChevronLeft, RefreshCw } from 'lucide-react';
 import { QuizResults } from '@/lib/forensic-quiz/types';

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { logger } from '../logger.js';
+import { logger } from '../../utils/logger.js';
+import { safeJsonParse } from '../utils/safe-json-parse.js';
 
 /**
  * BTR Thinking Persistence System
@@ -123,7 +124,7 @@ ${thinking}
         
         for (const line of lines) {
           if (line) {
-            entries.push(JSON.parse(line));
+            try { entries.push(JSON.parse(line)); } catch { /* skip malformed line */ }
           }
         }
       }
@@ -153,7 +154,7 @@ ${thinking}
       
       return lines
         .filter(line => line)
-        .map(line => JSON.parse(line));
+        .map(line => safeJsonParse<ThinkingEntry | null>(line, null)).filter((entry): entry is ThinkingEntry => entry !== null);
     } catch (error) {
       logger.error(`[THINKING] Failed to get Stage ${stage} thinking:`, error);
       return [];

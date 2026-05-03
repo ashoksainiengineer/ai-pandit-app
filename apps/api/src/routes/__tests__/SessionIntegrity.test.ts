@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
-import app from '../../server';
+import app from '../../server.js';
 import { db } from '@ai-pandit/db';
 
 // Mock auth middleware for route testing
@@ -88,7 +88,7 @@ describe('SessionIntegrity: Cloning & Duplication', () => {
 
     it('should block cloning if the user does not own the original session', async () => {
         // Mock findFirst should return null to simulate "not found for this user"
-        vi.mocked(db.query.sessions.findFirst).mockResolvedValue(null);
+        vi.mocked(db.query.sessions.findFirst).mockResolvedValue(undefined);
 
         const res = await request(app)
             .post('/api/sessions/victim-session-id/clone')

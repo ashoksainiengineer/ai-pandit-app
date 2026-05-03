@@ -1,10 +1,9 @@
 /**
- * 🔱 Candidate Detail API — Tiered Data Loading
- * 
- * Serves heavy candidate data (ephemeris, AI reasoning) ON DEMAND
+ * Candidate Detail API — Tiered Data Loading
+ *
+ * Serves heavy candidate data (ephemeris, AI reasoning) on demand
  * instead of including it in the main progress/SSE stream.
- * 
- * Industry Pattern: Gmail (load email body on click), Notion (load block content on scroll)
+ * Uses lazy-loading pattern for performance.
  */
 
 import { Router, Response } from 'express';
@@ -13,7 +12,7 @@ import { ProgressTracker, getSessionProgress } from '../lib/progress-tracker.js'
 import { db, executeWithRetry } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { logger } from '../lib/logger.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
 

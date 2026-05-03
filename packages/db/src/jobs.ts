@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, inArray, isNull, lte, or } from 'drizzle-orm';
+import { and, asc, desc, eq, gt, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import { db, executeWithRetry } from './drizzle.js';
 import {
   artifacts,
@@ -185,8 +185,13 @@ export async function listActiveJobs(): Promise<Job[]> {
 }
 
 export async function countQueuedJobs(): Promise<number> {
-  const activeJobs = await listActiveJobs();
-  return activeJobs.length;
+  const result = await executeWithRetry(() =>
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(jobs)
+      .where(inArray(jobs.status, ['queued', 'running', 'retrying']))
+  );
+  return result[0]?.count ?? 0;
 }
 
 export async function claimNextQueuedJob(): Promise<Job | null> {

@@ -1,9 +1,6 @@
-// ═══════════════════════════════════════════════════════════════════════════
-// EPHEMERIS MODULE - Skyfield-first Vedic astronomy runtime
-// ═══════════════════════════════════════════════════════════════════════════
 
 import { EphemerisData, PlanetPosition, HousePosition } from '@ai-pandit/shared';
-import { logger } from './logger.js';
+import { logger } from '../utils/logger.js';
 import { config } from '../config/index.js';
 import type { EphemerisServiceChartResponse } from '@ai-pandit/shared/types';
 import { CalculationError, ValidationError } from '../errors/index.js';
@@ -486,9 +483,6 @@ async function calculateEphemerisWithProvider(
   return calculateEphemerisWithAlgorithmic(input);
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// CONSTANTS (Minimal memory - all compile-time)
-// ═══════════════════════════════════════════════════════════════════════════
 
 const ZODIAC_SIGNS = ['Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo', 'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'] as const;
 const NAKSHATRAS = ['Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashirsha', 'Ardra', 'Punarvasu', 'Pushya', 'Ashlesha', 'Magha', 'Purva Phalguni', 'Uttara Phalguni', 'Hasta', 'Chitra', 'Swati', 'Vishakha', 'Anuradha', 'Jyeshtha', 'Mula', 'Purva Ashadha', 'Uttara Ashadha', 'Shravana', 'Dhanishtha', 'Shatabhisha', 'Purva Bhadrapada', 'Uttara Bhadrapada', 'Revati'] as const;
@@ -547,9 +541,6 @@ const isCombust = (planet: string, long: number, sunLong: number): boolean => {
   return diff < orb || diff > (360 - orb);
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// UTILITY FUNCTIONS (Zero allocation where possible)
-// ═══════════════════════════════════════════════════════════════════════════
 
 export function getZodiacSign(longitude: number): string {
   return ZODIAC_SIGNS[Math.floor(((longitude % 360) + 360) % 360 / 30)];
@@ -695,10 +686,6 @@ export function calculateJulianDay(date: Date): number {
   return d + Math.floor((153 * mm + 2) / 5) + 365 * yy + Math.floor(yy / 4) - Math.floor(yy / 100) + Math.floor(yy / 400) - 32045 + (h - 12) / 24;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// VSOP87 ALGORITHMIC CALCULATIONS (No external data, ~0.1° accuracy)
-// Used as an emergency degraded-mode fallback when Skyfield is unavailable.
-// ═══════════════════════════════════════════════════════════════════════════
 
 function getAyanamsaAlgo(jd: number): number {
   // Lahiri ayanamsa - precise formula
@@ -783,10 +770,6 @@ function calcAscendant(jd: number, lat: number, lon: number): number {
   return ((ascRad * 180 / Math.PI - getAyanamsaAlgo(jd)) % 360 + 360) % 360;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// MAIN CALCULATION - Memory-Efficient Pipeline
-// All calculations done sequentially, results discarded after use
-// ═══════════════════════════════════════════════════════════════════════════
 
 export interface CalculateEphemerisOptions {
   sessionId?: string;
@@ -976,9 +959,6 @@ export async function calculateSunrise(
   return bestDate;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════
-// EXPORTS
-// ═══════════════════════════════════════════════════════════════════════════
 
 export function isHighPrecisionMode(): boolean {
   const mode = getCurrentExecutionMode();
@@ -994,12 +974,3 @@ export function cleanup(): void {
   if (global.gc) global.gc();
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// LEGACY EXPORTS (for backward compatibility during refactoring)
-// ═════════════════════════════════════════════════════════════════════════════
-
-/** @deprecated Use getAyanamsa directly */
-export const _getAyanamsa = getAyanamsa;
-
-/** @deprecated Use cleanup directly */
-export const _cleanup = cleanup;

@@ -3,7 +3,8 @@ import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
-import { logger } from '../lib/logger.js';
+import { logger } from '../utils/logger.js';
+import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
 
 const router = Router();
 
@@ -22,7 +23,10 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
 
     // Verify session belongs to user
     const session = await db
-      .select({ clerkId: sessions.clerkId })
+      .select({
+        clerkId: sessions.clerkId,
+        userId: sessions.userId,
+      })
       .from(sessions)
       .where(eq(sessions.id, sessionId))
       .limit(1);
@@ -32,7 +36,8 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
       return;
     }
 
-    if (session[0].clerkId !== clerkId) {
+    const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+    if (!isSessionOwnedByContext(session[0], ownershipContext)) {
       res.status(403).json({ success: false, error: 'Unauthorized' });
       return;
     }
@@ -66,11 +71,13 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
     // SELF-HEALING USER SYNC
     // Ensures user exists in DB and gets internal UUID
     // ═════════════════════════════════════════════════════════════════════════════
+    // Verify ownership
     const session = await db
       .select({
         aiConsentGiven: sessions.aiConsentGiven,
         aiConsentGivenAt: sessions.aiConsentGivenAt,
         clerkId: sessions.clerkId,
+        userId: sessions.userId,
       })
       .from(sessions)
       .where(eq(sessions.id, sessionId))
@@ -81,8 +88,8 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
       return;
     }
 
-    // Verify ownership
-    if (session[0].clerkId !== clerkId) {
+    const ownershipContext = await resolveSessionOwnershipContext(clerkId);
+    if (!isSessionOwnedByContext(session[0], ownershipContext)) {
       res.status(403).json({ success: false, error: 'Unauthorized' });
       return;
     }

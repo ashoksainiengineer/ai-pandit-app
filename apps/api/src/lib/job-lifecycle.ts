@@ -14,13 +14,9 @@ import {
   updateJobProgress as updateJobProgressRecord,
 } from '@ai-pandit/db/jobs';
 import type { QueueStatus } from '@ai-pandit/shared';
-import { logger } from './logger.js';
 import { getSessionProgress } from './progress-tracker.js';
 import { persistArtifactReference } from './jobs/artifact-storage.js';
 
-export async function getTrackedJob(sessionId: string) {
-  return getLatestJobForSession(sessionId);
-}
 
 export async function buildCheckpointPayload(
   sessionId: string,
@@ -70,7 +66,7 @@ export async function appendLifecycleEvent(
   payload: Record<string, unknown>,
   stage?: string
 ): Promise<void> {
-  const job = await getTrackedJob(sessionId);
+  const job = await getLatestJobForSession(sessionId);
   if (!job) {
     return;
   }
@@ -87,7 +83,7 @@ export async function appendLifecycleEvent(
 }
 
 export async function syncJobQueued(sessionId: string): Promise<void> {
-  const job = await getTrackedJob(sessionId);
+  const job = await getLatestJobForSession(sessionId);
   if (!job) {
     return;
   }
@@ -104,7 +100,7 @@ export async function syncJobQueued(sessionId: string): Promise<void> {
 }
 
 export async function syncJobRunning(sessionId: string): Promise<void> {
-  const job = await getTrackedJob(sessionId);
+  const job = await getLatestJobForSession(sessionId);
   if (!job) {
     return;
   }
@@ -135,7 +131,7 @@ export async function syncJobCompleted(
     reasoningLogs?: string | null;
   }
 ): Promise<void> {
-  const job = await getTrackedJob(sessionId);
+  const job = await getLatestJobForSession(sessionId);
   if (!job) {
     return;
   }
@@ -170,11 +166,10 @@ export function safeParseJsonRecord(value: string): Record<string, unknown> | un
   } catch {
     return undefined;
   }
-  return undefined;
 }
 
 export async function persistCompletionArtifacts(
-  job: NonNullable<Awaited<ReturnType<typeof getTrackedJob>>>,
+  job: NonNullable<Awaited<ReturnType<typeof getLatestJobForSession>>>,
   sessionId: string,
   results: {
     rectifiedTime: string;
@@ -239,7 +234,7 @@ export async function syncJobFailed(
   errorMessage: string,
   errorCode?: string
 ): Promise<void> {
-  const job = await getTrackedJob(sessionId);
+  const job = await getLatestJobForSession(sessionId);
   if (!job) {
     return;
   }
@@ -259,7 +254,7 @@ export async function syncJobFailed(
 }
 
 export async function syncJobHeartbeat(sessionId: string, activeAttemptIds: Map<string, string>): Promise<void> {
-  const job = await getTrackedJob(sessionId);
+  const job = await getLatestJobForSession(sessionId);
   if (!job) {
     return;
   }
@@ -297,7 +292,7 @@ export function getCurrentStage(progress: Awaited<ReturnType<typeof getSessionPr
 }
 
 export async function syncJobCancelled(sessionId: string, activeAttemptIds: Map<string, string>): Promise<void> {
-  const job = await getTrackedJob(sessionId);
+  const job = await getLatestJobForSession(sessionId);
   if (!job) {
     return;
   }
@@ -327,7 +322,7 @@ export async function syncJobCancelled(sessionId: string, activeAttemptIds: Map<
 }
 
 export async function beginTrackedJobAttempt(sessionId: string, activeAttemptIds: Map<string, string>, workerId: string): Promise<void> {
-  const job = await getTrackedJob(sessionId);
+  const job = await getLatestJobForSession(sessionId);
   if (!job) {
     return;
   }
@@ -357,7 +352,7 @@ export async function completeTrackedJobAttempt(
     return;
   }
 
-  const job = await getTrackedJob(sessionId);
+  const job = await getLatestJobForSession(sessionId);
   await completeJobAttempt({
     attemptId,
     outcome,
@@ -374,7 +369,7 @@ export async function writeDeadLetterArtifact(
   attemptsUsed: number,
   queueDriver: { moveToDeadLetter: (sessionId: string, meta: Record<string, unknown>) => Promise<void> }
 ): Promise<void> {
-  const job = await getTrackedJob(sessionId);
+  const job = await getLatestJobForSession(sessionId);
   if (!job) {
     return;
   }
@@ -408,7 +403,7 @@ export async function writeDeadLetterArtifact(
 }
 
 export function buildDeadLetterPayload(
-  job: NonNullable<Awaited<ReturnType<typeof getTrackedJob>>>,
+  job: NonNullable<Awaited<ReturnType<typeof getLatestJobForSession>>>,
   sessionId: string,
   errorMessage: string,
   attemptsUsed: number

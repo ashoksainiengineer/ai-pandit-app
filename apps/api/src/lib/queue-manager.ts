@@ -1,4 +1,3 @@
-import crypto from 'node:crypto';
 import {
   db,
   executeWithRetry,
@@ -7,8 +6,13 @@ import {
   scheduleJobRetry,
   failJob as failJobRecord,
 } from '@ai-pandit/db/jobs';
-import { eq, and, or, asc, lt, gte } from 'drizzle-orm';
-import { logger } from './logger.js';
+import {
+  eq,
+  and,
+  or,
+  lt
+} from 'drizzle-orm';
+import { logger } from '../utils/logger.js';
 import { safeDecryptWithFallback, parseSensitiveField } from './encryption/index.js';
 import {
   createAbortController,
@@ -17,10 +21,10 @@ import {
   isCancellationError
 } from './cancellation-manager.js';
 import { emitComplete, emitError } from './session-events.js';
-import { getSessionProgress, ProgressTracker } from './progress-tracker.js';
-import { calculations, jobAttempts, jobs, sessions } from '@ai-pandit/db/schema';
+import { ProgressTracker } from './progress-tracker.js';
+import { calculations, sessions } from '@ai-pandit/db/schema';
 import { config } from '../config/index.js';
-import { processSecondsPrecisionBTR } from './seconds-precision-btr.js';
+import { executeSecondsPrecisionRectification } from './seconds-precision-btr.js';
 import { getMemoryPressureSnapshot, triggerGC } from './memory-manager.js';
 import { getQueueDriver } from './queue/index.js';
 import {
@@ -55,15 +59,11 @@ import {
 } from './retry-policies.js';
 import {
   recoveryTelemetry,
-  recoverInterruptedJobsOnStartup as _recoverInterruptedJobsOnStartup,
-  getQueueStats as _getQueueStats,
-  cleanupZombiesOnStartup as _cleanupZombiesOnStartup,
-  getQueueRecoveryTelemetry as _getQueueRecoveryTelemetry,
 } from './metrics-reporter.js';
 
-// ═════════════════════════════════════════════════════════════════════════════
-// QUEUE CONFIGURATION (Optimized for HF Spaces Free Tier: 16GB RAM)
-// ═════════════════════════════════════════════════════════════════════════════
+import { sleep } from './ai-helpers.js';
+
+// Queue Configuration
 
 const QUEUE_CONFIG = {
   maxConcurrent: config.queue?.maxConcurrent ?? 3,
@@ -77,17 +77,17 @@ const QUEUE_CONFIG = {
   memoryCriticalThresholdGB: config.memory?.criticalThresholdGB ?? 11,
 };
 
-// ═════════════════════════════════════════════════════════════════════════════
-// QUEUE STATUS TYPES
-// ═════════════════════════════════════════════════════════════════════════════
+const HEARTBEAT_INTERVAL_MS = 15_000;
+const QUEUE_BLOCKED_SLEEP_MS = 1000;
+const MEMORY_SNAPSHOT_SAMPLE_RATE = 0.1;
 
-import type { QueueStatus, QueuePosition, QueueSubmitResult, PhysicalTraits, ForensicTraits, SecondsPrecisionInput } from '@ai-pandit/shared';
+// Queue Status Types
+
+import type { QueueStatus, QueuePosition, QueueSubmitResult, PhysicalTraits, ForensicTraits } from '@ai-pandit/shared';
 
 export type { QueueStatus, QueuePosition, QueueSubmitResult };
 
-// ═════════════════════════════════════════════════════════════════════════════
-// IN-MEMORY STATE (minimal - just tracking current jobs)
-// ═════════════════════════════════════════════════════════════════════════════
+// In-Memory State
 
 const activeProcessingIds = new Set<string>();
 const activeAttemptIds = new Map<string, string>();
@@ -95,17 +95,11 @@ const workerId = process.env.K_SERVICE
   ? `${process.env.K_SERVICE}:${process.env.K_REVISION ?? 'unknown'}`
   : `worker:${process.pid}`;
 
-export function getActiveQueueCount(): number {
+/** Returns count of items currently being processed (not total queue depth) */
+export function getActiveProcessingCount(): number {
   return activeProcessingIds.size;
 }
 
-export function getQueueCircuitBreakerStatus() {
-  return getCircuitSnapshots();
-}
-
-export function getQueueRecoveryTelemetry() {
-  return _getQueueRecoveryTelemetry();
-}
 
 export function isQueueProcessorRunning(): boolean {
   return isProcessorRunning;
@@ -113,11 +107,9 @@ export function isQueueProcessorRunning(): boolean {
 
 const processingStartTimes = new Map<string, number>();
 let isProcessorRunning = false;
-const queueDriver = getQueueDriver();
+const queueDriver = getQueueDriver(); // Initialize during first access via lazy getter pattern
 
-// ═════════════════════════════════════════════════════════════════════════════
-// QUEUE OPERATIONS
-// ═════════════════════════════════════════════════════════════════════════════
+// Queue Operations
 
 export async function addToQueue(sessionId: string): Promise<QueueSubmitResult> {
   try {
@@ -152,6 +144,10 @@ export async function addToQueue(sessionId: string): Promise<QueueSubmitResult> 
   }
 }
 
+/**
+ * Checks if queue has capacity to accept a new submission.
+ * Returns null when capacity is available (success), or a failure result when full.
+ */
 function checkQueueCapacity(queuedCount: number): QueueSubmitResult | null {
   if (queuedCount >= QUEUE_CONFIG.maxQueueSize) {
     return {
@@ -215,7 +211,7 @@ export async function getQueueStatus(sessionId: string): Promise<QueuePosition |
 
     const queueStatus = mapJobStatusToQueueStatus(job?.status ?? session.status);
     const position = await computeQueuePosition(sessionId, queueStatus);
-    const estimatedWaitSeconds = await computeEstimatedWait(position, queueStatus);
+    const estimatedWaitSeconds = computeEstimatedWait(position, queueStatus);
     const totalInQueue = await getQueuedCount();
 
     return {
@@ -228,7 +224,7 @@ export async function getQueueStatus(sessionId: string): Promise<QueuePosition |
       session,
     };
   } catch (error) {
-    logger.error('Failed to get queue status', { error: (error as any)?.message || error });
+    logger.error('Failed to get queue status', { error: error instanceof Error ? error.message : String(error) });
     return null;
   }
 }
@@ -257,7 +253,7 @@ async function computeQueuePosition(sessionId: string, queueStatus: QueueStatus)
   return getQueuePosition(sessionId);
 }
 
-async function computeEstimatedWait(position: number, queueStatus: QueueStatus): Promise<number> {
+function computeEstimatedWait(position: number, queueStatus: QueueStatus): number {
   if (queueStatus !== 'queued') {
     return 0;
   }
@@ -283,6 +279,7 @@ async function getQueuedCount(): Promise<number> {
   try {
     return await queueDriver.countQueuedJobs();
   } catch (error) {
+    logger.error('Failed to get queued count', error);
     return 0;
   }
 }
@@ -422,7 +419,7 @@ async function updateSessionToComplete(
         reasoningLogs: results.reasoningLogs ? JSON.stringify(results.reasoningLogs) : null,
         completedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-      } as any)
+      } as Record<string, unknown> as typeof sessions.$inferInsert)
       .where(and(
         eq(sessions.id, sessionId),
         eq(sessions.status, 'processing')
@@ -527,7 +524,7 @@ async function markSessionQueuedForRetry(sessionId: string): Promise<void> {
   );
 
   await syncJobQueued(sessionId);
-  await releaseProcessingSlot(sessionId);
+  releaseProcessingSlot(sessionId);
 }
 
 export async function cancelSession(sessionId: string): Promise<boolean> {
@@ -577,16 +574,14 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
   }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// C4 FIX: Retry Orchestration
-// ═════════════════════════════════════════════════════════════════════════════
+// Retry Orchestration
 
-async function processSessionWithRetry(sessionId: string, attempt: number = 0): Promise<void> {
-  logger.debug('processSessionWithRetry called', { sessionId, attempt });
+async function analyzeBirthTimeWithRetry(sessionId: string, attempt: number = 0): Promise<void> {
+  logger.debug('analyzeBirthTimeWithRetry called', { sessionId, attempt });
   try {
-    await processSessionAsync(sessionId);
+    await analyzeSessionAsync(sessionId);
 
-    logger.debug('processSessionAsync completed successfully', { sessionId });
+    logger.debug('analyzeSessionAsync completed successfully', { sessionId });
     recordGlobalProcessingSuccess();
 
   } catch (error) {
@@ -660,9 +655,10 @@ async function scheduleRetry(
     isRetryable: true,
   });
 
+  releaseProcessingSlot(sessionId);
   await sleep(delay);
   await beginTrackedJobAttempt(sessionId, activeAttemptIds, workerId);
-  return processSessionWithRetry(sessionId, attempt + 1);
+  return analyzeBirthTimeWithRetry(sessionId, attempt + 1);
 }
 
 async function finalizePermanentFailure(
@@ -687,9 +683,7 @@ async function finalizePermanentFailure(
   }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// QUEUE PROCESSOR
-// ═════════════════════════════════════════════════════════════════════════════
+// Queue Processor
 
 export function startQueueProcessor(): void {
   if (isProcessorRunning) {
@@ -702,10 +696,10 @@ export function startQueueProcessor(): void {
   }
 
   isProcessorRunning = true;
-  void processQueue();
+  void drainQueue();
 }
 
-async function processQueue(): Promise<void> {
+async function drainQueue(): Promise<void> {
   logger.info('Queue processor loop started with C4 fixes (retry + circuit breaker)');
 
   while (isProcessorRunning) {
@@ -715,14 +709,14 @@ async function processQueue(): Promise<void> {
 
 export async function runQueueIteration(): Promise<void> {
   try {
-    const breakerDelay = await checkCircuitBreakers();
+    const breakerDelay = checkCircuitBreakers();
     if (breakerDelay !== null) {
       await sleep(breakerDelay);
       return;
     }
 
-    await cleanupStaleRequests();
-    const effectiveMaxConcurrent = await evaluateMemoryPressure();
+    await purgeExpiredQueueEntries();
+    const effectiveMaxConcurrent = evaluateMemoryPressure();
 
     if (activeProcessingIds.size >= effectiveMaxConcurrent) {
       await handleQueueBlocked();
@@ -743,7 +737,7 @@ export async function runQueueIteration(): Promise<void> {
   }
 }
 
-async function checkCircuitBreakers(): Promise<number | null> {
+function checkCircuitBreakers(): number | null {
   const blockingBreakers = getBlockingCircuitBreakers();
   if (blockingBreakers.length === 0) {
     return null;
@@ -758,12 +752,12 @@ async function checkCircuitBreakers(): Promise<number | null> {
   return Math.max(1000, Math.min(config.queue.pollIntervalMs, remainingMs));
 }
 
-async function evaluateMemoryPressure(): Promise<number> {
+function evaluateMemoryPressure(): number {
   const memoryPressure = getMemoryPressureSnapshot();
   const { heapUsedGB, heapTotalGB, rssGB } = memoryPressure;
   let effectiveMaxConcurrent = QUEUE_CONFIG.maxConcurrent;
 
-  if (Math.random() < 0.1) {
+  if (Math.random() < MEMORY_SNAPSHOT_SAMPLE_RATE) {
     const snapshot = getCircuitSnapshots();
     logger.info('[MEMORY] Queue runtime snapshot', {
       rssGB: Number(rssGB.toFixed(2)),
@@ -796,18 +790,18 @@ async function handleQueueBlocked(): Promise<void> {
       max: QUEUE_CONFIG.maxConcurrent,
     });
   }
-  await sleep(1000);
+  await sleep(QUEUE_BLOCKED_SLEEP_MS);
 }
 
 function startSessionProcessing(sessionId: string): void {
-  processSessionWithRetry(sessionId).catch((err) => {
-    logger.error('UNHANDLED ERROR in processSessionWithRetry', { sessionId, error: err });
+  analyzeBirthTimeWithRetry(sessionId).catch((err) => {
+    logger.error('UNHANDLED ERROR in analyzeBirthTimeWithRetry', { sessionId, error: err });
     recordDependencyFailure('processing');
   });
 }
 
 async function handleQueueIterationError(error: unknown): Promise<void> {
-  logger.error('Queue processor error', { error: (error as any)?.message || error });
+  logger.error('Queue processor error', { error: error instanceof Error ? error.message : String(error) });
   const reasonCode = deriveRetryReasonCode(error);
   recordDependencyFailure(mapReasonToDependency(reasonCode));
 
@@ -818,14 +812,12 @@ async function handleQueueIterationError(error: unknown): Promise<void> {
   await sleep(delay);
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// SESSION PROCESSING
-// ═════════════════════════════════════════════════════════════════════════════
+// Session Processing
 
-async function processSessionAsync(sessionId: string): Promise<void> {
-  logger.debug('processSessionAsync entered', { sessionId });
+async function analyzeSessionAsync(sessionId: string): Promise<void> {
+  logger.debug('analyzeSessionAsync entered', { sessionId });
   try {
-    logger.debug('processSessionAsync querying DB', { sessionId });
+    logger.debug('analyzeSessionAsync querying DB', { sessionId });
     logger.info('Starting to process request', { sessionId });
 
     const s = await fetchSessionRow(sessionId);
@@ -877,7 +869,7 @@ function startHeartbeatTimer(sessionId: string): ReturnType<typeof setInterval> 
         error: error instanceof Error ? error.message : String(error),
       });
     });
-  }, 15000);
+  }, HEARTBEAT_INTERVAL_MS);
 }
 
 interface DecryptedSessionData {
@@ -905,8 +897,8 @@ function decryptSessionFields(
     s.forensicTraits, s.clerkId, s.userId, sessionId, 'forensicTraits'
   );
 
-  const dateOfBirth = parseSensitiveField(s.dateOfBirth, s.clerkId, s.userId) as string;
-  const tentativeTime = parseSensitiveField(s.tentativeTime, s.clerkId, s.userId) as string;
+  const dateOfBirth = parseSensitiveField(s.dateOfBirth, s.clerkId, s.userId, '') as string;
+  const tentativeTime = parseSensitiveField(s.tentativeTime, s.clerkId, s.userId, '') as string;
 
   logger.info('[Time Format]', {
     sessionId,
@@ -932,13 +924,15 @@ function decryptJsonField(
   if (decrypted) {
     try {
       return JSON.parse(decrypted);
-    } catch {
+    } catch (error) {
+      logger.error('[QUEUE-MANAGER] Failed to decrypt queue item', error as Error);
       // Decrypted value is not valid JSON, fall through to try parsing raw encrypted
     }
   }
   try {
     return JSON.parse(encrypted);
-  } catch {
+  } catch (error) {
+    logger.error('[QUEUE-MANAGER] Failed to parse encrypted data', error as Error);
     if (required) {
       throw new Error('Failed to decrypt or parse required field');
     }
@@ -975,7 +969,7 @@ function buildBtrInput(
   s: typeof sessions.$inferSelect,
   decrypted: DecryptedSessionData,
   abortSignal: AbortSignal
-): Parameters<typeof processSecondsPrecisionBTR>[0] {
+): Parameters<typeof executeSecondsPrecisionRectification>[0] {
   logger.info('Initializing Seconds Precision BTR...', {
     sessionId: s.id,
     offsetConfig: s.offsetConfig ? 'Preserving User Config' : 'Using Default',
@@ -994,27 +988,27 @@ function buildBtrInput(
     latitude: s.latitude,
     longitude: s.longitude,
     timezone: s.timezone,
-    lifeEvents: decrypted.lifeEvents as Parameters<typeof processSecondsPrecisionBTR>[0]['lifeEvents'],
-    offsetConfig: offsetConfig as unknown as Parameters<typeof processSecondsPrecisionBTR>[0]['offsetConfig'],
+    lifeEvents: decrypted.lifeEvents as Parameters<typeof executeSecondsPrecisionRectification>[0]['lifeEvents'],
+    offsetConfig: offsetConfig as unknown as Parameters<typeof executeSecondsPrecisionRectification>[0]['offsetConfig'],
     physicalTraits: decrypted.physicalTraits,
     forensicTraits: decrypted.forensicTraits as ForensicTraits,
-    spouseData: decrypted.spouseData as Parameters<typeof processSecondsPrecisionBTR>[0]['spouseData'],
+    spouseData: decrypted.spouseData as Parameters<typeof executeSecondsPrecisionRectification>[0]['spouseData'],
     abortSignal,
   };
 }
 
 async function runBtrAnalysis(
   sessionId: string,
-  btrInput: Parameters<typeof processSecondsPrecisionBTR>[0]
-): Promise<Awaited<ReturnType<typeof processSecondsPrecisionBTR>>> {
-  const result = await processSecondsPrecisionBTR(btrInput);
+  btrInput: Parameters<typeof executeSecondsPrecisionRectification>[0]
+): Promise<Awaited<ReturnType<typeof executeSecondsPrecisionRectification>>> {
+  const result = await executeSecondsPrecisionRectification(btrInput);
   logger.info('Analysis finished successfully', { sessionId });
   return result;
 }
 
 async function serializeAndComplete(
   sessionId: string,
-  result: Awaited<ReturnType<typeof processSecondsPrecisionBTR>>
+  result: Awaited<ReturnType<typeof executeSecondsPrecisionRectification>>
 ): Promise<void> {
   let optimizedAnalysisStr = '';
 
@@ -1063,11 +1057,9 @@ function releaseWorkerSlot(sessionId: string): void {
   }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// CLEANUP & UTILITIES
-// ═════════════════════════════════════════════════════════════════════════════
+// Cleanup & Utilities
 
-async function cleanupStaleRequests(): Promise<void> {
+async function purgeExpiredQueueEntries(): Promise<void> {
   try {
     const staleThreshold = new Date(Date.now() - QUEUE_CONFIG.staleTimeoutMs).toISOString();
 
@@ -1119,18 +1111,3 @@ export async function waitForQueueDrain(
   };
 }
 
-export async function getQueueStats() {
-  return _getQueueStats(queueDriver);
-}
-
-export async function recoverInterruptedJobsOnStartup() {
-  return _recoverInterruptedJobsOnStartup();
-}
-
-export async function cleanupZombiesOnStartup() {
-  return _cleanupZombiesOnStartup(markAsFailed);
-}
-
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}

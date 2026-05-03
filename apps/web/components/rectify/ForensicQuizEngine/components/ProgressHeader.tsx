@@ -1,5 +1,4 @@
-import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
 import { FORENSIC_ONLY_METADATA as QUIZ_METADATA, FORENSIC_ONLY_QUESTIONS as FORENSIC_QUIZ_QUESTIONS } from '@/lib/forensic-quiz/questions';
 import { SaveStatus } from '../types';

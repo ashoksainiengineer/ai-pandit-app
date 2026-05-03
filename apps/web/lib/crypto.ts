@@ -187,7 +187,7 @@ export function encryptObject<T extends object>(data: T): string {
  */
 export function decryptObject<T extends object>(encryptedString: string): T {
     const decrypted = decrypt(encryptedString);
-    return JSON.parse(decrypted) as T;
+    try { return JSON.parse(decrypted) as T; } catch { throw new Error('Decrypted data is not valid JSON'); }
 }
 
 /**

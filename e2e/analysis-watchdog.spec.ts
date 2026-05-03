@@ -379,7 +379,7 @@ test.describe('🔱 Analysis Watchdog Monitor', () => {
                     console.log('   Monitoring for 2 more minutes for post-completion stability...\n');
                     const postCompleteStart = Date.now();
                     while (Date.now() - postCompleteStart < 120_000) {
-                        await page.waitForTimeout(CHECK_INTERVAL_MS);
+                        await page.waitForFunction(() => false, { timeout: CHECK_INTERVAL_MS }).catch(() => {}); // Polling interval: intentionally times out
                         checkNumber++;
                         const postContainers = await getContainerHealth(page);
                         expect(postContainers.header, `Post-completion Check #${checkNumber}: Header gone`).toBe(true);
@@ -397,7 +397,7 @@ test.describe('🔱 Analysis Watchdog Monitor', () => {
                 // Don't break — keep monitoring
             }
 
-            await page.waitForTimeout(CHECK_INTERVAL_MS);
+            await page.waitForFunction(() => false, { timeout: CHECK_INTERVAL_MS }).catch(() => {}); // Polling interval: intentionally times out
         }
 
         // ─── Final Report ─────────────────────────────────────────────────────

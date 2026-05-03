@@ -4,7 +4,7 @@
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { logger } from './logger.js';
+import { logger } from '../utils/logger.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // CANCELLATION MANAGER
@@ -124,9 +124,3 @@ export function isCancellationError(error: unknown): boolean {
         (error instanceof Error && error.name === 'AbortError');
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// LEGACY EXPORTS (for backward compatibility during refactoring)
-// ═════════════════════════════════════════════════════════════════════════════
-
-/** @deprecated Use throwIfCancelled directly */
-export const _throwIfCancelled = throwIfCancelled;

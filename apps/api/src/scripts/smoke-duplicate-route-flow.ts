@@ -76,8 +76,6 @@ async function main(): Promise<void> {
     throw new Error('No completed session found to clone');
   }
 
-  console.log(`[SMOKE] Using completed template session: ${completed.id}`);
-
   const cloneResponse = await requestJson<{ success: boolean; data?: { id: string } }>(
     `/api/sessions/${encodeURIComponent(completed.id)}/clone`,
     { method: 'POST' }
@@ -87,8 +85,6 @@ async function main(): Promise<void> {
   if (!cloneResponse.success || !clonedSessionId) {
     throw new Error('Clone route did not return a valid cloned session id');
   }
-
-  console.log(`[SMOKE] Clone created: ${clonedSessionId}`);
 
   const requeueResponse = await requestJson<{ success: boolean }>(
     '/api/queue/requeue',
@@ -102,8 +98,6 @@ async function main(): Promise<void> {
     throw new Error('Requeue failed');
   }
 
-  console.log('[SMOKE] Requeue accepted. Polling progress...');
-
   let terminalStatus: string | null = null;
   for (let attempt = 1; attempt <= maxPolls; attempt += 1) {
     await sleep(pollIntervalMs);
@@ -113,7 +107,6 @@ async function main(): Promise<void> {
     );
 
     const status = progress.status || 'unknown';
-    console.log(`[SMOKE] poll=${attempt} status=${status}`);
     if (status === 'complete' || status === 'failed' || status === 'cancelled' || status === 'error') {
       terminalStatus = status;
       break;
@@ -128,7 +121,6 @@ async function main(): Promise<void> {
     throw new Error('Delete failed for cloned session');
   }
 
-  console.log(`[SMOKE] Cleanup delete success for ${clonedSessionId}`);
   console.log(`SMOKE_RESULT: template=${completed.id} clone=${clonedSessionId} terminalStatus=${terminalStatus ?? 'non-terminal'}`);
 }
 

@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { logger } from './logger.js';
+import { logger } from '../utils/logger.js';
 
 interface StreamTicketRecord {
   clerkId: string;
@@ -19,6 +19,7 @@ function cleanupExpiredTickets(nowMs: number): void {
 }
 
 export function createStreamTicket(clerkId: string, sessionId: string, ttlMs: number = DEFAULT_TTL_MS): string {
+  ensureCleanupTimer();
   const nowMs = Date.now();
   cleanupExpiredTickets(nowMs);
 
@@ -53,11 +54,16 @@ export function getActiveStreamTicketCount(): number {
   return tickets.size;
 }
 
-// Best-effort periodic cleanup for long-running HF worker.
-setInterval(() => {
-  try {
-    cleanupExpiredTickets(Date.now());
-  } catch (error) {
-    logger.warn('Failed to clean expired stream tickets', { error });
+let _cleanupInterval: ReturnType<typeof setInterval> | null = null;
+
+function ensureCleanupTimer(): void {
+  if (!_cleanupInterval) {
+    _cleanupInterval = setInterval(() => {
+      try {
+        cleanupExpiredTickets(Date.now());
+      } catch (error) {
+        logger.warn('Failed to clean expired stream tickets', { error });
+      }
+    }, 60_000).unref();
   }
-}, 60_000).unref();
+}

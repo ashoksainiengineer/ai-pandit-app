@@ -1,3 +1,4 @@
+
 import { env } from '../config/env';
 import { logger } from '../secure-logger';
 import { create } from 'zustand';
@@ -276,7 +277,7 @@ export const useStreamStore = create<StreamStore>()(
                     });
 
                     try {
-                        const token = await (window as any).__clerk?.session?.getToken();
+                        const token = await window.__clerk?.session?.getToken();
                         const backendUrl = (await import('@/lib/config')).env.api.backendUrl.replace(/\/$/, '');
 
                         const res = await fetch(
@@ -324,7 +325,7 @@ export const useStreamStore = create<StreamStore>()(
                     }));
 
                     try {
-                        const token = await (window as any).__clerk?.session?.getToken();
+                        const token = await window.__clerk?.session?.getToken();
                         const backendUrl = (await import('@/lib/config')).env.api.backendUrl.replace(/\/$/, '');
 
                         const res = await fetch(
@@ -568,6 +569,6 @@ export const useStreamStore = create<StreamStore>()(
                 }),
             }
         ),
-        { name: 'BTR-StreamStore', enabled: env.app?.isDevelopment ?? false } as any
+        { name: 'BTR-StreamStore', enabled: env.app?.isDevelopment ?? false }
     )
 );

@@ -10,15 +10,15 @@
 import { SecondsPrecisionInput, ForensicTraits } from '@ai-pandit/shared';
 import { CandidateTime, getCandidateIdentity, getDynamicBatchSize, getDynamicSurvivors, sortCandidatesByMerit, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
-import { callAIWithStream, executeAIInParallel } from '../../ai-client.js';
-import { _emitCandidateScore, emitAIContext, emitDecision } from '../../session-events.js';
+import { _callAIWithStream, _executeAIInParallel } from '../../ai-client.js';
+import { emitCandidateScore, emitAIContext, emitDecision } from '../../session-events.js';
 import { throwIfCancelled } from '../../cancellation-manager.js';
 import { cleanup } from '../../ephemeris.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
 import { getBatchPrompt } from '../prompts/index.js';
 import { extractBatchSurvivors } from '../extractors/index.js';
 import { CandidateDataPackage, StageResult, TournamentRound } from '@ai-pandit/shared';
-import { logger } from '../../logger.js';
+import { logger } from '../../../utils/logger.js';
 import { config } from '../../../config/index.js';
 import { getMinifiedEphemerisInline, getFullEphemerisPayload } from './_utils.js';
 import { buildCandidateReferenceMap } from '../candidate-reference.js';
@@ -166,7 +166,7 @@ export async function stage2BatchTournament(
                 );
             }
             
-            const response = await callAIWithStream(
+            const response = await _callAIWithStream(
                 input.sessionId,
                 2,
                 systemPrompt,
@@ -267,7 +267,7 @@ export async function stage2BatchTournament(
             return batchSurvivors;
         });
 
-        const results = await executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
+        const results = await _executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
 
         // Flatten array of survivor arrays
         let nextCandidates = results.flat();
@@ -405,7 +405,7 @@ export async function stage2BatchTournament(
                 );
             }
             
-            const response = await callAIWithStream(
+            const response = await _callAIWithStream(
                 input.sessionId,
                 2,
                 systemPrompt,
@@ -452,7 +452,7 @@ export async function stage2BatchTournament(
             return response;
         });
 
-        const results = await executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
+        const results = await _executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
 
         for (let i = 0; i < batches.length; i++) {
             const batchTimes = batches[i];

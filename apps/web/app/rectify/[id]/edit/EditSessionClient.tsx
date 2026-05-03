@@ -145,7 +145,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
         return () => clearTimeout(timer);
     }, [birthData, lifeEvents, forensicTraits, spouseData, offsetConfig, sessionId, lastSavedData, getToken, isSubmitting]);
 
-    const handleNext = () => {
+    const advanceToNextStep = () => {
         setError(null);
         if (validateStep(step)) {
             const newStep = step + 1;
@@ -154,7 +154,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
         }
     };
 
-    const handleBack = () => {
+    const goToPreviousStep = () => {
         setError(null);
         const newStep = step - 1;
         updateStep(newStep);
@@ -185,7 +185,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
         }
     };
 
-    const handleSubmit = async () => {
+    const submitEditedSession = async () => {
         if (!birthData) return;
 
         setIsSubmitting(true);
@@ -371,7 +371,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                                 events={lifeEvents}
                                 traits={physicalTraits}
                                 forensicTraits={forensicTraits}
-                                onSubmit={handleSubmit}
+                                onSubmit={submitEditedSession}
                                 isSubmitting={isSubmitting}
                                 onEdit={updateStep}
                                 offsetConfig={offsetConfig}
@@ -382,7 +382,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                     {step < 5 && (
                         <div className="flex justify-between mt-12 pt-6 border-t border-[#F0E8DE]">
                             <button
-                                onClick={handleBack}
+                                onClick={goToPreviousStep}
                                 disabled={step === 1}
                                 className={`px-6 py-3 rounded-xl font-semibold transition-colors ${step === 1
                                     ? 'opacity-0 cursor-default'
@@ -393,7 +393,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                             </button>
 
                             <button
-                                onClick={handleNext}
+                                onClick={advanceToNextStep}
                                 className="px-8 py-3 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white rounded-xl font-semibold hover:shadow-[0_0_15px_rgba(184,134,11,0.4)] transition-all"
                             >
                                 Next Step →

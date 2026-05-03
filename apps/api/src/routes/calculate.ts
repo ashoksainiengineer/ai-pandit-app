@@ -1,31 +1,29 @@
 import { Router, Response } from 'express';
 import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
-import { logger } from '../lib/logger.js';
+import { logger } from '../utils/logger.js';
 import {
     createQueuedBirthRectificationJob,
     getJobIdempotencyKey,
 } from '../lib/jobs/job-service.js';
 import { resolveSessionOwnershipContext } from '../lib/session-ownership.js';
 import { sendError, sendSuccess } from '../utils/response.js';
+import { validateBody, QueueSubmitSchema } from '../middleware/validation.js';
 
 const router = Router();
 
-// ═════════════════════════════════════════════════════════════════════════════
-// ROUTE HANDLER
-// ═════════════════════════════════════════════════════════════════════════════
-
 /**
  * POST /api/calculate - Submit birth time rectification for processing
- * 
+ * @deprecated Use POST /api/queue instead. This endpoint is maintained for backward compatibility.
+ *
  * Flow:
  * 1. Accept and validate the request
  * 2. Create a session record
  * 3. Add to processing queue
  * 4. Return immediately with sessionId for polling
- * 
+ *
  * The client should poll /api/queue/progress/:sessionId for results.
  */
-router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', authMiddleware, validateBody(QueueSubmitSchema), async (req: AuthenticatedRequest, res: Response) => {
     const startTime = Date.now();
 
     try {

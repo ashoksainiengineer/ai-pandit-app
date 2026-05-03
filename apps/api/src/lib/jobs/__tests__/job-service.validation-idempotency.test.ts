@@ -64,7 +64,7 @@ vi.mock('../../session-ownership.js', () => ({
   isSessionOwnedByContext: vi.fn(() => true),
 }));
 
-import { AppError, ErrorCodes, ValidationError } from '../../../errors/index.js';
+import { ErrorCodes, ValidationError } from '../../../errors/index.js';
 import {
   createQueuedBirthRectificationJob,
   getJobIdempotencyKey,
@@ -156,7 +156,7 @@ describe('job-service validation + idempotency guardrails', () => {
         body: baseBody,
         idempotencyKey: 'idem-xyz',
       })
-    ).rejects.toMatchObject<AppError>({
+    ).rejects.toMatchObject({
       code: ErrorCodes.DUPLICATE_REQUEST,
     });
 
@@ -178,7 +178,7 @@ describe('job-service validation + idempotency guardrails', () => {
         ownershipContext: { clerkId: 'clerk_1', internalUserId: 'internal-user-1' },
         body: baseBody,
       })
-    ).rejects.toMatchObject<AppError>({
+    ).rejects.toMatchObject({
       code: ErrorCodes.RATE_LIMIT_EXCEEDED,
       details: expect.objectContaining({
         reason: 'PER_USER_ACTIVE_LIMIT',

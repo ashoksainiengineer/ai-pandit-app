@@ -138,37 +138,37 @@ describe('Cancellation Manager - isSessionCancelled', () => {
     beforeEach(() => vi.clearAllMocks());
 
     it('should return true if session not found in DB', async () => {
-        (db.limit as any).mockResolvedValueOnce([]);
+        (db as any).limit.mockResolvedValueOnce([]);
         const result = await isSessionCancelled('nonexistent');
         expect(result).toBe(true);
     });
 
     it('should return true if status=failed AND errorMessage includes "Cancelled by user"', async () => {
-        (db.limit as any).mockResolvedValueOnce([{ status: 'failed', errorMessage: 'Cancelled by user' }]);
+        (db as any).limit.mockResolvedValueOnce([{ status: 'failed', errorMessage: 'Cancelled by user' }]);
         const result = await isSessionCancelled('test-session');
         expect(result).toBe(true);
     });
 
     it('should return false if status=failed with OTHER error message', async () => {
-        (db.limit as any).mockResolvedValueOnce([{ status: 'failed', errorMessage: 'AI analysis failed' }]);
+        (db as any).limit.mockResolvedValueOnce([{ status: 'failed', errorMessage: 'AI analysis failed' }]);
         const result = await isSessionCancelled('test-session');
         expect(result).toBe(false);
     });
 
     it('should return false if status=processing', async () => {
-        (db.limit as any).mockResolvedValueOnce([{ status: 'processing', errorMessage: null }]);
+        (db as any).limit.mockResolvedValueOnce([{ status: 'processing', errorMessage: null }]);
         const result = await isSessionCancelled('test-session');
         expect(result).toBe(false);
     });
 
     it('should return false if status=complete', async () => {
-        (db.limit as any).mockResolvedValueOnce([{ status: 'complete', errorMessage: null }]);
+        (db as any).limit.mockResolvedValueOnce([{ status: 'complete', errorMessage: null }]);
         const result = await isSessionCancelled('test-session');
         expect(result).toBe(false);
     });
 
     it('should return false (fail-open) on DB error', async () => {
-        (db.limit as any).mockRejectedValueOnce(new Error('DB connection failed'));
+        (db as any).limit.mockRejectedValueOnce(new Error('DB connection failed'));
         const result = await isSessionCancelled('test-session');
         expect(result).toBe(false);
     });
@@ -188,12 +188,12 @@ describe('Cancellation Manager - throwIfCancelled', () => {
     });
 
     it('should throw CancellationError if DB says cancelled', async () => {
-        (db.limit as any).mockResolvedValueOnce([{ status: 'failed', errorMessage: 'Cancelled by user' }]);
+        (db as any).limit.mockResolvedValueOnce([{ status: 'failed', errorMessage: 'Cancelled by user' }]);
         await expect(throwIfCancelled('test')).rejects.toThrow(CancellationError);
     });
 
     it('should NOT throw if session is processing normally', async () => {
-        (db.limit as any).mockResolvedValueOnce([{ status: 'processing', errorMessage: null }]);
+        (db as any).limit.mockResolvedValueOnce([{ status: 'processing', errorMessage: null }]);
         await expect(throwIfCancelled('test')).resolves.toBeUndefined();
     });
 });

@@ -1,7 +1,7 @@
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq, or, asc } from 'drizzle-orm';
-import { logger } from '../lib/logger.js';
+import { logger } from '../utils/logger.js';
 
 async function checkSession() {
     const sessionId = '2f207ae6-0387-4039-8fc8-72128f0bf361';

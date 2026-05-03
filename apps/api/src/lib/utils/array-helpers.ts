@@ -22,18 +22,18 @@ export function shuffleArray<T>(array: readonly T[]): T[] {
 }
 
 /**
- * Randomly sorts an array using comparator function
- * Uses Math.random() for randomness (not cryptographically secure)
- * Suitable for anti-bias shuffling in AI analysis
+ * Randomly sorts an array using Fisher-Yates shuffle for unbiased randomization.
+ * Suitable for anti-bias shuffling in AI analysis.
  * @template T The type of array elements
  * @param array The array to randomize
  * @returns A new randomly sorted array
  * @example
  * const randomized = randomSort(candidates);
  */
-export function randomSort<T>(array: readonly T[]): T[] {
-  return [...array].sort(() => Math.random() - 0.5);
-}
+ export function randomSort<T>(array: readonly T[]): T[] {
+  return shuffleArray(array);
+  }
+
 
 /**
  * Splits an array into chunks of specified size

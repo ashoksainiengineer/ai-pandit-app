@@ -124,7 +124,7 @@ test.describe('Critical User Flows', () => {
       await page.fill('input[name="fullName"]', 'Draft Test User');
       await page.fill('input[name="dateOfBirth"]', '1990-01-01');
       
-      await page.waitForTimeout(4000);
+      await page.waitForResponse(resp => resp.url().includes('/api/draft') && resp.status() === 200, { timeout: 10000 }).catch(() => {});
       
       await page.goto(`${BASE_URL}/dashboard`);
       await page.goto(`${BASE_URL}/rectify/new`);
@@ -250,7 +250,7 @@ test.describe('Critical User Flows', () => {
       await page.waitForURL(/rectify\/[\w-]+/);
       
       await page.context().setOffline(true);
-      await page.waitForTimeout(5000);
+      await expect(page.locator('text=Reconnecting, text=Offline')).toBeVisible({ timeout: 10000 });
       await page.context().setOffline(false);
       
       await expect(page.locator('text=Reconnecting')).toBeVisible({ timeout: 10000 });

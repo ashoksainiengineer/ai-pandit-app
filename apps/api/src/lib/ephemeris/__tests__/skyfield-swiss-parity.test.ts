@@ -19,7 +19,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { calculateEphemeris, initEphemerisProvider } from '../../ephemeris.js';
 import { buildCandidateDataPackage } from '../../btr/data-package-builder.js';
-import { createBirthInput, TEST_TIMEOUTS, expectWithinTolerance } from '../../__tests__/test-utils.js';
+import { createBirthInput, TEST_TIMEOUTS } from '../../__tests__/test-utils.js';
 
 // Test birth data for various conditions
 const TEST_BIRTH_DATA = {
@@ -725,7 +725,7 @@ describe('Skyfield Performance and Stress Tests', () => {
     }, TEST_TIMEOUTS.PERFORMANCE);
 
     it('Then should maintain consistency across multiple calls', async () => {
-      const results = [];
+      const results: any[] = [];
 
       // Calculate same chart 5 times
       for (let i = 0; i < 5; i++) {

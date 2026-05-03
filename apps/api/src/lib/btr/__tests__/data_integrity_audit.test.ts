@@ -60,18 +60,14 @@ describe('🔱 DATA INTEGRITY AUDIT: AI Payload Precision', () => {
         // D60 Consistency check
         expect(pkg.d60Sign).toBeDefined();
         expect(pkg.d60Planets?.Sun?.deity).toBeDefined();
-        console.log(`[AUDIT] D60 Lagna: ${pkg.d60Sign}`);
-        console.log(`[AUDIT] D60 Sun Deity: ${pkg.d60Planets?.Sun?.deity}`);
 
         // 3. NADI AMSHA (Recursive subdivision)
         expect(pkg.nadiData).toBeDefined();
         expect(Object.keys(pkg.nadiData!).length).toBeGreaterThan(5);
-        console.log(`[AUDIT] Moon Nadi Amsha: ${pkg.nadiData?.moon?.nadiName}`);
 
         // 4. TATWA SHUDDHI TIMING (130m cycle check)
         expect(pkg.vedicSignals?.tatwa).toBeDefined();
         expect(pkg.vedicSignals?.tatwa?.name).toBeDefined();
-        console.log(`[AUDIT] Recorded Tatwa: ${pkg.vedicSignals?.tatwa?.name}`);
 
         // 5. DASHA DEPTH (AI needs multi-level alignment)
         expect(pkg.vimshottariDasha.length).toBeGreaterThan(0);
@@ -81,14 +77,12 @@ describe('🔱 DATA INTEGRITY AUDIT: AI Payload Precision', () => {
         expect(firstDasha.pratyantar).toBeDefined();
 
         // Note: Sukshma/Prana are only populated near events or now()
-        console.log(`[AUDIT] First Dasha entry at birth: ${firstDasha.maha}-${firstDasha.antar}-${firstDasha.pratyantar}`);
 
         // 6. SPECIALIZED SIGNALS
         expect(pkg.yogas).toBeDefined();
         expect(pkg.vedicSignals?.vargottama).toBeDefined();
         expect(pkg.ashtakavarga).toBeDefined();
 
-        console.log(`[AUDIT] Data Package Size: ~${JSON.stringify(pkg).length / 1024} KB`);
         expect(JSON.stringify(pkg).length).toBeGreaterThan(10000); // Ensure payload richness
     });
 });

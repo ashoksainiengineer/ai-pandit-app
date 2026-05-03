@@ -58,9 +58,6 @@ const pool = new Pool({
 
 const db = drizzle(pool, { schema });
 
-export async function ensureDatabaseInitialized(): Promise<void> {
-  await verifyDatabaseConnection();
-}
 
 export async function checkDatabaseHealth(): Promise<{
   healthy: boolean;
@@ -153,7 +150,7 @@ export async function executeWithRetry<T>(
   throw lastError;
 }
 
-async function verifyDatabaseConnection(): Promise<void> {
+export async function verifyDatabaseConnection(): Promise<void> {
   const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
   const isTest = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
   if (isBuildPhase || isTest) return;

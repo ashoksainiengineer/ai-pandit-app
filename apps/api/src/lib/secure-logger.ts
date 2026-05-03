@@ -251,8 +251,11 @@ class SecureLogger {
         case 'error':
           console.error(formatted);
           break;
-      }
+        default:
+          console.log(formatted);
+          break;
     }
+  }
   }
 
   debug(message: string, context?: LogContext): void {

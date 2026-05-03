@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { CheckCircle, Activity } from 'lucide-react';
 import { AnalysisDetails, EventMatch } from './types';
 import { THEME } from './theme';

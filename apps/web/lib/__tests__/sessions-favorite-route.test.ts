@@ -37,7 +37,7 @@ vi.mock('@/lib/server/favorite-store', () => ({
 
 import { POST } from '@/app/api/sessions/[id]/favorite/route';
 
-function makeRequest(body?: Record<string, unknown>): Request {
+function makeRequest(body?: Record<string, unknown>): any {
     return {
         json: async () => body ?? {},
     } as unknown as Request;

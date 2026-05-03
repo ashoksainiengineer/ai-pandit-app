@@ -9,7 +9,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import { db } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { processSecondsPrecisionBTR } from '../../seconds-precision-btr.js';
+import { executeSecondsPrecisionRectification } from '../../seconds-precision-btr.js';
 import { initEphemerisProvider } from '../../ephemeris.js';
 import { createBirthInput, TEST_TIMEOUTS, KNOWN_BIRTH_CHARTS } from '../../__tests__/test-utils.js';
 import type { SecondsPrecisionInput } from '@ai-pandit/shared';
@@ -52,7 +52,7 @@ async function runPipelineWithSession(input: SecondsPrecisionInput) {
   });
 
   try {
-    return await processSecondsPrecisionBTR(input);
+    return await executeSecondsPrecisionRectification(input);
   } finally {
     await db.delete(sessions).where(eq(sessions.id, input.sessionId));
   }

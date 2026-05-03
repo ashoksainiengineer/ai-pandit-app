@@ -37,45 +37,57 @@ import type {
 const API_BASE_URL = env.app.baseUrl;
 
 async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
-  const response = await fetch(`${API_BASE_URL}/api/admin/metrics`, {
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`,
-    },
-  });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/admin/metrics`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+    }
+    const data = await response.json();
+    if (!data.success) throw new Error(data.error?.message || 'Failed to fetch metrics');
+    return data.data;
+  } catch (err) {
+    throw new Error(`Failed to fetch metrics: ${err instanceof Error ? err.message : err}`);
   }
-  const data = await response.json();
-  if (!data.success) throw new Error(data.error?.message || 'Failed to fetch metrics');
-  return data.data;
 }
 
 async function fetchRecentReadings(): Promise<Reading[]> {
-  const response = await fetch(`${API_BASE_URL}/api/admin/readings?limit=5`, {
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`,
-    },
-  });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/admin/readings?limit=5`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+    }
+    const data = await response.json();
+    if (!data.success) throw new Error(data.error?.message || 'Failed to fetch readings');
+    return data.data;
+  } catch (err) {
+    throw new Error(`Failed to fetch readings: ${err instanceof Error ? err.message : err}`);
   }
-  const data = await response.json();
-  if (!data.success) throw new Error(data.error?.message || 'Failed to fetch readings');
-  return data.data;
 }
 
 async function fetchTimeSeriesData(): Promise<TimeSeriesData[]> {
-  const response = await fetch(`${API_BASE_URL}/api/admin/analytics/timeseries?days=30`, {
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`,
-    },
-  });
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/admin/analytics/timeseries?days=30`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${await response.text()}`);
+    }
+    const data = await response.json();
+    if (!data.success) throw new Error(data.error?.message || 'Failed to fetch analytics');
+    return data.data;
+  } catch (err) {
+    throw new Error(`Failed to fetch time series: ${err instanceof Error ? err.message : err}`);
   }
-  const data = await response.json();
-  if (!data.success) throw new Error(data.error?.message || 'Failed to fetch analytics');
-  return data.data;
 }
 
 export default function DashboardPage() {

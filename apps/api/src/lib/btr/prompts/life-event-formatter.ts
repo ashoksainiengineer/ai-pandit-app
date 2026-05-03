@@ -79,6 +79,10 @@ export function formatLifeEventForAI(event: LifeEvent): string {
     case 'exact_date':
       nuance = '(Exact Date)';
       break;
+    default:
+      timeStr = eventDate;
+      nuance = '(Unknown precision)';
+      break;
   }
 
   const eventImportance = importance || 'medium';

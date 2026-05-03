@@ -3,7 +3,7 @@
  * Bypasses HTTP API, calls engine directly
  */
 
-import { processSecondsPrecisionBTR } from '../lib/seconds-precision-btr.js';
+import { executeSecondsPrecisionRectification } from '../lib/seconds-precision-btr.js';
 import crypto from 'node:crypto';
 
 const GANDHI_PROFILE = {
@@ -89,7 +89,7 @@ async function runDirectBTR() {
     try {
         console.log('🚀 Calling BTR engine directly...');
         
-        const result = await processSecondsPrecisionBTR(sessionId, input, {
+        const result = await executeSecondsPrecisionRectification(sessionId, input, {
             onProgress: (progress) => {
                 console.log(`📈 Progress: ${progress.percentage}% - ${progress.stage}`);
             }

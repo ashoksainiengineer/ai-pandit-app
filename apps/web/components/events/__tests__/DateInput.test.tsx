@@ -3,12 +3,12 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import DateInput from '../DateInput';
 import React from 'react';
 
-const mockValidateDate = vi.fn(() => ({ valid: true }));
-const mockValidateDateTime = vi.fn(() => ({ valid: true }));
-const mockValidateMonthYear = vi.fn(() => ({ valid: true }));
-const mockValidateDateRange = vi.fn(() => ({ valid: true }));
-const mockValidateMonthRange = vi.fn(() => ({ valid: true }));
-const mockValidateYearRange = vi.fn(() => ({ valid: true }));
+const mockValidateDate = vi.fn(() => ({ valid: true })) as any;
+const mockValidateDateTime = vi.fn(() => ({ valid: true })) as any;
+const mockValidateMonthYear = vi.fn(() => ({ valid: true })) as any;
+const mockValidateDateRange = vi.fn(() => ({ valid: true })) as any;
+const mockValidateMonthRange = vi.fn(() => ({ valid: true })) as any;
+const mockValidateYearRange = vi.fn(() => ({ valid: true })) as any;
 
 vi.mock('@/lib/date-utils', () => ({
     parseDateParts: (dateStr: string) => {

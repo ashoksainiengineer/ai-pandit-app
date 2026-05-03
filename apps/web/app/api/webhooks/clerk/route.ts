@@ -11,12 +11,12 @@ export async function POST(req: Request) {
     if (buildPhaseResponse) return buildPhaseResponse;
 
     // 1. Get the headers
-    const svix_id = req.headers.get('svix-id');
-    const svix_timestamp = req.headers.get('svix-timestamp');
-    const svix_signature = req.headers.get('svix-signature');
+    const svixId = req.headers.get('svix-id');
+    const svixTimestamp = req.headers.get('svix-timestamp');
+    const svixSignature = req.headers.get('svix-signature');
 
     // 2. If there are no headers, error out
-    if (!svix_id || !svix_timestamp || !svix_signature) {
+    if (!svixId || !svixTimestamp || !svixSignature) {
         return new Response('Error occured -- no svix headers', {
             status: 400
         });
@@ -47,9 +47,9 @@ export async function POST(req: Request) {
     // 5. Verify the payload with the headers
     try {
         evt = wh.verify(body, {
-            "svix-id": svix_id,
-            "svix-timestamp": svix_timestamp,
-            "svix-signature": svix_signature,
+            "svix-id": svixId,
+            "svix-timestamp": svixTimestamp,
+            "svix-signature": svixSignature,
         }) as WebhookEvent;
     } catch (err) {
         logger.error('Error verifying webhook:', err);
@@ -62,9 +62,9 @@ export async function POST(req: Request) {
     const eventType = evt.type;
 
     if (eventType === 'user.created' || eventType === 'user.updated') {
-        const { id, first_name, last_name, email_addresses } = evt.data;
-        const email = email_addresses[0]?.email_address;
-        const fullName = `${first_name || ''} ${last_name || ''}`.trim();
+        const { id, first_name: firstName, last_name: lastName, email_addresses: emailAddresses } = evt.data;
+        const email = emailAddresses[0]?.email_address;
+        const fullName = `${firstName || ''} ${lastName || ''}`.trim();
 
         if (!id) return new Response('No user ID', { status: 400 });
 

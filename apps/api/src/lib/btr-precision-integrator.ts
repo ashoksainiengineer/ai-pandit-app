@@ -13,7 +13,7 @@
 
 import { calculateKPSubLords, calculateKPCuspalSubLords } from './kp-sublords.js';
 import { calculateConsensus, ConsensusResult, ValidationInput } from './consensus-engine.js';
-import { logger } from './logger.js';
+import { logger } from '../utils/logger.js';
 import type { PrecisionEnhancement, CandidateWithPrecisionData } from '@ai-pandit/shared';
 
 // Re-export types for backwards compatibility

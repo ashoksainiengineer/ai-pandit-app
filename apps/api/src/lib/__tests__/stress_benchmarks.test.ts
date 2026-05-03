@@ -15,7 +15,6 @@ describe('Phase D: Performance & Resilience (Stress Benchmarks)', () => {
         }
         const endL3 = performance.now();
         const opsL3 = (iterationsL3 / (endL3 - startL3)) * 1000;
-        console.log(`[PROFILE] Dasha L3 (Standard): ${opsL3.toFixed(2)} ops/sec`);
 
         // Profile Level 5 (Down to Pranadasha)
         const iterationsL5 = 50;
@@ -24,8 +23,6 @@ describe('Phase D: Performance & Resilience (Stress Benchmarks)', () => {
             calculateVimshottariDasha(moonLong, birthDate, 5);
         }
         const endL5 = performance.now();
-        const opsL5 = (iterationsL5 / (endL5 - startL5)) * 1000;
-        console.log(`[PROFILE] Dasha L5 (Deep): ${opsL5.toFixed(2)} ops/sec`);
 
         // Keep a conservative floor for shared/virtualized runtimes while still
         // catching meaningful regressions in dasha computation throughput.
@@ -45,7 +42,6 @@ describe('Phase D: Performance & Resilience (Stress Benchmarks)', () => {
         const end = performance.now();
         const ops = (iterations / (end - start)) * 1000;
 
-        console.log(`[BENCHMARK] Panchanga Calculation: ${ops.toFixed(2)} ops/sec`);
         expect(ops).toBeGreaterThan(10000);
     });
 
@@ -65,8 +61,6 @@ describe('Phase D: Performance & Resilience (Stress Benchmarks)', () => {
 
         const endHeap = process.memoryUsage().heapUsed;
         const leakDelta = (endHeap - startHeap) / 1024 / 1024; // in MB
-
-        console.log(`[STABILITY] Memory Delta after 1000 calcs: ${leakDelta.toFixed(2)} MB`);
 
         // A delta < 50MB is acceptable for JS garbage collection behavior 
         // especially without explicit 'global.gc()' control.

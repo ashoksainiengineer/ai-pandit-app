@@ -1,6 +1,6 @@
 
-import { _getAyanamsa } from './ephemeris.js';
-import { EphemerisData, PlanetPosition, PlanetData } from '@ai-pandit/shared';
+import { getAyanamsa } from './ephemeris.js';
+import { EphemerisData, PlanetData } from '@ai-pandit/shared';
 
 // ═════════════════════════════════════════════════════════════════════════════
 

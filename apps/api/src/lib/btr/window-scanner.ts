@@ -14,11 +14,10 @@
  * Performance: Uses caching and parallel processing for efficiency.
  */
 
-import { calculateEphemeris, calculateSunrise, convertToUTC } from '../ephemeris.js';
-import { calculateVimshottariDasha, getDashaForDate } from '../vedic-astrology-engine.js';
+import { calculateSunrise, convertToUTC } from '../ephemeris.js';
+import { getDashaForDate } from '../vedic-astrology-engine.js';
 import type { DashaAtDate, DashaPeriod } from '../vedic-astrology-engine.js';
 import { calculateKPSubLords } from '../kp-sublords.js';
-import { generateDivisionalCharts, calculateBoundarySafety } from '../advanced-btr-methods.js';
 import { _calculateCharaKarakas } from '../jaimini-astrology.js';
 import { Kalachakra } from '../kalachakra-dasha.js';
 import { Shadbala } from '../shadbala.js';
@@ -53,14 +52,12 @@ import {
   calculateRankFusionScore,
   _calculateWeightedAverage
 } from './precision-weights.js';
-import { logger } from '../logger.js';
+import { logger } from '../../utils/logger.js';
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-const _DAY_MS = 24 * 60 * 60 * 1000;
-const _HOUR_MS = 60 * 60 * 1000;
 const MINUTE_MS = 60 * 1000;
 
 export interface ScannerInput {
@@ -118,18 +115,13 @@ interface LocalBirthDateTime {
 /**
  * Main scanner function - finds optimal birth time
  */
-export interface ScanOptions {
-  sessionId?: string;
-}
-
 export async function scanBirthTimeWindow(
   input: ScannerInput,
-  options?: ScanOptions
+  sessionId?: string
 ): Promise<ScanResult> {
   const startTime = Date.now();
   const errors: string[] = [];
   const recommendations: string[] = [];
-  const sessionId = options?.sessionId;
 
   try {
     const config = { ...DEFAULT_SCAN_CONFIG, ...input.config };
@@ -646,7 +638,7 @@ function scoreTatwaMatch(
   if (!context.sunriseTime) return 70;
 
   try {
-    const _tatwaResult = calculateTatwaAtTime(context.sunriseTime, candidate.time);
+    calculateTatwaAtTime(context.sunriseTime, candidate.time);
     const minutesSinceSunrise = (candidate.time.getTime() - context.sunriseTime.getTime()) / 60000;
 
     if (minutesSinceSunrise > 0 && minutesSinceSunrise < FULL_CYCLE_MINUTES) {
@@ -659,9 +651,10 @@ function scoreTatwaMatch(
     }
 
     return 70;
-  } catch {
+  } catch (err) {
+    logger.warn('[scanner] TatwaShuddhi scoring failed, using default', { error: String(err) });
     return 70;
-  }
+}
 }
 
 function scoreKalachakraMatch(
@@ -681,9 +674,10 @@ function scoreKalachakraMatch(
     }));
 
     return Kalachakra.score(kalachakraPeriods, events);
-  } catch {
+  } catch (err) {
+    logger.warn('[scanner] Kalachakra scoring failed, using default', { error: String(err) });
     return 0;
-  }
+}
 }
 
 function scoreShadbalaMatch(candidate: CandidateAnalysis): number {
@@ -694,9 +688,10 @@ function scoreShadbalaMatch(candidate: CandidateAnalysis): number {
     const avgStrength = shadbalaResult.averageStrength;
 
     return Math.min(100, Math.max(0, avgStrength));
-  } catch {
+  } catch (err) {
+    logger.warn('[scanner] Shadbala scoring failed, using default', { error: String(err) });
     return 0;
-  }
+}
 }
 
 function scoreNadiMatch(
@@ -713,9 +708,10 @@ function scoreNadiMatch(
     }));
 
     return NadiAmsha.score(nadiData, events);
-  } catch {
+  } catch (err) {
+    logger.warn('[scanner] Nadi scoring failed, using default', { error: String(err) });
     return 0;
-  }
+}
 }
 
 function calculateAverageScore(scores: number[]): number {
@@ -743,10 +739,6 @@ function parseTime(timeStr: string, dateStr: string, timezone: string | number):
     throw new Error('Missing time or date string for parsing');
   }
   return convertToUTC(dateStr, timeStr, timezone);
-}
-
-function formatTimeString(date: Date, _timezone: string | number): string {
-  return formatLocalBirthDateTime(date, _timezone).time;
 }
 
 function formatLocalBirthDateTime(date: Date, timezone: string | number): LocalBirthDateTime {
@@ -852,7 +844,7 @@ function extractKeyEvidence(
 
 function generateFinalRecommendations(
   best: CandidateScore,
-  context: ScannerContext,
+  _context: ScannerContext,
   recommendations: string[]
 ): void {
   if (best.confidenceLevel === 'GOD_TIER' || best.confidenceLevel === 'VERY_HIGH') {
@@ -878,7 +870,7 @@ function generateFinalRecommendations(
 
 
 export const WindowScanner = {
-  scan: (input: ScannerInput, sessionId?: string) => scanBirthTimeWindow(input, { sessionId }),
+  scan: (input: ScannerInput, sessionId?: string) => scanBirthTimeWindow(input, sessionId),
   generateCandidates,
   scoreCandidate
 };

@@ -29,6 +29,9 @@ declare global {
       startTime: number;
       logger: ReturnType<typeof createRequestLogger>;
       traceContext?: TraceContext;
+      userId?: string;
+      clerkId?: string;
+      auth?: { userId?: string };
     }
   }
 }
@@ -67,7 +70,7 @@ export function requestIdMiddleware(options: RequestIdOptions = {}) {
       path: req.path,
       ip: req.ip || req.socket.remoteAddress,
       userAgent: req.get('user-agent'),
-      userId: (req as any).userId,
+      userId: req.userId,
     });
 
     // Set request ID header on request (for downstream services)
@@ -143,14 +146,14 @@ export function requestContextMiddleware() {
     }
 
     // Attach user context if available
-    if ((req as any).auth?.userId) {
+    if (req.auth?.userId) {
       req.logger = createRequestLogger({
         requestId: req.requestId,
         method: req.method,
         path: req.path,
         ip: req.ip || req.socket.remoteAddress,
         userAgent: req.get('user-agent'),
-        userId: (req as any).auth.userId,
+        userId: req.auth.userId,
       });
     }
 

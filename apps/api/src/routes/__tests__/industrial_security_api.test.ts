@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { db, executeWithRetry } from '@ai-pandit/db';
+import { db } from '@ai-pandit/db';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MOCKS
@@ -78,7 +78,7 @@ describe('Chapter 4: API Fortress (Security & Encryption)', () => {
 
         it('should strictly reject session deletion if clerkId mismatch', async () => {
             // Mock delete returning nothing (because WHERE clause includes clerkId)
-            vi.mocked(db.returning).mockResolvedValueOnce([]);
+            (db as any).returning.mockResolvedValueOnce([]);
 
             const res = await request(app).delete('/api/sessions/other-session');
             expect(res.status).toBe(404);

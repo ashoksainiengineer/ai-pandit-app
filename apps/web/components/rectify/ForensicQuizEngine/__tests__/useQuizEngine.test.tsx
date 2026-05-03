@@ -56,7 +56,7 @@ describe('useQuizEngine', () => {
         }));
 
         act(() => {
-            result.current.handleSelectOption('opt1');
+            result.current.recordQuizAnswer('opt1');
         });
 
         expect(result.current.answers.length).toBe(1);
@@ -91,7 +91,7 @@ describe('useQuizEngine', () => {
 
         // Go to Q2 which allows multiple
         act(() => {
-            result.current.handleSelectOption('opt1');
+            result.current.recordQuizAnswer('opt1');
         });
         act(() => {
             result.current.handleNext();
@@ -100,12 +100,12 @@ describe('useQuizEngine', () => {
         expect(result.current.currentQuestionIndex).toBe(1);
 
         act(() => {
-            result.current.handleSelectOption('opt2');
+            result.current.recordQuizAnswer('opt2');
         });
 
         act(() => {
             // Toggle it off
-            result.current.handleSelectOption('opt2');
+            result.current.recordQuizAnswer('opt2');
         });
 
         expect(result.current.answers[1].selectedOptions).toEqual([]);

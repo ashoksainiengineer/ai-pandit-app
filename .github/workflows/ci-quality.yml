@@ -25,6 +25,32 @@ jobs:
       USE_ASYNC_JOB_PIPELINE: true
       USE_NEW_STREAM_PATH: true
       CI: "1"
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: ai_pandit_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5433:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6380:6379
+
     steps:
       - uses: actions/checkout@v4
 
@@ -59,6 +85,12 @@ jobs:
           cat /tmp/ephemeris.log || true
           exit 1
 
+      - name: Run Python tests
+        run: |
+          cd services/ephemeris
+          .venv/bin/pytest tests/ -v
+
+
       - name: Lint Strict
         run: npm run lint:strict
 
@@ -84,3 +116,21 @@ jobs:
 
       - name: E2E Smoke
         run: npm run test:e2e:smoke
+
+      - name: Run database migrations for integration tests
+        run: npm -w @ai-pandit/db run db:push
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5433/ai_pandit_test
+
+      - name: Run integration tests
+        run: npm run test:integration
+        env:
+          NODE_ENV: test
+          NEON_DATABASE_URL: postgresql://postgres:postgres@localhost:5433/ai_pandit_test
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5433/ai_pandit_test
+          REDIS_URL: redis://localhost:6380
+          SKIP_EPHEMERIS_INIT: true
+          AI_API_KEY: test-ai-key
+          CLERK_SECRET_KEY: sk_test_placeholder
+          ENCRYPTION_SECRET: test-secret-32-characters-minimum-123
+

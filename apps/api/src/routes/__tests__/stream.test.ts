@@ -4,7 +4,13 @@
  * Checks ownership verification, terminal states, keep-alive headers,
  * proxy-buffering bypass, and initial progress state sync.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach
+} from 'vitest';
 import request from 'supertest';
 import express from 'express';
 
@@ -21,7 +27,7 @@ const {
     getLatestJobForSessionMock,
 } = vi.hoisted(() => ({
     getPersistedSessionEventsMock: vi.fn(async () => []),
-    getPersistedSessionEventsSinceMock: vi.fn(async () => []),
+    getPersistedSessionEventsSinceMock: vi.fn(async (): Promise<any[]> => []),
     getLatestJobForSessionMock: vi.fn(async () => null),
 }));
 
@@ -141,7 +147,6 @@ vi.mock('../../lib/jobs/job-event-stream.js', () => ({
     getPersistedSessionEventsSince: getPersistedSessionEventsSinceMock,
 }));
 
-import { db } from '@ai-pandit/db';
 import streamRouter from '../stream.js';
 import { sessionEvents } from '../../lib/session-events.js';
 import { EventEmitter } from 'events';
@@ -396,7 +401,7 @@ describe('GET /api/stream/:sessionId', () => {
             setMockResults([[{ clerkId: 'valid-clerk', status: 'processing', userId: '1' }]]);
             getPersistedSessionEventsSinceMock.mockResolvedValueOnce([
                 { seq: 7, event: { type: 'ai_thinking', chunk: 'persisted-window' } },
-            ]);
+            ] as any[]);
 
             let responseText = '';
             await new Promise<void>((resolve) => {
@@ -429,7 +434,7 @@ describe('GET /api/stream/:sessionId', () => {
             getPersistedSessionEventsSinceMock.mockResolvedValueOnce([]);
             (sessionEvents.getEventsSince as any).mockReturnValueOnce([
                 { seq: 9, event: { type: 'ai_thinking', chunk: 'memory-fallback' } },
-            ]);
+            ] as any[]);
 
             let responseText = '';
             await new Promise<void>((resolve) => {
@@ -460,10 +465,10 @@ describe('GET /api/stream/:sessionId', () => {
             setMockResults([[{ clerkId: 'valid-clerk', status: 'processing', userId: '1' }]]);
             getPersistedSessionEventsSinceMock.mockResolvedValueOnce([
                 { seq: 11, event: { type: 'ai_thinking', chunk: 'deduped-event' } },
-            ]);
+            ] as any[]);
             (sessionEvents.getEventsSince as any).mockReturnValueOnce([
                 { seq: 11, event: { type: 'ai_thinking', chunk: 'deduped-event' } },
-            ]);
+            ] as any[]);
 
             let responseText = '';
             await new Promise<void>((resolve) => {

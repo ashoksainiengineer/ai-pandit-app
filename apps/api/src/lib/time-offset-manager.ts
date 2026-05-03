@@ -3,7 +3,7 @@
 // Research-backed: Max 10 candidates per AI batch for optimal attention
 
 import { config } from '../config/index.js';
-import { logger } from './logger.js';
+import { logger } from '../utils/logger.js';
 import type { OffsetPreset, TimeOffsetConfig, CandidateTime } from '@ai-pandit/shared';
 
 const DAY_SECONDS = 24 * 60 * 60;

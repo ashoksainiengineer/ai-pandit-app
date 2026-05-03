@@ -3,6 +3,8 @@
 // SECURITY: Authenticated and authorized access only
 
 import { Router, Response } from 'express';
+import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
+import { sendError, sendUnauthorized, sendForbidden, sendNotFound, sendValidationError } from '../utils/response.js';
 import { db, getLatestJobForSession } from '@ai-pandit/db';
 import { sessions, type Session } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
@@ -10,8 +12,7 @@ import { aiConfig, config } from '../config/index.js';
 import { sessionEvents, SessionEvent } from '../lib/session-events.js';
 import { getSessionProgress } from '../lib/progress-tracker.js';
 import { getQueueStatus } from '../lib/queue-manager.js';
-import { logger } from '../lib/logger.js';
-import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
+import { logger } from '../utils/logger.js';
 import { safeDecryptWithFallback, parseSensitiveField } from '../lib/encryption/index.js';
 import { createStreamTicket } from '../lib/stream-ticket-manager.js';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
@@ -74,14 +75,13 @@ router.options(['/', '/:sessionId'], (req, res) => {
 router.post('/ticket/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     const sessionId = req.params.sessionId;
     const clerkId = req.clerkId;
-
     if (!sessionId) {
-        res.status(400).json({ success: false, error: 'Session ID required' });
+        sendValidationError(res, 'Session ID required');
         return;
     }
 
     if (!clerkId) {
-        res.status(401).json({ success: false, error: 'Unauthorized' });
+        sendUnauthorized(res);
         return;
     }
 
@@ -97,12 +97,12 @@ router.post('/ticket/:sessionId', authMiddleware, async (req: AuthenticatedReque
             .limit(1);
 
         if (found.length === 0) {
-            res.status(404).json({ success: false, error: 'Session not found' });
+            sendNotFound(res, 'Session not found');
             return;
         }
 
         if (!isSessionOwnedByContext(found[0], ownershipContext)) {
-            res.status(403).json({ success: false, error: 'Access denied' });
+            sendForbidden(res, 'Access denied');
             return;
         }
 
@@ -114,7 +114,7 @@ router.post('/ticket/:sessionId', authMiddleware, async (req: AuthenticatedReque
         });
     } catch (error) {
         logger.error('[SSE] Failed to create stream ticket', { sessionId, error });
-        res.status(500).json({ success: false, error: 'Failed to create stream ticket' });
+        sendError(res, error);
     }
 });
 
@@ -153,9 +153,8 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
         logger.info(`[SSE] Connection requested for session ${sessionId} by clerkId ${clerkId.slice(0, 12)}... | Active: ${activeSseConnections}`);
     };
 
-    // ═══════════════════════════════════════════════════════════════════════════════
     // SECURITY: Verify session ownership
-    // ═══════════════════════════════════════════════════════════════════════════════
+
     let currentStatus = 'pending';
     try {
         const ownershipContext = await resolveSessionOwnershipContext(clerkId);
@@ -269,12 +268,11 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
         return;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════════
     // SSE Setup
-    // ═══════════════════════════════════════════════════════════════════════════════
+
     trackSseConnection();
 
-    // INDUSTRY SSE: Read Last-Event-ID for smart reconnection
+    // Read Last-Event-ID for reconnection support
     const lastEventId = req.headers['last-event-id'] as string | undefined;
     const lastSeq = lastEventId ? parseInt(lastEventId, 10) : 0;
     const isReconnect = lastSeq > 0;
@@ -314,16 +312,13 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
     // Send initial connection event (unsequenced — lightweight)
     sendEvent(sseRes, { type: 'connected', sessionId, timestamp: new Date().toISOString() });
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // RECONNECT vs FRESH: Smart replay strategy
-    // ═══════════════════════════════════════════════════════════════════════════════
+    // Reconnect or Fresh: Smart replay strategy
+
     (async () => {
         try {
             if (isReconnect) {
-                // ────────────────────────────────────────────────────────────────
-                // RECONNECT PATH: Last-Event-ID present → replay only missed events
-                // This avoids sending duplicate thinking text, scores, etc.
-                // ────────────────────────────────────────────────────────────────
+                // Reconnect path: replay only missed events
+
                 // FIX: Merge both DB-persisted (durable) and memory (all events) sources
                 // DB has low-volume durable events (progress, complete, error, job.*)
                 // Memory has all events including high-volume (ai_thinking, candidate_scores)
@@ -373,9 +368,8 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                     } as unknown as SessionEvent);
                 }
             } else {
-                // ────────────────────────────────────────────────────────────────
-                // FRESH CONNECTION PATH: No Last-Event-ID → full replay
-                // ────────────────────────────────────────────────────────────────
+                // Fresh connection: No Last-Event-ID → full replay
+
                 logger.info(`[SSE] Fetching initial progress for ${sessionId}`);
                 const currentProgress = await getSessionProgress(sessionId);
 
@@ -383,7 +377,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
                 if (!currentProgress || currentProgress.currentStep === 0) {
                     sendSequencedEvent(sseRes, sessionId, {
                         type: 'ai_thinking',
-                        chunk: "[SYSTEM] Initializing God-Tier Rectification Engine... Establishing mathematical grid connection.\n",
+                        chunk: "[SYSTEM] Initializing analysis engine... Establishing mathematical grid connection.\n",
                         stage: 1,
                     } as unknown as SessionEvent);
                 }
@@ -481,16 +475,15 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
         }
     })();
 
-    // ═══════════════════════════════════════════════════════════════════════════════
     // Event Subscription
-    // ═══════════════════════════════════════════════════════════════════════════════
+
 
     const emitter = sessionEvents.getEmitter(sessionId);
 
     const eventHandler = (event: SessionEvent) => {
         sendSequencedEvent(sseRes, sessionId, event);
 
-        // 🛑 CRITICAL: Signal client to stop retrying on terminal states
+        // Signal client to stop retrying on terminal states
         if (event.type === 'complete' || event.type === 'error' || (event as SequencedSessionEvent).status === 'cancelled') {
             logger.info(`[SSE] Terminal event reached: ${event.type}. Closing stream.`);
             setTimeout(() => {
@@ -594,7 +587,7 @@ function sendSequencedEvent(res: SseResponse, sessionId: string, event: SessionE
         }
 
         const jsonData = JSON.stringify(event);
-        // Industry SSE format: id: → data: → blank line
+        // Standard SSE format: id: → data: → blank line
         safeWrite(res, `id: ${seq}\ndata: ${jsonData}\n\n`);
 
         flushBody(res);

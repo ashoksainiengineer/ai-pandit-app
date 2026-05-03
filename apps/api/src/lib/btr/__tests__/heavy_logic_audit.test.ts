@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateRankFusionScore, METHOD_WEIGHTS, RRF_K } from '../precision-weights.js';
+import { calculateRankFusionScore, METHOD_WEIGHTS } from '../precision-weights.js';
 import { EventScorer } from '../event-scorer.js';
 import { BtrEvent } from '@ai-pandit/shared';
 
@@ -26,9 +26,6 @@ describe('⚖️ HEAVY AUDIT: Scoring Math & Bias Verification', () => {
 
         const resultA = calculateRankFusionScore(scoresA, METHOD_WEIGHTS as any);
         const resultB = calculateRankFusionScore(scoresB, METHOD_WEIGHTS as any);
-
-        console.log(`[RRF AUDIT] Candidate A (Nadi/KP strong): ${resultA.toFixed(2)}%`);
-        console.log(`[RRF AUDIT] Candidate B (AI/Boundary strong): ${resultB.toFixed(2)}%`);
 
         // The math should naturally bias towards precision layers (Candidate A)
         expect(resultA).toBeGreaterThan(resultB);
@@ -78,9 +75,6 @@ describe('⚖️ HEAVY AUDIT: Scoring Math & Bias Verification', () => {
 
         const marriageScore = scoredEvents.find(e => e.category === 'marriage')!.calculatedWeight;
         const travelScore = scoredEvents.find(e => e.category === 'travel')!.calculatedWeight;
-
-        console.log(`[EVENT AUDIT] Marriage Weight: ${marriageScore}`);
-        console.log(`[EVENT AUDIT] Travel Weight: ${travelScore}`);
 
         // Marriage (Document + Exact + Major) should vastly outweigh Travel (Memory + Month + Minor)
         expect(marriageScore).toBeGreaterThan(travelScore * 3);

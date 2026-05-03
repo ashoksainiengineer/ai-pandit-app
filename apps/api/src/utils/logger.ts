@@ -7,6 +7,7 @@
 
 import { config } from '../config/index.js';
 import fs from 'fs';
+import { appendFile } from 'fs/promises';
 import path from 'path';
 
 const defaultLoggingConfig = {
@@ -21,8 +22,14 @@ const loggingConfig = {
 };
 
 const LOG_DIR = path.join(process.cwd(), 'logs');
-if (!fs.existsSync(LOG_DIR)) {
-  fs.mkdirSync(LOG_DIR, { recursive: true });
+let _logDirEnsured = false;
+function ensureLogDir(): void {
+  if (!_logDirEnsured) {
+    if (!fs.existsSync(LOG_DIR)) {
+      fs.mkdirSync(LOG_DIR, { recursive: true });
+    }
+    _logDirEnsured = true;
+  }
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
@@ -198,11 +205,11 @@ class Logger {
         ...safeMeta,
       }) + '\n';
 
-      // Stage specific or category log
-      fs.appendFileSync(path.join(LOG_DIR, `${category}.log`), logEntry);
+      ensureLogDir();
+      appendFile(path.join(LOG_DIR, `${category}.log`), logEntry).catch(() => {});
 
       // Master log
-      fs.appendFileSync(path.join(LOG_DIR, 'master.log'), logEntry);
+      appendFile(path.join(LOG_DIR, 'master.log'), logEntry).catch(() => {});
     } catch (err) {
       // Fail silently to not crash the app
     }
@@ -280,15 +287,8 @@ class Logger {
   }
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// SINGLETON INSTANCE
-// ═════════════════════════════════════════════════════════════════════════════
-
 export const logger = new Logger();
 
-// ═════════════════════════════════════════════════════════════════════════════
-// REQUEST LOGGER MIDDLEWARE
-// ═════════════════════════════════════════════════════════════════════════════
 
 export interface RequestContext {
   requestId: string;
@@ -311,10 +311,6 @@ export function createRequestLogger(context: RequestContext): Logger {
     userAgent: context.userAgent,
   });
 }
-
-// ═════════════════════════════════════════════════════════════════════════════
-// PERFORMANCE LOGGER
-// ═════════════════════════════════════════════════════════════════════════════
 
 export function logPerformance<T>(
   operation: string,

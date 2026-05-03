@@ -1,4 +1,3 @@
-import { SecondsPrecisionInput } from '@ai-pandit/shared';
 
 export interface TestProfile {
     id: string;

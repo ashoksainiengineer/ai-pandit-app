@@ -18,7 +18,7 @@
  * Total: 120 years
  */
 
-import { logger } from './logger.js';
+import { logger } from '../utils/logger.js';
 import type { KPSubLordData, KPCuspalData, KPEventCorrelation } from '@ai-pandit/shared';
 
 // Re-export types for backwards compatibility

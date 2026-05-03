@@ -7,11 +7,10 @@ import { logger } from './secure-logger';
 export async function getTokenWithRetry(
     getToken: (options?: Record<string, unknown>) => Promise<string | null>,
     options: Record<string, unknown> = {},
-    maxRetries = 10
+    maxRetries = 10,
+    isTestMode = false
 ): Promise<string | null> {
-    const isTest = typeof window !== 'undefined' && (window as unknown as Record<string, unknown>).isTestEnv === true;
-
-    if (isTest) {
+    if (isTestMode) {
         return 'mock-token-123456789012345678901234567890';
     }
 

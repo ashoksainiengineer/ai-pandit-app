@@ -22,12 +22,12 @@ export default function Navbar({ transparent = false }: NavbarProps) {
 
   useEffect(() => {
     setMounted(true);
-    const handleScroll = () => {
+    const updateNavbarOnScroll = () => {
       setScrolled(window.scrollY > 50);
     };
-    handleScroll();
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    updateNavbarOnScroll();
+    window.addEventListener('scroll', updateNavbarOnScroll);
+    return () => window.removeEventListener('scroll', updateNavbarOnScroll);
   }, []);
 
   if (!mounted) {

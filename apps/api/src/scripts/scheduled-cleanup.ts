@@ -7,7 +7,7 @@
 
 import { runDatabaseCleanup } from '../lib/db-cleanup.js';
 import { clearExpiredCache } from '../lib/calculation-cache.js';
-import { logger } from '../lib/logger.js';
+import { logger } from '../utils/logger.js';
 
 interface CleanupJobResult {
   success: boolean;

@@ -152,7 +152,7 @@ vi.mock('../../config/index.js', () => ({
 }));
 
 vi.mock('./seconds-precision-btr.js', () => ({
-    processSecondsPrecisionBTR: vi.fn(),
+    executeSecondsPrecisionRectification: vi.fn(),
 }));
 
 import { __queueInternals, __resetQueueStateForTests } from '../queue-manager.js';

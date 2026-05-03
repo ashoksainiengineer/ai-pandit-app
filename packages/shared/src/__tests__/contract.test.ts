@@ -100,6 +100,7 @@ describe('Shared Schemas - Contract Tests', () => {
                     Jupiter: 'Taurus 10° | H7',
                     Saturn: 'Capricorn 25° | H1',
                 },
+                doubleTransit: { isTriggered: true, details: [] },
             });
             expect(result.success).toBe(true);
         });

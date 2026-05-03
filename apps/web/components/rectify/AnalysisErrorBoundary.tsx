@@ -3,7 +3,7 @@
 // components/rectify/AnalysisErrorBoundary.tsx
 // Production-grade error boundary for analysis page with graceful degradation
 
-import React, { Component, ReactNode, ErrorInfo } from 'react';
+import { Component, ReactNode, ErrorInfo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, RefreshCw, Home, Activity, Bug } from 'lucide-react';
 import Link from 'next/link';
@@ -54,8 +54,7 @@ const THEME = {
 
 function generateErrorId(): string {
     const timestamp = Date.now().toString(36).toUpperCase();
-    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-    return `ERR-${timestamp}-${random}`;
+    return `ERR-${timestamp}-${crypto.randomUUID()}`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

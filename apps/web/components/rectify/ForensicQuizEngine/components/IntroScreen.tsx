@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Save, Activity, CheckCircle, ChevronRight } from 'lucide-react';
 import { FORENSIC_ONLY_METADATA as QUIZ_METADATA } from '@/lib/forensic-quiz/questions';

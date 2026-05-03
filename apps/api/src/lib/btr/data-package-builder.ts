@@ -29,7 +29,7 @@ import {
 import { calculateTatwaAtTime } from './tatwa-shuddhi.js';
 import { calculateCharaKarakas, calculateBhriguBindu } from '../jaimini-astrology.js';
 import { SecondsPrecisionInput, EphemerisData, CandidateTime } from '@ai-pandit/shared';
-import { logger } from '../logger.js';
+import { logger } from '../../utils/logger.js';
 import { capitalizeFirstLetter } from '../utils/index.js';
 import { decimalToDMS } from '../utils/dms-formatter.js';
 import { CandidateDataPackage, ZODIAC_SIGNS } from '@ai-pandit/shared';
@@ -46,6 +46,25 @@ import { _calculateD12 } from '../advanced-btr-methods.js';
 import { calculateKPSubLords, calculateKPCuspalSubLords } from '../kp-sublords.js';
 import { resolveEventDateWindow } from './event-date-utils.js';
 import type { DivisionalChart } from '../advanced-btr-methods.js';
+
+class DataPackageValidationError extends Error {
+  constructor(public readonly errors: string[], time: string) {
+    super(`Data package validation failed for candidate ${time}: ${errors.join(', ')}`);
+    this.name = 'DataPackageValidationError';
+  }
+}
+
+async function safeEnrich<T>(
+  pkg: Record<string, unknown>,
+  key: string,
+  compute: () => T | Promise<T>
+): Promise<void> {
+  try {
+    (pkg as any)[key] = await compute();
+  } catch (err) {
+    logger.error(`Enrichment ${key} failed`, err);
+  }
+}
 
 export interface PackageBuildOptions {
   includeFullData?: boolean;
@@ -96,8 +115,8 @@ export async function buildCandidateDataPackage(
   const enrichedPlanets = enrichPlanets(ephemeris.planets, {
     ascendantSign: ephemeris.ascendant.sign,
     ascendantLongitude: ephemeris.ascendant.longitude,
-    shadbala: ephemeris.shadbala || {},
-    ashtakavarga: ephemeris.ashtakavarga || {},
+    shadbala: (ephemeris.shadbala || {}) as Record<string, any>,
+    ashtakavarga: (ephemeris.ashtakavarga || {}) as Record<string, any>,
     houses: ephemeris.houses
   });
 
@@ -141,7 +160,7 @@ export async function buildCandidateDataPackage(
     moonNakshatra: ephemeris.planets.moon.nakshatra,
     vimshottariDasha,
     ashtakavarga: ephemeris.ashtakavarga,
-    panchanga: calculatePanchanga(calculateJulianDay(birthDate), ephemeris.planets.sun.longitude, moonLong, birthDate) as any,
+    panchanga: calculatePanchanga(calculateJulianDay(birthDate), ephemeris.planets.sun.longitude, moonLong, birthDate) as unknown as CandidateDataPackage['panchanga'],
     lifecycleShifts,
     vimsopakaBala: calculateVimsopakaBala(ephemeris),
     chalitDiscrepancies: detectBhavaChalitDiscrepancy(ephemeris),
@@ -173,78 +192,50 @@ export async function buildCandidateDataPackage(
     logger.error('Mahakala indicator calculation failed', err);
   }
 
-  // 🔱 GOD-TIER ENHANCEMENT: Kalachakra, Shadbala, Nadi, Spouse D9
-  try {
-    pkg.kalachakraDasha = calculateKalachakraDasha(moonLong, birthDate);
-  } catch (err) {
-    logger.error('Kalachakra Dasha calculation failed', err);
-  }
+  // Optional enrichment calculations with graceful error handling
+  await safeEnrich(pkg as any, 'kalachakraDasha', () => calculateKalachakraDasha(moonLong, birthDate));
+  await safeEnrich(pkg as any, 'shadbalaSummary', () => calculateFullShadbala(ephemeris));
 
-  try {
-    pkg.shadbalaSummary = calculateFullShadbala(ephemeris);
-  } catch (err) {
-    logger.error('Shadbala calculation failed', err);
-  }
-
-  try {
+  await safeEnrich(pkg as any, 'nadiData', () => {
     const nadiData = calculateD150ForAllPlanets(ephemeris);
-    pkg.nadiData = nadiData;
     if (input.lifeEvents && input.lifeEvents.length > 0) {
       pkg.nadiAnalysis = analyzeD150ForEvents(nadiData, input.lifeEvents.map(e => ({
         category: e.eventType || 'general'
       })));
     }
-  } catch (err) {
-    logger.error('Nadi Amsha calculation failed', err);
-  }
+    return nadiData;
+  });
 
   if (input.spouseData?.dateOfBirth) {
-    try {
-      pkg.spouseD9Verification = await performSpouseVerification(ephemeris, {
-        dateOfBirth: input.spouseData.dateOfBirth,
-        birthTime: input.spouseData.birthTime || '12:00:00',
-        latitude: input.spouseData.latitude || 0,
-        longitude: input.spouseData.longitude || 0,
-        timezone: input.spouseData.timezone || 0
-      });
-    } catch (err) {
-      logger.error('Spouse D9 verification failed', err);
-    }
+    await safeEnrich(pkg as any, 'spouseD9Verification', () => performSpouseVerification(ephemeris, {
+      dateOfBirth: input.spouseData!.dateOfBirth,
+      birthTime: input.spouseData!.birthTime || '12:00:00',
+      latitude: input.spouseData!.latitude || 0,
+      longitude: input.spouseData!.longitude || 0,
+      timezone: input.spouseData!.timezone || 0
+    }));
   }
 
-  // 🔱 GANDANTA DETECTION (Karmic Knot Points)
-  try {
-    pkg.gandantaAnalysis = detectGandanta(
-      ephemeris.ascendant.longitude,
-      ephemeris.planets.moon.longitude
-    );
-  } catch (err) {
-    logger.error('Gandanta detection failed', err);
-  }
+  await safeEnrich(pkg as any, 'gandantaAnalysis', () => detectGandanta(
+    ephemeris.ascendant.longitude,
+    ephemeris.planets.moon.longitude
+  ));
 
-  // 🔱 PANCHA-PAKSHI SHASTRA (Five Birds System)
-  try {
+  await safeEnrich(pkg as any, 'pakshiAnalysis', () => {
     const [hours, minutes] = time.split(':').map(Number);
-    pkg.pakshiAnalysis = analyzePakshi(
-      hours,
-      minutes,
-      getLocalWeekday(candidateDate),
-      ephemeris.ascendant.sign,
-      ephemeris.planets.moon.sign
-    );
-  } catch (err) {
-    logger.error('Pancha-Pakshi analysis failed', err);
-  }
+    return analyzePakshi(hours, minutes, getLocalWeekday(candidateDate),
+      ephemeris.ascendant.sign, ephemeris.planets.moon.sign);
+  });
 
   // Add extended data for later stages
   if (includeFullData) {
     await addExtendedData(pkg, input, ephemeris, birthDate, moonLong);
   }
 
-  // FIXED: Validate that all critical data is present before returning
+  // Validate that all critical data is present before returning
   const validationErrors = validateDataPackage(pkg);
   if (validationErrors.length > 0) {
-    logger.warn(`[DATA-PACKAGE] Validation warnings for ${time}:`, { warnings: validationErrors });
+    throw new DataPackageValidationError(validationErrors, time);
   }
 
   return pkg;
@@ -319,13 +310,9 @@ async function loadEphemeris(candidateDate: string, time: string, input: Seconds
   );
 
   // Calculate all supplemental data
-  ephemeris.divisionalCharts = calculateAllVargas(ephemeris) as any;
+  ephemeris.divisionalCharts = calculateAllVargas(ephemeris) as unknown as typeof ephemeris.divisionalCharts;
   ephemeris.ashtakavarga = calculateAshtakavarga(ephemeris);
-  ephemeris.shadbala = calculateShadbala(ephemeris) as any;
-  ephemeris.ashtakavarga = calculateAshtakavarga(ephemeris);
-  ephemeris.shadbala = calculateShadbala(ephemeris) as Record<string, any>;
-  ephemeris.ashtakavarga = calculateAshtakavarga(ephemeris);
-  ephemeris.shadbala = calculateShadbala(ephemeris) as any;
+  ephemeris.shadbala = calculateShadbala(ephemeris) as unknown as typeof ephemeris.shadbala;
 
   return ephemeris;
 }

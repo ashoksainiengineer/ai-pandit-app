@@ -2,7 +2,7 @@
 
 import React, { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, Clock, Zap, Brain, Filter, Target, CheckCircle, Cpu, Shield, Sparkles, Server } from 'lucide-react';
+import { Activity, Zap, Brain, Filter, Target, CheckCircle } from 'lucide-react';
 
 import { STAGES } from '@/lib/constants/stages';
 

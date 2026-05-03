@@ -27,7 +27,7 @@
  * - LOW: Any method < 40% or overall < 60%
  */
 
-import { logger } from './logger.js';
+import { logger } from '../utils/logger.js';
 import { _calculateKPSubLords, _KPCuspalData } from './kp-sublords.js';
 import type {
   ConsensusScores,

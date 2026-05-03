@@ -3,7 +3,13 @@
  * Industry-standard coverage for Clerk JWT authentication middleware.
  * Tests every token scenario, every edge case.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach
+} from 'vitest';
 import { Response, NextFunction } from 'express';
 
 // Mock @clerk/backend BEFORE importing auth module

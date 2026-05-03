@@ -1,7 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import AnalysisPage from '../app/rectify/[id]/page';
 import React from 'react';
+
+// ── Hoisted mocks for server actions ──────────────────────
+const { mockCancelAnalysis, mockRestartAnalysis } = vi.hoisted(() => ({
+    mockCancelAnalysis: vi.fn().mockResolvedValue({ success: true }),
+    mockRestartAnalysis: vi.fn().mockResolvedValue({ success: true }),
+}));
+
+vi.mock('@/lib/test-mode-context', () => ({
+    TestModeProvider: ({ children }: any) => children,
+    useTestMode: () => true,
+    TestModeContext: { Provider: ({ children }: any) => children },
+}));
 
 // Mock Next.js navigation
 vi.mock('next/navigation', () => ({
@@ -13,6 +25,13 @@ vi.mock('next/navigation', () => ({
     }),
 }));
 
+// Mock Next.js Link
+vi.mock('next/link', () => ({
+    default: ({ children, href, className, ...props }: any) => (
+        <a href={href} className={className} {...props}>{children}</a>
+    ),
+}));
+
 // Mock Clerk auth
 vi.mock('@clerk/nextjs', () => ({
     useAuth: () => ({
@@ -20,6 +39,17 @@ vi.mock('@clerk/nextjs', () => ({
         isSignedIn: true,
         getToken: vi.fn().mockResolvedValue('mock-token'),
     }),
+}));
+
+// Mock server actions for cancel/restart analysis
+vi.mock('../app/rectify/[id]/actions', () => ({
+    cancelAnalysis: mockCancelAnalysis,
+    restartAnalysis: mockRestartAnalysis,
+}));
+
+// Mock secure-logger
+vi.mock('@/lib/secure-logger', () => ({
+    logger: { info: vi.fn(), error: vi.fn(), warn: vi.fn(), debug: vi.fn() },
 }));
 
 // Mock useStreamProgress hook
@@ -86,7 +116,6 @@ vi.mock('framer-motion', () => ({
 describe('MainPageIntegration (Full Lifecycle)', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        (window as any).isTestEnv = true;
     });
 
     it('renders the main analysis layout in streaming mode', () => {
@@ -96,22 +125,33 @@ describe('MainPageIntegration (Full Lifecycle)', () => {
     });
 
     it('triggers cancel analysis action through stop confirmation', async () => {
-        // Re-mock actions
-        vi.mock('../app/rectify/[id]/actions', () => ({
-            cancelAnalysis: vi.fn().mockResolvedValue({ success: true }),
-            restartAnalysis: vi.fn().mockResolvedValue({ success: true }),
-        }));
-
-        // const { cancelAnalysis } = await import('../app/rectify/[id]/actions');
-
         render(<AnalysisPage />);
 
-        // 1. Click "Stop" to show confirmation
+        // 1. Verify "Stop" button exists (analysis is running)
         const stopButton = screen.getByText(/Stop/i);
+        expect(stopButton).toBeInTheDocument();
+
+        // 2. Click "Stop" to show confirmation dialog
         fireEvent.click(stopButton);
 
-        // 2. Click "Cancel Analysis" in the confirmation
-        // Since CancelConfirmation is mocked as "Dynamic Mock", we need to ensure the mock returns something we can click.
-        // Wait, I mocked dynamic() to return a generic div. I should make it more specific or mock the actual component.
+        // 3. Verify confirmation UI appears
+        await waitFor(() => {
+            expect(screen.getByText('Confirm')).toBeInTheDocument();
+            expect(screen.getByText('Keep Running')).toBeInTheDocument();
+        });
+
+        // 4. Click "Confirm" to trigger cancel
+        const confirmButton = screen.getByText('Confirm');
+        fireEvent.click(confirmButton);
+
+        // 5. Verify cancelAnalysis was called with the correct session ID
+        await waitFor(() => {
+            expect(mockCancelAnalysis).toHaveBeenCalledWith('test-session-123');
+        });
+
+        // 6. After successful cancel, the Stop button should no longer be visible
+        await waitFor(() => {
+            expect(screen.queryByRole('button', { name: 'Stop' })).not.toBeInTheDocument();
+        });
     });
 });

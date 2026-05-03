@@ -1,7 +1,7 @@
 import { config } from 'dotenv';
 config({ path: '/home/ashoksainiengineer/ai-pandit-app/apps/api/.env' });
 
-import { processSecondsPrecisionBTR } from '/home/ashoksainiengineer/ai-pandit-app/apps/api/dist/lib/seconds-precision-btr.js';
+import { executeSecondsPrecisionRectification } from '/home/ashoksainiengineer/ai-pandit-app/apps/api/dist/lib/seconds-precision-btr.js';
 import { getCacheStats } from '/home/ashoksainiengineer/ai-pandit-app/apps/api/dist/lib/ephemeris.js';
 import fs from 'fs';
 
@@ -478,12 +478,12 @@ async function runFullBTR() {
     startProgressTracking();
     
     const startTime = Date.now();
-    log('Starting processSecondsPrecisionBTR...');
+    log('Starting executeSecondsPrecisionRectification...');
     
     // Simulate stage tracking (the actual orchestrator will handle stages internally)
     updateStage('STAGE 1: INITIAL_SCAN', 0);
     
-    const result = await processSecondsPrecisionBTR(testInput);
+    const result = await executeSecondsPrecisionRectification(testInput);
     
     const totalDuration = Date.now() - startTime;
     

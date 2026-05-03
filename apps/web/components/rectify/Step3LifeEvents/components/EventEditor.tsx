@@ -18,7 +18,7 @@ interface EventEditorProps {
     updateEvent: (id: string, updates: Partial<LifeEvent>) => void;
     setEditingId: (id: string | null) => void;
     deleteEvent: (id: string) => void;
-    handlePrecisionChange: (id: string, precision: DatePrecision) => void;
+    updateEventDatePrecision: (id: string, precision: DatePrecision) => void;
 }
 
 export function EventEditor({
@@ -30,7 +30,7 @@ export function EventEditor({
     updateEvent,
     setEditingId,
     deleteEvent,
-    handlePrecisionChange
+    updateEventDatePrecision
 }: EventEditorProps) {
     if (!editingEvent || !editingEventData) return null;
 
@@ -126,7 +126,7 @@ export function EventEditor({
                             <button
                                 key={opt.value}
                                 type="button"
-                                onClick={() => handlePrecisionChange(editingEvent.id, opt.value)}
+                                onClick={() => updateEventDatePrecision(editingEvent.id, opt.value)}
                                 className={`py-3 px-2 rounded-lg text-center transition-all border ${editingEvent.datePrecision === opt.value
                                     ? 'bg-[#B8860B] text-white border-[#B8860B] shadow-md'
                                     : 'bg-white border-[#E8E0D5] text-[#4A453F] hover:border-[#78611D] hover:bg-[#FDF8F3]'

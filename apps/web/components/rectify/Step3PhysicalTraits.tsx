@@ -25,11 +25,7 @@ import {
     Sparkles,
     CheckCircle2,
     Wind,
-    ChevronDown,
-    HelpCircle,
-    X,
     Info,
-    ArrowRight,
     Glasses
 } from 'lucide-react';
 
@@ -315,7 +311,7 @@ interface SpecialMarksInputProps {
 const SpecialMarksInput = memo(({ value, onChange }: SpecialMarksInputProps) => {
     const [localValue, setLocalValue] = useState(value.join(', '));
 
-    const handleBlur = () => {
+    const commitSpecialMarksOnBlur = () => {
         const marks = localValue.split(',').map(s => s.trim()).filter(s => s.length > 0);
         if (JSON.stringify(marks) !== JSON.stringify(value)) {
             onChange(marks);
@@ -338,7 +334,7 @@ const SpecialMarksInput = memo(({ value, onChange }: SpecialMarksInputProps) => 
                 placeholder="Mole on left cheek, scar on right arm, birthmark on back..."
                 value={localValue}
                 onChange={(e) => setLocalValue(e.target.value)}
-                onBlur={handleBlur}
+                onBlur={commitSpecialMarksOnBlur}
             />
         </div>
     );
@@ -381,7 +377,7 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
         }
     };
 
-    const handleChange = useCallback((val: string) => {
+    const updatePhysicalTraitValue = useCallback((val: string) => {
         switch (activeTraitId) {
             case 'eyes': updateTraits({ facialStructure: { ...physicalTraits?.facialStructure, eyeShape: val } }); break;
             case 'nose': updateTraits({ facialStructure: { ...physicalTraits?.facialStructure, noseShape: val } }); break;
@@ -396,6 +392,8 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
             case 'height':
                 const cm = val === 'short' ? 155 : val === 'tall' ? 183 : 170;
                 updateTraits({ height: { cm, feet: Math.floor(cm / 30.48), inches: Math.round((cm % 30.48) / 2.54) } });
+                break;
+            default:
                 break;
         }
     }, [activeTraitId, physicalTraits, updateTraits]);
@@ -481,7 +479,7 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
                         <VisualSelector
                             definition={activeDefinition}
                             value={getValue(activeTraitId)}
-                            onChange={handleChange}
+                            onChange={updatePhysicalTraitValue}
                         />
                     </motion.div>
                 </AnimatePresence>

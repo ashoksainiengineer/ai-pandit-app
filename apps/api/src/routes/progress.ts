@@ -6,9 +6,11 @@ import { db, executeWithRetry, getLatestJobForSession } from '@ai-pandit/db';
 import { sessions, type Session } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
 import { parseSensitiveField } from '../lib/encryption/index.js';
-import { logger } from '../lib/logger.js';
+import { logger } from '../utils/logger.js';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
 import { getPersistedSessionEvents } from '../lib/jobs/job-event-stream.js';
+import { sendSuccess, sendError } from '../utils/response.js';
+import { AppError, ErrorCodes } from '../errors/index.js';
 
 const router = Router();
 logger.info('Progress route initialized');
@@ -23,7 +25,7 @@ router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res:
         await handleProgressRequest(sessionId, clerkId, res);
     } catch (error) {
         logger.error('Progress fetch failed:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        sendError(res, error);
     }
 });
 
@@ -37,7 +39,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
         await handleProgressRequest(sessionId, clerkId, res);
     } catch (error) {
         logger.error('Progress fetch failed:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        sendError(res, error);
     }
 });
 
@@ -46,13 +48,11 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
  */
 async function handleProgressRequest(sessionId: string, clerkId: string, res: Response) {
     if (!sessionId) {
-        res.status(400).json({ error: 'Session ID is required' });
+        sendError(res, new AppError(ErrorCodes.INVALID_INPUT, 'Session ID is required'));
         return;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════════
-    // SECURITY: Verify session ownership
-    // ═══════════════════════════════════════════════════════════════════════════════
+    // Verify session ownership
     let internalUserId: string | undefined;
     try {
         const ownershipContext = await resolveSessionOwnershipContext(clerkId);
@@ -60,7 +60,7 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
             db.select({
                 id: sessions.id,
                 clerkId: sessions.clerkId,
-                userId: sessions.userId, // Include userId for safeDecryptWithFallback
+                userId: sessions.userId,
             })
                 .from(sessions)
                 .where(eq(sessions.id, sessionId))
@@ -68,20 +68,20 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
         );
 
         if (sessionCheck.length === 0) {
-            res.status(404).json({ error: 'Session not found' });
+            sendError(res, new AppError(ErrorCodes.SESSION_NOT_FOUND, 'Session not found'));
             return;
         }
 
         if (!isSessionOwnedByContext(sessionCheck[0], ownershipContext)) {
             logger.warn(`[IDOR] Unauthorized progress access attempt: clerkId ${clerkId.slice(0, 12)}... tried to access session ${sessionId}`);
-            res.status(403).json({ error: 'Access denied' });
+            sendError(res, new AppError(ErrorCodes.UNAUTHORIZED, 'Access denied'));
             return;
         }
 
         internalUserId = sessionCheck[0].userId;
     } catch (error) {
         logger.error('Error verifying session ownership:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        sendError(res, error);
         return;
     }
 
@@ -97,7 +97,7 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
         );
 
         if (fallbackSession.length === 0) {
-            res.status(404).json({ error: 'Session not found' });
+            sendError(res, new AppError(ErrorCodes.SESSION_NOT_FOUND, 'Session not found'));
             return;
         }
 
@@ -131,7 +131,7 @@ async function handleProgressRequest(sessionId: string, clerkId: string, res: Re
     );
     const isCompleteStatus = queueStatus && ['complete', 'success', 'finished'].includes(queueStatus.status);
 
-    res.json({
+    sendSuccess(res, {
         sessionId,
         status: queueStatus?.status ?? 'pending',
         position: queueStatus?.position ?? 0,

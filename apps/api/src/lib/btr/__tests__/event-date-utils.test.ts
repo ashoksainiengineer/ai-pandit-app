@@ -62,7 +62,7 @@ describe('event-date-utils', () => {
   it('supports Date object inputs for backward compatibility', () => {
     const window = resolveEventDateWindow({
       datePrecision: 'exact_date',
-      eventDate: new Date('2017-12-11T06:30:00Z'),
+      eventDate: new Date('2017-12-11T06:30:00Z') as any,
     } satisfies EventDateInput);
 
     expect(window.startDate).toBe('2017-12-11');
@@ -86,7 +86,7 @@ describe('event-date-utils', () => {
   it('treats Date object inputs as UTC-normalized dates regardless of original timezone offset', () => {
     const window = resolveEventDateWindow({
       datePrecision: 'exact_date',
-      eventDate: new Date('2017-12-11T23:30:00-11:00'),
+      eventDate: new Date('2017-12-11T23:30:00-11:00') as any,
     } satisfies EventDateInput);
 
     expect(window.startDate).toBe('2017-12-12');

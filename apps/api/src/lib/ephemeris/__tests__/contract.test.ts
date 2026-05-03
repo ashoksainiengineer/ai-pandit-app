@@ -13,12 +13,11 @@ import {
 } from '../skyfield-client.js';
 import { initEphemerisProvider, calculateEphemeris } from '../../ephemeris.js';
 import type { EphemerisServicePlanetPosition } from '@ai-pandit/shared';
-import { 
-  expectValidEphemerisData, 
+import {
+  expectValidEphemerisData,
   expectWithinTolerance,
-  EPHEMERIS_TOLERANCE,
   TEST_TIMEOUTS,
-  KNOWN_BIRTH_CHARTS 
+  KNOWN_BIRTH_CHARTS
 } from '../../__tests__/test-utils.js';
 
 describe('Ephemeris Service Contract Tests', () => {

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { logger } from '../logger.js';
+import { logger } from '../../utils/logger.js';
+import { safeJsonParse } from '../utils/safe-json-parse.js';
 
 interface EphemerisData {
   timestamp: string;
@@ -365,17 +366,17 @@ ${content}
 
       const ephemerisFile = path.join(dir, `ephemeris-${safeTime}.json`);
       if (fs.existsSync(ephemerisFile)) {
-        result.ephemeris = JSON.parse(fs.readFileSync(ephemerisFile, 'utf-8'));
+        try { result.ephemeris = safeJsonParse<EphemerisData>(fs.readFileSync(ephemerisFile, 'utf-8'), undefined!); } catch (error) { logger.warn('[DATA-CAPTURE] Skipping corrupt ephemeris file', { error }); }
       }
 
       const promptFile = path.join(dir, `prompt-${safeTime}.json`);
       if (fs.existsSync(promptFile)) {
-        result.prompt = JSON.parse(fs.readFileSync(promptFile, 'utf-8'));
+        try { result.prompt = safeJsonParse<PromptData>(fs.readFileSync(promptFile, 'utf-8'), undefined!); } catch (error) { logger.warn('[DATA-CAPTURE] Skipping corrupt prompt file', { error }); }
       }
 
       const responseFile = path.join(dir, `response-${safeTime}.json`);
       if (fs.existsSync(responseFile)) {
-        result.response = JSON.parse(fs.readFileSync(responseFile, 'utf-8'));
+        try { result.response = safeJsonParse<AIResponseData>(fs.readFileSync(responseFile, 'utf-8'), undefined!); } catch (error) { logger.warn('[DATA-CAPTURE] Skipping corrupt response file', { error }); }
       }
 
       return result;

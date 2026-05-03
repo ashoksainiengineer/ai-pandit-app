@@ -19,9 +19,7 @@ import {
   Database,
   CheckCircle2,
   GitBranch,
-  Zap,
-  Sparkles,
-  Star
+  Zap
 } from 'lucide-react';
 
 const precisionMetrics = [

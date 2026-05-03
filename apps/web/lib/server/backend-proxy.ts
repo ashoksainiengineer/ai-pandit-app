@@ -25,16 +25,23 @@ export async function proxyBackendJson(req: NextRequest, options: ProxyOptions):
     backendUrl.search = options.searchParams.toString();
   }
 
-  const response = await fetch(backendUrl.toString(), {
-    method: options.method ?? 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-    cache: 'no-store',
-  });
-
+  let response: Response;
+  try {
+    response = await fetch(backendUrl.toString(), {
+      method: options.method ?? 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      cache: 'no-store',
+    });
+  } catch (fetchError) {
+    return NextResponse.json(
+      { success: false, error: `Backend unreachable: ${(fetchError as Error)?.message || fetchError}` },
+      { status: 502 }
+    );
+  }
   const contentType = response.headers.get('content-type') || 'application/json';
   const text = await response.text();
 

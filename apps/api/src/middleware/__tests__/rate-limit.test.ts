@@ -2,7 +2,12 @@
  * 🔱 EXHAUSTIVE RATE LIMIT MIDDLEWARE TESTS
  * Tests the in-memory sliding window rate limiter.
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  vi
+} from 'vitest';
 import { Request, Response, NextFunction } from 'express';
 
 // Mock config

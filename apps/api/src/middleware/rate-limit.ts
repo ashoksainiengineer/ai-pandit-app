@@ -8,7 +8,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { config } from '../config/index.js';
 import { sendRateLimit } from '../utils/response.js';
-import { logger } from '../lib/logger.js';
+import { logger } from '../utils/logger.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES
@@ -125,7 +125,7 @@ class RateLimiter {
   private defaultKeyGenerator(req: Request): string {
     // Use IP + clerkId (set by auth middleware) for per-user limiting
     const ip = req.ip || req.socket.remoteAddress || 'unknown';
-    const clerkId = (req as any).clerkId;
+    const clerkId = req.clerkId;
     return clerkId ? `${ip}:${clerkId}` : ip;
   }
 
@@ -177,7 +177,7 @@ class RateLimiter {
           res.setHeader('Retry-After', String(retryAfter));
 
           // Send error response
-          sendRateLimit(res, retryAfter, (req as any).requestId);
+          sendRateLimit(res, retryAfter, req.requestId);
           return;
         }
 
@@ -223,7 +223,7 @@ export const calculateRateLimiter = new RateLimiter({
   maxRequests: 3, // 3 BTR calculations per 5 minutes
   keyGenerator: (req: Request) => {
     // Auth middleware sets clerkId — use it for per-user rate limiting
-    const clerkId = (req as any).clerkId;
+    const clerkId = req.clerkId;
     return `calculate:${clerkId || req.ip || 'unknown'}`;
   },
 }).middleware();

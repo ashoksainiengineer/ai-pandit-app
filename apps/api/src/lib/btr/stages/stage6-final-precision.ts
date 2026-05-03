@@ -9,8 +9,8 @@
 import { SecondsPrecisionInput, ForensicTraits, EphemerisData } from '@ai-pandit/shared';
 import { CandidateTime, getCandidateIdentity, getDynamicBatchSize, getDynamicSurvivors, sortCandidatesByMerit, splitIntoBatches } from '../../time-offset-manager.js';
 import { ProgressTracker } from '../../progress-tracker.js';
-import { callAIWithStream, executeAIInParallel } from '../../ai-client.js';
-import { _emitCandidateScore, emitAIContext } from '../../session-events.js';
+import { _callAIWithStream, _executeAIInParallel } from '../../ai-client.js';
+import { emitCandidateScore, emitAIContext } from '../../session-events.js';
 import { calculateEphemeris } from '../../ephemeris.js';
 import { getDashaForDate } from '../../vedic-astrology-engine.js';
 import type { DashaPeriod } from '../../vedic-astrology-engine.js';
@@ -23,7 +23,7 @@ import {
     generatePrecisionAIPrompt,
     CandidateWithPrecisionData,
 } from '../../btr-precision-integrator.js';
-import { logger } from '../../logger.js';
+import { logger } from '../../../utils/logger.js';
 import { config } from '../../../config/index.js';
 import { btrDataCapture } from '../data-capture.js';
 import { getMinifiedEphemerisInline, getFullEphemerisPayload } from './_utils.js';
@@ -397,7 +397,7 @@ export async function stage6FinalPrecision(
                 );
             }
 
-            const resp = await callAIWithStream(
+            const resp = await _callAIWithStream(
                 input.sessionId,
                 6,
                 systemPrompt,
@@ -437,7 +437,7 @@ export async function stage6FinalPrecision(
             return { response: resp, aiContent };
         });
 
-        const results = await executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs); // Configurable concurrency/stagger
+        const results = await _executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs); // Configurable concurrency/stagger
 
         // Accumulate reasoning from batches
         allReasoning += results.map(r => r.aiContent).filter(Boolean).join('\n\n---\n\n');
@@ -615,7 +615,7 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
         hasForensicTraits: !!forensicTraits
     });
 
-    const response = await callAIWithStream(
+    const response = await _callAIWithStream(
         input.sessionId,
         6,
         'You are THE DIVINE ARCHITECT of Time. Perform the ultimate FINAL JUDGEMENT.',

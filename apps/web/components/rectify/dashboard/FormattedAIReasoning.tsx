@@ -27,7 +27,7 @@ export function FormattedAIReasoning({
             if (reasoningLogs.startsWith('{') || reasoningLogs.startsWith('[')) {
                 try {
                     const parsed = JSON.parse(reasoningLogs);
-                    return processStructuredLogs(parsed);
+                    return formatStructuredLogsForDisplay(parsed);
                 } catch (e) {
                     return reasoningLogs;
                 }
@@ -36,11 +36,11 @@ export function FormattedAIReasoning({
         }
 
         // Case 2: Structured object (stageHistory or similar)
-        return processStructuredLogs(reasoningLogs);
+        return formatStructuredLogsForDisplay(reasoningLogs);
     }, [reasoningLogs, analysisDetails]);
 
     // Helper to extract text from structured stage history
-    function processStructuredLogs(data: Record<string, unknown>): string {
+    function formatStructuredLogsForDisplay(data: Record<string, unknown>): string {
         if (!data) return '';
 
         // If it's the finalCandidate/AnalysisDetails object itself

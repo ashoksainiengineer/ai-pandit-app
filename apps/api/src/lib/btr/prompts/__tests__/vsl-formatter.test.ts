@@ -38,8 +38,8 @@ describe('VSL 4.1 Formatter', () => {
     moonNakshatra: 'Rohini',
     houseLords: { 1: 'Mars' },
     planets: {
-      sun: { sign: 'Aries', degree: '10:05:00', nakshatra: 'Ashwini', house: 1, dignity: 'Exalted', shadbala: 1.8, isRetro: false, speed: 1, longitude: 10.05 },
-      moon: { sign: 'Taurus', degree: '22:00:00', nakshatra: 'Rohini', house: 2, dignity: 'Moolatrikona', shadbala: 1.5, isRetro: false, speed: 1, longitude: 52 }
+      sun: { sign: 'Aries', degree: '10:05:00', nakshatra: 'Ashwini', house: 1, dignity: 'Exalted', shadbala: 1.8, isRetro: false, isCombust: false, speed: 1, longitude: 10.05 },
+      moon: { sign: 'Taurus', degree: '22:00:00', nakshatra: 'Rohini', house: 2, dignity: 'Moolatrikona', shadbala: 1.5, isRetro: false, isCombust: false, speed: 1, longitude: 52 }
     },
     vargaDegrees: {
       D9: { Ascendant: 'Aries 10:10:10', Sun: 'Virgo 00:10:10', Moon: 'Taurus 12:11:10' },

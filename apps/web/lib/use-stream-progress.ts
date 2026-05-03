@@ -15,6 +15,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { logger } from './secure-logger';
 import { env } from './config';
 import { getTokenWithRetry } from './auth-utils';
+import { useTestMode } from './test-mode-context';
 import { useStreamStore } from './store/stream-store';
 import {
     createStreamStateMachine,
@@ -67,11 +68,9 @@ export function useStreamProgress(
     const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const connectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const IS_TEST_RUNTIME =
-        (typeof process !== 'undefined' && process.env.NODE_ENV === 'test') ||
-        (typeof window !== 'undefined' && (window as any).isTestEnv === true);
+    const isTestMode = useTestMode();
 
-    const MAX_SESSION_NOT_FOUND_RETRIES = IS_TEST_RUNTIME ? 1 : 4;
+    const MAX_SESSION_NOT_FOUND_RETRIES = isTestMode ? 1 : 4;
 
     const machineConfigRef = useRef<StateMachineConfig>({
         backendUrl,
@@ -81,13 +80,11 @@ export function useStreamProgress(
         rateLimitWait: 30000,
         sessionNotFoundRetryDelay: 1500,
         maxSessionNotFoundRetries: MAX_SESSION_NOT_FOUND_RETRIES,
-        isTestRuntime: IS_TEST_RUNTIME,
         analysisProgressProxyPath: '/api/analysis/progress',
     });
 
     // Update config ref when backendUrl changes
     machineConfigRef.current.backendUrl = backendUrl;
-    machineConfigRef.current.isTestRuntime = IS_TEST_RUNTIME;
     machineConfigRef.current.maxSessionNotFoundRetries = MAX_SESSION_NOT_FOUND_RETRIES;
 
     const machineRef = useRef(createStreamStateMachine(machineConfigRef.current));
@@ -98,7 +95,7 @@ export function useStreamProgress(
     // ── helpers ───────────────────────────────────────────────────────────────
 
     const applyEffects = useCallback((effects: Effect[]) => {
-        const cfg = machineConfigRef.current;
+        const config = machineConfigRef.current;
 
         for (const effect of effects) {
             switch (effect.type) {
@@ -130,7 +127,7 @@ export function useStreamProgress(
                             setConnectionState(result.state);
                             applyEffects(result.effects);
                         }
-                    }, cfg.sseTimeout);
+                    }, config.sseTimeout);
 
                     sse.onopen = () => {
                         if (!mountedRef.current || machine.getCurrentSessionId() !== sid) {
@@ -156,6 +153,7 @@ export function useStreamProgress(
                             setConnectionState(result.state);
                             applyEffects(result.effects);
                         } catch (e) {
+                            // Non-critical: malformed SSE data — skip and continue streaming
                             logger.warn('Failed to parse SSE message');
                         }
                     };
@@ -204,6 +202,10 @@ export function useStreamProgress(
 
                 case 'SET_LAST_EVENT_ID':
                     setLastEventId(effect.seq);
+                    break;
+
+                default:
+                    // Unknown effect type — silently ignore
                     break;
             }
         }
@@ -294,6 +296,44 @@ export function useStreamProgress(
         }
     };
 
+    const resolvePollToken = async (shouldUseProxyProgress: boolean, options: PollOptions): Promise<string | null> => {
+        if (shouldUseProxyProgress) return null;
+
+        const cached = machine.getCachedToken();
+        if (cached) return cached;
+
+        if (isTestMode) {
+            return 'mock-token';
+        }
+
+        if (!getToken) return null;
+
+        return getTokenWithRetry(getToken, options as Record<string, unknown>);
+    };
+
+    const buildPollUrl = (sid: string, shouldUseProxyProgress: boolean, options: PollOptions): string => {
+        const sseBaseUrl = backendUrl || machineConfigRef.current.backendUrl;
+
+        if (shouldUseProxyProgress) {
+            return `${machineConfigRef.current.analysisProgressProxyPath}?sessionId=${encodeURIComponent(sid)}`;
+        }
+
+        if (options.forceLegacyProgressPath) {
+            return `${sseBaseUrl}/api/queue/progress/${encodeURIComponent(sid)}`;
+        }
+
+        return `${sseBaseUrl}/api/queue/progress?sessionId=${encodeURIComponent(sid)}`;
+    };
+
+    const resolveConnectToken = async (options: { skipCache?: boolean }): Promise<string | null> => {
+        if (isTestMode) {
+            return 'mock-token';
+        }
+
+        if (!getToken) return null;
+
+        return getTokenWithRetry(getToken, options as Record<string, unknown>);
+    };
     // ── polling ───────────────────────────────────────────────────────────────
 
     const poll = async (sid: string, interval: number = machineConfigRef.current.pollInterval, options: PollOptions = {}) => {
@@ -304,7 +344,7 @@ export function useStreamProgress(
             const token = shouldUseProxyProgress
                 ? null
                 : machine.getCachedToken() ??
-                    ((typeof window !== 'undefined' && (window as any).isTestEnv)
+                    (isTestMode
                         ? 'mock-token'
                         : (getToken ? await getTokenWithRetry(getToken, options as Record<string, unknown>) : null));
 
@@ -353,8 +393,8 @@ export function useStreamProgress(
     const connect = async (sid: string, options: { skipCache?: boolean } = {}) => {
         if (!sid || sid === 'undefined') return;
 
-        const skipSse = typeof window !== 'undefined' && (window as any).SKIP_SSE;
-        const startResult = machine.onConnectStart(sid, { forcePolling: forcePollingTransport, skipSse: !!skipSse });
+        const skipSse = isTestMode;
+        const startResult = machine.onConnectStart(sid, { forcePolling: forcePollingTransport, skipSse });
         setConnectionState(startResult.state);
 
         if (startResult.effects.length > 0) {
@@ -374,16 +414,14 @@ export function useStreamProgress(
         }
 
         try {
-            const token = (typeof window !== 'undefined' && (window as any).isTestEnv)
-                ? 'mock-token'
-                : (getToken ? await getTokenWithRetry(getToken, options as Record<string, unknown>) : null);
+            const token = await resolveConnectToken(options);
 
             if (!token && getToken) {
                 logger.warn('Token acquisition failed after maximum retries');
             }
             machine.setCachedToken(token ?? null);
 
-            const query = IS_TEST_RUNTIME
+            const query = isTestMode
                 ? '?ticket=test-ticket'
                 : `?ticket=${encodeURIComponent(await requestStreamTicket(sid, token))}`;
 
@@ -449,7 +487,7 @@ export function useStreamProgress(
             }
         };
 
-        if (IS_TEST_RUNTIME) {
+        if (isTestMode) {
             const timeout = setTimeout(() => {
                 refresh().catch(() => undefined);
             }, REFRESH_INTERVAL);

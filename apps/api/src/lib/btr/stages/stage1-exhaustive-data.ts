@@ -16,7 +16,7 @@ import { emitCalculationLog } from '../../session-events.js';
 import { cleanup } from '../../ephemeris.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
 import { StageResult } from '@ai-pandit/shared';
-import { logger } from '../../logger.js';
+import { logger } from '../../../utils/logger.js';
 import { findAstrologicalBoundaries } from '../../advanced-btr-methods.js';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));

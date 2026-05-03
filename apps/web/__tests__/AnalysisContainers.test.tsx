@@ -10,6 +10,12 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
+vi.mock('@/lib/test-mode-context', () => ({
+    TestModeProvider: ({ children }: any) => children,
+    useTestMode: () => true,
+    TestModeContext: { Provider: ({ children }: any) => children },
+}));
+
 import AnalysisPage from '../app/rectify/[id]/page';
 import { useStreamStore, createInitialState } from '../lib/store/stream-store';
 import { useStreamProgress } from '../lib/use-stream-progress';
@@ -106,13 +112,9 @@ describe('Analysis Page: Container Unit Tests', () => {
                 totalCandidates: 100,
             });
         });
-        (window as any).isTestEnv = true;
         vi.clearAllMocks();
     });
 
-    afterEach(() => {
-        delete (window as any).isTestEnv;
-    });
 
     // ═════ Metadata Header Container ═════
 

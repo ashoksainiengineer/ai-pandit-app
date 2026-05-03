@@ -10,9 +10,14 @@ import { jobs, sessions, users } from '@ai-pandit/db/schema';
 import { eq, and, gte, sql, desc, count, SQL } from 'drizzle-orm';
 import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
 import { config } from '../config/index.js';
-import { logger } from '../lib/logger.js';
+import { logger } from '../utils/logger.js';
 
 const router = Router();
+
+const ROLES = {
+  ADMIN: 'admin',
+  USER: 'user',
+} as const;
 
 async function requireAdmin(req: AuthenticatedRequest, res: Response): Promise<boolean> {
   const clerkId = req.clerkId;
@@ -30,7 +35,7 @@ async function requireAdmin(req: AuthenticatedRequest, res: Response): Promise<b
     })
   );
 
-  if (!user || !user.isActive || user.role !== 'admin') {
+  if (!user || !user.isActive || user.role !== ROLES.ADMIN) {
     res.status(403).json({
       success: false,
       error: { code: 'FORBIDDEN', message: 'Admin access required' },
@@ -119,21 +124,21 @@ router.get('/metrics', authMiddleware, async (req: AuthenticatedRequest, res: Re
       .where(gte(sessions.createdAt, monthAgo.toISOString()));
     const readingsThisMonth = readingsThisMonthResult[0]?.count || 0;
 
-    // Calculate average processing time
+    // Calculate average processing time (Postgres-compatible)
     const avgProcessingResult = await db
       .select({
         avgTime: sql<number>`AVG(
-          CASE 
-            WHEN ${sessions.completedAt} IS NOT NULL AND ${sessions.startedProcessingAt} IS NOT NULL 
-            THEN (julianday(${sessions.completedAt}) - julianday(${sessions.startedProcessingAt})) * 24 * 60
-            ELSE NULL 
+          CASE
+            WHEN ${sessions.completedAt} IS NOT NULL AND ${sessions.startedProcessingAt} IS NOT NULL
+            THEN EXTRACT(EPOCH FROM (${sessions.completedAt} - ${sessions.startedProcessingAt})) / 60
+            ELSE NULL
           END
         )`,
       })
       .from(sessions)
       .where(eq(sessions.status, 'complete'));
 
-    const averageProcessingTime = avgProcessingResult[0]?.avgTime || 0;
+    const averageProcessingTime = avgProcessingResult[0]?.avgTime ?? 0;
 
     res.json({
       success: true,

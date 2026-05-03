@@ -118,6 +118,7 @@ describe('TransitDataEntrySchema', () => {
             dasha: 'Jupiter-Venus-Mars',
             signatures: ['benefic', 'exalted'],
             planets: { Jupiter: 'Jupiter 15° Aries | H1' },
+            doubleTransit: { isTriggered: true, details: [] },
         });
         expect(result.success).toBe(true);
     });
@@ -218,6 +219,7 @@ describe('CandidateDataPackageSchema', () => {
                     dasha: 'Jupiter-Venus',
                     signatures: ['benefic'],
                     planets: { Jupiter: 'Jupiter 15° | H7' },
+                    doubleTransit: { isTriggered: false, details: [] },
                 },
             },
         });

@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertCircle, RefreshCw, ServerCrash } from 'lucide-react';
 
 export function ErrorDisplay({ error, onRetry }: { error?: string, onRetry: () => void }) {

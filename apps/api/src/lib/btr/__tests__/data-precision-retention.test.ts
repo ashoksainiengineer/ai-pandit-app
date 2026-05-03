@@ -11,13 +11,17 @@ describe('Elite E2E Data Precision Retention (DMS)', () => {
 
     it('MUST retain high precision and follow traditional DMS format (DD° MM\' SS") for AI', async () => {
 
-        const mockInput: SecondsPrecisionInput = {
+        const mockInput = {
             dateOfBirth: '2000-01-01',
             latitude: 28.6139,
             longitude: 77.2090,
             timezone: 5.5,
-            lifeEvents: []
-        };
+            lifeEvents: [],
+            sessionId: 'test',
+            tentativeTime: '12:00:00',
+            offsetConfig: { description: 'test' },
+            forensicTraits: {} as any
+        } as SecondsPrecisionInput;
 
         // 1. Build the data package exactly as production does
         const dataPackage = await buildCandidateDataPackage(

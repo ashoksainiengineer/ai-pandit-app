@@ -101,10 +101,10 @@ export default function ForensicQuizEngine({
                 showHelp={engine.showHelp}
                 setShowHelp={engine.setShowHelp}
                 customAnswer={engine.customAnswer}
-                handleSelectOption={engine.handleSelectOption}
-                handleCustomAnswerChange={engine.handleCustomAnswerChange}
-                handleClearCustomAnswer={engine.handleClearCustomAnswer}
-                handleNotSure={engine.handleNotSure}
+                recordQuizAnswer={engine.recordQuizAnswer}
+                updateCustomQuizResponse={engine.updateCustomQuizResponse}
+                clearCustomQuizResponse={engine.clearCustomQuizResponse}
+                markQuestionAsSkipped={engine.markQuestionAsSkipped}
                 handlePrevious={engine.handlePrevious}
                 handleNext={engine.handleNext}
             />

@@ -5,7 +5,7 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import { ReactNode, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -14,7 +14,6 @@ import {
   Activity,
   Settings,
   Menu,
-  X,
   LogOut,
   ChevronRight,
   Sparkles
@@ -22,7 +21,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface DashboardLayoutProps {
-  children: React.ReactNode;
+  children: ReactNode;
   user?: {
     name: string;
     email: string;

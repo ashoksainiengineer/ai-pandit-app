@@ -32,6 +32,7 @@ export function useQuizEngine({
             }
         } catch (e) {
             logger.error('Error loading quiz progress:', e);
+            return null; // Graceful fallback: treat as no saved progress
         }
         return null;
     }, [sessionId]);
@@ -140,7 +141,7 @@ export function useQuizEngine({
         }
     }, [currentQuestion?.id, answers]);
 
-    const handleSelectOption = useCallback((optionId: string) => {
+    const recordQuizAnswer = useCallback((optionId: string) => {
         if (!currentQuestion) return;
 
         setError(null);
@@ -178,7 +179,7 @@ export function useQuizEngine({
         });
     }, [currentQuestion]);
 
-    const handleCustomAnswerChange = useCallback((value: string) => {
+    const updateCustomQuizResponse = useCallback((value: string) => {
         if (!currentQuestion) return;
 
         setCustomAnswer(value);
@@ -205,7 +206,7 @@ export function useQuizEngine({
         });
     }, [currentQuestion]);
 
-    const handleClearCustomAnswer = useCallback(() => {
+    const clearCustomQuizResponse = useCallback(() => {
         setCustomAnswer('');
         if (!currentQuestion) return;
 
@@ -224,7 +225,7 @@ export function useQuizEngine({
         });
     }, [currentQuestion]);
 
-    const handleNotSure = useCallback(() => {
+    const markQuestionAsSkipped = useCallback(() => {
         if (!currentQuestion) return;
 
         setError(null);
@@ -368,10 +369,10 @@ export function useQuizEngine({
         setCurrentQuestionIndex,
         setShowHelp,
         setQuizStarted,
-        handleSelectOption,
-        handleCustomAnswerChange,
-        handleClearCustomAnswer,
-        handleNotSure,
+        recordQuizAnswer,
+        updateCustomQuizResponse,
+        clearCustomQuizResponse,
+        markQuestionAsSkipped,
         handleNext,
         handlePrevious,
         handleComplete,

@@ -1,9 +1,18 @@
 import { z } from 'zod';
 import type { EphemerisHouseSystem } from '@ai-pandit/shared/types';
 
-// ═════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// DEPLOYMENT DEFAULTS
+// ═══════════════════════════════════════════════════════════════
+
+const DEFAULTS = {
+  ALLOWED_ORIGINS: 'http://localhost:3000',
+  AI_BASE_URL: 'https://api.openai.com/v1',
+  EPHEMERIS_SERVICE_URL: 'http://localhost:8000',
+} as const;
+
+// ═══════════════════════════════════════════════════════════════
 // ENVIRONMENT SCHEMA
-// ═════════════════════════════════════════════════════════════════════════════
 
 const envSchema = z.object({
     // App Environment
@@ -11,7 +20,7 @@ const envSchema = z.object({
     PORT: z.string().transform((v) => Number(v.split(/[\s,]/)[0])).default('7860'),
     BACKEND_URL: z.string().url().optional(),
     FRONTEND_URL: z.string().optional().transform(v => v?.trim().split(/\s+/)[0]),
-    ALLOWED_ORIGINS: z.string().trim().default('http://localhost:3000'),
+    ALLOWED_ORIGINS: z.string().trim().default(DEFAULTS.ALLOWED_ORIGINS),
 
     // Database Configuration (Neon Postgres)
     NEON_DATABASE_URL: z.string().min(1).optional(),
@@ -20,7 +29,7 @@ const envSchema = z.object({
 
     // AI Configuration
     AI_API_KEY: z.string().min(1, 'AI_API_KEY is required'),
-    AI_BASE_URL: z.string().url().default('https://api.openai.com/v1'),
+    AI_BASE_URL: z.string().url().default(DEFAULTS.AI_BASE_URL),
     AI_MODEL: z.string().default('gpt-4o'),
     AI_REASONER_IDENTIFIERS: z.string().default('reasoner,r1,o1,think'),
     AI_REASONING_MODE: z.enum(['include_reasoning', 'none', 'auto', 'reasoning_format_raw']).default('auto'),
@@ -53,7 +62,7 @@ const envSchema = z.object({
         .string()
         .default('false')
         .transform((v) => ['1', 'true', 'yes', 'on'].includes(v.toLowerCase())),
-    EPHEMERIS_SERVICE_URL: z.string().url().default('http://localhost:8000'),
+    EPHEMERIS_SERVICE_URL: z.string().url().default(DEFAULTS.EPHEMERIS_SERVICE_URL),
     EPHEMERIS_SERVICE_TIMEOUT_MS: z.string().transform(Number).default('15000'),
     EPHEMERIS_BATCH_SIZE: z.string().transform(Number).default('250'),
     EPHEMERIS_HOUSE_SYSTEM: z.enum(['whole_sign', 'equal', 'placidus']).default('placidus'),
@@ -153,12 +162,20 @@ function parseEnv() {
     };
 }
 
+let _cachedEnv: ReturnType<typeof parseEnv> | null = null;
+
+/** Shared env accessor; callers in test contexts can inject process.env before first call */
+export function ensureEnv(): ReturnType<typeof parseEnv> {
+  if (!_cachedEnv) {
+    _cachedEnv = parseEnv();
+  }
+  return _cachedEnv;
+}
+
+// Eagerly parsed at module scope for backwards compatibility
 const env = parseEnv();
 
 // Warn on likely provider/model mismatch to catch misconfigured deployments early.
-if (env.AI_BASE_URL.toLowerCase().includes('groq.com') && env.AI_MODEL === 'gpt-4o') {
-    console.warn('[CONFIG] AI_BASE_URL points to GROQ but AI_MODEL is still default gpt-4o. Set AI_MODEL explicitly for GROQ deployment.');
-}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // CONFIGURATION OBJECTS
