@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/secure-logger';
 import { env } from '@/lib/config/env';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'crypto';
 import { db } from '@ai-pandit/db';
 import { sessions, users } from '@ai-pandit/db/schema';
 import { eq, desc } from 'drizzle-orm';
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest) {
             fullName,
         });
 
-        const newSessionId = uuidv4();
+        const newSessionId = randomUUID();
         const bd = body.birthData;
 
         // 2. Prepare Session Object (Flattened & Encrypted)
