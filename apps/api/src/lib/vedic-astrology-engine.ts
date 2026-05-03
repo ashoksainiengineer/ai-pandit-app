@@ -495,26 +495,32 @@ export const calculateArudhas = (ephemeris: EphemerisData): { AL: string; UL: st
 
 /**
  * Calculate Panchanga (Tithi, Yoga, Karana, Vara).
+ * Only Sun/Moon longitudes are required; Yoga and Karana derive from Tithi.
+ * When ephemeris is available, Moon's nakshatra is passed through.
  */
-export const calculatePanchanga = (jd: number, sunLong: number, moonLong: number, birthDate?: Date): PanchangaData => {
-    // The engine expects ephemeris-like object for calcPanchanga, but the stub takes JD/Long
-    // We'll normalize this by creating a minimal object
-    const mockEph: EphemerisData = {
-        planets: {
-            sun: { sign: '', degree: 0, longitude: sunLong, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
-            moon: { sign: '', degree: 0, longitude: moonLong, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
-            mercury: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
-            venus: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
-            mars: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
-            jupiter: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
-            saturn: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
-            rahu: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
-            ketu: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
-        },
-        ascendant: { sign: '', degree: 0, nakshatra: '', longitude: 0 },
-        houses: [],
-    };
-    return calcPanchanga(mockEph, birthDate || new Date());
+export const calculatePanchanga = (
+  jd: number,
+  sunLong: number,
+  moonLong: number,
+  birthDate?: Date,
+  ephemeris?: EphemerisData
+): PanchangaData => {
+  const mockEph: EphemerisData = ephemeris ?? {
+    planets: {
+      sun: { sign: '', degree: 0, longitude: sunLong, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+      moon: { sign: '', degree: 0, longitude: moonLong, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+      mercury: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+      venus: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+      mars: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+      jupiter: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+      saturn: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+      rahu: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+      ketu: { sign: '', degree: 0, longitude: 0, latitude: 0, nakshatra: '', lord: '', retro: false, speed: 0, distance: 0, isCombust: false, dignity: '', house: 0 },
+    },
+    ascendant: { sign: '', degree: 0, nakshatra: '', longitude: 0 },
+    houses: [],
+  };
+  return calcPanchanga(mockEph, birthDate || new Date());
 };
 
 /**

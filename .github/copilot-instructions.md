@@ -7,7 +7,9 @@ This is a Turborepo monorepo for a Vedic Astrology Birth Time Rectification (BTR
 - `apps/api` — Express.js backend (BTR engine, Skyfield, DeepSeek AI, Drizzle ORM)
 - `packages/db` — Shared Drizzle schema for Neon Postgres
 - `packages/shared` — Shared TypeScript types and Zod schemas
+- `packages/worker-runtime` — Worker runtime library
 - `apps/worker` — Background job processor
+- `services/ephemeris` — Python Skyfield service
 
 ## Rules
 - TypeScript strict mode. No `any` types.
