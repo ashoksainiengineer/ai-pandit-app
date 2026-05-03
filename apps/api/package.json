@@ -52,7 +52,6 @@
     "dependencies": {
         "@ai-pandit/db": "*",
         "@ai-pandit/shared": "*",
-        "@ai-pandit/worker-runtime": "*",
         "@clerk/backend": "^1.26.2",
         "@google-cloud/storage": "^7.16.0",
         "cors": "^2.8.5",
