@@ -40,11 +40,10 @@ import {
   METHOD_WEIGHTS,
   CONFIDENCE_THRESHOLDS,
   calculateRankFusionScore,
-  _calculateWeightedAverage
+  getEventWeightFromImportance,
 } from './btr/precision-weights.js';
 import { resolveEventDateWindow } from './btr/event-date-utils.js';
 
-// Re-export types for backwards compatibility
 export type {
   ConsensusScores,
   ValidationDetail,
@@ -872,16 +871,14 @@ function generateRecommendations(scores: ConsensusScores, redFlags: RedFlags): s
 // ═══════════════════════════════════════════════════════════════════════════════
 
 function getEventWeight(impact: string): number {
-  const weights: Record<string, number> = {
-    critical: 3,
-    high: 2.5,
-    major: 2,
-    medium: 1.5,
-    moderate: 1,
-    low: 1,
-    minor: 0.5
+  // Delegate to the canonical weights defined in precision-weights.ts
+  const impactToImportance: Record<string, string> = {
+    critical: 'critical',
+    major: 'high',
+    moderate: 'medium',
+    minor: 'low',
   };
-  return weights[impact] || 1;
+  return getEventWeightFromImportance(impactToImportance[impact] || impact);
 }
 
 function getEventSignificators(category: string): string[] {
