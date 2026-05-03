@@ -686,6 +686,7 @@ export const calculateAspects = (arg1: EphemerisData | string, _arg2?: number, _
  * Planetary dignity based on sign placement.
  */
 export const getDignity = (planet: string, signOrChart: string | EphemerisData): string => {
+  const sign = typeof signOrChart === 'string' ? signOrChart : signOrChart.planets[planet]?.sign;
   if (!sign) return 'Neutral';
   const p = planet.toLowerCase();
   if (sign === EXALTATION_SIGNS[p]) return 'Exalted';
@@ -701,12 +702,12 @@ export const getDignity = (planet: string, signOrChart: string | EphemerisData):
  * kendras are neutral temporal malefics. Rahu/Ketu take Saturn/Mars lordship.
  */
 export const calculateFunctionalNature = (planetName: string, ascendantSign: string): { role: string; reason: string } => {
-  const p = planetName.toLowerCase();
-  const entry = p === 'rahu' ? PLANET_LORDSHIPS.saturn : p === 'ketu' ? PLANET_LORDSHIPS.mars : PLANET_LORDSHIPS[p];
-  const ascIdx = ZODIAC_SIGNS.indexOf(ascendantSign);
+  const SIGNS = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
+  const LORDS: Record<string, number[]> = { sun: [4], moon: [3], mars: [0,7], mercury: [2,5], jupiter: [8,11], venus: [1,6], saturn: [9,10] };
+  const ascIdx = SIGNS.indexOf(ascendantSign);
   if (ascIdx === -1) return { role: 'Neutral', reason: 'Unknown ascendant' };
   const p = planetName.toLowerCase();
-  const entry = p === 'rahu' ? L.saturn : p === 'ketu' ? L.mars : L[p];
+  const entry = p === 'rahu' ? LORDS.saturn : p === 'ketu' ? LORDS.mars : LORDS[p];
   if (!entry) return { role: 'Neutral', reason: 'No lordship' };
   const houses = entry.map(si => ((si - ascIdx + 12) % 12) + 1);
   const hasKendra = houses.some((h: number) => [1,4,7,10].includes(h));
@@ -749,6 +750,7 @@ export const calculatePanchadhaSambandha = (planetName: string, lordSign: string
  * Formula: distance from exaltation/debilitation, normalized to 0-60 scale.
  */
 export const calculateIshtaKashtaPhala = (planetName: string, rawPlanet?: { longitude: number }): { ishta: number; kashta: number } => {
+  const EXALT: Record<string, number> = { sun: 10, moon: 33, mars: 298, mercury: 165, jupiter: 95, venus: 357, saturn: 200 };
   if (!rawPlanet?.longitude) return { ishta: 20, kashta: 10 };
   const exaltDeg = EXALT[planetName.toLowerCase()];
   if (exaltDeg === undefined) return { ishta: 20, kashta: 10 };
