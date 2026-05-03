@@ -760,32 +760,26 @@ function determineConfidenceLevel(
   scores: ConsensusScores,
   overall: number,
   redFlags: RedFlags
-): ConsensusResult['confidenceLevel'] {
-  const scoreValues = Object.values(scores);
+) {
+  // Exclude methods with no data (score of 0) from threshold checks
+  // A method scoring 0 means it was not computed, not that it failed
+  const activeScores = Object.values(scores).filter((s): s is number => typeof s === 'number' && s > 0);
   const thresholds = CONFIDENCE_THRESHOLDS;
 
-  // Check for critical red flags
-  if (redFlags.gandanta) {
-    return 'LOW';
-  }
+  if (redFlags.gandanta) return 'LOW';
 
-  let baseLevel: ConsensusResult['confidenceLevel'] = 'LOW';
+  let baseLevel = 'LOW';
 
-  // STANDARD_PRECISION: All methods >= 90, no red flags
-  if (scoreValues.every(s => s >= thresholds.standard_precision.allMethodsAbove) &&
-    overall >= thresholds.standard_precision.minScore &&
-    !redFlags.conflictingMethods) {
+  if (activeScores.length >= 6 && activeScores.every(s => s >= thresholds.standard_precision.allMethodsAbove) &&
+      overall >= thresholds.standard_precision.minScore && !redFlags.conflictingMethods) {
     baseLevel = 'STANDARD_PRECISION';
-  } else if (scoreValues.every(s => s >= thresholds.very_high.allMethodsAbove) &&
-    overall >= thresholds.very_high.minScore) {
-    // VERY_HIGH: All methods >= 80
+  } else if (activeScores.length >= 5 && activeScores.every(s => s >= thresholds.very_high.allMethodsAbove) &&
+             overall >= thresholds.very_high.minScore) {
     baseLevel = 'VERY_HIGH';
-  } else if (overall >= thresholds.high.minScore &&
-    scoreValues.every(s => s >= thresholds.high.allMethodsAbove)) {
-    // HIGH: Overall >= 75, no method < 60
+  } else if (activeScores.length >= 4 && overall >= thresholds.high.minScore &&
+             activeScores.every(s => s >= thresholds.high.allMethodsAbove)) {
     baseLevel = 'HIGH';
   } else if (overall >= thresholds.medium.minScore) {
-    // MEDIUM: Overall >= 60
     baseLevel = 'MEDIUM';
   }
 
@@ -1021,9 +1015,13 @@ function detectGandanta(candidate: ValidationInput['candidate']): boolean {
   const moonLong = candidate.ephemeris?.planets?.moon?.longitude;
   if (!moonLong) return false;
 
-  // Gandanta zones: 0-1° (Ashwini), 120-121° (Magha), 240-241° (Mula)
-  const inZone = (moonLong % 120) < 1;
-  return inZone;
+  // Gandanta: junction of water and fire signs
+  // Last 1° of water signs (Pisces/Cancer/Scorpio) + first 1° of fire signs (Aries/Leo/Sag)
+  // Water endings: 329-330° (Pisces), 119-120° (Cancer), 239-240° (Scorpio)
+  // Fire beginnings: 0-1° (Aries), 120-121° (Leo), 240-241° (Sag)
+  const inWaterEnd = (moonLong % 30) > 29 && ((moonLong % 120) > 119 || (moonLong % 120) < 1);
+  const inFireStart = (moonLong % 120) < 1;
+  return inWaterEnd || inFireStart;
 }
 
 function detectDashaSandhi(candidate: ValidationInput['candidate']): boolean {

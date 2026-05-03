@@ -24,7 +24,7 @@ AI-Pandit is a comprehensive platform for precise birth time rectification (BTR)
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | Next.js 14, React 18, TypeScript, Tailwind CSS |
+│ **Frontend** | Next.js 15, React 18, TypeScript, Tailwind CSS |
 | **Backend** | Node.js, Express, TypeScript |
 | **Database** | Neon Postgres (Serverless PostgreSQL) |
 | **Cache/Queue** | Upstash Redis |
@@ -97,7 +97,8 @@ ai-pandit/
 │   └── worker/           # Background job processor
 ├── packages/
 │   ├── db/               # Database schema & client
-│   └── shared/           # Shared types & utilities
+│   ├── shared/           # Shared types & utilities
+│   └── worker-runtime/   # Worker runtime library
 ├── services/
 │   └── ephemeris/        # Python Skyfield service
 ├── docs/                 # Documentation
