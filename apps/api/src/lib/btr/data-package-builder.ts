@@ -325,15 +325,26 @@ function buildSpecialPoints(ephemeris: EphemerisData) {
   const bb = calculateBhriguBindu(ephemeris);
   const ascSign = ephemeris.ascendant.sign;
 
+  // Arudha Lagna degree: same as Lagna Lord's degree in the AL sign
+  const SIGN_LORD: Record<string, string> = {
+    Aries: 'mars', Taurus: 'venus', Gemini: 'mercury', Cancer: 'moon',
+    Leo: 'sun', Virgo: 'mercury', Libra: 'venus', Scorpio: 'mars',
+    Sagittarius: 'jupiter', Capricorn: 'saturn', Aquarius: 'saturn', Pisces: 'jupiter',
+  };
+  const lagnaLord = SIGN_LORD[ascSign] || 'sun';
+  const lordDegree = ephemeris.planets[lagnaLord]?.degree ?? 0;
+  const lordDegree = ephemeris.planets[lagnaLord]?.degree ?? 0;
+  const alDegreeDMS = decimalToDMS(lordDegree);
+
   return {
     AL: {
       sign: arudhas.AL,
-      degree: "0° 00' 00\"",
+      degree: alDegreeDMS,
       house: calculateRelativeHouse(arudhas.AL, ascSign)
     },
     UL: {
       sign: arudhas.UL,
-      degree: "0° 00' 00\"",
+      degree: alDegreeDMS,
       house: calculateRelativeHouse(arudhas.UL, ascSign)
     },
     BB: {

@@ -453,8 +453,8 @@ export function calculateD150(longitude: number): { sign: string; degree: number
     if (signType === 0) {
         d150SignIndex = (signIndex + nadiIndex) % 12;
     } else if (signType === 1) {
-        // Fixed signs reverse - start from Scorpio (7)
-        d150SignIndex = (7 + (149 - nadiIndex)) % 12;
+        // Fixed signs: reverse order starting from Scorpio (7)
+        d150SignIndex = (7 - (nadiIndex % 12) + 12) % 12;
     } else {
         // Dual signs start from Sagittarius (8)
         d150SignIndex = (8 + nadiIndex) % 12;

@@ -1,7 +1,7 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema.js';
-
+import { ConfigurationError, TimeoutError } from '@ai-pandit/shared';
 const CONNECTION_CONFIG = {
   maxRetries: 5,
   baseDelayMs: 1000,
@@ -39,7 +39,7 @@ function resolveConnectionString(): string {
   const isProductionRuntime = process.env.NODE_ENV === 'production' && !isBuildPhase;
 
   if (isProductionRuntime) {
-    throw new Error('NEON_DATABASE_URL or DATABASE_URL is required in production runtime');
+    throw new ConfigurationError('NEON_DATABASE_URL or DATABASE_URL is required in production runtime');
   }
 
   if (process.env.NODE_ENV !== 'test') {
@@ -172,7 +172,7 @@ export async function executeWithTimeout<T>(
     return await Promise.race([
       operation(),
       new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error(`Query timeout after ${timeoutMs}ms`)), timeoutMs);
+        timer = setTimeout(() => reject(new TimeoutError(`Query timeout after ${timeoutMs}ms`)), timeoutMs);
       }),
     ]);
   } finally {
