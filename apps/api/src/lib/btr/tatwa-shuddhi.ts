@@ -217,12 +217,13 @@ export function calculateTatwaFromTime(birthTime: Date, sunriseTime: Date): {
     };
   }
 
-  const FULL_CYCLE = 90;
-  const cycleNumber = Math.floor(minutesSinceSunrise / FULL_CYCLE);
-  const positionInCycle = minutesSinceSunrise % FULL_CYCLE;
-  const approxDur = 18;
-  const tatwaIndex = Math.min(Math.floor(positionInCycle / approxDur), 4);
-  const minutesIntoTatwa = positionInCycle % approxDur;
+  return {
+    tatwa: 'akasha',
+    minutesIntoTatwa: 0,
+    cycleNumber: -1,
+    totalMinutesSinceSunrise: minutesSinceSunrise
+  };
+}
 
 /**
  * Get all Tatwa windows for a day
@@ -252,8 +253,6 @@ export function getDailyTatwaWindows(sunriseTime: Date, hoursToCalculate: number
 }
 
 
-  return windows;
-}
 
 /**
  * Validate if a time falls within expected Tatwa window

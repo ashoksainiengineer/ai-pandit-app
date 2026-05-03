@@ -6,7 +6,7 @@
 
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowLeft, Scale, FileText, AlertCircle, BookOpen, Shield, Cpu, Lock, Globe, Ban, DollarSign, Brain } from 'lucide-react';
+import { ArrowLeft, Scale, FileText, AlertCircle, BookOpen, Shield, Cpu, Globe, Ban, DollarSign, Brain } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Terms of Service | AI Pandit',
