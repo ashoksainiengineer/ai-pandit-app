@@ -10,6 +10,7 @@ import { CandidateTime, generateRefinementGrid, getCandidateIdentity, sortCandid
 import { ProgressTracker } from '../../progress-tracker.js';
 import { StageResult } from '@ai-pandit/shared';
 
+import { getOffsetMinutes } from '../utils.js';
 function getStage3FocusCount(offsetMinutes: number, survivorsCount: number): number {
     if (survivorsCount <= 3) return survivorsCount;
     if (offsetMinutes <= 30) return Math.min(7, survivorsCount);
@@ -36,13 +37,7 @@ export async function stage3RefinementGrid(
     const refinedCandidates: CandidateTime[] = [];
 
     // Extract offset for Telescopic Zoom Logic
-    const offsetMinutes = input.offsetConfig.customMinutes ||
-        (input.offsetConfig.preset === '30min' ? 30 :
-            input.offsetConfig.preset === '1hour' ? 60 :
-                input.offsetConfig.preset === '2hours' ? 120 :
-                    input.offsetConfig.preset === '4hours' ? 240 :
-                        input.offsetConfig.preset === '6hours' ? 360 :
-                            input.offsetConfig.preset === '12hours' ? 720 : 60);
+    const offsetMinutes = getOffsetMinutes(input);
 
     // 🔱 TELESCOPIC ZOOM LOGIC (Dynamic Stage 3 Fences)
     let rangeMinutes = 5;

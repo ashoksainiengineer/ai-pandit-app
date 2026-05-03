@@ -1,3 +1,4 @@
+import { AppError } from '@ai-pandit/shared';
 /**
  * Stage 5: Micro Grid
  *
@@ -13,6 +14,7 @@ import { CandidateTime, generateRefinementGrid, getCandidateIdentity, sortCandid
 import { ProgressTracker } from '../../progress-tracker.js';
 import { StageResult } from '@ai-pandit/shared';
 import { logger } from '../../../utils/logger.js';
+import { getOffsetMinutes } from '../utils.js';
 
 function getStage5FocusCount(offsetMinutes: number, survivorsCount: number): number {
     if (survivorsCount <= 3) return survivorsCount;
@@ -52,18 +54,12 @@ export async function stage5MicroGrid(
 
     if (!survivors || survivors.length === 0) {
         logger.error('🔱 [STAGE-5] FAILED: No survivors provided for micro-grid generation');
-        throw new Error('AI_OUT_OF_CANDIDATES: No birth time candidates survived the previous analysis stages. This usually happens when life events and forensic traits are highly contradictory.');
+        throw new AppError('AI_OUT_OF_CANDIDATES: No birth time candidates survived the previous analysis stages. This usually happens when life events and forensic traits are highly contradictory.');
     }
 
     const microCandidates: CandidateTime[] = [];
 
-    const offsetMinutes = input.offsetConfig.customMinutes ||
-        (input.offsetConfig.preset === '30min' ? 30 :
-            input.offsetConfig.preset === '1hour' ? 60 :
-                input.offsetConfig.preset === '2hours' ? 120 :
-                    input.offsetConfig.preset === '4hours' ? 240 :
-                        input.offsetConfig.preset === '6hours' ? 360 :
-                            input.offsetConfig.preset === '12hours' ? 720 : 60);
+    const offsetMinutes = getOffsetMinutes(input);
 
     const rankedSurvivors = sortCandidatesByMerit(survivors);
 

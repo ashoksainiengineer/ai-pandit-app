@@ -1,3 +1,4 @@
+import { AppError } from '@ai-pandit/shared';
 
 /**
  * Stage 6: Final Precision Judgement
@@ -28,6 +29,7 @@ import { config } from '../../../config/index.js';
 import { btrDataCapture } from '../data-capture.js';
 import { getMinifiedEphemerisInline, getFullEphemerisPayload } from './_utils.js';
 import { buildCandidateReferenceMap, getCandidateReference } from '../candidate-reference.js';
+import { getOffsetMinutes } from '../utils.js';
 
 const BATCH_VERDICT_MATCH_THRESHOLD_SECONDS = 8;
 const FINAL_VERDICT_MATCH_THRESHOLD_SECONDS = 12;
@@ -233,17 +235,11 @@ export async function stage6FinalPrecision(
 
     if (!candidates || candidates.length === 0) {
         logger.error('🔱 [STAGE-6] FAILED: No candidates provided for final precision judgment');
-        throw new Error('AI_OUT_OF_CANDIDATES: No birth time candidates survived the previous analysis stages. This usually happens when life events and forensic traits are highly contradictory.');
+        throw new AppError('AI_OUT_OF_CANDIDATES: No birth time candidates survived the previous analysis stages. This usually happens when life events and forensic traits are highly contradictory.');
     }
 
     // Get offset from config for dynamic batch sizing
-    const offsetMinutes = input.offsetConfig.customMinutes ||
-        (input.offsetConfig.preset === '30min' ? 30 :
-            input.offsetConfig.preset === '1hour' ? 60 :
-                input.offsetConfig.preset === '2hours' ? 120 :
-                    input.offsetConfig.preset === '4hours' ? 240 :
-                        input.offsetConfig.preset === '6hours' ? 360 :
-                            input.offsetConfig.preset === '12hours' ? 720 : 60);
+    const offsetMinutes = getOffsetMinutes(input);
 
     const batchSize = getDynamicBatchSize(candidates.length, offsetMinutes);
     const _survivorsPerBatch = getDynamicSurvivors(batchSize, offsetMinutes, false);
@@ -565,7 +561,7 @@ export async function stage6FinalPrecision(
 
     if (finalBatch.length === 0) {
         logger.error('🔱 [STAGE-6] FAILED: No candidates survived final building phase');
-        throw new Error('AI_ANALYSIS_FAILED: Unable to build final candidate data. Please check your internet connection and retry.');
+        throw new AppError('AI_ANALYSIS_FAILED: Unable to build final candidate data. Please check your internet connection and retry.');
     }
 
     const finalAnchor = buildPresentTransitLockMap(finalBatch, currentEph, now);
@@ -657,7 +653,7 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
     const finalTime = resolvedFinalWinner.match?.time || fallbackWinner?.time;
     const finalCandidate = resolvedFinalWinner.match || fallbackWinner;
     if (!finalTime || !finalCandidate) {
-        throw new Error('AI_ANALYSIS_INCOMPLETE: Unable to determine final birth time. No finalists available for fallback winner selection.');
+        throw new AppError('AI_ANALYSIS_INCOMPLETE: Unable to determine final birth time. No finalists available for fallback winner selection.');
     }
 
     const accuracy = usedFallbackWinner
