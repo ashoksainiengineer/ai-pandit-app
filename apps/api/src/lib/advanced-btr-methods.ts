@@ -296,9 +296,10 @@ export function calculateD10(longitude: number): { sign: string; degree: number 
     const dasamshaSpan = 3;
     const dasamshaNum = Math.floor(degreeInSign / dasamshaSpan);
 
-    // Odd signs: Start from same sign; Even signs: Start from 9th sign
-    const isOddSign = signIndex % 2 === 0;
-    const startSign = isOddSign ? signIndex : (signIndex + 8) % 12;
+    // BPHS: Movable→same sign, Fixed→9th sign, Dual→5th sign
+    const signType = signIndex % 3; // 0=Movable, 1=Fixed, 2=Dual
+    const startOffset = signType === 0 ? 0 : signType === 1 ? 8 : 4;
+    const startSign = (signIndex + startOffset) % 12;
     const d10SignIndex = (startSign + dasamshaNum) % 12;
 
     return {
@@ -951,15 +952,20 @@ export function calculatePanchanga(ephemeris: EphemerisData, birthDate: Date): P
     const yogaNum = Math.floor(yogaSum / (360 / 27)) + 1;
     const yogaPerc = (yogaSum % (360 / 27)) / (360 / 27) * 100;
 
-    // Karana: Half of Tithi
+    // Karana: Half of Tithi (11 karanas: 7 movable repeating + 4 fixed)
+    const KARANA_NAMES = ['Bava', 'Balava', 'Kaulava', 'Taitila', 'Gara', 'Vanija', 'Vishti'];
+    const FIXED_KARANAS = ['Shakuni', 'Chatushpada', 'Naga', 'Kimstughna'];
     const karanaNum = Math.floor(tithiDiff / 6) + 1;
+    const karanaName = karanaNum <= 56
+      ? KARANA_NAMES[(karanaNum - 1) % 7]
+      : FIXED_KARANAS[karanaNum - 57] || `Karana ${karanaNum}`;
 
     const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     return {
         tithi: { name: TITHI_NAMES[(tithiNum - 1) % 30], number: tithiNum, percentage: tithiPerc },
         yoga: { name: YOGA_NAMES[(yogaNum - 1) % 27], number: yogaNum, percentage: yogaPerc },
-        karana: { name: `Karana ${karanaNum}`, number: karanaNum },
+        karana: { name: karanaName, number: karanaNum },
         weekday: weekdays[birthDate.getDay()],
         vara: weekdays[birthDate.getDay()],
         nakshatra: ephemeris.planets.moon.nakshatra || '',
@@ -1165,7 +1171,7 @@ export function calculateFullShadbala(ephemeris: EphemerisData): Record<string, 
     const planets = ['sun', 'moon', 'mars', 'mercury', 'jupiter', 'venus', 'saturn'];
     const results: Record<string, number> = {};
 
-    const EXALTATION: Record<string, number> = { sun: 10, moon: 33, mars: 298, mercury: 165, jupiter: 95, venus: 357, saturn: 200 };
+    const EXALTATION: Record<string, number> = { sun: 10, moon: 3, mars: 298, mercury: 165, jupiter: 95, venus: 357, saturn: 200 };
     const DIK_BALA_HOUSES: Record<string, number> = { sun: 10, moon: 4, mars: 10, mercury: 1, jupiter: 1, venus: 4, saturn: 7 };
 
     for (const p of planets) {

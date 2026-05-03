@@ -389,6 +389,73 @@ export function formatDashaForDate(
 // Using NASA-JPL sidereal year for dasha date calculations.
 const DAYS_PER_YEAR = 365.256363004;  // sidereal year in mean solar days
 
+// ═════════════════════════════════════════════════════════════════════════════
+// PLANETARY DIGNITY LOOKUP TABLES (Brihat Parashara Hora Shastra)
+// ═════════════════════════════════════════════════════════════════════════════
+
+/** Exaltation signs for each planet (Uccha Rashi). Source: BPHS. */
+const EXALTATION_SIGNS: Record<string, string> = {
+    sun: 'Aries', moon: 'Taurus', mars: 'Capricorn', mercury: 'Virgo', jupiter: 'Cancer', venus: 'Pisces', saturn: 'Libra'
+};
+
+/** Debilitation signs for each planet (Neecha Rashi). Source: BPHS. */
+const DEBILITATION_SIGNS: Record<string, string> = {
+    sun: 'Libra', moon: 'Scorpio', mars: 'Cancer', mercury: 'Pisces', jupiter: 'Capricorn', venus: 'Virgo', saturn: 'Aries'
+};
+
+/** Moolatrikona signs for each planet. Source: BPHS. */
+const MOOLATRIKONA_SIGNS: Record<string, string> = {
+    sun: 'Leo', moon: 'Taurus', mars: 'Aries', mercury: 'Virgo', jupiter: 'Sagittarius', venus: 'Libra', saturn: 'Aquarius'
+};
+
+/** Own signs (Swakshetra) for each planet. Source: BPHS. */
+const OWN_SIGNS: Record<string, string[]> = {
+    sun: ['Leo'], moon: ['Cancer'], mars: ['Aries','Scorpio'], mercury: ['Gemini','Virgo'], jupiter: ['Sagittarius','Pisces'], venus: ['Taurus','Libra'], saturn: ['Capricorn','Aquarius']
+};
+
+/** Exaltation degrees (longitude) for Ishta-Kashta Phala. Source: BPHS. */
+const EXALTATION_DEGREES: Record<string, number> = {
+    sun: 10, moon: 33, mars: 298, mercury: 165, jupiter: 95, venus: 357, saturn: 200
+};
+
+/** Natural planetary friendships (Sahaj Maitri). Source: BPHS. */
+const NATURAL_FRIENDS: Record<string, string[]> = {
+    sun: ['moon','mars','jupiter'], moon: ['sun','mercury'],
+    mars: ['sun','moon','jupiter'], mercury: ['sun','venus'],
+    jupiter: ['sun','moon','mars'], venus: ['mercury','saturn'],
+    saturn: ['mercury','venus'],
+};
+
+/** Natural planetary enmities (Sahaj Shatru). Source: BPHS. */
+const NATURAL_ENEMIES: Record<string, string[]> = {
+    sun: ['venus','saturn'], moon: [],
+    mars: ['mercury'], mercury: ['moon'],
+    jupiter: ['mercury','venus'], venus: ['sun','moon'],
+    saturn: ['sun','moon','mars'],
+};
+
+/** Planet lordship over zodiac sign indices (0=Aries). Source: BPHS. */
+const PLANET_LORDSHIPS: Record<string, number[]> = {
+    sun: [4], moon: [3], mars: [0,7], mercury: [2,5], jupiter: [8,11], venus: [1,6], saturn: [9,10]
+};
+
+/** D60 (Shashtiamsa) deity names. Source: Brihat Parashara Hora Shastra. */
+const D60_DEITIES = [
+    'Ghora', 'Rakshasa', 'Deva', 'Kubera', 'Yaksha', 'Kindar', 'Bhrashta', 'Kulaghna',
+    'Garala', 'Vahni', 'Maya', 'Purishaka', 'Apampati', 'Marutwan', 'Kaala', 'Sarpa',
+    'Amrita', 'Indu', 'Mridu', 'Komal', 'Heramba', 'Brahma', 'Vishnu', 'Maheshwara',
+    'Deva', 'Ardra', 'Kalinas', 'Kshiteeshwar', 'Kamalakara', 'Gulika', 'Mrityu', 'Kaala',
+    'Davagni', 'Ghora', 'Adhama', 'Kantaka', 'Vishadagdha', 'Kulanas', 'Vamshakshaya', 'Utpata',
+    'Kaala', 'Saumya', 'Komal', 'Sheetal', 'Karaladamshtra', 'Indumukha', 'Pravina', 'Kalagni',
+    'Dandayudha', 'Nirmala', 'Shubha', 'Ashubha', 'Atishubha', 'Sumukha', 'Durdhara', 'Humshaka',
+    'Abhaya', 'Ghora', 'Adhama', 'Amrita'
+];
+
+/** Zodiac sign names in order (0=Aries). */
+const ZODIAC_SIGNS = [
+    'Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'
+];
+
 function addYears(date: Date, years: number): Date {
     const result = new Date(date);
     result.setTime(result.getTime() + years * DAYS_PER_YEAR * 24 * 60 * 60 * 1000);
@@ -452,9 +519,8 @@ export const calculateAshtakavarga = (ephemeris: EphemerisData): Record<string, 
     const { sav } = calcAV(ephemeris);
     // Convert array to sign-indexed object for backward compatibility if needed, 
     // though the engine seems to expect the object format in some places.
-    const signs = ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'];
     const result: Record<string, number> = {};
-    sav.forEach((val, i) => { result[signs[i]] = val; });
+    sav.forEach((val, i) => { result[ZODIAC_SIGNS[i].toLowerCase()] = val; });
     return result;
 };
 
@@ -530,10 +596,8 @@ export const calculatePanchanga = (
 export const calculateVimsopakaBala = (ephemeris: EphemerisData): { total: number } => {
   const vargas = generateDivisionalCharts(ephemeris);
   const charts = ['D1', 'D2', 'D9', 'D10', 'D12', 'D30'];
-  const EXALT: Record<string, string> = { sun: 'Aries', moon: 'Taurus', mars: 'Capricorn', mercury: 'Virgo', jupiter: 'Cancer', venus: 'Pisces', saturn: 'Libra' };
-  const DEBIL: Record<string, string> = { sun: 'Libra', moon: 'Scorpio', mars: 'Cancer', mercury: 'Pisces', jupiter: 'Capricorn', venus: 'Virgo', saturn: 'Aries' };
-  const OWN: Record<string, string[]> = { sun: ['Leo'], moon: ['Cancer'], mars: ['Aries','Scorpio'], mercury: ['Gemini','Virgo'], jupiter: ['Sagittarius','Pisces'], venus: ['Taurus','Libra'], saturn: ['Capricorn','Aquarius'] };
   let total = 0;
+  let count = 0;
   let count = 0;
   for (const [pName, pos] of Object.entries(ephemeris.planets)) {
     if (['rahu','ketu'].includes(pName)) continue;
@@ -541,18 +605,18 @@ export const calculateVimsopakaBala = (ephemeris: EphemerisData): { total: numbe
     for (const chart of charts) {
       if (chart === 'D1') {
         const sign = pos.sign;
-        if (sign === EXALT[pName]) planetTotal += 20;
-        else if (sign === DEBIL[pName]) planetTotal += 0;
-        else if (OWN[pName]?.includes(sign)) planetTotal += 20;
+        if (sign === EXALTATION_SIGNS[pName]) planetTotal += 20;
+        else if (sign === DEBILITATION_SIGNS[pName]) planetTotal += 0;
+        else if (OWN_SIGNS[pName]?.includes(sign)) planetTotal += 20;
         else planetTotal += 10; // Neutral default for D1
       } else {
         const vChart = vargas[chart];
         const vPos = vChart?.planets[pName];
         if (!vPos) { planetTotal += 10; continue; }
         const sign = vPos.sign;
-        if (sign === EXALT[pName]) planetTotal += 20;
-        else if (sign === DEBIL[pName]) planetTotal += 0;
-        else if (OWN[pName]?.includes(sign)) planetTotal += 20;
+        if (sign === EXALTATION_SIGNS[pName]) planetTotal += 20;
+        else if (sign === DEBILITATION_SIGNS[pName]) planetTotal += 0;
+        else if (OWN_SIGNS[pName]?.includes(sign)) planetTotal += 20;
         else planetTotal += 10;
       }
     }
@@ -592,16 +656,7 @@ export const detectBhavaChalitDiscrepancy = (ephemeris: EphemerisData): BhavaCha
  * Mapping based on Brihat Parashara Hora Shastra (BPHS).
  */
 export const getD60Deity = (longitude: number): string => {
-    const deityNames = [
-        'Ghora', 'Rakshasa', 'Deva', 'Kubera', 'Yaksha', 'Kindar', 'Bhrashta', 'Kulaghna',
-        'Garala', 'Vahni', 'Maya', 'Purishaka', 'Apampati', 'Marutwan', 'Kaala', 'Sarpa',
-        'Amrita', 'Indu', 'Mridu', 'Komal', 'Heramba', 'Brahma', 'Vishnu', 'Maheshwara',
-        'Deva', 'Ardra', 'Kalinas', 'Kshiteeshwar', 'Kamalakara', 'Gulika', 'Mrityu', 'Kaala',
-        'Davagni', 'Ghora', 'Adhama', 'Kantaka', 'Vishadagdha', 'Kulanas', 'Vamshakshaya', 'Utpata',
-        'Kaala', 'Saumya', 'Komal', 'Sheetal', 'Karaladamshtra', 'Indumukha', 'Pravina', 'Kalagni',
-        'Dandayudha', 'Nirmala', 'Shubha', 'Ashubha', 'Atishubha', 'Sumukha', 'Durdhara', 'Humshaka',
-        'Abhaya', 'Ghora', 'Adhama', 'Amrita'
-    ];
+    const deityNames = D60_DEITIES;
 
     const d60Index = Math.floor((longitude % 30) * 2);
     return deityNames[d60Index] || 'Unknown';
@@ -634,17 +689,12 @@ export const calculateAspects = (arg1: EphemerisData | string, _arg2?: number, _
  * Planetary dignity based on sign placement.
  */
 export const getDignity = (planet: string, signOrChart: string | EphemerisData): string => {
-  const sign = typeof signOrChart === 'string' ? signOrChart : signOrChart.planets[planet]?.sign;
   if (!sign) return 'Neutral';
   const p = planet.toLowerCase();
-  const EXALT: Record<string, string> = { sun: 'Aries', moon: 'Taurus', mars: 'Capricorn', mercury: 'Virgo', jupiter: 'Cancer', venus: 'Pisces', saturn: 'Libra' };
-  const DEBIL: Record<string, string> = { sun: 'Libra', moon: 'Scorpio', mars: 'Cancer', mercury: 'Pisces', jupiter: 'Capricorn', venus: 'Virgo', saturn: 'Aries' };
-  const MT: Record<string, string> = { sun: 'Leo', moon: 'Taurus', mars: 'Aries', mercury: 'Virgo', jupiter: 'Sagittarius', venus: 'Libra', saturn: 'Aquarius' };
-  const OWN: Record<string, string[]> = { sun: ['Leo'], moon: ['Cancer'], mars: ['Aries','Scorpio'], mercury: ['Gemini','Virgo'], jupiter: ['Sagittarius','Pisces'], venus: ['Taurus','Libra'], saturn: ['Capricorn','Aquarius'] };
-  if (sign === EXALT[p]) return 'Exalted';
-  if (sign === DEBIL[p]) return 'Debilitated';
-  if (sign === MT[p]) return 'Moolatrikona';
-  if (OWN[p]?.includes(sign)) return 'Own Sign';
+  if (sign === EXALTATION_SIGNS[p]) return 'Exalted';
+  if (sign === DEBILITATION_SIGNS[p]) return 'Debilitated';
+  if (sign === MOOLATRIKONA_SIGNS[p]) return 'Moolatrikona';
+  if (OWN_SIGNS[p]?.includes(sign)) return 'Own Sign';
   return 'Neutral';
 };
 
@@ -654,9 +704,9 @@ export const getDignity = (planet: string, signOrChart: string | EphemerisData):
  * kendras are neutral temporal malefics. Rahu/Ketu take Saturn/Mars lordship.
  */
 export const calculateFunctionalNature = (planetName: string, ascendantSign: string): { role: string; reason: string } => {
-  const SIGNS = ['Aries','Taurus','Gemini','Cancer','Leo','Virgo','Libra','Scorpio','Sagittarius','Capricorn','Aquarius','Pisces'];
-  const L: Record<string, number[]> = { sun: [4], moon: [3], mars: [0,7], mercury: [2,5], jupiter: [8,11], venus: [1,6], saturn: [9,10] };
-  const ascIdx = SIGNS.indexOf(ascendantSign);
+  const p = planetName.toLowerCase();
+  const entry = p === 'rahu' ? PLANET_LORDSHIPS.saturn : p === 'ketu' ? PLANET_LORDSHIPS.mars : PLANET_LORDSHIPS[p];
+  const ascIdx = ZODIAC_SIGNS.indexOf(ascendantSign);
   if (ascIdx === -1) return { role: 'Neutral', reason: 'Unknown ascendant' };
   const p = planetName.toLowerCase();
   const entry = p === 'rahu' ? L.saturn : p === 'ketu' ? L.mars : L[p];
@@ -689,18 +739,8 @@ export const calculateBaladiAvastha = (longitude: number): string => {
  */
 export const calculatePanchadhaSambandha = (planetName: string, lordSign: string): string => {
   const p = planetName.toLowerCase();
-  const NATURAL_FRIEND: Record<string, string[]> = {
-    sun: ['moon','mars','jupiter'], moon: ['sun','mercury'],
-    mars: ['sun','moon','jupiter'], mercury: ['sun','venus'],
-    jupiter: ['sun','moon','mars'], venus: ['mercury','saturn'],
-    saturn: ['mercury','venus'],
-  };
-  const NATURAL_ENEMY: Record<string, string[]> = {
-    sun: ['venus','saturn'], moon: [],
-    mars: ['mercury'], mercury: ['moon'],
-    jupiter: ['mercury','venus'], venus: ['sun','moon'],
-    saturn: ['sun','moon','mars'],
-  };
+  const friendList = NATURAL_FRIENDS[p] || [];
+  const enemyList = NATURAL_ENEMIES[p] || [];
   const friendList = NATURAL_FRIEND[p] || [];
   const enemyList = NATURAL_ENEMY[p] || [];
   if (friendList.includes(lordSign)) return 'Friendly';
@@ -715,7 +755,7 @@ export const calculatePanchadhaSambandha = (planetName: string, lordSign: string
  */
 export const calculateIshtaKashtaPhala = (planetName: string, rawPlanet?: PlanetData): { ishta: number; kashta: number } => {
   if (!rawPlanet?.longitude) return { ishta: 20, kashta: 10 };
-  const EXALT: Record<string, number> = { sun: 10, moon: 33, mars: 298, mercury: 165, jupiter: 95, venus: 357, saturn: 200 };
+  const exaltDeg = EXALTATION_DEGREES[planetName.toLowerCase()];
   const exaltDeg = EXALT[planetName.toLowerCase()];
   if (exaltDeg === undefined) return { ishta: 20, kashta: 10 };
   const debilDeg = (exaltDeg + 180) % 360;
