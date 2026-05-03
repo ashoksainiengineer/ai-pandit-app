@@ -596,7 +596,6 @@ export const calculateVimsopakaBala = (ephemeris: EphemerisData): { total: numbe
   const charts = ['D1', 'D2', 'D9', 'D10', 'D12', 'D30'];
   let total = 0;
   let count = 0;
-  let count = 0;
   for (const [pName, pos] of Object.entries(ephemeris.planets)) {
     if (['rahu','ketu'].includes(pName)) continue;
     let planetTotal = 0;
@@ -739,8 +738,6 @@ export const calculatePanchadhaSambandha = (planetName: string, lordSign: string
   const p = planetName.toLowerCase();
   const friendList = NATURAL_FRIENDS[p] || [];
   const enemyList = NATURAL_ENEMIES[p] || [];
-  const friendList = NATURAL_FRIEND[p] || [];
-  const enemyList = NATURAL_ENEMY[p] || [];
   if (friendList.includes(lordSign)) return 'Friendly';
   if (enemyList.includes(lordSign)) return 'Inimical';
   return 'Neutral';
@@ -751,9 +748,8 @@ export const calculatePanchadhaSambandha = (planetName: string, lordSign: string
  * Ishta = proximity to exaltation (benefic). Kashta = proximity to debilitation (malefic).
  * Formula: distance from exaltation/debilitation, normalized to 0-60 scale.
  */
-export const calculateIshtaKashtaPhala = (planetName: string, rawPlanet?: PlanetData): { ishta: number; kashta: number } => {
+export const calculateIshtaKashtaPhala = (planetName: string, rawPlanet?: { longitude: number }): { ishta: number; kashta: number } => {
   if (!rawPlanet?.longitude) return { ishta: 20, kashta: 10 };
-  const exaltDeg = EXALTATION_DEGREES[planetName.toLowerCase()];
   const exaltDeg = EXALT[planetName.toLowerCase()];
   if (exaltDeg === undefined) return { ishta: 20, kashta: 10 };
   const debilDeg = (exaltDeg + 180) % 360;
