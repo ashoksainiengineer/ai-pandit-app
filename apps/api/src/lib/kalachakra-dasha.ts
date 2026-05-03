@@ -7,11 +7,8 @@
  *
  * Reference: Brihat Parashara Hora Shastra
  */
+import { ZODIAC_SIGNS } from '@ai-pandit/shared';
 
-const ZODIAC_SIGNS = [
-  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
-] as const;
 
 const NAKSHATRA_NAMES = [
   'Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashirsha', 'Ardra',

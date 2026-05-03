@@ -22,6 +22,7 @@
  * - Moon: ~2 hours per degree = ±2 hours sensitive window
  */
 
+import { ZODIAC_SIGNS } from '@ai-pandit/shared';
 export interface GandantaPoint {
     name: string;
     type: 'moksha' | 'rajas' | 'tamas';
@@ -77,10 +78,6 @@ const GANDANTA_POINTS: GandantaPoint[] = [
     }
 ];
 
-const ZODIAC_SIGNS = [
-    'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-    'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
-];
 
 const NAKSHATRAS = [
     'Ashwini', 'Bharani', 'Krittika', 'Rohini', 'Mrigashira', 'Ardra',

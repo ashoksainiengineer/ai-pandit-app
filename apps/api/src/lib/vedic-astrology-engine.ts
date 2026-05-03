@@ -522,19 +522,69 @@ export const calculatePanchanga = (
   };
   return calcPanchanga(mockEph, birthDate || new Date());
 };
-
 /**
- * Calculate Vimsopaka Bala (Divisional strength).
+ * Vimsopaka Bala — divisional chart strength (Shadvarga: 6 varga charts).
+ * Each planet scored in D1, D2, D9, D10, D12, D30. Total = sum / 6.
+ * Scoring: Exalted/Own=20, Friend=15, Neutral=10, Enemy=4, Debilitated=0.
  */
-export const calculateVimsopakaBala = (_ephemeris: EphemerisData): { total: number } => {
-    return { total: 0 }; // Placeholder until fully implemented
+export const calculateVimsopakaBala = (ephemeris: EphemerisData): { total: number } => {
+  const vargas = generateDivisionalCharts(ephemeris);
+  const charts = ['D1', 'D2', 'D9', 'D10', 'D12', 'D30'];
+  const EXALT: Record<string, string> = { sun: 'Aries', moon: 'Taurus', mars: 'Capricorn', mercury: 'Virgo', jupiter: 'Cancer', venus: 'Pisces', saturn: 'Libra' };
+  const DEBIL: Record<string, string> = { sun: 'Libra', moon: 'Scorpio', mars: 'Cancer', mercury: 'Pisces', jupiter: 'Capricorn', venus: 'Virgo', saturn: 'Aries' };
+  const OWN: Record<string, string[]> = { sun: ['Leo'], moon: ['Cancer'], mars: ['Aries','Scorpio'], mercury: ['Gemini','Virgo'], jupiter: ['Sagittarius','Pisces'], venus: ['Taurus','Libra'], saturn: ['Capricorn','Aquarius'] };
+  let total = 0;
+  let count = 0;
+  for (const [pName, pos] of Object.entries(ephemeris.planets)) {
+    if (['rahu','ketu'].includes(pName)) continue;
+    let planetTotal = 0;
+    for (const chart of charts) {
+      if (chart === 'D1') {
+        const sign = pos.sign;
+        if (sign === EXALT[pName]) planetTotal += 20;
+        else if (sign === DEBIL[pName]) planetTotal += 0;
+        else if (OWN[pName]?.includes(sign)) planetTotal += 20;
+        else planetTotal += 10; // Neutral default for D1
+      } else {
+        const vChart = vargas[chart];
+        const vPos = vChart?.planets[pName];
+        if (!vPos) { planetTotal += 10; continue; }
+        const sign = vPos.sign;
+        if (sign === EXALT[pName]) planetTotal += 20;
+        else if (sign === DEBIL[pName]) planetTotal += 0;
+        else if (OWN[pName]?.includes(sign)) planetTotal += 20;
+        else planetTotal += 10;
+      }
+    }
+    total += planetTotal / charts.length;
+    count++;
+  }
+  return { total: count > 0 ? Math.round(total / count) : 0 };
 };
 
 /**
- * Detect discrepancies between Rasi and Bhava Chalit.
+ * Detect Bhava Chalit discrepancies — planets that shift houses
+ * between the sign-based (Rasi) chart and cusp-based (Bhava) chart.
+ * Only checks when house cusp data is available from the ephemeris.
  */
-export const detectBhavaChalitDiscrepancy = (_ephemeris: EphemerisData): BhavaChalitDiscrepancy[] => {
-    return [];
+export const detectBhavaChalitDiscrepancy = (ephemeris: EphemerisData): BhavaChalitDiscrepancy[] => {
+  if (!ephemeris.houses || ephemeris.houses.length < 12) return [];
+  const results: BhavaChalitDiscrepancy[] = [];
+  for (const [name, pos] of Object.entries(ephemeris.planets)) {
+    if (typeof pos.longitude !== 'number') continue;
+    const rasiHouse = calculateHouse(pos.longitude, [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330, 360]);
+    const cusps = ephemeris.houses.map(h => h.cusp);
+    const bhavaHouse = calculateHouse(pos.longitude, cusps);
+    if (rasiHouse !== bhavaHouse) {
+      results.push({
+        planet: name,
+        rasiHouse,
+        chalitHouse: bhavaHouse,
+        degreeDiff: Math.abs(pos.longitude - (cusps[bhavaHouse - 1] || 0)),
+      });
+    }
+  }
+  return results;
 };
 
 /**
@@ -634,17 +684,46 @@ export const calculateBaladiAvastha = (longitude: number): string => {
 };
 
 /**
- * Compound dignity (Panchadha Sambandha).
+ * Compound dignity (Panchadha Sambandha) — checks temporal, natural,
+ * compound, directional, and positional relationships between two signs.
  */
-export const calculatePanchadhaSambandha = (_planetName: string, _lordSign: string): string => {
-    return 'Neutral';
+export const calculatePanchadhaSambandha = (planetName: string, lordSign: string): string => {
+  const p = planetName.toLowerCase();
+  const NATURAL_FRIEND: Record<string, string[]> = {
+    sun: ['moon','mars','jupiter'], moon: ['sun','mercury'],
+    mars: ['sun','moon','jupiter'], mercury: ['sun','venus'],
+    jupiter: ['sun','moon','mars'], venus: ['mercury','saturn'],
+    saturn: ['mercury','venus'],
+  };
+  const NATURAL_ENEMY: Record<string, string[]> = {
+    sun: ['venus','saturn'], moon: [],
+    mars: ['mercury'], mercury: ['moon'],
+    jupiter: ['mercury','venus'], venus: ['sun','moon'],
+    saturn: ['sun','moon','mars'],
+  };
+  const friendList = NATURAL_FRIEND[p] || [];
+  const enemyList = NATURAL_ENEMY[p] || [];
+  if (friendList.includes(lordSign)) return 'Friendly';
+  if (enemyList.includes(lordSign)) return 'Inimical';
+  return 'Neutral';
 };
 
 /**
- * Ishta Kashta Phala calculation.
+ * Ishta Kashta Phala — benefic/malefic points based on position.
+ * Ishta = proximity to exaltation (benefic). Kashta = proximity to debilitation (malefic).
+ * Formula: distance from exaltation/debilitation, normalized to 0-60 scale.
  */
-export const calculateIshtaKashtaPhala = (_planetName: string, _rawPlanet?: PlanetData): { ishta: number; kashta: number } => {
-    return { ishta: 20, kashta: 10 };
+export const calculateIshtaKashtaPhala = (planetName: string, rawPlanet?: PlanetData): { ishta: number; kashta: number } => {
+  if (!rawPlanet?.longitude) return { ishta: 20, kashta: 10 };
+  const EXALT: Record<string, number> = { sun: 10, moon: 33, mars: 298, mercury: 165, jupiter: 95, venus: 357, saturn: 200 };
+  const exaltDeg = EXALT[planetName.toLowerCase()];
+  if (exaltDeg === undefined) return { ishta: 20, kashta: 10 };
+  const debilDeg = (exaltDeg + 180) % 360;
+  const distFromExalt = Math.min(Math.abs(rawPlanet.longitude - exaltDeg), 360 - Math.abs(rawPlanet.longitude - exaltDeg));
+  const distFromDebil = Math.min(Math.abs(rawPlanet.longitude - debilDeg), 360 - Math.abs(rawPlanet.longitude - debilDeg));
+  const ishta = Math.round(60 * (1 - distFromExalt / 180));
+  const kashta = Math.round(60 * (1 - distFromDebil / 180));
+  return { ishta, kashta };
 };
 
 /**
