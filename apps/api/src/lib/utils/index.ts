@@ -6,7 +6,6 @@
 // Array manipulation utilities
 export {
   shuffleArray,
-  randomSort,
   chunkArray,
   uniqueArray,
   groupBy,
@@ -36,7 +35,6 @@ export {
 } from './ephemeris-helpers.js';
 
 // Re-export for backwards compatibility
-export { randomSort as shuffleCandidates } from './array-helpers.js';
 
 // Legacy exports for backward compatibility
 export { getMinifiedEphemeris as _getMinifiedEphemeris } from './ephemeris-helpers.js';

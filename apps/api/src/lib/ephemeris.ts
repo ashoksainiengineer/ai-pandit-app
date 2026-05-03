@@ -51,7 +51,7 @@ const MAX_CACHE_SIZE = 300;
 const MAX_CACHE_SIZE_PER_SESSION = 100;
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
-export function clearSessionCache(sessionId: string): void {
+export function clearEphemerisSessionCache(sessionId: string): void {
   const keys = SESSION_CACHES.get(sessionId);
   if (keys) {
     for (const key of keys) {
@@ -235,7 +235,7 @@ function buildEphemerisFromSkyfieldChart(chart: EphemerisServiceChartResponse): 
       });
     }
 
-    const longitude = source.siderealLongitude ?? ((source.tropicalLongitude - chart.ayanamsha) % 360 + 360) % 360;
+    const longitude = source.siderealLongitude !== undefined ? source.siderealLongitude : ((source.tropicalLongitude - chart.ayanamsha) % 360 + 360) % 360;
     const sign = getZodiacSign(longitude);
     const name = planetName.charAt(0).toUpperCase() + planetName.slice(1);
 
@@ -257,7 +257,7 @@ function buildEphemerisFromSkyfieldChart(chart: EphemerisServiceChartResponse): 
     };
   }
 
-  const ascLongitude = chart.houses.ascendantSidereal ?? ((chart.houses.ascendantTropical - chart.ayanamsha) % 360 + 360) % 360;
+  const ascLongitude = chart.houses.ascendantSidereal !== undefined ? chart.houses.ascendantSidereal : ((chart.houses.ascendantTropical - chart.ayanamsha) % 360 + 360) % 360;
   const ascSign = getZodiacSign(ascLongitude);
   const ascendant = {
     sign: ascSign,
@@ -548,6 +548,13 @@ const isCombust = (planet: string, long: number, sunLong: number): boolean => {
   return diff < orb || diff > (360 - orb);
 };
 
+/** Normalize time string to HH:MM:SS for consistent cache keys. */
+function normalizeTimeForCache(time: string): string {
+  const cleaned = time.replace(/[AP]M/gi, '').trim();
+  const parts = cleaned.split(':').map(p => parseInt(p, 10) || 0);
+  return [parts[0] ?? 0, parts[1] ?? 0, parts[2] ?? 0]
+    .map(v => String(v).padStart(2, '0')).join(':');
+}
 
 export function getZodiacSign(longitude: number): string {
   return ZODIAC_SIGNS[Math.floor(((longitude % 360) + 360) % 360 / 30)];
@@ -669,8 +676,9 @@ export function convertToUTC(date: string, time: string, timezone: number | stri
   const isAM = timeClean.includes('AM');
 
   // Strip AM/PM for numeric parts
-  const numericTime = timeClean.replace(/[AP]M/g, '').trim();
-  const parts = numericTime.split(':').map(n => parseInt(n) || 0);
+  const numericTime = timeClean.replace(/[AP]M/gi, '').trim();
+  const parts = numericTime.split(':').map(n => { const v = parseInt(n, 10); return Number.isNaN(v) ? null : v; });
+  if (parts.some(p => p === null)) return new Date(NaN);  // reject garbage input
 
   hour = parts[0] || 0;
   minute = parts[1] || 0;
@@ -795,8 +803,9 @@ export async function calculateEphemeris(
   const provider = getConfiguredProvider();
   const sessionId = options?.sessionId;
 
-  const cacheKey = `${birthDate}_${birthTime}_${latitude.toFixed(6)}_${longitude.toFixed(6)}_${typeof timezone === 'string' ? timezone : timezone.toFixed(2)}${sessionId ? `_${sessionId}` : ''}`;
-
+  const normalizedTime = normalizeTimeForCache(birthTime);
+  const tzKey = typeof timezone === 'string' ? timezone : timezone.toFixed(4);
+  const cacheKey = `${birthDate}_${normalizedTime}_${latitude.toFixed(6)}_${longitude.toFixed(6)}_${tzKey}${sessionId ? `_${sessionId}` : ''}`;
   const cached = EPH_CACHE.get(cacheKey);
   if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
     return cached.data;

@@ -3,7 +3,7 @@
 // Includes: Chara Dasha, Chara Karakas, Jaimini Aspects
 
 import { EphemerisData, ZODIAC_SIGNS } from '@ai-pandit/shared';
-
+import { DAYS_PER_YEAR, addYears } from './utils/time-constants.js';
 // ═════════════════════════════════════════════════════════════════════════════
 // JAIMINI SYSTEM CONSTANTS
 // ═════════════════════════════════════════════════════════════════════════════
@@ -504,17 +504,8 @@ export function formatJaiminiAspects(aspects: JaiminiAspect[]): string {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// UTILITY
 // ═════════════════════════════════════════════════════════════════════════════
 
-const DAYS_PER_YEAR = 365.256363004;
-
-function addYears(date: Date, years: number): Date {
-    const result = new Date(date);
-    const wholeDays = years * DAYS_PER_YEAR;
-    result.setTime(result.getTime() + wholeDays * 24 * 60 * 60 * 1000);
-    return result;
-}
 
 // ═════════════════════════════════════════════════════════════════════════════
 // DASHA-EVENT CORRELATIONS FOR ALL SYSTEMS

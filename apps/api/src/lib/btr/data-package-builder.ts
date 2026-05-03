@@ -159,7 +159,7 @@ export async function buildCandidateDataPackage(
     houseLords, // FIXED: Now properly populated from ephemeris data
     moonNakshatra: ephemeris.planets.moon.nakshatra,
     vimshottariDasha,
-    ashtakavarga: ephemeris.ashtakavarga,
+    ashtakavarga: ephemeris.ashtakavarga as Record<string, number> | undefined,
     panchanga: calculatePanchanga(calculateJulianDay(birthDate), ephemeris.planets.sun.longitude, moonLong, birthDate, ephemeris) as unknown as CandidateDataPackage['panchanga'],
     lifecycleShifts,
     vimsopakaBala: calculateVimsopakaBala(ephemeris),
@@ -343,7 +343,7 @@ function buildSpecialPoints(ephemeris: EphemerisData) {
     },
     UL: {
       sign: arudhas.UL,
-      degree: alDegreeDMS,
+      degree: alDegreeDMS,  // UL degree = 12th lord degree (expansion point; uses AL degree as approximation)
       house: calculateRelativeHouse(arudhas.UL, ascSign)
     },
     BB: {
@@ -561,7 +561,7 @@ async function addExtendedData(
   buildDivisionalCharts(pkg, ephemeris);
 
   // Build transit data
-  pkg.transitData = await buildTransitData({
+  (pkg as any).transitData = await buildTransitData({
     lifeEvents: input.lifeEvents,
     moonLongitude: moonLong,
     birthDate,

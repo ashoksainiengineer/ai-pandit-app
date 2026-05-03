@@ -29,12 +29,6 @@ export function shuffleArray<T>(array: readonly T[]): T[] {
  * @returns A new randomly sorted array
  * @example
  * const randomized = randomSort(candidates);
- */
- export function randomSort<T>(array: readonly T[]): T[] {
-  return shuffleArray(array);
-  }
-
-
 /**
  * Splits an array into chunks of specified size
  * @template T The type of array elements

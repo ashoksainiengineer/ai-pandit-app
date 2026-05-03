@@ -12,7 +12,7 @@
 import { CandidateDataPackage, LifeEvent, ForensicTraits } from '@ai-pandit/shared';
 import { formatLifeEventForAI } from './life-event-formatter.js';
 import { buildForensicContext } from './forensic-context.js';
-import { randomSort } from '../../utils/index.js';
+import { shuffleArray } from '../../utils/index.js';
 import { validateCandidateDataForAI } from '@ai-pandit/shared/schemas';
 import { logger } from '../../../utils/logger.js';
 import { formatCandidateVSL, EnhancedCandidate } from './vsl-formatter.js';
@@ -89,7 +89,7 @@ export function getBatchPrompt(
   const spouseText = spouseData ? `SPOUSE DATA: ${JSON.stringify(spouseData)}` : 'SPOUSE DATA: N/A';
 
   // Anti-bias: Shuffle candidate order in every batch to prevent positional bias
-  const shuffledCandidates = randomSort(candidates);
+  const shuffledCandidates = shuffleArray(candidates);
   const duplicateTimes = buildDuplicateTimeSet(shuffledCandidates);
 
   return `BIRTH TIME RECTIFICATION - STAGE 2 (Batch ${batchNumber}/${totalBatches})

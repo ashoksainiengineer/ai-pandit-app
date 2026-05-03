@@ -5,6 +5,7 @@
 
 import { EphemerisData, PlanetPosition, LifeEvent, ZODIAC_SIGNS, SIGN_LORDS } from '@ai-pandit/shared';
 import { calculateEphemeris } from './ephemeris.js';
+import { DAYS_PER_YEAR, addYears } from './utils/time-constants.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // TYPES AND CONSTANTS
@@ -1410,14 +1411,7 @@ export function calculateAshtakavarga(ephemeris: EphemerisData): {
     return { bav, sav };
 }
 
-const DAYS_PER_YEAR = 365.256363004;
 
-function addYears(date: Date, years: number): Date {
-    const result = new Date(date);
-    const wholeDays = years * DAYS_PER_YEAR;
-    result.setTime(result.getTime() + wholeDays * 24 * 60 * 60 * 1000);
-    return result;
-}
 
 // All functions are exported inline (export function ...)
 
