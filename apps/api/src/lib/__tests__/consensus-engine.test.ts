@@ -110,7 +110,7 @@ describe('Consensus Engine - calculateConsensus', () => {
         expect(result.validatedAt).toBeInstanceOf(Date);
     });
 
-    it('should return 10 validation details (one per method)', () => {
+    it('should return 12 validation details (10 methods + 2 meta)', () => {
         const input = makeMinimalInput();
         const result = calculateConsensus(input);
         expect(result.validationDetails.length).toBe(12);

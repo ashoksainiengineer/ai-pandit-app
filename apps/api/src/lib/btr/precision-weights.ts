@@ -346,11 +346,21 @@ export function calculateWeightedAverage(
 }
 
 /**
- * Consensus Scoring: Reciprocal Rank Fusion (RRF)
- * Ensures that a candidate who is a "Method Winner" in any dimension survives.
- * 
- * @param methodScores Record of method name to score (0-100)
- * @param weights Record of method name to weight (impact multiplier)
+ * Weighted Consensus Score (misleadingly named "Rank Fusion" historically).
+ *
+ * This is NOT true Reciprocal Rank Fusion — true RRF requires ranking multiple
+ * candidates within each method before fusing ranks. Here we evaluate a single
+ * candidate across methods, converting absolute scores to a rank-like value
+ * and normalizing against the theoretical maximum. The result is a weighted
+ * consensus score with a bias term that prevents high-variance methods from
+ * dominating. For multi-candidate scenarios, implement true RRF separately.
+ *
+ * Algorithm: score → rank-emulation (101 - score) → fusion (1/(K + rank)) →
+ * normalize → blend 70/30 with weighted average for linear stability.
+ *
+ * @param methodScores Record of method name to score (0-100, 0 = no data)
+ * @param weights Record of method name to weight
+ * @returns Consensus score (0-100)
  */
 export function calculateRankFusionScore(
   methodScores: Record<string, number>,
@@ -358,31 +368,16 @@ export function calculateRankFusionScore(
 ): number {
   const scores = Object.entries(methodScores).filter(([_, score]) => score > 0);
   if (scores.length < MIN_CONSENSUS_METHODS) {
-    // Fallback to weighted average if data is sparse
     return calculateWeightedAverage(methodScores, weights);
   }
 
-  // 1. Sort scores for each method to establish ranks
-  // In our case, each 'method' is a single value, but if we had multiple candidates
-  // we would rank them. For single candidate evaluation relative to potential,
-  // we treat the score itself as a "Rank Factor".
-
-  // Rank Fusion: We simulate RRF for a single candidate across methods.
-  // We calculate how close a method is to its "Theoretical Best" (100).
   let rrfSum = 0;
   for (const [method, score] of scores) {
     const weight = weights[method] || 1.0;
-
-    // Convert 0-100 score to a "Virtual Rank"
-    // Score 100 = Rank 1, Score 0 = Rank 100+
     const virtualRank = Math.max(1, 101 - score);
-
-    // Fusion formula: Weight * (1 / (k + rank))
-    // We normalize this back to a 0-100 scale later.
     rrfSum += weight * (1 / (RRF_K + virtualRank));
   }
 
-  // Normalize sum: Scale rrfSum relative to the "Max Possible RRF Sum" (all scores 100)
   let maxPossibleRrf = 0;
   for (const [method] of scores) {
     const weight = weights[method] || 1.0;
@@ -390,8 +385,6 @@ export function calculateRankFusionScore(
   }
 
   const normalizedScore = (rrfSum / maxPossibleRrf) * 100;
-
-  // HYBRID SAFETY: Blend with weighted average to maintain linear intuition
   const weightedAvg = calculateWeightedAverage(methodScores, weights);
   return (normalizedScore * 0.7) + (weightedAvg * 0.3);
 }
