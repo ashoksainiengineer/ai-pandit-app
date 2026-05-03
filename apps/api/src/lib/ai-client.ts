@@ -217,3 +217,6 @@ export async function callAI(
 }
 
 
+// Re-export stream and parallel helpers for stage pipeline backward compatibility
+export { callAIWithStream as _callAIWithStream } from './ai-stream-client.js';
+export { executeAIInParallel as _executeAIInParallel } from './ai-helpers.js';

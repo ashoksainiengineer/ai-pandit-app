@@ -175,7 +175,6 @@ export async function stage2BatchTournament(
             );
             
             completedBatches++;
-            await progress.updateSubProgress(completedBatches, batches.length);
 
             // PROCESS BATCH IMMEDIATELY AND EMIT SCORES
             const batchSurvivors: CandidateTime[] = [];
@@ -276,8 +275,9 @@ export async function stage2BatchTournament(
                 !nextCandidates.some(nc => getCandidateIdentity(nc) === getCandidateIdentity(c)) &&
                 Math.abs(c.offsetMinutes - s.offsetMinutes) <= clusterThreshold
             );
-            // Only add the BEST nearby candidate to avoid bloat
+            // Pick the CLOSEST nearby candidate (sorted by offset distance)
             if (nearby.length > 0) {
+                nearby.sort((a, b) => Math.abs(a.offsetMinutes - s.offsetMinutes) - Math.abs(b.offsetMinutes - s.offsetMinutes));
                 additionalSurvivors.push(nearby[0]);
             }
         }
@@ -321,13 +321,15 @@ export async function stage2BatchTournament(
     }
 
     // Continue tournament for larger sets
-    while (currentCandidates.length > batchSize && roundNumber <= MAX_ROUNDS) {
-        const initialCount = currentCandidates.length;
+    while (currentCandidates.length > 1 && roundNumber <= MAX_ROUNDS) {
         roundNumber++;
-        const batches = splitIntoBatches(currentCandidates, batchSize, `${input.sessionId}:stage2:r${roundNumber}`);
-        const roundSurvivors: CandidateTime[] = [];
 
-        await progress.updateMessage(`Tournament Round ${roundNumber}: ${batches.length} batches of ${batchSize}`);
+        // Recalculate per round: adapting to shrinking candidate pool
+        const roundBatchSize = getDynamicBatchSize(currentCandidates.length, offsetMinutes);
+        const roundSurvivorsPerBatch = getDynamicSurvivors(roundBatchSize, offsetMinutes, false);
+        const batches = splitIntoBatches(currentCandidates, roundBatchSize, `${input.sessionId}:stage2:r${roundNumber}`);
+        const roundSurvivors: CandidateTime[] = [];
+        await progress.updateMessage(`Tournament Round ${roundNumber}: ${batches.length} batches of ${roundBatchSize}`);
 
         let completedBatches = 0;
         const batchDataMap = new Map<number, CandidateDataPackage[]>();
@@ -353,7 +355,7 @@ export async function stage2BatchTournament(
             });
 
             const systemPrompt = 'You are the SUPREME VEDIC ASTROLOGER. Tournament analysis: prune based on forensic alignment.';
-            const userPrompt = getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, survivorsPerBatch, input.spouseData, offsetMinutes);
+            const userPrompt = getBatchPrompt(batchEnriched, input.lifeEvents, forensicTraits, i + 1, batches.length, roundSurvivorsPerBatch, input.spouseData, offsetMinutes);
             
             // Save batch metadata
             btrDataCapture.saveBatchMetadata(
@@ -362,7 +364,7 @@ export async function stage2BatchTournament(
                 roundNumber,
                 i + 1,
                 batchTimes.map(c => c.time),
-                survivorsPerBatch
+                roundSurvivorsPerBatch
             );
             
                 // Save ephemeris and prompts for each candidate
@@ -413,7 +415,7 @@ export async function stage2BatchTournament(
                 }
             );
             
-            completedBatches++;
+
             await progress.updateSubProgress(completedBatches, batches.length);
 
             // Parse AI response first
@@ -448,6 +450,7 @@ export async function stage2BatchTournament(
         });
 
         const results = await _executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
+        await progress.updateSubProgress(batches.length, batches.length);
 
         for (let i = 0; i < batches.length; i++) {
             const batchTimes = batches[i];
@@ -455,19 +458,19 @@ export async function stage2BatchTournament(
             const fullBatchData = batchDataMap.get(i) || [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
             const referenceMap = buildCandidateReferenceMap(batchTimes);
-            const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], survivorsPerBatch);
+            const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], roundSurvivorsPerBatch);
 
             // 🔱 RESILIENT FALLBACK: If AI fails or returns empty, preserve the first N candidates
             let survivorTimes: string[] = [];
             if (!response.success || aiScores.length === 0) {
                 logger.warn(`🔱 [STAGE-2] Tournament batch ${i + 1} verdict failed. FALLBACK: Preserving top candidates.`);
                 survivorTimes = sortCandidatesByMerit(batchTimes)
-                    .slice(0, survivorsPerBatch)
+                    .slice(0, roundSurvivorsPerBatch)
                     .map(c => getCandidateIdentity(c));
             } else {
                 survivorTimes = aiScores
                     .sort((a, b) => b.score - a.score)
-                    .slice(0, survivorsPerBatch)
+                    .slice(0, roundSurvivorsPerBatch)
                     .map(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }));
             }
 
@@ -515,7 +518,7 @@ export async function stage2BatchTournament(
             candidatesOut: roundSurvivors.length
         });
 
-        if (roundSurvivors.length >= initialCount) {
+        if (roundSurvivors.length >= currentCandidates.length) {
             logger.warn(`🔱 [STAGE-2] Round ${roundNumber} failed to reduce candidate pool. Breaking loop early.`);
             break;
         }

@@ -5,51 +5,44 @@ export function sleep(ms: number): Promise<void> {
 }
 
 export async function executeAIInParallel<T>(
-    tasks: Array<() => Promise<T>>,
-    concurrency: number = 3,
-    staggerMs: number = 500
-): Promise<T[]> {
-    const results: T[] = new Array(tasks.length);
-    const queue = tasks.map((task, index) => ({ task, index }));
+  tasks: Array<() => Promise<T>>,
+  concurrency: number = 3,
+  staggerMs: number = 500
+) : Promise<T[]> {
+  const results: T[] = new Array(tasks.length);
+    const errors: Array<{ index: number; error: unknown }> = [];
     let activeCount = 0;
     let nextIndex = 0;
-    let hasFailed = false;
 
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         const runNext = () => {
-            if (hasFailed) return;
-
             if (nextIndex >= tasks.length && activeCount === 0) {
                 resolve(results);
                 return;
             }
 
-            while (activeCount < concurrency && nextIndex < tasks.length && !hasFailed) {
-                const { task, index } = queue[nextIndex++];
+            while (activeCount < concurrency && nextIndex < tasks.length) {
+                const index = nextIndex++;
+                const task = tasks[index];
                 activeCount++;
 
-                if (staggerMs > 0 && activeCount > 1) {
-                    setTimeout(() => {
-                        if (!hasFailed) executeThrottledTask(task, index);
-                    }, staggerMs * (activeCount - 1));
-                } else {
-                    executeThrottledTask(task, index);
-                }
-            }
-        };
+                const execute = async () => {
+                    try {
+                        results[index] = await task();
+                    } catch (error) {
+                        logger.error(`Parallel task ${index} failed`, error);
+                        results[index] = undefined as unknown as T;
+                        errors.push({ index, error });
+                    } finally {
+                        activeCount--;
+                        runNext();
+                    }
+                };
 
-        const executeThrottledTask = async (task: () => Promise<T>, index: number) => {
-            if (hasFailed) return;
-            try {
-                results[index] = await task();
-            } catch (error) {
-                logger.error(`Parallel task failed at index ${index}`, error);
-                hasFailed = true;
-                reject(error);
-            } finally {
-                activeCount--;
-                if (!hasFailed) {
-                    runNext();
+                if (staggerMs > 0 && activeCount > 1) {
+                    setTimeout(execute, staggerMs * (activeCount - 1));
+                } else {
+                    execute();
                 }
             }
         };

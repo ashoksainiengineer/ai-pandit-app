@@ -13,7 +13,7 @@ import { ProgressTracker } from '../../progress-tracker.js';
 import { _callAIWithStream, _executeAIInParallel } from '../../ai-client.js';
 import { emitCandidateScore, emitAIContext, emitDecision } from '../../session-events.js';
 import { throwIfCancelled } from '../../cancellation-manager.js';
-import { _cleanup } from '../../ephemeris.js';
+import { cleanup } from '../../ephemeris.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
 import { getDeepAnalysisPrompt } from '../prompts/index.js';
 import { extractBatchSurvivors } from '../extractors/index.js';
@@ -61,19 +61,18 @@ export async function stage4DeepAnalysis(
     // Get offset from config for dynamic batch sizing
     const offsetMinutes = getOffsetMinutes(input);
 
-    // STUNNING FIX: Using dynamic batch sizing driven by environment bounds
-    const batchSize = getDynamicBatchSize(currentCandidates.length, offsetMinutes);
-    // FIXED: Use getDynamicSurvivors for consistent tournament logic with Elasticity
-    const survivorsPerBatch = getDynamicSurvivors(batchSize, offsetMinutes, false);
-
     const MAX_ROUNDS = config.btr.stage4MaxRounds;
     let roundNumber = 1;
+    const baseBatchSize = getDynamicBatchSize(currentCandidates.length, offsetMinutes);
+    const baseSurvivorsPerBatch = getDynamicSurvivors(baseBatchSize, offsetMinutes, false);
 
-    while (currentCandidates.length > batchSize && roundNumber <= MAX_ROUNDS) {
+    while (currentCandidates.length > 1 && roundNumber <= MAX_ROUNDS) {
+        await throwIfCancelled(input.sessionId, input.abortSignal);
+
+        const batchSize = getDynamicBatchSize(currentCandidates.length, offsetMinutes);
+        const survivorsPerBatch = getDynamicSurvivors(batchSize, offsetMinutes, false);
         const batches = splitIntoBatches(currentCandidates, batchSize, `${input.sessionId}:stage4:r${roundNumber}`);
-        const _batchSurvivors: CandidateTime[] = [];
         const batchDataMap = new Map<number, CandidateDataPackage[]>();
-
         let completedBatches = 0;
         const tasks = batches.map((batchTimes, i) => async () => {
             const batchEnriched = await Promise.all(batchTimes.map(ct =>
@@ -302,7 +301,7 @@ export async function stage4DeepAnalysis(
         allReasoning += aiContent;
 
         const referenceMap = buildCandidateReferenceMap(currentCandidates);
-        const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], survivorsPerBatch);
+        const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], baseSurvivorsPerBatch);
 
         // 🔱 FINAL ROUND FALLBACK: If AI fails or returns empty, preserve everyone (don't eliminate)
         let survivorTimes: string[] = [];
@@ -312,7 +311,7 @@ export async function stage4DeepAnalysis(
         } else {
             survivorTimes = aiScores
                 .sort((a, b) => b.score - a.score)
-                .slice(0, survivorsPerBatch)
+                .slice(0, baseSurvivorsPerBatch)
                 .map(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }));
         }
 

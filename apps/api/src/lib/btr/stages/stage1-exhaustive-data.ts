@@ -14,6 +14,7 @@ import {
 import { ProgressTracker } from '../../progress-tracker.js';
 import { emitCalculationLog } from '../../session-events.js';
 import { cleanup } from '../../ephemeris.js';
+import { throwIfCancelled } from '../../cancellation-manager.js';
 import { buildCandidateDataPackage } from '../data-package-builder.js';
 import { StageResult } from '@ai-pandit/shared';
 import { logger } from '../../../utils/logger.js';
@@ -23,10 +24,6 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Stage 1: Initialize all candidate data with safety net
- *
- * @param input - BTR input parameters
- * @param progress - Progress tracker for updates
- * @returns Candidates with initialized metadata and stage result
  */
 export async function stage1ExhaustiveDataGeneration(
   input: SecondsPrecisionInput,
@@ -34,66 +31,48 @@ export async function stage1ExhaustiveDataGeneration(
 ): Promise<{ candidates: CandidateTime[]; stageResult: StageResult }> {
   await progress.startStep('grid', 'Stage 1: Generating ALL candidate data...');
 
-  // 🔱 SAFETY NET: Generate raw candidates first
   const rawCandidates = generateCandidateTimes(input.tentativeTime, input.offsetConfig, input.dateOfBirth);
-
-  // 🔱 SAFETY NET: Inject safety net candidates around tentative time
   const candidatesWithSafetyNet = injectSafetyNetCandidates(input.tentativeTime, rawCandidates, input.dateOfBirth);
 
-  // 🔱 PROJECT MAHAKALA: Boundary-Locked Generation
-  await progress.updateMessage('Mahakala: Scanning for divisional boundaries...');
-  // 🔱 Determine correct offset minutes for boundary scan
-  let boundaryScanMinutes = 360; // Default 6 hours
-  if (input.offsetConfig.customMinutes) {
-    boundaryScanMinutes = input.offsetConfig.customMinutes;
-  } else if (input.offsetConfig.preset) {
-    // Import OFFSET_PRESETS dynamically or use hardcoded map to avoid circular dependency if possible
-    // actually we can just ask for the preset values, but for now let's map common ones
-    const presetMap: Record<string, number> = {
-      '30min': 30, '1hour': 60, '2hours': 120, '4hours': 240, '6hours': 360, '12hours': 720,
-      'seconds-30': 5, 'seconds-6': 1
-    };
-    boundaryScanMinutes = presetMap[input.offsetConfig.preset] || 360;
-  }
+  // Boundary scan: use actual offset window, not arbitrary 6 hours
+  const offsetMinutes = input.offsetConfig.customMinutes ||
+    (input.offsetConfig.preset === '30min' ? 30 :
+     input.offsetConfig.preset === '1hour' ? 60 :
+     input.offsetConfig.preset === '2hours' ? 120 :
+     input.offsetConfig.preset === '4hours' ? 240 :
+     input.offsetConfig.preset === '6hours' ? 360 :
+     input.offsetConfig.preset === '12hours' ? 720 :
+     input.offsetConfig.preset === 'seconds-30' ? 5 :
+     input.offsetConfig.preset === 'seconds-6' ? 1 : 30);
 
   const boundaries = await findAstrologicalBoundaries(
-    input.dateOfBirth,
-    input.tentativeTime,
-    boundaryScanMinutes,
-    input.latitude,
-    input.longitude,
-    input.timezone
+    input.dateOfBirth, input.tentativeTime, offsetMinutes,
+    input.latitude, input.longitude, input.timezone
   );
 
   const finalCandidates = [...candidatesWithSafetyNet];
   const existingTimes = new Set(finalCandidates.map(c => c.time));
 
+  // Add boundary candidates without O(n²) grid generation
   for (const b of boundaries) {
     if (!existingTimes.has(b.time)) {
-      const boundaryIdentity = generateCandidateTimes(input.tentativeTime, {
-        customMinutes: Math.abs(b.offsetMinutes),
-        description: 'Boundary identity'
-      }, input.dateOfBirth).find(candidate => Math.abs(candidate.offsetMinutes - b.offsetMinutes) < 1e-9);
-
       finalCandidates.push({
         time: b.time,
         offsetMinutes: b.offsetMinutes,
         offsetDescription: `Boundary Lock: ${b.type} (${b.from} → ${b.to})`,
-        candidateDate: boundaryIdentity?.candidateDate,
-        dayOffset: boundaryIdentity?.dayOffset,
-        candidateKey: boundaryIdentity?.candidateKey,
+        candidateDate: input.dateOfBirth,
+        dayOffset: 0,
+        candidateKey: `boundary_${b.type}_${b.offsetMinutes}`,
       });
       existingTimes.add(b.time);
     }
   }
 
-  // Final sort to keep it chronological
   finalCandidates.sort((a, b) => a.offsetMinutes - b.offsetMinutes);
-
   const total = finalCandidates.length;
   let processed = 0;
 
-  logger.info('🔱 Stage 1: Initializing metadata with Boundary Locks', {
+  logger.info('Stage 1: Initializing metadata with Boundary Locks', {
     total,
     rawCandidates: rawCandidates.length,
     safetyNetAdded: candidatesWithSafetyNet.length - rawCandidates.length,
@@ -101,33 +80,28 @@ export async function stage1ExhaustiveDataGeneration(
     tentativeTime: input.tentativeTime,
   });
 
-  const BATCH_LOG_SIZE = 20;
-  for (let i = 0; i < finalCandidates.length; i += BATCH_LOG_SIZE) {
-    const batch = finalCandidates.slice(i, i + BATCH_LOG_SIZE);
+  // Process sequentially to control memory and support cancellation
+  const BATCH_SIZE = 10;
+  for (let i = 0; i < finalCandidates.length; i += BATCH_SIZE) {
+    await throwIfCancelled(input.sessionId, input.abortSignal);
+    const batch = finalCandidates.slice(i, i + BATCH_SIZE);
 
-    await Promise.all(batch.map(async (raw) => {
+    for (const raw of batch) {
       const pkg = await buildCandidateDataPackage(raw.time, raw.offsetMinutes, input, {
-        includeFullData: false,
-        dashaDepth: 2,
-        candidate: raw,
+        includeFullData: false, dashaDepth: 2, candidate: raw,
       });
-
       processed++;
 
-      // 🔱 UI SYNC: Emit "ghost" scores to populate the frontend grid in real-time
       await progress.addCandidateScore({
-        time: raw.time,
-        score: 0, // No score yet in Stage 1
-        stage: 1,
+        time: raw.time, score: 0, stage: 1,
         minifiedEph: {
           sun: `${pkg.planets.sun.sign} ${pkg.planets.sun.degree}`,
           moon: `${pkg.planets.moon.sign} ${pkg.planets.moon.degree}`,
-          ascendant: `${pkg.ascendant.sign} ${pkg.ascendant.degree}`
+          ascendant: `${pkg.ascendant.sign} ${pkg.ascendant.degree}`,
         },
-        fullEph: undefined // Keep Stage 1 payload light
+        fullEph: undefined,
       });
 
-      // Emit aggregated log entry (simplified)
       if (processed % 5 === 0) {
         emitCalculationLog(input.sessionId, {
           candidateTime: raw.time,
@@ -137,15 +111,11 @@ export async function stage1ExhaustiveDataGeneration(
           dashaObj: pkg.vimshottariDasha[0]?.maha || 'N/A',
         });
       }
-    }));
+    }
 
     await progress.updateMessage(`Ephemeris: ${processed}/${total}`);
-
-    // GC breathing room and prevent event loop starvation
-    await sleep(20);
-    if (processed % 100 === 0) {
-      cleanup(); // Force V8 to clear WASM memory buffers periodically
-    }
+    await sleep(10);
+    if (processed % 50 === 0) cleanup();
   }
 
   await progress.completeStep('grid', [
@@ -154,12 +124,12 @@ export async function stage1ExhaustiveDataGeneration(
   ]);
 
   return {
-    candidates: finalCandidates, // FIX: Return the ACTUAL candidates used!
+    candidates: finalCandidates,
     stageResult: {
       stageNumber: 1,
       stageName: 'Exhaustive Data Generation',
       candidatesIn: rawCandidates.length,
-      candidatesOut: finalCandidates.length
+      candidatesOut: finalCandidates.length,
     }
   };
 }
