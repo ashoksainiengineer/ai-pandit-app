@@ -190,8 +190,9 @@ function calculateSthanaBala(
   
   if (sign === EXALTATION_SIGNS[planet]) {
     const exaltDeg = EXALTATION_DEGREES[planet];
-    const distance = Math.abs(pos.degree - exaltDeg);
-    bala += 60 - (distance * 2);
+    const distance = Math.abs(pos.longitude - exaltDeg);
+    const normalizedDistance = Math.min(distance, 360 - distance);
+    bala += 60 - (normalizedDistance * 2);
   } else if (sign === DEBILITATION_SIGNS[planet]) {
     bala += 0;
   } else if (sign === MOOLATRIKONA_SIGNS[planet]) {
