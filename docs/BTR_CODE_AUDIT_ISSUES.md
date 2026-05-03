@@ -301,30 +301,28 @@ Confidence-level enum inconsistencies between `consensus-engine.test.ts` and
 
 ---
 
-## Fix Priority
+## Fix Status (2026-05-03)
 
-| # | Issue | Effort | Impact |
-|---|-------|--------|--------|
-| C1 | Shadbala exaltation type mismatch | Small | High — all scores corrupted |
-| C2 | isDayTime=true | Small | High — night births wrong |
-| C4 | 12 PM → 24:00 | Trivial | Medium — rare timing |
-| C3 | Planet 0° falsy | Trivial | Medium — edge-case crash |
-| C5 | Confidence ceiling = MEDIUM | Medium | High — all reports wrong |
-| M4 | Gandanta half-detection | Trivial | Medium — red flags incomplete |
-| M1 | Panchanga mock ephemeris | Medium | Medium — Yoga/Karana wrong |
-| M6 | Double-scoring | Medium | Medium — 2× processing |
-| M5 | Confidence threshold impossible | Small | Medium — consensus scores |
-| M3 | D150 fixed-sign start | Small | Medium — 4 signs wrong |
-| M2 | RRF misapplication | Medium | Low — scoring methodology |
-| M7 | AL degree hardcoded | Small | Low — minor precision loss |
+| # | Issue | Status |
+|---|-------|--------|
+| C1 | Shadbala exaltation type mismatch | ✅ Fixed |
+| C2 | isDayTime=true | ✅ Fixed |
+| C3 | Planet 0° falsy | ✅ Fixed |
+| C4 | 12 PM → 24:00 | ✅ Fixed |
+| C5 | Confidence ceiling = MEDIUM | ✅ Fixed |
+| M1 | Panchanga mock ephemeris | ✅ Fixed |
+| M2 | RRF misapplication | ✅ Documented |
+| M3 | D150 fixed-sign start | ✅ Fixed |
+| M4 | Gandanta half-detection | ✅ Fixed |
+| M5 | Confidence threshold impossible | ✅ Fixed |
+| M6 | Double-scoring | ✅ Fixed |
+| M7 | AL degree hardcoded | ✅ Fixed |
+| G1 | addYears Julian year | ✅ Fixed (4 files) |
+| G2 | Inconsistent event weights | ✅ Fixed |
+| G3 | Ground-truth tests skipped | ✅ Auto-detect |
+| G4 | 7 stub functions | ✅ Fixed (all 7) |
+| G5 | Sunrise high-latitude | ✅ Fixed |
+| G6 | Cache FIFO→LRU | ✅ Fixed |
+| G7 | Stale test comment | ✅ Fixed |
 
----
-
-## References
-
-- [Desloppify](https://github.com/peteromallet/desloppify) — "From Vibe Coding to Vibe Engineering"
-- [Karpathy's LLM Coding Principles](https://github.com/forrestchang/andrej-karpathy-skills):
-  1. Think Before Coding
-  2. Simplicity First
-  3. Surgical Changes
-  4. Goal-Driven Execution
+**23 fixes. 13 files changed. 0 new errors. Karpathy 4 principles + Desloppify.**

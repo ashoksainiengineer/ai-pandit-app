@@ -712,31 +712,3 @@ export function cleanupSession(sessionId: string): void {
     sessionEvents.cleanup(sessionId);
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// LEGACY EXPORTS (for backward compatibility during refactoring)
-// These will be deprecated in favor of direct function calls
-// ═════════════════════════════════════════════════════════════════════════════
-
-/** @deprecated Use emitCandidateScore directly */
-export const _emitCandidateScore = emitCandidateScore;
-
-/** @deprecated Use emitComplete directly */
-export const _emitComplete = emitComplete;
-
-/** @deprecated Use emitAIContext directly */
-export const _emitAIContext = emitAIContext;
-
-/** @deprecated Use emitCalculationLog directly */
-export const _emitCalculationLog = emitCalculationLog;
-
-/** @deprecated Use emitDecision directly */
-export const _emitDecision = emitDecision;
-
-/** @deprecated Use emitEstimatedTime directly */
-export const _emitEstimatedTime = emitEstimatedTime;
-
-/** @deprecated Use emitError directly */
-export const _emitError = emitError;
-
-/** @deprecated Use emitProgress directly */
-export const _emitProgress = emitProgress;
