@@ -32,7 +32,7 @@ import {
   DEFAULT_SCAN_CONFIG,
   EphemerisData,
   KPSubLordData,
-  _ZODIAC_SIGNS,
+  ZODIAC_SIGNS,
   EVENT_HOUSE_MAP,
   EVENT_SIGNIFICATORS
 } from '@ai-pandit/shared';

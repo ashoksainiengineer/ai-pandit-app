@@ -17,15 +17,3 @@ export * from './types/validation.js';
 export * from './types/btr.js';
 export * from './types/kp.js';
 
-// ═════════════════════════════════════════════════════════════════════════════
-// LEGACY EXPORTS (for backward compatibility during refactoring)
-// ═════════════════════════════════════════════════════════════════════════════
-
-import type { PlanetPosition } from './types/ephemeris.js';
-import type { LifeEvent } from './types/core.js';
-
-/** @deprecated Use PlanetPosition directly */
-export type _PlanetPosition = PlanetPosition;
-
-/** @deprecated Use LifeEvent directly */
-export type _LifeEvent = LifeEvent;
