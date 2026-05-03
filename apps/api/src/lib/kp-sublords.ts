@@ -46,20 +46,18 @@ const DASHA_YEARS: Record<string, number> = {
 
 const TOTAL_DASHA_YEARS = 120;
 
+/** KP Ayanamsa offset: Lahiri → Krishnamurti (~5.9 arcminutes). */
+const KP_AYANAMSA_OFFSET = 5.9 / 60;
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // CORE CALCULATIONS
-// ═══════════════════════════════════════════════════════════════════════════════
+ // ═══════════════════════════════════════════════════════════════════════════════
 
-/**
- * Calculate complete KP sub-lord hierarchy for a planetary longitude.
- * This is the heart of KP precision - divides each nakshatra into 9 sub-parts
- * proportional to Vimshottari dasha years.
- */
-export function calculateKPSubLords(longitude: number): KPSubLordData {
-  // Normalize longitude to 0-360
-  const normalizedLong = ((longitude % 360) + 360) % 360;
-  
-  // Calculate nakshatra position
+ export function calculateKPSubLords(longitude: number): KPSubLordData {
+  // Apply KP ayanamsa correction: Lahiri → Krishnamurti
+  const kpLongitude = longitude + KP_AYANAMSA_OFFSET;
+  const normalizedLong = ((kpLongitude % 360) + 360) % 360;
+
   const nakshatraIndex = Math.floor(normalizedLong / NAKSHATRA_SPAN);
   const positionInNakshatra = normalizedLong % NAKSHATRA_SPAN;
   

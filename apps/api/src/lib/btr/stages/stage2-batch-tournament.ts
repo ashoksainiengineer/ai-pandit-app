@@ -21,6 +21,7 @@ import { CandidateDataPackage, StageResult, TournamentRound } from '@ai-pandit/s
 import { logger } from '../../../utils/logger.js';
 import { config } from '../../../config/index.js';
 import { getMinifiedEphemerisInline, getFullEphemerisPayload } from './_utils.js';
+import { getOffsetMinutes } from '../utils.js';
 import { buildCandidateReferenceMap } from '../candidate-reference.js';
 import { btrDataCapture } from '../data-capture.js';
 
@@ -59,13 +60,7 @@ export async function stage2BatchTournament(
     let roundNumber = 0;
 
     // Get offset from config for dynamic batch sizing
-    const offsetMinutes = input.offsetConfig.customMinutes ||
-        (input.offsetConfig.preset === '30min' ? 30 :
-            input.offsetConfig.preset === '1hour' ? 60 :
-                input.offsetConfig.preset === '2hours' ? 120 :
-                    input.offsetConfig.preset === '4hours' ? 240 :
-                        input.offsetConfig.preset === '6hours' ? 360 :
-                            input.offsetConfig.preset === '12hours' ? 720 : 60);
+    const offsetMinutes = getOffsetMinutes(input);
 
     // Dynamic batch size based on offset
     const batchSize = getDynamicBatchSize(candidates.length, offsetMinutes);

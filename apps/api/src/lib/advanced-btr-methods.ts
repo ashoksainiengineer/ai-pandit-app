@@ -396,17 +396,18 @@ export function calculateD45(longitude: number): { sign: string; degree: number 
 }
 
 /**
- * Calculate D60 (Shashtiamsha) Chart - Cyclic/Sequential
- * Each sign divided into 60 parts (0.5° each)
+ * Calculate D60 (Shashtiamsha) — standard BPHS sequential mapping.
+ * Odd signs start from Aries, even signs from Libra.
+ * Each 0.5° subdivision maps to the next sign in sequence.
  * Crucial for seconds-level rectification.
  */
 export function calculateD60(longitude: number): { sign: string; degree: number } {
-    const _totalHalfDegrees = Math.floor(longitude / 0.5);
     const signIndex = Math.floor(longitude / 30);
     const halfDegreeInSign = Math.floor((longitude % 30) / 0.5);
 
-    // Cyclic order starting from the sign residency
-    const d60SignIndex = (signIndex + halfDegreeInSign) % 12;
+    // BPHS standard: odd→Aries(0), even→Libra(6)
+    const startSign = signIndex % 2 === 0 ? 0 : 6;
+    const d60SignIndex = (startSign + halfDegreeInSign) % 12;
 
     return {
         sign: ZODIAC_SIGNS[d60SignIndex],

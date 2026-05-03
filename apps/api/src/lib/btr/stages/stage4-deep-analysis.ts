@@ -1,3 +1,4 @@
+import { AppError } from '@ai-pandit/shared';
 
 /**
  * Stage 4: Deep Analysis
@@ -22,6 +23,7 @@ import { logger } from '../../../utils/logger.js';
 import { btrDataCapture } from '../data-capture.js';
 import { getMinifiedEphemerisInline, getFullEphemerisPayload } from './_utils.js';
 import { buildCandidateReferenceMap } from '../candidate-reference.js';
+import { getOffsetMinutes } from '../utils.js';
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 type LifecycleShift = NonNullable<CandidateDataPackage['lifecycleShifts']>[number];
@@ -57,13 +59,7 @@ export async function stage4DeepAnalysis(
     let allReasoning = '';
 
     // Get offset from config for dynamic batch sizing
-    const offsetMinutes = input.offsetConfig.customMinutes ||
-        (input.offsetConfig.preset === '30min' ? 30 :
-            input.offsetConfig.preset === '1hour' ? 60 :
-                input.offsetConfig.preset === '2hours' ? 120 :
-                    input.offsetConfig.preset === '4hours' ? 240 :
-                        input.offsetConfig.preset === '6hours' ? 360 :
-                            input.offsetConfig.preset === '12hours' ? 720 : 60);
+    const offsetMinutes = getOffsetMinutes(input);
 
     // STUNNING FIX: Using dynamic batch sizing driven by environment bounds
     const batchSize = getDynamicBatchSize(currentCandidates.length, offsetMinutes);
@@ -267,7 +263,7 @@ export async function stage4DeepAnalysis(
 
         if (currentCandidates.length === 0) {
             logger.error('🔱 [STAGE-4] FAILED: All candidates rejected in internal tournament rounds');
-            throw new Error('AI_OUT_OF_CANDIDATES: The analysis narrowed down candidates and eventually found no suitable matches for the provided life events. Please verify the event dates and try again.');
+            throw new AppError('AI_OUT_OF_CANDIDATES: The analysis narrowed down candidates and eventually found no suitable matches for the provided life events. Please verify the event dates and try again.');
         }
 
         roundNumber++;
@@ -355,7 +351,7 @@ export async function stage4DeepAnalysis(
 
     if (currentCandidates.length === 0) {
         logger.error('🔱 [STAGE-4] FAILED: No survivors found after final deep verification');
-        throw new Error('AI_OUT_OF_CANDIDATES: No birth time candidates survived the deep multi-dasha analysis. This often happens if the birth time offset requested doesn\'t contain the actual birth time, or if life event data is inaccurate.');
+        throw new AppError('AI_OUT_OF_CANDIDATES: No birth time candidates survived the deep multi-dasha analysis. This often happens if the birth time offset requested doesn\'t contain the actual birth time, or if life event data is inaccurate.');
     }
 
     await sleep(2000);
