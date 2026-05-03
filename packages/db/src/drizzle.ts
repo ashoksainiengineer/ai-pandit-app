@@ -23,6 +23,9 @@ function shouldUseSsl(connectionString: string): boolean {
     const parsed = new URL(connectionString);
     return parsed.hostname !== 'localhost' && parsed.hostname !== '127.0.0.1';
   } catch {
+    console.error('[DB] Failed to parse connection string for SSL check — falling back to no SSL', {
+      error: 'Invalid connection URL format'
+    });
     return false;
   }
 }
@@ -40,7 +43,7 @@ function resolveConnectionString(): string {
   }
 
   if (process.env.NODE_ENV !== 'test') {
-    console.warn(
+    console.error(
       '[DB] No Postgres connection string found. Using local fallback URL for non-production runtime.'
     );
   }
@@ -53,7 +56,9 @@ const pool = new Pool({
   max: Number(process.env.DB_POOL_MAX || 10),
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 10000,
-  ssl: shouldUseSsl(connectionString) ? { rejectUnauthorized: false } : undefined,
+  ssl: shouldUseSsl(connectionString)
+    ? { rejectUnauthorized: process.env.NODE_ENV === 'production' || process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false' }
+    : undefined,
 });
 
 const db = drizzle(pool, { schema });
@@ -138,9 +143,8 @@ export async function executeWithRetry<T>(
       const jitter = Math.random() * 200;
       const delay = Math.min(baseDelay + jitter, CONNECTION_CONFIG.maxDelayMs);
 
-      console.warn(
-        `[DB] Operation failed (attempt ${attempt}/${maxRetries}), retrying in ${Math.round(delay)}ms...`,
-        { error: lastError.message }
+      console.error(
+        `[DB] Operation failed (attempt ${attempt}/${maxRetries}), retrying in ${Math.round(delay)}ms...`
       );
 
       await new Promise((resolve) => setTimeout(resolve, delay));
@@ -161,9 +165,8 @@ export async function verifyDatabaseConnection(): Promise<void> {
     if (process.env.NODE_ENV === 'production') {
       throw error;
     }
-
     if (!isTest) {
-      console.warn('[DB] Proactive database health check failed in non-production runtime', {
+      console.error('[DB] Proactive database health check failed in non-production runtime', {
         error: (error as Error).message,
       });
     }

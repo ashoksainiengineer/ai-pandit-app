@@ -669,9 +669,9 @@ export function convertToUTC(date: string, time: string, timezone: number | stri
   minute = parts[1] || 0;
   second = parts[2] || 0;
 
-  // Convert 12h to 24h if period is present
-  if (isPM && hour < 12) hour += 12;
+  // Convert 12h to 24h — 12 AM → 0, 12 PM stays 12, other PM +12
   if (isAM && hour === 12) hour = 0;
+  else if (isPM && hour !== 12) hour += 12;
 
   const offset = typeof timezone === 'string' ? getTzOffset(date, time, timezone) : timezone;
 

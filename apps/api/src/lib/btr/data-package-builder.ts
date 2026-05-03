@@ -257,7 +257,7 @@ function validateDataPackage(pkg: CandidateDataPackage): string[] {
     // Check each planet has required fields
     for (const [name, planet] of Object.entries(pkg.planets)) {
       if (!planet.sign) errors.push(`Planet ${name} missing sign`);
-      if (!planet.degree) errors.push(`Planet ${name} missing degree`);
+      if (planet.degree == null || Number.isNaN(planet.degree)) errors.push(`Planet ${name} missing degree`);
       if (!planet.nakshatra) errors.push(`Planet ${name} missing nakshatra`);
       if (typeof planet.house !== 'number') errors.push(`Planet ${name} missing house`);
     }

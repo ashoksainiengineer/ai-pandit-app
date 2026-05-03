@@ -1189,12 +1189,15 @@ export function calculateFullShadbala(ephemeris: EphemerisData): Record<string, 
         else if (Math.abs(houseFromLagna - DIK_BALA_HOUSES[p]) === 6) total += 0;
         else total += 30;
 
-        // 3. KALA BALA (Temporal - simplified)
-        // Day/Night planet strengths
-        const isDayTime = true; // Placeholder for actual sunrise/sunset check
+        // 3. KALA BALA (Temporal)
+        // Day/Night planet strengths — derived from Sun's house position
+        // Sun in houses 10-12 or 1-3 = above horizon (day); houses 4-9 = below (night)
+        const sunHouse = ((ZODIAC_SIGNS.indexOf(ephemeris.planets.sun.sign) - lagnaSignIndex + 12) % 12) + 1;
+        const isDayTime = sunHouse >= 10 || sunHouse <= 3;
         const dayPlanets = ['sun', 'jupiter', 'venus'];
+        const nightPlanets = ['moon', 'mars', 'saturn'];
         if (isDayTime && dayPlanets.includes(p)) total += 30;
-
+        if (!isDayTime && nightPlanets.includes(p)) total += 30;
         // 4. CHESHTA BALA (Motional)
         if (pos.retro) total += 50; // Retrograde planets are strong in Vedic
 
