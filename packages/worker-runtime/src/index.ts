@@ -76,20 +76,29 @@ export function createWorkerRuntime(deps: WorkerDependencies): WorkerRuntime {
     },
 
     async runLoop(): Promise<void> {
+      let consecutiveFailures = 0;
+      const MAX_BACKOFF_MS = 60000; // cap backoff at 1 minute
+      
       while (state.shouldRunLoop) {
         try {
-          // Wait for poll interval
-          await new Promise((resolve) => setTimeout(resolve, state.pollIntervalMs));
+          // Calculate delay: use backoff if failing, normal poll otherwise
+          const delayMs = consecutiveFailures > 0
+            ? Math.min(state.pollIntervalMs * Math.pow(2, consecutiveFailures - 1), MAX_BACKOFF_MS)
+            : state.pollIntervalMs;
+
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
 
           if (!state.shouldRunLoop) {
             break;
           }
 
-          // Process one iteration
           await deps.processJob();
+
+          // Success — reset failure counter
+          consecutiveFailures = 0;
         } catch (error) {
+          consecutiveFailures++;
           console.error('[WORKER-RUNTIME] Error in worker loop:', error);
-          // Continue loop - don't crash on transient errors
         }
       }
     },
