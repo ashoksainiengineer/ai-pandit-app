@@ -389,7 +389,5 @@ export default {
 };
 
 // Legacy exports for backward compatibility
-export { EVENT_IMPORTANCE_WEIGHTS as _EVENT_IMPORTANCE_WEIGHTS };
-export { VEDIC_EVENT_IMPORTANCE as _VEDIC_EVENT_IMPORTANCE };
 export { getDefaultImportance as _getDefaultImportance };
 export { calculateWeightedAverage as _calculateWeightedAverage };

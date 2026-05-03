@@ -390,4 +390,3 @@ export const PrecisionIntegrator = {
 // Legacy exports for backward compatibility
 export { enhanceCandidateWithPrecisionData as _enhanceCandidateWithPrecisionData };
 export { generatePrecisionAIPrompt as _generatePrecisionAIPrompt };
-export type { CandidateWithPrecisionData as _CandidateWithPrecisionData };

@@ -38,7 +38,7 @@ import {
 } from '@ai-pandit/shared';
 import type { DivisionalChart, BoundarySafety } from '../advanced-btr-methods.js';
 import {
-  _TatwaShuddhi,
+  TatwaShuddhi,
   calculateTatwaAtTime,
   FULL_CYCLE_MINUTES
 } from './tatwa-shuddhi.js';

@@ -21,9 +21,9 @@ import {
   type DatePrecision
 } from '@ai-pandit/shared';
 import {
-  _EVENT_IMPORTANCE_WEIGHTS,
+  EVENT_IMPORTANCE_WEIGHTS,
   IMPORTANCE_TO_IMPACT,
-  _VEDIC_EVENT_IMPORTANCE,
+  VEDIC_EVENT_IMPORTANCE,
   EventImportance,
   getEventWeightFromImportance,
   _getDefaultImportance,

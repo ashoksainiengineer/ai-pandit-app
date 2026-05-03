@@ -1207,17 +1207,30 @@ export function calculateFullShadbala(ephemeris: EphemerisData): Record<string, 
         if (isDayTime && dayPlanets.includes(p)) total += 30;
         if (!isDayTime && nightPlanets.includes(p)) total += 30;
         // 4. CHESHTA BALA (Motional)
-        if (pos.retro) total += 50; // Retrograde planets are strong in Vedic
+        if (pos.retro) total += 50;
+        else if (typeof pos.speed === 'number') {
+          const sp = Math.abs(pos.speed);
+          const max = p === 'moon' ? 15 : p === 'mercury' ? 2 : p === 'venus' ? 1.5 : 1;
+          if (sp > max * 0.8) total += 15;
+          else if (sp < max * 0.3) total -= 10;
+        }
 
-        // 5. NAISARGIKA BALA (Natural)
-        const NATURAL: Record<string, number> = { sun: 60, moon: 51, venus: 43, jupiter: 34, mercury: 26, mars: 17, saturn: 9 };
-        total += NATURAL[p] || 0;
+        // 5. NAISARGIKA BALA (Natural — precise Virupas)
+        const NAT: Record<string, number> = { sun: 60, moon: 51.43, venus: 42.86, jupiter: 34.29, mercury: 25.71, mars: 17.14, saturn: 8.57 };
+        total += NAT[p] || 0;
 
-        // 6. DRIG BALA (Aspectual)
-        // Simplified: +10 if aspected by Jupiter/Venus, -10 if by Saturn/Mars
-        // (Full aspect calculation is too heavy for this pass, using existing aspects if available)
+        // 6. DRIG BALA (Aspectual — sign-based Parashari drishti)
+        for (const [oname, opos] of Object.entries(ephemeris.planets)) {
+          if (oname === p || !opos) continue;
+          const dist = Math.abs(((ZODIAC_SIGNS.indexOf(opos.sign) - ZODIAC_SIGNS.indexOf(pos.sign) + 12) % 12));
+          const hDist = dist > 6 ? 12 - dist : dist;
+          const isBenefic = ['jupiter', 'venus', 'mercury'].includes(oname);
+          if (hDist === 7) total += isBenefic ? 10 : -10;
+          else if ((oname === 'mars' && [4,8].includes(hDist)) || (oname === 'jupiter' && [5,9].includes(hDist)) || (oname === 'saturn' && [3,10].includes(hDist))) {
+            total += isBenefic ? 7 : -7;
+          }
+        }
 
-        results[p] = Math.round(total);
     }
 
     return results;

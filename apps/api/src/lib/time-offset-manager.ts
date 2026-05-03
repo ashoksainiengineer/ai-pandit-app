@@ -696,7 +696,6 @@ export function calculateTournamentStructure(totalCandidates: number): {
 export default generateCandidateTimes;
 
 // Legacy exports for backward compatibility
-export type { CandidateTime as _CandidateTime };
 export { generateCandidateTimes as _generateCandidateTimes };
 export { generateRefinementGrid as _generateRefinementGrid };
 export { splitIntoBatches as _splitIntoBatches };

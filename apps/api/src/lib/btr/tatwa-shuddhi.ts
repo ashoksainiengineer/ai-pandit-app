@@ -351,4 +351,3 @@ export const TatwaShuddhi = {
 };
 
 // Legacy export for backward compatibility
-export { TatwaShuddhi as _TatwaShuddhi };

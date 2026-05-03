@@ -373,4 +373,3 @@ export const KP = {
 
 // Legacy exports for backward compatibility
 export { calculateKPSubLords as _calculateKPSubLords };
-export type { KPCuspalData as _KPCuspalData };
