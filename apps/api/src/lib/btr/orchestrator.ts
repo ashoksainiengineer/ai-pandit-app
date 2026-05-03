@@ -561,3 +561,5 @@ async function logAndRecoverRectificationFailure(
   return buildFailedResult(input, fallbackCtx, [errorMessage], startTime);
 }
 
+/** Backward-compatible alias for ProfessionalBTR export */
+export const ProfessionalBTR = { rectify: rectifyBirthTime, quickRectify, validateEvents, getTatwaInfo, analyzeTransits };
