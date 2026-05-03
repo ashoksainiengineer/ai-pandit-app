@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, gt, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import { db, executeWithRetry } from './drizzle.js';
+import { DatabaseError } from '@ai-pandit/shared';
 import {
   artifacts,
   type Artifact,
@@ -550,7 +551,7 @@ export async function appendJobEvent(input: CreateJobEventInput): Promise<JobEve
     }
   }
 
-  throw new Error('Failed to append job event after retries');
+  throw new DatabaseError('Failed to append job event after retries');
 }
 
 export async function listJobEvents(jobId: string): Promise<JobEvent[]> {
