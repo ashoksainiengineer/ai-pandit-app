@@ -775,16 +775,17 @@ function determineConfidenceLevel(
   methodScores: MethodScores,
   redFlags: string[]
 ): 'GOD_TIER' | 'VERY_HIGH' | 'HIGH' | 'MEDIUM' | 'LOW' {
-  const scores = Object.values(methodScores);
-  const maxScore = Math.max(...scores);
-  const minScore = Math.min(...scores);
+  // Exclude methods with no data (score of 0) — they were never computed
+  const activeScores = Object.values(methodScores).filter((s): s is number => typeof s === 'number' && s > 0);
+  const maxScore = Math.max(...activeScores, 0);
+  const minScore = Math.min(...activeScores, 0);
 
   if (redFlags.length >= 3) return 'LOW';
-  if (maxScore - minScore > 40) return 'MEDIUM';
+  if (maxScore - minScore > 40 && activeScores.length >= 4) return 'MEDIUM';
 
-  if (overallScore >= 90 && scores.every(s => s >= 80)) return 'GOD_TIER';
-  if (overallScore >= 85 && scores.every(s => s >= 70)) return 'VERY_HIGH';
-  if (overallScore >= 75 && scores.every(s => s >= 60)) return 'HIGH';
+  if (overallScore >= 90 && activeScores.length >= 6 && activeScores.every(s => s >= 80)) return 'GOD_TIER';
+  if (overallScore >= 85 && activeScores.length >= 5 && activeScores.every(s => s >= 70)) return 'VERY_HIGH';
+  if (overallScore >= 75 && activeScores.length >= 4 && activeScores.every(s => s >= 60)) return 'HIGH';
   if (overallScore >= 60) return 'MEDIUM';
 
   return 'LOW';

@@ -17,6 +17,7 @@ This file defines how coding agents (Codex/Copilot/Claude/etc.) must operate in 
 - `apps/worker`: external job worker
 - `packages/db`: Drizzle schema/client
 - `packages/shared`: shared types/schemas
+- `packages/worker-runtime`: worker runtime library
 - `services/ephemeris`: Python FastAPI Skyfield service
 - `e2e`: Playwright tests
 
