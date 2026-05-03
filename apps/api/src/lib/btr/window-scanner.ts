@@ -94,6 +94,8 @@ export interface CandidateAnalysis {
   vargas: Record<string, DivisionalChart>;
   kpData: Record<string, KPSubLordData>;
   boundarySafety: BoundarySafety;
+  /** Pre-computed score from generateCandidates to avoid double-scoring */
+  _scored?: CandidateScore;
 }
 
 interface EventMatchEvidence {
@@ -167,9 +169,9 @@ export async function scanBirthTimeWindow(
     // Adaptive Resolution Scanning
     // First pass with base resolution
     const candidates = await generateCandidates(timeWindow, context);
-    let scoredCandidates = await Promise.all(
-      candidates.map(c => scoreCandidate(c, context))
-    );
+    let scoredCandidates: CandidateScore[] = candidates
+      .filter((c): c is CandidateAnalysis & { _scored: CandidateScore } => !!c._scored)
+      .map(c => c._scored);
 
     // Adaptive Precision: Peak Zooming
     // If we find very high scores, zoom in around them with 5-second precision
@@ -296,7 +298,7 @@ async function generateCandidates(
       // Parallel scoring of 30 candidates causes OOM with large windows
       for (const candidate of chunk) {
         const scored = await scoreCandidate(candidate, context);
-        candidate.score = scored.overallScore;
+        candidate._scored = scored;
         
         // Allow GC between candidates
         await new Promise(resolve => setImmediate(resolve));

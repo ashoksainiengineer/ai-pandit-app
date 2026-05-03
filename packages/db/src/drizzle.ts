@@ -49,19 +49,95 @@ function resolveConnectionString(): string {
   }
   return getFallbackConnectionString();
 }
+// ─── Lazy initialization ───────────────────────────────────────────────────
 
-const connectionString = resolveConnectionString();
-const pool = new Pool({
-  connectionString,
-  max: Number(process.env.DB_POOL_MAX || 10),
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 10000,
-  ssl: shouldUseSsl(connectionString)
-    ? { rejectUnauthorized: process.env.NODE_ENV === 'production' || process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false' }
-    : undefined,
+let _pool: Pool | null = null;
+let _db: ReturnType<typeof drizzle> | null = null;
+
+function ensureInit(): void {
+  if (_pool) return;
+
+  const connectionString = resolveConnectionString();
+  _pool = new Pool({
+    connectionString,
+    max: Number(process.env.DB_POOL_MAX || 10),
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000,
+    ssl: shouldUseSsl(connectionString)
+      ? { rejectUnauthorized: process.env.NODE_ENV === 'production' || process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false' }
+      : undefined,
+  });
+  _db = drizzle(_pool, { schema });
+}
+
+/**
+ * Lazily-initialized pool proxy.
+ * Behaves exactly like a pg.Pool instance but defers connection-string
+ * resolution and Pool construction until the first property access.
+ */
+const pool = new Proxy({} as Pool, {
+  get(_target, prop, receiver) {
+    ensureInit();
+    const value = Reflect.get(_pool!, prop, _pool!);
+    return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(_pool!) : value;
+  },
+  set(_target, prop, value, receiver) {
+    ensureInit();
+    return Reflect.set(_pool!, prop, value, _pool!);
+  },
+  has(_target, prop) {
+    ensureInit();
+    return Reflect.has(_pool!, prop);
+  },
+  ownKeys(_target) {
+    ensureInit();
+    return Reflect.ownKeys(_pool!);
+  },
+  getOwnPropertyDescriptor(_target, prop) {
+    ensureInit();
+    return Reflect.getOwnPropertyDescriptor(_pool!, prop);
+  },
 });
 
-const db = drizzle(pool, { schema });
+/**
+ * Lazily-initialized db proxy.
+ * Behaves exactly like a Drizzle ORM instance but defers pool creation until first access.
+ */
+const db = new Proxy({} as ReturnType<typeof drizzle>, {
+  get(_target, prop, receiver) {
+    ensureInit();
+    const value = Reflect.get(_db!, prop, _db!);
+    return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(_db!) : value;
+  },
+  set(_target, prop, value, receiver) {
+    ensureInit();
+    return Reflect.set(_db!, prop, value, _db!);
+  },
+  has(_target, prop) {
+    ensureInit();
+    return Reflect.has(_db!, prop);
+  },
+  ownKeys(_target) {
+    ensureInit();
+    return Reflect.ownKeys(_db!);
+  },
+  getOwnPropertyDescriptor(_target, prop) {
+    ensureInit();
+    return Reflect.getOwnPropertyDescriptor(_db!, prop);
+  },
+});
+
+/** Canonical lazy accessor — prefer this over the pool proxy when you need a direct reference. */
+export function getPool(): Pool {
+  ensureInit();
+  return _pool!;
+}
+
+/** Canonical lazy accessor — prefer this over the db proxy when you need a direct reference. */
+export function getDb(): ReturnType<typeof drizzle> {
+  ensureInit();
+  return _db!;
+}
 
 
 export async function checkDatabaseHealth(): Promise<{
