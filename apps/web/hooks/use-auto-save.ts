@@ -35,6 +35,7 @@ export function useAutoSave({
     const saveRetryCount = useRef(0);
     const lastSaveAttemptRef = useRef<string>('');
     const pendingSaveRef = useRef<NodeJS.Timeout | null>(null);
+    const statusTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const hasData = useMemo(() => {
         try {
@@ -125,7 +126,8 @@ export function useAutoSave({
                     onLastSavedDataChange(dataString);
                     onSaveStatusChange('saved');
                     saveRetryCount.current = 0;
-                    setTimeout(() => onSaveStatusChange('idle'), 2000);
+                    if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current);
+                    statusTimeoutRef.current = setTimeout(() => onSaveStatusChange('idle'), 2000);
                     return true;
                 } else {
                     throw new Error('Save failed');
@@ -140,7 +142,8 @@ export function useAutoSave({
                     return saveDraft(retryCount + 1);
                 } else {
                     onSaveStatusChange('error');
-                    setTimeout(() => onSaveStatusChange('idle'), 3000);
+                    if (statusTimeoutRef.current) clearTimeout(statusTimeoutRef.current);
+                    statusTimeoutRef.current = setTimeout(() => onSaveStatusChange('idle'), 3000);
                     return false;
                 }
             }
@@ -163,6 +166,9 @@ export function useAutoSave({
         return () => {
             if (pendingSaveRef.current) {
                 clearTimeout(pendingSaveRef.current);
+            }
+            if (statusTimeoutRef.current) {
+                clearTimeout(statusTimeoutRef.current);
             }
         };
     }, []);

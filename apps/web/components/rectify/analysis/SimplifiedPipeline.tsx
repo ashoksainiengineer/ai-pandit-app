@@ -10,8 +10,6 @@ interface SimplifiedPipelineProps {
   currentStage: number;
   isComplete: boolean;
   isConnected: boolean;
-  aiModel?: string;
-  _aiModel?: string;
   activeAIStage?: number | null;
   offsetMinutes?: number; // 🔱 NEW: God-Tier offset config
   onStageClick?: (stageId: number) => void;
@@ -21,7 +19,6 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
   currentStage,
   isComplete,
   isConnected,
-  _aiModel,
   activeAIStage,
   offsetMinutes = 60,
   onStageClick,
@@ -89,9 +86,9 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
                 {state === 'pending' && <Circle className="w-3 h-3 sm:w-4 sm:h-4" />}
 
                 {/* Industrial Tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-[#1A1612] text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl">
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-[#1A1612] text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 pointer-events-none transition-opacity z-50 shadow-xl">
                   <div className="font-bold mb-1">{stage.name}</div>
-                  <div className="text-white/70 leading-relaxed">{(stage as any).description}</div>
+                  <div className="text-white/70 leading-relaxed">{stage.description}</div>
                   <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-[#1A1612]" />
                 </div>
               </motion.button>

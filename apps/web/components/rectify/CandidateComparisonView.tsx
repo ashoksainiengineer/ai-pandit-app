@@ -4,8 +4,8 @@
 // Production-grade candidate comparison with accessibility,
 // keyboard navigation, and responsive design
 
-import React, { useState, useMemo, memo, useCallback, useId } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useMemo, memo, useId } from 'react';
+import { motion } from 'framer-motion';
 import { Scale, Check, AlertTriangle, Trophy, Medal, ChevronDown } from 'lucide-react';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -47,16 +47,6 @@ interface CandidateComparisonViewProps {
 // THEME CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-const THEME = {
-    border: '#F0E8DE',
-    textPrimary: '#1A1612',
-    textSecondary: '#4A453F',
-    textMuted: '#7A756F',
-    gold: '#78611D',
-    success: '#10B981',
-    warning: '#F59E0B',
-} as const;
-
 // ═══════════════════════════════════════════════════════════════════════════════
 // STATUS ICON COMPONENT
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -83,7 +73,6 @@ interface CandidateCardProps {
     rank: number;
     isWinner: boolean;
     onSelect?: () => void;
-    cardId: string;
 }
 
 const CandidateCard = memo(function CandidateCard({
@@ -91,7 +80,6 @@ const CandidateCard = memo(function CandidateCard({
     rank,
     isWinner,
     onSelect,
-    cardId,
 }: CandidateCardProps) {
     const scoreColor = candidate.score >= 80 ? 'text-emerald-600' : candidate.score >= 60 ? 'text-amber-600' : 'text-rose-600';
     const barColor = candidate.score >= 80 ? 'bg-emerald-600' : candidate.score >= 60 ? 'bg-amber-600' : 'bg-rose-600';
@@ -379,14 +367,12 @@ export const CandidateComparisonView = memo(function CandidateComparisonView({
                     rank={leftIndex + 1}
                     isWinner={winner === 'left'}
                     onSelect={() => onSelect?.(leftCandidate.time)}
-                    cardId="left-candidate"
                 />
                 <CandidateCard
                     candidate={rightCandidate}
                     rank={rightIndex + 1}
                     isWinner={winner === 'right'}
                     onSelect={() => onSelect?.(rightCandidate.time)}
-                    cardId="right-candidate"
                 />
             </div>
 

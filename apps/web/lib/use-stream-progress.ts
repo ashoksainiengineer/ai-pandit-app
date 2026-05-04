@@ -66,7 +66,8 @@ export function useStreamProgress(
     const mountedRef = useRef(true);
     const sseSourceRef = useRef<EventSource | null>(null);
     const pollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const connectionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const sseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const isTestMode = useTestMode();
 
@@ -99,20 +100,24 @@ export function useStreamProgress(
 
         for (const effect of effects) {
             switch (effect.type) {
-                case 'CLEANUP':
-                    if (connectionTimeoutRef.current) {
-                        clearTimeout(connectionTimeoutRef.current);
-                        connectionTimeoutRef.current = null;
-                    }
-                    if (sseSourceRef.current) {
-                        sseSourceRef.current.close();
-                        sseSourceRef.current = null;
-                    }
-                    if (pollTimerRef.current) {
-                        clearTimeout(pollTimerRef.current);
-                        pollTimerRef.current = null;
-                    }
-                    break;
+case 'CLEANUP':
+if (sseTimeoutRef.current) {
+clearTimeout(sseTimeoutRef.current);
+sseTimeoutRef.current = null;
+}
+if (reconnectTimeoutRef.current) {
+clearTimeout(reconnectTimeoutRef.current);
+reconnectTimeoutRef.current = null;
+}
+if (sseSourceRef.current) {
+sseSourceRef.current.close();
+sseSourceRef.current = null;
+}
+if (pollTimerRef.current) {
+clearTimeout(pollTimerRef.current);
+pollTimerRef.current = null;
+}
+break;
 
                 case 'START_SSE': {
                     const { sid, url } = effect;
@@ -120,7 +125,7 @@ export function useStreamProgress(
                     sseSourceRef.current = sse;
                     let sseConnected = false;
 
-                    connectionTimeoutRef.current = setTimeout(() => {
+                    sseTimeoutRef.current = setTimeout(() => {
                         if (!sseConnected && mountedRef.current && machine.getCurrentSessionId() === sid) {
                             logger.warn('[SSE] Connection timeout (10s), falling back to polling');
                             const result = machine.onSseTimeout();
@@ -135,10 +140,10 @@ export function useStreamProgress(
                             return;
                         }
                         sseConnected = true;
-                        if (connectionTimeoutRef.current) {
-                            clearTimeout(connectionTimeoutRef.current);
-                            connectionTimeoutRef.current = null;
-                        }
+                        if (sseTimeoutRef.current) {
+                            clearTimeout(sseTimeoutRef.current);
+                            sseTimeoutRef.current = null;
+}
                         logger.info('[SSE] Connection opened');
                         const result = machine.onSseOpened(url);
                         setConnectionState(result.state);
@@ -158,13 +163,17 @@ export function useStreamProgress(
                         }
                     };
 
-                    sse.onerror = () => {
-                        if (!mountedRef.current || machine.getCurrentSessionId() !== sid) return;
-                        const readyState = sse.readyState;
-                        const result = machine.onSseError(readyState, sseConnected);
-                        setConnectionState(result.state);
-                        applyEffects(result.effects);
-                    };
+sse.onerror = () => {
+if (!mountedRef.current || machine.getCurrentSessionId() !== sid) return;
+if (sse.readyState === EventSource.CLOSED) {
+// Clear stale ref so reconnect can proceed
+sseSourceRef.current = null;
+}
+const readyState = sse.readyState;
+const result = machine.onSseError(readyState, sseConnected);
+setConnectionState(result.state);
+applyEffects(result.effects);
+};
                     break;
                 }
 
@@ -185,16 +194,21 @@ export function useStreamProgress(
                     break;
                 }
 
-                case 'SCHEDULE_RECONNECT': {
-                    const { sid, delay } = effect;
-                    if (connectionTimeoutRef.current) clearTimeout(connectionTimeoutRef.current);
-                    connectionTimeoutRef.current = setTimeout(() => connect(sid, { skipCache: true }), delay);
-                    break;
+case 'SCHEDULE_RECONNECT': {
+const { sid, delay } = effect;
+                    if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+                    reconnectTimeoutRef.current = setTimeout(() => connect(sid, { skipCache: true }), delay);
+break;
                 }
 
-                case 'FORCE_ERROR':
-                    forceError(effect.message);
-                    break;
+                case 'FORCE_ERROR': {
+if (sseSourceRef.current) { sseSourceRef.current.close(); sseSourceRef.current = null; }
+if (sseTimeoutRef.current) { clearTimeout(sseTimeoutRef.current); sseTimeoutRef.current = null; }
+if (reconnectTimeoutRef.current) { clearTimeout(reconnectTimeoutRef.current); reconnectTimeoutRef.current = null; }
+if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null; }
+forceError(effect.message);
+break;
+}
 
                 case 'DISPATCH_EVENT':
                     dispatchStreamEvent(effect.eventType, effect.data);
@@ -397,10 +411,14 @@ export function useStreamProgress(
         const startResult = machine.onConnectStart(sid, { forcePolling: forcePollingTransport, skipSse });
         setConnectionState(startResult.state);
 
-        if (startResult.effects.length > 0) {
-            applyEffects(startResult.effects);
-            return;
-        }
+if (startResult.effects.length > 0) {
+applyEffects(startResult.effects);
+// Prevent SSE from starting if polling was just started
+if (startResult.effects.some(e => e.type === 'START_POLLING' || e.type === 'SCHEDULE_POLL')) {
+return;
+}
+return;
+}
 
         // SSE path
         if (!mountedRef.current) {

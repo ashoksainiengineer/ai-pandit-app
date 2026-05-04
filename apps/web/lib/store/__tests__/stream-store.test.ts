@@ -135,36 +135,35 @@ describe('useStreamStore (Zustand State Management)', () => {
             expect(state.candidatesByStage[1]?.['12:00'].fullText).toBe('Thinking step 1...');
         });
 
-        it('should de-duplicate replayed chunks using suffix-overlap logic', async () => {
+        it('should de-duplicate replayed chunks using subset/superset logic', async () => {
             let rafCallback: FrameRequestCallback | null = null;
             vi.stubGlobal('requestAnimationFrame', vi.fn((cb) => {
                 rafCallback = cb;
                 return 1;
             }));
 
-            const overlap = "This is exactly fifty characters long for the test";
-            const chunk1 = "We are testing the deduplication logic. " + overlap;
-            const chunk2 = overlap + " and this is the new suffix added.";
+            const baseText = "We are testing the deduplication logic.";
+            const extendedText = baseText + " Additional text appended later.";
 
             // Step 1: Initial chunk
             useStreamStore.getState().dispatchStreamEvent('ai_thinking', {
-                chunk: chunk1,
+                chunk: baseText,
                 stage: 1,
                 candidateTime: '12:00'
             });
             if (rafCallback) act(() => (rafCallback as any)(0));
 
-            // Step 2: Replay chunk (starts with end of previous)
+            // Step 2: Superset chunk (contains all of base + more)
             useStreamStore.getState().dispatchStreamEvent('ai_thinking', {
-                chunk: chunk2,
+                chunk: extendedText,
                 stage: 1,
                 candidateTime: '12:00'
             });
             if (rafCallback) act(() => (rafCallback as any)(16));
 
-            expect(useStreamStore.getState().candidatesByStage[1]?.['12:00'].fullText).toBe(chunk1 + " and this is the new suffix added.");
+            // Superset should replace entirely, not duplicate
+            expect(useStreamStore.getState().candidatesByStage[1]?.['12:00'].fullText).toBe(extendedText);
         });
-
         it('should sync activeAIStage and update displayedCandidate (selection logic)', async () => {
             let rafCallback: FrameRequestCallback | null = null;
             vi.stubGlobal('requestAnimationFrame', vi.fn((cb) => {

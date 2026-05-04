@@ -62,13 +62,6 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
 
   const stage = STAGE_CONFIG[effectiveStageIndex] ?? STAGE_CONFIG[0];
 
-  const gearNumber = useMemo(() => {
-    if (offsetMinutes <= 30) return 1;
-    if (offsetMinutes <= 60) return 2;
-    if (offsetMinutes <= 120) return 3;
-    if (offsetMinutes <= 240) return 4;
-    return 5;
-  }, [offsetMinutes]);
 
   const progressPercent = useMemo(() => {
     if (totalCandidates <= 0) return 0;

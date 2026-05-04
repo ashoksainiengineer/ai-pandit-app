@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, memo, useId } from 'react';
+import React, { useEffect, useId } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { logger } from '@/lib/secure-logger';
@@ -18,15 +18,6 @@ const SSEDebugPanel = env.app.isDevelopment
   ? dynamic(() => import('@/components/dev/SSEDebugPanel'), { ssr: false })
   : () => null;
 
-const GlobalStyles = memo(() => (
-  <style>{`
-    .style-scroll::-webkit-scrollbar { width: 5px; height: 5px; }
-    .style-scroll::-webkit-scrollbar-track { background: #FDF8F3; border-radius: 10px; }
-    .style-scroll::-webkit-scrollbar-thumb { background: #E5E0D8; border-radius: 10px; }
-    .style-scroll::-webkit-scrollbar-thumb:hover { background: #B8860B; }
-  `}</style>
-));
-GlobalStyles.displayName = 'GlobalStyles';
 
 export default function AnalysisPage() {
   const params = useParams();
@@ -63,7 +54,7 @@ export default function AnalysisPage() {
     return <RectifyEmptyState />;
   }
 
-  if (!isSignedIn && (typeof window === 'undefined' || !(window as unknown as Record<string, boolean>).isTestEnv)) {
+  if (!isSignedIn && (typeof window === 'undefined' || !(window as { isTestEnv?: boolean }).isTestEnv)) {
     router.push('/sign-in');
     return <RectifyEmptyState />;
   }
@@ -78,9 +69,6 @@ export default function AnalysisPage() {
         error={session.errorMessage}
         onRetry={() => {
           router.refresh();
-          if (typeof window !== 'undefined') {
-            window.location.reload();
-          }
         }}
       />
     );
@@ -88,12 +76,11 @@ export default function AnalysisPage() {
 
   return (
     <AnalysisErrorBoundary sectionName="Analysis Page">
-      <GlobalStyles />
       <main className="min-h-screen font-sans bg-[#FFFCF8]" aria-labelledby={pageTitleId}>
         <RectifySessionHeader
           sessionId={sessionId}
           metadata={session.metadata}
-          startedAt={session.startedAt || null}
+          elapsedSeconds={session.elapsedSeconds}
           isComplete={session.isComplete}
           isCancelling={actions.isCancelling}
           cancelled={actions.cancelled}

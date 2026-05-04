@@ -188,7 +188,7 @@ export const StageLeaderboard = memo(function StageLeaderboard({
             </div>
 
             {/* 🔱 SCROLLABLE CONTAINER (SLIDER STYLE) */}
-            <div className="max-h-[450px] overflow-y-auto custom-scrollbar bg-white">
+            <div className="max-h-[450px] overflow-y-auto bg-white [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#E5E0D8] hover:[&::-webkit-scrollbar-thumb]:bg-[#B8860B]">
                 <div className="p-2 space-y-1.5">
                     <AnimatePresence initial={false}>
                         {stageScores.length > 0 ? (
@@ -206,6 +206,15 @@ export const StageLeaderboard = memo(function StageLeaderboard({
                                         <div
                                             className="px-4 py-2.5 flex items-center justify-between cursor-pointer"
                                             onClick={() => handleExpand(s.time)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    handleExpand(s.time);
+                                                }
+                                            }}
+                                            role="button"
+                                            tabIndex={0}
+                                            aria-expanded={expandedTime === s.time}
                                         >
                                             <div className="flex items-center gap-4">
                                                 <div className="flex flex-col">
@@ -326,23 +335,6 @@ export const StageLeaderboard = memo(function StageLeaderboard({
                     </AnimatePresence>
                 </div>
             </div>
-
-            {/* Custom Scrollbar Styles */}
-            <style>{`
-                .custom-scrollbar::-webkit-scrollbar {
-                    width: 4px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-track {
-                    background: transparent;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb {
-                    background: #E5E0D8;
-                    border-radius: 10px;
-                }
-                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                    background: #B8860B;
-                }
-            `}</style>
-        </motion.div>
+            </motion.div>
     );
 });
