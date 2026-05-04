@@ -259,7 +259,7 @@ export async function stage2BatchTournament(
             return batchSurvivors;
         });
 
-        const results = await _executeAIInParallel(tasks, 1, config.ai.parallelStaggerMs);
+        const results = await _executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
         if (global.gc) global.gc();
 
         // Read lightweight survivors from map (heavy batchEnriched already GC'd)
@@ -500,7 +500,7 @@ export async function stage2BatchTournament(
             return response;
         });
 
-        const results = await _executeAIInParallel(tasks, 1, config.ai.parallelStaggerMs);
+        const results = await _executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
         if (global.gc) global.gc();
         await progress.updateSubProgress(batches.length, batches.length);
 
