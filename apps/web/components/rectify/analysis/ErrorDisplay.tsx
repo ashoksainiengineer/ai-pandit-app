@@ -1,6 +1,11 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
 import { AlertCircle, RefreshCw, ServerCrash } from 'lucide-react';
 
 export function ErrorDisplay({ error, onRetry }: { error?: string, onRetry: () => void }) {
+    const router = useRouter();
+
     return (
         <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] animate-in fade-in duration-500">
             <div className="w-24 h-24 mb-6 rounded-full bg-red-500/10 flex items-center justify-center shadow-[0_0_30px_rgba(239,68,68,0.2)]">
@@ -21,7 +26,7 @@ export function ErrorDisplay({ error, onRetry }: { error?: string, onRetry: () =
                 </button>
                 <button
                     className="inline-flex items-center justify-center border border-zinc-700 bg-transparent hover:bg-zinc-800 text-zinc-300 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 gap-2 h-12 px-8"
-                    onClick={() => window.location.href = '/dashboard'}
+                    onClick={() => router.push('/dashboard')}
                 >
                     Exit Analysis
                 </button>

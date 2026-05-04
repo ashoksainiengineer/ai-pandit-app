@@ -15,7 +15,6 @@ import {
     StageStat,
     StreamResult,
     StreamMetadata,
-    AIThinking
 } from './stream-types';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -25,37 +24,40 @@ import {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 // ⏱️ DEBOUNCED I/O: Prevents UI stutter by batching the I/O operations.
-const debounceMap = new Map<string, ReturnType<typeof setTimeout>>();
+// Each store instance gets its own debounce map to prevent cross-session leakage.
+function createIdbStorage(): StateStorage {
+    const debounceMap = new Map<string, ReturnType<typeof setTimeout>>();
 
-const idbStorage: StateStorage = {
-    getItem: async (name: string): Promise<string | null> => {
-        return (await get(name)) ?? null;
-    },
-    setItem: (name: string, value: string): void => {
-        if (debounceMap.has(name)) {
-            clearTimeout(debounceMap.get(name));
-        }
-
-        // 🌡️ 2s Debounce ensures we don't bombard I/O during rapid Stage 1 generation
-        const timer = setTimeout(async () => {
-            try {
-                await set(name, value);
-                debounceMap.delete(name);
-            } catch (err) {
-                logger.warn('[IDB] Failed to persist state', err);
+    return {
+        getItem: async (name: string): Promise<string | null> => {
+            return (await get(name)) ?? null;
+        },
+        setItem: (name: string, value: string): void => {
+            if (debounceMap.has(name)) {
+                clearTimeout(debounceMap.get(name));
             }
-        }, 2000);
 
-        debounceMap.set(name, timer);
-    },
-    removeItem: async (name: string): Promise<void> => {
-        if (debounceMap.has(name)) {
-            clearTimeout(debounceMap.get(name));
-            debounceMap.delete(name);
-        }
-        await del(name);
-    },
-};
+            // 🌡️ 2s Debounce ensures we don't bombard I/O during rapid Stage 1 generation
+            const timer = setTimeout(async () => {
+                try {
+                    await set(name, value);
+                    debounceMap.delete(name);
+                } catch (err) {
+                    logger.warn('[IDB] Failed to persist state', err);
+                }
+            }, 2000);
+
+            debounceMap.set(name, timer);
+        },
+        removeItem: async (name: string): Promise<void> => {
+            if (debounceMap.has(name)) {
+                clearTimeout(debounceMap.get(name));
+                debounceMap.delete(name);
+            }
+            await del(name);
+        },
+    };
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // INDUSTRY PATTERN: Archive Low-Scored Candidates (Linear/Notion)
@@ -129,11 +131,6 @@ interface ThinkingBuffer {
     rafId: number | null;
 }
 
-const thinkingBuffer: ThinkingBuffer = {
-    chunks: new Map(),
-    rafId: null,
-};
-
 const scheduleBufferFlush = (cb: FrameRequestCallback): number => {
     if (typeof globalThis.requestAnimationFrame === 'function') {
         return globalThis.requestAnimationFrame(cb);
@@ -160,80 +157,88 @@ const getCharLimitForScore = (score: number | undefined): number => {
 
 const MAX_FULLTEXT_CHARS = 25_000;
 
-function flushThinkingBuffer(set: (fn: (prev: StreamState) => Partial<StreamState>) => void) {
-    const buffered = new Map(thinkingBuffer.chunks);
-    thinkingBuffer.chunks.clear();
-    thinkingBuffer.rafId = null;
-
-    if (buffered.size === 0) return;
-
-    set((prev) => {
-        const stageChanges: Record<number, Record<string, any>> = {};
-        const historyAppends: Record<number, string> = {};
-        let latestCandidate = prev.displayedCandidate;
-        let latestStage = prev.activeAIStage;
-
-        buffered.forEach(({ stage, candidateTime, text }) => {
-            const existing = prev.candidatesByStage[stage]?.[candidateTime] || {
-                stage,
-                candidateTime,
-                chunks: [],
-                fullText: '',
-                startedAt: Date.now()
-            };
-
-            let newFullText = existing.fullText;
-            if (newFullText.length > 50 && text.length > 50 && newFullText.endsWith(text.slice(0, 50))) {
-                // Duplicate replay check: append only the new portion
-                newFullText += text.slice(50);
-            } else {
-                newFullText += text;
-            }
-
-            // Find score in candidateScores
-            const score = prev.candidateScores.find(s => s.time === candidateTime)?.score;
-            const charLimit = getCharLimitForScore(score);
-            if (newFullText.length > charLimit) {
-                newFullText = newFullText.slice(-charLimit);
-            }
-
-            const updated = { ...existing, fullText: newFullText, updatedAt: Date.now() };
-            if (!stageChanges[stage]) stageChanges[stage] = {};
-            stageChanges[stage][candidateTime] = updated;
-
-            historyAppends[stage] = (historyAppends[stage] || '') + text;
-
-            latestCandidate = candidateTime;
-            latestStage = stage;
-        });
-
-        const newCandidatesByStage = { ...prev.candidatesByStage };
-        Object.keys(stageChanges).forEach(stageStr => {
-            const s = Number(stageStr);
-            newCandidatesByStage[s] = { ...prev.candidatesByStage[s], ...stageChanges[s] };
-        });
-
-        const newStageHistory = { ...prev.stageHistory };
-        Object.keys(historyAppends).forEach(stageStr => {
-            const s = Number(stageStr);
-            const appended = (prev.stageHistory[s] || '') + historyAppends[s];
-            newStageHistory[s] = appended.slice(-MAX_FULLTEXT_CHARS);
-        });
-
-        return {
-            candidatesByStage: newCandidatesByStage,
-            stageHistory: newStageHistory,
-            displayedCandidate: latestCandidate,
-            activeAIStage: latestStage
-        };
-    });
-}
-
 export const useStreamStore = create<StreamStore>()(
     devtools(
         persist(
-            (set, get) => ({
-                ...createInitialState(),
+            (set, get) => {
+                // Per-instance thinking buffer — prevents cross-session state leakage
+                const thinkingBuffer: ThinkingBuffer = {
+                    chunks: new Map(),
+                    rafId: null,
+                };
+
+                function flushThinkingBuffer(): void {
+                    const buffered = new Map(thinkingBuffer.chunks);
+                    thinkingBuffer.chunks.clear();
+                    thinkingBuffer.rafId = null;
+
+                    if (buffered.size === 0) return;
+
+                    set((prev) => {
+                        const stageChanges: Record<number, Record<string, unknown>> = {};
+                        const historyAppends: Record<number, string> = {};
+                        let latestCandidate = prev.displayedCandidate;
+                        let latestStage = prev.activeAIStage;
+
+                        buffered.forEach(({ stage, candidateTime, text }) => {
+                            const existing = prev.candidatesByStage[stage]?.[candidateTime] || {
+                                stage,
+                                candidateTime,
+                                chunks: [],
+                                fullText: '',
+                                startedAt: Date.now()
+                            };
+
+                            let newFullText = existing.fullText;
+                            // Robust duplicate‑replay detection via subset/superset checks
+                            if (!newFullText.includes(text) && !text.includes(newFullText)) {
+                                newFullText += text;
+                            } else if (text.length > newFullText.length) {
+                                // New text is a superset — replace
+                                newFullText = text;
+                            }
+
+                            // Find score in candidateScores
+                            const score = prev.candidateScores.find(s => s.time === candidateTime)?.score;
+                            const charLimit = getCharLimitForScore(score);
+                            if (newFullText.length > charLimit) {
+                                newFullText = newFullText.slice(-charLimit);
+                            }
+
+                            const updated = { ...existing, fullText: newFullText, updatedAt: Date.now() };
+                            if (!stageChanges[stage]) stageChanges[stage] = {};
+                            stageChanges[stage][candidateTime] = updated;
+
+                            historyAppends[stage] = (historyAppends[stage] || '') + text;
+
+                            latestCandidate = candidateTime;
+                            latestStage = stage;
+                        });
+
+                        const newCandidatesByStage = { ...prev.candidatesByStage };
+                        Object.keys(stageChanges).forEach(stageStr => {
+                            const s = Number(stageStr);
+                            newCandidatesByStage[s] = { ...prev.candidatesByStage[s], ...stageChanges[s] };
+                        });
+
+                        const newStageHistory = { ...prev.stageHistory };
+                        Object.keys(historyAppends).forEach(stageStr => {
+                            const s = Number(stageStr);
+                            const appended = (prev.stageHistory[s] || '') + historyAppends[s];
+                            newStageHistory[s] = appended.slice(-MAX_FULLTEXT_CHARS);
+                        });
+
+                        return {
+                            candidatesByStage: newCandidatesByStage,
+                            stageHistory: newStageHistory,
+                            displayedCandidate: latestCandidate,
+                            activeAIStage: latestStage
+                        };
+                    });
+                }
+
+                return {
+                    ...createInitialState(),
 
                 setSessionId: (id) => {
                     const currentId = get().sessionId;
@@ -304,7 +309,7 @@ export const useStreamStore = create<StreamStore>()(
                                 ? { ...prev.expandedCandidate, fullEph: data.fullEph, loading: false }
                                 : prev.expandedCandidate,
                         }));
-                    } catch (err) {
+                    } catch (_err) {
                         set(prev => ({
                             expandedCandidate: prev.expandedCandidate?.time === time
                                 ? { ...prev.expandedCandidate, loading: false, error: 'Network error' }
@@ -352,7 +357,7 @@ export const useStreamStore = create<StreamStore>()(
                                 ? { ...prev.expandedCandidate, reasoning: data.reasoning, loading: false }
                                 : prev.expandedCandidate,
                         }));
-                    } catch (err) {
+                    } catch (_err) {
                         set(prev => ({
                             expandedCandidate: prev.expandedCandidate?.time === time
                                 ? { ...prev.expandedCandidate, loading: false, error: 'Network error' }
@@ -376,7 +381,7 @@ export const useStreamStore = create<StreamStore>()(
                         }
 
                         if (!thinkingBuffer.rafId) {
-                            thinkingBuffer.rafId = scheduleBufferFlush(() => flushThinkingBuffer(set));
+                            thinkingBuffer.rafId = scheduleBufferFlush(() => flushThinkingBuffer());
                         }
 
                         set((prev) => (prev.activeAIStage !== stage ? { activeAIStage: stage } : {}));
@@ -386,7 +391,8 @@ export const useStreamStore = create<StreamStore>()(
                     set((prev) => {
                         switch (type) {
                             case 'initial_state': {
-                                const p = (payload as any).progress as PollingProgressData;
+                                const progressData = (payload as Record<string, unknown>).progress;
+                                const p = progressData as PollingProgressData | undefined;
                                 if (!p) return {};
 
                                 const scoreMap = new Map<string, CandidateScore>();
@@ -411,41 +417,46 @@ export const useStreamStore = create<StreamStore>()(
                                 };
                             }
 
-                            case 'progress': {
-                                const p = payload as any;
-                                const stepIndex = p.stepIndex ?? p.currentStep ?? 0;
-                                const message = p.message || p.liveMessage || '';
-                                const steps = p.steps as any[];
+case 'progress': {
+const p = payload as Record<string, unknown>;
+const newPct = (p.percentage ?? p.progress);
+const prevPct = prev.progress?.percentage ?? 0;
+// Never allow progress to go backwards
+if (typeof newPct === 'number' && newPct < prevPct) return {};
 
-                                const updates: Partial<StreamState> = {
-                                    progress: {
-                                        step: steps?.[stepIndex]?.id || p.step || DEFAULT_STEPS[stepIndex].id,
-                                        stepIndex,
-                                        totalSteps: p.totalSteps || 7,
-                                        percentage: p.percentage || 0,
-                                        message,
-                                        details: steps?.[stepIndex]?.details || p.details || []
-                                    }
-                                };
+const stepIndex = (p.stepIndex ?? p.currentStep ?? 0) as number;
+const message = (typeof p.message === 'string' ? p.message : typeof p.liveMessage === 'string' ? p.liveMessage : '');
+const steps = Array.isArray(p.steps) ? p.steps as Array<Record<string, unknown>> : undefined;
 
-                                if (p.candidateScores && Array.isArray(p.candidateScores) && p.candidateScores.length > 0) {
-                                    const scoreMap = new Map<string, CandidateScore>();
-                                    prev.candidateScores.forEach(s => scoreMap.set(`${s.stage}_${s.time}`, s));
-                                    p.candidateScores.forEach(s => scoreMap.set(`${s.stage}_${s.time}`, s));
+const updates: Partial<StreamState> = {
+progress: {
+step: steps?.[stepIndex]?.id || p.step || DEFAULT_STEPS[stepIndex].id,
+stepIndex,
+totalSteps: p.totalSteps || 7,
+percentage: typeof newPct === 'number' ? newPct : (p.percentage ?? 0),
+message,
+details: steps?.[stepIndex]?.details || p.details || []
+}
+};
 
-                                    const newScores = archiveCandidates(Array.from(scoreMap.values()));
-                                    updates.candidateScores = newScores;
+if (p.candidateScores && Array.isArray(p.candidateScores) && p.candidateScores.length > 0) {
+const scoreMap = new Map<string, CandidateScore>();
+prev.candidateScores.forEach(s => scoreMap.set(`${s.stage}_${s.time}`, s));
+p.candidateScores.forEach(s => scoreMap.set(`${s.stage}_${s.time}`, s));
 
-                                    const maxStage = newScores.length > 0 ? Math.max(...newScores.map(s => s.stage)) : stepIndex;
-                                    updates.activeAIStage = maxStage;
-                                    updates.analyzedCount = new Set(newScores.filter(s => s.stage === maxStage).map(s => s.time)).size;
-                                } else {
-                                    // Clamp to navSTAGES logic if needed, but for now just sync
-                                    updates.activeAIStage = (stepIndex === 1 || stepIndex === 2 || stepIndex === 4 || stepIndex === 6) ? stepIndex : prev.activeAIStage;
-                                }
+const newScores = archiveCandidates(Array.from(scoreMap.values()));
+updates.candidateScores = newScores;
 
-                                return updates;
-                            }
+const maxStage = newScores.length > 0 ? Math.max(...newScores.map(s => s.stage)) : stepIndex;
+updates.activeAIStage = maxStage;
+updates.analyzedCount = new Set(newScores.filter(s => s.stage === maxStage).map(s => s.time)).size;
+} else {
+// Clamp to navSTAGES logic if needed, but for now just sync
+updates.activeAIStage = (stepIndex === 1 || stepIndex === 2 || stepIndex === 4 || stepIndex === 6) ? stepIndex : prev.activeAIStage;
+}
+
+return updates;
+}
 
                             case 'candidate_score':
                             case 'candidate_score_v2':
@@ -489,7 +500,7 @@ export const useStreamStore = create<StreamStore>()(
 
                             case 'complete':
                             case 'result': {
-                                const pl = payload as Record<string, any>;
+                                const pl = payload as Record<string, unknown>;
                                 const directResult = pl?.rectifiedTime ? pl : null;
                                 const nestedResult = pl?.result?.rectifiedTime ? pl.result : null;
                                 const res = (directResult || nestedResult || prev.result) as StreamResult | null;
@@ -497,7 +508,7 @@ export const useStreamStore = create<StreamStore>()(
                             }
 
                             case 'terminal_state': {
-                                const pl = payload as Record<string, any>;
+                                const pl = payload as Record<string, unknown>;
                                 const status = pl?.status;
                                 const terminalResult = (
                                     pl?.result?.rectifiedTime
@@ -530,7 +541,7 @@ export const useStreamStore = create<StreamStore>()(
                             }
 
                             case 'error': {
-                                const errPl = payload as Record<string, any>;
+                                const errPl = payload as Record<string, unknown>;
                                 return { error: errPl.message || errPl.error || String(payload), isComplete: false };
                             }
 
@@ -553,10 +564,11 @@ export const useStreamStore = create<StreamStore>()(
                         }
                     });
                 }
-            }),
+                };
+            },
             {
                 name: 'btr-stream-storage',
-                storage: createJSONStorage(() => idbStorage),
+                storage: createJSONStorage(createIdbStorage),
                 // ONLY persist essential fields to prevent IndexedDB blowup
                 partialize: (state) => ({
                     sessionId: state.sessionId,

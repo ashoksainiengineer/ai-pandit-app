@@ -6,8 +6,8 @@ import { Gem, AlertCircle, RefreshCw } from 'lucide-react';
 
 export const RectifyEmptyState = memo(function RectifyEmptyState() {
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-[#FFFCF8] text-center p-4">
-            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-[#FFFCF8] text-center p-4" role="status" aria-live="polite">
+            <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }} aria-hidden="true">
                 <Gem className="w-16 h-16 text-[#B8860B]" />
             </motion.div>
             <h1 className="text-2xl font-bold mt-6 text-[#1A1612]">Starting Analysis...</h1>

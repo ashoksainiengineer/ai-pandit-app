@@ -3,7 +3,7 @@
 // components/rectify/AnalysisErrorBoundary.tsx
 // Production-grade error boundary for analysis page with graceful degradation
 
-import { Component, ReactNode, ErrorInfo } from 'react';
+import { Component, ReactNode, ErrorInfo, useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, RefreshCw, Home, Activity, Bug } from 'lucide-react';
 import Link from 'next/link';
@@ -54,7 +54,10 @@ const THEME = {
 
 function generateErrorId(): string {
     const timestamp = Date.now().toString(36).toUpperCase();
-    return `ERR-${timestamp}-${crypto.randomUUID()}`;
+    const randomPart = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Math.random().toString(36).substring(2)}-${Math.random().toString(36).substring(2)}`;
+    return `ERR-${timestamp}-${randomPart}`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -110,7 +113,7 @@ export class AnalysisErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
         };
 
         // Send beacon for reliability
-        if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+        if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
             const blob = new Blob([JSON.stringify(errorPayload)], { type: 'application/json' });
             navigator.sendBeacon('/api/log-error', blob);
         }
@@ -392,7 +395,6 @@ function SectionErrorFallback({
 // HOOK: useErrorHandler (for functional components)
 // ═══════════════════════════════════════════════════════════════════════════════
 
-import { useCallback, useState } from 'react';
 
 interface UseErrorHandlerReturn {
     error: Error | null;
@@ -417,7 +419,7 @@ export function useErrorHandler(): UseErrorHandlerReturn {
                 timestamp: new Date().toISOString(),
             };
 
-            if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+            if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
                 const blob = new Blob([JSON.stringify(errorPayload)], { type: 'application/json' });
                 navigator.sendBeacon('/api/log-error', blob);
             }

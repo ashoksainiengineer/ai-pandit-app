@@ -1,6 +1,6 @@
 'use client';
 
-import React, { memo, useState, useEffect, useRef } from 'react';
+import React, { memo } from 'react';
 import Link from 'next/link';
 import {
     Home,
@@ -52,40 +52,19 @@ const Breadcrumbs = memo(function Breadcrumbs({ items }: { items: BreadcrumbItem
     );
 });
 
-interface AnalysisTimerProps {
-    startedAt: string | null;
-    isComplete: boolean;
-    updatedAt?: string;
+function formatElapsedTime(totalSeconds: number): string {
+    const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+    const seconds = String(totalSeconds % 60).padStart(2, '0');
+    return `${minutes}:${seconds}`;
 }
 
-const AnalysisTimer = memo(function AnalysisTimer({ startedAt, isComplete, updatedAt }: AnalysisTimerProps) {
-    const [mounted, setMounted] = useState(false);
-    const [duration, setDuration] = useState(0);
-    const finalDurationRef = useRef<number | null>(null);
+interface ElapsedTimerDisplayProps {
+    elapsedSeconds: number;
+    isComplete: boolean;
+}
 
-    useEffect(() => {
-        setMounted(true);
-        const effectiveStart = startedAt || updatedAt;
-        if (!effectiveStart) return;
-
-        const startDate = new Date(effectiveStart);
-        if (isNaN(startDate.getTime())) return;
-        const startMs = startDate.getTime();
-
-        if (isComplete) {
-            if (finalDurationRef.current === null) {
-                finalDurationRef.current = Date.now() - startMs;
-            }
-            setDuration(finalDurationRef.current);
-            return;
-        }
-
-        const interval = setInterval(() => setDuration(Date.now() - startMs), 1000);
-        setDuration(Date.now() - startMs);
-        return () => clearInterval(interval);
-    }, [startedAt, updatedAt, isComplete]);
-
-    if (!mounted || (!startedAt && !updatedAt)) {
+const ElapsedTimerDisplay = memo(function ElapsedTimerDisplay({ elapsedSeconds, isComplete }: ElapsedTimerDisplayProps) {
+    if (elapsedSeconds <= 0 && !isComplete) {
         return (
             <div className="flex items-center gap-1.5 font-mono text-sm bg-stone-100 px-3 py-1.5 rounded-lg border border-stone-200">
                 <Clock className="w-3.5 h-3.5 text-[#7A756F]" />
@@ -94,14 +73,10 @@ const AnalysisTimer = memo(function AnalysisTimer({ startedAt, isComplete, updat
         );
     }
 
-    const totalSeconds = Math.max(0, Math.floor(duration / 1000));
-    const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
-    const seconds = String(totalSeconds % 60).padStart(2, '0');
-
     return (
         <div className="flex items-center gap-1.5 font-mono text-sm bg-stone-100 px-3 py-1.5 rounded-lg border border-stone-200">
             <Clock className="w-3.5 h-3.5 text-[#7A756F]" />
-            <span className="font-semibold">{minutes}:{seconds}</span>
+            <span className="font-semibold">{formatElapsedTime(elapsedSeconds)}</span>
         </div>
     );
 });
@@ -109,7 +84,7 @@ const AnalysisTimer = memo(function AnalysisTimer({ startedAt, isComplete, updat
 interface RectifySessionHeaderProps {
     sessionId: string;
     metadata?: StreamMetadata;
-    startedAt: string | null;
+    elapsedSeconds: number;
     isComplete: boolean;
     isCancelling: boolean;
     cancelled: boolean;
@@ -122,7 +97,7 @@ interface RectifySessionHeaderProps {
 export const RectifySessionHeader = memo(function RectifySessionHeader({
     sessionId,
     metadata,
-    startedAt,
+    elapsedSeconds,
     isComplete,
     isCancelling,
     cancelled,
@@ -179,7 +154,7 @@ export const RectifySessionHeader = memo(function RectifySessionHeader({
                     </div>
 
                     <div className="flex items-center gap-2 sm:gap-3">
-                        <AnalysisTimer startedAt={startedAt || null} updatedAt={metadata?.updatedAt} isComplete={isComplete} />
+                        <ElapsedTimerDisplay elapsedSeconds={elapsedSeconds} isComplete={isComplete} />
 
                         {!isComplete && !cancelled && (
                             <div className="relative">

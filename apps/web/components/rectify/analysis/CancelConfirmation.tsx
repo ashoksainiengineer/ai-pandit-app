@@ -1,3 +1,5 @@
+'use client';
+
 import { XCircle, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 

@@ -97,9 +97,15 @@ export function useAnalysisSession(
         const el = document.getElementById(`stage-${stageId}`);
         if (el) {
             const headerOffset = 100;
-            const elementPosition = el.getBoundingClientRect().top;
-            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-            window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Adjust for sticky header after scrolling
+            setTimeout(() => {
+                const stickyHeader = document.querySelector('header[role="banner"]');
+                if (stickyHeader) {
+                    const headerHeight = stickyHeader.getBoundingClientRect().height;
+                    window.scrollBy({ top: -headerHeight, behavior: 'smooth' });
+                }
+            }, 100);
         }
     }, []);
 

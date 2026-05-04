@@ -24,6 +24,7 @@ import {
   createDecipheriv,
   randomBytes,
   scryptSync,
+  scrypt,
   type CipherGCM,
   type DecipherGCM,
   type CipherGCMOptions,
@@ -87,6 +88,21 @@ export function initializeEncryption(secret: string | undefined) {
 function deriveKeyV4(secret: string, userId: string, salt: Buffer): Buffer {
   const combinedSecret = `${secret}:${userId}`;
   return scryptSync(combinedSecret, salt, KEY_LENGTH_BYTES, SCRYPT_PARAMS);
+}
+
+/**
+ * v4 async key derivation for client-side use.
+ * Prevents blocking the main thread (scryptSync blocks 100-300ms).
+ * Matches the server-side deriveKeyV4 derivation.
+ */
+export function deriveKeyV4Async(secret: string, userId: string, salt: Buffer): Promise<Buffer> {
+    const combinedSecret = `${secret}:${userId}`;
+    return new Promise((resolve, reject) => {
+        scrypt(combinedSecret, salt, KEY_LENGTH_BYTES, SCRYPT_PARAMS, (err, key) => {
+            if (err) reject(err);
+            else resolve(key);
+        });
+    });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

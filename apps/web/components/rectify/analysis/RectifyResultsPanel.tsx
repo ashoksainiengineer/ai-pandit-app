@@ -4,6 +4,7 @@ import { memo } from 'react';
 import { Activity, Brain, Gem } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import type { CandidateScore, StreamProgress, StreamStep, AIThinking } from '@/lib/store/stream-types';
+import type { IAdvancedSignals } from '@/components/rectify/advanced-signals/types';
 import { SectionErrorBoundary } from '@/components/rectify/AnalysisErrorBoundary';
 
 const SimplifiedPipeline = dynamic(() => import('@/components/rectify/analysis/SimplifiedPipeline').then(mod => mod.SimplifiedPipeline), { ssr: false });
@@ -30,7 +31,7 @@ interface RectifyResultsPanelProps {
     activeAIStage: number | null;
     offsetMinutes: number;
     sessionId: string;
-    advancedSignals: unknown;
+    advancedSignals: IAdvancedSignals | null;
     onStageClick: (stageId: number) => void;
 }
 
@@ -65,7 +66,6 @@ export const RectifyResultsPanel = memo(function RectifyResultsPanel({
                         currentStage={progress?.stepIndex ?? 0}
                         isComplete={isComplete}
                         isConnected={isConnected}
-                        aiModel={undefined}
                         activeAIStage={activeAIStage}
                         offsetMinutes={offsetMinutes}
                         onStageClick={onStageClick}

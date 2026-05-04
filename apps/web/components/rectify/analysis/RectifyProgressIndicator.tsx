@@ -137,8 +137,14 @@ export const RectifyProgressIndicator = memo(function RectifyProgressIndicator({
                                 View Official Report <ChevronRight className="w-4 h-4" />
                             </Link>
                             <button
-                                onClick={() => window.scrollTo({ top: 800, behavior: 'smooth' })}
-                                className="flex-1 md:flex-none px-6 py-3 bg-white border border-stone-200 text-stone-600 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-stone-50 transition-colors"
+                                onClick={() => {
+                                    const resultsEl = document.getElementById('results-panel');
+                                    if (resultsEl) {
+                                        resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    } else {
+                                        window.scrollTo({ top: 800, behavior: 'smooth' });
+                                    }
+                                }}
                             >
                                 Quick Review
                             </button>

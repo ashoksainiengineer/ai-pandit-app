@@ -143,7 +143,8 @@ export function createStreamStateMachine(
     let sessionNotFoundRetryCount = 0;
     let autoRequeueAttempted = false;
     let cachedToken: string | null = null;
-    let connectionAttemptedForSession: string | null = null;
+let connectionAttemptedForSession: string | null = null;
+let pollAuthRetried = false;
     // ── helpers ───────────────────────────────────────────────────────────────
 
     function setConnectionStatus(next: Partial<ConnectionState>): ConnectionState {
@@ -155,8 +156,9 @@ function resetForNewSession(sid: string): void {
 currentSessionId = sid;
 pollRetryCount = 0;
 sessionNotFoundRetryCount = 0;
-        autoRequeueAttempted = false;
-        connectionAttemptedForSession = null;
+autoRequeueAttempted = false;
+connectionAttemptedForSession = null;
+pollAuthRetried = false;
 }
 
     function resetRetryCounters(): void {
@@ -508,20 +510,21 @@ isTerminalReceived: () => terminalStateReceived,
                 };
             }
 
-            // Handle 401 - auth expired
-            if (res.status === 401) {
-                cachedToken = null;
-                if (!options.hasRetriedAuth) {
-                    return {
-                        state,
-                        effects: [{ type: 'SCHEDULE_POLL', sid, delay: interval }],
-                    };
-                }
-                return {
-                    state: setConnectionStatus({ status: 'error', url: '', lastError: 'Authentication expired' }),
-                    effects: [{ type: 'FORCE_ERROR', message: 'Authentication expired. Please retry.' }],
-                };
-            }
+// Handle 401 - auth expired
+if (res.status === 401) {
+cachedToken = null;
+if (!pollAuthRetried) {
+pollAuthRetried = true;
+return {
+state,
+effects: [{ type: 'SCHEDULE_POLL', sid, delay: interval }],
+};
+}
+return {
+state: setConnectionStatus({ status: 'error', url: '', lastError: 'Authentication expired' }),
+effects: [{ type: 'FORCE_ERROR', message: 'Authentication expired. Please retry.' }],
+};
+}
 
             // Handle other errors
             if (!res.ok) {
