@@ -224,3 +224,15 @@ NOTES.md
 .d esloppify/
 .venv-desloppify/
 .desloppify/
+
+# Development artifacts
+scorecard.png
+subjective_*.json
+a11y-report.json
+gandhi-*.sql
+
+logs/*.json
+logs/*.log
+logs/*.md
+
+.vscode/
