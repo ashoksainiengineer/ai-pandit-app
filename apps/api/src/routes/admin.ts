@@ -8,7 +8,7 @@ import { db, executeWithRetry } from '@ai-pandit/db';
 import { getLatestArtifactForJobByKind, listDeadLetterArtifacts } from '@ai-pandit/db/jobs';
 import { jobs, sessions, users } from '@ai-pandit/db/schema';
 import { eq, and, gte, sql, desc, count, SQL } from 'drizzle-orm';
-import { authMiddleware, AuthenticatedRequest } from '../middleware/auth.js';
+import { AuthenticatedRequest } from '../middleware/auth.js';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 
@@ -50,7 +50,7 @@ async function requireAdmin(req: AuthenticatedRequest, res: Response): Promise<b
  * GET /api/admin/metrics
  * Get dashboard overview metrics
  */
-router.get('/metrics', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/metrics', async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!(await requireAdmin(req, res))) return;
 
@@ -167,7 +167,7 @@ router.get('/metrics', authMiddleware, async (req: AuthenticatedRequest, res: Re
   }
 });
 
-router.get('/jobs/dead-letter', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/jobs/dead-letter', async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!(await requireAdmin(req, res))) return;
 
@@ -217,7 +217,7 @@ router.get('/jobs/dead-letter', authMiddleware, async (req: AuthenticatedRequest
   }
 });
 
-router.get('/jobs/:jobId/dead-letter', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/jobs/:jobId/dead-letter', async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!(await requireAdmin(req, res))) return;
 
@@ -290,7 +290,7 @@ router.head('/db-check', (req: Request, res: Response) => {
   res.status(200).end();
 });
 
-router.get('/db-check', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/db-check', async (req: AuthenticatedRequest, res: Response) => {
   const startTime = Date.now();
   try {
     if (!(await requireAdmin(req, res))) return;
@@ -332,7 +332,7 @@ router.get('/db-check', authMiddleware, async (req: AuthenticatedRequest, res: R
  * GET /api/admin/readings
  * Get recent readings with pagination
  */
-router.get('/readings', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/readings', async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!(await requireAdmin(req, res))) return;
 
@@ -419,7 +419,7 @@ router.get('/readings', authMiddleware, async (req: AuthenticatedRequest, res: R
  * GET /api/admin/readings/:id
  * Get single reading details
  */
-router.get('/readings/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/readings/:id', async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!(await requireAdmin(req, res))) return;
 
@@ -479,7 +479,7 @@ router.get('/readings/:id', authMiddleware, async (req: AuthenticatedRequest, re
  * GET /api/admin/analytics/timeseries
  * Get time series data for charts
  */
-router.get('/analytics/timeseries', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/analytics/timeseries', async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!(await requireAdmin(req, res))) return;
 

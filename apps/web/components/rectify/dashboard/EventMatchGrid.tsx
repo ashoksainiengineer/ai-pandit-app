@@ -42,7 +42,7 @@ export function EventMatchGrid({
             <div className="max-h-[300px] overflow-y-auto custom-scrollbar pr-2 space-y-2">
                 {eventMatches.map((evt, idx) => (
                     <div
-                        key={idx}
+                        key={evt.event || evt.name || evt.dasha || `event-${idx}`}
                         className="flex items-center justify-between p-3 rounded-lg transition-colors hover:bg-gold-50/20"
                         style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}80` }}
                     >

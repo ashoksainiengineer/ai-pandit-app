@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
+import { AuthenticatedRequest } from '../middleware/auth.js';
 import { logger } from '../utils/logger.js';
 import {
     createQueuedBirthRectificationJob,
@@ -23,7 +23,7 @@ const router = Router();
  *
  * The client should poll /api/queue/progress/:sessionId for results.
  */
-router.post('/', authMiddleware, validateBody(QueueSubmitSchema), async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', validateBody(QueueSubmitSchema), async (req: AuthenticatedRequest, res: Response) => {
     const startTime = Date.now();
 
     try {

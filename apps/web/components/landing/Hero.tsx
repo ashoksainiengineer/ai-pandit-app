@@ -3,9 +3,6 @@
  * Soothing light theme with divine typography
  */
 
-'use client';
-
-import { motion } from 'framer-motion';
 import Link from 'next/link';
 import {
   ArrowRight,
@@ -82,24 +79,19 @@ export default function Hero() {
         {/* Main Content */}
         <div className="text-center max-w-4xl mx-auto mb-16">
           {/* Sacred Badge */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4 }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#FDF8F3] to-white
+          <div
+            className="animate-scale-in inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#FDF8F3] to-white
                        border border-[#F0E8DE] rounded-full text-sm mb-8 shadow-sm"
           >
             <span className="text-[#6B1F7A] font-medium">Vedic Birth Time Rectification</span>
             <span className="text-[10px] px-2 py-0.5 bg-[#B8860B]/10 text-[#B8860B] rounded-full">by Skyfield Ephemeris</span>
             <span className="text-[10px] px-2 py-0.5 bg-[#4A7C6F]/10 text-[#4A7C6F] rounded-full">by DeepSeek R1-0528</span>
-          </motion.div>
+          </div>
 
           {/* Main Headline - Elegant Typography */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="mb-6"
+          <div
+            className="animate-fade-in-up mb-6"
+            style={{ animationDelay: '0.1s' }}
           >
             <h1 className="font-[family-name:var(--font-cormorant)] text-4xl sm:text-5xl lg:text-6xl xl:text-7xl
                            font-semibold text-[#1A1612] leading-tight tracking-tight">
@@ -109,35 +101,29 @@ export default function Hero() {
             <p className="mt-4 text-lg text-[#7A756F] font-light italic">
               by <span className="font-[family-name:var(--font-cormorant)] text-2xl text-[#B8860B] font-semibold not-italic">AI Pandit</span>
             </p>
-          </motion.div>
+          </div>
 
           {/* Subtitle */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-            className="text-lg sm:text-xl text-[#4A453F] mb-10 max-w-2xl mx-auto leading-relaxed"
+          <p
+            className="animate-fade-in-up text-lg sm:text-xl text-[#4A453F] mb-10 max-w-2xl mx-auto leading-relaxed"
+            style={{ animationDelay: '0.2s' }}
           >
             Highly accurate birth time rectification within{' '}
             <span className="text-[#B8860B] font-semibold">seconds-level precision</span>.
             Powered by Skyfield astronomical data and DeepSeek AI,
             aligned with ancient Vedic wisdom.
-          </motion.p>
+          </p>
 
           {/* CTA Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.3 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center mb-8"
+          <div
+            className="animate-fade-in-up flex flex-col sm:flex-row gap-4 justify-center mb-8"
+            style={{ animationDelay: '0.3s' }}
           >
             <Link href="/rectify">
-              <motion.button
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
+              <button
                 className="group relative px-10 py-4 bg-gradient-to-r from-[#B8860B] via-[#78611D] to-[#E5C880]
                            text-white font-semibold text-base rounded-xl shadow-lg shadow-amber-500/25
-                           overflow-hidden transition-all duration-300"
+                           overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:scale-[1.02] active:scale-[0.98]"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   Begin Your Journey
@@ -145,22 +131,20 @@ export default function Hero() {
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent
                                 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-              </motion.button>
+              </button>
             </Link>
-          </motion.div>
+          </div>
 
           {/* Core Stats - Elegant Cards */}
           <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
             {coreStats.map((stat, index) => {
               const Icon = stat.icon;
               return (
-                <motion.div
+                <div
                   key={stat.label}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.4 + index * 0.05 }}
-                  className="group relative p-5 bg-white border border-[#F0E8DE] rounded-2xl
+                  className="animate-fade-in-up group relative p-5 bg-white border border-[#F0E8DE] rounded-2xl
                              hover:border-[#78611D]/30 hover:shadow-lg transition-all duration-300"
+                  style={{ animationDelay: `${0.4 + index * 0.05}s` }}
                 >
                   <div
                     className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
@@ -177,17 +161,15 @@ export default function Hero() {
                     <div className="text-[10px] uppercase tracking-[0.15em] text-[#7A756F]">{stat.label}</div>
                     <div className="text-[9px] text-[#A8A39D] mt-1">{stat.desc}</div>
                   </div>
-                </motion.div>
+                </div>
               );
             })}
           </div>
 
           {/* Security Badge */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.6 }}
-            className="flex justify-center"
+          <div
+            className="animate-fade-in-up flex justify-center"
+            style={{ animationDelay: '0.6s' }}
           >
             <div className="inline-flex items-center gap-3 px-5 py-3 bg-emerald-50 border border-emerald-200 rounded-xl">
               <SecurityShieldIcon />
@@ -196,7 +178,7 @@ export default function Hero() {
                 <div className="text-xs text-emerald-600">AES-256 End-to-End Encryption • Only you can access your data</div>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
 
         {/* Live Analysis Section */}
@@ -210,15 +192,13 @@ export default function Hero() {
               </div>
               <span className="text-sm font-medium text-[#1A1612]">Live Analysis Engine</span>
             </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <button
               className="flex items-center gap-2 px-4 py-2 bg-white border border-[#78611D] text-[#78611D]
                          text-sm rounded-lg hover:bg-[#FDF8F3] transition-colors"
             >
               <Play className="w-4 h-4" />
               See How It Works
-            </motion.button>
+            </button>
           </div>
 
           {/* Analysis Components */}
@@ -228,21 +208,14 @@ export default function Hero() {
         </div>
 
         {/* Scroll Indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 1.2 }}
-          className="flex justify-center mt-16"
-        >
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            className="flex flex-col items-center gap-2 text-[#A8A39D]"
+        <div className="flex justify-center mt-16">
+          <div
+            className="animate-gentle-float flex flex-col items-center gap-2 text-[#A8A39D]"
           >
             <span className="text-xs uppercase tracking-[0.2em]">Scroll to explore</span>
             <ChevronDown className="w-5 h-5" />
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       </div>
     </section>
   );

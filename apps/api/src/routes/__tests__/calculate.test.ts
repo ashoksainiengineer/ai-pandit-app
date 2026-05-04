@@ -161,10 +161,12 @@ vi.mock('../../errors/index.js', () => ({
 import calculateRouter from '../../routes/calculate.js';
 import jobsRouter from '../../routes/jobs.js';
 
+import { authMiddleware } from '../../middleware/auth.js';
+
 function createApp() {
   const app = express();
   app.use(express.json());
-  app.use('/api/calculate', calculateRouter);
+  app.use('/api/calculate', authMiddleware, calculateRouter);
   app.use('/api/jobs', jobsRouter);
   return app;
 }

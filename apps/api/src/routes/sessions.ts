@@ -5,7 +5,7 @@ import { Router, Response } from 'express';
 import { db, executeWithRetry } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq, desc, or } from 'drizzle-orm';
-import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
+import { AuthenticatedRequest } from '../middleware/auth.js';
 import { logger } from '../utils/logger.js';
 import { encryptData, parseSensitiveField } from '../lib/encryption/index.js';
 import { randomUUID } from 'crypto';
@@ -25,7 +25,7 @@ function normalizeTimezoneValue(rawTimezone: string): number | string {
 /**
  * GET /api/sessions - List all user sessions
  */
-router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/', async (req: AuthenticatedRequest, res: Response) => {
     try {
         const clerkId = req.clerkId!;
         const ownershipContext = await resolveSessionOwnershipContext(clerkId);
@@ -69,7 +69,7 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
 /**
  * GET /api/sessions/:id - Get single session
  */
-router.get('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
     try {
         const clerkId = req.clerkId!;
         const ownershipContext = await resolveSessionOwnershipContext(clerkId);
@@ -132,7 +132,7 @@ router.get('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Respon
 /**
  * PUT /api/sessions/:id - Update session (draft save)
  */
-router.put('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
     try {
         const clerkId = req.clerkId!;
         const ownershipContext = await resolveSessionOwnershipContext(clerkId);
@@ -208,7 +208,7 @@ router.put('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Respon
 /**
  * DELETE /api/sessions/:id - Delete session
  */
-router.delete('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.delete('/:id', async (req: AuthenticatedRequest, res: Response) => {
     try {
         const clerkId = req.clerkId!;
         const ownershipContext = await resolveSessionOwnershipContext(clerkId);
@@ -253,7 +253,7 @@ router.delete('/:id', authMiddleware, async (req: AuthenticatedRequest, res: Res
 /**
  * POST /api/sessions/:id/clone - Duplicate an existing session (inputs only)
  */
-router.post('/:id/clone', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/:id/clone', async (req: AuthenticatedRequest, res: Response) => {
     try {
         const clerkId = req.clerkId!;
         const ownershipContext = await resolveSessionOwnershipContext(clerkId);

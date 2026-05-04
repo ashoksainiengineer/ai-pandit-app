@@ -3,9 +3,6 @@
  * Elegant workflow presentation with beautiful spacing
  */
 
-'use client';
-
-import { motion } from 'framer-motion';
 import {
   Terminal,
   Database,
@@ -125,23 +122,16 @@ export default function Solution() {
 
       <div className="relative max-w-7xl mx-auto px-6 lg:px-8">
         {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
+        <div
           className="text-center mb-20"
         >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
+          <div
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#F0E8DE] 
                        rounded-full text-sm mb-8 shadow-sm"
           >
             <GitBranch className="w-4 h-4 text-[#4A7C6F]" />
             <span className="text-[#4A453F]">Processing Pipeline</span>
-          </motion.div>
+          </div>
           
           <h2 className="font-[family-name:var(--font-cormorant)] text-3xl md:text-4xl lg:text-5xl 
                          font-semibold text-[#1A1612] mb-6 leading-tight">
@@ -154,19 +144,15 @@ export default function Solution() {
             From raw birth details to precision rectified time.
             Eight-stage pipeline with divine accuracy.
           </p>
-        </motion.div>
+        </div>
 
         {/* Pipeline Steps */}
         <div className="space-y-4 mb-24">
           {pipelineSteps.map((step, index) => {
             const Icon = step.icon;
             return (
-              <motion.div
+              <div
                 key={step.number}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.05 }}
-                viewport={{ once: true }}
                 className="group"
               >
                 <div className="relative bg-white border border-[#F0E8DE] rounded-2xl p-6 
@@ -226,17 +212,13 @@ export default function Solution() {
                                     bg-gradient-to-b from-[#F0E8DE] to-transparent" />
                   )}
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>
 
         {/* System Architecture */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
+        <div
           className="bg-white border border-[#F0E8DE] rounded-3xl p-8 lg:p-10"
         >
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10">
@@ -260,14 +242,10 @@ export default function Solution() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="stagger-children grid grid-cols-2 md:grid-cols-4 gap-4">
             {architectureLayers.map((layer, index) => (
-              <motion.div
+              <div
                 key={layer.name}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.05 }}
-                viewport={{ once: true }}
                 className="group p-4 bg-[#FDF8F3] rounded-xl border border-[#F0E8DE] 
                            hover:border-[#78611D]/30 transition-all duration-300"
               >
@@ -279,10 +257,10 @@ export default function Solution() {
                   <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: layer.color }} />
                   <span className="text-xs text-[#7A756F]">{layer.status}</span>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

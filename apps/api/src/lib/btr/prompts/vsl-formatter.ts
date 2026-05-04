@@ -1,5 +1,5 @@
 /**
- * VSL 4.1 Formatter
+ * VSL Formatter
  * =================
  *
  * Converts CandidateDataPackage into compact but information-dense
@@ -33,15 +33,24 @@ export function formatCandidateVSL(pkg: EnhancedCandidate): string {
 
   segments.push('#L');
   segments.push(formatLagna(pkg));
+  segments.push(formatAyanamsa(pkg));
+  segments.push(formatHouseCusps(pkg));
+  segments.push(formatSpecialPoints(pkg));
+  segments.push(formatPakshi(pkg));
 
   segments.push('#M');
   segments.push(formatMatrix(pkg));
+  segments.push(formatVimsopaka(pkg));
 
   segments.push(formatVargas(pkg));
+  segments.push(formatD60Deities(pkg));
+  segments.push(formatAshtakavarga(pkg));
   segments.push(formatNadi(pkg));
   segments.push(formatKP(pkg));
   segments.push(formatCuspal(pkg));
   segments.push(formatJaimini(pkg));
+  segments.push(formatYogas(pkg));
+  segments.push(formatChalit(pkg));
   segments.push(formatDashas(pkg));
   segments.push(formatTransits(pkg));
 
@@ -130,6 +139,68 @@ function formatLagna(pkg: EnhancedCandidate): string {
   return `!L|${getSgn(l.sign)}|${sanitizeToken(l.degree)}|${sanitizeToken(l.nakshatra || '~')}|L1=${lagnaLord}|MN=${sanitizeToken(moonNak)}`;
 }
 
+function formatAyanamsa(pkg: EnhancedCandidate): string {
+  const ayanamsa = pkg.ayanamsa;
+  return `!AY|${typeof ayanamsa === 'number' ? ayanamsa.toFixed(6) : '~'}`;
+}
+
+function formatHouseCusps(pkg: EnhancedCandidate): string {
+  // Try KP cuspal data first, then houses passthrough
+  const kpCusps = (pkg as any).kpCuspalData as Record<number, { cusp: number; sign: string }> | undefined;
+  const houses = (pkg as any).houses as Record<number, number> | undefined;
+
+  const entries: string[] = [];
+  for (let i = 1; i <= 12; i++) {
+    const kpEntry = kpCusps?.[i];
+    if (kpEntry) {
+      entries.push(`H${i}${getSgn(kpEntry.sign)}|${Number(kpEntry.cusp).toFixed(4)}`);
+    } else if (houses?.[i] !== undefined) {
+      entries.push(`H${i}|${Number(houses[i]).toFixed(4)}`);
+    } else {
+      entries.push(`H${i}~`);
+    }
+  }
+  return `!HC|${entries.join('|')}`;
+}
+
+// ── Special Points (!SP) ─────────────────────────────────────────────
+
+function formatDegree(degree: unknown): string {
+  if (typeof degree === 'number') return degree.toFixed(4);
+  if (typeof degree === 'string') return sanitizeToken(degree, 18);
+  return '~';
+}
+
+function formatSpecialPoints(pkg: EnhancedCandidate): string {
+  const sp = pkg.specialPoints;
+  if (!sp) return '!SP|~';
+
+  const parts: string[] = [];
+  if (sp.arudhaLagna) {
+    parts.push(`AL=${getSgn(sp.arudhaLagna.sign)}|${formatDegree(sp.arudhaLagna.degree)}`);
+  }
+  if (sp.upapadaLagna) {
+    parts.push(`UL=${getSgn(sp.upapadaLagna.sign)}|${formatDegree(sp.upapadaLagna.degree)}`);
+  }
+  if (sp.bhriguBindu) {
+    parts.push(`BB=${getSgn(sp.bhriguBindu.sign)}|${formatDegree(sp.bhriguBindu.degree)}`);
+  }
+  return parts.length > 0 ? `!SP|${parts.join('|')}` : '!SP|~';
+}
+
+// ── Pakshi Analysis (!PP) ────────────────────────────────────────────
+
+function formatPakshi(pkg: EnhancedCandidate): string {
+  const pa = pkg.pakshiAnalysis;
+  if (!pa) return '!PP|~';
+  const bird = sanitizeToken((pa as any).bird || (pa as any).pakshi || '~', 16);
+  const phase = sanitizeToken((pa as any).phase || '~', 12);
+  const activity = sanitizeToken((pa as any).activity || '~', 12);
+  return `!PP|${bird}|${phase}|${activity}`;
+}
+
+// ── Planet Matrix (#M) ───────────────────────────────────────────────
+
 function formatMatrix(pkg: EnhancedCandidate): string {
   const planets = pkg.planets;
   if (!planets || Object.keys(planets).length === 0) return '!M|~';
@@ -142,12 +213,51 @@ function formatMatrix(pkg: EnhancedCandidate): string {
     const fn = sanitizeToken(p.functionalNature?.role || '~', 12);
     const av = sanitizeToken(p.avastha || '~', 12);
     const lon = typeof p.longitude === 'number' ? p.longitude.toFixed(4) : '~';
+    const spd = typeof p.speed === 'number' ? p.speed.toFixed(4) : '~';
+    const comb = p.isCombust ? '1' : '0';
+    const cd = sanitizeToken(p.compoundDignity || '~', 24);
+    const aspStr = formatAspects(p.aspects);
 
-    return `${getPlan(name)}[${getSgn(p.sign)}|${sanitizeToken(p.degree)}|${sanitizeToken(p.nakshatra || '~')}|${house}|${dig}|SB${shad}|FN${fn}|AV${av}|R${retro}|L${lon}]`;
+    // Ishta / Kashta Phala
+    const ikp = pkg.ishtaKashtaPhala as Record<string, { ishta: number; kashta: number }> | undefined;
+    const ikStr = ikp?.[name]
+      ? `${ikp[name].ishta.toFixed(1)}/${ikp[name].kashta.toFixed(1)}`
+      : '~';
+
+    // Shadbala breakdown
+    const sb = p.shadbalaBreakdown;
+    const sbStr = sb
+      ? `${(sb.sthana ?? 0).toFixed(0)}/${(sb.dig ?? 0).toFixed(0)}/${(sb.kaala ?? 0).toFixed(0)}/${(sb.cheshta ?? 0).toFixed(0)}`
+      : '~';
+
+    return `${getPlan(name)}[${getSgn(p.sign)}|${sanitizeToken(p.degree)}|${sanitizeToken(p.nakshatra || '~')}|${house}|${dig}|SB${shad}|FN${fn}|AV${av}|R${retro}|L${lon}|SP${spd}|CB${comb}|CD${cd}|AS${aspStr}|IK${ikStr}|SD${sbStr}]`;
   });
 
   return `!M|${entries.join('|')}`;
 }
+
+function formatAspects(aspects: unknown): string {
+  if (!Array.isArray(aspects) || aspects.length === 0) return '~';
+  return aspects.slice(0, 5).map((a: any) => {
+    const planet = a.planet ? getPlan(String(a.planet)) : '~';
+    const type = a.type || a.aspectType || '~';
+    const abbr = type.length <= 4 ? type : type.slice(0, 4);
+    return `${planet}>${abbr}`;
+  }).join(',');
+}
+
+// ── Vimsopaka Bala (!VB) ─────────────────────────────────────────────
+
+function formatVimsopaka(pkg: EnhancedCandidate): string {
+  const vb = pkg.vimsopakaBala;
+  if (!vb || Object.keys(vb).length === 0) return '!VB|~';
+  const entries = Object.entries(vb)
+    .sort((a, b) => planetSortWeight(a[0]) - planetSortWeight(b[0]))
+    .map(([name, score]) => `${getPlan(name)}:${score}`);
+  return `!VB|${entries.join('|')}`;
+}
+
+// ── Vargas (#V) ──────────────────────────────────────────────────────
 
 function formatVargas(pkg: EnhancedCandidate): string {
   const rows: string[] = [];
@@ -175,13 +285,44 @@ function formatVargas(pkg: EnhancedCandidate): string {
   if (rows.length === 0) {
     if (pkg.d9Chart?.ascendant) rows.push(`D9[Asc:${getSgn(pkg.d9Chart.ascendant)}]`);
     if (pkg.d10Chart?.ascendant) rows.push(`D10[Asc:${getSgn(pkg.d10Chart.ascendant)}]`);
-    if (pkg.d12Chart?.ascendant) rows.push(`D12[Asc:${getSgn(pkg.d12Chart.ascendant)}]`);
     if (pkg.d60Sign) rows.push(`D60[Asc:${getSgn(pkg.d60Sign)}]`);
     if (pkg.d150Sign) rows.push(`D150[Asc:${getSgn(pkg.d150Sign)}]`);
   }
 
   return rows.length > 0 ? `#V|${rows.join('|')}` : '#V|~';
 }
+
+// ── D60 Deities (#D60D) ──────────────────────────────────────────────
+
+function formatD60Deities(pkg: EnhancedCandidate): string {
+  const dp = pkg.d60Planets;
+  if (!dp || Object.keys(dp).length === 0) return '';
+  const entries = Object.entries(dp)
+    .sort((a, b) => planetSortWeight(a[0]) - planetSortWeight(b[0]))
+    .map(([name, data]: [string, any]) => {
+      const deity = sanitizeToken(data.deity || '~', 20);
+      return `${getPlan(name)}:${deity}`;
+    });
+  return entries.length > 0 ? `#D60D|${entries.join('|')}` : '';
+}
+
+// ── Ashtakavarga (!AV) ───────────────────────────────────────────────
+
+function formatAshtakavarga(pkg: EnhancedCandidate): string {
+  const av = pkg.ashtakavarga;
+  if (!av || Object.keys(av).length === 0) return '!AV|~';
+  const entries = Object.entries(av)
+    .sort((a, b) => planetSortWeight(a[0]) - planetSortWeight(b[0]))
+    .map(([name, scores]: [string, any]) => {
+      const total = Array.isArray(scores)
+        ? scores.reduce((sum: number, s: number) => sum + s, 0)
+        : (typeof scores === 'number' ? scores : '~');
+      return `${getPlan(name)}:${total}`;
+    });
+  return `!AV|${entries.join('|')}`;
+}
+
+// ── Nadi (#N) ────────────────────────────────────────────────────────
 
 function formatNadi(pkg: EnhancedCandidate): string {
   const n = pkg.nadiData;
@@ -244,6 +385,8 @@ function encodeKala(raw: string): string {
   return '~';
 }
 
+// ── KP & Cuspal (#K, #H) ────────────────────────────────────────────
+
 function formatKP(pkg: EnhancedCandidate): string {
   const kp = pkg.kpData?.planetSubLords || pkg.precision?.kpSubLords as KPPlanetSubMap | undefined;
   if (!kp || Object.keys(kp).length === 0) return '#K|~';
@@ -270,6 +413,8 @@ function formatCuspal(pkg: EnhancedCandidate): string {
   return `#H|${entries.join('|')}`;
 }
 
+// ── Jaimini (#B) ─────────────────────────────────────────────────────
+
 function formatJaimini(pkg: EnhancedCandidate): string {
   const s = pkg.vedicSignals;
   const karakas = s?.charaKarakas || [];
@@ -284,12 +429,44 @@ function formatJaimini(pkg: EnhancedCandidate): string {
   return `#B|AK=${ak}|AmK=${amk}|DK=${dk}|VG=${vgCount}|PU=${pushkarCount}`;
 }
 
+// ── Yogas (!YG) ──────────────────────────────────────────────────────
+
+function formatYogas(pkg: EnhancedCandidate): string {
+  const yogas = pkg.yogas;
+  if (!yogas || (Array.isArray(yogas) ? yogas.length === 0 : Object.keys(yogas).length === 0)) return '!YG|~';
+
+  const entries = (Array.isArray(yogas) ? yogas : Object.entries(yogas))
+    .slice(0, 8)
+    .map((y: any) => {
+      const name = sanitizeToken(y.name || y.yogaName || String(y), 28);
+      const nature = y.nature ? sanitizeToken(String(y.nature), 12) : '~';
+      return `${name}:${nature}`;
+    });
+  return `!YG|${entries.join('|')}`;
+}
+
+// ── Chalit (!BC) ─────────────────────────────────────────────────────
+
+function formatChalit(pkg: EnhancedCandidate): string {
+  const cd = pkg.chalitDiscrepancies;
+  if (!cd || !Array.isArray(cd) || cd.length === 0) return '!BC|~';
+  const entries = cd.slice(0, 6).map((d: any) => {
+    const planet = d.planet ? getPlan(String(d.planet)) : '~';
+    const fromHouse = d.rashiHouse ?? d.rasiHouse ?? '~';
+    const toHouse = d.chalitHouse ?? '~';
+    return `${planet}:H${fromHouse}>H${toHouse}`;
+  });
+  return `!BC|${entries.join('|')}`;
+}
+
+// ── Dashas (#D) ──────────────────────────────────────────────────────
+
 function formatDashas(pkg: EnhancedCandidate): string {
   const ds = pkg.vimshottariDasha;
   if (!ds || ds.length === 0) return '#D|~';
 
   const vim = ds
-    .slice(0, 3)
+    .slice(0, 8)
     .map((d) => {
       const window = sanitizeToken(d.startEnd || '~', 28);
       return `VIM[${getPlan(d.maha)}|${getPlan(d.antar)}|${getPlan(d.pratyantar)}|${getPlan(d.sukshma || '~')}|${getPlan(d.prana || '~')}|${window}]`;
@@ -298,14 +475,26 @@ function formatDashas(pkg: EnhancedCandidate): string {
 
   const extras: string[] = [vim];
   if (pkg.yoginiDasha && pkg.yoginiDasha.length > 0) {
-    extras.push(`YOG[${pkg.yoginiDasha.slice(0, 2).map((y) => getPlan(y.lord)).join(',')}]`);
+    extras.push(`YOG[${pkg.yoginiDasha.slice(0, 5).map((y) => getPlan(y.lord)).join(',')}]`);
   }
   if (pkg.charaDasha && pkg.charaDasha.length > 0) {
-    extras.push(`CHR[${pkg.charaDasha.slice(0, 2).map((c) => getSgn(c.sign)).join(',')}]`);
+    extras.push(`CHR[${pkg.charaDasha.slice(0, 5).map((c) => getSgn(c.sign)).join(',')}]`);
+  }
+  // Kalachakra Dasha
+  if (pkg.kalachakraDasha && pkg.kalachakraDasha.length > 0) {
+    const kalEntries = pkg.kalachakraDasha.slice(0, 5).map((k: any) => {
+      const lord = getPlan(k.lord || '~');
+      const sign = k.sign ? getSgn(k.sign) : '~';
+      const window = sanitizeToken(k.startEnd || '~', 22);
+      return `KAL[${lord}|${sign}|${window}]`;
+    }).join(';');
+    extras.push(kalEntries);
   }
 
   return `#D|${extras.join('|')}`;
 }
+
+// ── Transits (#T) ────────────────────────────────────────────────────
 
 function formatTransits(pkg: EnhancedCandidate): string {
   const t = pkg.transitData;
@@ -334,6 +523,8 @@ function extractKeyTransitPlanets(planets: Record<string, string>): string {
   return tokens.length > 0 ? tokens.join(',') : '~';
 }
 
+// ── Spouse (!S) ─────────────────────────────────────────────────────
+
 function formatSpouse(pkg: EnhancedCandidate): string {
   const s = pkg.spouseMatch;
   const spouseD9 = pkg.spouseD9Verification as Record<string, unknown> | undefined;
@@ -349,6 +540,8 @@ function formatSpouse(pkg: EnhancedCandidate): string {
 
   return `!S|Lag=${lagna}|Moon=${moon}|Score=${score}|D9=${d9Lock}|Why=${reason}`;
 }
+
+// ── Helpers ──────────────────────────────────────────────────────────
 
 function sortPlanetEntries(planets: Record<string, PlanetData>): Array<[string, PlanetData]> {
   return Object.entries(planets).sort((a, b) => planetSortWeight(a[0]) - planetSortWeight(b[0]));
@@ -391,7 +584,7 @@ function shortVargaKey(key: string): string {
   return getPlan(key);
 }
 
-function sanitizeToken(value: unknown, maxLength: number = 28): string {
+function sanitizeToken(value: unknown, maxLength: number = 48): string {
   const cleaned = String(value ?? '')
     .replace(/[\r\n\t]+/g, ' ')
     .replace(/[|[\]<>]/g, '/')

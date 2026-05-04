@@ -67,43 +67,35 @@ async function runDirectBTR() {
     const sessionId = `gandhi_direct_${Date.now()}`;
     
     const input = {
-        birthData: {
-            fullName: GANDHI_PROFILE.fullName,
-            dateOfBirth: GANDHI_PROFILE.dateOfBirth,
-            tentativeTime: GANDHI_PROFILE.tentativeTime,
-            latitude: GANDHI_PROFILE.latitude,
-            longitude: GANDHI_PROFILE.longitude,
-            timezone: GANDHI_PROFILE.timezone,
-            birthPlace: GANDHI_PROFILE.birthPlace,
-            gender: GANDHI_PROFILE.gender,
-        },
-        lifeEvents: GANDHI_PROFILE.lifeEvents,
-        forensicTraits: GANDHI_PROFILE.forensicTraits,
-        offsetConfig: {
-            preset: '30min',
-            minutes: 30,
-            description: 'Gandhi ± 30 min window'
-        }
+      sessionId,
+      dateOfBirth: GANDHI_PROFILE.dateOfBirth,
+      tentativeTime: GANDHI_PROFILE.tentativeTime,
+      latitude: GANDHI_PROFILE.latitude,
+      longitude: GANDHI_PROFILE.longitude,
+      timezone: GANDHI_PROFILE.timezone,
+      lifeEvents: GANDHI_PROFILE.lifeEvents,
+      offsetConfig: { preset: '30min', customMinutes: 30 },
+      forensicTraits: GANDHI_PROFILE.forensicTraits as any,
     };
 
     try {
         console.log('🚀 Calling BTR engine directly...');
         
-        const result = await executeSecondsPrecisionRectification(sessionId, input, {
-            onProgress: (progress) => {
-                console.log(`📈 Progress: ${progress.percentage}% - ${progress.stage}`);
-            }
-        });
+        const result = await executeSecondsPrecisionRectification(input);
 
         console.log('----------------------------------------------------');
         console.log('✅ Analysis Complete!');
         console.log(`🎯 Rectified Time: ${result.rectifiedTime}`);
-        console.log(`📊 Confidence: ${result.confidence}%`);
-        console.log(`🎯 Accuracy: ±${result.accuracy}s`);
+        console.log(`📊 Accuracy Score: ${result.accuracy}`);
+        console.log(`📏 Margin of Error: ±${result.marginOfError}s`);
+        console.log(`🔒 Confidence: ${result.confidence}`);
+        console.log(`⚡ Processing Time: ${(result.processingTimeMs / 1000).toFixed(1)}s`);
+        console.log(`📋 Stages Completed: ${result.stagesCompleted}`);
         console.log('----------------------------------------------------');
 
     } catch (error) {
-        console.error('❌ Analysis failed:', error);
+        console.error('❌ Analysis failed:', error instanceof Error ? error.message : String(error));
+        if (error instanceof Error && error.stack) console.error('Stack:', error.stack.slice(0, 800));
         process.exit(1);
     }
 }

@@ -7,6 +7,7 @@ import { db, executeWithRetry } from '@ai-pandit/db';
 import { sessions, calculations, users } from '@ai-pandit/db/schema';
 import { eq, lt, and, isNotNull } from 'drizzle-orm';
 import { logger } from '../utils/logger.js';
+import { getMutationRowCount } from './db-utils.js';
 
 interface CleanupResult {
   table: string;
@@ -14,27 +15,6 @@ interface CleanupResult {
   errors?: string;
 }
 
-function getMutationRowCount(result: unknown): number {
-  if (
-    typeof result === 'object' &&
-    result !== null &&
-    'rowCount' in result &&
-    typeof (result as { rowCount?: unknown }).rowCount === 'number'
-  ) {
-    return (result as { rowCount: number }).rowCount;
-  }
-
-  if (
-    typeof result === 'object' &&
-    result !== null &&
-    'rowsAffected' in result &&
-    typeof (result as { rowsAffected?: unknown }).rowsAffected === 'number'
-  ) {
-    return (result as { rowsAffected: number }).rowsAffected;
-  }
-
-  return 0;
-}
 
 interface CleanupReport {
   timestamp: string;

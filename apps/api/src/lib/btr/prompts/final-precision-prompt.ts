@@ -4,8 +4,8 @@
  * Generates AI prompts for Stage 6 final seconds-level precision judgment.
  * Creates the ultimate forensic prompt for selecting the single best birth time.
  * 
- * VSL 4.0 INTEGRATION:
- * This prompt now uses the Vedic Shorthand Language (VSL) 4.0 protocol
+ * VSL DATA:
+ * This prompt now uses the Vedic Shorthand Language (VSL) protocol
  * for exhaustive, lossless data compaction.
  */
 
@@ -216,7 +216,7 @@ ${presentTransitSection}
 LIFE EVENTS:
 ${eventsText}
 
-CANDIDATES WITH ENRICHED VEDIC DATA (VSL 4.0 Protocol):
+CANDIDATES WITH ENRICHED VEDIC DATA (VSL Protocol):
 ${shuffledCandidates.map(c => `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CANDIDATE: ${getCandidateReference(c, duplicateTimes)}

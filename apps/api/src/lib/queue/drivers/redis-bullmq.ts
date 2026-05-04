@@ -113,6 +113,9 @@ export class RedisBullMqQueueDriver implements QueueDriver {
       if (claimed) {
         return claimed;
       }
+
+      // Claim failed (race or DB issue) — push BACK to front of queue so no job is lost
+      await this.client.lpush(this.queueKey, sessionId);
     }
 
     // Compatibility fallback for jobs queued before Redis transport was enabled.
@@ -127,20 +130,26 @@ export class RedisBullMqQueueDriver implements QueueDriver {
     await this.client.connect();
   }
 
-  private async promoteDueRetries(): Promise<void> {
+  private async promoteDueRetries(): Promise<number> {
     const now = Date.now();
     const dueSessions = await this.client.zrangebyscore(this.delayedKey, 0, now, 'LIMIT', 0, 200);
 
-    if (dueSessions.length === 0) {
-      return;
+    let promoted = 0;
+    for (const sessionId of dueSessions) {
+      // Check DB that session is still retryable (not cancelled/completed)
+      const latestJob = await getLatestJobForSession(sessionId);
+      if (!latestJob || !['queued', 'retrying'].includes(latestJob.status)) {
+        // Stale or cancelled — remove from delayed set and skip
+        await this.client.zrem(this.delayedKey, sessionId);
+        continue;
+      }
+
+      await this.client.zrem(this.delayedKey, sessionId);
+      await this.client.lpush(this.queueKey, sessionId);
+      promoted++;
     }
 
-    const tx = this.client.multi();
-    for (const sessionId of dueSessions) {
-      tx.zrem(this.delayedKey, sessionId);
-      tx.rpush(this.queueKey, sessionId);
-    }
-    await tx.exec();
+    return promoted;
   }
 
   private async claimJobById(jobId: string) {

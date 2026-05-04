@@ -10,6 +10,7 @@ import Link from 'next/link';
 import { Breadcrumbs, predefinedBreadcrumbs } from '@/components/ui/Breadcrumbs';
 import { env } from '@/lib/config/env';
 import { logger } from '@/lib/secure-logger';
+import { initializeEncryption, parseSensitiveField } from '@/lib/crypto';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -37,11 +38,12 @@ const getSessionResults = cache(async (sessionId: string, userId: string): Promi
         }
 
         // 3. Robust Data Reconstruction
+        const sessionUserId = session.userId;
         const birthData = {
-            fullName: parseSensitiveField(session.fullName, 'Unencryptable Session'),
-            dateOfBirth: parseSensitiveField(session.dateOfBirth, 'Not set'),
-            tentativeTime: parseSensitiveField(session.tentativeTime, 'Not set'),
-            birthPlace: parseSensitiveField(session.birthPlace, 'Unknown'),
+            fullName: parseSensitiveField(session.fullName, 'Unencryptable Session', sessionUserId),
+            dateOfBirth: parseSensitiveField(session.dateOfBirth, 'Not set', sessionUserId),
+            tentativeTime: parseSensitiveField(session.tentativeTime, 'Not set', sessionUserId),
+            birthPlace: parseSensitiveField(session.birthPlace, 'Unknown', sessionUserId),
             latitude: session.latitude,
             longitude: session.longitude,
             timezone: session.timezone,
@@ -49,18 +51,17 @@ const getSessionResults = cache(async (sessionId: string, userId: string): Promi
         };
 
         // Use parseSensitiveField for complex JSON structures
-        const analysisResult = parseSensitiveField(session.analysisResult, null);
-        const reasoningLogs = parseSensitiveField(session.reasoningLogs, null);
-
+        const analysisResult = parseSensitiveField<Record<string, unknown>>(session.analysisResult as string | null, {}, sessionUserId);
+        const reasoningLogs = parseSensitiveField<Record<string, unknown>[]>(session.reasoningLogs as string | null, [], sessionUserId);
         return {
             ...session,
             birthData,
             analysisResult,
             reasoningLogs,
-            rectifiedTime: session.rectifiedTime || analysisResult?.rectifiedTime,
-            accuracy: session.accuracy || analysisResult?.accuracy,
-            confidence: session.confidence || analysisResult?.confidence,
-        };
+            rectifiedTime: (session as Record<string, unknown>).rectifiedTime || (analysisResult as Record<string, unknown>)?.rectifiedTime,
+            accuracy: (session as Record<string, unknown>).accuracy || (analysisResult as Record<string, unknown>)?.accuracy,
+            confidence: (session as Record<string, unknown>).confidence || (analysisResult as Record<string, unknown>)?.confidence,
+        } as Record<string, unknown>;
     } catch (error) {
         logger.error('CRITICAL: Error in getSessionResults', error instanceof Error ? error : new Error(String(error)));
         return null;

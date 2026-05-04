@@ -20,11 +20,11 @@ export interface RecoveryTelemetry {
   alertActive: boolean;
 }
 
-let _recoveryTelemetry: RecoveryTelemetry | null = null;
+export let recoveryTelemetry: RecoveryTelemetry | null = null;
 
 function getRecoveryTelemetryInstance(): RecoveryTelemetry {
-  if (!_recoveryTelemetry) {
-    _recoveryTelemetry = {
+  if (!recoveryTelemetry) {
+    recoveryTelemetry = {
       lastRunAt: null,
       lastRecoveredJobs: 0,
       lastAbandonedAttempts: 0,
@@ -33,7 +33,7 @@ function getRecoveryTelemetryInstance(): RecoveryTelemetry {
       alertActive: false,
     };
   }
-  return _recoveryTelemetry;
+  return recoveryTelemetry;
 }
 
 export function getQueueRecoveryTelemetry(): RecoveryTelemetry {

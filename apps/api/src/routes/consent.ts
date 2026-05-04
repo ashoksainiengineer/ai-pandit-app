@@ -2,16 +2,28 @@ import { Router, Response } from 'express';
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
-import { AuthenticatedRequest, authMiddleware } from '../middleware/auth.js';
+import { AuthenticatedRequest } from '../middleware/auth.js';
 import { logger } from '../utils/logger.js';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
+
+import { z } from 'zod';
+import { validateBody, validateParams } from '../middleware/validation.js';
+
+const ConsentSchema = z.object({
+  sessionId: z.string().uuid(),
+  consent: z.boolean(),
+});
+
+const SessionIdParamSchema = z.object({
+  sessionId: z.string().uuid(),
+});
 
 const router = Router();
 
 /**
  * POST /api/consent - Record user consent for AI processing
  */
-router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.post('/', validateBody(ConsentSchema), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const clerkId = req.clerkId!;
     const { sessionId, consent } = req.body;
@@ -63,7 +75,7 @@ router.post('/', authMiddleware, async (req: AuthenticatedRequest, res: Response
 /**
  * GET /api/consent/:sessionId - Check consent status
  */
-router.get('/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
+router.get('/:sessionId', validateParams(SessionIdParamSchema), async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { sessionId } = req.params;
     const clerkId = req.clerkId!;

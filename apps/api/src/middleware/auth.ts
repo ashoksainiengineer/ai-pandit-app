@@ -97,6 +97,19 @@ export async function authMiddleware(
             requestId: (req as AuthenticatedRequest & { requestId?: string }).requestId
         });
 
+        // 🔑 Stream Ticket Auth (EventSource workaround)
+        // -----------------------------------------------------------------
+        // Browser-native EventSource API does not support custom HTTP headers,
+        // so Authorization: Bearer <token> cannot be sent on SSE requests.
+        // Instead, the frontend obtains a single-use ticket via POST
+        // /api/stream/ticket/:sessionId (authenticated with Bearer token),
+        // then passes it as ?ticket= in the EventSource URL.
+        //
+        // This block consumes the ticket to authenticate the SSE connection
+        // when no Authorization header is present. See:
+        //   - lib/stream-ticket-manager.ts (ticket lifecycle)
+        //   - routes/stream.ts POST /ticket/:sessionId (ticket creation)
+        //   - web/lib/use-stream-progress.ts (frontend ticket acquisition)
         if (!authHeader && isStreamRequest && streamTicket) {
             const ticketPayload = consumeStreamTicket(streamTicket);
             if (ticketPayload) {

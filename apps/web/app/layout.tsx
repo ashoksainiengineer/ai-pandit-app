@@ -1,7 +1,37 @@
 /**
  * AI Pandit - Root Layout
  * Sacred Ivory Light Theme with Elegant Typography
+ *
+ * Fonts loaded via next/font for optimal Core Web Vitals.
  */
+
+import { Cormorant_Garamond, Inter, Playfair_Display, JetBrains_Mono } from 'next/font/google';
+
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  variable: '--font-cormorant',
+  display: 'swap',
+  weight: ['300', '400', '500', '600', '700'],
+});
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+});
+
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-playfair',
+  display: 'swap',
+  weight: ['400', '500', '600', '700'],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+});
 
 import { ClerkProvider } from '@clerk/nextjs';
 import { env } from '@/lib/config/env';
@@ -68,11 +98,13 @@ export default function RootLayout({
         }
       }}
     >
-      <html lang="en" suppressHydrationWarning>
+      <html lang="en" suppressHydrationWarning className={`${cormorant.variable} ${inter.variable} ${playfair.variable} ${jetbrainsMono.variable}`}>
         <head>
           <link rel="manifest" href="/manifest.json" />
+          <link rel="preconnect" href="https://nominatim.openstreetmap.org" />
+          <link rel="preconnect" href="https://tile.openstreetmap.org" />
         </head>
-        <body className="min-h-screen bg-[#FFFCF8] text-[#1A1612] antialiased overflow-x-hidden">
+        <body className={`${cormorant.variable} ${inter.variable} ${playfair.variable} ${jetbrainsMono.variable} min-h-screen bg-[#FFFCF8] text-[#1A1612] antialiased overflow-x-hidden`}>
           {/* Subtle Sacred Pattern Background */}
           <div className="fixed inset-0 pointer-events-none z-0 bg-sacred-pattern" />
 

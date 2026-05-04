@@ -72,8 +72,8 @@ export async function isSessionCancelled(sessionId: string): Promise<boolean> {
             .where(eq(sessions.id, sessionId))
             .limit(1);
 
-        // Session not found in DB — treat as cancelled to stop processing
-        if (result.length === 0) return true;
+        // Session not found in DB — for direct/inline processing, proceed normally
+        if (result.length === 0) return false;
 
         const { status, errorMessage } = result[0];
 

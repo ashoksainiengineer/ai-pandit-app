@@ -4,8 +4,8 @@
  * Generates AI prompts for Stage 2 batch tournament analysis.
  * Creates comprehensive prompts with forensic context and candidate data.
  * 
- * VSL 4.0 INTEGRATION:
- * This prompt now uses the Vedic Shorthand Language (VSL) 4.0 protocol
+ * VSL DATA:
+ * This prompt now uses the Vedic Shorthand Language (VSL) protocol
  * for exhaustive, lossless data compaction.
  */
 
@@ -236,7 +236,7 @@ ${eventsText}
 ${forensicContext}
 ${spouseText}
 
-CANDIDATES WITH ENRICHED VEDIC DATA (VSL 4.0 Protocol):
+CANDIDATES WITH ENRICHED VEDIC DATA (VSL Protocol):
 ${shuffledCandidates.map(c => `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CANDIDATE: ${getCandidateReference(c, duplicateTimes)}

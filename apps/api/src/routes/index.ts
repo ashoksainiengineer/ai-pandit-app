@@ -18,6 +18,7 @@ import adminRouter from './admin.js';
 import sessionsRouter from './sessions.js';
 import candidateDetailRouter from './candidate-detail.js';
 import { config } from '../config/index.js';
+import consentRouter from './consent.js';
 import {
   apiRateLimiter,
   calculateRateLimiter,
@@ -50,7 +51,16 @@ const selectiveApiRateLimiter = (req: Request, res: Response, next: NextFunction
   // Skip rate limiting for real-time endpoints (they have their own limiters below)
   if (path.startsWith('/stream') ||
     path.startsWith('/queue/progress') ||
-    path === '/queue/progress') {
+    path === '/queue/progress' ||
+    path.startsWith('/calculate') ||
+    path.startsWith('/jobs') ||
+    path.startsWith('/admin') ||
+    path.startsWith('/debug-analysis') ||
+    path.startsWith('/sessions') ||
+    path.startsWith('/candidate') ||
+    path.startsWith('/health') ||
+    path.startsWith('/consent') ||
+    path.startsWith('/queue')) {
     return next();
   }
 
@@ -91,7 +101,9 @@ if (config.features.useAsyncJobPipeline) {
 // The web app uses its own server routes for draft/session CRUD while API owns analysis orchestration.
 router.use('/sessions', authMiddleware, apiRateLimiter, sessionsRouter);
 
-// Stream endpoint - SSE connection, lenient rate limit
+// Consent management - record and check AI processing consent
+router.use('/consent', authMiddleware, apiRateLimiter, consentRouter);
+
 // NOTE: auth is enforced within streamRouter to avoid duplicate auth verification.
 router.use('/stream', progressRateLimiter, streamRouter);
 

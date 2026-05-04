@@ -3,10 +3,6 @@
  * Elegant precision metrics with warm colors
  */
 
-'use client';
-
-import { motion, useInView } from 'framer-motion';
-import { useRef, useEffect, useState } from 'react';
 import {
   TrendingUp,
   Target,
@@ -57,35 +53,15 @@ const technicalMetrics = [
   { label: 'Processing Speed', value: 99.5, icon: Zap, desc: 'Sub-second calculations', color: '#C65D3B' },
 ];
 
-const systemMetrics = [
-  { label: 'Ephemeris Version', value: 'SE v2.10.03', icon: Database },
-  { label: 'AI Model', value: 'DeepSeek V3', icon: Cpu },
-  { label: 'Precision', value: '±0.0001°', icon: Gauge },
-  { label: 'Processing Nodes', value: '16 Threads', icon: Activity },
-  { label: 'Calculation Time', value: '<25 min', icon: Clock },
-  { label: 'Consensus Engine', value: 'Active', icon: GitBranch },
-];
-
-function AnimatedBar({ value, color, delay }: { value: number; color: string; delay: number }) {
-  const [width, setWidth] = useState(0);
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
-
-  useEffect(() => {
-    if (isInView) {
-      const timer = setTimeout(() => setWidth(value), delay);
-      return () => clearTimeout(timer);
-    }
-  }, [isInView, value, delay]);
-
+function StaticBar({ value, color }: { value: number; color: string }) {
   return (
-    <div ref={ref} className="h-3 bg-[#F0E8DE] rounded-full overflow-hidden">
-      <motion.div
-        className="h-full rounded-full transition-all duration-1000 ease-out"
+    <div className="h-3 bg-[#F0E8DE] rounded-full overflow-hidden">
+      <div
+        className="h-full rounded-full"
         style={{
-          width: `${width}%`,
+          width: `${value}%`,
           backgroundColor: color,
-          boxShadow: width > 0 ? `0 0 20px ${color}30` : 'none'
+          boxShadow: `0 0 20px ${color}30`
         }}
       />
     </div>
@@ -93,16 +69,10 @@ function AnimatedBar({ value, color, delay }: { value: number; color: string; de
 }
 
 export function AccuracyShowcase() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   return (
     <section className="relative py-24 lg:py-32 overflow-hidden">
-      {/* Soft Background Elements - always rendered but conditionally visible */}
-      <div className="absolute inset-0 pointer-events-none" style={{ opacity: mounted ? 1 : 0 }}>
+      {/* Soft Background Elements */}
+      <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-0 w-[500px] h-[500px] bg-emerald-100/30 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-0 w-[400px] h-[400px] bg-amber-100/30 rounded-full blur-3xl" />
 
@@ -115,24 +85,18 @@ export function AccuracyShowcase() {
         />
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-6 lg:px-8" style={{ opacity: mounted ? 1 : 0 }}>
+      <div className="relative max-w-7xl mx-auto px-6 lg:px-8">
         {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+        <div
           className="text-center mb-20"
         >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
+          <div
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#F0E8DE] 
                    rounded-full text-sm mb-8 shadow-sm"
           >
             <Terminal className="w-4 h-4 text-[#B8860B]" />
             <span className="text-[#4A453F]">Precision Metrics</span>
-          </motion.div>
+          </div>
 
           <h2 className="font-[family-name:var(--font-cormorant)] text-3xl md:text-4xl lg:text-5xl 
                      font-semibold text-[#1A1612] mb-6 leading-tight">
@@ -145,14 +109,11 @@ export function AccuracyShowcase() {
             Skyfield ephemeris calculations with IEEE 754 double-precision arithmetic.
             Achieving sub-arcsecond accuracy through algorithmic consensus.
           </p>
-        </motion.div>
+        </div>
 
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Precision Comparison Chart */}
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
+          <div
             className="bg-white border border-[#F0E8DE] rounded-3xl p-8 shadow-sm"
           >
             <div className="flex items-center justify-between mb-10">
@@ -185,10 +146,9 @@ export function AccuracyShowcase() {
                     </span>
                   </div>
 
-                  <AnimatedBar
+                  <StaticBar
                     value={item.accuracy}
                     color={item.color}
-                    delay={index * 200}
                   />
 
                   <div className="grid grid-cols-3 gap-4 mt-3 text-xs">
@@ -209,19 +169,15 @@ export function AccuracyShowcase() {
               ))}
             </div>
 
-          </motion.div>
+          </div>
 
           {/* Technical Metrics Grid */}
           <div className="grid grid-cols-2 gap-4">
             {technicalMetrics.map((metric, index) => {
               const Icon = metric.icon;
               return (
-                <motion.div
+                <div
                   key={metric.label}
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
                   className="group relative bg-white border border-[#F0E8DE] rounded-2xl p-6 
                          hover:border-[#78611D]/30 hover:shadow-lg transition-all duration-300"
                 >
@@ -247,16 +203,12 @@ export function AccuracyShowcase() {
                     <div className="text-sm font-medium text-[#4A453F] mb-1">{metric.label}</div>
                     <div className="text-xs text-[#7A756F]">{metric.desc}</div>
                   </div>
-                </motion.div>
+                </div>
               );
             })}
 
             {/* Calculation Detail Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: 0.4 }}
+            <div
               className="col-span-2 bg-white border border-[#F0E8DE] rounded-2xl p-6"
             >
               <div className="flex items-center gap-3 mb-5">
@@ -290,15 +242,12 @@ export function AccuracyShowcase() {
                   <div className="text-[#A8A39D]">Divine verified</div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
 
         {/* Status Bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+        <div
           className="mt-20 flex justify-center"
         >
           <div className="inline-flex flex-wrap items-center justify-center gap-4 px-8 py-4 
@@ -332,7 +281,7 @@ export function AccuracyShowcase() {
               <span>AI: Connected</span>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

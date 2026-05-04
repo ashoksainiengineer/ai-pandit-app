@@ -3,9 +3,6 @@
  * High-conversion call to action with pricing and urgency
  */
 
-'use client';
-
-import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { ArrowRight, Sparkles, Shield, Clock, Download } from 'lucide-react';
 
@@ -24,27 +21,19 @@ export function FinalCTA() {
       </div>
 
       <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="relative"
-        >
+        <div className="relative">
           {/* Main Card */}
           <div className="relative bg-gradient-to-b from-[#111113] to-[#0a0a0b] border border-zinc-800 rounded-3xl p-8 lg:p-12 overflow-hidden">
             {/* Top Gradient Line */}
             <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00DC82] to-transparent" />
 
             <div className="text-center mb-10">
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
+              <div
                 className="inline-flex items-center gap-2 px-4 py-2 bg-[#00DC82]/10 border border-[#00DC82]/20 rounded-full text-[#00DC82] text-sm font-medium mb-6"
               >
                 <Sparkles className="w-4 h-4" />
                 Limited Time Offer
-              </motion.div>
+              </div>
 
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
                 Ready to Discover Your{' '}
@@ -87,14 +76,12 @@ export function FinalCTA() {
 
                 {/* CTA Button */}
                 <Link href="/rectify">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full py-4 bg-gradient-to-r from-[#00DC82] to-[#36E4DA] text-black font-bold text-lg rounded-xl hover:shadow-[0_0_30px_rgba(0,220,130,0.3)] transition-all duration-300 flex items-center justify-center gap-2"
+                  <button
+                    className="w-full py-4 bg-gradient-to-r from-[#00DC82] to-[#36E4DA] text-black font-bold text-lg rounded-xl hover:shadow-[0_0_30px_rgba(0,220,130,0.3)] transition-all duration-300 flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98]"
                   >
                     Start Your Analysis Now
                     <ArrowRight className="w-5 h-5" />
-                  </motion.button>
+                  </button>
                 </Link>
 
                 <p className="text-center text-xs text-zinc-500 mt-4">
@@ -119,7 +106,7 @@ export function FinalCTA() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

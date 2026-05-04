@@ -397,12 +397,12 @@ export function formatDashaForDate(
 
 /** Exaltation signs for each planet (Uccha Rashi). Source: BPHS. */
 const EXALTATION_SIGNS: Record<string, string> = {
-    sun: 'Aries', moon: 'Taurus', mars: 'Capricorn', mercury: 'Virgo', jupiter: 'Cancer', venus: 'Pisces', saturn: 'Libra'
+    sun: 'Aries', moon: 'Taurus', mars: 'Capricorn', mercury: 'Virgo', jupiter: 'Cancer', venus: 'Pisces', saturn: 'Libra', rahu: 'Taurus', ketu: 'Scorpio'
 };
 
 /** Debilitation signs for each planet (Neecha Rashi). Source: BPHS. */
 const DEBILITATION_SIGNS: Record<string, string> = {
-    sun: 'Libra', moon: 'Scorpio', mars: 'Cancer', mercury: 'Pisces', jupiter: 'Capricorn', venus: 'Virgo', saturn: 'Aries'
+    sun: 'Libra', moon: 'Scorpio', mars: 'Cancer', mercury: 'Pisces', jupiter: 'Capricorn', venus: 'Virgo', saturn: 'Aries', rahu: 'Scorpio', ketu: 'Taurus'
 };
 
 /** Moolatrikona signs for each planet. Source: BPHS. */
@@ -412,10 +412,11 @@ const MOOLATRIKONA_SIGNS: Record<string, string> = {
 
 /** Own signs (Swakshetra) for each planet. Source: BPHS. */
 const OWN_SIGNS: Record<string, string[]> = {
-    sun: ['Leo'], moon: ['Cancer'], mars: ['Aries','Scorpio'], mercury: ['Gemini','Virgo'], jupiter: ['Sagittarius','Pisces'], venus: ['Taurus','Libra'], saturn: ['Capricorn','Aquarius']
+    sun: ['Leo'], moon: ['Cancer'], mars: ['Aries','Scorpio'], mercury: ['Gemini','Virgo'], jupiter: ['Sagittarius','Pisces'], venus: ['Taurus','Libra'], saturn: ['Capricorn','Aquarius'], rahu: ['Virgo'], ketu: ['Pisces']
 };
 
-/** Exaltation degrees (longitude) for Ishta-Kashta Phala. Source: BPHS. */
+/** Exaltation degrees in TOTAL ZODIAC LONGITUDE (0° Aries = 0). Source: BPHS. */
+/** Moon: 33° = 30° (Aries) + 3° (Taurus) = 3° Taurus exalted. */
 const EXALTATION_DEGREES: Record<string, number> = {
     sun: 10, moon: 33, mars: 298, mercury: 165, jupiter: 95, venus: 357, saturn: 200
 };
@@ -426,6 +427,7 @@ const NATURAL_FRIENDS: Record<string, string[]> = {
     mars: ['sun','moon','jupiter'], mercury: ['sun','venus'],
     jupiter: ['sun','moon','mars'], venus: ['mercury','saturn'],
     saturn: ['mercury','venus'],
+    rahu: ['mercury','venus','saturn'], ketu: ['mars','jupiter','venus']
 };
 
 /** Natural planetary enmities (Sahaj Shatru). Source: BPHS. */
@@ -434,6 +436,7 @@ const NATURAL_ENEMIES: Record<string, string[]> = {
     mars: ['mercury'], mercury: ['moon'],
     jupiter: ['mercury','venus'], venus: ['sun','moon'],
     saturn: ['sun','moon','mars'],
+    rahu: ['sun','moon','mars','jupiter'], ketu: ['sun','moon','mercury','saturn']
 };
 
 /** Planet lordship over zodiac sign indices (0=Aries). Source: BPHS. */
@@ -684,6 +687,7 @@ export const calculateAspects = (arg1: EphemerisData | string, _arg2?: number, _
 
 /**
  * Planetary dignity based on sign placement.
+ * Priority order: Exalted > Debilitated > Moolatrikona > Own Sign > Friendly > Enemy > Neutral
  */
 export const getDignity = (planet: string, signOrChart: string | EphemerisData): string => {
   const sign = typeof signOrChart === 'string' ? signOrChart : signOrChart.planets[planet]?.sign;
@@ -693,7 +697,24 @@ export const getDignity = (planet: string, signOrChart: string | EphemerisData):
   if (sign === DEBILITATION_SIGNS[p]) return 'Debilitated';
   if (sign === MOOLATRIKONA_SIGNS[p]) return 'Moolatrikona';
   if (OWN_SIGNS[p]?.includes(sign)) return 'Own Sign';
+  // Check friend/enemy via sign lord
+  const lord = SIGN_TO_LORD[sign];
+  if (lord) {
+    const pLower = p.toLowerCase();
+    const friends = NATURAL_FRIENDS[pLower] || [];
+    const enemies = NATURAL_ENEMIES[pLower] || [];
+    const lordLower = lord.toLowerCase();
+    if (friends.includes(lordLower)) return 'Friendly';
+    if (enemies.includes(lordLower)) return 'Enemy';
+  }
   return 'Neutral';
+};
+
+// Reverse lookup: sign name → ruling planet name (derived from PLANET_LORDSHIPS)
+const SIGN_TO_LORD: Record<string, string> = {
+  Aries: 'Mars', Taurus: 'Venus', Gemini: 'Mercury', Cancer: 'Moon',
+  Leo: 'Sun', Virgo: 'Mercury', Libra: 'Venus', Scorpio: 'Mars',
+  Sagittarius: 'Jupiter', Capricorn: 'Saturn', Aquarius: 'Saturn', Pisces: 'Jupiter'
 };
 
 /**

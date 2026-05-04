@@ -183,12 +183,17 @@ class RateLimiter {
 
         next();
       } catch (error) {
-        // Fail open - log error but allow request
-        logger.warn('Rate limiter error (fail-open)', {
+        // Fail closed — return 503 to prevent unlimited requests during limiter failure
+        logger.error('Rate limiter error (fail-closed)', {
           error: error instanceof Error ? error.message : String(error),
+          path: req.path,
           key
         });
-        next();
+        res.status(503).json({
+          success: false,
+          error: { code: 'RATE_LIMITER_FAILURE', message: 'Rate limiting service unavailable' }
+        });
+        return; // Do NOT call next()
       }
     };
   }

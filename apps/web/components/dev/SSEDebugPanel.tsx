@@ -25,36 +25,40 @@ interface SSEEvent {
 }
 
 // Global event log — populated by monkey-patching dispatchStreamEvent
+// Event log — populated via Zustand subscribe (no monkey-patching)
 const eventLog: SSEEvent[] = [];
 let eventCounter = 0;
-let originalDispatch: ((type: string, data: Record<string, unknown>) => void) | null = null;
 
-function patchDispatch() {
-    if (originalDispatch) return;
-    const store = useStreamStore.getState();
-    originalDispatch = store.dispatchStreamEvent;
+function startEventCapture(): () => void {
+    if (eventLog.length > 0) return () => {}; // Already capturing
 
-    // Monkey-patch to intercept events
-    (useStreamStore as any).setState({
-        dispatchStreamEvent: (type: string, data: Record<string, unknown>) => {
-            eventCounter++;
-            const preview = typeof data === 'object'
-                ? JSON.stringify(data).slice(0, 120)
-                : String(data).slice(0, 120);
+    return useStreamStore.subscribe((state) => {
+        eventCounter++;
 
-            eventLog.unshift({
-                id: eventCounter,
-                type,
-                timestamp: new Date().toISOString().slice(11, 23),
-                preview,
-            });
-
-            // Keep last 50 events
-            if (eventLog.length > 50) eventLog.length = 50;
-
-            // Call original
-            originalDispatch!(type, data);
+        const previewParts: string[] = [];
+        if (state.progress) {
+            previewParts.push(`progress:${state.progress.percentage}% ${state.progress.message}`);
         }
+        if (state.error) {
+            previewParts.push(`error:${state.error}`);
+        }
+        if (state.isComplete) {
+            previewParts.push('complete');
+        }
+        if (state.candidateScores.length > eventLog.length) {
+            previewParts.push(`scores:${state.candidateScores.length}`);
+        }
+
+        if (previewParts.length === 0) return;
+
+        eventLog.unshift({
+            id: eventCounter,
+            type: state.isComplete ? 'complete' : state.error ? 'error' : 'update',
+            timestamp: new Date().toISOString().slice(11, 23),
+            preview: previewParts.join(' | ').slice(0, 120),
+        });
+
+        if (eventLog.length > 50) eventLog.length = 50;
     });
 }
 
@@ -82,7 +86,8 @@ export function SSEDebugPanel() {
     })));
 
     useEffect(() => {
-        patchDispatch();
+        const unsubscribe = startEventCapture();
+        return () => unsubscribe();
     }, []);
 
     useEffect(() => {

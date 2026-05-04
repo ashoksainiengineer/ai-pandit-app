@@ -162,6 +162,7 @@ export interface CandidateDataPackage {
   ascendant: { sign: string; degree: string; nakshatra: string; longitude?: number };
   houseLords: Record<number, string>;
   moonNakshatra: string;
+  ayanamsa?: number;
   vimshottariDasha: VimshottariDashaEntry[];
   yoginiDasha?: Array<{ lord: string; startEnd: string }>;
   charaDasha?: Array<{ sign: string; startEnd: string }>;
@@ -279,6 +280,7 @@ export const CandidateDataPackageSchema = z.object({
     houseLords: z.record(z.union([z.string(), z.number()]), z.string()),
     vimshottariDasha: z.array(VimshottariDashaEntrySchema).min(1),
     transitData: z.record(z.string(), TransitDataEntrySchema).optional(),
+    ayanamsa: z.number().optional(),
 }).passthrough(); // passthrough: pipeline adds ~50+ optional analysis fields (yoginis, shadbala, nadi, KP data, etc.)
 
 /** Result of a single stage in the BTR process */
@@ -334,7 +336,7 @@ export interface FinalPrecisionContext {
 export interface FinalVerdict {
   time: string;
   accuracy: number;
-  confidence: string;
+  confidence: number | string;
   margin: number;
 }
 

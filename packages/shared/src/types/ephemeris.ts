@@ -80,6 +80,8 @@ export interface EphemerisData {
   ashtakavarga?: Record<string, number | number[]>;
   shadbala?: Record<string, ShadbalaBreakdown>;
   kpCusps?: number[];
+  ayanamsa?: number;
+  precisionMode?: 'high' | 'algorithmic' | 'algorithmic-fallback';
 }
 
 export interface MinifiedEphemeris {

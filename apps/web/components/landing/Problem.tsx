@@ -3,9 +3,6 @@
  * Elegant comparison with balanced spacing
  */
 
-'use client';
-
-import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { 
   Cpu, 
@@ -155,23 +152,16 @@ export default function Problem() {
 
       <div className="relative max-w-7xl mx-auto px-6 lg:px-8">
         {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
+        <div
           className="text-center mb-20"
         >
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
+          <div 
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#F0E8DE] 
                        rounded-full text-sm mb-8 shadow-sm"
           >
             <GitCompare className="w-4 h-4 text-[#6B1F7A]" />
             <span className="text-[#4A453F]">Technical Comparison</span>
-          </motion.div>
+          </div>
           
           <h2 className="font-[family-name:var(--font-cormorant)] text-3xl md:text-4xl lg:text-5xl 
                          font-semibold text-[#1A1612] mb-6 leading-tight">
@@ -184,25 +174,17 @@ export default function Problem() {
             Why computational Vedic astrology achieves superior results through 
             systematic algorithmic processing aligned with cosmic precision.
           </p>
-        </motion.div>
+        </div>
 
         {/* Technical Specs Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          viewport={{ once: true }}
-          className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-20"
+        <div
+          className="stagger-children grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-20"
         >
           {technicalSpecs.map((spec, index) => {
             const Icon = spec.icon;
             return (
-              <motion.div
+              <div
                 key={spec.label}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                transition={{ delay: index * 0.1 }}
-                viewport={{ once: true }}
                 className="group relative p-5 bg-white border border-[#F0E8DE] rounded-2xl 
                            hover:border-[#78611D]/30 hover:shadow-lg transition-all duration-300 text-center"
               >
@@ -219,31 +201,23 @@ export default function Problem() {
                   <div className="text-[10px] uppercase tracking-[0.15em] text-[#7A756F] mb-1">{spec.label}</div>
                   <div className="text-sm font-medium text-[#1A1612]">{spec.value}</div>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
-        </motion.div>
+        </div>
 
         {/* Backend Components */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          viewport={{ once: true }}
+        <div
           className="mb-20"
         >
           <h3 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612] mb-8 text-center">
             Sacred Architecture Components
           </h3>
           
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="stagger-children grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {backendComponents.map((comp, index) => (
-              <motion.div
+              <div
                 key={comp.name}
-                initial={{ opacity: 0, y: 10 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                viewport={{ once: true }}
                 className="group p-5 bg-white border border-[#F0E8DE] rounded-2xl 
                            hover:border-[#78611D]/30 transition-all duration-300"
               >
@@ -259,22 +233,18 @@ export default function Problem() {
                     <span className="text-sm text-[#7A756F]">{comp.purpose}</span>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
-        </motion.div>
+        </div>
 
         {/* Comparison Cards */}
         <div className="space-y-6">
           {comparisonPoints.map((point, index) => {
             const Icon = point.icon;
             return (
-              <motion.div
+              <div
                 key={point.category}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
-                viewport={{ once: true }}
                 className="grid md:grid-cols-2 gap-4"
               >
                 {/* Manual Method Card */}
@@ -350,17 +320,13 @@ export default function Problem() {
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>
 
         {/* Bottom CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          viewport={{ once: true }}
+        <div
           className="mt-20 p-8 lg:p-12 bg-gradient-to-br from-[#FDF8F3] via-white to-[#FAF5EF] 
                      border border-[#F0E8DE] rounded-3xl relative overflow-hidden"
         >
@@ -382,16 +348,14 @@ export default function Problem() {
               </p>
             </div>
             <Link href="/rectify">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="px-8 py-4 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white font-semibold rounded-xl shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-all"
+              <button
+                className="px-8 py-4 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white font-semibold rounded-xl shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 Start Analysis
-              </motion.button>
+              </button>
             </Link>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

@@ -35,7 +35,30 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
         const ownershipContext = await resolveSessionOwnershipContext(clerkId);
         const session = await db.query.sessions.findFirst({
-            where: buildOwnedSessionWhereClause(sessionId, ownershipContext),
+        where: buildOwnedSessionWhereClause(sessionId, ownershipContext),
+        columns: {
+          id: true,
+          status: true,
+          userId: true,
+          fullName: true,
+          dateOfBirth: true,
+          tentativeTime: true,
+          birthPlace: true,
+          latitude: true,
+          longitude: true,
+          timezone: true,
+          gender: true,
+          clerkId: true,
+          lifeEvents: true,
+          physicalTraits: true,
+          forensicTraits: true,
+          spouseData: true,
+          offsetConfig: true,
+          analysisResult: true,
+          progressData: true,
+          reasoningLogs: true,
+          errorMessage: true,
+        },
         });
 
         if (!session) {
@@ -43,14 +66,15 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         }
 
         // Parse & Decrypt Fields with God-Tier robustness
+        const sessionUserId = session.userId;
         const parsedSession = {
             ...session,
             // 1. Birth Data Reconstruction (All PII Encrypted)
             birthData: {
-                fullName: parseSensitiveField(session.fullName),
-                dateOfBirth: parseSensitiveField(session.dateOfBirth),
-                tentativeTime: parseSensitiveField(session.tentativeTime),
-                birthPlace: parseSensitiveField(session.birthPlace),
+                fullName: parseSensitiveField(session.fullName, undefined, sessionUserId),
+                dateOfBirth: parseSensitiveField(session.dateOfBirth, undefined, sessionUserId),
+                tentativeTime: parseSensitiveField(session.tentativeTime, undefined, sessionUserId),
+                birthPlace: parseSensitiveField(session.birthPlace, undefined, sessionUserId),
                 latitude: session.latitude,
                 longitude: session.longitude,
                 timezone: Number(session.timezone),
@@ -58,22 +82,22 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
             },
 
             // 2. Trait Clusters (All Encrypted)
-            lifeEvents: parseSensitiveField(session.lifeEvents, []),
-            physicalTraits: parseSensitiveField(session.physicalTraits, null),
-            forensicTraits: parseSensitiveField(session.forensicTraits, null),
-            spouseData: parseSensitiveField(session.spouseData, null),
+            lifeEvents: parseSensitiveField(session.lifeEvents, [], sessionUserId),
+            physicalTraits: parseSensitiveField(session.physicalTraits, null, sessionUserId),
+            forensicTraits: parseSensitiveField(session.forensicTraits, null, sessionUserId),
+            spouseData: parseSensitiveField(session.spouseData, null, sessionUserId),
 
             // 3. System & Results (Can be encrypted or plain depending on source)
-            offsetConfig: parseSensitiveField(session.offsetConfig, null),
-            analysisResult: parseSensitiveField(session.analysisResult, null),
-            progressData: parseSensitiveField(session.progressData, null),
-            reasoningLogs: parseSensitiveField(session.reasoningLogs, null),
+            offsetConfig: parseSensitiveField(session.offsetConfig, null, sessionUserId),
+            analysisResult: parseSensitiveField(session.analysisResult, null, sessionUserId),
+            progressData: parseSensitiveField(session.progressData, null, sessionUserId),
+            reasoningLogs: parseSensitiveField(session.reasoningLogs, null, sessionUserId),
             errorMessage: session.errorMessage, // Errors usually plain text for monitoring
         };
 
         // Extra check: If fullName is at the root and still looks encrypted, patch it
         if (isEncrypted(parsedSession.fullName)) {
-            parsedSession.fullName = parseSensitiveField(parsedSession.fullName);
+            parsedSession.fullName = parseSensitiveField(parsedSession.fullName, undefined, sessionUserId);
         }
 
         return NextResponse.json({ success: true, data: parsedSession });
@@ -110,6 +134,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
             columns: {
                 id: true,
                 status: true,
+                userId: true,
             }
         });
         if (!existingSession) {
@@ -130,10 +155,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         // Flatten birthData if present (Encrypting PII)
         if (body.birthData) {
             const bd = body.birthData;
-            if (bd.fullName) updateData.fullName = encrypt(bd.fullName);
-            if (bd.dateOfBirth) updateData.dateOfBirth = encrypt(bd.dateOfBirth);
-            if (bd.tentativeTime) updateData.tentativeTime = encrypt(bd.tentativeTime);
-            if (bd.birthPlace) updateData.birthPlace = encrypt(bd.birthPlace);
+            if (bd.fullName) updateData.fullName = encrypt(bd.fullName, existingSession.userId);
+            if (bd.dateOfBirth) updateData.dateOfBirth = encrypt(bd.dateOfBirth, existingSession.userId);
+            if (bd.tentativeTime) updateData.tentativeTime = encrypt(bd.tentativeTime, existingSession.userId);
+            if (bd.birthPlace) updateData.birthPlace = encrypt(bd.birthPlace, existingSession.userId);
 
             // Numbers are typically not encrypted for geo-calculations
             if (bd.latitude !== undefined) updateData.latitude = bd.latitude;
@@ -144,19 +169,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
         // Encrypt & Stringify JSON fields (Full Security Suite)
         if (body.lifeEvents !== undefined) {
-            updateData.lifeEvents = encrypt(JSON.stringify(body.lifeEvents));
+            updateData.lifeEvents = encrypt(JSON.stringify(body.lifeEvents), existingSession.userId);
         }
         if (body.physicalTraits !== undefined) {
-            updateData.physicalTraits = encrypt(JSON.stringify(body.physicalTraits));
+            updateData.physicalTraits = encrypt(JSON.stringify(body.physicalTraits), existingSession.userId);
         }
         if (body.forensicTraits !== undefined) {
-            updateData.forensicTraits = encrypt(JSON.stringify(body.forensicTraits));
+            updateData.forensicTraits = encrypt(JSON.stringify(body.forensicTraits), existingSession.userId);
         }
         if (body.spouseData !== undefined) {
-            updateData.spouseData = encrypt(JSON.stringify(body.spouseData));
+            updateData.spouseData = encrypt(JSON.stringify(body.spouseData), existingSession.userId);
         }
         if (body.offsetConfig !== undefined) {
-            updateData.offsetConfig = encrypt(JSON.stringify(body.offsetConfig));
+            updateData.offsetConfig = encrypt(JSON.stringify(body.offsetConfig), existingSession.userId);
         }
 
         // Update in DB

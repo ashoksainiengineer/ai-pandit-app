@@ -70,7 +70,7 @@ const YoginiDashaTimeline: React.FC<YoginiDashaTimelineProps> = ({ dashaPeriods 
               const cx = 100 + (index * 100);
 
               return (
-                <g key={index} onMouseEnter={() => setHoveredDasha(dasha)} onMouseLeave={() => setHoveredDasha(null)}>
+                <g key={dasha.dashaName || `dasha-${index}`} onMouseEnter={() => setHoveredDasha(dasha)} onMouseLeave={() => setHoveredDasha(null)}>
                   {/* Pulsating glow for the event dasha */}
                   {isEvent && (
                     <motion.circle

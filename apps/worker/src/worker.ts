@@ -9,7 +9,12 @@ import {
   updateJobProgress,
   completeJob,
   failJob,
+  db,
+  executeWithRetry,
 } from '@ai-pandit/db';
+import { sessions } from '@ai-pandit/db/schema';
+import { eq, and } from 'drizzle-orm';
+import type { SecondsPrecisionInput, SecondsPrecisionResult } from '@ai-pandit/shared';
 
 // Load environment variables
 config({ path: '.env' });
@@ -28,6 +33,16 @@ let workerRuntime: WorkerRuntime | null = null;
 
 // Active job counter shared between processJob and getActiveCount
 let activeCount = 0;
+
+/**
+ * Dynamic import helper that prevents TypeScript from statically resolving
+ * the module path (which would bring API source files into the worker compilation).
+ * The generic type parameter provides the expected shape at the call site.
+ */
+async function apiDynamicImport<T>(relativePath: string): Promise<T> {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+  return import(relativePath) as Promise<T>;
+}
 
 async function gracefulShutdown(signal: 'SIGTERM' | 'SIGINT'): Promise<void> {
   if (shutdownRequested) {
@@ -67,60 +82,186 @@ async function processJob(): Promise<void> {
   console.log({ event: 'job_claimed', jobId: job.id, sessionId: job.sessionId, kind: job.kind });
 
   try {
-    // Stage: processing started
+    // ── Read session from DB ────────────────────────────────────────────────
     await updateJobProgress({
       jobId: job.id,
-      currentStage: 'processing',
+      currentStage: 'reading_session',
       progressPercent: 10,
     });
 
-    // Stage: computing ephemeris
+    const sessionRows = await executeWithRetry(() =>
+      db.select().from(sessions).where(eq(sessions.id, job.sessionId)).limit(1),
+    );
+    if (!sessionRows.length) {
+      throw new Error('Session not found');
+    }
+    const session = sessionRows[0];
+
+    // ── Decrypt session fields ──────────────────────────────────────────────
     await updateJobProgress({
       jobId: job.id,
-      currentStage: 'computing_ephemeris',
+      currentStage: 'decrypting_data',
+      progressPercent: 20,
+    });
+
+    const { safeDecryptWithFallback, parseSensitiveField } =
+      await apiDynamicImport<{
+        safeDecryptWithFallback: (data: string | null | undefined, primaryId: string, secondaryId?: string) => string | null;
+        parseSensitiveField: <T = unknown>(data: string | null | undefined, clerkId: string, internalUserId: string, defaultValue?: T | null) => T | string | null;
+      }>('../../api/src/lib/encryption/index.js');
+    if (!session.lifeEvents) {
+      throw new Error('lifeEvents data is missing — cannot process without life events');
+    }
+
+    // Decrypt and parse session fields (matching queue-manager.ts approach)
+    const lifeEvents = decryptSessionJsonField(
+      session.lifeEvents,
+      session.clerkId,
+      session.userId,
+      safeDecryptWithFallback,
+      true,
+    );
+
+    const physicalTraits = decryptOptionalSessionJsonField(
+      session.physicalTraits,
+      session.clerkId,
+      session.userId,
+      safeDecryptWithFallback,
+    );
+
+    const forensicTraits = decryptOptionalSessionJsonField(
+      session.forensicTraits,
+      session.clerkId,
+      session.userId,
+      safeDecryptWithFallback,
+    );
+
+    const dateOfBirth =
+      parseSensitiveField(session.dateOfBirth, session.clerkId, session.userId, '') as string;
+    const tentativeTime =
+      parseSensitiveField(session.tentativeTime, session.clerkId, session.userId, '') as string;
+    const spouseData = session.spouseData
+      ? parseSensitiveField(session.spouseData, session.clerkId, session.userId)
+      : undefined;
+
+    // ── Build BTR input ─────────────────────────────────────────────────────
+    await updateJobProgress({
+      jobId: job.id,
+      currentStage: 'building_input',
       progressPercent: 30,
     });
 
-    // Stage: analyzing dashas
-    await updateJobProgress({
+    const rawOffset =
+      parseSensitiveField(session.offsetConfig, session.clerkId, session.userId) as
+        | Record<string, unknown>
+        | null;
+    const offsetConfig =
+      rawOffset && (
+        typeof rawOffset === 'object' &&
+        ('preset' in rawOffset || 'customMinutes' in rawOffset)
+      )
+        ? rawOffset
+        : { preset: '1hour' };
+
+    const { executeSecondsPrecisionRectification } =
+      await apiDynamicImport<{
+        executeSecondsPrecisionRectification: (input: SecondsPrecisionInput) => Promise<SecondsPrecisionResult>;
+      }>('../../api/src/lib/seconds-precision-btr.js');
+
+    const btrInput: SecondsPrecisionInput = {
+      sessionId: session.id,
+      dateOfBirth,
+      tentativeTime,
+      latitude: session.latitude,
+      longitude: session.longitude,
+      timezone: session.timezone,
+      lifeEvents: lifeEvents as SecondsPrecisionInput['lifeEvents'],
+      offsetConfig: offsetConfig as unknown as SecondsPrecisionInput['offsetConfig'],
+      physicalTraits: physicalTraits as SecondsPrecisionInput['physicalTraits'],
+      forensicTraits: forensicTraits as SecondsPrecisionInput['forensicTraits'],
+      spouseData: spouseData as SecondsPrecisionInput['spouseData'],
+      abortSignal: new AbortController().signal,
+    };
+
+    // ── Run BTR analysis ────────────────────────────────────────────────────
+    // Progress updates are emitted by the pipeline internally via ProgressTracker
+    console.log('[WORKER] Starting BTR analysis', {
+      sessionId: session.id,
       jobId: job.id,
-      currentStage: 'analyzing_dashas',
-      progressPercent: 50,
     });
 
-    // Stage: rectifying birth time
-    await updateJobProgress({
-      jobId: job.id,
-      currentStage: 'rectifying_time',
-      progressPercent: 70,
+    const result: SecondsPrecisionResult = await executeSecondsPrecisionRectification(btrInput);
+
+    console.log('[WORKER] BTR analysis complete', {
+      sessionId: session.id,
+      rectifiedTime: result.rectifiedTime,
+      accuracy: result.accuracy,
     });
 
-    // Stage: generating results
+    // ── Save results to session ─────────────────────────────────────────────
     await updateJobProgress({
       jobId: job.id,
-      currentStage: 'generating_results',
-      progressPercent: 90,
+      currentStage: 'saving_results',
+      progressPercent: 95,
     });
 
-    // Complete the job with a result
+    await executeWithRetry(() =>
+      db
+        .update(sessions)
+        .set({
+          status: 'complete',
+          rectifiedTime: result.rectifiedTime,
+          accuracy: result.accuracy,
+          confidence: result.confidence,
+          analysisResult: JSON.stringify(result.analysisResult),
+          completedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+        .where(
+          and(
+            eq(sessions.id, session.id),
+            eq(sessions.status, 'processing'),
+          ),
+        ),
+    );
+
+    // ── Complete job ────────────────────────────────────────────────────────
     await completeJob({
       jobId: job.id,
       resultJson: {
-        processed: true,
-        stages: [
-          'processing',
-          'computing_ephemeris',
-          'analyzing_dashas',
-          'rectifying_time',
-          'generating_results',
-        ],
+        rectifiedTime: result.rectifiedTime,
+        accuracy: result.accuracy,
+        confidence: result.confidence,
       },
     });
 
     console.log({ event: 'job_completed', jobId: job.id, sessionId: job.sessionId });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error({ event: 'job_failed', jobId: job.id, error: message });
+    console.error({ event: 'job_failed', jobId: job.id, sessionId: job.sessionId, error: message });
+
+    // Mark session as failed
+    try {
+      await executeWithRetry(() =>
+        db
+          .update(sessions)
+          .set({
+            status: 'failed',
+            errorMessage: message,
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(sessions.id, job.sessionId)),
+      );
+    } catch (sessionError) {
+      console.error({
+        event: 'session_fail_update_error',
+        jobId: job.id,
+        error:
+          sessionError instanceof Error
+            ? sessionError.message
+            : String(sessionError),
+      });
+    }
 
     // Mark job as failed — guard against DB errors during fail handling
     try {
@@ -135,6 +276,82 @@ async function processJob(): Promise<void> {
     }
   } finally {
     activeCount -= 1;
+  }
+}
+
+/**
+ * Decrypt and parse a session JSON field (required).
+ * Follows the same fallback pattern as queue-manager's decryptJsonField.
+ */
+function decryptSessionJsonField(
+  encrypted: string,
+  clerkId: string,
+  userId: string,
+  decryptFn: (data: string | null | undefined, primaryId: string, secondaryId?: string) => string | null,
+  _required: boolean,
+): unknown {
+  const decrypted = decryptFn(encrypted, clerkId, userId);
+  if (decrypted) {
+    try {
+      return JSON.parse(decrypted);
+    } catch {
+      // Decrypted value is not valid JSON
+    }
+  }
+  // Fallback: try raw JSON parse (for unencrypted test data or legacy records)
+  try {
+    return JSON.parse(encrypted);
+  } catch {
+    throw new Error('Failed to decrypt or parse session field');
+  }
+}
+
+/**
+ * Decrypt and parse an optional session JSON field.
+ * Follows the same pattern as queue-manager's decryptOptionalJsonField.
+ */
+function decryptOptionalSessionJsonField(
+  encrypted: string | null,
+  clerkId: string,
+  userId: string,
+  decryptFn: (data: string | null | undefined, primaryId: string, secondaryId?: string) => string | null,
+): unknown {
+  if (!encrypted) {
+    return undefined;
+  }
+  const decrypted = decryptFn(encrypted, clerkId, userId);
+  if (decrypted) {
+    try {
+      return JSON.parse(decrypted);
+    } catch {
+      /* fall through */
+    }
+  }
+  try {
+    return JSON.parse(encrypted);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Recover interrupted jobs on worker startup.
+ * Delegates to the API's recovery logic if available,
+ * otherwise returns zero counts (graceful fallback).
+ */
+async function recoverInterruptedJobs(): Promise<{
+  recoveredJobs: number;
+  abandonedAttempts: number;
+}> {
+  try {
+    const { recoverInterruptedJobsOnStartup } =
+      await apiDynamicImport<{
+        recoverInterruptedJobsOnStartup: () => Promise<{ recoveredJobs: number; abandonedAttempts: number }>;
+      }>('../../api/src/lib/metrics-reporter.js');
+    return await recoverInterruptedJobsOnStartup();
+  } catch (error) {
+    console.error('[WORKER] Recovery import/execution failed:', error);
+    return { recoveredJobs: 0, abandonedAttempts: 0 };
   }
 }
 
@@ -191,7 +408,7 @@ void (async () => {
     workerRuntime = createWorkerRuntime({
       pollIntervalMs,
       getActiveCount: () => activeCount,
-      recover: async () => ({ recoveredJobs: 0, abandonedAttempts: 0 }),
+      recover: async () => recoverInterruptedJobs(),
       processJob: () => processJob(),
     });
 

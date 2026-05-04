@@ -49,33 +49,36 @@ export interface NadiMatchResult {
   details: string;
 }
 
-const NADI_DEITIES = [
-  'Agni', 'Brahma', 'Vishnu', 'Rudra', 'Indra', 'Soma', 'Yama', 'Varuna',
-  'Vayu', 'Kubera', 'Ashwini Kumar', 'Saraswati', 'Lakshmi', 'Durga', 'Ganesha',
-  'Hanuman', 'Kartikeya', 'Surya', 'Chandra', 'Mangal', 'Budha', 'Guru',
-  'Shukra', 'Shani', 'Rahu', 'Ketu', 'Ganga', 'Yamuna', 'Saraswati',
-  'Narmada', 'Godavari', 'Kaveri', 'Krishna', 'Bhagirathi', 'Mandakini',
-  'Alakananda', 'Tamraparni', 'Sindhu', 'Brahmaputra', 'Mahanadi', 'Tapti',
-  'Mahi', 'Sabarmati', 'Tungabhadra', 'Penna', 'Sharavati', 'Netravati',
-  'Kalindi', 'Gandaki', 'Kosi', 'Ghaghara', 'Yamuna', 'Chambal', 'Betwa',
-  'Sone', 'Damodar', 'Mahananda', 'Teesta', 'Manas', 'Brahmaputra',
-  'Irrawaddy', 'Mekong', 'Yangtze', 'Huang He', 'Amur', 'Lena', 'Yenisei',
-  'Ob', 'Volga', 'Danube', 'Rhine', 'Seine', 'Thames', 'Nile', 'Niger',
-  'Congo', 'Zambezi', 'Orange', 'Murray', 'Darling', 'Amazon', 'Orinoco',
-  'Parana', 'Uruguay', 'Magdalena', 'Colorado', 'Columbia', 'Mississippi',
-  'Missouri', 'Ohio', 'Rio Grande', 'Arkansas', 'Red', 'Snake', 'Sacramento',
-  'San Joaquin', 'Willamette', 'Yukon', 'Mackenzie', 'St Lawrence',
-  'Hudson', 'Connecticut', 'Potomac', 'James', 'Savannah', 'Suwannee',
-  'Apalachicola', 'Mobile', 'Pearl', 'Trinity', 'Brazos', 'Pecos',
-  'Gila', 'Salt', 'Verde', 'Santa Cruz', 'Mojave', 'Owens', 'Truckee',
-  'Carson', 'Walker', 'Humboldt', 'Bear', 'Jordan', 'Weber', 'Green',
-  'Yampa', 'White', 'Gunnison', 'Dolores', 'San Juan', 'Animas',
-  'Piedra', 'Los Pinos', 'Florida', 'Los Animas', 'Navajo', 'Laja',
-  'Purus', 'Javari', 'Jurua', 'Tef', 'Coari', 'Madeira', 'Tapaj',
-  'Xingu', 'Tocantins', 'Araguaia', 'Par', 'Maranho', 'Piau',
-  'Cear', 'Rio Grande do Norte', 'Paraba', 'Pernambuco', 'Alagoas',
-  'Sergipe', 'Bahia', 'Esprito Santo', 'Rio de Janeiro', 'So Paulo',
-  'Paran', 'Santa Catarina', 'Rio Grande do Sul'
+const NADI_DEITIES: string[] = [
+  // First cycle (1-30): Primary deities
+  'Agni', 'Brahma', 'Vishnu', 'Shiva', 'Indra', 'Soma', 'Surya', 'Yama',
+  'Varuna', 'Vayu', 'Kubera', 'Saraswati', 'Lakshmi', 'Parvati', 'Ganesha',
+  'Kartikeya', 'Hanuman', 'Durga', 'Kali', 'Chandra', 'Mangala', 'Budha',
+  'Guru', 'Shukra', 'Shani', 'Rahu', 'Ketu', 'Ashwini', 'Bharani', 'Krittika',
+  // Second cycle (31-60): Rishi/Devata
+  'Vashishtha', 'Vishwamitra', 'Bhrigu', 'Angiras', 'Atri', 'Pulastya',
+  'Pulaha', 'Kratu', 'Marichi', 'Narada', 'Daksha', 'Kashyapa', 'Shukracharya',
+  'Brihaspati', 'Shanideva', 'Yamaraja', 'Varunadeva', 'Vayudeva', 'Agnideva',
+  'Indradeva', 'Kuberadeva', 'Chandradeva', 'Suryadeva', 'Ashwinikumarau',
+  'Dhanvantari', 'Garuda', 'Shesha', 'Vasuki', 'Takshaka', 'Ananta',
+  // Third cycle (61-90): Shakti forms
+  'Gauri', 'Uma', 'Ambika', 'Chandi', 'Chamunda', 'Bhadrakali', 'Mahakali',
+  'Mahalakshmi', 'Mahasaraswati', 'Annapurna', 'Lalita', 'Tripura', 'Bhuvaneshwari',
+  'Matangi', 'Kamala', 'Tara', 'Shodashi', 'Bhairavi', 'Chinnamasta', 'Dhumavati',
+  'Bagalamukhi', 'Kamakhya', 'Narmada', 'Godavari', 'Kaveri', 'Yamuna', 'Ganga',
+  'Saraswati', 'Sindhu', 'Brahmaputra',
+  // Fourth cycle (91-120): Celestial beings
+  'Deva', 'Asura', 'Gandharva', 'Kinnara', 'Yaksha', 'Rakshasa', 'Pishacha',
+  'Pretaraja', 'Nagadeva', 'Garudadeva', 'Vidyadhara', 'Siddha', 'Charanacharya',
+  'Apsara', 'Urvashi', 'Rambha', 'Menaka', 'Tilottama', 'Ghritachi',
+  'Vishwachi', 'Purvachitti', 'Swayamprabha', 'Hemavati', 'Chitralekha',
+  'Ratnavali', 'Madhura', 'Vasanta', 'Grishma', 'Varsha', 'Sharada',
+  // Fifth cycle (121-150): Guardians and cosmic forces
+  'Lokapala', 'Dikpala', 'Kshetrapala', 'Gramadevata', 'Kuladevata', 'Ishtadevata',
+  'Pitrideva', 'Matrideva', 'Gurudeva', 'Shikshaka', 'Rakshaka', 'Palaka',
+  'Srishtikarta', 'Samharaka', 'Anugrahaka', 'Nigrahaka', 'Prakasha',
+  'Vimarsha', 'Ananda', 'Jnana', 'Bala', 'Virya', 'Teja', 'Kshama',
+  'Daya', 'Maitri', 'Karuna', 'Mudita', 'Upeksha', 'Shanti',
 ];
 
 const NADI_PHALAS = [

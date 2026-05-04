@@ -54,12 +54,13 @@ vi.mock('../../errors/index.js', () => ({
     ErrorCodes: {},
 }));
 
+import { authMiddleware } from '../../middleware/auth.js';
 import adminRouter from '../../routes/admin.js';
 
 function createApp() {
     const app = express();
     app.use(express.json());
-    app.use('/api/admin', adminRouter);
+    app.use('/api/admin', authMiddleware, adminRouter);
     return app;
 }
 

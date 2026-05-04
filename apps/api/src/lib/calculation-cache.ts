@@ -9,6 +9,7 @@ import { db } from '@ai-pandit/db';
 import { calculations } from '@ai-pandit/db/schema';
 import { eq, and, lt, isNotNull, sql } from 'drizzle-orm';
 import { logger } from '../utils/logger.js';
+import { getMutationRowCount } from './db-utils.js';
 
 interface CacheEntry {
   id: string;
@@ -199,27 +200,6 @@ export async function getCacheStats(): Promise<{
   }
 }
 
-function getMutationRowCount(result: unknown): number {
-  if (
-    typeof result === 'object' &&
-    result !== null &&
-    'rowCount' in result &&
-    typeof (result as { rowCount?: unknown }).rowCount === 'number'
-  ) {
-    return (result as { rowCount: number }).rowCount;
-  }
-
-  if (
-    typeof result === 'object' &&
-    result !== null &&
-    'rowsAffected' in result &&
-    typeof (result as { rowsAffected?: unknown }).rowsAffected === 'number'
-  ) {
-    return (result as { rowsAffected: number }).rowsAffected;
-  }
-
-  return 0;
-}
 
 /**
  * Clear expired cache entries

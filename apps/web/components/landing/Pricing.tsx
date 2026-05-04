@@ -1,7 +1,4 @@
-'use client';
-
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import { Check, Clock, Target, FileText, Mail, Shield } from 'lucide-react';
 
 const features = [
@@ -35,11 +32,7 @@ export default function Pricing() {
   return (
     <section id="pricing" className="py-20 bg-slate-800">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
+        <div
           className="text-center mb-16"
         >
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -48,13 +41,9 @@ export default function Pricing() {
           <p className="text-xl text-gray-300">
             One-time payment, lifetime access to your analysis
           </p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          viewport={{ once: true }}
+        <div
           className="bg-gradient-to-br from-slate-700 to-slate-800 border border-slate-600 rounded-2xl p-8 md:p-12 shadow-2xl hover:shadow-blue-500/10 transition-all duration-300"
         >
           <div className="text-center mb-8">
@@ -84,51 +73,41 @@ export default function Pricing() {
             {features.map((feature, index) => {
               const IconComponent = feature.icon;
               return (
-                <motion.div
+                <div
                   key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.6, delay: index * 0.1 }}
-                  viewport={{ once: true }}
                   className="flex items-center gap-3"
                 >
                   <div className="flex items-center justify-center w-6 h-6 bg-blue-600/20 rounded-full flex-shrink-0">
                     <IconComponent className="w-4 h-4 text-blue-400" />
                   </div>
                   <span className="text-gray-300">{feature.text}</span>
-                </motion.div>
+                </div>
               );
             })}
           </div>
 
           <div className="text-center">
             <Link href="/rectify">
-              <motion.button
-                whileHover={{ scale: 1.05, boxShadow: '0 0 25px rgba(59, 130, 246, 0.3)' }}
-                whileTap={{ scale: 0.95 }}
-                className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold text-lg rounded-xl transition-all duration-300 shadow-lg"
+              <button
+                className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold text-lg rounded-xl transition-all duration-300 shadow-lg hover:scale-[1.05] active:scale-[0.95]"
               >
                 Get Your Analysis
-              </motion.button>
+              </button>
             </Link>
             <p className="text-sm text-gray-400 mt-4">
               No hidden charges • Secure payment • Instant access
             </p>
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          viewport={{ once: true }}
+        <div
           className="text-center mt-8"
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-600/10 border border-green-600/20 rounded-full text-green-400 text-sm">
             <Shield className="w-4 h-4" />
             Trusted by 10,000+ customers worldwide
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

@@ -333,7 +333,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                         {step === 1 && birthData && (
                             <Step1BirthDetails
                                 data={birthData}
-                                updateData={(updates) => setBirthData(prev => prev ? { ...prev, ...updates } : null)}
+                                updateData={(updates: Partial<import('@/lib/types').BirthData>) => setBirthData(prev => prev ? { ...prev, ...updates } : updates as import('@/lib/types').BirthData)}
                                 offsetConfig={offsetConfig}
                                 updateOffset={setOffsetConfig}
                             />

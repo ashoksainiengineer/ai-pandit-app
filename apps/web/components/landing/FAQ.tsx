@@ -1,7 +1,4 @@
-'use client';
-
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React from 'react';
 import { ChevronDown, HelpCircle } from 'lucide-react';
 
 const faqs = [
@@ -32,20 +29,10 @@ const faqs = [
 ];
 
 export default function FAQ() {
-  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-
-  const toggleFAQ = (index: number) => {
-    setExpandedIndex(expandedIndex === index ? null : index);
-  };
-
   return (
     <section id="faq" className="py-20 bg-slate-800">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          viewport={{ once: true }}
+        <div
           className="text-center mb-16"
         >
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/10 border border-blue-600/20 rounded-full text-blue-400 text-sm font-medium mb-4">
@@ -58,68 +45,37 @@ export default function FAQ() {
           <p className="text-xl text-gray-300">
             Find answers to common questions about our birth time rectification service
           </p>
-        </motion.div>
+        </div>
 
         <div className="space-y-4">
           {faqs.map((faq, index) => (
-            <motion.div
+            <details
               key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
-              viewport={{ once: true }}
-              className="bg-slate-700/50 border border-slate-600 rounded-lg overflow-hidden"
+              className="bg-slate-700/50 border border-slate-600 rounded-lg overflow-hidden group"
             >
-              <button
-                onClick={() => toggleFAQ(index)}
-                className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-slate-600/30 transition-colors duration-200"
-              >
-                <span className="text-white font-medium pr-4">{faq.question}</span>
-                <motion.div
-                  animate={{ rotate: expandedIndex === index ? 180 : 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0" />
-                </motion.div>
-              </button>
-
-              <AnimatePresence>
-                {expandedIndex === index && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className="border-t border-slate-600"
-                  >
-                    <div className="px-6 py-4 text-gray-300">
-                      {faq.answer}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+              <summary className="px-6 py-4 text-white font-medium cursor-pointer flex items-center justify-between hover:bg-slate-600/30 transition-colors duration-200 list-none">
+                <span className="pr-4">{faq.question}</span>
+                <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-300 group-open:rotate-180" />
+              </summary>
+              <div className="border-t border-slate-600 px-6 py-4 text-gray-300">
+                {faq.answer}
+              </div>
+            </details>
           ))}
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.8 }}
-          viewport={{ once: true }}
+        <div
           className="text-center mt-12"
         >
           <p className="text-gray-400 mb-6">
             Still have questions? We&apos;re here to help.
           </p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <button
             className="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-lg transition-colors duration-200"
           >
             Contact Support
-          </motion.button>
-        </motion.div>
+          </button>
+        </div>
       </div>
     </section>
   );

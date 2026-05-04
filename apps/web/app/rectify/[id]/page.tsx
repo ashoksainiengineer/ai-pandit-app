@@ -35,7 +35,7 @@ export default function AnalysisPage() {
   const sessionId = params.id as string;
   const pageTitleId = useId();
 
-  const session = useAnalysisSession(sessionId, isLoaded, isSignedIn, getToken);
+  const session = useAnalysisSession(sessionId, isLoaded ?? false, isSignedIn ?? false, getToken);
   const actions = useAnalysisActions(sessionId);
 
   useEffect(() => {

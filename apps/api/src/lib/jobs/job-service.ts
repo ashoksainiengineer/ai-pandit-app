@@ -1,7 +1,7 @@
 import crypto from 'node:crypto';
 import { db, executeWithRetry } from '@ai-pandit/db';
 import { idempotencyKeys, jobs, sessions, users } from '@ai-pandit/db/schema';
-import { and, eq } from 'drizzle-orm';
+import { and, count, eq } from 'drizzle-orm';
 import {
   CalculateRequestSchema,
   type JobDetail,
@@ -260,23 +260,23 @@ async function enforceQueueCapacity(userId: string): Promise<void> {
 
   const tierLimit = config.queue.maxActiveJobsByTier[inferredTier] ?? config.queue.maxActiveJobsPerUser;
 
-  const [globalQueued, globalRunning, globalRetrying, userQueued, userRunning, userRetrying] = await Promise.all([
-    executeWithRetry(() => db.select({ id: jobs.id }).from(jobs).where(eq(jobs.status, 'queued')).limit(100000)),
-    executeWithRetry(() => db.select({ id: jobs.id }).from(jobs).where(eq(jobs.status, 'running')).limit(100000)),
-    executeWithRetry(() => db.select({ id: jobs.id }).from(jobs).where(eq(jobs.status, 'retrying')).limit(100000)),
+  const [globalQResult, globalRResult, globalReResult, userQResult, userRResult, userReResult] = await Promise.all([
+    executeWithRetry(() => db.select({ count: count() }).from(jobs).where(eq(jobs.status, 'queued'))),
+    executeWithRetry(() => db.select({ count: count() }).from(jobs).where(eq(jobs.status, 'running'))),
+    executeWithRetry(() => db.select({ count: count() }).from(jobs).where(eq(jobs.status, 'retrying'))),
     executeWithRetry(() =>
-      db.select({ id: jobs.id }).from(jobs).where(and(eq(jobs.userId, userId), eq(jobs.status, 'queued'))).limit(100000)
+      db.select({ count: count() }).from(jobs).where(and(eq(jobs.userId, userId), eq(jobs.status, 'queued')))
     ),
     executeWithRetry(() =>
-      db.select({ id: jobs.id }).from(jobs).where(and(eq(jobs.userId, userId), eq(jobs.status, 'running'))).limit(100000)
+      db.select({ count: count() }).from(jobs).where(and(eq(jobs.userId, userId), eq(jobs.status, 'running')))
     ),
     executeWithRetry(() =>
-      db.select({ id: jobs.id }).from(jobs).where(and(eq(jobs.userId, userId), eq(jobs.status, 'retrying'))).limit(100000)
+      db.select({ count: count() }).from(jobs).where(and(eq(jobs.userId, userId), eq(jobs.status, 'retrying')))
     ),
   ]);
 
-  const globalActiveCount = globalQueued.length + globalRunning.length + globalRetrying.length;
-  const userActiveCount = userQueued.length + userRunning.length + userRetrying.length;
+  const globalActiveCount = (globalQResult[0]?.count ?? 0) + (globalRResult[0]?.count ?? 0) + (globalReResult[0]?.count ?? 0);
+  const userActiveCount = (userQResult[0]?.count ?? 0) + (userRResult[0]?.count ?? 0) + (userReResult[0]?.count ?? 0);
 
   if (userActiveCount >= tierLimit) {
     throw new AppError(

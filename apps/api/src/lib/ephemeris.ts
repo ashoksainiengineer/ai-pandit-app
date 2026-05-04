@@ -1,5 +1,6 @@
 
 import { EphemerisData, PlanetPosition, HousePosition, ZODIAC_SIGNS } from '@ai-pandit/shared';
+import { getDignity } from './vedic-astrology-engine.js';
 import { logger } from '../utils/logger.js';
 import { config } from '../config/index.js';
 import type { EphemerisServiceChartResponse } from '@ai-pandit/shared/types';
@@ -49,7 +50,7 @@ const EPH_CACHE = new Map<string, CacheEntry>();
 const SESSION_CACHES = new Map<string, Set<string>>();
 const MAX_CACHE_SIZE = 300;
 const MAX_CACHE_SIZE_PER_SESSION = 100;
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const CACHE_TTL_MS = 60 * 60 * 1000;
 
 export function clearEphemerisSessionCache(sessionId: string): void {
   const keys = SESSION_CACHES.get(sessionId);
@@ -190,6 +191,77 @@ function cacheResult(cacheKey: string, data: EphemerisData, sessionId?: string):
   }
   EPH_CACHE.set(cacheKey, { data, timestamp: Date.now(), sessionId });
 }
+function normalize360(deg: number): number {
+  return ((deg % 360) + 360) % 360;
+}
+
+function calcMidheaven(jd: number, _lat: number, lon: number): number {
+  const T = (jd - 2451545.0) / 36525;
+  const GMST = (18.697374558 + 8640184.812866 * T / 3600 + 0.093104 * T * T) % 24;
+  const LST = (GMST + lon / 15) % 24;
+  const RAMC = LST * 15;
+  const obliquity = 23.439281;
+  const mcRad = Math.atan2(Math.tan(RAMC * Math.PI / 180), Math.cos(obliquity * Math.PI / 180));
+  return normalize360(mcRad * 180 / Math.PI - getAyanamsaAlgo(jd));
+}
+
+function buildPlacidusHousesAlgorithmic(ascLng: number, mcLng: number, _latitude: number): HousePosition[] {
+  const icLng = normalize360(mcLng + 180);
+  const desLng = normalize360(ascLng + 180);
+
+  // Approximate Placidus using Campanus-like interpolation
+  const arcIC = normalize360(icLng - ascLng + 360);
+  const h2 = normalize360(ascLng + arcIC / 3);
+  const h3 = normalize360(ascLng + arcIC * 2 / 3);
+
+  const cusps: number[] = [
+    ascLng, h2, h3, icLng,
+    normalize360(icLng + (desLng - icLng + 360) % 360 / 3),
+    normalize360(icLng + (desLng - icLng + 360) % 360 * 2 / 3),
+    desLng,
+    normalize360(desLng + (mcLng - desLng + 360) % 360 / 3),
+    normalize360(desLng + (mcLng - desLng + 360) % 360 * 2 / 3),
+    mcLng,
+    normalize360(mcLng + (ascLng - mcLng + 360) % 360 / 3),
+    normalize360(mcLng + (ascLng - mcLng + 360) % 360 * 2 / 3),
+  ];
+
+  return cusps.map((cusp, i) => {
+    const sign = getZodiacSign(cusp);
+    return {
+      houseNumber: i + 1,
+      sign,
+      degree: cusp % 30,
+      cusp,
+      lord: getLord(sign),
+    };
+  });
+}
+
+function buildHousesFromSkyfield(
+  chart: EphemerisServiceChartResponse,
+  ascLongitude: number
+): HousePosition[] {
+  const houseSystem = getEphemerisConfig().houseSystem;
+  const cusps = chart.houses.houseCuspsSidereal
+    ?? chart.houses.houseCuspsTropical.map((c: number) => ((c - chart.ayanamsha) % 360 + 360) % 360);
+
+  if (houseSystem === 'placidus' || houseSystem === 'equal') {
+    return cusps.map((cusp: number, index: number) => {
+      const sign = getZodiacSign(cusp);
+      return {
+        houseNumber: index + 1,
+        sign,
+        degree: cusp % 30,
+        cusp,
+        lord: getLord(sign),
+      };
+    });
+  }
+
+  // Default/whole_sign: fall back to whole sign houses
+  return buildWholeSignHouses(ascLongitude);
+}
 
 function buildWholeSignHouses(ascendantLongitude: number): HousePosition[] {
   const ascSignIndex = Math.floor((((ascendantLongitude % 360) + 360) % 360) / 30);
@@ -208,15 +280,23 @@ function buildWholeSignHouses(ascendantLongitude: number): HousePosition[] {
   });
 }
 
-function assignWholeSignPlanetHouses(
-  planets: Record<string, PlanetPosition>,
-  ascendantSign: string
-): void {
-  const ascSignIndex = ZODIAC_SIGNS.indexOf(ascendantSign as typeof ZODIAC_SIGNS[number]);
-
+function assignPlanetHouses(planets: Record<string, PlanetPosition>, houses: HousePosition[]): void {
   for (const planet of Object.values(planets)) {
-    const planetSignIndex = ZODIAC_SIGNS.indexOf(planet.sign as typeof ZODIAC_SIGNS[number]);
-    planet.house = ((planetSignIndex - ascSignIndex + 12) % 12) + 1;
+    const planetLng = planet.longitude;
+    let assignedHouse = 1;
+    for (let i = 0; i < 12; i++) {
+      const thisCusp = houses[i].cusp;
+      const nextCusp = houses[(i + 1) % 12].cusp;
+      const rangeStart = thisCusp;
+      const rangeEnd = nextCusp < thisCusp ? nextCusp + 360 : nextCusp;
+      const plng = planetLng < thisCusp ? planetLng + 360 : planetLng;
+
+      if (plng >= rangeStart && plng < rangeEnd) {
+        assignedHouse = i + 1;
+        break;
+      }
+    }
+    planet.house = assignedHouse;
   }
 }
 
@@ -269,15 +349,17 @@ function buildEphemerisFromSkyfieldChart(chart: EphemerisServiceChartResponse): 
 
   const kpCusps = chart.houses.houseCuspsSidereal
     ?? chart.houses.houseCuspsTropical.map((cusp) => ((cusp - chart.ayanamsha) % 360 + 360) % 360);
-  const houses = buildWholeSignHouses(ascLongitude);
+  const houses = buildHousesFromSkyfield(chart, ascLongitude);
 
-  assignWholeSignPlanetHouses(planets, ascendant.sign);
+  assignPlanetHouses(planets, houses);
 
   return {
     planets: planets as EphemerisData['planets'],
     ascendant,
     houses,
     kpCusps,
+    ayanamsa: chart.ayanamsha,
+    precisionMode: 'high',
   };
 }
 
@@ -444,15 +526,29 @@ function calculateEphemerisWithAlgorithmic(input: {
     nakshatraPada: getNakshatraPada(ascLng),
   };
 
-  const houses = buildWholeSignHouses(ascLng);
-  assignWholeSignPlanetHouses(planets, ascendant.sign);
+  const houseSystem = getEphemerisConfig().houseSystem;
+  let houses: HousePosition[];
+  if (houseSystem === 'placidus') {
+    const mcLng = calcMidheaven(jd, input.latitude, input.longitude);
+    houses = buildPlacidusHousesAlgorithmic(ascLng, mcLng, input.latitude);
+  } else {
+    houses = buildWholeSignHouses(ascLng);
+  }
+
+  assignPlanetHouses(planets, houses);
   activeExecutionMode = getConfiguredProvider() === 'algorithmic' ? 'algorithmic' : 'algorithmic-fallback';
+
+  if (activeExecutionMode === 'algorithmic-fallback') {
+    logger.warn('[EPHEMERIS] Using algorithmic-fallback precision mode');
+  }
 
   return {
     planets: planets as EphemerisData['planets'],
     ascendant,
     houses,
     kpCusps: houses.map((house) => house.cusp),
+    ayanamsa: getAyanamsaAlgo(jd),
+    precisionMode: activeExecutionMode === 'algorithmic' ? 'algorithmic' : 'algorithmic-fallback',
   };
 }
 
@@ -508,38 +604,6 @@ const getLord = (sign: string): string => {
   }
 };
 
-const getDignity = (planet: string, sign: string): string => {
-  const exaltation: Record<string, string> = {
-    'Sun': 'Aries', 'Moon': 'Taurus', 'Mars': 'Capricorn', 'Mercury': 'Virgo',
-    'Jupiter': 'Cancer', 'Venus': 'Pisces', 'Saturn': 'Libra', 'Rahu': 'Taurus', 'Ketu': 'Scorpio'
-  };
-  const debilitation: Record<string, string> = {
-    'Sun': 'Libra', 'Moon': 'Scorpio', 'Mars': 'Cancer', 'Mercury': 'Pisces',
-    'Jupiter': 'Capricorn', 'Venus': 'Virgo', 'Saturn': 'Aries', 'Rahu': 'Scorpio', 'Ketu': 'Taurus'
-  };
-  const ownSign: Record<string, string[]> = {
-    'Sun': ['Leo'], 'Moon': ['Cancer'], 'Mars': ['Aries', 'Scorpio'],
-    'Mercury': ['Gemini', 'Virgo'], 'Jupiter': ['Sagittarius', 'Pisces'],
-    'Venus': ['Taurus', 'Libra'], 'Saturn': ['Capricorn', 'Aquarius'],
-    'Rahu': ['Virgo'], 'Ketu': ['Pisces']
-  };
-
-  if (exaltation[planet] === sign) return 'Exalted';
-  if (debilitation[planet] === sign) return 'Debilitated';
-  if (ownSign[planet]?.includes(sign)) return 'Own Sign';
-
-  // Friendly/Enemy groups
-  const devas = ['Sun', 'Moon', 'Mars', 'Jupiter'];
-  const asuras = ['Venus', 'Saturn', 'Mercury', 'Rahu', 'Ketu'];
-
-  const ruler = getLord(sign);
-  if (devas.includes(planet) && devas.includes(ruler)) return 'Friendly';
-  if (asuras.includes(planet) && asuras.includes(ruler)) return 'Friendly';
-  if (devas.includes(planet) && asuras.includes(ruler)) return 'Enemy';
-  if (asuras.includes(planet) && devas.includes(ruler)) return 'Enemy';
-
-  return 'Neutral';
-};
 
 const isCombust = (planet: string, long: number, sunLong: number): boolean => {
   if (planet === 'Sun' || planet === 'Moon' || planet === 'Rahu' || planet === 'Ketu') return false;
@@ -703,9 +767,16 @@ export function calculateJulianDay(date: Date): number {
 
 
 function getAyanamsaAlgo(jd: number): number {
-  // Lahiri ayanamsa - precise formula
-  const T = (jd - 2451545.0) / 36525;
-  return 23.85 + 0.01397 * (jd - 2451545.0) / 365.25 + 0.0003 * T * T;
+    const julianCenturies = (jd - 2451545.0) / 36525.0;
+    const yearsSince2000 = julianCenturies * 100.0;
+    
+    // IAE cubic Lahiri formula — matches Python service exactly
+    return (
+        23.856111
+        + 0.0139694 * yearsSince2000
+        + 0.00000030 * yearsSince2000 * yearsSince2000
+        + 0.000000005 * yearsSince2000 * yearsSince2000 * yearsSince2000
+    );
 }
 
 function calcSun(jd: number): number {

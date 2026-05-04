@@ -6,7 +6,7 @@ import { sessions, users } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
 import { encrypt, encryptObject, initializeEncryption } from '@/lib/crypto';
 import { parsePaginationParams, createPaginationMeta } from '@/lib/pagination';
-import { logAuditEvent, getRequestMetadata } from '@/lib/audit';
+import { logAuditEvent, getRequestMetadata } from '@/lib/server/audit';
 import { env } from '@/lib/config/env';
 import { currentUser } from '@clerk/nextjs/server';
 import { ensureUserRecord } from '@/lib/server/user-sync';
@@ -60,11 +60,11 @@ export async function POST(request: NextRequest) {
 
         const now = new Date().toISOString();
 
-        const encryptedFullName = encrypt(birthData.fullName);
-        const encryptedLifeEvents = lifeEvents && lifeEvents.length > 0 ? encryptObject(lifeEvents) : '';
-        const encryptedPhysicalTraits = physicalTraits ? encryptObject(physicalTraits) : null;
-        const encryptedForensicTraits = forensicTraits ? encryptObject(forensicTraits) : null;
-        const encryptedSpouseData = spouseData ? encryptObject(spouseData) : null;
+        const encryptedFullName = encrypt(birthData.fullName, internalUserId);
+        const encryptedLifeEvents = lifeEvents && lifeEvents.length > 0 ? encryptObject(lifeEvents, internalUserId) : '';
+        const encryptedPhysicalTraits = physicalTraits ? encryptObject(physicalTraits, internalUserId) : null;
+        const encryptedForensicTraits = forensicTraits ? encryptObject(forensicTraits, internalUserId) : null;
+        const encryptedSpouseData = spouseData ? encryptObject(spouseData, internalUserId) : null;
 
         const draftData = {
             fullName: encryptedFullName,

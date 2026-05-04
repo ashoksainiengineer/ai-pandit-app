@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { FormField } from '@/components/ui/form/FormField';
 import BirthPlacePicker from '../../BirthPlacePicker';
 import { BirthData } from '@/lib/types';
@@ -151,10 +150,8 @@ export function PrimaryDetailsForm({
                         </div>
 
                         {selectedOffset === 'custom' && (
-                            <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                className="flex items-center gap-3 bg-[#FDF8F3] p-3 rounded-lg border border-[#E8E0D5]"
+                            <div
+                                className="flex items-center gap-3 bg-[#FDF8F3] p-3 rounded-lg border border-[#E8E0D5] animate-fade-in-up"
                             >
                                 <label className="text-sm text-[#1A1612] font-medium whitespace-nowrap">
                                     Unknown by ±
@@ -175,7 +172,7 @@ export function PrimaryDetailsForm({
                                 <span className="text-xs text-[#7A756F]">
                                     (Max 720 mins)
                                 </span>
-                            </motion.div>
+                            </div>
                         )}
                     </div>
                 </FormField>
@@ -202,7 +199,7 @@ export function PrimaryDetailsForm({
                             <button
                                 key={g.value}
                                 type="button"
-                                onClick={() => updateData({ gender: g.value as any })}
+                                onClick={() => updateData({ gender: g.value })}
                                 className={`p-4 rounded-xl text-center transition-all border ${data.gender === g.value ? 'bg-[#B8860B]/10 border-[#B8860B] shadow-sm' : 'bg-white border-[#E8E0D5] hover:border-[#78611D]/50'}`}
                             >
                                 <span className="text-2xl mb-1 block">{g.icon}</span>
