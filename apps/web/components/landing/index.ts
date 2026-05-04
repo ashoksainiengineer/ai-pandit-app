@@ -1,0 +1,10 @@
+export { default as Navbar } from './Navbar';
+export { default as Hero } from './Hero';
+export { default as Problem } from './Problem';
+export { default as Solution } from './Solution';
+export { default as FAQ } from './FAQ';
+export { default as Pricing } from './Pricing';
+export { default as Footer } from './Footer';
+export { default as FinalCTA } from './FinalCTA';
+export { AccuracyShowcase } from './AccuracyShowcase';
+export { TestimonialsSection } from './Testimonials';
