@@ -86,18 +86,17 @@ export async function stage2BatchTournament(
 
         await progress.updateMessage(`Base Analysis: Evaluating ${currentCandidates.length} potential paths...`);
 
-        let completedBatches = 0;
-        const batchDataMap = new Map<number, CandidateDataPackage[]>();
+        const batchSurvivorResults = new Map<number, CandidateTime[]>();
         const tasks = batches.map((batchTimes, i) => async () => {
+            // BUILD DATA ON-DEMAND per batch (not all at once) to control memory
             const batchEnriched = await Promise.all(batchTimes.map(ct =>
                 buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
                     includeFullData: true,
-                    dashaDepth: 4, // Upgraded to Sukshma for precision pruning
+                    dashaDepth: 4,
                     lifecycleShifts: globalLifecycle,
                     candidate: ct,
                 })
             ));
-            batchDataMap.set(i, batchEnriched);
             emitAIContext(input.sessionId, {
                 stage: 2,
                 candidateTime: `Batch ${i + 1}/${batches.length}`,
@@ -174,8 +173,6 @@ export async function stage2BatchTournament(
                 }
             );
             
-            completedBatches++;
-
             // PROCESS BATCH IMMEDIATELY AND EMIT SCORES
             const batchSurvivors: CandidateTime[] = [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
@@ -258,13 +255,19 @@ export async function stage2BatchTournament(
                 });
             }
 
+            batchSurvivorResults.set(i, batchSurvivors);
             return batchSurvivors;
         });
 
-        const results = await _executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
+        const results = await _executeAIInParallel(tasks, 1, config.ai.parallelStaggerMs);
+        if (global.gc) global.gc();
 
-        // Flatten array of survivor arrays
-        let nextCandidates = results.flat();
+        // Read lightweight survivors from map (heavy batchEnriched already GC'd)
+        let nextCandidates: CandidateTime[] = [];
+        for (let i = 0; i < batches.length; i++) {
+            const survivors = batchSurvivorResults.get(i) || [];
+            nextCandidates.push(...survivors);
+        }
 
         // 🔱 SAFETY NET 2.0: Cluster-Aware Survival
         // If candidates are very close (within specified threshold), keep both if one is a survivor
@@ -331,8 +334,7 @@ export async function stage2BatchTournament(
         const roundSurvivors: CandidateTime[] = [];
         await progress.updateMessage(`Tournament Round ${roundNumber}: ${batches.length} batches of ${roundBatchSize}`);
 
-        let completedBatches = 0;
-        const batchDataMap = new Map<number, CandidateDataPackage[]>();
+        const batchSurvivorResults = new Map<number, CandidateTime[]>();
         const tasks = batches.map((batchTimes, i) => async () => {
             const batchEnriched = await Promise.all(batchTimes.map(ct =>
                 buildCandidateDataPackage(ct.time, ct.offsetMinutes, input, {
@@ -342,7 +344,7 @@ export async function stage2BatchTournament(
                     candidate: ct,
                 })
             ));
-            batchDataMap.set(i, batchEnriched);
+            // NOTE: batchEnriched is NOT stored in any global Map — GC reclaims it after this task
             emitAIContext(input.sessionId, {
                 stage: 2,
                 candidateTime: `Tournament ${roundNumber}-${i + 1}`,
@@ -367,7 +369,7 @@ export async function stage2BatchTournament(
                 roundSurvivorsPerBatch
             );
             
-                // Save ephemeris and prompts for each candidate
+            // Save ephemeris and prompts for each candidate
             for (const candidate of batchEnriched) {
                 btrDataCapture.saveEphemeris(
                     input.sessionId,
@@ -415,18 +417,16 @@ export async function stage2BatchTournament(
                 }
             );
             
-
-            await progress.updateSubProgress(completedBatches, batches.length);
-
-            // Parse AI response first
+            // PROCESS BATCH IMMEDIATELY AND EMIT SCORES
+            const batchSurvivors: CandidateTime[] = [];
             const aiContent = response.success ? (response.content || response.thinking || '') : '';
-            const responseRefMap = buildCandidateReferenceMap(batchTimes);
-            const responseAiScores = extractBatchSurvivors(aiContent, [...responseRefMap.keys()], survivorsPerBatch);
+            const referenceMap = buildCandidateReferenceMap(batchTimes);
+            const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], roundSurvivorsPerBatch);
             
             // Save AI responses after parsing
             if (response.success) {
                 for (const candidate of batchEnriched) {
-                    const scoreObj = responseAiScores.find(s => getCandidateIdentity(responseRefMap.get(s.time) || { time: s.time }) === getCandidateIdentity(candidate));
+                    const scoreObj = aiScores.find(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }) === getCandidateIdentity(candidate));
                     btrDataCapture.saveAIResponse(
                         input.sessionId,
                         2,
@@ -446,20 +446,6 @@ export async function stage2BatchTournament(
                 }
             }
 
-            return response;
-        });
-
-        const results = await _executeAIInParallel(tasks, config.ai.parallelConcurrency, config.ai.parallelStaggerMs);
-        await progress.updateSubProgress(batches.length, batches.length);
-
-        for (let i = 0; i < batches.length; i++) {
-            const batchTimes = batches[i];
-            const response = results[i];
-            const fullBatchData = batchDataMap.get(i) || [];
-            const aiContent = response.success ? (response.content || response.thinking || '') : '';
-            const referenceMap = buildCandidateReferenceMap(batchTimes);
-            const aiScores = extractBatchSurvivors(aiContent, [...referenceMap.keys()], roundSurvivorsPerBatch);
-
             // 🔱 RESILIENT FALLBACK: If AI fails or returns empty, preserve the first N candidates
             let survivorTimes: string[] = [];
             if (!response.success || aiScores.length === 0) {
@@ -474,8 +460,8 @@ export async function stage2BatchTournament(
                     .map(s => getCandidateIdentity(referenceMap.get(s.time) || { time: s.time }));
             }
 
-            for (let j = 0; j < fullBatchData.length; j++) {
-                const candidate = fullBatchData[j];
+            for (let j = 0; j < batchEnriched.length; j++) {
+                const candidate = batchEnriched[j];
                 const originalTimeInfo = batchTimes[j];
                 const candidateId = getCandidateIdentity(originalTimeInfo);
                 const isSurvivor = survivorTimes.includes(candidateId);
@@ -486,7 +472,7 @@ export async function stage2BatchTournament(
                 const reason = scoreObj ? scoreObj.reason : (isSurvivor ? "Superior alignment in tournament round (Fallback)" : "Eliminated in batch tournament");
 
                 if (isSurvivor) {
-                    roundSurvivors.push(originalTimeInfo);
+                    batchSurvivors.push(originalTimeInfo);
                 }
 
                 await progress.addCandidateScore({
@@ -506,6 +492,22 @@ export async function stage2BatchTournament(
                     batch: i + 1
                 });
             }
+
+            // Store ONLY lightweight survivors (NOT heavy batchEnriched)
+            batchSurvivorResults.set(i, batchSurvivors);
+            // batchEnriched goes out of scope here — GC can reclaim it
+
+            return response;
+        });
+
+        const results = await _executeAIInParallel(tasks, 1, config.ai.parallelStaggerMs);
+        if (global.gc) global.gc();
+        await progress.updateSubProgress(batches.length, batches.length);
+
+        // Read lightweight survivors from map (heavy batchEnriched already GC'd)
+        for (let i = 0; i < batches.length; i++) {
+            const survivors = batchSurvivorResults.get(i) || [];
+            roundSurvivors.push(...survivors);
         }
 
         await throwIfCancelled(input.sessionId, input.abortSignal);

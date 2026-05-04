@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { formatCandidateVSL, EnhancedCandidate } from '../vsl-formatter.js';
 
-describe('VSL 4.1 Formatter', () => {
+describe('VSL Formatter', () => {
   const mockPackage: Partial<EnhancedCandidate> = {
     time: '12:00:05',
     aiScore: 88,

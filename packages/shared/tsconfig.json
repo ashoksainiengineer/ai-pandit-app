@@ -13,8 +13,7 @@
         "outDir": "./dist",
         "rootDir": "./src",
         "lib": [
-            "ES2022",
-            "DOM"
+            "ES2022"
         ]
     },
     "include": [

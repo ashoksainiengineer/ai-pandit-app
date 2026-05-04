@@ -72,20 +72,21 @@ export async function POST(req: NextRequest) {
     const includeResults = body.includeResults === true;
     const includeLogs = body.includeLogs === true;
 
+    const exportUserId = user.id;
     const normalized = rows.map((row) => ({
       id: row.id,
       status: row.status,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
-      fullName: parseSensitiveField(row.fullName),
-      dateOfBirth: parseSensitiveField(row.dateOfBirth),
-      tentativeTime: parseSensitiveField(row.tentativeTime),
-      birthPlace: parseSensitiveField(row.birthPlace),
+      fullName: parseSensitiveField(row.fullName, undefined, exportUserId),
+      dateOfBirth: parseSensitiveField(row.dateOfBirth, undefined, exportUserId),
+      tentativeTime: parseSensitiveField(row.tentativeTime, undefined, exportUserId),
+      birthPlace: parseSensitiveField(row.birthPlace, undefined, exportUserId),
       rectifiedTime: row.rectifiedTime ?? null,
       accuracy: row.accuracy ?? null,
       confidence: row.confidence ?? null,
-      analysisResult: includeResults ? parseSensitiveField(row.analysisResult, null) : undefined,
-      reasoningLogs: includeLogs ? parseSensitiveField(row.reasoningLogs, null) : undefined,
+      analysisResult: includeResults ? parseSensitiveField(row.analysisResult as string | null | undefined, null, exportUserId) : undefined,
+      reasoningLogs: includeLogs ? parseSensitiveField(row.reasoningLogs as string | null | undefined, null, exportUserId) : undefined,
     }));
 
     if (format === 'json') {

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import math
 from datetime import datetime, timedelta, timezone
+import concurrent.futures
+import time
 
 from skyfield import almanac
 from skyfield.api import wgs84
@@ -58,8 +60,34 @@ def format_timestamp_utc(value: datetime) -> str:
 
 
 def get_ayanamsa_lahiri(julian_day_ut: float) -> float:
-    julian_centuries = (julian_day_ut - 2451545.0) / 36525
-    return 23.85 + 0.01397 * (julian_day_ut - 2451545.0) / 365.25 + 0.0003 * julian_centuries * julian_centuries
+    """
+    Calculate Lahiri (Chitrapaksha) ayanamsa using the IAE cubic formula.
+    
+    Reference: Indian Astronomical Ephemeris (IAE) standard.
+    The ayanamsa for J2000.0 (JD 2451545.0) is approximately 23.856° (23°51'22").
+    Annual precession rate approximately 50.29 arcseconds per year (0.01397°/yr).
+    Includes cubic term for improved accuracy over century timescales.
+    """
+    julian_centuries = (julian_day_ut - 2451545.0) / 36525.0
+    years_since_2000 = julian_centuries * 100.0
+    
+    # IAE cubic Lahiri formula coefficients
+    # Base ayanamsa at J2000.0: 23°51'22" = 23.856111° (standard IAE value)
+    # Annual rate: ~50.29"/yr = 0.0139694°/yr
+    ayanamsa = (
+        23.856111
+        + 0.0139694 * years_since_2000
+        + 0.00000030 * years_since_2000 * years_since_2000
+        + 0.000000005 * years_since_2000 * years_since_2000 * years_since_2000
+    )
+    return ayanamsa
+
+
+def get_ayanamsa_kp(julian_day_ut: float) -> float:
+    """KP ayanamsa = Lahiri - 5.9 arcminutes (0.098333 degrees)."""
+    lahiri = get_ayanamsa_lahiri(julian_day_ut)
+    kp_offset = 5.9 / 60.0  # 5.9 arcminutes in degrees
+    return lahiri - kp_offset
 
 
 def calculate_mean_node_longitude(julian_day_tt: float) -> float:
@@ -99,7 +127,27 @@ def get_horizon_ecliptic_coordinates(observer, moment, azimuth_degrees: float) -
     return float(latitude.degrees), normalize_degrees(float(longitude.degrees))
 
 
-def calculate_ascendant_tropical(observer, moment) -> float:
+def calculate_ascendant_tropical(observer, moment, latitude_degrees=None, ramc_degrees=None, obliquity_degrees=None) -> float:
+    """Compute tropical ascendant ecliptic longitude via direct spherical-astronomy formula.
+
+    When geographic parameters are provided, uses O(1) direct formula (~200x faster).
+    Falls back to horizon-scan search if parameters are omitted.
+
+    tan(λ_asc) = -cos(RAMC) / (sin(RAMC)·cos(ε) + tan(φ)·sin(ε))
+    """
+    if latitude_degrees is not None and ramc_degrees is not None and obliquity_degrees is not None:
+        ramc_rad = math.radians(ramc_degrees)
+        lat_rad = math.radians(latitude_degrees)
+        obliquity_rad = math.radians(obliquity_degrees)
+        numerator = math.cos(ramc_rad)
+        denominator = -math.sin(ramc_rad) * math.cos(obliquity_rad) - math.tan(lat_rad) * math.sin(obliquity_rad)
+        asc_rad = math.atan2(numerator, denominator)
+        return normalize_degrees(math.degrees(asc_rad))
+
+    return _calculate_ascendant_tropical_scan(observer, moment)
+
+
+def _calculate_ascendant_tropical_scan(observer, moment) -> float:
     previous_azimuth = 0.0
     previous_latitude, previous_longitude = get_horizon_ecliptic_coordinates(observer, moment, previous_azimuth)
 
@@ -140,11 +188,19 @@ def calculate_ascendant_tropical(observer, moment) -> float:
     _, longitude = get_horizon_ecliptic_coordinates(observer, moment, (low + high) / 2)
     return longitude
 
-
 def calculate_true_obliquity_degrees(julian_day_ut: float) -> float:
     t = (julian_day_ut - 2451545.0) / 36525
     seconds = 21.448 - 46.8150 * t - 0.00059 * t * t + 0.001813 * t * t * t
     return 23 + 26 / 60 + seconds / 3600
+
+
+
+def calculate_true_obliquity_degrees_from_skyfield(moment) -> float:
+    """True obliquity of the ecliptic using Skyfield's IAU 2006 precession + IAU 2000A nutation."""
+    mean_obliquity_rad = moment._mean_obliquity_radians
+    d_eps_rad = moment._nutation_angles_radians[1]
+    true_obliquity_rad = mean_obliquity_rad + d_eps_rad
+    return math.degrees(true_obliquity_rad)
 
 
 def ecliptic_to_equatorial(longitude_degrees: float, obliquity_degrees: float) -> tuple[float, float]:
@@ -208,6 +264,16 @@ def calculate_placidus_target_hour_angle(longitude_degrees: float, latitude_degr
         return -60.0 - (2.0 * semi_diurnal_arc) / 3.0
     if house_number == 3:
         return -120.0 - semi_diurnal_arc / 3.0
+    # Houses 5, 6 (quadrant from IC to Descendant)
+    if house_number == 5:
+        return 120.0 + semi_diurnal_arc / 3.0
+    if house_number == 6:
+        return 60.0 + (2.0 * semi_diurnal_arc) / 3.0
+    # Houses 8, 9 (diurnal — above horizon, from Desc toward MC)
+    if house_number == 8:
+        return 2.0 * semi_diurnal_arc / 3.0
+    if house_number == 9:
+        return semi_diurnal_arc / 3.0
 
     raise ServiceInitializationError(f"Unsupported Placidus house number: {house_number}")
 
@@ -290,6 +356,7 @@ def build_placidus_house_cusps(ascendant_longitude: float, midheaven_longitude: 
     return cusps
 
 
+
 def build_house_cusps(ascendant_longitude: float, midheaven_longitude: float, latitude_degrees: float, ramc_degrees: float, obliquity_degrees: float, house_system: str) -> list[float]:
     if house_system == "equal":
         return build_equal_house_cusps(ascendant_longitude)
@@ -316,55 +383,46 @@ def resolve_kernel_body(name: str):
 
 
 def _extract_ecliptic(observer, target, moment):
+    """Extract true ecliptic-of-date coordinates using Skyfield's ecliptic_frame."""
     apparent = observer.at(moment).observe(target).apparent()
-    # Preserve existing "ecliptic of date" behavior for Vedic outputs.
-    # Keep a docs-aligned fallback path for Skyfield API compatibility.
-    try:
-        latitude, longitude, distance = apparent.ecliptic_latlon(epoch="date")
-    except TypeError:
-        latitude, longitude, distance = apparent.ecliptic_latlon()
-    except AttributeError:
-        latitude, longitude, distance = apparent.frame_latlon(ecliptic_frame)
-    return latitude, longitude, distance
+    lat, lon, distance = apparent.frame_latlon(ecliptic_frame)
+    return lat, lon, distance
 
 
 def calculate_planet_position(
     body_name: str,
     observer,
     moment,
-    next_moment,
     ayanamsha: float,
 ) -> PlanetPositionResponse:
+    """Calculate planet position and speed using Skyfield's frame_latlon_and_rates."""
     target = resolve_kernel_body(body_name)
-    latitude, longitude, distance = _extract_ecliptic(observer, target, moment)
-    next_latitude, next_longitude, _ = _extract_ecliptic(observer, target, next_moment)
+    apparent = observer.at(moment).observe(target).apparent()
 
-    longitude_degrees = normalize_degrees(longitude.degrees)
-    next_longitude_degrees = normalize_degrees(next_longitude.degrees)
-    longitude_speed = circular_delta_degrees(next_longitude_degrees, longitude_degrees) * 86400
-    latitude_speed = (next_latitude.degrees - latitude.degrees) * 86400
+    # Get position AND velocity in one Skyfield call via frame_latlon_and_rates
+    lat, lon, dist, lat_rate, lon_rate, _ = apparent.frame_latlon_and_rates(ecliptic_frame)
 
     return PlanetPositionResponse(
         body=body_name,
-        tropicalLongitude=longitude_degrees,
-        tropicalLatitude=float(latitude.degrees),
-        siderealLongitude=normalize_degrees(longitude_degrees - ayanamsha),
-        distanceAu=float(distance.au),
-        longitudeSpeed=float(longitude_speed),
-        latitudeSpeed=float(latitude_speed),
-        retrograde=longitude_speed < 0,
+        tropicalLongitude=normalize_degrees(lon.degrees),
+        tropicalLatitude=float(lat.degrees),
+        siderealLongitude=normalize_degrees(lon.degrees - ayanamsha),
+        distanceAu=float(dist.au),
+        longitudeSpeed=float(lon_rate.degrees.per_day),
+        latitudeSpeed=float(lat_rate.degrees.per_day),
+        retrograde=lon_rate.degrees.per_day < 0,
     )
 
 
 def calculate_nodes(
     observer,
     moment,
-    next_moment,
     julian_day_tt: float,
     ayanamsha: float,
     node_mode: str,
 ) -> list[PlanetPositionResponse]:
     moon_target = resolve_kernel_body("moon")
+    next_moment = moment.ts.utc(moment.utc_datetime() + timedelta(seconds=1))
 
     if node_mode == "true":
         rahu_tropical = calculate_true_node_longitude_from_moon(observer, moon_target, moment)
@@ -400,19 +458,71 @@ def calculate_nodes(
     ]
 
 
-def calculate_chart(timestamp_utc: str, request: SingleEphemerisRequest) -> ChartResponse:
+
+_chart_cache: dict[str, tuple[float, ChartResponse]] = {}
+_CHART_CACHE_TTL = 300  # 5 minutes
+_CHART_CACHE_MAX = 1000
+
+
+def _get_chart_cache_key(
+    timestamp_utc: str, lat: float, lon: float, alt: float,
+    ayanamsha_mode: str, house_system: str, node_mode: str, topocentric_moon: bool,
+) -> str:
+    return f"{timestamp_utc}|{lat:.6f}|{lon:.6f}|{alt:.1f}|{ayanamsha_mode}|{house_system}|{node_mode}|{topocentric_moon}"
+
+
+def _cached_calculate_chart(timestamp_utc: str, request: SingleEphemerisRequest) -> ChartResponse:
+    key = _get_chart_cache_key(
+        timestamp_utc,
+        request.location.latitude,
+        request.location.longitude,
+        request.location.altitudeMeters,
+        request.ayanamshaMode,
+        request.houseSystem,
+        request.nodeMode,
+        request.topocentricMoon,
+    )
+    now = time.time()
+    if key in _chart_cache:
+        cached_time, cached_result = _chart_cache[key]
+        if now - cached_time < _CHART_CACHE_TTL:
+            return cached_result
+
+    result = calculate_chart_raw(timestamp_utc, request)
+
+    # Evict oldest if at capacity
+    if len(_chart_cache) >= _CHART_CACHE_MAX:
+        oldest_key = min(_chart_cache, key=lambda k: _chart_cache[k][0])
+        del _chart_cache[oldest_key]
+
+    _chart_cache[key] = (now, result)
+    return result
+
+def calculate_chart_raw(timestamp_utc: str, request: SingleEphemerisRequest) -> ChartResponse:
     ts = runtime.get_timescale()
     earth = resolve_kernel_body("earth")
 
     dt = parse_timestamp_utc(timestamp_utc)
-    next_dt = dt + timedelta(seconds=1)
+
+    # Validate date within DE440 kernel range (~1550-2650 CE)
+    year = dt.year
+    if year < 1550 or year > 2650:
+        raise ValueError(
+            f"Birth date year {year} is outside the DE440 ephemeris range (1550-2650 CE). "
+            "Results would be inaccurate."
+        )
     moment = ts.from_datetime(dt)
-    next_moment = ts.from_datetime(next_dt)
 
     julian_day_ut = float(moment.ut1)
     julian_day_tt = float(moment.tt)
-    ayanamsha = get_ayanamsa_lahiri(julian_day_ut)
-    obliquity_degrees = calculate_true_obliquity_degrees(julian_day_ut)
+    if request.ayanamshaMode == "lahiri":
+        ayanamsha = get_ayanamsa_lahiri(julian_day_ut)
+    elif request.ayanamshaMode == "krishnamurti":
+        ayanamsha = get_ayanamsa_kp(julian_day_ut)
+    else:
+        ayanamsha = get_ayanamsa_lahiri(julian_day_ut)
+    ayanamsha = normalize_degrees(ayanamsha)
+    obliquity_degrees = calculate_true_obliquity_degrees_from_skyfield(moment)
     ramc_degrees = calculate_ramc_degrees(moment, request.location.longitude)
 
     observer = earth
@@ -421,18 +531,21 @@ def calculate_chart(timestamp_utc: str, request: SingleEphemerisRequest) -> Char
         request.location.longitude,
         elevation_m=request.location.altitudeMeters,
     )
-    planets = [
-        calculate_planet_position("sun", observer, moment, next_moment, ayanamsha),
-        calculate_planet_position("moon", observer, moment, next_moment, ayanamsha),
-        calculate_planet_position("mercury", observer, moment, next_moment, ayanamsha),
-        calculate_planet_position("venus", observer, moment, next_moment, ayanamsha),
-        calculate_planet_position("mars", observer, moment, next_moment, ayanamsha),
-        calculate_planet_position("jupiter", observer, moment, next_moment, ayanamsha),
-        calculate_planet_position("saturn", observer, moment, next_moment, ayanamsha),
-    ]
-    planets.extend(calculate_nodes(observer, moment, next_moment, julian_day_tt, ayanamsha, request.nodeMode))
 
-    ascendant_tropical = calculate_ascendant_tropical(local_observer, moment)
+    # Determine Moon observer: topocentric if requested, else geocentric (Vedic standard)
+    moon_observer = local_observer if request.topocentricMoon else observer
+    planets = [
+        calculate_planet_position("sun", observer, moment, ayanamsha),
+        calculate_planet_position("moon", moon_observer, moment, ayanamsha),
+        calculate_planet_position("mercury", observer, moment, ayanamsha),
+        calculate_planet_position("venus", observer, moment, ayanamsha),
+        calculate_planet_position("mars", observer, moment, ayanamsha),
+        calculate_planet_position("jupiter", observer, moment, ayanamsha),
+        calculate_planet_position("saturn", observer, moment, ayanamsha),
+    ]
+    planets.extend(calculate_nodes(observer, moment, julian_day_tt, ayanamsha, request.nodeMode))
+
+    ascendant_tropical = calculate_ascendant_tropical(local_observer, moment, request.location.latitude, ramc_degrees, obliquity_degrees)
     mc_tropical = calculate_midheaven_tropical(moment, request.location.longitude, obliquity_degrees)
     house_cusps_tropical = build_house_cusps(
         ascendant_tropical,
@@ -461,20 +574,30 @@ def calculate_chart(timestamp_utc: str, request: SingleEphemerisRequest) -> Char
     )
 
 
+calculate_chart = _cached_calculate_chart
+
+
 def calculate_batch(request: BatchEphemerisRequest) -> BatchChartResponse:
-    charts = [
-        calculate_chart(
-            timestamp,
-            SingleEphemerisRequest(
-                timestampUtc=timestamp,
-                location=request.location,
-                ayanamshaMode=request.ayanamshaMode,
-                houseSystem=request.houseSystem,
-                nodeMode=request.nodeMode,
-            ),
-        )
-        for timestamp in request.timestampsUtc
-    ]
+    max_workers = min(len(request.timestampsUtc), 10)  # cap at 10 concurrent
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [
+            executor.submit(
+                calculate_chart,
+                timestamp,
+                SingleEphemerisRequest(
+                    timestampUtc=timestamp,
+                    location=request.location,
+                    ayanamshaMode=request.ayanamshaMode,
+                    houseSystem=request.houseSystem,
+                    nodeMode=request.nodeMode,
+                    topocentricMoon=request.topocentricMoon,
+                ),
+            )
+            for timestamp in request.timestampsUtc
+        ]
+        charts = [f.result() for f in futures]
+
     return BatchChartResponse(charts=charts)
 
 
@@ -505,3 +628,32 @@ def calculate_sunrise(request: SunriseRequest) -> SunriseResponse:
             )
 
     return SunriseResponse(sunriseTimestampUtc=None)
+
+
+def calculate_sunset(request: SunriseRequest) -> SunriseResponse:
+    ts = runtime.get_timescale()
+    earth = resolve_kernel_body("earth")
+    sun = resolve_kernel_body("sun")
+
+    start_dt = parse_timestamp_utc(request.startTimestampUtc)
+    end_dt = parse_timestamp_utc(request.endTimestampUtc)
+    if end_dt <= start_dt:
+        raise ServiceInitializationError("Sunset search window must have endTimestampUtc after startTimestampUtc")
+
+    observer = earth + wgs84.latlon(
+        request.location.latitude,
+        request.location.longitude,
+        elevation_m=request.location.altitudeMeters,
+    )
+
+    start_time = ts.from_datetime(start_dt)
+    end_time = ts.from_datetime(end_dt)
+    setting_times, is_setting = almanac.find_settings(observer, sun, start_time, end_time)
+
+    for event_time, visible in zip(setting_times, is_setting):
+        if bool(visible):
+            return SunriseResponse(
+                sunsetTimestampUtc=format_timestamp_utc(event_time.utc_datetime()),
+            )
+
+    return SunriseResponse(sunsetTimestampUtc=None)

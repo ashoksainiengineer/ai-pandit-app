@@ -4,8 +4,8 @@
  * Generates AI prompts for Stage 4 deep multi-dasha analysis.
  * Creates detailed forensic prompts for final candidate verification.
  * 
- * VSL 4.0 INTEGRATION:
- * This prompt now uses the Vedic Shorthand Language (VSL) 4.0 protocol
+ * VSL DATA:
+ * This prompt now uses the Vedic Shorthand Language (VSL) protocol
  * for exhaustive, lossless data compaction.
  */
 
@@ -255,7 +255,7 @@ For EACH event, verify activation of the following:
 ⚠️ Dasha period MUST activate the relevant house lord or significator planet.
 ⚠️ Transit (especially Jupiter/Saturn) MUST confirm the event timing.
 
-CANDIDATES WITH ENRICHED VEDIC DATA (VSL 4.0 Protocol):
+CANDIDATES WITH ENRICHED VEDIC DATA (VSL Protocol):
 ${shuffledCandidates.map(c => `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 CANDIDATE: ${getCandidateReference(c, duplicateTimes)}

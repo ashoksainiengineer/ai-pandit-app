@@ -55,6 +55,15 @@ export const artifactKindEnum = pgEnum('artifact_kind', [
   'other',
 ]);
 
+export const sessionStatusEnum = pgEnum('session_status', [
+  'draft',
+  'pending',
+  'queued',
+  'processing',
+  'complete',
+  'failed',
+]);
+
 export const users = pgTable(
   'users',
   {
@@ -82,7 +91,7 @@ export const sessions = pgTable(
   'sessions',
   {
     id: text('id').primaryKey(),
-    userId: text('userId').notNull().references(() => users.id),
+    userId: text('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
     clerkId: text('clerkId').notNull(),
     fullName: text('fullName').notNull(),
     dateOfBirth: text('dateOfBirth').notNull(),
@@ -100,10 +109,10 @@ export const sessions = pgTable(
     rectifiedTime: text('rectifiedTime'),
     accuracy: integer('accuracy'),
     confidence: text('confidence'),
-    analysisResult: text('analysisResult'),
-    progressData: text('progressData'),
-    reasoningLogs: text('reasoningLogs'),
-    status: text('status').default('draft').notNull(),
+    analysisResult: jsonb('analysisResult'),
+    progressData: jsonb('progressData'),
+    reasoningLogs: jsonb('reasoningLogs'),
+    status: sessionStatusEnum('status').default('draft').notNull(),
     errorMessage: text('errorMessage'),
     errorCode: text('errorCode'),
     submittedAt: timestampColumn('submittedAt'),
@@ -320,6 +329,7 @@ export const jobs = pgTable(
     maxAttemptsCheck: check('jobs_max_attempts_check', sql`${table.maxAttempts} >= 1`),
     priorityCheck: check('jobs_priority_check', sql`${table.priority} >= 0`),
     versionCheck: check('jobs_version_check', sql`${table.version} >= 0`),
+    userStatusIdx: index('jobs_user_status_idx').on(table.userId, table.status),
   })
 );
 

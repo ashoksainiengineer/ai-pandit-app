@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { completeJob as completeJobRecord } from '@ai-pandit/db';
+import { getLatestJobForSession } from '@ai-pandit/db/jobs';
 import {
   appendJobEvent,
   completeJobAttempt,
@@ -49,11 +50,12 @@ export function mapJobStatusToQueueStatus(status: string | null | undefined): Qu
     case 'failed':
     case 'cancelled':
       return 'failed';
+    case 'retrying':
+      return 'queued';
     default:
       return 'queued';
   }
 }
-
 export async function getNextJobEventSequence(jobId: string): Promise<number> {
   const events = await listJobEvents(jobId);
   const lastSequence = events.at(-1)?.sequenceNo ?? 0;
@@ -421,3 +423,12 @@ export function buildDeadLetterPayload(
     createdAt: new Date().toISOString(),
   };
 }
+
+
+/**
+ * Get the tracked job for a session. Wraps getLatestJobForSession from the DB layer.
+ * Used by queue-manager for cancel/retry flows.
+ */
+export async function getTrackedJob(sessionId: string) {
+  return getLatestJobForSession(sessionId);
+  }

@@ -90,7 +90,9 @@ export function useRectifyForm() {
     const [cloudSaveStatus, setCloudSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [lastSavedData, setLastSavedData] = useState<string>('');
     const [draftLoaded, setDraftLoaded] = useState(false);
-    const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+    // ════════════════════════════════════════════
+    // Navigation state
+    // ════════════════════════════════════════════
     const [maxUnlockedStep, setMaxUnlockedStep] = useState(1);
 
     useWarmup();
@@ -118,6 +120,10 @@ export function useRectifyForm() {
             setLifeEvents([]);
             setForensicTraits(initialForensicTraits);
             setSpouseData(initialSpouseData);
+            setStep(1);
+            setMaxUnlockedStep(1);
+            setOffsetConfig({ preset: '1hour', customMinutes: 60, description: '±1 hour' });
+            setError(null);
             setDraftLoaded(true);
         }
     }, [isNewPerson]);
@@ -125,13 +131,23 @@ export function useRectifyForm() {
     const validateStep1 = useCallback((): StepValidation => {
         const errors: string[] = [];
         let filledFields = 0;
-        const totalFields = 5;
+        const totalFields = 7;
 
         if (birthData.fullName?.trim().length < 2) errors.push("Full Name must be at least 2 characters"); else filledFields++;
         if (!birthData.dateOfBirth) errors.push("Date of Birth is required"); else filledFields++;
         if (!birthData.tentativeTime) errors.push("Tentative Birth Time is required"); else filledFields++;
         if (!birthData.birthPlace?.trim()) errors.push("Birth Place is required"); else filledFields++;
         if (!birthData.gender) errors.push("Gender is required"); else filledFields++;
+        if (birthData.birthPlace?.trim() && (birthData.latitude === 0 && birthData.longitude === 0)) {
+            errors.push("Please select a valid location from the search results to set coordinates");
+        } else if (birthData.birthPlace?.trim()) {
+            filledFields++;
+        }
+        if (birthData.timezone === undefined || birthData.timezone === null) {
+            errors.push("Timezone is required (select a location to auto-fill)");
+        } else {
+            filledFields++;
+        }
 
         return { isValid: errors.length === 0, errors, warnings: [], progress: Math.round((filledFields / totalFields) * 100) };
     }, [birthData]);
@@ -157,22 +173,40 @@ export function useRectifyForm() {
 
     const handleNext = useCallback(() => {
         if (isSubmitting) return;
+        if (step >= 5) { setError('Already at the last step'); return; }
 
         if (step === 1) {
             const v = validateStep1();
             if (!v.isValid) { setError(v.errors.join(', ')); return; }
+        } else if (step === 2) {
+            // Physical traits: at minimum, build type should be selected
+            if (!forensicTraits.physical?.build?.trim()) {
+                setError('Please select your body build type before proceeding');
+                return;
+            }
+        } else if (step === 3) {
+            // Forensic traits: check at least some fields are filled
+            const facial = forensicTraits.physical?.facialStructure ?? {};
+            const psych = forensicTraits.psychographic ?? {};
+            const bio = forensicTraits.biological;
+            const hasFacial = Object.values(facial).some(v => String(v).trim());
+            const hasPsych = Object.values(psych).some(v => String(v).trim());
+            const hasBio = bio?.prakriti?.trim() || bio?.sensitivity?.heat?.trim();
+            if (!hasFacial && !hasPsych && !hasBio) {
+                setError('Please fill in at least some forensic traits before proceeding');
+                return;
+            }
         } else if (step === 4) {
             const v = validateStep3();
             if (!v.isValid) { setError(v.errors.join(', ')); return; }
         }
 
-        setCompletedSteps(prev => new Set(prev).add(step));
         const nextStep = step + 1;
         setMaxUnlockedStep(prev => Math.max(prev, nextStep));
         setStep(nextStep);
         setError(null);
         window.scrollTo(0, 0);
-    }, [step, isSubmitting, validateStep1, validateStep3]);
+    }, [step, isSubmitting, validateStep1, validateStep3, forensicTraits]);
 
     const handleSubmit = useCallback(async () => {
         const fullValidation = validateAllSteps();
@@ -272,9 +306,10 @@ export function useRectifyForm() {
         setSpouseData(prev => ({ ...prev, ...updates }));
     }, []);
 
-    const updatePhysicalTraits = useCallback((p: Record<string, unknown>) => {
-        updateForensicTraits({ physical: { ...forensicTraits.physical, ...p } });
-    }, [forensicTraits.physical, updateForensicTraits]);
+    const updatePhysicalTraits = useCallback((updates: Partial<NonNullable<ForensicTraits['physical']>> | undefined) => {
+        if (!updates) return;
+        setForensicTraits(prev => ({ ...prev, physical: { ...prev.physical, ...updates } }));
+    }, []);
 
     const handleBack = useCallback(() => {
         if (step > 1) {
@@ -350,9 +385,14 @@ export function useRectifyForm() {
                         if (session.spouseData) setSpouseData(session.spouseData);
 
                         if (session.offsetConfig) {
-                            setOffsetConfig(typeof session.offsetConfig === 'string'
-                                ? JSON.parse(session.offsetConfig)
-                                : session.offsetConfig);
+                            try {
+                                setOffsetConfig(typeof session.offsetConfig === 'string'
+                                    ? JSON.parse(session.offsetConfig)
+                                    : session.offsetConfig as TimeOffsetConfig);
+                            } catch {
+                                logger.warn('Failed to parse offsetConfig from draft, using default');
+                                setOffsetConfig({ preset: '1hour', customMinutes: 60, description: '±1 hour' });
+                            }
                         }
 
                         setLastSavedData(JSON.stringify({
@@ -395,7 +435,6 @@ export function useRectifyForm() {
         draftSessionId,
         cloudSaveStatus,
         draftLoaded,
-        completedSteps,
         maxUnlockedStep,
         validateStep1,
         validateStep3,

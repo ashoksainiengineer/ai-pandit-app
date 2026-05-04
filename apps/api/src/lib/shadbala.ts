@@ -62,8 +62,9 @@ export interface ShadbalaSummary {
   malefics: { strong: string[]; weak: string[] };
 }
 
+/** Exaltation degrees in TOTAL ZODIAC LONGITUDE (0° Aries = 0). Moon: 33° = 3° Taurus. Source: BPHS. */
 const EXALTATION_DEGREES: Record<string, number> = {
-  sun: 10, moon: 3, mars: 298, mercury: 165,
+  sun: 10, moon: 33, mars: 298, mercury: 165,
   jupiter: 95, venus: 357, saturn: 200
 };
 

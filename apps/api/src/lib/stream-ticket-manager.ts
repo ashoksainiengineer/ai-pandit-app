@@ -1,3 +1,49 @@
+/**
+ * Stream Ticket Manager — EventSource Authentication Workaround
+ *
+ * The browser-native EventSource API does not support custom HTTP headers,
+ * making it impossible to send an Authorization: Bearer <token> header for
+ * Server-Sent Events connections. This module provides a ticket-based auth
+ * pattern as a secure workaround:
+ *
+ * FULL INTEGRATION FLOW (all actively used):
+ *
+ *   1. Frontend (use-stream-progress.ts):
+ *      Calls POST /api/stream/ticket/:sessionId with a Clerk Bearer token
+ *      to obtain a short-lived, single-use stream ticket.
+ *
+ *   2. Backend route (routes/stream.ts):
+ *      The POST /ticket/:sessionId endpoint — guarded by authMiddleware +
+ *      session-ownership verification — calls createStreamTicket() to mint
+ *      a UUID ticket bound to (clerkId, sessionId) with a 2-minute TTL.
+ *
+ *   3. Frontend opens EventSource (use-stream-progress.ts):
+ *      Connects to GET /api/stream/:sessionId?ticket=<ticket> — no
+ *      Authorization header (impossible with native EventSource).
+ *
+ *   4. Auth middleware (middleware/auth.ts):
+ *      Detects a stream request with no Authorization header but with a
+ *      ?ticket query param, calls consumeStreamTicket() to authenticate
+ *      the connection. The ticket is consumed immediately (single-use).
+ *
+ *   5. SSE handler (routes/stream.ts):
+ *      Receives req.clerkId and req.sessionId set by the auth middleware,
+ *      then performs its own session-ownership verification before opening
+ *      the SSE stream.
+ *
+ * DESIGN NOTES:
+ *  - Tickets are single-use (deleted on consume) to prevent replay attacks.
+ *  - Tickets expire after 2 minutes (DEFAULT_TTL_MS) to limit window of misuse.
+ *  - Tickets are stored in memory only (no persistence), suitable for single-
+ *    instance deployments. For multi-instance, a Redis-backed ticket store
+ *    would be needed.
+ *  - The auth middleware prioritizes Authorization header over ticket:
+ *    ticket auth is only attempted when no Bearer token is present AND the
+ *    request targets a /stream endpoint.
+ *  - getActiveStreamTicketCount() is available for observability/monitoring
+ *    but is not currently wired into any metrics dashboard.
+ */
+
 import crypto from 'node:crypto';
 import { logger } from '../utils/logger.js';
 
@@ -18,6 +64,18 @@ function cleanupExpiredTickets(nowMs: number): void {
   }
 }
 
+/**
+ * Creates a short-lived, single-use stream ticket for EventSource auth.
+ *
+ * Called from the POST /api/stream/ticket/:sessionId route after the
+ * caller has been authenticated via Clerk Bearer token and session
+ * ownership has been verified.
+ *
+ * @param clerkId  - The authenticated user's Clerk ID.
+ * @param sessionId - The BTR session ID the caller wants to stream.
+ * @param ttlMs    - Ticket time-to-live in milliseconds (default: 2 minutes).
+ * @returns A UUID ticket string to be passed as ?ticket=<value> to the SSE endpoint.
+ */
 export function createStreamTicket(clerkId: string, sessionId: string, ttlMs: number = DEFAULT_TTL_MS): string {
   ensureCleanupTimer();
   const nowMs = Date.now();
@@ -33,6 +91,19 @@ export function createStreamTicket(clerkId: string, sessionId: string, ttlMs: nu
   return ticket;
 }
 
+/**
+ * Consumes (validates and destroys) a stream ticket.
+ *
+ * Called from auth middleware (middleware/auth.ts) when a stream request
+ * arrives with a ?ticket query param and no Authorization header.
+ *
+ * The ticket is deleted immediately on first read (single-use semantics)
+ * to prevent replay attacks.
+ *
+ * @param ticket - The UUID ticket string from the ?ticket query parameter.
+ * @returns The { clerkId, sessionId } payload if valid and unexpired,
+ *          or null if the ticket is invalid, expired, or already consumed.
+ */
 export function consumeStreamTicket(ticket: string): { clerkId: string; sessionId: string } | null {
   const nowMs = Date.now();
   const record = tickets.get(ticket);
@@ -50,6 +121,11 @@ export function consumeStreamTicket(ticket: string): { clerkId: string; sessionI
   };
 }
 
+/**
+ * Returns the current number of active (unconsumed, unexpired) stream tickets.
+ * Available for observability/monitoring; not currently wired to any dashboard.
+ * @internal
+ */
 export function getActiveStreamTicketCount(): number {
   return tickets.size;
 }

@@ -8,7 +8,7 @@ export interface BirthData {
   latitude: number;
   longitude: number;
   timezone: number;
-  gender: string;
+  gender: 'male' | 'female' | 'other';
 }
 
 export interface LifeEvent {

@@ -2,7 +2,6 @@
 
 import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
-import { useAuth } from '@clerk/nextjs';
 import Layout from '@/components/Layout';
 import AnalysisErrorBoundary from '@/components/rectify/AnalysisErrorBoundary';
 import RectifyPageSkeleton from '@/components/rectify/RectifyPageSkeleton';
@@ -11,7 +10,6 @@ import RectifySubmitBar from '@/components/rectify/RectifySubmitBar';
 import BirthDataForm from '@/components/rectify/BirthDataForm';
 import LifeEventsEditor from '@/components/rectify/LifeEventsEditor';
 import { useRectifyForm } from '@/hooks/use-rectify-form';
-import type { Gender } from '@/lib/forensic-emojis';
 
 const Step3PhysicalTraits = dynamic(() => import('@/components/rectify/Step3PhysicalTraits'), {
     loading: () => <div className="animate-pulse bg-[#F5F0E8] h-96 rounded-xl" />,
@@ -27,7 +25,6 @@ const Step4Review = dynamic(() => import('@/components/rectify/Step4Review'), {
 });
 
 function RectifyPageContent() {
-    const { isSignedIn } = useAuth();
     const form = useRectifyForm();
 
     if (form.isLoading || (!form.isNewPerson && !form.draftLoaded)) {
@@ -61,7 +58,7 @@ function RectifyPageContent() {
                             <Step2ForensicTraits
                                 traits={form.forensicTraits}
                                 updateTraits={form.updateForensicTraits}
-                                gender={form.birthData.gender as Gender}
+                                gender={form.birthData.gender}
                                 onNext={form.handleNext}
                             />
                         )}
@@ -76,7 +73,7 @@ function RectifyPageContent() {
                             <Step4Review
                                 data={form.birthData}
                                 events={form.lifeEvents}
-                                traits={form.forensicTraits.physical}
+                                traits={form.forensicTraits.physical!}
                                 forensicTraits={form.forensicTraits}
                                 onSubmit={form.handleSubmit}
                                 isSubmitting={form.isSubmitting}

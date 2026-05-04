@@ -6,7 +6,7 @@
  * the sidereal year for calendar-date-to-epoch conversion, which is the
  * convention in modern Vedic software.
  */
-export const DAYS_PER_YEAR = 365.256363004;
+export const DAYS_PER_YEAR = 365.25;
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 

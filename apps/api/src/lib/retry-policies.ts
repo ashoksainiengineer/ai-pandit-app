@@ -59,7 +59,7 @@ export function deriveRetryReasonCode(error: unknown): RetryReasonCode {
  */
 export function getRetryDelay(attempt: number): number {
   const delay = RETRY_CONFIG.baseDelayMs * Math.pow(RETRY_CONFIG.backoffMultiplier, attempt);
-  return Math.min(delay, RETRY_CONFIG.maxDelayMs);
+  return Math.min(delay, RETRY_CONFIG.maxDelayMs) + Math.random() * 1000;
 }
 
 export function mapReasonToDependency(reasonCode: RetryReasonCode): CircuitDependency {

@@ -2,6 +2,7 @@ import {
   db,
   executeWithRetry,
 } from '@ai-pandit/db';
+import { getLatestJobForSession } from '@ai-pandit/db/jobs';
 import {
   scheduleJobRetry,
   failJob as failJobRecord,
@@ -45,7 +46,6 @@ import {
   beginTrackedJobAttempt,
   completeTrackedJobAttempt,
   writeDeadLetterArtifact,
-  getTrackedJob,
   mapJobStatusToQueueStatus,
   appendLifecycleEvent,
 } from './job-lifecycle.js';
@@ -231,7 +231,7 @@ export async function getQueueStatus(sessionId: string): Promise<QueuePosition |
 
 async function fetchSessionAndJob(sessionId: string): Promise<{
   session: typeof sessions.$inferSelect | null;
-  job: Awaited<ReturnType<typeof getTrackedJob>>;
+  job: Awaited<ReturnType<typeof getLatestJobForSession>>;
 }> {
   const sessionRows = await executeWithRetry(() =>
     db.select()
@@ -241,7 +241,7 @@ async function fetchSessionAndJob(sessionId: string): Promise<{
   );
 
   const session = sessionRows[0] ?? null;
-  const job = session ? await getTrackedJob(sessionId) : null;
+  const job = session ? await getLatestJobForSession(sessionId) : null;
 
   return { session, job };
 }
@@ -532,15 +532,14 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
     const session = await db.select().from(sessions).where(eq(sessions.id, sessionId)).limit(1);
     if (!session.length) return false;
 
-    const job = await getTrackedJob(sessionId);
+    const job = await getLatestJobForSession(sessionId);
     const activeJobStatus = job?.status;
     if (activeJobStatus && !['queued', 'running', 'retrying'].includes(activeJobStatus)) {
       logger.warn(`Cannot cancel session ${sessionId}: job status is '${activeJobStatus}'`);
       return false;
     }
 
-    await flushSessionTrash(sessionId);
-
+    // Do DB update FIRST — if it fails or races, data stays intact
     const updateResult = await executeWithRetry(() =>
       db.update(sessions)
         .set({
@@ -564,6 +563,8 @@ export async function cancelSession(sessionId: string): Promise<boolean> {
       return false;
     }
 
+    // Only NOW destroy data, after confirming DB update succeeded
+    await flushSessionTrash(sessionId);
     emitError(sessionId, 'Cancelled by user', 'cancelled');
     await syncJobCancelled(sessionId, activeAttemptIds);
     logger.info('Session cancelled by user (Full Wipe Complete)', { sessionId });
@@ -616,7 +617,7 @@ async function scheduleRetry(
   const delay = getRetryDelay(attempt);
   await completeTrackedJobAttempt(sessionId, activeAttemptIds, 'abandoned', errorMsg, retryReasonCode);
 
-  const job = await getTrackedJob(sessionId);
+  const job = await getLatestJobForSession(sessionId);
   if (job) {
     const nextRetryAt = new Date(Date.now() + delay).toISOString();
     await scheduleJobRetry({
@@ -1033,6 +1034,10 @@ function handleProcessingException(error: unknown, sessionId: string): void {
   if (isCancellationError(error)) {
     logger.info('Session processing cancelled', { sessionId });
     cleanupController(sessionId);
+    // Mark session as failed so it doesn't stay stuck in 'processing'
+    markAsFailed(sessionId, 'Cancelled by user').catch((e) => {
+      logger.error('Failed to mark cancelled session as failed', { sessionId, error: e instanceof Error ? e.message : e });
+    });
     return;
   }
 
@@ -1049,6 +1054,7 @@ function handleProcessingException(error: unknown, sessionId: string): void {
 
 function releaseWorkerSlot(sessionId: string): void {
   activeProcessingIds.delete(sessionId);
+  processingStartTimes.delete(sessionId);
 
   const globalWithGC = globalThis as typeof globalThis & { gc?: () => void };
   if (globalWithGC.gc) {

@@ -2,45 +2,27 @@
  * 🔴 CRITICAL - ENCRYPTION CORE - DANGER_DO_NOT_MODIFY 🔴
  * 
  * This file contains the authoritative encryption logic for the entire system.
- * It implements the 'v3' standard (AES-256-GCM + scrypt) while maintaining
- * backward compatibility for 'v1' and 'v2' data.
+ * It implements the 'v4' standard (AES-256-GCM + scrypt with user isolation).
  * 
  * Versioning Table:
- * v1: AES-256-CBC (Legacy, insecure IV)
- * v2: AES-256-GCM (Better, but PBKDF2 with low iterations)
- * v3: AES-256-GCM (NIST-Standard: scrypt 32768/8/1 + Unique Salt/IV, but lacked user isolation)
  * v4: AES-256-GCM (NIST-Standard: scrypt with combined secret:userId + userId as AAD)
  */
-
 import crypto from 'crypto';
 import { logger } from '../../utils/logger.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
-// V3 CONFIGURATION (NIST Standard)
+// V4 CONFIGURATION
 // ═════════════════════════════════════════════════════════════════════════════
 
-const V3_CONFIG = {
+const V4_CONFIG = {
     ALGORITHM: 'aes-256-gcm',
     KEY_LENGTH: 32,
     IV_LENGTH: 12,
     SALT_LENGTH: 16,
     AUTH_TAG_LENGTH: 16,
     SCRYPT_PARAMS: { N: 32768, r: 8, p: 1, maxmem: 64 * 1024 * 1024 },
-    PREFIX: 'v3'
-};
-
-const V4_CONFIG = {
-    ...V3_CONFIG,
     PREFIX: 'v4'
 };
-
-/**
- * Derives a key synchronously using scrypt.
- */
-function deriveKeyV3(secret: string, salt: Buffer): Buffer {
-    return crypto.scryptSync(secret, salt, V3_CONFIG.KEY_LENGTH, V3_CONFIG.SCRYPT_PARAMS);
-}
-
 /**
  * Derives a user-isolated key synchronously using scrypt.
  */
@@ -48,11 +30,9 @@ function deriveKeyV4(secret: string, userId: string, salt: Buffer): Buffer {
     const combinedSecret = `${secret}:${userId}`;
     return crypto.scryptSync(combinedSecret, salt, V4_CONFIG.KEY_LENGTH, V4_CONFIG.SCRYPT_PARAMS);
 }
-
 // ═════════════════════════════════════════════════════════════════════════════
-// MAIN API - ENCRYPTION (v3)
+// MAIN API - ENCRYPTION
 // ═════════════════════════════════════════════════════════════════════════════
-
 /**
  * Encrypt data using the v4 standard (User Isolated).
  */
@@ -90,11 +70,10 @@ const cipher = crypto.createCipheriv(V4_CONFIG.ALGORITHM, derivedKey, iv, {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
-// MAIN API - DECRYPTION (Compatible)
+// MAIN API - DECRYPTION
 // ═════════════════════════════════════════════════════════════════════════════
-
 /**
- * Decrypt data supporting v3, v2, and v1
+ * Decrypt data supporting v4 only.
  */
 export function decryptData(payload: string, userId: string, secrets: string | string[]): string {
     const secretList = Array.isArray(secrets) ? secrets : [secrets];
@@ -121,62 +100,8 @@ export function decryptData(payload: string, userId: string, secrets: string | s
                 (decipher as crypto.DecipherGCM).setAuthTag(authTag);
                 return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
             }
-            // 🚀 Handle v3
-            if (payload.startsWith('v3:')) {
-                const parts = payload.split(':');
-                if (parts.length !== 5) throw new Error('Invalid v3 format');
-
-                const [, saltB64, ivB64, authTagB64, ciphertextB64] = parts;
-                const salt = Buffer.from(saltB64, 'base64');
-                const iv = Buffer.from(ivB64, 'base64');
-                const authTag = Buffer.from(authTagB64, 'base64');
-                const ciphertext = Buffer.from(ciphertextB64, 'base64');
-
-                const derivedKey = deriveKeyV3(secret, salt);
-                const decipherOptions3: crypto.CipherGCMOptions = { authTagLength: V3_CONFIG.AUTH_TAG_LENGTH };
-                const decipher = crypto.createDecipheriv(V3_CONFIG.ALGORITHM, derivedKey, iv, decipherOptions3);
-
-                (decipher as crypto.DecipherGCM).setAuthTag(authTag);
-                return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
-            }
-
-            // 🚀 Handle v2 (Legacy GCM but weak KDF)
-            if (payload.includes(':') && payload.split(':').length >= 3) {
-                const parts = payload.split(':');
-                // Legacy v2 sometimes had 3 parts (iv:authTag:ciphertext) or 4 parts (prefix:iv:authTag:ciphertext)
-                let ivB64, authTagB64, ciphertextB64;
-
-                if (parts.length === 3) {
-                    [ivB64, authTagB64, ciphertextB64] = parts;
-                } else if (parts.length === 4) {
-                    [, ivB64, authTagB64, ciphertextB64] = parts;
-                } else {
-                    throw new Error('Unknown legacy format');
-                }
-
-                const iv = Buffer.from(ivB64, 'base64');
-                const authTag = Buffer.from(authTagB64, 'base64');
-                const ciphertext = Buffer.from(ciphertextB64, 'base64');
-
-                // Legacy v2 used simple PBKDF2 or direct key
-                const key = crypto.createHash('sha256').update(secret).digest();
-                const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
-                decipher.setAuthTag(authTag);
-                return Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8');
-            }
-
-            // 🚀 Handle v1 (Legacy CBC)
-            const [ivHex, encryptedHex] = payload.split(':');
-            if (ivHex && encryptedHex && ivHex.length === 32) {
-                const iv = Buffer.from(ivHex, 'hex');
-                const key = crypto.createHash('sha256').update(secret).digest();
-                const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-                let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
-                decrypted += decipher.final('utf8');
-                return decrypted;
-            }
         } catch (err) {
-            logger.debug('Decryption attempt failed for this secret/version', { error: (err as Error)?.message || err });
+            logger.debug('Decryption attempt failed for this secret', { error: (err as Error)?.message || err });
             continue;
         }
     }
@@ -187,7 +112,6 @@ export function decryptData(payload: string, userId: string, secrets: string | s
 // ═════════════════════════════════════════════════════════════════════════════
 // UTILITIES
 // ═════════════════════════════════════════════════════════════════════════════
-
 export function safeEncrypt(plaintext: string, userId: string, secret: string): string | null {
     try {
         return encryptData(plaintext, userId, secret);
@@ -219,6 +143,5 @@ export function decryptObject<T extends Record<string, unknown>>(encryptedString
 
 export function isEncrypted(data: string | null | undefined): boolean {
     if (!data || typeof data !== 'string') return false;
-    // v4, v3, or v2 (3/4 parts base64) or v1 (hex iv:ciphertext)
-    return data.startsWith('v4:') || data.startsWith('v3:') || (data.includes(':') && data.length > 32);
+    return data.startsWith('v4:');
 }

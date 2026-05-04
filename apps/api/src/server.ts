@@ -136,7 +136,12 @@ export function createApp() {
     app.set('trust proxy', 1); // Essential for HF Spaces / Vercel
 
     app.use(helmet({
-        contentSecurityPolicy: false, // Disabled for internal UI/Admin if needed
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'none'"],
+                frameAncestors: ["'none'"],
+            },
+        },
         crossOriginResourcePolicy: { policy: "cross-origin" }
     }));
 

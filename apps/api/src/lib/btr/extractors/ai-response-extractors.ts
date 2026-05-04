@@ -74,9 +74,10 @@ export function extractBatchSurvivors(
           });
 
           if (matchedItem) {
+            const rawScore = Number(matchedItem.score);
             scores.push({
               time,
-              score: Number(matchedItem.score) || 50,
+              score: Number.isFinite(rawScore) ? Math.max(0, Math.min(100, rawScore)) : 50,
               reason: matchedItem.reason ? String(matchedItem.reason).trim() : "XML Context analysis"
             });
           }
@@ -169,11 +170,14 @@ export function extractFinalVerdict(aiContent: string): FinalVerdict | null {
       const jsonEnd = jsonStr.lastIndexOf('}') + 1;
       if (jsonStart !== -1 && jsonEnd !== -1) {
         const parsed = JSON.parse(jsonStr.substring(jsonStart, jsonEnd));
+        const rawAccuracy = Number(parsed.accuracy);
+        const rawConfidence = Number(parsed.confidence);
+        const rawMargin = Number(parsed.margin);
         return {
           time: String(parsed.time).trim(),
-          accuracy: Number(parsed.accuracy) || 85,
-          confidence: parsed.confidence ? String(parsed.confidence).toUpperCase() : 'MEDIUM',
-          margin: Number(parsed.margin) || 5
+          accuracy: Number.isFinite(rawAccuracy) ? Math.max(0, Math.min(100, rawAccuracy)) : 85,
+          confidence: Number.isFinite(rawConfidence) ? Math.max(0, Math.min(100, rawConfidence)) : 50,
+          margin: Number.isFinite(rawMargin) ? Math.max(0, Math.min(120, rawMargin)) : 5,
         };
       }
     } catch (e) {
@@ -188,11 +192,13 @@ export function extractFinalVerdict(aiContent: string): FinalVerdict | null {
   const marginMatch = aiContent.match(/(?:MARGIN|ERROR|PRECISION)[^:]*[:\s]*±?\s*(\d+)/i);
 
   if (timeMatch) {
+    const accVal = accuracyMatch ? parseInt(accuracyMatch[1], 10) : 85;
+    const margVal = marginMatch ? parseInt(marginMatch[1], 10) : 5;
     return {
       time: timeMatch[1],
-      accuracy: accuracyMatch ? parseInt(accuracyMatch[1], 10) : 85,
+      accuracy: Number.isFinite(accVal) ? Math.max(0, Math.min(100, accVal)) : 85,
       confidence: confidenceMatch ? confidenceMatch[1].toUpperCase() : 'MEDIUM',
-      margin: marginMatch ? parseInt(marginMatch[1], 10) : 5
+      margin: Number.isFinite(margVal) ? Math.max(0, Math.min(120, margVal)) : 5
     };
   }
 
@@ -206,7 +212,7 @@ export function extractFinalVerdict(aiContent: string): FinalVerdict | null {
     if (tm) {
       return {
         time: tm[1],
-        accuracy: accuracyMatch ? parseInt(accuracyMatch[1], 10) : 75,
+        accuracy: accuracyMatch ? Math.max(0, Math.min(100, parseInt(accuracyMatch[1], 10))) : 75,
         confidence: 'MEDIUM',
         margin: 10
       };

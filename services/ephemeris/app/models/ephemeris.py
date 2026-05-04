@@ -11,9 +11,10 @@ class LocationRequest(BaseModel):
 
 class EphemerisBaseRequest(BaseModel):
     location: LocationRequest
-    ayanamshaMode: Literal["lahiri"] = "lahiri"
+    ayanamshaMode: Literal["lahiri", "krishnamurti"] = "lahiri"
     houseSystem: Literal["whole_sign", "equal", "placidus"] = "placidus"
     nodeMode: Literal["true", "mean"] = "true"
+    topocentricMoon: bool = False
 
 
 class SingleEphemerisRequest(EphemerisBaseRequest):
@@ -21,7 +22,7 @@ class SingleEphemerisRequest(EphemerisBaseRequest):
 
 
 class BatchEphemerisRequest(EphemerisBaseRequest):
-    timestampsUtc: list[str]
+    timestampsUtc: list[str] = Field(..., min_length=1, max_length=500)
 
 
 class SunriseRequest(BaseModel):

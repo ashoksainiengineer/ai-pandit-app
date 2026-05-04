@@ -100,10 +100,12 @@ vi.mock('../../lib/logger.js', () => ({
 
 import sessionsRouter from '../../routes/sessions.js';
 
+import { authMiddleware } from '../../middleware/auth.js';
+
 function createApp() {
   const app = express();
   app.use(express.json());
-  app.use('/api/sessions', sessionsRouter);
+  app.use('/api/sessions', authMiddleware, sessionsRouter);
   return app;
 }
 

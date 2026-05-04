@@ -46,7 +46,7 @@ const ParivartanaYogaCard: React.FC<ParivartanaYogaCardProps> = ({ yogas }) => {
     >
       <div className="flex flex-col gap-fib-4">
         {yogas.map((yoga, index) => (
-          <div key={index} className="text-center">
+          <div key={`${yoga.planets[0]}-${yoga.planets[1]}-${yoga.yogaType || index}`} className="text-center">
 
             {/* Yoga Type Badge */}
             <div className="mb-fib-3">

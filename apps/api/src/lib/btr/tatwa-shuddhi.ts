@@ -130,29 +130,46 @@ function calculateCorrectionWindows(
   const targetIndex = TATWA_SEQUENCE.indexOf(targetTatwa);
   if (targetIndex === -1) return windows;
 
-  // TODO: full variable-duration correction. For now use equal-duration approximation
-  const approxDuration = 18;
+  const weekday = sunriseTime.getUTCDay();
+  const START: Record<number, number> = { 0: 2, 1: 1, 2: 2, 3: 0, 4: 4, 5: 1, 6: 3 };
   let currentTime = new Date(sunriseTime);
 
   while (currentTime.getTime() < endTime.getTime()) {
-    const tatwaStart = new Date(currentTime.getTime() + targetIndex * approxDuration * 60000);
-    const tatwaEnd = new Date(tatwaStart.getTime() + approxDuration * 60000);
+    // Compute offset to target tatwa within this cycle using variable durations
+    let startIdx = START[weekday] ?? 0;
+    let offsetMinutes = 0;
+    let foundTarget = false;
+    let targetDuration = 0;
 
-    if (tatwaEnd.getTime() > startTime.getTime() && tatwaStart.getTime() < endTime.getTime()) {
-      const distanceFromBirth = Math.abs(
-        (tatwaStart.getTime() + tatwaEnd.getTime()) / 2 - birthTime.getTime()
-      );
-      let confidence = 100 - (distanceFromBirth / (searchWindowMs / 100));
-      confidence = Math.max(0, Math.min(100, confidence));
-      if (knownPrakriti) {
-        const tatwaDoshas = TATWA_DOSHA_MAP[targetTatwa];
-        if (tatwaDoshas.includes(knownPrakriti)) confidence += 15;
+    for (let i = 0; i < 5; i++) {
+      const idx = (startIdx + i) % 5;
+      if (TATWA_SEQUENCE[idx] === targetTatwa) {
+        foundTarget = true;
+        targetDuration = TATWA_DURATIONS[idx];
+        break;
       }
-      windows.push({ startTime: tatwaStart, endTime: tatwaEnd, tatwa: targetTatwa, confidence: Math.min(100, confidence) });
+      offsetMinutes += TATWA_DURATIONS[idx];
+    }
+
+    if (foundTarget) {
+      const tatwaStart = new Date(currentTime.getTime() + offsetMinutes * 60000);
+      const tatwaEnd = new Date(tatwaStart.getTime() + targetDuration * 60000);
+
+      if (tatwaEnd.getTime() > startTime.getTime() && tatwaStart.getTime() < endTime.getTime()) {
+        const distanceFromBirth = Math.abs(
+          (tatwaStart.getTime() + tatwaEnd.getTime()) / 2 - birthTime.getTime()
+        );
+        let confidence = 100 - (distanceFromBirth / (searchWindowMs / 100));
+        confidence = Math.max(0, Math.min(100, confidence));
+        if (knownPrakriti) {
+          const tatwaDoshas = TATWA_DOSHA_MAP[targetTatwa];
+          if (tatwaDoshas.includes(knownPrakriti)) confidence += 15;
+        }
+        windows.push({ startTime: tatwaStart, endTime: tatwaEnd, tatwa: targetTatwa, confidence: Math.min(100, confidence) });
+      }
     }
     currentTime = new Date(currentTime.getTime() + FULL_CYCLE * 60000);
   }
-
   return windows.sort((a, b) => {
     const distA = Math.abs(a.startTime.getTime() + a.endTime.getTime() - 2 * birthTime.getTime());
     const distB = Math.abs(b.startTime.getTime() + b.endTime.getTime() - 2 * birthTime.getTime());
@@ -217,12 +234,33 @@ export function calculateTatwaFromTime(birthTime: Date, sunriseTime: Date): {
     };
   }
 
+  const fullCycle = 90;
+  const weekday = sunriseTime.getUTCDay();
+  const START: Record<number, number> = { 0: 2, 1: 1, 2: 2, 3: 0, 4: 4, 5: 1, 6: 3 };
+  let idx = START[weekday] ?? 0;
+  let rem = minutesSinceSunrise % fullCycle;
+  const cycleNumber = Math.floor(minutesSinceSunrise / fullCycle);
+
+  for (let i = 0; i < 5; i++) {
+    const dur = TATWA_DURATIONS[idx];
+    if (rem < dur) {
+      return {
+        tatwa: TATWA_SEQUENCE[idx],
+        minutesIntoTatwa: rem,
+        cycleNumber,
+        totalMinutesSinceSunrise: minutesSinceSunrise
+      };
+    }
+    rem -= dur;
+    idx = (idx + 1) % 5;
+  }
+
   return {
     tatwa: 'akasha',
     minutesIntoTatwa: 0,
     cycleNumber: -1,
     totalMinutesSinceSunrise: minutesSinceSunrise
-  };
+}
 }
 
 /**

@@ -70,7 +70,29 @@ router.options(['/', '/:sessionId'], (req, res) => {
 
 /**
  * POST /api/stream/ticket/:sessionId
- * Creates a short-lived, single-use stream ticket for EventSource auth.
+ *
+ * Creates a short-lived, single-use ticket for EventSource authentication.
+ *
+ * WHY THIS EXISTS:
+ * The browser-native EventSource API does not support custom HTTP headers,
+ * so it cannot send an Authorization: Bearer <token> header. This endpoint
+ * provides a secure workaround by exchanging a Clerk Bearer token for a
+ * temporary UUID ticket that can be passed as a ?ticket query parameter
+ * to the SSE endpoint.
+ *
+ * FLOW:
+ * 1. Frontend calls this endpoint with a Clerk Bearer token + session ID.
+ * 2. This handler verifies auth (via authMiddleware) and session ownership.
+ * 3. createStreamTicket() mints a single-use ticket bound to (clerkId, sessionId).
+ * 4. Frontend opens EventSource at GET /api/stream/:sessionId?ticket=<ticket>.
+ * 5. Auth middleware detects the ticket, calls consumeStreamTicket(), and
+ *    authenticates the SSE connection without requiring an Authorization header.
+ *
+ * SECURITY:
+ * - Requires valid Clerk Bearer token (authMiddleware).
+ * - Verifies session ownership before minting the ticket.
+ * - Tickets are single-use and expire after 2 minutes.
+ * - See lib/stream-ticket-manager.ts for the full ticket lifecycle.
  */
 router.post('/ticket/:sessionId', authMiddleware, async (req: AuthenticatedRequest, res: Response) => {
     const sessionId = req.params.sessionId;

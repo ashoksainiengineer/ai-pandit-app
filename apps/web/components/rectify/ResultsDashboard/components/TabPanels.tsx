@@ -172,7 +172,7 @@ export function TabPanels({
                             <div className="space-y-2">
                                 {topCandidates.slice(1, 6).map((alt, i) => (
                                     <div
-                                        key={i}
+                                        key={String((alt as Record<string, unknown>).time || `runner-${i}`)}
                                         className="flex justify-between items-center p-3 rounded"
                                         style={{ backgroundColor: THEME.bg, border: `1px solid ${THEME.border}80` }}
                                     >

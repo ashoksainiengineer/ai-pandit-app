@@ -10,7 +10,7 @@ import { env } from '@/lib/config/env';
 import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq, desc } from 'drizzle-orm';
-import { isEncrypted, parseSensitiveField, initializeEncryption } from '@/lib/crypto';
+import { parseSensitiveField, initializeEncryption } from '@/lib/crypto';
 import { DashboardSession } from '@/lib/dashboard/types';
 import { DashboardClient } from './DashboardClient';
 import Layout from '@/components/Layout';
@@ -94,11 +94,11 @@ async function getUserSessions(clerkId: string, clerkUser?: any): Promise<Dashbo
         id: s.id,
         userId: s.userId,
         status: s.status as DashboardSession['status'],
-        fullName: parseSensitiveField(s.fullName, 'Unencryptable Session'),
-        dateOfBirth: parseSensitiveField(s.dateOfBirth, 'Not set'),
-        tentativeTime: parseSensitiveField(s.tentativeTime, 'Not set'),
-        birthPlace: parseSensitiveField(s.birthPlace, 'Unknown'),
-        offsetConfig: parseSensitiveField(s.offsetConfig, null),
+        fullName: parseSensitiveField(s.fullName, 'Unencryptable Session', s.userId),
+        dateOfBirth: parseSensitiveField(s.dateOfBirth, 'Not set', s.userId),
+        tentativeTime: parseSensitiveField(s.tentativeTime, 'Not set', s.userId),
+        birthPlace: parseSensitiveField(s.birthPlace, 'Unknown', s.userId),
+        offsetConfig: parseSensitiveField(s.offsetConfig, null, s.userId),
         latitude: s.latitude,
         longitude: s.longitude,
         timezone: s.timezone,
@@ -123,11 +123,11 @@ async function getUserSessions(clerkId: string, clerkUser?: any): Promise<Dashbo
         );
         userSessions = rawResult.rows.map((s: any) => ({
           ...s,
-          fullName: parseSensitiveField(s.fullName, 'Unencryptable Session'),
-          dateOfBirth: parseSensitiveField(s.dateOfBirth, 'Not set'),
-          tentativeTime: parseSensitiveField(s.tentativeTime, 'Not set'),
-          birthPlace: parseSensitiveField(s.birthPlace, 'Unknown'),
-          offsetConfig: parseSensitiveField(s.offsetConfig, null),
+          fullName: parseSensitiveField(s.fullName, 'Unencryptable Session', s.userId),
+          dateOfBirth: parseSensitiveField(s.dateOfBirth, 'Not set', s.userId),
+          tentativeTime: parseSensitiveField(s.tentativeTime, 'Not set', s.userId),
+          birthPlace: parseSensitiveField(s.birthPlace, 'Unknown', s.userId),
+          offsetConfig: parseSensitiveField(s.offsetConfig, null, s.userId),
           isFavorite: false,
           tags: [],
           status: s.status || 'pending',

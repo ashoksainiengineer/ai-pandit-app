@@ -30,7 +30,7 @@ const nextConfig = {
     ],
   },
 
-  transpilePackages: ['@ai-pandit/shared', '@ai-pandit/db'],
+  transpilePackages: ['@ai-pandit/shared'],
 
   webpack: (config) => {
     // Instruct Webpack to resolve strict ESM `.js` imports to `.ts` files on disk

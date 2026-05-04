@@ -80,7 +80,7 @@ export function useLifeEvents({ lifeEvents, updateEvents }: Step3Props) {
         const categoryData = getCategoryById(allCategories, category);
         const newEvent: LifeEvent = {
             id: generateEventId(),
-            category: category as any,
+            category: category,
             eventType: label,
             icon: icon || categoryData?.icon || '📅',
             datePrecision: 'month_year',

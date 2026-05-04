@@ -3,11 +3,7 @@
  * Light, elegant footer with warm accents
  */
 
-'use client';
-
-import React from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import { Mail, Heart, Sparkles } from 'lucide-react';
 
 const footerLinks = [
@@ -18,24 +14,14 @@ const footerLinks = [
 ];
 
 export default function Footer() {
-  const [mounted, setMounted] = React.useState(false);
-
-  React.useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const currentYear = mounted ? new Date().getFullYear() : 2026;
+  const currentYear = new Date().getFullYear();
 
   return (
     <footer className="relative border-t border-[#F0E8DE] bg-[#FDF8F3]">
       <div className="relative max-w-6xl mx-auto px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12 lg:gap-16">
           {/* Brand Column */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
+          <div
           >
             <div className="mb-6">
               <span className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612] block">
@@ -57,14 +43,10 @@ export default function Footer() {
               <Heart className="w-3.5 h-3.5 text-red-400 fill-red-400" />
               <span>and sacred intention</span>
             </div>
-          </motion.div>
+          </div>
 
           {/* Quick Links */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.1 }}
-            viewport={{ once: true }}
+          <div
           >
             <h3 className="font-[family-name:var(--font-cormorant)] text-[#1A1612] font-semibold text-lg mb-6">
               Quick Links
@@ -83,14 +65,10 @@ export default function Footer() {
                 </li>
               ))}
             </ul>
-          </motion.div>
+          </div>
 
           {/* Contact */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-            viewport={{ once: true }}
+          <div
           >
             <h3 className="font-[family-name:var(--font-cormorant)] text-[#1A1612] font-semibold text-lg mb-6">
               Connect
@@ -116,15 +94,11 @@ export default function Footer() {
                 </p>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
 
         {/* Bottom Bar */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-          viewport={{ once: true }}
+        <div
           className="border-t border-[#F0E8DE] mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4"
         >
           <p className="text-[#7A756F] text-sm">
@@ -141,7 +115,7 @@ export default function Footer() {
               <span className="text-xs text-[#7A756F]">Next.js</span>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </footer>
   );

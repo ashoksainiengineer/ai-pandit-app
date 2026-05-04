@@ -74,6 +74,23 @@ class EphemerisRuntime:
                 f"Failed to load ephemeris kernel {self._settings.kernel_file}: {exc}"
             ) from exc
 
+    async def ensure_loaded_async(self) -> None:
+        """Load kernel asynchronously — for first request, runs in thread pool."""
+        if self._kernel is not None and self._timescale is not None:
+            return
+
+        import asyncio
+        loop = asyncio.get_running_loop()
+        try:
+            await loop.run_in_executor(None, self._load_kernel)
+        except Exception as exc:
+            self._state.ready = False
+            self._state.kernel_loaded = False
+            self._state.error = str(exc)
+            raise ServiceInitializationError(
+                f"Failed to load ephemeris kernel {self._settings.kernel_file}: {exc}"
+            ) from exc
+
     def get_kernel(self) -> Any:
         self.ensure_loaded()
         if self._kernel is None:

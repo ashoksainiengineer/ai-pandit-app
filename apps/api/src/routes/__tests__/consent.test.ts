@@ -48,10 +48,12 @@ import express from 'express';
 import request from 'supertest';
 import consentRoutes from '../../routes/consent.js';
 
+import { authMiddleware } from '../../middleware/auth.js';
+
 function createApp() {
     const app = express();
     app.use(express.json());
-    app.use('/api/consent', consentRoutes);
+    app.use('/api/consent', authMiddleware, consentRoutes);
     return app;
 }
 
@@ -72,14 +74,14 @@ describe('Consent Routes - POST /api/consent', () => {
             .send({ consent: true });
 
         expect(res.status).toBe(400);
-        expect(res.body.error).toContain('Session ID and consent required');
+        expect(res.body.error).toBe('Validation Error');
     });
 
     it('should return 400 when consent is missing', async () => {
         const app = createApp();
         const res = await request(app)
             .post('/api/consent')
-            .send({ sessionId: 'sess-123' });
+            .send({ sessionId: '00000000-0000-0000-0000-000000000001' });
 
         expect(res.status).toBe(400);
     });
@@ -90,7 +92,7 @@ describe('Consent Routes - POST /api/consent', () => {
         const app = createApp();
         const res = await request(app)
             .post('/api/consent')
-            .send({ sessionId: 'nonexistent', consent: true });
+            .send({ sessionId: '00000000-0000-0000-0000-000000000001', consent: true });
 
         expect(res.status).toBe(404);
     });
@@ -101,7 +103,7 @@ describe('Consent Routes - POST /api/consent', () => {
         const app = createApp();
         const res = await request(app)
             .post('/api/consent')
-            .send({ sessionId: 'sess-123', consent: true });
+            .send({ sessionId: '00000000-0000-0000-0000-000000000001', consent: true });
 
         expect(res.status).toBe(403);
         expect(res.body.error).toContain('Unauthorized');
@@ -111,7 +113,7 @@ describe('Consent Routes - POST /api/consent', () => {
         const app = createApp();
         const res = await request(app)
             .post('/api/consent')
-            .send({ sessionId: 'sess-123', consent: true });
+            .send({ sessionId: '00000000-0000-0000-0000-000000000001', consent: true });
 
         expect(res.status).toBe(200);
         expect(res.body.success).toBe(true);
@@ -121,7 +123,7 @@ describe('Consent Routes - POST /api/consent', () => {
         const app = createApp();
         const res = await request(app)
             .post('/api/consent')
-            .send({ sessionId: 'sess-123', consent: false });
+            .send({ sessionId: '00000000-0000-0000-0000-000000000001', consent: false });
 
         expect(res.status).toBe(200);
         expect(res.body.success).toBe(true);
@@ -143,7 +145,7 @@ describe('Consent Routes - GET /api/consent/:sessionId', () => {
         }]);
 
         const app = createApp();
-        const res = await request(app).get('/api/consent/sess-123');
+        const res = await request(app).get('/api/consent/00000000-0000-0000-0000-000000000001');
 
         expect(res.status).toBe(200);
         expect(res.body.success).toBe(true);
@@ -154,7 +156,7 @@ describe('Consent Routes - GET /api/consent/:sessionId', () => {
         mockLimit.mockResolvedValue([]);
 
         const app = createApp();
-        const res = await request(app).get('/api/consent/nonexistent');
+        const res = await request(app).get('/api/consent/00000000-0000-0000-0000-000000000002');
 
         expect(res.status).toBe(404);
     });
@@ -166,7 +168,7 @@ describe('Consent Routes - GET /api/consent/:sessionId', () => {
         }]);
 
         const app = createApp();
-        const res = await request(app).get('/api/consent/sess-123');
+        const res = await request(app).get('/api/consent/00000000-0000-0000-0000-000000000001');
 
         expect(res.status).toBe(403);
     });

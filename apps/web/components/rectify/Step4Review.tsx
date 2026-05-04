@@ -58,7 +58,36 @@ export default function Step4Review({
 
       <div className="bg-white rounded-xl p-6 border border-[#E8E0D5]">
         <h3 className="text-lg font-semibold text-[#2A2A2A] mb-3">Physical Traits</h3>
-        <p className="text-sm text-[#7A756F]">Traits captured for forensic analysis.</p>
+        <div className="text-sm text-[#7A756F]">
+          {traits ? (
+            <ul className="space-y-1">
+              {traits.build && <li><strong>Build:</strong> {traits.build}</li>}
+              {traits.complexion && <li><strong>Complexion:</strong> {traits.complexion}</li>}
+              {traits.eyeShape && <li><strong>Eye Shape:</strong> {traits.eyeShape}</li>}
+              {traits.hairType && <li><strong>Hair Type:</strong> {traits.hairType}</li>}
+              {traits.height && typeof traits.height === 'object' && (
+                <li><strong>Height:</strong> {(traits.height as {cm:number}).cm} cm</li>
+              )}
+            </ul>
+          ) : (
+            <p>No physical traits recorded.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl p-6 border border-[#E8E0D5]">
+        <h3 className="text-lg font-semibold text-[#2A2A2A] mb-3">Forensic Profile</h3>
+        <div className="text-sm text-[#7A756F]">
+          {forensicTraits ? (
+            <ul className="space-y-1">
+              {forensicTraits.psychographic?.temperament && <li><strong>Temperament:</strong> {forensicTraits.psychographic.temperament}</li>}
+              {forensicTraits.biological?.prakriti && <li><strong>Prakriti:</strong> {forensicTraits.biological.prakriti}</li>}
+              {forensicTraits.family?.siblingPosition && <li><strong>Sibling Position:</strong> {forensicTraits.family.siblingPosition}</li>}
+            </ul>
+          ) : (
+            <p>No forensic traits recorded.</p>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-4">
