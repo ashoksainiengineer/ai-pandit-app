@@ -97,7 +97,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
         // Extra check: If fullName is at the root and still looks encrypted, patch it
         if (isEncrypted(parsedSession.fullName)) {
-            parsedSession.fullName = parseSensitiveField(parsedSession.fullName, undefined, sessionUserId);
+            parsedSession.fullName = parseSensitiveField(parsedSession.fullName, undefined, sessionUserId) ?? 'Unknown';
         }
 
         return NextResponse.json({ success: true, data: parsedSession });
