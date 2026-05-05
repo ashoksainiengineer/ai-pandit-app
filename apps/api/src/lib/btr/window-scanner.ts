@@ -310,16 +310,6 @@ async function generateCandidates(
       // 100 candidates with full ephemeris = ~2GB memory
       // 30 candidates = ~600MB memory
       allCandidates = maintainTopCandidates(allCandidates, chunk, 30);
-    },
-    {
-      timezone: context.timezone,
-      latitude: context.latitude,
-      longitude: context.longitude,
-    },
-    {
-      chunkSize: 10,
-      maxKeep: 30,
-      sessionId: context.sessionId,
     }
   );
 
@@ -405,9 +395,9 @@ async function scoreCandidate(
     overallScore: Math.round(overallScore * 100) / 100,
     confidenceLevel,
     marginOfErrorSeconds: marginOfError,
-    methodScores,
-    eventMatches,
-    transitMatches,
+    methodScores: methodScores as unknown as Record<string, number>,
+    eventMatches: eventMatches as unknown as Record<string, unknown>[],
+    transitMatches: transitMatches as unknown as Record<string, unknown>[],
     redFlags,
     keyEvidence
   };

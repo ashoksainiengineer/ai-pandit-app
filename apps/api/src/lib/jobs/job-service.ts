@@ -570,7 +570,7 @@ export async function getJobDetailById(
     throw new ForbiddenError('Access denied');
   }
 
-  return mapJobDetail(jobRow.job, jobRow.sessionStatus, jobRow.sessionResult);
+  return mapJobDetail(jobRow.job as any, jobRow.sessionStatus as string, jobRow.sessionResult as string);
 }
 
 export async function cancelJobById(

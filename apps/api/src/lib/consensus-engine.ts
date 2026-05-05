@@ -187,7 +187,7 @@ function getVimshottariSnapshot(candidate: ValidationInput['candidate']): {
   startDate?: Date;
   endDate?: Date;
 } {
-  const structured = candidate.dasha?.vimshottari;
+  const structured = (candidate.dasha as any)?.vimshottari;
   if (structured?.mahadasha?.lord) {
     return {
       maha: structured.mahadasha.lord,
@@ -202,7 +202,7 @@ function getVimshottariSnapshot(candidate: ValidationInput['candidate']): {
 
   const possibleArrays = [
     candidate.dasha,
-    candidate.dasha?.vimshottari,
+    (candidate.dasha as Record<string, unknown>)?.vimshottari,
     candidate.ephemeris?.vimshottariDasha
   ];
 
@@ -286,7 +286,7 @@ function validateVimshottari(input: ValidationInput): ValidationDetail {
 function validateYogini(input: ValidationInput): ValidationDetail {
   const { candidate, events } = input;
 
-  if (!candidate.dasha?.yogini || !Array.isArray(candidate.dasha.yogini)) {
+  if (!(candidate.dasha as any)?.yogini || !Array.isArray((candidate.dasha as any).yogini)) {
     return {
       method: 'Yogini Dasha',
         score: 0,
@@ -315,17 +315,17 @@ function validateYogini(input: ValidationInput): ValidationDetail {
     const eventDate = new Date(eventWindow.midpointMs);
 
     // Find which Yogini period contains this event
-    const yoginiPeriod = candidate.dasha.yogini.find((y: { lord: string; startEnd: string }) => {
+    const yoginiPeriod = ((candidate.dasha as any).yogini as unknown[]).find((y: any) => {
       if (!y.startEnd) return false;
       const [start, end] = y.startEnd.split(' to ').map((d: string) => new Date(d));
       return eventDate >= start && eventDate <= end;
     });
 
     if (yoginiPeriod) {
-      const supports = correlateYoginiWithEvent(yoginiPeriod.lord, event.category);
+      const supports = correlateYoginiWithEvent((yoginiPeriod as any).lord, event.category);
       if (supports) {
         matchCount += weight;
-        findings.push(`${event.type}: ${yoginiPeriod.lord} Yogini supports ${event.category}`);
+        findings.push(`${event.type}: ${(yoginiPeriod as any).lord} Yogini supports ${event.category}`);
       }
     }
   }
@@ -345,7 +345,7 @@ function validateYogini(input: ValidationInput): ValidationDetail {
 function validateChara(input: ValidationInput): ValidationDetail {
   const { candidate, events } = input;
 
-  if (!candidate.dasha?.chara) {
+  if (!(candidate.dasha as any)?.chara) {
     return {
       method: 'Chara Dasha',
         score: 0,
@@ -356,9 +356,9 @@ function validateChara(input: ValidationInput): ValidationDetail {
     };
   }
 
-  const charaSign = candidate.dasha.chara.currentSign;
+  const charaSign = ((candidate.dasha as any).chara as Record<string, unknown>).currentSign;
   const matchingEvents = events.filter(e =>
-    correlateCharaWithEvent(charaSign, e.category)
+    correlateCharaWithEvent(charaSign as string, e.category)
   );
 
   const score = Math.min(100, (matchingEvents.length / Math.max(1, events.length)) * 100 + 30);
@@ -482,8 +482,8 @@ function validateAshtakavarga(input: ValidationInput): ValidationDetail {
     };
   }
 
-  const sav = candidate.ephemeris.ashtakavarga.SAV || [];
-  const averageSAV = sav.length > 0 ? sav.reduce((a: number, b: number) => a + b, 0) / sav.length : 25;
+  const sav = (candidate.ephemeris.ashtakavarga.SAV as number[]) || [];
+  const averageSAV = (sav as number[]).length > 0 ? (sav as number[]).reduce((a: number, b: number) => a + b, 0) / (sav as number[]).length : 25;
 
   // Score based on average SAV (higher is better, max ~40)
   const score = Math.min(100, (averageSAV / 30) * 100);
@@ -930,7 +930,7 @@ function detectD60Instability(candidate: ValidationInput['candidate']): boolean 
     return true;
   }
 
-  const d60SunDeity = candidate.ephemeris?.d60Planets?.Sun?.deity;
+  const d60SunDeity = (candidate.ephemeris as any)?.d60Planets?.Sun?.deity;
   if (typeof d60SunDeity === 'string' && d60SunDeity === 'Unknown') {
     return true;
   }
@@ -1047,8 +1047,8 @@ function detectWeakSignificators(candidate: ValidationInput['candidate']): boole
   const planets = candidate.ephemeris?.planets;
   if (!planets) return false;
   return Object.values(planets).some((p) => {
-    const total = (p as Record<string, unknown>)?.shadbala && typeof (p as Record<string, unknown>).shadbala === 'object' && (p as Record<string, unknown>).shadbala !== null
-      ? ((p as Record<string, unknown>).shadbala as Record<string, unknown>).total
+    const total = (p as unknown as Record<string, unknown>)?.shadbala && typeof (p as unknown as Record<string, unknown>).shadbala === 'object' && (p as unknown as Record<string, unknown>).shadbala !== null
+      ? ((p as unknown as Record<string, unknown>).shadbala as Record<string, unknown>).total
       : undefined;
     return typeof total === 'number' && total < 1.0;
   });

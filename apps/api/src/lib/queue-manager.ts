@@ -59,6 +59,7 @@ import {
 } from './retry-policies.js';
 import {
   recoveryTelemetry,
+  getRecoveryTelemetryInstance,
 } from './metrics-reporter.js';
 
 import { sleep } from './ai-helpers.js';
@@ -358,12 +359,13 @@ export function __resetQueueStateForTests(): void {
   processingStartTimes.clear();
   isProcessorRunning = false;
   resetAllCircuitBreakersForTests();
-  recoveryTelemetry.lastRunAt = null;
-  recoveryTelemetry.lastRecoveredJobs = 0;
-  recoveryTelemetry.lastAbandonedAttempts = 0;
-  recoveryTelemetry.totalRecoveredJobs = 0;
-  recoveryTelemetry.totalAbandonedAttempts = 0;
-  recoveryTelemetry.alertActive = false;
+  const telemetry = getRecoveryTelemetryInstance();
+  telemetry.lastRunAt = null;
+  telemetry.lastRecoveredJobs = 0;
+  telemetry.lastAbandonedAttempts = 0;
+  telemetry.totalRecoveredJobs = 0;
+  telemetry.totalAbandonedAttempts = 0;
+  telemetry.alertActive = false;
 }
 
 async function _markAsProcessing(sessionId: string): Promise<void> {

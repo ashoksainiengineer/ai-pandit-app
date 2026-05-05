@@ -54,7 +54,7 @@ export async function stage5MicroGrid(
 
     if (!survivors || survivors.length === 0) {
         logger.error('🔱 [STAGE-5] FAILED: No survivors provided for micro-grid generation');
-        throw new AppError('AI_OUT_OF_CANDIDATES: No birth time candidates survived the previous analysis stages. This usually happens when life events and forensic traits are highly contradictory.');
+        throw new AppError('AI_OUT_OF_CANDIDATES: No birth time candidates survived the previous analysis stages. This usually happens when life events and forensic traits are highly contradictory.', { errorCode: 'PROCESSING_ERROR', statusCode: 500 });
     }
 
     const microCandidates: CandidateTime[] = [];

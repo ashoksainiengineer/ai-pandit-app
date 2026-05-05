@@ -233,7 +233,7 @@ router.get(['/', '/:sessionId'], authMiddleware, async (req: AuthenticatedReques
 
             let terminalResult: Record<string, unknown> | null = null;
             if (currentStatus === 'complete') {
-                const decryptedResult = safeDecryptWithFallback(session[0].analysisResult, clerkId, userId);
+                const decryptedResult = safeDecryptWithFallback(session[0].analysisResult as string, clerkId, userId);
                 if (decryptedResult) {
                     if (typeof decryptedResult === 'string') {
                         try {

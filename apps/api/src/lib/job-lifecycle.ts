@@ -1,6 +1,5 @@
 import crypto from 'node:crypto';
 import { completeJob as completeJobRecord } from '@ai-pandit/db';
-import { getLatestJobForSession } from '@ai-pandit/db/jobs';
 import {
   appendJobEvent,
   completeJobAttempt,
