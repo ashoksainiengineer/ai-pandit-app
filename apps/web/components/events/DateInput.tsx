@@ -691,7 +691,7 @@ export default function DateInput({
       {precision === 'exact_date_time' && (
         <div className="bg-[#F5EFE7] p-4 rounded-lg">
           <div className="flex items-center gap-4">
-            <label className="text-sm text-[#7A756F] font-medium">Time:</label>
+            <label className="text-sm text-[#5A554F] font-medium">Time:</label>
             <TimeSelect
               hour={localTimeParts.hour}
               minute={localTimeParts.minute}

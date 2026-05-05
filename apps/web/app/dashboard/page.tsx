@@ -6,6 +6,7 @@
  */
 
 import { Suspense } from 'react';
+import Link from 'next/link';
 import { currentUser } from '@clerk/nextjs/server';
 import Layout from '@/components/Layout';
 import { DashboardSkeleton } from './DashboardSkeleton';
@@ -28,12 +29,12 @@ export default async function DashboardPage() {
             <p className="text-content-secondary mb-6">
               Access your dashboard to view and manage your birth time rectification sessions.
             </p>
-            <a
+            <Link
               href="/sign-in"
               className="inline-block bg-gradient-to-r from-primary to-primary-dark text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
             >
               Sign In
-            </a>
+            </Link>
           </div>
         </div>
       </Layout>

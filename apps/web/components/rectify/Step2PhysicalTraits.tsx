@@ -135,8 +135,8 @@ function OptionCard<T extends string>({
           {option.icon}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-slate-800 text-sm sm:text-base">{option.label}</div>
-          <div className="text-xs sm:text-sm text-slate-500 mt-1">{option.description}</div>
+          <div className="font-bold text-[#1A1612] text-sm sm:text-base">{option.label}</div>
+          <div className="text-xs sm:text-sm text-[#5A554F] mt-1">{option.description}</div>
           <div className="text-[10px] sm:text-xs text-amber-700 mt-2 font-medium opacity-75">
             {option.indicatorSigns}
           </div>
@@ -277,10 +277,10 @@ export default function Step2PhysicalTraits({
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-50 to-white border border-amber-200 rounded-full text-xs mb-4">
           <span className="text-amber-700 font-medium">Step 2 of 5</span>
         </div>
-        <h1 className="font-[family-name:var(--font-cormorant)] text-2xl sm:text-3xl font-semibold text-slate-800 mb-2">
+        <h1 className="font-[family-name:var(--font-cormorant)] text-2xl sm:text-3xl font-semibold text-[#1A1612] mb-2">
           Your Natural <span className="text-amber-700">Body Type</span>
         </h1>
-        <p className="text-sm text-slate-500 max-w-md mx-auto">
+        <p className="text-sm text-[#5A554F] max-w-md mx-auto">
           Just 3 simple questions — no mirror analysis needed. Each answer helps eliminate wrong birth times.
         </p>
       </div>
@@ -301,7 +301,7 @@ export default function Step2PhysicalTraits({
         <div className="flex items-center gap-2 mb-4">
           <div className="p-2 rounded-lg bg-amber-100"><User className="w-5 h-5 text-amber-700" /></div>
           <div>
-            <h2 className="font-[family-name:var(--font-cormorant)] text-lg font-bold text-slate-800">
+            <h2 className="font-[family-name:var(--font-cormorant)] text-lg font-bold text-[#1A1612]">
               What is your natural body frame?
             </h2>
             <p className="text-xs text-slate-400">Not your gym goal — your lifelong, natural build.</p>
@@ -319,7 +319,7 @@ export default function Step2PhysicalTraits({
         <div className="flex items-center gap-2 mb-4">
           <div className="p-2 rounded-lg bg-amber-100"><Sun className="w-5 h-5 text-amber-700" /></div>
           <div>
-            <h2 className="font-[family-name:var(--font-cormorant)] text-lg font-bold text-slate-800">
+            <h2 className="font-[family-name:var(--font-cormorant)] text-lg font-bold text-[#1A1612]">
               What is your natural skin tone?
             </h2>
             <p className="text-xs text-slate-400">Your untanned, natural complexion.</p>
@@ -337,7 +337,7 @@ export default function Step2PhysicalTraits({
         <div className="flex items-center gap-2 mb-4">
           <div className="p-2 rounded-lg bg-amber-100"><Zap className="w-5 h-5 text-amber-700" /></div>
           <div>
-            <h2 className="font-[family-name:var(--font-cormorant)] text-lg font-bold text-slate-800">
+            <h2 className="font-[family-name:var(--font-cormorant)] text-lg font-bold text-[#1A1612]">
               What is your natural pace?
             </h2>
             <p className="text-xs text-slate-400">Your innate tempo — not learned behavior.</p>

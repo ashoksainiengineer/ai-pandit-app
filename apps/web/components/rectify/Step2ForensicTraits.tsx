@@ -71,34 +71,34 @@ function AssessmentCompleteView({ traitSummary, onRetake, onContinue }: {
                 <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-bold text-[#1A1612] mb-2">
                     Assessment Complete
                 </h2>
-                <p className="text-[#7A756F]">
+                <p className="text-[#5A554F]">
                     Your forensic profile has been recorded and will be used for precise birth time rectification.
                 </p>
             </div>
             <div className="grid grid-cols-2 gap-4 mb-6">
                 <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
                     <div className="text-2xl mb-1">🍃</div>
-                    <div className="text-xs text-[#7A756F]">Body Type</div>
+                    <div className="text-xs text-[#5A554F]">Body Type</div>
                     <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.prakriti}</div>
                 </div>
                 <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
                     <div className="text-2xl mb-1">👁️</div>
-                    <div className="text-xs text-[#7A756F]">Eye Shape</div>
+                    <div className="text-xs text-[#5A554F]">Eye Shape</div>
                     <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.eyeShape}</div>
                 </div>
                 <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
                     <div className="text-2xl mb-1">🗣️</div>
-                    <div className="text-xs text-[#7A756F]">Speech Style</div>
+                    <div className="text-xs text-[#5A554F]">Speech Style</div>
                     <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.speechStyle}</div>
                 </div>
                 <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
                     <div className="text-2xl mb-1">👨‍👩‍👧‍👦</div>
-                    <div className="text-xs text-[#7A756F]">Birth Order</div>
+                    <div className="text-xs text-[#5A554F]">Birth Order</div>
                     <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.birthOrder}</div>
                 </div>
             </div>
             <div className="flex gap-3">
-                <button onClick={onRetake} className="flex-1 py-3 border-2 border-[#E8E0D5] text-[#7A756F] rounded-xl font-semibold hover:bg-[#F5EFE7] transition-colors">
+                <button onClick={onRetake} className="flex-1 py-3 border-2 border-[#E8E0D5] text-[#5A554F] rounded-xl font-semibold hover:bg-[#F5EFE7] transition-colors">
                     Retake Assessment
                 </button>
                 <button onClick={onContinue} className="flex-1 py-3 bg-gradient-to-r from-[#184131] to-[#4ADE80] text-white rounded-xl font-semibold hover:shadow-lg transition-all">
@@ -168,7 +168,7 @@ export default function Step2ForensicTraits({
                 </svg>
                 <span className="font-medium">🔐 End-to-End Encrypted</span>
                 <span className="text-[#184131]/60">•</span>
-                <span className="text-[#7A756F]">Nobody can read your data except you</span>
+                <span className="text-[#5A554F]">Nobody can read your data except you</span>
             </motion.div>
 
             {/* Why Forensic Traits Matter - Educational Component */}
@@ -188,13 +188,13 @@ export default function Step2ForensicTraits({
                     animate={{ opacity: 1, y: 0 }}
                     className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-[#1A1612] leading-tight mb-2"
                 >
-                    Forensic <span className="text-gradient-gold">Traits</span>
+                    Forensic <span className="text-[#B8860B]">Traits</span>
                 </motion.h1>
                 <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.2 }}
-                    className="text-sm text-[#7A756F]"
+                    className="text-sm text-[#5A554F]"
                 >
                     Sub-second rectification through physical markers
                 </motion.p>
@@ -218,7 +218,7 @@ export default function Step2ForensicTraits({
                             <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-bold text-[#1A1612] mb-2">
                                 Vedic Forensic Assessment
                             </h2>
-                            <p className="text-[#7A756F] max-w-md mx-auto">
+                            <p className="text-[#5A554F] max-w-md mx-auto">
                                 Answer {QUIZ_METADATA.totalQuestions} questions about your body constitution (prakriti), behavior patterns, decision-making style, temperament, and family background.
                                 Physical appearance is covered in a separate section.
                             </p>
@@ -232,14 +232,14 @@ export default function Step2ForensicTraits({
                                         <span className="text-2xl">{cat.icon}</span>
                                         <div>
                                             <div className="font-medium text-sm text-[#1A1612]">{cat.name}</div>
-                                            <div className="text-xs text-[#7A756F]">{questionCount} Qs</div>
+                                            <div className="text-xs text-[#5A554F]">{questionCount} Qs</div>
                                         </div>
                                     </div>
                                 );
                             })}
                         </div>
 
-                        <div className="flex items-center justify-center gap-4 mb-6 text-sm text-[#7A756F]">
+                        <div className="flex items-center justify-center gap-4 mb-6 text-sm text-[#5A554F]">
                             <span className="flex items-center gap-1">
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />

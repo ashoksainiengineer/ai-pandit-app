@@ -89,7 +89,7 @@ export default function Pricing() {
           <div className="text-center">
             <Link href="/rectify">
               <button
-                className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold text-lg rounded-xl transition-all duration-300 shadow-lg hover:scale-[1.05] active:scale-[0.95]"
+                className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold text-lg rounded-xl transition-all duration-300 hover:scale-[1.05] active:scale-[0.95]"
               >
                 Get Your Analysis
               </button>

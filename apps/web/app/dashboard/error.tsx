@@ -25,7 +25,7 @@ export default function DashboardError({ error, reset }: ErrorBoundaryProps) {
           <h1 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612] mb-2">
             Dashboard Error
           </h1>
-          <p className="text-[#7A756F] mb-8">
+          <p className="text-[#5A554F] mb-8">
             Something went wrong while loading your dashboard. Please try again.
           </p>
 

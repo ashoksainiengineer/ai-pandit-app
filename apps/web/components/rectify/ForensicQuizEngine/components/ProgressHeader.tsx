@@ -27,7 +27,7 @@ export function ProgressHeader({
                     <span className="text-2xl">
                         {currentCategoryData?.icon}
                     </span>
-                    <span className="text-sm font-medium text-[#7A756F]">
+                    <span className="text-sm font-medium text-[#5A554F]">
                         {currentCategoryData?.name}
                     </span>
                 </div>
@@ -84,7 +84,7 @@ export function ProgressHeader({
                                 ? 'bg-[#B8860B] text-white'
                                 : isComplete
                                     ? 'bg-[#184131]/20 text-[#184131]'
-                                    : 'bg-[#F5EFE7] text-[#7A756F]'
+                                    : 'bg-[#F5EFE7] text-[#5A554F]'
                                 }`}
                         >
                             {cat.icon} {catProg.answered}/{catProg.total}

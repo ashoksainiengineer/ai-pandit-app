@@ -183,7 +183,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
           </div>
           <motion.div
             animate={{ rotate: isExpanded ? 180 : 0 }}
-            className="p-2 rounded-lg bg-[#F5EFE7] text-[#7A756F]"
+            className="p-2 rounded-lg bg-[#F5EFE7] text-[#5A554F]"
           >
             <ChevronDown className="w-5 h-5" />
           </motion.div>
@@ -207,7 +207,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
         </div>
 
         {nextLevel && (
-          <p className="mt-2 text-xs text-[#7A756F]">
+          <p className="mt-2 text-xs text-[#5A554F]">
             🎯 Add <span className="font-bold text-[#B8860B]">{eventsToNextLevel} more events</span> to reach 
             <span className={`font-bold ${nextLevel.color}`}> {nextLevel.label}</span> ({nextLevel.precision})
           </p>
@@ -239,7 +239,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all ${
                     activeTab === tab.id 
                       ? 'bg-white text-[#B8860B] shadow-sm' 
-                      : 'text-[#7A756F] hover:text-[#4A453F]'
+                      : 'text-[#5A554F] hover:text-[#4A453F]'
                   }`}
                 >
                   <tab.icon className="w-3.5 h-3.5" />
@@ -285,12 +285,12 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                                 </div>
                                 <div>
                                   <div className="font-semibold text-sm text-[#1A1612]">{level.label}</div>
-                                  <div className="text-xs text-[#7A756F]">{level.range}</div>
+                                  <div className="text-xs text-[#5A554F]">{level.range}</div>
                                 </div>
                               </div>
                               <div className="text-right">
                                 <div className={`font-bold text-lg ${level.color}`}>{level.accuracy}</div>
-                                <div className="text-xs text-[#7A756F]">{level.precision}</div>
+                                <div className="text-xs text-[#5A554F]">{level.precision}</div>
                               </div>
                             </div>
                             {isCurrent && (
@@ -308,15 +308,15 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                   <div className="grid grid-cols-3 gap-3">
                     <div className="p-3 bg-white rounded-xl border border-[#F0E8DE] text-center">
                       <div className="text-2xl font-bold text-[#B8860B]">{currentEventCount}</div>
-                      <div className="text-[10px] text-[#7A756F] uppercase tracking-wider">Events Added</div>
+                      <div className="text-[10px] text-[#5A554F] uppercase tracking-wider">Events Added</div>
                     </div>
                     <div className="p-3 bg-white rounded-xl border border-[#F0E8DE] text-center">
                       <div className="text-2xl font-bold text-[#78611D]">{categoriesCovered}</div>
-                      <div className="text-[10px] text-[#7A756F] uppercase tracking-wider">Categories</div>
+                      <div className="text-[10px] text-[#5A554F] uppercase tracking-wider">Categories</div>
                     </div>
                     <div className="p-3 bg-white rounded-xl border border-[#F0E8DE] text-center">
                       <div className="text-2xl font-bold text-[#184131]">{Math.max(0, 25 - currentEventCount)}</div>
-                      <div className="text-[10px] text-[#7A756F] uppercase tracking-wider">To Optimal</div>
+                      <div className="text-[10px] text-[#5A554F] uppercase tracking-wider">To Optimal</div>
                     </div>
                   </div>
                 </motion.div>
@@ -332,7 +332,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                     <Calendar className="w-4 h-4 text-[#B8860B]" />
                     Essential Life Categories
                   </h4>
-                  <p className="text-xs text-[#7A756F]">
+                  <p className="text-xs text-[#5A554F]">
                     Each category validates different astrological houses and planetary periods
                   </p>
                   
@@ -350,7 +350,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                                 {cat.events}
                               </span>
                             </div>
-                            <p className="text-xs text-[#7A756F] mt-1">{cat.why}</p>
+                            <p className="text-xs text-[#5A554F] mt-1">{cat.why}</p>
                             <p className="text-[10px] text-[#184131] mt-1">Planets: {cat.planets}</p>
                             <div className="mt-2 flex flex-wrap gap-1">
                               {cat.examples.map((ex, i) => (
@@ -397,7 +397,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                         <div className="w-6 h-6 rounded-full bg-[#B8860B] text-white flex items-center justify-center text-xs font-bold shrink-0">1</div>
                         <div>
                           <div className="font-medium text-sm text-[#1A1612]">Dasha Overlap Verification</div>
-                          <p className="text-xs text-[#7A756F]">
+                          <p className="text-xs text-[#5A554F]">
                             Multiple events should align with the same planetary periods. 
                             If 15 events all point to Jupiter-Venus period, we confirm timing.
                           </p>
@@ -408,7 +408,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                         <div className="w-6 h-6 rounded-full bg-[#B8860B] text-white flex items-center justify-center text-xs font-bold shrink-0">2</div>
                         <div>
                           <div className="font-medium text-sm text-[#1A1612]">Multi-House Validation</div>
-                          <p className="text-xs text-[#7A756F]">
+                          <p className="text-xs text-[#5A554F]">
                             Career events validate 10th house, Marriage validates 7th house, 
                             Health validates 6th/8th houses. All houses must align.
                           </p>
@@ -419,7 +419,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                         <div className="w-6 h-6 rounded-full bg-[#B8860B] text-white flex items-center justify-center text-xs font-bold shrink-0">3</div>
                         <div>
                           <div className="font-medium text-sm text-[#1A1612]">Transit Cross-Reference</div>
-                          <p className="text-xs text-[#7A756F]">
+                          <p className="text-xs text-[#5A554F]">
                             Jupiter transits (12 years), Saturn (30 years), Rahu (18 years) 
                             must ALL align with event dates for the calculated birth time.
                           </p>
@@ -430,7 +430,7 @@ export default function WhyEventsMatter({ currentEventCount, categoriesCovered }
                         <div className="w-6 h-6 rounded-full bg-[#B8860B] text-white flex items-center justify-center text-xs font-bold shrink-0">4</div>
                         <div>
                           <div className="font-medium text-sm text-[#1A1612]">Statistical Confidence</div>
-                          <p className="text-xs text-[#7A756F]">
+                          <p className="text-xs text-[#5A554F]">
                             With 5 events, coincidence is possible. With 30+ events across 
                             different categories, statistical confidence reaches 99%+.
                           </p>

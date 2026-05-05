@@ -152,7 +152,7 @@ export default function CustomEventModal({
                 </div>
                 <div>
                   <h2 className="font-semibold text-[#1A1612] text-base">Create Custom Event</h2>
-                  <p className="text-xs text-[#7A756F]">
+                  <p className="text-xs text-[#5A554F]">
                     Add custom life events
                   </p>
                 </div>
@@ -161,7 +161,7 @@ export default function CustomEventModal({
                 onClick={handleClose}
                 className="w-8 h-8 rounded-full hover:bg-[#F5EFE7] flex items-center justify-center transition-colors"
               >
-                <X className="w-5 h-5 text-[#7A756F]" />
+                <X className="w-5 h-5 text-[#5A554F]" />
               </button>
             </div>
 
@@ -189,10 +189,10 @@ export default function CustomEventModal({
                   value={eventName}
                   onChange={(e) => setEventName(e.target.value)}
                   placeholder="e.g., Started Learning Guitar"
-                  className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-[#1A1612] placeholder-[#A8A39D] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10 outline-none transition-all"
+                  className="w-full h-10 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-[#1A1612] placeholder-[#8A857F] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10 outline-none transition-all"
                   autoFocus
                 />
-                <p className="text-xs text-[#7A756F]">
+                <p className="text-xs text-[#5A554F]">
                   Clear description helps BTR accuracy
                 </p>
               </div>
@@ -226,10 +226,10 @@ export default function CustomEventModal({
                       value={newCategoryName}
                       onChange={(e) => setNewCategoryName(e.target.value)}
                       placeholder="Category name (e.g., Hobbies)"
-                      className="w-full h-9 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-[#1A1612] placeholder-[#A8A39D] focus:border-[#B8860B] outline-none"
+                      className="w-full h-9 px-3 bg-white border border-[#E8E0D5] rounded-lg text-sm text-[#1A1612] placeholder-[#8A857F] focus:border-[#B8860B] outline-none"
                     />
                     <div>
-                      <label className="text-xs text-[#7A756F] mb-1.5 block">
+                      <label className="text-xs text-[#5A554F] mb-1.5 block">
                         Choose Icon
                       </label>
                       <div className="flex flex-wrap gap-1.5">

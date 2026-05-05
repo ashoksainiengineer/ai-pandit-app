@@ -11,7 +11,7 @@ export const RectifyEmptyState = memo(function RectifyEmptyState() {
                 <Gem className="w-16 h-16 text-[#B8860B]" />
             </motion.div>
             <h1 className="text-2xl font-bold mt-6 text-[#1A1612]">Starting Analysis...</h1>
-            <p className="text-lg text-[#7A756F] mt-2">Establishing secure connection...</p>
+            <p className="text-lg text-[#5A554F] mt-2">Establishing secure connection...</p>
         </div>
     );
 });

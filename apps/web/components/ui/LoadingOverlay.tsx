@@ -50,7 +50,7 @@ export const LoadingOverlay = memo(function LoadingOverlay({ isVisible, message 
                                     <Sparkles className="w-5 h-5 text-[#B8860B]" />
                                     {message}
                                 </h3>
-                                <p className="text-sm text-[#7A756F]">
+                                <p className="text-sm text-[#5A554F]">
                                     Navigating the divine alignment for you...
                                 </p>
                             </div>

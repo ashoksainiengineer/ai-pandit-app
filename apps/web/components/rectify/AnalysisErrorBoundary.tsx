@@ -39,7 +39,7 @@ const THEME = {
     border: '#F0E8DE',
     textPrimary: '#1A1612',
     textSecondary: '#4A453F',
-    textMuted: '#7A756F',
+    textMuted: '#5A554F',
     gold: '#B8860B',
     goldLight: '#78611D',
     success: '#184131',

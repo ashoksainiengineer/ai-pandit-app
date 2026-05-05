@@ -122,7 +122,7 @@ function CTALink({ href, label, description, icon: Icon, variant }: CTALinkProps
         <div className={`font-semibold ${isPrimary ? 'text-white' : 'text-[#1A1612]'}`}>
           {label}
         </div>
-        <div className={`text-sm ${isPrimary ? 'text-white/80' : 'text-[#7A756F]'}`}>
+        <div className={`text-sm ${isPrimary ? 'text-white/80' : 'text-[#5A554F]'}`}>
           {description}
         </div>
       </div>
@@ -149,7 +149,7 @@ function SearchSuggestions() {
 
   return (
     <div className="mt-8 pt-8 border-t border-[#F0E8DE]">
-      <div className="flex items-center gap-2 text-[#7A756F] mb-4">
+      <div className="flex items-center gap-2 text-[#5A554F] mb-4">
         <Search className="w-4 h-4" />
         <span className="text-sm">Popular pages</span>
       </div>
@@ -191,7 +191,7 @@ export default function NotFoundPage() {
           <h1 className="text-2xl font-bold text-[#1A1612] font-[family-name:var(--font-cormorant)] mb-2">
             Page Not Found
           </h1>
-          <p className="text-[#7A756F]">
+          <p className="text-[#5A554F]">
             The page you are looking for seems to have wandered into another constellation.
           </p>
         </div>
@@ -208,7 +208,7 @@ export default function NotFoundPage() {
         
         {/* Footer */}
         <div className="mt-8 text-center">
-          <p className="text-xs text-[#A8A39D]">
+          <p className="text-xs text-[#8A857F]">
             If you believe this is an error, please contact{' '}
             <a 
               href="mailto:support@aipandit.app" 

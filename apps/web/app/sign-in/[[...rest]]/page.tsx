@@ -28,7 +28,7 @@ export default function SignInPage() {
                             colorInputBackground: '#FDF8F3',
                             colorInputText: '#1A1612',
                             colorText: '#1A1612',
-                            colorTextSecondary: '#7A756F',
+                            colorTextSecondary: '#5A554F',
                             colorNeutral: '#F0E8DE',
                             colorDanger: '#C65D3B',
                             colorSuccess: '#184131',
@@ -41,7 +41,7 @@ export default function SignInPage() {
                             // Header
                             header: 'p-6 pb-4',
                             headerTitle: 'text-[#1A1612] font-bold text-2xl mb-1',
-                            headerSubtitle: 'text-[#7A756F] text-sm',
+                            headerSubtitle: 'text-[#5A554F] text-sm',
                             
                             // Form
                             form: 'p-6 pt-2',
@@ -49,8 +49,8 @@ export default function SignInPage() {
                             
                             // Input fields - CRITICAL FOR VISIBILITY
                             formFieldLabel: 'text-[#1A1612] text-sm font-semibold mb-2 block',
-                            formFieldInput: 'w-full bg-white border-2 border-[#E5E0D8] text-[#1A1612] placeholder-[#A8A39D] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/20 rounded-xl py-3 px-4 text-base outline-none transition-all',
-                            formFieldInputShowPassword: 'text-[#7A756F] hover:text-[#B8860B]',
+                            formFieldInput: 'w-full bg-white border-2 border-[#E5E0D8] text-[#1A1612] placeholder-[#8A857F] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/20 rounded-xl py-3 px-4 text-base outline-none transition-all',
+                            formFieldInputShowPassword: 'text-[#5A554F] hover:text-[#B8860B]',
                             formFieldInputWrapper: 'relative',
                             
                             // Required/Optional indicators - hide optional text completely
@@ -59,13 +59,13 @@ export default function SignInPage() {
                             // Error/Success states
                             formFieldErrorText: 'text-[#C65D3B] text-xs mt-1 font-medium',
                             formFieldSuccessText: 'text-[#184131] text-xs mt-1 font-medium',
-                            formFieldHintText: 'text-[#7A756F] text-xs mt-1',
+                            formFieldHintText: 'text-[#5A554F] text-xs mt-1',
                             alertText: 'text-[#C65D3B] text-sm',
                             alert: 'bg-red-50 border border-red-200 rounded-xl p-4 mb-4',
                             
                             // Links
                             footer: 'p-6 pt-4 bg-[#FAF8F5] border-t border-[#F0E8DE]',
-                            footerAction: 'text-center text-sm text-[#7A756F]',
+                            footerAction: 'text-center text-sm text-[#5A554F]',
                             footerActionLink: 'text-[#B8860B] font-semibold hover:text-[#9A7609] transition-colors',
                             
                             // Social buttons
@@ -75,7 +75,7 @@ export default function SignInPage() {
                             
                             // Divider
                             dividerLine: 'bg-[#E5E0D8]',
-                            dividerText: 'text-[#7A756F] text-sm bg-[#FFFFFF] px-4',
+                            dividerText: 'text-[#5A554F] text-sm bg-[#FFFFFF] px-4',
                             dividerRow: 'my-4',
                             
                             // Identity preview
@@ -97,7 +97,7 @@ export default function SignInPage() {
             </div>
             
             {/* Footer */}
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs text-[#7A756F] z-10">
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-xs text-[#5A554F] z-10">
                 <Link href="/" className="hover:text-[#B8860B] transition-colors">← Back to Home</Link>
             </div>
         </main>

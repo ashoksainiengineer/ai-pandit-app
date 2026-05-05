@@ -5,6 +5,6 @@ export { default as Solution } from './Solution';
 export { default as FAQ } from './FAQ';
 export { default as Pricing } from './Pricing';
 export { default as Footer } from './Footer';
-export { default as FinalCTA } from './FinalCTA';
+export { FinalCTA } from './FinalCTA';
 export { AccuracyShowcase } from './AccuracyShowcase';
-export { TestimonialsSection } from './Testimonials';
+export { default as TestimonialsSection } from './Testimonials';

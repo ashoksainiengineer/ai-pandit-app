@@ -25,7 +25,7 @@ const precisionMetrics = [
     precision: '±5-15 min',
     methods: '1-2',
     time: '3-5 days',
-    color: '#A8A39D',
+    color: '#8A857F',
   },
   {
     method: 'Basic Software',
@@ -33,7 +33,7 @@ const precisionMetrics = [
     precision: '±2-5 min',
     methods: '3-4',
     time: '1 hour',
-    color: '#7A756F',
+    color: '#5A554F',
   },
   {
     method: 'AI Pandit BTR',
@@ -92,7 +92,7 @@ export function AccuracyShowcase() {
         >
           <div
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#F0E8DE] 
-                   rounded-full text-sm mb-8 shadow-sm"
+                   rounded-full text-sm mb-8"
           >
             <Terminal className="w-4 h-4 text-[#B8860B]" />
             <span className="text-[#4A453F]">Precision Metrics</span>
@@ -101,7 +101,7 @@ export function AccuracyShowcase() {
           <h2 className="font-[family-name:var(--font-cormorant)] text-3xl md:text-4xl lg:text-5xl 
                      font-semibold text-[#1A1612] mb-6 leading-tight">
             Divine{' '}
-            <span className="text-gradient-gold">Precision</span>
+            <span className="text-[#B8860B]">Precision</span>
             {' '}Engineering
           </h2>
 
@@ -114,7 +114,7 @@ export function AccuracyShowcase() {
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Precision Comparison Chart */}
           <div
-            className="bg-white border border-[#F0E8DE] rounded-3xl p-8 shadow-sm"
+            className="bg-white border border-[#F0E8DE] rounded-3xl p-8"
           >
             <div className="flex items-center justify-between mb-10">
               <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-[#1A1612]">
@@ -122,7 +122,7 @@ export function AccuracyShowcase() {
               </h3>
               <div className="flex items-center gap-2 px-3 py-1.5 bg-[#FDF8F3] rounded-lg border border-[#F0E8DE]">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                <span className="text-xs text-[#7A756F]">Validated</span>
+                <span className="text-xs text-[#5A554F]">Validated</span>
               </div>
             </div>
 
@@ -141,7 +141,7 @@ export function AccuracyShowcase() {
                         </span>
                       )}
                     </div>
-                    <span className={`text-2xl font-bold ${item.highlight ? 'text-[#B8860B]' : 'text-[#7A756F]'}`}>
+                    <span className={`text-2xl font-bold ${item.highlight ? 'text-[#B8860B]' : 'text-[#5A554F]'}`}>
                       {item.accuracy}%
                     </span>
                   </div>
@@ -153,15 +153,15 @@ export function AccuracyShowcase() {
 
                   <div className="grid grid-cols-3 gap-4 mt-3 text-xs">
                     <div>
-                      <span className="text-[#A8A39D]">Precision:</span>
+                      <span className="text-[#8A857F]">Precision:</span>
                       <span className="ml-2 text-[#4A453F]">{item.precision}</span>
                     </div>
                     <div>
-                      <span className="text-[#A8A39D]">Methods:</span>
+                      <span className="text-[#8A857F]">Methods:</span>
                       <span className="ml-2 text-[#4A453F]">{item.methods}</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-[#A8A39D]">Time:</span>
+                      <span className="text-[#8A857F]">Time:</span>
                       <span className="ml-2 text-[#4A453F]">{item.time}</span>
                     </div>
                   </div>
@@ -179,7 +179,7 @@ export function AccuracyShowcase() {
                 <div
                   key={metric.label}
                   className="group relative bg-white border border-[#F0E8DE] rounded-2xl p-6 
-                         hover:border-[#78611D]/30 hover:shadow-lg transition-all duration-300"
+                         hover:border-[#78611D]/30 transition-all duration-300"
                 >
                   {/* Glow effect */}
                   <div
@@ -201,7 +201,7 @@ export function AccuracyShowcase() {
                       {metric.value}%
                     </div>
                     <div className="text-sm font-medium text-[#4A453F] mb-1">{metric.label}</div>
-                    <div className="text-xs text-[#7A756F]">{metric.desc}</div>
+                    <div className="text-xs text-[#5A554F]">{metric.desc}</div>
                   </div>
                 </div>
               );
@@ -222,24 +222,24 @@ export function AccuracyShowcase() {
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-mono">
                 <div className="p-4 bg-[#FDF8F3] rounded-xl border border-[#F0E8DE]">
-                  <div className="text-[#7A756F] mb-2">Ephemeris</div>
+                  <div className="text-[#5A554F] mb-2">Ephemeris</div>
                   <div className="text-[#B8860B] text-sm mb-1">DE440</div>
-                  <div className="text-[#A8A39D]">32MB dataset</div>
+                  <div className="text-[#8A857F]">32MB dataset</div>
                 </div>
                 <div className="p-4 bg-[#FDF8F3] rounded-xl border border-[#F0E8DE]">
-                  <div className="text-[#7A756F] mb-2">Precision</div>
+                  <div className="text-[#5A554F] mb-2">Precision</div>
                   <div className="text-[#B8860B] text-sm mb-1">±0.0001°</div>
-                  <div className="text-[#A8A39D]">0.36 arcseconds</div>
+                  <div className="text-[#8A857F]">0.36 arcseconds</div>
                 </div>
                 <div className="p-4 bg-[#FDF8F3] rounded-xl border border-[#F0E8DE]">
-                  <div className="text-[#7A756F] mb-2">Candidates</div>
+                  <div className="text-[#5A554F] mb-2">Candidates</div>
                   <div className="text-[#B8860B] text-sm mb-1">1,440</div>
-                  <div className="text-[#A8A39D]">per analysis</div>
+                  <div className="text-[#8A857F]">per analysis</div>
                 </div>
                 <div className="p-4 bg-[#FDF8F3] rounded-xl border border-[#F0E8DE]">
-                  <div className="text-[#7A756F] mb-2">Confidence</div>
+                  <div className="text-[#5A554F] mb-2">Confidence</div>
                   <div className="text-[#B8860B] text-sm mb-1">97.3%</div>
-                  <div className="text-[#A8A39D]">Divine verified</div>
+                  <div className="text-[#8A857F]">Divine verified</div>
                 </div>
               </div>
             </div>
@@ -251,7 +251,7 @@ export function AccuracyShowcase() {
           className="mt-20 flex justify-center"
         >
           <div className="inline-flex flex-wrap items-center justify-center gap-4 px-8 py-4 
-                      bg-white border border-[#F0E8DE] rounded-2xl shadow-sm">
+                      bg-white border border-[#F0E8DE] rounded-2xl">
             <div className="flex items-center gap-2">
               <div className="relative">
                 <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
@@ -262,21 +262,21 @@ export function AccuracyShowcase() {
 
             <div className="hidden sm:block h-5 w-px bg-[#F0E8DE]" />
 
-            <div className="flex items-center gap-2 text-sm text-[#7A756F]">
+            <div className="flex items-center gap-2 text-sm text-[#5A554F]">
               <Activity className="w-4 h-4" />
               <span>{'API Latency: <50ms'}</span>
             </div>
 
             <div className="hidden sm:block h-5 w-px bg-[#F0E8DE]" />
 
-            <div className="flex items-center gap-2 text-sm text-[#7A756F]">
+            <div className="flex items-center gap-2 text-sm text-[#5A554F]">
               <Database className="w-4 h-4" />
               <span>Ephemeris: Synced</span>
             </div>
 
             <div className="hidden sm:block h-5 w-px bg-[#F0E8DE]" />
 
-            <div className="flex items-center gap-2 text-sm text-[#7A756F]">
+            <div className="flex items-center gap-2 text-sm text-[#5A554F]">
               <Cpu className="w-4 h-4" />
               <span>AI: Connected</span>
             </div>

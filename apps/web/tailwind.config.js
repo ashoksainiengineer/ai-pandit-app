@@ -38,8 +38,8 @@ module.exports = {
         // Content — text colors
         content: {
           primary: '#1A1612',   // main text (near black)
-          secondary: '#7A756F', // muted text (warm gray)
-          disabled: '#A8A39D',  // placeholder
+          secondary: '#5A554F', // muted text (warm gray)
+          disabled: '#8A857F',  // placeholder
         },
 
         // Destructive — errors, warnings, caution
@@ -57,7 +57,7 @@ module.exports = {
       },
 
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
         display: ['var(--font-cormorant)', 'Georgia', 'serif'],
       },
 

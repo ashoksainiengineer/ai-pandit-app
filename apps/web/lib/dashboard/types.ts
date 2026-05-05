@@ -4,6 +4,7 @@
  */
 
 import { Session } from '@/lib/types';
+import { TimeOffsetConfig } from '@/lib/types';
 
 export type SessionStatus = 'pending' | 'processing' | 'complete' | 'failed' | 'cancelled';
 export type SortField = 'createdAt' | 'fullName' | 'status' | 'confidence' | 'accuracy';
@@ -16,7 +17,9 @@ export interface DashboardSession extends Session {
   tags?: string[];
   notes?: string;
   analysisResult?: AnalysisResultSummary;
+  offsetConfig?: TimeOffsetConfig;
 }
+
 
 export interface AnalysisResultSummary {
   rectifiedTime: string;

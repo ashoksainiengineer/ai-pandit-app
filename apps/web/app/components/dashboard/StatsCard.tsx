@@ -84,12 +84,12 @@ export default function StatsCard({
       </div>
 
       <div className="space-y-1">
-        <p className="text-sm text-[#7A756F]">{title}</p>
+        <p className="text-sm text-[#5A554F]">{title}</p>
         <p className="text-2xl font-semibold text-[#1A1612] font-[family-name:var(--font-cormorant)]">
           {formatValue(value)}
         </p>
         {change !== undefined && (
-          <p className="text-xs text-[#A8A39D]">{changeLabel}</p>
+          <p className="text-xs text-[#8A857F]">{changeLabel}</p>
         )}
       </div>
     </motion.div>

@@ -27,7 +27,7 @@ const defaultIcon = L.icon({
 });
 
 // Simple throttle function
-const throttle = <T extends (...args: unknown[]) => void>(fn: T, delay: number) => {
+const throttle = <T extends (...args: number[]) => void>(fn: T, delay: number) => {
     let lastCall = 0;
     return (...args: Parameters<T>) => {
         const now = Date.now();

@@ -19,7 +19,7 @@ export default function TermsPage() {
       {/* Header */}
       <div className="bg-white border-b border-[#F0E8DE]">
         <div className="max-w-4xl mx-auto px-6 py-6">
-          <Link href="/" className="inline-flex items-center gap-2 text-[#7A756F] hover:text-[#B8860B] transition-colors">
+          <Link href="/" className="inline-flex items-center gap-2 text-[#5A554F] hover:text-[#B8860B] transition-colors">
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm">Back to Home</span>
           </Link>
@@ -35,10 +35,10 @@ export default function TermsPage() {
           <h1 className="font-[family-name:var(--font-cormorant)] text-4xl font-semibold text-[#1A1612] mb-4">
             Terms of Service
           </h1>
-          <p className="text-[#7A756F] max-w-2xl mx-auto">
+          <p className="text-[#5A554F] max-w-2xl mx-auto">
             Please read these terms carefully before using AI Pandit services. By using our platform, you agree to be bound by these terms.
           </p>
-          <p className="text-sm text-[#A8A39D] mt-4">
+          <p className="text-sm text-[#8A857F] mt-4">
             Last updated: January 31, 2026 | Version 3.0
           </p>
         </div>
@@ -146,7 +146,7 @@ export default function TermsPage() {
               </div>
             </div>
 
-            <p className="text-sm text-[#7A756F]">
+            <p className="text-sm text-[#5A554F]">
               All data shared with AI systems is anonymized and used solely for the purpose of birth time rectification. We do not share your data with AI providers for any other purpose.
             </p>
           </section>
@@ -189,7 +189,7 @@ export default function TermsPage() {
                 <span>A guarantee of specific results or outcomes</span>
               </li>
             </ul>
-            <p className="mt-4 text-sm text-[#7A756F]">
+            <p className="mt-4 text-sm text-[#5A554F]">
               You acknowledge that astrology is a spiritual practice and results may vary. AI Pandit makes no warranties about the accuracy, reliability, or applicability of the analysis provided.
             </p>
           </section>
@@ -390,7 +390,7 @@ export default function TermsPage() {
           </section>
         </div>
 
-        <p className="text-center text-sm text-[#A8A39D] mt-12">
+        <p className="text-center text-sm text-[#8A857F] mt-12">
           © 2026 AI Pandit. All rights reserved.
         </p>
       </div>

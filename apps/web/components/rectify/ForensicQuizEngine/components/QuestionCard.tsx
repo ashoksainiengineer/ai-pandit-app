@@ -48,12 +48,12 @@ export function QuestionCard({
                                 {currentQuestion.question}
                             </h3>
                             {currentQuestion.context && (
-                                <p className="text-sm text-[#7A756F]">{currentQuestion.context}</p>
+                                <p className="text-sm text-[#5A554F]">{currentQuestion.context}</p>
                             )}
                         </div>
                         <button
                             onClick={() => setShowHelp(!showHelp)}
-                            className={`p-2 rounded-lg transition-colors ${showHelp ? 'bg-[#B8860B]/10 text-[#B8860B]' : 'hover:bg-[#F5EFE7] text-[#7A756F]'}`}
+                            className={`p-2 rounded-lg transition-colors ${showHelp ? 'bg-[#B8860B]/10 text-[#B8860B]' : 'hover:bg-[#F5EFE7] text-[#5A554F]'}`}
                         >
                             <HelpCircle className="w-5 h-5" />
                         </button>
@@ -103,7 +103,7 @@ export function QuestionCard({
                                     <div className="flex-1">
                                         <div className="font-semibold text-[#1A1612]">{option.label}</div>
                                         {option.description && (
-                                            <div className="text-sm text-[#7A756F] mt-1">{option.description}</div>
+                                            <div className="text-sm text-[#5A554F] mt-1">{option.description}</div>
                                         )}
                                     </div>
                                     {isSelected && (
@@ -130,13 +130,13 @@ export function QuestionCard({
                                     value={customAnswer}
                                     onChange={(e) => updateCustomQuizResponse(e.target.value)}
                                     placeholder={currentQuestion.customAnswerPlaceholder || 'Describe in your own words...'}
-                                    className="w-full p-3 rounded-lg border border-[#F0E8DE] bg-white text-[#1A1612] placeholder:text-[#7A756F]/50 resize-none focus:outline-none focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B] transition-all"
+                                    className="w-full p-3 rounded-lg border border-[#F0E8DE] bg-white text-[#1A1612] placeholder:text-[#5A554F]/50 resize-none focus:outline-none focus:border-[#B8860B] focus:ring-1 focus:ring-[#B8860B] transition-all"
                                     rows={3}
                                 />
                                 {customAnswer.trim() && (
                                     <button
                                         onClick={clearCustomQuizResponse}
-                                        className="absolute top-2 right-2 p-1 text-[#7A756F] hover:text-[#D64545] transition-colors"
+                                        className="absolute top-2 right-2 p-1 text-[#5A554F] hover:text-[#D64545] transition-colors"
                                         title="Clear custom answer"
                                     >
                                         <span className="text-lg">×</span>
@@ -150,13 +150,13 @@ export function QuestionCard({
                         <button
                             onClick={markQuestionAsSkipped}
                             className={`w-full p-4 rounded-xl border-2 border-dashed text-left transition-all ${currentAnswer?.isNotSure
-                                ? 'border-[#7A756F] bg-[#7A756F]/5'
-                                : 'border-[#E8E0D5] hover:border-[#7A756F]/50'
+                                ? 'border-[#5A554F] bg-[#5A554F]/5'
+                                : 'border-[#E8E0D5] hover:border-[#5A554F]/50'
                                 }`}
                         >
                             <div className="flex items-center gap-3">
                                 <span className="text-xl">🤷</span>
-                                <span className="text-[#7A756F] font-medium">Not sure / Skip this question</span>
+                                <span className="text-[#5A554F] font-medium">Not sure / Skip this question</span>
                             </div>
                         </button>
                     )}
@@ -167,7 +167,7 @@ export function QuestionCard({
                         <button
                             onClick={handlePrevious}
                             disabled={currentQuestionIndex === 0}
-                            className="flex items-center gap-2 px-4 py-2 text-[#7A756F] font-medium disabled:opacity-30 hover:text-[#4A453F] transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 text-[#5A554F] font-medium disabled:opacity-30 hover:text-[#4A453F] transition-colors"
                         >
                             <ChevronLeft className="w-4 h-4" />
                             Previous

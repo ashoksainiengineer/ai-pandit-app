@@ -9,6 +9,7 @@ interface EmojiSet {
   male: string;
   female: string;
   neutral: string;
+  other?: string;
 }
 
 // Gender-aware face emojis for better user identification

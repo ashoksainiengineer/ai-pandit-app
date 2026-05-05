@@ -54,7 +54,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-[#184131] animate-pulse' : 'bg-[#C65D3B]'}`} />
-          <span className="text-xs font-medium text-[#7A756F]">
+          <span className="text-xs font-medium text-[#5A554F]">
             {isConnected ? 'Processing' : 'Reconnecting'}
           </span>
         </div>
@@ -78,7 +78,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
                   transition-all duration-300 group relative
                   ${state === 'completed' ? 'bg-[#184131] text-white hover:bg-[#184131]/90' : ''}
                   ${state === 'active' ? 'bg-[#B8860B] text-white ring-2 ring-[#B8860B]/30 ring-offset-1' : ''}
-                  ${state === 'pending' ? 'bg-[#F5EFE7] text-[#A8A39D]' : ''}
+                  ${state === 'pending' ? 'bg-[#F5EFE7] text-[#8A857F]' : ''}
                 `}
                 title={stage.name}
               >
@@ -112,7 +112,7 @@ export const SimplifiedPipeline = memo(function SimplifiedPipeline({
       <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#F0E8DE]">
         <div className="flex items-center gap-2">
           <div className="flex flex-col items-start">
-            <span className="text-xs text-[#7A756F]">Stage</span>
+            <span className="text-xs text-[#5A554F]">Stage</span>
             <span className="text-sm font-bold text-[#1A1612]">
               {isComplete ? 'Complete' : STAGES[effectiveStageIndex]?.name || 'Unknown'}
             </span>

@@ -3,6 +3,7 @@ import { FormField } from '@/components/ui/form/FormField';
 import BirthPlacePicker from '../../BirthPlacePicker';
 import { BirthData } from '@/lib/types';
 import { MONTHS, YEARS, HOURS, MINUTES, AM_PM_OPTIONS, GENDER_OPTIONS, OFFSET_PRESETS } from '../constants';
+import type { OffsetPreset } from '@/lib/types';
 
 interface PrimaryDetailsFormProps {
     data: BirthData;
@@ -15,7 +16,7 @@ interface PrimaryDetailsFormProps {
     handleNameChange: (val: string) => void;
     handleDateChange: (part: 'day' | 'month' | 'year', val: string) => void;
     handleTimeChange: (part: 'hour' | 'minute' | 'period', val: string) => void;
-    handleOffsetChange: (val: string) => void;
+    handleOffsetChange: (val: OffsetPreset) => void;
     handleCustomOffsetChange: (val: string) => void;
     handlePlaceChange: (updates: Record<string, unknown>) => void;
     updateData: (updates: Partial<BirthData>) => void;
@@ -46,7 +47,7 @@ export function PrimaryDetailsForm({
                     value={data.fullName || ''}
                     onChange={(e) => handleNameChange(e.target.value)}
                     placeholder="Enter your full name"
-                    className="w-full h-11 px-4 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm placeholder-[#A8A39D] focus:border-[#78611D] focus:ring-2 focus:ring-[#78611D]/10 outline-none transition-all"
+                    className="w-full h-11 px-4 bg-white border border-[#E8E0D5] rounded-lg text-[#1A1612] text-sm placeholder-[#8A857F] focus:border-[#78611D] focus:ring-2 focus:ring-[#78611D]/10 outline-none transition-all"
                     maxLength={100}
                 />
             </FormField>
@@ -117,7 +118,7 @@ export function PrimaryDetailsForm({
                                 key={p}
                                 type="button"
                                 onClick={() => handleTimeChange('period', p)}
-                                className={`px-4 font-medium text-sm transition-all ${timeParts.period === p ? 'bg-[#B8860B] text-white' : 'text-[#7A756F] hover:text-[#1A1612]'}`}
+                                className={`px-4 font-medium text-sm transition-all ${timeParts.period === p ? 'bg-[#B8860B] text-white' : 'text-[#5A554F] hover:text-[#1A1612]'}`}
                             >
                                 {p}
                             </button>
@@ -141,7 +142,7 @@ export function PrimaryDetailsForm({
                                     onClick={() => handleOffsetChange(preset.value)}
                                     className={`px-3 py-2 rounded-lg text-xs font-medium border transition-all ${selectedOffset === preset.value
                                         ? 'bg-[#B8860B] text-white border-[#B8860B]'
-                                        : 'bg-white text-[#7A756F] border-[#E8E0D5] hover:border-[#B8860B]/50'
+                                        : 'bg-white text-[#5A554F] border-[#E8E0D5] hover:border-[#B8860B]/50'
                                         }`}
                                 >
                                     {preset.label}
@@ -165,11 +166,11 @@ export function PrimaryDetailsForm({
                                         onChange={(e) => handleCustomOffsetChange(e.target.value)}
                                         className="w-full h-9 px-2 text-center bg-white border border-[#E8E0D5] rounded-md text-[#1A1612] focus:border-[#B8860B] outline-none"
                                     />
-                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-[#7A756F] pointer-events-none">
+                                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-[#5A554F] pointer-events-none">
                                         min
                                     </span>
                                 </div>
-                                <span className="text-xs text-[#7A756F]">
+                                <span className="text-xs text-[#5A554F]">
                                     (Max 720 mins)
                                 </span>
                             </div>

@@ -270,7 +270,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                         <div className="flex items-center gap-6">
                             <Link
                                 href="/dashboard"
-                                className="text-sm font-medium text-[#7A756F] hover:text-[#B8860B] transition-colors"
+                                className="text-sm font-medium text-[#5A554F] hover:text-[#B8860B] transition-colors"
                             >
                                 Dashboard
                             </Link>
@@ -288,7 +288,7 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                 <div className="max-w-4xl mx-auto px-6 py-12">
                     <div className="mb-8 text-center">
                         <h1 className="text-3xl font-bold text-[#B8860B] mb-2">✏️ Edit & Re-analyze</h1>
-                        <p className="text-[#7A756F]">Update your details and run a new analysis</p>
+                        <p className="text-[#5A554F]">Update your details and run a new analysis</p>
                     </div>
 
                     <div className="mb-12">
@@ -310,12 +310,12 @@ export function EditSessionClient({ sessionId, initialData }: EditSessionClientP
                                             ? 'bg-[#184131] border-[#184131] text-white'
                                             : s === step
                                                 ? 'bg-white border-[#B8860B] text-[#B8860B] shadow-[0_0_15px_rgba(184,134,11,0.3)]'
-                                                : 'bg-[#F5EFE7] border-[#EBE2D6] text-[#A8A39D]'
+                                                : 'bg-[#F5EFE7] border-[#EBE2D6] text-[#8A857F]'
                                             }`}
                                     >
                                         {s < step ? '✓' : ['👤', '🪞', '📏', '📅', '✅'][s - 1]}
                                     </div>
-                                    <span className={`text-xs mt-2 font-medium ${s === step ? 'text-[#B8860B]' : 'text-[#7A756F]'}`}>
+                                    <span className={`text-xs mt-2 font-medium ${s === step ? 'text-[#B8860B]' : 'text-[#5A554F]'}`}>
                                         {s === 1 ? 'Birth' : s === 2 ? 'Physical' : s === 3 ? 'Forensic' : s === 4 ? 'Life Events' : 'Review'}
                                     </span>
                                 </button>

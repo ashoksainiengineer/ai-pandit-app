@@ -80,7 +80,7 @@ export const RectifyProgressIndicator = memo(function RectifyProgressIndicator({
                             <h2 className="text-lg font-bold mb-2" style={{ color: '#1A1612' }}>
                                 {metadata?.status === 'failed' ? 'Analysis Failed' : 'Analysis Stopped'}
                             </h2>
-                            <p className="mb-6 text-sm text-[#7A756F]">{metadata?.errorMessage || 'The analysis was terminated.'}</p>
+                            <p className="mb-6 text-sm text-[#5A554F]">{metadata?.errorMessage || 'The analysis was terminated.'}</p>
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                                 <button
                                     onClick={onRestart}

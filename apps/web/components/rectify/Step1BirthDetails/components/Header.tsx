@@ -14,7 +14,7 @@ export function Header() {
                 </svg>
                 <span className="font-medium">🔐 End-to-End Encrypted</span>
                 <span className="text-[#184131]/60">•</span>
-                <span className="text-[#7A756F]">Nobody can read your data except you</span>
+                <span className="text-[#5A554F]">Nobody can read your data except you</span>
             </motion.div>
 
             {/* Header - Centered */}
@@ -32,10 +32,10 @@ export function Header() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
                 >
-                    Birth <span className="text-gradient-gold">Details</span>
+                    Birth <span className="text-[#B8860B]">Details</span>
                 </motion.h1>
                 <motion.p
-                    className="text-sm text-[#7A756F]"
+                    className="text-sm text-[#5A554F]"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3 }}

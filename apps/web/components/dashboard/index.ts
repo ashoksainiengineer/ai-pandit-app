@@ -1,2 +1,2 @@
-export { default as SessionCard } from './SessionCard';
+export { SessionCard } from './SessionCard';
 export { DeleteConfirmModal } from './DeleteConfirmModal';

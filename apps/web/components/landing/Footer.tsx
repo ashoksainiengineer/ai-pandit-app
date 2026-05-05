@@ -27,7 +27,7 @@ export default function Footer() {
               <span className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612] block">
                 AI Pandit
               </span>
-              <span className="text-[10px] text-[#7A756F] uppercase tracking-[0.2em]">
+              <span className="text-[10px] text-[#5A554F] uppercase tracking-[0.2em]">
                 Powered by DeepSeek R1-0528
               </span>
             </div>
@@ -38,7 +38,7 @@ export default function Footer() {
               with modern computational power.
             </p>
 
-            <div className="flex items-center gap-2 text-xs text-[#7A756F]">
+            <div className="flex items-center gap-2 text-xs text-[#5A554F]">
               <span>Crafted with</span>
               <Heart className="w-3.5 h-3.5 text-red-400 fill-red-400" />
               <span>and sacred intention</span>
@@ -88,7 +88,7 @@ export default function Footer() {
               </a>
 
               <div className="pt-4 border-t border-[#F0E8DE]">
-                <p className="text-xs text-[#7A756F] leading-relaxed">
+                <p className="text-xs text-[#5A554F] leading-relaxed">
                   Based on Skyfield ephemeris calculations. For spiritual guidance only.
                   Not a substitute for professional astrological consultation.
                 </p>
@@ -101,18 +101,18 @@ export default function Footer() {
         <div
           className="border-t border-[#F0E8DE] mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4"
         >
-          <p className="text-[#7A756F] text-sm">
+          <p className="text-[#5A554F] text-sm">
             © {currentYear} AI Pandit. All rights reserved.
           </p>
 
           <div className="flex items-center gap-6">
-            <span className="text-xs text-[#A8A39D]">Powered by</span>
+            <span className="text-xs text-[#8A857F]">Powered by</span>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-[#7A756F]">Skyfield</span>
+              <span className="text-xs text-[#5A554F]">Skyfield</span>
               <span className="text-[#F0E8DE]">•</span>
-              <span className="text-xs text-[#7A756F]">DeepSeek AI</span>
+              <span className="text-xs text-[#5A554F]">DeepSeek AI</span>
               <span className="text-[#F0E8DE]">•</span>
-              <span className="text-xs text-[#7A756F]">Next.js</span>
+              <span className="text-xs text-[#5A554F]">Next.js</span>
             </div>
           </div>
         </div>

@@ -157,7 +157,7 @@ export default function Problem() {
         >
           <div 
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#F0E8DE] 
-                       rounded-full text-sm mb-8 shadow-sm"
+                       rounded-full text-sm mb-8"
           >
             <GitCompare className="w-4 h-4 text-[#6B1F7A]" />
             <span className="text-[#4A453F]">Technical Comparison</span>
@@ -166,7 +166,7 @@ export default function Problem() {
           <h2 className="font-[family-name:var(--font-cormorant)] text-3xl md:text-4xl lg:text-5xl 
                          font-semibold text-[#1A1612] mb-6 leading-tight">
             Algorithmic{' '}
-            <span className="text-gradient-gold">Precision</span>
+            <span className="text-[#B8860B]">Precision</span>
             {' '}vs Manual Methods
           </h2>
           
@@ -186,7 +186,7 @@ export default function Problem() {
               <div
                 key={spec.label}
                 className="group relative p-5 bg-white border border-[#F0E8DE] rounded-2xl 
-                           hover:border-[#78611D]/30 hover:shadow-lg transition-all duration-300 text-center"
+                           hover:border-[#78611D]/30 transition-all duration-300 text-center"
               >
                 {/* Subtle glow */}
                 <div 
@@ -198,7 +198,7 @@ export default function Problem() {
                 
                 <div className="relative">
                   <Icon className="w-6 h-6 mx-auto mb-3" style={{ color: spec.color }} />
-                  <div className="text-[10px] uppercase tracking-[0.15em] text-[#7A756F] mb-1">{spec.label}</div>
+                  <div className="text-[10px] uppercase tracking-[0.15em] text-[#5A554F] mb-1">{spec.label}</div>
                   <div className="text-sm font-medium text-[#1A1612]">{spec.value}</div>
                 </div>
               </div>
@@ -230,7 +230,7 @@ export default function Problem() {
                   </div>
                   <div>
                     <span className="font-semibold text-[#1A1612] block">{comp.name}</span>
-                    <span className="text-sm text-[#7A756F]">{comp.purpose}</span>
+                    <span className="text-sm text-[#5A554F]">{comp.purpose}</span>
                   </div>
                 </div>
               </div>
@@ -254,7 +254,7 @@ export default function Problem() {
                       <XCircle className="w-6 h-6 text-red-400" />
                     </div>
                     <div>
-                      <div className="text-xs uppercase tracking-[0.15em] text-[#7A756F]">{point.category}</div>
+                      <div className="text-xs uppercase tracking-[0.15em] text-[#5A554F]">{point.category}</div>
                       <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-[#4A453F]">
                         {point.manual.title}
                       </h3>
@@ -263,7 +263,7 @@ export default function Problem() {
                   
                   <ul className="space-y-3 mb-6">
                     {point.manual.issues.map((issue, i) => (
-                      <li key={i} className="flex items-start gap-3 text-sm text-[#7A756F]">
+                      <li key={i} className="flex items-start gap-3 text-sm text-[#5A554F]">
                         <span className="text-red-400 mt-1">×</span>
                         {issue}
                       </li>
@@ -271,7 +271,7 @@ export default function Problem() {
                   </ul>
                   
                   <div className="pt-4 border-t border-[#F0E8DE]">
-                    <div className="text-[10px] uppercase tracking-[0.15em] text-[#A8A39D] mb-1">Typical Result</div>
+                    <div className="text-[10px] uppercase tracking-[0.15em] text-[#8A857F] mb-1">Typical Result</div>
                     <div className="text-red-400 font-mono text-lg">{point.manual.accuracy}</div>
                   </div>
                 </div>
@@ -296,7 +296,7 @@ export default function Problem() {
                         <Icon className="w-6 h-6" style={{ color: point.color }} />
                       </div>
                       <div>
-                        <div className="text-xs uppercase tracking-[0.15em] text-[#7A756F]">{point.category}</div>
+                        <div className="text-xs uppercase tracking-[0.15em] text-[#5A554F]">{point.category}</div>
                         <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-[#1A1612]">
                           {point.ai.title}
                         </h3>
@@ -313,7 +313,7 @@ export default function Problem() {
                     </ul>
                     
                     <div className="pt-4 border-t border-[#F0E8DE]">
-                      <div className="text-[10px] uppercase tracking-[0.15em] text-[#A8A39D] mb-1">Achieved Result</div>
+                      <div className="text-[10px] uppercase tracking-[0.15em] text-[#8A857F] mb-1">Achieved Result</div>
                       <div className="font-mono text-lg font-semibold" style={{ color: point.color }}>
                         {point.ai.accuracy}
                       </div>
@@ -349,7 +349,7 @@ export default function Problem() {
             </div>
             <Link href="/rectify">
               <button
-                className="px-8 py-4 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white font-semibold rounded-xl shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="px-8 py-4 bg-gradient-to-r from-[#B8860B] to-[#78611D] text-white font-semibold rounded-xl shadow-amber-500/25 hover:shadow-amber-500/40 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
                 Start Analysis
               </button>

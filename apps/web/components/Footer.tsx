@@ -53,14 +53,14 @@ export default memo(function Footer() {
                 <span className="text-xl font-bold bg-gradient-to-r from-[#B8860B] to-[#78611D] bg-clip-text text-transparent font-[family-name:var(--font-cormorant)]">
                   AI Pandit
                 </span>
-                <span className="block text-xs text-[#7A756F]">Vedic BTR Engine</span>
+                <span className="block text-xs text-[#5A554F]">Vedic BTR Engine</span>
               </div>
             </Link>
-            <p className="text-[#7A756F] text-sm leading-relaxed max-w-xs mb-4">
+            <p className="text-[#5A554F] text-sm leading-relaxed max-w-xs mb-4">
               Birth time rectification within seconds-level precision using
               Skyfield ephemeris and DeepSeek AI.
             </p>
-            <div className="flex items-center gap-2 text-sm text-[#7A756F]">
+            <div className="flex items-center gap-2 text-sm text-[#5A554F]">
               <Mail className="w-4 h-4 text-[#6B1F7A]" />
               <a
                 href="mailto:support@aipandit.app"
@@ -86,7 +86,7 @@ export default memo(function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-[#7A756F] hover:text-[#B8860B] transition-colors text-sm"
+                    className="text-[#5A554F] hover:text-[#B8860B] transition-colors text-sm"
                   >
                     {link.label}
                   </Link>
@@ -109,7 +109,7 @@ export default memo(function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-[#7A756F] hover:text-[#B8860B] transition-colors text-sm"
+                    className="text-[#5A554F] hover:text-[#B8860B] transition-colors text-sm"
                   >
                     {link.label}
                   </Link>
@@ -132,7 +132,7 @@ export default memo(function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-[#7A756F] hover:text-[#B8860B] transition-colors text-sm"
+                    className="text-[#5A554F] hover:text-[#B8860B] transition-colors text-sm"
                   >
                     {link.label}
                   </Link>
@@ -150,10 +150,10 @@ export default memo(function Footer() {
           viewport={{ once: true }}
           className="border-t border-[#F0E8DE] mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4"
         >
-          <p className="text-[#A8A39D] text-sm">
+          <p className="text-[#8A857F] text-sm">
             © {currentYear} AI Pandit. All rights reserved.
           </p>
-          <div className="flex items-center gap-2 text-sm text-[#7A756F]">
+          <div className="flex items-center gap-2 text-sm text-[#5A554F]">
             <Sparkles className="w-4 h-4 text-[#B8860B]" />
             <span>Powered by Skyfield & DeepSeek AI</span>
           </div>

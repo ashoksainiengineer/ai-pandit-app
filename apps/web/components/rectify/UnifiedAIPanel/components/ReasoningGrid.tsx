@@ -26,7 +26,7 @@ export const ReasoningGrid = memo(function ReasoningGrid({
     const [searchQuery, setSearchQuery] = useState('');
 
     const filteredEntries = useMemo(() => {
-        let result = Object.entries(candidates);
+        const result = Object.entries(candidates);
         if (!searchQuery) return result;
 
         const query = searchQuery.toLowerCase();
@@ -128,7 +128,7 @@ export const ReasoningGrid = memo(function ReasoningGrid({
                         >
                             {rowEntries.map(([time, data], idx) => {
                                 const isRecentlyUpdated = data.updatedAt && (now - data.updatedAt < ACTIVE_THRESHOLD_MS);
-                                const isPulseActive = !isStageCompleted && !!isStageActive && (liveCandidate === time || isRecentlyUpdated);
+                                const isPulseActive = Boolean(!isStageCompleted && !!isStageActive && (liveCandidate === time || isRecentlyUpdated));
 
                                 const score = scoreMap.get(time);
                                 const isWinner = isStageCompleted && score !== undefined && score === maxScore && score >= 85;

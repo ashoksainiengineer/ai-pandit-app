@@ -35,10 +35,10 @@ export default function HowItWorks() {
           viewport={{ once: true }}
           className="text-center mb-14"
         >
-          <h2 className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-slate-800 mb-3">
+          <h2 className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-[#1A1612] mb-3">
             How It Works
           </h2>
-          <p className="text-slate-500 text-sm max-w-md mx-auto">
+          <p className="text-[#5A554F] text-sm max-w-md mx-auto">
             Three simple steps to discover your precise birth time.
           </p>
         </motion.div>
@@ -51,18 +51,22 @@ export default function HowItWorks() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.15 }}
-              className="relative text-center"
+              className="relative"
             >
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-100 to-amber-50 border border-amber-200 mb-5">
-                <step.icon className="w-7 h-7 text-amber-700" />
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#FDF8F3] border border-[#F0E8DE] flex items-center justify-center">
+                  <step.icon className="w-5 h-5 text-[#8A6A0B]" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-xs font-bold text-[#8A857F]">Step {step.number}</span>
+                  </div>
+                  <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-[#1A1612] mb-2">
+                    {step.title}
+                  </h3>
+                  <p className="text-sm text-[#5A554F] leading-relaxed">{step.desc}</p>
+                </div>
               </div>
-              <div className="absolute top-2 -left-2 w-7 h-7 rounded-full bg-amber-600 text-white text-xs font-bold flex items-center justify-center">
-                {step.number}
-              </div>
-              <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-slate-800 mb-2">
-                {step.title}
-              </h3>
-              <p className="text-sm text-slate-500 leading-relaxed">{step.desc}</p>
             </motion.div>
           ))}
         </div>

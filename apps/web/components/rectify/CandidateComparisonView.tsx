@@ -60,7 +60,7 @@ const StatusIcon = memo(function StatusIcon({ status }: { status: StatusType }) 
         case 'differ':
             return <AlertTriangle className="w-3.5 h-3.5 text-amber-600" aria-hidden="true" />;
         default:
-            return <span className="w-3.5 h-3.5 text-[#7A756F]" aria-hidden="true">—</span>;
+            return <span className="w-3.5 h-3.5 text-[#5A554F]" aria-hidden="true">—</span>;
     }
 });
 
@@ -111,9 +111,9 @@ const CandidateCard = memo(function CandidateCard({
                     {isWinner ? (
                         <Trophy className="w-4 h-4 sm:w-5 sm:h-5 text-[#78611D]" aria-hidden="true" />
                     ) : (
-                        <Medal className="w-4 h-4 sm:w-5 sm:h-5 text-[#7A756F]" aria-hidden="true" />
+                        <Medal className="w-4 h-4 sm:w-5 sm:h-5 text-[#5A554F]" aria-hidden="true" />
                     )}
-                    <span className="text-[10px] sm:text-xs text-[#7A756F] font-bold uppercase">Rank #{rank}</span>
+                    <span className="text-[10px] sm:text-xs text-[#5A554F] font-bold uppercase">Rank #{rank}</span>
                 </div>
                 {isWinner && (
                     <span className="text-[8px] bg-[#78611D]/20 text-[#78611D] px-2 py-0.5 rounded-full font-bold uppercase">
@@ -130,7 +130,7 @@ const CandidateCard = memo(function CandidateCard({
             {/* Score */}
             <div className="mb-3">
                 <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-[#7A756F]">Score</span>
+                    <span className="text-[#5A554F]">Score</span>
                     <span className={`font-bold ${scoreColor}`}>
                         {candidate.score.toFixed(1)}%
                     </span>
@@ -156,15 +156,15 @@ const CandidateCard = memo(function CandidateCard({
             {candidate.minifiedEph && (
                 <div className="space-y-1 text-[9px] sm:text-[10px] font-mono border-t border-[#F0E8DE] pt-2 mt-2">
                     <div className="flex justify-between">
-                        <span className="text-[#7A756F]" aria-label="Sun position">☉ Sun</span>
+                        <span className="text-[#5A554F]" aria-label="Sun position">☉ Sun</span>
                         <span className="text-[#4A453F]">{candidate.minifiedEph.sun}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-[#7A756F]" aria-label="Moon position">☽ Moon</span>
+                        <span className="text-[#5A554F]" aria-label="Moon position">☽ Moon</span>
                         <span className="text-[#4A453F]">{candidate.minifiedEph.moon}</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-[#7A756F]" aria-label="Ascendant">↑ Asc</span>
+                        <span className="text-[#5A554F]" aria-label="Ascendant">↑ Asc</span>
                         <span className="text-[#4A453F]">{candidate.minifiedEph.ascendant}</span>
                     </div>
                 </div>
@@ -172,7 +172,7 @@ const CandidateCard = memo(function CandidateCard({
 
             {/* Reason */}
             {candidate.reason && (
-                <p className="text-[9px] sm:text-[10px] text-[#7A756F] mt-2 line-clamp-2 italic">
+                <p className="text-[9px] sm:text-[10px] text-[#5A554F] mt-2 line-clamp-2 italic">
                     &ldquo;{candidate.reason}&rdquo;
                 </p>
             )}
@@ -196,7 +196,7 @@ const ComparisonRow = memo(function ComparisonRow({ label, leftValue, rightValue
 
     return (
         <div className="flex items-center gap-2 sm:gap-3 text-[9px] sm:text-[10px]">
-            <span className="w-16 sm:w-24 text-[#7A756F] font-medium flex-shrink-0">{label}</span>
+            <span className="w-16 sm:w-24 text-[#5A554F] font-medium flex-shrink-0">{label}</span>
             <div
                 className="flex-1 flex items-center justify-between gap-1 sm:gap-2 bg-white rounded-lg px-2 py-1 border border-[#F0E8DE]"
                 role="group"
@@ -252,7 +252,7 @@ const CandidateSelect = memo(function CandidateSelect({
                     </option>
                 ))}
             </select>
-            <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-[#7A756F] pointer-events-none" aria-hidden="true" />
+            <ChevronDown className="w-4 h-4 absolute right-2 top-1/2 -translate-y-1/2 text-[#5A554F] pointer-events-none" aria-hidden="true" />
         </div>
     );
 });
@@ -295,8 +295,8 @@ export const CandidateComparisonView = memo(function CandidateComparisonView({
                 role="alert"
                 aria-live="polite"
             >
-                <Scale className="w-8 h-8 text-[#7A756F] mx-auto mb-3" aria-hidden="true" />
-                <p className="text-sm text-[#7A756F]">At least 2 candidates required for comparison</p>
+                <Scale className="w-8 h-8 text-[#5A554F] mx-auto mb-3" aria-hidden="true" />
+                <p className="text-sm text-[#5A554F]">At least 2 candidates required for comparison</p>
             </div>
         );
     }
@@ -325,7 +325,7 @@ export const CandidateComparisonView = memo(function CandidateComparisonView({
                     </div>
                     <div>
                         <h3 className="font-bold text-[#1A1612]">Candidate Comparison</h3>
-                        <p className="text-[10px] text-[#7A756F] uppercase tracking-wider">Side-by-side analysis</p>
+                        <p className="text-[10px] text-[#5A554F] uppercase tracking-wider">Side-by-side analysis</p>
                     </div>
                 </div>
 
@@ -378,7 +378,7 @@ export const CandidateComparisonView = memo(function CandidateComparisonView({
 
             {/* Detailed Differences */}
             <div className="mt-4 sm:mt-6 bg-[#FDF8F3] rounded-xl p-3 sm:p-4 border border-[#F0E8DE]">
-                <h4 className="text-[10px] text-[#7A756F] uppercase tracking-wider font-bold mb-3">Key Differences</h4>
+                <h4 className="text-[10px] text-[#5A554F] uppercase tracking-wider font-bold mb-3">Key Differences</h4>
                 <div className="space-y-2">
                     <ComparisonRow
                         label="Sun Position"

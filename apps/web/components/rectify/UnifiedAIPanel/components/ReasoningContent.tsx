@@ -35,7 +35,7 @@ export const ReasoningContent = memo(function ReasoningContent({
                 >
                     <Brain className="w-8 h-8 text-[#B8860B]/40" />
                 </motion.div>
-                <p className="text-sm text-[#7A756F]">
+                <p className="text-sm text-[#5A554F]">
                     Waiting for AI reasoning stream...
                 </p>
             </div>

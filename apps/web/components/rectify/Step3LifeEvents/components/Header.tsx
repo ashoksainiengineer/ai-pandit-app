@@ -15,7 +15,7 @@ export function Header() {
                 </svg>
                 <span className="font-medium">🔐 End-to-End Encrypted</span>
                 <span className="text-[#184131]/60">•</span>
-                <span className="text-[#7A756F]">Nobody can read your data except you</span>
+                <span className="text-[#5A554F]">Nobody can read your data except you</span>
             </motion.div>
 
             {/* Header - Centered */}
@@ -28,9 +28,9 @@ export function Header() {
                     <span className="text-[#B8860B] font-medium tracking-wider">STEP 4 OF 5</span>
                 </motion.div>
                 <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-[#1A1612] leading-tight mb-2">
-                    Life <span className="text-gradient-gold">Events</span>
+                    Life <span className="text-[#B8860B]">Events</span>
                 </motion.h1>
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="text-sm text-[#7A756F]">
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.1 }} className="text-sm text-[#5A554F]">
                     Add events for birth time rectification
                 </motion.p>
             </div>

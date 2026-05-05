@@ -39,7 +39,7 @@ export default function Navbar() {
   // Server-side: no safe-area-top, no dynamic classes
   const navClasses = mounted
     ? `fixed top-0 w-full z-50 transition-all duration-500 safe-area-top ${scrolled
-      ? 'bg-white/90 backdrop-blur-xl border-b border-[#F0E8DE] shadow-sm'
+      ? 'bg-white/90 backdrop-blur-xl border-b border-[#F0E8DE]'
       : 'bg-transparent'
     }`
     : 'fixed top-0 w-full z-50 transition-all duration-500 bg-transparent';
@@ -59,7 +59,7 @@ export default function Navbar() {
               <span className="font-[family-name:var(--font-cormorant)] text-xl sm:text-2xl font-semibold text-[#1A1612]">
                 AI Pandit
               </span>
-              <span className="block text-[10px] text-[#7A756F] uppercase tracking-[0.2em]">
+              <span className="block text-[10px] text-[#5A554F] uppercase tracking-[0.2em]">
                 VEDIC ASTRO MASTER
               </span>
             </div>
@@ -88,7 +88,7 @@ export default function Navbar() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 className="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white
-                           font-medium text-sm rounded-xl shadow-lg shadow-amber-500/15
+                           font-medium text-sm rounded-xl shadow-amber-500/15
                            hover:shadow-amber-500/25 transition-shadow duration-300"
               >
                 Dashboard

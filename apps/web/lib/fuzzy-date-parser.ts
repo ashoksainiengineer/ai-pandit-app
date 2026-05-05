@@ -127,6 +127,8 @@ export function parseFuzzyDate(input: string, birthDate: string): ParsedFuzzyDat
             confidence: 1.0
         };
     }
+
+    return null;
 }
 
 /**

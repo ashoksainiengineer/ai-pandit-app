@@ -17,7 +17,7 @@ export default function PrivacyPage() {
       {/* Header */}
       <div className="bg-white border-b border-[#F0E8DE]">
         <div className="max-w-4xl mx-auto px-6 py-6">
-          <Link href="/" className="inline-flex items-center gap-2 text-[#7A756F] hover:text-[#B8860B] transition-colors">
+          <Link href="/" className="inline-flex items-center gap-2 text-[#5A554F] hover:text-[#B8860B] transition-colors">
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm">Back to Home</span>
           </Link>
@@ -33,7 +33,7 @@ export default function PrivacyPage() {
           <h1 className="font-[family-name:var(--font-cormorant)] text-4xl font-semibold text-[#1A1612] mb-4">
             Privacy Policy
           </h1>
-          <p className="text-[#7A756F] max-w-2xl mx-auto">
+          <p className="text-[#5A554F] max-w-2xl mx-auto">
             Your trust is our highest priority. We employ military-grade encryption, strict anonymization for AI processing, and transparent data protection practices to safeguard your personal and astrological information.
           </p>
         </div>
@@ -261,7 +261,7 @@ export default function PrivacyPage() {
             <div className="space-y-4">
               <div className="p-4 bg-[#FDF8F3] rounded-lg">
                 <h4 className="font-semibold text-[#1A1612] mb-2">OpenRouter (AI Gateway)</h4>
-                <ul className="space-y-1 text-sm text-[#7A756F]">
+                <ul className="space-y-1 text-sm text-[#5A554F]">
                   <li>• Routes anonymized requests to AI models</li>
                   <li>• Does not store request content or responses</li>
                   <li>• Privacy Policy: <a href="https://openrouter.ai/privacy" target="_blank" rel="noopener noreferrer" className="text-[#B8860B] hover:underline">openrouter.ai/privacy</a></li>
@@ -270,7 +270,7 @@ export default function PrivacyPage() {
 
               <div className="p-4 bg-[#FDF8F3] rounded-lg">
                 <h4 className="font-semibold text-[#1A1612] mb-2">DeepSeek (AI Model Provider)</h4>
-                <ul className="space-y-1 text-sm text-[#7A756F]">
+                <ul className="space-y-1 text-sm text-[#5A554F]">
                   <li>• Processes anonymized astrological data only</li>
                   <li>• No access to your real name, email, or PII</li>
                   <li>• Does not train models on your data</li>
@@ -316,63 +316,63 @@ export default function PrivacyPage() {
                 <tbody className="divide-y divide-[#F0E8DE]">
                   <tr>
                     <td className="p-3 text-[#4A453F] font-medium">Birth Information</td>
-                    <td className="p-3 text-[#7A756F]">Full Name, Date of Birth, Birth Time</td>
+                    <td className="p-3 text-[#5A554F]">Full Name, Date of Birth, Birth Time</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-amber-50 text-amber-700 rounded text-xs">Anonymized</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">✓ AES-256</span></td>
                   </tr>
                   <tr>
                     <td className="p-3 text-[#4A453F] font-medium">Location Coordinates</td>
-                    <td className="p-3 text-[#7A756F]">Latitude, Longitude, Timezone</td>
+                    <td className="p-3 text-[#5A554F]">Latitude, Longitude, Timezone</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">Yes</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs">Plain (needed for calculations)</span></td>
                   </tr>
                   <tr>
                     <td className="p-3 text-[#4A453F] font-medium">Personal Traits</td>
-                    <td className="p-3 text-[#7A756F]">Height, Build, Complexion, Eye Color, Hair Type</td>
+                    <td className="p-3 text-[#5A554F]">Height, Build, Complexion, Eye Color, Hair Type</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">Yes</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">✓ AES-256</span></td>
                   </tr>
                   <tr>
                     <td className="p-3 text-[#4A453F] font-medium">Forensic Traits</td>
-                    <td className="p-3 text-[#7A756F]">Facial Structure, Psychographic, Biological, Family Details</td>
+                    <td className="p-3 text-[#5A554F]">Facial Structure, Psychographic, Biological, Family Details</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">Yes</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">✓ AES-256</span></td>
                   </tr>
                   <tr>
                     <td className="p-3 text-[#4A453F] font-medium">Life Events</td>
-                    <td className="p-3 text-[#7A756F]">Category, Date, Description, Importance, Time Precision</td>
+                    <td className="p-3 text-[#5A554F]">Category, Date, Description, Importance, Time Precision</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-amber-50 text-amber-700 rounded text-xs">Anonymized</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">✓ AES-256</span></td>
                   </tr>
                   <tr>
                     <td className="p-3 text-[#4A453F] font-medium">Spouse Data</td>
-                    <td className="p-3 text-[#7A756F]">Name, Date of Birth, Birth Time, Birth Place</td>
+                    <td className="p-3 text-[#5A554F]">Name, Date of Birth, Birth Time, Birth Place</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-red-50 text-red-700 rounded text-xs">No</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">✓ AES-256</span></td>
                   </tr>
                   <tr>
                     <td className="p-3 text-[#4A453F] font-medium">Analysis Settings</td>
-                    <td className="p-3 text-[#7A756F]">Time Offset Preset, Custom Minutes</td>
+                    <td className="p-3 text-[#5A554F]">Time Offset Preset, Custom Minutes</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">Yes</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs">Plain</span></td>
                   </tr>
                   <tr>
                     <td className="p-3 text-[#4A453F] font-medium">Account Info</td>
-                    <td className="p-3 text-[#7A756F]">Email, Full Name (from Clerk authentication)</td>
+                    <td className="p-3 text-[#5A554F]">Email, Full Name (from Clerk authentication)</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-red-50 text-red-700 rounded text-xs">No</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-gray-50 text-gray-600 rounded text-xs">Plain</span></td>
                   </tr>
                   <tr>
                     <td className="p-3 text-[#4A453F] font-medium">Consent Records</td>
-                    <td className="p-3 text-[#7A756F]">AI Consent Status, Timestamp, IP Address</td>
+                    <td className="p-3 text-[#5A554F]">AI Consent Status, Timestamp, IP Address</td>
                     <td className="p-3"><span className="px-2 py-1 bg-blue-50 text-blue-700 rounded text-xs">Database</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-red-50 text-red-700 rounded text-xs">No</span></td>
                     <td className="p-3"><span className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs">✓ AES-256</span></td>
@@ -401,19 +401,19 @@ export default function PrivacyPage() {
             <div className="grid md:grid-cols-2 gap-4">
               <div className="p-4 bg-[#FDF8F3] rounded-lg">
                 <h3 className="font-semibold text-[#1A1612] mb-2">Birth Time Rectification</h3>
-                <p className="text-sm text-[#7A756F]">Your anonymized birth data and life events are analyzed by our AI to determine your precise birth time.</p>
+                <p className="text-sm text-[#5A554F]">Your anonymized birth data and life events are analyzed by our AI to determine your precise birth time.</p>
               </div>
               <div className="p-4 bg-[#FDF8F3] rounded-lg">
                 <h3 className="font-semibold text-[#1A1612] mb-2">Session Management</h3>
-                <p className="text-sm text-[#7A756F]">Your draft data is saved so you can resume your analysis later.</p>
+                <p className="text-sm text-[#5A554F]">Your draft data is saved so you can resume your analysis later.</p>
               </div>
               <div className="p-4 bg-[#FDF8F3] rounded-lg">
                 <h3 className="font-semibold text-[#1A1612] mb-2">Account Authentication</h3>
-                <p className="text-sm text-[#7A756F]">Email and name from Clerk are used for login and account identification only.</p>
+                <p className="text-sm text-[#5A554F]">Email and name from Clerk are used for login and account identification only.</p>
               </div>
               <div className="p-4 bg-[#FDF8F3] rounded-lg">
                 <h3 className="font-semibold text-[#1A1612] mb-2">What We DON&apos;T Do</h3>
-                <p className="text-sm text-[#7A756F]">We never sell, share, or use your data for advertising or third-party analytics.</p>
+                <p className="text-sm text-[#5A554F]">We never sell, share, or use your data for advertising or third-party analytics.</p>
               </div>
             </div>
           </section>
@@ -433,28 +433,28 @@ export default function PrivacyPage() {
                 <Key className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
                 <div>
                   <h4 className="font-semibold text-[#1A1612]">Encryption at Rest</h4>
-                  <p className="text-sm text-[#7A756F]">All database storage uses AES-256 encryption. Encryption keys are derived from your unique Clerk authentication ID.</p>
+                  <p className="text-sm text-[#5A554F]">All database storage uses AES-256 encryption. Encryption keys are derived from your unique Clerk authentication ID.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <Shield className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
                 <div>
                   <h4 className="font-semibold text-[#1A1612]">Secure Infrastructure</h4>
-                  <p className="text-sm text-[#7A756F]">Data is stored in Neon Postgres databases with industry-leading security practices, regular audits, and penetration testing.</p>
+                  <p className="text-sm text-[#5A554F]">Data is stored in Neon Postgres databases with industry-leading security practices, regular audits, and penetration testing.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <Lock className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
                 <div>
                   <h4 className="font-semibold text-[#1A1612]">Secure Transmission</h4>
-                  <p className="text-sm text-[#7A756F]">All data transmitted between your browser and our servers uses TLS 1.3 encryption (HTTPS).</p>
+                  <p className="text-sm text-[#5A554F]">All data transmitted between your browser and our servers uses TLS 1.3 encryption (HTTPS).</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
                 <UserX className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
                 <div>
                   <h4 className="font-semibold text-[#1A1612]">AI Anonymization Layer</h4>
-                  <p className="text-sm text-[#7A756F]">Before any data reaches AI systems, our anonymization engine removes all PII and replaces names with pseudonyms.</p>
+                  <p className="text-sm text-[#5A554F]">Before any data reaches AI systems, our anonymization engine removes all PII and replaces names with pseudonyms.</p>
                 </div>
               </div>
             </div>
@@ -548,7 +548,7 @@ export default function PrivacyPage() {
                 <span className="text-[#4A453F]"><strong>Right to Explanation:</strong> Understand how AI uses your data</span>
               </div>
             </div>
-            <p className="mt-4 text-sm text-[#7A756F]">
+            <p className="mt-4 text-sm text-[#5A554F]">
               To exercise any of these rights, contact us at <a href="mailto:privacy@aipandit.app" className="text-[#B8860B] hover:underline">privacy@aipandit.app</a> or use the delete option in your dashboard.
             </p>
           </section>
@@ -569,15 +569,15 @@ export default function PrivacyPage() {
             <div className="grid md:grid-cols-3 gap-4">
               <div className="p-4 bg-[#FDF8F3] rounded-lg">
                 <h4 className="font-semibold text-[#1A1612] mb-2">GDPR (EU)</h4>
-                <p className="text-sm text-[#7A756F]">Full compliance with EU data protection standards. We process data on the basis of explicit consent and legitimate interest.</p>
+                <p className="text-sm text-[#5A554F]">Full compliance with EU data protection standards. We process data on the basis of explicit consent and legitimate interest.</p>
               </div>
               <div className="p-4 bg-[#FDF8F3] rounded-lg">
                 <h4 className="font-semibold text-[#1A1612] mb-2">CCPA (California)</h4>
-                <p className="text-sm text-[#7A756F]">California residents have the right to know what data is collected and request deletion.</p>
+                <p className="text-sm text-[#5A554F]">California residents have the right to know what data is collected and request deletion.</p>
               </div>
               <div className="p-4 bg-[#FDF8F3] rounded-lg">
                 <h4 className="font-semibold text-[#1A1612] mb-2">DPDP (India)</h4>
-                <p className="text-sm text-[#7A756F]">Compliant with India&apos;s Digital Personal Data Protection Act, 2023.</p>
+                <p className="text-sm text-[#5A554F]">Compliant with India&apos;s Digital Personal Data Protection Act, 2023.</p>
               </div>
             </div>
           </section>
@@ -599,7 +599,7 @@ export default function PrivacyPage() {
           </section>
         </div>
 
-        <p className="text-center text-sm text-[#A8A39D] mt-12">
+        <p className="text-center text-sm text-[#8A857F] mt-12">
           Last updated: January 2026 | Version 3.0 (AI Processing Update)
         </p>
       </div>

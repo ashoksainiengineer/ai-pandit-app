@@ -239,8 +239,8 @@ export function isEncrypted(data: string | null | undefined): boolean {
  */
 export function parseSensitiveField<T = unknown>(
   data: string | null | undefined,
-  defaultValue?: T | null,
   userId: string,
+  defaultValue?: T | null,
 ): T | null {
   if (!data) return (defaultValue ?? null) as T | null;
 
