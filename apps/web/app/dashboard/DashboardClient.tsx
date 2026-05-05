@@ -68,6 +68,8 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
   const [isCreatingDraft, setIsCreatingDraft] = useState(false);
   const router = useRouter();
 
+  const stats = useMemo(() => calculateStats(sessions), [sessions]);
+
   // Debounce search to avoid O(n) filtering on every keystroke
   useEffect(() => {
     const timer = setTimeout(() => setSearchQuery(searchInput), 300);
