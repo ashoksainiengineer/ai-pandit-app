@@ -89,9 +89,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
             // 3. System & Results (Can be encrypted or plain depending on source)
             offsetConfig: parseSensitiveField(session.offsetConfig, null, sessionUserId),
-            analysisResult: parseSensitiveField(session.analysisResult, null, sessionUserId),
-            progressData: parseSensitiveField(session.progressData, null, sessionUserId),
-            reasoningLogs: parseSensitiveField(session.reasoningLogs, null, sessionUserId),
+            analysisResult: parseSensitiveField(session.analysisResult as string | null | undefined, null, sessionUserId),
+            progressData: parseSensitiveField(session.progressData as string | null | undefined, null, sessionUserId),
+            reasoningLogs: parseSensitiveField(session.reasoningLogs as string | null | undefined, null, sessionUserId),
             errorMessage: session.errorMessage, // Errors usually plain text for monitoring
         };
 
