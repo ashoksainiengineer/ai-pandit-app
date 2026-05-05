@@ -5,6 +5,7 @@ import { db } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '../utils/logger.js';
+import { AppError, ErrorCodes } from '../errors/index.js';
 
 // ═════════════════════════════════════════════════════════════════════════════
 // CANCELLATION MANAGER
@@ -109,10 +110,9 @@ export async function throwIfCancelled(sessionId: string, signal?: AbortSignal):
 /**
  * Custom error for cancellation
  */
-export class CancellationError extends Error {
+export class CancellationError extends AppError {
     constructor(message: string = 'Operation cancelled') {
-        super(message);
-        this.name = 'CancellationError';
+        super(ErrorCodes.REQUEST_CANCELLED, message, undefined, false);
     }
 }
 

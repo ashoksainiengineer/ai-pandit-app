@@ -284,21 +284,8 @@ export function enableGlobalTestMode(): void {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// HOOK: useLogger
+// HOOK: useLogger — MOVED to ./use-logger.ts to break circular dependency with logger.ts
 // ═══════════════════════════════════════════════════════════════════════════════
-
-import { useMemo } from 'react';
-import { env } from './config/env';
-import { logger as baseLogger } from './logger';
-
-export function useLogger(context?: Record<string, unknown>): SecureLogger {
-    return useMemo(() => {
-        if (context) {
-            return logger.child(context);
-        }
-        return logger;
-    }, [context]);
-}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // STREAM-SPECIFIC LOGGER

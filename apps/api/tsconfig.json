@@ -13,6 +13,7 @@
         "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
+        "noEmitOnError": false,
         "resolveJsonModule": true,
         "declaration": true,
         "declarationMap": true,
@@ -28,6 +29,8 @@
         "src/**/*"
     ],
     "exclude": [
+        "src/**/__tests__/**",
+        "src/**/*.test.ts",
         "src/scripts/**/*",
         "node_modules",
         "dist",

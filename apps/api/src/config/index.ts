@@ -247,7 +247,7 @@ export const securityConfig = {
     encryptionSecret: env.ENCRYPTION_SECRET,
     rateLimitWindowMs: env.RATE_LIMIT_WINDOW_MS,
     rateLimitMaxRequests: env.RATE_LIMIT_MAX_REQUESTS,
-    jwtSecret: env.ENCRYPTION_SECRET, // Use encryptionSecret instead of jwtSecret
+    // jwtSecret removed - ENCRYPTION_SECRET should not be reused as JWT secret
 };
 
 export const memoryConfig = {

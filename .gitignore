@@ -236,3 +236,5 @@ logs/*.log
 logs/*.md
 
 .vscode/
+.desloppify/
+.venv-desloppify/

@@ -10,11 +10,13 @@ import { logger } from '../utils/logger.js';
 import { encryptData, parseSensitiveField } from '../lib/encryption/index.js';
 import { randomUUID } from 'crypto';
 import { isSessionOwnedByContext, resolveSessionOwnershipContext } from '../lib/session-ownership.js';
-
+import { validateBody, SessionUpdateSchema, UuidParamSchema } from '../middleware/validation.js';
 const router = Router();
 
+// BUG-013 fix: Never expose raw error messages to clients
 function getErrorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Internal error in sessions route', { error: error instanceof Error ? error.message : String(error) });
+    return 'An internal error occurred. Please try again later.';
 }
 
 function normalizeTimezoneValue(rawTimezone: string): number | string {
@@ -132,7 +134,7 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
 /**
  * PUT /api/sessions/:id - Update session (draft save)
  */
-router.put('/:id', async (req: AuthenticatedRequest, res: Response) => {
+router.put('/:id', validateBody(SessionUpdateSchema), async (req: AuthenticatedRequest, res: Response) => {
     try {
         const clerkId = req.clerkId!;
         const ownershipContext = await resolveSessionOwnershipContext(clerkId);

@@ -301,6 +301,10 @@ class SessionEventManager {
         // 1. Flush AI Thinking
         const thinkingBatch = this.thinkingBroadcastBuffer.get(sessionId);
         if (thinkingBatch && thinkingBatch.length > 0) {
+            // Swap: replace with fresh buffer BEFORE processing to avoid losing
+            // entries added by synchronous emit handlers during iteration.
+            this.thinkingBroadcastBuffer.set(sessionId, []);
+
             if (thinkingBatch.length > 50) {
                 logger.info(`[SessionEventManager] High volume flush: ${thinkingBatch.length} thinking chunks for session ${sessionId.slice(0, 8)}`);
             }
@@ -323,17 +327,19 @@ class SessionEventManager {
                     ...merged
                 });
             }
-            this.thinkingBroadcastBuffer.set(sessionId, []);
         }
 
         // 2. Flush Scores
         const scoreBatch = this.scoreBroadcastBuffer.get(sessionId);
         if (scoreBatch && scoreBatch.length > 0) {
+            // Swap: replace with fresh buffer BEFORE emitting to avoid losing
+            // entries added by synchronous emit handlers.
+            this.scoreBroadcastBuffer.set(sessionId, []);
+
             this.emit(sessionId, {
                 type: 'candidate_scores',
                 data: scoreBatch
             } as CandidateScoresEvent);
-            this.scoreBroadcastBuffer.set(sessionId, []);
         }
     }
 

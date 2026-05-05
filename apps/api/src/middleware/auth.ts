@@ -22,6 +22,17 @@ export interface AuthenticatedRequest extends Request {
 }
 
 /**
+ * Extract clerkId with null-guard for defense-in-depth (BUG-014).
+ * Throws UnauthorizedError if clerkId is missing (shouldn't happen behind authMiddleware).
+ */
+export function requireClerkId(req: AuthenticatedRequest): string {
+    if (!req.clerkId) {
+        throw new Error('Authentication required: clerkId missing from request');
+    }
+    return req.clerkId;
+}
+
+/**
  * Send standardized authentication error response
  */
 function sendAuthError(
