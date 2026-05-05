@@ -43,6 +43,17 @@ function hasExistingTraits(traits: ForensicTraits): boolean {
         traits.family?.siblingPosition
     );
 }
+
+// Get trait summary for display
+function getTraitSummary(traits: ForensicTraits) {
+    return {
+        prakriti: traits.biological?.prakriti || 'Not set',
+        eyeShape: traits.physical?.facialStructure?.eyeShape?.replace(/_/g, ' ') || 'Not set',
+        speechStyle: traits.psychographic?.speechStyle?.replace(/_/g, ' ') || 'Not set',
+        birthOrder: traits.family?.siblingPosition?.replace(/_/g, ' ') || 'Not set'
+    };
+}
+
 // Assessment summary component (shared by both completion views)
 function AssessmentCompleteView({ traitSummary, onRetake, onContinue }: {
     traitSummary: ReturnType<typeof getTraitSummary>;

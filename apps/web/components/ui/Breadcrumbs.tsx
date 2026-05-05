@@ -60,7 +60,7 @@ export const Breadcrumbs = memo(function Breadcrumbs({
   className = '',
   showHomeIcon = true,
 }: BreadcrumbsProps) {
-
+  const Separator = separator || <DefaultSeparator />;
   return (
     <nav 
       aria-label="Breadcrumb"

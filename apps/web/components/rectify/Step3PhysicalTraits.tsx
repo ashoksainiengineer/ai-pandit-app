@@ -11,7 +11,7 @@
 
 'use client';
 
-import React, { useState, useCallback, memo } from 'react';
+import React, { useState, useCallback, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ForensicTraits } from '@/lib/types';
 import {
