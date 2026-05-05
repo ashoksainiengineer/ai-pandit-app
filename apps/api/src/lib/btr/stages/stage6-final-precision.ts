@@ -235,7 +235,7 @@ export async function stage6FinalPrecision(
 
     if (!candidates || candidates.length === 0) {
         logger.error('🔱 [STAGE-6] FAILED: No candidates provided for final precision judgment');
-        throw new AppError('AI_OUT_OF_CANDIDATES: No birth time candidates survived the previous analysis stages. This usually happens when life events and forensic traits are highly contradictory.');
+        throw new AppError('AI_OUT_OF_CANDIDATES: No birth time candidates survived the previous analysis stages. This usually happens when life events and forensic traits are highly contradictory.', { errorCode: 'PROCESSING_ERROR', statusCode: 500 });
     }
 
     // Get offset from config for dynamic batch sizing
@@ -283,7 +283,7 @@ export async function stage6FinalPrecision(
             const baseCandidate: CandidateWithPrecisionData = {
                 time: candidate.time,
                 offsetMinutes: candidate.offsetMinutes,
-                ephemeris: pkg,
+                ephemeris: pkg as unknown as EphemerisData,
                 dasha: pkg.vimshottariDasha,
                 vargas: {
                     D9: pkg.d9Chart,
@@ -532,7 +532,7 @@ export async function stage6FinalPrecision(
                 const baseCandidate: CandidateWithPrecisionData = {
                     time: finalist.time,
                     offsetMinutes: finalist.offsetMinutes,
-                    ephemeris: pkg,
+                    ephemeris: pkg as unknown as EphemerisData,
                     dasha: pkg.vimshottariDasha,
                     vargas: { D9: pkg.d9Chart, D10: pkg.d10Chart, D60: pkg.d60Sign },
                     kpData: {}
@@ -561,7 +561,7 @@ export async function stage6FinalPrecision(
 
     if (finalBatch.length === 0) {
         logger.error('🔱 [STAGE-6] FAILED: No candidates survived final building phase');
-        throw new AppError('AI_ANALYSIS_FAILED: Unable to build final candidate data. Please check your internet connection and retry.');
+        throw new AppError('AI_ANALYSIS_FAILED: Unable to build final candidate data. Please check your internet connection and retry.', { errorCode: 'PROCESSING_ERROR', statusCode: 500 });
     }
 
     const finalAnchor = buildPresentTransitLockMap(finalBatch, currentEph, now);
@@ -653,7 +653,7 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
     const finalTime = resolvedFinalWinner.match?.time || fallbackWinner?.time;
     const finalCandidate = resolvedFinalWinner.match || fallbackWinner;
     if (!finalTime || !finalCandidate) {
-        throw new AppError('AI_ANALYSIS_INCOMPLETE: Unable to determine final birth time. No finalists available for fallback winner selection.');
+        throw new AppError('AI_ANALYSIS_INCOMPLETE: Unable to determine final birth time. No finalists available for fallback winner selection.', { errorCode: 'PROCESSING_ERROR', statusCode: 500 });
     }
 
     const accuracy = usedFallbackWinner
@@ -661,7 +661,7 @@ Consensus Range: ${Math.min(...validEnhanced.map(c => c.precision?.consensus.ove
         : (verdict?.accuracy ?? 85);
     const confidence = usedFallbackWinner
         ? 'LOW'
-        : (verdict?.confidence ?? 'MEDIUM');
+        : (verdict?.confidence ?? 'MEDIUM') as string;
     const margin = usedFallbackWinner
         ? 60
         : (verdict?.margin ?? 5);

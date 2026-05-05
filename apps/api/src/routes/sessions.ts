@@ -105,8 +105,8 @@ router.get('/:id', async (req: AuthenticatedRequest, res: Response) => {
             forensicTraits: parseSensitiveField(session.forensicTraits, clerkId, session.userId),
             physicalTraits: parseSensitiveField(session.physicalTraits, clerkId, session.userId),
             spouseData: parseSensitiveField(session.spouseData, clerkId, session.userId),
-            analysisResult: parseSensitiveField(session.analysisResult, clerkId, session.userId),
-            progressData: parseSensitiveField(session.progressData, clerkId, session.userId),
+            analysisResult: parseSensitiveField(session.analysisResult as string, clerkId, session.userId),
+            progressData: parseSensitiveField(session.progressData as string, clerkId, session.userId),
         };
 
         // Reconstruct birthData for frontend compatibility
@@ -312,7 +312,7 @@ router.post('/:id/clone', async (req: AuthenticatedRequest, res: Response) => {
             isEncrypted: originalSession.isEncrypted,
 
             // Status and Reset fields
-            status: 'draft',
+            status: 'draft' as const,
             rectifiedTime: null,
             accuracy: null,
             confidence: null,

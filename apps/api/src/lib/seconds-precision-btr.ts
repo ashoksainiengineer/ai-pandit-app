@@ -26,7 +26,7 @@ import {
     calculateBoundarySafety,
 } from './advanced-btr-methods.js';
 import {
-    _callAI,
+    callAI,
     _callAIWithStream,
     _executeAIInParallel,
 } from './ai-client.js';

@@ -262,7 +262,7 @@ export async function stage4DeepAnalysis(
 
         if (currentCandidates.length === 0) {
             logger.error('🔱 [STAGE-4] FAILED: All candidates rejected in internal tournament rounds');
-            throw new AppError('AI_OUT_OF_CANDIDATES: The analysis narrowed down candidates and eventually found no suitable matches for the provided life events. Please verify the event dates and try again.');
+            throw new AppError('AI_OUT_OF_CANDIDATES: The analysis narrowed down candidates and eventually found no suitable matches for the provided life events. Please verify the event dates and try again.', { errorCode: 'PROCESSING_ERROR', statusCode: 500 });
         }
 
         roundNumber++;
@@ -350,7 +350,7 @@ export async function stage4DeepAnalysis(
 
     if (currentCandidates.length === 0) {
         logger.error('🔱 [STAGE-4] FAILED: No survivors found after final deep verification');
-        throw new AppError('AI_OUT_OF_CANDIDATES: No birth time candidates survived the deep multi-dasha analysis. This often happens if the birth time offset requested doesn\'t contain the actual birth time, or if life event data is inaccurate.');
+            throw new AppError('AI_OUT_OF_CANDIDATES: No birth time candidates survived the deep multi-dasha analysis. This often happens if the birth time offset requested doesn\'t contain the actual birth time, or if life event data is inaccurate.', { errorCode: 'PROCESSING_ERROR', statusCode: 500 });
     }
 
     await sleep(2000);

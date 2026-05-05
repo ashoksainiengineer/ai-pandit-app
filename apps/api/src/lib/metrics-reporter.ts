@@ -22,7 +22,7 @@ export interface RecoveryTelemetry {
 
 export let recoveryTelemetry: RecoveryTelemetry | null = null;
 
-function getRecoveryTelemetryInstance(): RecoveryTelemetry {
+export function getRecoveryTelemetryInstance(): RecoveryTelemetry {
   if (!recoveryTelemetry) {
     recoveryTelemetry = {
       lastRunAt: null,

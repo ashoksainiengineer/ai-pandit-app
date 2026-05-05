@@ -592,7 +592,7 @@ export async function getSessionProgress(sessionId: string): Promise<ProgressDat
             return null;
         }
 
-        try { return safeJsonParse<ProgressData>(result[0].progressData, null!); } catch (error) { logger.warn('[PROGRESS-TRACKER] Corrupt progress data, returning null', { error }); return null; }
+        try { return safeJsonParse<ProgressData>((result[0].progressData || "{}") as string, null as any); } catch (error) { logger.warn('[PROGRESS-TRACKER] Corrupt progress data, returning null', { error }); return null; }
     } catch (error) {
         logger.error('Failed to get progress', { sessionId, error });
         return null;

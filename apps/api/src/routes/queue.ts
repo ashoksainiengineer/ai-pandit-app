@@ -125,16 +125,16 @@ router.get('/', authMiddleware, async (req: AuthenticatedRequest, res: Response)
 
         // If complete, return results
         if (queueStatus.status === 'complete') {
-            let analysisResult = null;
+            let analysisResult: Record<string, unknown> | null = null;
             try {
-                analysisResult = session[0].analysisResult ? JSON.parse(session[0].analysisResult) : null;
+                analysisResult = session[0].analysisResult ? JSON.parse(session[0].analysisResult as string) as Record<string, unknown> : null;
             } catch (e) {
                 logger.error('Failed to parse analysis result', e);
             }
 
-            let reasoningLogs = null;
+            let reasoningLogs: Record<string, unknown>[] | null = null;
             try {
-                reasoningLogs = session[0].reasoningLogs ? JSON.parse(session[0].reasoningLogs) : null;
+                reasoningLogs = session[0].reasoningLogs ? JSON.parse(session[0].reasoningLogs as string) as Record<string, unknown>[] : null;
             } catch (e) {
                 logger.error('Failed to parse reasoning logs', e);
             }

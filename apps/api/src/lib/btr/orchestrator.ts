@@ -26,6 +26,7 @@ import {
   ForensicProfile,
   TatwaType,
   ScanConfiguration,
+  MethodScores,
 } from '@ai-pandit/shared';
 import { logger } from '../../utils/logger.js';
 
@@ -375,7 +376,7 @@ function buildDetailedResult(
     confidenceLevel: (bestCandidate.confidenceLevel || 'LOW') as ConfidenceLevel,
     confidencePercentage: Math.round(bestCandidate.overallScore || 0),
     marginOfErrorSeconds: bestCandidate.marginOfErrorSeconds || 0,
-    methodConsensus: bestCandidate.methodScores || {},
+    methodConsensus: (bestCandidate.methodScores || {}) as unknown as MethodScores,
     evidence,
     candidateAnalysis: allCandidates.slice(0, 10),
     recommendations,

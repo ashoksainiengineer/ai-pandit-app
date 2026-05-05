@@ -344,7 +344,7 @@ router.get('/readings', async (req: AuthenticatedRequest, res: Response) => {
 
     const conditions: SQL<unknown>[] = [];
     if (status) {
-      conditions.push(eq(sessions.status, status));
+      conditions.push(eq(sessions.status, status as any));
     }
 
     // Get total count
