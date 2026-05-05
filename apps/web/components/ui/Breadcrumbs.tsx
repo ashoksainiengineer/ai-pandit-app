@@ -109,7 +109,7 @@ export const Breadcrumbs = memo(function Breadcrumbs({
       </ol>
     </nav>
   );
-}
+});
 
 /**
  * Predefined breadcrumb configurations for common pages

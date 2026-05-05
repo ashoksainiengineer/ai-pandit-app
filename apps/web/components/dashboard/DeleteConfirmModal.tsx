@@ -220,4 +220,4 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
       </motion.div>
     </AnimatePresence>
   );
-}
+});
