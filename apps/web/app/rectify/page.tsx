@@ -88,8 +88,8 @@ function RectifyPageContent() {
                         onSubmit={form.handleSubmit}
                     />
                 </div>
-
                 <TrustFooter />
+            </AnalysisErrorBoundary>
         </Layout>
     );
 }

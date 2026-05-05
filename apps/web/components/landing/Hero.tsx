@@ -2,6 +2,7 @@
  * Hero Section - Sacred Ivory Edition
  * Soothing light theme with divine typography
  */
+'use client';
 
 import Link from 'next/link';
 import {
