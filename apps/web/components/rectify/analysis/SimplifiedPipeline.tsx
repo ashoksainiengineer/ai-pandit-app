@@ -11,7 +11,8 @@ interface SimplifiedPipelineProps {
   isComplete: boolean;
   isConnected: boolean;
   activeAIStage?: number | null;
-  offsetMinutes?: number; // 🔱 NEW: God-Tier offset config
+  offsetMinutes?: number;
+  aiModel?: string;
   onStageClick?: (stageId: number) => void;
 }
 
