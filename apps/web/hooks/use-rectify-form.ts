@@ -166,14 +166,15 @@ export function useRectifyForm() {
 
     const validateAllSteps = useCallback((): { isValid: boolean; errors: string[] } => {
         const allErrors: string[] = [];
-        if (!validateStep1().isValid) allErrors.push('Step 1 is incomplete.');
-        if (!validateStep3().isValid) allErrors.push('Life Events are incomplete.');
+        if (!validateStep1().isValid) allErrors.push('Step 1: Birth details are incomplete.');
+        if (!validateStep2().isValid) allErrors.push('Step 2: Physical traits are incomplete.');
+        if (!validateStep3().isValid) allErrors.push('Step 3: Life events are incomplete.');
         return { isValid: allErrors.length === 0, errors: allErrors };
-    }, [validateStep1, validateStep3]);
+    }, [validateStep1, validateStep2, validateStep3]);
 
     const handleNext = useCallback(() => {
         if (isSubmitting) return;
-        if (step >= 5) { setError('Already at the last step'); return; }
+        if (step >= 4) { setError('Already at the last step'); return; }
 
         if (step === 1) {
             const v = validateStep1();
@@ -185,17 +186,9 @@ export function useRectifyForm() {
                 return;
             }
         } else if (step === 3) {
-            // Forensic traits: check at least some fields are filled
-            const facial = forensicTraits.physical?.facialStructure ?? {};
-            const psych = forensicTraits.psychographic ?? {};
-            const bio = forensicTraits.biological;
-            const hasFacial = Object.values(facial).some(v => String(v).trim());
-            const hasPsych = Object.values(psych).some(v => String(v).trim());
-            const hasBio = bio?.prakriti?.trim() || bio?.sensitivity?.heat?.trim();
-            if (!hasFacial && !hasPsych && !hasBio) {
-                setError('Please fill in at least some forensic traits before proceeding');
-                return;
-            }
+            const v = validateStep3();
+            if (!v.isValid) { setError(v.errors.join(', ')); return; }
+        }
         } else if (step === 4) {
             const v = validateStep3();
             if (!v.isValid) { setError(v.errors.join(', ')); return; }
@@ -437,8 +430,9 @@ export function useRectifyForm() {
         draftLoaded,
         maxUnlockedStep,
         validateStep1,
+        validateStep2,
         validateStep3,
-        handleNext,
+        validateStep4,
         handleSubmit,
         updateBirthData,
         updateForensicTraits,

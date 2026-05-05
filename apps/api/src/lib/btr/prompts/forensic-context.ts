@@ -7,6 +7,12 @@
  */
 
 import { ForensicTraits } from '@ai-pandit/shared';
+import {
+  type BodyFrame,
+  type SkinTone,
+  type NaturalSpeed,
+  buildLagnaEliminationContext,
+} from '@ai-pandit/shared';
 
 /**
  * Formats forensic physical DNA section
@@ -108,23 +114,26 @@ export function buildForensicDNASummary(forensicTraits: ForensicTraits): string 
   if (!forensicTraits) {
     return '🧬 MANDATORY FORENSIC CORRELATION MATRIX: No forensic traits provided';
   }
-  const f = forensicTraits;
-  const prakriti = f?.biological?.prakriti?.toUpperCase() ?? 'Unknown';
-  const healthIssues = f?.biological?.recurringHealthIssues?.join(', ') ?? 'None';
-  const temperament = f?.psychographic?.temperament ?? 'unknown';
-  const decisions = f?.psychographic?.decisionMaking ?? 'unknown';
-  const speech = f?.psychographic?.speechStyle ?? 'unknown';
-  const forehead = f?.physical?.facialStructure?.forehead ?? 'unknown';
-  const eyes = f?.physical?.facialStructure?.eyeShape ?? 'unknown';
-  const nose = f?.physical?.facialStructure?.noseShape ?? f?.physical?.facialStructure?.noseType ?? 'unknown';
-  const jaw = f?.physical?.facialStructure?.jawLine ?? 'average';
-  const voice = f?.physical?.facialStructure?.voicePitch ?? 'unknown';
-  const siblingPos = f?.family?.siblingPosition ?? 'unknown';
-  const fatherStatus = f?.family?.fatherStatusAtBirth ?? 'unknown';
 
-  return `🧬 MANDATORY FORENSIC CORRELATION MATRIX:
-    - Biological: ${prakriti} | Health: ${healthIssues}
-    - Psychographic: ${temperament} | Decisions: ${decisions} | Speech: ${speech}
-    - Varga Signs: Forehead: ${forehead} | Eyes: ${eyes} | Nose: ${nose} | Jaw: ${jaw} | Voice: ${voice}
-    - Family Karma: ${siblingPos} child | Father Status: ${fatherStatus}`;
+  // Derive the 3-key Lagna elimination input from existing trait data
+  const build = forensicTraits.physical?.build;
+  const complexion = forensicTraits.physical?.skinHair?.complexion;
+  const voicePitch = forensicTraits.physical?.facialStructure?.voicePitch;
+
+  const bodyFrame: BodyFrame =
+    build === 'slim' ? 'thin_bony' :
+    build === 'athletic' ? 'athletic_muscular' :
+    build === 'heavy' ? 'soft_rounded' :
+    'athletic_muscular';
+
+  const skinTone: SkinTone =
+    complexion === 'fair' ? 'very_fair' :
+    complexion === 'dark' ? 'dark_dusky' :
+    'wheatish_golden';
+
+  const naturalSpeed: NaturalSpeed =
+    voicePitch === 'fast' || voicePitch === 'loud' ? 'fast_quick' :
+    'slow_deliberate';
+
+  return buildLagnaEliminationContext({ bodyFrame, skinTone, naturalSpeed });
 }

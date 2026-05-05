@@ -24,10 +24,10 @@ import {
   CopyPlus,
 } from 'lucide-react';
 import { DashboardSession } from '@/lib/dashboard/types';
-import { DeleteConfirmModal } from './DeleteConfirmModal';
-import { ClientOnly } from '@/components/ui/ClientOnly';
-import { LoadingOverlay } from '@/components/ui/LoadingOverlay';
-import { APIClient } from '@/lib/api-client';
+import dynamic from 'next/dynamic';
+
+const DeleteConfirmModal = dynamic(() => import('./DeleteConfirmModal').then(m => ({ default: m.DeleteConfirmModal })), { ssr: false });
+const LoadingOverlay = dynamic(() => import('@/components/ui/LoadingOverlay').then(m => ({ default: m.LoadingOverlay })), { ssr: false });
 import { logger } from '@/lib/secure-logger';
 
 interface SessionCardProps {

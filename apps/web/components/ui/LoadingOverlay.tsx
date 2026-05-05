@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Loader2 } from 'lucide-react';
 
@@ -8,9 +9,7 @@ interface LoadingOverlayProps {
     message?: string;
 }
 
-export function LoadingOverlay({ isVisible, message = 'Processing...' }: LoadingOverlayProps) {
-    return (
-        <AnimatePresence>
+export const LoadingOverlay = memo(function LoadingOverlay({ isVisible, message = 'Processing...' }: LoadingOverlayProps) {
             {isVisible && (
                 <motion.div
                     initial={{ opacity: 0 }}

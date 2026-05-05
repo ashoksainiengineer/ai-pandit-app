@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, memo } from 'react';
+import { useState, useMemo, useCallback, useEffect, memo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -62,12 +62,17 @@ const StatCard = memo(function StatCard({
 
 export function DashboardClient({ initialSessions, userName }: DashboardClientProps) {
   const [sessions, setSessions] = useState(initialSessions);
+  const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [isCreatingDraft, setIsCreatingDraft] = useState(false);
   const router = useRouter();
 
-  const stats = useMemo(() => calculateStats(sessions), [sessions]);
+  // Debounce search to avoid O(n) filtering on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchQuery(searchInput), 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const removeSessionFromDashboard = useCallback((deletedId: string) => {
     setSessions(prev => prev.filter(s => s.id !== deletedId));
@@ -166,8 +171,8 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
         <input
           type="text"
           placeholder="Search by name..."
-          value={searchQuery}
-          onChange={filterSessionsByQuery}
+          value={searchInput}
+          onChange={e => setSearchInput(e.target.value)}
           className="w-full pl-12 pr-4 py-3 bg-white border border-[#E8E0D5] rounded-xl text-[#1A1612] placeholder-[#A8A39D] focus:border-[#78611D] focus:ring-2 focus:ring-[#78611D]/10 outline-none transition-all"
         />
       </div>

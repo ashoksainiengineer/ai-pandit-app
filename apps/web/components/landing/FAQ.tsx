@@ -1,80 +1,62 @@
-import React from 'react';
-import { ChevronDown, HelpCircle } from 'lucide-react';
+'use client';
 
-const faqs = [
+import React from 'react';
+import { motion } from 'framer-motion';
+import { ChevronDown } from 'lucide-react';
+
+const FAQS = [
   {
-    question: 'How accurate is this birth time analysis?',
-    answer: 'Our AI-powered system achieves 95-98% accuracy when you provide exact dates for your life events. The accuracy depends on the precision of the event dates you enter - more exact dates lead to more accurate results.'
+    q: 'How does birth time rectification work?',
+    a: 'We use your birth details, life events, and natural body type to narrow down your birth time window. The Vedic engine cross-references your life events against Vimshottari Dasha periods to find which birth time best explains when those events happened in your life.',
   },
   {
-    question: 'What if I don\'t remember exact dates for my life events?',
-    answer: 'Approximate dates still work, but accuracy may be lower (80-90%). We recommend providing as precise dates as possible. If you only have approximate dates, the analysis will still be valuable but may suggest a time range rather than an exact minute.'
+    q: 'How many life events should I provide?',
+    a: 'At least 3 significant events with reasonably accurate dates. Events like marriage, first job, graduation, major relocation, or health events work best. More precise dates lead to more accurate results.',
   },
   {
-    question: 'How long does the processing take?',
-    answer: 'Usually 20-25 minutes from start to finish. The AI analysis takes the most time as it carefully examines each life event against planetary positions. You\'ll receive email confirmation when your analysis is complete.'
+    q: 'Is my birth data safe?',
+    a: 'Yes. All data is encrypted with AES-256-GCM before storage. Your encryption key is derived from your unique user identity — even we cannot read your data. We never share information with third parties.',
   },
   {
-    question: 'Can I get a refund if I\'m not satisfied?',
-    answer: 'Yes, we offer a 7-day money-back guarantee. If you\'re not satisfied with your analysis or believe there\'s an error, contact our support team within 7 days of purchase for a full refund, no questions asked.'
+    q: 'Do I need astrology knowledge to use this?',
+    a: 'Not at all. You just need to know your birth details and a few life events. The system handles all the astrological calculations automatically. No prior knowledge of Jyotish is required.',
   },
-  {
-    question: 'What personal data do you store?',
-    answer: 'We only store the information you provide during the analysis process. All data is encrypted and securely stored. We never share your personal information with third parties. Data is retained for 2 years for support purposes.'
-  },
-  {
-    question: 'Can I consult with a human astrologer after getting results?',
-    answer: 'Absolutely! We provide recommendations for qualified Vedic astrologers in your area. Many customers use our AI analysis as a starting point before consulting with human experts for deeper insights.'
-  }
 ];
 
 export default function FAQ() {
   return (
-    <section id="faq" className="py-20 bg-slate-800">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div
-          className="text-center mb-16"
+    <section className="py-20 bg-[#FFFCF8]">
+      <div className="max-w-2xl mx-auto px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className="text-center mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/10 border border-blue-600/20 rounded-full text-blue-400 text-sm font-medium mb-4">
-            <HelpCircle className="w-4 h-4" />
+          <h2 className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-slate-800 mb-2">
             Frequently Asked Questions
-          </div>
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Got Questions?
           </h2>
-          <p className="text-xl text-gray-300">
-            Find answers to common questions about our birth time rectification service
-          </p>
-        </div>
+        </motion.div>
 
-        <div className="space-y-4">
-          {faqs.map((faq, index) => (
-            <details
-              key={index}
-              className="bg-slate-700/50 border border-slate-600 rounded-lg overflow-hidden group"
+        <div className="space-y-3">
+          {FAQS.map((faq, i) => (
+            <motion.details
+              key={i}
+              initial={{ opacity: 0, y: 12 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.08 }}
+              className="group bg-white border border-amber-200/50 rounded-xl overflow-hidden"
             >
-              <summary className="px-6 py-4 text-white font-medium cursor-pointer flex items-center justify-between hover:bg-slate-600/30 transition-colors duration-200 list-none">
-                <span className="pr-4">{faq.question}</span>
-                <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-300 group-open:rotate-180" />
+              <summary className="px-5 py-4 text-slate-700 font-medium cursor-pointer flex items-center justify-between hover:bg-amber-50/50 transition-colors list-none text-sm sm:text-base">
+                <span className="pr-4">{faq.q}</span>
+                <ChevronDown className="w-4 h-4 text-amber-500 flex-shrink-0 transition-transform duration-200 group-open:rotate-180" />
               </summary>
-              <div className="border-t border-slate-600 px-6 py-4 text-gray-300">
-                {faq.answer}
+              <div className="border-t border-amber-100 px-5 py-4 text-sm text-slate-500 leading-relaxed">
+                {faq.a}
               </div>
-            </details>
+            </motion.details>
           ))}
-        </div>
-
-        <div
-          className="text-center mt-12"
-        >
-          <p className="text-gray-400 mb-6">
-            Still have questions? We&apos;re here to help.
-          </p>
-          <button
-            className="px-6 py-3 bg-slate-600 hover:bg-slate-700 text-white font-semibold rounded-lg transition-colors duration-200"
-          >
-            Contact Support
-          </button>
         </div>
       </div>
     </section>

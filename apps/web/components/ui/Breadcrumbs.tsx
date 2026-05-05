@@ -5,7 +5,7 @@
  */
 
 import Link from 'next/link';
-import { ReactNode } from 'react';
+import { ReactNode, memo } from 'react';
 import { ChevronRight, Home } from 'lucide-react';
 
 /**
@@ -54,13 +54,12 @@ function DefaultSeparator() {
  * />
  * ```
  */
-export function Breadcrumbs({
+export const Breadcrumbs = memo(function Breadcrumbs({
   items,
   separator,
   className = '',
   showHomeIcon = true,
 }: BreadcrumbsProps) {
-  const Separator = separator || <DefaultSeparator />;
 
   return (
     <nav 

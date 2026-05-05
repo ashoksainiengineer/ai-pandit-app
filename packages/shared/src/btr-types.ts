@@ -578,7 +578,13 @@ export const EVENT_HOUSE_MAP: Record<string, number> = {
   surgery: 6,
   inheritance: 8,
   awards: 11,
-  other: 1
+  other: 1,
+  // Missing categories now mapped
+  sanskars: 1,        // Life rituals → Ascendant/self
+  childhood: 4,       // Early milestones → Education/learning
+  adolescent: 4,      // Teen years → Education
+  teen: 4,
+  btr_markers: 1,
 };
 
 export const EVENT_SIGNIFICATORS: Record<string, string[]> = {
@@ -606,7 +612,108 @@ export const EVENT_SIGNIFICATORS: Record<string, string[]> = {
   surgery: ['Mars', 'Rahu', 'Saturn', '6th Lord', '8th Lord'],
   inheritance: ['Jupiter', 'Saturn', '8th Lord'],
   awards: ['Jupiter', 'Venus', 'Sun', '11th Lord'],
-  other: []
+  other: [],
+  // Missing categories now mapped
+  sanskars: ['Moon', 'Jupiter', 'Sun', '1st Lord'],
+  childhood: ['Moon', 'Mercury', 'Jupiter', '4th Lord'],
+  adolescent: ['Mercury', 'Mars', 'Venus', '4th Lord', '9th Lord'],
+  teen: ['Mercury', 'Mars', 'Venus', '4th Lord', '9th Lord'],
+  btr_markers: ['Moon', 'Saturn', 'Jupiter', 'Ketu', '1st Lord'],
+};
+
+// ═════════════════════════════════════════════════════════════════════════════
+// PER-EVENT SPECIFIC SIGNIFICATORS (overrides category-level for precision)
+// When an event ID matches, these planets take priority over the category map
+// ═════════════════════════════════════════════════════════════════════════════
+export const EVENT_SPECIFIC_SIGNIFICATORS: Record<string, string[]> = {
+  // Marriage — different stages = different planets
+  marriage: ['Venus', 'Jupiter', 'Moon', '7th Lord'],
+  engagement: ['Venus', 'Mercury', '7th Lord'],
+  suhaag_raat: ['Venus', 'Moon', '7th Lord'],
+  first_meeting_spouse: ['Venus', 'Rahu', '7th Lord'],
+  divorce: ['Mars', 'Rahu', 'Saturn', '6th Lord'],
+  separation: ['Saturn', 'Rahu', '6th Lord'],
+  second_marriage: ['Venus', 'Jupiter', '8th Lord'],
+
+  // Career — specific job types
+  first_job: ['Saturn', 'Sun', 'Mercury', '10th Lord'],
+  government_job: ['Sun', 'Saturn', '10th Lord'],
+  job_promotion: ['Jupiter', 'Sun', 'Mercury', '10th Lord'],
+  job_loss: ['Mars', 'Saturn', 'Rahu', '10th Lord'],
+  job_change: ['Mercury', 'Rahu', '3rd Lord'],
+  business_started: ['Mercury', 'Sun', 'Mars', '7th Lord', '10th Lord'],
+  business_loss: ['Saturn', 'Mars', 'Rahu', '7th Lord'],
+  freelancing_start: ['Mercury', 'Rahu', '3rd Lord'],
+  retirement: ['Saturn', 'Jupiter', '12th Lord'],
+
+  // Education
+  graduation_complete: ['Jupiter', 'Mercury', '4th Lord', '9th Lord'],
+  board_10th: ['Mercury', 'Jupiter', '4th Lord'],
+  board_12th: ['Mercury', 'Jupiter', '9th Lord'],
+  study_abroad: ['Rahu', 'Jupiter', '9th Lord', '12th Lord'],
+  competitive_exam: ['Mars', 'Mercury', 'Jupiter', '6th Lord'],
+
+  // Health
+  surgery: ['Mars', 'Rahu', 'Saturn', '6th Lord', '8th Lord'],
+  childhood_illness: ['Moon', 'Mars', '6th Lord'],
+  accident: ['Mars', 'Saturn', 'Rahu', '8th Lord'],
+  childhood_accident: ['Mars', 'Rahu', '8th Lord'],
+
+  // Children
+  first_child_birth: ['Jupiter', 'Venus', 'Moon', '5th Lord'],
+  second_child_birth: ['Jupiter', 'Venus', '5th Lord'],
+  menarche: ['Moon', 'Venus', 'Mars', '6th Lord'],
+
+  // Financial
+  first_income: ['Saturn', 'Sun', '2nd Lord'],
+  sudden_wealth: ['Jupiter', 'Rahu', '5th Lord', '11th Lord'],
+  inheritance: ['Jupiter', 'Saturn', '8th Lord'],
+
+  // Travel/Relocation
+  work_abroad: ['Rahu', 'Saturn', '9th Lord', '12th Lord'],
+  first_foreign_travel: ['Rahu', 'Ketu', '9th Lord', '12th Lord'],
+  relocation: ['Moon', 'Rahu', 'Mars', '3rd Lord', '4th Lord'],
+
+  // Spiritual / Sanskars
+  upanayana: ['Jupiter', 'Sun', 'Mercury', '1st Lord'],
+  vivaha: ['Venus', 'Jupiter', 'Moon', '7th Lord'],
+  sanyasa: ['Saturn', 'Ketu', 'Jupiter', '12th Lord'],
+  namkaran: ['Moon', 'Mercury', '1st Lord'],
+  mundan: ['Mars', 'Saturn', '1st Lord', '8th Lord'],
+  annaprashan: ['Moon', 'Jupiter', '2nd Lord'],
+
+  // Relationship
+  first_love: ['Venus', 'Moon', '5th Lord'],
+  first_heartbreak: ['Venus', 'Rahu', '5th Lord'],
+  live_in_start: ['Venus', 'Mars', '3rd Lord'],
+
+  // Identity
+  name_change: ['Mercury', 'Sun', '1st Lord'],
+  identity_shifts: ['Sun', 'Moon', 'Rahu', '1st Lord'],
+
+  // Special BTR-grade events
+  dasha_change: ['Moon', 'Saturn'],
+  jupiter_return: ['Jupiter'],
+  saturn_return: ['Saturn'],
+  sade_sati_start: ['Saturn', 'Moon'],
+  near_death: ['Mars', 'Saturn', 'Ketu', '8th Lord'],
+  spiritual_awakening: ['Ketu', 'Jupiter', '9th Lord', '12th Lord'],
+  sudden_opportunity: ['Rahu', 'Jupiter', '5th Lord', '9th Lord'],
+  legal_victory: ['Jupiter', 'Mars', 'Sun', '6th Lord'],
+  legal_defeat: ['Saturn', 'Mars', 'Rahu', '6th Lord'],
+};
+
+// ═════════════════════════════════════════════════════════════════════════════
+// DATE PRECISION WEIGHTS — How much an event contributes based on how accurate the date is
+// exact_date_time = 1.0 (full weight), year_range = 0.1 (10% weight)
+// ═════════════════════════════════════════════════════════════════════════════
+export const DATE_PRECISION_WEIGHTS: Record<string, number> = {
+  exact_date_time: 1.0,
+  exact_date: 0.9,
+  date_range: 0.7,
+  month_year: 0.5,
+  month_range: 0.3,
+  year_range: 0.1,
 };
 
 export const PARASHARI_ASPECTS: Record<string, number[]> = {
