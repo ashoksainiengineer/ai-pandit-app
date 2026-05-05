@@ -429,6 +429,7 @@ export function useRectifyForm() {
         validateStep2,
         validateStep3,
         validateStep4,
+        handleNext,
         handleSubmit,
         updateBirthData,
         updateForensicTraits,

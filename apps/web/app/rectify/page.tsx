@@ -69,7 +69,7 @@ function RectifyPageContent() {
                             <Step4Review
                                 data={form.birthData}
                                 events={form.lifeEvents}
-                                traits={form.forensicTraits.physical ?? undefined}
+                                traits={form.forensicTraits.physical as any}
                                 forensicTraits={form.forensicTraits}
                                 onSubmit={form.handleSubmit}
                                 isSubmitting={form.isSubmitting}
