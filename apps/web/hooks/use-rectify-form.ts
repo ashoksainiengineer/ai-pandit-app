@@ -189,10 +189,6 @@ export function useRectifyForm() {
             const v = validateStep3();
             if (!v.isValid) { setError(v.errors.join(', ')); return; }
         }
-        } else if (step === 4) {
-            const v = validateStep3();
-            if (!v.isValid) { setError(v.errors.join(', ')); return; }
-        }
 
         const nextStep = step + 1;
         setMaxUnlockedStep(prev => Math.max(prev, nextStep));
