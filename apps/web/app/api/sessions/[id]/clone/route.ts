@@ -70,7 +70,7 @@ export async function POST(
             offsetConfig: originalSession.offsetConfig,
 
             // Status and Reset fields (Resetting results)
-            status: 'draft',
+            status: 'draft' as const,
             rectifiedTime: null,
             accuracy: null,
             confidence: null,
