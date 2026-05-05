@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:25-alpine AS base
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -27,7 +27,7 @@ RUN npm --workspace @ai-pandit/shared run build \
  && npm --workspace @ai-pandit/worker run build
 RUN npm prune --omit=dev
 
-FROM node:20-alpine AS runner
+FROM node:25-alpine AS runner
 WORKDIR /app
 RUN apk add --no-cache libc6-compat
 RUN chown -R node:node /app
