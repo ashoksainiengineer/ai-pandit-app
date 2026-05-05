@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build:app": "next build",
+    "build:app": "next build --no-lint",
     "build:vercel": "npm run build:vercel:web",
     "build:vercel:web": "cd ../.. && npm run build:vercel:web",
     "typecheck": "tsc --noEmit",
