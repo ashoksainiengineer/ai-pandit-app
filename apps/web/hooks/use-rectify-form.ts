@@ -152,6 +152,12 @@ export function useRectifyForm() {
         return { isValid: errors.length === 0, errors, warnings: [], progress: Math.round((filledFields / totalFields) * 100) };
     }, [birthData]);
 
+    const validateStep2 = useCallback((): StepValidation => {
+        const errors: string[] = [];
+        if (!forensicTraits.physical?.build?.trim()) errors.push('Please select your body build type');
+        return { isValid: errors.length === 0, errors, warnings: [], progress: forensicTraits.physical?.build?.trim() ? 100 : 0 };
+    }, [forensicTraits]);
+
     const validateStep3 = useCallback((): StepValidation => {
         const errors: string[] = [];
         if (lifeEvents.length < 3) errors.push(`Minimum 3 life events required. Currently: ${lifeEvents.length}`);
@@ -428,7 +434,6 @@ export function useRectifyForm() {
         validateStep1,
         validateStep2,
         validateStep3,
-        validateStep4,
         handleNext,
         handleSubmit,
         updateBirthData,
