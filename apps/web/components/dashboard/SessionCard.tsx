@@ -28,6 +28,7 @@ import dynamic from 'next/dynamic';
 
 const DeleteConfirmModal = dynamic(() => import('./DeleteConfirmModal').then(m => ({ default: m.DeleteConfirmModal })), { ssr: false });
 const LoadingOverlay = dynamic(() => import('@/components/ui/LoadingOverlay').then(m => ({ default: m.LoadingOverlay })), { ssr: false });
+import { ClientOnly } from '@/components/ui/ClientOnly';
 import { logger } from '@/lib/secure-logger';
 
 interface SessionCardProps {
