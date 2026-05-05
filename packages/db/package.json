@@ -29,15 +29,20 @@
         "test:coverage": "vitest run --coverage"
     },
     "dependencies": {
+        "@clerk/clerk-react": "5.61.6",
+        "@google-cloud/storage": "5.20.4",
+        "@stryker-mutator/core": "9.6.1",
         "dotenv": "^16.4.5",
         "drizzle-orm": "^0.45.1",
+        "next": "15.5.15",
+        "nyc": "14.1.1",
         "pg": "^8.20.0"
     },
     "devDependencies": {
         "@types/node": "^20.14.0",
         "@types/pg": "^8.18.0",
         "@vitest/coverage-v8": "^4.0.18",
-        "drizzle-kit": "^0.31.8",
+        "drizzle-kit": "^0.18.1",
         "typescript": "^5.4.5",
         "vitest": "^4.0.18"
     }

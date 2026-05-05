@@ -119,13 +119,5 @@ router.use('/admin', authMiddleware, strictRateLimiter, adminRouter);
 // Debug route (Internal UI for Analysis verification)
 router.use('/debug-analysis', authMiddleware, strictRateLimiter, debugAnalysisRouter);
 
-// Routes testing
-router.get('/routes-test', (req, res) => {
-  res.json({
-    success: true,
-    message: 'API sub-router reached',
-    path: req.path
-  });
-});
-
+// Routes-test endpoint removed for security audit (PROD-001: unprotected debug route)
 export { router as routes };

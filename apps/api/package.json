@@ -52,8 +52,10 @@
     "dependencies": {
         "@ai-pandit/db": "*",
         "@ai-pandit/shared": "*",
-        "@clerk/backend": "^1.26.2",
-        "@google-cloud/storage": "^7.16.0",
+        "@clerk/backend": "^2.33.3",
+        "@clerk/clerk-react": "5.61.6",
+        "@google-cloud/storage": "^5.20.4",
+        "@stryker-mutator/core": "9.6.1",
         "cors": "^2.8.5",
         "dotenv": "^16.6.1",
         "drizzle-orm": "^0.45.1",
@@ -61,6 +63,8 @@
         "helmet": "^7.1.0",
         "ioredis": "^5.10.0",
         "morgan": "^1.10.1",
+        "next": "15.5.15",
+        "nyc": "14.1.1",
         "zod": "^3.22.4"
     },
     "devDependencies": {
@@ -75,7 +79,7 @@
         "@typescript-eslint/parser": "^7.0.0",
         "@vitest/coverage-v8": "^4.0.18",
         "@vitest/ui": "^4.0.18",
-        "drizzle-kit": "^0.31.8",
+        "drizzle-kit": "^0.18.1",
         "eslint": "^8.57.0",
         "eslint-plugin-security": "^1.7.1",
         "supertest": "^7.2.2",

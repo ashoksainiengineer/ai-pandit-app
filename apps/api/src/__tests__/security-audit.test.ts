@@ -197,10 +197,10 @@ describe('Security Audit Tests', () => {
         gender: 'male',
         status: 'pending'
       } as any).returning();
-      
-      const rawData = await db.execute(
-        `SELECT full_name FROM sessions WHERE id = '${session[0].id}'`
-      );
+      // Security audit (PROD-001): Use parameterized Drizzle query instead of raw string interpolation
+      const rawData = await db.select({ full_name: sessions.fullName })
+        .from(sessions)
+        .where(eq(sessions.id, session[0].id));
       
       const storedValue = rawData.rows[0]?.full_name;
       expect(storedValue).not.toBe(plainTextName);

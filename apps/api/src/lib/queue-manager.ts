@@ -301,38 +301,51 @@ function getRowsAffected(result: unknown): number | null {
   }
   return null;
 }
+let claimSessionMutex: Promise<void> = Promise.resolve();
 
 async function claimNextQueuedSession(): Promise<string | null> {
-  const claimedJob = await queueDriver.claimNextQueuedJob();
-  if (!claimedJob) {
-    return null;
+  let releaseMutex!: () => void;
+  const gate = claimSessionMutex;
+  claimSessionMutex = new Promise<void>((resolve) => { releaseMutex = resolve; });
+  await gate;
+
+  try {
+    const claimedJob = await queueDriver.claimNextQueuedJob();
+    if (!claimedJob) {
+      return null;
+    }
+
+    const updateResult = await executeWithRetry(() =>
+      db.update(sessions)
+        .set({
+          status: 'processing',
+          startedProcessingAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        })
+        .where(and(
+          eq(sessions.id, claimedJob.sessionId),
+          eq(sessions.status, 'queued')
+        ))
+    );
+
+    const rowsAffected = getRowsAffected(updateResult);
+    if (rowsAffected === 0) {
+      await failJobRecord({
+        jobId: claimedJob.id,
+        errorMessage: 'Session missing during claim',
+        status: 'failed',
+      });
+      return null;
+    }
+
+    activeProcessingIds.add(claimedJob.sessionId);
+    processingStartTimes.set(claimedJob.sessionId, Date.now());
+    await beginTrackedJobAttempt(claimedJob.sessionId, activeAttemptIds, workerId);
+    await syncJobRunning(claimedJob.sessionId);
+    return claimedJob.sessionId;
+  } finally {
+    releaseMutex!();
   }
-
-  const updateResult = await executeWithRetry(() =>
-    db.update(sessions)
-      .set({
-        status: 'processing',
-        startedProcessingAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
-      .where(eq(sessions.id, claimedJob.sessionId))
-  );
-
-  const rowsAffected = getRowsAffected(updateResult);
-  if (rowsAffected === 0) {
-    await failJobRecord({
-      jobId: claimedJob.id,
-      errorMessage: 'Session missing during claim',
-      status: 'failed',
-    });
-    return null;
-  }
-
-  activeProcessingIds.add(claimedJob.sessionId);
-  processingStartTimes.set(claimedJob.sessionId, Date.now());
-  await beginTrackedJobAttempt(claimedJob.sessionId, activeAttemptIds, workerId);
-  await syncJobRunning(claimedJob.sessionId);
-  return claimedJob.sessionId;
 }
 
 export const __queueInternals = {
@@ -651,15 +664,24 @@ async function scheduleRetry(
     return;
   }
 
-  logger.warn(`Retrying session ${sessionId} after ${delay}ms (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries})`, {
-    error: errorMsg,
-    isRetryable: true,
-  });
-
   releaseProcessingSlot(sessionId);
   await sleep(delay);
-  await beginTrackedJobAttempt(sessionId, activeAttemptIds, workerId);
-  return analyzeBirthTimeWithRetry(sessionId, attempt + 1);
+
+  // BUG-009 fix: Re-claim through queue driver to prevent phantom processor
+  const claimedId = await claimNextQueuedSession();
+  if (claimedId === sessionId) {
+    logger.warn(`Retrying session ${sessionId} after ${delay}ms (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries})`, {
+      error: errorMsg,
+      isRetryable: true,
+    });
+    return analyzeBirthTimeWithRetry(sessionId, attempt + 1);
+  }
+
+  // Another iteration claimed our session, or it became invalid
+  if (claimedId) {
+    startSessionProcessing(claimedId);
+  }
+  logger.warn(`Retry claim race for session ${sessionId}`, { claimedId });
 }
 
 async function finalizePermanentFailure(

@@ -5,17 +5,28 @@ import { z, ZodIssue } from 'zod';
 // VALIDATION SCHEMAS
 // ═════════════════════════════════════════════════════════════════════════════
 
+// TimeOffsetConfigSchema kept locally (not in shared package)
 export const TimeOffsetConfigSchema = z.object({
     preset: z.enum(['30min', '1hour', '2hours', '4hours', '6hours', '12hours', 'seconds-30', 'seconds-6']).optional(),
     customMinutes: z.number().min(1).max(720).optional(),
     description: z.string().optional(),
 });
 
+// XSS sanitizer (mirrors shared package's sanitizeString)
+const sanitizeString = (val: string) => {
+    return val
+        .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+        .replace(/javascript:/gi, '')
+        .replace(/on\w+\s*=/gi, '')
+        .trim();
+};
+
+// BirthDataSchema with XSS protection (BUG-004: added sanitizeString transforms)
 export const BirthDataSchema = z.object({
-    fullName: z.string().min(1, 'Full name is required').max(100),
+    fullName: z.string().min(1, 'Full name is required').max(100).transform(sanitizeString),
     dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
     tentativeTime: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)(:[0-5]\d)?$/, 'Time must be a valid HH:MM or HH:MM:SS format'),
-    birthPlace: z.string().min(1).max(200),
+    birthPlace: z.string().min(1).max(200).transform(sanitizeString),
     latitude: z.number().min(-90).max(90),
     longitude: z.number().min(-180).max(180),
     timezone: z.number().min(-12).max(14),
@@ -147,3 +158,13 @@ function isZodError(error: unknown): error is z.ZodError {
 export const UuidParamSchema = z.object({
     id: z.string().uuid(),
 });
+
+// Session update schema for partial updates (BUG-012: added body validation)
+export const SessionUpdateSchema = z.object({
+    birthData: BirthDataSchema.partial().optional(),
+    lifeEvents: z.array(z.any()).optional(),
+    physicalTraits: z.any().optional(),
+    forensicTraits: z.any().optional(),
+    spouseData: z.any().optional(),
+    offsetConfig: z.any().optional(),
+}).passthrough();

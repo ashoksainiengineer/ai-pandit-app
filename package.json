@@ -45,7 +45,6 @@
         "test:security:api": "npx zap-cli quick-scan --self-contained --start-options '-config api.disablekey=true' http://localhost:3000",
         "test:security:dependencies": "npx audit-ci --moderate",
         "test:security:snyk": "npx snyk test --all-projects",
-        
         "test:mutation": "npx stryker run",
         "test:chaos": "npm -w @ai-pandit/api run chaos:resilience",
         "test:btr": "node test-runner.js",
@@ -69,13 +68,13 @@
     "devDependencies": {
         "@axe-core/playwright": "^4.11.1",
         "@playwright/test": "^1.58.2",
-        "@stryker-mutator/core": "^8.7.1",
-        "@stryker-mutator/typescript-checker": "^8.7.1",
-        "@stryker-mutator/vitest-runner": "^8.7.1",
+        "@stryker-mutator/core": "^9.6.1",
+        "@stryker-mutator/typescript-checker": "^9.6.1",
+        "@stryker-mutator/vitest-runner": "^9.6.1",
         "audit-ci": "^7.1.0",
         "husky": "^9.1.7",
         "lint-staged": "^15.4.3",
-        "nyc": "^17.1.0",
+        "nyc": "^18.0.0",
         "snyk": "^1.1295.4",
         "turbo": "^2.0.0"
     },
@@ -87,5 +86,17 @@
         "*.{json,md}": [
             "prettier --write"
         ]
+    },
+    "dependencies": {
+        "@clerk/backend": "3.4.4",
+        "@clerk/clerk-react": "^5.61.6",
+        "@clerk/nextjs": "7.3.0",
+        "@clerk/shared": "4.9.0",
+        "@google-cloud/storage": "5.20.4",
+        "jspdf": "^4.2.1",
+        "next": "15.5.15"
+    },
+    "overrides": {
+        "cross-spawn": "7.0.6"
     }
 }

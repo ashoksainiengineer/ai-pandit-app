@@ -19,8 +19,10 @@ export async function POST(req: NextRequest) {
     try {
         const { userId } = await auth();
 
-        // We allow logging even for unauthenticated users (e.g., login errors)
-        // But we tag it if a user is present
+        // Require authentication for client logging (BUG-023: prevent log flooding)
+        if (!userId) {
+            return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 });
+        }
         const body = await req.json();
 
         const logEntry = {

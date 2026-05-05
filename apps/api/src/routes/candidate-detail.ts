@@ -13,6 +13,7 @@ import { db, executeWithRetry } from '@ai-pandit/db';
 import { sessions } from '@ai-pandit/db/schema';
 import { eq } from 'drizzle-orm';
 import { logger } from '../utils/logger.js';
+import { resolveSessionOwnershipContext, isSessionOwnedByContext } from '../lib/session-ownership.js';
 
 const router = Router();
 
@@ -26,10 +27,12 @@ type OwnershipSession = Pick<
  */
 async function verifyOwnership(sessionId: string, clerkId: string): Promise<{ ok: boolean; session?: OwnershipSession }> {
     try {
+        const ownershipContext = await resolveSessionOwnershipContext(clerkId);
         const result = await executeWithRetry(() =>
             db.select({
                 id: sessions.id,
                 clerkId: sessions.clerkId,
+                userId: sessions.userId,
                 tentativeTime: sessions.tentativeTime,
                 dateOfBirth: sessions.dateOfBirth,
                 latitude: sessions.latitude,
@@ -42,7 +45,8 @@ async function verifyOwnership(sessionId: string, clerkId: string): Promise<{ ok
         );
 
         if (result.length === 0) return { ok: false };
-        if (result[0].clerkId !== clerkId) return { ok: false };
+        // Security fix (BUG-015): Use full ownership context instead of simple clerkId check
+        if (!isSessionOwnedByContext(result[0], ownershipContext)) return { ok: false };
         return { ok: true, session: result[0] };
     } catch {
         return { ok: false };
