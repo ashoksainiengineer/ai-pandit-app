@@ -382,7 +382,6 @@ export const EVENT_CATEGORIES: EventCategory[] = [
       { id: 'legal_victory', label: 'Major Legal Victory', importance: 'high', ageRange: { min: 18, max: 60 } },
       { id: 'legal_defeat', label: 'Major Legal Defeat/Loss', importance: 'critical', ageRange: { min: 18, max: 60 } },
     ],
-    ],
   },
 ];
 

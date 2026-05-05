@@ -163,4 +163,4 @@ export default memo(function Footer() {
       </div>
     </footer>
   );
-}
+});

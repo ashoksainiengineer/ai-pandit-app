@@ -77,4 +77,4 @@ export const LoadingOverlay = memo(function LoadingOverlay({ isVisible, message 
             )}
         </AnimatePresence>
     );
-}
+});
