@@ -64,7 +64,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
             </h1>
             
             <p style={{
-              color: '#7A756F',
+              color: '#5A554F',
               marginBottom: '24px',
               lineHeight: 1.5
             }}>
@@ -93,7 +93,7 @@ export default function GlobalError({ error, reset }: GlobalErrorProps) {
               style={{
                 display: 'block',
                 marginTop: '16px',
-                color: '#7A756F',
+                color: '#5A554F',
                 textDecoration: 'none',
                 fontSize: '14px'
               }}

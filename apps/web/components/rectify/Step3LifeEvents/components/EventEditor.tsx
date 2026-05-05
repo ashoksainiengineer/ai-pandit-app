@@ -49,7 +49,7 @@ export function EventEditor({
                         <h2 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-[#1A1612]">
                             {editingEvent.eventType}
                         </h2>
-                        <p className="text-xs text-[#7A756F]">
+                        <p className="text-xs text-[#5A554F]">
                             {getCategoryById(allCategories, editingEvent.category)?.label}
                         </p>
                     </div>
@@ -133,7 +133,7 @@ export function EventEditor({
                                     }`}
                             >
                                 <div className="font-semibold text-[10px] leading-tight">{opt.label}</div>
-                                <div className={`text-[9px] mt-1 ${editingEvent.datePrecision === opt.value ? 'text-white/80' : 'text-[#7A756F]'}`}>{opt.desc}</div>
+                                <div className={`text-[9px] mt-1 ${editingEvent.datePrecision === opt.value ? 'text-white/80' : 'text-[#5A554F]'}`}>{opt.desc}</div>
                             </button>
                         ))}
                     </div>
@@ -166,7 +166,7 @@ export function EventEditor({
                                             {opt.label}
                                         </span>
                                     </div>
-                                    <div className={`text-[10px] ${isSelected ? 'text-[#B8860B]' : 'text-[#7A756F]'}`}>
+                                    <div className={`text-[10px] ${isSelected ? 'text-[#B8860B]' : 'text-[#5A554F]'}`}>
                                         {opt.desc}
                                     </div>
                                 </button>
@@ -192,7 +192,7 @@ export function EventEditor({
                             e.stopPropagation();
                         }}
                         placeholder="What happened? How did you feel?..."
-                        className={`w-full h-24 p-4 bg-white border-2 rounded-lg text-sm text-[#1A1612] placeholder-[#A8A39D] resize-none focus:ring-2 outline-none transition-all ${editingEvent.description && editingEvent.description.length >= 10
+                        className={`w-full h-24 p-4 bg-white border-2 rounded-lg text-sm text-[#1A1612] placeholder-[#8A857F] resize-none focus:ring-2 outline-none transition-all ${editingEvent.description && editingEvent.description.length >= 10
                             ? 'border-[#184131]/50 focus:border-[#184131]'
                             : 'border-[#C65D3B]/50 focus:border-[#C65D3B]'
                             }`}
@@ -202,7 +202,7 @@ export function EventEditor({
                             <span>🔒</span>
                             <span>End-to-end encrypted</span>
                         </div>
-                        <div className={`text-[10px] ${(editingEvent.description?.length || 0) < 10 ? 'text-[#C65D3B]' : 'text-[#7A756F]'}`}>
+                        <div className={`text-[10px] ${(editingEvent.description?.length || 0) < 10 ? 'text-[#C65D3B]' : 'text-[#5A554F]'}`}>
                             {editingEvent.description?.length || 0} / 1000 chars (min 10)
                         </div>
                     </div>

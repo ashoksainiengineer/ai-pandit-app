@@ -127,7 +127,7 @@ export default function Solution() {
         >
           <div
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#F0E8DE] 
-                       rounded-full text-sm mb-8 shadow-sm"
+                       rounded-full text-sm mb-8"
           >
             <GitBranch className="w-4 h-4 text-[#4A7C6F]" />
             <span className="text-[#4A453F]">Processing Pipeline</span>
@@ -136,7 +136,7 @@ export default function Solution() {
           <h2 className="font-[family-name:var(--font-cormorant)] text-3xl md:text-4xl lg:text-5xl 
                          font-semibold text-[#1A1612] mb-6 leading-tight">
             Sacred{' '}
-            <span className="text-gradient-gold">Technical</span>
+            <span className="text-[#B8860B]">Technical</span>
             {' '}Workflow
           </h2>
           
@@ -156,7 +156,7 @@ export default function Solution() {
                 className="group"
               >
                 <div className="relative bg-white border border-[#F0E8DE] rounded-2xl p-6 
-                                hover:border-[#78611D]/30 hover:shadow-lg transition-all duration-300">
+                                hover:border-[#78611D]/30 transition-all duration-300">
                   <div className="flex flex-col lg:flex-row lg:items-center gap-6">
                     {/* Icon & Number */}
                     <div className="flex items-center gap-4 lg:w-72 shrink-0">
@@ -170,8 +170,8 @@ export default function Solution() {
                         <Icon className="w-6 h-6" style={{ color: step.color }} />
                       </div>
                       <div>
-                        <div className="font-mono text-2xl font-bold text-[#A8A39D]">{step.number}</div>
-                        <div className="text-[10px] uppercase tracking-[0.15em] text-[#7A756F]">{step.phase}</div>
+                        <div className="font-mono text-2xl font-bold text-[#8A857F]">{step.number}</div>
+                        <div className="text-[10px] uppercase tracking-[0.15em] text-[#5A554F]">{step.phase}</div>
                       </div>
                     </div>
 
@@ -187,7 +187,7 @@ export default function Solution() {
                           <span 
                             key={tech}
                             className="px-3 py-1 bg-[#FDF8F3] border border-[#F0E8DE] rounded-lg 
-                                       text-xs font-mono text-[#7A756F]"
+                                       text-xs font-mono text-[#5A554F]"
                           >
                             {tech}
                           </span>
@@ -197,7 +197,7 @@ export default function Solution() {
 
                     {/* Metrics */}
                     <div className="lg:w-48 shrink-0 lg:text-right">
-                      <div className="text-[10px] uppercase tracking-[0.15em] text-[#A8A39D] mb-1">
+                      <div className="text-[10px] uppercase tracking-[0.15em] text-[#8A857F] mb-1">
                         {step.metrics.label}
                       </div>
                       <div className="font-mono text-xl font-semibold" style={{ color: step.color }}>
@@ -230,7 +230,7 @@ export default function Solution() {
               <h3 className="font-[family-name:var(--font-cormorant)] text-2xl font-semibold text-[#1A1612] mb-2">
                 System Architecture
               </h3>
-              <p className="text-sm text-[#7A756F]">Backend components and their sacred alignment</p>
+              <p className="text-sm text-[#5A554F]">Backend components and their sacred alignment</p>
             </div>
             
             <div className="flex items-center gap-3 px-4 py-2 bg-emerald-50 rounded-xl border border-emerald-100">
@@ -255,7 +255,7 @@ export default function Solution() {
                 <div className="text-sm font-medium text-[#1A1612] mb-2">{layer.tech}</div>
                 <div className="flex items-center gap-1.5">
                   <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: layer.color }} />
-                  <span className="text-xs text-[#7A756F]">{layer.status}</span>
+                  <span className="text-xs text-[#5A554F]">{layer.status}</span>
                 </div>
               </div>
             ))}

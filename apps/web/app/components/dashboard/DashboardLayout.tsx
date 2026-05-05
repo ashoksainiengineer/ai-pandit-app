@@ -120,11 +120,11 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
               <p className="text-sm font-medium text-[#1A1612] truncate">
                 {user?.name || 'Admin User'}
               </p>
-              <p className="text-xs text-[#7A756F] truncate">
+              <p className="text-xs text-[#5A554F] truncate">
                 {user?.email || 'admin@aipandit.com'}
               </p>
             </div>
-            <button className="p-2 rounded-lg hover:bg-[#F0E8DE]/50 text-[#7A756F] hover:text-[#1A1612] transition-colors">
+            <button className="p-2 rounded-lg hover:bg-[#F0E8DE]/50 text-[#5A554F] hover:text-[#1A1612] transition-colors">
               <LogOut className="w-4 h-4" />
             </button>
           </div>
@@ -145,7 +145,7 @@ export default function DashboardLayout({ children, user }: DashboardLayoutProps
 
             {/* Breadcrumbs */}
             <nav className="hidden md:flex items-center gap-2 text-sm">
-              <Link href="/admin/dashboard" className="text-[#7A756F] hover:text-[#1A1612]">
+              <Link href="/admin/dashboard" className="text-[#5A554F] hover:text-[#1A1612]">
                 Dashboard
               </Link>
               {pathname !== '/admin/dashboard' && pathname !== '/admin' && (

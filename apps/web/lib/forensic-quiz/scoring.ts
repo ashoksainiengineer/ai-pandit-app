@@ -13,6 +13,7 @@
 import {
     QuizAnswer,
     QuizQuestion,
+    QuizOption,
     QuizResults,
     PrakritiResult,
     TraitResult,
@@ -94,14 +95,13 @@ export function calculatePrakriti(answers: QuizAnswer[]): PrakritiResult {
     }
 
     // Determine primary dosha
-    let primary: Dosha;
     const scores = [
         { dosha: 'vata' as Dosha, score: vataPct },
         { dosha: 'pitta' as Dosha, score: pittaPct },
         { dosha: 'kapha' as Dosha, score: kaphaPct }
     ];
     scores.sort((a, b) => b.score - a.score);
-    primary = scores[0].dosha;
+    const primary = scores[0].dosha;
 
     // Determine secondary if close (within 70% of primary)
     let secondary: Dosha | undefined;
@@ -157,7 +157,7 @@ function calculateTrait(
     }
 
     // Score aggregation by option ID
-    const scores: Map<string, { score: number; option: QuizQuestion['options'][0] }> = new Map();
+    const scores: Map<string, { score: number; option: QuizOption }> = new Map();
     let answeredCount = 0;
     let notSureCount = 0;
     let totalWeight = 0;
@@ -199,7 +199,7 @@ function calculateTrait(
 
     // Find highest scoring option
     let winningOptionId: string | null = null;
-    let winningOption: QuizQuestion['options'][0] | null = null;
+    let winningOption: QuizOption | null = null;
     let maxScore = 0;
 
     scores.forEach((data, optionId) => {
@@ -211,7 +211,8 @@ function calculateTrait(
     });
 
     // Determine Result Type: Custom Answer takes priority
-    let resultType = winningOption?.label || 'Unknown';
+    const safeWinningOption = winningOption as QuizOption | null;
+    let resultType = safeWinningOption ? safeWinningOption.label : 'Unknown';
     if (customAnswerText) {
         resultType = customAnswerText;
     }

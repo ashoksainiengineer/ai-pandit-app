@@ -35,7 +35,7 @@ export default function EventSelector({
 
   // Show all categories without age/gender filtering
   const filteredCategories = useMemo(() => {
-    let categories = showSensitive
+    const categories = showSensitive
       ? EVENT_CATEGORIES
       : getDefaultCategories(EVENT_CATEGORIES);
 
@@ -80,18 +80,18 @@ export default function EventSelector({
     <div className="space-y-6">
       {/* Search Bar */}
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#A8A39D]" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#8A857F]" />
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search life events... (e.g., marriage, surgery, school)"
-          className="w-full h-12 pl-12 pr-4 bg-white border border-[#E8E0D5] rounded-xl text-[#1A1612] placeholder-[#A8A39D] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10 outline-none"
+          className="w-full h-12 pl-12 pr-4 bg-white border border-[#E8E0D5] rounded-xl text-[#1A1612] placeholder-[#8A857F] focus:border-[#B8860B] focus:ring-2 focus:ring-[#B8860B]/10 outline-none"
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery('')}
-            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A8A39D] hover:text-[#4A453F]"
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-[#8A857F] hover:text-[#4A453F]"
           >
             Clear
           </button>
@@ -105,7 +105,7 @@ export default function EventSelector({
           animate={{ opacity: 1, height: 'auto' }}
           className="bg-white rounded-xl border border-[#E8E0D5] overflow-hidden"
         >
-          <div className="p-3 bg-[#F5EFE7] border-b border-[#E8E0D5] text-xs text-[#7A756F]">
+          <div className="p-3 bg-[#F5EFE7] border-b border-[#E8E0D5] text-xs text-[#5A554F]">
             Found {searchResults.length} results for &quot;{searchQuery}&quot;
           </div>
           <div className="max-h-64 overflow-y-auto">
@@ -127,7 +127,7 @@ export default function EventSelector({
                         {added && <span className="mr-1">✓</span>}
                         {event.label}
                       </div>
-                      <div className="text-xs text-[#7A756F]">
+                      <div className="text-xs text-[#5A554F]">
                         {event.categoryLabel} • {getImportanceLabel(event.importance)}
                       </div>
                     </div>
@@ -152,7 +152,7 @@ export default function EventSelector({
                 onClick={() => toggleImportance(importance)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${importanceFilter.includes(importance)
                     ? 'bg-[#B8860B] text-white'
-                    : 'bg-[#F5EFE7] text-[#7A756F] hover:bg-[#E8E0D5]'
+                    : 'bg-[#F5EFE7] text-[#5A554F] hover:bg-[#E8E0D5]'
                   }`}
               >
                 {getImportanceLabel(importance)}
@@ -181,7 +181,7 @@ export default function EventSelector({
               onClick={() => setShowSensitive(!showSensitive)}
               className={`text-xs flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors ${showSensitive
                   ? 'bg-[#DC143C]/10 text-[#DC143C]'
-                  : 'bg-[#F5EFE7] text-[#7A756F] hover:bg-[#E8E0D5]'
+                  : 'bg-[#F5EFE7] text-[#5A554F] hover:bg-[#E8E0D5]'
                 }`}
             >
               <AlertTriangle className="w-3 h-3" />
@@ -212,7 +212,7 @@ export default function EventSelector({
                   <span
                     className={`text-xs px-2 py-0.5 rounded-full ${selectedCategory === category.id
                         ? 'bg-white/20'
-                        : 'bg-[#F5EFE7] text-[#7A756F]'
+                        : 'bg-[#F5EFE7] text-[#5A554F]'
                       }`}
                   >
                     {category.events.length}
@@ -222,7 +222,7 @@ export default function EventSelector({
                 <div
                   className={`text-xs mt-1 ${selectedCategory === category.id
                       ? 'text-white/80'
-                      : 'text-[#7A756F]'
+                      : 'text-[#5A554F]'
                     }`}
                 >
                   {category.events.slice(0, 3).map((e) => e.label.split(' ')[0]).join(', ')}
@@ -254,14 +254,14 @@ export default function EventSelector({
                         <div className="font-semibold text-[#1A1612]">
                           {category.label}
                         </div>
-                        <div className="text-xs text-[#7A756F]">
+                        <div className="text-xs text-[#5A554F]">
                           {category.description}
                         </div>
                       </div>
                     </div>
                     <button
                       onClick={() => setSelectedCategory(null)}
-                      className="text-[#7A756F] hover:text-[#4A453F]"
+                      className="text-[#5A554F] hover:text-[#4A453F]"
                     >
                       <ChevronDown className="w-5 h-5 rotate-180" />
                     </button>
@@ -283,7 +283,7 @@ export default function EventSelector({
                             {added && <span className="mr-1">✓</span>}
                             {event.label}
                             <span
-                              className={`ml-2 text-xs ${added ? 'text-[#184131]' : 'text-[#A8A39D]'
+                              className={`ml-2 text-xs ${added ? 'text-[#184131]' : 'text-[#8A857F]'
                                 }`}
                             >
                               {event.importance === 'critical' && '⚡'}

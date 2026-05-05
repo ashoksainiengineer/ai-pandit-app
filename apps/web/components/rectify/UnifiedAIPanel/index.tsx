@@ -71,7 +71,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
     if (!unifiedMode) {
         return (
             <div className="space-y-3" role="region" aria-labelledby={`${panelId}-title`}>
-                <p className="text-sm text-[#7A756F]">Accordion mode not implemented</p>
+                <p className="text-sm text-[#5A554F]">Accordion mode not implemented</p>
             </div>
         );
     }
@@ -121,7 +121,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
 
                         {!isCompleted && isActive && candidatesList.length > 0 && (
                             <div className="mt-1.5 max-w-[200px]">
-                                <div className="flex items-center justify-between text-[8px] font-bold text-[#7A756F] mb-0.5 uppercase tracking-tighter">
+                                <div className="flex items-center justify-between text-[8px] font-bold text-[#5A554F] mb-0.5 uppercase tracking-tighter">
                                     <span>Batch Progress</span>
                                     <span>{candidatesList.length} Processed</span>
                                 </div>
@@ -135,7 +135,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                             </div>
                         )}
 
-                        <p className="text-[10px] text-[#7A756F] mt-0.5 truncate">
+                        <p className="text-[10px] text-[#5A554F] mt-0.5 truncate">
                             {isCompleted ? 'Stage processing completed' : (isActive ? `Processing ${candidatesList.length} candidates` : 'Multi-stream history')}
                         </p>
                     </div>
@@ -233,7 +233,7 @@ export const UnifiedAIPanel = memo(function UnifiedAIPanel({
                                         </div>
                                         <button
                                             onClick={() => setIsFocused(false)}
-                                            className="text-[10px] text-[#7A756F] hover:text-[#1A1612] transition-colors"
+                                            className="text-[10px] text-[#5A554F] hover:text-[#1A1612] transition-colors"
                                         >
                                             Close Full View ×
                                         </button>

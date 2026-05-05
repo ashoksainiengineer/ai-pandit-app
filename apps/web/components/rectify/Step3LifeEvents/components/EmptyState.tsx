@@ -18,7 +18,7 @@ export function EmptyState({ isVisible }: EmptyStateProps) {
             <h3 className="font-[family-name:var(--font-cormorant)] text-xl font-semibold text-[#1A1612] mb-2">
                 Your timeline starts here
             </h3>
-            <p className="text-[#7A756F] text-sm">Search or browse categories above to add your first event</p>
+            <p className="text-[#5A554F] text-sm">Search or browse categories above to add your first event</p>
         </motion.div>
     );
 }

@@ -63,7 +63,7 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                     </div>
                     <motion.div
                         animate={{ rotate: isExpanded ? 180 : 0 }}
-                        className="p-2 rounded-lg bg-[#F5EFE7] text-[#7A756F]"
+                        className="p-2 rounded-lg bg-[#F5EFE7] text-[#5A554F]"
                     >
                         <ChevronDown className="w-5 h-5" />
                     </motion.div>
@@ -75,7 +75,7 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                         <Clock className="w-3.5 h-3.5 inline mr-1" />
                         ±{offsetMinutes}m Search Range
                     </div>
-                    <div className="text-[10px] text-[#A8A39D] uppercase tracking-widest font-bold">
+                    <div className="text-[10px] text-[#8A857F] uppercase tracking-widest font-bold">
                         Precision Mode: {offsetMinutes > 120 ? 'Standard' : 'High Precision'}
                     </div>
                 </div>
@@ -106,7 +106,7 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                                     }}
                                     className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all ${activeTab === tab.id
                                         ? 'bg-white text-[#B8860B] shadow-sm'
-                                        : 'text-[#7A756F] hover:text-[#4A453F]'
+                                        : 'text-[#5A554F] hover:text-[#4A453F]'
                                         }`}
                                 >
                                     <tab.icon className="w-3.5 h-3.5" />
@@ -144,7 +144,7 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                                                 <div>
                                                     <div className="text-[10px] font-bold text-[#B8860B] uppercase">{step.step}</div>
                                                     <div className="text-xs font-bold text-[#1A1612]">{step.label}</div>
-                                                    <p className="text-[10px] text-[#7A756F] mt-0.5">{step.desc}</p>
+                                                    <p className="text-[10px] text-[#5A554F] mt-0.5">{step.desc}</p>
                                                 </div>
                                             </div>
                                         ))}
@@ -168,7 +168,7 @@ export const TechnicalMethodology = ({ offsetMinutes = 60 }: { offsetMinutes?: n
                                                     <h5 className="font-bold text-xs text-[#1A1612]">{item.layer}</h5>
                                                     <span className="text-[9px] font-mono text-[#B8860B] font-bold uppercase">{item.varga}</span>
                                                 </div>
-                                                <p className="text-[11px] text-[#7A756F] mt-1">{item.logic}</p>
+                                                <p className="text-[11px] text-[#5A554F] mt-1">{item.logic}</p>
                                             </div>
                                         </div>
                                     ))}

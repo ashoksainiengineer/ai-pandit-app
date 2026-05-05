@@ -278,7 +278,7 @@ const VisualSelector = memo(({ definition, value, onChange }: VisualSelectorProp
                     <div className="font-bold text-[#1A1612] text-lg text-center mb-2">{option.label}</div>
 
                     {/* Clear Description */}
-                    <div className="text-sm text-[#7A756F] text-center mb-3">{option.description}</div>
+                    <div className="text-sm text-[#5A554F] text-center mb-3">{option.description}</div>
 
                     {/* Example */}
                     <div className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded text-center">
@@ -334,7 +334,7 @@ const SpecialMarksInput = memo(({ value, onChange }: SpecialMarksInputProps) => 
                 </div>
                 <div>
                     <h3 className="font-[family-name:var(--font-cormorant)] text-lg font-bold text-[#1A1612]">Special Marks (Optional)</h3>
-                    <p className="text-xs text-[#7A756F]">Birthmarks, moles, scars - these help with accuracy</p>
+                    <p className="text-xs text-[#5A554F]">Birthmarks, moles, scars - these help with accuracy</p>
                 </div>
             </div>
             <textarea
@@ -417,7 +417,7 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
                 <div className="flex-1 max-w-xs h-2 bg-[#F0E8DE] rounded-full overflow-hidden">
                     <div className="h-full bg-gradient-to-r from-[#B8860B] to-[#78611D] transition-all duration-500" style={{ width: `${progress}%` }} />
                 </div>
-                <span className="text-xs font-medium text-[#7A756F] whitespace-nowrap">{answeredCount}/{TRAIT_DEFINITIONS.length} done</span>
+                <span className="text-xs font-medium text-[#5A554F] whitespace-nowrap">{answeredCount}/{TRAIT_DEFINITIONS.length} done</span>
             </div>
 
             {/* Header */}
@@ -426,9 +426,9 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
                     <span className="text-[#B8860B] font-medium">Step 2 of 5</span>
                 </div>
                 <h1 className="font-[family-name:var(--font-cormorant)] text-3xl font-semibold text-[#1A1612] mb-2">
-                    Physical <span className="text-gradient-gold">Appearance</span>
+                    Physical <span className="text-[#B8860B]">Appearance</span>
                 </h1>
-                <p className="text-sm text-[#7A756F] max-w-md mx-auto">
+                <p className="text-sm text-[#5A554F] max-w-md mx-auto">
                     Look in a mirror and select what matches you best. No astrology knowledge needed - just honest self-observation.
                 </p>
             </div>
@@ -448,7 +448,7 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
                                     ? 'bg-[#B8860B] text-white shadow-md'
                                     : isAnswered
                                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                        : 'bg-white text-[#7A756F] border border-[#F0E8DE] hover:border-[#B8860B]/30'
+                                        : 'bg-white text-[#5A554F] border border-[#F0E8DE] hover:border-[#B8860B]/30'
                                     }`}
                             >
                                 <Icon className="w-4 h-4" />
@@ -471,7 +471,7 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
                         <h2 className="font-[family-name:var(--font-cormorant)] text-xl font-bold text-[#1A1612]">
                             {activeDefinition.name}
                         </h2>
-                        <p className="text-xs text-[#7A756F]">{activeDefinition.sanskrit}</p>
+                        <p className="text-xs text-[#5A554F]">{activeDefinition.sanskrit}</p>
                     </div>
                 </div>
 
@@ -503,7 +503,7 @@ export default function Step3PhysicalTraits({ physicalTraits, updateTraits }: St
 
             {/* Navigation Hint */}
             <div className="mt-6 flex justify-between items-center text-sm">
-                <div className="text-[#7A756F]">
+                <div className="text-[#5A554F]">
                     {progress < 100 && (
                         <span>Tip: You can skip traits you&apos;re unsure about</span>
                     )}

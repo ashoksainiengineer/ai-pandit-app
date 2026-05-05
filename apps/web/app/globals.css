@@ -50,12 +50,12 @@
   --coral: #F4A896;
   --rose-dust: #E8C4C4;
 
-  /* TEXT HIERARCHY */
+  /* TEXT HIERARCHY - WCAG AA Compliant */
   --text-primary: #1A1612;
-  --text-secondary: #4A453F;
-  --text-tertiary: #7A756F;
-  --text-muted: #A8A39D;
-  --text-subtle: #D0CBC5;
+  --text-secondary: #5A554F;
+  --text-tertiary: #6B665F;
+  --text-muted: #8A857F;
+  --text-subtle: #B5B0AA;
 
   /* SEMANTIC COLORS */
   --bg-primary: var(--ivory-pure);
@@ -75,12 +75,12 @@
   --gradient-hero: linear-gradient(180deg, #FFFCF8 0%, #FDF8F3 50%, #FAF5EF 100%);
   --gradient-card: linear-gradient(145deg, rgba(255, 252, 248, 0.95) 0%, rgba(250, 245, 239, 0.98) 100%);
 
-  /* SHADOW SYSTEM */
-  --shadow-sm: 0 1px 2px rgba(26, 22, 18, 0.04);
-  --shadow-md: 0 4px 12px rgba(26, 22, 18, 0.06);
-  --shadow-lg: 0 8px 24px rgba(26, 22, 18, 0.08);
-  --shadow-xl: 0 16px 48px rgba(26, 22, 18, 0.1);
-  --shadow-gold: 0 4px 20px rgba(184, 134, 11, 0.15);
+  /* SHADOW SYSTEM - Minimal, flat design */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+  --shadow-gold: none;
 
   /* GOLDEN RATIO SPACING SYSTEM */
   --space-1: 0.25rem;   /* 4px */
@@ -133,7 +133,7 @@ html {
 }
 
 body {
-  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: var(--font-dm-sans), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
   min-height: 100vh;
@@ -151,7 +151,7 @@ h1, h2, h3 {
 }
 
 h4, h5, h6 {
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-weight: 600;
   line-height: 1.3;
   color: var(--text-primary);
@@ -174,7 +174,7 @@ h6 { font-size: 1rem; line-height: 1.4; }
 }
 
 .font-body {
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
 }
 
 .font-mono {
@@ -218,14 +218,12 @@ h6 { font-size: 1rem; line-height: 1.4; }
   border: 1px solid var(--pearl);
   border-radius: var(--radius-xl);
   padding: var(--space-6);
-  box-shadow: var(--shadow-md);
   transition: all var(--transition-base);
 }
 
 .sacred-card:hover {
-  box-shadow: var(--shadow-lg);
-  border-color: var(--gold-cream);
-  transform: translateY(-2px);
+  border-color: var(--gold-amber);
+  background: var(--bg-secondary);
 }
 
 .elevated-card {
@@ -233,7 +231,6 @@ h6 { font-size: 1rem; line-height: 1.4; }
   border: 1px solid var(--parchment);
   border-radius: var(--radius-2xl);
   padding: var(--space-8);
-  box-shadow: var(--shadow-lg);
 }
 
 .btn-sacred {
@@ -243,14 +240,13 @@ h6 { font-size: 1rem; line-height: 1.4; }
   gap: var(--space-2);
   background: var(--gradient-gold);
   color: white;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-weight: 600;
   font-size: 1rem;
   padding: var(--space-4) var(--space-8);
   border-radius: var(--radius-lg);
   border: none;
   cursor: pointer;
-  box-shadow: var(--shadow-gold);
   transition: all var(--transition-base);
   position: relative;
   overflow: hidden;
@@ -266,8 +262,7 @@ h6 { font-size: 1rem; line-height: 1.4; }
 }
 
 .btn-sacred:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(184, 134, 11, 0.25);
+  filter: brightness(1.05);
 }
 
 .btn-sacred:hover::before {
@@ -285,7 +280,7 @@ h6 { font-size: 1rem; line-height: 1.4; }
   gap: var(--space-2);
   background: transparent;
   color: var(--gold-sacred);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-weight: 600;
   font-size: 1rem;
   padding: var(--space-4) var(--space-8);
@@ -308,7 +303,7 @@ h6 { font-size: 1rem; line-height: 1.4; }
   gap: var(--space-2);
   background: var(--ivory-sand);
   color: var(--text-secondary);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-weight: 500;
   font-size: 1rem;
   padding: var(--space-4) var(--space-8);
@@ -332,7 +327,7 @@ h6 { font-size: 1rem; line-height: 1.4; }
   border: 2px solid var(--pearl);
   border-radius: var(--radius-lg);
   padding: 0 var(--space-5);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 1rem;
   color: var(--text-primary);
   transition: all var(--transition-base);
@@ -343,9 +338,9 @@ h6 { font-size: 1rem; line-height: 1.4; }
 }
 
 .sacred-input:focus {
-  outline: none;
+  outline: 2px solid var(--gold-amber);
+  outline-offset: 2px;
   border-color: var(--gold-amber);
-  box-shadow: 0 0 0 4px rgba(184, 134, 11, 0.08);
 }
 
 .sacred-input::placeholder {
@@ -359,7 +354,7 @@ h6 { font-size: 1rem; line-height: 1.4; }
   border: 2px solid var(--pearl);
   border-radius: var(--radius-lg);
   padding: 0 var(--space-5);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 1rem;
   color: var(--text-primary);
   cursor: pointer;
@@ -376,9 +371,9 @@ h6 { font-size: 1rem; line-height: 1.4; }
 }
 
 .sacred-select:focus {
-  outline: none;
+  outline: 2px solid var(--gold-amber);
+  outline-offset: 2px;
   border-color: var(--gold-amber);
-  box-shadow: 0 0 0 4px rgba(184, 134, 11, 0.08);
 }
 
 .sacred-textarea {
@@ -388,7 +383,7 @@ h6 { font-size: 1rem; line-height: 1.4; }
   border: 2px solid var(--pearl);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 1rem;
   color: var(--text-primary);
   resize: vertical;
@@ -400,9 +395,9 @@ h6 { font-size: 1rem; line-height: 1.4; }
 }
 
 .sacred-textarea:focus {
-  outline: none;
+  outline: 2px solid var(--gold-amber);
+  outline-offset: 2px;
   border-color: var(--gold-amber);
-  box-shadow: 0 0 0 4px rgba(184, 134, 11, 0.08);
 }
 
 /* FORM LABELS - Perfect Spacing */
@@ -471,31 +466,6 @@ h6 { font-size: 1rem; line-height: 1.4; }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════════
-   TEXT GRADIENT UTILITIES
-   ═══════════════════════════════════════════════════════════════════════════════ */
-
-.text-gradient-gold {
-  background: var(--gradient-gold);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.text-gradient-plum {
-  background: var(--gradient-plum);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.text-gradient-sage {
-  background: var(--gradient-sage);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════════
    ANIMATION KEYFRAMES
    ═══════════════════════════════════════════════════════════════════════════════ */
 
@@ -544,14 +514,7 @@ h6 { font-size: 1rem; line-height: 1.4; }
   animation: subtle-pulse 2s ease-in-out infinite;
 }
 
-.animate-shimmer {
-  background: linear-gradient(90deg, var(--gold-sacred) 0%, var(--gold-honey) 50%, var(--gold-sacred) 100%);
-  background-size: 200% auto;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shimmer 3s linear infinite;
-}
+
 
 .animate-fade-in-up {
   animation: fadeInUp 0.5s ease forwards;
@@ -671,6 +634,7 @@ h6 { font-size: 1rem; line-height: 1.4; }
   :root {
     --text-primary: #000000;
     --text-secondary: #333333;
+    --text-muted: #555555;
     --border-subtle: #666666;
   }
 }

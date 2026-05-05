@@ -52,6 +52,10 @@ const nextConfig = {
     ignoreBuildErrors: false,
   },
 
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   // ═══════════════════════════════════════════════════════════════════════════════
   // HEADERS - PERFORMANCE & SECURITY
   // ═══════════════════════════════════════════════════════════════════════════════

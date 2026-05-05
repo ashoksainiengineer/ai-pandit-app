@@ -38,10 +38,10 @@ const getSessionData = cache(async (sessionId: string, userId: string): Promise<
         // 3. Robust Data Reconstruction
         const sessionUserId = session.userId;
         const birthData = {
-            fullName: parseSensitiveField(session.fullName, 'Unencryptable Session', sessionUserId),
-            dateOfBirth: parseSensitiveField(session.dateOfBirth, 'Not set', sessionUserId),
-            tentativeTime: parseSensitiveField(session.tentativeTime, 'Not set', sessionUserId),
-            birthPlace: parseSensitiveField(session.birthPlace, 'Unknown', sessionUserId),
+            fullName: parseSensitiveField(session.fullName, sessionUserId, 'Unencryptable Session'),
+            dateOfBirth: parseSensitiveField(session.dateOfBirth, sessionUserId, 'Not set'),
+            tentativeTime: parseSensitiveField(session.tentativeTime, sessionUserId, 'Not set'),
+            birthPlace: parseSensitiveField(session.birthPlace, sessionUserId, 'Unknown'),
             latitude: session.latitude,
             longitude: session.longitude,
             timezone: session.timezone,
@@ -51,11 +51,11 @@ const getSessionData = cache(async (sessionId: string, userId: string): Promise<
         return {
             ...session,
             birthData,
-            lifeEvents: parseSensitiveField(session.lifeEvents, [], sessionUserId),
-            physicalTraits: parseSensitiveField(session.physicalTraits, undefined, sessionUserId),
-            forensicTraits: parseSensitiveField(session.forensicTraits, undefined, sessionUserId),
-            spouseData: parseSensitiveField(session.spouseData, undefined, sessionUserId),
-            offsetConfig: parseSensitiveField(session.offsetConfig, undefined, sessionUserId),
+            lifeEvents: parseSensitiveField(session.lifeEvents, sessionUserId, []),
+            physicalTraits: parseSensitiveField(session.physicalTraits, sessionUserId, undefined),
+            forensicTraits: parseSensitiveField(session.forensicTraits, sessionUserId, undefined),
+            spouseData: parseSensitiveField(session.spouseData, sessionUserId, undefined),
+            offsetConfig: parseSensitiveField(session.offsetConfig, sessionUserId, undefined),
         };
     } catch (error) {
         logger.error('CRITICAL: Error in getSessionData', error instanceof Error ? error : new Error(String(error)));

@@ -141,7 +141,7 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
           </div>
 
           <div className="text-center">
-            <p className="text-[10px] text-[#7A756F] uppercase tracking-wider">Inference</p>
+            <p className="text-[10px] text-[#5A554F] uppercase tracking-wider">Inference</p>
             <p className="text-sm font-bold text-[#184131] font-mono">
               {(() => {
                 if (elapsedSeconds <= 0) return '0.0';
@@ -156,7 +156,7 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
           </div>
 
           <div className="text-center">
-            <p className="text-[10px] text-[#7A756F] uppercase tracking-wider">Elapsed</p>
+            <p className="text-[10px] text-[#5A554F] uppercase tracking-wider">Elapsed</p>
             <p className="text-sm font-bold text-[#1A1612] font-mono">{formatTime(elapsedSeconds)}</p>
           </div>
         </div>
@@ -164,7 +164,7 @@ export const AnalysisStatusBanner = memo(function AnalysisStatusBanner({
 
       {!isComplete && progressPercent > 0 && (
         <div className="mt-3 pt-3 border-t border-[#B8860B]/10">
-          <div className="flex items-center justify-between text-xs text-[#7A756F] mb-1">
+          <div className="flex items-center justify-between text-xs text-[#5A554F] mb-1">
             <span>Stage Progress</span>
             <span>{progressPercent}%</span>
           </div>

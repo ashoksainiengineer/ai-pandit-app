@@ -501,7 +501,7 @@ return;
                 }
                 logger.info('[Token] Token refreshed successfully');
             } catch (err) {
-                logger.warn('[Token] Failed to refresh token proactively', err);
+                logger.warn('[Token] Failed to refresh token proactively', err instanceof Error ? { message: err.message } : undefined);
             }
         };
 

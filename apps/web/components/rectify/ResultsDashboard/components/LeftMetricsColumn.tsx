@@ -127,7 +127,7 @@ export function LeftMetricsColumn({ data, analysisDetails }: LeftMetricsColumnPr
             <StageJourneyFunnel stageHistory={analysisDetails?.stageHistory} />
 
             {/* Event Match Grid */}
-            <EventMatchGrid analysisDetails={analysisDetails} />
+            <EventMatchGrid analysisDetails={analysisDetails ?? undefined} />
 
             {/* Method Scores / Audit Table */}
             <ScoreAuditTable analysisDetails={analysisDetails} />

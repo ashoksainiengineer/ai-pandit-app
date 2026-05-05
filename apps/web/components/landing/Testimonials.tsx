@@ -67,8 +67,8 @@ function TestimonialCard({ testimonial, renderStars }: TestimonialCardProps) {
               </div>
               <div>
                 <h4 className="font-semibold text-[#1A1612]">{testimonial.name}</h4>
-                <p className="text-xs text-[#7A756F]">{testimonial.profession}</p>
-                <p className="text-xs text-[#7A756F]">{testimonial.location}</p>
+                <p className="text-xs text-[#5A554F]">{testimonial.profession}</p>
+                <p className="text-xs text-[#5A554F]">{testimonial.location}</p>
               </div>
             </div>
             <div className="text-right">
@@ -91,7 +91,7 @@ function TestimonialCard({ testimonial, renderStars }: TestimonialCardProps) {
           {/* Result Badge */}
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <div className="px-3 py-1.5 bg-[#F5EFE7] rounded-lg">
-              <span className="text-xs text-[#7A756F] block">Original</span>
+              <span className="text-xs text-[#5A554F] block">Original</span>
               <span className="text-sm font-mono text-red-600 line-through">{testimonial.result.originalTime}</span>
             </div>
             <span className="text-[#78611D]">→</span>

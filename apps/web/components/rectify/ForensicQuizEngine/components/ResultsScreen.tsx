@@ -29,12 +29,12 @@ function ResultCard({
         <div className="p-3 bg-white rounded-xl border border-[#F0E8DE]">
             <div className="flex items-center gap-2 mb-1">
                 <span className="text-lg">{icon}</span>
-                <span className="text-xs text-[#7A756F]">{label}</span>
+                <span className="text-xs text-[#5A554F]">{label}</span>
             </div>
             <div className="font-medium text-sm text-[#1A1612] truncate">{value}</div>
             <div className="mt-2 flex items-center gap-1">
                 <div className={`w-1.5 h-1.5 rounded-full ${color}`} />
-                <span className="text-xs text-[#7A756F]">{confidence}%</span>
+                <span className="text-xs text-[#5A554F]">{confidence}%</span>
             </div>
         </div>
     );
@@ -134,11 +134,11 @@ export function ResultsScreen({
                         </div>
                         <div className="grid grid-cols-2 gap-3 text-sm">
                             <div>
-                                <span className="text-[#7A756F]">Birth Order:</span>
+                                <span className="text-[#5A554F]">Birth Order:</span>
                                 <span className="ml-2 font-medium capitalize">{results.family.birthOrder.replace(/_/g, ' ')}</span>
                             </div>
                             <div>
-                                <span className="text-[#7A756F]">Father Status:</span>
+                                <span className="text-[#5A554F]">Father Status:</span>
                                 <span className="ml-2 font-medium capitalize">{results.family.fatherStatus.replace(/_/g, ' ')}</span>
                             </div>
                         </div>
@@ -151,7 +151,7 @@ export function ResultsScreen({
                                 <AlertCircle className="w-4 h-4 text-[#C65D3B] mt-0.5" />
                                 <div>
                                     <div className="text-sm font-semibold text-[#C65D3B]">Trait Consistency: {consistency.alignment}%</div>
-                                    <div className="text-xs text-[#7A756F] mt-1">
+                                    <div className="text-xs text-[#5A554F] mt-1">
                                         {consistency.warnings.slice(0, 2).map((w, i) => (
                                             <div key={i}>• {w}</div>
                                         ))}
@@ -204,7 +204,7 @@ export function ResultsScreen({
                         </button>
                         <button
                             onClick={handleRetake}
-                            className="flex-1 py-3 border-2 border-[#E8E0D5] text-[#7A756F] rounded-xl font-semibold hover:bg-[#F5EFE7] hover:text-[#D64545] transition-colors flex items-center justify-center gap-2"
+                            className="flex-1 py-3 border-2 border-[#E8E0D5] text-[#5A554F] rounded-xl font-semibold hover:bg-[#F5EFE7] hover:text-[#D64545] transition-colors flex items-center justify-center gap-2"
                         >
                             <RefreshCw className="w-4 h-4" />
                             Start Fresh

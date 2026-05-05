@@ -14,8 +14,8 @@ export const debugAnalysis = {
       stage,
       count: Object.keys(state.candidatesByStage[stage] || {}).length
     })));
-    console.log('Total Candidates:', Object.values(state.candidatesByStage || {}).reduce((acc: number, stage: Record<string, unknown>) => 
-      acc + Object.keys(stage).length, 0
+    console.log('Total Candidates:', Object.values(state.candidatesByStage || {}).reduce((acc: number, stage: unknown) => 
+      acc + Object.keys(stage as Record<string, unknown>).length, 0
     ));
     console.log('Store Size:', JSON.stringify(state).length / 1024, 'KB');
     console.groupEnd();

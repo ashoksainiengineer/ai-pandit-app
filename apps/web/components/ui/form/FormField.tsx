@@ -20,7 +20,7 @@ export function FormField({
     <div className={`space-y-2 ${className}`}>
       <FormLabel required={required}>{label}</FormLabel>
       {description && (
-        <p className="text-xs text-[#7A756F] -mt-1 mb-2">{description}</p>
+        <p className="text-xs text-[#5A554F] -mt-1 mb-2">{description}</p>
       )}
       {children}
       <FormError message={error} />

@@ -10,7 +10,7 @@
 .ai-content-container h4,
 .ai-content-container h5,
 .ai-content-container h6 {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
   color: #F5F0EB;
   margin-bottom: 8px; /* fib-3 */
 }
@@ -33,7 +33,7 @@
 
 .ai-content-container p {
   color: #C4B8AD;
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
   font-size: 16px; /* h5 */
   line-height: 24px;
   margin-bottom: 13px; /* fib-4 */

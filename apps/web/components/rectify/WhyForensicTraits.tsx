@@ -94,7 +94,7 @@ export default function WhyForensicTraits() {
           </div>
           <motion.div
             animate={{ rotate: isExpanded ? 180 : 0 }}
-            className="p-2 rounded-lg bg-[#F5EFE7] text-[#7A756F]"
+            className="p-2 rounded-lg bg-[#F5EFE7] text-[#5A554F]"
           >
             <ChevronDown className="w-5 h-5" />
           </motion.div>
@@ -106,7 +106,7 @@ export default function WhyForensicTraits() {
             <Target className="w-3.5 h-3.5 inline mr-1" />
             ±3-5 min accuracy
           </div>
-          <div className="text-xs text-[#7A756F]">
+          <div className="text-xs text-[#5A554F]">
             8 forensic markers • Vedic verification
           </div>
         </div>
@@ -135,7 +135,7 @@ export default function WhyForensicTraits() {
                   }}
                   className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-medium transition-all ${activeSection === tab.id
                     ? 'bg-white text-[#B8860B] shadow-sm'
-                    : 'text-[#7A756F] hover:text-[#4A453F]'
+                    : 'text-[#5A554F] hover:text-[#4A453F]'
                     }`}
                 >
                   <tab.icon className="w-3.5 h-3.5" />
@@ -170,7 +170,7 @@ export default function WhyForensicTraits() {
                     <div className="space-y-2">
                       <div className="p-3 bg-white rounded-lg border border-[#F0E8DE]">
                         <div className="font-medium text-sm text-[#1A1612] mb-1">1st House (Lagna)</div>
-                        <p className="text-xs text-[#7A756F]">
+                        <p className="text-xs text-[#5A554F]">
                           Determines overall body type, appearance, and constitution.
                           Wrong Lagna = Wrong physical description.
                         </p>
@@ -178,7 +178,7 @@ export default function WhyForensicTraits() {
 
                       <div className="p-3 bg-white rounded-lg border border-[#F0E8DE]">
                         <div className="font-medium text-sm text-[#1A1612] mb-1">Lagna Lord</div>
-                        <p className="text-xs text-[#7A756F]">
+                        <p className="text-xs text-[#5A554F]">
                           The ruling planet of your ascendant stamps its qualities on your body.
                           Mars Lagna → Athletic build. Venus Lagna → Beautiful features.
                         </p>
@@ -186,7 +186,7 @@ export default function WhyForensicTraits() {
 
                       <div className="p-3 bg-white rounded-lg border border-[#F0E8DE]">
                         <div className="font-medium text-sm text-[#1A1612] mb-1">Planets in Lagna</div>
-                        <p className="text-xs text-[#7A756F]">
+                        <p className="text-xs text-[#5A554F]">
                           Any planets sitting in the 1st house physically modify your appearance.
                           Saturn in Lagna → Lean, mature appearance. Moon in Lagna → Soft, round face.
                         </p>
@@ -218,7 +218,7 @@ export default function WhyForensicTraits() {
                     <ScanFace className="w-4 h-4 text-[#B8860B]" />
                     8 Forensic Markers
                   </h4>
-                  <p className="text-xs text-[#7A756F]">
+                  <p className="text-xs text-[#5A554F]">
                     Each trait corresponds to specific planetary and house influences
                   </p>
 
@@ -240,13 +240,13 @@ export default function WhyForensicTraits() {
                               </span>
                             </div>
                             <div className="mt-2 space-y-1">
-                              <p className="text-xs text-[#7A756F]">
+                              <p className="text-xs text-[#5A554F]">
                                 <span className="text-[#B8860B] font-medium">Planet:</span> {item.planet}
                               </p>
-                              <p className="text-xs text-[#7A756F]">
+                              <p className="text-xs text-[#5A554F]">
                                 <span className="text-[#B8860B] font-medium">House:</span> {item.houses}
                               </p>
-                              <p className="text-xs text-[#7A756F]">
+                              <p className="text-xs text-[#5A554F]">
                                 <span className="text-[#B8860B] font-medium">Meaning:</span> {item.meaning}
                               </p>
                               <p className="text-[10px] text-[#184131] bg-[#184131]/5 p-2 rounded mt-2">
@@ -269,7 +269,7 @@ export default function WhyForensicTraits() {
                 &quot;The body never lies. It holds the memory of the stars at birth.
                 Learn to read it, and you hold the key to time itself.&quot;
               </p>
-              <p className="text-xs text-center text-[#7A756F] mt-1">
+              <p className="text-xs text-center text-[#5A554F] mt-1">
                 — Ancient Vedic Seer
               </p>
             </div>

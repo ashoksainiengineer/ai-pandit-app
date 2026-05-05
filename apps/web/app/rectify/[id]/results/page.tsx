@@ -40,10 +40,10 @@ const getSessionResults = cache(async (sessionId: string, userId: string): Promi
         // 3. Robust Data Reconstruction
         const sessionUserId = session.userId;
         const birthData = {
-            fullName: parseSensitiveField(session.fullName, 'Unencryptable Session', sessionUserId),
-            dateOfBirth: parseSensitiveField(session.dateOfBirth, 'Not set', sessionUserId),
-            tentativeTime: parseSensitiveField(session.tentativeTime, 'Not set', sessionUserId),
-            birthPlace: parseSensitiveField(session.birthPlace, 'Unknown', sessionUserId),
+            fullName: parseSensitiveField(session.fullName, sessionUserId, 'Unencryptable Session'),
+            dateOfBirth: parseSensitiveField(session.dateOfBirth, sessionUserId, 'Not set'),
+            tentativeTime: parseSensitiveField(session.tentativeTime, sessionUserId, 'Not set'),
+            birthPlace: parseSensitiveField(session.birthPlace, sessionUserId, 'Unknown'),
             latitude: session.latitude,
             longitude: session.longitude,
             timezone: session.timezone,
@@ -51,8 +51,8 @@ const getSessionResults = cache(async (sessionId: string, userId: string): Promi
         };
 
         // Use parseSensitiveField for complex JSON structures
-        const analysisResult = parseSensitiveField<Record<string, unknown>>(session.analysisResult as string | null, {}, sessionUserId);
-        const reasoningLogs = parseSensitiveField<Record<string, unknown>[]>(session.reasoningLogs as string | null, [], sessionUserId);
+        const analysisResult = parseSensitiveField<Record<string, unknown>>(session.analysisResult as string | null, sessionUserId, {});
+        const reasoningLogs = parseSensitiveField<Record<string, unknown>[]>(session.reasoningLogs as string | null, sessionUserId, []);
         return {
             ...session,
             birthData,
@@ -101,7 +101,7 @@ export default async function ResultsPage({ params }: { params: Promise<{ id: st
                         <span className="text-4xl">🔍</span>
                     </div>
                     <h1 className="text-2xl font-bold text-[#1A1612] mb-4 font-[family-name:var(--font-cormorant)]">No Results Found</h1>
-                    <p className="text-[#7A756F] mb-8 max-w-md">The analysis may still be in progress or has not completed yet.</p>
+                    <p className="text-[#5A554F] mb-8 max-w-md">The analysis may still be in progress or has not completed yet.</p>
                     <div className="flex gap-4">
                         <Link
                             href={`/rectify/${id}`}

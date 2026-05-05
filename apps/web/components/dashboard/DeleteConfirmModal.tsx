@@ -55,7 +55,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
           <button
             onClick={onClose}
             disabled={isDeleting}
-            className="absolute top-4 right-4 p-2 rounded-full text-[#A8A39D] hover:text-[#7A756F] hover:bg-[#F5EFE7] transition-all duration-200"
+            className="absolute top-4 right-4 p-2 rounded-full text-[#8A857F] hover:text-[#5A554F] hover:bg-[#F5EFE7] transition-all duration-200"
           >
             <X className="w-5 h-5" />
           </button>
@@ -78,7 +78,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
             </h3>
 
             {/* Subtitle */}
-            <p className="text-[#7A756F] text-center text-sm mb-6">
+            <p className="text-[#5A554F] text-center text-sm mb-6">
               This will permanently remove <span className="font-medium text-[#1A1612]">{session.fullName}&apos;s</span> data
             </p>
 
@@ -92,7 +92,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
                   </div>
                   <span className="font-semibold text-[#1A1612] text-sm">Birth Details</span>
                 </div>
-                <ul className="text-xs text-[#7A756F] space-y-1 ml-10">
+                <ul className="text-xs text-[#5A554F] space-y-1 ml-10">
                   <li>• {session.fullName}</li>
                   <li>• {session.dateOfBirth}</li>
                   <li>• {session.tentativeTime || 'Not set'}</li>
@@ -108,7 +108,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
                   </div>
                   <span className="font-semibold text-[#1A1612] text-sm">Form Data</span>
                 </div>
-                <ul className="text-xs text-[#7A756F] space-y-1 ml-10">
+                <ul className="text-xs text-[#5A554F] space-y-1 ml-10">
                   <li>• Physical Traits</li>
                   <li>• Forensic Data</li>
                   <li>• Life Events</li>
@@ -126,7 +126,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
                       </div>
                       <span className="font-semibold text-[#1A1612] text-sm">Results</span>
                     </div>
-                    <ul className="text-xs text-[#7A756F] space-y-1 ml-10">
+                    <ul className="text-xs text-[#5A554F] space-y-1 ml-10">
                       <li>• Rectified Time</li>
                       <li>• {session.accuracy}% Accuracy</li>
                       <li>• Full Report</li>
@@ -141,7 +141,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
                       </div>
                       <span className="font-semibold text-[#1A1612] text-sm">Technical</span>
                     </div>
-                    <ul className="text-xs text-[#7A756F] space-y-1 ml-10">
+                    <ul className="text-xs text-[#5A554F] space-y-1 ml-10">
                       <li>• Calculations</li>
                       <li>• Ephemeris Data</li>
                       <li>• Planet Positions</li>
@@ -164,7 +164,7 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
             </div>
 
             {/* Security Badge */}
-            <div className="flex items-center justify-center gap-2 mb-6 text-xs text-[#7A756F]">
+            <div className="flex items-center justify-center gap-2 mb-6 text-xs text-[#5A554F]">
               <Shield className="w-4 h-4 text-[#B8860B]" />
               <span>Your data is end-to-end encrypted</span>
             </div>
@@ -186,14 +186,14 @@ export const DeleteConfirmModal = memo(function DeleteConfirmModal({
               <button
                 onClick={onClose}
                 disabled={isDeleting}
-                className="flex-1 px-4 py-3 border border-[#E8E0D5] text-[#7A756F] rounded-xl font-medium hover:bg-[#F5EFE7] hover:text-[#4A453F] transition-all duration-200 disabled:opacity-50"
+                className="flex-1 px-4 py-3 border border-[#E8E0D5] text-[#5A554F] rounded-xl font-medium hover:bg-[#F5EFE7] hover:text-[#4A453F] transition-all duration-200 disabled:opacity-50"
               >
                 Keep {isCompleted ? 'Analysis' : 'Draft'}
               </button>
               <button
                 onClick={onConfirm}
                 disabled={isDeleting}
-                className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-medium shadow-lg shadow-red-500/25 hover:shadow-xl hover:shadow-red-500/30 hover:from-red-600 hover:to-red-700 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70"
+                className="flex-1 px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl font-medium shadow-red-500/25 hover:shadow-xl hover:shadow-red-500/30 hover:from-red-600 hover:to-red-700 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-70"
               >
                 {isDeleting ? (
                   <>

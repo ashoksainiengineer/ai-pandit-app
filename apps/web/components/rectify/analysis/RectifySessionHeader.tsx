@@ -34,7 +34,7 @@ interface BreadcrumbItem {
 const Breadcrumbs = memo(function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
     return (
         <nav aria-label="Breadcrumb" className="mb-1">
-            <ol className="flex items-center gap-2 text-xs text-[#7A756F]">
+            <ol className="flex items-center gap-2 text-xs text-[#5A554F]">
                 {items.map((item, index) => (
                     <li key={item.label} className="flex items-center gap-2">
                         {item.href ? (
@@ -67,7 +67,7 @@ const ElapsedTimerDisplay = memo(function ElapsedTimerDisplay({ elapsedSeconds, 
     if (elapsedSeconds <= 0 && !isComplete) {
         return (
             <div className="flex items-center gap-1.5 font-mono text-sm bg-stone-100 px-3 py-1.5 rounded-lg border border-stone-200">
-                <Clock className="w-3.5 h-3.5 text-[#7A756F]" />
+                <Clock className="w-3.5 h-3.5 text-[#5A554F]" />
                 <span className="text-xs font-semibold">Waiting...</span>
             </div>
         );
@@ -75,7 +75,7 @@ const ElapsedTimerDisplay = memo(function ElapsedTimerDisplay({ elapsedSeconds, 
 
     return (
         <div className="flex items-center gap-1.5 font-mono text-sm bg-stone-100 px-3 py-1.5 rounded-lg border border-stone-200">
-            <Clock className="w-3.5 h-3.5 text-[#7A756F]" />
+            <Clock className="w-3.5 h-3.5 text-[#5A554F]" />
             <span className="font-semibold">{formatElapsedTime(elapsedSeconds)}</span>
         </div>
     );
@@ -119,13 +119,13 @@ export const RectifySessionHeader = memo(function RectifySessionHeader({
                     <div>
                         <h1 id={pageTitleId} className="text-lg sm:text-xl font-bold flex items-center gap-2" style={{ color: THEME.textPrimary }}>
                             {metadata?.fullName || 'Birth Time Analysis'}
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-stone-100 text-[#7A756F]">
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-stone-100 text-[#5A554F]">
                                 {sessionId.slice(0, 8)}
                             </span>
                         </h1>
 
                         {(metadata?.dateOfBirth || metadata?.tentativeTime || metadata?.birthPlace || metadata?.offsetConfig) && (
-                            <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-[#7A756F]">
+                            <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-[#5A554F]">
                                 {metadata?.dateOfBirth && (
                                     <div className="flex items-center gap-1.5">
                                         <Calendar className="w-3.5 h-3.5" />

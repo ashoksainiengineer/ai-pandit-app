@@ -7,6 +7,7 @@ import { get, set, del } from 'idb-keyval';
 import {
     StreamState,
     StreamStep,
+    AIThinking,
     AIThinkingEventData,
     PollingProgressData,
     AIContextData,
@@ -43,7 +44,7 @@ function createIdbStorage(): StateStorage {
                     await set(name, value);
                     debounceMap.delete(name);
                 } catch (err) {
-                    logger.warn('[IDB] Failed to persist state', err);
+                    logger.warn('[IDB] Failed to persist state', err instanceof Error ? { message: err.message } : undefined);
                 }
             }, 2000);
 
@@ -175,7 +176,7 @@ export const useStreamStore = create<StreamStore>()(
                     if (buffered.size === 0) return;
 
                     set((prev) => {
-                        const stageChanges: Record<number, Record<string, unknown>> = {};
+                        const stageChanges: Record<number, Record<string, AIThinking>> = {};
                         const historyAppends: Record<number, string> = {};
                         let latestCandidate = prev.displayedCandidate;
                         let latestStage = prev.activeAIStage;
@@ -430,12 +431,12 @@ const steps = Array.isArray(p.steps) ? p.steps as Array<Record<string, unknown>>
 
 const updates: Partial<StreamState> = {
 progress: {
-step: steps?.[stepIndex]?.id || p.step || DEFAULT_STEPS[stepIndex].id,
+step: String(steps?.[stepIndex]?.id || p.step || DEFAULT_STEPS[stepIndex].id),
 stepIndex,
-totalSteps: p.totalSteps || 7,
-percentage: typeof newPct === 'number' ? newPct : (p.percentage ?? 0),
+totalSteps: Number(p.totalSteps || 7),
+percentage: typeof newPct === 'number' ? newPct : Number(p.percentage ?? 0),
 message,
-details: steps?.[stepIndex]?.details || p.details || []
+details: (steps?.[stepIndex]?.details as string[] | undefined) || (p.details as string[] | undefined) || []
 }
 };
 
@@ -501,25 +502,29 @@ return updates;
                             case 'complete':
                             case 'result': {
                                 const pl = payload as Record<string, unknown>;
-                                const directResult = pl?.rectifiedTime ? pl : null;
-                                const nestedResult = pl?.result?.rectifiedTime ? pl.result : null;
+                                const plResult = pl?.result as Record<string, unknown> | undefined;
+                                const directResult = pl?.rectifiedTime ? pl as unknown as StreamResult : null;
+                                const nestedResult = plResult?.rectifiedTime ? plResult as unknown as StreamResult : null;
                                 const res = (directResult || nestedResult || prev.result) as StreamResult | null;
                                 return { isComplete: true, result: res, error: null };
                             }
 
                             case 'terminal_state': {
                                 const pl = payload as Record<string, unknown>;
+                                const plResult = pl?.result as Record<string, unknown> | undefined;
+                                const plData = pl?.data as Record<string, unknown> | undefined;
+                                const plDataResult = plData?.result as Record<string, unknown> | undefined;
                                 const status = pl?.status;
                                 const terminalResult = (
-                                    pl?.result?.rectifiedTime
-                                        ? pl.result
-                                        : pl?.data?.result?.rectifiedTime
-                                            ? pl.data.result
+                                    plResult?.rectifiedTime
+                                        ? plResult as unknown as StreamResult
+                                        : plDataResult?.rectifiedTime
+                                            ? plDataResult as unknown as StreamResult
                                             : pl?.rectifiedTime
-                                                ? pl
+                                                ? pl as unknown as StreamResult
                                                 : prev.result
                                 ) as StreamResult | null;
-                                const terminalError = pl?.errorMessage || pl?.error || pl?.message;
+                                const terminalError = String(pl?.errorMessage || pl?.error || pl?.message || '');
                                 const mergedMetadata = pl?.data
                                     ? { ...(prev.metadata || {}), ...(pl.data as StreamMetadata) }
                                     : prev.metadata;
@@ -542,7 +547,7 @@ return updates;
 
                             case 'error': {
                                 const errPl = payload as Record<string, unknown>;
-                                return { error: errPl.message || errPl.error || String(payload), isComplete: false };
+                                return { error: String(errPl.message || errPl.error || payload), isComplete: false };
                             }
 
                             case 'stage_stats': {

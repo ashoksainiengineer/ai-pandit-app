@@ -126,7 +126,7 @@ export default function DashboardPage() {
           <div className="text-center">
             <AlertCircle className="w-12 h-12 text-rose-500 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-[#1A1612] mb-2">Failed to load dashboard</h3>
-            <p className="text-[#7A756F]">{error}</p>
+            <p className="text-[#5A554F]">{error}</p>
           </div>
         </div>
       </DashboardLayout>
@@ -140,7 +140,7 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-bold text-[#1A1612] font-[family-name:var(--font-cormorant)]">
           Dashboard Overview
         </h1>
-        <p className="text-[#7A756F] mt-1">
+        <p className="text-[#5A554F] mt-1">
           Monitor your birth time rectification platform performance
         </p>
       </div>
@@ -204,7 +204,7 @@ export default function DashboardPage() {
                   <Calendar className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-[#7A756F]">Today&apos;s Readings</p>
+                  <p className="text-sm text-[#5A554F]">Today&apos;s Readings</p>
                   <p className="text-xl font-semibold text-[#1A1612]">
                     {metrics?.readingsToday || 0}
                   </p>
@@ -218,7 +218,7 @@ export default function DashboardPage() {
                   <Clock className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-[#7A756F]">Processing</p>
+                  <p className="text-sm text-[#5A554F]">Processing</p>
                   <p className="text-xl font-semibold text-[#1A1612]">
                     {metrics?.activeReadings || 0}
                   </p>
@@ -232,7 +232,7 @@ export default function DashboardPage() {
                   <TrendingUp className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-[#7A756F]">This Week</p>
+                  <p className="text-sm text-[#5A554F]">This Week</p>
                   <p className="text-xl font-semibold text-[#1A1612]">
                     {metrics?.readingsThisWeek || 0}
                   </p>

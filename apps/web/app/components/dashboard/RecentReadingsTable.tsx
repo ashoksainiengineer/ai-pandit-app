@@ -107,10 +107,10 @@ export default function RecentReadingsTable({ readings, loading }: RecentReading
     return (
       <div className="bg-white rounded-xl border border-[#F0E8DE] p-12 text-center">
         <div className="w-16 h-16 rounded-full bg-[#FDF8F3] flex items-center justify-center mx-auto mb-4">
-          <Calendar className="w-8 h-8 text-[#A8A39D]" />
+          <Calendar className="w-8 h-8 text-[#8A857F]" />
         </div>
         <h3 className="text-lg font-medium text-[#1A1612] mb-2">No readings yet</h3>
-        <p className="text-[#7A756F]">Readings will appear here once users start using the service.</p>
+        <p className="text-[#5A554F]">Readings will appear here once users start using the service.</p>
       </div>
     );
   }
@@ -155,7 +155,7 @@ export default function RecentReadingsTable({ readings, loading }: RecentReading
                   </div>
                   <div>
                     <p className="font-medium text-[#1A1612]">{reading.userName}</p>
-                    <div className="flex items-center gap-3 text-sm text-[#7A756F]">
+                    <div className="flex items-center gap-3 text-sm text-[#5A554F]">
                       <span className="flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5" />
                         {formatDate(reading.createdAt)}
@@ -174,7 +174,7 @@ export default function RecentReadingsTable({ readings, loading }: RecentReading
                       <p className="text-sm font-medium text-[#1A1612]">
                         {(reading.confidence * 100).toFixed(1)}%
                       </p>
-                      <p className="text-xs text-[#7A756F]">Confidence</p>
+                      <p className="text-xs text-[#5A554F]">Confidence</p>
                     </div>
                   )}
 
@@ -185,7 +185,7 @@ export default function RecentReadingsTable({ readings, loading }: RecentReading
 
                   <Link
                     href={`/admin/readings/${reading.id}`}
-                    className="p-2 rounded-lg hover:bg-[#F0E8DE]/50 text-[#7A756F] hover:text-[#1A1612] transition-colors"
+                    className="p-2 rounded-lg hover:bg-[#F0E8DE]/50 text-[#5A554F] hover:text-[#1A1612] transition-colors"
                   >
                     <ChevronRight className="w-5 h-5" />
                   </Link>

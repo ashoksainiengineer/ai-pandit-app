@@ -85,7 +85,7 @@ export const ReasoningCard = memo(function ReasoningCard({
             <div className="flex items-center justify-between mb-2 shrink-0">
                 <div className="flex items-center gap-1.5">
                     <div className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-amber-500 animate-pulse' : 'bg-stone-300'}`} />
-                    <span className="text-[10px] font-mono text-[#7A756F] truncate max-w-[100px]">
+                    <span className="text-[10px] font-mono text-[#5A554F] truncate max-w-[100px]">
                         {title}
                     </span>
                 </div>

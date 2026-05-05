@@ -26,7 +26,7 @@ export async function getTokenWithRetry(
 
             if (i === 0) logger.debug('⏳ [Auth] Waiting for Clerk session...');
         } catch (err) {
-            logger.warn(`⚠️ [Auth] Retry ${i} failed`, err);
+            logger.warn(`⚠️ [Auth] Retry ${i} failed`, err instanceof Error ? { message: err.message } : undefined);
         }
 
         // Exponential backoff

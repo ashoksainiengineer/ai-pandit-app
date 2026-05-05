@@ -17,7 +17,7 @@ export function EventTimeline({ sortedEvents, setEditingId }: EventTimelineProps
         <FormCard className="p-5">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="font-[family-name:var(--font-cormorant)] text-lg font-semibold text-[#1A1612]">📜 Timeline</h3>
-                <span className="text-xs text-[#7A756F] bg-[#F5EFE7] px-2 py-1 rounded-full">
+                <span className="text-xs text-[#5A554F] bg-[#F5EFE7] px-2 py-1 rounded-full">
                     {sortedEvents.length} events
                 </span>
             </div>
@@ -40,7 +40,7 @@ export function EventTimeline({ sortedEvents, setEditingId }: EventTimelineProps
                                             ? 'bg-[#B8860B]/10 text-[#B8860B]'
                                             : event.importance === 'medium'
                                                 ? 'bg-[#184131]/10 text-[#184131]'
-                                                : 'bg-[#A8A39D]/20 text-[#7A756F]'
+                                                : 'bg-[#8A857F]/20 text-[#5A554F]'
                                         }`}>
                                         {IMPORTANCE_OPTIONS.find(i => i.level === event.importance)?.icon}
                                     </span>
@@ -53,7 +53,7 @@ export function EventTimeline({ sortedEvents, setEditingId }: EventTimelineProps
                             </div>
                             <div className="text-xs text-[#B8860B] font-medium">{formatEventDate(event)}</div>
                             {event.description && (
-                                <p className="text-xs text-[#7A756F] line-clamp-1 mt-0.5">{event.description}</p>
+                                <p className="text-xs text-[#5A554F] line-clamp-1 mt-0.5">{event.description}</p>
                             )}
                         </div>
                         {event.description && event.description.length >= 10 ? (

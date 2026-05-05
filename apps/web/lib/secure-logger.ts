@@ -18,10 +18,12 @@ interface LoggerConfig {
     samplingRate: number; // 0-1, for high-volume logs
 }
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const DEFAULT_CONFIG: LoggerConfig = {
-    level: env.app.isProduction ? 'warn' : 'debug',
-    enableConsole: !env.app.isProduction,
-    enableRemote: env.app.isProduction || (typeof window !== 'undefined' && window.__AI_PANDIT_TEST_MODE__ === true),
+    level: isProduction ? 'warn' : 'debug',
+    enableConsole: !isProduction,
+    enableRemote: isProduction || (typeof window !== 'undefined' && window.__AI_PANDIT_TEST_MODE__ === true),
     redactPatterns: [
         // Email addresses
         /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
@@ -133,7 +135,7 @@ function sendToRemoteLog(level: LogLevel, message: string, meta?: Record<string,
 // MAIN LOGGER CLASS
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class SecureLogger {
+export class SecureLogger {
     private config: LoggerConfig;
     private baseMeta: Record<string, unknown>;
 
@@ -215,7 +217,7 @@ class SecureLogger {
                 ...errorMeta,
                 errorName: error.name,
                 errorMessage: sanitizeMessage(error.message, this.config),
-                errorStack: !env.app.isProduction ? error.stack : undefined,
+                errorStack: !isProduction ? error.stack : undefined,
             };
         } else if (error !== undefined) {
             errorMeta = {

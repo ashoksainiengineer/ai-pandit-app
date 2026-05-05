@@ -33,7 +33,7 @@ export function IntroScreen({
                     <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-bold text-[#1A1612] mb-2">
                         Vedic Forensic Assessment
                     </h2>
-                    <p className="text-[#7A756F]">
+                    <p className="text-[#5A554F]">
                         Discover your cosmic imprint through observable traits
                     </p>
                     {hasSavedProgress && lastSaved && (
@@ -51,7 +51,7 @@ export function IntroScreen({
                         </div>
                         <div>
                             <div className="font-semibold text-[#1A1612]">{QUIZ_METADATA.totalQuestions} Questions</div>
-                            <div className="text-sm text-[#7A756F]">About {QUIZ_METADATA.estimatedTimeMinutes} minutes</div>
+                            <div className="text-sm text-[#5A554F]">About {QUIZ_METADATA.estimatedTimeMinutes} minutes</div>
                         </div>
                         {hasSavedProgress && (
                             <div className="ml-auto text-sm text-[#B8860B] font-medium">
@@ -89,7 +89,7 @@ export function IntroScreen({
                 {hasSavedProgress && (
                     <button
                         onClick={handleStartFresh}
-                        className="w-full mt-3 py-2 text-sm text-[#7A756F] hover:text-[#D64545] transition-colors"
+                        className="w-full mt-3 py-2 text-sm text-[#5A554F] hover:text-[#D64545] transition-colors"
                     >
                         Start Fresh (Clear saved progress)
                     </button>

@@ -7,7 +7,7 @@ export default function AIThinkingBox() {
     <div className="bg-white rounded-2xl border border-[#F0E8DE] p-6">
       <div className="flex items-center gap-3 mb-4">
         <div className="w-3 h-3 bg-[#B8860B] rounded-full animate-pulse" />
-        <span className="text-sm font-mono text-[#A8A39D]">AI Thinking Box</span>
+        <span className="text-sm font-mono text-[#8A857F]">AI Thinking Box</span>
       </div>
       <div className="space-y-2">
         <div className="h-2 bg-[#F5F0E8] rounded animate-pulse" />

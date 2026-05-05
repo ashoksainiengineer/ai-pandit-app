@@ -32,15 +32,15 @@ export default function WhyTrustUs() {
           viewport={{ once: true }}
           className="text-center mb-14"
         >
-          <h2 className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-slate-800 mb-3">
+          <h2 className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-[#1A1612] mb-3">
             Built for Trust
           </h2>
-          <p className="text-slate-500 text-sm max-w-md mx-auto">
+          <p className="text-[#5A554F] text-sm max-w-md mx-auto">
             Birth data is sacred. We treat it that way.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="space-y-8">
           {PILLARS.map((p, i) => (
             <motion.div
               key={p.title}
@@ -48,15 +48,17 @@ export default function WhyTrustUs() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.12 }}
-              className="text-center p-6"
+              className="flex items-start gap-5 p-6 border border-[#F0E8DE] rounded-xl"
             >
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-50 to-white border border-amber-200 mb-5">
-                <p.icon className="w-6 h-6 text-amber-700" />
+              <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-[#FDF8F3] border border-[#F0E8DE] flex items-center justify-center">
+                <p.icon className="w-5 h-5 text-[#8A6A0B]" />
               </div>
-              <h3 className="font-[family-name:var(--font-cormorant)] text-lg font-semibold text-slate-800 mb-2">
-                {p.title}
-              </h3>
-              <p className="text-sm text-slate-500 leading-relaxed">{p.desc}</p>
+              <div>
+                <h3 className="font-[family-name:var(--font-cormorant)] text-lg font-semibold text-[#1A1612] mb-2">
+                  {p.title}
+                </h3>
+                <p className="text-sm text-[#5A554F] leading-relaxed">{p.desc}</p>
+              </div>
             </motion.div>
           ))}
         </div>

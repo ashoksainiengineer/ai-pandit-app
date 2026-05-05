@@ -18,15 +18,15 @@ import dynamic from 'next/dynamic';
 
 const AIThinkingBox = dynamic(() => import('./AIThinkingBox'), {
   ssr: false,
-  loading: () => <div className="h-40 bg-white rounded-2xl animate-pulse border border-[#F0E8DE] flex items-center justify-center"><div className="text-[#A8A39D] text-xs font-mono">Initializing AI Thinking...</div></div>,
+  loading: () => <div className="h-40 bg-white rounded-2xl animate-pulse border border-[#F0E8DE] flex items-center justify-center"><div className="text-[#8A857F] text-xs">Initializing AI Thinking...</div></div>,
 });
 const EphemerisTable = dynamic(() => import('./EphemerisTable'), {
   ssr: false,
-  loading: () => <div className="h-32 bg-white rounded-2xl animate-pulse border border-[#F0E8DE] flex items-center justify-center"><div className="text-[#A8A39D] text-xs font-mono">Loading Ephemeris Data...</div></div>,
+  loading: () => <div className="h-32 bg-white rounded-2xl animate-pulse border border-[#F0E8DE] flex items-center justify-center"><div className="text-[#8A857F] text-xs">Loading Ephemeris Data...</div></div>,
 });
 const CandidateComparisonTable = dynamic(() => import('./CandidateComparisonTable'), {
   ssr: false,
-  loading: () => <div className="h-48 bg-white rounded-2xl animate-pulse border border-[#F0E8DE] flex items-center justify-center"><div className="text-[#A8A39D] text-xs font-mono">Preparing Comparison Matrix...</div></div>,
+  loading: () => <div className="h-48 bg-white rounded-2xl animate-pulse border border-[#F0E8DE] flex items-center justify-center"><div className="text-[#8A857F] text-xs">Preparing Comparison Matrix...</div></div>,
 });
 
 // Core stats with warm colors
@@ -82,11 +82,11 @@ export default function Hero() {
           {/* Sacred Badge */}
           <div
             className="animate-scale-in inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#FDF8F3] to-white
-                       border border-[#F0E8DE] rounded-full text-sm mb-8 shadow-sm"
+                       border border-[#F0E8DE] rounded-full text-sm mb-8"
           >
             <span className="text-[#6B1F7A] font-medium">Vedic Birth Time Rectification</span>
-            <span className="text-[10px] px-2 py-0.5 bg-[#B8860B]/10 text-[#B8860B] rounded-full">by Skyfield Ephemeris</span>
-            <span className="text-[10px] px-2 py-0.5 bg-[#4A7C6F]/10 text-[#4A7C6F] rounded-full">by DeepSeek R1-0528</span>
+            <span className="text-[10px] px-2 py-0.5 bg-[#B8860B]/10 text-[#8A6A0B] rounded-full">by Skyfield Ephemeris</span>
+            <span className="text-[10px] px-2 py-0.5 bg-[#4A7C6F]/10 text-[#3A6C5F] rounded-full">by DeepSeek R1-0528</span>
           </div>
 
           {/* Main Headline - Elegant Typography */}
@@ -97,10 +97,10 @@ export default function Hero() {
             <h1 className="font-[family-name:var(--font-cormorant)] text-4xl sm:text-5xl lg:text-6xl xl:text-7xl
                            font-semibold text-[#1A1612] leading-tight tracking-tight">
               Discover Your{' '}
-              <span className="text-gradient-gold">Exact Birth Time</span>
+              <span className="text-[#B8860B]">Exact Birth Time</span>
             </h1>
-            <p className="mt-4 text-lg text-[#7A756F] font-light italic">
-              by <span className="font-[family-name:var(--font-cormorant)] text-2xl text-[#B8860B] font-semibold not-italic">AI Pandit</span>
+            <p className="mt-4 text-lg text-[#5A554F] font-light italic">
+              by <span className="font-[family-name:var(--font-cormorant)] text-2xl text-[#8A6A0B] font-semibold not-italic">AI Pandit</span>
             </p>
           </div>
 
@@ -110,7 +110,7 @@ export default function Hero() {
             style={{ animationDelay: '0.2s' }}
           >
             Highly accurate birth time rectification within{' '}
-            <span className="text-[#B8860B] font-semibold">seconds-level precision</span>.
+            <span className="text-[#8A6A0B] font-semibold">seconds-level precision</span>.
             Powered by Skyfield astronomical data and DeepSeek AI,
             aligned with ancient Vedic wisdom.
           </p>
@@ -123,8 +123,8 @@ export default function Hero() {
             <Link href="/rectify">
               <button
                 className="group relative px-10 py-4 bg-gradient-to-r from-[#B8860B] via-[#78611D] to-[#E5C880]
-                           text-white font-semibold text-base rounded-xl shadow-lg shadow-amber-500/25
-                           overflow-hidden transition-all duration-300 hover:-translate-y-0.5 hover:scale-[1.02] active:scale-[0.98]"
+                           text-white font-semibold text-base rounded-xl
+                           overflow-hidden transition-all duration-300 hover:brightness-105 active:brightness-95"
               >
                 <span className="relative z-10 flex items-center justify-center gap-2">
                   Begin Your Journey
@@ -136,32 +136,26 @@ export default function Hero() {
             </Link>
           </div>
 
-          {/* Core Stats - Elegant Cards */}
-          <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mb-8">
+          {/* Core Stats - Horizontal Inline Layout */}
+          <div className="flex flex-wrap items-center justify-center gap-6 max-w-2xl mx-auto mb-8">
             {coreStats.map((stat, index) => {
               const Icon = stat.icon;
               return (
                 <div
                   key={stat.label}
-                  className="animate-fade-in-up group relative p-5 bg-white border border-[#F0E8DE] rounded-2xl
-                             hover:border-[#78611D]/30 hover:shadow-lg transition-all duration-300"
+                  className="animate-fade-in-up flex items-center gap-3"
                   style={{ animationDelay: `${0.4 + index * 0.05}s` }}
                 >
-                  <div
-                    className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                    style={{
-                      background: `radial-gradient(circle at center, ${stat.color}08 0%, transparent 70%)`
-                    }}
-                  />
-
-                  <div className="relative">
-                    <Icon className="w-5 h-5 mx-auto mb-3" style={{ color: stat.color }} />
-                    <div className="font-[family-name:var(--font-cormorant)] text-xl sm:text-2xl font-semibold text-[#1A1612] mb-1">
+                  <Icon className="w-5 h-5 flex-shrink-0" style={{ color: stat.color }} />
+                  <div className="text-left">
+                    <div className="font-[family-name:var(--font-cormorant)] text-lg sm:text-xl font-semibold text-[#1A1612]">
                       {stat.value}
                     </div>
-                    <div className="text-[10px] uppercase tracking-[0.15em] text-[#7A756F]">{stat.label}</div>
-                    <div className="text-[9px] text-[#A8A39D] mt-1">{stat.desc}</div>
+                    <div className="text-[11px] text-[#5A554F]">{stat.label}</div>
                   </div>
+                  {index < coreStats.length - 1 && (
+                    <div className="hidden sm:block w-px h-8 bg-[#F0E8DE] ml-3" />
+                  )}
                 </div>
               );
             })}
@@ -176,7 +170,7 @@ export default function Hero() {
               <SecurityShieldIcon />
               <div className="text-left">
                 <div className="text-sm font-semibold text-emerald-800">Your Data is Protected</div>
-                <div className="text-xs text-emerald-600">AES-256 End-to-End Encryption • Only you can access your data</div>
+                <div className="text-xs text-emerald-700">AES-256 End-to-End Encryption • Only you can access your data</div>
               </div>
             </div>
           </div>
@@ -211,7 +205,7 @@ export default function Hero() {
         {/* Scroll Indicator */}
         <div className="flex justify-center mt-16">
           <div
-            className="animate-gentle-float flex flex-col items-center gap-2 text-[#A8A39D]"
+            className="animate-gentle-float flex flex-col items-center gap-2 text-[#8A857F]"
           >
             <span className="text-xs uppercase tracking-[0.2em]">Scroll to explore</span>
             <ChevronDown className="w-5 h-5" />

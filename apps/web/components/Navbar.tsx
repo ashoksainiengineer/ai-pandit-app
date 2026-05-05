@@ -60,7 +60,7 @@ export default function Navbar({ transparent = false }: NavbarProps) {
                 <span className="font-[family-name:var(--font-cormorant)] text-xl sm:text-2xl font-semibold text-[#1A1612]">
                   AI Pandit
                 </span>
-                <span className="hidden sm:block text-[10px] text-[#7A756F] uppercase tracking-[0.2em]">
+                <span className="hidden sm:block text-[10px] text-[#5A554F] uppercase tracking-[0.2em]">
                   VEDIC ASTRO MASTER
                 </span>
               </div>

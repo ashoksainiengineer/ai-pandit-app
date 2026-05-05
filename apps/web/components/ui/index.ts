@@ -1,6 +1,6 @@
-export { default as Breadcrumbs } from './Breadcrumbs';
-export { default as ClientOnly } from './ClientOnly';
-export { default as LoadingOverlay } from './LoadingOverlay';
+export { Breadcrumbs } from './Breadcrumbs';
+export { ClientOnly } from './ClientOnly';
+export { LoadingOverlay } from './LoadingOverlay';
 export { FormCard } from './form/FormCard';
 export { FormError } from './form/FormError';
 export { FormField } from './form/FormField';

@@ -78,15 +78,15 @@ export async function POST(req: NextRequest) {
       status: row.status,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
-      fullName: parseSensitiveField(row.fullName, undefined, exportUserId),
-      dateOfBirth: parseSensitiveField(row.dateOfBirth, undefined, exportUserId),
-      tentativeTime: parseSensitiveField(row.tentativeTime, undefined, exportUserId),
-      birthPlace: parseSensitiveField(row.birthPlace, undefined, exportUserId),
+      fullName: parseSensitiveField(row.fullName, exportUserId, undefined),
+      dateOfBirth: parseSensitiveField(row.dateOfBirth, exportUserId, undefined),
+      tentativeTime: parseSensitiveField(row.tentativeTime, exportUserId, undefined),
+      birthPlace: parseSensitiveField(row.birthPlace, exportUserId, undefined),
       rectifiedTime: row.rectifiedTime ?? null,
       accuracy: row.accuracy ?? null,
       confidence: row.confidence ?? null,
-      analysisResult: includeResults ? parseSensitiveField(row.analysisResult as string | null | undefined, null, exportUserId) : undefined,
-      reasoningLogs: includeLogs ? parseSensitiveField(row.reasoningLogs as string | null | undefined, null, exportUserId) : undefined,
+      analysisResult: includeResults ? parseSensitiveField(row.analysisResult as string | null | undefined, exportUserId, null) : undefined,
+      reasoningLogs: includeLogs ? parseSensitiveField(row.reasoningLogs as string | null | undefined, exportUserId, null) : undefined,
     }));
 
     if (format === 'json') {

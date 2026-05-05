@@ -71,7 +71,7 @@ const LoadingState = memo(() => (
       <Gem className="w-16 h-16 text-[#B8860B]" />
     </motion.div>
     <h1 className="text-2xl font-bold mt-6 text-[#1A1612]">Starting Analysis...</h1>
-    <p className="text-lg text-[#7A756F] mt-2">Establishing secure connection...</p>
+    <p className="text-lg text-[#5A554F] mt-2">Establishing secure connection...</p>
   </div>
 ));
 LoadingState.displayName = 'LoadingState';
@@ -90,7 +90,7 @@ ErrorDisplay.displayName = 'ErrorDisplay';
 
 const Breadcrumbs = memo(({ items }: { items: { label: string; href?: string; icon?: React.ReactNode }[] }) => (
   <nav aria-label="Breadcrumb" className="mb-1">
-    <ol className="flex items-center gap-2 text-xs text-[#7A756F]">
+    <ol className="flex items-center gap-2 text-xs text-[#5A554F]">
       {items.map((item, index) => (
         <li key={item.label} className="flex items-center gap-2">
           {item.href ? (
@@ -138,7 +138,7 @@ const AnalysisTimer = memo(({ startedAt, isComplete, updatedAt }: { startedAt: s
   if (!mounted || (!startedAt && !updatedAt)) {
     return (
       <div className="flex items-center gap-1.5 font-mono text-sm bg-stone-100 px-3 py-1.5 rounded-lg border border-stone-200">
-        <Clock className="w-3.5 h-3.5 text-[#7A756F]" />
+        <Clock className="w-3.5 h-3.5 text-[#5A554F]" />
         <span className="text-xs font-semibold">Waiting...</span>
       </div>
     );
@@ -150,7 +150,7 @@ const AnalysisTimer = memo(({ startedAt, isComplete, updatedAt }: { startedAt: s
 
   return (
     <div className="flex items-center gap-1.5 font-mono text-sm bg-stone-100 px-3 py-1.5 rounded-lg border border-stone-200">
-      <Clock className="w-3.5 h-3.5 text-[#7A756F]" />
+      <Clock className="w-3.5 h-3.5 text-[#5A554F]" />
       <span className="font-semibold">{minutes}:{seconds}</span>
     </div>
   );
@@ -371,14 +371,14 @@ export default function AnalysisPage() {
               <div>
                 <h1 id={pageTitleId} className="text-lg sm:text-xl font-bold flex items-center gap-2" style={{ color: THEME.textPrimary }}>
                   {metadata?.fullName || 'Birth Time Analysis'}
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-stone-100 text-[#7A756F]">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-stone-100 text-[#5A554F]">
                     {sessionId.slice(0, 8)}
                   </span>
                 </h1>
 
                 {/* Birth Details */}
                 {(metadata?.dateOfBirth || metadata?.tentativeTime || metadata?.birthPlace || metadata?.offsetConfig) && (
-                  <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-[#7A756F]">
+                  <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-[#5A554F]">
                     {metadata?.dateOfBirth && (
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5" />
@@ -456,7 +456,7 @@ export default function AnalysisPage() {
                   <h2 className="text-lg font-bold mb-2" style={{ color: THEME.textPrimary }}>
                     {metadata?.status === 'failed' ? 'Analysis Failed' : 'Analysis Stopped'}
                   </h2>
-                  <p className="mb-6 text-sm text-[#7A756F]">{metadata?.errorMessage || 'The analysis was terminated.'}</p>
+                  <p className="mb-6 text-sm text-[#5A554F]">{metadata?.errorMessage || 'The analysis was terminated.'}</p>
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                     <button onClick={restartAnalysisSession} disabled={isCancelling} className="px-5 py-2.5 rounded-xl font-bold text-white flex items-center gap-2" style={{ backgroundColor: THEME.success }}>
                       <RefreshCw className={`w-4 h-4 ${isCancelling ? 'animate-spin' : ''}`} /> Restart

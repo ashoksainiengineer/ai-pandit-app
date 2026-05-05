@@ -71,10 +71,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
             ...session,
             // 1. Birth Data Reconstruction (All PII Encrypted)
             birthData: {
-                fullName: parseSensitiveField(session.fullName, undefined, sessionUserId),
-                dateOfBirth: parseSensitiveField(session.dateOfBirth, undefined, sessionUserId),
-                tentativeTime: parseSensitiveField(session.tentativeTime, undefined, sessionUserId),
-                birthPlace: parseSensitiveField(session.birthPlace, undefined, sessionUserId),
+                fullName: parseSensitiveField(session.fullName, sessionUserId, undefined),
+                dateOfBirth: parseSensitiveField(session.dateOfBirth, sessionUserId, undefined),
+                tentativeTime: parseSensitiveField(session.tentativeTime, sessionUserId, undefined),
+                birthPlace: parseSensitiveField(session.birthPlace, sessionUserId, undefined),
                 latitude: session.latitude,
                 longitude: session.longitude,
                 timezone: Number(session.timezone),
@@ -82,22 +82,22 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
             },
 
             // 2. Trait Clusters (All Encrypted)
-            lifeEvents: parseSensitiveField(session.lifeEvents, [], sessionUserId),
-            physicalTraits: parseSensitiveField(session.physicalTraits, null, sessionUserId),
-            forensicTraits: parseSensitiveField(session.forensicTraits, null, sessionUserId),
-            spouseData: parseSensitiveField(session.spouseData, null, sessionUserId),
+            lifeEvents: parseSensitiveField(session.lifeEvents, sessionUserId, []),
+            physicalTraits: parseSensitiveField(session.physicalTraits, sessionUserId, null),
+            forensicTraits: parseSensitiveField(session.forensicTraits, sessionUserId, null),
+            spouseData: parseSensitiveField(session.spouseData, sessionUserId, null),
 
             // 3. System & Results (Can be encrypted or plain depending on source)
-            offsetConfig: parseSensitiveField(session.offsetConfig, null, sessionUserId),
-            analysisResult: parseSensitiveField(session.analysisResult as string | null | undefined, null, sessionUserId),
-            progressData: parseSensitiveField(session.progressData as string | null | undefined, null, sessionUserId),
-            reasoningLogs: parseSensitiveField(session.reasoningLogs as string | null | undefined, null, sessionUserId),
+            offsetConfig: parseSensitiveField(session.offsetConfig, sessionUserId, null),
+            analysisResult: parseSensitiveField(session.analysisResult as string | null | undefined, sessionUserId, null),
+            progressData: parseSensitiveField(session.progressData as string | null | undefined, sessionUserId, null),
+            reasoningLogs: parseSensitiveField(session.reasoningLogs as string | null | undefined, sessionUserId, null),
             errorMessage: session.errorMessage, // Errors usually plain text for monitoring
         };
 
         // Extra check: If fullName is at the root and still looks encrypted, patch it
         if (isEncrypted(parsedSession.fullName)) {
-            parsedSession.fullName = parseSensitiveField(parsedSession.fullName, undefined, sessionUserId) ?? 'Unknown';
+            parsedSession.fullName = parseSensitiveField(parsedSession.fullName, sessionUserId, undefined) ?? 'Unknown';
         }
 
         return NextResponse.json({ success: true, data: parsedSession });

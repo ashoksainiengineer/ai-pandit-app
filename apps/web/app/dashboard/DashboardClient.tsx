@@ -53,7 +53,7 @@ const StatCard = memo(function StatCard({
         </div>
         <div className="min-w-0">
           <div className="text-lg sm:text-2xl font-bold text-[#1A1612]">{value}</div>
-          <div className="text-xs sm:text-sm text-[#7A756F] truncate">{label}</div>
+          <div className="text-xs sm:text-sm text-[#5A554F] truncate">{label}</div>
         </div>
       </div>
     </div>
@@ -121,7 +121,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
           <h1 className="text-xl sm:text-3xl font-bold text-[#1A1612] font-[family-name:var(--font-cormorant)]">
             Welcome, {userName}
           </h1>
-          <p className="text-sm sm:text-base text-[#7A756F] mt-1">
+          <p className="text-sm sm:text-base text-[#5A554F] mt-1">
             Manage your BTR sessions
           </p>
         </div>
@@ -169,13 +169,13 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
       <div
         className="relative mb-6"
       >
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#7A756F]" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#5A554F]" />
         <input
           type="text"
           placeholder="Search by name..."
           value={searchInput}
           onChange={e => setSearchInput(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 bg-white border border-[#E8E0D5] rounded-xl text-[#1A1612] placeholder-[#A8A39D] focus:border-[#78611D] focus:ring-2 focus:ring-[#78611D]/10 outline-none transition-all"
+          className="w-full pl-12 pr-4 py-3 bg-white border border-[#E8E0D5] rounded-xl text-[#1A1612] placeholder-[#8A857F] focus:border-[#78611D] focus:ring-2 focus:ring-[#78611D]/10 outline-none transition-all"
         />
       </div>
 
@@ -190,7 +190,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
             <h3 className="text-xl font-semibold text-[#1A1612] mb-2">
               {searchQuery ? 'No matches found' : 'No sessions yet'}
             </h3>
-            <p className="text-[#7A756F] mb-6">
+            <p className="text-[#5A554F] mb-6">
               {searchQuery
                 ? 'Try a different search term'
                 : 'Start your first birth time rectification analysis'}
@@ -228,7 +228,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
           <button
             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
             disabled={currentPage === 1}
-            className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-[#7A756F] hover:text-[#1A1612] disabled:opacity-30 transition-colors"
+            className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-[#5A554F] hover:text-[#1A1612] disabled:opacity-30 transition-colors"
           >
             <span className="sm:hidden">←</span>
             <span className="hidden sm:inline">Previous</span>
@@ -240,7 +240,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
               onClick={() => navigateToPage(page)}
               className={`w-8 h-8 sm:w-10 sm:h-10 rounded-lg text-xs sm:text-sm font-medium transition-colors ${currentPage === page
                 ? 'bg-[#B8860B] text-white'
-                : 'text-[#7A756F] hover:bg-[#F5EFE7]'
+                : 'text-[#5A554F] hover:bg-[#F5EFE7]'
                 }`}
             >
               {page}
@@ -250,7 +250,7 @@ export function DashboardClient({ initialSessions, userName }: DashboardClientPr
           <button
             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
             disabled={currentPage === totalPages}
-            className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-[#7A756F] hover:text-[#1A1612] disabled:opacity-30 transition-colors"
+            className="px-2 sm:px-4 py-2 text-xs sm:text-sm font-medium text-[#5A554F] hover:text-[#1A1612] disabled:opacity-30 transition-colors"
           >
             <span className="sm:hidden">→</span>
             <span className="hidden sm:inline">Next</span>

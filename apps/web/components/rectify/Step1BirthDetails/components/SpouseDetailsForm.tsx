@@ -38,8 +38,8 @@ export function SpouseDetailsForm({
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-white border border-[#E8E0D5] flex items-center justify-center text-xl">👩‍❤️‍👨</div>
                     <div>
-                        <h4 className="font-[family-name:var(--font-cormorant)] text-base font-semibold text-[#1A1612]">Spouse Details <span className="text-[#7A756F] font-normal text-xs">(Optional)</span></h4>
-                        <p className="text-[10px] text-[#7A756F]">+15% precision boost</p>
+                        <h4 className="font-[family-name:var(--font-cormorant)] text-base font-semibold text-[#1A1612]">Spouse Details <span className="text-[#5A554F] font-normal text-xs">(Optional)</span></h4>
+                        <p className="text-[10px] text-[#5A554F]">+15% precision boost</p>
                     </div>
                 </div>
                 <div className={`w-8 h-8 rounded-full bg-white border border-[#E8E0D5] flex items-center justify-center text-xs transition-all ${showSpouse ? 'rotate-180 bg-[#B8860B] border-[#B8860B] text-white' : 'text-[#B8860B]'}`}>▼</div>
@@ -105,7 +105,7 @@ export function SpouseDetailsForm({
                                         key={p}
                                         type="button"
                                         onClick={() => handleSpouseTimeChange('period', p as any)}
-                                        className={`px-4 font-medium text-sm transition-all ${spouseTimeParts.period === p ? 'bg-[#B8860B] text-white' : 'text-[#7A756F] hover:text-[#1A1612]'}`}
+                                        className={`px-4 font-medium text-sm transition-all ${spouseTimeParts.period === p ? 'bg-[#B8860B] text-white' : 'text-[#5A554F] hover:text-[#1A1612]'}`}
                                     >
                                         {p}
                                     </button>

@@ -33,7 +33,7 @@ export default function FAQ() {
           viewport={{ once: true }}
           className="text-center mb-12"
         >
-          <h2 className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-slate-800 mb-2">
+          <h2 className="font-[family-name:var(--font-cormorant)] text-3xl sm:text-4xl font-semibold text-[#1A1612] mb-2">
             Frequently Asked Questions
           </h2>
         </motion.div>
@@ -46,13 +46,13 @@ export default function FAQ() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.08 }}
-              className="group bg-white border border-amber-200/50 rounded-xl overflow-hidden"
+              className="group bg-white border border-[#F0E8DE] rounded-xl overflow-hidden"
             >
-              <summary className="px-5 py-4 text-slate-700 font-medium cursor-pointer flex items-center justify-between hover:bg-amber-50/50 transition-colors list-none text-sm sm:text-base">
+              <summary className="px-5 py-4 text-[#1A1612] font-medium cursor-pointer flex items-center justify-between hover:bg-[#FDF8F3] transition-colors list-none text-sm sm:text-base">
                 <span className="pr-4">{faq.q}</span>
-                <ChevronDown className="w-4 h-4 text-amber-500 flex-shrink-0 transition-transform duration-200 group-open:rotate-180" />
+                <ChevronDown className="w-4 h-4 text-[#8A857F] flex-shrink-0 transition-transform duration-200 group-open:rotate-180" />
               </summary>
-              <div className="border-t border-amber-100 px-5 py-4 text-sm text-slate-500 leading-relaxed">
+              <div className="border-t border-[#F0E8DE] px-5 py-4 text-sm text-[#5A554F] leading-relaxed">
                 {faq.a}
               </div>
             </motion.details>

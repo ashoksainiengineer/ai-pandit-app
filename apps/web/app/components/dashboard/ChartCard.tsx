@@ -44,10 +44,10 @@ export default function ChartCard({
             {title}
           </h3>
           {subtitle && (
-            <p className="text-sm text-[#7A756F] mt-1">{subtitle}</p>
+            <p className="text-sm text-[#5A554F] mt-1">{subtitle}</p>
           )}
         </div>
-        <button className="p-2 rounded-lg hover:bg-[#FDF8F3] text-[#7A756F] hover:text-[#1A1612] transition-colors">
+        <button className="p-2 rounded-lg hover:bg-[#FDF8F3] text-[#5A554F] hover:text-[#1A1612] transition-colors">
           <MoreHorizontal className="w-5 h-5" />
         </button>
       </div>
