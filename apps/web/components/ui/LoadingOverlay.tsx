@@ -10,6 +10,8 @@ interface LoadingOverlayProps {
 }
 
 export const LoadingOverlay = memo(function LoadingOverlay({ isVisible, message = 'Processing...' }: LoadingOverlayProps) {
+    return (
+        <AnimatePresence>
             {isVisible && (
                 <motion.div
                     initial={{ opacity: 0 }}
