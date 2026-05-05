@@ -34,7 +34,9 @@ import {
   KPSubLordData,
   ZODIAC_SIGNS,
   EVENT_HOUSE_MAP,
-  EVENT_SIGNIFICATORS
+  EVENT_SIGNIFICATORS,
+  EVENT_SPECIFIC_SIGNIFICATORS,
+  DATE_PRECISION_WEIGHTS
 } from '@ai-pandit/shared';
 import type { DivisionalChart, BoundarySafety } from '../advanced-btr-methods.js';
 import {
@@ -431,7 +433,11 @@ function scoreVimshottariMatch(
 
     if (!dashaAtEvent) continue;
 
-    const significators = EVENT_SIGNIFICATORS[event.category] || [];
+    // Look up significators: event-specific first, then category-level
+    const significators = (event.id ? EVENT_SPECIFIC_SIGNIFICATORS[event.id] : undefined)
+      || EVENT_SPECIFIC_SIGNIFICATORS[event.type?.toLowerCase()]
+      || EVENT_SIGNIFICATORS[event.category]
+      || [];
     const dashaLord = dashaAtEvent.mahadasha;
     const antarLord = dashaAtEvent.antardasha;
 
@@ -478,6 +484,16 @@ function scoreVimshottariMatch(
     if (prana && significators.includes(prana)) {
       eventScore += DASHA_MATCH_SCORES.pranaMatch;
     }
+
+    // APPLY DATE PRECISION WEIGHT — approximate dates contribute proportionally less
+    // exact_date_time=1.0, exact_date=0.9, month_year=0.5, year_range=0.1
+    const precisionWeight = DATE_PRECISION_WEIGHTS[event.datePrecision ?? 'exact_date'] ?? 0.7;
+    eventScore *= precisionWeight;
+
+    // APPLY IMPORTANCE WEIGHT — critical events amplify, low events dampen
+    const impactMultiplier: Record<string, number> = { critical: 2.0, major: 1.5, moderate: 1.0, minor: 0.5 };
+    const imp = event.impact ?? 'moderate';
+    eventScore *= impactMultiplier[imp] ?? 1.0;
 
     totalScore += eventScore * event.calculatedWeight;
     totalWeight += event.calculatedWeight;

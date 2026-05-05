@@ -5,6 +5,8 @@
 
 'use client';
 
+import React, { memo } from 'react';
+
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
@@ -27,7 +29,7 @@ const footerLinks = {
   ],
 };
 
-export default function Footer() {
+export default memo(function Footer() {
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {

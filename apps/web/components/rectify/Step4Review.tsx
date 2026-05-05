@@ -14,6 +14,11 @@ interface Step4ReviewProps {
   offsetConfig?: unknown;
 }
 
+function traitLabel(val: string | undefined | null): string {
+  if (!val) return '—';
+  return val.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default function Step4Review({
   data,
   events,
@@ -24,6 +29,10 @@ export default function Step4Review({
   onEdit,
   offsetConfig,
 }: Step4ReviewProps) {
+  const fs = traits?.facialStructure ?? {};
+  const sh = traits?.skinHair ?? {};
+  const ht = traits?.height;
+
   return (
     <div className="space-y-6">
       <div className="bg-[#F5F0E8] rounded-xl p-6 border border-[#E8E0D5]">
@@ -31,16 +40,19 @@ export default function Step4Review({
         <p className="text-[#7A756F]">Please review your birth details, life events, and physical traits before submitting.</p>
       </div>
       
+      {/* Birth Details */}
       <div className="bg-white rounded-xl p-6 border border-[#E8E0D5]">
         <h3 className="text-lg font-semibold text-[#2A2A2A] mb-3">Birth Details</h3>
-        <div className="text-sm text-[#7A756F]">
-          <p><strong>Name:</strong> {data.fullName}</p>
-          <p><strong>Date:</strong> {data.dateOfBirth}</p>
-          <p><strong>Time:</strong> {data.tentativeTime}</p>
-          <p><strong>Place:</strong> {data.birthPlace}</p>
+        <div className="text-sm text-[#7A756F] space-y-1">
+          <p><strong>Name:</strong> {data.fullName || '—'}</p>
+          <p><strong>Date:</strong> {data.dateOfBirth || '—'}</p>
+          <p><strong>Time:</strong> {data.tentativeTime || '—'}</p>
+          <p><strong>Place:</strong> {data.birthPlace || '—'}</p>
+          <p><strong>Gender:</strong> {data.gender || '—'}</p>
         </div>
       </div>
 
+      {/* Life Events */}
       <div className="bg-white rounded-xl p-6 border border-[#E8E0D5]">
         <h3 className="text-lg font-semibold text-[#2A2A2A] mb-3">Life Events ({events.length})</h3>
         {events.length === 0 ? (
@@ -49,45 +61,55 @@ export default function Step4Review({
           <ul className="space-y-2">
             {events.map((event) => (
               <li key={event.id} className="text-sm text-[#7A756F]">
-                {event.eventType} — {event.eventDate}
+                <strong>{event.eventType}</strong> — {event.eventDate}
               </li>
             ))}
           </ul>
         )}
       </div>
 
+      {/* Physical Traits */}
       <div className="bg-white rounded-xl p-6 border border-[#E8E0D5]">
         <h3 className="text-lg font-semibold text-[#2A2A2A] mb-3">Physical Traits</h3>
-        <div className="text-sm text-[#7A756F]">
-          {traits ? (
-            <ul className="space-y-1">
-              {traits.build && <li><strong>Build:</strong> {traits.build}</li>}
-              {traits.complexion && <li><strong>Complexion:</strong> {traits.complexion}</li>}
-              {traits.eyeShape && <li><strong>Eye Shape:</strong> {traits.eyeShape}</li>}
-              {traits.hairType && <li><strong>Hair Type:</strong> {traits.hairType}</li>}
-              {traits.height && typeof traits.height === 'object' && (
-                <li><strong>Height:</strong> {(traits.height as {cm:number}).cm} cm</li>
-              )}
-            </ul>
-          ) : (
-            <p>No physical traits recorded.</p>
-          )}
-        </div>
+        {traits ? (
+          <div className="grid grid-cols-2 gap-3 text-sm text-[#3A3530]">
+            <div><strong className="text-[#7A756F] text-xs">Eyes:</strong> <span className="capitalize">{traitLabel('eyeShape' in fs ? fs.eyeShape : undefined)}</span></div>
+            <div><strong className="text-[#7A756F] text-xs">Nose:</strong> <span className="capitalize">{traitLabel('noseShape' in fs ? (fs as Record<string,string>).noseShape : undefined)}</span></div>
+            <div><strong className="text-[#7A756F] text-xs">Forehead:</strong> <span className="capitalize">{traitLabel(fs.forehead)}</span></div>
+            <div><strong className="text-[#7A756F] text-xs">Jawline:</strong> <span className="capitalize">{traitLabel('jawLine' in fs ? (fs as Record<string,string>).jawLine : undefined)}</span></div>
+            <div><strong className="text-[#7A756F] text-xs">Lips:</strong> <span className="capitalize">{traitLabel('lips' in fs ? (fs as Record<string,string>).lips : undefined)}</span></div>
+            <div><strong className="text-[#7A756F] text-xs">Ears:</strong> <span className="capitalize">{traitLabel('ears' in fs ? (fs as Record<string,string>).ears : undefined)}</span></div>
+            <div><strong className="text-[#7A756F] text-xs">Voice:</strong> <span className="capitalize">{traitLabel('voicePitch' in fs ? (fs as Record<string,string>).voicePitch : undefined)}</span></div>
+            <div><strong className="text-[#7A756F] text-xs">Skin:</strong> <span className="capitalize">{traitLabel(sh.complexion)}</span></div>
+            <div><strong className="text-[#7A756F] text-xs">Hair:</strong> <span className="capitalize">{traitLabel(sh.hairType)}</span></div>
+            <div><strong className="text-[#7A756F] text-xs">Build:</strong> <span className="capitalize">{traitLabel(traits.build)}</span></div>
+            <div><strong className="text-[#7A756F] text-xs">Height:</strong> {ht && typeof ht === 'object' && (ht as {cm:number}).cm ? `${(ht as {cm:number}).cm} cm` : '—'}</div>
+            {sh.marks && sh.marks.length > 0 && (
+              <div className="col-span-2"><strong className="text-[#7A756F] text-xs">Special Marks:</strong> {sh.marks.join(', ')}</div>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm text-[#7A756F]">No physical traits recorded.</p>
+        )}
       </div>
 
+      {/* Forensic Profile */}
       <div className="bg-white rounded-xl p-6 border border-[#E8E0D5]">
         <h3 className="text-lg font-semibold text-[#2A2A2A] mb-3">Forensic Profile</h3>
-        <div className="text-sm text-[#7A756F]">
-          {forensicTraits ? (
-            <ul className="space-y-1">
-              {forensicTraits.psychographic?.temperament && <li><strong>Temperament:</strong> {forensicTraits.psychographic.temperament}</li>}
-              {forensicTraits.biological?.prakriti && <li><strong>Prakriti:</strong> {forensicTraits.biological.prakriti}</li>}
-              {forensicTraits.family?.siblingPosition && <li><strong>Sibling Position:</strong> {forensicTraits.family.siblingPosition}</li>}
-            </ul>
-          ) : (
-            <p>No forensic traits recorded.</p>
-          )}
-        </div>
+        {forensicTraits ? (
+          <div className="grid grid-cols-2 gap-3 text-sm text-[#3A3530]">
+            <div><strong className="text-[#7A756F] text-xs">Prakriti:</strong> <span className="capitalize">{forensicTraits.biological?.prakriti || '—'}</span></div>
+            <div><strong className="text-[#7A756F] text-xs">Temperament:</strong> <span className="capitalize">{forensicTraits.psychographic?.temperament || '—'}</span></div>
+            <div><strong className="text-[#7A756F] text-xs">Speech Style:</strong> <span className="capitalize">{forensicTraits.psychographic?.speechStyle || '—'}</span></div>
+            <div><strong className="text-[#7A756F] text-xs">Decision Making:</strong> <span className="capitalize">{forensicTraits.psychographic?.decisionMaking || '—'}</span></div>
+            <div><strong className="text-[#7A756F] text-xs">Stress Response:</strong> <span className="capitalize">{forensicTraits.psychographic?.stressResponse || '—'}</span></div>
+            <div><strong className="text-[#7A756F] text-xs">Sibling Position:</strong> <span className="capitalize">{forensicTraits.family?.siblingPosition || '—'}</span></div>
+            <div><strong className="text-[#7A756F] text-xs">Brothers:</strong> {forensicTraits.family?.brotherCount ?? '—'}</div>
+            <div><strong className="text-[#7A756F] text-xs">Sisters:</strong> {forensicTraits.family?.sisterCount ?? '—'}</div>
+          </div>
+        ) : (
+          <p className="text-sm text-[#7A756F]">No forensic traits recorded.</p>
+        )}
       </div>
 
       <div className="flex gap-4">

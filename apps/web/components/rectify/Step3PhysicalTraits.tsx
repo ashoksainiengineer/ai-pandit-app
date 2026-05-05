@@ -311,6 +311,14 @@ interface SpecialMarksInputProps {
 const SpecialMarksInput = memo(({ value, onChange }: SpecialMarksInputProps) => {
     const [localValue, setLocalValue] = useState(value.join(', '));
 
+    // Sync local state when external value changes (e.g. draft load)
+    useEffect(() => {
+        const joined = value.join(', ');
+        if (joined !== localValue) {
+            setLocalValue(joined);
+        }
+    }, [value]);
+
     const commitSpecialMarksOnBlur = () => {
         const marks = localValue.split(',').map(s => s.trim()).filter(s => s.length > 0);
         if (JSON.stringify(marks) !== JSON.stringify(value)) {

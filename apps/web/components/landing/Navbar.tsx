@@ -87,9 +87,9 @@ export default function Navbar() {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="px-6 py-2.5 bg-gradient-to-r from-[#6B1F7A] to-[#8B4A9C] text-white 
-                           font-medium text-sm rounded-xl shadow-lg shadow-purple-500/20
-                           hover:shadow-purple-500/30 transition-shadow duration-300"
+                className="px-6 py-2.5 bg-gradient-to-r from-primary to-primary-dark text-white
+                           font-medium text-sm rounded-xl shadow-lg shadow-amber-500/15
+                           hover:shadow-amber-500/25 transition-shadow duration-300"
               >
                 Dashboard
               </motion.button>
@@ -151,7 +151,7 @@ export default function Navbar() {
                 transition={{ delay: navLinks.length * 0.1 }}
               >
                 <Link href="/dashboard" onClick={() => setIsOpen(false)}>
-                  <button className="w-full mt-2 px-4 py-3 bg-gradient-to-r from-[#6B1F7A] to-[#8B4A9C] 
+                  <button className="w-full mt-2 px-4 py-3 bg-gradient-to-r from-primary to-primary-dark
                                      text-white font-medium rounded-xl">
                     Dashboard
                   </button>

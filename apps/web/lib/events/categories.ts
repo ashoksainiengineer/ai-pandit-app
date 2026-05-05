@@ -354,6 +354,36 @@ export const EVENT_CATEGORIES: EventCategory[] = [
       { id: 'adopted_discovered', label: 'Discovered Being Adopted', importance: 'critical', ageRange: 'all' },
     ],
   },
+
+  // ═════════════════════════════════════════════════════════════════════════════
+  // ASTROLOGICAL RECTIFICATION MARKERS — BTR-Grade Events
+  // These events have precise astrological signatures and provide the
+  // strongest birth time rectification signals
+  // ═════════════════════════════════════════════════════════════════════════════
+  {
+    id: 'btr_markers',
+    icon: '⭐',
+    label: 'Rectification Markers (BTR)',
+    color: '#FFD700',
+    description: 'High-precision events that provide the strongest birth time rectification signals. These have clear planetary signatures.',
+    events: [
+      { id: 'dasha_change', label: 'Dasha Period Changed (Mahadasha)', importance: 'critical', ageRange: 'all' },
+      { id: 'jupiter_return', label: 'Jupiter Return (Age ~12, 24, 36, 48)', importance: 'critical', ageRange: 'all' },
+      { id: 'saturn_return', label: 'Saturn Return (Age ~30, 60)', importance: 'critical', ageRange: { min: 27, max: 62 } },
+      { id: 'sade_sati_start', label: 'Sade Sati Started (7.5 yr Saturn transit)', importance: 'critical', ageRange: 'all' },
+      { id: 'sade_sati_peak', label: 'Sade Sati Peak (Saturn exact Moon)', importance: 'critical', ageRange: 'all' },
+      { id: 'sade_sati_end', label: 'Sade Sati Ended', importance: 'high', ageRange: 'all' },
+      { id: 'first_foreign_travel', label: 'First Foreign Travel / Abroad', importance: 'critical', ageRange: { min: 15, max: 60 } },
+      { id: 'near_death', label: 'Near-Death Experience', importance: 'critical', ageRange: 'all' },
+      { id: 'spiritual_awakening', label: 'Spiritual Awakening / Kundalini', importance: 'critical', ageRange: { min: 18, max: 60 } },
+      { id: 'sudden_wealth', label: 'Sudden Wealth / Windfall', importance: 'critical', ageRange: { min: 18, max: 60 } },
+      { id: 'sudden_opportunity', label: 'Sudden Life-Changing Opportunity', importance: 'high', ageRange: { min: 18, max: 60 } },
+      { id: 'name_change', label: 'Name Change (Legal/Spiritual)', importance: 'critical', ageRange: 'all' },
+      { id: 'legal_victory', label: 'Major Legal Victory', importance: 'high', ageRange: { min: 18, max: 60 } },
+      { id: 'legal_defeat', label: 'Major Legal Defeat/Loss', importance: 'critical', ageRange: { min: 18, max: 60 } },
+    ],
+    ],
+  },
 ];
 
 export default EVENT_CATEGORIES;

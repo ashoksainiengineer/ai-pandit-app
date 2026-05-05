@@ -238,3 +238,4 @@ logs/*.md
 .vscode/
 .desloppify/
 .venv-desloppify/
+.vercel

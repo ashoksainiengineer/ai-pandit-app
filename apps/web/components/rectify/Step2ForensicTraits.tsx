@@ -43,17 +43,60 @@ function hasExistingTraits(traits: ForensicTraits): boolean {
         traits.family?.siblingPosition
     );
 }
-
-// Get trait summary for display
-function getTraitSummary(traits: ForensicTraits) {
-    return {
-        prakriti: traits.biological?.prakriti || 'Not set',
-        eyeShape: traits.physical?.facialStructure?.eyeShape?.replace(/_/g, ' ') || 'Not set',
-        speechStyle: traits.psychographic?.speechStyle?.replace(/_/g, ' ') || 'Not set',
-        birthOrder: traits.family?.siblingPosition?.replace(/_/g, ' ') || 'Not set'
-    };
+// Assessment summary component (shared by both completion views)
+function AssessmentCompleteView({ traitSummary, onRetake, onContinue }: {
+    traitSummary: ReturnType<typeof getTraitSummary>;
+    onRetake: () => void;
+    onContinue: () => void;
+}) {
+    return (
+        <div className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl border border-[#184131]/30 p-8 shadow-lg">
+            <div className="text-center mb-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#184131] to-[#4ADE80] mb-4">
+                    <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-bold text-[#1A1612] mb-2">
+                    Assessment Complete
+                </h2>
+                <p className="text-[#7A756F]">
+                    Your forensic profile has been recorded and will be used for precise birth time rectification.
+                </p>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
+                    <div className="text-2xl mb-1">🍃</div>
+                    <div className="text-xs text-[#7A756F]">Body Type</div>
+                    <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.prakriti}</div>
+                </div>
+                <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
+                    <div className="text-2xl mb-1">👁️</div>
+                    <div className="text-xs text-[#7A756F]">Eye Shape</div>
+                    <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.eyeShape}</div>
+                </div>
+                <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
+                    <div className="text-2xl mb-1">🗣️</div>
+                    <div className="text-xs text-[#7A756F]">Speech Style</div>
+                    <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.speechStyle}</div>
+                </div>
+                <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
+                    <div className="text-2xl mb-1">👨‍👩‍👧‍👦</div>
+                    <div className="text-xs text-[#7A756F]">Birth Order</div>
+                    <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.birthOrder}</div>
+                </div>
+            </div>
+            <div className="flex gap-3">
+                <button onClick={onRetake} className="flex-1 py-3 border-2 border-[#E8E0D5] text-[#7A756F] rounded-xl font-semibold hover:bg-[#F5EFE7] transition-colors">
+                    Retake Assessment
+                </button>
+                <button onClick={onContinue} className="flex-1 py-3 bg-gradient-to-r from-[#184131] to-[#4ADE80] text-white rounded-xl font-semibold hover:shadow-lg transition-all">
+                    Continue to Next Step
+                </button>
+            </div>
+        </div>
+    );
 }
-
 export default function Step2ForensicTraits({
     traits,
     updateTraits,
@@ -213,61 +256,12 @@ export default function Step2ForensicTraits({
                     </div>
                 )}
 
-                {/* Existing Data View - Show summary with option to retake */}
                 {!showQuiz && !quizCompleted && hasExistingData && (
-                    <div className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl border border-[#184131]/30 p-8 shadow-lg">
-                        <div className="text-center mb-6">
-                            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#184131] to-[#4ADE80] mb-4">
-                                <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                            </div>
-                            <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-bold text-[#1A1612] mb-2">
-                                Assessment Complete
-                            </h2>
-                            <p className="text-[#7A756F]">
-                                Your forensic profile is ready for birth time rectification.
-                            </p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4 mb-6">
-                            <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
-                                <div className="text-2xl mb-1">🍃</div>
-                                <div className="text-xs text-[#7A756F]">Body Type</div>
-                                <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.prakriti}</div>
-                            </div>
-                            <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
-                                <div className="text-2xl mb-1">👁️</div>
-                                <div className="text-xs text-[#7A756F]">Eye Shape</div>
-                                <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.eyeShape}</div>
-                            </div>
-                            <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
-                                <div className="text-2xl mb-1">🗣️</div>
-                                <div className="text-xs text-[#7A756F]">Speech Style</div>
-                                <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.speechStyle}</div>
-                            </div>
-                            <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
-                                <div className="text-2xl mb-1">👨‍👩‍👧‍👦</div>
-                                <div className="text-xs text-[#7A756F]">Birth Order</div>
-                                <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.birthOrder}</div>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={handleRetakeQuiz}
-                                className="flex-1 py-3 border-2 border-[#E8E0D5] text-[#7A756F] rounded-xl font-semibold hover:bg-[#F5EFE7] transition-colors"
-                            >
-                                Retake Assessment
-                            </button>
-                            <button
-                                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                                className="flex-1 py-3 bg-gradient-to-r from-[#184131] to-[#4ADE80] text-white rounded-xl font-semibold hover:shadow-lg transition-all"
-                            >
-                                Continue to Next Step
-                            </button>
-                        </div>
-                    </div>
+                    <AssessmentCompleteView
+                        traitSummary={traitSummary}
+                        onRetake={handleRetakeQuiz}
+                        onContinue={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    />
                 )}
 
                 {/* Quiz View */}
@@ -279,59 +273,12 @@ export default function Step2ForensicTraits({
                     />
                 )}
 
-                {/* Quiz Completed View */}
                 {quizCompleted && (
-                    <div className="bg-gradient-to-br from-[#FDF8F3] to-white rounded-2xl border border-[#184131]/30 p-8 shadow-lg text-center">
-                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-[#184131] to-[#4ADE80] mb-4">
-                            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                        </div>
-                        <h2 className="font-[family-name:var(--font-cormorant)] text-2xl font-bold text-[#1A1612] mb-2">
-                            Assessment Complete
-                        </h2>
-                        <p className="text-[#7A756F] mb-6">
-                            Your forensic profile has been recorded and will be used for precise birth time rectification.
-                        </p>
-
-                        <div className="grid grid-cols-2 gap-4 mb-6">
-                            <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
-                                <div className="text-2xl mb-1">🍃</div>
-                                <div className="text-xs text-[#7A756F]">Body Type</div>
-                                <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.prakriti}</div>
-                            </div>
-                            <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
-                                <div className="text-2xl mb-1">👁️</div>
-                                <div className="text-xs text-[#7A756F]">Eye Shape</div>
-                                <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.eyeShape}</div>
-                            </div>
-                            <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
-                                <div className="text-2xl mb-1">🗣️</div>
-                                <div className="text-xs text-[#7A756F]">Speech Style</div>
-                                <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.speechStyle}</div>
-                            </div>
-                            <div className="p-4 bg-white rounded-xl border border-[#F0E8DE]">
-                                <div className="text-2xl mb-1">👨‍👩‍👧‍👦</div>
-                                <div className="text-xs text-[#7A756F]">Birth Order</div>
-                                <div className="font-semibold text-[#1A1612] capitalize">{traitSummary.birthOrder}</div>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={handleRetakeQuiz}
-                                className="flex-1 py-3 border-2 border-[#E8E0D5] text-[#7A756F] rounded-xl font-semibold hover:bg-[#F5EFE7] transition-colors"
-                            >
-                                Retake Assessment
-                            </button>
-                            <button
-                                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                                className="flex-1 py-3 bg-gradient-to-r from-[#184131] to-[#4ADE80] text-white rounded-xl font-semibold hover:shadow-lg transition-all"
-                            >
-                                Continue to Next Step
-                            </button>
-                        </div>
-                    </div>
+                    <AssessmentCompleteView
+                        traitSummary={traitSummary}
+                        onRetake={handleRetakeQuiz}
+                        onContinue={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    />
                 )}
             </motion.div>
         </div>

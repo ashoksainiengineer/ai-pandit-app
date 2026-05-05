@@ -5,6 +5,7 @@
 
 'use client';
 
+import { memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, Trash2, X, Loader2, Shield, User, FileText, Sparkles, Database } from 'lucide-react';
 import { DashboardSession } from '@/lib/dashboard/types';
@@ -18,7 +19,7 @@ interface DeleteConfirmModalProps {
   error?: string | null;
 }
 
-export function DeleteConfirmModal({
+export const DeleteConfirmModal = memo(function DeleteConfirmModal({
   isOpen,
   onClose,
   onConfirm,

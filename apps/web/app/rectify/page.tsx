@@ -11,11 +11,7 @@ import BirthDataForm from '@/components/rectify/BirthDataForm';
 import LifeEventsEditor from '@/components/rectify/LifeEventsEditor';
 import { useRectifyForm } from '@/hooks/use-rectify-form';
 
-const Step3PhysicalTraits = dynamic(() => import('@/components/rectify/Step3PhysicalTraits'), {
-    loading: () => <div className="animate-pulse bg-[#F5F0E8] h-96 rounded-xl" />,
-    ssr: false
-});
-const Step2ForensicTraits = dynamic(() => import('@/components/rectify/Step2ForensicTraits'), {
+const Step2PhysicalTraits = dynamic(() => import('@/components/rectify/Step2PhysicalTraits'), {
     loading: () => <div className="animate-pulse bg-[#F5F0E8] h-96 rounded-xl" />,
     ssr: false
 });
@@ -36,7 +32,7 @@ function RectifyPageContent() {
             <AnalysisErrorBoundary>
                 <AutoSaveIndicator status={form.cloudSaveStatus} />
 
-                <div className="pt-28 pb-16">
+                <div className="pt-28 pb-24">
                     <div className="min-h-[400px]">
                         {form.step === 1 && (
                             <BirthDataForm
@@ -49,17 +45,16 @@ function RectifyPageContent() {
                             />
                         )}
                         {form.step === 2 && (
-                            <Step3PhysicalTraits
+                            <Step2PhysicalTraits
                                 physicalTraits={form.forensicTraits.physical}
                                 updateTraits={form.updatePhysicalTraits}
                             />
                         )}
                         {form.step === 3 && (
-                            <Step2ForensicTraits
-                                traits={form.forensicTraits}
-                                updateTraits={form.updateForensicTraits}
-                                gender={form.birthData.gender}
-                                onNext={form.handleNext}
+                            <LifeEventsEditor
+                                lifeEvents={form.lifeEvents}
+                                offsetConfig={form.offsetConfig}
+                                onUpdateEvents={form.setLifeEvents}
                             />
                         )}
                         {form.step === 4 && (
@@ -69,11 +64,11 @@ function RectifyPageContent() {
                                 onUpdateEvents={form.setLifeEvents}
                             />
                         )}
-                        {form.step === 5 && (
+                        {form.step === 4 && (
                             <Step4Review
                                 data={form.birthData}
                                 events={form.lifeEvents}
-                                traits={form.forensicTraits.physical!}
+                                traits={form.forensicTraits.physical ?? undefined}
                                 forensicTraits={form.forensicTraits}
                                 onSubmit={form.handleSubmit}
                                 isSubmitting={form.isSubmitting}
@@ -85,7 +80,7 @@ function RectifyPageContent() {
 
                     <RectifySubmitBar
                         step={form.step}
-                        totalSteps={5}
+                        totalSteps={4}
                         isSubmitting={form.isSubmitting}
                         error={form.error}
                         onBack={form.handleBack}
@@ -93,7 +88,8 @@ function RectifyPageContent() {
                         onSubmit={form.handleSubmit}
                     />
                 </div>
-            </AnalysisErrorBoundary>
+
+                <TrustFooter />
         </Layout>
     );
 }
