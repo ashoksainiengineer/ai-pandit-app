@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
             forensicTraits: body.forensicTraits ? encrypt(JSON.stringify(body.forensicTraits), user.id) : null,
             offsetConfig: body.offsetConfig ? encrypt(JSON.stringify(body.offsetConfig), user.id) : null,
 
-            status: 'draft',
+            status: 'draft' as const,
             isEncrypted: true,
 
             createdAt: new Date().toISOString(),
