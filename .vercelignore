@@ -1,22 +1,75 @@
-# ═══════════════════════════════════════════════════════════════════════════
-# AI PANDIT - VERCEL DEPLOYMENT IGNORE (.vercelignore)
-# ═══════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════
+# Vercel Deploy — Only upload what apps/web needs to build
+# Root Directory in Vercel dashboard = apps/web
+# ═══════════════════════════════════════════════════════════════════
 
-# Exclude tests from production deployment
-**/__tests__/**
-**/*.test.ts
-**/*.test.tsx
-**/*.spec.ts
-**/*.spec.tsx
+# Nothing from these top-level dirs
+apps/api/
+apps/worker/
+services/
+docs/
+scripts/
+e2e/
+tests/
+deploy/
+local/
+logs/
+.claude/
+.desloppify/
+.sisyphus/
+.github/
+.venv-desloppify/
+
+# Build artifacts
+node_modules/
+.next/
+dist/
 coverage/
+.turbo/
+*.tsbuildinfo
+
+# Test artifacts
+**/__tests__/**
+**/*.test.*
+**/*.spec.*
 playwright-report/
 test-results/
+stryker.config.mjs
+playwright.config.*
+vitest.config.*
+vitest.workspace.*
 
-# Exclude IDE/Tooling
+# IDE / Tooling
+.vscode/
 .gemini/
 .idx/
-.vscode/
+.cursorrules
+.copilot*
 
-# Exclude Ephemeris source data
-apps/api/ephe/*.se1
-sweph.tar.gz
+# Configs not needed for build
+.env*
+!.env.production
+!.env.production.example
+.gitignore
+.dockerignore
+docker-compose*
+Dockerfile
+cloudbuild.yaml
+vercel.json
+
+# Docs and reports
+*.md
+!README.md
+scorecard.png
+a11y-report.json
+
+# Temp files
+*.log
+*.sql
+requeue_debug.txt
+subjective_*
+
+# Python ephemeris
+*.bsp
+services/ephemeris/
+uv.lock
