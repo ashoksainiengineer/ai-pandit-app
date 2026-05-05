@@ -2,6 +2,7 @@
 
 import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import TrustFooter from '@/components/rectify/TrustFooter';
 import Layout from '@/components/Layout';
 import AnalysisErrorBoundary from '@/components/rectify/AnalysisErrorBoundary';
 import RectifyPageSkeleton from '@/components/rectify/RectifyPageSkeleton';
