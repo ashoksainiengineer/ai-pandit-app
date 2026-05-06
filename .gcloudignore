@@ -1,0 +1,63 @@
+# Cloud Build source upload exclusions
+# These files are not needed for Docker image builds
+
+# Always ignore these
+.gcloudignore
+.git
+.gitignore
+
+# Include patterns from .gitignore (node_modules, .env, etc.)
+# Include patterns from .gitignore (node_modules, .env, build outputs, etc.)
+!include:.gitignore
+
+# Additional Cloud Build specific exclusions
+# (these may be in git but not needed for builds)
+#!include:.gitignore
+
+# Additional Cloud Build specific exclusions
+# (these may be in git but not needed for builds)
+
+# Downloaded reference assets (not used in builds)
+apps/web/public/dia-assets/
+
+# Documentation
+*.md
+docs/
+
+# Design specs
+design-spec-dia-browser.md
+
+# Test files not needed for production builds
+e2e/
+tests/
+playwright.config.ts
+playwright.visual.config.ts
+vitest.config.ts
+vitest.workspace.ts
+stryker.config.mjs
+
+# CI/CD configs not needed in builds
+.github/
+cloudbuild.yaml
+
+# Scripts not needed in container
+scripts/
+
+# Local development
+local/
+
+# Coverage reports
+coverage/
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -239,3 +239,7 @@ logs/*.md
 .desloppify/
 .venv-desloppify/
 .vercel
+
+
+# Downloaded reference assets (not for production)
+apps/web/public/dia-assets/
