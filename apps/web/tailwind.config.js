@@ -78,6 +78,24 @@ module.exports = {
           'signal-blue': '#0358f7',
           'hot-pink': '#fd02f5',
         },
+
+        // ═══════════════════════════════════════════════════════════════
+        // DIA BROWSER INSPIRED — Clean minimal light theme
+        // ═══════════════════════════════════════════════════════════════
+        dia: {
+          bg: '#F8F8F8',
+          'bg-warm': '#FAFAFA',
+          ink: '#000000',
+          'ink-muted': 'rgba(0,0,0,0.6)',
+          'ink-subtle': 'rgba(0,0,0,0.4)',
+          'ink-faint': 'rgba(0,0,0,0.15)',
+          border: 'rgba(0,0,0,0.08)',
+          'border-strong': 'rgba(0,0,0,0.12)',
+          card: '#FFFFFF',
+          'hero-blue-start': '#a8c4e8',
+          'hero-blue-end': '#c8ddf5',
+          'hero-blue-mid': '#b8d3ee',
+        },
       },
 
       fontFamily: {
@@ -86,6 +104,10 @@ module.exports = {
         // Prism design system fonts
         prism: ['var(--font-inter)', 'var(--font-dm-sans)', 'system-ui', 'sans-serif'],
         inter: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        // Dia-inspired fonts
+        'dia-heading': ['var(--font-dm-sans)', 'system-ui', 'sans-serif'],
+        'dia-serif': ['var(--font-playfair)', 'Georgia', 'serif'],
+        'dia-mono': ['var(--font-mono)', 'monospace'],
       },
 
       borderRadius: {
@@ -94,11 +116,20 @@ module.exports = {
         'prism-lg': '1.25rem',     // 20px — cards, containers
         'prism-xl': '1.875rem',    // 30px — cards, filled buttons
         'prism-2xl': '2.5rem',     // 40px — large containers
+        'dia-sm': '12px',
+        'dia-md': '16px',
+        'dia-lg': '20px',
+        'dia-xl': '24px',
+        'dia-2xl': '32px',
       },
 
       boxShadow: {
         'prism-sm': '0 0 8px 0 rgba(0, 0, 0, 0.08)',
         'prism-none': 'none',
+        'dia-sm': '0 2px 8px rgba(0,0,0,0.04)',
+        'dia-md': '0 4px 24px rgba(0,0,0,0.06)',
+        'dia-lg': '0 8px 40px rgba(0,0,0,0.08)',
+        'dia-float': '0 12px 48px rgba(0,0,0,0.10)',
       },
 
       spacing: {
@@ -128,6 +159,9 @@ module.exports = {
         'prism-gentle-float': 'prismGentleFloat 4s ease-in-out infinite',
         'prism-gradient-sweep': 'prismGradientSweep 3s ease infinite',
         'prism-shimmer': 'prismShimmer 2s ease-in-out infinite',
+        'dia-float': 'diaFloat 6s ease-in-out infinite',
+        'dia-float-slow': 'diaFloatSlow 8s ease-in-out infinite',
+        'dia-float-delayed': 'diaFloat 6s ease-in-out infinite 2s',
       },
 
       keyframes: {
@@ -167,6 +201,14 @@ module.exports = {
         prismShimmer: {
           '0%': { backgroundPosition: '-200% 0' },
           '100%': { backgroundPosition: '200% 0' },
+        },
+        diaFloat: {
+          '0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
+          '50%': { transform: 'translateY(-16px) rotate(1deg)' },
+        },
+        diaFloatSlow: {
+          '0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
+          '50%': { transform: 'translateY(-12px) rotate(-1deg)' },
         },
       },
     },

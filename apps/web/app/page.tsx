@@ -1,6 +1,6 @@
 /**
  * AI Pandit — New Landing Page
- * Built with Prism Design System
+ * Built with Prism Design System + Dia Browser Inspired Styling
  * 100% Transparent — Real Tech Stack, Real Features
  */
 
@@ -23,6 +23,14 @@ import {
   ChevronDown,
   Check,
   Github,
+  Star,
+  Moon,
+  Sun,
+  Calendar,
+  MapPin,
+  User,
+  FileText,
+  Activity,
 } from 'lucide-react';
 import '@/app/prism-design-system.css';
 import AIThinkingBox from '@/components/landing/AIThinkingBox';
@@ -46,14 +54,21 @@ const staggerItem = {
   transition: { duration: 0.4, ease: 'easeOut' },
 };
 
+const floatAnimation = {
+  initial: { opacity: 0, y: 30, scale: 0.95 },
+  whileInView: { opacity: 1, y: 0, scale: 1 },
+  viewport: { once: true, margin: '-40px' },
+  transition: { duration: 0.6, ease: 'easeOut' },
+};
+
 /* ═══════════════════════════════════════════════════════════════════════════════
    DATA — 100% REAL PROJECT INFO
    ═══════════════════════════════════════════════════════════════════════════════ */
 
 const CORE_STATS = [
-  { value: 'Seconds', label: 'Precision', icon: Clock, color: '#c679c4' },
-  { value: '97%+', label: 'Confidence', icon: Sparkles, color: '#fa3d1d' },
-  { value: '~1 Hour', label: 'Analysis Time', icon: Zap, color: '#ffb005' },
+  { value: 'Seconds', label: 'Precision', icon: Clock, color: '#000000' },
+  { value: '97%+', label: 'Confidence', icon: Sparkles, color: '#000000' },
+  { value: '~1 Hour', label: 'Analysis Time', icon: Zap, color: '#000000' },
 ];
 
 const HOW_IT_WORKS_STEPS = [
@@ -218,6 +233,43 @@ const FAQS = [
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════════
+   FLOATING WIDGET COMPONENTS
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+function FloatingWidget({
+  icon: Icon,
+  title,
+  subtitle,
+  className,
+  delay = 0,
+}: {
+  icon: React.ElementType;
+  title: string;
+  subtitle: string;
+  className?: string;
+  delay?: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.6, delay, ease: 'easeOut' }}
+      className={`dia-float-widget absolute ${className}`}
+    >
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-dia-hero-blue-start/30 flex items-center justify-center">
+          <Icon className="w-4 h-4 text-black/70" />
+        </div>
+        <div>
+          <div className="text-sm font-medium text-black">{title}</div>
+          <div className="text-xs text-black/50">{subtitle}</div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
    COMPONENT SECTIONS
    ═══════════════════════════════════════════════════════════════════════════════ */
 
@@ -233,17 +285,22 @@ function Header() {
 
   return (
     <header
-      className={`sticky top-0 z-50 bg-prism-fog/90 backdrop-blur-prism-lg border-b transition-colors duration-200 ${
-        scrolled ? 'border-prism-pebble' : 'border-transparent'
+      className={`sticky top-0 z-50 transition-all duration-300 ${
+        scrolled
+          ? 'bg-white/90 backdrop-blur-xl border-b border-black/5'
+          : 'bg-transparent'
       }`}
-      style={{ WebkitBackdropFilter: 'blur(24px)' }}
+      style={{ WebkitBackdropFilter: scrolled ? 'blur(24px)' : 'none' }}
     >
-      <div className="prism-container flex items-center justify-between h-[3.25rem]">
-        <Link href="/" className="font-prism text-lg font-medium text-prism-ink tracking-tight">
+      <div className="dia-container flex items-center justify-between h-16">
+        <Link
+          href="/"
+          className="font-dia-heading text-lg font-medium text-black tracking-tight"
+        >
           AI Pandit
         </Link>
 
-        <nav className="hidden md:flex items-center gap-prism-6">
+        <nav className="hidden md:flex items-center gap-8">
           {[
             { label: 'How It Works', href: '#how-it-works' },
             { label: 'Tech Stack', href: '#tech-stack' },
@@ -253,14 +310,14 @@ function Header() {
             <a
               key={item.href}
               href={item.href}
-              className="text-prism-body-sm font-normal text-prism-ink transition-colors duration-200 hover:text-prism-graphite"
+              className="text-sm font-normal text-black/60 transition-colors duration-200 hover:text-black"
             >
               {item.label}
             </a>
           ))}
         </nav>
 
-        <Link href="/rectify" className="prism-btn text-sm">
+        <Link href="/rectify" className="dia-btn text-sm">
           Begin Analysis
           <ArrowRight className="w-4 h-4" />
         </Link>
@@ -271,23 +328,49 @@ function Header() {
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden">
-      {/* Spectrum gradient glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] prism-gradient-spectrum opacity-[0.08] blur-[120px] rounded-full pointer-events-none" />
+    <section className="relative overflow-hidden dia-hero-gradient">
+      {/* Floating widgets */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <FloatingWidget
+          icon={Calendar}
+          title="Birth Chart"
+          subtitle="Natal analysis ready"
+          className="top-[15%] left-[8%] animate-dia-float hidden lg:block"
+          delay={0.3}
+        />
+        <FloatingWidget
+          icon={Moon}
+          title="Dasha Analysis"
+          subtitle="Vimshottari periods"
+          className="top-[20%] right-[10%] animate-dia-float-slow hidden lg:block"
+          delay={0.5}
+        />
+        <FloatingWidget
+          icon={Activity}
+          title="Transit Check"
+          subtitle="Real-time positions"
+          className="bottom-[25%] left-[5%] animate-dia-float-delayed hidden lg:block"
+          delay={0.7}
+        />
+        <FloatingWidget
+          icon={Star}
+          title="97% Confidence"
+          subtitle="High accuracy match"
+          className="bottom-[30%] right-[8%] animate-dia-float hidden lg:block"
+          delay={0.9}
+        />
+      </div>
 
-      <div className="prism-container pt-prism-14 pb-prism-12">
+      <div className="dia-container pt-20 pb-32 md:pt-28 md:pb-40 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
           {/* Badge */}
           <motion.div
             {...fadeInUp}
-            className="inline-flex items-center gap-prism-3 px-prism-6 py-prism-3 bg-prism-fog rounded-prism-md mb-8"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white/60 backdrop-blur-sm rounded-full mb-8 border border-black/5"
           >
-            <span className="w-2 h-2 rounded-full bg-prism-signal-blue animate-pulse" />
-            <span className="text-prism-body-sm font-medium text-prism-ink">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-medium text-black/70 uppercase tracking-wider font-dia-mono">
               Vedic Birth Time Rectification
-            </span>
-            <span className="text-prism-caption text-prism-slate hidden sm:inline">
-              NASA JPL • DeepSeek AI • Skyfield
             </span>
           </motion.div>
 
@@ -295,10 +378,10 @@ function Hero() {
           <motion.h1
             {...fadeInUp}
             transition={{ ...fadeInUp.transition, delay: 0.05 }}
-            className="font-prism font-light text-prism-ink text-[2.25rem] md:text-[4.5rem] leading-[1.11] tracking-[-0.04em]"
+            className="font-dia-heading font-light text-black text-[2.5rem] md:text-[4.8rem] lg:text-[6rem] leading-[1.05] tracking-[-0.04em]"
           >
             Discover Your{' '}
-            <span className="prism-gradient-spectrum bg-clip-text text-transparent">
+            <span className="font-dia-serif italic text-black/90">
               Exact Birth Time
             </span>
           </motion.h1>
@@ -307,10 +390,10 @@ function Hero() {
           <motion.p
             {...fadeInUp}
             transition={{ ...fadeInUp.transition, delay: 0.1 }}
-            className="mt-6 text-lg font-normal text-prism-graphite max-w-2xl mx-auto leading-relaxed"
+            className="mt-8 text-lg md:text-xl font-normal text-black/60 max-w-2xl mx-auto leading-relaxed"
           >
             AI-powered birth time rectification within{' '}
-            <span className="text-prism-ink font-medium">seconds-level precision</span>.
+            <span className="text-black font-medium">seconds-level precision</span>.
             Powered by NASA JPL ephemeris data, DeepSeek AI reasoning, and classical
             Vedic astrology principles.
           </motion.p>
@@ -321,35 +404,31 @@ function Hero() {
             transition={{ ...fadeInUp.transition, delay: 0.15 }}
             className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4"
           >
-            <Link href="/rectify" className="prism-btn">
+            <Link href="/rectify" className="dia-btn text-base px-8 py-4">
               Begin Your Journey
-              <ArrowRight className="w-4 h-4" />
+              <ArrowRight className="w-5 h-5" />
             </Link>
-            <a
-              href="#tech-stack"
-              className="prism-btn-ghost text-sm"
-            >
+            <a href="#tech-stack" className="dia-btn-ghost text-base px-8 py-4">
               See The Tech Stack
             </a>
           </motion.div>
 
-          {/* Stats */}
+          {/* Stats as floating pills */}
           <motion.div
             {...fadeInUp}
             transition={{ ...fadeInUp.transition, delay: 0.2 }}
-            className="mt-12 flex flex-wrap items-center justify-center gap-prism-8"
+            className="mt-14 flex flex-wrap items-center justify-center gap-4"
           >
             {CORE_STATS.map((stat) => {
               const Icon = stat.icon;
               return (
-                <div key={stat.label} className="flex items-center gap-prism-3">
-                  <Icon className="w-5 h-5" style={{ color: stat.color }} />
-                  <div className="text-left">
-                    <div className="font-prism text-lg font-medium text-prism-ink">
-                      {stat.value}
-                    </div>
-                    <div className="text-prism-caption text-prism-slate">{stat.label}</div>
-                  </div>
+                <div
+                  key={stat.label}
+                  className="dia-pill"
+                >
+                  <Icon className="w-4 h-4 text-black/40" />
+                  <span className="font-medium text-black">{stat.value}</span>
+                  <span className="text-black/40">{stat.label}</span>
                 </div>
               );
             })}
@@ -359,16 +438,32 @@ function Hero() {
           <motion.div
             {...fadeInUp}
             transition={{ ...fadeInUp.transition, delay: 0.25 }}
-            className="mt-8 flex justify-center"
+            className="mt-6 flex justify-center"
           >
-            <div className="inline-flex items-center gap-prism-3 px-prism-5 py-prism-3 bg-prism-fog rounded-prism-lg">
-              <Lock className="w-4 h-4 text-prism-graphite" />
-              <span className="text-prism-body-sm text-prism-graphite">
-                AES-256-GCM Encryption • Per-User Keys • Zero-Knowledge Architecture
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/50 backdrop-blur-sm rounded-full border border-black/5">
+              <Lock className="w-3.5 h-3.5 text-black/40" />
+              <span className="text-xs text-black/50 font-dia-mono uppercase tracking-wider">
+                AES-256-GCM Encryption • Per-User Keys • Zero-Knowledge
               </span>
             </div>
           </motion.div>
         </div>
+      </div>
+
+      {/* Curved white arc at bottom */}
+      <div className="absolute bottom-0 left-0 right-0">
+        <svg
+          viewBox="0 0 1440 120"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-full h-auto"
+          preserveAspectRatio="none"
+        >
+          <path
+            d="M0 120L1440 120V60C1440 60 1200 0 720 0C240 0 0 60 0 60V120Z"
+            fill="#F8F8F8"
+          />
+        </svg>
       </div>
     </section>
   );
@@ -376,35 +471,41 @@ function Hero() {
 
 function LiveAnalysisEngine() {
   return (
-    <section className="prism-section bg-prism-canvas">
-      <div className="prism-container">
-        <motion.div {...fadeInUp} className="text-center mb-prism-8">
-          <div className="inline-flex items-center gap-2 px-prism-4 py-prism-2 bg-prism-fog rounded-prism-full mb-4">
-            <span className="relative flex h-2.5 w-2.5">
+    <section className="dia-section-sm bg-dia-bg">
+      <div className="dia-container">
+        <motion.div {...fadeInUp} className="text-center mb-16">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-black/5 rounded-full mb-6">
+            <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            <span className="text-prism-caption font-medium text-prism-graphite uppercase tracking-wider">
+            <span className="text-xs font-medium text-black/50 uppercase tracking-wider font-dia-mono">
               Live Analysis Engine
             </span>
           </div>
-          <h2 className="font-prism font-light text-[2.5rem] leading-[1.15] tracking-[-0.03em] text-prism-ink">
+          <h2 className="font-dia-heading font-light text-[2.5rem] md:text-[3.5rem] leading-[1.1] tracking-[-0.04em] text-black">
             See the Analysis in Action
           </h2>
-          <p className="mt-3 text-prism-body font-normal text-prism-graphite max-w-xl mx-auto">
+          <p className="mt-4 text-lg font-normal text-black/60 max-w-xl mx-auto">
             A real-time glimpse into how our 6-stage pipeline processes your birth data
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-prism-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           <motion.div {...staggerItem} transition={{ delay: 0.1 }}>
-            <AIThinkingBox />
+            <div className="dia-card-sm h-full">
+              <AIThinkingBox />
+            </div>
           </motion.div>
           <motion.div {...staggerItem} transition={{ delay: 0.2 }}>
-            <EphemerisTable />
+            <div className="dia-card-sm h-full">
+              <EphemerisTable />
+            </div>
           </motion.div>
           <motion.div {...staggerItem} transition={{ delay: 0.3 }}>
-            <CandidateComparisonTable />
+            <div className="dia-card-sm h-full">
+              <CandidateComparisonTable />
+            </div>
           </motion.div>
         </div>
       </div>
@@ -414,38 +515,39 @@ function LiveAnalysisEngine() {
 
 function HowItWorks() {
   return (
-    <section id="how-it-works" className="prism-section bg-prism-canvas">
-      <div className="prism-container">
-        <motion.div {...fadeInUp} className="text-center mb-prism-12">
-          <h2 className="font-prism font-light text-[3.125rem] leading-[1.11] tracking-[-0.04em] text-prism-ink">
+    <section id="how-it-works" className="dia-section bg-dia-bg">
+      <div className="dia-container">
+        <motion.div {...fadeInUp} className="text-center mb-20">
+          <h2 className="font-dia-heading font-light text-[2.5rem] md:text-[3.5rem] leading-[1.1] tracking-[-0.04em] text-black">
             How It Works
           </h2>
-          <p className="mt-4 text-lg font-normal text-prism-graphite max-w-xl mx-auto">
+          <p className="mt-4 text-lg font-normal text-black/60 max-w-xl mx-auto">
             Four simple steps to discover your precise birth time
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-prism-6">
-          {HOW_IT_WORKS_STEPS.map((step) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-16 max-w-4xl mx-auto">
+          {HOW_IT_WORKS_STEPS.map((step, index) => (
             <motion.div
               key={step.number}
               {...staggerItem}
-              className="prism-card-sm flex flex-col"
+              transition={{ ...staggerItem.transition, delay: index * 0.1 }}
+              className="relative pl-8 border-l border-black/10"
             >
-              <span className="text-[3rem] font-light text-prism-pebble leading-none mb-prism-4">
+              <span className="absolute left-0 top-0 -translate-x-1/2 font-dia-mono text-xs text-black/30 bg-dia-bg px-1">
                 {step.number}
               </span>
-              <h3 className="font-prism text-[1.375rem] font-medium text-prism-ink leading-[1.25] mb-2">
+              <h3 className="font-dia-heading text-xl md:text-2xl font-light text-black leading-[1.2] mb-3 tracking-[-0.02em]">
                 {step.title}
               </h3>
-              <p className="text-prism-body-sm font-normal text-prism-graphite leading-relaxed mb-prism-6 flex-grow">
+              <p className="text-base font-normal text-black/60 leading-relaxed mb-5">
                 {step.description}
               </p>
               <div className="flex flex-wrap gap-2">
                 {step.details.map((detail) => (
                   <span
                     key={detail}
-                    className="inline-flex items-center gap-1 text-prism-caption text-prism-slate bg-prism-fog px-prism-3 py-prism-2 rounded-prism-full"
+                    className="inline-flex items-center gap-1.5 text-xs text-black/50 bg-white border border-black/5 px-3 py-1.5 rounded-full"
                   >
                     <Check className="w-3 h-3" />
                     {detail}
@@ -462,25 +564,25 @@ function HowItWorks() {
 
 function TechStack() {
   return (
-    <section id="tech-stack" className="prism-section-lg">
-      <div className="prism-container">
-        <motion.div {...fadeInUp} className="text-center mb-prism-12">
-          <div className="inline-flex items-center gap-2 px-prism-4 py-prism-2 bg-prism-fog rounded-prism-full mb-4">
-            <Github className="w-4 h-4 text-prism-graphite" />
-            <span className="text-prism-caption font-medium text-prism-graphite uppercase tracking-wider">
+    <section id="tech-stack" className="dia-section bg-white">
+      <div className="dia-container">
+        <motion.div {...fadeInUp} className="text-center mb-20">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-dia-bg border border-black/5 rounded-full mb-6">
+            <Github className="w-4 h-4 text-black/50" />
+            <span className="text-xs font-medium text-black/50 uppercase tracking-wider font-dia-mono">
               100% Transparent
             </span>
           </div>
-          <h2 className="font-prism font-light text-[3.125rem] leading-[1.11] tracking-[-0.04em] text-prism-ink">
+          <h2 className="font-dia-heading font-light text-[2.5rem] md:text-[3.5rem] leading-[1.1] tracking-[-0.04em] text-black">
             Our Tech Stack
           </h2>
-          <p className="mt-4 text-lg font-normal text-prism-graphite max-w-2xl mx-auto">
+          <p className="mt-4 text-lg font-normal text-black/60 max-w-2xl mx-auto">
             We believe in complete transparency. Here is every technology that powers AI Pandit —
             no black boxes, no hidden vendors.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-prism-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {TECH_STACK.map((category, index) => {
             const Icon = category.icon;
             return (
@@ -488,25 +590,25 @@ function TechStack() {
                 key={category.category}
                 {...staggerItem}
                 transition={{ ...staggerItem.transition, delay: index * 0.05 }}
-                className="prism-card-sm"
+                className="dia-card"
               >
-                <div className="flex items-center gap-prism-3 mb-prism-6">
-                  <div className="w-10 h-10 rounded-prism-md bg-prism-fog flex items-center justify-center">
-                    <Icon className="w-5 h-5 text-prism-ink" />
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-dia-bg flex items-center justify-center border border-black/5">
+                    <Icon className="w-5 h-5 text-black/70" />
                   </div>
-                  <h3 className="font-prism text-lg font-medium text-prism-ink">
+                  <h3 className="font-dia-heading text-lg font-medium text-black">
                     {category.category}
                   </h3>
                 </div>
                 <div className="space-y-3">
                   {category.items.map((item) => (
-                    <div key={item.name} className="flex items-start gap-prism-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-prism-pebble mt-2 flex-shrink-0" />
+                    <div key={item.name} className="flex items-start gap-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-black/20 mt-2 flex-shrink-0" />
                       <div>
-                        <span className="text-prism-body-sm font-medium text-prism-ink">
+                        <span className="text-sm font-medium text-black">
                           {item.name}
                         </span>
-                        <span className="text-prism-caption text-prism-slate ml-2">
+                        <span className="text-sm text-black/40 ml-2">
                           {item.desc}
                         </span>
                       </div>
@@ -519,9 +621,9 @@ function TechStack() {
         </div>
 
         {/* Architecture diagram */}
-        <motion.div {...fadeInUp} className="mt-prism-12">
-          <div className="prism-card p-prism-8">
-            <h3 className="font-prism text-[1.375rem] font-medium text-prism-ink mb-prism-6 text-center">
+        <motion.div {...fadeInUp} className="mt-16">
+          <div className="dia-card p-8 md:p-10">
+            <h3 className="font-dia-heading text-xl font-medium text-black mb-8 text-center">
               System Architecture
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4 text-center">
@@ -534,15 +636,15 @@ function TechStack() {
               ].map((item) => (
                 <div
                   key={item.layer}
-                  className="p-4 bg-prism-fog/50 rounded-prism-lg"
+                  className="p-4 bg-dia-bg rounded-2xl border border-black/5"
                 >
-                  <div className="text-prism-caption text-prism-slate uppercase tracking-wider mb-1">
+                  <div className="text-xs text-black/40 uppercase tracking-wider mb-1 font-dia-mono">
                     {item.layer}
                   </div>
-                  <div className="text-prism-body-sm font-medium text-prism-ink">
+                  <div className="text-sm font-medium text-black">
                     {item.tech}
                   </div>
-                  <div className="text-prism-caption text-prism-slate">{item.desc}</div>
+                  <div className="text-xs text-black/40">{item.desc}</div>
                 </div>
               ))}
             </div>
@@ -555,18 +657,18 @@ function TechStack() {
 
 function Features() {
   return (
-    <section id="features" className="prism-section bg-prism-canvas">
-      <div className="prism-container">
-        <motion.div {...fadeInUp} className="text-center mb-prism-12">
-          <h2 className="font-prism font-light text-[3.125rem] leading-[1.11] tracking-[-0.04em] text-prism-ink">
+    <section id="features" className="dia-section bg-dia-bg">
+      <div className="dia-container">
+        <motion.div {...fadeInUp} className="text-center mb-20">
+          <h2 className="font-dia-heading font-light text-[2.5rem] md:text-[3.5rem] leading-[1.1] tracking-[-0.04em] text-black">
             What Makes Us Different
           </h2>
-          <p className="mt-4 text-lg font-normal text-prism-graphite max-w-xl mx-auto">
+          <p className="mt-4 text-lg font-normal text-black/60 max-w-xl mx-auto">
             Not just another astrology tool. Built with engineering rigor and scientific precision.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-prism-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {FEATURES.map((feature, index) => {
             const Icon = feature.icon;
             return (
@@ -574,15 +676,15 @@ function Features() {
                 key={feature.title}
                 {...staggerItem}
                 transition={{ ...staggerItem.transition, delay: index * 0.05 }}
-                className="prism-card-sm hover:-translate-y-0.5 transition-transform duration-200"
+                className="dia-card hover:-translate-y-0.5 transition-transform duration-200"
               >
-                <div className="w-10 h-10 rounded-prism-md bg-prism-fog flex items-center justify-center mb-prism-5">
-                  <Icon className="w-5 h-5 text-prism-ink" />
+                <div className="w-10 h-10 rounded-xl bg-dia-bg flex items-center justify-center border border-black/5 mb-5">
+                  <Icon className="w-5 h-5 text-black/70" />
                 </div>
-                <h3 className="font-prism text-lg font-medium text-prism-ink mb-2">
+                <h3 className="font-dia-heading text-lg font-medium text-black mb-2">
                   {feature.title}
                 </h3>
-                <p className="text-prism-body-sm font-normal text-prism-graphite leading-relaxed">
+                <p className="text-sm font-normal text-black/60 leading-relaxed">
                   {feature.description}
                 </p>
               </motion.div>
@@ -596,28 +698,29 @@ function Features() {
 
 function FAQ() {
   return (
-    <section id="faq" className="prism-section">
-      <div className="prism-container max-w-3xl">
-        <motion.div {...fadeInUp} className="text-center mb-prism-12">
-          <h2 className="font-prism font-light text-[3.125rem] leading-[1.11] tracking-[-0.04em] text-prism-ink">
+    <section id="faq" className="dia-section bg-white">
+      <div className="dia-container max-w-3xl">
+        <motion.div {...fadeInUp} className="text-center mb-16">
+          <h2 className="font-dia-heading font-light text-[2.5rem] md:text-[3.5rem] leading-[1.1] tracking-[-0.04em] text-black">
             Frequently Asked Questions
           </h2>
         </motion.div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {FAQS.map((faq, index) => (
             <motion.details
               key={index}
               {...staggerItem}
               transition={{ ...staggerItem.transition, delay: index * 0.05 }}
-              className="group bg-white/90 backdrop-blur-prism-lg rounded-prism-xl shadow-prism-sm overflow-hidden border-none"
-              style={{ WebkitBackdropFilter: 'blur(24px)' }}
+              className="dia-faq-item group"
             >
-              <summary className="px-prism-6 py-prism-5 text-prism-ink font-medium cursor-pointer flex items-center justify-between hover:bg-prism-fog/50 transition-colors list-none text-prism-body">
-                <span className="pr-4">{faq.q}</span>
-                <ChevronDown className="w-4 h-4 text-prism-slate flex-shrink-0 transition-transform duration-200 group-open:rotate-180" />
+              <summary className="flex items-center justify-between cursor-pointer list-none">
+                <span className="pr-4 text-base md:text-lg font-normal text-black">
+                  {faq.q}
+                </span>
+                <ChevronDown className="w-5 h-5 text-black/30 flex-shrink-0 transition-transform duration-200 group-open:rotate-180" />
               </summary>
-              <div className="border-t border-prism-fog px-prism-6 py-prism-5 text-prism-body-sm text-prism-graphite leading-relaxed">
+              <div className="border-t border-black/5 px-6 md:px-8 py-5 text-sm md:text-base text-black/60 leading-relaxed">
                 {faq.a}
               </div>
             </motion.details>
@@ -630,21 +733,19 @@ function FAQ() {
 
 function CTA() {
   return (
-    <section className="prism-section-lg relative overflow-hidden">
-      {/* Spectrum glow */}
-      <div className="absolute inset-0 prism-gradient-spectrum opacity-[0.06] blur-[100px] pointer-events-none" />
-
-      <div className="prism-container relative">
+    <section className="dia-section-lg bg-dia-bg relative overflow-hidden">
+      <div className="dia-container relative">
         <motion.div {...fadeInUp} className="text-center max-w-2xl mx-auto">
-          <h2 className="font-prism font-light text-[3.125rem] leading-[1.11] tracking-[-0.04em] text-prism-ink">
-            Ready to discover your exact birth time?
+          <h2 className="font-dia-heading font-light text-[2.5rem] md:text-[4rem] leading-[1.1] tracking-[-0.04em] text-black">
+            Ready to discover your{' '}
+            <span className="font-dia-serif italic">exact birth time</span>?
           </h2>
-          <p className="mt-4 text-lg font-normal text-prism-graphite mb-8">
+          <p className="mt-6 text-lg font-normal text-black/60 mb-10">
             Join thousands who have found their precise birth moment through AI-powered
             Vedic astrology. Your data stays encrypted. Your results are seconds-accurate.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/rectify" className="prism-btn text-base px-prism-8 py-prism-5">
+            <Link href="/rectify" className="dia-btn text-lg px-10 py-5">
               Begin Free Analysis
               <ArrowRight className="w-5 h-5" />
             </Link>
@@ -659,23 +760,23 @@ function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-prism-pebble bg-prism-canvas">
-      <div className="prism-container py-prism-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-prism-10">
+    <footer className="border-t border-black/5 bg-white">
+      <div className="dia-container py-16">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           {/* Brand */}
           <div className="md:col-span-2">
-            <span className="font-prism text-2xl font-medium text-prism-ink block mb-2">
+            <span className="font-dia-heading text-2xl font-medium text-black block mb-2">
               AI Pandit
             </span>
-            <span className="text-prism-caption text-prism-slate uppercase tracking-wider">
+            <span className="text-xs text-black/40 uppercase tracking-wider font-dia-mono">
               AI-Powered Vedic Birth Time Rectification
             </span>
-            <p className="mt-4 text-prism-body-sm text-prism-graphite leading-relaxed max-w-sm">
+            <p className="mt-4 text-sm text-black/60 leading-relaxed max-w-sm">
               Birth time rectification within seconds-level precision using NASA JPL
               ephemeris data, DeepSeek AI reasoning, and classical Vedic astrology.
               Built with transparency. Encrypted by default.
             </p>
-            <div className="mt-4 flex items-center gap-2 text-prism-caption text-prism-slate">
+            <div className="mt-4 flex items-center gap-2 text-xs text-black/40 font-dia-mono">
               <span>Built with</span>
               <span className="text-red-400">♥</span>
               <span>and scientific rigor</span>
@@ -684,8 +785,8 @@ function Footer() {
 
           {/* Links */}
           <div>
-            <h4 className="font-prism text-sm font-medium text-prism-ink mb-4">Product</h4>
-            <ul className="space-y-2">
+            <h4 className="font-dia-heading text-sm font-medium text-black mb-4">Product</h4>
+            <ul className="space-y-3">
               {[
                 { label: 'Start Analysis', href: '/rectify' },
                 { label: 'Dashboard', href: '/dashboard' },
@@ -695,7 +796,7 @@ function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-prism-body-sm text-prism-graphite hover:text-prism-ink hover:underline underline-offset-[0.15em] transition-colors duration-200"
+                    className="text-sm text-black/60 hover:text-black hover:underline underline-offset-4 transition-colors duration-200"
                   >
                     {link.label}
                   </Link>
@@ -705,8 +806,8 @@ function Footer() {
           </div>
 
           <div>
-            <h4 className="font-prism text-sm font-medium text-prism-ink mb-4">Legal</h4>
-            <ul className="space-y-2">
+            <h4 className="font-dia-heading text-sm font-medium text-black mb-4">Legal</h4>
+            <ul className="space-y-3">
               {[
                 { label: 'Privacy Policy', href: '/privacy' },
                 { label: 'Terms of Service', href: '/terms' },
@@ -714,7 +815,7 @@ function Footer() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-prism-body-sm text-prism-graphite hover:text-prism-ink hover:underline underline-offset-[0.15em] transition-colors duration-200"
+                    className="text-sm text-black/60 hover:text-black hover:underline underline-offset-4 transition-colors duration-200"
                   >
                     {link.label}
                   </Link>
@@ -725,17 +826,17 @@ function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-prism-pebble mt-prism-10 pt-prism-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-prism-body-sm text-prism-slate">
+        <div className="border-t border-black/5 mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-sm text-black/40">
             © {currentYear} AI Pandit. All rights reserved.
           </p>
-          <div className="flex items-center gap-prism-4">
-            <span className="text-prism-caption text-prism-slate">Powered by</span>
-            <div className="flex items-center gap-prism-3">
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-black/40 font-dia-mono uppercase tracking-wider">Powered by</span>
+            <div className="flex items-center gap-3">
               {['Next.js', 'DeepSeek AI', 'Skyfield', 'Neon'].map((tech, i) => (
                 <React.Fragment key={tech}>
-                  <span className="text-prism-caption text-prism-graphite">{tech}</span>
-                  {i < 3 && <span className="text-prism-pebble">•</span>}
+                  <span className="text-xs text-black/50">{tech}</span>
+                  {i < 3 && <span className="text-black/20">•</span>}
                 </React.Fragment>
               ))}
             </div>
@@ -752,7 +853,7 @@ function Footer() {
 
 export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-prism-canvas font-prism antialiased">
+    <main className="min-h-screen bg-dia-bg font-dia-heading antialiased">
       <Header />
       <Hero />
       <LiveAnalysisEngine />
